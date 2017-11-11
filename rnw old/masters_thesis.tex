@@ -1,0 +1,401 @@
+
+  
+\documentclass{pracamgr_wne}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage{afterpage}
+
+%\usepackage[utf8x]{inputenc}
+\usepackage[cp1250]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+% \usepackage{fontspec}
+% \setmainfont{Arial}
+\renewcommand{\familydefault}{\sfdefault}
+
+% \usepackage[
+% backend=biber,
+% style=authoryear,
+% citestyle=authoryear
+% ]{biblatex}
+% \usepackage[style=numeric-comp]{biblatex}
+% \usepackage[style=authoryear]{biblatex}
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{working_papers/library.bib}
+
+\author{Krzysztof Wojdalski}
+
+\nralbumu{310284}
+
+\title{Master's thesis}
+  
+\tytulang{Master's thesis}
+
+\speciality{Quantitative Finance}
+
+
+\opiekun{dr Juliusz Jablecki
+  Department of Quantitative Finance
+}
+
+\date{2016-01-01}
+
+
+\dziedzina{11.2 Quantitative Finance}
+
+\klasyfikacja{D. Software}
+
+% Slowa kluczowe:
+\keywords{FX, forex market, trading, reinforcement learning, Algo trading, artificial intelligence,
+    quantitative finance}
+
+\linespread{1.3} % interlinia 1,5 wiersza
+%\linespread{1.6} % interlinia 2 wiersze
+
+\newtheorem{defi}{Definicja}[section]
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+\maketitle
+
+
+\begin{summary}
+
+The master's thesis is about the Reinforcement Learning application in the foreign exchange market. 
+The author starts with describing the FX market, analyzing market organization, participants, and changes in the last
+years. He tries to explain current trends and the possible directions. 
+The next part consists of theoretical pattern for the research - description of financial models, 
+and the AI algorithms. 
+Implementation of the RL-based approach in the third chapter, based on Q-learning, gives spurious results. 
+
+
+\end{summary}
+
+\tableofcontents
+
+
+
+\chapter{Introduction}
+
+
+\addcontentsline{toc}{chapter}{Introduction}
+
+
+\chapter{FX Market}
+
+
+% !Rnw root = ../../masters_thesis.Rnw
+%' <<r setup_global22, include=FALSE, cache=FALSE,echo=FALSE,eval=TRUE>>=
+%' 
+%' set_parent('../../masters_thesis.Rnw')
+%' #debug(set_parent)
+%' @
+
+
+
+\section{FX Market Organization}
+
+Explaining the institutional structure of FX market requires introducing formal definitions of market organization. According  to Lyons \cite{Lyons2002}, these are:
+\begin{itemize}
+\item Auction market - a participant can place a market and a limit order. The first action is aimed at buying X units at the best price. Alternatively, limit orders set a threshold, i.e. they are executed only if the market quotations reach a certain price. Limit orders are aggregated into an order book
+\item Single dealer market - in this kind of market organization, there is just one dealer. It is obliged to quote an asset, i.e. to match demand and supply. Its quotations are always the best bid and the best ask. The main task is to manage the risk to make profit off his spread.
+\item Multiple dealer market - it is extension of single dealer market. There is more than one dealer and they compete against each other. It might be centralized or decentralized. In the first version, all dealers are put into the same location while in the second it is not the case. When the market is decentralized, it is possible for price takers to gain profits by arbitrage transactions.
+\end{itemize}
+The FX market is a kind of decentralized multiple-dealer market. There is no single indicator that would show the best bid and the best ask. Hence, the market transparency is low. It is especially important at tail events. It is hard to determine when the market was at a given time and findings are usually spurious.
+The foreign exchange market is perceived as the largest and most liquid one, with a year-on-year turnover of \texteuro 69 trillion. 
+
+
+
+The FX market is an over the counter, global (OTC) market, i.e. participants can trade currencies with relatively low level of legal obstacles. The market core is built up by the biggest banks in the world. Hence, the FX organization is often referred as
+an inter-bank market. 
+The participants of the FX market differ by access, spreads, impact, turnover they generate, order size, and purpose. They can be divided into five main groups:
+\begin{itemize}
+\item Central Banks - Central banks have the biggest market impact - they control money supply, interest and reserve rates. Through their set of tools, they can strengthen or weaken local currency. In the developed markets, their turnover is rather small due to the fact that intervenings 
+in the open market happen rarely, but order size is usually bigger than for other four groups due to the effect they want to achieve.
+\item Commercial Banks - Most of the flow in the market belongs to commercial banks. Although the environment in which FX trading occurs is highly dispersed in terms of location, over 85\% of flow is generated by top 15 banks, as seen in \ref{table_turnover_banks}. It can be observed even for currencies that the banks do not have real interest in. It means that in fact banks stay with flat position. 
+Their role is to gain a difference between quotations from their own liquidity pool and their quotations for a counterparty. 
+Hence, over the years, the market have changed dramatically. Even though turnovers are higher than ten years, market practitioners tend to claim that liquidity is much worse. It is mostly due to the fact that new regulation, internal and external (The Basels), have been introduced. 
+Banks are required to stay with rather small positions, especially in non-G10 pairs. Their approach to risk is much more conservative than it used to be.
+\item Non-bank Financial Institutions - In the state of new regulations, their market significance is on the rise, e.g. hedge funds might serve as liquidity providers for banks. The non-bank financial institutions category is very broad and entities in it are very heterogenous
+\item Commercial Companies - their conditions as price takers are significantly worse than commercial banks due to the fact they trade bigger size and mainly hedge their main business.
+\item Retail Traders - their main purpose is to speculate. The conditions they receive from financial institutions are generally worse but it might not be always be the case.
+\end{itemize}
+
+<!-- html table generated in R 3.3.2 by xtable 1.8-2 package -->
+<!-- Sat May 06 14:04:40 2017 -->
+<table border=1>
+<caption align="bottom"> Market share of top financial institutions in FX trading in 2014 </caption>
+<tr> <th>  </th> <th> Rank </th> <th> Bank </th> <th> MarketShare </th>  </tr>
+  <tr> <td align="right"> 1 </td> <td align="right">   1 </td> <td> Citi </td> <td align="right"> 0.16 </td> </tr>
+  <tr> <td align="right"> 2 </td> <td align="right">   2 </td> <td> Deutsche Bank </td> <td align="right"> 0.15 </td> </tr>
+  <tr> <td align="right"> 3 </td> <td align="right">   3 </td> <td> Barclays </td> <td align="right"> 0.08 </td> </tr>
+  <tr> <td align="right"> 4 </td> <td align="right">   4 </td> <td> JPMorgan </td> <td align="right"> 0.08 </td> </tr>
+  <tr> <td align="right"> 5 </td> <td align="right">   5 </td> <td> UBS </td> <td align="right"> 0.07 </td> </tr>
+  <tr> <td align="right"> 6 </td> <td align="right">   6 </td> <td> Bank of America Merrill Lynch </td> <td align="right"> 0.06 </td> </tr>
+  <tr> <td align="right"> 7 </td> <td align="right">   7 </td> <td> HSBC </td> <td align="right"> 0.05 </td> </tr>
+  <tr> <td align="right"> 8 </td> <td align="right">   8 </td> <td> BNP Paribas </td> <td align="right"> 0.04 </td> </tr>
+  <tr> <td align="right"> 9 </td> <td align="right">   9 </td> <td> Goldman Sachs </td> <td align="right"> 0.03 </td> </tr>
+  <tr> <td align="right"> 10 </td> <td align="right">  10 </td> <td> RBS </td> <td align="right"> 0.03 </td> </tr>
+  <tr> <td align="right"> 11 </td> <td align="right">  11 </td> <td> Societe Generale </td> <td align="right"> 0.02 </td> </tr>
+  <tr> <td align="right"> 12 </td> <td align="right">  12 </td> <td> Standard Chartered </td> <td align="right"> 0.02 </td> </tr>
+  <tr> <td align="right"> 13 </td> <td align="right">  13 </td> <td> Morgan Stanley </td> <td align="right"> 0.02 </td> </tr>
+  <tr> <td align="right"> 14 </td> <td align="right">  14 </td> <td> Credit Suisse </td> <td align="right"> 0.02 </td> </tr>
+  <tr> <td align="right"> 15 </td> <td align="right">  15 </td> <td> State Street </td> <td align="right"> 0.02 </td> </tr>
+   <a name=table_turnover_banks></a>
+</table>
+
+In last years, there have been observed shifting towards eFX. Commercial banks, as mentioned in the previous subsection,
+are subject to new regulations. Therefore, right now they are more concerned about increasing their turnover
+than benefiting off a good view (speculation). eFX helps in this goal. It requires more technology while a number of traditional dealers
+is effectively reduced. The activity require quantitative analysts, "quants", who can manage pricing engines in order to maximize profit while staying in the risk threshold. 
+Over 4 years, eFX gained 13 percent point and in 2015 for the first time surpassed voice trading, with 53.2\% of client flow share  \cite{JeffPatterson2015} \cite{Chung2015}. 
+
+
+
+
+
+\chapter{Financial models}
+
+
+% !Rnw root = ../../masters_thesis.Rnw
+
+
+
+The following chapter introduces articles that correspond with the subject of the current thesis and are considered as fundamentals of modern finance.
+Specifically, the beginning contains financial market models. The next subchapter includes basic investment effectiveness indicators that implicitly or explicitly result from the fundamental formulas from the first subchapter.
+
+\section{Selected financial market models and theory}
+
+
+Works considered as a fundament of quantitative finance and investments are Sharpe \cite{Sharpe1964}, Lintner \cite{Lintner1965}, and Mossin \cite{Mossin1966}. All these authors, almost simultaneously, formulated Capital Asset Pricing Model (CAPM) that describes dependability between rate of return and its risk, risk of the market portfolio, and risk premium.
+Assumptions in the model are as follows:
+\begin{itemize}
+\item Decisions in the model regard only one period,
+\item Market participants has risk aversion, i.e. their utility function is related with plus sign to rate of return, and negatively to variance of portfolio rate of return,
+\item Risk-free rate exists,
+\item Asymmetry of information non-existent,
+\item Lack of speculative transactions,
+\item Lack of transactional costs, taxes included,
+\item Market participants can buy a fraction of the asset,
+\item Both sides are price takers,
+\item Short selling exists,
+\end{itemize}
+Described by the following model formula is as follows:
+\begin{equation}
+E(R_P)=R_F+\frac{\sigma_P}{\sigma_M}\times[E(R_M)-R_F]
+\end{equation}
+where:
+\begin{itemize}
+\item $E(R_P )$ -- the expected portfolio rate of return,
+\item $E(R_M)$ -- the expected market rate of return,
+\item $R_F$ -- risk-free rate,
+\item $\sigma_P$ -- the standard deviation of the rate of return on the portfolio,
+\item $\sigma_M$ -- the standard deviation of the rate of return on the market portfolio.
+\end{itemize}
+$E(R_P)$ function is also known as Capital Market Line (CML). Any portfolio lies on that line is effective, i.e. its rate of return corresponds to embedded risk.
+The next formula includes all portfolios, single assets included. It is also known as Security Market Line (SML) and is given by the following equation:
+\begin{equation} \label{eq:erl}
+E(R_i)=R_F+\beta_i\times[E(R_M)-R_F]
+\end{equation}
+where:
+\begin{itemize}
+\item $E(R_i)$ -- the expected $i$-th portfolio rate of return,
+\item $E(R_M)$ -- the expected market rate of return,
+\item $R_F$ -- risk-free rate,
+\item $\beta_i$ -- Beta factor of the $i$-th portfolio.
+\end{itemize}
+
+\section{The Modern Portfolio Theory}
+The following section discuss the Modern Portfolio Theory developed by Henry Markowitz \cite{Markowitz1952}. The author introduced the model in which the goal
+(investment criteria) is 
+not only to maximize the return but also to minimize the variance. He claimed that by combining assets in different composition it is possible to obtain the 
+portfolios with the same return but different levels of risk. The risk reduction is possible by diversification, i.e. giving proper weights for each asset 
+in the portfolio. Variance of portfolio value can be effectively reduced by analyzing mutual relations between returns on assets with use of methods in statistics
+(correlation and covariance matrices). It is important to say that any additional asset in portfolio reduces minimal variance for a given portfolio 
+but it is the correlation what really impacts the magnitude.
+The Markowitz theory implies that for any assumed expected return there is the only one portfolio that minimizes risk. Alternatively, there is only one portfolio 
+that maximizes return for the assumed risk level. The important term, which is brought in literature, is the effective portfolio, i.e. the one that meets conditions
+above.
+The combination of optimal portfolios on the bullet.
+
+Bullet figure
+
+The Markowitz concept is determined by the assumption that investors are risk-averse. This observation is described by the following formula:
+
+\begin{equation}
+E(U)<U(E(X))
+\end{equation}
+where:
+\begin{itemize}
+\item $E(U)$ -- the expected value of utility from payoff;
+\item $U(E(X))$ -- utility of the expected value of payoff.
+\end{itemize}
+The expected value of payoff is given by the following formula:
+\begin{equation}
+E(U)=\sum_{i=1}^{n}\pi_iU(c_i)
+\end{equation}
+where:
+\begin{itemize}
+\item $\pi_i$ -- probability of the $c_i$ payoff,
+\item $U(c_i)$ -- utility from the $c_i$ payoff.
+\end{itemize}
+One of the MPT biggest flaws is the fact that it is used for ex post analysis. Correlation between assets changes overtime so results must be recalculated. Real portfolio risk may be underestimated. Also, time window can influence the results.
+
+\section{The efficient market hypothesis}
+
+In 1965, Eugene Fama introduced the efficient market term \cite{Fama1965}. Fama claimed that an efficient market is the one that instanteneously discounts the new information arrival in market price of a given asset. Because this definition applies to financial markets, it had determined the further belief that it is not possible to beat the market because assets are perfectly priced. Also, if this hypothesis would be true, market participants cannot be better or worse. Their portfolio return would be a function of new, unpredictable information. In that respect, the only role of an investor is to manage his assets so that the risk is acceptable. 
+
+
+% !Rnw root = ../../masters_thesis.Rnw
+
+%\SweaveOpts{concordance=TRUE}
+
+
+\section{Selected investment performance measures}
+
+Introduced articles does not include any indicator that would explicitly measure portfolio management effectiveness. 
+Equations that result from the authors' work are important because some of further developed measures are CAPM-based. 
+The most known are the Sharpe ratio, the Treynor ratio, and the Jensen's alpha. Popularity of these indicator comes from the fact that 
+they are easy to understand for the average investor. \cite{Marte2012}
+In \cite{Sharpe1966}, the author introduced the $\frac{R}{V}$ indicator, also known as the Sharpe Ratio ($S$), which is given by the following formula:
+\begin{equation}
+S_i=\frac{E(R_i-R_F)}{\sigma_i}
+\end{equation}
+where: 
+\begin{itemize}
+\item $R_i$ -- the $i$-th portfolio rate of return,
+\item $R_F$ -- risk-free rate
+$\sigma_i$ -- the standard deviation of the rate of return on the $i$-th portfolio.
+\end{itemize}
+Treynor (Treynor1965) proposed other approach in which denominator includes $\beta_i$ instead of $\sigma_i$. The discussed formula is given by:
+\begin{equation}
+T_i=\frac{R_i-R_F}{\beta_i}
+\end{equation}
+where:
+\begin{itemize}
+\item $R_i$ -- the $i$-th portfolio rate of return,
+\item $R_F$ -- Risk-free rate
+\item $\beta_i$ -- Beta factor of the $i$-th portfolio.
+\end{itemize}
+Both indicators, i.e. $S$ and $T$ are relative measures. Their value should be compared with a benchmark to determine if a given portfolio is well-managed. If they are
+higher (lower), it means that analyzed portfolios were better (worse) than a benchmark.
+The last measure, very popular among market participants, is the Jensen's alpha. It is given as follows:
+\begin{equation}
+\alpha_i=R_i-[R_F+\beta_i\times(R_M-R_F )]
+\end{equation}
+where:
+\begin{itemize}
+\item $R_i$ -- the $i$-th portfolio rate of return,
+\item $R_F$ -- Risk-free rate
+\item $\beta_i$ -- Beta factor of the $i$-th portfolio.
+\end{itemize}
+The Jensen's alpha is an absolute measure and is calculated as the difference between actual and CAPM model-implied rate of return. The greater the value is,
+the better for the $i$-th observation.
+
+The differential Sharpe ratio - this measure is a dynamic extension of Sharpe ratio. By using the indicator, it can be possible to capture a marginal impact of return at time t on the Sharpe Ratio. The procedure of computing it starts with the following two formulas:
+\begin{equation}
+A_n=\frac{1}{n}R_n+\frac{n-1}{n}A_{n-1}
+\end{equation}
+\begin{equation}
+B_n=\frac{1}{n}R_n^2+\frac{n-1}{n}B_{n-1}
+\end{equation}
+At $t=0$ both values equal to 0. They serve as the base for calculating the actual measure - an exponentially moving Sharpe ratio on $\eta$ time scale.
+\begin{equation}
+S_t=\frac{A_t}{K_\eta\sqrt{B_t-A_t^2}}
+\end{equation}
+where:
+\begin{itemize}
+\item $A_t=\eta R_t+(1-\eta)A_{t_1}$ 
+\item $B_t=\eta R_t^2+(1-\eta)B_{t_1}$ 
+\item $K_\eta=(\frac{1-\frac{\eta}{2}}{1-\eta})$
+\end{itemize}
+
+Using of the differential Sharpe ratio in algorithmic systems is highly desirable due to the following facts \cite{Moody1997}:
+\begin{itemize}
+\item Recursive updating - it is not needed to recompute the mean and standard deviation of returns every time the measure value is evaluated. 
+Formula for $A_t$ ($B_t$) enables to very straightforward calculation of the exponential moving Sharpe ratio, just by updating for  $R_t$ ($R_t^2$)
+\item Efficient on-line optimization - the way the formula is provided directs to very fast computation of the whole statistic with just updating the most recent values
+\item Interpretability - the differential Sharpe ratio can be easily explained, i.e. it measures how the most recent return affect the Sharpe ratio (risk and reward).
+\end{itemize}
+
+
+The drawdown is the measure of the decline from a historical peak in an asset.
+The formula is given as follows:
+
+\begin{equation}
+D(T)=\max\{max_{0, t\in (0,T)} X(t)-X(\tau)\}
+\end{equation}
+
+
+The Sterling ratio (SR)
+
+
+The maximum drawdown (MDD) at time $T$ is the maximum of the Drawdown over the asset history. The formula is given as follows:
+
+\begin{equation}
+MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
+\end{equation}
+
+\chapter{Research}
+
+
+
+
+\addcontentsline{toc}{chapter}{Bibliography}
+\printbibliography
+
+
+\listoffigures
+\listoftables
+
+\end{document}
+
+

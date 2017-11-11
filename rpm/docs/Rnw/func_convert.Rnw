@@ -1,0 +1,107 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{verbose, tmargin=2.5cm, bmargin=2.5cm, lmargin=2.5cm, rmargin=2.5cm}
+\begin{document}
+
+\title{}
+\author{}
+\maketitle
+
+<<highlight, echo=FALSE>>=
+knit_theme$set(knit_theme$get('solarized-dark'))
+@
+
+<<knitr_setup, echo=FALSE>>=
+opts_chunk$set(cache=FALSE, eval=FALSE, tidy=TRUE, message=FALSE, warning=FALSE)
+read_chunk("../../code/rpm.R")
+@
+
+The main function for conversion between Rmd and Rnw files is \texttt{convertDocs}.
+This function contains several internal support functions, each of which is somewhat limited in how much specific conversion it can achieve.
+The functions below were written with my particular style of Rmd and Rnw documentation in mind.
+As such they are necessarily a bit idiosyncratic and cannot account for every possible difference found between Rmd and Rnw formatting across any pair of documents.
+I only strived to speed up the process by which I convert my own documents, most of which follow a set of general rules and expectations most of the time.
+Anything atypical which doesn't convert properly can be adjusted by hand afterward.
+This is still better than rewriting, copy-pasting, and search-and-replacing many sections of many files on a recurring basis.
+Further improvements in conversion will be added later.
+
+\subsubsubsection{Rules and assumptions regarding these functions}
+
+- All Rnw file lines beginning with a backslash which are in the main body of the code (beyond the title, author, etc.) and are not part of a code chunk identifier string are stripped rather than converted for Rmd.
+- Only title and author are parsed from the Rnw lines prior to where the R code chunks begin. LaTeX libraries and such are dropped.
+- Standard, minimal LaTeX libraries and other requirements prior to beginning the document are inserted in place of the Rmd yaml front-matter.
+- Rmd files must have yaml front-matter, identified always by the second line in the document to begin with \texttt{---}.
+
+\subsubsubsection{Formatting rules}
+
+- I never use two consecutive asterisks or underscores except to indicate bold text
+- Text with typewriter font in Rnw files is converted to text within backticks in Rmd files and vice versa.
+- Italics or other formatting are not considered.
+
+\subsubsubsection{Heading rules}
+
+- Lists in Rmd files (like this one), are not yet addressed in conversion to Rnw and vice versa.
+- I never (intentionally) use the two most extreme headings in Rmd files, \texttt{#} and \texttt{######}. I only use \texttt{##} through \texttt{#####}.
+- I never go beyond \texttt{subsubsubsection} in Rnw files.
+- Any occurrence of one or two \texttt{#} is converted to a new \texttt{section} in an Rnw file whereas a section converts to a \texttt{##} heading.
+- Similarly, five- or six-`#} identified heading in Rmd convert to the maximum \texttt{subsubsubsection} which back-converts to a \texttt{#####} heading.
+- Three- and four-`#} identified Rmd headings convert to \texttt{subsection}- and \texttt{subsubsection}-identified Rnw headings, respectively, and vice versa. As such, these are the only true one-to-one heading conversions.
+
+This may all sound like a lot, but it's not. It does a decent job for now.
+It's not a true conversion and plenty of work may remain afterward.
+Again, the point is to make conversion much less tedious and hands-on, which it does well enough so far.
+
+\subsubsection{.swapHeadings}
+\texttt{.swapHeadings} assists in bidirectional conversion between Rmd and Rnw files.
+It swaps section headings formatting.
+It is called directly by \texttt{swap}, internal to \texttt{convertDocs}.
+
+
+<<fun_swapHeadings>>=
+@
+
+\subsubsection{.swapChunks}
+\texttt{.swapChunks} assists in bidirectional conversion between Rmd and Rnw files.
+It swaps code chunk formatting.
+It is called directly by \texttt{swap}, internal to \texttt{convertDocs}.
+
+
+<<fun_swapChunks>>=
+@
+
+\subsubsection{.swapEmphasis}
+\texttt{.swapEmphasis} assists in bidirectional conversion between Rmd and Rnw files.
+It swaps text formatting such as boldface and typewriter font.
+It is called directly by \texttt{swap}, internal to \texttt{convertDocs}.
+
+
+<<fun_swapEmphasis>>=
+@
+
+\subsubsection{.swap}
+\texttt{.swap} assists in bidirectional conversion between Rmd and Rnw files.
+It is called internal to \texttt{convertDocs}.
+
+
+<<fun_swap>>=
+@
+
+\subsubsection{convertDocs}
+\texttt{convertDocs} converts between Rmd and Rnw files.
+The project's \texttt{docs/Rmd} or \texttt{docs/Rnw} directory is specified.
+Any files of the same type as the directory are converted to the other type and saved to the other directory.
+The input files are not removed.
+
+This function speeds up the process of duplicating files, e.g., when wanting to make PDFs from Rnw files when only Rmd files exist.
+This is almost exclusively what I use this function for.
+On less frequent occasions I have used it in the other direction when I have Rnw files which were once used to make PDFs but later I decide to put them on the web as a web page and not as a link to a PDF.
+
+The user still makes specific changes by hand, for example, any required changes to \texttt{knitr} code chunk options that must differ for PDF output vs. html output.
+The primary benefit is in not having to fuss with large amounts of standard substitutions which can be automated, such as swapping code chunk enclosure styles and common file metadata.
+Of course, this function is not perfect.
+It amounts to a text-parsing hack that is intended to handle the most common of idiosyncrasies and differences which exist between my own Rmd and Rnw files in the context of my own set of rules and assumptions, outlined below.
+
+<<fun_convertDocs>>=
+@
+
+\end{document}

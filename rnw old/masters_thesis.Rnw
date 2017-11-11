@@ -1,0 +1,148 @@
+<<r, include=FALSE, cache=FALSE,echo=FALSE,eval=TRUE>>=
+if (!'pacman' %in%installed.packages()) install.packages('pacman')
+require(pacman)
+p_load(RefManageR, bibtex, knitr)
+# bib <- ReadBib('./working_papers/library.bib')
+# BibOptions(bib.style = "numeric",check.entries=FALSE)
+opts_chunk$set(
+  cache=T  ,
+  warning=F,
+  error=F  ,
+  message=F,
+  eval=T   ,
+  echo=F   ,
+  include=T
+)
+#setwd("D:/Dropbox/Mastersthesis")
+#set_parent('./masters_thesis.Rnw')
+getwd()
+# readLines(paste0(getwd(),'/working_papers/library.bib'))%>%
+#   a<-readLines(paste0(getwd(),'/working_papers/library.bib'))[96]
+#   b<-gsub(pattern='^.*\\b(arxivId)\\b.*$','',readLines(paste0(getwd(),'/working_papers/library.bib')))
+inputs <- './working_papers'
+Sys.setenv(TEXINPUTS=inputs,
+           BIBINPUTS=inputs,
+           BSTINPUTS=inputs)
+#Sys.getenv("RSTUDIO_PANDOC")
+Sys.setenv(RSTUDIO_PDFLATEX = Sys.which("latexmk"))
+#options(encoding="UTF-8")
+#Sys.setlocale(locale='Polish_Poland.1250')
+#Sys.getlocale('LC_ALL',')
+
+@
+  
+\documentclass{pracamgr_wne}
+\usepackage{afterpage}
+
+%\usepackage[utf8x]{inputenc}
+\usepackage[cp1250]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+% \usepackage{fontspec}
+% \setmainfont{Arial}
+\renewcommand{\familydefault}{\sfdefault}
+
+% \usepackage[
+% backend=biber,
+% style=authoryear,
+% citestyle=authoryear
+% ]{biblatex}
+% \usepackage[style=numeric-comp]{biblatex}
+% \usepackage[style=authoryear]{biblatex}
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{working_papers/library.bib}
+
+\author{Krzysztof Wojdalski}
+
+\nralbumu{310284}
+
+\title{Master's thesis}
+  
+\tytulang{Master's thesis}
+
+\speciality{Quantitative Finance}
+
+
+\opiekun{dr Juliusz Jablecki
+  Department of Quantitative Finance
+}
+
+\date{2016-01-01}
+
+
+\dziedzina{11.2 Quantitative Finance}
+
+\klasyfikacja{D. Software}
+
+% Slowa kluczowe:
+\keywords{FX, forex market, trading, reinforcement learning, Algo trading, artificial intelligence,
+    quantitative finance}
+
+\linespread{1.3} % interlinia 1,5 wiersza
+%\linespread{1.6} % interlinia 2 wiersze
+
+\newtheorem{defi}{Definicja}[section]
+
+
+\begin{document}
+
+\maketitle
+
+
+\begin{summary}
+
+The master's thesis is about the Reinforcement Learning application in the foreign exchange market. 
+The author starts with describing the FX market, analyzing market organization, participants, and changes in the last
+years. He tries to explain current trends and the possible directions. 
+The next part consists of theoretical pattern for the research - description of financial models, 
+and the AI algorithms. 
+Implementation of the RL-based approach in the third chapter, based on Q-learning, gives spurious results. 
+
+
+\end{summary}
+
+\tableofcontents
+
+
+
+\chapter{Introduction}
+
+
+\addcontentsline{toc}{chapter}{Introduction}
+
+
+\chapter{FX Market}
+
+<<fx_market_organization, child='chapters/subchapters/1_2_FX_Market_Organization.Rnw'>>=
+
+@
+
+
+
+\chapter{Financial models}
+
+<<modern_portfolio_theory_and_capm,child='chapters/subchapters/2_1_1_Modern_Portfolio_Theory_and_CAPM.Rnw'>>=
+
+@
+
+<<relevant_financial_indicators2,child='chapters/subchapters/2_2_Relevant_Financial_Indicators.Rnw'>>=
+@
+
+\chapter{Research}
+
+
+
+
+\addcontentsline{toc}{chapter}{Bibliography}
+\printbibliography
+
+
+\listoffigures
+\listoftables
+
+\end{document}
+
+<<biber>>=
+require(knitr)
+system(paste("biber", sub("\\.Rnw$", "", current_input())))
+@

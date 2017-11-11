@@ -1,0 +1,250 @@
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.514, 0.58, 0.588}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.863,0.196,0.184}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.863,0.196,0.184}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.345,0.431,0.459}{#1}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0.576,0.631,0.631}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.514,0.58,0.588}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.796,0.294,0.086}{#1}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.522,0.6,0}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.796,0.294,0.086}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.576,0.631,0.631}{#1}}%
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage{geometry}
+\geometry{verbose, tmargin=2.5cm, bmargin=2.5cm, lmargin=2.5cm, rmargin=2.5cm}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+\title{}
+\author{}
+\maketitle
+
+
+
+
+
+\subsubsection{rmdHeader}
+\texttt{rmdHeader} generates the yaml metadata header for Rmd files as a character string to be inserted at the top of a file.
+It has default arguments specific to my own projects but can be changed.
+The output from this function is passed directly to \texttt{genRmd} below.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0, 0.169, 0.212}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{rmdHeader} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{title} \hlstd{=} \hlstr{"INSERT_TITLE_HERE"}\hlstd{,} \hlkwc{author} \hlstd{=} \hlstr{"Matthew Leonawicz"}\hlstd{,}
+    \hlkwc{theme} \hlstd{=} \hlstr{"united"}\hlstd{,} \hlkwc{highlight} \hlstd{=} \hlstr{"zenburn"}\hlstd{,} \hlkwc{toc} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{keep.md} \hlstd{=} \hlnum{TRUE}\hlstd{,} \hlkwc{ioslides} \hlstd{=} \hlnum{FALSE}\hlstd{,}
+    \hlkwc{include.pdf} \hlstd{=} \hlnum{FALSE}\hlstd{) \{}
+    \hlkwa{if} \hlstd{(toc)}
+        \hlstd{toc} \hlkwb{<-} \hlstr{"true"} \hlkwa{else} \hlstd{toc} \hlkwb{<-} \hlstr{"false"}
+    \hlkwa{if} \hlstd{(keep.md)}
+        \hlstd{keep.md} \hlkwb{<-} \hlstr{"true"} \hlkwa{else} \hlstd{keep.md} \hlkwb{<-} \hlstr{"false"}
+    \hlkwa{if} \hlstd{(ioslides)}
+        \hlstd{hdoc} \hlkwb{<-} \hlstr{"ioslides_presentation"} \hlkwa{else} \hlstd{hdoc} \hlkwb{<-} \hlstr{"html_document"}
+    \hlstd{rmd.header} \hlkwb{<-} \hlstr{"---\textbackslash{}n"}
+    \hlkwa{if} \hlstd{(}\hlopt{!}\hlkwd{is.null}\hlstd{(title))}
+        \hlstd{rmd.header} \hlkwb{<-} \hlkwd{paste0}\hlstd{(rmd.header,} \hlstr{"title: "}\hlstd{, title,} \hlstr{"\textbackslash{}n"}\hlstd{)}
+    \hlkwa{if} \hlstd{(}\hlopt{!}\hlkwd{is.null}\hlstd{(author))}
+        \hlstd{rmd.header} \hlkwb{<-} \hlkwd{paste0}\hlstd{(rmd.header,} \hlstr{"author: "}\hlstd{, author,} \hlstr{"\textbackslash{}n"}\hlstd{)}
+    \hlstd{rmd.header} \hlkwb{<-} \hlkwd{paste0}\hlstd{(rmd.header,} \hlstr{"output:\textbackslash{}n  "}\hlstd{, hdoc,} \hlstr{":\textbackslash{}n    toc: "}\hlstd{, toc,}
+        \hlstr{"\textbackslash{}n    theme: "}\hlstd{, theme,} \hlstr{"\textbackslash{}n    highlight: "}\hlstd{, highlight,} \hlstr{"\textbackslash{}n    keep_md: "}\hlstd{,}
+        \hlstd{keep.md,} \hlstr{"\textbackslash{}n"}\hlstd{)}
+    \hlkwa{if} \hlstd{(ioslides)}
+        \hlstd{rmd.header} \hlkwb{<-} \hlkwd{paste0}\hlstd{(rmd.header,} \hlstr{"    widescreen: true\textbackslash{}n"}\hlstd{)}
+    \hlkwa{if} \hlstd{(include.pdf)}
+        \hlstd{rmd.header} \hlkwb{<-} \hlkwd{paste0}\hlstd{(rmd.header,} \hlstr{"  pdf_document:\textbackslash{}n    toc: "}\hlstd{, toc,}
+            \hlstr{"\textbackslash{}n    highlight: "}\hlstd{, highlight,} \hlstr{"\textbackslash{}n"}\hlstd{)}
+    \hlstd{rmd.header} \hlkwb{<-} \hlkwd{paste0}\hlstd{(rmd.header,} \hlstr{"---\textbackslash{}n"}\hlstd{)}
+    \hlstd{rmd.header}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\subsubsection{rmdknitrSetup}
+\texttt{rmdknitrSetup} generates the \texttt{knitr} global options setup code cunk for Rmd files as a character string to be inserted at the top of a file following the yaml header.
+The only option at this time is the ability to include or exclude a source reference to a project-related code flow diagram \textbf{R} script via \texttt{include.sankey}.
+The output from this function is passed directly to \texttt{genRmd} below.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0, 0.169, 0.212}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{rmdknitrSetup} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{file}\hlstd{,} \hlkwc{include.sankey} \hlstd{=} \hlnum{TRUE}\hlstd{) \{}
+    \hlstd{x} \hlkwb{<-} \hlkwd{paste0}\hlstd{(}\hlstr{"\textbackslash{}n```\{r knitr_setup, echo=FALSE\}\textbackslash{}nopts_chunk$set(cache=FALSE, eval=FALSE, tidy=TRUE, message=FALSE, warning=FALSE)\textbackslash{}n"}\hlstd{)}
+    \hlkwa{if} \hlstd{(include.sankey)}
+        \hlstd{x} \hlkwb{<-} \hlkwd{paste0}\hlstd{(x,} \hlstr{"read_chunk(\textbackslash{}"../../code/proj_sankey.R\textbackslash{}")\textbackslash{}n"}\hlstd{)}
+    \hlstd{x} \hlkwb{<-} \hlkwd{paste0}\hlstd{(x,} \hlstr{"read_chunk(\textbackslash{}"../../code/"}\hlstd{, file,} \hlstr{"\textbackslash{}")\textbackslash{}n```\textbackslash{}n"}\hlstd{)}
+    \hlstd{x}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\subsubsection{genRmd}
+\texttt{genRmd} works on existing projects. It checks for existing \textbf{R} scripts.
+If no \textbf{R} files exist in the project's \texttt{code} directory, the function will abort.
+Otherwise it will generate Rmd template files for each of the \textbf{R} scripts it finds.
+
+With \texttt{replace=TRUE} any existing Rmd files are regenerated with the provided template - be careful!
+With \texttt{replace=FALSE} (default) Rmd files are generated only for \textbf{R} scripts which do not yet have corresponding Rmd files.
+If \texttt{update.header=TRUE}, \texttt{replace} is ignored, and only existing Rmd files are regenerated,
+in this case strictly updating the yaml metadata header at the top of each Rmd file without altering any other Rmd content/documentation. 
+
+The Rmd files are placed in the \texttt{/docs/Rmd} directory.
+This function assumes this project directory exists.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0, 0.169, 0.212}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{genRmd} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{path}\hlstd{,} \hlkwc{replace} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{header} \hlstd{=} \hlkwd{rmdHeader}\hlstd{(),} \hlkwc{knitrSetupChunk} \hlstd{=} \hlkwd{rmdknitrSetup}\hlstd{(),}
+    \hlkwc{update.header} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{...}\hlstd{) \{}
+    \hlkwd{stopifnot}\hlstd{(}\hlkwd{is.character}\hlstd{(path))}
+    \hlstd{files} \hlkwb{<-} \hlkwd{list.files}\hlstd{(path,} \hlkwc{pattern} \hlstd{=} \hlstr{".R$"}\hlstd{,} \hlkwc{full} \hlstd{=} \hlnum{TRUE}\hlstd{)}
+    \hlkwd{stopifnot}\hlstd{(}\hlkwd{length}\hlstd{(files)} \hlopt{>} \hlnum{0}\hlstd{)}
+    \hlstd{rmd} \hlkwb{<-} \hlkwd{gsub}\hlstd{(}\hlstr{".R"}\hlstd{,} \hlstr{".Rmd"}\hlstd{,} \hlkwd{basename}\hlstd{(files))}
+    \hlstd{rmd} \hlkwb{<-} \hlkwd{file.path}\hlstd{(}\hlkwd{dirname}\hlstd{(path),} \hlstr{"docs/Rmd"}\hlstd{, rmd)}
+    \hlkwa{if} \hlstd{(}\hlopt{!}\hlstd{(replace} \hlopt{|} \hlstd{update.header))}
+        \hlstd{rmd} \hlkwb{<-} \hlstd{rmd[}\hlopt{!}\hlkwd{sapply}\hlstd{(rmd, file.exists)]}
+    \hlkwa{if} \hlstd{(update.header)}
+        \hlstd{rmd} \hlkwb{<-} \hlstd{rmd[}\hlkwd{sapply}\hlstd{(rmd, file.exists)]}
+    \hlkwd{stopifnot}\hlstd{(}\hlkwd{length}\hlstd{(rmd)} \hlopt{>} \hlnum{0}\hlstd{)}
+
+    \hlstd{sinkRmd} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{,} \hlkwc{...}\hlstd{) \{}
+        \hlstd{y1} \hlkwb{<-} \hlstd{header}
+        \hlstd{y2} \hlkwb{<-} \hlstd{kniterSetupChunk}
+        \hlstd{y3} \hlkwb{<-} \hlkwd{list}\hlstd{(...)}\hlopt{$}\hlstd{rmd.template}
+        \hlkwa{if} \hlstd{(}\hlkwd{is.null}\hlstd{(y1))}
+            \hlstd{y1} \hlkwb{<-} \hlstd{rmd.header}
+        \hlkwa{if} \hlstd{(}\hlkwd{is.null}\hlstd{(y2))}
+            \hlstd{y2} \hlkwb{<-} \hlkwd{rmd.knitr.setup}\hlstd{(}\hlkwd{gsub}\hlstd{(}\hlstr{".Rmd"}\hlstd{,} \hlstr{".R"}\hlstd{,} \hlkwd{basename}\hlstd{(x)))}
+        \hlkwa{if} \hlstd{(}\hlkwd{is.null}\hlstd{(y3))}
+            \hlstd{y3} \hlkwb{<-} \hlstd{rmd.template}
+        \hlkwd{sink}\hlstd{(x)}
+        \hlkwd{sapply}\hlstd{(}\hlkwd{c}\hlstd{(y1, y2, y3), cat)}
+        \hlkwd{sink}\hlstd{()}
+    \hlstd{\}}
+
+    \hlstd{swapHeader} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{) \{}
+        \hlstd{l} \hlkwb{<-} \hlkwd{readLines}\hlstd{(x)}
+        \hlstd{ind} \hlkwb{<-} \hlkwd{which}\hlstd{(l} \hlopt{==} \hlstr{"---"}\hlstd{)}
+        \hlstd{l} \hlkwb{<-} \hlstd{l[(ind[}\hlnum{2}\hlstd{]} \hlopt{+} \hlnum{1}\hlstd{)}\hlopt{:}\hlkwd{length}\hlstd{(l)]}
+        \hlstd{l} \hlkwb{<-} \hlkwd{paste0}\hlstd{(l,} \hlstr{"\textbackslash{}n"}\hlstd{)}
+        \hlkwd{sink}\hlstd{(x)}
+        \hlkwd{sapply}\hlstd{(}\hlkwd{c}\hlstd{(header, l), cat)}
+        \hlkwd{sink}\hlstd{()}
+    \hlstd{\}}
+
+    \hlkwa{if} \hlstd{(update.header) \{}
+        \hlkwd{sapply}\hlstd{(rmd, swapHeader, ...)}
+        \hlkwd{cat}\hlstd{(}\hlstr{"yaml header updated for each .Rmd file.\textbackslash{}n"}\hlstd{)}
+    \hlstd{\}} \hlkwa{else} \hlstd{\{}
+        \hlkwd{sapply}\hlstd{(rmd, sinkRmd, ...)}
+        \hlkwd{cat}\hlstd{(}\hlstr{".Rmd files created for each .R file.\textbackslash{}n"}\hlstd{)}
+    \hlstd{\}}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\subsubsection{chunkNames}
+\texttt{chunkNames} can be used in two ways.
+It can return a list with length equal to the number of \textbf{R} files,
+where each list element is a vector of \textbf{R} code chunk names found in each \textbf{R} script.
+
+Alternatively, with \texttt{append.new=TRUE}, this list has each vector matched element-wise against chunk names found in existing Rmd files.
+If no Rmd files have yet been generated, the function will abort.
+Otherwise, for the Rmd files which do exist (and this may correspond to a subset of the \textbf{R} files),
+these Rmd files are appended with a list of code chunk names found in the current corresponding \textbf{R} files
+which have not yet been integrated into the current state of the Rmd files.
+This fascilitates updating of Rmd documentation when it falls behind scripts which have been updated.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0, 0.169, 0.212}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{chunkNames} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{path}\hlstd{,} \hlkwc{rChunkID} \hlstd{=} \hlstr{"# @knitr"}\hlstd{,} \hlkwc{rmdChunkID} \hlstd{=} \hlstr{"```\{r"}\hlstd{,} \hlkwc{append.new} \hlstd{=} \hlnum{FALSE}\hlstd{) \{}
+    \hlstd{files} \hlkwb{<-} \hlkwd{list.files}\hlstd{(path,} \hlkwc{pattern} \hlstd{=} \hlstr{".R$"}\hlstd{,} \hlkwc{full} \hlstd{=} \hlnum{TRUE}\hlstd{)}
+    \hlkwd{stopifnot}\hlstd{(}\hlkwd{length}\hlstd{(files)} \hlopt{>} \hlnum{0}\hlstd{)}
+    \hlstd{l1} \hlkwb{<-} \hlkwd{lapply}\hlstd{(files, readLines)}
+    \hlstd{l1} \hlkwb{<-} \hlkwd{rapply}\hlstd{(l1,} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{) x[}\hlkwd{substr}\hlstd{(x,} \hlnum{1}\hlstd{,} \hlkwd{nchar}\hlstd{(rChunkID))} \hlopt{==} \hlstd{rChunkID],}
+        \hlkwc{how} \hlstd{=} \hlstr{"replace"}\hlstd{)}
+    \hlstd{l1} \hlkwb{<-} \hlkwd{rapply}\hlstd{(l1,} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{,} \hlkwc{p}\hlstd{)} \hlkwd{gsub}\hlstd{(}\hlkwd{paste0}\hlstd{(p,} \hlstr{" "}\hlstd{),} \hlstr{""}\hlstd{, x),} \hlkwc{how} \hlstd{=} \hlstr{"replace"}\hlstd{,}
+        \hlkwc{p} \hlstd{= rChunkID)}
+    \hlkwa{if} \hlstd{(}\hlopt{!}\hlstd{append.new)}
+        \hlkwd{return}\hlstd{(l1)}
+
+    \hlstd{appendRmd} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{,} \hlkwc{rmd.files}\hlstd{,} \hlkwc{rChunks}\hlstd{,} \hlkwc{rmdChunks}\hlstd{,} \hlkwc{ID}\hlstd{) \{}
+        \hlstd{r1} \hlkwb{<-} \hlstd{rmdChunks[[x]]}
+        \hlstd{r2} \hlkwb{<-} \hlstd{rChunks[[x]]}
+        \hlstd{r.new} \hlkwb{<-} \hlstd{r2[}\hlopt{!}\hlstd{(r2} \hlopt{%in%} \hlstd{r1)]}
+        \hlkwa{if} \hlstd{(}\hlkwd{length}\hlstd{(r.new)) \{}
+            \hlstd{r.new} \hlkwb{<-} \hlkwd{paste0}\hlstd{(ID,} \hlstr{" "}\hlstd{, r.new,} \hlstr{"\}\textbackslash{}n```\textbackslash{}n"}\hlstd{,} \hlkwc{collapse} \hlstd{=} \hlstr{""}\hlstd{)}  \hlcom{# Hard coded brace and backticks}
+            \hlkwd{sink}\hlstd{(rmd.files[x],} \hlkwc{append} \hlstd{=} \hlnum{TRUE}\hlstd{)}
+            \hlkwd{cat}\hlstd{(}\hlstr{"\textbackslash{}nNEW_CODE_CHUNKS\textbackslash{}n"}\hlstd{)}
+            \hlkwd{cat}\hlstd{(r.new)}
+            \hlkwd{sink}\hlstd{()}
+            \hlkwd{paste}\hlstd{(}\hlkwd{basename}\hlstd{(rmd.files[x]),} \hlstr{"appended with new chunk names from .R file"}\hlstd{)}
+        \hlstd{\}} \hlkwa{else} \hlkwd{paste}\hlstd{(}\hlstr{"No new chunk names appended to"}\hlstd{,} \hlkwd{basename}\hlstd{(rmd.files[x]))}
+    \hlstd{\}}
+
+    \hlstd{rmd} \hlkwb{<-} \hlkwd{gsub}\hlstd{(}\hlstr{".R"}\hlstd{,} \hlstr{".Rmd"}\hlstd{,} \hlkwd{basename}\hlstd{(files))}
+    \hlstd{rmd} \hlkwb{<-} \hlkwd{file.path}\hlstd{(}\hlkwd{dirname}\hlstd{(path),} \hlstr{"docs/Rmd"}\hlstd{, rmd)}
+    \hlstd{rmd} \hlkwb{<-} \hlstd{rmd[}\hlkwd{sapply}\hlstd{(rmd, file.exists)]}
+    \hlkwd{stopifnot}\hlstd{(}\hlkwd{length}\hlstd{(rmd)} \hlopt{>} \hlnum{0}\hlstd{)}  \hlcom{# Rmd files must exist}
+    \hlstd{files.ind} \hlkwb{<-} \hlkwd{match}\hlstd{(}\hlkwd{gsub}\hlstd{(}\hlstr{".Rmd"}\hlstd{,} \hlstr{""}\hlstd{,} \hlkwd{basename}\hlstd{(rmd)),} \hlkwd{gsub}\hlstd{(}\hlstr{".R"}\hlstd{,} \hlstr{""}\hlstd{,} \hlkwd{basename}\hlstd{(files)))}  \hlcom{# Rmd exist for which R script}
+    \hlstd{l2} \hlkwb{<-} \hlkwd{lapply}\hlstd{(rmd, readLines)}
+    \hlstd{l2} \hlkwb{<-} \hlkwd{rapply}\hlstd{(l2,} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{) x[}\hlkwd{substr}\hlstd{(x,} \hlnum{1}\hlstd{,} \hlkwd{nchar}\hlstd{(rmdChunkID))} \hlopt{==} \hlstd{rmdChunkID],}
+        \hlkwc{how} \hlstd{=} \hlstr{"replace"}\hlstd{)}
+    \hlstd{l2} \hlkwb{<-} \hlkwd{rapply}\hlstd{(l2,} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{,} \hlkwc{p}\hlstd{)} \hlkwd{gsub}\hlstd{(}\hlkwd{paste0}\hlstd{(p,} \hlstr{" "}\hlstd{),} \hlstr{""}\hlstd{, x),} \hlkwc{how} \hlstd{=} \hlstr{"replace"}\hlstd{,}
+        \hlkwc{p} \hlstd{=} \hlkwd{gsub}\hlstd{(}\hlstr{"\textbackslash{}\textbackslash{}\{"}\hlstd{,} \hlstr{"\textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}\{"}\hlstd{, rmdChunkID))}
+    \hlstd{l2} \hlkwb{<-} \hlkwd{rapply}\hlstd{(l2,} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{)} \hlkwd{gsub}\hlstd{(}\hlstr{"\}"}\hlstd{,} \hlstr{""}\hlstd{,} \hlkwd{sapply}\hlstd{(}\hlkwd{strsplit}\hlstd{(x,} \hlstr{","}\hlstd{),} \hlstr{"[["}\hlstd{,}
+        \hlnum{1}\hlstd{)),} \hlkwc{how} \hlstd{=} \hlstr{"replace"}\hlstd{)}
+    \hlkwd{sapply}\hlstd{(}\hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(rmd), appendRmd,} \hlkwc{rmd.files} \hlstd{= rmd,} \hlkwc{rChunks} \hlstd{= l1[files.ind],}
+        \hlkwc{rmdChunks} \hlstd{= l2,} \hlkwc{ID} \hlstd{= rmdChunkID)}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+Regarding the creation and updating of Rmd files, \texttt{rpm} simply assumes that there will be one \textbf{R} Markdown file corresponding to one \textbf{R} script.
+This is not always the case for a given project, but again, the purpose is to generate basic templates.
+Unnecessary files can always be deleted later, or edits made such that one \textbf{R} Markdown file reads multiple \textbf{R} scripts,
+as is the case with the Rmd file used to generate this document.
+
+\end{document}

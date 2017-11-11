@@ -1,0 +1,15 @@
+base
+knitr
+magrittr
+pacman
+RefManageR
+bibtex
+pander
+rmarkdown
+lubridate
+digest
+stringi
+Rcpp
+xtable
+tth
+R2HTML

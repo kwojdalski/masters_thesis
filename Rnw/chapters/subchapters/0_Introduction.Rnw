@@ -1,0 +1,110 @@
+
+Financial markets has been interested in computer science methods since the early 1980s. Though there are ways
+to gain abnormal, positive returns by following traditional ways of investing, such as buy and hold, more modern methods gain on popularity. 
+One of the most popular and emerging category among innovative approaches is the artificial intelligence-based trading. 
+Machine learning has been employed because there is a belief algorithm can be at least as good as human in entrying and
+exiting positions. Such systems take different inputs but most of them are market-related.
+
+ The majority of systems described
+in the literature aim to maximize trading profits or some risk-adjusted measure such as the
+Sharpe ratio.
+Many attempts have been made to come up with a consistently profitable system and
+inspiration has come from different fields ranging from fundamental analysis, econometric
+modelling of financial markets, to machine-learning [5, 8]. Few attempts were successful
+and those that seemed most promising often could not be used to trade actual markets
+because of associated practical disadvantages. Among others these included large drawdowns
+in profits and excessive switching behaviour resulting in very high transaction costs.
+Professional traders have generally regarded those automated systems as far too risky in
+comparison to the returns they were themselves able to deliver. Even if a trading model
+was shown to produce an acceptable risk-return profile on historical data there was no
+guarantee that the system would keep on working in the future. It would cease working
+precisely at the moment it became unable to adapt to the changing market conditions.
+This paper aims to deal with the above problems to obtain a usable, fully automated
+and intelligent trading system. To accomplish this a risk management layer and a dynamic
+optimization layer are added to a known machine-learning algorithm. The middle layer
+manages risk in an intelligent manner so that it protects past gains and avoids losses by restraining
+or even shutting down trading activity in times of high uncertainty. The top layer
+dynamically optimizes the global trading performance in terms of a trader’s risk preferences
+by automatically tuning the system’s hyper-parameters. While the machine-learning
+system is designed to learn from its past trading experiences, the optimization overlay is
+an attempt to adapt the evolutionary behaviour of the system and its perception of risk
+to the evolution of the market itself. In the past an automated trading system based on 2
+superimposed artificial intelligence algorithms was proposed [5]. This research departs from
+a similar principle by developing a fully layered system where risk management, automatic
+parameter tuning and dynamic utility optimization are combined. (For an earlier attempt
+in this direction see [13].) The machine learning algorithm combined with the dynamic
+optimization is termed adaptive reinforcement learning.
+Section 2 of this paper briefly discusses the RRL machine-learning algorithm underlying
+the trading system. Section 3 looks at the different layers of the trading system individually.
+In 3.1 the modifications to the standard algorithm are set out and in 3.2 and 3.3 the risk
+management and optimization layers are explained. The impressive performance of the
+trading system is demonstrated in Section 4 and the final section concludes.
+2
+2 THE MACHINE-L
+
+
+\section{Data}
+Datasets used for the purpose of this workpaper are from the following databases:
+
+* Thomson Reuters Tick Database
+* An aggregator tickdatabase
+
+
+\section{Structure}
+
+\section{First chapter}
+
+The first part consists of the introduction to the problem. It outlines
+the whole concept of the AI-related 
+fields in finance.
+It brought up historical background of finance and computer sciences, and its interdependency. Concretely, it 
+includes the history of implementing first methods in early 80?s, the flash crash in October 1987, first 
+recruitments of 'quants' on the Wall Street in the early 90?s.
+
+
+\section{Second chapter}
+This chapter starts with the critical discussion of models from finance. It includes both classic models, such as CAPM, a gold standard in equity research, and modern ones. The part is descriptive as it regards implicit pros and cons of financial models.
+
+The latter part of the literature review is specifically about algorithmic trading and the methodology of other similar researches, e.g. Sakowski et al. (2013).
+The last subchapter is about machine learning algorithms that are used in trading.
+(8-10 pages)
+
+\section{Third chapter}
+The third chapter will start with goals of the research. I want to make it clear why this work is important. It was partially discussed in Problem part of this text. This master?s thesis is to find an application of the Reinforcement Learning for financial data. This part will contain hypotheses which are as follows:
+  Algorithms based on artificial intelligence can be fruitful for investors by outperforming benchmarks in both risk and return;
+Better performance turns out to be true in high-frequency trading and on longer period intervals;
+Algorithms can learn how to spot overreacting on markets and choose the most under/overpriced security by exploiting time series analysis tools. 
+(2 pages)
+
+Methodology
+This subchapter contains the description of methodology. It includes all formulas and steps that directed to final results. 
+The algorithm itself will incorporate two environments:
+  
+
+* R - to incorporate libraries for machine learning
+* C++ - for code efficiency, it will help in improving performance in bottlenecks
+
+
+The used algorithm is based on dynamic optimization approach. Besides a value function, there will be several indicators, e.g. RSI, which serve as a base for decision taking of the algorithm. The methodology will include transactional costs, so that the optimization is going to be implemented in a real-like environment
+
+(10 pages)
+
+The value function will be based by several statistics, such as the Sharpe and the Differental Sharpe Ratio to capture both risk and return.
+As of now, I cannot enclose the exact form of formulas used in the research but I will provide them as soon as I write the proper code.
+The output of my algorithm in R will be probably a set of positions ${-1,0,1}$, 
+cumulated returns, and risk measures (not only the Sharpe ratio but also MD, MDD, the Sortino ratio, and 
+                                      others).
+
+How am I going to measure the efficiency of my code? I will implement several benchmarks ? the most logical 
+choice is a buy-and-hold strategy on underlying asset (equities, equity-like securities). The second obvious 
+choice is sort of random walk process. By this, I mean that a part of the algorithm will generate random 
+values for a domain of ${-1,0,1}$ and these values will serve as a position. Of course, this benchmark will 
+not include any transactional costs as this obvious that this extreme case would have an enormous cumulated 
+transactional cost (position would change in $frac{2}{3}$ of states).
+When I have the data I am going to discuss my results with other works. Outline the possible directions of 
+future research papers on the issue: What can be implemented? What additionally can be done and measured?
+Fourth chapter
+This part consists of conclusions. Once again, I will write what have been done in this master?s thesis, and 
+everything that conclusions should contain.
+
+\end{document}

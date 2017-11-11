@@ -1,0 +1,499 @@
+---
+title: Project Management
+author: Matthew Leonawicz
+output:
+  html_document:
+    toc: false
+    theme: united
+    highlight: zenburn
+    keep_md: true
+---
+
+```{r knitr_setup, echo=FALSE}
+opts_chunk$set(cache=FALSE, eval=FALSE, tidy=TRUE, message=FALSE, warning=FALSE)
+read_chunk("../../code/proj_sankey.R")
+read_chunk("../../code/rpm.R")
+```
+
+##
+##
+## Introduction
+This is a project management project.
+While current projects are shown in the chart below, the aim of this project is the development of convenient **R**-related project management tools.
+
+### Motivation
+I am working on these tools to enhance my own workflow across multiple **R** projects.
+
+### Details
+**R** code for the project will be compiled into an **R** package, `rpm` for easy use.
+This is a personal package and will not be available anywhere but my github repository,
+but you are welcome to explore the package and functions.
+It is unlikely that you would manage your **R** projects in the same manner that I do,
+but if you do, or just want some ideas, feel free to explore.
+
+#### Capabilities
+`rpm` can create a new project. This essentially generates a specific directory structure which I use often to manage project files.
+For an existing project, once **R** scripts have been created, `rpm` can generate template Rmd files for each.
+For existing Rmd files, `rpm` can conveniently append these **R** Markdown files with a list of any new `knitr` code chunk names
+in project **R** scripts being developed which have not yet been included in the respective Rmd files.
+
+#### Limitations
+While `rpm` assists with project documentation, this mainly takes the form of file generation and appending.
+Documentation is unique to every project of course. Every script is different.
+The most that is possible is to auto-fill commonly used code chunk names and metadata.
+Each document must be written individually by the author, but when a project has many **R** scripts requiring documentation,
+it is nice to not have to create all the corresponding Rmd files by hand and copy and paste generic contents.
+
+The project management code is not yet in package form.
+Many additional features are yet to be incorporated.
+Generic code relating to the further processing of Rmd files into various other output files via `rmarkdown` and `knitr` remains at an early development stage.
+
+## Related items
+Currently there is only this unpackaged **R** script, accompanying code for a projects hierarchy diagram
+and a code flow diagram based on the current development of this project, and a simple script for generating documents based on project **R** code.
+
+### Files and Data
+This project does not use any data.
+It does make use of supplemental libraries for formatting during html document generation.
+`proj_sankey.R` and `code_sankey.R` are used to produce of project hierarchy diagram of my current projects and a code flow diagram for this project, respectively.
+`drg.R` is used to assist in dynamic report generation.
+
+### Code flow
+The Sankey diagram has become part of my project management.
+Each project has its own, detailing the relationships among **R** code and data relevant to the project,
+and in some cases, how they relate to code and data files which are more general and span multiple projects.
+In general, for my projects I would only provide the code flow diagram here among the rest of the project documentation,
+but since this is the project management project and I am introducing its use,
+in this case I will also show the [code](code_sankey.html "code") I use to make the diagram.
+
+### Current projects
+Here is a project hierarchy diagram showing the relationships among all my current projects.
+
+```{r sankey_packages, echo=F, eval=T}
+```
+
+```{r projects, echo=F, eval=T}
+```
+
+```{r people, echo=F, eval=T}
+```
+
+```{r links, echo=F, eval=T, tidy=F}
+```
+
+```{r igraph, echo=F, eval=T}
+```
+
+```{r rcharts, echo=F, eval=T}
+```
+
+```{r sankey_embed, echo=F, eval=T, comment=NA, results="asis", tidy=F}
+```
+<style>iframe.rChart{ width: 100%; height: 840px;}</style>
+
+## **R** code
+
+### Template objects
+
+Character string objects are defined which are used to fill templates when generating new files for a project.
+A tentative default path is also included since this code relates to my own work.
+Realistically, any objects current shown here will most likely eventually be incorporated into package functions in some form.
+I prefer not to have many straggler objects floating around.
+
+```{r template_objects}
+```
+
+### Functions: Project creation
+
+Functions are defined for creating new projects, generating Rmd files for project **R** scripts,
+and appending these **R** Markdown files with updated information from the corresponding **R** scripts as their development continues.
+Additional functions will be incorporated later.
+
+#### newProject
+`newProject` creates a new named project directory structure at the specified file path.
+If a directory with this project name already exists in this location on the file system and `overwrite=FALSE`, the function will abort.
+Default project subdirectories are created unless a different vector of folder names is explicitly passed to `newProject`.
+If one of the subdirectories is `docs` then the default vector of subdirectories under `docs` is also created.
+This argument can also be set explicitly.
+The current function only creates directories, not files, so `overwrite=TRUE` is safe to use on any existing project.
+
+```{r fun_newProject}
+```
+
+### Functions: Rmd documents
+
+The main function for Rmd document generation is `genRmd`.
+This function makes use of helper functions for the Rmd yaml front-matter and `knitr` global options code chunk generation.
+
+#### .rmdHeader
+`.rmdHeader` generates the yaml metadata header for Rmd files as a character string to be inserted at the top of a file.
+It has several default arguments specific to my own projects but can be changed.
+If `title` or `author` are set to `NULL`, these fields will not occur in the generated yaml front-matter.
+The function is called directly by `genRmd`, which is passed an arguments list for this function.
+If `title=="filenames"`, the names of individual files passed to `genRmd` are substituted, respectively.
+Any other character string represents a single, fixed title for all Rmd files generated from the vector of **R** scripts passed to `genRmd`.
+
+```{r fun_rmdHeader}
+```
+
+#### .rmdknitrSetup
+`.rmdknitrSetup` generates the `knitr` global options setup code chunk for Rmd files as a character string to be inserted at the top of a file following the yaml header.
+The only option at this time is the ability to include or exclude a source reference to a project-related code flow diagram **R** script via `include.sankey`, which defaults to `TRUE`.
+The function is called directly by `genRmd`.
+The `...` argument to `genRmd` is passed to `.rmdknitrSetup`, currently accepting the `include.sankey` argument. This is not vectorized across files read by `genRmd`.
+
+```{r fun_rmdknitrSetup}
+```
+
+#### genRmd
+`genRmd` works on existing projects. It checks for existing **R** scripts.
+If no **R** files exist in the project's `code` directory, the function will abort.
+Otherwise it will generate Rmd template files for each of the **R** scripts it finds.
+
+With `replace=TRUE` any existing Rmd files are regenerated with the provided template - be careful!
+With `replace=FALSE` (default) Rmd files are generated only for **R** scripts which do not yet have corresponding Rmd files.
+If `update.header=TRUE`, `replace` is ignored, and only existing Rmd files are regenerated,
+in this case strictly updating the yaml metadata header at the top of each Rmd file without altering any other Rmd content/documentation. 
+
+The Rmd files are placed in the `/docs/Rmd` directory.
+This function assumes this project directory exists.
+
+This function calls `.rmdHeader` and `.rmdknitrSetup`.
+It includes defaults for all arguments to these functions.
+However, it will generally be necessary to pass a custom arguments list to `header.args` to be used internally by `.rmdHeader`.
+
+```{r fun_genRmd}
+```
+
+#### chunkNames
+`chunkNames` can be used in two ways.
+It can return a list with length equal to the number of **R** files,
+where each list element is a vector of **R** code chunk names found in each **R** script.
+
+Alternatively, with `append.new=TRUE`, this list has each vector matched element-wise against chunk names found in existing Rmd files.
+If no Rmd files have yet been generated, the function will abort.
+Otherwise, for the Rmd files which do exist (and this may correspond to a subset of the **R** files),
+these Rmd files are appended with a list of code chunk names found in the current corresponding **R** files
+which have not yet been integrated into the current state of the Rmd files.
+This facilitates updating of Rmd documentation when it falls behind scripts which have been updated.
+
+```{r fun_chunkNames}
+```
+
+Regarding the creation and updating of Rmd files, `rpm` simply assumes that there will be one **R** Markdown file corresponding to one **R** script.
+This is not always the case for a given project, but again, the purpose is to generate basic templates.
+Unnecessary files can always be deleted later, or edits made such that one **R** Markdown file reads multiple **R** scripts,
+as is the case with the Rmd file used to generate this document.
+
+### Functions: Document conversion
+
+The main function for conversion between Rmd and Rnw files is `convertDocs`.
+This function contains several internal support functions, each of which is somewhat limited in how much specific conversion it can achieve.
+The functions below were written with my particular style of Rmd and Rnw documentation in mind.
+As such they are necessarily a bit idiosyncratic and cannot account for every possible difference found between Rmd and Rnw formatting across any pair of documents.
+I only strived to speed up the process by which I convert my own documents, most of which follow a set of general rules and expectations most of the time.
+Anything atypical which doesn't convert properly can be adjusted by hand afterward.
+This is still better than rewriting, copy-pasting, and search-and-replacing many sections of many files on a recurring basis.
+Further improvements in conversion will be added later.
+
+##### Rules and assumptions regarding these functions
+
+- When converting to Rmd, all Rnw file lines beginning with a backslash which are in the main body of the code (beyond the title, author, etc.) and are not part of a code chunk identifier string are stripped rather than converted to anything.
+- Only title and author are parsed from the Rnw lines prior to where the **R** code chunks begin. LaTeX libraries and such are dropped.
+- When converting to Rnw, standard, minimal LaTeX libraries and other requirements prior to beginning the document are inserted by default in place of the Rmd yaml front-matter.
+- Rmd files must have yaml front-matter prior to converting to Rnw, identified always by the second line in the document to begin with `---`. More generally, conversion aside, it is expected than any Rmd file has a yaml front-matter section in the context of `rpm`.
+
+##### Formatting rules
+
+- I never use two consecutive asterisks or underscores except to indicate bold text
+- Text with typewriter font in Rnw files is converted to text within backticks in Rmd files and vice versa.
+- Italics or other formatting are not considered at this time.
+- Lists in Rmd files (like this one), are not yet addressed in conversion to Rnw and vice versa.
+- In fact anything not explicitly mentioned here is not yet addressed.
+
+##### Heading rules
+- I never (intentionally) use the two most extreme headings in Rmd files, `#` and `######`. I only use `##` through `#####`.
+- I never go beyond `subsubsubsection` in Rnw files.
+- Any occurrence of a one- or two-`#` identified heading is converted to a new `section` heading in an Rnw file whereas a `section` heading converts to a `##` heading.
+- Similarly, five- or six-`#` identified headings in Rmd convert to the maximum `subsubsubsection` which back-converts to a `#####` heading.
+- Three- and four-`#` identified Rmd headings convert to `subsection` and `subsubsection` identified Rnw headings, respectively, and vice versa. As such, these are the only true one-to-one heading conversions.
+
+This may all sound like a lot, but it's not. It does a decent job for now.
+It's not a true conversion and plenty of work may remain afterward.
+Again, the point is to make conversion much less tedious and hands-on, which it does well enough so far.
+
+#### .swapHeadings
+`.swapHeadings` assists in bidirectional conversion between Rmd and Rnw files.
+It swaps section headings formatting.
+It is called directly by `.swap`, internal to `convertDocs`.
+
+
+```{r fun_swapHeadings}
+```
+
+#### .swapChunks
+`.swapChunks` assists in bidirectional conversion between Rmd and Rnw files.
+It swaps code chunk formatting.
+It is called directly by `.swap`, internal to `convertDocs`.
+
+
+```{r fun_swapChunks}
+```
+
+#### .swapEmphasis
+`.swapEmphasis` assists in bidirectional conversion between Rmd and Rnw files.
+It swaps text formatting such as boldface and typewriter font.
+It is called directly by `.swap`, internal to `convertDocs`.
+
+
+```{r fun_swapEmphasis}
+```
+
+#### .swap
+`.swap` assists in bidirectional conversion between Rmd and Rnw files.
+It is called internal to `convertDocs`.
+
+
+```{r fun_swap}
+```
+
+#### convertDocs
+`convertDocs` converts between Rmd and Rnw files.
+The project's `docs/Rmd` or `docs/Rnw` directory is specified.
+Any files of the same type as the directory are converted to the other type and saved to the other directory.
+The input files are not removed.
+
+This function speeds up the process of duplicating files, e.g., when wanting to make pdf files from Rnw files when only Rmd files exist.
+This is almost exclusively what I use this function for.
+On less frequent occasions I have used it in the other direction when I have Rnw files which were once used to make PDFs but later I decide to put them on the web as a web page and not as a link to a pdf files.
+
+The user still makes specific changes by hand, for example, any required changes to `knitr` code chunk options that must differ for pdf output vs. html output.
+The primary benefit is in not having to fuss with large amounts of standard substitutions which can be automated, such as swapping code chunk enclosure styles and common file metadata.
+Of course, this function is not perfect.
+It amounts to a text-parsing hack that is intended to handle the most common of idiosyncrasies and differences which exist between my own Rmd and Rnw files in the context of my own limited rule set.
+
+```{r fun_convertDocs}
+```
+
+### Functions: Document organization
+
+#### moveDocs
+`moveDocs` relocates files by renaming with a new file path.
+Specifically, it scans for md and html files in the `docs/Rmd` directory and/or pdf files in the `docs/Rnw` directory.
+If such files are found in the respective locations, they are moved to `docs/md`, `docs/html`, and `docs/pdf`, respectively.
+
+The intent is to clean up the Rmd and Rnw directories after `knitr` has been used to knit documents in place.
+I do this because I have more success knitting documents with the confluence of `RStudio`, `rmarkdown`, `knitr`, `pandoc`, and `LaTeX` when the knitting occurs all within the directory of the originating files.
+The process is more prone to throwing errors when trying to specify alternate locations for outputs.
+
+`moveDocs` makes a nominal effort to replace a possible relative path with a full file path before proceeding, if the former is supplied.
+Default arguments include `move=TRUE` which will call `file.rename` and `copy=FALSE` which, if `TRUE` (and `move=FALSE`), will alternatively call `file.copy`.
+If both are `TRUE`, any files found are moved.
+
+This function will always overwrite any existing file versions previously moved to the output directories, by way of `file.rename`.
+To keep the behavior consistent, when `move=FALSE` and `copy=TRUE`, `file.copy` always executes with its argument, `overwrite=TRUE`.
+This should never cause problems because in the context I intend for this function,
+the types of files being moved or copied from `docs/Rmd` and `docs/Rnw` are never used as inputs to other files, functions, or processes,
+nor are they meant to be edited by hand after being generated.
+
+If there are LaTeX-associated files present (.TeX, .aux, and .txt files with the same file names as local pdf files.),
+these files will be removed if `remove.latex=TRUE` (default).
+If `FALSE`, the default `latexDir="LaTeX"` means that these files will be moved to the `docs/LaTeX` directory rather than deleted.
+If this directory does not exist, it will be created.
+An alternate location can be specified, such as "pdf" if you want to keep these files with the related pdf files after those are moved by `moveDocs` as well to `docs/pdf`.
+The directory of supplemental pdf figures, if any, which is creating during knitting, is not included in the file move at this time.
+
+```{r fun_moveDocs}
+```
+
+### Functions: Project statistics
+
+#### getProjectStats
+`getProjectStats` parses text from **R** project scripts and documentation files to return basic descriptive statistics and data including:
+
+* total number of files
+* number of **R** scripts
+* number of unique Rmd documents (Rnw companions, or knitted documents such as html, md or pdf are ignored)
+* number of lines of code
+* number of lines of documentation
+* number of unique **R** functions defined in the global environment by the parsed scripts
+* a 2-column matrix describing the hierarchical chain of project functions, to be used, e.g., in a directed graph or tree diagram
+
+Functions defined internal to other project functions are excluded entirely.
+Of the list of globally defined functions, only these functions are checked for internal references to other functions.
+Likewise, only these functions are considered as possible nested references.
+
+`getProjectStats` uses unsophisticated text parsing and in places relies of some excessively strong assumptions about how my **R** code is written.
+It does not require loading scripts into an **R** workspace or checking object modes and environments.
+See the `foodweb` function in the `mvbutils` package for something along these lines.
+It sounds completely unrelated, I know, but it may be just what you are looking for.
+
+Regarding strong assumptions, for example, although the first line of a function is easy to find,
+I must search for the closing curly brace of a function in order to know the sequence of lines in a file the function pertains to.
+There is risk of finding the closure to a `for` loop instead.
+I avoid this kind of problem by taking the first closing curly brace following a function's opening line, which also meets the requirement of being a single-character line.
+If a for loop occurs inside this function, my own style is to tab inward to make the code more readable,
+so a loop ending with a closing curly brace would never be a single-character line.
+The brace would at least be preceded by one or more spaces if not one or more a tab characters.
+I can only expect such strong rules to work for my own code.
+
+On the other hand, sometimes functions are on a single line, and may have no curly braces at all.
+My code below would fail in such cases, still seeking a closing brace when there isn't one, either returning improper function line indices or throwing an error.
+
+I would really like to have a function which returns hierarchical data describing the reactivity chain of an entire Shiny app, but I do not know how to do this.
+Also, at this time I have not yet added any code for simply parsing text from **R** scripts to count the number of instances of reactive expressions and other Shiny code elements of interest.
+
+```{r fun_getProjectStats}
+```
+
+### Functions: Project web sites
+
+Some functions in this section are also used in the generation of Github user pages (see next section).
+They appear here because they are used more generally for project pages even though some contain user page-specific code and arguments as well.
+Functions in the subsequent section are used more exclusively for user pages generation.
+
+#### buttonGroup
+`buttonGroup` is a helper function for `genNavbar`. I used it to place social media buttons in the right side of the navigation bar at the top of a web page.
+For project pages I tend to only include a Github button linking to the project repo.
+For my Github user pages, I include more buttons.
+The function generates an html snippet defining a group of buttons.
+Typical use is to pass a list of the below arguments to `genNavbar`.
+
+`txt` is a character vector of text to appear inside the button.
+`urls` represents an accompanying vector of page urls.
+
+`fa.icons=NULL` (default) means no Font Awesome icons will be included in the button to the left of the text.
+A vector of icon names can be passed. The whole string is not required, only the relevant text following `fa-`.
+For example, use `github` instead of `fa-github`.
+
+The `colors` argument takes any of the following CSS theme-defined "colors": default, primary, success, info, warning, danger.
+If `solid.group=TRUE`, a justified block button group will be defined.
+
+```{r fun_buttonGroup}
+```
+
+#### genNavbar
+
+`genNavbar` generates a navigation bar for a web page.
+The html file created is generally written to the project's `docs/Rmd/include` directory.
+However, if this function is used to create a navbar for a Github user web page, the html file should be stored in a sensible location inside the user pages repository, e.g., `leonawicz.github.io/assets`.
+
+The common navigation bar html is included at the beginning of the body of the html for each web page in the project's website.
+`menu` is a vector of names for each dropdown menu.
+`submenus` is a list of vectors of menu options corresponding to each menu.
+`files` is a similar list of vectors.
+Each element is either an html file for a web page to be associated with the submenu link,
+"header" to indicate the corresponding name in `submenus` is only a group label and not a link to a web page,
+or "divider" to indicate placement of a bar for separating groups in a dropdown menu.
+
+`theme` can be either `united` (default) or `cyborg`.
+Both are from Bootswatch.
+The function must apply some internal differentiation in the construction of the html navigation bar between themes.
+This is currently the only `rpm` function which attempts to handle multiple Bootswatch themes with different CSS tags.
+
+If `media.button.args=NULL` (default), only the Github button will be included, and then only if `site.name="Github"` and site.url is not blank.
+I use this default for project pages and do not insert additional buttons.
+For user pages, the same default will work.
+Alternatively, a list of arguments can passed on to `buttonGroup`.
+I have not checked yet to see if this also works for project pages.
+
+```{r fun_genNavbar}
+```
+
+#### genOutyaml
+
+`genOutyaml` generates the `_out.yaml` file for yaml front-matter common to all html files in the project website.
+The file should be written to the project's `docs/Rmd` directory.
+`lib` specifies the library directory for any associated files.
+yaml `includes` for external html common to all project web pages in the site can also be specified with `header`, `before_body`, and `after_body`.
+These can be specified by file basename only (no path) and the function assumes these files are in the `docs/Rmd/include` directory.
+At this time all external libraries must be provided by the user, for example in `docs/Rmd/libs`.
+It is recommended. See the project repo [gh-pages](https://github.com/leonawicz/ProjectManagement/tree/gh-pages "gh-pages") branch for an example.
+
+```{r fun_genOutyaml}
+```
+
+### Functions: Github user web sites
+
+#### genPanelDiv
+
+`genPanelDiv` generates an html file storing a container div element which in its current state of development organizes four types of content: **R** projects, **R** Shiny web applications, data visualization galleries, and gallery images.
+
+The `type` argument can be one of `projects`, `apps`, `datavis`, or `gallery`.
+The purpose of the function is to generate an html file defining a container element to display and reference either my **R** projects, my Shiny apps, or my example visualization galleries.
+
+##### Projects
+
+For projects, the function scans a directory of local repositories and takes any directories found to be the names of projects.
+There is an `exclude` argument for dropping any known directories that are to be avoided.
+My defaults are `exclude="leonawicz.github.io", "shiny-apps"` since the first is just a local repository for my Github user account web site and not a "project" in the same sense of my other projects
+and the second is the local repository which is scanned by `genPanelDiv` when `type="apps"`.
+
+##### Apps
+
+For apps, the function scans a directory of Shiny app subdirectories.
+Unlike for projects, where `genPanelDiv` scans a directory of multiple local repositories, this apps directory should be a specific local repository. The apps contained within are not individual repositories.
+I have taken this approach for now simply because this is how my apps tend to be stored.
+
+Specifically, the `genAppDiv` looks for a named directory of image files.
+There should be one image per app, named exactly as the respective app directory is named.
+Only apps with corresponding images are built into the html container.
+If you wish to leave out, say, a developmental app from being linked to on you Github user website, do not include an image file for that app.
+
+The container element includes an image link to each app's url as well as a link to the source code on Github.
+Although the app scans for images in a local repository, the images referenced in the output html are of course not local.
+They point to the same images stored on Github, hence why it is useful for the local directory of apps to be a Github repository.
+
+##### DataVis and Galleries
+
+Whereas the first three types generate containers for the main Github user web page, I use `type="gallery"` to make a separate container html file of graphics for each panel occurring in my `datavis` container.
+These containers tend to be added to unique web pages.
+`datavis` is for highlighting a number of galleries whereas `gallery` is for each highlighted gallery's respective contents.
+
+In order to use `type="datavis"` there must be a data visualization local repository.
+Mine is named `DataVisualizationExamples`, evident from the hardcoding currently in place within this function.
+Similar to when `type="apps"`, this repository includes a directory of images, in t his case one image for each gallery.
+Each image in this directory is named such that it identically matches another the name of a gallery images directory containing multiple images.
+As with `type="apps"`, gallery directories are only included if a corresponding thumbnail image in the images directory exists.
+
+When `type="gallery"`, the behavior of `genPanelDiv` is most unique.
+For each gallery which exists, the function will make a unique html file with a gallery container element.
+
+This function makes the more specific `genAppDiv` redundant and will likely replace it.
+
+```{r fun_genPanelDiv}
+```
+
+#### htmlHead
+
+`htmlHead` is useful for including javascript and CSS stylesheets in the head of an html document.
+Stylesheet arguments can be passed along as well in proper order.
+
+```{r fun_htmlHead}
+```
+
+#### htmlBodyTop
+
+`htmlBodyTop` currently is used for including custom CSS and a background image in the html body.
+CSS can be included as a text string or as a path to a CSS file.
+
+
+```{r fun_htmlBodyTop}
+```
+
+#### htmlBottom
+
+`htmlBottom` does not do anything else at this time other than close up the html document.
+
+
+```{r fun_htmlBottom}
+```
+
+#### genUserPage
+
+`genUserPage` generates a Github user account web page by combining precompiled html files of container elements made using `genPanelDiv`
+as well as various lingering hardcoded elements for my own work.
+I use this function to produce my main Github user page, the `index.html`, as well as supplemental gallery pages.
+
+```{r fun_genUserPage}
+```

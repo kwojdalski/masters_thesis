@@ -1,0 +1,88 @@
+---
+title: Master's thesis
+author: Krzysztof Wojdalski
+output:
+  html_document:
+    toc: false
+    theme: united
+    highlight: tango
+    keep_md: true
+---
+
+```{rr, include=FALSE, cache=FALSE,echo=FALSE,eval=TRUE}
+if (!'pacman' %in%installed.packages()) install.packages('pacman')
+require(pacman)
+p_load(RefManageR, bibtex, knitr)
+# bib <- ReadBib('./working_papers/library.bib')
+# BibOptions(bib.style = "numeric",check.entries=FALSE)
+opts_chunk$set(
+  cache=T  ,
+  warning=F,
+  error=F  ,
+  message=F,
+  eval=T   ,
+  echo=F   ,
+  include=T
+)
+#setwd("D:/Dropbox/Mastersthesis")
+#set_parent('./masters_thesis.Rmd')
+
+# readLines(paste0(getwd(),'/working_papers/library.bib'))%>%
+#   a<-readLines(paste0(getwd(),'/working_papers/library.bib'))[96]
+#   b<-gsub(pattern='^.*\\b(arxivId)\\b.*$','',readLines(paste0(getwd(),'/working_papers/library.bib')))
+inputs <- './working_papers'
+Sys.setenv(TEXINPUTS=inputs,
+           BIBINPUTS=inputs,
+           BSTINPUTS=inputs)
+#Sys.getenv("RSTUDIO_PANDOC")
+Sys.setenv(RSTUDIO_PDFLATEX = Sys.which("latexmk"))
+#options(encoding="UTF-8")
+#Sys.setlocale(locale='Polish_Poland.1250')
+#Sys.getlocale('LC_ALL',')
+
+```
+
+
+The master's thesis is about the Reinforcement Learning application in the foreign exchange market. 
+The author starts with describing the FX market, analyzing market organization, participants, and changes in the last
+years. He tries to explain current trends and the possible directions. 
+The next part consists of theoretical pattern for the research - description of financial models, 
+and the AI algorithms. 
+Implementation of the RL-based approach in the third chapter, based on Q-learning, gives spurious results. 
+
+
+
+
+
+
+
+
+
+
+
+```{rfx_market_organization, child='chapters/subchapters/1_2_FX_Market_Organization.Rmd'}
+
+```
+
+
+
+
+```{rmodern_portfolio_theory_and_capm,child='chapters/subchapters/2_1_1_Modern_Portfolio_Theory_and_CAPM.Rmd'}
+
+```
+
+```{rrelevant_financial_indicators2,child='chapters/subchapters/2_2_Relevant_Financial_Indicators.Rmd'}
+```
+
+
+
+
+
+
+
+
+
+```{rbiber}
+require(knitr)
+system(paste("biber", sub("\\.Rnw$", "", current_input())))
+```

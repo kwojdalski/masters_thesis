@@ -1,0 +1,402 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{verbose, tmargin=2.5cm, bmargin=2.5cm, lmargin=2.5cm, rmargin=2.5cm}
+\begin{document}
+
+\title{Project Management}
+\author{Matthew Leonawicz}
+\maketitle
+
+<<highlight, echo=FALSE>>=
+knit_theme$set(knit_theme$get('solarized-dark'))
+@
+
+<<knitr_setup, echo=FALSE>>=
+opts_chunk$set(cache=FALSE, eval=FALSE, tidy=TRUE, message=FALSE, warning=FALSE)
+read_chunk("../../code/proj_sankey.R")
+read_chunk("../../code/rpm.R")
+@
+
+
+\section{Introduction}
+This is a project management project.
+While current projects are shown in the chart below, the aim of this project is the development of convenient \textbf{R}-related project management tools.
+
+\subsection{Motivation}
+I am working on these tools to enhance my own workflow across multiple \textbf{R} projects.
+
+\subsection{Details}
+\textbf{R} code for the project will be compiled into an \textbf{R} package, \texttt{rpm} for easy use.
+This is a personal package and will not be available anywhere but my github repository,
+but you are welcome to explore the package and functions.
+It is unlikely that you would manage your \textbf{R} projects in the same manner that I do,
+but if you do, or just want some ideas, feel free to explore.
+
+\subsubsection{Capabilities}
+\texttt{rpm} can create a new project. This essentially generates a specific directory structure which I use often to manage project files.
+For an existing project, once \textbf{R} scripts have been created, \texttt{rpm} can generate template Rmd files for each.
+For existing Rmd files, \texttt{rpm} can conveniently append these \textbf{R} Markdown files with a list of any new \texttt{knitr} code chunk names
+in project \textbf{R} scripts being developed which have not yet been included in the respective Rmd files.
+
+\subsubsection{Limitations}
+While \texttt{rpm} assists with project documentation, this mainly takes the form of file generation and appending.
+Documentation is unique to every project of course. Every script is different.
+The most that is possible is to auto-fill commonly used code chunk names and metadata.
+Each document must be written individually by the author, but when a project has many \textbf{R} scripts requiring documentation,
+it is nice to not have to create all the corresponding Rmd files by hand and copy and paste generic contents.
+
+The project management code is not yet in package form.
+Many additional features are yet to be incorporated.
+Generic code relating to the further processing of Rmd files into various other output files via \texttt{rmarkdown} and \texttt{knitr} remains at an early development stage.
+
+\section{Related items}
+Currently there is only this unpackaged \textbf{R} script, accompanying code for a projects hierarchy diagram
+and a code flow diagram based on the current development of this project, and a simple script for generating documents based on project \textbf{R} code.
+
+\subsection{Files and Data}
+This project does not use any data.
+It does make use of supplemental libraries for formatting during html document generation.
+\texttt{proj\_sankey.R} and \texttt{code\_sankey.R} are used to produce of project hierarchy diagram of my current projects and a code flow diagram for this project, respectively.
+\texttt{drg.R} is used to assist in dynamic report generation.
+
+\subsection{Code flow}
+The Sankey diagram has become part of project management.
+Each project has its own, detailing the relationships among \textbf{R} code and data relevant to the project,
+and in some cases, how they relate to code and data files which are more general and span multiple projects.
+In general, for my projects I would only provide the code flow diagram here among the rest of the project documentation,
+but since this is the project management project and I am introducing its use,
+in this case I will also show the [code](code\_sankey.html "code") I use to make the diagram.
+
+\subsection{Current projects}
+Here is a project hierarchy diagram showing the relationships among all my current projects.
+
+<<sankey_packages, echo=F, eval=F>>=
+@
+
+<<projects, echo=F, eval=F>>=
+@
+
+<<people, echo=F, eval=F>>=
+@
+
+<<links, echo=F, eval=F, tidy=F>>=
+@
+
+<<igraph, echo=F, eval=F>>=
+@
+
+<<rcharts, echo=F, eval=F>>=
+@
+
+<<sankey_embed, echo=F, eval=F, comment=NA, results="asis", tidy=F>>=
+@
+
+\section{\textbf{R} code}
+
+\subsection{Template objects}
+Character string objects are defined which are used to fill templates when generating new files for a project.
+A tentative default path is also included since this code relates to my own work.
+
+<<template_objects>>=
+@
+
+\subsection{Package functions}
+Functions are defined for creating new projects, generating Rmd files for project \textbf{R} scripts,
+and appending these \textbf{R} Markdown files with updated information from the corresponding \textbf{R} scripts as their development continues.
+Additional functions will be incorporated later.
+
+\subsubsection{newProject}
+\texttt{newProject} creates a new named project directory structure at the specified file path.
+If a directory with this project name already exists in this location on the file system and \texttt{overwrite=FALSE}, the function will abort.
+Default project subdirectories are created unless a different vector of folder names is explicitly passed to \texttt{newProject}.
+If one of the subdirectories is \texttt{docs} then the default vector of subdirectories under \texttt{docs} is also created.
+This argument can also be set explicitly.
+The current function only creates directories, not files, so \texttt{overwrite=TRUE} is safe to use on any existing project.
+
+<<fun_newProject>>=
+@
+
+\subsubsection{rmdHeader}
+\texttt{rmdHeader} generates the yaml metadata header for Rmd files as a character string to be inserted at the top of a file.
+It has default arguments specific to my own projects but can be changed.
+The output from this function is passed directly to \texttt{genRmd} below.
+
+<<fun_rmdHeader>>=
+@
+
+\subsubsection{rmdknitrSetup}
+\texttt{rmdknitrSetup} generates the \texttt{knitr} global options setup code cunk for Rmd files as a character string to be inserted at the top of a file following the yaml header.
+The only option at this time is the ability to include or exclude a source reference to a project-related code flow diagram \textbf{R} script via \texttt{include.sankey}.
+The output from this function is passed directly to \texttt{genRmd} below.
+
+<<fun_rmdknitrSetup>>=
+@
+
+\subsubsection{genRmd}
+\texttt{genRmd} works on existing projects. It checks for existing \textbf{R} scripts.
+If no \textbf{R} files exist in the project's \texttt{code} directory, the function will abort.
+Otherwise it will generate Rmd template files for each of the \textbf{R} scripts it finds.
+
+With \texttt{replace=TRUE} any existing Rmd files are regenerated with the provided template - be careful!
+With \texttt{replace=FALSE} (default) Rmd files are generated only for \textbf{R} scripts which do not yet have corresponding Rmd files.
+If \texttt{update.header=TRUE}, \texttt{replace} is ignored, and only existing Rmd files are regenerated,
+in this case strictly updating the yaml metadata header at the top of each Rmd file without altering any other Rmd content/documentation. 
+
+The Rmd files are placed in the \texttt{/docs/Rmd} directory.
+This function assumes this project directory exists.
+
+<<fun_genRmd>>=
+@
+
+\subsubsection{chunkNames}
+\texttt{chunkNames} can be used in two ways.
+It can return a list with length equal to the number of \textbf{R} files,
+where each list element is a vector of \textbf{R} code chunk names found in each \textbf{R} script.
+
+Alternatively, with \texttt{append.new=TRUE}, this list has each vector matched element-wise against chunk names found in existing Rmd files.
+If no Rmd files have yet been generated, the function will abort.
+Otherwise, for the Rmd files which do exist (and this may correspond to a subset of the \textbf{R} files),
+these Rmd files are appended with a list of code chunk names found in the current corresponding \textbf{R} files
+which have not yet been integrated into the current state of the Rmd files.
+This fascilitates updating of Rmd documentation when it falls behind scripts which have been updated.
+
+<<fun_chunkNames>>=
+@
+
+Regarding the creation and updating of Rmd files, \texttt{rpm} simply assumes that there will be one \textbf{R} Markdown file corresponding to one \textbf{R} script.
+This is not always the case for a given project, but again, the purpose is to generate basic templates.
+Unnecessary files can always be deleted later, or edits made such that one \textbf{R} Markdown file reads multiple \textbf{R} scripts,
+as is the case with the Rmd file used to generate this document.
+
+
+The main function for conversion between Rmd and Rnw files is \texttt{convertDocs}.
+This function contains several internal support functions, each of which is somewhat limited in how much specific conversion it can achieve.
+The functions below were written with my particular style of Rmd and Rnw documentation in mind.
+As such they are necessarily a bit idiosyncratic and cannot account for every possible difference found between Rmd and Rnw formatting across any pair of documents.
+I only strived to speed up the process by which I convert my own documents, most of which follow a set of general rules and expectations most of the time.
+Anything atypical which doesn't convert properly can be adjusted by hand afterward.
+This is still better than rewriting, copy-pasting, and search-and-replacing many sections of many files on a recurring basis.
+Further improvements in conversion will be added later.
+
+\subsubsection{.swapHeadings}
+\texttt{.swapHeadings} assists in bidirectional conversion between Rmd and Rnw files.
+It swaps section headings formatting.
+It is called directly by \texttt{swap}, internal to \texttt{convertDocs}.
+
+
+<<fun_swapHeadings>>=
+@
+
+\subsubsection{.swapChunks}
+\texttt{.swapChunks} assists in bidirectional conversion between Rmd and Rnw files.
+It swaps code chunk formatting.
+It is called directly by \texttt{swap}, internal to \texttt{convertDocs}.
+
+
+<<fun_swapChunks>>=
+@
+
+\subsubsection{.swapEmphasis}
+\texttt{.swapEmphasis} assists in bidirectional conversion between Rmd and Rnw files.
+It swaps text formatting such as boldface and typewriter font.
+It is called directly by \texttt{swap}, internal to \texttt{convertDocs}.
+
+
+<<fun_swapEmphasis>>=
+@
+
+\subsubsection{.swap}
+\texttt{.swap} assists in bidirectional conversion between Rmd and Rnw files.
+It is called internal to \texttt{convertDocs}.
+
+
+<<fun_swap>>=
+@
+
+\subsubsection{convertDocs}
+\texttt{convertDocs} converts between Rmd and Rnw files.
+The project's \texttt{docs/Rmd} or \texttt{docs/Rnw} directory is specified.
+Any files of the same type as the directory are converted to the other type and saved to the other directory.
+The input files are not removed.
+
+This function speeds up the process of duplicating files, e.g., when wanting to make PDFs from Rnw files when only Rmd files exist.
+This is almost exclusively what I use this function for.
+On less frequent occasions I have used it in the other direction when I have Rnw files which were once used to make PDFs but later I decide to put them on the web as a web page and not as a link to a PDF.
+
+The user still makes specific changes by hand, for example, any required changes to \texttt{knitr} code chunk options that must differ for PDF output vs. html output.
+The primary benefit is in not having to fuss with large amounts of standard substitutions which can be automated, such as swapping code chunk enclosure styles and common file metadata.
+Of course, this function is not perfect.
+It amounts to a text-parsing hack that is intended to handle the most common of idiosyncrasies and differences which exist between my own Rmd and Rnw files in the context of my own set of rules and assumptions, outlined below.
+
+<<fun_convertDocs>>=
+@
+
+\subsubsection{moveDocs}
+\texttt{moveDocs} relocates files by renaming with a new file path.
+Specifically, it scans for md and html files in the \texttt{docs/Rmd} directory and/or pdf files in the \texttt{docs/Rnw} directory.
+If such files are found in the respective locations, they are moved to \texttt{docs/md}, \texttt{docs/html}, and \texttt{docs/pdf}, respectively.
+
+The intent is to clean up the Rmd and Rnw directories after \texttt{knitr} has been used to knit documents in place.
+I do this because I have more success knitting documents with the confluence of \texttt{RStudio}, \texttt{rmarkdown}, \texttt{knitr}, \texttt{pandoc}, and \texttt{LaTeX} when the knitting occurs all within the directory of the originating files.
+The process is more prone to throwing errors when trying to specify alternate locations for outputs.
+
+\texttt{moveDocs} makes a nominal effort to replace a possible relative path with a full file path before proceeding, if the former is supplied.
+Default arguments include \texttt{move=TRUE} which will call \texttt{file.rename} and \texttt{copy=FALSE} which, if \texttt{TRUE} (and \texttt{move=FALSE}), will alternatively call \texttt{file.copy}.
+If both are \texttt{TRUE}, any files found are moved.
+
+This function will always overwrite any existing file versions previously moved to the output directories, by way of \texttt{file.rename}.
+To keep the behavior consistent, when \texttt{move=FALSE} and \texttt{copy=TRUE}, \texttt{file.copy} always executes with its argument, \texttt{overwrite=TRUE}.
+This should never cause problems because in the context I intend for this function,
+the types of files being moved or copied from \texttt{docs/Rmd} and \texttt{docs/Rnw} are never used as inputs to other files, functions, or processes,
+nor are they meant to be edited by hand after being generated.
+
+If there are LaTeX-associated files present (.TeX, .aux, and .txt files with the same file names as local pdf files.),
+these files will be removed if \texttt{remove.latex=TRUE} (default).
+If \texttt{FALSE}, the default \texttt{latexDir="LaTeX"} means that these files will be moved to the \texttt{docs/LaTeX} directory rather than deleted.
+If this directory does not exist, it will be created.
+An alternate location can be specified, such as "pdf" if you want to keep these files with the related pdf files after those are moved by \texttt{moveDocs} as well to \texttt{docs/pdf}.
+
+<<fun_moveDocs>>=
+@
+
+\subsubsection{genNavbar}
+
+\texttt{genNavbar} generates a navigation bar for a web page.
+The html file created is generally written to the project's \texttt{docs/Rmd/include} directory.
+However, if this function is used to create a navbar for a Github user web page, the html file should be stored in a sensible location inside the user pages repository, e.g., \texttt{leonawicz.github.io/assets}.
+
+The common navigation bar html is included at the beginning of the body of the html for each web page in the project's website.
+\texttt{menu} is a vector of names for each dropdown menu.
+\texttt{submenus} is a list of vectors of menu options corresponding to each menu.
+\texttt{files} is a similar list of vectors.
+Each element is either an html file for a web page to be associated with the submenu link,
+"header" to indicate the corresponding name in \texttt{submenus} is only a group label and not a link to a web page,
+or "divider" to indicate placement of a bar for separating groups in a dropdown menu.
+
+\texttt{theme} can be either \texttt{united} (default) or \texttt{cyborg}.
+Both are from Bootswatch.
+The function must apply some internal differentiation in the construction of the html navigation bar between themes.
+This is currently the only \texttt{rpm} function which attempts to handle multiple Bootswatch themes with different CSS tags.
+
+<<fun_genNavbar>>=
+@
+
+\subsubsection{genOutyaml}
+
+\texttt{genOutyaml} generates the \texttt{\_out.yaml} file for yaml front-matter common to all html files in the project website.
+The file should be written to the project's \texttt{docs/Rmd} directory.
+\texttt{lib} specifies the library directory for any associated files.
+yaml \texttt{includes} for external html common to all project web pages in the site can also be specified with \texttt{header}, \texttt{before\_body}, and \texttt{after\_body}.
+These can be specified by file basename only (no path) and the function assumes these files are in the \texttt{docs/Rmd/include} directory.
+At this time all external libraries must be provided by the user, for example in \texttt{docs/Rmd/libs}.
+It is recommended. See the project repo [gh-pages](https://github.com/leonawicz/ProjectManagement/tree/gh-pages "gh-pages") branch for an example.
+
+<<fun_genOutyaml>>=
+@
+
+\subsubsection{genAppDiv}
+
+\texttt{genAppDiv} generates an html file storing a container div element which organizes Shiny web applications.
+The function scans a directory of Shiny app subdirectories.
+This apps directory should be a local repository.
+
+Specifically, \texttt{genAppDiv} looks for a named directory of image files.
+There should be one image per app, named exactly as the respective app directory is named.
+Only apps with corresponding images are built into the html container.
+If you wish to leave out, say, a developmental app from being linked to on you Github user website, do not include an image file for that app.
+
+The container element includes an image link to each app's url as well as a link to the source code on Github.
+Although the function scans for images in directory inside a local repository, the images referenced in the output html are of course not local.
+They point to the same images stored on Github, hence why it is useful for the local directory of apps to be a Github repository.
+As an example, a repository may contain the directories, \texttt{app1}, \texttt{app2}, \texttt{app3}, and \texttt{images}.
+
+This function will probably be removed in favor of the more general \texttt{genPanelDiv} function.
+
+
+<<fun_genAppDiv>>=
+@
+
+\subsubsection{genPanelDiv}
+
+\texttt{genPanelDiv} generates an html file storing a container div element which in its current state of development organizes two types of content: \textbf{R} projects and Shiny web applications.
+
+The \texttt{type} argument can be one of \texttt{projects}, \texttt{apps}, \texttt{datavis}, or \texttt{gallery}.
+The purpose of the function is to generate an html file defining a container div element to display and reference either my \textbf{R} projects, my Shiny apps, or my example visualization galleries.
+
+\subsubsubsection{Projects}
+
+For projects, the function scans a directory of local repositories and takes any directories found to be the names of projects.
+There is an \texttt{exclude} argument for dropping any known directories that are to be avoided.
+My defaults are \texttt{exclude="leonawicz.github.io", "shiny-apps"} since the first is just a local repository for my Github user account web site and not a "project" in the same sense of my other projects
+and the second is the local repository which is scanned by \texttt{genPanelDiv} when \texttt{type="apps"}.
+
+\subsubsubsection{Apps}
+
+For apps, the function scans a directory of Shiny app subdirectories.
+Unlike for projects, where \texttt{genPanelDiv} scans a directory of multiple local repositories, this apps directory should be a specific local repository. The apps contained within are not individual repositories.
+I have taken this approach for now simply because this is how my apps tend to be stored.
+
+Specifically, the \texttt{genAppDiv} looks for a named directory of image files.
+There should be one image per app, named exactly as the respective app directory is named.
+Only apps with corresponding images are built into the html container.
+If you wish to leave out, say, a developmental app from being linked to on you Github user website, do not include an image file for that app.
+
+The container element includes an image link to each app's url as well as a link to the source code on Github.
+Although the app scans for images in a local repository, the images referenced in the output html are of course not local.
+They point to the same images stored on Github, hence why it is useful for the local directory of apps to be a Github repository.
+
+\subsubsubsection{DataVis and Galleries}
+
+Whereas the first three types generate containers for the main Github user web page, I use \texttt{type="gallery"} to make a separate container html file of graphics for each panel occurring in my \texttt{datavis} container.
+These containers tend to be added to unique web pages.
+\texttt{datavis} is for highlighting a number of galleries whereas \texttt{gallery} is for the galleries' respective contents.
+
+In order to use \texttt{type="datavis"} there must be a data visualization local repository.
+Mine is named \texttt{DataVisualizationExamples}, evident from the hardcoding currently in place within this function.
+Similar to when \texttt{type="apps"}, this repository includes a directory of images, in t his case one image for each gallery.
+Each image in this directory is named such that it identically matches another the name of a gallery images directory containing multiple images.
+As with \texttt{type="apps"}, gallery directories are only included if a corresponding thumbnail image in the images directory exists.
+
+When \texttt{type="gallery"}, the behavior of \texttt{genPanelDiv} is most unique.
+For each gallery which exists, the function will make a unique html file with a gallery container element.
+
+This function makes the more specific \texttt{genAppDiv} redundant and will likely replace it.
+
+<<fun_genPanelDiv>>=
+@
+
+\subsubsection{htmlHead}
+
+\texttt{htmlHead} is useful for including javascript and CSS stylesheets in the head of an html document.
+Stylesheet arguments can be passed along as well in proper order.
+
+<<fun_htmlHead>>=
+@
+
+\subsubsection{htmlBodyTop}
+
+\texttt{htmlBodyTop} currently is used for including custom CSS and a background image in the html body.
+CSS can be included as a text string or as a path to a CSS file.
+
+
+<<fun_htmlBodyTop>>=
+@
+
+\subsubsection{htmlBottom}
+
+\texttt{htmlBottom} does not do anything else at this time other than close up the html document.
+
+
+<<fun_htmlBottom>>=
+@
+
+\subsubsection{genUserPage}
+
+\texttt{genUserPage} generates a Github user account web page by combining precompiled html files of container elements made using \texttt{genPanelDiv}
+as well as various lingering hardcoded elements for my own work.
+I use this function to produce my main Github user page, the \texttt{index.html}, as well as supplemental gallery pages.
+
+<<fun_genUserPage>>=
+@
+
+\end{document}

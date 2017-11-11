@@ -1,0 +1,23 @@
+\boolfalse {citerequest}\boolfalse {citetracker}\boolfalse {pagetracker}\boolfalse {backtracker}\relax 
+\defcounter {refsection}{0}\relax 
+\contentsline {chapter}{\numberline {1}Introduction}{5}
+\defcounter {refsection}{0}\relax 
+\contentsline {chapter}{Introduction}{5}
+\defcounter {refsection}{0}\relax 
+\contentsline {chapter}{\numberline {2}FX Market}{7}
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {2.1}FX Market Organization}{7}
+\defcounter {refsection}{0}\relax 
+\contentsline {chapter}{\numberline {3}Financial models}{11}
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {3.1}Selected financial market models and theory}{11}
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {3.2}The Modern Portfolio Theory}{12}
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {3.3}The efficient market hypothesis}{13}
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {3.4}Selected investment performance measures}{14}
+\defcounter {refsection}{0}\relax 
+\contentsline {chapter}{\numberline {4}Research}{17}
+\defcounter {refsection}{0}\relax 
+\contentsline {chapter}{Bibliography}{17}

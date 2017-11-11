@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="author" content="Matthew Leonawicz" />
+
+
+<title>Project Management</title>
+
+<script src="libs/jquery-1.11.0/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="libs/bootstrap-3.3.1/css/united.min.css" rel="stylesheet" />
+<script src="libs/bootstrap-3.3.1/js/bootstrap.min.js"></script>
+<script src="libs/bootstrap-3.3.1/shim/html5shiv.min.js"></script>
+<script src="libs/bootstrap-3.3.1/shim/respond.min.js"></script>
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+padding-top: 50px;
+padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar) */
+.section h2 {
+padding-top: 55px;
+margin-top: -55px;
+}
+.section h3 {
+padding-top: 55px;
+margin-top: -55px;
+}
+/* don't use link color in navbar */
+.dropdown-menu>li>a {
+color: black;
+}
+/* some padding for disqus */
+#disqus_thread {
+margin-top: 45px;
+}
+p {
+  text-align: justify;
+}
+img.centered {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+<link rel="stylesheet" href="libs/font-awesome-4.1.0/css/font-awesome.min.css"/>
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-46129458-3', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img { 
+  max-width:100%; 
+  height: auto; 
+}
+</style>
+<div class="container-fluid main-container">
+
+<div class="navbar navbar-default navbar-fixed-top">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Project Management</a>
+      </div>
+      <div class="navbar-collapse collapse navbar-responsive-collapse">
+        <ul class="nav navbar-nav">
+          <li class="dropdown">
+            <a href="rpm" class="dropdown-toggle" data-toggle="dropdown">rpm <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li class="dropdown-header">About rpm</li>
+              <li><a href="index.html">Introduction</a></li>
+              <li><a href="code_sankey.html">Related items</a></li>
+              <li><a href="pm.html">Example usage</a></li>
+            </ul>
+
+          <li class="dropdown">
+            <a href="r-code" class="dropdown-toggle" data-toggle="dropdown">R Code <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="objects.html">Default objects</a></li>
+              <li class="divider"></li>
+              <li class="dropdown-header">Functions</li>
+              <li><a href="func_new.html">Start a new project</a></li>
+              <li><a href="func_rmd.html">Working with Rmd files</a></li>
+              <li><a href="func_convert.html">Document conversion</a></li>
+              <li><a href="func_organize.html">Organize documents</a></li>
+              <li><a href="func_stats.html">Project statistics</a></li>
+              <li><a href="func_website.html">Make a project website</a></li>
+              <li><a href="func_user_website.html">Github user website</a></li>
+            </ul>
+
+          <li class="dropdown">
+            <a href="all-projects" class="dropdown-toggle" data-toggle="dropdown">All Projects <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li class="dropdown-header">Hierarchy of current projects</li>
+              <li><a href="proj_sankey.html">Projects diagram</a></li>
+              <li class="divider"></li>
+              <li class="dropdown-header">Access all projects</li>
+              <li><a href="http://leonawicz.github.io">leonawicz.github.io</a></li>
+            </ul>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <a class="btn btn-link" href="https://github.com/leonawicz/ProjectManagement">
+            <i class="fa fa-github fa-lg"></i>
+            Github
+          </a>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div>
+  </div>
+
+<div id="header">
+<h1 class="title">Project Management</h1>
+<h4 class="author"><em>Matthew Leonawicz</em></h4>
+</div>
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>This is a project management project. The aim of this project is the development of convenient <strong>R</strong>-related project management tools.</p>
+<div id="motivation" class="section level3">
+<h3>Motivation</h3>
+<p>I am working on these tools to enhance my own workflow across multiple <strong>R</strong> projects.</p>
+</div>
+<div id="details" class="section level3">
+<h3>Details</h3>
+<p><strong>R</strong> code for the project will be compiled into an <strong>R</strong> package, <code>rpm</code> for easy use. This is a personal package and will not be available anywhere but my Github repository, but you are welcome to explore the package and functions. It is unlikely that you would manage your <strong>R</strong> projects in the same manner that I do, but if you do, or just want some ideas, feel free to explore.</p>
+<div id="capabilities" class="section level4">
+<h4>Capabilities</h4>
+<p>The <code>rpm</code> package offers a collection of functions ranging from creating new projects to compiling project websites. With <code>rmp</code> you can:</p>
+<ul>
+<li>Create a new project</li>
+<li>Bulk generate Rmd files associated with project <strong>R</strong> scripts</li>
+<li>Update Rmd yaml front-matter contents</li>
+<li>Append Rmd files with new code chunk identifiers after code is added to project <strong>R</strong> scripts</li>
+<li>Bidirectional conversion between Rmd and Rnw files</li>
+<li>Bulk file organization after generating a large number of final and intermediary project documentation files of various formats</li>
+<li>Functions for generating a project-specific website, great for hosting on the <code>gh-pages</code> branch of your Github project repo</li>
+<li>Functions for generating a Github user account website</li>
+<li>Multi-project hierarchy diagram</li>
+<li>Project-specific code flow diagram</li>
+</ul>
+</div>
+<div id="limitations" class="section level4">
+<h4>Limitations</h4>
+<p>The project management code is not yet in package form. Additional features are yet to be incorporated. Below are specific limitations related to the above highlighted capabilities.</p>
+<div id="files" class="section level5">
+<h5>Files</h5>
+<p>While <code>rpm</code> assists with project documentation, this mainly takes the form of file generation and appending. Documentation is unique to every project of course. Every script is different. The most that is possible with Rmd generation and updating is to auto-fill commonly used code chunk names and metadata. Each document must be written individually by the author, but when a project has many <strong>R</strong> scripts requiring documentation, it is nice to not have to create all the corresponding Rmd files by hand and copy and paste generic contents.</p>
+</div>
+<div id="conversion" class="section level5">
+<h5>Conversion</h5>
+<p>Conversion between Rmd and Rnw files also cannot be perfectly general. I have written this code mainly to account for the limited types of content and formatting which I tend to include in my own Rmd and Rnw files. The documentation on the conversion code (which you can find in html or pdf!) lists some <a href="func_convert.html" title="rules and assumptions">rules and assumptions</a> I make about my own documentation, which defines the context in which the conversion functions in <code>rpm</code> operate. I may continue to expand the conversion code into some horrendous collection of functions and enclosures which take into account evermore idiosyncrasies that I find between my Rmd and Rnw files. However, this is obviously not something I can make account for the content and formatting of other people’s files.</p>
+</div>
+<div id="r-rstudio-knitr-rmarkdown-miktex-pandoc-windows-linux-oh-my" class="section level5">
+<h5>R, Rstudio, knitr, rmarkdown, MikTeX, Pandoc, Windows, Linux,… OH MY!</h5>
+<p>And I’m not particularly interested in thinking about Mac. Anyway, this is my own limitation, an area where my current knowledge of cross-system use and third party software integration is not strong. When using <code>knitr</code> and/or <code>rmakrdown</code>, I tend to have more success avoiding crashes while knitting documents if I do all the file generation in the same directory as the source files. This is why <code>rpm</code> has code for moving output files after knitting them. I don’t know why this problem exists, but for context, it is convenient for me to do the knitting with <strong>R</strong> on my Windows pc. I have <code>MikTeX</code> and <code>Pandoc</code> for Windows installed. However, I never bothered fussing with environment variables or whatever I might have to do in order to get pdf generation to work on Windows using the standard <strong>R</strong> GUI. Instead, I find it easier to use RStudio, in which case <code>Pandoc</code> is accessible and everything works fine.</p>
+<p>So I can do all of this with RStudio, but not all of it with standard <strong>R</strong> — which is what I otherwise use exclusively, either on Windows or Linux. Suffice it to say that, for now at least, I must use RStudio specificallly for pdf generation. I cannot use standalone <strong>R</strong> on Windows. I know this is not a real prohibition, but due to my lack of having looked into it and figured it out yet. If I use Linux, pdf files sometimes come out looking a little different. This is all to say that I am not currently in a position with this project to produce something that will work completely and identically across multiple systems. In an ideal scenario, my full application of <code>knitr</code> and <code>rmarkdown</code> would work similarly in standard <strong>R</strong>, whether in interactive or non-interactive mode, and whether on Linux or Windows. I wouldn’t worry about whether it worked seamlessly in RStudio as well. But for now I have the opposite situation.</p>
+</div>
+<div id="websites" class="section level5">
+<h5>Websites</h5>
+<p>Regarding the website-building functions, the limitations are that certain libraries are expected to be in place, only particular CSS themes and code highlighting are permitted, and the files, projects, and local Git repositories these functions parse the contents of are all required to follow my specific styles of organization.</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- some extra javascript for older browsers -->
+<script type="text/javascript" src="libs/polyfill.js"></script>
+<script>
+  // manage active state of menu based on current page
+  $(document).ready(function () {
+  
+    // active menu
+    href = window.location.pathname
+    href = href.substr(href.lastIndexOf('/') + 1)
+    $('a[href="' + href + '"]').parent().addClass('active');
+    
+    // manage active menu header
+    if (href.startsWith('authoring_'))
+      $('a[href="' + 'authoring' + '"]').parent().addClass('active');
+    else if (href.endsWith('_format.html'))
+      $('a[href="' + 'formats' + '"]').parent().addClass('active');
+    else if (href.startsWith('developer_'))
+      $('a[href="' + 'developer' + '"]').parent().addClass('active');
+	  
+  });
+</script>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+$(document).ready(function () {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+});
+
+</script>
+
+
+</body>
+</html>

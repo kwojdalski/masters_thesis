@@ -1,0 +1,28 @@
+
+
+\section{Research Objective}
+
+The primary research goal is to evaluate the Reinforcement Learning-based algorithm for multiasset trading.
+The main idea behind the algorithm deployment is that it can systematically outperform benchmarks 
+in terms of both risk and return. 
+The trading system will be able to spot non-trivial patterns, faster than human, and exploit them.
+Research will
+The goal of this project is to assess the possibility of using Reinforcement Learn-
+ing to create a trading agent which is capable of nding persistent similarities in 
+nancial time series and which learns how to dene and exploit deviations from
+the expected, prevalent behaviour. We design and compare two approaches, a basic
+approach based on Monte Carlo Control and an extended approach based on Qlearn-
+ing and value function approximation. The rst approach is aimed to provide more
+interpretability, the second approach is to provide better performance. We assess
+the outcome by the trading performance of the two agents on two weeks of out-of-
+sample fx market test data with one minute granulation. We set two benchmarks by
+which we measure trading performance. The percentage return and the Sharpe ratio
+of the trades the agent engages in should be higher than the return of a buy-and-
+hold strategy of either of the underlying cointegrated assets. A secondary goal is
+to draw conclusions about the interactions in parameter settings of the pair trading
+frame work and how they in
+uence protability of the pair trade. The objectives
+are summarized in the following list:
+The objectives are as follows:
+
+Design and deployment - this part 

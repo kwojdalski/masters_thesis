@@ -1,0 +1,102 @@
+---
+title: "Master's thesis"
+author: "Krzysztof Wojdalski (310284)"
+date:  "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  pdf_document:
+    number_sections: yes
+    toc: yes
+---
+
+
+<!-- bibliography: -->
+<!--   working_papers/library.bib -->
+
+## Plan of Master’s Thesis
+## Problem
+
+```{r setup_global, include=FALSE, cache=FALSE}
+require(RefManageR)
+
+bib <- ReadBib('./working_papers/library.bib')
+BibOptions(bib.style = "numeric",check.entries=FALSE)
+
+```
+
+
+## Plan of Master’s Thesis
+## Problem
+
+There are different approaches to capital allocation in financial markets. Some of them are traditional, e.g. investing in fundamentally underpriced equities, but possibly there is space for more quantitative-driven, modern ways. One of the fastest growing fields in the 2010s is Machine Learning and Artificial Intelligence. The approach is based on the fact that an investor, once he sets some rules, has less-to-none decisions to take as to what and when to buy or sell. In this workpaper it will be checked if implementing algorithms based on Reinforcement Learning may be fruitful for investors. Implications of delivering good, consistent and persistent results will help in beating the market.
+The claim in this work is that technical analysis is a self-fulfilling prophecy. Even though there is a plenty of successful traders who exploit certain models and patterns, they are just faster in spotting price and volume-based patterns. Taking into consideration the number of professional traders, it may turn out that it is very costly to employ people who, in mass, cannot deliver persistent results. Adopting proper algorithm may significantly lower cost of trading and hence increase the market efficiency. Moreover, in microscale, an algorithm can spot, if well-designed, instantly any pattern much faster than a trader. Thus, it can get ahead of technical analysts who execute orders manually. The other good side of implementing an algorithm is that they are disciplined. There is much less risk of disobedience from a set of trading rules. As Barber and Odean (2001)  spotted, men are worse in investing than women because they trade too much and are overconfident.[^1]
+The general hypothesis is algorithms, specifically with the use of the Reinforcement Learning can systematically outperform the rest of the market.
+
+[^1]: Here is the footnote.
+
+## Data
+Datasets used for the purpose of this workpaper are from the following databases:
+
+* Thomson Reuters Tick Database
+* An aggregator tickdatabase
+
+Algorithm will rely on the most liquid assets from the mentioned databases, so that there is no risk that executing trades influence the market. Among the most obvious choices are S&P500 Futures, Apple, GE, Bank of America Inc, Ford Inc, Google Inc.
+
+## Structure
+
+### First chapter
+The first part consists of the introduction to the problem. It outlines the whole concept of the AI-related fields in finance. It brought up historical background of finance and computer sciences, and its interdependency. Concretely, it includes the history of implementing first methods in early 80’s, the flash crash in October 1987, first recruitments of 'quants' on the Wall Street in the early 90’s.
+
+
+#
+(5-8 pages)
+
+
+### Second chapter
+This chapter starts with the critical discussion of models from finance. It includes both classic models, such as CAPM, a gold standard in equity research, and modern ones. The part is descriptive as it regards implicit pros and cons of financial models.
+
+The latter part of the literature review is specifically about algorithmic trading and the methodology of other similar researches, e.g. Sakowski et al. (2013).
+The last subchapter is about machine learning algorithms that are used in trading.
+(8-10 pages)
+
+### Third chapter
+The third chapter will start with goals of the research. I want to make it clear why this work is important. It was partially discussed in Problem part of this text. This master’s thesis is to find an application of the Reinforcement Learning for financial data. This part will contain hypotheses which are as follows:
+	Algorithms based on artificial intelligence can be fruitful for investors by outperforming benchmarks in both risk and return;
+	Better performance turns out to be true in high-frequency trading and on longer period intervals;
+	Algorithms can learn how to spot overreacting on markets and choose the most under/overpriced security by exploiting time series analysis tools. 
+(2 pages)
+	
+## Methodology
+This subchapter contains the description of methodology. It includes all formulas and steps that directed to final results. 
+The algorithm itself will incorporate two environments:
+
+* R - to incorporate libraries for machine learning
+* C++ - for code efficiency, it will help in improving performance in bottlenecks
+	
+The used algorithm is based on dynamic optimization approach. Besides a value function, there will be several indicators, e.g. RSI, which serve as a base for decision taking of the algorithm. The methodology will include transactional costs, so that the optimization is going to be implemented in a real-like environment
+
+(10 pages)
+
+The value function will be based by several statistics, such as the Sharpe and the differental Sharpe ratio to capture both risk and return.
+As of now, I cannot enclose the exact form of formulas used in the research but I will provide them as soon as I write the proper code.
+The output of my algorithm in R will be probably a set of positions ${-1,0,1}$, cumulated returns, and risk measures (not only the Sharpe ratio but also MD, MDD, the Sortino ratio, and others).
+How am I going to measure the efficiency of my code? I will implement several benchmarks – the most logical choice is a buy-and-hold strategy on underlying asset (equities, equity-like securities). The second obvious choice is sort of random walk process. By this, I mean that a part of the algorithm will generate random values for a domain of ${-1,0,1}$ and these values will serve as a position. Of course, this benchmark will not include any transactional costs as this obvious that this extreme case would have an enormous cumulated transactional cost (position would change in $frac{2}{3}$ of states).
+When I have the data I am going to discuss my results with other works. Outline the possible directions of future research papers on the issue: What can be implemented? What additionally can be done and measured?
+Fourth chapter
+This part consists of conclusions. Once again, I will write what have been done in this master’s thesis, and everything that conclusions should contain.
+
+```{r child='chapters/Abstract.Rmd', include=TRUE}
+```
+
+```{r child='chapters/Chapter I - Introduction.Rmd', include=TRUE}
+```
+
+## References
+
+
+```{r results = "asis", echo = FALSE}
+NoCite(bib[seq_len(3)])
+PrintBibliography(bib)
+
+```
+
+
