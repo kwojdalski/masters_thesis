@@ -1,0 +1,59 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Reinforcement Learning (RL) is a subfield of machine learning that consists of an agent which learns how to 
+act in an unknown or not fully known environment. It is probably the most intuitive category of ML in terms of what people implicitly believe to be artificial intelligence. According to David Silver [ref], it captures influences from disciplines such as engineering, economics, mathematics, neuroscience, psychology and computer science.
+
+The only feedback an agent receives is a scalar reward. The goal of it is
+to maximize long-run value function which consists of summed up discounted rewards in subsequent states.
+The goal of the agent is to learn by trial-and-error which actions maximize his long-run rewards. The environment changes stochastically and 
+in some cases interacts with the agent. The agent must choose such a policy that optimizes amount of rewards it receives.
+The design must capture this fact by adjusting the agent so that it does not act greedily, i.e. it should explore new 
+actions instead of exploiting existing optimal (possibly suboptimal) solutions.
+
+
+
+Reinforcement learning algorithms can be classified into three general subcategories:
+
+* Model Based - they are based on the idea that an model of the environment is known. 
+Actions are chosen by searching and planning in this model. 
+* Value Based - modelfree - it uses experience to learn in a direct way from state-action values or policies. They can achieve the same behaviour, but without any knowledge on the world model an agent acts in. Given a policy, a state has some value, which is defined as cumulated utility (reward) starting from the state. 
+Model-free methods are generally less efficient than model-based ones because information about the environment is combined with possibly incorrect estimates about state values. Moreover, the values for states are # to do
+methods, the transition matrix is not
+stationary
+* Policy Based
+
+
+https://www.princeton.edu/~yael/Publications/DayanNiv2008.pdf
+
+## Components of an reinforcement learning system
+
+Reinforcement learning systems are developed to solve sequential decision making problems, to select such actions that eventually maximize cumulative discounted future rewards. In the following section the author explained components of reinforcement learning on the example of game of chess and trading
+
+* Environment ($E$) - it defines what states and actions are possible. In the game of chess it is the whole set of rules and possible combination of figures on the chessboard. It must be stated that some states are not available and will be never reached. In trading such rules might constitute that for instance the only position an agent can take is 0 or 1, or that weights of assets in a portfolio must sum up to 1.
+
+* State ($s$) - can be seen as a snapshot of the environment. It contains a set of information in time $t$ that a RL agent uses to pick the next action. States can be terminal, i.e. the agent will no longer be able to choose any action. In such scenario they end an episode (epoch), a sequence of state-action pairs from the start to the end of the game.
+For a trading application, a state in time $t$ can be a vector of different financial measures, such as rate of return, implied/realized volatility, moving averages, economics measures, technical indicators, market sentiment measures, etc.
+
+* Action ($a$) - givn a current state the agent chooses an action which directs him into a new state, either deterministically or stochastically. The action choice process itself may also be deterministic or based on probability distributions. In the game of chess analogy, an action is to move a figure in accordance to the game's rules. In trading it could be for instance going long, short, staying flat, outweighing.
+
+* Reward ($r$)
+* Policy ($\pi$) - a policy is a mapping from state to action. It determines agent's choices and may be stochastic. Policies do not imply deterministic nature of the mapping. Even after countless number of episodes and states, there is a chance that an efficient RL algorithm will explore other states rather than by exploiting the then-optimal action
+
+* Value Function - it is a prediction of future, usually discounted rewards. Value functions are used for determining how much a state should be desired by the agent. They depend on initial states ($S_0$), and a policy that is picked up by the agent. Every state should have an associated value, even if the path it's part of was never explored - in such cases they usually equal to zero. The general formula for value function is as follows:
+
+$$V^\pi=\mathbb{E}_\pi[\sum\limits_{k=1}^\infty \gamma^kr_{t+k}|s_t=s]$$
+
+where $\gamma$ is a discount factor from the range $[0; 1]$. It measures how much more instant rewards are valued. The smaller it is the more immediate values are relatively more relevant and cause algorithm to be more greedy. Sometimes $\gamma$ is equal to 1 if it is justified by the design of the whole agent.
+
+* Model ($m$) - a model shows the dynamics of environment, how it will evolve from $S_{t-1}$ to $S_t$. Formally, it's a set of transition matrices:
+
+$$\mathbb{P}_{ss^{'}}^a=\mathbb{P}[s^{'}|s,a]$$
+$$\mathbb{R}_s^a=\mathbb{E}[r|s,a]$$
+
+where:
+
+$\mathbb{P}_ss^{'}{a}$ is a matrix of probability of transitions from state $s$ to state $s^{'}$ when taking action $a$. Analogously, $\mathbb{R}_{s}^a$ is an expected value of reward when an agent is in state $s$ and taking action $a$
