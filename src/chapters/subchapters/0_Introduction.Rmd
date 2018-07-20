@@ -1,0 +1,90 @@
+# Introduction
+
+Trading floors are usually perceived as places with noisy shouting people, frenzy, and a lot of 
+bizarre situations. This is justified since the reality was pretty much as above, but 30 years ago.
+Financial markets have been constantly interested in inventions from computer science world. 
+It is part of the game - having a competitive edge could result in abnormal return. 
+Hence, finance was often the first industry that was adopting state-of-the-art technologies. In its essence, 
+the discipline was always extremely focused on increasing efficiency. Even now, blockchain, one of the most  sought-after technologies, is 
+expected to succeed in finance first. For trading entities the infinite goal is to maximize profits.
+There are many ways to achieve it, e.g. by passive methods such as buy-and-hold, however one of the most 
+promising and emerging categories are AI-based strategies. This shift of replacing human with robots for the decision process 
+is more than likely to take place over the next years or decades. It contradicts with the cliches mentioned at the beginning.
+Even though machine learning as a discipline is nothing new - the fundamentals come from the 50s, the industry still has not embraced it very widely.
+For instance, in FX market only a few biggest names managed to prepare machine learning-based trading systems.
+
+
+
+The majority of systems described in the literature aim to maximize trading profits
+or risk-adjusted measures, such as the Sharpe ratio.
+Many attempts have been made to come up with a consistently profitable system and
+inspiration has come from different fields ranging from fundamental analysis, econometric
+modelling of financial markets, to machine learning. A few attempts were successful
+and those that seemed most promising often could not be used to trade actual markets
+due to associated practical disadvantages. Among others these included large drawdowns
+in profits and excessive switching behaviour resulting in high transaction costs.
+Professional traders have generally regarded those automated systems as risky in
+comparison to the returns they were able to deliver by themselves. 
+Even if a trading model was shown to produce an acceptable risk-return profile on historical data there was no guarantee that the system would keep on working in the future. It could cease working
+precisely at the moment it became unable to adapt to changing market conditions.
+
+
+aims to deal with the above problems to obtain a usable, fully automated
+and intelligent trading system. To accomplish this, a risk management layer and a dynamic
+optimization layer are added to known machine learning (RL) algorithms. The middle layer manages risk in an intelligent manner so that it protects past gains and avoids losses by limiting
+or even shutting down trading activity in times of high uncertainty. 
+The top layer dynamically optimizes the global trading performance in terms of a trader’s risk preferences by automatically tuning the system’s hyper-parameters. 
+
+While the machine learning system is designed to learn from its past trading experiences, the optimization overlay is an attempt to adapt the evolutionary behaviour of the system and its perception of risk to the evolution of the market itself. 
+
+This research departs from a similar principle by developing a fully layered system where risk management, automatic parameter tuning and dynamic utility optimization are combined. The machine learning algorithm combined with the dynamic optimization is termed adaptive reinforcement learning.
+
+The first part consists of the introduction to the problem. It outlines
+the whole concept of the AI-related fields in finance.
+It brought up historical background of finance and computer sciences, and its interdependency. 
+
+This chapter starts with the outline of selected papers from quantitative finance. It includes both classic models, such as CAPM, the gold standard in equity research, and modern ones. 
+The part is descriptive as it regards implicit pros and cons of financial models. 
+The literature review is specifically about algorithmic trading and the methodology of other similar researches, e.g. Sakowski et al. (2013).
+Second chapter also includes the explanation of machine-learning algorithms underlying (or inspiring) the trading system. 
+
+The third chapter starts with detailed explanation of the research. The main hypotheses are as follows:
+
+* Algorithms based on artificial intelligence can be fruitful for investors by outperforming benchmarks in both risk and return;
+* Better performance turns out to be true in high-frequency trading and on longer period intervals;
+* Algorithms can learn how to spot overreacting on markets and choose the most under/overpriced security by exploiting time series analysis tools. 
+
+It contains description of the methodology - all formulas and steps that directed to final results. It looks at each layer of the trading system. 
+In 3.1 the modifications to the standard algorithm are set out and in 3.2 and 3.3 the risk management and optimization layers are explained. 
+
+The used algorithms are based on dynamic optimization approach. Besides value function based on Differential Sharpe Ratio, there will be several indicators, e.g. RSI, which serve as a base for decision taking of the algorithm. The methodology will include transactional costs, so that the optimization is going to be implemented in a real-like environment
+
+
+The value function will be based by several statistics, such as the Sharpe and the Differental Sharpe Ratio to capture both risk and return.
+The output of my algorithm will be a set of the agents' actions in the form of ${-1,0,1}$. Moreover, I will enclose all elements of Reinforcement Learning-model, i.e.:
+
+* environment
+* states - cumulated returns, and risk measures, such as the Sharpe ratio, MD, MDD, the Sortino ratio.
+* actions - 
+* rewards
+
+In the last part of the chapter the performance of the trading system (RL-based agents) is demonstrated and examined against several benchmarks:
+* Buy-and-hold strategy what means holding long-position in selected currency pairs. 
+* Random actions - this part of the algorithm will generate random values in a domain of $\{-1,0,1\}$ . These values will serve as a position in the underlying pairs. The benchmark will not include any transactional costs as this obvious that this extreme case would have an enormous cumulated transactional cost (position would change in $\frac{2}{3}$ of states).
+
+The final section outlines conclusions. It compares the results with similar works and suggests possible directions to extend the research. It addresses such questions as: 
+* What can be additionally implemented? 
+* What were limitations and what must be done to avoid them in the future?
+
+## Data
+Datasets used for the purpose of this workpaper are from the following databases:
+
+* Thomson Reuters Tick Database for FX market
+* Tick database from a vendor aggregating quotations from liquidity providers (TradAir, yet to be discussed)
+
+
+## Formulas
+
+
+
+
