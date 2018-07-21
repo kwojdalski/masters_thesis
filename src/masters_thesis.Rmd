@@ -2,19 +2,22 @@
 title: Reinforcement Learning Portfolio Optimization for FX Trading
 author: Krzysztof Wojdalski
 date: "`r Sys.Date()`"
-documentclass: pracamgrwne
+# documentclass: pracamgrwne
 output:
-  # pdf_document:
-  #   toc: yes
-  #   latex_engine: xelatex
-  html_document:
-    toc: true
-    theme: united
-    highlight: tango
-    keep_md: false
+  pdf_document:
+    latex_engine: xelatex
+    toc: yes
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true 
+  # html_document:
+    # toc: true
+    # theme: united
+    # highlight: tango
+    # keep_md: false
 bibliography: library.bib
 header-includes:
   - \usepackage[utf8]{inputenc}
+  - \usepackage{amsthm}
   - \usepackage{rotating}
   - \pagenumbering{gobble}
 editor_options:
@@ -22,9 +25,13 @@ editor_options:
   latex_engine: xelatex
 ---
 
-## Abstract
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newpage
 
-The master's thesis is about the Reinforcement Learning application in the foreign exchange market. 
+# Abstract
+
+The work is about reinforcement learning application in trading on the FX market.
 The author starts with describing the FX market, analyzing market organization, participants, and changes in the last
 years. He tries to explain current trends and the possible directions. 
 The next part consists of theoretical pattern for the research - description of financial models, 
@@ -35,7 +42,7 @@ Implementation of the RL-based approach in the third chapter, based on Q-learnin
 
 
 
-```{r rr, include=FALSE, cache=FALSE,echo=FALSE,eval=TRUE}
+```{r rr, include = FALSE, cache = FALSE, echo = FALSE, eval = TRUE}
 
 if (!'pacman' %in%installed.packages()) install.packages('pacman')
 library(pacman)
@@ -43,7 +50,7 @@ p_load(RefManageR, bibtex, knitr)
 # bib <- ReadBib('./working_papers/library.bib')
 # BibOptions(bib.style = "numeric",check.entries=FALSE)
 opts_chunk$set(
-  cache   = TRUE,
+  cache   = FALSE,
   warning = FALSE,
   error   = FALSE,
   message = FALSE,
@@ -51,12 +58,13 @@ opts_chunk$set(
   echo    = FALSE,
   include = TRUE
 )
-getwd()
+
+# opts_knit$set(root.dir = NULL)
 inputs <- './working_papers'
-Sys.setenv(TEXINPUTS=inputs,
-           BIBINPUTS=inputs,
-           BSTINPUTS=inputs)
-#Sys.getenv("RSTUDIO_PANDOC")
+# Sys.setenv(TEXINPUTS=inputs,
+#            BIBINPUTS=inputs,
+#            BSTINPUTS=inputs)
+# #Sys.getenv("RSTUDIO_PANDOC")
 Sys.setenv(RSTUDIO_PDFLATEX = Sys.which("latexmk"))
 #options(encoding="UTF-8")
 #Sys.setlocale(locale='Polish_Poland.1250')
@@ -76,29 +84,31 @@ Sys.setenv(RSTUDIO_PDFLATEX = Sys.which("latexmk"))
 ```
 
 
-```{r relevant_financial_indicators2,child='chapters/subchapters/2_2_Relevant_Financial_Indicators.Rmd'}
+```{r relevant_financial_indicators2, child = 'chapters/subchapters/2_2_Relevant_Financial_Indicators.Rmd'}
 ```
 
 
 ```{r machine_learning,child='chapters/subchapters/3_1_Machine_Learning.Rmd'}
 ```
 
-```{r machine_learning,child='chapters/subchapters/3_2_reinforcement_learning.Rmd'}
+```{r reinforcement_learning,child='chapters/subchapters/3_2_reinforcement_learning.Rmd'}
 ```
 
 
-```{r machine_learning,child='chapters/subchapters/4_1_Objective_of_the_Research.Rmd'}
+```{r objective_of_the_research,child='chapters/subchapters/4_1_Objective_of_the_Research.Rmd'}
 ```
 
-```{r machine_learning,child='chapters/subchapters/4_2_design_of_the_research.Rmd'}
+```{r design_of_the_research,child='chapters/subchapters/4_2_design_of_the_research.Rmd'}
+```
+
+```{r dataset,child='chapters/subchapters/4_3_dataset.Rmd'}
 ```
 
 
-
-
-```{r biber}
-system(paste("biber", sub("\\.Rnw$", "", current_input())))
+```{r bibliography, child='chapters/subchapters/6_bibliography.Rmd'}
 ```
+
+
 
 
 

@@ -123,7 +123,7 @@ Date \hfill Signature of the Author(s) of the thesis
 \def\@nralbumu{???\ClassError{pracamgr}{Brak numeru albumu}\@ehc}
 \def\speciality#1{\gdef\@speciality{#1}}
 \def\@speciality{???\ClassError{pracamgr}{Nie podano kierunku studiow}\@ehc}
-%----zakres nie konieczny-----
+%----zakres niekonieczny-----
 \def\zakres#1{\gdef\@zakres{w zakresie \MakeUppercase{#1}}}
 \def\@zakres{}
 \def\opiekun#1{\gdef\@opiekun{#1}}

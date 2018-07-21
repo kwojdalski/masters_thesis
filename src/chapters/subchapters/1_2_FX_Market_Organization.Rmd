@@ -48,8 +48,8 @@ Banks are required to stay with rather small positions, especially in non-G10 pa
 
 
 ```{r table_turnover, results='asis', echo=FALSE, cache.vars=T}
-library(xtable)
-require(pander)
+# library(xtable)
+# require(pander)
 
 df <- data.frame(Rank=seq_len(15),
                  Bank=c('Citi','Deutsche Bank','Barclays','JPMorgan','UBS','Bank of America Merrill Lynch',
@@ -58,12 +58,13 @@ df <- data.frame(Rank=seq_len(15),
                  MarketShare=market_share)
 strCaption <- paste0("Market share of top financial institutions in FX trading in 2014")
 
-print(xtable(df, digits = 2, caption = strCaption, label = "table_turnover_banks", 
-      size="footnotesize", #Change size; useful for bigger tables
-      include.rownames  = FALSE, #Don't print rownames
-      include.colnames  = FALSE, #We create them ourselves
-      caption.placement = "top"
-      ), type = 'html')
+as_tibble(df %>% purrrlyr::dmap_at('MarketShare', ~paste0(.*100, '%')))
+# print(xtable(df, digits = 2, caption = strCaption, label = "table_turnover_banks", 
+#       size="footnotesize", #Change size; useful for bigger tables
+#       include.rownames  = FALSE, #Don't print rownames
+#       include.colnames  = FALSE, #We create them ourselves
+#       caption.placement = "top"
+#       ), type = 'html')
 #pandoc.table(df,style='grid')
 ```
 
