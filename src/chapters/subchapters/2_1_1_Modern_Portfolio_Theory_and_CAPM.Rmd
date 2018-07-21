@@ -7,7 +7,7 @@ Specifically, the beginning contains financial market models. The next subchapte
 ## Selected financial market models and theory
 
 
-Works considered as a fundament of quantitative finance and investments are Sharpe @Sharpe1964, Lintner @Lintner1965, and Mossin @Mossin1966. All these authors, almost simultaneously, formulated Capital Asset Pricing Model (CAPM) that describes dependability between rate of return and its risk, risk of the market portfolio, and risk premium.
+Works considered as a fundament of quantitative finance and investments are @Sharpe1964, @Lintner1965, and @Mossin1966. All these authors, almost simultaneously, formulated Capital Asset Pricing Model (CAPM) that describes dependability between rate of return and its risk, risk of the market portfolio, and risk premium.
 Assumptions in the model are as follows:
 
 * Decisions in the model regard only one period,
@@ -26,7 +26,7 @@ E(R_P)=R_F+\frac{\sigma_P}{\sigma_M}\times[E(R_M)-R_F]
 $$
 where:
 
-* $E(R_P )$ -- the expected portfolio rate of return,
+* $E(R_P)$ -- the expected portfolio rate of return,
 * $E(R_M)$ -- the expected market rate of return,
 * $R_F$ -- risk-free rate,
 * $\sigma_P$ -- the standard deviation of the rate of return on the portfolio,
@@ -58,7 +58,7 @@ that maximizes return for the assumed risk level. The important term, which is b
 above.
 The combination of optimal portfolios on the bullet.
 
-Bullet figure
+![Efficient Frontier](../img/markowitz_frontier.jpg)
 
 The Markowitz concept is determined by the assumption that investors are risk-averse. This observation is described by the following formula:
 
@@ -81,9 +81,40 @@ where:
 
 One of the MPT biggest flaws is the fact that it is used for ex post analysis. Correlation between assets changes overtime so results must be recalculated. Real portfolio risk may be underestimated. Also, time window can influence the results.
 
-## The efficient market hypothesis
+## Efficient Market Hypothesis
 
-In 1965, Eugene Fama introduced the efficient market term @Fama1965. Fama claimed that an efficient market is the one that instanteneously discounts the new information arrival in market price of a given asset. Because this definition applies to financial markets, it had determined the further belief that it is not possible to beat the market because assets are perfectly priced. Also, if this hypothesis would be true, market participants cannot be better or worse. Their portfolio return would be a function of new, unpredictable information. In that respect, the only role of an investor is to manage his assets so that the risk is acceptable. 
+In 1965, Eugene Fama introduced the efficient market term. Fama claimed that an efficient market is the one that instanteneously discounts the new information arrival in market price of a given asset. Because this definition applies to financial markets, it determined the further belief that it is not possible to beat the market because assets are correctly priced. Also, if this hypothesis would be true, market participants cannot be better or worse. Their portfolio return would be a function of new, unpredictable information. In that respect, the only role of an investor is to manage his assets so that the risk is acceptable. @Fama1965
 
+It is highly unlikely that EMH exists in its strongest form due to successful quantitative hedge funds that consistetly beat the markets. For instance, Renaissance Capital hedge fund generated on average 40% per annum in the last 30 years @Shen2017.
+
+Formally, Efficient Market Hypothesis states that a market is efficient with respect to information set $F_t$ if its impossible to make economic profits by trading on the basis of that information set. In other words, it is not possible to achieve any better than risk-adjusted average rate of return. In its essence that claim is consistent with classical price theory @Weber2012. Over time, other versions (forms) of the EMH has been introduced - weak, semi-strong, and strong @Fama1970.
+
+\theoremstyle{definition}
+\begin{definition}{Weak Form of the EMH}
+$F_t$ represents only the information contained in the past price history of the market as of time $t$
+\end{definition}
+
+What means that there is not possibility to make abnormal returns by using the past price movements and volumes to predict the future price movements. However, fundamental analysis might be used to generate such results because the market is not perfect in spotting undervalued and overvalued stocks. Hence, the participants can find profitable companies by researching their financial statements.
+
+\theoremstyle{definition}
+\begin{definition}{Semi-Strong Form of the EMH}
+$F_t$ represents all information publicly available at time $t$
+\end{definition}
+
+It states that neither technical, nor fundamental analysis cannot be exploited for gaining superior returns, and only non-public material information might help in above average results.
+
+\theoremstyle{definition}
+\begin{definition}{Strong Form of the EMH}
+$F_t$ represents all information (public and private) known to anyone at time t.
+\end{definition}
+
+The strong form rejects the idea of any possibility to consistently beating the market. According to this idea, any kind information, public or non-public, is completely embedded into current financial asset prices. In other words, there is no advantage for anyone in the market. Returns that deviate from expected values are attributed to pure randomness.
+
+## Critic of strong form of the EMH
+
+There are at least a few documented anomalies that contradicts with efficient market hypothesis. For example, price/earnings (P/E) measure can help in systematically outperforming stocks @Malkiel2003.
+The neglected firm effect claims that "uninteresting" companies, often ignored by market analysts are sometimes incorrectly priced, and offer investors potentially fruitful opportunities. Another phenomenon that cannot be explained by the strong form of EMH is so called the January effect @Haug2006.  According to the authors of "The January Effect" working paper, returns reached in January has predictive power for the upcoming 11 months. It persists for both small and large cap companies.
+
+Although the strongest form in its essence is justified, logically correct, it is rather unlikely that it explains the reality, even due to the effects mentioned above.
 
 

@@ -3,12 +3,12 @@
 <!--\SweaveOpts{concordance=TRUE} -->
 
 
-## Selected investment performance measures
+# Selected investment performance measures
 
 Introduced articles does not include any indicator that would explicitly measure portfolio management effectiveness. 
 Equations that result from the authors' work are important because some of further developed measures are CAPM-based. 
 The most known are the Sharpe ratio, the Treynor ratio, and the Jensen's alpha. Popularity of these indicator comes from the fact that 
-they are easy to understand for the average investor. @Marte2012
+  they are easy to understand for the average investor. @Marte2012
 In @Sharpe1966, the author introduced the $\frac{R}{V}$ indicator, also known as the Sharpe Ratio ($S$), which is given by the following formula:
 $$
 S_i=\frac{E(R_i-R_F)}{\sigma_i}
@@ -61,7 +61,7 @@ where:
 * $K_\eta=(\frac{1-\frac{\eta}{2}}{1-\eta})$
 
 
-Using of the differential Sharpe ratio in algorithmic systems is highly desirable due to the following facts @Moody1997:
+Using of the differential Sharpe ratio in algorithmic systems is highly desirable due to the following features @MoodyWu1997:
 
 * Recursive updating - it is not needed to recompute the mean and standard deviation of returns every time the measure value is evaluated. 
 Formula for $A_t$ ($B_t$) enables to very straightforward calculation of the exponential moving Sharpe ratio, just by updating for  $R_t$ ($R_t^2$)
@@ -86,6 +86,5 @@ The maximum drawdown (MDD) at time $T$ is the maximum of the Drawdown over the a
 $$
 MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
 $$
-
 
 

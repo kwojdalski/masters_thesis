@@ -8,10 +8,10 @@ editor_options:
 The original data set consisted of tick data of **52** currency pairs in three months
 ( observations) between November, 2017 and March, 2018. There are 3 variables for each of them:
 
-* Timestamp 
-* Bid price 
-* Ask price
-* Mid price
+* Timestamp - usually given as a UNIX timestamp (starting from 1st of January of 1970) with precision of milliseconds or microseconds
+* Bid price - the highest price that a buyer is willing to pay for a given amount of a currency
+* Ask price - the lowest price that a seller is willing to accept for a given amount of a currency
+* Mid price - the price calculated as $MID_PRICE = frac{BID_PRICE + ASK_PRICE}{2}$. Usually rounded up to four or five decimals (depending on currency's liquidity, value against a non-base currency)
 
 
 
@@ -20,10 +20,10 @@ The ticks were left untrasnformed. The purpose was to test the method in a real-
 Bid and ask prices are taken from Bloomberg's FXGo platform using R Bloomberg API (RBlpapi) for 1 mio of base currency.
 Bloomberg covers prices from hundreds of banks and for most currency pairs in the world. Some of them are crossed, with use of Euro or US Dollar, for instance **EUR/JPY** is the combination of:
 
-$$EUR/JPY = EUR/USD\timesUSD/JPY$$
+$$EUR/JPY = EUR/USD\times USD/JPY$$
 
 Sometimes pairs can effectively consist of 3 parts (legs), for instance **PLN/MXN**:
-$$PLN/MXN = (USD/MXN\timesEUR/USD)/(EUR/PLN)$$
+$$PLN/MXN = (USD/MXN\times EUR/USD)/(EUR/PLN)$$
 
 Using such pairs is usually problematic and reduces reliability in backtesting. Hence, for the purpose of the work only the most liquid pairs, based on G10 currencies, had been used:
 
@@ -36,7 +36,7 @@ Using such pairs is usually problematic and reduces reliability in backtesting. 
 * NZD - New Zealand dollar
 * CAD - Canadian dollar
 * SEK - Swedish krona
-* NOK - Norwegian Krone
+* NOK - Norwegian krona
 
 In eFX the crucial element is spread, calculated as the difference between bid and ask prices. It depends on several factors, such as time of the day, one-off events, volatility, ability of liquidity providers to warehouse risk, or market sentiment. The data source had been selected so that it captured spread and reflected FX market as good as possible.
 
