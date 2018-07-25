@@ -1,0 +1,31 @@
+# Algorithmic Trading Systems
+
+
+In its essence, the investor's or trader's main goals is to optimize some measure of trading system performance, such as risk-adjusted return, economic utility, or simple profit. In the work the author presented direct optimization methods, based on reinforcement learning. It is flexible and can work out for trading a single asset (+ risk-free instrument), but also a portfolio consisting of n-instruments. There are also other options which often directs to non-optimal solutions. In the following section the author brought up different types of algorithmic systems and outlines advantages, disadvantages and differences between them.
+
+## Trading based on Forecasts
+
+In such a system forecast is optimized to produce price forecasts from a set of inputs. Supervised learning techniques are used, basing on statistics such as mean squared error. 
+Minimizing an error is only an intermediate step - the outcome of Forecasting System is then used for buying or selling decisions for analyzed asset(s) inside Trading Rules. Then the latter module is subject to evaluation module (Profits/Losses $U(\theta, \theta^{'})$) which consts of some financial measure. It must be noted that Forecasting module outputs only that predicted price while leaving the original inputs. It can be inefficient since Trading Rules sometimes might need more than just price. [^1]
+
+[^2]: For instance, for it might be interpreter in a completely different manner when an asset price spiked in relation to its normal jumps.
+
+![Trading based on forecasts](../img/trading_based_on_forecasts.png){width=400px; height=400px}
+
+
+
+## Training a Trading System on labeled Data
+
+Such a trading system is based on the idea of direct integration between Trading System and Input Series. Trades (signals) are based on labelled trades (training set), and actual trades take place basing on input (Input Series).
+
+
+Its efficiency and effectiveness rely on how well Trading Module can utilize information from Input Series and Labeled Trades $\theta^{'}$. Since it's Trading System, not utility function  $U(\theta, \theta^{'})$ optimized, also in this case the system tends to be sub-optimal.
+
+![Trading based on labeled data](../img/trading_based_on_labeled_data.png){width=400px; height=400px}
+
+## Direct Optimization of Performance
+
+In this modern approach, there is no intermediate step and labeled data is not given. The environment is observed, $X_t$, the system carries out an action, and receives a scalar reward for its past activities, representing the trading performance in some form (e.g. rate of return). Based on this reward, the system alters the way it behaves in subsequent episodes and steps. It utilizes Transaction Costs directly. 
+
+
+![Trading based on direct optimization of performance](../img/trading_based_on_direct_optimization.png){width=400px; height=400px}

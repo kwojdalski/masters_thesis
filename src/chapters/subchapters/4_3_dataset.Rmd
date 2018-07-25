@@ -62,11 +62,11 @@ dataset %>% head(10) %>%
 ```
 
 
-Cols: average spread (in us dollars), min spread, max spread, average number of ticks, mid price movements 
+Cols: average spread (in USD), min spread, max spread, average number of ticks, mid price movements 
 
 Rows: time of the day, sum
 
-In FX market participants usually get quotations for different levels (tiers). The assumption of the work was to use the smallest one to reduce possible market impact.
+In FX market participants usually get quotes for different levels (tiers). The assumption of the work was to use the smallest one to reduce possible market impact.
 
 ## Code and the Research Process
 

@@ -16,14 +16,14 @@ What is machine learning then? The most accepted and widely used definitions are
 * "A computer program is said to learn from experience $E$ with respect to some class of tasks $T$ and performance measure $P$, 
 if its performance at tasks in $T$, as measured by $P$, improves with experience $E$." - Tom Mitchell, a computer scientist and E. Fredkin University Professor at the Carnegie Mellon University (CMU) @Mitchell1997
 
-Especially the latter is considered as an elegant and modern definition. Less formal, but also relevant remarks, comes from two renown authors of textbooks from the discipline:
+Especially the latter is considered as an elegant and modern definition. Less formal, but also relevant remarks, comes from two authors of textbooks from the discipline:
 
 * "Pattern recognition has its origins in engineering, whereas machine learning grew out of computer science. However, these activities can be viewed as two facets of the same field…" - Christopher Bishop
 * "One of the most interesting features of machine learning is that it lies on the boundary of several different academic disciplines, principally computer science, statistics, mathematics, and engineering. …machine learning is usually studied as part of artificial intelligence, which puts it firmly into computer science …understanding why these algorithms work requires a certain amount of statistical and mathematical sophistication that is often missing from computer science undergraduates." - Stephen Marsland @Marsland2009
 
 ![Data Science Graph](../img/data_science.png){width=400px; height=400px}
 
-Altough there are many more concepts, ideas, and comments as to what exactly machine learning is, the general goal is the same:
+Despite many more concepts, ideas, and comments as to what exactly machine learning is,  the general goal is the same:
 Machine learning is about building such models that resemble the reality to a sufficient extent, are optimal in terms of a value function and can be later used for predictions on new data.
 
 ### Why is machine learning important?

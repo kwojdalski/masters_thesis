@@ -3,7 +3,7 @@
 <!--\SweaveOpts{concordance=TRUE} -->
 
 
-# Selected investment performance measures
+## Selected investment performance measures
 
 Introduced articles does not include any indicator that would explicitly measure portfolio management effectiveness. 
 Equations that result from the authors' work are important because some of further developed measures are CAPM-based. 

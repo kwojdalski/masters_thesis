@@ -1,11 +1,13 @@
 
 
 
-The following chapter introduces articles that correspond with the subject of the current thesis and are considered as fundamentals of modern finance.
-Specifically, the beginning contains financial market models. The next subchapter includes basic investment effectiveness indicators that implicitly or explicitly result from the fundamental formulas from the first subchapter.
 
 ## Selected financial market models and theory
 
+The following chapter introduces articles that correspond with the subject of the current thesis and are considered as fundamentals of modern finance.
+Specifically, the beginning contains financial market models. The next subchapter includes basic investment effectiveness indicators that implicitly or explicitly result from the fundamental formulas from the first subchapter.
+
+### Capital Asset Pricing Model
 
 Works considered as a fundament of quantitative finance and investments are @Sharpe1964, @Lintner1965, and @Mossin1966. All these authors, almost simultaneously, formulated Capital Asset Pricing Model (CAPM) that describes dependability between rate of return and its risk, risk of the market portfolio, and risk premium.
 Assumptions in the model are as follows:
@@ -110,7 +112,7 @@ $F_t$ represents all information (public and private) known to anyone at time t.
 
 The strong form rejects the idea of any possibility to consistently beating the market. According to this idea, any kind information, public or non-public, is completely embedded into current financial asset prices. In other words, there is no advantage for anyone in the market. Returns that deviate from expected values are attributed to pure randomness.
 
-## Critic of strong form of the EMH
+### Critic of strong form of the EMH
 
 There are at least a few documented anomalies that contradicts with efficient market hypothesis. For example, price/earnings (P/E) measure can help in systematically outperforming stocks @Malkiel2003.
 The neglected firm effect claims that "uninteresting" companies, often ignored by market analysts are sometimes incorrectly priced, and offer investors potentially fruitful opportunities. Another phenomenon that cannot be explained by the strong form of EMH is so called the January effect @Haug2006.  According to the authors of "The January Effect" working paper, returns reached in January has predictive power for the upcoming 11 months. It persists for both small and large cap companies.
