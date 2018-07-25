@@ -1,5 +1,8 @@
+# Research 
 
-# Research Objective
+In the following chapter the author designed a research based on reinforcement learning agents for FX market. The chapter starts with outlining research objectives, then used dataset is explained. In subsequent parts, it is explained how the research was conducted, what elements and methods have been chosen from the previous chapters. The last part consists of results, what exactly have been achieved and if it conforms with expectations.
+
+## Research Objective
 
 The primary research goal was to evaluate the Reinforcement Learning-based algorithm for multiasset trading.
 The main idea behind the algorithm deployment is that it can systematically outperform benchmarks 

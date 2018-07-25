@@ -12,19 +12,19 @@ In the following section the author discussed relevant aspects and challengees o
 
 One of the most important problems in RL is the trade-off between exploration and exploitation. To maximize cumulated rewards an agent should take actions that worked in the past and caused bigger payoffs (exploit). At the very beginning of learning process it never knows what works well, though. Hence, it needs to discover desirable actions for its state (explore). The dilemma is unresolved as of now, there are at least a few approaches to tackle the problem, though. In the next subsection the author presents that possible methods on the example of Bandit problem.
 
-### $\epsilon$-greedy policy
+#### $\epsilon$-greedy policy
 
 The simplest version is to behave greedily most of the time, i.e. an agent selects such action ($A_t$) that maximizes the used value function (e.g. $Q_t(a)$, but sometimes, with probability of $\epsilon$ pick up a random action from those available, apart from the action value estimates. Such an algorithm guarantees that every action for every state will be explored and eventually $Q_t(a)=q_*(a)$. It implies that probability of choosing the most optimal action will converge to more than $1-\epsilon$, to near certainty. The disadvantage of this simple method is that it says very little of its practical effectiveness. Asymptotic guarantee might take too long in a real environment. It can be shown that small $\epsilon$ causes the agent to gain more reward at initial steps, but tends to underperform against larger $\epsilon$ values when number of steps is getting larger.
 
 
-### Optimistic initial values
+#### Optimistic initial values
 
 One of the techniques to improve agent's choices is based on the idea of encouraging the agent to explore. Why is that? If the actual reward is smaller than initially set up action-value methods, an agent is more likely to pick up actions that potentially can stop getting rewards that constantly worsen value function $q(a)$. Eventually, the system does a lot more exploration even if greedy actions are selected all the time.
 
 ![The effect of optimistic initial action-value estimates on the 10-armed testbed](../img/optimistic_initial_values.png){width=400px; height=400px}
 
 
-## Upper-Confidence-Bound Action Selection
+#### Upper-Confidence-Bound Action Selection
 
 The other method for handling the exploration/exploitation problem is by using the special bounds that narrow with the number of steps taken.
 The formula is as follows:
@@ -54,11 +54,59 @@ Actions are chosen by searching and planning in this model. Markov Decision Proc
 * Model-free - it uses experience to learn in a direct way from state-action values or policies. They can achieve the same behaviour, but without any knowledge on the world model an agent acts in. In practical examples, reinforcement learning is primarily used for environments where a transition matrix is not known. Given a policy, a state has some value, which is defined as cumulated utility (reward) starting from the state. 
 Model-free methods are generally less efficient than model-based ones because information about the environment is combined with possibly incorrect estimates about state values @Dayan2008. 
 
-* Value iteration
-* Policy iteration - it is an iterative method to estimate both the optimal value function $V_*$ and the policy $\pi_*$. This type of algorithms. The 
+
+### Model-based Methods in Reinforcement Learning
+
+* Value iteration - a model-based algorithm that computes the optimal state value function by improving the estimate of $V(s)$. It starts with initializing arbirary values and then updates $Q(s, a)$ and $V(s)$ values until they converge. The pseudocode is as follows:
 
 
-## Components of an reinforcement learning system
+![Value Iteration Algorithm. Based on @Sutton2017](../img/value_iteration.png)
+<!-- \begin{algorithm}[H] -->
+<!--  \KwResult{how to write algorithm with} -->
+<!--  Initialize $V(s)$ to arbitrary values\; -->
+<!--   Repeat\; -->
+<!--     \For{$all\space s \in S$}{ -->
+<!--       \For{$all\space a \in A$}{ -->
+<!--         $Q(s, a) \leftarrow E[r|s, a] + \gamma\sum_{s e S}P(s'|s, a)V(s^{'})$\; -->
+<!--       $V(s) \leftarrow max_a Q(s,a)$\; -->
+<!--       } -->
+<!--   } -->
+<!--   Until $V(s)$ converge\; -->
+<!--   \caption{Value Iteration Algorithm. Based on @Alpaydin2013} -->
+<!-- \end{algorithm} -->
+
+
+
+* Policy iteration - while in the previous bullet the algorithm is improving value function, policy iteration is based on the different approach. Concretely, there are two functions to be optimized $V^{\pi}(s)$ and $\pi^{'}(s)$.
+This method is based on the premise that a RL agent cares about finding out the right policy. Sometimes, it is more convenient to directly use policies as a function of states. Below is the pseudocode:
+
+<!-- \begin{algorithm}[H] -->
+<!--  \KwResult{how to write algorithm with} -->
+<!--  Initialize $\pi^{'}$ to arbitrary values\; -->
+<!--   Repeat\; -->
+<!--   \indent $\pi \leftarrow \pi^{'}$ -->
+<!--   \indent Compute the values using $\pi$ by solving the linear equations\; -->
+<!--   \indent $V^{\pi}(s) = E[r|s, \pi(s)] + \gamma\sum{s^{'} e S}P(s^{'}|s, \pi(s))V^{\pi}(s^{'})$ -->
+<!--   \indent Improve the policy at each state -->
+<!--   \indent $\pi^{'}(s) <- argmax_{a}(E[r|s, a] + \gamma\sum_{s^{'} e S}P(s^{'}|s, a)V^{\pi}(s^{'}))$ -->
+
+<!--   Until $\pi=\pi^{'}$\; -->
+<!--   \caption{Policy Iteration Algorithm. Based on @Alpaydin2013} -->
+<!-- \end{algorithm} -->
+![Policy Iteration Algorithm. Based on @Sutton2017](../img/policy_iteration.png)
+
+
+### Model Free Learning
+
+Model Free learning is a subcategory of reinforcement learning algorithms which are used when a model is not known.
+The agent improves its accuracy in choosing right actions by interacting with the environment without explicit knowledge of the underlying transition matrix. It fits trading conditions - in financial markets it is impossible to know what the model is and what probabilities in the transition matrix are (they are not stationary). Hence, value or policy iteration algorithm can not be used directly.
+  
+Even though, Markov Decision Process and its element are not visible, the agent can gain experience from sampled states. It is assumed that eventually the distribution of sampled states will converge to the one in the transition matrix. So do $Q(s, a)$ converge to $Q^{*}$ and $\pi^{*}$ to the optimal policy. The conditions required by the convergence is that all state-action pairs were visited infinite times and the agent is greedy once it finds the best action in every state.
+
+
+
+
+### Components of an reinforcement learning system
 
 Reinforcement learning systems are developed to solve sequential decision making problems, to select such actions that eventually maximize cumulative discounted future rewards. In the following section the author explained components of reinforcement learning on the example of game of chess and trading. The subsection was partially inspired and based on @Sutton2017.
 
@@ -69,7 +117,7 @@ For a trading application, a state in time $t$ can be a vector of different fina
 
 * Action ($a$) - givn a current state the agent chooses an action which directs him into a new state, either deterministically or stochastically. The action choice process itself may also be deterministic or based on probability distributions. In the game of chess analogy, an action is to move a figure in accordance to the game's rules. In trading it could be for instance going long, short, staying flat, outweighing.
 
-* Reward ($r$)
+
 * Policy ($\pi$) - a policy is a mapping from state of the environment to action to be taken in that state.
 In psychology it is called a set of stimulus, i.e. response rules or associations. The policy might be a lookup table or a simple function (e.g. linear), 
 but not necessarily. Especially in trading where variables are often continous extensive computations to set up a satisfying outcome take place. The policy is 
@@ -77,11 +125,17 @@ the most essential part of a reinforcement learning agent because they determine
 It may be stochastic. Policies do not imply deterministic nature of the mapping. Even after countless number of episodes and states, 
 there is a chance that an efficient RL algorithm will explore other states rather than by exploiting the then-optimal action
 
-* Value Function - it is a prediction of future, usually discounted rewards. Value functions are used for determining how much a state should be desired by the agent. They depend on initial states ($S_0$), and a policy that is picked up by the agent. Every state should have an associated value, even if the path it's part of was never explored - in such cases they usually equal to zero. The general formula for value function is as follows:
+* Value Function - it is a prediction of future, usually discounted rewards. Value functions are used for determining how much a state should be desired by the agent. They depend on initial states ($S_0$), and a policy that is picked up by the agent. Every state should have an associated value, even if the path it is part of was never explored - in such cases they usually equal to zero. The general formula for value function is as follows:
 
 $$V^\pi=\mathbb{E}_\pi[\sum\limits_{k=1}^\infty \gamma^kr_{t+k}|s_t=s]$$
 
 where $\gamma$ is a discount factor from the range $[0; 1]$. It measures how much more instant rewards are valued. The smaller it is the more immediate values are relatively more relevant and cause algorithm to be more greedy. Sometimes $\gamma$ is equal to 1 if it is justified by the design of the whole agent.
+
+Value estimation, as a area of research in RL is probably the most vital one in the last decade. The most important distinction between different RL algorithms lies as to how it is calculated, in what form, and what variables it incorporates.
+
+* Reward ($r$) - rewards are the essence of reinforcement learning predictions. Value function, as previously stated, is a sum of, often discounted, rewards. Without them, as components of value function, an agent would not be able to 
+spot (or optimal) better policies actions are based on. Hence, it is assumed rewards are the central point, required element, of every RL algorithm. 
+Rewards are always given as a scalar, single value that is retrieved from the environment, that is easy to observe and interpret. With value function it is much harder since it can be obtained only by calculating a sequence of observations a RL agent makes over its lifetime.
 
 * Model ($m$) - a model shows the dynamics of environment, how it will evolve from $S_{t-1}$ to $S_t$. The model helps in predicting what the next state and next reward will be.
 They are used for planning, i.e. trial-and-error approach is not needed in order to achieving the optimal policy.
