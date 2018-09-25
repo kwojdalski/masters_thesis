@@ -36,6 +36,9 @@ The author starts with describing the FX market, analyzing market organization, 
 years. He tries to explain current trends and the possible directions. 
 The next part consists of theoretical pattern for the research - description of financial models, 
 and the AI algorithms. 
+
+
+
 Implementation of the RL-based approach in the third chapter, based on Q-learning, gives spurious results. 
 
 
