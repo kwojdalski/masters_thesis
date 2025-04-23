@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "JupyText Sync",
+        "type": "shell",
+        "command": "${command:python.interpreterPath} -m jupytext --sync ${file}",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Fix Quarto Comments",
+        "type": "shell",
+        "command": "sed -i '' 's/# |/#|/g' ${file}",
+        "group": "build",
+        "problemMatcher": []
+    }
+    ]
+}

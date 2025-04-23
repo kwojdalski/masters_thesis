@@ -15,3 +15,112 @@ cache/*
 *.sty
 *cache*
 various/*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.whl
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+# Data files
+data/*.csv
+data/*.xls
+data/*.xlsx
+data/*.xlsm
+data/*.xlsb
+data/*.json
+data/*.parquet
+data/*.feather
+
+# Jupyter Notebook
+.ipynb_checkpoints
+**/*.ipynb
+*/.ipynb_checkpoints/*
+
+# VS Code
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Plotly
+#*.html
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Project specific
+volatility_plot.png
+*.log
