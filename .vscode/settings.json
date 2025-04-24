@@ -1,0 +1,44 @@
+{
+    "emeraldwalk.runonsave": {
+        "commands": [
+            {
+                "name": "Render Quarto",
+                "match": ".*\\.qmd$",
+                "cmd": "zsh -c 'source ~/.zshrc; /usr/local/bin/quarto render notebooks/masters_thesis.qmd'"
+            },
+            {
+                "name": "Run main.py",
+                "match": ".*\\.py$",
+                "cmd": "zsh -c 'source ~/.zshrc; python src/rl_agent_python/run.py'"
+            }
+        ]
+    },
+    "search.exclude": {
+        "**/venv": true,
+        "**/.git": true,
+        "**/__pycache__": true,
+        "**/.DS_Store": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true,
+        "**/.mypy_cache": true,
+        "**/.coverage": true,
+        "**/htmlcov": true,
+        "**/dist": true,
+        "**/build": true
+    },
+    "python.analysis.exclude": [
+        "Interactive*",
+        "*.interactive",
+        "**/venv",
+        "**/__pycache__",
+        "**/.git",
+        "**/.DS_Store",
+        "**/*.pyc",
+        "**/.pytest_cache",
+        "**/.mypy_cache",
+        "**/.coverage",
+        "**/htmlcov",
+        "**/dist",
+        "**/build"
+    ],
+}

@@ -1,8 +1,7 @@
 ---
 title: Reinforcement Learning Portfolio Optimization for FX Trading
 author: Krzysztof Wojdalski
-date: "`r Sys.Date()`"
-# documentclass: pracamgrwne
+date: 2025-04-24
 format:
   pdf:
     documentclass: ../latex/pracamgrwne
@@ -27,6 +26,7 @@ header-includes:
 editor_options:
   chunk_output_type: console
   latex_engine: xelatex
+jupyter: python3
 ---
 
 \theoremstyle{definition}
@@ -48,66 +48,53 @@ Implementation of the RL-based approach in the third chapter, based on Q-learnin
 
 
 
+```{python}
+#| label: rr
+#| include: false
+#| cache: false
+#| echo: false
+#| eval: true
 
-```{r rr, include = FALSE, cache = FALSE, echo = FALSE, eval = TRUE}
+# Load necessary packages
+import os
+import sys
+import subprocess
 
-if (!'pacman' %in%installed.packages()) install.packages('pacman')
-library(pacman)
-p_load(RefManageR, bibtex, knitr, magrittr, tibble, dplyr, ggplot2, tidyr, purrrlyr, printr, tidyr, purrr, ggplot2, dplyr, tidyr, purrrlyr, printr)
-# bib <- ReadBib('./working_papers/library.bib')
-# BibOptions(bib.style = "numeric",check.entries=FALSE)
-opts_chunk$set(
-  cache   = FALSE,
-  warning = FALSE,
-  error   = FALSE,
-  message = FALSE,
-  eval    = TRUE,
-  echo    = FALSE,
-  include = TRUE
-)
 
-# opts_knit$set(root.dir = NULL)
-inputs <- './working_papers'
-# Sys.setenv(TEXINPUTS=inputs,
-#            BIBINPUTS=inputs,
-#            BSTINPUTS=inputs)
-# Sys.getenv("RSTUDIO_PANDOC")
-Sys.setenv(RSTUDIO_PDFLATEX = Sys.which("latexmk"))
+# Define input directory for LaTeX files
+inputs = './working_papers'
+
+# Set environment variable for LaTeX compilation
+os.environ['RSTUDIO_PDFLATEX'] = subprocess.check_output(['which', 'latexmk'], universal_newlines=True).strip()
 ```
 
+{{< include subchapters/0_introduction.qmd >}}
 
-```{r intro, child='subchapters/0_introduction.qmd'}
-```
-
-```{r fx_market_organization, child='subchapters/1_2_fx_market_organization.qmd'}
-```
+{{< include subchapters/1_2_fx_market_organization.qmd >}}
 
 
 
-```{r modern_portfolio_theory_and_capm,child='subchapters/2_1_1_modern_portfolio_theory_and_capm.qmd'}
-```
+{{< include subchapters/2_1_1_modern_portfolio_theory_and_capm.qmd >}}
 
 
-```{r relevant_financial_indicators2, child = 'subchapters/2_2_relevant_financial_indicators.qmd'}
-```
+
+{{< include subchapters/2_2_relevant_financial_indicators.qmd >}}
 
 
-```{r machine_learning,child='subchapters/3_1_machine_learning.qmd'}
-```
 
-```{r reinforcement_learning,child='subchapters/3_2_reinforcement_learning.qmd'}
-```
+{{< include subchapters/3_1_machine_learning.qmd >}}
 
 
-```{r objective_of_the_research,child='subchapters/4_1_objective_of_the_research.qmd'}
-```
-
-```{r design_of_the_research,child='subchapters/4_2_design_of_the_research.qmd'}
-```
-
-```{r dataset,child='subchapters/4_3_dataset.qmd'}
-```
+{{< include subchapters/3_2_reinforcement_learning.qmd >}}
 
 
-```{r bibliography, child='subchapters/6_bibliography.qmd'}
-```
+{{< include subchapters/4_1_objective_of_the_research.qmd >}}
+
+
+{{< include subchapters/4_2_design_of_the_research.qmd >}}
+
+
+{{< include subchapters/4_3_dataset.qmd >}}
+
+
+{{< include subchapters/6_bibliography.qmd >}}
