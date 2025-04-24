@@ -40,9 +40,9 @@ The idea of this soltuion is that the square-root part is an uncertainty measure
 The use of the natural logarithm implies that overtime square-root term, so does the confidence interval, is getting smaller. All actions will be selected at some point, but the ones with non-optimal values for $Q(a)$ are going to be selected much less frequently over time.
 UCB performs well, but it is harder to apply (generalize) for a broader amount of problems than $\epsilon$-greedy algorithm. Especially, when one is dealing with nonstationary problems. In such situations, algorithms more complex than those presented in this subsection should be selected.
 
-![Average performance of UCB action selection on the 10-armed testbed](../img/ucb_vs_egreedy.png){width=400px; height=400px}
+<!-- ![Average performance of UCB action selection on the 10-armed testbed](){width=400px; height=400px} -->
 <!-- . As shown, UCB generally -->
-<!-- performs better than "-greedy action selection, except in the rst k steps, when it selects randomly among the -->
+<!-- performs better than "-greedy action selection, except in the first k steps, when it selects randomly among the -->
 <!-- as-yet-untried actions. -->
 <!-- In this part  -->
 
@@ -60,7 +60,7 @@ Model-free methods are generally less efficient than model-based ones because in
 * Value iteration - a model-based algorithm that computes the optimal state value function by improving the estimate of $V(s)$. It starts with initializing arbirary values and then updates $Q(s, a)$ and $V(s)$ values until they converge. The pseudocode is as follows:
 
 
-![Value Iteration Algorithm. Based on @Sutton2017](../img/value_iteration.png)
+<!-- ![Value Iteration Algorithm. Based on @Sutton2017]() -->
 <!-- \begin{algorithm}[H] -->
 <!--  \KwResult{how to write algorithm with} -->
 <!--  Initialize $V(s)$ to arbitrary values\; -->
@@ -93,7 +93,7 @@ This method is based on the premise that a RL agent cares about finding out the 
 <!--   Until $\pi=\pi^{'}$\; -->
 <!--   \caption{Policy Iteration Algorithm. Based on @Alpaydin2013} -->
 <!-- \end{algorithm} -->
-![Policy Iteration Algorithm. Based on @Sutton2017](../img/policy_iteration.png)
+<!-- ![Policy Iteration Algorithm. Based on @Sutton2017](../img/policy_iteration.png) -->
 
 
 ### Model Free Learning
