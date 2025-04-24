@@ -4,11 +4,13 @@ author: "Krzysztof Wojdalski"
 format:
   pdf:
     toc: false
+    output-dir: outputs
   html:
     highlight-style: tango
     theme: united
     toc: false
-bibliography: working_papers/library.bib
+    output-dir: outputs
+bibliography: ../latex/library.bib
 ---
 
 # General idea

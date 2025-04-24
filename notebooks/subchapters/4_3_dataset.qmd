@@ -44,21 +44,8 @@ Below is the glimpse of the data used in the research:
 
 
 ```{r read_currencies}
-library(dplyr)
-library(tibble)
-library(printr)
-dataset <- tryCatch({readRDS('./../../../data/eurusd.RDS')}, error= function(x) getwd())
-dataset <- as_tibble(dataset)
-
-```
 
 ```{r dataset2}
-dataset %>% head(10) %>%
-  arrange(Index) %>%
-  mutate(spread    = ask - bid,
-         time_diff = c(NA, diff.POSIXt(Index)))
-
-
 ```
 
 

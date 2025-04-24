@@ -32,7 +32,7 @@
     \begin{center}%
       {\LARGE\textbf{University of Warsaw}\\
         Faculty of Economic Sciences\par}
-      \vspace{1cm plus 1fill} 
+      \vspace{1cm plus 1fill}
       {\Large\bf\@author\par}
       \vspace{0.2cm}
       {\large Nr albumu: \@nralbumu\par}
@@ -60,33 +60,31 @@
     \large
     \null
     \vfill
-    
-    
-   \textbf{\Large a }
+
+
+   \textbf{\Large }
     \vspace{10mm}
-   aa
     \vspace{10mm}
-   
-   Data \hfill P
-   
+
+   Data \hfill Podpis opiekuna
+
    \vspace{2cm}
    \textbf{\Large Statement of the Supervisor on Submission of the Thesis}
    \vspace{10mm}
-      
-    I hereby certify that the thesis submitted has been prepared under my supervision and I declare that it satisfies the requirements of submission in the 
+
+    I hereby certify that the thesis submitted has been prepared under my supervision and I declare that it satisfies the requirements of submission in the
     proceedings for the award of a degree.
 
    Date \hfill Signature of the Supervisor:
    \vspace{10mm}
-     
+
    \vspace{2cm}
    \textbf{\Large O\'swiadczenie autora (autor\'ow) pracy}
     \vspace{10mm}
-    
-   s
+
    \vspace{10mm}
-   
-   
+
+
    Data \hfill Podpis autora (autor\'ow) pracy
 
    \vspace{2cm}
@@ -97,7 +95,7 @@
 
    I also declare that the thesis submitted has not been the subject of proceedings resulting in the award of a university degree.
 
-  Furthermore I certify that the submitted version of the thesis is identical with its attached electronic version. 
+  Furthermore I certify that the submitted version of the thesis is identical with its attached electronic version.
 
 
 Date \hfill Signature of the Author(s) of the thesis
@@ -123,7 +121,7 @@ Date \hfill Signature of the Author(s) of the thesis
 \def\@nralbumu{???\ClassError{pracamgr}{Brak numeru albumu}\@ehc}
 \def\speciality#1{\gdef\@speciality{#1}}
 \def\@speciality{???\ClassError{pracamgr}{Nie podano kierunku studiow}\@ehc}
-%----zakres nie konieczny-----
+%----zakres niekonieczny-----
 \def\zakres#1{\gdef\@zakres{w zakresie \MakeUppercase{#1}}}
 \def\@zakres{}
 \def\opiekun#1{\gdef\@opiekun{#1}}
@@ -147,7 +145,7 @@ Date \hfill Signature of the Author(s) of the thesis
     \bfseries\large Summary
     \@endparpenalty\@M
   \end{center}}%
-{\par  
+{\par
   \vspace*{26pt}%
   \begin{center}%
     \bfseries\large Key words*

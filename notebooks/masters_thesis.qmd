@@ -1,0 +1,113 @@
+---
+title: Reinforcement Learning Portfolio Optimization for FX Trading
+author: Krzysztof Wojdalski
+date: "`r Sys.Date()`"
+# documentclass: pracamgrwne
+format:
+  pdf:
+    documentclass: ../latex/pracamgrwne
+    latex-engine: xelatex
+    toc: true
+    toc-depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number-sections: true
+    output-dir: outputs
+bibliography: ../latex/library.bib
+header-includes:
+  - \usepackage[utf8]{inputenc}
+  - \usepackage{amsthm}
+  - \usepackage{rotating}
+  - \pagenumbering{gobble}
+  - \nralbumu{310284}  # Replace with your actual student ID
+  - \speciality{Economics}
+  - \opiekun{dr Pawel Sakowski}  # Replace with your actual supervisor's name
+  - \keywords{Reinforcement Learning, FX Trading, Portfolio Optimization}
+  - \dziedzina{14.3 Economics}
+  - \klasyfikacja{G11, G17, C63}
+  - \tytulang{Reinforcement Learning Portfolio Optimization for FX Trading}
+editor_options:
+  chunk_output_type: console
+  latex_engine: xelatex
+---
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newpage
+
+# Abstract
+
+The work is about reinforcement learning application in trading on the FX market.
+The author starts with describing the FX market, analyzing market organization, participants, and changes in the last
+years. He tries to explain current trends and the possible directions.
+The next part consists of theoretical pattern for the research - description of financial models,
+and the AI algorithms.
+
+
+
+Implementation of the RL-based approach in the third chapter, based on Q-learning, gives spurious results.
+
+
+
+
+
+```{r rr, include = FALSE, cache = FALSE, echo = FALSE, eval = TRUE}
+
+if (!'pacman' %in%installed.packages()) install.packages('pacman')
+library(pacman)
+p_load(RefManageR, bibtex, knitr, magrittr, tibble, dplyr, ggplot2, tidyr, purrrlyr, printr, tidyr, purrr, ggplot2, dplyr, tidyr, purrrlyr, printr)
+# bib <- ReadBib('./working_papers/library.bib')
+# BibOptions(bib.style = "numeric",check.entries=FALSE)
+opts_chunk$set(
+  cache   = FALSE,
+  warning = FALSE,
+  error   = FALSE,
+  message = FALSE,
+  eval    = TRUE,
+  echo    = FALSE,
+  include = TRUE
+)
+
+# opts_knit$set(root.dir = NULL)
+inputs <- './working_papers'
+# Sys.setenv(TEXINPUTS=inputs,
+#            BIBINPUTS=inputs,
+#            BSTINPUTS=inputs)
+# Sys.getenv("RSTUDIO_PANDOC")
+Sys.setenv(RSTUDIO_PDFLATEX = Sys.which("latexmk"))
+```
+
+
+```{r intro, child='subchapters/0_introduction.qmd'}
+```
+
+```{r fx_market_organization, child='subchapters/1_2_fx_market_organization.qmd'}
+```
+
+
+
+```{r modern_portfolio_theory_and_capm,child='subchapters/2_1_1_modern_portfolio_theory_and_capm.qmd'}
+```
+
+
+```{r relevant_financial_indicators2, child = 'subchapters/2_2_relevant_financial_indicators.qmd'}
+```
+
+
+```{r machine_learning,child='subchapters/3_1_machine_learning.qmd'}
+```
+
+```{r reinforcement_learning,child='subchapters/3_2_reinforcement_learning.qmd'}
+```
+
+
+```{r objective_of_the_research,child='subchapters/4_1_objective_of_the_research.qmd'}
+```
+
+```{r design_of_the_research,child='subchapters/4_2_design_of_the_research.qmd'}
+```
+
+```{r dataset,child='subchapters/4_3_dataset.qmd'}
+```
+
+
+```{r bibliography, child='subchapters/6_bibliography.qmd'}
+```

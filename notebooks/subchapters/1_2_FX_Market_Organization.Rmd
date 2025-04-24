@@ -93,12 +93,10 @@ groups:
 ```{r table_turnover, results='asis', echo=FALSE, cache.vars=T}
 # library(xtable)
 # require(pander)
-
+a
 df <- data.frame(Rank=seq_len(15),
-                 Bank=c('Citi','Deutsche Bank','Barclays','JPMorgan',
-                        'UBS','Bank of America Merrill Lynch',
-                        'HSBC','BNP Paribas','Goldman Sachs','RBS',
-                        'Societe Generale','Standard Chartered',
+                 Bank=c('Citi','Deutsche Bank','Barclays','JPMorgan','UBS','Bank of America Merrill Lynch',
+                        'HSBC','BNP Paribas','Goldman Sachs','RBS','Societe Generale','Standard Chartered',
                         'Morgan Stanley','Credit Suisse','State Street'),
                  MarketShare=market_share)
 strCaption <- paste0("Market share of top financial institutions in FX trading in 2014")
