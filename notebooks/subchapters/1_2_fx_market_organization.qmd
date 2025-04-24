@@ -31,8 +31,11 @@ The foreign exchange market is perceived as the largest and most liquid one,
 with a year-on-year turnover of \texteuro 69 trillion.
 
 
-```{r market_share2, include=FALSE,eval=TRUE, echo=FALSE, cache=TRUE}
-market_share = c(
+```{python market_share}
+#| include: false
+#| eval: true
+#| echo: false
+market_share = [
   0.1611,
   0.1454,
   0.0811,
@@ -48,7 +51,7 @@ market_share = c(
   0.0197,
   0.0166,
   0.0155
-  )
+]
 ```
 The FX market is an over the counter, global (OTC) market, i.e. participants can
 trade currencies with relatively low level of legal obstacles. The market core is
@@ -66,7 +69,7 @@ groups:
   they want to achieve.
 * Commercial banks - most of the flow in the market belongs to commercial banks.
   Although the environment in which FX trading occurs is highly dispersed in
-  terms of location, over `r floor(sum(market_share)*100)`% of flow is generated
+  terms of location, over `{python import math; print(math.floor(sum(market_share)*100))}`% of flow is generated
   by top 15 banks, as seen in \ref{table_turnover_banks}. It can be observed
   even for currencies that the banks do not have real interest in. It means that
   in fact banks stay with flat position.
@@ -90,28 +93,38 @@ groups:
   receive from financial institutions are generally worse.
 
 
-```{r table_turnover, results='asis', echo=FALSE, cache.vars=T}
-# library(xtable)
-# require(pander)
+```{python}
+#| label: table_turnover
+#| include: false
+#| eval: true
+#| echo: false
+import pandas as pd
 
-df <- data.frame(Rank=seq_len(15),
-                 Bank=c('Citi','Deutsche Bank','Barclays','JPMorgan',
-                        'UBS','Bank of America Merrill Lynch',
-                        'HSBC','BNP Paribas','Goldman Sachs','RBS',
-                        'Societe Generale','Standard Chartered',
-                        'Morgan Stanley','Credit Suisse','State Street'),
-                 MarketShare=market_share)
-strCaption <- paste0("Market share of top financial institutions in FX trading in 2014")
+# Create dataframe with market share data
+df = pd.DataFrame({
+    'Rank': list(range(1, 16)),
+    'Bank': ['Citi', 'Deutsche Bank', 'Barclays', 'JPMorgan',
+             'UBS', 'Bank of America Merrill Lynch',
+             'HSBC', 'BNP Paribas', 'Goldman Sachs', 'RBS',
+             'Societe Generale', 'Standard Chartered',
+             'Morgan Stanley', 'Credit Suisse', 'State Street'],
+    'MarketShare': market_share
+})
 
-as_tibble(df %>% purrrlyr::dmap_at('MarketShare', ~paste0(.*100, '%'))) %>%
-  set_colnames(c('Rank', 'Bank', 'Market Share'))
-# print(xtable(df, digits = 2, caption = strCaption, label = "table_turnover_banks",
-#       size="footnotesize", #Change size; useful for bigger tables
-#       include.rownames  = FALSE, #Don't print rownames
-#       include.colnames  = FALSE, #We create them ourselves
-#       caption.placement = "top"
-#       ), type = 'html')
-#pandoc.table(df,style='grid')
+# Format market share as percentage
+df['MarketShare'] = df['MarketShare'].apply(lambda x: f"{x*100:.2f}%")
+
+# Set caption for the table
+str_caption = "Market share of top financial institutions in FX trading in 2014"
+
+# Display the dataframe
+df.columns = ['Rank', 'Bank', 'Market Share']
+display(df)
+
+# Alternative display options:
+# df.to_html(index=False)
+# from IPython.display import Markdown
+# Markdown(df.to_markdown(index=False))
 ```
 
 In the last years, there have been observed shifting towards eFX (electronic
