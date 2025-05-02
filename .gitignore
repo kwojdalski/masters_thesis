@@ -124,3 +124,10 @@ Desktop.ini
 # Project specific
 volatility_plot.png
 *.log
+
+
+notebooks/*/libs/bootstrap/
+notebooks/*/libs/clipboard/
+notebooks/*/libs/quarto-html/
+.DS_Store
+thesis/build
