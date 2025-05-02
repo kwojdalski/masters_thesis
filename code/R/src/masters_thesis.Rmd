@@ -1,0 +1,112 @@
+---
+title: Reinforcement Learning Portfolio Optimization for FX Trading
+author: Krzysztof Wojdalski
+date: "`r Sys.Date()`"
+# documentclass: pracamgrwne
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: yes
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true
+  # html_document:
+    # toc: true
+    # theme: united
+    # highlight: tango
+    # keep_md: false
+bibliography: library.bib
+header-includes:
+  - \usepackage[utf8]{inputenc}
+  - \usepackage{amsthm}
+  - \usepackage{rotating}
+  - \pagenumbering{gobble}
+editor_options:
+  chunk_output_type: console
+  latex_engine: xelatex
+---
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newpage
+
+# Abstract
+
+The work is about reinforcement learning application in trading on the FX market.
+The author starts with describing the FX market, analyzing market organization, participants, and changes in the last
+years. He tries to explain current trends and the possible directions.
+The next part consists of theoretical pattern for the research - description of financial models,
+and the AI algorithms.
+
+
+
+Implementation of the RL-based approach in the third chapter, based on Q-learning, gives spurious results.
+
+
+
+
+
+```{r rr, include = FALSE, cache = FALSE, echo = FALSE, eval = TRUE}
+
+if (!'pacman' %in%installed.packages()) install.packages('pacman')
+library(pacman)
+p_load(RefManageR, bibtex, knitr)
+# bib <- ReadBib('./working_papers/library.bib')
+# BibOptions(bib.style = "numeric",check.entries=FALSE)
+opts_chunk$set(
+  cache   = FALSE,
+  warning = FALSE,
+  error   = FALSE,
+  message = FALSE,
+  eval    = TRUE,
+  echo    = FALSE,
+  include = TRUE
+)
+
+# opts_knit$set(root.dir = NULL)
+inputs <- './working_papers'
+# Sys.setenv(TEXINPUTS=inputs,
+#            BIBINPUTS=inputs,
+#            BSTINPUTS=inputs)
+# #Sys.getenv("RSTUDIO_PANDOC")
+Sys.setenv(RSTUDIO_PDFLATEX = Sys.which("latexmk"))
+#options(encoding="UTF-8")
+#Sys.setlocale(locale='Polish_Poland.1250')
+#Sys.getlocale('LC_ALL',')
+```
+
+
+```{r intro, child='chapters/subchapters/0_Introduction.Rmd'}
+```
+
+```{r fx_market_organization, child='chapters/subchapters/1_2_FX_Market_Organization.Rmd'}
+```
+
+
+
+```{r modern_portfolio_theory_and_capm,child='chapters/subchapters/2_1_1_Modern_Portfolio_Theory_and_CAPM.Rmd'}
+```
+
+
+```{r relevant_financial_indicators2, child = 'chapters/subchapters/2_2_Relevant_Financial_Indicators.Rmd'}
+```
+
+
+```{r machine_learning,child='chapters/subchapters/3_1_Machine_Learning.Rmd'}
+```
+
+```{r reinforcement_learning,child='chapters/subchapters/3_2_reinforcement_learning.Rmd'}
+```
+
+
+```{r objective_of_the_research,child='chapters/subchapters/4_1_Objective_of_the_Research.Rmd'}
+```
+
+```{r design_of_the_research,child='chapters/subchapters/4_2_design_of_the_research.Rmd'}
+```
+
+```{r dataset,child='chapters/subchapters/4_3_dataset.Rmd'}
+```
+
+
+```{r bibliography, child='chapters/subchapters/6_bibliography.Rmd'}
+```

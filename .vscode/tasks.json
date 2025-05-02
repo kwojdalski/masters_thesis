@@ -17,6 +17,16 @@
         "command": "sed -i '' 's/# |/#|/g' ${file}",
         "group": "build",
         "problemMatcher": []
+    },
+    {
+        "label": "Build Masters Thesis Proposal",
+        "type": "shell",
+        "command": "quarto render ${file} --output-dir ../../build && open ${fileDirname}/../build/${fileBasenameNoExtension}.pdf",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": []
     }
     ]
 }
