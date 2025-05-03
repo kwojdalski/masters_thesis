@@ -1,0 +1,44 @@
+# Methodological Framework
+
+The methodology consists of several key steps:
+
+## Data Pre-processing
+
+- Handling data cleaning, completion, and transformation
+- Ensuring data quality and consistency
+- Implementing appropriate data normalization techniques
+
+## Cointegration Analysis
+
+- Extracting linear combinations of time series with mean-reverting characteristics
+- Using Johansen's test on a 1000-minute base timeframe
+- Implementing ongoing monitoring across multiple time horizons
+- Validating cointegration relationships
+
+## Feature Extraction
+
+- Building informative features from time series
+- Including statistical, technical, and economic variables
+- Developing features across different time horizons
+- Implementing feature selection and dimensionality reduction techniques
+
+## State-Action Space Construction
+
+- Creating the agent's state space
+- Defining action space boundaries
+- Implementing state representation techniques
+- Ensuring proper state-action mapping
+
+## Trading Agents Implementation
+
+- Developing agents that maximize financial performance metrics
+- Implementing selected RL algorithms
+- Creating robust training and testing frameworks
+- Ensuring proper hyperparameter optimization
+
+## Performance Evaluation
+
+- Testing both trading agents with transaction costs included
+- Comparing different approaches
+- Analyzing resulting trading policies
+- Implementing comprehensive performance metrics

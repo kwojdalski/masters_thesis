@@ -1,0 +1,45 @@
+# Statistical Arbitrage vs Other Types of Arbitrage
+
+While statistical arbitrage relies on probabilistic relationships between
+securities, several other arbitrage types exist in financial markets, each with
+distinct characteristics:
+
+## Classical Arbitrage
+Classical arbitrage involves simultaneously trading two or more fungible
+instruments and converting between them to capture price differentials. At least
+one leg typically involves derivatives:
+
+- **ETF arbitrage**: Buying an ETF while selling its constituent basket, then
+  redeeming the ETF
+- **ADR arbitrage**: Selling an ADR while buying its underlying foreign stock and
+  currency, then creating the ADR
+- **Futures arbitrage**: Buying a future while selling its underlying, holding
+  both until expiration
+
+## Latency Arbitrage
+Latency arbitrage leverages speed advantages to be first to complete trades
+triggered by discrete events. Examples include racing to take stale bids/offers
+on one exchange after observing trades on another, or using private fill prices
+to trade ahead of other participants.
+
+## Time Arbitrage
+Time arbitrage captures spreads between buyers and sellers demanding liquidity at
+different periods. US equity wholesalers practice this by guaranteeing retail buy
+orders, expecting offsetting sell orders to follow. Opportunities also arise when
+linked instruments trade on exchanges with different operating hours.
+
+## Microstructure Arbitrage
+This captures price dislocations using exchange-specific idiosyncrasies like
+matching semantics, fee treatment, and specialized order types. Common
+opportunities arise from non-continuous matching mechanisms such as opening/
+closing auctions and their associated order types.
+
+## Statistical Arbitrage
+Statistical arbitrage trades spreads between instruments based on probabilistic
+estimations of convergence (mean reversion) or divergence (momentum). The
+"dispersion trade" bets that index option prices should converge to weighted
+baskets of options on the index's components. Unlike classical arbitrage,
+statistical arbitrage involves probability-based relationships that may break
+down, introducing additional risk elements.
+
+[A Taxonomy of Arbitrage Trading](https://medium.com/@brett_17026/a-taxonomy-of-arbitrage-trading-f6df2bc7abaa)

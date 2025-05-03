@@ -1,0 +1,41 @@
+# Reinforcement Learning
+
+Reinforcement learning represents a distinct paradigm in machine learning where
+an agent interacts with an environment, learning optimal behaviors through
+trial and error. In this framework, the agent perceives the environment's state
+as a feature vector and can execute actions in each state. These actions yield
+varying rewards and potentially transition the agent to new states.
+
+The fundamental objective in reinforcement learning is to develop a policy—a
+function that maps states to actions. Formally, this policy function f (analogous
+to supervised learning models) takes a state's feature vector as input and
+outputs the optimal action for that state. An action is considered optimal when
+it maximizes the expected cumulative reward over time.
+
+Key characteristics of reinforcement learning include:
+
+- **Sequential Decision Making**: Unlike other learning paradigms, reinforcement
+  learning addresses problems where decisions occur in sequence and have
+  long-term implications.
+
+- **Delayed Rewards**: The agent must learn to take actions that may not
+  immediately yield rewards but contribute to greater cumulative rewards in
+  the future.
+
+- **Exploration vs. Exploitation**: Agents must balance exploring new actions
+  to discover potentially better strategies against exploiting known
+  rewarding actions.
+
+Reinforcement learning is particularly well-suited for non-stationary
+environments where relationships between variables evolve over time. In these
+contexts, the agent continuously adapts its policy to changing conditions,
+making it valuable for financial applications where market dynamics constantly
+shift.
+
+Applications of reinforcement learning span diverse domains including game
+playing, robotics, resource management, logistics, and increasingly, financial
+trading strategies such as statistical arbitrage. The target variable in
+reinforcement learning can be viewed as a specialized output designed to solve
+specific optimization problems within dynamic environments.
+
+This type of Machine Learning is discussed in detail in the following section.

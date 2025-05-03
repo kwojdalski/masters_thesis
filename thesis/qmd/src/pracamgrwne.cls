@@ -1,4 +1,3 @@
-
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesClass{pracamgr_wne}[2006/05/05 v0.5.0 Praca magisterska]
 
@@ -23,6 +22,18 @@
 \setlength\textheight{48\baselineskip}
 \addtolength\textheight{\topskip}
 \marginparwidth15mm
+% Define abstract environment with large font
+\renewenvironment{abstract}{%
+  \large % Set font size to large for the abstract
+  \null\vfil
+  \begin{center}
+    \bfseries \abstractname
+  \end{center}
+  \quotation
+}{%
+  \endquotation
+  \vfil\null
+}
 
 \renewcommand\maketitle{%
   \begin{titlepage}%
@@ -106,6 +117,7 @@ Date \hfill Signature of the Author(s) of the thesis
     \vspace{4cm}
   \end{titlepage}
   \setcounter{footnote}{0}%
+  \setcounter{chapter}{1}%
   \global\let\thanks\relax
   \global\let\maketitle\relax
   \global\let\@thanks\@empty

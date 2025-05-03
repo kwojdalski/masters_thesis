@@ -1,0 +1,25 @@
+# Rule-Based Trading
+
+## Rule-Based Trading Strategies
+
+A rule-based trading strategy uses explicit, human-defined rules for buying and
+selling assets. These interpretable rules don't rely on forecasting models or
+machine-generated predictions.
+
+These strategies employ conditional logic where trading decisions follow
+deterministic paths based on market conditions. Rules typically derive from
+established market heuristics or technical analysis principles with proven
+effectiveness.
+
+The clear causal relationship between market conditions and trading actions
+provides transparency, allowing traders to understand exactly why positions
+change. Decisions respond to current market states rather than attempting to
+predict future movements.
+
+Rule-based systems apply consistently across all market conditions, eliminating
+psychological biases and ensuring reproducible trading decisions. This
+deterministic nature enables straightforward performance evaluation
+
+The framework adapts to changing markets while maintaining its structure.
+Parameter optimization enhances performance while preserving core logic,
+allowing systematic evolution through iterative refinement.
