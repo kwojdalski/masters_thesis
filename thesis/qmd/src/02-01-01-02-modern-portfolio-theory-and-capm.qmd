@@ -1,4 +1,4 @@
-# Modern Portfolio Theory and CAPM
+## Modern Portfolio Theory and CAPM
 
 The following chapter introduces articles that correspond with the subject of the
 current thesis and are considered as fundamentals of modern finance.
@@ -6,13 +6,14 @@ Specifically, the beginning contains financial market models. The next subchapte
 includes basic investment effectiveness indicators that implicitly or explicitly
 result from the fundamental formulas from the first subchapter.
 
-### Capital Asset Pricing Model
+#### Capital Asset Pricing Model
 
 Works considered as a fundament of quantitative finance and investments are
 @Sharpe1964, @Lintner1965, and @Mossin1966. All these authors, almost
 simultaneously, formulated Capital Asset Pricing Model (CAPM) that describes
 dependability between rate of return and its risk, risk of the market portfolio,
 and risk premium.
+
 Assumptions in the model are as follows:
 
 * Decisions in the model regard only one period,
@@ -102,28 +103,27 @@ Correlation between assets changes overtime so results must be recalculated. Rea
 portfolio risk may be underestimated. Also, time window can influence the results.
 
 ## Efficient Market Hypothesis
-
 In 1965, Eugene Fama introduced the efficient market term. Fama claimed that an
-efficient market is the one that instanteneously discounts the new information
-arrival in market price of a given asset. Because this definition applies to
+efficient market is one that instantaneously discounts new information arrival
+in the market price of a given asset. Because this definition applies to
 financial markets, it determined the further belief that it is not possible to
 beat the market because assets are correctly priced. Also, if this hypothesis
-would be true, market participants cannot be better or worse. Their portfolio
+were true, market participants could not be better or worse. Their portfolio
 return would be a function of new, unpredictable information. In that respect,
-the only role of an investor is to manage his assets so that the risk is
+the only role of an investor is to manage assets so that the risk is
 acceptable. @Fama1965
 
 It is highly unlikely that EMH exists in its strongest form due to successful
-quantitative hedge funds that consistetly beat the markets. For instance,
-Renaissance Capital hedge fund generated on average 40% per annum in the last 30
-years @Shen2017.
+quantitative hedge funds that consistently beat the markets. For instance,
+Renaissance Technologies hedge fund generated on average 40% per annum in the
+last 30 years @Shen2017.
 
 Formally, Efficient Market Hypothesis states that a market is efficient with
-respect to information set $F_t$ if its impossible to make economic profits by
+respect to information set $F_t$ if it is impossible to make economic profits by
 trading on the basis of that information set. In other words, it is not possible
-to achieve any better than risk-adjusted average rate of return. In its essence
+to achieve any better than risk-adjusted average rate of return. In its essence,
 that claim is consistent with classical price theory @Weber2012. Over time, other
-versions (forms) of the EMH has been introduced - weak, semi-strong, and strong
+versions (forms) of the EMH have been introduced - weak, semi-strong, and strong
 @Fama1970.
 
 \theoremstyle{definition}
@@ -132,34 +132,35 @@ $F_t$ represents only the information contained in the past price history of the
 market as of time $t$
 \end{definition}
 
-What means that there is not possibility to make abnormal returns by using the
-past price movements and volumes to predict the future price movements. However,
-fundamental analysis might be used to generate such results because the market is
-not perfect in spotting undervalued and overvalued stocks. Hence, the
-participants can find profitable companies by researching their financial
-statements.
+According to this form, investors cannot achieve above-normal returns by
+analyzing historical price patterns and trading volumes to forecast future price
+movements. Nevertheless, fundamental analysis may still yield exceptional results
+since markets are not entirely efficient at identifying under or overvalued
+securities. Therefore, market participants can potentially discover profitable
+investment opportunities through thorough examination of companies' financial
+reports.
 
 \theoremstyle{definition}
 \begin{definition}{Semi-Strong Form of the EMH}
 $F_t$ represents all information publicly available at time $t$
 \end{definition}
 
-It states that neither technical, nor fundamental analysis cannot be exploited
+It states that neither technical nor fundamental analysis can be exploited
 for gaining superior returns, and only non-public material information might help
-in above average results.
+in achieving above average results.
 
 \theoremstyle{definition}
 \begin{definition}{Strong Form of the EMH}
 $F_t$ represents all information (public and private) known to anyone at time t.
 \end{definition}
 
-The strong form rejects the idea of any possibility to consistently beating the
-market. According to this idea, any kind information, public or non-public, is
+The strong form rejects the idea of any possibility of consistently beating the
+market. According to this idea, any kind of information, public or non-public, is
 completely embedded into current financial asset prices. In other words, there is
 no advantage for anyone in the market. Returns that deviate from expected values
 are attributed to pure randomness.
 
-### Critic of strong form of the EMH
+#### Critic of strong form of the EMH
 
 There are at least a few documented anomalies that contradicts with efficient
 market hypothesis. For example, price/earnings (P/E) measure can help in

@@ -1,0 +1,13 @@
+## Data Preparation
+
+
+### Data Collection
+
+
+### Data Preprocessing
+
+
+### Feature Engineering
+
+
+### Data Splitting

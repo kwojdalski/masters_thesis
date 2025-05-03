@@ -61,7 +61,7 @@ any competitive advantage tends to diminish through market efficiency mechanisms
 Strategies with persistent alpha-generating capabilities must remain proprietary
 to maintain their effectiveness.
 
-### Work Structure
+#### Work Structure
 
 This thesis is structured to provide a comprehensive analytical framework for
 understanding reinforcement learning algorithms applied to trading contexts.

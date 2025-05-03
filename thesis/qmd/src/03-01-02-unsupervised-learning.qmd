@@ -1,5 +1,4 @@
-
-# Unsupervised Learning
+### Unsupervised Learning
 
 Unsupervised learning represents a paradigm in machine learning where algorithms
 learn patterns and structures from unlabeled data without explicit guidance.

@@ -1,0 +1,15 @@
+### Book Pressure-Related Variables
+
+
+
+### Volume-Related Variables
+
+
+### Last Trade Price-Related Variables
+
+
+### Time-Related Variables
+
+### Technical Indicators
+
+### Autoregressive Variables

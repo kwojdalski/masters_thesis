@@ -7,7 +7,7 @@ format:
     documentclass: pracamgrwne
     latex-engine: xelatex
     toc: true
-    toc-depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    toc-depth: 3
     number-sections: true
     output-dir: ../../build
   docx:
@@ -83,9 +83,9 @@ os.environ['RSTUDIO_PDFLATEX'] = subprocess.check_output(['which', 'latexmk'], u
 {{< include ./01-01-00-statistical-arbitrage.qmd >}}
 {{< include ./01-01-01-statistical-arbitrage-vs-other-types.qmd >}}
 {{< include ./01-01-02-critical-parameter-selection.qmd >}}
-{{< include ./01-02-00-fx-market-organization.qmd >}}
-{{< include ./01-03-00-scope-and-objectives.qmd >}}
-{{< include ./01-04-00-methodological-framework.qmd >}}
+{{< include ./01-02-00-scope-and-objectives.qmd >}}
+{{< include ./01-03-00-methodological-framework.qmd >}}
+{{< include ./01-04-00-thesis-organization-and-chapter-overview.qmd >}}
 
 
 {{< include ./02-01-01-01-classical-models.qmd >}}
@@ -93,14 +93,15 @@ os.environ['RSTUDIO_PDFLATEX'] = subprocess.check_output(['which', 'latexmk'], u
 {{< include ./02-01-01-03-factor-models.qmd >}}
 {{< include ./02-01-02-00-modern-approaches.qmd >}}
 {{< include ./02-01-03-00-critical-analysis.qmd >}}
-{{< include ./02-02-00-relevant-financial-indicators.qmd >}}
-{{< include ./02-02-01-efficient-market-hypothesis.qmd >}}
-{{< include ./02-02-02-empirical-evidence.qmd >}}
-{{< include ./02-02-03-market-anomalies.qmd >}}
-{{< include ./02-03-00-machine-learning-in-financial-markets.qmd >}}
-{{< include ./02-03-03-01-key-concepts.qmd >}}
-{{< include ./02-03-03-02-seminal-works.qmd >}}
-{{< include ./02-03-03-03-rl-applications.qmd >}}
+<!-- {{< include ./02-02-00-relevant-financial-indicators.qmd >}} -->
+<!-- {{< include ./02-02-01-efficient-market-hypothesis.qmd >}} -->
+<!-- {{< include ./02-02-02-empirical-evidence.qmd >}} -->
+<!-- {{< include ./02-02-03-market-anomalies.qmd >}} -->
+<!-- {{< include ./02-03-00-machine-learning-in-financial-markets.qmd >}} -->
+<!-- {{< include ./02-03-03-01-key-concepts.qmd >}} -->
+<!-- {{< include ./02-03-03-02-seminal-works.qmd >}} -->
+<!-- {{< include ./02-03-03-03-rl-applications.qmd >}} -->
+
 
 {{< include ./03-01-00-machine-learning.qmd >}}
 {{< include ./03-01-01-supervised-learning.qmd >}}
@@ -119,10 +120,12 @@ os.environ['RSTUDIO_PDFLATEX'] = subprocess.check_output(['which', 'latexmk'], u
 {{< include ./03-02-03-03-direct-optimization.qmd >}}
 {{< include ./03-03-algorithmic-trading-systems.qmd >}}
 
-{{< include ./04-01-objective-of-the-research.qmd >}}
+{{< include ./04-00-reinforcement-learning.qmd >}}
+<!-- {{< include ./04-01-objective-of-the-research.qmd >}}
 {{< include ./04-02-design-of-the-research.qmd >}}
-{{< include ./04-03-dataset.qmd >}}
+{{< include ./04-03-dataset.qmd >}} -->
 
+{{< include ./05-00-design-of-the-trading-agent.qmd >}}
 {{< include ./05-01-action-space.qmd >}}
 {{< include ./05-02-state-space.qmd >}}
 {{< include ./05-03-reward-function.qmd >}}
@@ -130,13 +133,16 @@ os.environ['RSTUDIO_PDFLATEX'] = subprocess.check_output(['which', 'latexmk'], u
 {{< include ./05-05-policy.qmd >}}
 {{< include ./05-07-step-size.qmd >}}
 
+{{< include ./06-00-implementation-of-the-trading-agent.qmd >}}
 {{< include ./06-01-data-preparation.qmd >}}
 {{< include ./06-02-code.qmd >}}
 
+{{< include ./07-00-empirical-evaluation-and-performance-analysis.qmd >}}
 {{< include ./07-01-statistical-validation.qmd >}}
 {{< include ./07-02-robustness-assessment.qmd >}}
 {{< include ./07-03-performance-evaluation.qmd >}}
 
+{{< include ./08-00-conclusions-and-future-work.qmd >}}
 {{< include ./08-01-summary-of-findings.qmd >}}
 {{< include ./08-02-limitations-and-future-research.qmd >}}
 {{< include ./08-03-implications-for-trading-systems.qmd >}}

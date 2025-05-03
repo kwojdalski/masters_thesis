@@ -1,6 +1,6 @@
-# Scope and Objectives of the Research
+## Scope and Objectives of the Research
 
-## Hypothesis
+### Hypothesis
 
 The research is based on the following hypotheses:
 
@@ -8,7 +8,7 @@ The research is based on the following hypotheses:
 2. Enhanced performance is particularly evident in high-frequency trading scenarios as well as across extended time horizons
 3. These algorithms demonstrate the capability to implicitly learn market patterns that would be impossible for humans to identify and efficiently select securities. In consequence, they generate alpha
 
-## Objectives of the Research
+### Objectives of the Research
 
 The research has three main objectives:
 

@@ -3,6 +3,9 @@
 
 
 \def\@baseclass{report}
+\def\@baseclass{article} % fix for qmd
+\@ifundefined{l@chapter}{\newcounter{chapter}%
+  \newcommand*\l@chapter{\@dottedtocline{0}{0em}{1.5em}}}{}
 \def\@rodzajpracy{magisterska}
 \DeclareOption{licencjacka}{\def\@rodzajpracy{licencjacka}}
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{\@baseclass}}

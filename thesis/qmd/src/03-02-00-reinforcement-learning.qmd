@@ -1,30 +1,24 @@
----
-output: html_document
-editor_options:
-  chunk_output_type: console
----
-
-## Selected aspects of reinforcement learning
+### Selected aspects of reinforcement learning
 
 In the following section the author discussed relevant aspects and challengees of the paradigm.
 
-### Exploration/exploitation
+#### Exploration/exploitation
 
 One of the most important problems in RL is the trade-off between exploration and exploitation. To maximize cumulated rewards an agent should take actions that worked in the past and caused bigger payoffs (exploit). At the very beginning of learning process it never knows what works well, though. Hence, it needs to discover desirable actions for its state (explore). The dilemma is unresolved as of now, there are at least a few approaches to tackle the problem, though. In the next subsection the author presents that possible methods on the example of Bandit problem.
 
-#### $\epsilon$-greedy policy
+##### $\epsilon$-greedy policy
 
 The simplest version is to behave greedily most of the time, i.e. an agent selects such action ($A_t$) that maximizes the used value function (e.g. $Q_t(a)$, but sometimes, with probability of $\epsilon$ pick up a random action from those available, apart from the action value estimates. Such an algorithm guarantees that every action for every state will be explored and eventually $Q_t(a)=q_*(a)$. It implies that probability of choosing the most optimal action will converge to more than $1-\epsilon$, to near certainty. The disadvantage of this simple method is that it says very little of its practical effectiveness. Asymptotic guarantee might take too long in a real environment. It can be shown that small $\epsilon$ causes the agent to gain more reward at initial steps, but tends to underperform against larger $\epsilon$ values when number of steps is getting larger.
 
 
-#### Optimistic initial values
+##### Optimistic initial values
 
 One of the techniques to improve agent's choices is based on the idea of encouraging the agent to explore. Why is that? If the actual reward is smaller than initially set up action-value methods, an agent is more likely to pick up actions that potentially can stop getting rewards that constantly worsen value function $q(a)$. Eventually, the system does a lot more exploration even if greedy actions are selected all the time.
 
 ![The effect of optimistic initial action-value estimates on the 10-armed testbed](../../figures/optimistic_initial_values.png){width=400px; height=400px}
 
 
-#### Upper-Confidence-Bound Action Selection
+##### Upper-Confidence-Bound Action Selection
 
 The other method for handling the exploration/exploitation problem is by using the special bounds that narrow with the number of steps taken.
 The formula is as follows:
@@ -55,7 +49,7 @@ Actions are chosen by searching and planning in this model. Markov Decision Proc
 Model-free methods are generally less efficient than model-based ones because information about the environment is combined with possibly incorrect estimates about state values @Dayan2008.
 
 
-### Model-based Methods in Reinforcement Learning
+#### Model-based Methods in Reinforcement Learning
 
 * Value iteration - a model-based algorithm that computes the optimal state value function by improving the estimate of $V(s)$. It starts with initializing arbirary values and then updates $Q(s, a)$ and $V(s)$ values until they converge. The pseudocode is as follows:
 
@@ -96,7 +90,7 @@ This method is based on the premise that a RL agent cares about finding out the 
 <!-- ![Policy Iteration Algorithm. Based on @Sutton2017](../../figures/policy_iteration.png) -->
 
 
-### Model Free Learning
+#### Model Free Learning
 
 Model Free learning is a subcategory of reinforcement learning algorithms which are used when a model is not known.
 The agent improves its accuracy in choosing right actions by interacting with the environment without explicit knowledge of the underlying transition matrix. It fits trading conditions - in financial markets it is impossible to know what the model is and what probabilities in the transition matrix are (they are not stationary). Hence, value or policy iteration algorithm can not be used directly.
@@ -106,7 +100,7 @@ Even though, Markov Decision Process and its element are not visible, the agent 
 
 
 
-### Components of an reinforcement learning system
+#### Components of an reinforcement learning system
 
 Reinforcement learning systems are developed to solve sequential decision making problems, to select such actions that eventually maximize cumulative discounted future rewards. In the following section the author explained components of reinforcement learning on the example of game of chess and trading. The subsection was partially inspired and based on @Sutton2017.
 
@@ -151,7 +145,7 @@ where:
 
 
 
-### Limitations
+#### Limitations
 
 Reinforcement learning is not a panacea for all kinds of ML problems, they should be heavily associated with problems based on
 states, some policy to determine and defined value function. A state is just a signal that reaches the agent, a snapshot of the environment at a time.

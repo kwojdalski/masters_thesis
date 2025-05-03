@@ -1,6 +1,4 @@
-# Rule-Based Trading
-
-## Rule-Based Trading Strategies
+### Rule-Based Trading Strategies
 
 A rule-based trading strategy uses explicit, human-defined rules for buying and
 selling assets. These interpretable rules don't rely on forecasting models or
