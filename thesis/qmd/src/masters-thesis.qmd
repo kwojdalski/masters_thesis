@@ -1,0 +1,147 @@
+---
+title: Reinforcement Learning Portfolio Optimization for FX Trading
+author: Krzysztof Wojdalski
+date: 2025-05-03
+format:
+  pdf:
+    documentclass: pracamgrwne
+    latex-engine: xelatex
+    toc: true
+    toc-depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number-sections: true
+    output-dir: ../../build
+  docx:
+    embed-resources: true
+bibliography: ../../bibliography/library.bib
+header-includes:
+  - \usepackage[utf8]{inputenc}
+  - \usepackage{amsthm}
+  - \usepackage{rotating}
+  - \pagenumbering{gobble}
+  - \nralbumu{310284}
+  - \speciality{Economics}
+  - \opiekun{dr Pawel Sakowski}  # Replace with your actual supervisor's name
+  - \keywords{Reinforcement Learning, FX Trading, Portfolio Optimization}
+  - \dziedzina{14.3 Economics}
+  - \klasyfikacja{G11, G17, C63}
+  - \tytulang{Reinforcement Learning Portfolio Optimization for FX Trading}
+post-render:
+  - post-render-script.py
+editor_options:
+  chunk_output_type: console
+  latex_engine: xelatex
+jupyter:
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newpage
+
+\begin{abstract}
+
+
+
+The work is about reinforcement learning application in trading on the FX market.
+The author starts with describing the FX market, analyzing market organization, participants, and changes in the last
+years. He tries to explain current trends and the possible directions.
+The next part consists of theoretical pattern for the research - description of financial models,
+and the AI algorithms.
+
+Implementation of the RL-based approach in the third chapter, based on Q-learning, gives spurious results.
+
+\end{abstract}
+
+\pagebreak
+
+
+```{python}
+#| label: rr
+#| include: false
+#| cache: false
+#| echo: false
+#| eval: true
+
+# Load necessary packages
+import os
+import sys
+import subprocess
+
+
+# Define input directory for LaTeX files
+inputs = './working_papers'
+
+# Set environment variable for LaTeX compilation
+os.environ['RSTUDIO_PDFLATEX'] = subprocess.check_output(['which', 'latexmk'], universal_newlines=True).strip()
+```
+
+{{< include ./01-00-00-introduction.qmd >}}
+
+{{< include ./01-01-00-statistical-arbitrage.qmd >}}
+{{< include ./01-01-01-statistical-arbitrage-vs-other-types.qmd >}}
+{{< include ./01-01-02-critical-parameter-selection.qmd >}}
+{{< include ./01-02-00-fx-market-organization.qmd >}}
+{{< include ./01-03-00-scope-and-objectives.qmd >}}
+{{< include ./01-04-00-methodological-framework.qmd >}}
+
+
+{{< include ./02-01-01-01-classical-models.qmd >}}
+{{< include ./02-01-01-02-modern-portfolio-theory-and-capm.qmd >}}
+{{< include ./02-01-01-03-factor-models.qmd >}}
+{{< include ./02-01-02-00-modern-approaches.qmd >}}
+{{< include ./02-01-03-00-critical-analysis.qmd >}}
+{{< include ./02-02-00-relevant-financial-indicators.qmd >}}
+{{< include ./02-02-01-efficient-market-hypothesis.qmd >}}
+{{< include ./02-02-02-empirical-evidence.qmd >}}
+{{< include ./02-02-03-market-anomalies.qmd >}}
+{{< include ./02-03-00-machine-learning-in-financial-markets.qmd >}}
+{{< include ./02-03-03-01-key-concepts.qmd >}}
+{{< include ./02-03-03-02-seminal-works.qmd >}}
+{{< include ./02-03-03-03-rl-applications.qmd >}}
+
+{{< include ./03-01-00-machine-learning.qmd >}}
+{{< include ./03-01-01-supervised-learning.qmd >}}
+{{< include ./03-01-02-unsupervised-learning.qmd >}}
+{{< include ./03-01-03-semi-supervised-learning.qmd >}}
+{{< include ./03-01-04-reinforcement-learning.qmd >}}
+{{< include ./03-02-00-reinforcement-learning.qmd >}}
+{{< include ./03-02-01-01-data-handlers.qmd >}}
+{{< include ./03-02-01-02-reference-data.qmd >}}
+{{< include ./03-02-01-03-optimization.qmd >}}
+{{< include ./03-02-01-04-execution.qmd >}}
+{{< include ./03-02-01-05-ui-ux.qmd >}}
+{{< include ./03-02-02-00-rule-based-trading.qmd >}}
+{{< include ./03-02-03-01-trading-based-on-forecasts.qmd >}}
+{{< include ./03-02-03-02-training-on-labelled-data.qmd >}}
+{{< include ./03-02-03-03-direct-optimization.qmd >}}
+{{< include ./03-03-algorithmic-trading-systems.qmd >}}
+
+{{< include ./04-01-objective-of-the-research.qmd >}}
+{{< include ./04-02-design-of-the-research.qmd >}}
+{{< include ./04-03-dataset.qmd >}}
+
+{{< include ./05-01-action-space.qmd >}}
+{{< include ./05-02-state-space.qmd >}}
+{{< include ./05-03-reward-function.qmd >}}
+{{< include ./05-04-value-function.qmd >}}
+{{< include ./05-05-policy.qmd >}}
+{{< include ./05-07-step-size.qmd >}}
+
+{{< include ./06-01-data-preparation.qmd >}}
+{{< include ./06-02-code.qmd >}}
+
+{{< include ./07-01-statistical-validation.qmd >}}
+{{< include ./07-02-robustness-assessment.qmd >}}
+{{< include ./07-03-performance-evaluation.qmd >}}
+
+{{< include ./08-01-summary-of-findings.qmd >}}
+{{< include ./08-02-limitations-and-future-research.qmd >}}
+{{< include ./08-03-implications-for-trading-systems.qmd >}}
+{{< include ./08-04-recommendations-for-practitioners.qmd >}}
+{{< include ./08-05-conclusion.qmd >}}
+
+{{< include ./98-bibliography.qmd >}}
+{{< include ./99-appendix.qmd >}}

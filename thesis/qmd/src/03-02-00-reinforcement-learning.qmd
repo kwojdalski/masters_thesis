@@ -21,7 +21,7 @@ The simplest version is to behave greedily most of the time, i.e. an agent selec
 
 One of the techniques to improve agent's choices is based on the idea of encouraging the agent to explore. Why is that? If the actual reward is smaller than initially set up action-value methods, an agent is more likely to pick up actions that potentially can stop getting rewards that constantly worsen value function $q(a)$. Eventually, the system does a lot more exploration even if greedy actions are selected all the time.
 
-![The effect of optimistic initial action-value estimates on the 10-armed testbed](../img/optimistic_initial_values.png){width=400px; height=400px}
+![The effect of optimistic initial action-value estimates on the 10-armed testbed](../../figures/optimistic_initial_values.png){width=400px; height=400px}
 
 
 #### Upper-Confidence-Bound Action Selection
@@ -93,7 +93,7 @@ This method is based on the premise that a RL agent cares about finding out the 
 <!--   Until $\pi=\pi^{'}$\; -->
 <!--   \caption{Policy Iteration Algorithm. Based on @Alpaydin2013} -->
 <!-- \end{algorithm} -->
-<!-- ![Policy Iteration Algorithm. Based on @Sutton2017](../img/policy_iteration.png) -->
+<!-- ![Policy Iteration Algorithm. Based on @Sutton2017](../../figures/policy_iteration.png) -->
 
 
 ### Model Free Learning

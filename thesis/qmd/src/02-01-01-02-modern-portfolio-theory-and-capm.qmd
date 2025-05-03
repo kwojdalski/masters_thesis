@@ -1,8 +1,4 @@
-
-
-
-
-## Selected financial market models and theory
+# Modern Portfolio Theory and CAPM
 
 The following chapter introduces articles that correspond with the subject of the
 current thesis and are considered as fundamentals of modern finance.
@@ -79,7 +75,8 @@ which is brought in literature, is the effective portfolio, i.e. the one that
 meets conditions above.
 The combination of optimal portfolios on the bullet.
 
-![Efficient Frontier](../img/markowitz_frontier.jpg)
+![Efficient Frontier](../../figures/markowitz_frontier.jpg)
+
 The Markowitz concept is determined by the assumption that investors are
 risk-averse. This observation is described by the following formula:
 

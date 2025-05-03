@@ -21,7 +21,7 @@
     {
         "label": "Build Masters Thesis Proposal",
         "type": "shell",
-        "command": "quarto render ${file} --output-dir ../../build && open ${fileDirname}/../build/${fileBasenameNoExtension}.pdf",
+        "command": "zsh -c 'source ~/.zshrc; quarto render ${file} --output-dir ../../build && open ${fileDirname}/../../build/${fileBasenameNoExtension}.pdf'",
         "group": {
           "kind": "build",
           "isDefault": true

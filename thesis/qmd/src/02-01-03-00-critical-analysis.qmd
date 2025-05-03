@@ -1,0 +1,35 @@
+# Critical Analysis of Traditional Financial Models
+
+## Criticism of the Efficient Market Hypothesis and Modern Portfolio Theory
+
+The Efficient Market Hypothesis (EMH) posits that investors cannot earn excess
+returns on a risk-adjusted basis. Complementarily, Markowitz's Modern Portfolio
+Theory (MPT) provides a framework for constructing portfolios that optimize
+risk-return profiles based on available investment options.
+
+If markets are truly efficient as EMH suggests, portfolios constructed using the
+Markowitz framework would not generate excess returns. However, if market
+inefficiencies exist, these portfolios could potentially earn returns exceeding
+market benchmarks. Notably, MPT allows investors to incorporate subjective
+views regarding expected asset returns, contributing to its widespread
+applicability and Markowitz's Nobel Prize recognition.
+
+Both theories gained popularity synergistically and share similar criticisms.
+Despite MPT becoming an industry standard, it faces several significant
+limitations:
+
+1. **Problematic Risk Measurement**: MPT treats upside and downside price
+   movements equally in risk calculations. It also assumes constant volatility,
+   whereas real-world markets demonstrate volatility clustering across various
+   time horizons.
+
+2. **Simplified Cash Flow Assumptions**: The model ignores transaction costs and
+   tax implications. It also fails to account for investor preferences regarding
+   dividend income.
+
+3. **Unrealistic Liquidity Assumptions**: MPT assumes investors can take
+   arbitrarily large positions at current market prices without affecting those
+   prices, contradicting market impact realities.
+
+4. **Idealized Investor Behavior**: The theory presumes all market participants
+   are rational, risk-averse, and share identical investment time horizons.

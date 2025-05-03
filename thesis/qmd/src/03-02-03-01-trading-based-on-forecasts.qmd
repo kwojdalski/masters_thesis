@@ -1,0 +1,15 @@
+## Trading based on Forecasts
+
+In such a system forecast is optimized to produce price forecasts from a set of
+inputs. Supervised learning techniques are used, basing on statistics such as
+mean squared error.
+Minimizing an error is only an intermediate step - the outcome of Forecasting
+System is then used for buying or selling decisions for analyzed asset(s) inside
+Trading Rules. Then the latter module is subject to evaluation module
+(Profits/Losses $U(\theta, \theta^{'})$) which consts of some financial measure.
+It must be noted that Forecasting module outputs only that predicted price while
+leaving the original inputs. It can be inefficient since Trading Rules sometimes
+might need more than just price. [^1]
+
+[^2]: For instance, for it might be interpreter in a completely different manner
+when an asset price spiked in relation to its normal jumps.
