@@ -1,1 +1,1 @@
-# RL Applications in Trading Systems
+## RL Applications in Trading Systems

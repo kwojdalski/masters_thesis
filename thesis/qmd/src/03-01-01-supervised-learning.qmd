@@ -1,4 +1,4 @@
-# Supervised Learning
+### Supervised Learning
 
 Supervised learning represents a fundamental paradigm in machine learning where
 algorithms learn from labeled training data to make predictions or decisions

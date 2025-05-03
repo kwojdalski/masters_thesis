@@ -1,6 +1,6 @@
-# Machine Learning in Financial Markets
+## Machine Learning in Financial Markets
 
-## Supervised Learning Applications
+### Supervised Learning Applications
 
 - Classification and regression tasks in financial markets
 - Time series forecasting using supervised learning
@@ -8,7 +8,7 @@
 - Market sentiment analysis
 - Price prediction models
 
-## Unsupervised Learning Approaches
+### Unsupervised Learning Approaches
 
 - Clustering techniques for market segmentation
 - Dimensionality reduction for feature extraction

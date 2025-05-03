@@ -1,6 +1,3 @@
-<!--!Rnw root = ../../masters\\_thesis.Rnw -->
-
-
 ## FX Market Organization
 
 Explaining the institutional structure of FX market requires introducing formal

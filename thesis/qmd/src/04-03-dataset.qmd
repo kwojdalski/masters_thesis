@@ -1,8 +1,3 @@
----
-output: html_document
-editor_options:
-  chunk_output_type: console
----
 ## Data Preparation
 
 The original data set consisted of tick data of **52** currency pairs in three months

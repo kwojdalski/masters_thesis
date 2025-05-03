@@ -1,4 +1,4 @@
-
+## Statistical Arbitrage
 In financial markets the term arbitrage means the practice of exploiting riskless opportunities
 to make profit. In the purest form, if an asset is priced differently at two different places
  and a trader has access to both then he would have an arbitrage opportunity.

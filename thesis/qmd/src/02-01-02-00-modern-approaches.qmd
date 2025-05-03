@@ -1,1 +1,1 @@
-# Modern Approaches in Algorithmic Trading
+## Modern Approaches in Algorithmic Trading

@@ -1,6 +1,6 @@
-# Critical Analysis of Traditional Financial Models
+## Critical Analysis of Traditional Financial Models
 
-## Criticism of the Efficient Market Hypothesis and Modern Portfolio Theory
+### Criticism of the Efficient Market Hypothesis and Modern Portfolio Theory
 
 The Efficient Market Hypothesis (EMH) posits that investors cannot earn excess
 returns on a risk-adjusted basis. Complementarily, Markowitz's Modern Portfolio

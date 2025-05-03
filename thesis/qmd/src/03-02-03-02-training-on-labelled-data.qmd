@@ -1,1 +1,10 @@
-# Training a Trading System on Labelled Data
+#### Training a Trading System on labeled Data
+
+Such a trading system is based on the idea of direct integration between Trading
+System and Input Series. Trades (signals) are based on labelled trades (training
+set), and actual trades take place basing on input (Input Series).
+
+Its efficiency and effectiveness rely on how well Trading Module can utilize
+information from Input Series and Labeled Trades $\theta^{'}$. Since it's Trading
+System, not utility function $U(\theta, \theta^{'})$ optimized, also in this case
+the system tends to be sub-optimal.

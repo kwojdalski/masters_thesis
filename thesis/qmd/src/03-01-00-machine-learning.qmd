@@ -1,89 +1,134 @@
----
-output: html_document
-editor_options:
-  chunk_output_type: console
----
 
-In this chapter term **machine learning** and its subfields are explained. Discussion also contains possible applications
-for trading financial instruments.
 
 # Machine Learning
 
-  As the field evolves, there are many definitions of machine learning sources provide. In this subchapter, the author has arbitrarly selected definitions that accurately captures the spirit of the discipline.
-What is machine learning then? The most accepted and widely used definitions are as follows:
+In this chapter, the term **machine learning** and its subfields are explained.
+The discussion also encompasses potential applications for trading financial
+instruments.
 
-* "Field of study that gives computers the ability to learn without being explicitly programmed." - Arthur Samuel, a pioneer in machine learning and computer gaming @Samuel1959
-* "A computer program is said to learn from experience $E$ with respect to some class of tasks $T$ and performance measure $P$,
-if its performance at tasks in $T$, as measured by $P$, improves with experience $E$." - Tom Mitchell, a computer scientist and E. Fredkin University Professor at the Carnegie Mellon University (CMU) @Mitchell1997
+As the field evolves, numerous definitions of machine learning emerge from
+various sources. In this subchapter, the author has selected definitions that
+accurately capture the essence of the discipline.
 
-Especially the latter is considered as an elegant and modern definition. Less formal, but also relevant remarks, comes from two authors of textbooks from the discipline:
+What is machine learning? The most widely accepted definitions are as follows:
 
-* "Pattern recognition has its origins in engineering, whereas machine learning grew out of computer science. However, these activities can be viewed as two facets of the same field…" - Christopher Bishop
-* "One of the most interesting features of machine learning is that it lies on the boundary of several different academic disciplines, principally computer science, statistics, mathematics, and engineering. …machine learning is usually studied as part of artificial intelligence, which puts it firmly into computer science …understanding why these algorithms work requires a certain amount of statistical and mathematical sophistication that is often missing from computer science undergraduates." - Stephen Marsland @Marsland2009
+* "Field of study that gives computers the ability to learn without being
+explicitly programmed." - Arthur Samuel, a pioneer in machine learning and
+computer gaming @Samuel1959
+* "A computer program is said to learn from experience $E$ with respect to some
+class of tasks $T$ and performance measure $P$, if its performance at tasks in
+$T$, as measured by $P$, improves with experience $E$." - Tom Mitchell, a
+computer scientist and E. Fredkin University Professor at Carnegie Mellon
+University (CMU) @Mitchell1997
+
+The latter is particularly regarded as an elegant and modern definition. Less
+formal, but equally relevant observations come from textbook authors in the
+discipline:
+
+* "Pattern recognition has its origins in engineering, whereas machine learning
+grew out of computer science. However, these activities can be viewed as two
+facets of the same field…" - Christopher Bishop
+* "One of the most interesting features of machine learning is that it lies on
+the boundary of several different academic disciplines, principally computer
+science, statistics, mathematics, and engineering. …machine learning is usually
+studied as part of artificial intelligence, which puts it firmly into computer
+science …understanding why these algorithms work requires a certain amount of
+statistical and mathematical sophistication that is often missing from computer
+science undergraduates." - Stephen Marsland @Marsland2009
 
 ![Data Science Graph](../../figures/data_science.png){width=400px; height=400px}
 
-Despite many more concepts, ideas, and comments as to what exactly machine learning is,  the general goal is the same:
-Machine learning is about building such models that resemble the reality to a sufficient extent, are optimal in terms of a value function and can be later used for predictions on new data.
+Despite numerous concepts and perspectives on what machine learning entails, the
+general objective remains consistent: Machine learning involves building models
+that sufficiently resemble reality, are optimal with respect to a value function,
+and can subsequently be utilized for predictions on new data.
 
-### Why is machine learning important?
+## Why is machine learning important?
 
-Machine learning helps in solving problems that are difficult or even impossible to solve in a determinisic way. @Jason2013
-Sometimes variables can be missing or observed values can contain an embedded error. Traditional models are often prone to be
-under- or overdetemined. They might not generalize well or are too general. An appropriate machine learning model should contain approximate solution containing only relevant parts.
+Machine learning facilitates solving problems that are difficult or impossible to
+address deterministically @Jason2013. Variables may be missing or observed values
+may contain embedded errors. Traditional models are often susceptible to being
+under- or overdetermined. They may fail to generalize adequately or may be
+excessively general. An appropriate machine learning model should provide an
+approximate solution incorporating only relevant components.
 
-### Classification of machine learning algorithms
+## Classification of machine learning algorithms
 
-In machine learning (ML), tasks are classified into broader categories based on how learning/feedback ($P$) is received and/or what kind of problem they solve. One can distinct the following ones:
+In machine learning (ML), tasks are categorized based on how learning/feedback
+($P$) is received and/or the type of problem they address. The following
+categories can be distinguished:
 
-* Supervised Learning - the whole set $(Y_t;X_{t, 1}, ..., X_{t,n})$
-is available. The goal is to model the special variable $Y_t$ using a subset
-of $X_t$ variables, i.e. find a functional relationship $Y_t = f(\mathbb{X_t})$ between the input variables and the output variables which
-minimizes a predefined loss function $g(f(\mathbb{X}_t);Yt)$. The structural form of this
-relationship is constrained by the class of functions considered. For example
-we can assume that there is a linear relationship between input and output
-variables and a square loss function, then the problem becomes:
-  $$\min_{b1\dots bn}\mathbb{E[}(Y_t-(b_1X_{t,1}+\dots+b_nX_{t,n}))^2]$$
+* Supervised Learning - the complete set $(Y_t;X_{t, 1}, ..., X_{t,n})$
+is available. The objective is to model the target variable $Y_t$ using a subset
+of $X_t$ variables, i.e., find a functional relationship $Y_t = f(\mathbb{X_t})$
+between input and output variables that minimizes a predefined loss function
+$g(f(\mathbb{X}_t);Y_t)$. The structural form of this relationship is constrained
+by the class of functions considered. For example, assuming a linear relationship
+between input and output variables with a square loss function, the problem
+becomes:
+  $$\min_{b_1\dots b_n}\mathbb{E}[(Y_t-(b_1X_{t,1}+\dots+b_nX_{t,n}))^2]$$
 
-    The utilized estimation method above is called least squares method for linear regression. Even though it is considered a simple one, it sometimes provides sufficient results. Other popular methods for supervised learning are:
-    + K-nearest neighboors, Neural Networks,
-    + SVM - Support Vector Machines,
+    The estimation method above is known as the least squares method for linear
+    regression. Despite its simplicity, it often yields sufficient results. Other
+    popular supervised learning methods include:
+    + K-nearest neighbors, Neural Networks
+    + SVM - Support Vector Machines
     + Random Forests
 
-* Unsupervised learning - it is the category that deals with only $\mathbb{X_t}$ set. In other words, The goal is to find patterns among the dataset and categorize observations. The most popular methods are:
-    + Clustering - based on finding groups of instances which are similar as possible to observations from the same groups while as different as possible to observations from other ones
-    + Feature extraction - this subcategory of unsupervised learning consists of methods for
- extracting relevant variables from a set of variables $\mathbb{X}_t$. Often, a subset of a dataset can
- contain a similar amount of information as the original one while reducing dimensionality so that a model computation is much
- faster and efficient. improves the model in Occam's Razor sense.
-    + Anomaly detection - this type helps in identification of observations that are outliers and should be carefully investigated.
- Sometimes the whole variable needs to be transformed or spotted observations must be removed due to their invalidity.
-* Reinforcement Learning - it is probably the most intuitive category of ML in terms of what people implicitly believe to be artificial intelligence. According to @Silver2017, it captures influences from disciplines such as engineering, economics, mathematics, neuroscience, psychology and computer science. Algorithms in reinforcement learning maximize long-term cumulated reward and **interacts with the environment**, i.e. are convenient when a problem is
-not stationary.
+* Unsupervised learning - this category deals exclusively with the $\mathbb{X_t}$
+set. The goal is to identify patterns within the dataset and categorize
+observations. The most prevalent methods include:
+    + Clustering - based on finding groups of instances that are as similar as
+    possible to observations within the same group while being as different as
+    possible from observations in other groups
+    + Feature extraction - this subcategory comprises methods for extracting
+    relevant variables from a set $\mathbb{X}_t$. Often, a subset of a dataset
+    can contain a similar amount of information as the original while reducing
+    dimensionality, thereby enhancing computational efficiency and improving the
+    model in accordance with Occam's Razor.
+    + Anomaly detection - this approach aids in identifying outlier observations
+    that warrant careful investigation. Variables may require transformation or
+    invalid observations may need removal.
 
-    The two most specific features of reinforcement learning algorithms are trial-and-error and delayed rewards what means
-    that this type of ML uses training information to evaluate the actions rather than instructs by giving definitive
-    actions. This is what distinguishes reinforcement learning from supervised learning and is one
-    of the reasons why it is     considered as a subfield in ML.
-    Moreover, it does not base on a training set of labeled examples. In SL, each observation is
-    strictly specified as to what an     algorithm should do. For instance if blue balls according
-    to the model should be in blue basket,
-    they will always end up there.
-    Supervised learning goal is to generalize well on the training data so that the formula works
-    also for the test data. It is     important and the most researched area of ML nowadays,
-    however it is not enough when interaction between an agent and an
-    environment take place. In such problems an agent should learn from its own actions, sense states,
-    and gain experience.
+* Reinforcement Learning - this is perhaps the most intuitive category of ML in
+terms of what is commonly associated with artificial intelligence. According to
+@Silver2017, it incorporates influences from engineering, economics, mathematics,
+neuroscience, psychology, and computer science. Reinforcement learning algorithms
+maximize long-term cumulative rewards and **interact with the environment**,
+making them suitable for non-stationary problems.
 
-     Reinforcement learning need to be distincted from unsupervised learning as well.
-     UL is focused on finding structures not explicitly given by collections of unlabeled datasets.
-     It sounds similar, but it is far from RL, where the whole idea is to maximize sum of reward signals.
-     Finding data patterns might be useful (as stated in the bullet point about unsupervised learning),
-     but it does not solve a RL problem. Hence, the approach analyzed in the thesis should be
-     considered as a next paradigm, seperated      paradigm.
-       The only feedback an agent receives is a scalar reward. The goal of it is
-     to maximize long-run value function which consists of summed up (discounted) rewards in subsequent states.
-     The goal of the agent is to learn by trial-and-error which actions maximize his long-run rewards.
-     The environment changes stochastically and  in some cases interacts with the agent. The agent must choose such a policy that      optimizes amount of rewards it receives.
-     The design must capture this fact by adjusting the agent so that it does not act greedily, i.e. it should explore new
-     actions instead of exploiting existing optimal (possibly suboptimal) solutions.
+    The two distinctive features of reinforcement learning algorithms are
+    trial-and-error and delayed rewards, meaning this type of ML evaluates
+    actions rather than providing definitive instructions. This distinguishes
+    reinforcement learning from supervised learning and constitutes one reason
+    why it is considered a distinct subfield in ML.
+
+    Moreover, it does not rely on a training set of labeled examples. In
+    supervised learning, each observation specifies precisely what an algorithm
+    should do. For instance, if blue balls according to the model should be in a
+    blue basket, they will invariably end up there.
+
+    The goal of supervised learning is to generalize effectively from training
+    data so that the formula works for test data as well. While important and
+    extensively researched, this approach is insufficient when interaction
+    between an agent and an environment occurs. In such scenarios, an agent must
+    learn from its own actions, sense states, and accumulate experience.
+
+    Reinforcement learning must also be distinguished from unsupervised learning.
+    Unsupervised learning focuses on identifying structures not explicitly given
+    in collections of unlabeled datasets. While this sounds similar, it differs
+    fundamentally from RL, where the objective is to maximize the sum of reward
+    signals. Finding data patterns may be useful (as noted in the section on
+    unsupervised learning), but it does not address a reinforcement learning
+    problem. Hence, the approach analyzed in this thesis should be considered a
+    separate paradigm.
+
+    The only feedback an agent receives is a scalar reward. Its objective is to
+    maximize a long-run value function comprising summed (discounted) rewards in
+    subsequent states. The agent aims to learn through trial-and-error which
+    actions maximize long-run rewards. The environment changes stochastically and
+    sometimes interacts with the agent. The agent must select a policy that
+    optimizes the rewards received. The design must account for this by adjusting
+    the agent to avoid purely greedy behavior, i.e., it should explore new
+    actions rather than exclusively exploiting existing optimal (possibly
+    suboptimal) solutions.

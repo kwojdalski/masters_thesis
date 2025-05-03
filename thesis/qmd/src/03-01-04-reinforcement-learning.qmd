@@ -1,4 +1,4 @@
-# Reinforcement Learning
+### Reinforcement Learning
 
 Reinforcement learning represents a distinct paradigm in machine learning where
 an agent interacts with an environment, learning optimal behaviors through
