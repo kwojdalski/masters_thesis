@@ -131,3 +131,4 @@ notebooks/*/libs/clipboard/
 notebooks/*/libs/quarto-html/
 .DS_Store
 thesis/build
+.cursor
