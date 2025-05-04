@@ -1,1 +1,10 @@
 # Implementation of the Trading Agent
+The following assumptions are established for the trading mechanisms and
+algorithmic simulation framework:
+(b) Zero latency exists between market data reception and trade execution when
+   a favorable signal is present.
+(a) The absence of market competition enables execution at counterparty prices
+   (selling at bid price and purchasing at ask price).
+(c) Position constraints limit holdings to x contract(s) at any given moment, with
+   transactions restricted to whole contract units.
+(d) A transaction fee of x% of the execution price is applied to all trades.

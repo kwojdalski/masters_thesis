@@ -1,5 +1,39 @@
 ## Data Preparation
 
+## Raw Data Schema
+
+| Field         | Description                                                       |
+|---------------|-------------------------------------------------------------------|
+| ts_recv       | The capture-server-received timestamp expressed as the number of  |
+|               | nanoseconds since the UNIX epoch.                                 |
+| size          | The order quantity.                                               |
+| ts_event      | The matching-engine-received timestamp expressed as the number of |
+|               | nanoseconds since the UNIX epoch.                                 |
+| channel_id    | The channel ID assigned by Databento as an incrementing integer   |
+|               | starting at zero.                                                 |
+| rtype         | The record type. Each schema corresponds with a single rtype      |
+|               | value.                                                            |
+| order_id      | The order ID assigned at the venue.                               |
+| publisher_id  | The publisher ID assigned by Databento, which denotes dataset and |
+|               | venue.                                                            |
+| flags         | A bit field indicating event end, message characteristics, and    |
+|               | data quality.                                                     |
+| instrument_id | The numeric instrument ID.                                        |
+| ts_in_delta   | The matching-engine-sending timestamp expressed as the number of  |
+|               | nanoseconds before ts_recv.                                       |
+| action        | The event action. Can be Add, Cancel, Modify, cleaR book, Trade,  |
+|               | Fill, or None.                                                    |
+| sequence      | The message sequence number assigned at the venue.                |
+| side          | The side that initiates the event. Can be Ask for a sell order    |
+|               | (or sell aggressor in a trade), Bid for a buy order (or buy       |
+|               | aggressor in a trade), or None where no side is specified by the  |
+|               | original source.                                                  |
+| symbol        | The requested symbol for the instrument.                          |
+| price         | The order price expressed as a signed integer where every 1 unit  |
+|               | corresponds to 1e-9, i.e. 1/1,000,000,000 or 0.000000001.         |
+
+
+
 The original data set consisted of tick data of **52** currency pairs in three months
 ( observations) between November, 2017 and March, 2018. There are 3 variables for each of them:
 
