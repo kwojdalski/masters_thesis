@@ -1,5 +1,5 @@
 ---
-title: Reinforcement Learning Portfolio Optimization for FX Trading
+title: Reinforcement Learning for Trading
 author: Krzysztof Wojdalski
 date: 2025-05-03
 format:
@@ -43,15 +43,20 @@ jupyter:
 
 \begin{abstract}
 
+This thesis examines the application of reinforcement learning techniques to
+foreign exchange market trading strategies. The investigation commences with a
+comprehensive analysis of the FX market structure, including its organizational
+framework, key participants, and recent evolutionary developments. The author
+provides a critical assessment of prevailing trends and potential future
+trajectories in this domain.
 
+The subsequent section establishes the theoretical foundation for the research,
+presenting a detailed exposition of relevant financial models and artificial
+intelligence methodologies that underpin the analytical framework.
 
-The work is about reinforcement learning application in trading on the FX market.
-The author starts with describing the FX market, analyzing market organization, participants, and changes in the last
-years. He tries to explain current trends and the possible directions.
-The next part consists of theoretical pattern for the research - description of financial models,
-and the AI algorithms.
-
-Implementation of the RL-based approach in the third chapter, based on Q-learning, gives spurious results.
+The empirical component in the third chapter implements a Q-learning based
+reinforcement learning approach, yielding inconclusive results that warrant
+further investigation.
 
 \end{abstract}
 
