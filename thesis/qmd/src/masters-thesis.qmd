@@ -12,6 +12,12 @@ format:
     output-dir: ../../build
   docx:
     embed-resources: true
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    toc-location:
+      before: true
 bibliography: ../../bibliography/library.bib
 header-includes:
   - \usepackage[utf8]{inputenc}

@@ -8,7 +8,7 @@ structural transformation.
 The financial sector has consistently functioned as an early adopter of
 computational innovations. This integration represents a strategic
 imperative—competitive advantage through technology frequently correlates with financial performance.
-The industry has systematically pioneered the deployment of
+Hence, the industry has systematically pioneered the deployment of
 state-of-the-art technologies,
 ranging from sophisticated Bloomberg terminal infrastructure in the 1990s to
 contemporary blockchain applications and ultra-low latency systems, all oriented
@@ -19,8 +19,12 @@ primary industry implementing blockchain technology.
 
 Trading entities, functioning as economic agents,
 aim to optimize market-derived profits. Multiple methodological approaches exist
-to achieve this objective. For instance, Warren
-Buffett continues to employ a passive buy-and-hold strategy.
+to achieve this objective. Various approaches exist across the investment
+spectrum: value investors like Benjamin Graham and Warren Buffett employ
+fundamental analysis with long-term horizons; quantitative firms such as
+Two Sigma utilize computational methods for systematic trading; while
+high-frequency trading entities like Citadel Securities implement
+ultra-low latency strategies to capitalize on microscopic price discrepancies.
 
 In recent years, methodologies predicated on artificial intelligence and machine
 learning algorithms have demonstrated increasing significance. This phenomenon

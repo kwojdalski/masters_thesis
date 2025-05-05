@@ -1,5 +1,20 @@
 ### Unsupervised Learning
 
+* Unsupervised learning - this category deals exclusively with the $\mathbb{X_t}$
+set. The goal is to identify patterns within the dataset and categorize
+observations. The most prevalent methods include:
+    + Clustering - based on finding groups of instances that are as similar as
+    possible to observations within the same group while being as different as
+    possible from observations in other groups
+    + Feature extraction - this subcategory comprises methods for extracting
+    relevant variables from a set $\mathbb{X}_t$. Often, a subset of a dataset
+    can contain a similar amount of information as the original while reducing
+    dimensionality, thereby enhancing computational efficiency and improving the
+    model in accordance with Occam's Razor.
+    + Anomaly detection - this approach aids in identifying outlier observations
+    that warrant careful investigation. Variables may require transformation or
+    invalid observations may need removal.
+
 Unsupervised learning represents a paradigm in machine learning where algorithms
 learn patterns and structures from unlabeled data without explicit guidance.
 Unlike supervised learning, there are no target outputs or labels to guide the
