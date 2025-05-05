@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.43">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Krzysztof Wojdalski">
+
+<title>Master’s thesis proposal</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="masters-thesis-proposal_files/libs/clipboard/clipboard.min.js"></script>
+<script src="masters-thesis-proposal_files/libs/quarto-html/quarto.js"></script>
+<script src="masters-thesis-proposal_files/libs/quarto-html/popper.min.js"></script>
+<script src="masters-thesis-proposal_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="masters-thesis-proposal_files/libs/quarto-html/anchor.min.js"></script>
+<link href="masters-thesis-proposal_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="masters-thesis-proposal_files/libs/quarto-html/quarto-syntax-highlighting-673ef696772ae3f5d735fbdc0f05a12f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="masters-thesis-proposal_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="masters-thesis-proposal_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="masters-thesis-proposal_files/libs/bootstrap/bootstrap-172aa73c1a2996fbc825a845e0dafe80.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="masters-thesis-proposal.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Master’s thesis proposal</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Krzysztof Wojdalski </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="idea" class="level1">
+<h1>Idea</h1>
+<p>Financial markets have shown interest in computer science methods since the 1970s. While traditional investing approaches like buy-and-hold can yield abnormal returns, more sophisticated quantitative methods are constantly on the rise. Artificial intelligence-based trading has emerged as a key category, driven by the belief that algorithms exceed human decision-making capabilities.</p>
+<p>Often, strategies in literature focus on maximizing trading profits or risk-adjusted measures (e.g., Sharpe ratio). Researchers have sought profitable systems, drawing inspiration, for instance, from fundamental analysis, econometric modeling, and machine learning. Though some attempts succeeded, many promising ones often prove to be impractical for real markets due to significant drawbacks. These include (but are not limited to):</p>
+<ul>
+<li>Large drawdowns</li>
+<li>Excessive trading</li>
+<li>Legal/economic constraints</li>
+</ul>
+<p>Market participants often view automated systems as risky compared to more traditional approaches. Even when models show good risk-return profiles in backtests, there is no guarantee of continued performance (e.g., due to overfitting). Systems fail precisely when they should adapt to changing market conditions.</p>
+<p>The work I am going to present aims to deal with the above problems to obtain a usable, automated and “intelligent” trading system. The thesis proposes the implementation of reinforcement learning agents for <del>FX</del>/equities/<del>cryptocurrency</del> trading.</p>
+<p><strong>I am contemplating which base strategy to employ. One interesting approach could be a pairs trading strategy that utilizes signals derived from relationships between order books of related securities—for instance, between two ETFs tracking the same underlying asset.</strong></p>
+<p>Reinforcement learning demonstrates efficacy in domains where deterministic methodologies exhibit limitations due to structural incompatibility, implementation complexity, or computational constraints. For a detailed implementation example of a reinforcement learning agent in a trading environment, see <a href="#tic-tac-toe">Appendix 1</a>.</p>
+<p>The research will utilize multiple RL approaches including TD learning (e.g., Q-learning/DQN), Monte Carlo Control, and Policy Gradient (e.g., PPO) methods. Moreover, the implementation will incorporate algorithmic enhancements to address common challenges in RL, such as exploitation versus exploration trade-off or approximation of value function (in the context of selected algorithms).</p>
+</section>
+<section id="detailed-thesis-structure-proposal" class="level1">
+<h1>Detailed Thesis Structure (proposal)</h1>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">1. Introduction</h2>
+<p>The introductory chapter establishes the intersection between artificial intelligence and financial markets. It examines the historical evolution of computational methods in finance, tracing their development from early quantitative models to contemporary AI applications. The chapter explores the relationship between financial theory and computer science innovations, highlighting how advances in one domain have catalyzed progress in the other.</p>
+<ul>
+<li><p>1.1 Foundations of Statistical Arbitrage</p>
+<p>This section will provide a comprehensive definition of statistical arbitrage as a trading strategy that exploits temporary price discrepancies between related securities through mathematical models. It will explain how statistical arbitrage relies on identifying mean-reverting patterns and price inefficiencies that can be systematically exploited.</p>
+<ul>
+<li><p>1.1.1 Statistical Arbitrage vs Other Types of Arbitrage (e.g., latency arbitrage)</p></li>
+<li><p>1.1.2 Critical Parameter Selection and Optimization</p></li>
+<li><p>1.1.3 Applying Reinforcement Learning to Overcome Traditional Limitations</p>
+<p>This section will establish why reinforcement learning presents a great framework for statistical arbitrage implementation, highlighting how RL’s ability to learn optimal decision policies through trial-and-error interactions with markets makes it well-suited for adapting to changing market conditions and complex statistical relationships without requiring explicit programming of trading rules.</p></li>
+</ul></li>
+<li><p>1.2 Scope and Objectives of the Research</p>
+<ul>
+<li>1.2.1 Hypotheses
+<ul>
+<li>AI-driven algorithms can deliver superior value by exceeding benchmark performance metrics in terms of both risk management and return generation</li>
+<li>Enhanced performance is particularly evident in high-frequency trading scenarios as well as across extended time horizons</li>
+<li>These algorithms demonstrate the capability to implicitly learn market patterns that would be impossible for humans to identify and efficiently select securities. In consequence, they generate alpha</li>
+</ul></li>
+<li>1.2.2 Objectives of the Research
+<ul>
+<li>Design and implementation of a basic and an extended Reinforcement Learning trading agent for pair trading</li>
+<li>Test and compare both approaches on out-of-sample test data and selected performance measures</li>
+<li>Interpretation and implications - Analyze how the agents evolve their learning processes and how their developed policies integrate conventional pair trading approaches and transaction cost management. Identify and suggest potential avenues for future research</li>
+</ul></li>
+</ul></li>
+<li><p>1.3 Methodological Framework</p>
+<p>The methodology consists of several key steps:</p>
+<ul>
+<li>Data pre-processing - handling data obtaining, cleaning, completion<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, and transformation</li>
+<li>Feature engineering - building informative features from time series, including statistical, technical, and economic variables across different time horizons</li>
+<li>State-action space construction - creating the agent’s state space</li>
+<li>Trading agents implementation - developing agents that maximize financial performance metrics via selected RL algorithms</li>
+<li>Performance evaluation - testing both trading agents with transaction costs included, comparing approaches, and analyzing the resulting trading policies</li>
+</ul></li>
+<li><p>1.4 Thesis Organization and Chapter Overview</p>
+<p>As below.</p></li>
+</ul>
+</section>
+<section id="classical-finance-context-and-literature-review" class="level2">
+<h2 class="anchored" data-anchor-id="classical-finance-context-and-literature-review">2. Classical Finance Context and Literature Review</h2>
+<p>This chapter provides a comprehensive review of relevant literature in quantitative finance and machine learning, establishing the theoretical foundation for the research. It begins with an examination of classical financial models such as CAPM and progresses to critical analysis of them. The last subchapter discusses works that correspond thematically to machine learning in trading systems and the current work.</p>
+<p><strong>This one might change as it’s not a good idea to dump a bunch of classic papers, especially if they are not that important in the context of the research</strong></p>
+<ul>
+<li>2.1 Quantitative Finance Models
+<ul>
+<li>2.1.1 Classical Models (CAPM, APT, Factor Models, e.g., Fama-French)</li>
+<li>2.1.2 Modern Approaches in Algorithmic Trading</li>
+<li>2.1.3 Critical Analysis of Traditional Financial Models</li>
+</ul></li>
+<li>2.2 Criticism of the EMH
+<ul>
+<li>2.2.1 Efficient Market Hypothesis (EMH)</li>
+<li>2.2.2 Empirical Evidence Against Perfect Market Efficiency</li>
+<li>2.2.3 Market Anomalies and Exploitable Patterns
+<ul>
+<li>For instance, DeBondt and Thaler’s (1985) and Jegadeesh and Titman’s
+<ol start="1993" type="1">
+<li>findings</li>
+</ol></li>
+</ul></li>
+</ul></li>
+<li>2.3 Machine Learning in Financial Markets
+<ul>
+<li>2.3.1 Supervised Learning Applications</li>
+<li>2.3.2 Unsupervised Learning Approaches</li>
+<li>2.3.3 Reinforcement Learning Foundations
+<ul>
+<li>2.3.3.1 Key Concepts from Reinforcement Learning</li>
+<li>2.3.3.2 Seminal Works in RL (Sutton and Barto’s book)</li>
+<li>2.3.3.3 RL Applications in Trading Systems</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="algorithmic-trading-systems" class="level2">
+<h2 class="anchored" data-anchor-id="algorithmic-trading-systems">3. Algorithmic Trading Systems</h2>
+<p>This chapter serves as a foundational introduction to subsequent sections of the research. It will examine critical components essential for effective HFT systems, including data processing mechanisms, normalization techniques, co-located server infrastructure, optimization and execution layer.</p>
+<p>Given the theoretical nature of this section, it will also address the structure of equity markets (participant categorization, on-exchange versus off-exchange), market microstructure, participant categorization, and emerging developments such as “private rooms.” These elements constitute theoretical context appropriate for a master’s thesis rather than a concise working paper.</p>
+<p><strong>I don’t consider this chapter as absolutely essential and it could be written once the research part is done.</strong></p>
+<ul>
+<li>3.1 Algorithmic Trading Systems
+<ul>
+<li>3.2.1 Components of an Algorithmic Trading System
+<ul>
+<li>3.2.1.1 Data Handlers</li>
+<li>3.2.1.2 Reference Data</li>
+<li>3.2.1.3 Optimization</li>
+<li>3.2.1.4 Execution</li>
+<li>3.2.1.5 UI / UX - only mentioned with little details</li>
+</ul></li>
+</ul>
+<strong>This one could be changed as Rule-Based Trading is possibly small enough to merge it somehow with the next subsection</strong>
+<ul>
+<li>3.2.2 Rule-Based Trading</li>
+<li>3.2.3 Model-Based Trading
+<ul>
+<li>3.2.3.1 Trading based on Forecasts</li>
+<li>3.2.3.2 Training a Trading System on Labelled Data</li>
+<li>3.2.3.3 Direct Optimization of Performance (RL)</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="reinforcement-learning" class="level2">
+<h2 class="anchored" data-anchor-id="reinforcement-learning">4. Reinforcement Learning</h2>
+<p>This part provides a comprehensive overview of reinforcement learning theory and methodology, establishing the foundation for the trading agent implementation. It explores the fundamental components (4.1), timeline of new RL algorithms (4.2), taxonomies (4.3), and optimization approaches that will be applied to financial market trading. In this chapter, I would like to clearly state distinction between RL algorithms so in the further parts of the thesis the reader can understand the design choices and why they were made.</p>
+<ul>
+<li><p>4.1 Components of a Reinforcement Learning Agent</p></li>
+<li><p>4.2 Timeline of New RL Algorithms In this part, I would like to outline the timeline of new RL algorithms, to show where the novelty comes from</p>
+<p><strong>This section could be restructured; however, I intended to provide concise historical context regarding algorithmic developments. For example, the method I want to implement <a href="https://arxiv.org/abs/1707.06347">PPO</a> was published in 2017 so it’s fairly new.</strong></p>
+<ul>
+<li>4.2.1 1980s - 1990s</li>
+<li>4.2.2 2000s</li>
+<li>4.2.3 2010s</li>
+<li>4.2.4 2020s</li>
+</ul></li>
+<li><p>4.3 Reinforcement Learning - Categories</p>
+<ul>
+<li>4.3.1 Model-Free vs Model-Based</li>
+<li>4.3.2 Value-Based vs Policy-Based vs Actor-Critic</li>
+<li>4.3.3 On-Policy vs Off-Policy</li>
+<li>4.3.4 Single-Agent vs Multi-Agent - <strong>This one is not relevant for financial market applications so might be dropped</strong></li>
+<li>4.3.5 Discrete vs Continuous</li>
+</ul></li>
+<li><p>4.4 Solving Sequential Decision Making Problems</p></li>
+<li><p>4.5 Policy Optimization</p></li>
+</ul>
+</section>
+<section id="design-of-the-trading-agent" class="level2">
+<h2 class="anchored" data-anchor-id="design-of-the-trading-agent">5. Design of the Trading Agent</h2>
+<ul>
+<li><p>5.1 Action Space</p>
+<p>A vector of actions (either discrete from the set <span class="math inline">\(\{-1, 0, 1\}\)</span> or continuous<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>)</p></li>
+<li><p>5.2 State Space / Environment</p>
+<p>Environment - consists of raw market data and additional features relevant in the context of the research. Enhancements to the environment will be made with various features identified through literature review, such as technical indicators, order book-related variables, and autoregressive features, which form the foundation for the algorithm’s decision-making process.</p>
+<p>States - a vector of environment in time <span class="math inline">\(t\)</span></p>
+<ul>
+<li>5.2.1 Current Position (Recurrence)</li>
+<li>5.2.2 Order Book Related Variables
+<ul>
+<li>5.2.2.1 Book Pressure-Related Variables</li>
+<li>5.2.2.2 Volume-Related Variables</li>
+<li>5.2.2.3 Last Trade-Related Variables</li>
+<li>5.2.2.4 Tick-Related Variables</li>
+</ul></li>
+<li>5.2.3 Technical Indicators</li>
+<li>5.2.4 Autoregressive Features</li>
+</ul></li>
+<li><p>5.3 Reward Function</p>
+<ul>
+<li>5.3.1 Differential Sharpe Ratio
+<ul>
+<li>Rewards - in the form of Differential Sharpe Ratio (see <a href="#differential-sharpe-ratio">Appendix 2</a>)</li>
+</ul></li>
+<li>5.3.2 Other Reward Functions
+<ul>
+<li>Rewards - in the form of absolute return, %return, etc.</li>
+</ul></li>
+</ul></li>
+<li><p>5.4 Value Function</p>
+<ul>
+<li>5.4.1 Value Function Approximation</li>
+</ul></li>
+<li><p>5.5 Policy</p>
+<ul>
+<li>A set of rules for agents to take actions in the environment. It’s a function that maps states to actions (output of the algorithm)
+<ul>
+<li>5.5.1 Argmax Policy</li>
+<li>5.5.2 Proximal Policy Optimization</li>
+</ul></li>
+</ul></li>
+<li><p>5.6 Exploration Rate</p></li>
+<li><p>5.7 Step Size</p></li>
+<li><p>5.8 Summary</p></li>
+</ul>
+</section>
+<section id="implementation-of-the-trading-agent" class="level2">
+<h2 class="anchored" data-anchor-id="implementation-of-the-trading-agent">6. Implementation of the Trading Agent</h2>
+<p>To ensure realistic market simulation, the methodology will incorporate transaction costs, financing costs (if applicable), and slippage effects.</p>
+<ul>
+<li>6.1 Data Preparation
+<ul>
+<li><p>6.1.1 Data Collection</p>
+<p>For this research, I aim to maximize practical applicability by utilizing (tick-by-tick) L3 order book data. Currently, I’m evaluating several data source options:</p>
+<p><del>* Leveraging API handlers for cryptocurrency exchanges (with Binance being a particularly suitable candidate)</del></p>
+<ul>
+<li>Utilizing <a href="https://databento.com/">Databento</a> for historical equity market data<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> (see <a href="#data-structure">Appendix 3</a> for the raw data structure)</li>
+</ul>
+<p><del>* Exploring foreign exchange (FX) market data (though this presents challenges due to the predominance of OTC trading)</del><a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a></p>
+<p><del>* Implementing data handlers for specific market segments (the least likely scenario)</del></p></li>
+<li><p>6.1.2 Data Preprocessing</p></li>
+<li><p>6.1.3 Feature Engineering</p></li>
+</ul></li>
+<li>6.2 Code
+<ul>
+<li>6.2.1 Code Structure</li>
+<li>6.2.2 Code Implementation</li>
+</ul></li>
+</ul>
+</section>
+<section id="empirical-evaluation-and-performance-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="empirical-evaluation-and-performance-analysis">7. Empirical Evaluation and Performance Analysis</h2>
+<p>Benchmarks:</p>
+<ul>
+<li><p>Random actions - this part of the algorithm will generate random values in a domain of <span class="math inline">\(\{-1, 0, 1\}\)</span>. These values will serve as a position in the underlying pairs. The benchmark will not include any transactional costs as it is obvious that this extreme case would have an enormous cumulated transactional cost (position would change in <span class="math inline">\(\frac{2}{3}\)</span> of states).</p></li>
+<li><p>Buy-and-hold strategy which means holding long-position in selected currency pairs.</p></li>
+<li><p>Risk-free rate, or just zero - depending on the time horizon which is yet to be decided.</p>
+<p><strong>Not much to say here as of now, but I think some standardized measures/methods should be used.</strong></p></li>
+<li><p>7.1 Statistical Validation (e.g., through Bootstrapping)</p></li>
+<li><p>7.2 Robustness Assessment (e.g., through Out-of-sample Testing)</p></li>
+<li><p>7.3 Comprehensive Performance Evaluation and Findings</p></li>
+</ul>
+</section>
+<section id="conclusions-and-future-work" class="level2">
+<h2 class="anchored" data-anchor-id="conclusions-and-future-work">8. Conclusions and Future Work</h2>
+<ul>
+<li>8.1 Summary of Findings</li>
+<li>8.2 Limitations and Future Research
+<ul>
+<li>What could be additionally implemented?</li>
+<li>What were limitations and what must be done to overcome them in future works?</li>
+</ul></li>
+<li>8.3 Implications for Trading Systems
+<ul>
+<li>What are the implications of the research for the future of the trading systems?</li>
+</ul></li>
+<li>8.4 Recommendations for Practitioners
+<ul>
+<li>There are a lot of issues that practitioners would need to consider that I’m unlikely to cover in the thesis. For instance, computation time - it’s very likely that persistence of certain trades will be so short that only highly optimized and deterministic algorithms will be able to take advantage of them (e.g., with use of FPGAs).</li>
+</ul></li>
+<li>8.5 Conclusion</li>
+</ul>
+</section>
+</section>
+<section id="possible-obstacles-in-the-research" class="level1">
+<h1>(Possible) Obstacles in the Research</h1>
+<ul>
+<li>Find the right framework for the research. As the problem is not trivial, I would like to avoid coding everything from scratch.
+<ul>
+<li>This part has been researched. The working solution would be based on the following libraries/frameworks:
+<ul>
+<li><a href="https://github.com/pytorch/pytorch">torch</a> - a popular deep learning framework</li>
+<li><a href="https://github.com/pytorch/rl">torchrl</a> - pytorch-based framework for reinforcement learning</li>
+<li><a href="https://github.com/openai/gym">Gym</a> - a toolkit for developing and comparing reinforcement learning algorithms</li>
+<li><a href="https://gym-trading-env.readthedocs.io/en/latest/">Gym Trading Env</a> - a framework specifically designed for trading environments</li>
+</ul></li>
+</ul></li>
+<li>Computational resources:
+<ul>
+<li>I have access to a single machine with 8 cores and 18GB of RAM</li>
+<li>Depending on the scope of the research, this might be insufficient</li>
+</ul></li>
+<li>Scope of the research which is demanding in various aspects:
+<ul>
+<li>Novelty of the approach (algorithms are relatively new, not trivial, and it takes effort to understand them)</li>
+<li>Agent design</li>
+<li>Feature engineering - preparing meaningful features, especially working ones, is a time-consuming process due to several issues, e.g., alpha decay.</li>
+</ul></li>
+</ul>
+</section>
+<section id="appendices" class="level1 unnumbered">
+<h1 class="unnumbered">Appendices</h1>
+<section id="tic-tac-toe" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="tic-tac-toe">Appendix 1 - Tic Tac Toe</h2>
+<p>Consider the canonical Tic Tac Toe game as an example. A conventional approach to policy optimization for maximizing win probability would require defining a deterministic policy across <span class="math inline">\(3^9\)</span> possible states (acknowledging some configurations are infeasible). The factor <span class="math inline">\(3\)</span> represents the three possible cell states (player X, player O, or empty), while <span class="math inline">\(9\)</span> corresponds to the standard <span class="math inline">\(3\times3\)</span> matrix. This deterministic approach presents challenges in implementation robustness and generalizability. Reinforcement learning offers an elegant alternative, circumventing exhaustive conditional logic while achieving comparable performance. The methodology leverages dynamic programming principles to derive a policy that optimizes the value function, effectively maximizing the probability of favorable outcomes.</p>
+<p>The superiority hypothesis of reinforcement learning rests on the premise that a properly calibrated agent can identify variable relationships that may elude human perception. I contend that, in some contexts, predefined rule-based systems are significantly less effective, or even incapable, of providing protection against adverse outcomes under specific market conditions compared to adaptive learning approaches.</p>
+<p>In conclusion, my master’s thesis will evaluate the potential advantages and practical benefits that reinforcement learning methods could provide to organizations and entities that implement them in trading contexts.</p>
+<p>As a demonstration of reinforcement learning principles, I have developed an implementation for the Tic Tac Toe game using R programming language:</p>
+<ul>
+<li><a href="https://github.com/kwojdalski/reinforcement_learning/tree/master/tic_tac_toe">Krzysztof Wojdalski - GitHub / Tic Tac Toe</a></li>
+</ul>
+</section>
+<section id="differential-sharpe-ratio" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="differential-sharpe-ratio">Appendix 2 - Formula for the Differential Sharpe Ratio</h2>
+<ul>
+<li>The differential Sharpe ratio is a dynamic extension of the traditional Sharpe ratio that captures the marginal impact of returns at time t on the overall Sharpe Ratio. The computation begins with two recursive formulas:</li>
+</ul>
+<p><span class="math display">\[
+A_n=\frac{1}{n}R_n+\frac{n-1}{n}A_{n-1}
+\]</span></p>
+<p><span class="math display">\[
+B_n=\frac{1}{n}R_n^2+\frac{n-1}{n}B_{n-1}
+\]</span></p>
+<p>At initialization (<span class="math inline">\(t=0\)</span>), both values are set to 0. These formulas serve as the foundation for calculating the exponentially moving Sharpe ratio on an <span class="math inline">\(\eta\)</span> time scale:</p>
+<p><span class="math display">\[
+S_t=\frac{A_t}{K_\eta\sqrt{B_t-A_t^2}}
+\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(A_t=\eta R_t+(1-\eta)A_{t-1}\)</span></li>
+<li><span class="math inline">\(B_t=\eta R_t^2+(1-\eta)B_{t-1}\)</span></li>
+<li><span class="math inline">\(K_\eta=\frac{1-\frac{\eta}{2}}{1-\eta}\)</span></li>
+</ul>
+<p>The differential Sharpe ratio offers several advantages for algorithmic trading systems:</p>
+<ul>
+<li>Recursive updating: There’s no need to recalculate the mean and standard deviation of returns with each evaluation. The formulas for <span class="math inline">\(A_t\)</span> and <span class="math inline">\(B_t\)</span> enable straightforward calculation of the exponential moving Sharpe ratio by simply incorporating the latest returns <span class="math inline">\(R_t\)</span> and <span class="math inline">\(R_t^2\)</span>.</li>
+<li>Computational efficiency: The formula structure facilitates rapid calculation through simple updates of recent values, making it ideal for online optimization.</li>
+<li>Clear interpretation: The differential Sharpe ratio provides an intuitive measure of how recent returns affect the risk-reward profile captured by the Sharpe ratio.</li>
+</ul>
+</section>
+<section id="data-structure" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="data-structure">Appendix 3 - Data Structure</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 18%">
+<col style="width: 81%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ts_recv</td>
+<td>The capture-server-received timestamp expressed as the number of</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>nanoseconds since the UNIX epoch.</td>
+</tr>
+<tr class="odd">
+<td>size</td>
+<td>The order quantity.</td>
+</tr>
+<tr class="even">
+<td>ts_event</td>
+<td>The matching-engine-received timestamp expressed as the number of</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>nanoseconds since the UNIX epoch.</td>
+</tr>
+<tr class="even">
+<td>channel_id</td>
+<td>The channel ID assigned by Databento as an incrementing integer</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>starting at zero.</td>
+</tr>
+<tr class="even">
+<td>rtype</td>
+<td>The record type. Each schema corresponds with a single rtype</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>value.</td>
+</tr>
+<tr class="even">
+<td>order_id</td>
+<td>The order ID assigned at the venue.</td>
+</tr>
+<tr class="odd">
+<td>publisher_id</td>
+<td>The publisher ID assigned by Databento, which denotes dataset and</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>venue.</td>
+</tr>
+<tr class="odd">
+<td>flags</td>
+<td>A bit field indicating event end, message characteristics, and</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>data quality.</td>
+</tr>
+<tr class="odd">
+<td>instrument_id</td>
+<td>The numeric instrument ID.</td>
+</tr>
+<tr class="even">
+<td>ts_in_delta</td>
+<td>The matching-engine-sending timestamp expressed as the number of</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>nanoseconds before ts_recv.</td>
+</tr>
+<tr class="even">
+<td>action</td>
+<td>The event action. Can be Add, Cancel, Modify, Clear book, Trade,</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Fill, or None.</td>
+</tr>
+<tr class="even">
+<td>sequence</td>
+<td>The message sequence number assigned at the venue.</td>
+</tr>
+<tr class="odd">
+<td>side</td>
+<td>The side that initiates the event. Can be Ask for a sell order</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>(or sell aggressor in a trade), Bid for a buy order (or buy</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>aggressor in a trade), or None where no side is specified by the</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>original source.</td>
+</tr>
+<tr class="odd">
+<td>symbol</td>
+<td>The requested symbol for the instrument.</td>
+</tr>
+<tr class="even">
+<td>price</td>
+<td>The order price expressed as a signed integer where every 1 unit</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>corresponds to 1e-9, i.e.&nbsp;1/1,000,000,000 or 0.000000001.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Data completion is a process of filling in missing values in the data. It is a crucial step in the data pre-processing pipeline as it can significantly impact the performance of the trading agent.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Number of options here is broader. Yet-to-be-determined.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>This looks promising and pretty easy to obtain. I’ve managed to construct order books out of MBO data.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>The foreign exchange market is a global decentralized market for the trading of currencies. There’s no central exchange (with some exceptions like CME Group for FX futures or MOEX).<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
