@@ -1,5 +1,22 @@
 ### Supervised Learning
 
+* Supervised Learning - the complete set $(Y_t;X_{t, 1}, ..., X_{t,n})$
+is available. The objective is to model the target variable $Y_t$ using a subset
+of $X_t$ variables, i.e., find a functional relationship $Y_t = f(\mathbb{X_t})$
+between input and output variables that minimizes a predefined loss function
+$g(f(\mathbb{X}_t);Y_t)$. The structural form of this relationship is constrained
+by the class of functions considered. For example, assuming a linear relationship
+between input and output variables with a square loss function, the problem
+becomes:
+  $$\min_{b_1\dots b_n}\mathbb{E}[(Y_t-(b_1X_{t,1}+\dots+b_nX_{t,n}))^2]$$
+
+    The estimation method above is known as the least squares method for linear
+    regression. Despite its simplicity, it often yields sufficient results. Other
+    popular supervised learning methods include:
+    + K-nearest neighbors, Neural Networks
+    + SVM - Support Vector Machines
+    + Random Forests
+
 Supervised learning represents a fundamental paradigm in machine learning where
 algorithms learn from labeled training data to make predictions or decisions
 without explicit programming. At its core, supervised learning involves a dataset

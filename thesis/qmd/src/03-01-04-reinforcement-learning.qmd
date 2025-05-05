@@ -1,41 +1,46 @@
 ### Reinforcement Learning
+Reinforcement learning (RL) represents a distinct paradigm in machine learning
+where an agent learns optimal behaviors through trial-and-error interactions
+with an environment. The agent perceives the environment's state as a feature
+vector, executes actions, and receives rewards that may lead to new states.
 
-Reinforcement learning represents a distinct paradigm in machine learning where
-an agent interacts with an environment, learning optimal behaviors through
-trial and error. In this framework, the agent perceives the environment's state
-as a feature vector and can execute actions in each state. These actions yield
-varying rewards and potentially transition the agent to new states.
-
-The fundamental objective in reinforcement learning is to develop a policy—a
-function that maps states to actions. Formally, this policy function f (analogous
-to supervised learning models) takes a state's feature vector as input and
-outputs the optimal action for that state. An action is considered optimal when
-it maximizes the expected cumulative reward over time.
+The fundamental objective in RL is to develop a policy—a function mapping
+states to actions that maximizes expected cumulative rewards over time. This
+approach differs significantly from both supervised and unsupervised learning
+paradigms.
 
 Key characteristics of reinforcement learning include:
 
-- **Sequential Decision Making**: Unlike other learning paradigms, reinforcement
-  learning addresses problems where decisions occur in sequence and have
-  long-term implications.
+- **Sequential Decision Making**: RL addresses problems where decisions occur in
+  sequence and have long-term implications.
 
-- **Delayed Rewards**: The agent must learn to take actions that may not
-  immediately yield rewards but contribute to greater cumulative rewards in
-  the future.
+- **Delayed Rewards**: Actions may not yield immediate benefits but contribute
+  to greater cumulative rewards in the future.
 
-- **Exploration vs. Exploitation**: Agents must balance exploring new actions
-  to discover potentially better strategies against exploiting known
-  rewarding actions.
+- **Exploration vs. Exploitation**: Agents must balance discovering new
+  potentially better strategies against utilizing known rewarding actions.
 
-Reinforcement learning is particularly well-suited for non-stationary
-environments where relationships between variables evolve over time. In these
-contexts, the agent continuously adapts its policy to changing conditions,
-making it valuable for financial applications where market dynamics constantly
-shift.
+RL is particularly well-suited for non-stationary environments where
+relationships between variables evolve over time. The agent continuously adapts
+its policy to changing conditions, making it valuable for financial
+applications where market dynamics constantly shift.
 
-Applications of reinforcement learning span diverse domains including game
-playing, robotics, resource management, logistics, and increasingly, financial
-trading strategies such as statistical arbitrage. The target variable in
-reinforcement learning can be viewed as a specialized output designed to solve
-specific optimization problems within dynamic environments.
+This interdisciplinary field incorporates influences from engineering,
+economics, mathematics, neuroscience, psychology, and computer science.
+Applications span diverse domains including game playing, robotics, resource
+management, logistics, and financial trading strategies.
 
-This type of Machine Learning is discussed in detail in the following section.
+Unlike supervised learning, RL does not rely on labeled examples that specify
+exactly what an algorithm should do. Instead, the agent must learn from its own
+actions, sense states, and accumulate experience. The only feedback received is
+a scalar reward signal.
+
+While unsupervised learning focuses on identifying structures in unlabeled
+datasets, RL specifically aims to maximize a long-run value function comprising
+summed (discounted) rewards. Finding data patterns may be useful, but it
+addresses a fundamentally different objective than the RL problem.
+
+The environment changes stochastically and interacts with the agent, requiring
+a policy design that balances exploration of new actions against exploitation
+of known solutions. This prevents purely greedy behavior that might lead to
+suboptimal outcomes.

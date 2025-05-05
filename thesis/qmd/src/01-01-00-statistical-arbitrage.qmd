@@ -1,28 +1,33 @@
 ## Statistical Arbitrage
-In financial markets the term arbitrage means the practice of exploiting riskless opportunities
-to make profit. In the purest form, if an asset is priced differently at two different places
- and a trader has access to both then he would have an arbitrage opportunity.
- In practice financial markets are designed in such a way that any deterministic arbitrage opportunities vanish, i.e., are being exploited by market participants.
- Still there are patterns in the market which seem to be persistent. Strategies which use statistical
-techniques to extract highly reliable patterns and then carry out trades to exploit them are
-called statistical arbitrage strategies.
 
-Statistical arbitrage is a general term in which assets are put into baskets by market-based
-similarities. Once the relation between the co-moving financial instruments is found, any deviation from it
-can be exploited. If that relation is true than either one or both stocks are mispriced and a
-trader can take a long position on the undervalued one(s) and short position on the overvalued asset(s)
-to bet on their return to the prevalent relative price behaviour.
-Statistical arbitrage also fittingly resembles the fact that the strategy hedges risk from market
-movements. As the pair trade goes short and long on similar assets, the overall risk balance
-should cancel out and the strategy should be profitable without market risk exposure.
+In financial markets the term arbitrage means the practice of exploiting riskless
+opportunities to make profit. In the purest form, if an asset is priced
+differently at two different places and a trader has access to both then he would
+have an arbitrage opportunity. In practice financial markets are designed in such
+a way that any deterministic arbitrage opportunities vanish, i.e., are being
+exploited by market participants. Still there are patterns in the market which
+seem to be persistent. Strategies which use statistical techniques to extract
+highly reliable patterns and then carry out trades to exploit them are called
+statistical arbitrage strategies.
 
+Statistical arbitrage is a general term in which assets are put into baskets by
+market-based similarities. Once the relation between the co-moving financial
+instruments is found, any deviation from it can be exploited. If that relation is
+true than either one or both stocks are mispriced and a trader can take a long
+position on the undervalued one(s) and short position on the overvalued asset(s)
+to bet on their return to the prevalent relative price behaviour. Statistical
+arbitrage also fittingly resembles the fact that the strategy hedges risk from
+market movements. As the pair trade goes short and long on similar assets, the
+overall risk balance should cancel out and the strategy should be profitable
+without market risk exposure.
 
-To determine if a security is over- or undervalued one can either use some theoretic approach
-to determine what the absolute price of the security should be or one could use the idea of
-relative pricing. In this approach it is only of interest how one security is priced in relation
-to another security. Now to form a simple mean-reverting pair trading strategy the only thing
-that remains is a definition of what constitutes a reliable price relationship between the
-asset prices. There are many ways to identify such security pairs. One approach would be to
-measure fundamentals (such as some accountancy variables) of the firms. The statistical
-approach, which also makes the whole concept easily applicable in a system is to use
-cointegration.
+To determine if a security is over- or undervalued one can either use some
+theoretic approach to determine what the absolute price of the security should be
+or one could use the idea of relative pricing. In this approach it is only of
+interest how one security is priced in relation to another security. Now to form
+a simple mean-reverting pair trading strategy the only thing that remains is a
+definition of what constitutes a reliable price relationship between the asset
+prices. There are many ways to identify such security pairs. One approach would
+be to measure fundamentals (such as some accountancy variables) of the firms. The
+statistical approach, which also makes the whole concept easily applicable in a
+system is to use cointegration.

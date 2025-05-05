@@ -2,4 +2,36 @@
 ### Differential Sharpe Ratio
 
 
+Differential Sharpe Ratio (DSR) is a dynamic extension of the Sharpe ratio.
+This measure captures the marginal impact of returns at time $t$ on the Sharpe
+Ratio. The calculation begins with the following formulations:
+$$
+A_n=\frac{1}{n}R_n+\frac{n-1}{n}A_{n-1}
+$$
+$$
+B_n=\frac{1}{n}R_n^2+\frac{n-1}{n}B_{n-1}
+$$
+At $t=0$, both values equal zero. These serve as the foundation for calculating
+the exponentially moving Sharpe ratio on an $\eta$ time scale:
+$$
+S_t=\frac{A_t}{K_\eta\sqrt{B_t-A_t^2}}
+$$
+where:
+
+* $A_t=\eta R_t+(1-\eta)A_{t_1}$
+* $B_t=\eta R_t^2+(1-\eta)B_{t_1}$
+* $K_\eta=(\frac{1-\frac{\eta}{2}}{1-\eta})$
+
+The differential Sharpe ratio offers several advantages in algorithmic systems
+(Moody & Wu, 1997):
+
+* Recursive updating - eliminating the need to recalculate mean and standard
+  deviation of returns each time. The formulations for $A_t$ and $B_t$ allow
+  simple calculation through updates for $R_t$ and $R_t^2$.
+* Efficient on-line optimization - the formula structure enables quick
+  computation through updates of the most recent values.
+* Interpretability - the measure is easily explained, as it quantifies how the
+  latest return affects the Sharpe ratio (risk and reward).
+
+
 ### Other Reward Functions

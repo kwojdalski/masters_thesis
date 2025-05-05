@@ -1,1 +1,58 @@
 ## Thesis Organization and Chapter Overview
+
+This thesis is structured to provide a comprehensive framework for
+understanding reinforcement learning algorithms applied to trading contexts.
+
+The first section provides a detailed examination of the intersection between
+artificial intelligence methodologies and financial markets, exploring the
+historical relationship between quantitative finance and computational science.
+
+The second chapter presents a systematic review of selected literature from
+quantitative finance, examining both classical equilibrium models such as CAPM
+(the established paradigm in equity research) and contemporary approaches. This
+section evaluates advantages and limitations of various financial
+models, with particular emphasis on algorithmic trading methodologies employed in
+comparable research contexts.
+
+The third section analyzes machine learning frameworks, providing a theoretical
+basis for why reinforcement learning may represent an optimal approach for
+trading applications. It presents a taxonomic comparison of major machine learning
+categories to elucidate their methodological distinctions, introduces key
+reinforcement learning concepts with illustrative examples, and addresses potential
+limitations and implementation challenges associated with these algorithms.
+
+The fourth part details the experimental methodology, including research
+objectives, data characteristics, experimental design parameters, and empirical
+results. The primary objective was to develop trading agents capable of
+statistically outperforming established benchmarks on risk-adjusted performance
+measures in the foreign exchange market—agents characterized by statistical
+robustness, adaptive learning capability, and consistent performance metrics. This
+chapter presents the mathematical formulations and procedural implementations
+leading to the empirical results, examining each component of the trading system.
+
+The implemented algorithms utilize a dynamic optimization approach. Beyond a value
+function based on Differential Sharpe Ratio, the system incorporates various
+technical indicators such as Relative Strength Index to inform algorithmic
+decision-making processes. The methodology incorporates transaction cost models to
+simulate realistic trading conditions.
+
+The value function integrates multiple statistical measures, including Sharpe and
+Differential Sharpe Ratios, to capture both risk and return dimensions. The
+algorithm outputs agent actions in the discrete action space ${-1,0,1}$. The final
+section of this chapter evaluates the reinforcement learning-based trading system
+against two benchmark methodologies:
+
+* A buy-and-hold strategy (maintaining consistent long positions in selected
+  currency pairs)
+* Random action generation—producing stochastic values in the domain of ${-1,0,1}$
+  to determine positions in underlying pairs. This benchmark excludes transaction
+  costs, as such a strategy would incur prohibitive cumulative costs with position
+  changes occurring in approximately two-thirds of states.
+
+The concluding section presents a comparative analysis with similar research and
+proposes directions for future investigation, addressing research questions such
+as:
+
+* What additional implementations could enhance performance metrics?
+* What methodological limitations were encountered and how might they be addressed
+  in subsequent research?

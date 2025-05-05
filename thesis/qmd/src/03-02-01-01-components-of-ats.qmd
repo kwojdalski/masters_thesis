@@ -9,3 +9,16 @@ n-instruments. There are also other options which often directs to non-optimal
 solutions. In the following section the author brought up different types of
 algorithmic systems and outlines advantages, disadvantages and differences
 between them.
+
+
+### Components of Automated Trading Systems
+
+
+#### Data Handlers
+
+#### Reference Data
+
+#### Optimization
+
+#### Execution
+#### UI / UX

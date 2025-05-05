@@ -62,26 +62,10 @@ further investigation.
 
 \pagebreak
 
-
-```{python}
-#| label: rr
-#| include: false
-#| cache: false
-#| echo: false
-#| eval: true
-
-# Load necessary packages
-import os
-import sys
-import subprocess
-
-
-# Define input directory for LaTeX files
-inputs = './working_papers'
-
-# Set environment variable for LaTeX compilation
-os.environ['RSTUDIO_PDFLATEX'] = subprocess.check_output(['which', 'latexmk'], universal_newlines=True).strip()
-```
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
 
 {{< include ./01-00-00-introduction.qmd >}}
 
@@ -92,43 +76,35 @@ os.environ['RSTUDIO_PDFLATEX'] = subprocess.check_output(['which', 'latexmk'], u
 {{< include ./01-03-00-methodological-framework.qmd >}}
 {{< include ./01-04-00-thesis-organization-and-chapter-overview.qmd >}}
 
-
 {{< include ./02-01-01-01-classical-models.qmd >}}
 {{< include ./02-01-01-02-modern-portfolio-theory-and-capm.qmd >}}
 {{< include ./02-01-01-03-factor-models.qmd >}}
 {{< include ./02-01-02-00-modern-approaches.qmd >}}
 {{< include ./02-01-03-00-critical-analysis.qmd >}}
-<!-- {{< include ./02-02-00-relevant-financial-indicators.qmd >}} -->
-<!-- {{< include ./02-02-01-efficient-market-hypothesis.qmd >}} -->
-<!-- {{< include ./02-02-02-empirical-evidence.qmd >}} -->
-<!-- {{< include ./02-02-03-market-anomalies.qmd >}} -->
-<!-- {{< include ./02-03-00-machine-learning-in-financial-markets.qmd >}} -->
-<!-- {{< include ./02-03-03-01-key-concepts.qmd >}} -->
-<!-- {{< include ./02-03-03-02-seminal-works.qmd >}} -->
-<!-- {{< include ./02-03-03-03-rl-applications.qmd >}} -->
-
+{{< include ./02-02-00-relevant-financial-indicators.qmd >}}
+{{< include ./02-02-01-efficient-market-hypothesis.qmd >}}
+{{< include ./02-02-02-empirical-evidence.qmd >}}
+{{< include ./02-02-03-market-anomalies.qmd >}}
+{{< include ./02-03-00-machine-learning-in-financial-markets.qmd >}}
+{{< include ./02-03-03-01-key-concepts.qmd >}}
+{{< include ./02-03-03-02-seminal-works.qmd >}}
+{{< include ./02-03-03-03-rl-applications.qmd >}}
 
 {{< include ./03-01-00-machine-learning.qmd >}}
 {{< include ./03-01-01-supervised-learning.qmd >}}
 {{< include ./03-01-02-unsupervised-learning.qmd >}}
 {{< include ./03-01-03-semi-supervised-learning.qmd >}}
 {{< include ./03-01-04-reinforcement-learning.qmd >}}
-{{< include ./03-02-00-reinforcement-learning.qmd >}}
-{{< include ./03-02-01-01-data-handlers.qmd >}}
-{{< include ./03-02-01-02-reference-data.qmd >}}
-{{< include ./03-02-01-03-optimization.qmd >}}
-{{< include ./03-02-01-04-execution.qmd >}}
-{{< include ./03-02-01-05-ui-ux.qmd >}}
+{{< include ./03-02-01-01-components-of-ats.qmd >}}
 {{< include ./03-02-02-00-rule-based-trading.qmd >}}
 {{< include ./03-02-03-01-trading-based-on-forecasts.qmd >}}
 {{< include ./03-02-03-02-training-on-labelled-data.qmd >}}
 {{< include ./03-02-03-03-direct-optimization.qmd >}}
-{{< include ./03-03-algorithmic-trading-systems.qmd >}}
 
 {{< include ./04-00-reinforcement-learning.qmd >}}
-<!-- {{< include ./04-01-objective-of-the-research.qmd >}}
+{{< include ./04-01-objective-of-the-research.qmd >}}
 {{< include ./04-02-design-of-the-research.qmd >}}
-{{< include ./04-03-dataset.qmd >}} -->
+{{< include ./04-03-dataset.qmd >}}
 
 {{< include ./05-00-design-of-the-trading-agent.qmd >}}
 {{< include ./05-01-action-space.qmd >}}
