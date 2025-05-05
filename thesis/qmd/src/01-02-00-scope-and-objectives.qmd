@@ -26,3 +26,22 @@ The research has three main objectives:
    - Study how their developed policies integrate conventional pair trading approaches
    - Investigate transaction cost management strategies
    - Identify and suggest potential avenues for future research
+
+# Research
+
+In the following chapter the author designed a research based on reinforcement learning agents for FX market. The chapter starts with outlining research objectives, then used dataset is explained. In subsequent parts, it is explained how the research was conducted, what elements and methods have been chosen from the previous chapters. The last part consists of results, what exactly have been achieved and if it conforms with expectations.
+
+## Research Objective
+
+The primary research goal was to evaluate the Reinforcement Learning-based algorithm for multiasset trading.
+The main idea behind the algorithm deployment is that it can systematically outperform benchmarks
+in terms of selected risk and return measures.
+Designed trading system was aimed to spot non-trivial patterns in data, more efficiently than human, and exploit them accordingly.
+
+In the project author wanted to assess the possibility of using a reinforcement learning agent for trading domain. The objectives are as follows
+
+* Implementation - consisting of creating reinforcement learning-based agent that are capable of trading financial instruments
+basing on time series tables
+* Evaluation - testing if trading agents for out-of-sample periods can outperform benchmarks in the measures provided by the author
+* Conclusion - answering the question if such approach might help in generating abnormal positive results and determining if the method can
+be feasible and efficient in real-like environment

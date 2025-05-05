@@ -14,6 +14,13 @@
 
 \LoadClass{\@baseclass}
 
+% Add blank page before list of figures
+\let\oldlistoffigures\listoffigures
+\renewcommand{\listoffigures}{%
+  \cleardoublepage
+  \oldlistoffigures
+}
+
 \textwidth\paperwidth
 \advance\textwidth -55mm
 \oddsidemargin-1in

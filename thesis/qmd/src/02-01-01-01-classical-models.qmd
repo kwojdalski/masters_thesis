@@ -1,1 +1,56 @@
 # Classical Finance Context and Literature Review
+
+The section introduces articles that correspond with the subject of the
+current thesis and are considered as fundamentals of modern finance.
+Specifically, the beginning contains financial market models. The next subchapter
+includes basic investment effectiveness indicators that implicitly or explicitly
+result from the fundamental formulas from the first subchapter.
+
+#### Capital Asset Pricing Model
+
+Works considered as a fundament of quantitative finance and investments are
+@Sharpe1964, @Lintner1965, and @Mossin1966. All these authors, almost
+simultaneously, formulated Capital Asset Pricing Model (CAPM) that describes
+dependability between rate of return and its risk, risk of the market portfolio,
+and risk premium.
+
+Assumptions in the model are as follows:
+
+* Decisions in the model regard only one period,
+* Market participants has risk aversion, i.e. their utility function is related
+  with plus sign to rate of return, and negatively to variance of portfolio rate
+  of return,
+* Risk-free rate exists,
+* Asymmetry of information non-existent,
+* Lack of speculative transactions,
+* Lack of transactional costs, taxes included,
+* Market participants can buy a fraction of the asset,
+* Both sides are price takers,
+* Short selling exists,
+
+Described by the following model formula is as follows:
+$$
+E(R_P)=R_F+\frac{\sigma_P}{\sigma_M}\times[E(R_M)-R_F]
+$$
+where:
+
+* $E(R_P)$ -- the expected portfolio rate of return,
+* $E(R_M)$ -- the expected market rate of return,
+* $R_F$ -- risk-free rate,
+* $\sigma_P$ -- the standard deviation of the rate of return on the portfolio,
+* $\sigma_M$ -- the standard deviation of the rate of return on the market
+  portfolio.
+
+$E(R_P)$ function is also known as Capital Market Line (CML). Any portfolio lies
+on that line is effective, i.e. its rate of return corresponds to embedded risk.
+The next formula includes all portfolios, single assets included. It is also
+known as Security Market Line (SML) and is given by the following equation:
+$$ \label{eq:erl}
+E(R_i)=R_F+\beta_i\times[E(R_M)-R_F]
+$$
+where:
+
+* $E(R_i)$ -- the expected $i$-th portfolio rate of return,
+* $E(R_M)$ -- the expected market rate of return,
+* $R_F$ -- risk-free rate,
+* $\beta_i$ -- Beta factor of the $i$-th portfolio.

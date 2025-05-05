@@ -1,38 +1,36 @@
 # Introduction
 
 The conventional representation of trading floors as chaotic environments
-characterized by vocal trader interactions was historically accurate approximately
-three decades ago. However, the financial industry has since undergone substantial
+characterized by vocal trader interactions was historically accurate in the 1980s.
+However, the financial industry has since undergone substantial
 structural transformation.
 
 The financial sector has consistently functioned as an early adopter of
-computational innovations. This technological integration represents a strategic
-imperative—competitive advantage through advanced technological implementation
-frequently correlates with enhanced financial performance metrics. The industry
-has systematically pioneered the deployment of state-of-the-art technologies,
+computational innovations. This integration represents a strategic
+imperative—competitive advantage through technology frequently correlates with financial performance.
+The industry has systematically pioneered the deployment of
+state-of-the-art technologies,
 ranging from sophisticated Bloomberg terminal infrastructure in the 1990s to
 contemporary blockchain applications and ultra-low latency systems, all oriented
 toward maximizing operational efficiency[^1].
 
-[^1]: The banking sector is frequently identified in empirical literature as a
+[^1]: In empirical literature, the banking sector is identified  as a
 primary industry implementing blockchain technology.
 
-Trading entities, functioning as utility-maximizing economic agents, fundamentally
+Trading entities, functioning as economic agents,
 aim to optimize market-derived profits. Multiple methodological approaches exist
-to achieve this objective, with varying degrees of complexity. Notably, Warren
-Buffett, a statistically significant outlier in investment performance metrics,
-continues to employ a passive buy-and-hold strategy.
+to achieve this objective. For instance, Warren
+Buffett continues to employ a passive buy-and-hold strategy.
 
 In recent years, methodologies predicated on artificial intelligence and machine
 learning algorithms have demonstrated increasing significance. This phenomenon
-correlates with advancements in computational processing capacity, decreasing
+correlates with computational processing capacity, decreasing
 infrastructure expenditure requirements, and empirical recognition of cognitive
-biases in human decision-making processes @Arnold2017. A growing consensus within
+biases in human decision-making processes. A growing consensus within
 the literature suggests that algorithmic systems should supplement or potentially
 supersede human involvement in decision-making and execution processes @Turner2015.
 The progressive automation of trading activities will likely continue its
-trajectory in subsequent temporal periods, contradicting the aforementioned
-stereotypical trading floor representation.
+direction, contradicting the stereotypical trading floor representation.
 
 Although machine learning's theoretical foundations date to the 1950s, its
 explicit implementation in trading contexts remains relatively limited. For
@@ -51,71 +49,12 @@ variables derived from financial econometrics, fundamental analysis, or machine
 learning algorithms, many have demonstrated suboptimal performance due to several
 factors, including:
 
-* Frequent large drawdowns resulting in excessive performance volatility
-* Prohibitive transaction costs rendering strategies economically unfeasible
-* Excessive computational complexity, particularly problematic for high-frequency
-  trading implementations
+* Large drawdowns resulting in excessive performance volatility
+* High transaction costs rendering strategies impractical
+* High computational complexity, particularly problematic for high-frequency
+  trading
 
 Even when empirical research demonstrates exceptional results, upon publication,
 any competitive advantage tends to diminish through market efficiency mechanisms.
 Strategies with persistent alpha-generating capabilities must remain proprietary
 to maintain their effectiveness.
-
-#### Work Structure
-
-This thesis is structured to provide a comprehensive analytical framework for
-understanding reinforcement learning algorithms applied to trading contexts.
-
-The first section provides a detailed examination of the intersection between
-artificial intelligence methodologies and financial markets, exploring the
-historical relationship between quantitative finance and computational science.
-
-The second chapter presents a systematic review of selected literature from
-quantitative finance, examining both classical equilibrium models such as CAPM
-(the established paradigm in equity research) and contemporary approaches. This
-section evaluates the implicit advantages and limitations of various financial
-models, with particular emphasis on algorithmic trading methodologies employed in
-comparable research contexts.
-
-The third section analyzes machine learning frameworks, providing a theoretical
-basis for why reinforcement learning may represent an optimal approach for certain
-trading applications. It presents a taxonomic comparison of major machine learning
-categories to elucidate their methodological distinctions, introduces key
-reinforcement learning concepts with illustrative examples, and addresses potential
-limitations and implementation challenges associated with these algorithms.
-
-The fourth part details the experimental methodology, including research
-objectives, data characteristics, experimental design parameters, and empirical
-results. The primary objective was to develop trading agents capable of
-statistically outperforming established benchmarks on risk-adjusted performance
-measures in the foreign exchange market—agents characterized by statistical
-robustness, adaptive learning capability, and consistent performance metrics. This
-chapter presents the mathematical formulations and procedural implementations
-leading to the empirical results, examining each component of the trading system.
-
-The implemented algorithms utilize a dynamic optimization approach. Beyond a value
-function based on Differential Sharpe Ratio, the system incorporates various
-technical indicators such as Relative Strength Index to inform algorithmic
-decision-making processes. The methodology incorporates transaction cost models to
-simulate realistic trading conditions.
-
-The value function integrates multiple statistical measures, including Sharpe and
-Differential Sharpe Ratios, to capture both risk and return dimensions. The
-algorithm outputs agent actions in the discrete action space {-1,0,1}. The final
-section of this chapter evaluates the reinforcement learning-based trading system
-against two benchmark methodologies:
-
-* A buy-and-hold strategy (maintaining consistent long positions in selected
-  currency pairs)
-* Random action generation—producing stochastic values in the domain of {-1,0,1}
-  to determine positions in underlying pairs. This benchmark excludes transaction
-  costs, as such a strategy would incur prohibitive cumulative costs with position
-  changes occurring in approximately two-thirds of states.
-
-The concluding section presents a comparative analysis with similar research and
-proposes directions for future investigation, addressing research questions such
-as:
-
-* What additional implementations could enhance performance metrics?
-* What methodological limitations were encountered and how might they be addressed
-  in subsequent research?
