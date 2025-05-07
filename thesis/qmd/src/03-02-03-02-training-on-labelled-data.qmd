@@ -1,10 +1,30 @@
-#### Training a Trading System on labeled Data
+#### Training a Trading System on Labeled Data
 
-Such a trading system is based on the idea of direct integration between Trading
-System and Input Series. Trades (signals) are based on labelled trades (training
-set), and actual trades take place basing on input (Input Series).
+This methodology employs direct integration between the Trading System and
+Input Series components. The system generates trading signals based on a
+corpus of labeled trades (training dataset), while execution occurs in
+response to market inputs (Input Series).
 
-Its efficiency and effectiveness rely on how well Trading Module can utilize
-information from Input Series and Labeled Trades $\theta^{'}$. Since it's Trading
-System, not utility function $U(\theta, \theta^{'})$ optimized, also in this case
-the system tends to be sub-optimal.
+Formally, the system can be represented as:
+
+$$f: X \rightarrow a$$
+
+where:
+- $X \in \mathbb{R}^n$ represents the input feature space
+- $a \in A$ denotes the action space (buy, sell, hold)
+
+The optimization objective can be expressed as:
+
+$$\min_{\theta} \mathcal{L}(\theta) = \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$
+
+where:
+- $\theta$ represents the model parameters
+- $a_i^*$ denotes the labeled optimal action for input $X_i$
+- $\ell$ is a loss function measuring deviation from labeled actions
+
+The system's operational efficacy is contingent upon the Trading Module's
+capacity to extract and utilize information from both Input Series and
+Labeled Trades $\theta^{'}$. A fundamental limitation exists in this
+approach: since optimization targets the Trading System rather than the
+utility function $U(\theta, \theta^{'})$, the resultant solution typically
+exhibits sub-optimal characteristics in terms of financial performance.

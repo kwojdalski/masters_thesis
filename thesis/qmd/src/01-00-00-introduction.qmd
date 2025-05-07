@@ -12,7 +12,7 @@ Hence, the industry has systematically pioneered the deployment of
 state-of-the-art technologies,
 ranging from sophisticated Bloomberg terminal infrastructure in the 1990s to
 contemporary blockchain applications and ultra-low latency systems, all oriented
-toward maximizing operational efficiency[^1].
+toward maximizing operational efficiency.
 
 [^1]: In empirical literature, the banking sector is identified  as a
 primary industry implementing blockchain technology.

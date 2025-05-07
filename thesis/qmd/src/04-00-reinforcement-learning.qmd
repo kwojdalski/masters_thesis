@@ -136,7 +136,7 @@ The other method for handling the exploration/exploitation problem is by using
 the special bounds that narrow with the number of steps taken.
 The formula is as follows:
 
-$$A_t = arg\max_a[Q_t(a)+c\sqrt\frac{ln_t}{N_t(a)}$$
+$$A_t = \argmax_a[Q_t(a)+c\sqrt\frac{ln_t}{N_t(a)}],$$
 where:
 
   * $ln_t$ is the natural logarithm of $t%
@@ -160,97 +160,6 @@ those presented in this subsection should be selected.
 <!-- performs better than "-greedy action selection, except in the first k steps, when it selects randomly among the -->
 <!-- as-yet-untried actions. -->
 <!-- In this part  -->
-
-
-###  Model-free vs Model-based
-
-Reinforcement learning algorithms can be categorized into three principal
-classifications:
-
-* Model-Based approaches - These methodologies operate under the assumption
-that an environmental model is known a priori. Action selection proceeds
-through systematic search and planning within this model framework. The
-Markov Decision Process (MDP) exemplifies this approach, as it necessitates
-knowledge of both the Markov transition matrix and the reward function.
-
-* Model-Free approaches - These methodologies acquire knowledge directly
-from state-action values or policies through experiential learning. They
-can achieve comparable behavioral outcomes without prior knowledge of the
-environmental model in which the agent operates. In practical applications,
-reinforcement learning is predominantly employed in environments where
-transition matrices remain unknown. Within a given policy framework, each
-state possesses a value defined as the cumulative utility (reward)
-commencing from that state. Model-free methods typically demonstrate lower
-efficiency compared to model-based approaches, as environmental information
-is integrated with potentially inaccurate state value estimations
-@Dayan2008.
-
-#### Model-based Methods in Reinforcement Learning
-
-* Value iteration - a model-based algorithm that computes the optimal state value
-function by improving the estimate of $V(s)$. It starts with initializing
-arbirary values and then updates $Q(s, a)$ and $V(s)$ values until they
-converge. The pseudocode is as follows:
-
-
-<!-- ![Value Iteration Algorithm. Based on @Sutton2017]() -->
-<!-- \begin{algorithm}[H] -->
-<!--  \KwResult{how to write algorithm with} -->
-<!--  Initialize $V(s)$ to arbitrary values\; -->
-<!--   Repeat\; -->
-<!--     \For{$all\space s \in S$}{ -->
-<!--       \For{$all\space a \in A$}{ -->
-<!--         $Q(s, a) \leftarrow E[r|s, a] + \gamma\sum_{s e S}P(s'|s, a)V(s^{'})$\; -->
-<!--       $V(s) \leftarrow max_a Q(s,a)$\; -->
-<!--       } -->
-<!--   } -->
-<!--   Until $V(s)$ converge\; -->
-<!--   \caption{Value Iteration Algorithm. Based on @Alpaydin2013} -->
-<!-- \end{algorithm} -->
-
-
-
-* Policy iteration - while in the previous bullet the algorithm is improving
-value function, policy iteration is based on the different approach. Concretely,
-there are two functions to be optimized $V^{\pi}(s)$ and $\pi^{'}(s)$.
-This method is based on the premise that a RL agent cares about finding out the
-right policy. Sometimes, it is more convenient to directly use policies as a
-function of states. Below is the pseudocode:
-
-<!-- \begin{algorithm}[H] -->
-<!--  \KwResult{how to write algorithm with} -->
-<!--  Initialize $\pi^{'}$ to arbitrary values\; -->
-<!--   Repeat\; -->
-<!--   \indent $\pi \leftarrow \pi^{'}$ -->
-<!--   \indent Compute the values using $\pi$ by solving the linear equations\; -->
-<!--   \indent $V^{\pi}(s) = E[r|s, \pi(s)] + \gamma\sum{s^{'} e S}P(s^{'}|s, \pi(s))V^{\pi}(s^{'})$ -->
-<!--   \indent Improve the policy at each state -->
-<!--   \indent $\pi^{'}(s) <- argmax_{a}(E[r|s, a] + \gamma\sum_{s^{'} e S}P(s^{'}|s, a)V^{\pi}(s^{'}))$ -->
-
-<!--   Until $\pi=\pi^{'}$\; -->
-<!--   \caption{Policy Iteration Algorithm. Based on @Alpaydin2013} -->
-<!-- \end{algorithm} -->
-<!-- ![Policy Iteration Algorithm. Based on @Sutton2017](../../figures/policy_iteration.png) -->
-
-#### Model Free Learning
-
-Model Free learning constitutes a subcategory of reinforcement learning
-algorithms employed when the underlying model remains unknown. In this approach,
-the agent enhances its decision-making accuracy through environmental
-interactions without possessing explicit knowledge of the transition matrix.
-This methodology is particularly suitable for trading environments, as financial
-markets inherently lack a definable model and exhibit non-stationary transition
-probabilities. Consequently, direct application of value or policy iteration
-algorithms becomes infeasible.
-
-Despite the opacity of the Markov Decision Process and its components, the agent
-can accumulate experience from sampled states. The theoretical foundation
-suggests that the distribution of sampled states will eventually converge to
-that of the transition matrix. Similarly, $Q(s, a)$ values converge to $Q^{*}$
-and the policy $\pi^{*}$ approaches optimality. This convergence requires that
-all state-action pairs be visited infinitely often, and that the agent adopts
-a greedy strategy once it identifies the optimal action for each state.
-
 
 
 

@@ -16,13 +16,15 @@ format:
     toc: true
     toc-depth: 3
     number-sections: true
-    toc-location:
-      before: true
+    toc-location: right
 bibliography: ../../bibliography/library.bib
 header-includes:
   - \usepackage[utf8]{inputenc}
   - \usepackage{amsthm}
   - \usepackage{rotating}
+  - \usepackage{algorithm}
+  - \usepackage{algpseudocode}
+  - \usepackage{amsmath}
   - \pagenumbering{gobble}
   - \nralbumu{310284}
   - \speciality{Economics}
@@ -68,10 +70,6 @@ further investigation.
 
 \pagebreak
 
-\tableofcontents
-\newpage
-\listoffigures
-\newpage
 
 {{< include ./01-00-00-introduction.qmd >}}
 
@@ -88,10 +86,8 @@ further investigation.
 {{< include ./02-01-02-00-modern-approaches.qmd >}}
 {{< include ./02-01-03-00-critical-analysis.qmd >}}
 {{< include ./02-02-00-relevant-financial-indicators.qmd >}}
-{{< include ./02-02-01-efficient-market-hypothesis.qmd >}}
 {{< include ./02-02-02-empirical-evidence.qmd >}}
 {{< include ./02-02-03-market-anomalies.qmd >}}
-{{< include ./02-03-00-machine-learning-in-financial-markets.qmd >}}
 {{< include ./02-03-03-01-key-concepts.qmd >}}
 {{< include ./02-03-03-02-seminal-works.qmd >}}
 {{< include ./02-03-03-03-rl-applications.qmd >}}
@@ -108,9 +104,8 @@ further investigation.
 {{< include ./03-02-03-03-direct-optimization.qmd >}}
 
 {{< include ./04-00-reinforcement-learning.qmd >}}
-{{< include ./04-01-objective-of-the-research.qmd >}}
-{{< include ./04-02-design-of-the-research.qmd >}}
-{{< include ./04-03-dataset.qmd >}}
+{{< include ./04-02-timeline-of-new-rl-algorithms.qmd >}}
+{{< include ./04-03-rl-categories.qmd >}}
 
 {{< include ./05-00-design-of-the-trading-agent.qmd >}}
 {{< include ./05-01-action-space.qmd >}}
@@ -136,5 +131,7 @@ further investigation.
 {{< include ./08-04-recommendations-for-practitioners.qmd >}}
 {{< include ./08-05-conclusion.qmd >}}
 
+
+\newpage
 {{< include ./98-bibliography.qmd >}}
 {{< include ./99-appendix.qmd >}}
