@@ -30,3 +30,41 @@ In the work, the author has assumed that:
 
 * Zero slippage - the FX market is liquidity is good enough that there the execution price is equal to the price shown by the venue (Bloomberg)
 * Zero market impact - trades executed by the agent are not big enough that they can move the market and cause significant market impact
+
+
+
+### Experimental Environment
+
+The experimental environment was implemented using Python 3.12 with the
+PyTorch deep learning framework. The system was developed and tested on
+a Linux-based computational environment with CUDA support for efficient
+neural network training.
+
+
+
+### Experimental Procedure
+
+The experimental methodology followed a structured sequence of operations:
+
+1. Data acquisition and preprocessing were conducted initially. This involved:
+   - Elimination of invalid or anomalous data points
+   - Partitioning of the dataset into training and testing segments using
+     a 4:6 ratio
+   - Configuration of appropriate experimental parameters
+
+2. For the trading simulation phase:
+   - A selection of ten currency pairs was made according to specific criteria
+   - Three distinct reinforcement learning algorithms were implemented to
+     simulate trading activities
+   - Price data and performance metrics were systematically collected and
+     compared
+
+3. Comprehensive analysis was performed, incorporating:
+   - Examination of individual currency pair characteristics
+   - Integration of findings from the algorithmic trading simulations
+   - Identification of patterns across different market conditions
+
+4. The experimental results underwent rigorous evaluation, including:
+   - Statistical assessment of performance metrics
+   - Comparative analysis against benchmark strategies
+   - Critical discussion of implications for algorithmic trading applications

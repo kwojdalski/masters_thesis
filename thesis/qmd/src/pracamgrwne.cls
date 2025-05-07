@@ -20,7 +20,9 @@
   \cleardoublepage
   \oldlistoffigures
 }
-
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
 \textwidth\paperwidth
 \advance\textwidth -55mm
 \oddsidemargin-1in

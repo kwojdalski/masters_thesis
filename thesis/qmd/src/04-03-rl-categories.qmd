@@ -1,0 +1,222 @@
+
+###  Model-free vs Model-based
+
+Reinforcement learning algorithms can be categorized into three principal
+classifications:
+
+* Model-Based approaches - These methodologies function with the prerequisite
+  that the environmental model is known in advance. The agent selects actions
+  through deliberate planning and systematic exploration within this predefined
+  model structure. The Markov Decision Process (MDP) represents a quintessential
+  example of this paradigm, requiring explicit knowledge of both the Markov
+  transition probability matrix and the associated reward function.
+
+* Model-Free approaches - These methodologies acquire knowledge directly
+from state-action values or policies through experiential learning. They
+can achieve comparable behavioral outcomes without prior knowledge of the
+environmental model in which the agent operates. In practical applications,
+reinforcement learning is predominantly employed in environments where
+transition matrices remain unknown. Within a given policy framework, each
+state possesses a value defined as the cumulative utility (reward)
+commencing from that state. Model-free methods typically demonstrate lower
+efficiency compared to model-based approaches, as environmental information
+is integrated with potentially inaccurate state value estimations
+@Dayan2008.
+
+##
+
+
+### Value-Based vs Policy-Based vs Actor-Critic
+
+Reinforcement learning algorithms can be further categorized based on their
+optimization approach:
+
+
+
+* Value iteration - a model-based algorithm that computes the optimal state value
+function by improving the estimate of $V(s)$. It starts with initializing
+arbitrary values and then updates $Q(s, a)$ and $V(s)$ values until they
+converge. The pseudocode is as follows:
+
+
+\begin{algorithm}
+\caption{Value Iteration Algorithm. Based on @Alpaydin2013}
+\begin{algorithmic}[1]
+\State Initialize $V(s)$ to arbitrary values
+\Repeat
+  \For{all $s \in S$}
+    \For{all $a \in A$}
+      \State $Q(s, a) \leftarrow E[r|s, a] + \gamma\sum_{s' \in S}P(s'|s, a)V(s')$
+    \EndFor
+    \State $V(s) \leftarrow \max_a Q(s,a)$
+  \EndFor
+\Until{$V(s)$ converge}
+\end{algorithmic}
+\end{algorithm}
+
+
+* Policy iteration - while in the previous bullet the algorithm is improving
+value function, policy iteration is based on the different approach. Concretely,
+there are two functions to be optimized $V^{\pi}(s)$ and $\pi^{'}(s)$.
+This method is based on the premise that a RL agent cares about finding out the
+right policy. Sometimes, it is more convenient to directly use policies as a
+function of states. Below is the pseudocode:
+
+\begin{algorithm}
+\caption{Policy Iteration Algorithm. Based on @Alpaydin2013}
+\begin{algorithmic}[1]
+\State Initialize $\pi^{'}$ to arbitrary values
+\Repeat
+  \State $\pi \leftarrow \pi^{'}$
+  \State Compute the values using $\pi$ by solving the linear equations
+  \State $V^{\pi}(s) = E[r|s, \pi(s)] + \gamma\sum_{s' \in S}P(s'|s, \pi(s))V^{\pi}(s')$
+  \For{all $s \in S$}
+    \State $\pi^{'}(s) \leftarrow \argmax_a(E[r|s, a] + \gamma\sum_{s' \in S}P(s'|s, a)V^{\pi}(s'))$
+  \EndFor
+\Until{$\pi=\pi^{'}$}
+\end{algorithmic}
+\end{algorithm}
+
+
+
+* Actor-Critic methods represent a hybrid approach that combines elements of
+  both value-based and policy-based learning. Such algorithms maintain two
+  structures: an "actor" that determines the policy (action selection), and a
+  "critic" that evaluates actions through value function approximation. This
+  synthesis often yields improved stability and sample efficiency compared to
+  pure policy-based methods while retaining their capability to handle
+  continuous action spaces.
+
+  The actor-critic architecture can be formalized as follows:
+  Actor (Policy): $\pi_\theta(a|s)$ parameterized by $\theta$
+
+  Critic (Value): $V_w(s)$ parameterized by $w$
+
+  \begin{algorithm}
+  \caption{Actor-Critic Algorithm}
+  \begin{algorithmic}[1]
+  \State Initialize actor parameters $\theta$ and critic parameters $w$
+  \Repeat
+    \State Observe state $s_t$
+    \State Select action $a_t \sim \pi_\theta(a|s_t)$
+    \State Execute action $a_t$, observe reward $r_t$ and next state $s_{t+1}$
+    \State Compute TD error: $\delta_t = r_t + \gamma V_w(s_{t+1}) - V_w(s_t)$
+    \State Update critic: $w \leftarrow w + \alpha_w \delta_t \nabla_w V_w(s_t)$
+    \State Update actor: $\theta \leftarrow \theta + \alpha_\theta \delta_t \nabla_\theta \ln\pi_\theta(a_t|s_t)$
+  \Until{convergence}
+  \end{algorithmic}
+  \end{algorithm}
+
+  where: $\alpha_w$ and $\alpha_\theta$ are learning rates for the critic and
+  actor, respectively.
+
+#### Model Free Learning
+
+Model Free learning constitutes a subcategory of reinforcement learning
+algorithms employed when the underlying model remains unknown. In this approach,
+the agent enhances its decision-making accuracy through environmental
+interactions without possessing explicit knowledge of the transition matrix.
+This methodology is particularly suitable for trading environments, as financial
+markets inherently lack a definable model and exhibit non-stationary transition
+probabilities. Consequently, direct application of value or policy iteration
+algorithms becomes infeasible.
+
+Despite the opacity of the Markov Decision Process and its components, the agent
+can accumulate experience from sampled states. The theoretical foundation
+suggests that the distribution of sampled states will eventually converge to
+that of the transition matrix. Similarly, $Q(s, a)$ values converge to $Q^{*}$
+and the policy $\pi^{*}$ approaches optimality. This convergence requires that
+all state-action pairs be visited infinitely often, and that the agent adopts
+a greedy strategy once it identifies the optimal action for each state.
+
+
+#### On-Policy vs Off-Policy
+
+#### On-Policy vs Off-Policy
+
+Reinforcement learning algorithms can be categorized based on their policy
+evaluation and improvement mechanisms. The distinction between on-policy and
+off-policy methods lies in how they utilize experience for learning:
+
+On-policy methods learn and improve the same policy that is used for action
+selection during environmental interaction. These algorithms evaluate and
+refine the behavioral policy directly from the experience it generates.
+SARSA exemplifies this approach, updating Q-values using:
+
+$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha[r_t + \gamma Q(s_{t+1},a_{t+1}) - Q(s_t,a_t)]$$
+
+where $a_{t+1}$ is selected according to the current policy.
+
+Off-policy methods, conversely, learn a target policy different from the
+behavioral policy used for exploration. This separation enables learning from
+historical data or experiences generated by alternative strategies. Q-learning
+represents this category, updating values using:
+
+$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)]$$
+
+The fundamental advantage of off-policy learning in financial applications is
+its ability to learn optimal strategies while following exploratory or risk-
+averse policies, facilitating more efficient learning from historical market
+data without requiring direct market interaction during training.
+
+#### Single-Agent vs Multi-Agent
+
+Reinforcement learning frameworks can be distinguished based on the number of
+decision-making entities within the environment:
+
+Single-agent reinforcement learning involves a solitary agent interacting with
+a stationary or quasi-stationary environment. The agent optimizes its policy
+to maximize expected cumulative rewards without considering the actions of
+other decision-makers. This paradigm assumes that environmental state
+transitions are influenced solely by the agent's actions and stochastic
+processes inherent to the environment.
+
+Multi-agent reinforcement learning encompasses scenarios where multiple agents
+operate simultaneously within a shared environment. Each agent's actions
+influence not only their individual rewards but potentially the state
+transitions and rewards experienced by other agents. This introduces strategic
+considerations analogous to game theory, where optimal policies depend on the
+behavior of other participants.
+
+The distinction becomes particularly relevant in market microstructure
+analysis, where the collective behavior of numerous market participants
+influences price formation processes. However, most practical trading
+applications adopt a single-agent perspective, treating market dynamics as an
+exogenous environment rather than explicitly modeling other participants.
+
+#### Discrete vs Continuous
+
+Reinforcement learning methodologies can be categorized based on the nature of
+their state and action spaces:
+
+
+Discrete reinforcement learning encompasses systems with finite, enumerable
+state and action spaces. Such frameworks characterize the environment via a
+bounded set of distinct states, while the agent chooses from a limited
+repertoire of possible actions. This formulation permits tabular
+representations of value functions and policies, thus enabling precise
+solutions through dynamic programming when environmental dynamics are fully
+specified. Within financial contexts, discrete models may conceptualize market
+conditions as categorical regimes (e.g., bullish, bearish, consolidating) and
+actions as specific portfolio allocations (e.g., long position, short
+position, market neutrality).
+
+Continuous reinforcement learning pertains to systems with uncountable state
+and/or action spaces. Such methodologies facilitate the processing of
+real-valued observations and actions, thereby requiring function approximation
+techniques for the representation of value functions and policies. The
+mathematical framework can be expressed as:
+
+$$\pi_\theta: \mathcal{S} \rightarrow \mathcal{P}(\mathcal{A})$$
+
+where:
+
+  * $\mathcal{S} \subset \mathbb{R}^n$ represents a continuous state space,
+  * $\mathcal{A} \subset \mathbb{R}^m$ denotes a continuous action space.
+
+Financial markets inherently exhibit continuous characteristics in both state
+representations (e.g., prices, volatility measures, economic indicators) and
+potential actions (e.g., position sizing, risk parameters). Consequently,
+continuous reinforcement learning frameworks, particularly those employing
+neural network function approximators, have demonstrated superior efficacy in
+capturing the complex, non-linear relationships present in financial data.

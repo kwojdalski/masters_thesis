@@ -1,0 +1,70 @@
+## Timeline of Reinforcement Learning Algorithms
+
+Reinforcement learning has evolved significantly over the decades, progressing
+from theoretical foundations to sophisticated algorithms capable of algorithmic
+trading problems. This section presents an overview of key developments in
+RL, with particular attention to their applicability in
+algorithmic trading.
+
+It must be note
+
+### 1950s–1980s: Theoretical Foundations
+* 1952-1954: Bellman established Temporal Difference (TD) methodology and
+  Markov Decision Process (MDP) formalism as mathematical foundations for RL.
+* 1979: Watkins conceptualized Q-learning principles, though formal
+  articulation came later.
+* Financial application: Primarily theoretical, establishing frameworks for
+  sequential investment decision-making.
+
+### 1989-1992: Fundamental Algorithms
+* 1989: Q-learning (Watkins)
+  - Off-policy, model-free algorithm for determining state-action value
+    functions.
+  - Financial relevance: Suitable for discrete trading decisions.
+  - Limitation: Poor scalability for extensive state/action spaces.
+* 1992: SARSA
+  - On-policy variant of Q-learning evaluating the implemented policy.
+  - Financial relevance: More robust in non-stationary financial environments.
+
+### Mid-1990s: Approximation Methods
+* Implementation of function approximators for value function estimation.
+* Financial application: Enabled management of larger state spaces approaching
+  financial data complexity.
+
+### 2013–2015: Deep Reinforcement Learning
+* 2013 (DeepMind): Integration of Q-learning with deep neural networks.
+  - Experience replay and target networks enhanced learning stability.
+* 2015: DQN achieved human-comparable performance in Atari environments.
+  - Financial implementation: First significant market applications using
+    neural networks for feature extraction from financial data.
+
+### 2015–2016: Policy Gradient Methodologies
+* REINFORCE (Williams, 1992): Initial stochastic policy gradient formulation.
+* Actor-Critic: Separated policy representation from value function estimation.
+  - Financial advantage: Direct return optimization and accommodation of
+    continuous action spaces for position sizing.
+
+### 2016–2018: Advanced Algorithmic Frameworks
+* A3C (2016): Asynchronous Advantage Actor-Critic
+  - Parallel learning across multiple agents for greater efficiency.
+* DDPG (2015): Deep Deterministic Policy Gradient
+  - Specialized for deterministic continuous policy learning.
+* PPO (2017): Proximal Policy Optimization
+  - Conservative policy updates with improved reliability.
+* SAC (2018): Soft Actor-Critic
+  - Off-policy approach with entropy maximization for exploration-exploitation
+    balance.
+* Financial applications: Execution optimization, portfolio construction, and
+  market-making strategies.
+
+### 2018–Present: Multi-Agent Systems and Meta-Learning
+* Multi-Agent RL: Models market participant interactions for realistic impact
+  simulation.
+* Meta-RL: Develops systems capable of rapid adaptation to new market regimes.
+
+### 2020s Onwards: Practical Implementation
+* Hierarchical RL: Integrates strategic planning with tactical execution.
+* Safe RL: Implements safeguards against catastrophic market losses.
+* Explainable RL: Enhances decision transparency for regulatory compliance.
+* Current priorities: Sample efficiency, risk-sensitive objectives, and
+  regulatory constraint integration.

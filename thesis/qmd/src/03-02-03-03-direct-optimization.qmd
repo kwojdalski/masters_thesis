@@ -5,3 +5,19 @@ given. The environment is observed, $X_t$, the system carries out an action, and
 receives a scalar reward for its past activities, representing the trading
 performance in some form (e.g. rate of return). Based on this reward, the system
 alters the way it behaves in subsequent episodes and steps.
+
+For example, consider a reinforcement learning agent trading Microsoft (MSFT)
+stock. At time $t$, the agent observes market state $X_t$ (e.g., MSFT price,
+volume, technical indicators) and selects action $a_t \in \{-1,0,1\}$
+representing short, neutral, or long positions. The agent receives reward $r_t$
+based on position value:
+
+$$r_t = a_{t-1} \cdot \frac{P^{\text{MSFT}}_t - P^{\text{MSFT}}_{t-1}}
+{P^{\text{MSFT}}_{t-1}}$$
+
+The agent optimizes policy $\pi_\theta(a|X_t)$ to maximize expected cumulative
+reward:
+
+$$\max_\theta \mathbb{E}\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]$$
+
+where $\gamma \in [0,1]$ is a discount factor prioritizing near-term returns.

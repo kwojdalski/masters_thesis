@@ -10,38 +10,36 @@ The research is based on the following hypotheses:
 
 ### Objectives of the Research
 
-The research has three main objectives:
+The primary research goal is to evaluate Reinforcement Learning-based
+algorithms for multiasset trading, with particular focus on pair trading
+strategies. The research objectives are structured in three interconnected
+phases:
 
 1. **Design and Implementation**
-   - Design and implement a basic and an extended Reinforcement Learning trading agent for pair trading
-   - Develop robust testing frameworks for both approaches
+   - Develop both basic and extended Reinforcement Learning trading agents
+     for pair trading applications
+   - Construct robust testing frameworks to evaluate agent performance
+   - Create agents capable of processing financial time series data
 
-2. **Testing and Comparison**
-   - Test and compare both approaches on out-of-sample test data
-   - Evaluate performance using selected performance measures
-   - Analyze the robustness of the approaches under different market conditions
+2. **Testing and Evaluation**
+   - Assess agent performance on out-of-sample data against established
+     benchmarks
+   - Measure performance using comprehensive risk-return metrics
+   - Analyze robustness under varying market conditions
+   - Determine if agents can outperform conventional trading approaches
 
-3. **Interpretation and Implications**
-   - Analyze how the agents evolve their learning processes
-   - Study how their developed policies integrate conventional pair trading approaches
-   - Investigate transaction cost management strategies
-   - Identify and suggest potential avenues for future research
+3. **Analysis and Implications**
+   - Examine agent learning evolution and pattern recognition capabilities
+   - Investigate how agents integrate with traditional pair trading
+     methodologies
+   - Assess transaction cost management effectiveness
+   - Determine if agents can identify non-trivial patterns more efficiently
+     than human traders
+   - Evaluate the feasibility of deployment in real-world trading
+     environments
+   - Identify promising directions for future research
 
-# Research
-
-In the following chapter the author designed a research based on reinforcement learning agents for FX market. The chapter starts with outlining research objectives, then used dataset is explained. In subsequent parts, it is explained how the research was conducted, what elements and methods have been chosen from the previous chapters. The last part consists of results, what exactly have been achieved and if it conforms with expectations.
-
-## Research Objective
-
-The primary research goal was to evaluate the Reinforcement Learning-based algorithm for multiasset trading.
-The main idea behind the algorithm deployment is that it can systematically outperform benchmarks
-in terms of selected risk and return measures.
-Designed trading system was aimed to spot non-trivial patterns in data, more efficiently than human, and exploit them accordingly.
-
-In the project author wanted to assess the possibility of using a reinforcement learning agent for trading domain. The objectives are as follows
-
-* Implementation - consisting of creating reinforcement learning-based agent that are capable of trading financial instruments
-basing on time series tables
-* Evaluation - testing if trading agents for out-of-sample periods can outperform benchmarks in the measures provided by the author
-* Conclusion - answering the question if such approach might help in generating abnormal positive results and determining if the method can
-be feasible and efficient in real-like environment
+The underlying premise is that these algorithms can systematically outperform
+benchmarks by detecting and exploiting market patterns that would remain
+imperceptible to human traders, potentially generating alpha in both
+high-frequency trading environment.
