@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.43">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Krzysztof Wojdalski">
+<meta name="dcterms.date" content="2025-05-03">
+
+<title>Reinforcement Learning for Trading</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="masters-thesis_files/libs/clipboard/clipboard.min.js"></script>
+<script src="masters-thesis_files/libs/quarto-html/quarto.js"></script>
+<script src="masters-thesis_files/libs/quarto-html/popper.min.js"></script>
+<script src="masters-thesis_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="masters-thesis_files/libs/quarto-html/anchor.min.js"></script>
+<link href="masters-thesis_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="masters-thesis_files/libs/quarto-html/quarto-syntax-highlighting-d4d76bf8491c20bad77d141916dc28e1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="masters-thesis_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="masters-thesis_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="masters-thesis_files/libs/bootstrap/bootstrap-c0367b04c37547644fece4185067e4a7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+</head><body>\usepackage[utf8]{inputenc}
+\usepackage{amsthm}
+\usepackage{rotating}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\pagenumbering{gobble}
+\nralbumu{310284}
+\speciality{Economics}
+\opiekun{dr Pawel Sakowski}
+\keywords{Reinforcement Learning, FX Trading, Portfolio Optimization}
+\dziedzina{14.3 Economics}
+\klasyfikacja{G11, G17, C63}
+\tytulang{Reinforcement Learning Portfolio Optimization for FX Trading}
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+
+
+
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a>
+  <ul class="collapse">
+  <li><a href="#statistical-arbitrage" id="toc-statistical-arbitrage" class="nav-link" data-scroll-target="#statistical-arbitrage"><span class="header-section-number">1.1</span> Statistical Arbitrage</a>
+  <ul class="collapse">
+  <li><a href="#statistical-arbitrage-vs-other-types-of-arbitrage" id="toc-statistical-arbitrage-vs-other-types-of-arbitrage" class="nav-link" data-scroll-target="#statistical-arbitrage-vs-other-types-of-arbitrage"><span class="header-section-number">1.1.1</span> Statistical Arbitrage vs Other Types of Arbitrage</a></li>
+  <li><a href="#critical-parameter-selection-and-optimization" id="toc-critical-parameter-selection-and-optimization" class="nav-link" data-scroll-target="#critical-parameter-selection-and-optimization"><span class="header-section-number">1.1.2</span> Critical Parameter Selection and Optimization</a></li>
+  </ul></li>
+  <li><a href="#scope-and-objectives-of-the-research" id="toc-scope-and-objectives-of-the-research" class="nav-link" data-scroll-target="#scope-and-objectives-of-the-research"><span class="header-section-number">1.2</span> Scope and Objectives of the Research</a>
+  <ul class="collapse">
+  <li><a href="#hypothesis" id="toc-hypothesis" class="nav-link" data-scroll-target="#hypothesis"><span class="header-section-number">1.2.1</span> Hypothesis</a></li>
+  <li><a href="#objectives-of-the-research" id="toc-objectives-of-the-research" class="nav-link" data-scroll-target="#objectives-of-the-research"><span class="header-section-number">1.2.2</span> Objectives of the Research</a></li>
+  <li><a href="#methodological-framework" id="toc-methodological-framework" class="nav-link" data-scroll-target="#methodological-framework"><span class="header-section-number">1.2.3</span> Methodological Framework</a></li>
+  </ul></li>
+  <li><a href="#thesis-organization-and-chapter-overview" id="toc-thesis-organization-and-chapter-overview" class="nav-link" data-scroll-target="#thesis-organization-and-chapter-overview"><span class="header-section-number">1.3</span> Thesis Organization and Chapter Overview</a></li>
+  </ul></li>
+  <li><a href="#classical-finance-context-and-literature-review" id="toc-classical-finance-context-and-literature-review" class="nav-link" data-scroll-target="#classical-finance-context-and-literature-review"><span class="header-section-number">2</span> Classical Finance Context and Literature Review</a>
+  <ul class="collapse">
+  <li><a href="#the-modern-portfolio-theory" id="toc-the-modern-portfolio-theory" class="nav-link" data-scroll-target="#the-modern-portfolio-theory"><span class="header-section-number">2.1</span> The Modern Portfolio Theory</a></li>
+  <li><a href="#efficient-market-hypothesis" id="toc-efficient-market-hypothesis" class="nav-link" data-scroll-target="#efficient-market-hypothesis"><span class="header-section-number">2.2</span> Efficient Market Hypothesis</a></li>
+  <li><a href="#factor-models" id="toc-factor-models" class="nav-link" data-scroll-target="#factor-models"><span class="header-section-number">2.3</span> Factor Models</a></li>
+  <li><a href="#modern-approaches-in-algorithmic-trading" id="toc-modern-approaches-in-algorithmic-trading" class="nav-link" data-scroll-target="#modern-approaches-in-algorithmic-trading"><span class="header-section-number">2.4</span> Modern Approaches in Algorithmic Trading</a></li>
+  <li><a href="#critical-analysis-of-traditional-financial-models" id="toc-critical-analysis-of-traditional-financial-models" class="nav-link" data-scroll-target="#critical-analysis-of-traditional-financial-models"><span class="header-section-number">2.5</span> Critical Analysis of Traditional Financial Models</a>
+  <ul class="collapse">
+  <li><a href="#criticism-of-the-efficient-market-hypothesis-and-modern-portfolio-theory" id="toc-criticism-of-the-efficient-market-hypothesis-and-modern-portfolio-theory" class="nav-link" data-scroll-target="#criticism-of-the-efficient-market-hypothesis-and-modern-portfolio-theory"><span class="header-section-number">2.5.1</span> Criticism of the Efficient Market Hypothesis and Modern Portfolio Theory</a></li>
+  </ul></li>
+  <li><a href="#selected-investment-performance-measures" id="toc-selected-investment-performance-measures" class="nav-link" data-scroll-target="#selected-investment-performance-measures"><span class="header-section-number">2.6</span> Selected investment performance measures</a></li>
+  <li><a href="#empirical-evidence-against-perfect-market-efficiency" id="toc-empirical-evidence-against-perfect-market-efficiency" class="nav-link" data-scroll-target="#empirical-evidence-against-perfect-market-efficiency"><span class="header-section-number">2.7</span> Empirical Evidence Against Perfect Market Efficiency</a>
+  <ul class="collapse">
+  <li><a href="#market-anomalies" id="toc-market-anomalies" class="nav-link" data-scroll-target="#market-anomalies"><span class="header-section-number">2.7.1</span> Market Anomalies</a></li>
+  </ul></li>
+  <li><a href="#key-concepts-from-reinforcement-learning" id="toc-key-concepts-from-reinforcement-learning" class="nav-link" data-scroll-target="#key-concepts-from-reinforcement-learning"><span class="header-section-number">2.8</span> Key Concepts from Reinforcement Learning</a></li>
+  <li><a href="#seminal-works-in-rl" id="toc-seminal-works-in-rl" class="nav-link" data-scroll-target="#seminal-works-in-rl"><span class="header-section-number">2.9</span> Seminal Works in RL</a></li>
+  <li><a href="#rl-applications-in-trading-systems" id="toc-rl-applications-in-trading-systems" class="nav-link" data-scroll-target="#rl-applications-in-trading-systems"><span class="header-section-number">2.10</span> RL Applications in Trading Systems</a></li>
+  </ul></li>
+  <li><a href="#machine-learning" id="toc-machine-learning" class="nav-link" data-scroll-target="#machine-learning"><span class="header-section-number">3</span> Machine Learning</a>
+  <ul class="collapse">
+  <li><a href="#why-is-machine-learning-important" id="toc-why-is-machine-learning-important" class="nav-link" data-scroll-target="#why-is-machine-learning-important"><span class="header-section-number">3.1</span> Why is machine learning important?</a></li>
+  <li><a href="#classification-of-machine-learning-algorithms" id="toc-classification-of-machine-learning-algorithms" class="nav-link" data-scroll-target="#classification-of-machine-learning-algorithms"><span class="header-section-number">3.2</span> Classification of machine learning algorithms</a>
+  <ul class="collapse">
+  <li><a href="#supervised-learning" id="toc-supervised-learning" class="nav-link" data-scroll-target="#supervised-learning"><span class="header-section-number">3.2.1</span> Supervised Learning</a></li>
+  <li><a href="#unsupervised-learning" id="toc-unsupervised-learning" class="nav-link" data-scroll-target="#unsupervised-learning"><span class="header-section-number">3.2.2</span> Unsupervised Learning</a></li>
+  <li><a href="#semi-supervised-learning" id="toc-semi-supervised-learning" class="nav-link" data-scroll-target="#semi-supervised-learning"><span class="header-section-number">3.2.3</span> Semi-Supervised Learning</a></li>
+  <li><a href="#reinforcement-learning" id="toc-reinforcement-learning" class="nav-link" data-scroll-target="#reinforcement-learning"><span class="header-section-number">3.2.4</span> Reinforcement Learning</a></li>
+  </ul></li>
+  <li><a href="#algorithmic-trading-systems" id="toc-algorithmic-trading-systems" class="nav-link" data-scroll-target="#algorithmic-trading-systems"><span class="header-section-number">3.3</span> Algorithmic Trading Systems</a>
+  <ul class="collapse">
+  <li><a href="#components-of-automated-trading-systems" id="toc-components-of-automated-trading-systems" class="nav-link" data-scroll-target="#components-of-automated-trading-systems"><span class="header-section-number">3.3.1</span> Components of Automated Trading Systems</a></li>
+  <li><a href="#rule-based-trading-strategies" id="toc-rule-based-trading-strategies" class="nav-link" data-scroll-target="#rule-based-trading-strategies"><span class="header-section-number">3.3.2</span> Rule-Based Trading Strategies</a></li>
+  </ul></li>
+  <li><a href="#trading-based-on-forecasts" id="toc-trading-based-on-forecasts" class="nav-link" data-scroll-target="#trading-based-on-forecasts"><span class="header-section-number">3.4</span> Trading based on Forecasts</a>
+  <ul class="collapse">
+  <li><a href="#selected-aspects-of-reinforcement-learning" id="toc-selected-aspects-of-reinforcement-learning" class="nav-link" data-scroll-target="#selected-aspects-of-reinforcement-learning"><span class="header-section-number">3.4.1</span> Selected aspects of reinforcement learning</a></li>
+  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations"><span class="header-section-number">3.4.2</span> Limitations</a></li>
+  </ul></li>
+  <li><a href="#timeline-of-reinforcement-learning-algorithms" id="toc-timeline-of-reinforcement-learning-algorithms" class="nav-link" data-scroll-target="#timeline-of-reinforcement-learning-algorithms"><span class="header-section-number">3.5</span> Timeline of Reinforcement Learning Algorithms</a>
+  <ul class="collapse">
+  <li><a href="#s1980s-theoretical-foundations" id="toc-s1980s-theoretical-foundations" class="nav-link" data-scroll-target="#s1980s-theoretical-foundations"><span class="header-section-number">3.5.1</span> 1950s–1980s: Theoretical Foundations</a></li>
+  <li><a href="#fundamental-algorithms" id="toc-fundamental-algorithms" class="nav-link" data-scroll-target="#fundamental-algorithms"><span class="header-section-number">3.5.2</span> 1989-1992: Fundamental Algorithms</a></li>
+  <li><a href="#mid-1990s-approximation-methods" id="toc-mid-1990s-approximation-methods" class="nav-link" data-scroll-target="#mid-1990s-approximation-methods"><span class="header-section-number">3.5.3</span> Mid-1990s: Approximation Methods</a></li>
+  <li><a href="#deep-reinforcement-learning" id="toc-deep-reinforcement-learning" class="nav-link" data-scroll-target="#deep-reinforcement-learning"><span class="header-section-number">3.5.4</span> 2013–2015: Deep Reinforcement Learning</a></li>
+  <li><a href="#policy-gradient-methodologies" id="toc-policy-gradient-methodologies" class="nav-link" data-scroll-target="#policy-gradient-methodologies"><span class="header-section-number">3.5.5</span> 2015–2016: Policy Gradient Methodologies</a></li>
+  <li><a href="#advanced-algorithmic-frameworks" id="toc-advanced-algorithmic-frameworks" class="nav-link" data-scroll-target="#advanced-algorithmic-frameworks"><span class="header-section-number">3.5.6</span> 2016–2018: Advanced Algorithmic Frameworks</a></li>
+  <li><a href="#present-multi-agent-systems-and-meta-learning" id="toc-present-multi-agent-systems-and-meta-learning" class="nav-link" data-scroll-target="#present-multi-agent-systems-and-meta-learning"><span class="header-section-number">3.5.7</span> 2018–Present: Multi-Agent Systems and Meta-Learning</a></li>
+  <li><a href="#s-onwards-practical-implementation" id="toc-s-onwards-practical-implementation" class="nav-link" data-scroll-target="#s-onwards-practical-implementation"><span class="header-section-number">3.5.8</span> 2020s Onwards: Practical Implementation</a></li>
+  <li><a href="#model-free-vs-model-based" id="toc-model-free-vs-model-based" class="nav-link" data-scroll-target="#model-free-vs-model-based"><span class="header-section-number">3.5.9</span> Model-free vs Model-based</a></li>
+  </ul></li>
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"><span class="header-section-number">3.6</span> </a>
+  <ul class="collapse">
+  <li><a href="#value-based-vs-policy-based-vs-actor-critic" id="toc-value-based-vs-policy-based-vs-actor-critic" class="nav-link" data-scroll-target="#value-based-vs-policy-based-vs-actor-critic"><span class="header-section-number">3.6.1</span> Value-Based vs Policy-Based vs Actor-Critic</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#design-of-the-trading-agent" id="toc-design-of-the-trading-agent" class="nav-link" data-scroll-target="#design-of-the-trading-agent"><span class="header-section-number">4</span> Design of the Trading Agent</a>
+  <ul class="collapse">
+  <li><a href="#action-space" id="toc-action-space" class="nav-link" data-scroll-target="#action-space"><span class="header-section-number">4.1</span> Action Space</a>
+  <ul class="collapse">
+  <li><a href="#book-pressure-related-variables" id="toc-book-pressure-related-variables" class="nav-link" data-scroll-target="#book-pressure-related-variables"><span class="header-section-number">4.1.1</span> Book Pressure-Related Variables</a></li>
+  <li><a href="#volume-related-variables" id="toc-volume-related-variables" class="nav-link" data-scroll-target="#volume-related-variables"><span class="header-section-number">4.1.2</span> Volume-Related Variables</a></li>
+  <li><a href="#last-trade-price-related-variables" id="toc-last-trade-price-related-variables" class="nav-link" data-scroll-target="#last-trade-price-related-variables"><span class="header-section-number">4.1.3</span> Last Trade Price-Related Variables</a></li>
+  <li><a href="#time-related-variables" id="toc-time-related-variables" class="nav-link" data-scroll-target="#time-related-variables"><span class="header-section-number">4.1.4</span> Time-Related Variables</a></li>
+  <li><a href="#technical-indicators" id="toc-technical-indicators" class="nav-link" data-scroll-target="#technical-indicators"><span class="header-section-number">4.1.5</span> Technical Indicators</a></li>
+  <li><a href="#autoregressive-variables" id="toc-autoregressive-variables" class="nav-link" data-scroll-target="#autoregressive-variables"><span class="header-section-number">4.1.6</span> Autoregressive Variables</a></li>
+  </ul></li>
+  <li><a href="#reward-function" id="toc-reward-function" class="nav-link" data-scroll-target="#reward-function"><span class="header-section-number">4.2</span> Reward Function</a>
+  <ul class="collapse">
+  <li><a href="#differential-sharpe-ratio" id="toc-differential-sharpe-ratio" class="nav-link" data-scroll-target="#differential-sharpe-ratio"><span class="header-section-number">4.2.1</span> Differential Sharpe Ratio</a></li>
+  <li><a href="#other-reward-functions" id="toc-other-reward-functions" class="nav-link" data-scroll-target="#other-reward-functions"><span class="header-section-number">4.2.2</span> Other Reward Functions</a></li>
+  </ul></li>
+  <li><a href="#value-function" id="toc-value-function" class="nav-link" data-scroll-target="#value-function"><span class="header-section-number">4.3</span> Value Function</a></li>
+  <li><a href="#policy" id="toc-policy" class="nav-link" data-scroll-target="#policy"><span class="header-section-number">4.4</span> Policy</a></li>
+  <li><a href="#step-size" id="toc-step-size" class="nav-link" data-scroll-target="#step-size"><span class="header-section-number">4.5</span> Step Size</a></li>
+  </ul></li>
+  <li><a href="#implementation-of-the-trading-agent" id="toc-implementation-of-the-trading-agent" class="nav-link" data-scroll-target="#implementation-of-the-trading-agent"><span class="header-section-number">5</span> Implementation of the Trading Agent</a>
+  <ul class="collapse">
+  <li><a href="#design-of-the-research" id="toc-design-of-the-research" class="nav-link" data-scroll-target="#design-of-the-research"><span class="header-section-number">5.1</span> Design of the research</a>
+  <ul class="collapse">
+  <li><a href="#assumption" id="toc-assumption" class="nav-link" data-scroll-target="#assumption"><span class="header-section-number">5.1.1</span> Assumption</a></li>
+  <li><a href="#experimental-environment" id="toc-experimental-environment" class="nav-link" data-scroll-target="#experimental-environment"><span class="header-section-number">5.1.2</span> Experimental Environment</a></li>
+  <li><a href="#experimental-procedure" id="toc-experimental-procedure" class="nav-link" data-scroll-target="#experimental-procedure"><span class="header-section-number">5.1.3</span> Experimental Procedure</a></li>
+  </ul></li>
+  <li><a href="#data-preparation" id="toc-data-preparation" class="nav-link" data-scroll-target="#data-preparation"><span class="header-section-number">5.2</span> Data Preparation</a>
+  <ul class="collapse">
+  <li><a href="#data-collection" id="toc-data-collection" class="nav-link" data-scroll-target="#data-collection"><span class="header-section-number">5.2.1</span> Data Collection</a></li>
+  </ul></li>
+  <li><a href="#data-preparation-1" id="toc-data-preparation-1" class="nav-link" data-scroll-target="#data-preparation-1"><span class="header-section-number">5.3</span> Data Preparation</a></li>
+  <li><a href="#raw-data-schema" id="toc-raw-data-schema" class="nav-link" data-scroll-target="#raw-data-schema"><span class="header-section-number">5.4</span> Raw Data Schema</a>
+  <ul class="collapse">
+  <li><a href="#data-preprocessing" id="toc-data-preprocessing" class="nav-link" data-scroll-target="#data-preprocessing"><span class="header-section-number">5.4.1</span> Data Preprocessing</a></li>
+  <li><a href="#feature-engineering" id="toc-feature-engineering" class="nav-link" data-scroll-target="#feature-engineering"><span class="header-section-number">5.4.2</span> Feature Engineering</a></li>
+  <li><a href="#data-splitting" id="toc-data-splitting" class="nav-link" data-scroll-target="#data-splitting"><span class="header-section-number">5.4.3</span> Data Splitting</a></li>
+  </ul></li>
+  <li><a href="#code" id="toc-code" class="nav-link" data-scroll-target="#code"><span class="header-section-number">5.5</span> Code</a>
+  <ul class="collapse">
+  <li><a href="#code-structure" id="toc-code-structure" class="nav-link" data-scroll-target="#code-structure"><span class="header-section-number">5.5.1</span> Code Structure</a></li>
+  <li><a href="#code-implementation" id="toc-code-implementation" class="nav-link" data-scroll-target="#code-implementation"><span class="header-section-number">5.5.2</span> Code Implementation</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#empirical-evaluation-and-performance-analysis" id="toc-empirical-evaluation-and-performance-analysis" class="nav-link" data-scroll-target="#empirical-evaluation-and-performance-analysis"><span class="header-section-number">6</span> Empirical Evaluation and Performance Analysis</a>
+  <ul class="collapse">
+  <li><a href="#statistical-validation" id="toc-statistical-validation" class="nav-link" data-scroll-target="#statistical-validation"><span class="header-section-number">6.1</span> Statistical Validation</a></li>
+  <li><a href="#robustness-assessment" id="toc-robustness-assessment" class="nav-link" data-scroll-target="#robustness-assessment"><span class="header-section-number">6.2</span> Robustness Assessment</a></li>
+  <li><a href="#performance-evaluation" id="toc-performance-evaluation" class="nav-link" data-scroll-target="#performance-evaluation"><span class="header-section-number">6.3</span> Performance Evaluation</a></li>
+  </ul></li>
+  <li><a href="#conclusions-and-future-work" id="toc-conclusions-and-future-work" class="nav-link" data-scroll-target="#conclusions-and-future-work"><span class="header-section-number">7</span> Conclusions and Future Work</a>
+  <ul class="collapse">
+  <li><a href="#summary-of-findings" id="toc-summary-of-findings" class="nav-link" data-scroll-target="#summary-of-findings"><span class="header-section-number">7.1</span> Summary of Findings</a></li>
+  <li><a href="#limitations-and-future-research" id="toc-limitations-and-future-research" class="nav-link" data-scroll-target="#limitations-and-future-research"><span class="header-section-number">7.2</span> Limitations and Future Research</a></li>
+  <li><a href="#implications-for-trading-systems" id="toc-implications-for-trading-systems" class="nav-link" data-scroll-target="#implications-for-trading-systems"><span class="header-section-number">7.3</span> Implications for Trading Systems</a></li>
+  <li><a href="#recommendations-for-practitioners" id="toc-recommendations-for-practitioners" class="nav-link" data-scroll-target="#recommendations-for-practitioners"><span class="header-section-number">7.4</span> Recommendations for Practitioners</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">7.5</span> Conclusion</a></li>
+  </ul></li>
+  <li><a href="#bibliography" id="toc-bibliography" class="nav-link" data-scroll-target="#bibliography"><span class="header-section-number">8</span> Bibliography</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="masters-thesis.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li><li><a href="masters-thesis.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Reinforcement Learning for Trading</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Krzysztof Wojdalski </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 3, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p>The conventional representation of trading floors as chaotic environments characterized by vocal trader interactions was historically accurate in the 1980s. However, the financial industry has since undergone substantial structural transformation.</p>
+<p>The financial sector has consistently functioned as an early adopter of computational innovations. This integration represents a strategic imperative—competitive advantage through technology frequently correlates with financial performance. Hence, the industry has systematically pioneered the deployment of state-of-the-art technologies, ranging from sophisticated Bloomberg terminal infrastructure in the 1990s to contemporary blockchain applications and ultra-low latency systems, all oriented toward maximizing operational efficiency.</p>
+<p>Trading entities, functioning as economic agents, aim to optimize market-derived profits. Multiple methodological approaches exist to achieve this objective. Various approaches exist across the investment spectrum: value investors like Benjamin Graham and Warren Buffett employ fundamental analysis with long-term horizons; quantitative firms such as Two Sigma utilize computational methods for systematic trading; while high-frequency trading entities like Citadel Securities implement ultra-low latency strategies to capitalize on microscopic price discrepancies.</p>
+<p>In recent years, methodologies predicated on artificial intelligence and machine learning algorithms have demonstrated increasing significance. This phenomenon correlates with computational processing capacity, decreasing infrastructure expenditure requirements, and empirical recognition of cognitive biases in human decision-making processes. A growing consensus within the literature suggests that algorithmic systems should supplement or potentially supersede human involvement in decision-making and execution processes <span class="citation" data-cites="Turner2015">Turner (<a href="#ref-Turner2015" role="doc-biblioref">2015</a>)</span>. The progressive automation of trading activities will likely continue its direction, contradicting the stereotypical trading floor representation.</p>
+<p>Although machine learning’s theoretical foundations date to the 1950s, its explicit implementation in trading contexts remains relatively limited. For example, in institutional foreign exchange trading, only entities with substantial capital resources and sophisticated quantitative infrastructure have developed effective machine learning trading systems <span class="citation" data-cites="Mosic2017">Mosic (<a href="#ref-Mosic2017" role="doc-biblioref">2017</a>)</span>.</p>
+<p>This research investigates potential applications of machine learning—specifically reinforcement learning methodologies—in developing trading systems capable of generating statistically significant positive outcomes.</p>
+<p>Currently, most systems documented in academic literature aim to maximize either absolute trading profits or risk-adjusted performance metrics. Despite numerous methodological approaches to create consistently profitable systems utilizing variables derived from financial econometrics, fundamental analysis, or machine learning algorithms, many have demonstrated suboptimal performance due to several factors, including:</p>
+<ul>
+<li>Large drawdowns resulting in excessive performance volatility</li>
+<li>High transaction costs rendering strategies impractical</li>
+<li>High computational complexity, particularly problematic for high-frequency trading</li>
+</ul>
+<p>Even when empirical research demonstrates exceptional results, upon publication, any competitive advantage tends to diminish through market efficiency mechanisms. Strategies with persistent alpha-generating capabilities must remain proprietary to maintain their effectiveness.</p>
+<section id="statistical-arbitrage" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="statistical-arbitrage"><span class="header-section-number">1.1</span> Statistical Arbitrage</h2>
+<p>In financial markets the term arbitrage means the practice of exploiting riskless opportunities to make profit. In the purest form, if an asset is priced differently at two different places and a trader has access to both then he would have an arbitrage opportunity. In practice financial markets are designed in such a way that any deterministic arbitrage opportunities vanish, i.e., are being exploited by market participants. Still there are patterns in the market which seem to be persistent. Strategies which use statistical techniques to extract highly reliable patterns and then carry out trades to exploit them are called statistical arbitrage strategies.</p>
+<p>Statistical arbitrage is a general term in which assets are put into baskets by market-based similarities. Once the relation between the co-moving financial instruments is found, any deviation from it can be exploited. If that relation is true than either one or both stocks are mispriced and a trader can take a long position on the undervalued one(s) and short position on the overvalued asset(s) to bet on their return to the prevalent relative price behaviour. Statistical arbitrage also fittingly resembles the fact that the strategy hedges risk from market movements. As the pair trade goes short and long on similar assets, the overall risk balance should cancel out and the strategy should be profitable without market risk exposure.</p>
+<p>To determine if a security is over- or undervalued one can either use some theoretic approach to determine what the absolute price of the security should be or one could use the idea of relative pricing. In this approach it is only of interest how one security is priced in relation to another security. Now to form a simple mean-reverting pair trading strategy the only thing that remains is a definition of what constitutes a reliable price relationship between the asset prices. There are many ways to identify such security pairs. One approach would be to measure fundamentals (such as some accountancy variables) of the firms. The statistical approach, which also makes the whole concept easily applicable in a system is to use cointegration.</p>
+<section id="statistical-arbitrage-vs-other-types-of-arbitrage" class="level3" data-number="1.1.1">
+<h3 data-number="1.1.1" class="anchored" data-anchor-id="statistical-arbitrage-vs-other-types-of-arbitrage"><span class="header-section-number">1.1.1</span> Statistical Arbitrage vs Other Types of Arbitrage</h3>
+<p>While statistical arbitrage relies on probabilistic relationships between securities, several other arbitrage types exist in financial markets, each with distinct characteristics:</p>
+<section id="classical-arbitrage" class="level4" data-number="1.1.1.1">
+<h4 data-number="1.1.1.1" class="anchored" data-anchor-id="classical-arbitrage"><span class="header-section-number">1.1.1.1</span> Classical Arbitrage</h4>
+<p>Classical arbitrage involves simultaneously trading two or more fungible instruments and converting between them to capture price differentials. At least one leg might involve derivatives:</p>
+<ul>
+<li><strong>ETF arbitrage</strong>: Buying an ETF while selling its constituent basket, then redeeming the ETF</li>
+<li><strong>ADR arbitrage</strong>: Selling an ADR while buying its underlying foreign stock and currency, then creating the ADR</li>
+<li><strong>Futures arbitrage</strong>: Buying a future while selling its underlying, holding both until expiration</li>
+</ul>
+</section>
+<section id="latency-arbitrage" class="level4" data-number="1.1.1.2">
+<h4 data-number="1.1.1.2" class="anchored" data-anchor-id="latency-arbitrage"><span class="header-section-number">1.1.1.2</span> Latency Arbitrage</h4>
+<p>Latency arbitrage leverages speed advantages to be first to complete trades triggered by discrete events. Examples include racing to take stale bids/offers on one exchange after observing trades on another, or using private fill prices to trade ahead of other participants.</p>
+</section>
+<section id="time-arbitrage" class="level4" data-number="1.1.1.3">
+<h4 data-number="1.1.1.3" class="anchored" data-anchor-id="time-arbitrage"><span class="header-section-number">1.1.1.3</span> Time Arbitrage</h4>
+<p>Time arbitrage captures spreads between buyers and sellers demanding liquidity at different periods. US equity wholesalers practice this by guaranteeing retail buy orders, expecting offsetting sell orders to follow. Opportunities also arise when linked instruments trade on exchanges with different operating hours.</p>
+</section>
+<section id="microstructure-arbitrage" class="level4" data-number="1.1.1.4">
+<h4 data-number="1.1.1.4" class="anchored" data-anchor-id="microstructure-arbitrage"><span class="header-section-number">1.1.1.4</span> Microstructure Arbitrage</h4>
+<p>This captures price dislocations using exchange-specific idiosyncrasies like matching semantics, fee treatment, and specialized order types. Common opportunities arise from non-continuous matching mechanisms such as opening/ closing auctions and their associated order types.</p>
+</section>
+<section id="statistical-arbitrage-1" class="level4" data-number="1.1.1.5">
+<h4 data-number="1.1.1.5" class="anchored" data-anchor-id="statistical-arbitrage-1"><span class="header-section-number">1.1.1.5</span> Statistical Arbitrage</h4>
+<p>Statistical arbitrage trades spreads between instruments based on probabilistic estimations of convergence (mean reversion) or divergence (momentum). The “dispersion trade” bets that index option prices should converge to weighted baskets of options on the index’s components. Unlike classical arbitrage, statistical arbitrage involves probability-based relationships that may break down, introducing additional risk elements.</p>
+<p><a href="https://medium.com/@brett_17026/a-taxonomy-of-arbitrage-trading-f6df2bc7abaa">A Taxonomy of Arbitrage Trading</a></p>
+</section>
+</section>
+<section id="critical-parameter-selection-and-optimization" class="level3" data-number="1.1.2">
+<h3 data-number="1.1.2" class="anchored" data-anchor-id="critical-parameter-selection-and-optimization"><span class="header-section-number">1.1.2</span> Critical Parameter Selection and Optimization</h3>
+</section>
+</section>
+<section id="scope-and-objectives-of-the-research" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="scope-and-objectives-of-the-research"><span class="header-section-number">1.2</span> Scope and Objectives of the Research</h2>
+<section id="hypothesis" class="level3" data-number="1.2.1">
+<h3 data-number="1.2.1" class="anchored" data-anchor-id="hypothesis"><span class="header-section-number">1.2.1</span> Hypothesis</h3>
+<p>The research is based on the following hypotheses:</p>
+<ol type="1">
+<li>AI-driven algorithms can deliver superior value by exceeding benchmark performance metrics in terms of both risk management and return generation</li>
+<li>Enhanced performance is particularly evident in high-frequency trading scenarios as well as across extended time horizons</li>
+<li>These algorithms demonstrate the capability to implicitly learn market patterns that would be impossible for humans to identify and efficiently select securities. In consequence, they generate alpha</li>
+</ol>
+</section>
+<section id="objectives-of-the-research" class="level3" data-number="1.2.2">
+<h3 data-number="1.2.2" class="anchored" data-anchor-id="objectives-of-the-research"><span class="header-section-number">1.2.2</span> Objectives of the Research</h3>
+<p>The primary research goal is to evaluate Reinforcement Learning-based algorithms for multiasset trading, with particular focus on pair trading strategies. The research objectives are structured in three interconnected phases:</p>
+<ol type="1">
+<li><strong>Design and Implementation</strong>
+<ul>
+<li>Develop both basic and extended Reinforcement Learning trading agents for pair trading applications</li>
+<li>Construct robust testing frameworks to evaluate agent performance</li>
+<li>Create agents capable of processing financial time series data</li>
+</ul></li>
+<li><strong>Testing and Evaluation</strong>
+<ul>
+<li>Assess agent performance on out-of-sample data against established benchmarks</li>
+<li>Measure performance using comprehensive risk-return metrics</li>
+<li>Analyze robustness under varying market conditions</li>
+<li>Determine if agents can outperform conventional trading approaches</li>
+</ul></li>
+<li><strong>Analysis and Implications</strong>
+<ul>
+<li>Examine agent learning evolution and pattern recognition capabilities</li>
+<li>Investigate how agents integrate with traditional pair trading methodologies</li>
+<li>Assess transaction cost management effectiveness</li>
+<li>Determine if agents can identify non-trivial patterns more efficiently than human traders</li>
+<li>Evaluate the feasibility of deployment in real-world trading environments</li>
+<li>Identify promising directions for future research</li>
+</ul></li>
+</ol>
+<p>The underlying premise is that these algorithms can systematically outperform benchmarks by detecting and exploiting market patterns that would remain imperceptible to human traders, potentially generating alpha in both high-frequency trading environment.</p>
+</section>
+<section id="methodological-framework" class="level3" data-number="1.2.3">
+<h3 data-number="1.2.3" class="anchored" data-anchor-id="methodological-framework"><span class="header-section-number">1.2.3</span> Methodological Framework</h3>
+</section>
+</section>
+<section id="thesis-organization-and-chapter-overview" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="thesis-organization-and-chapter-overview"><span class="header-section-number">1.3</span> Thesis Organization and Chapter Overview</h2>
+<p>This thesis is structured to provide a comprehensive framework for understanding reinforcement learning algorithms applied to trading contexts.</p>
+<p>The first section provides a detailed examination of the intersection between artificial intelligence methodologies and financial markets, exploring the historical relationship between quantitative finance and computational science.</p>
+<p>The second chapter presents a systematic review of selected literature from quantitative finance, examining both classical equilibrium models such as CAPM (the established paradigm in equity research) and contemporary approaches. This section evaluates advantages and limitations of various financial models, with particular emphasis on algorithmic trading methodologies employed in comparable research contexts.</p>
+<p>The third section analyzes machine learning frameworks, providing a theoretical basis for why reinforcement learning may represent an optimal approach for trading applications. It presents a taxonomic comparison of major machine learning categories to elucidate their methodological distinctions, introduces key reinforcement learning concepts with illustrative examples, and addresses potential limitations and implementation challenges associated with these algorithms.</p>
+<p>The fourth part details the experimental methodology, including research objectives, data characteristics, experimental design parameters, and empirical results. The primary objective was to develop trading agents capable of statistically outperforming established benchmarks on risk-adjusted performance measures in the foreign exchange market—agents characterized by statistical robustness, adaptive learning capability, and consistent performance metrics. This chapter presents the mathematical formulations and procedural implementations leading to the empirical results, examining each component of the trading system.</p>
+<p>The implemented algorithms utilize a dynamic optimization approach. Beyond a value function based on Differential Sharpe Ratio, the system incorporates various technical indicators such as Relative Strength Index to inform algorithmic decision-making processes. The methodology incorporates transaction cost models to simulate realistic trading conditions.</p>
+<p>The value function integrates multiple statistical measures, including Sharpe and Differential Sharpe Ratios, to capture both risk and return dimensions. The algorithm outputs agent actions in the discrete action space <span class="math inline">\({-1,0,1}\)</span>. The final section of this chapter evaluates the reinforcement learning-based trading system against two benchmark methodologies:</p>
+<ul>
+<li>A buy-and-hold strategy (maintaining consistent long positions in selected currency pairs)</li>
+<li>Random action generation—producing stochastic values in the domain of <span class="math inline">\({-1,0,1}\)</span> to determine positions in underlying pairs. This benchmark excludes transaction costs, as such a strategy would incur prohibitive cumulative costs with position changes occurring in approximately two-thirds of states.</li>
+</ul>
+<p>The concluding section presents a comparative analysis with similar research and proposes directions for future investigation, addressing research questions such as:</p>
+<ul>
+<li>What additional implementations could enhance performance metrics?</li>
+<li>What methodological limitations were encountered and how might they be addressed in subsequent research?</li>
+</ul>
+</section>
+</section>
+<section id="classical-finance-context-and-literature-review" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Classical Finance Context and Literature Review</h1>
+<p>The section introduces articles that correspond with the subject of the current thesis and are considered as fundamentals of modern finance. Specifically, the beginning contains financial market models. The next subchapter includes basic investment effectiveness indicators that implicitly or explicitly result from the fundamental formulas from the first subchapter.</p>
+<section id="capital-asset-pricing-model" class="level4" data-number="2.0.0.1">
+<h4 data-number="2.0.0.1" class="anchored" data-anchor-id="capital-asset-pricing-model"><span class="header-section-number">2.0.0.1</span> Capital Asset Pricing Model</h4>
+<p>Works considered as a fundament of quantitative finance and investments are <span class="citation" data-cites="Sharpe1964">Sharpe (<a href="#ref-Sharpe1964" role="doc-biblioref">1964</a>)</span>, <span class="citation" data-cites="Lintner1965">Lintner (<a href="#ref-Lintner1965" role="doc-biblioref">1965</a>)</span>, and <span class="citation" data-cites="Mossin1966">Mossin (<a href="#ref-Mossin1966" role="doc-biblioref">1966</a>)</span>. All these authors, almost simultaneously, formulated Capital Asset Pricing Model (CAPM) that describes dependability between rate of return and its risk, risk of the market portfolio, and risk premium.</p>
+<p>Assumptions in the model are as follows:</p>
+<ul>
+<li>Decisions in the model regard only one period,</li>
+<li>Market participants has risk aversion, i.e.&nbsp;their utility function is related with plus sign to rate of return, and negatively to variance of portfolio rate of return,</li>
+<li>Risk-free rate exists,</li>
+<li>Asymmetry of information non-existent,</li>
+<li>Lack of speculative transactions,</li>
+<li>Lack of transactional costs, taxes included,</li>
+<li>Market participants can buy a fraction of the asset,</li>
+<li>Both sides are price takers,</li>
+<li>Short selling exists,</li>
+</ul>
+<p>Described by the following model formula is as follows: <span class="math display">\[
+E(R_P)=R_F+\frac{\sigma_P}{\sigma_M}\times[E(R_M)-R_F]
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(E(R_P)\)</span> – the expected portfolio rate of return,</li>
+<li><span class="math inline">\(E(R_M)\)</span> – the expected market rate of return,</li>
+<li><span class="math inline">\(R_F\)</span> – risk-free rate,</li>
+<li><span class="math inline">\(\sigma_P\)</span> – the standard deviation of the rate of return on the portfolio,</li>
+<li><span class="math inline">\(\sigma_M\)</span> – the standard deviation of the rate of return on the market portfolio.</li>
+</ul>
+<p><span class="math inline">\(E(R_P)\)</span> function is also known as Capital Market Line (CML). Any portfolio lies on that line is effective, i.e.&nbsp;its rate of return corresponds to embedded risk. The next formula includes all portfolios, single assets included. It is also known as Security Market Line (SML) and is given by the following equation: <span class="math display">\[ \label{eq:erl}
+E(R_i)=R_F+\beta_i\times[E(R_M)-R_F]
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(E(R_i)\)</span> – the expected <span class="math inline">\(i\)</span>-th portfolio rate of return,</li>
+<li><span class="math inline">\(E(R_M)\)</span> – the expected market rate of return,</li>
+<li><span class="math inline">\(R_F\)</span> – risk-free rate,</li>
+<li><span class="math inline">\(\beta_i\)</span> – Beta factor of the <span class="math inline">\(i\)</span>-th portfolio.</li>
+</ul>
+</section>
+<section id="the-modern-portfolio-theory" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="the-modern-portfolio-theory"><span class="header-section-number">2.1</span> The Modern Portfolio Theory</h2>
+<p>The following section discuss the Modern Portfolio Theory developed by Henry Markowitz <span class="citation" data-cites="Markowitz1952">Stulz (<a href="#ref-Markowitz1952" role="doc-biblioref">1995</a>)</span>. The author introduced the model in which the goal (investment criteria) is not only to maximize the return but also to minimize the variance. He claimed that by combining assets in different composition it is possible to obtain the portfolios with the same return but different levels of risk. The risk reduction is possible by diversification, i.e.&nbsp;giving proper weights for each asset in the portfolio. Variance of portfolio value can be effectively reduced by analyzing mutual relations between returns on assets with use of methods in statistics (correlation and covariance matrices). It is important to say that any additional asset in portfolio reduces minimal variance for a given portfolio but it is the correlation what really impacts the magnitude. The Markowitz theory implies that for any assumed expected return there is the only one portfolio that minimizes risk. Alternatively, there is only one portfolio that maximizes return for the assumed risk level. The important term, which is brought in literature, is the effective portfolio, i.e.&nbsp;the one that meets conditions above. The combination of optimal portfolios on the bullet.</p>
+<!-- ![Efficient Frontier](../../figures/markowitz_frontier.jpg) -->
+<p>The Markowitz concept is determined by the assumption that investors are risk-averse. This observation is described by the following formula:</p>
+<p><span class="math display">\[
+E(U)&lt;U(E(X))
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(E(U)\)</span> – the expected value of utility from payoff;</li>
+<li><span class="math inline">\(U(E(X))\)</span> – utility of the expected value of payoff.</li>
+</ul>
+<p>The expected value of payoff is given by the following formula: <span class="math display">\[
+E(U)=\sum_{i=1}^{n}\pi_iU(c_i)
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(\pi_i\)</span> – probability of the <span class="math inline">\(c_i\)</span> payoff,</li>
+<li><span class="math inline">\(U(c_i)\)</span> – utility from the <span class="math inline">\(c_i\)</span> payoff.</li>
+</ul>
+<p>One of the MPT biggest flaws is the fact that it is used for ex post analysis. Correlation between assets changes overtime so results must be recalculated. Real portfolio risk may be underestimated. Also, time window can influence the results.</p>
+</section>
+<section id="efficient-market-hypothesis" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="efficient-market-hypothesis"><span class="header-section-number">2.2</span> Efficient Market Hypothesis</h2>
+<p>In 1965, Eugene Fama introduced the efficient market term. Fama claimed that an efficient market is one that instantaneously discounts new information arrival in the market price of a given asset. Because this definition applies to financial markets, it determined the further belief that it is not possible to beat the market because assets are correctly priced. Also, if this hypothesis were true, market participants could not be better or worse. Their portfolio return would be a function of new, unpredictable information. In that respect, the only role of an investor is to manage assets so that the risk is acceptable. <span class="citation" data-cites="Fama1965">Fama (<a href="#ref-Fama1965" role="doc-biblioref">1965</a>)</span></p>
+<p>It is highly unlikely that EMH exists in its strongest form due to successful quantitative hedge funds that consistently beat the markets. For instance, Renaissance Technologies hedge fund generated on average 40% per annum in the last 30 years <span class="citation" data-cites="Shen2017">Shen (<a href="#ref-Shen2017" role="doc-biblioref">2017</a>)</span>.</p>
+<p>Formally, Efficient Market Hypothesis states that a market is efficient with respect to information set <span class="math inline">\(F_t\)</span> if it is impossible to make economic profits by trading on the basis of that information set. In other words, it is not possible to achieve any better than risk-adjusted average rate of return. In its essence, that claim is consistent with classical price theory <span class="citation" data-cites="Weber2012">Weber (<a href="#ref-Weber2012" role="doc-biblioref">2012</a>)</span>. Over time, other versions (forms) of the EMH have been introduced - weak, semi-strong, and strong <span class="citation" data-cites="Fama1970">Fama, E. F.;Malkiel (<a href="#ref-Fama1970" role="doc-biblioref">1970</a>)</span>.</p>
+<p>According to this form, investors cannot achieve above-normal returns by analyzing historical price patterns and trading volumes to forecast future price movements. Nevertheless, fundamental analysis may still yield exceptional results since markets are not entirely efficient at identifying under or overvalued securities. Therefore, market participants can potentially discover profitable investment opportunities through thorough examination of companies’ financial reports.</p>
+<p>It states that neither technical nor fundamental analysis can be exploited for gaining superior returns, and only non-public material information might help in achieving above average results.</p>
+<p>The strong form rejects the idea of any possibility of consistently beating the market. According to this idea, any kind of information, public or non-public, is completely embedded into current financial asset prices. In other words, there is no advantage for anyone in the market. Returns that deviate from expected values are attributed to pure randomness.</p>
+<section id="critic-of-strong-form-of-the-emh" class="level4" data-number="2.2.0.1">
+<h4 data-number="2.2.0.1" class="anchored" data-anchor-id="critic-of-strong-form-of-the-emh"><span class="header-section-number">2.2.0.1</span> Critic of strong form of the EMH</h4>
+<p>There are at least a few documented anomalies that contradicts with efficient market hypothesis. For example, price/earnings (P/E) measure can help in systematically outperforming stocks <span class="citation" data-cites="Malkiel2003">Malkiel (<a href="#ref-Malkiel2003" role="doc-biblioref">2003</a>)</span>. The neglected firm effect claims that “uninteresting” companies, often ignored by market analysts are sometimes incorrectly priced, and offer investors potentially fruitful opportunities. Another phenomenon that cannot be explained by the strong form of EMH is so called the January effect <span class="citation" data-cites="Haug2006">Haug and Hirschey (<a href="#ref-Haug2006" role="doc-biblioref">2006</a>)</span>. According to the authors of “The January Effect” working paper, returns reached in January has predictive power for the upcoming 11 months. It persists for both small and large cap companies.</p>
+<p>Although the strongest form in its essence is justified, logically correct, it is rather unlikely that it explains the reality, even due to the effects mentioned above.</p>
+</section>
+</section>
+<section id="factor-models" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="factor-models"><span class="header-section-number">2.3</span> Factor Models</h2>
+</section>
+<section id="modern-approaches-in-algorithmic-trading" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="modern-approaches-in-algorithmic-trading"><span class="header-section-number">2.4</span> Modern Approaches in Algorithmic Trading</h2>
+</section>
+<section id="critical-analysis-of-traditional-financial-models" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="critical-analysis-of-traditional-financial-models"><span class="header-section-number">2.5</span> Critical Analysis of Traditional Financial Models</h2>
+<section id="criticism-of-the-efficient-market-hypothesis-and-modern-portfolio-theory" class="level3" data-number="2.5.1">
+<h3 data-number="2.5.1" class="anchored" data-anchor-id="criticism-of-the-efficient-market-hypothesis-and-modern-portfolio-theory"><span class="header-section-number">2.5.1</span> Criticism of the Efficient Market Hypothesis and Modern Portfolio Theory</h3>
+<p>The Efficient Market Hypothesis (EMH) posits that investors cannot earn excess returns on a risk-adjusted basis. Complementarily, Markowitz’s Modern Portfolio Theory (MPT) provides a framework for constructing portfolios that optimize risk-return profiles based on available investment options.</p>
+<p>If markets are truly efficient as EMH suggests, portfolios constructed using the Markowitz framework would not generate excess returns. However, if market inefficiencies exist, these portfolios could potentially earn returns exceeding market benchmarks. Notably, MPT allows investors to incorporate subjective views regarding expected asset returns, contributing to its widespread applicability and Markowitz’s Nobel Prize recognition.</p>
+<p>Both theories gained popularity synergistically and share similar criticisms. Despite MPT becoming an industry standard, it faces several significant limitations:</p>
+<ol type="1">
+<li><p><strong>Problematic Risk Measurement</strong>: MPT treats upside and downside price movements equally in risk calculations. It also assumes constant volatility, whereas real-world markets demonstrate volatility clustering across various time horizons.</p></li>
+<li><p><strong>Simplified Cash Flow Assumptions</strong>: The model ignores transaction costs and tax implications. It also fails to account for investor preferences regarding dividend income.</p></li>
+<li><p><strong>Unrealistic Liquidity Assumptions</strong>: MPT assumes investors can take arbitrarily large positions at current market prices without affecting those prices, contradicting market impact realities.</p></li>
+<li><p><strong>Idealized Investor Behavior</strong>: The theory presumes all market participants are rational, risk-averse, and share identical investment time horizons.</p></li>
+</ol>
+</section>
+</section>
+<section id="selected-investment-performance-measures" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="selected-investment-performance-measures"><span class="header-section-number">2.6</span> Selected investment performance measures</h2>
+<p>Literature review does not explicitly mention performance metrics. Nevertheless, the theoretical frameworks established by these scholars remain valuable, as they constitute the foundation for numerous measures. The widespread adoption of these indicators can be attributed to their accessibility and interpretability for typical investors (Marte, 2012).</p>
+<p>Sharpe (1966) introduced the <span class="math inline">\(\frac{R}{V}\)</span> indicator, commonly known as the Sharpe Ratio (<span class="math inline">\(S\)</span>), expressed by the formula: <span class="math display">\[
+S_i=\frac{E(R_i-R_F)}{\sigma_i}
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(R_i\)</span> – the <span class="math inline">\(i\)</span>-th portfolio rate of return,</li>
+<li><span class="math inline">\(R_F\)</span> – risk-free rate</li>
+<li><span class="math inline">\(\sigma_i\)</span> – the standard deviation of the rate of return on the <span class="math inline">\(i\)</span>-th portfolio.</li>
+</ul>
+<p>Treynor (1965) proposed an alternative approach using <span class="math inline">\(\beta_i\)</span> instead of <span class="math inline">\(\sigma_i\)</span> in the denominator. This formulation is expressed as: <span class="math display">\[
+T_i=\frac{R_i-R_F}{\beta_i}
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(R_i\)</span> – the <span class="math inline">\(i\)</span>-th portfolio rate of return,</li>
+<li><span class="math inline">\(R_F\)</span> – Risk-free rate</li>
+<li><span class="math inline">\(\beta_i\)</span> – Beta factor of the <span class="math inline">\(i\)</span>-th portfolio.</li>
+</ul>
+<p>Both <span class="math inline">\(S\)</span> and <span class="math inline">\(T\)</span> indicators are relative measures. Their values should be compared against a benchmark to determine whether a portfolio is effectively managed. Higher (lower) values indicate that the analyzed portfolios performed better (worse) than the benchmark.</p>
+<p>Jensen’s alpha constitutes an absolute performance metric that quantifies the differential between realized returns and those predicted by the Capital Asset Pricing Model. Positive values signify outperformance relative to theoretical expectations for the <span class="math inline">\(i\)</span>-th portfolio. This measure, which enjoys substantial credibility among professionals, is mathematically defined as:</p>
+<p><span class="math display">\[
+\alpha_i=R_i-R_F-\beta_i(R_m-R_F)
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(R_i\)</span> – the <span class="math inline">\(i\)</span>-th portfolio rate of return,</li>
+<li><span class="math inline">\(R_F\)</span> – Risk-free rate</li>
+<li><span class="math inline">\(\beta_i\)</span> – Beta factor of the <span class="math inline">\(i\)</span>-th portfolio.</li>
+</ul>
+<p>Drawdown measures the decline from a historical peak in an asset. The formula is expressed as:</p>
+<p><span class="math display">\[
+D(T)=\max\{max_{0, t\in (0,T)} X(t)-X(\tau)\}
+\]</span></p>
+<p>The Sterling ratio (SR)</p>
+<p>The maximum drawdown (MDD) at time <span class="math inline">\(T\)</span> represents the maximum Drawdown over the asset’s historical trajectory, expressed as:</p>
+<p><span class="math display">\[
+MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
+\]</span></p>
+</section>
+<section id="empirical-evidence-against-perfect-market-efficiency" class="level2" data-number="2.7">
+<h2 data-number="2.7" class="anchored" data-anchor-id="empirical-evidence-against-perfect-market-efficiency"><span class="header-section-number">2.7</span> Empirical Evidence Against Perfect Market Efficiency</h2>
+<section id="market-anomalies" class="level3" data-number="2.7.1">
+<h3 data-number="2.7.1" class="anchored" data-anchor-id="market-anomalies"><span class="header-section-number">2.7.1</span> Market Anomalies</h3>
+</section>
+</section>
+<section id="key-concepts-from-reinforcement-learning" class="level2" data-number="2.8">
+<h2 data-number="2.8" class="anchored" data-anchor-id="key-concepts-from-reinforcement-learning"><span class="header-section-number">2.8</span> Key Concepts from Reinforcement Learning</h2>
+</section>
+<section id="seminal-works-in-rl" class="level2" data-number="2.9">
+<h2 data-number="2.9" class="anchored" data-anchor-id="seminal-works-in-rl"><span class="header-section-number">2.9</span> Seminal Works in RL</h2>
+</section>
+<section id="rl-applications-in-trading-systems" class="level2" data-number="2.10">
+<h2 data-number="2.10" class="anchored" data-anchor-id="rl-applications-in-trading-systems"><span class="header-section-number">2.10</span> RL Applications in Trading Systems</h2>
+</section>
+</section>
+<section id="machine-learning" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Machine Learning</h1>
+<p>In this chapter, the term <strong>machine learning</strong> and its subfields are explained. The discussion also encompasses potential applications for trading financial instruments.</p>
+<p>As the field evolves, numerous definitions of machine learning emerge from various sources. In this subchapter, the author has selected definitions that accurately capture the essence of the discipline.</p>
+<p>What is machine learning? The most widely accepted definitions are as follows:</p>
+<ul>
+<li>“Field of study that gives computers the ability to learn without being explicitly programmed.” - Arthur Samuel, a pioneer in machine learning and computer gaming <span class="citation" data-cites="Samuel1959">Samuel (<a href="#ref-Samuel1959" role="doc-biblioref">1959</a>)</span></li>
+<li>“A computer program is said to learn from experience <span class="math inline">\(E\)</span> with respect to some class of tasks <span class="math inline">\(T\)</span> and performance measure <span class="math inline">\(P\)</span>, if its performance at tasks in <span class="math inline">\(T\)</span>, as measured by <span class="math inline">\(P\)</span>, improves with experience <span class="math inline">\(E\)</span>.” - Tom Mitchell, a computer scientist and E. Fredkin University Professor at Carnegie Mellon University (CMU) <span class="citation" data-cites="Mitchell1997">Mitchell (<a href="#ref-Mitchell1997" role="doc-biblioref">1997</a>)</span></li>
+</ul>
+<p>The latter is particularly regarded as an elegant and modern definition. Less formal, but equally relevant observations come from textbook authors in the discipline:</p>
+<ul>
+<li>“Pattern recognition has its origins in engineering, whereas machine learning grew out of computer science. However, these activities can be viewed as two facets of the same field…” - Christopher Bishop</li>
+<li>“One of the most interesting features of machine learning is that it lies on the boundary of several different academic disciplines, principally computer science, statistics, mathematics, and engineering. …machine learning is usually studied as part of artificial intelligence, which puts it firmly into computer science …understanding why these algorithms work requires a certain amount of statistical and mathematical sophistication that is often missing from computer science undergraduates.” - Stephen Marsland <span class="citation" data-cites="Marsland2009">Marsland (<a href="#ref-Marsland2009" role="doc-biblioref">2009</a>)</span></li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../../figures/data_science.png" height="400" class="figure-img"></p>
+<figcaption>Data Science Graph</figcaption>
+</figure>
+</div>
+<p>Despite numerous concepts and perspectives on what machine learning entails, the general objective remains consistent: Machine learning involves building models that sufficiently resemble reality, are optimal with respect to a value function, and can subsequently be utilized for predictions on new data.</p>
+<section id="why-is-machine-learning-important" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="why-is-machine-learning-important"><span class="header-section-number">3.1</span> Why is machine learning important?</h2>
+<p>Machine learning facilitates solving problems that are difficult or impossible to address deterministically <span class="citation" data-cites="Jason2013">Jason (<a href="#ref-Jason2013" role="doc-biblioref">2013</a>)</span>. Variables may be missing or observed values may contain embedded errors. Traditional models are often susceptible to being under- or overdetermined. They may fail to generalize adequately or may be excessively general. An appropriate machine learning model should provide an approximate solution incorporating only relevant components.</p>
+</section>
+<section id="classification-of-machine-learning-algorithms" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="classification-of-machine-learning-algorithms"><span class="header-section-number">3.2</span> Classification of machine learning algorithms</h2>
+<p>In machine learning (ML), tasks are categorized based on how learning/feedback (<span class="math inline">\(P\)</span>) is received and/or the type of problem they address. The following categories can be distinguished:</p>
+<section id="supervised-learning" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="supervised-learning"><span class="header-section-number">3.2.1</span> Supervised Learning</h3>
+<ul>
+<li><p>Supervised Learning - the complete set <span class="math inline">\((Y_t;X_{t, 1}, ..., X_{t,n})\)</span> is available. The objective is to model the target variable <span class="math inline">\(Y_t\)</span> using a subset of <span class="math inline">\(X_t\)</span> variables, i.e., find a functional relationship <span class="math inline">\(Y_t = f(\mathbb{X_t})\)</span> between input and output variables that minimizes a predefined loss function <span class="math inline">\(g(f(\mathbb{X}_t);Y_t)\)</span>. The structural form of this relationship is constrained by the class of functions considered. For example, assuming a linear relationship between input and output variables with a square loss function, the problem becomes: <span class="math display">\[\min_{b_1\dots b_n}\mathbb{E}[(Y_t-(b_1X_{t,1}+\dots+b_nX_{t,n}))^2]\]</span></p>
+<p>The estimation method above is known as the least squares method for linear regression. Despite its simplicity, it often yields sufficient results. Other popular supervised learning methods include:</p>
+<ul>
+<li>K-nearest neighbors, Neural Networks</li>
+<li>SVM - Support Vector Machines</li>
+<li>Random Forests</li>
+</ul></li>
+</ul>
+<p>Supervised learning represents a fundamental paradigm in machine learning where algorithms learn from labeled training data to make predictions or decisions without explicit programming. At its core, supervised learning involves a dataset consisting of input-output pairs, where each example contains features (input variables) and their corresponding target values or labels (output variables). The primary objective is to learn a mapping function that can accurately predict the output value for new, previously unseen inputs.</p>
+<p>Formally, given a dataset of pairs <span class="math inline">\({(X_1, Y_1), (X_2, Y_2), ..., (X_n, Y_n)}\)</span>, where <span class="math inline">\(X_i\)</span> represents the feature vector and <span class="math inline">\(Y_i\)</span> is the corresponding target value, supervised learning aims to find a function <span class="math inline">\(f\)</span> such that <span class="math inline">\(Y = f(X)\)</span> which minimizes a predefined loss function <span class="math inline">\(L(f(X), Y)\)</span>. The function <span class="math inline">\(f\)</span> is constrained by the model class chosen for the task, which determines the complexity and expressiveness of the relationships that can be captured.</p>
+<p>The mathematical foundation of supervised learning lies in statistical learning theory and optimization. For instance, in a linear regression model, we seek parameters <span class="math inline">\(\beta\)</span> that minimize the sum of squared errors: <span class="math inline">\(\min_{\beta} \sum (Y_i - X_i\beta)^2\)</span>. In more complex models like neural networks, we optimize weights and biases across multiple layers using gradient-based methods to minimize error functions across the entire training dataset.</p>
+<p>Supervised learning tasks typically fall into two main categories: - Classification: When the output variable <span class="math inline">\(Y\)</span> is categorical or discrete (e.g., spam/not spam, fraud/legitimate, image categories) - Regression: When the output variable <span class="math inline">\(Y\)</span> is continuous (e.g., stock prices, temperature, house prices)</p>
+<p>The choice of algorithm depends on various factors including the nature of the problem, dataset characteristics, computational resources, and the desired balance between model interpretability and predictive performance. Common supervised learning algorithms include:</p>
+<ul>
+<li>Linear models: Linear regression for regression tasks and logistic regression for classification</li>
+<li>Tree-based methods: Decision trees, random forests, and gradient boosting machines</li>
+<li>Support vector machines: Effective for both classification and regression with high-dimensional data</li>
+<li>K-nearest neighbors: A non-parametric method that makes predictions based on similarity measures</li>
+<li>Neural networks: Deep learning architectures capable of capturing complex non-linear relationships</li>
+<li>Ensemble methods: Combining multiple models to improve overall performance and robustness</li>
+</ul>
+<p>A critical aspect of supervised learning is the bias-variance tradeoff. Simple models may underfit the data (high bias), failing to capture important patterns, while overly complex models may overfit (high variance), learning noise rather than underlying relationships. Techniques such as regularization, cross-validation, and ensemble methods help manage this tradeoff to create models that generalize well to unseen data.</p>
+<p>In financial applications, supervised learning has become important for various tasks such as price prediction, risk assessment, credit scoring, fraud detection, and market sentiment analysis. For instance, in predicting stock prices, historical market data with known outcomes serves as the training set, where features might include technical indicators, fundamental data, and macroeconomic variables, while the target variable could be future price movements or returns.</p>
+<p>The effectiveness of supervised learning models for financial markets is often challenged by the non-stationary nature of markets, where relationships between variables change over time and in the presence of noise. This necessitates continuous model updating and validation against recent data. Additionally, feature engineering—the process of creating relevant variables from raw data—plays a crucial role in financial applications, often requiring domain expertise to identify meaningful predictors.</p>
+</section>
+<section id="unsupervised-learning" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="unsupervised-learning"><span class="header-section-number">3.2.2</span> Unsupervised Learning</h3>
+<ul>
+<li>Unsupervised learning - this category deals exclusively with the <span class="math inline">\(\mathbb{X_t}\)</span> set. The goal is to identify patterns within the dataset and categorize observations. The most prevalent methods include:
+<ul>
+<li>Clustering - based on finding groups of instances that are as similar as possible to observations within the same group while being as different as possible from observations in other groups</li>
+<li>Feature extraction - this subcategory comprises methods for extracting relevant variables from a set <span class="math inline">\(\mathbb{X}_t\)</span>. Often, a subset of a dataset can contain a similar amount of information as the original while reducing dimensionality, thereby enhancing computational efficiency and improving the model in accordance with Occam’s Razor.</li>
+<li>Anomaly detection - this approach aids in identifying outlier observations that warrant careful investigation. Variables may require transformation or invalid observations may need removal.</li>
+</ul></li>
+</ul>
+<p>Unsupervised learning represents a paradigm in machine learning where algorithms learn patterns and structures from unlabeled data without explicit guidance. Unlike supervised learning, there are no target outputs or labels to guide the learning process. Instead, the algorithm discovers the inherent structure within the data itself.</p>
+<p>Formally, in unsupervised learning, the dataset consists of a collection of unlabeled examples <span class="math inline">\({X_1, X_2, ..., X_N}\)</span>, where each <span class="math inline">\(X_i\)</span> represents a feature vector. The primary objective is to create a model that processes these feature vectors to either transform them into another representation or extract meaningful patterns that can solve practical problems.</p>
+<p>The mathematical foundation of unsupervised learning involves finding patterns, relationships, or structures within the data space. For instance, in clustering algorithms, we seek to minimize within-cluster distances while maximizing between-cluster distances, often expressed as optimization problems such as minimizing <span class="math inline">\(\sum_{i=1}^k \sum_{x \in C_i} ||x - \mu_i||^2\)</span> where <span class="math inline">\(C_i\)</span> represents clusters and <span class="math inline">\(\mu_i\)</span> their centroids.</p>
+<p>Unsupervised learning encompasses several key application areas:</p>
+<ul>
+<li><p><strong>Clustering</strong>: Identifying natural groupings within data where instances within the same cluster exhibit high similarity while being dissimilar to instances in other clusters. Common algorithms include K-means, hierarchical clustering, and DBSCAN.</p></li>
+<li><p><strong>Dimensionality Reduction</strong>: Transforming high-dimensional data into lower-dimensional representations while preserving essential information. Techniques such as Principal Component Analysis (PCA), t-SNE, and autoencoders fall into this category.</p></li>
+<li><p><strong>Density Estimation</strong>: Modeling the probability distribution that generates the observed data, enabling better understanding of data characteristics and generation of new samples. Methods include Gaussian Mixture Models and kernel density estimation.</p></li>
+<li><p><strong>Anomaly Detection</strong>: Identifying instances that deviate significantly from the norm or expected patterns within the dataset. These outliers often represent rare events, errors, or fraudulent activities that warrant special attention.</p></li>
+<li><p><strong>Feature Learning</strong>: Automatically discovering useful representations from raw data that can subsequently enhance performance in downstream tasks, including supervised learning problems.</p></li>
+</ul>
+<p>In financial applications, unsupervised learning proves valuable for market segmentation, identifying trading patterns, detecting fraudulent transactions, and discovering latent factors driving market movements. The absence of labeled data makes unsupervised learning particularly useful in exploratory analysis and when dealing with novel or evolving financial phenomena where historical classifications may not exist or apply.</p>
+<p>The effectiveness of unsupervised learning in finance is often measured by metrics such as silhouette scores for clustering quality, explained variance for dimensionality reduction, or business impact metrics like improved portfolio diversification or fraud detection rates. As markets evolve and data complexity increases, unsupervised learning provides tools for uncovering hidden structures and relationships in financial data.</p>
+</section>
+<section id="semi-supervised-learning" class="level3" data-number="3.2.3">
+<h3 data-number="3.2.3" class="anchored" data-anchor-id="semi-supervised-learning"><span class="header-section-number">3.2.3</span> Semi-Supervised Learning</h3>
+<p>Semi-supervised learning represents a hybrid approach in machine learning where the dataset contains both labeled and unlabeled examples. Formally, the explanatory variables <span class="math inline">\(X_i\)</span> are available for all observations, but the labels <span class="math inline">\(Y_i\)</span> are only available for a subset of the data. Typically, the quantity of unlabeled examples significantly exceeds the number of labeled examples.</p>
+<p>The primary objective, similar to supervised learning, is to discover the relationship <span class="math inline">\(Y = f(X)\)</span>. This is generally accomplished through a strategic combination of supervised and unsupervised learning techniques. The underlying principle involves labeled observations effectively “diffusing” their labels to unlabeled observations that exhibit high similarity according to specific criteria.</p>
+<p>The appeal of semi-supervised learning lies in its ability to leverage large amounts of unlabeled data, which is often more abundant and less costly to obtain than labeled data. By incorporating these unlabeled examples, the learning algorithm can potentially develop a more robust and generalizable model than would be possible using only the limited labeled examples.</p>
+<p>Several key techniques in semi-supervised learning include:</p>
+<ul>
+<li><p><strong>Self-training</strong>: An iterative process where a model trained on labeled data makes predictions on unlabeled data, then adds high-confidence predictions to the training set.</p></li>
+<li><p><strong>Co-training</strong>: Using multiple views or feature subsets to train separate models that teach each other by labeling unlabeled examples for one another.</p></li>
+<li><p><strong>Graph-based methods</strong>: Constructing similarity graphs where nodes represent data points and edges represent similarities, allowing label propagation through the graph structure.</p></li>
+<li><p><strong>Generative models</strong>: Using techniques like Gaussian Mixture Models to model the joint distribution of features and labels.</p></li>
+<li><p><strong>Semi-supervised SVMs (S3VMs)</strong>: Extensions of Support Vector Machines that incorporate unlabeled data by seeking decision boundaries that avoid dense regions of unlabeled points.</p></li>
+</ul>
+</section>
+<section id="reinforcement-learning" class="level3" data-number="3.2.4">
+<h3 data-number="3.2.4" class="anchored" data-anchor-id="reinforcement-learning"><span class="header-section-number">3.2.4</span> Reinforcement Learning</h3>
+<p>Reinforcement learning (RL) represents a distinct paradigm in machine learning where an agent learns optimal behaviors through trial-and-error interactions with an environment. The agent perceives the environment’s state as a feature vector, executes actions, and receives rewards that may lead to new states.</p>
+<p>The fundamental objective in RL is to develop a policy—a function mapping states to actions that maximizes expected cumulative rewards over time. This approach differs significantly from both supervised and unsupervised learning paradigms.</p>
+<p>Key characteristics of reinforcement learning include:</p>
+<ul>
+<li><p><strong>Sequential Decision Making</strong>: RL addresses problems where decisions occur in sequence and have long-term implications.</p></li>
+<li><p><strong>Delayed Rewards</strong>: Actions may not yield immediate benefits but contribute to greater cumulative rewards in the future.</p></li>
+<li><p><strong>Exploration vs.&nbsp;Exploitation</strong>: Agents must balance discovering new potentially better strategies against utilizing known rewarding actions.</p></li>
+</ul>
+<p>RL is particularly well-suited for non-stationary environments where relationships between variables evolve over time. The agent continuously adapts its policy to changing conditions, making it valuable for financial applications where market dynamics constantly shift.</p>
+<p>This interdisciplinary field incorporates influences from engineering, economics, mathematics, neuroscience, psychology, and computer science. Applications span diverse domains including game playing, robotics, resource management, logistics, and financial trading strategies.</p>
+<p>Unlike supervised learning, RL does not rely on labeled examples that specify exactly what an algorithm should do. Instead, the agent must learn from its own actions, sense states, and accumulate experience. The only feedback received is a scalar reward signal.</p>
+<p>While unsupervised learning focuses on identifying structures in unlabeled datasets, RL specifically aims to maximize a long-run value function comprising summed (discounted) rewards. Finding data patterns may be useful, but it addresses a fundamentally different objective than the RL problem.</p>
+<p>The environment changes stochastically and interacts with the agent, requiring a policy design that balances exploration of new actions against exploitation of known solutions. This prevents purely greedy behavior that might lead to suboptimal outcomes.</p>
+</section>
+</section>
+<section id="algorithmic-trading-systems" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="algorithmic-trading-systems"><span class="header-section-number">3.3</span> Algorithmic Trading Systems</h2>
+<p>In its essence, the investor’s or trader’s main goals is to optimize some measure of trading system performance, such as risk-adjusted return, economic utility, or simple profit. In the work the author presented direct optimization methods, based on reinforcement learning. It is flexible and can work out for trading a single asset (+ risk-free instrument), but also a portfolio consisting of n-instruments. There are also other options which often directs to non-optimal solutions. In the following section the author brought up different types of algorithmic systems and outlines advantages, disadvantages and differences between them.</p>
+<section id="components-of-automated-trading-systems" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="components-of-automated-trading-systems"><span class="header-section-number">3.3.1</span> Components of Automated Trading Systems</h3>
+<section id="data-handlers" class="level4" data-number="3.3.1.1">
+<h4 data-number="3.3.1.1" class="anchored" data-anchor-id="data-handlers"><span class="header-section-number">3.3.1.1</span> Data Handlers</h4>
+</section>
+<section id="reference-data" class="level4" data-number="3.3.1.2">
+<h4 data-number="3.3.1.2" class="anchored" data-anchor-id="reference-data"><span class="header-section-number">3.3.1.2</span> Reference Data</h4>
+</section>
+<section id="optimization" class="level4" data-number="3.3.1.3">
+<h4 data-number="3.3.1.3" class="anchored" data-anchor-id="optimization"><span class="header-section-number">3.3.1.3</span> Optimization</h4>
+</section>
+<section id="execution" class="level4" data-number="3.3.1.4">
+<h4 data-number="3.3.1.4" class="anchored" data-anchor-id="execution"><span class="header-section-number">3.3.1.4</span> Execution</h4>
+</section>
+<section id="ui-ux" class="level4" data-number="3.3.1.5">
+<h4 data-number="3.3.1.5" class="anchored" data-anchor-id="ui-ux"><span class="header-section-number">3.3.1.5</span> UI / UX</h4>
+</section>
+</section>
+<section id="rule-based-trading-strategies" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="rule-based-trading-strategies"><span class="header-section-number">3.3.2</span> Rule-Based Trading Strategies</h3>
+<p>A rule-based strategy uses explicit, human-defined rules for buying and trading. These are interpretable and do not rely on forecasting models or machine-generated predictions but rather employ conditional logic where trading decisions follow deterministic paths based on market conditions. Typically, such rules derive from established market heuristics or technical analysis principles with proven effectiveness.</p>
+<p>The clear causal relationship between market conditions and trading actions provides transparency, allowing traders to understand exactly why positions change.</p>
+<p>Rule-based systems apply consistently across all market conditions, eliminating psychological biases and ensuring reproducible trading decisions. This deterministic nature enables straightforward performance evaluation</p>
+<p>The framework adapts to changing markets while maintaining its structure. Parameter optimization enhances performance while preserving core logic, allowing systematic evolution through iterative refinement.</p>
+<section id="example-cross-venue-arbitrage-strategy" class="level4" data-number="3.3.2.1">
+<h4 data-number="3.3.2.1" class="anchored" data-anchor-id="example-cross-venue-arbitrage-strategy"><span class="header-section-number">3.3.2.1</span> Example: Cross-Venue Arbitrage Strategy</h4>
+<p>Strategy exploits temporary price discrepancies of the same asset traded on different exchanges or venues.</p>
+<p>The arbitrage opportunity can be formalized through the price differential:</p>
+<p><span class="math display">\[D_t = P_{X,t} - P_{Y,t}\]</span></p>
+<p>where: - <span class="math inline">\(P_X\)</span> = price of asset on venue X - <span class="math inline">\(P_Y\)</span> = price of asset on venue Y</p>
+<p>In theoretically perfect market efficiency, this differential would approach zero after accounting for all transaction costs, as arbitrage opportunities would be immediately exploited by market participants.</p>
+<p>The trading signal generation follows this decision rule:</p>
+<p><span class="math display">\[\text{Signal} =
+\begin{cases}
+\text{BUY on Y, SELL on X}, &amp; \text{if } D_t &gt; \tau + c \\
+\text{BUY on X, SELL on Y}, &amp; \text{if } D_t &lt; -\tau - c \\
+\text{CLOSE POSITIONS}, &amp; \text{if } |D_t| &lt; \delta \\
+\text{HOLD}, &amp; \text{otherwise}
+\end{cases}\]</span></p>
+<p>where: - <span class="math inline">\(\tau\)</span> represents the entry threshold - <span class="math inline">\(\delta\)</span> represents the exit threshold - <span class="math inline">\(c\)</span> accounts for transaction costs including fees and slippage</p>
+<p>For instance, with <code>MSFT</code> stock listed on two electronic venues: <span class="math display">\[D_t = P_{\text{MSFT},\text{Venue1},t} - P_{\text{MSFT},\text{Venue2},t}\]</span></p>
+<p>If the price differential exceeds 3 pips plus transaction costs (<span class="math inline">\(\tau = 0.0003\)</span>), the strategy signals to buy on the venue offering the lower price and simultaneously sell on the venue with the higher price.</p>
+<p>The optimization problem for this strategy can be expressed as:</p>
+<p><span class="math display">\[\max_{\tau, \delta} \sum_{t=1}^{T} P_t(\tau, \delta) - TC_t\]</span></p>
+<p>where: - <span class="math inline">\(P_t(\tau, \delta)\)</span> represents the profit at time <span class="math inline">\(t\)</span> given thresholds <span class="math inline">\(\tau\)</span> and <span class="math inline">\(\delta\)</span> - <span class="math inline">\(TC_t\)</span> represents the transaction costs</p>
+</section>
+</section>
+</section>
+<section id="trading-based-on-forecasts" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="trading-based-on-forecasts"><span class="header-section-number">3.4</span> Trading based on Forecasts</h2>
+<p>Forecast-based trading systems employ supervised learning techniques to generate price predictions from a set of input variables. These systems optimize for statistical accuracy metrics such as mean squared error during the training phase.</p>
+<p>The forecasting process represents merely an intermediate step in the trading workflow. The predicted prices generated by the Forecasting System subsequently inform trading decisions within the Trading Rules module. Performance evaluation occurs through financial metrics in the Profits/Losses evaluation module <span class="math inline">\(U(\theta, \theta^{'})\)</span>. A significant limitation of this approach is that the Forecasting module typically outputs only the predicted price while discarding potentially valuable contextual information from the original inputs. This exemplifies a fundamental limitation in forecast-based trading systems: the information loss problem. When a system predicts that MSFT will reach $300 tomorrow based solely on technical indicators, it discards critical contextual variables such as abnormal trading volume and volatility patterns. The formal representation of this problem can be expressed as:</p>
+<p><span class="math display">\[f: X \rightarrow \hat{y}\]</span></p>
+<p>where: - <span class="math inline">\(X \in \mathbb{R}^n\)</span> represents the input space - <span class="math inline">\(\hat{y} \in \mathbb{R}\)</span> represents the scalar price prediction</p>
+<p>The dimensionality reduction from <span class="math inline">\(\mathbb{R}^n\)</span> to <span class="math inline">\(\mathbb{R}\)</span> results in significant information loss that may be crucial for optimal trading decisions.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<section id="training-a-trading-system-on-labeled-data" class="level4" data-number="3.4.0.1">
+<h4 data-number="3.4.0.1" class="anchored" data-anchor-id="training-a-trading-system-on-labeled-data"><span class="header-section-number">3.4.0.1</span> Training a Trading System on Labeled Data</h4>
+<p>This methodology employs direct integration between the Trading System and Input Series components. The system generates trading signals based on a corpus of labeled trades (training dataset), while execution occurs in response to market inputs (Input Series).</p>
+<p>Formally, the system can be represented as:</p>
+<p><span class="math display">\[f: X \rightarrow a\]</span></p>
+<p>where: - <span class="math inline">\(X \in \mathbb{R}^n\)</span> represents the input feature space - <span class="math inline">\(a \in A\)</span> denotes the action space (buy, sell, hold)</p>
+<p>The optimization objective can be expressed as:</p>
+<p><span class="math display">\[\min_{\theta} \mathcal{L}(\theta) = \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)\]</span></p>
+<p>where: - <span class="math inline">\(\theta\)</span> represents the model parameters - <span class="math inline">\(a_i^*\)</span> denotes the labeled optimal action for input <span class="math inline">\(X_i\)</span> - <span class="math inline">\(\ell\)</span> is a loss function measuring deviation from labeled actions</p>
+<p>The system’s operational efficacy is contingent upon the Trading Module’s capacity to extract and utilize information from both Input Series and Labeled Trades <span class="math inline">\(\theta^{'}\)</span>. A fundamental limitation exists in this approach: since optimization targets the Trading System rather than the utility function <span class="math inline">\(U(\theta, \theta^{'})\)</span>, the resultant solution typically exhibits sub-optimal characteristics in terms of financial performance.</p>
+</section>
+<section id="direct-optimization-of-performance" class="level4" data-number="3.4.0.2">
+<h4 data-number="3.4.0.2" class="anchored" data-anchor-id="direct-optimization-of-performance"><span class="header-section-number">3.4.0.2</span> Direct Optimization of Performance</h4>
+<p>In this modern approach, there is no intermediate step and labeled data is not given. The environment is observed, <span class="math inline">\(X_t\)</span>, the system carries out an action, and receives a scalar reward for its past activities, representing the trading performance in some form (e.g.&nbsp;rate of return). Based on this reward, the system alters the way it behaves in subsequent episodes and steps.</p>
+<p>For example, consider a reinforcement learning agent trading Microsoft (MSFT) stock. At time <span class="math inline">\(t\)</span>, the agent observes market state <span class="math inline">\(X_t\)</span> (e.g., MSFT price, volume, technical indicators) and selects action <span class="math inline">\(a_t \in \{-1,0,1\}\)</span> representing short, neutral, or long positions. The agent receives reward <span class="math inline">\(r_t\)</span> based on position value:</p>
+<p><span class="math display">\[r_t = a_{t-1} \cdot \frac{P^{\text{MSFT}}_t - P^{\text{MSFT}}_{t-1}}
+{P^{\text{MSFT}}_{t-1}}\]</span></p>
+<p>The agent optimizes policy <span class="math inline">\(\pi_\theta(a|X_t)\)</span> to maximize expected cumulative reward:</p>
+<p><span class="math display">\[\max_\theta \mathbb{E}\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]\]</span></p>
+<p>where <span class="math inline">\(\gamma \in [0,1]\)</span> is a discount factor prioritizing near-term returns.</p>
+</section>
+<section id="selected-aspects-of-reinforcement-learning" class="level3" data-number="3.4.1">
+<h3 data-number="3.4.1" class="anchored" data-anchor-id="selected-aspects-of-reinforcement-learning"><span class="header-section-number">3.4.1</span> Selected aspects of reinforcement learning</h3>
+<p>This section examines pertinent aspects and challenges within the reinforcement learning paradigm.</p>
+<section id="components-of-a-reinforcement-learning-system" class="level4" data-number="3.4.1.1">
+<h4 data-number="3.4.1.1" class="anchored" data-anchor-id="components-of-a-reinforcement-learning-system"><span class="header-section-number">3.4.1.1</span> Components of a reinforcement learning system</h4>
+<p>Reinforcement learning systems are designed to address sequential decision-making problems by selecting actions that maximize cumulative discounted future rewards. The following section explains the components of reinforcement learning using chess and trading as illustrative examples. This subsection draws partial inspiration from <span class="citation" data-cites="Sutton2017">Sutton and Barto (<a href="#ref-Sutton2017" role="doc-biblioref">2017</a>)</span>.</p>
+<ul>
+<li><p>Environment (<span class="math inline">\(E\)</span>) - defines the possible states and actions. In chess, this encompasses the rules and potential configurations of pieces on the board. It is important to note that some states will never be reached. In trading contexts, environmental rules might stipulate that an agent can only take positions of 0 or 1, or that portfolio asset weights must sum to 1.</p></li>
+<li><p>State (<span class="math inline">\(s\)</span>) - represents a snapshot of the environment at time <span class="math inline">\(t\)</span>, containing information that guides the agent’s next action selection. States can be terminal, indicating the agent cannot choose further actions, thus ending an episode—a sequence of state-action pairs from start to finish. In trading applications, a state at time <span class="math inline">\(t\)</span> might comprise various financial metrics: returns, implied/realized volatility, moving averages, economic indicators, technical signals, and market sentiment measures.</p></li>
+<li><p>Action (<span class="math inline">\(a\)</span>) - given the current state, the agent selects an action that transitions to a new state, either deterministically or stochastically. The action selection process itself may be deterministic or probability-based. In chess, an action involves moving a piece according to the rules. In trading, actions might include establishing long or short positions, maintaining neutral exposure, or adjusting portfolio weights.</p></li>
+<li><p>Policy (<span class="math inline">\(\pi\)</span>) - maps environmental states to corresponding actions. In psychological terms, this resembles stimulus-response associations. A policy may take various forms—from lookup tables to functions (linear or otherwise). Trading applications often involve continuous variables requiring extensive computation to determine optimal outcomes. As the core component of a reinforcement learning agent, policies fundamentally determine behavior. Policies can be stochastic rather than deterministic. Even after numerous episodes, an efficient algorithm may continue exploring alternative states instead of exclusively exploiting currently optimal actions.</p></li>
+<li><p>Value Function - predicts future, typically discounted rewards to help the agent determine the desirability of states. Value functions depend on initial states (<span class="math inline">\(S_0\)</span>) and the agent’s selected policy. Every state should have an associated value, defaulting to zero for unexplored paths. The general formula for a value function is:</p></li>
+</ul>
+<p><span class="math display">\[V^\pi=\mathbb{E}_\pi[\sum\limits_{k=1}^\infty \gamma^kr_{t+k}|s_t=s]\]</span></p>
+<p>where <span class="math inline">\(\gamma\)</span> is a discount factor from the range <span class="math inline">\([0; 1]\)</span>. It measures how much more instant rewards are valued. The smaller it is the more immediate values are relatively more relevant and cause algorithm to be more greedy. Sometimes <span class="math inline">\(\gamma\)</span> is equal to 1 if it is justified by the design of the whole agent.</p>
+<p>Value estimation, as a area of research in RL is probably the most vital one in the last decade. The most important distinction between different RL algorithms lies as to how it is calculated, in what form, and what variables it incorporates.</p>
+<ul>
+<li><p>Reward (<span class="math inline">\(r\)</span>) - rewards are the essence of reinforcement learning predictions. Value function, as previously stated, is a sum of, often discounted, rewards. Without them, as components of value function, an agent would not be able to spot (or optimal) better policies actions are based on. Hence, it is assumed rewards are the central point, required element, of every RL algorithm. Rewards are always given as a scalar, single value that is retrieved from the environment, that is easy to observe and interpret. With value function it is much harder since it can be obtained only by calculating a sequence of observations a RL agent makes over its lifetime.</p></li>
+<li><p>Model (<span class="math inline">\(m\)</span>) - a model shows the dynamics of environment, how it will evolve from <span class="math inline">\(S_{t-1}\)</span> to <span class="math inline">\(S_t\)</span>. The model helps in predicting what the next state and next reward will be. They are used for planning, i.e.&nbsp;trial-and-error approach is not needed in order to achieving the optimal policy. Formally, it is a set of transition matrices:</p></li>
+</ul>
+<p><span class="math display">\[\mathbb{P}_{ss^{'}}^a=\mathbb{P}[s^{'}|s,a]\]</span> <span class="math display">\[\mathbb{R}_s^a=\mathbb{E}[r|s,a]\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(\mathbb{P}_ss^{'}{a}\)</span> is a matrix of probability of transitions from state <span class="math inline">\(s\)</span> to state <span class="math inline">\(s^{'}\)</span> when taking action <span class="math inline">\(a\)</span>. Analogously, <span class="math inline">\(\mathbb{R}_{s}^a\)</span> is an expected value of reward when an agent is in state <span class="math inline">\(s\)</span> and taking action <span class="math inline">\(a\)</span></li>
+</ul>
+</section>
+<section id="explorationexploitation" class="level4" data-number="3.4.1.2">
+<h4 data-number="3.4.1.2" class="anchored" data-anchor-id="explorationexploitation"><span class="header-section-number">3.4.1.2</span> Exploration/exploitation</h4>
+<p>A fundamental challenge in reinforcement learning concerns the balance between exploration and exploitation. To optimize cumulative rewards, an agent must execute actions that previously yielded substantial payoffs (exploitation). However, during the initial learning phase, the agent lacks knowledge regarding effective strategies. Consequently, it must investigate potentially beneficial actions for its current state (exploration). This dilemma remains unresolved in the field, although several methodological approaches have been developed to address it.</p>
+<section id="epsilon-greedy-policy" class="level5" data-number="3.4.1.2.1">
+<h5 data-number="3.4.1.2.1" class="anchored" data-anchor-id="epsilon-greedy-policy"><span class="header-section-number">3.4.1.2.1</span> <span class="math inline">\(\epsilon\)</span>-greedy policy</h5>
+<p>The most straightforward approach involves predominantly greedy behavior, wherein an agent selects the action (<span class="math inline">\(A_t\)</span>) that maximizes the utilized value function (e.g., <span class="math inline">\(Q_t(a)\)</span>). However, with a probability of <span class="math inline">\(\epsilon\)</span>, the agent randomly selects an available action, independent of action value estimates. This algorithm ensures comprehensive exploration of all actions across all states, ultimately leading to <span class="math inline">\(Q_t(a)=q_*(a)\)</span>. Consequently, the probability of selecting the optimal action converges to greater than <span class="math inline">\(1-\epsilon\)</span>, approaching certainty. The limitation of this method lies in its minimal indication of practical efficacy. Asymptotic guarantees may require excessive time in authentic environments. Research demonstrates that small <span class="math inline">\(\epsilon\)</span> values facilitate greater initial rewards but typically underperform compared to larger <span class="math inline">\(\epsilon\)</span> values as the number of steps increases.</p>
+</section>
+<section id="optimistic-initial-values" class="level5" data-number="3.4.1.2.2">
+<h5 data-number="3.4.1.2.2" class="anchored" data-anchor-id="optimistic-initial-values"><span class="header-section-number">3.4.1.2.2</span> Optimistic initial values</h5>
+<p>One of the techniques to improve agent’s choices is based on the idea of encouraging the agent to explore. Why is that? If the actual reward is smaller than initially set up action-value methods, an agent is more likely to pick up actions that potentially can stop getting rewards that constantly worsen value function <span class="math inline">\(q(a)\)</span>. Eventually, the system does a lot more exploration even if greedy actions are selected all the time.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../../figures/optimistic_initial_values.png" height="400" class="figure-img"></p>
+<figcaption>The effect of optimistic initial action-value estimates on the 10-armed testbed</figcaption>
+</figure>
+</div>
+</section>
+<section id="upper-confidence-bound-action-selection" class="level5" data-number="3.4.1.2.3">
+<h5 data-number="3.4.1.2.3" class="anchored" data-anchor-id="upper-confidence-bound-action-selection"><span class="header-section-number">3.4.1.2.3</span> Upper-Confidence-Bound Action Selection</h5>
+<p>The other method for handling the exploration/exploitation problem is by using the special bounds that narrow with the number of steps taken. The formula is as follows:</p>
+<p><span class="math display">\[A_t = \argmax_a[Q_t(a)+c\sqrt\frac{ln_t}{N_t(a)}],\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(ln_t\)</span> is the natural logarithm of $t%</li>
+<li>$N_t(a) - the number of times that action a has been selected prior to time <span class="math inline">\(t\)</span></li>
+<li><span class="math inline">\(c\)</span> - the exploration rate</li>
+</ul>
+<p>The idea of this soltuion is that the square-root part is an uncertainty measure or variance in the <span class="math inline">\(a\)</span> estimation. The use of the natural logarithm implies that overtime square-root term, so does the confidence interval, is getting smaller. All actions will be selected at some point, but the ones with non-optimal values for <span class="math inline">\(Q(a)\)</span> are going to be selected much less frequently over time. UCB performs well, but it is harder to apply (generalize) for a broader amount of problems than <span class="math inline">\(\epsilon\)</span>-greedy algorithm. Especially, when one is dealing with nonstationary problems. In such situations, algorithms more complex than those presented in this subsection should be selected.</p>
+<!-- ![Average performance of UCB action selection on the 10-armed testbed](){width=400px; height=400px} -->
+<!-- . As shown, UCB generally -->
+<!-- performs better than "-greedy action selection, except in the first k steps, when it selects randomly among the -->
+<!-- as-yet-untried actions. -->
+<!-- In this part  -->
+</section>
+</section>
+</section>
+<section id="limitations" class="level3" data-number="3.4.2">
+<h3 data-number="3.4.2" class="anchored" data-anchor-id="limitations"><span class="header-section-number">3.4.2</span> Limitations</h3>
+<p>Reinforcement learning, while powerful, does not constitute a universal solution for all machine learning challenges. Its applicability is primarily restricted to problems characterized by distinct states, determinable policies, and well-defined value functions. A state merely represents a signal received by the agent—a momentary representation of the environment at a specific point in time.</p>
+<p>The majority of traditional reinforcement learning methodologies focus predominantly on states and their associated values. Although this approach proves adequate for relatively simple environments, it encounters significant limitations when applied to more complex scenarios. Notably, tabular representations become inadequate for storing expected values of states or state-action pairs, particularly when variables exhibit continuous properties. Such representations would exceed available memory constraints.</p>
+<p>Consequently, alternative methodologies must be employed to address these challenges and achieve computational efficiency in solving complex reinforcement learning problems.</p>
+</section>
+</section>
+<section id="timeline-of-reinforcement-learning-algorithms" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="timeline-of-reinforcement-learning-algorithms"><span class="header-section-number">3.5</span> Timeline of Reinforcement Learning Algorithms</h2>
+<p>Reinforcement learning has evolved significantly over the decades, progressing from theoretical foundations to sophisticated algorithms capable of algorithmic trading problems. This section presents an overview of key developments in RL, with particular attention to their applicability in algorithmic trading.</p>
+<p>It must be note</p>
+<section id="s1980s-theoretical-foundations" class="level3" data-number="3.5.1">
+<h3 data-number="3.5.1" class="anchored" data-anchor-id="s1980s-theoretical-foundations"><span class="header-section-number">3.5.1</span> 1950s–1980s: Theoretical Foundations</h3>
+<ul>
+<li>1952-1954: Bellman established Temporal Difference (TD) methodology and Markov Decision Process (MDP) formalism as mathematical foundations for RL.</li>
+<li>1979: Watkins conceptualized Q-learning principles, though formal articulation came later.</li>
+<li>Financial application: Primarily theoretical, establishing frameworks for sequential investment decision-making.</li>
+</ul>
+</section>
+<section id="fundamental-algorithms" class="level3" data-number="3.5.2">
+<h3 data-number="3.5.2" class="anchored" data-anchor-id="fundamental-algorithms"><span class="header-section-number">3.5.2</span> 1989-1992: Fundamental Algorithms</h3>
+<ul>
+<li>1989: Q-learning (Watkins)
+<ul>
+<li>Off-policy, model-free algorithm for determining state-action value functions.</li>
+<li>Financial relevance: Suitable for discrete trading decisions.</li>
+<li>Limitation: Poor scalability for extensive state/action spaces.</li>
+</ul></li>
+<li>1992: SARSA
+<ul>
+<li>On-policy variant of Q-learning evaluating the implemented policy.</li>
+<li>Financial relevance: More robust in non-stationary financial environments.</li>
+</ul></li>
+</ul>
+</section>
+<section id="mid-1990s-approximation-methods" class="level3" data-number="3.5.3">
+<h3 data-number="3.5.3" class="anchored" data-anchor-id="mid-1990s-approximation-methods"><span class="header-section-number">3.5.3</span> Mid-1990s: Approximation Methods</h3>
+<ul>
+<li>Implementation of function approximators for value function estimation.</li>
+<li>Financial application: Enabled management of larger state spaces approaching financial data complexity.</li>
+</ul>
+</section>
+<section id="deep-reinforcement-learning" class="level3" data-number="3.5.4">
+<h3 data-number="3.5.4" class="anchored" data-anchor-id="deep-reinforcement-learning"><span class="header-section-number">3.5.4</span> 2013–2015: Deep Reinforcement Learning</h3>
+<ul>
+<li>2013 (DeepMind): Integration of Q-learning with deep neural networks.
+<ul>
+<li>Experience replay and target networks enhanced learning stability.</li>
+</ul></li>
+<li>2015: DQN achieved human-comparable performance in Atari environments.
+<ul>
+<li>Financial implementation: First significant market applications using neural networks for feature extraction from financial data.</li>
+</ul></li>
+</ul>
+</section>
+<section id="policy-gradient-methodologies" class="level3" data-number="3.5.5">
+<h3 data-number="3.5.5" class="anchored" data-anchor-id="policy-gradient-methodologies"><span class="header-section-number">3.5.5</span> 2015–2016: Policy Gradient Methodologies</h3>
+<ul>
+<li>REINFORCE (Williams, 1992): Initial stochastic policy gradient formulation.</li>
+<li>Actor-Critic: Separated policy representation from value function estimation.
+<ul>
+<li>Financial advantage: Direct return optimization and accommodation of continuous action spaces for position sizing.</li>
+</ul></li>
+</ul>
+</section>
+<section id="advanced-algorithmic-frameworks" class="level3" data-number="3.5.6">
+<h3 data-number="3.5.6" class="anchored" data-anchor-id="advanced-algorithmic-frameworks"><span class="header-section-number">3.5.6</span> 2016–2018: Advanced Algorithmic Frameworks</h3>
+<ul>
+<li>A3C (2016): Asynchronous Advantage Actor-Critic
+<ul>
+<li>Parallel learning across multiple agents for greater efficiency.</li>
+</ul></li>
+<li>DDPG (2015): Deep Deterministic Policy Gradient
+<ul>
+<li>Specialized for deterministic continuous policy learning.</li>
+</ul></li>
+<li>PPO (2017): Proximal Policy Optimization
+<ul>
+<li>Conservative policy updates with improved reliability.</li>
+</ul></li>
+<li>SAC (2018): Soft Actor-Critic
+<ul>
+<li>Off-policy approach with entropy maximization for exploration-exploitation balance.</li>
+</ul></li>
+<li>Financial applications: Execution optimization, portfolio construction, and market-making strategies.</li>
+</ul>
+</section>
+<section id="present-multi-agent-systems-and-meta-learning" class="level3" data-number="3.5.7">
+<h3 data-number="3.5.7" class="anchored" data-anchor-id="present-multi-agent-systems-and-meta-learning"><span class="header-section-number">3.5.7</span> 2018–Present: Multi-Agent Systems and Meta-Learning</h3>
+<ul>
+<li>Multi-Agent RL: Models market participant interactions for realistic impact simulation.</li>
+<li>Meta-RL: Develops systems capable of rapid adaptation to new market regimes.</li>
+</ul>
+</section>
+<section id="s-onwards-practical-implementation" class="level3" data-number="3.5.8">
+<h3 data-number="3.5.8" class="anchored" data-anchor-id="s-onwards-practical-implementation"><span class="header-section-number">3.5.8</span> 2020s Onwards: Practical Implementation</h3>
+<ul>
+<li>Hierarchical RL: Integrates strategic planning with tactical execution.</li>
+<li>Safe RL: Implements safeguards against catastrophic market losses.</li>
+<li>Explainable RL: Enhances decision transparency for regulatory compliance.</li>
+<li>Current priorities: Sample efficiency, risk-sensitive objectives, and regulatory constraint integration.</li>
+</ul>
+</section>
+<section id="model-free-vs-model-based" class="level3" data-number="3.5.9">
+<h3 data-number="3.5.9" class="anchored" data-anchor-id="model-free-vs-model-based"><span class="header-section-number">3.5.9</span> Model-free vs Model-based</h3>
+<p>Reinforcement learning algorithms can be categorized into three principal classifications:</p>
+<ul>
+<li><p>Model-Based approaches - These methodologies function with the prerequisite that the environmental model is known in advance. The agent selects actions through deliberate planning and systematic exploration within this predefined model structure. The Markov Decision Process (MDP) represents a quintessential example of this paradigm, requiring explicit knowledge of both the Markov transition probability matrix and the associated reward function.</p></li>
+<li><p>Model-Free approaches - These methodologies acquire knowledge directly from state-action values or policies through experiential learning. They can achieve comparable behavioral outcomes without prior knowledge of the environmental model in which the agent operates. In practical applications, reinforcement learning is predominantly employed in environments where transition matrices remain unknown. Within a given policy framework, each state possesses a value defined as the cumulative utility (reward) commencing from that state. Model-free methods typically demonstrate lower efficiency compared to model-based approaches, as environmental information is integrated with potentially inaccurate state value estimations</p></li>
+</ul>
+<ol class="example" type="1">
+<li></li>
+</ol>
+</section>
+</section>
+<section id="section" class="level2" data-number="3.6">
+<h2 data-number="3.6" class="anchored" data-anchor-id="section"><span class="header-section-number">3.6</span> </h2>
+<section id="value-based-vs-policy-based-vs-actor-critic" class="level3" data-number="3.6.1">
+<h3 data-number="3.6.1" class="anchored" data-anchor-id="value-based-vs-policy-based-vs-actor-critic"><span class="header-section-number">3.6.1</span> Value-Based vs Policy-Based vs Actor-Critic</h3>
+<p>Reinforcement learning algorithms can be further categorized based on their optimization approach:</p>
+<ul>
+<li>Value iteration - a model-based algorithm that computes the optimal state value function by improving the estimate of <span class="math inline">\(V(s)\)</span>. It starts with initializing arbitrary values and then updates <span class="math inline">\(Q(s, a)\)</span> and <span class="math inline">\(V(s)\)</span> values until they converge. The pseudocode is as follows:</li>
+</ul>
+<ul>
+<li>Policy iteration - while in the previous bullet the algorithm is improving value function, policy iteration is based on the different approach. Concretely, there are two functions to be optimized <span class="math inline">\(V^{\pi}(s)\)</span> and <span class="math inline">\(\pi^{'}(s)\)</span>. This method is based on the premise that a RL agent cares about finding out the right policy. Sometimes, it is more convenient to directly use policies as a function of states. Below is the pseudocode:</li>
+</ul>
+<ul>
+<li><p>Actor-Critic methods represent a hybrid approach that combines elements of both value-based and policy-based learning. Such algorithms maintain two structures: an “actor” that determines the policy (action selection), and a “critic” that evaluates actions through value function approximation. This synthesis often yields improved stability and sample efficiency compared to pure policy-based methods while retaining their capability to handle continuous action spaces.</p>
+<p>The actor-critic architecture can be formalized as follows: Actor (Policy): <span class="math inline">\(\pi_\theta(a|s)\)</span> parameterized by <span class="math inline">\(\theta\)</span></p>
+<p>Critic (Value): <span class="math inline">\(V_w(s)\)</span> parameterized by <span class="math inline">\(w\)</span></p>
+<p>where: <span class="math inline">\(\alpha_w\)</span> and <span class="math inline">\(\alpha_\theta\)</span> are learning rates for the critic and actor, respectively.</p></li>
+</ul>
+<section id="model-free-learning" class="level4" data-number="3.6.1.1">
+<h4 data-number="3.6.1.1" class="anchored" data-anchor-id="model-free-learning"><span class="header-section-number">3.6.1.1</span> Model Free Learning</h4>
+<p>Model Free learning constitutes a subcategory of reinforcement learning algorithms employed when the underlying model remains unknown. In this approach, the agent enhances its decision-making accuracy through environmental interactions without possessing explicit knowledge of the transition matrix. This methodology is particularly suitable for trading environments, as financial markets inherently lack a definable model and exhibit non-stationary transition probabilities. Consequently, direct application of value or policy iteration algorithms becomes infeasible.</p>
+<p>Despite the opacity of the Markov Decision Process and its components, the agent can accumulate experience from sampled states. The theoretical foundation suggests that the distribution of sampled states will eventually converge to that of the transition matrix. Similarly, <span class="math inline">\(Q(s, a)\)</span> values converge to <span class="math inline">\(Q^{*}\)</span> and the policy <span class="math inline">\(\pi^{*}\)</span> approaches optimality. This convergence requires that all state-action pairs be visited infinitely often, and that the agent adopts a greedy strategy once it identifies the optimal action for each state.</p>
+</section>
+<section id="on-policy-vs-off-policy" class="level4" data-number="3.6.1.2">
+<h4 data-number="3.6.1.2" class="anchored" data-anchor-id="on-policy-vs-off-policy"><span class="header-section-number">3.6.1.2</span> On-Policy vs Off-Policy</h4>
+</section>
+<section id="on-policy-vs-off-policy-1" class="level4" data-number="3.6.1.3">
+<h4 data-number="3.6.1.3" class="anchored" data-anchor-id="on-policy-vs-off-policy-1"><span class="header-section-number">3.6.1.3</span> On-Policy vs Off-Policy</h4>
+<p>Reinforcement learning algorithms can be categorized based on their policy evaluation and improvement mechanisms. The distinction between on-policy and off-policy methods lies in how they utilize experience for learning:</p>
+<p>On-policy methods learn and improve the same policy that is used for action selection during environmental interaction. These algorithms evaluate and refine the behavioral policy directly from the experience it generates. SARSA exemplifies this approach, updating Q-values using:</p>
+<p><span class="math display">\[Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha[r_t + \gamma Q(s_{t+1},a_{t+1}) - Q(s_t,a_t)]\]</span></p>
+<p>where <span class="math inline">\(a_{t+1}\)</span> is selected according to the current policy.</p>
+<p>Off-policy methods, conversely, learn a target policy different from the behavioral policy used for exploration. This separation enables learning from historical data or experiences generated by alternative strategies. Q-learning represents this category, updating values using:</p>
+<p><span class="math display">\[Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)]\]</span></p>
+<p>The fundamental advantage of off-policy learning in financial applications is its ability to learn optimal strategies while following exploratory or risk- averse policies, facilitating more efficient learning from historical market data without requiring direct market interaction during training.</p>
+</section>
+<section id="single-agent-vs-multi-agent" class="level4" data-number="3.6.1.4">
+<h4 data-number="3.6.1.4" class="anchored" data-anchor-id="single-agent-vs-multi-agent"><span class="header-section-number">3.6.1.4</span> Single-Agent vs Multi-Agent</h4>
+<p>Reinforcement learning frameworks can be distinguished based on the number of decision-making entities within the environment:</p>
+<p>Single-agent reinforcement learning involves a solitary agent interacting with a stationary or quasi-stationary environment. The agent optimizes its policy to maximize expected cumulative rewards without considering the actions of other decision-makers. This paradigm assumes that environmental state transitions are influenced solely by the agent’s actions and stochastic processes inherent to the environment.</p>
+<p>Multi-agent reinforcement learning encompasses scenarios where multiple agents operate simultaneously within a shared environment. Each agent’s actions influence not only their individual rewards but potentially the state transitions and rewards experienced by other agents. This introduces strategic considerations analogous to game theory, where optimal policies depend on the behavior of other participants.</p>
+<p>The distinction becomes particularly relevant in market microstructure analysis, where the collective behavior of numerous market participants influences price formation processes. However, most practical trading applications adopt a single-agent perspective, treating market dynamics as an exogenous environment rather than explicitly modeling other participants.</p>
+</section>
+<section id="discrete-vs-continuous" class="level4" data-number="3.6.1.5">
+<h4 data-number="3.6.1.5" class="anchored" data-anchor-id="discrete-vs-continuous"><span class="header-section-number">3.6.1.5</span> Discrete vs Continuous</h4>
+<p>Reinforcement learning methodologies can be categorized based on the nature of their state and action spaces:</p>
+<p>Discrete reinforcement learning encompasses systems with finite, enumerable state and action spaces. Such frameworks characterize the environment via a bounded set of distinct states, while the agent chooses from a limited repertoire of possible actions. This formulation permits tabular representations of value functions and policies, thus enabling precise solutions through dynamic programming when environmental dynamics are fully specified. Within financial contexts, discrete models may conceptualize market conditions as categorical regimes (e.g., bullish, bearish, consolidating) and actions as specific portfolio allocations (e.g., long position, short position, market neutrality).</p>
+<p>Continuous reinforcement learning pertains to systems with uncountable state and/or action spaces. Such methodologies facilitate the processing of real-valued observations and actions, thereby requiring function approximation techniques for the representation of value functions and policies. The mathematical framework can be expressed as:</p>
+<p><span class="math display">\[\pi_\theta: \mathcal{S} \rightarrow \mathcal{P}(\mathcal{A})\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(\mathcal{S} \subset \mathbb{R}^n\)</span> represents a continuous state space,</li>
+<li><span class="math inline">\(\mathcal{A} \subset \mathbb{R}^m\)</span> denotes a continuous action space.</li>
+</ul>
+<p>Financial markets inherently exhibit continuous characteristics in both state representations (e.g., prices, volatility measures, economic indicators) and potential actions (e.g., position sizing, risk parameters). Consequently, continuous reinforcement learning frameworks, particularly those employing neural network function approximators, have demonstrated superior efficacy in capturing the complex, non-linear relationships present in financial data.</p>
+</section>
+</section>
+</section>
+</section>
+<section id="design-of-the-trading-agent" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Design of the Trading Agent</h1>
+<section id="action-space" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="action-space"><span class="header-section-number">4.1</span> Action Space</h2>
+<section id="book-pressure-related-variables" class="level3" data-number="4.1.1">
+<h3 data-number="4.1.1" class="anchored" data-anchor-id="book-pressure-related-variables"><span class="header-section-number">4.1.1</span> Book Pressure-Related Variables</h3>
+</section>
+<section id="volume-related-variables" class="level3" data-number="4.1.2">
+<h3 data-number="4.1.2" class="anchored" data-anchor-id="volume-related-variables"><span class="header-section-number">4.1.2</span> Volume-Related Variables</h3>
+</section>
+<section id="last-trade-price-related-variables" class="level3" data-number="4.1.3">
+<h3 data-number="4.1.3" class="anchored" data-anchor-id="last-trade-price-related-variables"><span class="header-section-number">4.1.3</span> Last Trade Price-Related Variables</h3>
+</section>
+<section id="time-related-variables" class="level3" data-number="4.1.4">
+<h3 data-number="4.1.4" class="anchored" data-anchor-id="time-related-variables"><span class="header-section-number">4.1.4</span> Time-Related Variables</h3>
+</section>
+<section id="technical-indicators" class="level3" data-number="4.1.5">
+<h3 data-number="4.1.5" class="anchored" data-anchor-id="technical-indicators"><span class="header-section-number">4.1.5</span> Technical Indicators</h3>
+</section>
+<section id="autoregressive-variables" class="level3" data-number="4.1.6">
+<h3 data-number="4.1.6" class="anchored" data-anchor-id="autoregressive-variables"><span class="header-section-number">4.1.6</span> Autoregressive Variables</h3>
+</section>
+</section>
+<section id="reward-function" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="reward-function"><span class="header-section-number">4.2</span> Reward Function</h2>
+<section id="differential-sharpe-ratio" class="level3" data-number="4.2.1">
+<h3 data-number="4.2.1" class="anchored" data-anchor-id="differential-sharpe-ratio"><span class="header-section-number">4.2.1</span> Differential Sharpe Ratio</h3>
+<p>Differential Sharpe Ratio (DSR) is a dynamic extension of the Sharpe ratio. This measure captures the marginal impact of returns at time <span class="math inline">\(t\)</span> on the Sharpe Ratio. The calculation begins with the following formulations: <span class="math display">\[
+A_n=\frac{1}{n}R_n+\frac{n-1}{n}A_{n-1}
+\]</span> <span class="math display">\[
+B_n=\frac{1}{n}R_n^2+\frac{n-1}{n}B_{n-1}
+\]</span> At <span class="math inline">\(t=0\)</span>, both values equal zero. These serve as the foundation for calculating the exponentially moving Sharpe ratio on an <span class="math inline">\(\eta\)</span> time scale: <span class="math display">\[
+S_t=\frac{A_t}{K_\eta\sqrt{B_t-A_t^2}}
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(A_t=\eta R_t+(1-\eta)A_{t_1}\)</span></li>
+<li><span class="math inline">\(B_t=\eta R_t^2+(1-\eta)B_{t_1}\)</span></li>
+<li><span class="math inline">\(K_\eta=(\frac{1-\frac{\eta}{2}}{1-\eta})\)</span></li>
+</ul>
+<p>The differential Sharpe ratio offers several advantages in algorithmic systems (Moody &amp; Wu, 1997):</p>
+<ul>
+<li>Recursive updating - eliminating the need to recalculate mean and standard deviation of returns each time. The formulations for <span class="math inline">\(A_t\)</span> and <span class="math inline">\(B_t\)</span> allow simple calculation through updates for <span class="math inline">\(R_t\)</span> and <span class="math inline">\(R_t^2\)</span>.</li>
+<li>Efficient on-line optimization - the formula structure enables quick computation through updates of the most recent values.</li>
+<li>Interpretability - the measure is easily explained, as it quantifies how the latest return affects the Sharpe ratio (risk and reward).</li>
+</ul>
+</section>
+<section id="other-reward-functions" class="level3" data-number="4.2.2">
+<h3 data-number="4.2.2" class="anchored" data-anchor-id="other-reward-functions"><span class="header-section-number">4.2.2</span> Other Reward Functions</h3>
+</section>
+</section>
+<section id="value-function" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="value-function"><span class="header-section-number">4.3</span> Value Function</h2>
+</section>
+<section id="policy" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="policy"><span class="header-section-number">4.4</span> Policy</h2>
+</section>
+<section id="step-size" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="step-size"><span class="header-section-number">4.5</span> Step Size</h2>
+</section>
+</section>
+<section id="implementation-of-the-trading-agent" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Implementation of the Trading Agent</h1>
+<p>The following assumptions are established for the trading mechanisms and algorithmic simulation framework: (b) Zero latency exists between market data reception and trade execution when a favorable signal is present. (a) The absence of market competition enables execution at counterparty prices (selling at bid price and purchasing at ask price). (c) Position constraints limit holdings to x contract(s) at any given moment, with transactions restricted to whole contract units. (d) A transaction fee of x% of the execution price is applied to all trades.</p>
+<section id="design-of-the-research" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="design-of-the-research"><span class="header-section-number">5.1</span> Design of the research</h2>
+<p>The whole system can be divided into three main parts:</p>
+<ul>
+<li>Data preprocessing - taking FX data from Bloomberg with use of the dedicated API, parsing the data and adjusting it for the further analysis. The system is dedicated for currency trading, however with little adjustments it could fit in other asset classes as well.</li>
+<li>Variable extraction - not all preprocessed currency pairs are relevant and worth adding. For instance, if <span class="math inline">\(USD/CNH\)</span> is highly correlated with <span class="math inline">\(USD/CNY\)</span> it is senseless to add the latter to the portfolio. #TO DO</li>
+<li>State-action space - the extracted variables, based on time series for currency pairs, are merged into state space</li>
+</ul>
+<section id="assumption" class="level3" data-number="5.1.1">
+<h3 data-number="5.1.1" class="anchored" data-anchor-id="assumption"><span class="header-section-number">5.1.1</span> Assumption</h3>
+<p>In the work, the author has assumed that:</p>
+<ul>
+<li>Zero slippage - the FX market is liquidity is good enough that there the execution price is equal to the price shown by the venue (Bloomberg)</li>
+<li>Zero market impact - trades executed by the agent are not big enough that they can move the market and cause significant market impact</li>
+</ul>
+</section>
+<section id="experimental-environment" class="level3" data-number="5.1.2">
+<h3 data-number="5.1.2" class="anchored" data-anchor-id="experimental-environment"><span class="header-section-number">5.1.2</span> Experimental Environment</h3>
+<p>The experimental environment was implemented using Python 3.12 with the PyTorch deep learning framework. The system was developed and tested on a Linux-based computational environment with CUDA support for efficient neural network training.</p>
+</section>
+<section id="experimental-procedure" class="level3" data-number="5.1.3">
+<h3 data-number="5.1.3" class="anchored" data-anchor-id="experimental-procedure"><span class="header-section-number">5.1.3</span> Experimental Procedure</h3>
+<p>The experimental methodology followed a structured sequence of operations:</p>
+<ol type="1">
+<li>Data acquisition and preprocessing were conducted initially. This involved:
+<ul>
+<li>Elimination of invalid or anomalous data points</li>
+<li>Partitioning of the dataset into training and testing segments using a 4:6 ratio</li>
+<li>Configuration of appropriate experimental parameters</li>
+</ul></li>
+<li>For the trading simulation phase:
+<ul>
+<li>A selection of ten currency pairs was made according to specific criteria</li>
+<li>Three distinct reinforcement learning algorithms were implemented to simulate trading activities</li>
+<li>Price data and performance metrics were systematically collected and compared</li>
+</ul></li>
+<li>Comprehensive analysis was performed, incorporating:
+<ul>
+<li>Examination of individual currency pair characteristics</li>
+<li>Integration of findings from the algorithmic trading simulations</li>
+<li>Identification of patterns across different market conditions</li>
+</ul></li>
+<li>The experimental results underwent rigorous evaluation, including:
+<ul>
+<li>Statistical assessment of performance metrics</li>
+<li>Comparative analysis against benchmark strategies</li>
+<li>Critical discussion of implications for algorithmic trading applications</li>
+</ul></li>
+</ol>
+</section>
+</section>
+<section id="data-preparation" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="data-preparation"><span class="header-section-number">5.2</span> Data Preparation</h2>
+<section id="data-collection" class="level3" data-number="5.2.1">
+<h3 data-number="5.2.1" class="anchored" data-anchor-id="data-collection"><span class="header-section-number">5.2.1</span> Data Collection</h3>
+</section>
+</section>
+<section id="data-preparation-1" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="data-preparation-1"><span class="header-section-number">5.3</span> Data Preparation</h2>
+</section>
+<section id="raw-data-schema" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="raw-data-schema"><span class="header-section-number">5.4</span> Raw Data Schema</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 18%">
+<col style="width: 81%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ts_recv</td>
+<td>The capture-server-received timestamp expressed as the number of</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>nanoseconds since the UNIX epoch.</td>
+</tr>
+<tr class="odd">
+<td>size</td>
+<td>The order quantity.</td>
+</tr>
+<tr class="even">
+<td>ts_event</td>
+<td>The matching-engine-received timestamp expressed as the number of</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>nanoseconds since the UNIX epoch.</td>
+</tr>
+<tr class="even">
+<td>channel_id</td>
+<td>The channel ID assigned by Databento as an incrementing integer</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>starting at zero.</td>
+</tr>
+<tr class="even">
+<td>rtype</td>
+<td>The record type. Each schema corresponds with a single rtype</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>value.</td>
+</tr>
+<tr class="even">
+<td>order_id</td>
+<td>The order ID assigned at the venue.</td>
+</tr>
+<tr class="odd">
+<td>publisher_id</td>
+<td>The publisher ID assigned by Databento, which denotes dataset and</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>venue.</td>
+</tr>
+<tr class="odd">
+<td>flags</td>
+<td>A bit field indicating event end, message characteristics, and</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>data quality.</td>
+</tr>
+<tr class="odd">
+<td>instrument_id</td>
+<td>The numeric instrument ID.</td>
+</tr>
+<tr class="even">
+<td>ts_in_delta</td>
+<td>The matching-engine-sending timestamp expressed as the number of</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>nanoseconds before ts_recv.</td>
+</tr>
+<tr class="even">
+<td>action</td>
+<td>The event action. Can be Add, Cancel, Modify, cleaR book, Trade,</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Fill, or None.</td>
+</tr>
+<tr class="even">
+<td>sequence</td>
+<td>The message sequence number assigned at the venue.</td>
+</tr>
+<tr class="odd">
+<td>side</td>
+<td>The side that initiates the event. Can be Ask for a sell order</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>(or sell aggressor in a trade), Bid for a buy order (or buy</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>aggressor in a trade), or None where no side is specified by the</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>original source.</td>
+</tr>
+<tr class="odd">
+<td>symbol</td>
+<td>The requested symbol for the instrument.</td>
+</tr>
+<tr class="even">
+<td>price</td>
+<td>The order price expressed as a signed integer where every 1 unit</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>corresponds to 1e-9, i.e.&nbsp;1/1,000,000,000 or 0.000000001.</td>
+</tr>
+</tbody>
+</table>
+<section id="data-preprocessing" class="level3" data-number="5.4.1">
+<h3 data-number="5.4.1" class="anchored" data-anchor-id="data-preprocessing"><span class="header-section-number">5.4.1</span> Data Preprocessing</h3>
+</section>
+<section id="feature-engineering" class="level3" data-number="5.4.2">
+<h3 data-number="5.4.2" class="anchored" data-anchor-id="feature-engineering"><span class="header-section-number">5.4.2</span> Feature Engineering</h3>
+</section>
+<section id="data-splitting" class="level3" data-number="5.4.3">
+<h3 data-number="5.4.3" class="anchored" data-anchor-id="data-splitting"><span class="header-section-number">5.4.3</span> Data Splitting</h3>
+</section>
+</section>
+<section id="code" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="code"><span class="header-section-number">5.5</span> Code</h2>
+<section id="code-structure" class="level3" data-number="5.5.1">
+<h3 data-number="5.5.1" class="anchored" data-anchor-id="code-structure"><span class="header-section-number">5.5.1</span> Code Structure</h3>
+</section>
+<section id="code-implementation" class="level3" data-number="5.5.2">
+<h3 data-number="5.5.2" class="anchored" data-anchor-id="code-implementation"><span class="header-section-number">5.5.2</span> Code Implementation</h3>
+</section>
+</section>
+</section>
+<section id="empirical-evaluation-and-performance-analysis" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Empirical Evaluation and Performance Analysis</h1>
+<section id="statistical-validation" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="statistical-validation"><span class="header-section-number">6.1</span> Statistical Validation</h2>
+</section>
+<section id="robustness-assessment" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="robustness-assessment"><span class="header-section-number">6.2</span> Robustness Assessment</h2>
+</section>
+<section id="performance-evaluation" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="performance-evaluation"><span class="header-section-number">6.3</span> Performance Evaluation</h2>
+</section>
+</section>
+<section id="conclusions-and-future-work" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Conclusions and Future Work</h1>
+<section id="summary-of-findings" class="level2" data-number="7.1">
+<h2 data-number="7.1" class="anchored" data-anchor-id="summary-of-findings"><span class="header-section-number">7.1</span> Summary of Findings</h2>
+</section>
+<section id="limitations-and-future-research" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="limitations-and-future-research"><span class="header-section-number">7.2</span> Limitations and Future Research</h2>
+</section>
+<section id="implications-for-trading-systems" class="level2" data-number="7.3">
+<h2 data-number="7.3" class="anchored" data-anchor-id="implications-for-trading-systems"><span class="header-section-number">7.3</span> Implications for Trading Systems</h2>
+</section>
+<section id="recommendations-for-practitioners" class="level2" data-number="7.4">
+<h2 data-number="7.4" class="anchored" data-anchor-id="recommendations-for-practitioners"><span class="header-section-number">7.4</span> Recommendations for Practitioners</h2>
+</section>
+<section id="conclusion" class="level2" data-number="7.5">
+<h2 data-number="7.5" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">7.5</span> Conclusion</h2>
+
+</section>
+</section>
+<section id="bibliography" class="level1 unnumbered" data-number="8">
+
+
+</section>
+
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">8 Bibliography</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Fama1970" class="csl-entry" role="listitem">
+Fama, E. F.;Malkiel, B. G. 1970. <span>“<span class="nocase">Efficient capital markets: A review of theory and empirical work</span>.”</span> <em>Journal of Finance</em> 25 (2): 383–417.
+</div>
+<div id="ref-Fama1965" class="csl-entry" role="listitem">
+Fama, Eugene F. 1965. <span>“<span class="nocase">The Behavior of Stock-Market Prices</span>.”</span> <em>The Journal of Business</em> 38 (1): 34. <a href="https://doi.org/10.1086/294743">https://doi.org/10.1086/294743</a>.
+</div>
+<div id="ref-Haug2006" class="csl-entry" role="listitem">
+Haug, Mark, and Mark Hirschey. 2006. <span>“<span class="nocase">The january effect</span>.”</span> <a href="https://doi.org/10.2469/faj.v62.n5.4284">https://doi.org/10.2469/faj.v62.n5.4284</a>.
+</div>
+<div id="ref-Jason2013" class="csl-entry" role="listitem">
+Jason, Brownlee. 2013. <span>“<span class="nocase">What is Machine Learning?</span>”</span> <a href="https://machinelearningmastery.com/what-is-machine-learning/">https://machinelearningmastery.com/what-is-machine-learning/</a>.
+</div>
+<div id="ref-Lintner1965" class="csl-entry" role="listitem">
+Lintner, John. 1965. <span>“<span class="nocase">Security prices, risk, and maximal gains from diversifivation</span>.”</span> <em>Jf</em> 20 (4): 587–615. <a href="https://doi.org/10.1111/j.1540-6261.1965.tb02930.x">https://doi.org/10.1111/j.1540-6261.1965.tb02930.x</a>.
+</div>
+<div id="ref-Malkiel2003" class="csl-entry" role="listitem">
+Malkiel, Burton G. 2003. <span>“<span class="nocase">The Efficient Market Hypothesis and Its Critics</span>.”</span> <em>Journal of Economic Perspectives</em> 17 (1): 59–82. <a href="https://doi.org/10.1257/089533003321164958">https://doi.org/10.1257/089533003321164958</a>.
+</div>
+<div id="ref-Marsland2009" class="csl-entry" role="listitem">
+Marsland, Stephen. 2009. <em><span>Machine Learning: An Algorithmic Perspective</span></em>. <a href="https://doi.org/10.1111/j.1751-5823.2010.00118_11.x">https://doi.org/10.1111/j.1751-5823.2010.00118_11.x</a>.
+</div>
+<div id="ref-Mitchell1997" class="csl-entry" role="listitem">
+Mitchell, Tom M. 1997. <em><span>Machine Learning</span></em>. 1. <a href="https://doi.org/10.1145/242224.242229">https://doi.org/10.1145/242224.242229</a>.
+</div>
+<div id="ref-Mosic2017" class="csl-entry" role="listitem">
+Mosic, Ranko. 2017. <span>“<span class="nocase">Deep Reinforcement Learning Based Trading Application at JP Morgan Chase</span>.”</span> <em>Medium</em>. <a href="https://medium.com/@ranko.mosic/reinforcement-learning-based-trading-application-at-jp-morgan-chase-f829b8ec54f2">https://medium.com/@ranko.mosic/reinforcement-learning-based-trading-application-at-jp-morgan-chase-f829b8ec54f2</a>.
+</div>
+<div id="ref-Mossin1966" class="csl-entry" role="listitem">
+Mossin, Jan. 1966. <span>“<span class="nocase">Equilibrium in a capital asset market</span>.”</span> <em>Econometrica</em> 34 (4): 768–83. <a href="https://doi.org/10.2307/1910098">https://doi.org/10.2307/1910098</a>.
+</div>
+<div id="ref-Samuel1959" class="csl-entry" role="listitem">
+Samuel, Arthur L. 1959. <span>“<span class="nocase">Some Studies in Machine Learning Using the Game of Checkers Some Studies in Machine Learning Using the Game of Checkers</span>.”</span> <em>IBM Journal</em> 3. <a href="https://www.cs.virginia.edu/{~}evans/greatworks/samuel1959.pdf">https://www.cs.virginia.edu/{~}evans/greatworks/samuel1959.pdf</a>.
+</div>
+<div id="ref-Sharpe1964" class="csl-entry" role="listitem">
+Sharpe, William F. 1964. <span>“<span class="nocase">Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk</span>.”</span> <em>The Journal of Finance</em> 19 (3): 425–42. <a href="https://doi.org/10.2307/2329297">https://doi.org/10.2307/2329297</a>.
+</div>
+<div id="ref-Shen2017" class="csl-entry" role="listitem">
+Shen, Lucinda. 2017. <span>“<span class="nocase">Here’s How Much the Top Hedge-Fund Manager Made Last Year</span>.”</span> <a href="http://fortune.com/2017/05/16/hedge-fund-james-simons-renaissance-technologies/">http://fortune.com/2017/05/16/hedge-fund-james-simons-renaissance-technologies/</a>.
+</div>
+<div id="ref-Markowitz1952" class="csl-entry" role="listitem">
+Stulz, Rene M. 1995. <span>“<span class="nocase">American Finance Association, Report of the Managing Editor of the Journal of Finance for the Year 1994</span>.”</span> <em>The Journal of Finance</em> 50 (3): 1013. <a href="https://doi.org/10.2307/2329297">https://doi.org/10.2307/2329297</a>.
+</div>
+<div id="ref-Sutton2017" class="csl-entry" role="listitem">
+Sutton, R S, and A G Barto. 2017. <span>“<span>Reinforcement Learning: An Introduction</span>.”</span> <em>Neural Networks IEEE Transactions on</em> 9 (2): 1054. <a href="https://doi.org/10.1109/TNN.1998.712192">https://doi.org/10.1109/TNN.1998.712192</a>.
+</div>
+<div id="ref-Turner2015" class="csl-entry" role="listitem">
+Turner, Matt. 2015. <span>“<span class="nocase">The robot revolution is coming for Wall Street traders</span>.”</span> <a href="http://www.businessinsider.com/robots-to-replace-wall-street-traders-2015-8?IR=T">http://www.businessinsider.com/robots-to-replace-wall-street-traders-2015-8?IR=T</a>.
+</div>
+<div id="ref-Weber2012" class="csl-entry" role="listitem">
+Weber, Thomas A. 2012. <span>“<span class="nocase">Price Theory in Economics</span>.”</span> In <em>The Oxford Handbook of Pricing Management</em>. <a href="https://doi.org/10.1093/oxfordhb/9780199543175.013.0017">https://doi.org/10.1093/oxfordhb/9780199543175.013.0017</a>.
+</div>
+</div></section><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>The information loss can be quantified through mutual information: <span class="math inline">\(I(X;\hat{y}) &lt; I(X;X)\)</span>, indicating that the prediction <span class="math inline">\(\hat{y}\)</span> contains less information about market conditions than the original feature set <span class="math inline">\(X\)</span>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

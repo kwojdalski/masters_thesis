@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.43">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>reinforcement-learning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="04-00-reinforcement-learning_files/libs/clipboard/clipboard.min.js"></script>
+<script src="04-00-reinforcement-learning_files/libs/quarto-html/quarto.js"></script>
+<script src="04-00-reinforcement-learning_files/libs/quarto-html/popper.min.js"></script>
+<script src="04-00-reinforcement-learning_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="04-00-reinforcement-learning_files/libs/quarto-html/anchor.min.js"></script>
+<link href="04-00-reinforcement-learning_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="04-00-reinforcement-learning_files/libs/quarto-html/quarto-syntax-highlighting-d4d76bf8491c20bad77d141916dc28e1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="04-00-reinforcement-learning_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="04-00-reinforcement-learning_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="04-00-reinforcement-learning_files/libs/bootstrap/bootstrap-c0367b04c37547644fece4185067e4a7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="selected-aspects-of-reinforcement-learning" class="level3">
+<h3 class="anchored" data-anchor-id="selected-aspects-of-reinforcement-learning">Selected aspects of reinforcement learning</h3>
+<p>This section examines pertinent aspects and challenges within the reinforcement learning paradigm.</p>
+<section id="components-of-a-reinforcement-learning-system" class="level4">
+<h4 class="anchored" data-anchor-id="components-of-a-reinforcement-learning-system">Components of a reinforcement learning system</h4>
+<p>Reinforcement learning systems are designed to address sequential decision-making problems by selecting actions that maximize cumulative discounted future rewards. The following section explains the components of reinforcement learning using chess and trading as illustrative examples. This subsection draws partial inspiration from <span class="citation" data-cites="Sutton2017">@Sutton2017</span>.</p>
+<ul>
+<li><p>Environment (<span class="math inline">\(E\)</span>) - defines the possible states and actions. In chess, this encompasses the rules and potential configurations of pieces on the board. It is important to note that some states will never be reached. In trading contexts, environmental rules might stipulate that an agent can only take positions of 0 or 1, or that portfolio asset weights must sum to 1.</p></li>
+<li><p>State (<span class="math inline">\(s\)</span>) - represents a snapshot of the environment at time <span class="math inline">\(t\)</span>, containing information that guides the agent’s next action selection. States can be terminal, indicating the agent cannot choose further actions, thus ending an episode—a sequence of state-action pairs from start to finish. In trading applications, a state at time <span class="math inline">\(t\)</span> might comprise various financial metrics: returns, implied/realized volatility, moving averages, economic indicators, technical signals, and market sentiment measures.</p></li>
+<li><p>Action (<span class="math inline">\(a\)</span>) - given the current state, the agent selects an action that transitions to a new state, either deterministically or stochastically. The action selection process itself may be deterministic or probability-based. In chess, an action involves moving a piece according to the rules. In trading, actions might include establishing long or short positions, maintaining neutral exposure, or adjusting portfolio weights.</p></li>
+<li><p>Policy (<span class="math inline">\(\pi\)</span>) - maps environmental states to corresponding actions. In psychological terms, this resembles stimulus-response associations. A policy may take various forms—from lookup tables to functions (linear or otherwise). Trading applications often involve continuous variables requiring extensive computation to determine optimal outcomes. As the core component of a reinforcement learning agent, policies fundamentally determine behavior. Policies can be stochastic rather than deterministic. Even after numerous episodes, an efficient algorithm may continue exploring alternative states instead of exclusively exploiting currently optimal actions.</p></li>
+<li><p>Value Function - predicts future, typically discounted rewards to help the agent determine the desirability of states. Value functions depend on initial states (<span class="math inline">\(S_0\)</span>) and the agent’s selected policy. Every state should have an associated value, defaulting to zero for unexplored paths. The general formula for a value function is:</p></li>
+</ul>
+<p><span class="math display">\[V^\pi=\mathbb{E}_\pi[\sum\limits_{k=1}^\infty \gamma^kr_{t+k}|s_t=s]\]</span></p>
+<p>where <span class="math inline">\(\gamma\)</span> is a discount factor from the range <span class="math inline">\([0; 1]\)</span>. It measures how much more instant rewards are valued. The smaller it is the more immediate values are relatively more relevant and cause algorithm to be more greedy. Sometimes <span class="math inline">\(\gamma\)</span> is equal to 1 if it is justified by the design of the whole agent.</p>
+<p>Value estimation, as a area of research in RL is probably the most vital one in the last decade. The most important distinction between different RL algorithms lies as to how it is calculated, in what form, and what variables it incorporates.</p>
+<ul>
+<li><p>Reward (<span class="math inline">\(r\)</span>) - rewards are the essence of reinforcement learning predictions. Value function, as previously stated, is a sum of, often discounted, rewards. Without them, as components of value function, an agent would not be able to spot (or optimal) better policies actions are based on. Hence, it is assumed rewards are the central point, required element, of every RL algorithm. Rewards are always given as a scalar, single value that is retrieved from the environment, that is easy to observe and interpret. With value function it is much harder since it can be obtained only by calculating a sequence of observations a RL agent makes over its lifetime.</p></li>
+<li><p>Model (<span class="math inline">\(m\)</span>) - a model shows the dynamics of environment, how it will evolve from <span class="math inline">\(S_{t-1}\)</span> to <span class="math inline">\(S_t\)</span>. The model helps in predicting what the next state and next reward will be. They are used for planning, i.e.&nbsp;trial-and-error approach is not needed in order to achieving the optimal policy. Formally, it is a set of transition matrices:</p></li>
+</ul>
+<p><span class="math display">\[\mathbb{P}_{ss^{'}}^a=\mathbb{P}[s^{'}|s,a]\]</span> <span class="math display">\[\mathbb{R}_s^a=\mathbb{E}[r|s,a]\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(\mathbb{P}_ss^{'}{a}\)</span> is a matrix of probability of transitions from state <span class="math inline">\(s\)</span> to state <span class="math inline">\(s^{'}\)</span> when taking action <span class="math inline">\(a\)</span>. Analogously, <span class="math inline">\(\mathbb{R}_{s}^a\)</span> is an expected value of reward when an agent is in state <span class="math inline">\(s\)</span> and taking action <span class="math inline">\(a\)</span></li>
+</ul>
+</section>
+<section id="explorationexploitation" class="level4">
+<h4 class="anchored" data-anchor-id="explorationexploitation">Exploration/exploitation</h4>
+<p>A fundamental challenge in reinforcement learning concerns the balance between exploration and exploitation. To optimize cumulative rewards, an agent must execute actions that previously yielded substantial payoffs (exploitation). However, during the initial learning phase, the agent lacks knowledge regarding effective strategies. Consequently, it must investigate potentially beneficial actions for its current state (exploration). This dilemma remains unresolved in the field, although several methodological approaches have been developed to address it.</p>
+<section id="epsilon-greedy-policy" class="level5">
+<h5 class="anchored" data-anchor-id="epsilon-greedy-policy"><span class="math inline">\(\epsilon\)</span>-greedy policy</h5>
+<p>The most straightforward approach involves predominantly greedy behavior, wherein an agent selects the action (<span class="math inline">\(A_t\)</span>) that maximizes the utilized value function (e.g., <span class="math inline">\(Q_t(a)\)</span>). However, with a probability of <span class="math inline">\(\epsilon\)</span>, the agent randomly selects an available action, independent of action value estimates. This algorithm ensures comprehensive exploration of all actions across all states, ultimately leading to <span class="math inline">\(Q_t(a)=q_*(a)\)</span>. Consequently, the probability of selecting the optimal action converges to greater than <span class="math inline">\(1-\epsilon\)</span>, approaching certainty. The limitation of this method lies in its minimal indication of practical efficacy. Asymptotic guarantees may require excessive time in authentic environments. Research demonstrates that small <span class="math inline">\(\epsilon\)</span> values facilitate greater initial rewards but typically underperform compared to larger <span class="math inline">\(\epsilon\)</span> values as the number of steps increases.</p>
+</section>
+<section id="optimistic-initial-values" class="level5">
+<h5 class="anchored" data-anchor-id="optimistic-initial-values">Optimistic initial values</h5>
+<p>One of the techniques to improve agent’s choices is based on the idea of encouraging the agent to explore. Why is that? If the actual reward is smaller than initially set up action-value methods, an agent is more likely to pick up actions that potentially can stop getting rewards that constantly worsen value function <span class="math inline">\(q(a)\)</span>. Eventually, the system does a lot more exploration even if greedy actions are selected all the time.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../../figures/optimistic_initial_values.png" height="400" class="figure-img"></p>
+<figcaption>The effect of optimistic initial action-value estimates on the 10-armed testbed</figcaption>
+</figure>
+</div>
+</section>
+<section id="upper-confidence-bound-action-selection" class="level5">
+<h5 class="anchored" data-anchor-id="upper-confidence-bound-action-selection">Upper-Confidence-Bound Action Selection</h5>
+<p>The other method for handling the exploration/exploitation problem is by using the special bounds that narrow with the number of steps taken. The formula is as follows:</p>
+<p><span class="math display">\[A_t = \argmax_a[Q_t(a)+c\sqrt\frac{ln_t}{N_t(a)}],\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(ln_t\)</span> is the natural logarithm of $t%</li>
+<li>$N_t(a) - the number of times that action a has been selected prior to time <span class="math inline">\(t\)</span></li>
+<li><span class="math inline">\(c\)</span> - the exploration rate</li>
+</ul>
+<p>The idea of this soltuion is that the square-root part is an uncertainty measure or variance in the <span class="math inline">\(a\)</span> estimation. The use of the natural logarithm implies that overtime square-root term, so does the confidence interval, is getting smaller. All actions will be selected at some point, but the ones with non-optimal values for <span class="math inline">\(Q(a)\)</span> are going to be selected much less frequently over time. UCB performs well, but it is harder to apply (generalize) for a broader amount of problems than <span class="math inline">\(\epsilon\)</span>-greedy algorithm. Especially, when one is dealing with nonstationary problems. In such situations, algorithms more complex than those presented in this subsection should be selected.</p>
+<!-- ![Average performance of UCB action selection on the 10-armed testbed](){width=400px; height=400px} -->
+<!-- . As shown, UCB generally -->
+<!-- performs better than "-greedy action selection, except in the first k steps, when it selects randomly among the -->
+<!-- as-yet-untried actions. -->
+<!-- In this part  -->
+</section>
+</section>
+</section>
+<section id="model-free-vs-model-based" class="level3">
+<h3 class="anchored" data-anchor-id="model-free-vs-model-based">Model-free vs Model-based</h3>
+<p>Reinforcement learning algorithms can be categorized into three principal classifications:</p>
+<ul>
+<li><p>Model-Based approaches - These methodologies function with the prerequisite that the environmental model is known in advance. The agent selects actions through deliberate planning and systematic exploration within this predefined model structure. The Markov Decision Process (MDP) represents a quintessential example of this paradigm, requiring explicit knowledge of both the Markov transition probability matrix and the associated reward function.</p></li>
+<li><p>Model-Free approaches - These methodologies acquire knowledge directly from state-action values or policies through experiential learning. They can achieve comparable behavioral outcomes without prior knowledge of the environmental model in which the agent operates. In practical applications, reinforcement learning is predominantly employed in environments where transition matrices remain unknown. Within a given policy framework, each state possesses a value defined as the cumulative utility (reward) commencing from that state. Model-free methods typically demonstrate lower efficiency compared to model-based approaches, as environmental information is integrated with potentially inaccurate state value estimations</p></li>
+</ul>
+<ol class="example" type="1">
+<li></li>
+</ol>
+<section id="model-based-methods-in-reinforcement-learning" class="level4">
+<h4 class="anchored" data-anchor-id="model-based-methods-in-reinforcement-learning">Model-based Methods in Reinforcement Learning</h4>
+<ul>
+<li>Value iteration - a model-based algorithm that computes the optimal state value function by improving the estimate of <span class="math inline">\(V(s)\)</span>. It starts with initializing arbitrary values and then updates <span class="math inline">\(Q(s, a)\)</span> and <span class="math inline">\(V(s)\)</span> values until they converge. The pseudocode is as follows:</li>
+</ul>
+<ul>
+<li>Policy iteration - while in the previous bullet the algorithm is improving value function, policy iteration is based on the different approach. Concretely, there are two functions to be optimized <span class="math inline">\(V^{\pi}(s)\)</span> and <span class="math inline">\(\pi^{'}(s)\)</span>. This method is based on the premise that a RL agent cares about finding out the right policy. Sometimes, it is more convenient to directly use policies as a function of states. Below is the pseudocode:</li>
+</ul>
+</section>
+<section id="model-free-learning" class="level4">
+<h4 class="anchored" data-anchor-id="model-free-learning">Model Free Learning</h4>
+<p>Model Free learning constitutes a subcategory of reinforcement learning algorithms employed when the underlying model remains unknown. In this approach, the agent enhances its decision-making accuracy through environmental interactions without possessing explicit knowledge of the transition matrix. This methodology is particularly suitable for trading environments, as financial markets inherently lack a definable model and exhibit non-stationary transition probabilities. Consequently, direct application of value or policy iteration algorithms becomes infeasible.</p>
+<p>Despite the opacity of the Markov Decision Process and its components, the agent can accumulate experience from sampled states. The theoretical foundation suggests that the distribution of sampled states will eventually converge to that of the transition matrix. Similarly, <span class="math inline">\(Q(s, a)\)</span> values converge to <span class="math inline">\(Q^{*}\)</span> and the policy <span class="math inline">\(\pi^{*}\)</span> approaches optimality. This convergence requires that all state-action pairs be visited infinitely often, and that the agent adopts a greedy strategy once it identifies the optimal action for each state.</p>
+</section>
+</section>
+<section id="limitations" class="level3">
+<h3 class="anchored" data-anchor-id="limitations">Limitations</h3>
+<p>Reinforcement learning, while powerful, does not constitute a universal solution for all machine learning challenges. Its applicability is primarily restricted to problems characterized by distinct states, determinable policies, and well-defined value functions. A state merely represents a signal received by the agent—a momentary representation of the environment at a specific point in time.</p>
+<p>The majority of traditional reinforcement learning methodologies focus predominantly on states and their associated values. Although this approach proves adequate for relatively simple environments, it encounters significant limitations when applied to more complex scenarios. Notably, tabular representations become inadequate for storing expected values of states or state-action pairs, particularly when variables exhibit continuous properties. Such representations would exceed available memory constraints.</p>
+<p>Consequently, alternative methodologies must be employed to address these challenges and achieve computational efficiency in solving complex reinforcement learning problems.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
