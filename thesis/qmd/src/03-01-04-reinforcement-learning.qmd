@@ -1,4 +1,5 @@
 ### Reinforcement Learning
+
 Reinforcement learning (RL) represents a distinct paradigm in machine learning
 where an agent learns optimal behaviors through trial-and-error interactions
 with an environment. The agent perceives the environment's state as a feature
@@ -22,13 +23,13 @@ Key characteristics of reinforcement learning include:
 
 RL is particularly well-suited for non-stationary environments where
 relationships between variables evolve over time. The agent continuously adapts
-its policy to changing conditions, making it valuable for financial
-applications where market dynamics constantly shift.
+its policy to changing conditions, making it useful for applications where
+ dynamics constantly shift.
 
 This interdisciplinary field incorporates influences from engineering,
 economics, mathematics, neuroscience, psychology, and computer science.
 Applications span diverse domains including game playing, robotics, resource
-management, logistics, and financial trading strategies.
+management, logistics, and, increasingly, financial trading strategies.
 
 Unlike supervised learning, RL does not rely on labeled examples that specify
 exactly what an algorithm should do. Instead, the agent must learn from its own

@@ -1,1 +1,162 @@
 ## Policy
+
+
+## Monte Carlo Control
+
+Monte Carlo Control is an RL algorithm that leverages
+complete episode experiences to estimate optimal policies. Unlike temporal
+difference methods, Monte Carlo techniques do not rely on bootstrapping,
+instead deriving value estimates directly from completed trajectories.
+
+Formally, it follows the following steps:
+
+1. **Policy Evaluation**: For each state-action pair $(s,a)$ encountered in an
+   episode, the action-value function is updated according to:
+
+   $$Q(s,a) \leftarrow Q(s,a) + \alpha[G_t - Q(s,a)]$$
+
+   where:
+   - $G_t = \sum_{k=0}^{T-t-1} \gamma^k R_{t+k+1}$ represents the return
+     following time $t$
+   - $\alpha$ denotes the learning rate
+   - $T$ signifies the terminal time step
+
+2. **Policy Improvement**: The policy is updated to be $\epsilon$-greedy with
+   respect to the current action-value function:
+
+   $$\pi(a|s) =
+   \begin{cases}
+   1-\epsilon+\frac{\epsilon}{|A(s)|}, & \text{if } a = \argmax_{a'} Q(s,a') \\
+   \frac{\epsilon}{|A(s)|}, & \text{otherwise}
+   \end{cases}$$
+
+The algorithmic implementation is presented below:
+
+\begin{algorithm}
+\caption{Monte Carlo Control with $\epsilon$-greedy Policy}
+\begin{algorithmic}[1]
+\State Initialize $Q(s,a)$ arbitrarily for all $s \in S, a \in A(s)$
+\State Initialize $\pi$ to be $\epsilon$-greedy with respect to $Q$
+\State Initialize Returns$(s,a)$ as empty list for all $s \in S, a \in A(s)$
+\For{each episode}
+    \State Generate an episode following $\pi$: $S_0,A_0,R_1,S_1,...,S_{T-1},A_{T-1},R_T$
+    \State $G \leftarrow 0$
+    \For{$t = T-1, T-2, ..., 0$}
+        \State $G \leftarrow \gamma G + R_{t+1}$
+        \State Unless the pair $S_t,A_t$ appears in $S_0,A_0,...,S_{t-1},A_{t-1}$:
+        \State \quad Append $G$ to Returns$(S_t,A_t)$
+        \State \quad $Q(S_t,A_t) \leftarrow$ average(Returns$(S_t,A_t)$)
+        \State \quad Update $\pi$ to be $\epsilon$-greedy with respect to $Q$
+    \EndFor
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+### Advantages for Trading Applications
+
+Monte Carlo Control offers several distinct advantages in financial trading
+contexts that complement other policy optimization approaches:
+
+* **Model-Free Learning**: The algorithm requires no prior knowledge of
+   market dynamics or transition probabilities
+
+* **Reduced Bias in Value Estimation**: By utilizing complete episode
+   returns rather than bootstrapped estimates, Monte Carlo methods eliminate
+   the bias introduced by function approximation errors
+
+* **Effective Learning from Episodic Experience**: Trading naturally
+   decomposes into episodes (e.g., daily sessions, trade lifecycles),
+   aligning well with Monte Carlo's episodic learning paradigm and enabling
+   direct optimization of terminal performance metrics.
+
+* **Robustness to Partial Observability**: Financial markets often exhibit
+   partially observable characteristics; Monte Carlo methods demonstrate
+   greater resilience to such conditions compared to one-step temporal
+   difference approaches.
+
+* **Simplified Credit Assignment**: The algorithm effectively addresses the
+   temporal credit assignment problem by directly attributing rewards to
+   state-action pairs, facilitating more accurate evaluation of trading
+   decisions that may have delayed consequences.
+
+In this research, Monte Carlo Control serves as a complementary approach
+to policy optimization, particularly valuable for initial policy exploration
+and establishing baseline performance metrics against which more sophisticated
+algorithms can be evaluated.
+
+
+### Proximal Policy Optimization (PPO)
+
+PPO advances policy gradient methods with enhanced sample efficiency and
+stability. It resolves step size determination challenges through a clipped
+objective function that effectively constrains policy updates.
+
+The core innovation of PPO lies in its objective function:
+$$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t[\min(r_t(\theta)\hat{A}_t,
+\text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)]$$
+
+where:
+
+* $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$
+  represents the probability ratio between the new and old policies
+* $\hat{A}_t$ is the estimated advantage function, which quantifies how much
+  better an action is compared to the average action in a given state;
+  defined as $\hat{A}_t = Q(s_t,a_t) - V(s_t)$, measuring the
+  relative benefit of selecting action $a_t$ in state $s_t$
+* $\epsilon$ is a hyperparameter that constrains the policy update
+
+
+\begin{algorithm}
+\caption{Proximal Policy Optimization (PPO)}
+\begin{algorithmic}[1]
+\State Initialize policy parameters $\theta$ and value function parameters $\phi$
+\For{iteration = 1, 2, ...}
+    \State Collect set of trajectories $\mathcal{D}_t = \{\tau_i\}$ by running
+    policy $\pi_\theta$ in the environment
+    \State Compute rewards-to-go $\hat{R}_t$
+    \State Compute advantage estimates $\hat{A}_t$ using GAE or other methods
+    \State Compute policy ratio $r_t(\theta) =
+    \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$
+    \State Optimize the PPO-Clip objective:
+    \State $\theta \leftarrow \argmax_\theta \frac{1}{|\mathcal{D}_t|T}
+    \sum_{\tau \in \mathcal{D}_t} \sum_{t=0}^T \min(r_t(\theta)\hat{A}_t,
+    \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)$
+    \State Update value function by regression on mean-squared error:
+    \State $\phi \leftarrow \argmin_\phi \frac{1}{|\mathcal{D}_t|T}
+    \sum_{\tau \in \mathcal{D}_t} \sum_{t=0}^T (V_\phi(s_t) - \hat{R}_t)^2$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+### Advantages
+
+* **Algorithmic Stability**: The policy clipping functions as a
+   constraint on the magnitude of policy updates, effectively mitigating the
+   risk of large policy updates during the training. This characteristic is
+   particularly valuable in financial markets where heteroskedasticity can
+   induce erratic learning trajectories.
+
+* **Enhanced Sample Efficiency**: PPO
+   exhibits superior learning efficiency, requiring fewer
+   environmental interactions to achieve convergence relative to conventional
+   policy gradient methodologies such as REINFORCE and vanilla policy gradient
+   methods. This property is advantageous
+   when utilizing finite historical market data and/or when computational
+   resources impose constraints on simulation iterations.
+
+* **Diminished Hyperparameter Sensitivity**: PPO maintains robust performance
+   across diverse hyperparameter configurations, thereby reducing the dimensionality
+   of the optimization problem associated with algorithm calibration. This
+   characteristic facilitates more efficient experimental design and validation
+   procedures.
+
+* **Intrinsic Compatibility with Continuous Action Spaces**: The
+   mathematical framework of PPO naturally supports continuous action
+   parameterization without necessitating discretization procedures. This
+   characteristic corresponds directly with the continuous attributes of
+   trading decisions.
+
+In the context of this research, PPO has been implemented as the foundational
+policy optimization algorithm, facilitating the development of an adaptive
+trading agent capable of extracting complex, non-linear relationships from
+market data while maintaining learning stability across diverse market regimes.
