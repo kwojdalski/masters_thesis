@@ -197,9 +197,15 @@ window.Quarto = {
   <li><a href="#differential-sharpe-ratio" id="toc-differential-sharpe-ratio" class="nav-link" data-scroll-target="#differential-sharpe-ratio"><span class="header-section-number">4.2.1</span> Differential Sharpe Ratio</a></li>
   <li><a href="#other-reward-functions" id="toc-other-reward-functions" class="nav-link" data-scroll-target="#other-reward-functions"><span class="header-section-number">4.2.2</span> Other Reward Functions</a></li>
   </ul></li>
-  <li><a href="#value-function" id="toc-value-function" class="nav-link" data-scroll-target="#value-function"><span class="header-section-number">4.3</span> Value Function</a></li>
+  <li><a href="#value-function-1" id="toc-value-function-1" class="nav-link" data-scroll-target="#value-function-1"><span class="header-section-number">4.3</span> Value Function</a></li>
   <li><a href="#policy" id="toc-policy" class="nav-link" data-scroll-target="#policy"><span class="header-section-number">4.4</span> Policy</a></li>
-  <li><a href="#step-size" id="toc-step-size" class="nav-link" data-scroll-target="#step-size"><span class="header-section-number">4.5</span> Step Size</a></li>
+  <li><a href="#monte-carlo-control" id="toc-monte-carlo-control" class="nav-link" data-scroll-target="#monte-carlo-control"><span class="header-section-number">4.5</span> Monte Carlo Control</a>
+  <ul class="collapse">
+  <li><a href="#advantages-for-trading-applications" id="toc-advantages-for-trading-applications" class="nav-link" data-scroll-target="#advantages-for-trading-applications"><span class="header-section-number">4.5.1</span> Advantages for Trading Applications</a></li>
+  <li><a href="#proximal-policy-optimization-ppo" id="toc-proximal-policy-optimization-ppo" class="nav-link" data-scroll-target="#proximal-policy-optimization-ppo"><span class="header-section-number">4.5.2</span> Proximal Policy Optimization (PPO)</a></li>
+  <li><a href="#advantages-for-trading-applications-1" id="toc-advantages-for-trading-applications-1" class="nav-link" data-scroll-target="#advantages-for-trading-applications-1"><span class="header-section-number">4.5.3</span> Advantages for Trading Applications</a></li>
+  </ul></li>
+  <li><a href="#step-size" id="toc-step-size" class="nav-link" data-scroll-target="#step-size"><span class="header-section-number">4.6</span> Step Size</a></li>
   </ul></li>
   <li><a href="#implementation-of-the-trading-agent" id="toc-implementation-of-the-trading-agent" class="nav-link" data-scroll-target="#implementation-of-the-trading-agent"><span class="header-section-number">5</span> Implementation of the Trading Agent</a>
   <ul class="collapse">
@@ -574,27 +580,22 @@ MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
 <p>In machine learning (ML), tasks are categorized based on how learning/feedback (<span class="math inline">\(P\)</span>) is received and/or the type of problem they address. The following categories can be distinguished:</p>
 <section id="supervised-learning" class="level3" data-number="3.2.1">
 <h3 data-number="3.2.1" class="anchored" data-anchor-id="supervised-learning"><span class="header-section-number">3.2.1</span> Supervised Learning</h3>
-<ul>
-<li><p>Supervised Learning - the complete set <span class="math inline">\((Y_t;X_{t, 1}, ..., X_{t,n})\)</span> is available. The objective is to model the target variable <span class="math inline">\(Y_t\)</span> using a subset of <span class="math inline">\(X_t\)</span> variables, i.e., find a functional relationship <span class="math inline">\(Y_t = f(\mathbb{X_t})\)</span> between input and output variables that minimizes a predefined loss function <span class="math inline">\(g(f(\mathbb{X}_t);Y_t)\)</span>. The structural form of this relationship is constrained by the class of functions considered. For example, assuming a linear relationship between input and output variables with a square loss function, the problem becomes: <span class="math display">\[\min_{b_1\dots b_n}\mathbb{E}[(Y_t-(b_1X_{t,1}+\dots+b_nX_{t,n}))^2]\]</span></p>
-<p>The estimation method above is known as the least squares method for linear regression. Despite its simplicity, it often yields sufficient results. Other popular supervised learning methods include:</p>
-<ul>
-<li>K-nearest neighbors, Neural Networks</li>
-<li>SVM - Support Vector Machines</li>
-<li>Random Forests</li>
-</ul></li>
-</ul>
 <p>Supervised learning represents a fundamental paradigm in machine learning where algorithms learn from labeled training data to make predictions or decisions without explicit programming. At its core, supervised learning involves a dataset consisting of input-output pairs, where each example contains features (input variables) and their corresponding target values or labels (output variables). The primary objective is to learn a mapping function that can accurately predict the output value for new, previously unseen inputs.</p>
 <p>Formally, given a dataset of pairs <span class="math inline">\({(X_1, Y_1), (X_2, Y_2), ..., (X_n, Y_n)}\)</span>, where <span class="math inline">\(X_i\)</span> represents the feature vector and <span class="math inline">\(Y_i\)</span> is the corresponding target value, supervised learning aims to find a function <span class="math inline">\(f\)</span> such that <span class="math inline">\(Y = f(X)\)</span> which minimizes a predefined loss function <span class="math inline">\(L(f(X), Y)\)</span>. The function <span class="math inline">\(f\)</span> is constrained by the model class chosen for the task, which determines the complexity and expressiveness of the relationships that can be captured.</p>
 <p>The mathematical foundation of supervised learning lies in statistical learning theory and optimization. For instance, in a linear regression model, we seek parameters <span class="math inline">\(\beta\)</span> that minimize the sum of squared errors: <span class="math inline">\(\min_{\beta} \sum (Y_i - X_i\beta)^2\)</span>. In more complex models like neural networks, we optimize weights and biases across multiple layers using gradient-based methods to minimize error functions across the entire training dataset.</p>
-<p>Supervised learning tasks typically fall into two main categories: - Classification: When the output variable <span class="math inline">\(Y\)</span> is categorical or discrete (e.g., spam/not spam, fraud/legitimate, image categories) - Regression: When the output variable <span class="math inline">\(Y\)</span> is continuous (e.g., stock prices, temperature, house prices)</p>
+<p>Supervised learning tasks typically fall into two main categories:</p>
+<ul>
+<li>Classification: When the output variable <span class="math inline">\(Y\)</span> is categorical or discrete (e.g., spam/not spam, fraud/legitimate, image categories)</li>
+<li>Regression: When the output variable <span class="math inline">\(Y\)</span> is continuous (e.g., stock prices, temperature, house prices)</li>
+</ul>
 <p>The choice of algorithm depends on various factors including the nature of the problem, dataset characteristics, computational resources, and the desired balance between model interpretability and predictive performance. Common supervised learning algorithms include:</p>
 <ul>
 <li>Linear models: Linear regression for regression tasks and logistic regression for classification</li>
 <li>Tree-based methods: Decision trees, random forests, and gradient boosting machines</li>
 <li>Support vector machines: Effective for both classification and regression with high-dimensional data</li>
 <li>K-nearest neighbors: A non-parametric method that makes predictions based on similarity measures</li>
-<li>Neural networks: Deep learning architectures capable of capturing complex non-linear relationships</li>
 <li>Ensemble methods: Combining multiple models to improve overall performance and robustness</li>
+<li>Neural networks: Deep learning architectures capable of capturing complex non-linear relationships</li>
 </ul>
 <p>A critical aspect of supervised learning is the bias-variance tradeoff. Simple models may underfit the data (high bias), failing to capture important patterns, while overly complex models may overfit (high variance), learning noise rather than underlying relationships. Techniques such as regularization, cross-validation, and ensemble methods help manage this tradeoff to create models that generalize well to unseen data.</p>
 <p>In financial applications, supervised learning has become important for various tasks such as price prediction, risk assessment, credit scoring, fraud detection, and market sentiment analysis. For instance, in predicting stock prices, historical market data with known outcomes serves as the training set, where features might include technical indicators, fundamental data, and macroeconomic variables, while the target variable could be future price movements or returns.</p>
@@ -602,15 +603,7 @@ MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
 </section>
 <section id="unsupervised-learning" class="level3" data-number="3.2.2">
 <h3 data-number="3.2.2" class="anchored" data-anchor-id="unsupervised-learning"><span class="header-section-number">3.2.2</span> Unsupervised Learning</h3>
-<ul>
-<li>Unsupervised learning - this category deals exclusively with the <span class="math inline">\(\mathbb{X_t}\)</span> set. The goal is to identify patterns within the dataset and categorize observations. The most prevalent methods include:
-<ul>
-<li>Clustering - based on finding groups of instances that are as similar as possible to observations within the same group while being as different as possible from observations in other groups</li>
-<li>Feature extraction - this subcategory comprises methods for extracting relevant variables from a set <span class="math inline">\(\mathbb{X}_t\)</span>. Often, a subset of a dataset can contain a similar amount of information as the original while reducing dimensionality, thereby enhancing computational efficiency and improving the model in accordance with Occam’s Razor.</li>
-<li>Anomaly detection - this approach aids in identifying outlier observations that warrant careful investigation. Variables may require transformation or invalid observations may need removal.</li>
-</ul></li>
-</ul>
-<p>Unsupervised learning represents a paradigm in machine learning where algorithms learn patterns and structures from unlabeled data without explicit guidance. Unlike supervised learning, there are no target outputs or labels to guide the learning process. Instead, the algorithm discovers the inherent structure within the data itself.</p>
+<p>Unsupervised learning constitutes an approach in machine learning wherein computational algorithms identify intrinsic patterns and structural relationships within unlabeled datasets without explicit instructional guidance. In contrast to supervised methodologies, this paradigm operates in the absence of predetermined target variables or classificatory labels to direct the analytical process. The algorithm instead autonomously discerns the inherent organizational structure embedded within the data corpus itself.</p>
 <p>Formally, in unsupervised learning, the dataset consists of a collection of unlabeled examples <span class="math inline">\({X_1, X_2, ..., X_N}\)</span>, where each <span class="math inline">\(X_i\)</span> represents a feature vector. The primary objective is to create a model that processes these feature vectors to either transform them into another representation or extract meaningful patterns that can solve practical problems.</p>
 <p>The mathematical foundation of unsupervised learning involves finding patterns, relationships, or structures within the data space. For instance, in clustering algorithms, we seek to minimize within-cluster distances while maximizing between-cluster distances, often expressed as optimization problems such as minimizing <span class="math inline">\(\sum_{i=1}^k \sum_{x \in C_i} ||x - \mu_i||^2\)</span> where <span class="math inline">\(C_i\)</span> represents clusters and <span class="math inline">\(\mu_i\)</span> their centroids.</p>
 <p>Unsupervised learning encompasses several key application areas:</p>
@@ -621,7 +614,7 @@ MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
 <li><p><strong>Anomaly Detection</strong>: Identifying instances that deviate significantly from the norm or expected patterns within the dataset. These outliers often represent rare events, errors, or fraudulent activities that warrant special attention.</p></li>
 <li><p><strong>Feature Learning</strong>: Automatically discovering useful representations from raw data that can subsequently enhance performance in downstream tasks, including supervised learning problems.</p></li>
 </ul>
-<p>In financial applications, unsupervised learning proves valuable for market segmentation, identifying trading patterns, detecting fraudulent transactions, and discovering latent factors driving market movements. The absence of labeled data makes unsupervised learning particularly useful in exploratory analysis and when dealing with novel or evolving financial phenomena where historical classifications may not exist or apply.</p>
+<p>In financial applications, unsupervised learning proves valuable for market segmentation, identifying trading patterns, detecting fraudulent transactions, and discovering latent factors driving market movements. The absence of labeled data makes unsupervised learning useful in exploratory analysis and when dealing with novel or evolving financial phenomena where historical classifications may not exist or apply.</p>
 <p>The effectiveness of unsupervised learning in finance is often measured by metrics such as silhouette scores for clustering quality, explained variance for dimensionality reduction, or business impact metrics like improved portfolio diversification or fraud detection rates. As markets evolve and data complexity increases, unsupervised learning provides tools for uncovering hidden structures and relationships in financial data.</p>
 </section>
 <section id="semi-supervised-learning" class="level3" data-number="3.2.3">
@@ -648,8 +641,8 @@ MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
 <li><p><strong>Delayed Rewards</strong>: Actions may not yield immediate benefits but contribute to greater cumulative rewards in the future.</p></li>
 <li><p><strong>Exploration vs.&nbsp;Exploitation</strong>: Agents must balance discovering new potentially better strategies against utilizing known rewarding actions.</p></li>
 </ul>
-<p>RL is particularly well-suited for non-stationary environments where relationships between variables evolve over time. The agent continuously adapts its policy to changing conditions, making it valuable for financial applications where market dynamics constantly shift.</p>
-<p>This interdisciplinary field incorporates influences from engineering, economics, mathematics, neuroscience, psychology, and computer science. Applications span diverse domains including game playing, robotics, resource management, logistics, and financial trading strategies.</p>
+<p>RL is particularly well-suited for non-stationary environments where relationships between variables evolve over time. The agent continuously adapts its policy to changing conditions, making it useful for applications where dynamics constantly shift.</p>
+<p>This interdisciplinary field incorporates influences from engineering, economics, mathematics, neuroscience, psychology, and computer science. Applications span diverse domains including game playing, robotics, resource management, logistics, and, increasingly, financial trading strategies.</p>
 <p>Unlike supervised learning, RL does not rely on labeled examples that specify exactly what an algorithm should do. Instead, the agent must learn from its own actions, sense states, and accumulate experience. The only feedback received is a scalar reward signal.</p>
 <p>While unsupervised learning focuses on identifying structures in unlabeled datasets, RL specifically aims to maximize a long-run value function comprising summed (discounted) rewards. Finding data patterns may be useful, but it addresses a fundamentally different objective than the RL problem.</p>
 <p>The environment changes stochastically and interacts with the agent, requiring a policy design that balances exploration of new actions against exploitation of known solutions. This prevents purely greedy behavior that might lead to suboptimal outcomes.</p>
@@ -726,7 +719,7 @@ MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
 </section>
 <section id="direct-optimization-of-performance" class="level4" data-number="3.4.0.2">
 <h4 data-number="3.4.0.2" class="anchored" data-anchor-id="direct-optimization-of-performance"><span class="header-section-number">3.4.0.2</span> Direct Optimization of Performance</h4>
-<p>In this modern approach, there is no intermediate step and labeled data is not given. The environment is observed, <span class="math inline">\(X_t\)</span>, the system carries out an action, and receives a scalar reward for its past activities, representing the trading performance in some form (e.g.&nbsp;rate of return). Based on this reward, the system alters the way it behaves in subsequent episodes and steps.</p>
+<p>In this approach, there is no intermediate step and labeled data is not given. The environment is observed, <span class="math inline">\(X_t\)</span>, the system carries out an action, and receives a scalar reward for its past activities, representing the trading performance in some form (e.g.&nbsp;rate of return). Based on this reward, the system alters the way it behaves in subsequent episodes and steps.</p>
 <p>For example, consider a reinforcement learning agent trading Microsoft (MSFT) stock. At time <span class="math inline">\(t\)</span>, the agent observes market state <span class="math inline">\(X_t\)</span> (e.g., MSFT price, volume, technical indicators) and selects action <span class="math inline">\(a_t \in \{-1,0,1\}\)</span> representing short, neutral, or long positions. The agent receives reward <span class="math inline">\(r_t\)</span> based on position value:</p>
 <p><span class="math display">\[r_t = a_{t-1} \cdot \frac{P^{\text{MSFT}}_t - P^{\text{MSFT}}_{t-1}}
 {P^{\text{MSFT}}_{t-1}}\]</span></p>
@@ -740,25 +733,46 @@ MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
 <section id="components-of-a-reinforcement-learning-system" class="level4" data-number="3.4.1.1">
 <h4 data-number="3.4.1.1" class="anchored" data-anchor-id="components-of-a-reinforcement-learning-system"><span class="header-section-number">3.4.1.1</span> Components of a reinforcement learning system</h4>
 <p>Reinforcement learning systems are designed to address sequential decision-making problems by selecting actions that maximize cumulative discounted future rewards. The following section explains the components of reinforcement learning using chess and trading as illustrative examples. This subsection draws partial inspiration from <span class="citation" data-cites="Sutton2017">Sutton and Barto (<a href="#ref-Sutton2017" role="doc-biblioref">2017</a>)</span>.</p>
-<ul>
-<li><p>Environment (<span class="math inline">\(E\)</span>) - defines the possible states and actions. In chess, this encompasses the rules and potential configurations of pieces on the board. It is important to note that some states will never be reached. In trading contexts, environmental rules might stipulate that an agent can only take positions of 0 or 1, or that portfolio asset weights must sum to 1.</p></li>
-<li><p>State (<span class="math inline">\(s\)</span>) - represents a snapshot of the environment at time <span class="math inline">\(t\)</span>, containing information that guides the agent’s next action selection. States can be terminal, indicating the agent cannot choose further actions, thus ending an episode—a sequence of state-action pairs from start to finish. In trading applications, a state at time <span class="math inline">\(t\)</span> might comprise various financial metrics: returns, implied/realized volatility, moving averages, economic indicators, technical signals, and market sentiment measures.</p></li>
-<li><p>Action (<span class="math inline">\(a\)</span>) - given the current state, the agent selects an action that transitions to a new state, either deterministically or stochastically. The action selection process itself may be deterministic or probability-based. In chess, an action involves moving a piece according to the rules. In trading, actions might include establishing long or short positions, maintaining neutral exposure, or adjusting portfolio weights.</p></li>
-<li><p>Policy (<span class="math inline">\(\pi\)</span>) - maps environmental states to corresponding actions. In psychological terms, this resembles stimulus-response associations. A policy may take various forms—from lookup tables to functions (linear or otherwise). Trading applications often involve continuous variables requiring extensive computation to determine optimal outcomes. As the core component of a reinforcement learning agent, policies fundamentally determine behavior. Policies can be stochastic rather than deterministic. Even after numerous episodes, an efficient algorithm may continue exploring alternative states instead of exclusively exploiting currently optimal actions.</p></li>
-<li><p>Value Function - predicts future, typically discounted rewards to help the agent determine the desirability of states. Value functions depend on initial states (<span class="math inline">\(S_0\)</span>) and the agent’s selected policy. Every state should have an associated value, defaulting to zero for unexplored paths. The general formula for a value function is:</p></li>
-</ul>
+<section id="environment-e" class="level5" data-number="3.4.1.1.1">
+<h5 data-number="3.4.1.1.1" class="anchored" data-anchor-id="environment-e"><span class="header-section-number">3.4.1.1.1</span> Environment (<span class="math inline">\(E\)</span>)</h5>
+<p>It defines the possible states and actions. In chess, this encompasses the rules and potential configurations of pieces on the board. It is important to note that some states will never be reached.</p>
+<p>In trading contexts, environmental rules might stipulate that an agent can only take positions of 0 or 1, or that portfolio asset weights must sum to 1.</p>
+</section>
+<section id="state-s" class="level5" data-number="3.4.1.1.2">
+<h5 data-number="3.4.1.1.2" class="anchored" data-anchor-id="state-s"><span class="header-section-number">3.4.1.1.2</span> State (<span class="math inline">\(s\)</span>)</h5>
+<p>It represents a snapshot of the environment at time <span class="math inline">\(t\)</span>, containing information that guides the agent’s next action selection. States can be terminal, indicating the agent cannot choose further actions, thus ending an episode—a sequence of state-action pairs from start to finish. In trading applications, a state at time <span class="math inline">\(t\)</span> might comprise various financial metrics: returns, implied/realized volatility, moving averages, economic indicators, technical signals, and market sentiment measures.</p>
+</section>
+<section id="action-a" class="level5" data-number="3.4.1.1.3">
+<h5 data-number="3.4.1.1.3" class="anchored" data-anchor-id="action-a"><span class="header-section-number">3.4.1.1.3</span> Action (<span class="math inline">\(a\)</span>)</h5>
+<p>Given the current state, the agent selects an action that transitions to a new state, either deterministically or stochastically. The action selection process itself may be deterministic or probability-based. In chess, an action involves moving a piece according to the rules. In trading, actions might include establishing long or short positions, maintaining neutral exposure, or adjusting portfolio weights.</p>
+</section>
+<section id="policy-pi" class="level5" data-number="3.4.1.1.4">
+<h5 data-number="3.4.1.1.4" class="anchored" data-anchor-id="policy-pi"><span class="header-section-number">3.4.1.1.4</span> Policy (<span class="math inline">\(\pi\)</span>)</h5>
+<p>It maps environmental states to corresponding actions. In psychological terms, this resembles stimulus-response associations. A policy may take various forms—from lookup tables to functions (linear or otherwise). Trading applications often involve continuous variables requiring extensive computation to determine optimal outcomes. As the core component of a reinforcement learning agent, policies fundamentally determine behavior. Policies can be stochastic rather than deterministic. Even after numerous episodes, an efficient algorithm may continue exploring alternative states instead of exclusively exploiting currently optimal actions.</p>
+</section>
+<section id="reward-r" class="level5" data-number="3.4.1.1.5">
+<h5 data-number="3.4.1.1.5" class="anchored" data-anchor-id="reward-r"><span class="header-section-number">3.4.1.1.5</span> Reward (<span class="math inline">\(r\)</span>)</h5>
+<p>Rewards are the essence of reinforcement learning predictions. Value function, as previously stated, is a sum of, often discounted, rewards. Without them, as components of value function, an agent would not be able to spot (or optimal) better policies actions are based on. Hence, it is assumed rewards are the central point, required element, of every RL algorithm. Rewards are always given as a scalar, single value that is retrieved from the environment, that is easy to observe and interpret. With value function it is much harder since it can be obtained only by calculating a sequence of observations a RL agent makes over its lifetime.</p>
+</section>
+<section id="value-function" class="level5" data-number="3.4.1.1.6">
+<h5 data-number="3.4.1.1.6" class="anchored" data-anchor-id="value-function"><span class="header-section-number">3.4.1.1.6</span> Value Function</h5>
+<p>It predicts future, typically discounted rewards to help the agent determine the desirability of states. Value functions depend on initial states (<span class="math inline">\(S_0\)</span>) and the agent’s selected policy. Every state should have an associated value, defaulting to zero for unexplored paths. The general formula for a value function is:</p>
 <p><span class="math display">\[V^\pi=\mathbb{E}_\pi[\sum\limits_{k=1}^\infty \gamma^kr_{t+k}|s_t=s]\]</span></p>
-<p>where <span class="math inline">\(\gamma\)</span> is a discount factor from the range <span class="math inline">\([0; 1]\)</span>. It measures how much more instant rewards are valued. The smaller it is the more immediate values are relatively more relevant and cause algorithm to be more greedy. Sometimes <span class="math inline">\(\gamma\)</span> is equal to 1 if it is justified by the design of the whole agent.</p>
-<p>Value estimation, as a area of research in RL is probably the most vital one in the last decade. The most important distinction between different RL algorithms lies as to how it is calculated, in what form, and what variables it incorporates.</p>
+<p>where:</p>
 <ul>
-<li><p>Reward (<span class="math inline">\(r\)</span>) - rewards are the essence of reinforcement learning predictions. Value function, as previously stated, is a sum of, often discounted, rewards. Without them, as components of value function, an agent would not be able to spot (or optimal) better policies actions are based on. Hence, it is assumed rewards are the central point, required element, of every RL algorithm. Rewards are always given as a scalar, single value that is retrieved from the environment, that is easy to observe and interpret. With value function it is much harder since it can be obtained only by calculating a sequence of observations a RL agent makes over its lifetime.</p></li>
-<li><p>Model (<span class="math inline">\(m\)</span>) - a model shows the dynamics of environment, how it will evolve from <span class="math inline">\(S_{t-1}\)</span> to <span class="math inline">\(S_t\)</span>. The model helps in predicting what the next state and next reward will be. They are used for planning, i.e.&nbsp;trial-and-error approach is not needed in order to achieving the optimal policy. Formally, it is a set of transition matrices:</p></li>
+<li><span class="math inline">\(\gamma\)</span> is a discount factor from the range <span class="math inline">\([0; 1]\)</span>. It measures how much more instant rewards are valued. The smaller it is the more immediate values are relatively more relevant and cause algorithm to be more greedy. Sometimes <span class="math inline">\(\gamma\)</span> is equal to 1 if it is justified by the design of the whole agent.</li>
 </ul>
+<p>Value estimation, as a area of research in RL is probably the most vital one in the last decade. The most important distinction between different RL algorithms lies as to how it is calculated, in what form, and what variables it incorporates.</p>
+</section>
+<section id="model-m" class="level5" data-number="3.4.1.1.7">
+<h5 data-number="3.4.1.1.7" class="anchored" data-anchor-id="model-m"><span class="header-section-number">3.4.1.1.7</span> Model (<span class="math inline">\(m\)</span>)</h5>
+<p>A model shows the dynamics of environment, how it will evolve from <span class="math inline">\(S_{t-1}\)</span> to <span class="math inline">\(S_t\)</span>. The model helps in predicting what the next state and next reward will be. They are used for planning, i.e.&nbsp;trial-and-error approach is not needed in order to achieving the optimal policy. Formally, it is a set of transition matrices:</p>
 <p><span class="math display">\[\mathbb{P}_{ss^{'}}^a=\mathbb{P}[s^{'}|s,a]\]</span> <span class="math display">\[\mathbb{R}_s^a=\mathbb{E}[r|s,a]\]</span></p>
 <p>where:</p>
 <ul>
 <li><span class="math inline">\(\mathbb{P}_ss^{'}{a}\)</span> is a matrix of probability of transitions from state <span class="math inline">\(s\)</span> to state <span class="math inline">\(s^{'}\)</span> when taking action <span class="math inline">\(a\)</span>. Analogously, <span class="math inline">\(\mathbb{R}_{s}^a\)</span> is an expected value of reward when an agent is in state <span class="math inline">\(s\)</span> and taking action <span class="math inline">\(a\)</span></li>
 </ul>
+</section>
 </section>
 <section id="explorationexploitation" class="level4" data-number="3.4.1.2">
 <h4 data-number="3.4.1.2" class="anchored" data-anchor-id="explorationexploitation"><span class="header-section-number">3.4.1.2</span> Exploration/exploitation</h4>
@@ -783,7 +797,7 @@ MDD(T)=\max_{\tau\in (0,T)}[\max_{t\in (0,\tau)} X(t)-X(\tau)]
 <p><span class="math display">\[A_t = \argmax_a[Q_t(a)+c\sqrt\frac{ln_t}{N_t(a)}],\]</span> where:</p>
 <ul>
 <li><span class="math inline">\(ln_t\)</span> is the natural logarithm of $t%</li>
-<li>$N_t(a) - the number of times that action a has been selected prior to time <span class="math inline">\(t\)</span></li>
+<li><span class="math inline">\(N_t(a)\)</span> - the number of times that action a has been selected prior to time <span class="math inline">\(t\)</span></li>
 <li><span class="math inline">\(c\)</span> - the exploration rate</li>
 </ul>
 <p>The idea of this soltuion is that the square-root part is an uncertainty measure or variance in the <span class="math inline">\(a\)</span> estimation. The use of the natural logarithm implies that overtime square-root term, so does the confidence interval, is getting smaller. All actions will be selected at some point, but the ones with non-optimal values for <span class="math inline">\(Q(a)\)</span> are going to be selected much less frequently over time. UCB performs well, but it is harder to apply (generalize) for a broader amount of problems than <span class="math inline">\(\epsilon\)</span>-greedy algorithm. Especially, when one is dealing with nonstationary problems. In such situations, algorithms more complex than those presented in this subsection should be selected.</p>
@@ -1018,14 +1032,72 @@ S_t=\frac{A_t}{K_\eta\sqrt{B_t-A_t^2}}
 <h3 data-number="4.2.2" class="anchored" data-anchor-id="other-reward-functions"><span class="header-section-number">4.2.2</span> Other Reward Functions</h3>
 </section>
 </section>
-<section id="value-function" class="level2" data-number="4.3">
-<h2 data-number="4.3" class="anchored" data-anchor-id="value-function"><span class="header-section-number">4.3</span> Value Function</h2>
+<section id="value-function-1" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="value-function-1"><span class="header-section-number">4.3</span> Value Function</h2>
 </section>
 <section id="policy" class="level2" data-number="4.4">
 <h2 data-number="4.4" class="anchored" data-anchor-id="policy"><span class="header-section-number">4.4</span> Policy</h2>
 </section>
-<section id="step-size" class="level2" data-number="4.5">
-<h2 data-number="4.5" class="anchored" data-anchor-id="step-size"><span class="header-section-number">4.5</span> Step Size</h2>
+<section id="monte-carlo-control" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="monte-carlo-control"><span class="header-section-number">4.5</span> Monte Carlo Control</h2>
+<p>Monte Carlo Control is an RL algorithm that leverages complete episode experiences to estimate optimal policies. Unlike temporal difference methods, Monte Carlo techniques do not rely on bootstrapping, instead deriving value estimates directly from completed trajectories.</p>
+<p>Formally, it follows the following steps:</p>
+<ol type="1">
+<li><p><strong>Policy Evaluation</strong>: For each state-action pair <span class="math inline">\((s,a)\)</span> encountered in an episode, the action-value function is updated according to:</p>
+<p><span class="math display">\[Q(s,a) \leftarrow Q(s,a) + \alpha[G_t - Q(s,a)]\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(G_t = \sum_{k=0}^{T-t-1} \gamma^k R_{t+k+1}\)</span> represents the return following time <span class="math inline">\(t\)</span></li>
+<li><span class="math inline">\(\alpha\)</span> denotes the learning rate</li>
+<li><span class="math inline">\(T\)</span> signifies the terminal time step</li>
+</ul></li>
+<li><p><strong>Policy Improvement</strong>: The policy is updated to be <span class="math inline">\(\epsilon\)</span>-greedy with respect to the current action-value function:</p>
+<p><span class="math display">\[\pi(a|s) =
+\begin{cases}
+1-\epsilon+\frac{\epsilon}{|A(s)|}, &amp; \text{if } a = \argmax_{a'} Q(s,a') \\
+\frac{\epsilon}{|A(s)|}, &amp; \text{otherwise}
+\end{cases}\]</span></p></li>
+</ol>
+<p>The algorithmic implementation is presented below:</p>
+<section id="advantages-for-trading-applications" class="level3" data-number="4.5.1">
+<h3 data-number="4.5.1" class="anchored" data-anchor-id="advantages-for-trading-applications"><span class="header-section-number">4.5.1</span> Advantages for Trading Applications</h3>
+<p>Monte Carlo Control offers several distinct advantages in financial trading contexts that complement other policy optimization approaches:</p>
+<ul>
+<li><p><strong>Model-Free Learning</strong>: The algorithm requires no prior knowledge of market dynamics or transition probabilities</p></li>
+<li><p><strong>Reduced Bias in Value Estimation</strong>: By utilizing complete episode returns rather than bootstrapped estimates, Monte Carlo methods eliminate the bias introduced by function approximation errors</p></li>
+<li><p><strong>Effective Learning from Episodic Experience</strong>: Trading naturally decomposes into episodes (e.g., daily sessions, trade lifecycles), aligning well with Monte Carlo’s episodic learning paradigm and enabling direct optimization of terminal performance metrics.</p></li>
+<li><p><strong>Robustness to Partial Observability</strong>: Financial markets often exhibit partially observable characteristics; Monte Carlo methods demonstrate greater resilience to such conditions compared to one-step temporal difference approaches.</p></li>
+<li><p><strong>Simplified Credit Assignment</strong>: The algorithm effectively addresses the temporal credit assignment problem by directly attributing rewards to state-action pairs, facilitating more accurate evaluation of trading decisions that may have delayed consequences.</p></li>
+</ul>
+<p>In this research, Monte Carlo Control serves as a complementary approach to policy optimization, particularly valuable for initial policy exploration and establishing baseline performance metrics against which more sophisticated algorithms can be evaluated.</p>
+</section>
+<section id="proximal-policy-optimization-ppo" class="level3" data-number="4.5.2">
+<h3 data-number="4.5.2" class="anchored" data-anchor-id="proximal-policy-optimization-ppo"><span class="header-section-number">4.5.2</span> Proximal Policy Optimization (PPO)</h3>
+<p>PPO advances policy gradient methods with enhanced sample efficiency and stability. It resolves step size determination challenges through a clipped objective function that effectively constrains policy updates.</p>
+<p>The core innovation of PPO lies in its objective function: <span class="math display">\[L^{CLIP}(\theta) = \hat{\mathbb{E}}_t[\min(r_t(\theta)\hat{A}_t,
+\text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)]\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}\)</span> represents the probability ratio between the new and old policies</li>
+<li><span class="math inline">\(\hat{A}_t\)</span> is the estimated advantage function, which quantifies how much better an action is compared to the average action in a given state; defined as <span class="math inline">\(\hat{A}_t = Q(s_t,a_t) - V(s_t)\)</span>, measuring the relative benefit of selecting action <span class="math inline">\(a_t\)</span> in state <span class="math inline">\(s_t\)</span></li>
+<li><span class="math inline">\(\epsilon\)</span> is a hyperparameter that constrains the policy update</li>
+</ul>
+<p>The algorithm can be formalized as follows:</p>
+</section>
+<section id="advantages-for-trading-applications-1" class="level3" data-number="4.5.3">
+<h3 data-number="4.5.3" class="anchored" data-anchor-id="advantages-for-trading-applications-1"><span class="header-section-number">4.5.3</span> Advantages for Trading Applications</h3>
+<p>The empirical analysis of PPO implementation in financial trading contexts reveals several distinctive advantages that substantiate its selection for this research:</p>
+<ul>
+<li><p><strong>Algorithmic Stability</strong>: The policy clipping mechanism functions as a constraint on the magnitude of policy updates, effectively mitigating the risk of catastrophic divergence during the training process. This characteristic is particularly valuable in financial markets where volatility clusters can induce erratic learning trajectories.</p></li>
+<li><p><strong>Enhanced Sample Efficiency</strong>: Comparative analyses demonstrate that PPO exhibits superior learning efficiency, requiring substantially fewer environmental interactions to achieve convergence relative to conventional policy gradient methodologies. This property is especially advantageous when utilizing finite historical market data or when computational resources impose constraints on simulation iterations.</p></li>
+<li><p><strong>Diminished Hyperparameter Sensitivity</strong>: Experimental evidence indicates that PPO maintains robust performance across diverse hyperparameter configurations, thereby reducing the dimensionality of the optimization problem associated with algorithm calibration. This characteristic facilitates more efficient experimental design and validation procedures.</p></li>
+<li><p><strong>Native Support for Continuous Action Parameterization</strong>: The mathematical formulation of PPO inherently accommodates continuous action spaces without discretization requirements, aligning precisely with the continuous nature of trading decisions such as position sizing, entry timing, and risk allocation parameters.</p></li>
+</ul>
+<p>In the context of this research, PPO has been implemented as the foundational policy optimization algorithm, facilitating the development of an adaptive trading agent capable of extracting complex, non-linear relationships from market data while maintaining learning stability across diverse market regimes.</p>
+</section>
+</section>
+<section id="step-size" class="level2" data-number="4.6">
+<h2 data-number="4.6" class="anchored" data-anchor-id="step-size"><span class="header-section-number">4.6</span> Step Size</h2>
 </section>
 </section>
 <section id="implementation-of-the-trading-agent" class="level1" data-number="5">
