@@ -368,6 +368,27 @@ Benchmarks:
    - Feature engineering - preparing meaningful features, especially working
      ones, is a time-consuming process due to several issues, e.g., alpha decay.
 
+# Timeline
+
+1) 2025-04-24:
+ * Rewrite the proposal
+ * Start with the literature review
+ * Rearrange the chapters
+ * Start rewriting code from R to Python
+ * Read on torchrl and reinforcement learning
+ * Experiment with torchrl
+2) 2025-05-08:
+ * Create a proof-of-concept / MVP for the trading agent
+ * Start with the empirical evaluation
+ * Check literature for ideas what to do/add
+3) 2025-05-15:
+ * Create the template for evaluation
+ * Start with the empirical evaluation
+4) 2025-05-22:
+ * Complete the work
+5) 2025-05-29:
+ * Iterate over the thesis
+ * More might be needed
 
 # Appendices {.unnumbered}
 
