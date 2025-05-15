@@ -1,21 +1,16 @@
 # %%
 # Using gym-anytrading with TorchRL
 
-import time
 
 import gym
 import gym_anytrading  # noqa: F401
 import gymnasium as gym
 import torch
 from gym_anytrading.datasets import FOREX_EURUSD_1H_ASK
-from torch import nn
-from torch.optim import Adam
-from torchrl.collectors import SyncDataCollector
-from torchrl.data import BoundedTensorSpec, LazyTensorStorage, ReplayBuffer
-from torchrl.envs import GymEnv, StepCounter, TransformedEnv
-from torchrl.modules import MLP, EGreedyModule, QValueModule
-from torchrl.objectives import DQNLoss, SoftUpdate
+from torchrl.data import BoundedTensorSpec
+from torchrl.envs import GymEnv
 
+# %%
 env = gym.make(
     "forex-v0",
     df=FOREX_EURUSD_1H_ASK,
@@ -93,4 +88,5 @@ while True:
         print("info:", info)
         break
 
+# %%
 # %%

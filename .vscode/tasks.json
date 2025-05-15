@@ -17,8 +17,8 @@
         "command": "sed -i '' 's/# |/#|/g' ${file}",
         "group": "build",
         "problemMatcher": []
-    },
-    {
+      },
+      {
         "label": "Build Masters Thesis Proposal",
         "type": "shell",
         "command": "zsh -c 'source ~/.zshrc; quarto render ${file} --output-dir ../../build && open ${fileDirname}/../../build/${fileBasenameNoExtension}.pdf'",
@@ -27,6 +27,16 @@
           "isDefault": true
         },
         "problemMatcher": []
-    }
+      },
+      {
+        "label": "Run Gym Trading Environment",
+        "type": "shell",
+        "command": "zsh -c 'source ~/.zshrc && source venv/bin/activate && ${command:python.interpreterPath} -m pdb ${file}'",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": []
+      }
     ]
 }
