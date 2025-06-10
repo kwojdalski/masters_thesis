@@ -73,16 +73,7 @@ def reward_function(history):
         history["portfolio_valuation", -1] / history["portfolio_valuation", -2]
     )
 
-    # # Add transaction cost penalty
-    # action_changed = history["action", -1] != history["action", -2]
-    # transaction_cost = 0.001  # 0.1% transaction cost
-    # cost_penalty = transaction_cost if action_changed else 0
-
-    # # Add risk-adjusted component (Sharpe ratio style)
-    # rolling_returns = history["portfolio_valuation"].pct_change().rolling(window=20)
-    # volatility_penalty = rolling_returns.std() * 0.5  # Penalize high volatility
-
-    return returns  # - cost_penalty - volatility_penalty
+    return returns
 
 
 # %%
@@ -112,7 +103,7 @@ df = df.dropna()
 base_env = gym.make(
     "TradingEnv",
     name="BTCUSD",
-    df=df[:1000],  # Your dataset with your custom features
+    df=df,  # Your dataset with your custom features
     positions=[-1, 0, 1],  # -1 (=SHORT), 0(=OUT), +1 (=LONG)
     trading_fees=0.15 / 100,  # 0.01 / 100,  # 0.01% per stock buy / sell (Binance fees)
     borrow_interest_rate=0,  # 0.0003 / 100,  # 0.0003% per timestep (one timestep = 1h here)
@@ -135,15 +126,27 @@ n_act = env.action_spec.shape[-1]
 class DiscreteNet(nn.Module):
     def __init__(self, input_dim, n_actions):
         super().__init__()
-        # Linear layer maps input features to action probabilities
-        self.linear = nn.Linear(input_dim, n_actions)
+        # Wider network with carefully chosen activations
+        self.network = nn.Sequential(
+            # First layer: LeakyReLU for preventing dying neurons
+            nn.Linear(input_dim, 128),
+            nn.BatchNorm1d(128),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0.1),
+            # Middle layer: Tanh for capturing market movements
+            nn.Linear(128, 64),
+            nn.BatchNorm1d(64),
+            nn.Tanh(),
+            nn.Dropout(0.1),
+            # Final layer: no activation before softmax
+            nn.Linear(64, n_actions),
+        )
 
     def forward(self, x):
-        # Convert input to action logits
-        logits = self.linear(x)
-        # Apply softmax to get valid probability distribution
-        probs = nn.functional.softmax(logits, dim=-1)
-        # print(f"probs: {probs}")
+        logits = self.network(x)
+        # Temperature scaling for more stable probabilities
+        temperature = 2.0
+        probs = nn.functional.softmax(logits / temperature, dim=-1)
         return {"probs": probs}
 
 
@@ -233,40 +236,31 @@ rb = ReplayBuffer(storage=LazyTensorStorage(100_000))
 # Initialize counters for tracking training progress
 total_count = 0  # Total number of environment steps taken
 total_episodes = 0  # Total number of completed episodes
-# Start time for measuring training duration
+# Stopping conditions
+max_training_steps = 5000000  # Maximum number of training steps
 
 # Training hyperparameters
-init_rand_steps = 10  # More exploration
-frames_per_batch = 1000  # Keep same
+init_rand_steps = 50  # More exploration
+frames_per_batch = 200  # Keep same
 optim_steps = 100  # Much fewer optimization steps per batch
+
 
 collector = SyncDataCollector(
     create_env_fn=lambda: env,
     policy=actor,
     frames_per_batch=frames_per_batch,
-    total_frames=-1,
+    total_frames=max_training_steps,  # Set maximum total frames
 )
-
 
 # %%
 t0 = time.time()
 for i, data in enumerate(collector):
-    # This is when the collector actually starts:
-    # - Running the environment
-    # - Using the policy to select actions
-    # - Collecting experience data
-    # ...
-    # Write data in replay buffer
     # Add collected experience data to replay buffer for later training
     rb.extend(data)
-
     # Get the maximum number of steps taken in any episode in the replay buffer
-    # This helps track the length of episodes and ensure we have enough experience
-    # to learn from before stopping training
     max_length = rb[:]["next", "step_count"].max()
     if len(rb) > init_rand_steps:
-        # Optim loop (we do several optim steps
-        # per batch collected for efficiency)
+        # Optim loop
         for j, _ in enumerate(range(optim_steps)):
             if j % 10000 == 0:
                 logger.info(f"Optim step {j}")
@@ -275,14 +269,9 @@ for i, data in enumerate(collector):
 
             sample = rb.sample(1000)
             loss_vals = ddpg_loss(sample)
-            # Computes gradients of loss_value with respect to network parameters
-            # This enables backpropagation for value network optimization
             loss_vals["loss_value"].backward()
-            # print(f"pred val: {loss_vals['pred_value']}")
-
             optim.step()
             optim.zero_grad()
-            # time.sleep(0.5)  # Delay execution for 1 second
             updater.step()
 
             # Track parameter changes
@@ -305,52 +294,59 @@ for i, data in enumerate(collector):
 
                 ddpg_loss.prev_loss_value = curr_loss_value
                 ddpg_loss.prev_loss_actor = curr_loss_actor
-            total_count += data.numel()
-            total_episodes += data["next", "done"].sum()
 
-    # Stop training if episodes are getting too long (> 200 steps)
-    # This indicates the agent has learned to survive for extended periods
-    if max_length > 200:
+            # Update training progress counters:
+            # - data.numel() returns total number of elements in the batch
+            # - data["next", "done"].sum() counts completed episodes in batch
+            total_count += data.numel()  # Increment total environment steps
+            total_episodes += data["next", "done"].sum()  # Increment completed episodes
+
+            # Check if we've exceeded maximum training steps
+            if total_count >= max_training_steps:
+                logger.info(
+                    f"Training stopped after reaching maximum steps: {max_training_steps}"
+                )
+                break
+
+    # Break outer loop if inner loop was broken
+    if total_count >= max_training_steps:
         break
 
 t1 = time.time()
 
+
 logger.info(
     f"solved after {total_count} steps, {total_episodes} episodes and in {t1 - t0}s."
 )
-# %%
-for i, j in enumerate(ddpg_loss.named_parameters()):
-    print(f"{i}, {j}")
-
 
 # %%
 # Run first rollout
 # Use the mode of the distribution (argmax for categorical, mean for normal, etc).
+max_steps = 100
 with set_exploration_type(InteractionType.MODE):
-    env_to_render_1 = env.rollout(max_steps=10000, policy=actor)
+    env_to_render_1 = env.rollout(max_steps=max_steps, policy=actor)
 with set_exploration_type(InteractionType.RANDOM):
-    env_to_render_2 = env.rollout(max_steps=10000, policy=actor)
+    env_to_render_2 = env.rollout(max_steps=max_steps, policy=actor)
 
 
 # %%
 # Call the function with the rollouts
-n_obs = 10000
 # %%
 benchmark_df = pd.DataFrame(
     {
-        "x": range(n_obs),
+        "x": range(max_steps),
         "buy_and_hold": np.log(df["close"] / df["close"].shift(1))
         .fillna(0)
-        .cumsum()[:n_obs],
+        .cumsum()[:max_steps],
         "max_profit": np.log(abs(df["close"] / df["close"].shift(1) - 1) + 1)
         .fillna(0)
-        .cumsum()[:n_obs],
+        .cumsum()[:max_steps],
     }
-)[:1000]
+)
 # benchmark_df
 # %%
 reward_plot, action_plot = compare_rollouts(
-    [env_to_render_1, env_to_render_2], n_obs=n_obs
+    [env_to_render_1, env_to_render_2], n_obs=max_steps
 )
 (
     reward_plot
@@ -359,6 +355,4 @@ reward_plot, action_plot = compare_rollouts(
 )
 # %%
 action_plot
-
-
 # %%
