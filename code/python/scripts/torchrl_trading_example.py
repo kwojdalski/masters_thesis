@@ -10,14 +10,16 @@ sys.path.insert(0, PROJECT_ROOT)
 import datetime
 import logging
 import time
+from collections import defaultdict
 
 import gym_trading_env  # noqa: F401
 import gymnasium as gym
 import numpy as np
 import pandas as pd
+import torch
 import torch.nn as nn
 from gym_trading_env.downloader import download
-from plotnine import aes, geom_line
+from plotnine import aes, facet_wrap, geom_line, ggplot
 from scripts.utils import compare_rollouts
 from tensordict.nn import InteractionType, TensorDictModule, set_composite_lp_aggregate
 from torch import distributions as d
@@ -100,12 +102,13 @@ df["feature_low"] = (df["feature_low"] - df["feature_low"].mean()) / df[
 df = df.dropna()
 # %%
 # Make the environment out of the data
+size = 1000
 base_env = gym.make(
     "TradingEnv",
     name="BTCUSD",
-    df=df,  # Your dataset with your custom features
+    df=df[:size],  # Your dataset with your custom features
     positions=[-1, 0, 1],  # -1 (=SHORT), 0(=OUT), +1 (=LONG)
-    trading_fees=0.15 / 100,  # 0.01 / 100,  # 0.01% per stock buy / sell (Binance fees)
+    trading_fees=0 / 100,  # 0.01 / 100,  # 0.01% per stock buy / sell (Binance fees)
     borrow_interest_rate=0,  # 0.0003 / 100,  # 0.0003% per timestep (one timestep = 1h here)
     reward_function=reward_function,
 )
@@ -126,27 +129,20 @@ n_act = env.action_spec.shape[-1]
 class DiscreteNet(nn.Module):
     def __init__(self, input_dim, n_actions):
         super().__init__()
-        # Wider network with carefully chosen activations
+        # Add multiple layers with non-linear activations
         self.network = nn.Sequential(
-            # First layer: LeakyReLU for preventing dying neurons
-            nn.Linear(input_dim, 128),
-            nn.BatchNorm1d(128),
-            nn.LeakyReLU(0.1),
-            nn.Dropout(0.1),
-            # Middle layer: Tanh for capturing market movements
-            nn.Linear(128, 64),
-            nn.BatchNorm1d(64),
-            nn.Tanh(),
-            nn.Dropout(0.1),
-            # Final layer: no activation before softmax
-            nn.Linear(64, n_actions),
+            nn.Linear(input_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, n_actions),
+            nn.Softmax(dim=-1),
         )
+        self.linear = nn.Linear(input_dim, n_actions)
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
-        logits = self.network(x)
-        # Temperature scaling for more stable probabilities
-        temperature = 2.0
-        probs = nn.functional.softmax(logits / temperature, dim=-1)
+        probs = self.network(x)
         return {"probs": probs}
 
 
@@ -154,17 +150,19 @@ class DiscreteNet(nn.Module):
 # Step 2: Create TensorDictModule wrapper
 # - Wraps the neural network for use with TensorDict
 # - Specifies input/output key mappings
+
 module = TensorDictModule(
-    module=DiscreteNet(n_obs, n_act),
+    DiscreteNet(n_obs, n_act),
     in_keys=["observation"],  # Takes observation as input
     out_keys=["probs"],  # Outputs action probabilities
 )
+
 # %%
 actor = ProbabilisticActor(
     module=module,
     distribution_class=d.OneHotCategorical,
     in_keys=["probs"],  # logits for Categorical
-    out_keys=["action"],
+    # out_keys=["action"],
     spec=env.action_spec,
     safe=True,  # Enable safety checks
     # either InteractionType.MODE, InteractionType.RANDOM,
@@ -172,15 +170,16 @@ actor = ProbabilisticActor(
     default_interaction_type=InteractionType.RANDOM,  # Return one-hot encoded actions
 )
 
+
 # %%
 # Value network
 value_net = ValueOperator(
     MLP(
-        in_features=n_obs,
+        in_features=n_obs + n_act,
         out_features=1,
-        num_cells=[256, 256, 128],  # Larger network
+        num_cells=[64, 32, 16],  # Larger network
     ),
-    in_keys=["observation"],
+    in_keys=["observation", "probs"],
     out_keys=["state_action_value"],
 )
 
@@ -188,12 +187,14 @@ value_net = ValueOperator(
 # Loss and target network updater
 # Initialize DDPG loss with actor and value networks
 # Uses L2 loss for value function approximation
+
 ddpg_loss = DDPGLoss(
     actor_network=actor,  # Policy network for action selection
     value_network=value_net,  # Value network for state-value estimation
     loss_function="l2",  # L2 loss for stable value function learning
 )
 updater = SoftUpdate(ddpg_loss, tau=0.001)  # Slower target network updates
+
 
 # %%
 # Rollout the policy network
@@ -205,20 +206,25 @@ updater = SoftUpdate(ddpg_loss, tau=0.001)  # Slower target network updates
 #   - next states
 #   - termination signals
 #   - other environment-specific information
-
 rollout = env.rollout(max_steps=3000, policy=actor)
 reward_plot, action_plot = compare_rollouts([rollout], n_obs=3000)
 reward_plot
 action_plot
 # %%
-
-# %%
 loss_vals = ddpg_loss(rollout)
+loss_vals["loss_value"].backward()
+loss_vals["loss_actor"].backward()
+
+
 # Adam optimizer with learning rate 1e-4 for gradient-based optimization
 # of the DDPG loss parameters, combining benefits of RMSprop and momentum
-optim = Adam(ddpg_loss.parameters(), lr=1e-4)  # Lower learning rate
-loss_vals["loss_actor"]
-loss_vals["loss_value"]
+
+
+optimizer_actor = Adam(ddpg_loss.actor_network_params.values(True, True), lr=1e-4)
+optimizer_value = Adam(
+    ddpg_loss.value_network_params.values(True, True), lr=1e-3, weight_decay=1e-2
+)
+optim = Adam(ddpg_loss.parameters(), lr=1e-4)
 
 # %%
 # Creates a synchronous data collector that:
@@ -242,7 +248,8 @@ max_training_steps = 5000000  # Maximum number of training steps
 # Training hyperparameters
 init_rand_steps = 50  # More exploration
 frames_per_batch = 200  # Keep same
-optim_steps = 100  # Much fewer optimization steps per batch
+optim_steps = 50  # Much fewer optimization steps per batch
+sample_size = 50
 
 
 collector = SyncDataCollector(
@@ -254,6 +261,11 @@ collector = SyncDataCollector(
 
 # %%
 t0 = time.time()
+# Initialize lists to store loss values
+loss_value_history = []
+loss_actor_history = []
+
+logs = defaultdict(list)
 for i, data in enumerate(collector):
     # Add collected experience data to replay buffer for later training
     rb.extend(data)
@@ -267,12 +279,25 @@ for i, data in enumerate(collector):
                 for i in ddpg_loss.named_parameters():
                     logger.debug(f"{i}")
 
-            sample = rb.sample(1000)
+            sample = rb.sample(sample_size)
             loss_vals = ddpg_loss(sample)
+            # optimize
+            loss_vals["loss_actor"].backward()
+            optimizer_actor.step()
+            optimizer_actor.zero_grad()
+
             loss_vals["loss_value"].backward()
-            optim.step()
-            optim.zero_grad()
+            optimizer_value.step()
+            optimizer_value.zero_grad()
+
+            # optim.step()
+            # optim.zero_grad()
             updater.step()
+
+            # Store loss values
+
+            logs["loss_value"].append(loss_vals["loss_value"].item())
+            logs["loss_actor"].append(loss_vals["loss_actor"].item())
 
             # Track parameter changes
             if j % 1000 == 0:
@@ -286,14 +311,44 @@ for i, data in enumerate(collector):
                 curr_loss_actor = loss_vals["loss_actor"].item()
 
                 logger.info(
-                    f"Loss value: {curr_loss_value} (change: {curr_loss_value - ddpg_loss.prev_loss_value:+.4f})"
+                    f"Loss value: {curr_loss_value} "
+                    f"(change: {curr_loss_value - ddpg_loss.prev_loss_value:+.4f})"
                 )
                 logger.info(
-                    f"Loss actor: {curr_loss_actor} (change: {curr_loss_actor - ddpg_loss.prev_loss_actor:+.4f})"
+                    f"Loss actor: {curr_loss_actor} "
+                    f"(change: {curr_loss_actor - ddpg_loss.prev_loss_actor:+.4f})"
                 )
 
                 ddpg_loss.prev_loss_value = curr_loss_value
                 ddpg_loss.prev_loss_actor = curr_loss_actor
+                # We evaluate the policy once every 10 batches of data.
+                # Evaluation is rather simple: execute the policy without exploration
+                # (take the expected value of the action distribution) for a given
+                # number of steps (1000, which is our ``env`` horizon).
+                # The ``rollout`` method of the ``env`` can take a policy as argument:
+                # it will then execute this policy at each step.
+
+                with (
+                    set_exploration_type(InteractionType.DETERMINISTIC),
+                    torch.no_grad(),
+                ):
+                    # execute a rollout with the trained policy
+                    eval_rollout = env.rollout(500, actor)
+                    logs["eval reward"].append(
+                        eval_rollout["next", "reward"].mean().item()
+                    )
+                    logs["eval reward (sum)"].append(
+                        eval_rollout["next", "reward"].sum().item()
+                    )
+                    logs["eval step_count"].append(
+                        eval_rollout["step_count"].max().item()
+                    )
+                    eval_str = (
+                        f"eval cumulative reward: {logs['eval reward (sum)'][-1]: 4.4f} "
+                        f"(init: {logs['eval reward (sum)'][0]: 4.4f}), "
+                        f"eval step-count: {logs['eval step_count'][-1]}"
+                    )
+                    del eval_rollout
 
             # Update training progress counters:
             # - data.numel() returns total number of elements in the batch
@@ -304,7 +359,8 @@ for i, data in enumerate(collector):
             # Check if we've exceeded maximum training steps
             if total_count >= max_training_steps:
                 logger.info(
-                    f"Training stopped after reaching maximum steps: {max_training_steps}"
+                    f"Training stopped after reaching maximum steps: "
+                    f"{max_training_steps}"
                 )
                 break
 
@@ -313,8 +369,23 @@ for i, data in enumerate(collector):
         break
 
 t1 = time.time()
+# %%
 
 
+loss_df = pd.DataFrame(
+    {
+        "step": range(len(logs["loss_value"])),
+        "Value Loss": logs["loss_value"],
+        "Actor Loss": logs["loss_actor"],
+    }
+)
+# %%
+(
+    ggplot(loss_df.melt(id_vars=["step"], var_name="Loss Type", value_name="Loss"))
+    + geom_line(aes(x="step", y="Loss", color="Loss Type"))
+    + facet_wrap("Loss Type", ncol=1, scales="free")
+)
+# %%
 logger.info(
     f"solved after {total_count} steps, {total_episodes} episodes and in {t1 - t0}s."
 )
@@ -322,7 +393,7 @@ logger.info(
 # %%
 # Run first rollout
 # Use the mode of the distribution (argmax for categorical, mean for normal, etc).
-max_steps = 100
+max_steps = 1000
 with set_exploration_type(InteractionType.MODE):
     env_to_render_1 = env.rollout(max_steps=max_steps, policy=actor)
 with set_exploration_type(InteractionType.RANDOM):
@@ -355,4 +426,5 @@ reward_plot, action_plot = compare_rollouts(
 )
 # %%
 action_plot
+
 # %%
