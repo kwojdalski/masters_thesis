@@ -1,15 +1,12 @@
 # %%
-import os
-import sys
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-sys.path.insert(0, PROJECT_ROOT)
-
+# SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+# sys.path.insert(0, PROJECT_ROOT)
 # %%
 import datetime
 import logging
-import time
+import os
+import sys
 
 import gym_trading_env  # noqa: F401
 import gymnasium as gym
@@ -18,18 +15,13 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from gym_trading_env.downloader import download
-from plotnine import aes, geom_line
-from scripts.utils import compare_rollouts
+from tensordict import TensorDict
 from tensordict.nn import InteractionType, TensorDictModule, set_composite_lp_aggregate
 from torch import distributions as d
 from torch.optim import Adam
-from torchrl.collectors import SyncDataCollector
-from torchrl.data import LazyTensorStorage, ReplayBuffer
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
-from torchrl.envs.utils import set_exploration_type
-from torchrl.modules import MLP, ProbabilisticActor, ValueOperator
-from torchrl.objectives import DDPGLoss, SoftUpdate
+from torchrl.modules import ProbabilisticActor
 
 # %%
 # Create logs directory if it doesn't exist
@@ -62,8 +54,9 @@ if download_data:
         symbols=["BTC/USDT"],
         timeframe="1s",
         dir="data",
-        since=datetime.datetime(year=2025, month=4, day=27),
+        since=datetime.datetime(year=2025, month=4, day=27, tzinfo=datetime.UTC),
     )
+# %%
 df = pd.read_pickle("./data/raw/binance/binance-BTCUSDT-1h.pkl")
 
 
@@ -190,7 +183,7 @@ actor = ProbabilisticActor(
 
 # Create optimizer for actor network
 actor_optimizer = Adam(actor.parameters(), lr=1e-3)
-from tensordict import TensorDict
+
 
 # Sample batch of observations for testing gradients
 test_batch = TensorDict(

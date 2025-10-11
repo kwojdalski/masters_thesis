@@ -1,10 +1,87 @@
 [project]
 name = "masters-thesis"
 version = "0.1.0"
-description = "Add your description here"
+description = "Master's thesis on trading strategies using reinforcement learning with TorchRL"
 readme = "README.md"
-requires-python = ">=3.12.5"
-dependencies = []
+requires-python = ">=3.12"
+authors = [
+    {name = "Krzysztof Wojdalski"},
+]
+keywords = ["reinforcement-learning", "trading", "torchrl", "deep-learning", "finance"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+
+dependencies = [
+    # Core scientific computing
+    "pandas>=2.2.1",
+    "scipy>=1.7.0",
+
+    # Deep learning and RL
+    "torch>=2.2.1",
+    "torchrl>=0.7.0",
+    "tensordict>=0.5.0",
+    "gymnasium>=0.29.1",
+    "stable-baselines3>=2.2.1",
+
+    # Trading environment
+    "gym-trading-env>=0.0.0",
+
+    # Visualization
+    "matplotlib>=3.8.3",
+    "seaborn>=0.11.0",
+    "plotnine>=0.13.0",
+
+    # Machine learning
+    "scikit-learn>=1.6.1",
+
+    # Development tools
+    "black>=24.3.0",
+    "ruff>=0.5.0",
+
+    # Documentation
+    "quarto>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ipython>=8.12.0",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.29.0",
+]
+
+analysis = [
+    "ta>=0.11.0",  # Technical analysis library
+    "yfinance>=0.2.0",  # Yahoo Finance data
+]
+
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-autodoc-typehints>=2.0.0",
+]
+
+#all = [
+#    "masters-thesis[dev,analysis,docs]",
+#]
+
+[project.scripts]
+train-agent = "scripts.train_trading_agent:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["code/python"]
+include = ["scripts*", "src*", "logger*"]
+namespaces = true
 
 [tool.ruff]
 target-version = "py312"
@@ -54,3 +131,6 @@ docstring-code-format = true
 [tool.ruff.lint.flake8-tidy-imports]
 # Disallow all relative imports.
 ban-relative-imports = "all"
+
+[tool.poetry]
+package-mode = false

@@ -1,14 +1,8 @@
 # %%
-import os
-import sys
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-sys.path.insert(0, PROJECT_ROOT)
-
-# %%
 import datetime
 import logging
+import os
+import sys
 import time
 from collections import defaultdict
 
@@ -20,7 +14,6 @@ import torch
 import torch.nn as nn
 from gym_trading_env.downloader import download
 from plotnine import aes, facet_wrap, geom_line, ggplot
-from scripts.utils import compare_rollouts
 from tensordict.nn import InteractionType, TensorDictModule, set_composite_lp_aggregate
 from torch import distributions as d
 from torch.optim import Adam
@@ -31,6 +24,7 @@ from torchrl.envs.transforms import StepCounter
 from torchrl.envs.utils import set_exploration_type
 from torchrl.modules import MLP, ProbabilisticActor, ValueOperator
 from torchrl.objectives import DDPGLoss, SoftUpdate
+from utils import compare_rollouts
 
 # %%
 # Create logs directory if it doesn't exist
@@ -63,9 +57,9 @@ if download_data:
         symbols=["BTC/USDT"],
         timeframe="1s",
         dir="data",
-        since=datetime.datetime(year=2025, month=4, day=27),
+        since=datetime.datetime(year=2025, month=4, day=27, tzinfo=datetime.UTC),
     )
-df = pd.read_pickle("./data/raw/binance/binance-BTCUSDT-1h.pkl")
+df = pd.read_pickle("./data/raw/binance/binance-BTCUSDT-1h.pkl")  # noqa: S301
 
 
 # %%
@@ -208,8 +202,8 @@ updater = SoftUpdate(ddpg_loss, tau=0.001)  # Slower target network updates
 #   - other environment-specific information
 rollout = env.rollout(max_steps=3000, policy=actor)
 reward_plot, action_plot = compare_rollouts([rollout], n_obs=3000)
-reward_plot
-action_plot
+_ = reward_plot  # Display plot in notebook
+_ = action_plot  # Display plot in notebook
 # %%
 loss_vals = ddpg_loss(rollout)
 loss_vals["loss_value"].backward()
@@ -425,6 +419,6 @@ reward_plot, action_plot = compare_rollouts(
     + geom_line(data=benchmark_df, mapping=aes(x="x", y="buy_and_hold"), color="violet")
 )
 # %%
-action_plot
+_ = action_plot  # Display plot in notebook
 
 # %%
