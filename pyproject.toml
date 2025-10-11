@@ -5,3 +5,52 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12.5"
 dependencies = []
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = [
+    "untitled.*",
+    ".git",
+    ".venv",
+    ".ruff_cache",
+    "__pycache__",
+    "build",
+    "dist",
+    "notebooks/"
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "S",    # bandit security checks
+    "B",    # bugbear
+    "C4",   # flake8-comprehensions
+    "DTZ",  # flake8-datetimez (timezone awareness)
+    "T20",  # flake8-print (no print statements)
+    "RUF",  # Ruff-specific rules
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "S101",  # assert statements (needed for tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "T20"]  # Allow asserts and prints in tests
+"scripts/*" = ["T20"]  # Allow prints in scripts
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "cli", "common"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Disallow all relative imports.
+ban-relative-imports = "all"

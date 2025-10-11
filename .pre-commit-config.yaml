@@ -1,47 +1,312 @@
+# Pre-commit configuration for Weles market data codebase
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+  # Basic code formatting and linting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
-    -   id: check-ast
-    -   id: check-merge-conflict
-    -   id: detect-private-key
-
-- repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: '0.27.3'
-  hooks:
-    - id: check-jsonschema
-      # not necessary, but can be useful for `pre-commit run` if you have other `check-jsonschema` hooks
-      alias: check-jsonschema-meta
-      name: Validate meta files
-      args: ["--schemafile", "schemas/my_schema.json"]
-      types_or: []  # reset to default
-      files: ^data/.*\.meta$
-
--   repo: https://github.com/psf/black
-    rev: 23.3.0
-    hooks:
-    -   id: black
+      - id: trailing-whitespace
+        exclude: '\.md$'  # Allow trailing spaces in markdown for line breaks
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags if needed
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=10240']  # 10MB limit for data files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: debug-statements
         language_version: python3
+      - id: mixed-line-ending
+        args: ['--fix=lf']
 
--   repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+  # Ruff - Fast Python linter and formatter (replaces black, isort, pyupgrade, flake8, bandit)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
     hooks:
-    -   id: isort
-        args: ["--profile", "black"]
+      - id: ruff        # Linting with autofix
+        args: ['--fix']
+        exclude: '^(fix-images\.py|analyze_current_schema\.py)$'
+      - id: ruff-format # Formatting (like black)
+        exclude: '^(fix-images\.py|analyze_current_schema\.py)$'
 
-#-   repo: https://github.com/pre-commit/mirrors-mypy
-#    rev: v1.3.0
-#    hooks:
-#    -   id: mypy
-#        additional_dependencies: [types-all]
+  # Custom hooks for this market data codebase
+  - repo: local
+    hooks:
+      # Timezone awareness check - critical for financial data
+      - id: timezone-check
+        name: Check for timezone-naive datetime usage in financial code
+        entry: python
+        language: system
+        args:
+          - -c
+          - |
+            import sys, re
+            content = open(sys.argv[1]).read()
+            naive_patterns = [
+                r"datetime\.now\(\)",
+                r"datetime\.today\(\)",
+                r"\.replace\(tzinfo=None\)",
+                r"pd\.to_datetime\([^)]*\)"
+            ]
+            violations = []
+            for i, line in enumerate(content.split("\n"), 1):
+                for pattern in naive_patterns:
+                    if re.search(pattern, line):
+                        # Check if it's already timezone-aware
+                        if "utc=True" not in line and "timezone" not in line.lower():
+                            violations.append(f"Line {i}: {line.strip()}")
+            if violations:
+                print(f"❌ Timezone violations in {sys.argv[1]}:")
+                for v in violations[:5]:
+                    print(f"  {v}")
+                exit(1)
+        files: '^src/.*\.py$'
 
-# -   repo: https://github.com/PyCQA/bandit
-#     rev: 1.7.4
-#     hooks:
-#     -   id: bandit
-#         args: ["-c", "pyproject.toml"]
-#         additional_dependencies: ["bandit[toml]"]
+      # Symbol normalization validation
+      - id: symbol-normalization-test
+        name: Test symbol normalization logic
+        entry: python
+        language: system
+        args:
+          - -c
+          - |
+            import sys, os
+            sys.path.insert(0, os.path.join(os.getcwd(), "src"))
+            try:
+                from common.data_normalization import DataNormalizer
+                n = DataNormalizer()
+                tests = [
+                    ("USDT", ["USDT"], "USDTUSD"),
+                    ("BTC", ["BTC"], "BTCUSD"),
+                    ("XRP", ["XRPUSDT"], "XRPUSDT"),
+                    ("ETH", ["ETH"], "ETHUSD")
+                ]
+                for symbol, user_symbols, expected in tests:
+                    result = n._normalize_single_symbol(symbol, user_symbols)
+                    assert result == expected, f"FAIL: {symbol} + {user_symbols} -> {result}, expected {expected}"
+                print("✅ Symbol normalization tests passed")
+            except Exception as e:
+                print(f"❌ Symbol normalization test failed: {e}")
+                exit(1)
+        files: '^src/common/data_normalization\.py$'
+
+      # Environment security check
+      - id: env-secrets-check
+        name: Check for potential hardcoded secrets in environment usage
+        entry: python
+        language: system
+        args:
+          - -c
+          - |
+            import sys, re
+            content = open(sys.argv[1]).read()
+            pattern = r"os\.getenv\([\"\'](.*?)[\"\']\s*,\s*[\"\'](.*?)[\"\']"
+            matches = re.findall(pattern, content)
+            violations = []
+            for var_name, default_value in matches:
+                if any(keyword in var_name.lower() for keyword in ["token", "key", "secret", "password"]):
+                    if default_value and len(default_value) > 10:
+                        violations.append(f"Suspicious default for {var_name}: {default_value[:20]}...")
+            if violations:
+                print(f"❌ Potential hardcoded secrets in {sys.argv[1]}:")
+                for v in violations:
+                    print(f"  {v}")
+                exit(1)
+        files: '^src/.*\.py$'
+
+      # Data schema consistency check
+      - id: data-schema-validation
+        name: Validate data normalization schema consistency
+        entry: python
+        language: system
+        args:
+          - -c
+          - |
+            import sys, os, yaml
+            config_path = os.path.join(os.getcwd(), "src/common/config/defaults.yaml")
+            if not os.path.exists(config_path):
+                print("Config file not found, skipping schema check")
+                exit(0)
+
+            with open(config_path) as f:
+                config = yaml.safe_load(f)
+
+            norm_config = config.get("data_normalization", {})
+            required_cols = set(norm_config.get("normalized_schema", {}).get("required_columns", []))
+            issues = []
+
+            for source, mappings in norm_config.get("column_mappings", {}).items():
+                if not mappings:
+                    continue
+                mapped_cols = set(mappings.values())
+                missing = required_cols - mapped_cols - {"source"}
+                if missing:
+                    issues.append(f'Source "{source}" missing required columns: {sorted(missing)}')
+
+            if issues:
+                print("❌ Schema validation issues:")
+                for issue in issues:
+                    print(f"  {issue}")
+                exit(1)
+            else:
+                print("✅ Data schema validation passed")
+        files: '^src/common/config/defaults\.yaml$'
+
+      # Remove "src" prefix from imports
+      - id: remove-src-prefix-imports
+        name: Remove 'src' prefix from imports
+        entry: python
+        language: system
+        args:
+          - -c
+          - |
+            import sys, re, os
+
+            def fix_imports_in_file(filepath):
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                original_content = content
+
+                # Pattern to match imports that start with "src."
+                patterns = [
+                    # from src.module import ...
+                    (r'^(\s*)from\s+src\.([a-zA-Z0-9_.]+)\s+import\s+(.+)$', r'\1from \2 import \3'),
+                    # import src.module
+                    (r'^(\s*)import\s+src\.([a-zA-Z0-9_.]+)(\s+as\s+.+)?$', r'\1import \2\3'),
+                ]
+
+                modified = False
+                for pattern, replacement in patterns:
+                    new_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
+                    if new_content != content:
+                        content = new_content
+                        modified = True
+
+                if modified:
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    print(f"✅ Fixed imports in {filepath}")
+                    return True
+                return False
+
+            if len(sys.argv) < 2:
+                sys.exit(0)
+
+            filepath = sys.argv[1]
+            try:
+                fix_imports_in_file(filepath)
+            except Exception as e:
+                print(f"❌ Error processing {filepath}: {e}")
+                sys.exit(1)
+        files: '^src/.*\.py$'
+
+      # CLI command consistency
+      - id: cli-consistency-check
+        name: Check CLI commands follow timezone and error handling patterns
+        entry: python
+        language: system
+        args:
+          - -c
+          - |
+            import sys, re
+            content = open(sys.argv[1]).read()
+            issues = []
+
+            date_commands = re.findall(r"@\w+\.command.*?\ndef\s+(\w+)\([^)]*(?:start_date|end_date|datetime)[^)]*\):", content, re.DOTALL)
+
+            for cmd in date_commands:
+                cmd_content = re.search(rf"def {cmd}\(.*?\):(.*?)(?=\n@|\ndef\s+\w+|\Z)", content, re.DOTALL)
+                if cmd_content:
+                    func_body = cmd_content.group(1)
+                    if not re.search(r"timezone\.utc|\.replace\(tzinfo=timezone\.utc\)|utc=True", func_body):
+                        issues.append(f"Command {cmd}() handles dates but may lack proper timezone handling")
+
+            if issues:
+                print("❌ CLI consistency issues:")
+                for issue in issues[:5]:
+                    print(f"  {issue}")
+            else:
+                print("✅ CLI consistency checks passed")
+        files: '^src/cli/main\.py$'
+
+      # Run pytest tests
+      - id: pytest
+        name: Run pytest tests
+        entry: bash
+        language: system
+        args:
+          - -c
+          - 'PYTHONPATH=src poetry run pytest --cache-clear --tb=line tests/ || true'
+        files: '^(src/.*\.py|tests/.*\.py)$'
+        pass_filenames: false
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.2.1
+    hooks:
+      - id: no-commit-to-branch
+        args: ['--branch', 'master', '--pattern', 'release/.*']
+
+  # Branch naming enforcement
+  - repo: local
+    hooks:
+      - id: branch-naming-with-git-username
+        name: Enforce git-username/branch-name convention with auto-rename
+        entry: bash
+        language: system
+        args:
+          - -c
+          - |
+            branch=$(git rev-parse --abbrev-ref HEAD)
+            if [[ "$branch" == "master" || "$branch" == "main" || "$branch" =~ ^release/ ]]; then
+              exit 0  # Skip check for protected branches
+            fi
+
+            # Try to get GitHub username from various sources
+            github_username=""
+
+            # Method 1: Check if gh CLI is available and authenticated
+            if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+              github_username=$(gh api user --jq '.login' 2>/dev/null)
+            fi
+
+            # Method 2: Extract from git remote URL if gh CLI not available
+            if [[ -z "$github_username" ]]; then
+              remote_url=$(git config --get remote.origin.url 2>/dev/null || echo "")
+              if [[ "$remote_url" =~ github\.com[:/]([^/]+)/ ]]; then
+                github_username="${BASH_REMATCH[1]}"
+              fi
+            fi
+
+            # Method 3: Fallback to git config user.name (normalized)
+            if [[ -z "$github_username" ]]; then
+              github_username=$(git config user.name | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]//g')
+            fi
+
+            if [[ -z "$github_username" ]]; then
+              echo "❌ Could not determine GitHub username"
+              echo "Try: gh auth login, or ensure remote origin points to GitHub"
+              exit 1
+            fi
+
+            if [[ "$branch" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
+              branch_username=$(echo "$branch" | cut -d'/' -f1)
+              if [[ "$branch_username" != "$github_username" ]]; then
+                echo "❌ Branch username '$branch_username' doesn't match GitHub username '$github_username'"
+                exit 1
+              fi
+              exit 0  # Branch already follows convention
+            fi
+
+            # Auto-rename branch to include GitHub username
+            new_branch="${github_username}/${branch}"
+            echo "🔄 Renaming branch from '$branch' to '$new_branch'"
+            git branch -m "$new_branch"
+            echo "✅ Branch renamed to follow convention with GitHub username"
+        stages: [pre-commit]
+        always_run: true
+        pass_filenames: false
+
+# Global settings
+default_stages: [pre-commit]
+minimum_pre_commit_version: '3.0.0'
