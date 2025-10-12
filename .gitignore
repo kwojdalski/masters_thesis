@@ -137,3 +137,4 @@ thesis/qmd/src/*.html
 thesis/qmd/src/*files
 thesis/qmd/src/*.pdf
 render_logs/*
+*.pkl

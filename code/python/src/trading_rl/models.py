@@ -1,6 +1,7 @@
 """Neural network models for trading RL."""
 
 import logging
+from typing import Any
 
 import torch.nn as nn
 from tensordict.nn import InteractionType, TensorDictModule
@@ -77,7 +78,7 @@ def create_actor(
     n_obs: int,
     n_act: int,
     hidden_dims: list[int] | None = None,
-    spec: any | None = None,
+    spec: Any | None = None,
 ) -> ProbabilisticActor:
     """Create a probabilistic actor for discrete action spaces.
 

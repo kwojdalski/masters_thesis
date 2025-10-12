@@ -9,7 +9,9 @@ separated into reusable modules.
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
+import gym_trading_env  # noqa: F401
 import gymnasium as gym
 import numpy as np
 import pandas as pd
@@ -19,15 +21,9 @@ from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
 from torchrl.envs.utils import set_exploration_type
+from utils import compare_rollouts
 
-# Add project root to path
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
-import gym_trading_env  # noqa: F401, E402
-from scripts.utils import compare_rollouts  # noqa: E402
-from trading_rl import (  # noqa: E402
+from src.trading_rl import (
     DDPGTrainer,
     ExperimentConfig,
     create_actor,
@@ -140,7 +136,7 @@ def visualize_training(logs: dict, save_path: str | None = None) -> None:
 # %%
 def evaluate_agent(
     env: TransformedEnv,
-    actor: any,
+    actor: Any,
     df: pd.DataFrame,
     max_steps: int = 1000,
     save_path: str | None = None,

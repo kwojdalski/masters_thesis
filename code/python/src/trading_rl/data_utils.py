@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -15,7 +16,7 @@ def download_trading_data(
     symbols: list[str],
     timeframe: str,
     data_dir: str,
-    since: any,
+    since: Any | None = None,
 ) -> None:
     """Download historical trading data from exchanges.
 
@@ -124,7 +125,7 @@ def prepare_data(
     symbols: list[str] | None = None,
     timeframe: str = "1h",
     data_dir: str = "data",
-    since: any | None = None,
+    since: Any | None = None,
 ) -> pd.DataFrame:
     """Prepare trading data for RL training.
 
