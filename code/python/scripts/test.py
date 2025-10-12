@@ -45,7 +45,6 @@ loss = DDPGLoss(actor, value)
 loss_actor.backward()
 
 # The output keys can also be filtered using the DDPGLoss.select_out_keys() method.
-
 # Examples
 
 loss.select_out_keys("loss_actor", "loss_value")
@@ -59,4 +58,3 @@ loss_actor, loss_value = loss(
     next_reward=torch.randn(1),
 )
 loss_actor.backward()
-# %%

@@ -1,0 +1,29 @@
+#!/bin/bash
+# Project-specific aliases for trading data science project
+# Source this file to use project commands: source .aliases
+
+# Get the directory where this script is located
+PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Set PYTHONPATH for this project
+export PYTHONPATH="${PROJECT_DIR}/code/python:$PYTHONPATH"
+
+# Alias for data generator CLI
+alias gendata="python ${PROJECT_DIR}/code/python/src/cli.py generate-data"
+
+# Alias for full CLI
+alias pcli="python ${PROJECT_DIR}/code/python/src/cli.py"
+
+# Helper function to show available aliases
+alias show-aliases="echo 'Available project aliases:
+  gendata         - Generate synthetic data (shortcut for: pcli generate-data)
+  pcli            - Run main project CLI tool
+  show-aliases    - Show this help message
+
+Examples:
+  gendata --list
+  gendata --source-file binance-BTCUSDT-1h.parquet --start-date 2023-01-01 --end-date 2023-12-31
+  gendata --source-file binance-BTCUSDT-1h.parquet --sample-size 1000
+'"
+
+echo "Project aliases loaded! Type 'show-aliases' to see available commands."
