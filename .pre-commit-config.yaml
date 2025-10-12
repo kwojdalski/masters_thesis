@@ -1,4 +1,4 @@
-# Pre-commit configuration for Weles market data codebase
+# Pre-commit configuration for market data codebase
 repos:
   # Basic code formatting and linting
   - repo: https://github.com/pre-commit/pre-commit-hooks

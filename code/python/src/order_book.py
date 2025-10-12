@@ -9,6 +9,18 @@ from itertools import takewhile
 import databento as db
 from sortedcontainers import SortedDict
 
+from src.logger import configure_logging, get_logger
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+logger = get_logger(__name__)
+
 
 @dataclass
 class PriceLevel:
@@ -158,6 +170,9 @@ class Book:
         order = self.orders_by_id.get(mbo.order_id)
         if order is None:
             # If order not found, treat it as an add
+            logger.debug(
+                "Order %s not found during modify; treating as new add", mbo.order_id
+            )
             self._add(mbo)
             return
         assert order.side == mbo.side, f"Order {order} changed side to {mbo.side}"
@@ -248,17 +263,47 @@ class Market:
         book.apply(mbo)
 
 
+def _log_price_level(label: str, level: PriceLevel | None) -> None:
+    if level is None:
+        logger.info("    %s: None", label)
+    else:
+        logger.info("    %s: %s", label, level)
+
+
+def _log_aggregated_book(
+    symbol: str, ts: str, bid: PriceLevel | None, ask: PriceLevel | None
+) -> None:
+    logger.info("%s Aggregated BBO | %s", symbol, ts)
+    _log_price_level("Ask", ask)
+    _log_price_level("Bid", bid)
+
+
 # %%
 if __name__ == "__main__":
+    configure_logging(
+        component="order_book",
+        debug=_env_flag("ORDER_BOOK_DEBUG"),
+        level=os.getenv("ORDER_BOOK_LOG_LEVEL", "INFO"),
+        simplified=_env_flag("ORDER_BOOK_SIMPLIFIED_FORMAT", True),
+        log_dir=os.getenv("ORDER_BOOK_LOG_DIR"),
+        structured_logging=_env_flag("ORDER_BOOK_STRUCTURED_LOGS"),
+        include_console=_env_flag("ORDER_BOOK_CONSOLE_OUTPUT", True),
+    )
+
     # First, create a historical client
-    client = db.Historical("YOUR_API_KEY")
+    client = db.Historical(os.getenv("DATABENTO_API_KEY"))
 
     # Next, we will request MBO data starting from the beginning of pre-market trading hours
     # or load the file if we've already downloaded it.
     data_path = "./data/raw/databento/20250501/glbx-mdp3-20250501.mbo.dbn"
     if os.path.exists(data_path):
+        logger.info("Loading MBO data from %s", data_path)
         data = db.DBNStore.from_file(data_path)
     else:
+        logger.info(
+            "Fetching MBO data from Databento for symbols %s",
+            ["GOOG", "GOOGL"],
+        )
         data = client.timeseries.get_range(
             dataset="DBEQ.BASIC",
             start="2024-04-03T08:00:00",
@@ -278,18 +323,16 @@ if __name__ == "__main__":
     for mbo in data:
         # And apply it
         market.apply(mbo)
-        # If it's the last update in an event, print the state of the aggregated book
+        # If it's the last update in an event, log the state of the aggregated book
         if mbo.flags & db.RecordFlags.F_LAST:
             symbol = (
                 instrument_map.resolve(mbo.instrument_id, mbo.pretty_ts_recv.date())
                 or ""
             )
-            print(f"{symbol} Aggregated BBO | {mbo.pretty_ts_recv}")
             best_bid, best_offer = market.aggregated_bbo(mbo.instrument_id)
-            print(f"    {best_offer}")
-            print(f"    {best_bid}")
-            best_bid, best_offer = market.aggregated_bbo(mbo.instrument_id)
-            print(f"    {best_offer}")
-            print(f"    {best_bid}")
-
-# %%
+            _log_aggregated_book(
+                symbol,
+                str(mbo.pretty_ts_recv),
+                best_bid,
+                best_offer,
+            )

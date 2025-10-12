@@ -1,5 +1,5 @@
 """
-Utility functions for common logging tasks across the Weles project.
+Utility functions for common logging tasks across the project.
 
 This module provides helper functions that make logging more convenient
 and consistent across different components.

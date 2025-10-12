@@ -1,8 +1,8 @@
 """
-Configuration management for the Weles logging package.
+Configuration management for the logging package.
 
 This module provides configuration options and defaults for logging
-across different components of the Weles project.
+across different components of the project.
 """
 
 import os
@@ -92,14 +92,13 @@ def get_global_config() -> LoggingConfig:
         LoggingConfig instance with global settings
     """
     return LoggingConfig(
-        level=os.getenv("WELES_LOG_LEVEL", "INFO"),
-        log_dir=os.getenv("WELES_LOG_DIR", "logs"),
-        max_file_size=int(os.getenv("WELES_LOG_MAX_SIZE", str(10 * 1024 * 1024))),
-        backup_count=int(os.getenv("WELES_LOG_BACKUP_COUNT", "5")),
-        console_output=os.getenv("WELES_CONSOLE_LOGS", "true").lower() == "true",
-        colored_output=os.getenv("WELES_COLORED_LOGS", "true").lower() == "true",
-        structured_logging=os.getenv("WELES_STRUCTURED_LOGS", "false").lower()
-        == "true",
+        level=os.getenv("RL_LOG_LEVEL", "INFO"),
+        log_dir=os.getenv("RL_LOG_DIR", "logs"),
+        max_file_size=int(os.getenv("RL_LOG_MAX_SIZE", str(10 * 1024 * 1024))),
+        backup_count=int(os.getenv("RL_LOG_BACKUP_COUNT", "5")),
+        console_output=os.getenv("RL_CONSOLE_LOGS", "true").lower() == "true",
+        colored_output=os.getenv("RL_COLORED_LOGS", "true").lower() == "true",
+        structured_logging=os.getenv("RL_STRUCTURED_LOGS", "false").lower() == "true",
     )
 
 

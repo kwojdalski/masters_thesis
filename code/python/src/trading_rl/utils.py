@@ -4,6 +4,10 @@ import pandas as pd
 from plotnine import aes, geom_line, ggplot, labs
 from torch import allclose
 
+from src.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def compare_rollouts(rollouts, n_obs):
     """Compare multiple rollouts and visualize their actions and rewards.
@@ -22,11 +26,15 @@ def compare_rollouts(rollouts, n_obs):
     # Compare actions and rewards between all pairs of rollouts
     for i in range(len(rollouts)):
         for j in range(i + 1, len(rollouts)):
-            actions_equal = allclose(all_actions[i], all_actions[j])
-            rewards_equal = allclose(all_rewards[i], all_rewards[j])
-            print(f"Run {i + 1} vs Run {j + 1}:")
-            print(f"Actions identical: {actions_equal}")
-            print(f"Rewards identical: {rewards_equal}")
+            actions_equal = bool(allclose(all_actions[i], all_actions[j]))
+            rewards_equal = bool(allclose(all_rewards[i], all_rewards[j]))
+            logger.info(
+                "Run %s vs Run %s | actions_identical=%s rewards_identical=%s",
+                i + 1,
+                j + 1,
+                actions_equal,
+                rewards_equal,
+            )
 
     # Create DataFrame for plotting rewards
     rewards_data = []

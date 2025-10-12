@@ -1,5 +1,5 @@
 """
-Core logging functionality for the Weles project.
+Core logging functionality for the project.
 
 This module provides the main logging setup and configuration utilities.
 """
@@ -65,7 +65,7 @@ def setup_logging(
     format_string: str | None = None,
 ) -> logging.Logger:
     """
-    Set up comprehensive logging configuration for the Weles project.
+    Set up comprehensive logging configuration for the project.
 
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -135,7 +135,7 @@ def get_logger(name: str, extra_config: dict[str, Any] | None = None) -> logging
     """
     Get a logger instance for the given name with optional extra configuration.
 
-    This follows the standard pattern used throughout the Weles project.
+    This follows the standard pattern used throughout the project.
 
     Args:
         name: Logger name (typically __name__)
@@ -156,8 +156,8 @@ def get_logger(name: str, extra_config: dict[str, Any] | None = None) -> logging
     return logger
 
 
-def configure_weles_logging(
-    component: str = "weles",
+def configure_logging(
+    component: str = "",
     debug: bool = False,
     level: str = "INFO",
     simplified: bool = True,
@@ -166,10 +166,10 @@ def configure_weles_logging(
     include_console: bool = True,
 ) -> logging.Logger:
     """
-    Configure logging specifically for Weles components.
+    Configure logging for project components.
 
     This function provides component-specific logging configuration
-    for different parts of the Weles project.
+    that can be shared across different modules.
 
     Args:
         component: Component name (e.g., 'tardis_downloader', 'market_data_fetcher')
@@ -215,7 +215,7 @@ def setup_component_logger(
     log_dir: str = "logs",
 ) -> logging.Logger:
     """
-    Set up a logger for a specific Weles component.
+    Set up a logger for a specific component.
 
     Args:
         component_name: Name of the component (e.g., 'tardis_downloader')
