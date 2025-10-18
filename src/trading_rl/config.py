@@ -52,7 +52,7 @@ class TrainingConfig:
     value_weight_decay: float = 1e-2
 
     # Training loop
-    max_training_steps: int = 5_000_000
+    max_training_steps: int = 5_000  # _000
     init_rand_steps: int = 50
     frames_per_batch: int = 200
     optim_steps_per_batch: int = 50

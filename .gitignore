@@ -129,3 +129,4 @@ render_logs/*
 *.pkl
 **/*.parquet
 logs/*
+*.db

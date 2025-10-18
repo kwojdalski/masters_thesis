@@ -4,11 +4,20 @@ import logging
 from typing import Any
 
 import torch.nn as nn
+from joblib import Memory
 from tensordict.nn import InteractionType, TensorDictModule
 from torch import distributions as d
 from torchrl.modules import MLP, ProbabilisticActor, ValueOperator
 
 logger = logging.getLogger(__name__)
+
+# Setup joblib memory for caching model creation
+memory = Memory(location=".cache/joblib", verbose=1)
+
+
+def clear_model_cache():
+    """Clear model creation cache."""
+    memory.clear(warn=True)
 
 
 class DiscreteNet(nn.Module):

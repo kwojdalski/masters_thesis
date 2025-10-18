@@ -13,7 +13,7 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 from torchrl.envs.utils import set_exploration_type
 from torchrl.objectives import DDPGLoss, SoftUpdate
 
-from .config import TrainingConfig
+from trading_rl.config import TrainingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -85,14 +85,18 @@ class DDPGTrainer:
         logger.info(f"Actor LR: {config.actor_lr}, Value LR: {config.value_lr}")
         logger.info(f"Buffer size: {config.buffer_size}, Tau: {config.tau}")
 
-    def train(self) -> dict[str, list]:
+    def train(self, callback=None) -> dict[str, list]:
         """Run training loop.
+
+        Args:
+            callback: Optional callback for logging intermediate training statistics
 
         Returns:
             Dictionary containing training logs
         """
         logger.info("Starting training")
         t0 = time.time()
+        self.callback = callback
 
         for i, data in enumerate(self.collector):
             # Add experience to replay buffer
@@ -109,6 +113,25 @@ class DDPGTrainer:
             # Update counters
             self.total_count += data.numel()
             self.total_episodes += data["next", "done"].sum()
+
+            # Log episode statistics to callback if provided
+            if callback and hasattr(callback, "log_episode_stats"):
+                episode_reward = data["next", "reward"].sum().item()
+                # Extract portfolio value and actions if available
+                portfolio_value = getattr(data.get("next", {}), "portfolio_value", 0.0)
+                if hasattr(portfolio_value, "item"):
+                    portfolio_value = portfolio_value.item()
+                actions = data.get("action", torch.tensor([])).flatten().tolist()
+                exploration_ratio = (
+                    0.5  # Placeholder - could be calculated from exploration strategy
+                )
+
+                callback.log_episode_stats(
+                    episode_reward=episode_reward,
+                    portfolio_value=portfolio_value,
+                    actions=actions,
+                    exploration_ratio=exploration_ratio,
+                )
 
             # Check stopping condition
             if self.total_count >= self.config.max_training_steps:
@@ -156,8 +179,19 @@ class DDPGTrainer:
             self.updater.step()
 
             # Log losses
-            self.logs["loss_value"].append(loss_vals["loss_value"].item())
-            self.logs["loss_actor"].append(loss_vals["loss_actor"].item())
+            actor_loss = loss_vals["loss_actor"].item()
+            value_loss = loss_vals["loss_value"].item()
+            self.logs["loss_value"].append(value_loss)
+            self.logs["loss_actor"].append(actor_loss)
+
+            # Log to callback if provided
+            if (
+                hasattr(self, "callback")
+                and self.callback
+                and hasattr(self.callback, "log_training_step")
+            ):
+                current_step = batch_idx * self.config.optim_steps_per_batch + j
+                self.callback.log_training_step(current_step, actor_loss, value_loss)
 
             # Periodic logging and evaluation
             if j % self.config.log_interval == 0:

@@ -7,8 +7,17 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from gym_trading_env.downloader import download
+from joblib import Memory
 
 logger = logging.getLogger(__name__)
+
+# Setup joblib memory for caching expensive operations
+memory = Memory(location=".cache/joblib", verbose=1)
+
+
+def clear_data_cache():
+    """Clear data processing cache."""
+    memory.clear(warn=True)
 
 
 def download_trading_data(
@@ -38,6 +47,7 @@ def download_trading_data(
     logger.info("Data download complete")
 
 
+@memory.cache
 def load_trading_data(data_path: str) -> pd.DataFrame:
     """Load trading data from pickle file.
 
@@ -53,6 +63,7 @@ def load_trading_data(data_path: str) -> pd.DataFrame:
     return df
 
 
+@memory.cache
 def create_features(df: pd.DataFrame) -> pd.DataFrame:
     """Create technical features from OHLCV data.
 
@@ -118,6 +129,7 @@ def reward_function(history: dict) -> float:
     return returns
 
 
+@memory.cache
 def prepare_data(
     data_path: str,
     download_if_missing: bool = False,

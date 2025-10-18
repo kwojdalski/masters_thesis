@@ -14,8 +14,10 @@ from typing import Any
 import gym_trading_env  # noqa: F401
 import gymnasium as gym
 import numpy as np
+import optuna
 import pandas as pd
 import torch
+from joblib import Memory
 from plotnine import aes, facet_wrap, geom_line, ggplot
 from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
@@ -24,15 +26,19 @@ from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger as get_project_logger
 from logger import setup_logging as configure_root_logging
-from trading_rl import (
-    DDPGTrainer,
-    ExperimentConfig,
-    create_actor,
-    create_value_network,
-    prepare_data,
-    reward_function,
-)
+from trading_rl.config import ExperimentConfig
+from trading_rl.data_utils import prepare_data, reward_function
+from trading_rl.models import create_actor, create_value_network
+from trading_rl.training import DDPGTrainer
 from trading_rl.utils import compare_rollouts
+
+# Setup joblib memory for caching expensive operations
+memory = Memory(location=".cache/joblib", verbose=1)
+
+
+def clear_cache():
+    """Clear all joblib caches."""
+    memory.clear(warn=True)
 
 
 # %%
@@ -105,7 +111,7 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
 
 
 # %%
-def visualize_training(logs: dict, save_path: str | None = None) -> None:
+def visualize_training(logs: dict, save_path: str | None = None):
     """Visualize training progress.
 
     Args:
@@ -135,6 +141,188 @@ def visualize_training(logs: dict, save_path: str | None = None) -> None:
 
 
 # %%
+def create_optuna_study(
+    study_name: str, storage_url: str | None = None
+) -> optuna.Study:
+    """Create or load Optuna study for experiment tracking.
+
+    Args:
+        study_name: Name of the study
+        storage_url: Optional storage URL (defaults to SQLite)
+
+    Returns:
+        Optuna study object
+    """
+    if storage_url is None:
+        storage_url = f"sqlite:///{study_name}.db"
+
+    study = optuna.create_study(
+        study_name=study_name,
+        storage=storage_url,
+        direction="maximize",  # We'll track final reward
+        load_if_exists=True,
+    )
+    return study
+
+
+# %%
+class OptunaTrainingCallback:
+    """Callback for logging training progress to Optuna during training."""
+
+    def __init__(self, trial: optuna.Trial):
+        self.trial = trial
+        self.step_count = 0
+        self.intermediate_rewards = []
+        self.intermediate_losses = {"actor": [], "value": []}
+        self.training_stats = {
+            "episode_rewards": [],
+            "portfolio_values": [],
+            "actions_taken": [],
+            "exploration_ratio": [],
+        }
+
+    def log_training_step(self, step: int, actor_loss: float, value_loss: float):
+        """Log losses from a training step."""
+        self.intermediate_losses["actor"].append(actor_loss)
+        self.intermediate_losses["value"].append(value_loss)
+        self.step_count = step
+
+        # Report intermediate values every 100 steps for Optuna visualization
+        if step % 100 == 0:
+            avg_actor_loss = np.mean(self.intermediate_losses["actor"][-100:])
+            avg_value_loss = np.mean(self.intermediate_losses["value"][-100:])
+
+            # Report average loss as intermediate value
+            self.trial.report(avg_value_loss, step=step)
+
+    def log_episode_stats(
+        self,
+        episode_reward: float,
+        portfolio_value: float,
+        actions: list,
+        exploration_ratio: float,
+    ):
+        """Log statistics from an episode."""
+        self.training_stats["episode_rewards"].append(episode_reward)
+        self.training_stats["portfolio_values"].append(portfolio_value)
+        self.training_stats["actions_taken"].extend(actions)
+        self.training_stats["exploration_ratio"].append(exploration_ratio)
+
+    def get_training_curves(self) -> dict:
+        """Get training curves for storage."""
+        return {
+            "actor_losses": self.intermediate_losses["actor"],
+            "value_losses": self.intermediate_losses["value"],
+            "episode_rewards": self.training_stats["episode_rewards"],
+            "portfolio_values": self.training_stats["portfolio_values"],
+            "exploration_ratios": self.training_stats["exploration_ratio"],
+        }
+
+
+def log_metrics_to_optuna(
+    trial: optuna.Trial,
+    logs: dict,
+    final_metrics: dict,
+    training_callback: OptunaTrainingCallback = None,
+):
+    """Log training metrics to Optuna trial.
+
+    Args:
+        trial: Optuna trial object
+        logs: Training logs dictionary
+        final_metrics: Final evaluation metrics
+        training_callback: Optional callback with intermediate training data
+    """
+    # Log final metrics as trial value (for tracking purposes)
+    trial.report(
+        final_metrics["final_reward"], step=final_metrics.get("training_steps", 0)
+    )
+
+    # Log performance metrics
+    trial.set_user_attr("final_reward", final_metrics["final_reward"])
+    trial.set_user_attr("training_steps", final_metrics["training_steps"])
+    trial.set_user_attr("evaluation_steps", final_metrics["evaluation_steps"])
+    trial.set_user_attr(
+        "final_value_loss", logs["loss_value"][-1] if logs["loss_value"] else 0.0
+    )
+    trial.set_user_attr(
+        "final_actor_loss", logs["loss_actor"][-1] if logs["loss_actor"] else 0.0
+    )
+    trial.set_user_attr(
+        "avg_value_loss", np.mean(logs["loss_value"]) if logs["loss_value"] else 0.0
+    )
+    trial.set_user_attr(
+        "avg_actor_loss", np.mean(logs["loss_actor"]) if logs["loss_actor"] else 0.0
+    )
+
+    # Log training curves if callback provided
+    if training_callback:
+        training_curves = training_callback.get_training_curves()
+
+        # Store training curves as JSON strings
+        trial.set_user_attr("training_curves", str(training_curves))
+
+        # Store summary statistics
+        if training_curves["episode_rewards"]:
+            trial.set_user_attr(
+                "avg_episode_reward", np.mean(training_curves["episode_rewards"])
+            )
+            trial.set_user_attr(
+                "max_episode_reward", np.max(training_curves["episode_rewards"])
+            )
+            trial.set_user_attr(
+                "min_episode_reward", np.min(training_curves["episode_rewards"])
+            )
+
+        if training_curves["portfolio_values"]:
+            trial.set_user_attr(
+                "final_portfolio_value", training_curves["portfolio_values"][-1]
+            )
+            trial.set_user_attr(
+                "max_portfolio_value", np.max(training_curves["portfolio_values"])
+            )
+
+        if training_curves["exploration_ratios"]:
+            trial.set_user_attr(
+                "avg_exploration_ratio", np.mean(training_curves["exploration_ratios"])
+            )
+
+    # Log dataset metadata
+    trial.set_user_attr(
+        "data_start_date", final_metrics.get("data_start_date", "unknown")
+    )
+    trial.set_user_attr("data_end_date", final_metrics.get("data_end_date", "unknown"))
+    trial.set_user_attr("data_size", final_metrics.get("data_size", 0))
+    trial.set_user_attr("train_size", final_metrics.get("train_size", 0))
+
+    # Log environment configuration
+    trial.set_user_attr("trading_fees", final_metrics.get("trading_fees", 0.0))
+    trial.set_user_attr(
+        "borrow_interest_rate", final_metrics.get("borrow_interest_rate", 0.0)
+    )
+    trial.set_user_attr("positions", final_metrics.get("positions", "unknown"))
+
+    # Log network architecture
+    trial.set_user_attr(
+        "actor_hidden_dims", str(final_metrics.get("actor_hidden_dims", []))
+    )
+    trial.set_user_attr(
+        "value_hidden_dims", str(final_metrics.get("value_hidden_dims", []))
+    )
+    trial.set_user_attr("n_observations", final_metrics.get("n_observations", 0))
+    trial.set_user_attr("n_actions", final_metrics.get("n_actions", 0))
+
+    # Log experiment configuration
+    trial.set_user_attr(
+        "experiment_name", final_metrics.get("experiment_name", "unknown")
+    )
+    trial.set_user_attr("seed", final_metrics.get("seed", 0))
+
+    trial.set_user_attr("actor_lr", final_metrics.get("actor_lr", 0.0))
+    trial.set_user_attr("value_lr", final_metrics.get("value_lr", 0.0))
+    trial.set_user_attr("buffer_size", final_metrics.get("buffer_size", 0))
+
+
 def evaluate_agent(
     env: TransformedEnv,
     actor: Any,
@@ -152,7 +340,7 @@ def evaluate_agent(
         save_path: Optional path to save plots
 
     Returns:
-        Tuple of (reward_plot, action_plot)
+        Tuple of (reward_plot, action_plot, final_reward)
     """
     # Run evaluation rollouts
     with set_exploration_type(InteractionType.MODE):
@@ -200,14 +388,26 @@ def evaluate_agent(
         reward_plot.save(f"{save_path}_rewards.png")
         action_plot.save(f"{save_path}_actions.png")
 
-    return reward_plot, action_plot
+    # Calculate final reward for metrics
+    final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
+
+    return reward_plot, action_plot, final_reward
 
 
-# %%
-def main():
-    """Main training pipeline."""
+def run_single_experiment(
+    trial: optuna.Trial | None = None, custom_config: ExperimentConfig | None = None
+) -> dict:
+    """Run a single training experiment.
+
+    Args:
+        trial: Optional Optuna trial for logging
+        custom_config: Optional custom configuration
+
+    Returns:
+        Dictionary with results
+    """
     # Load configuration
-    config = ExperimentConfig()
+    config = custom_config or ExperimentConfig()
 
     # Setup
     logger = setup_logging(config)
@@ -242,7 +442,6 @@ def main():
         hidden_dims=config.network.actor_hidden_dims,
         spec=env.action_spec,
     )
-
     value_net = create_value_network(
         n_obs,
         n_act,
@@ -258,9 +457,14 @@ def main():
         config=config.training,
     )
 
+    # Create Optuna callback if trial is provided
+    optuna_callback = None
+    if trial is not None:
+        optuna_callback = OptunaTrainingCallback(trial)
+
     # Train
     logger.info("Starting training...")
-    logs = trainer.train()
+    logs = trainer.train(callback=optuna_callback)
 
     # Save checkpoint
     checkpoint_path = (
@@ -268,31 +472,57 @@ def main():
     )
     trainer.save_checkpoint(str(checkpoint_path))
 
-    # Visualize results
-    logger.info("Creating visualizations...")
-    loss_plot = visualize_training(
-        logs,
-        save_path=str(
-            Path(config.logging.log_dir) / f"{config.experiment_name}_losses.png"
-        ),
-    )
-
-    reward_plot, action_plot = evaluate_agent(
+    # Evaluate agent
+    logger.info("Evaluating agent...")
+    reward_plot, action_plot, final_reward = evaluate_agent(
         env,
         actor,
         df,
         max_steps=1000,
-        save_path=str(Path(config.logging.log_dir) / f"{config.experiment_name}_eval"),
     )
 
+    # Prepare comprehensive metrics
+    final_metrics = {
+        # Performance metrics
+        "final_reward": final_reward,
+        "training_steps": len(logs.get("loss_value", [])),
+        "evaluation_steps": 1000,  # max_steps from evaluation
+        # Dataset metadata
+        "data_start_date": str(df.index[0]) if not df.empty else "unknown",
+        "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
+        "data_size": len(df),
+        "train_size": config.data.train_size,
+        # Environment configuration
+        "trading_fees": config.env.trading_fees,
+        "borrow_interest_rate": config.env.borrow_interest_rate,
+        "positions": str(config.env.positions),
+        # Network architecture
+        "actor_hidden_dims": config.network.actor_hidden_dims,
+        "value_hidden_dims": config.network.value_hidden_dims,
+        "n_observations": n_obs,
+        "n_actions": n_act,
+        # Training configuration
+        "experiment_name": config.experiment_name,
+        "seed": config.seed,
+        "actor_lr": config.training.actor_lr,
+        "value_lr": config.training.value_lr,
+        "buffer_size": config.training.buffer_size,
+    }
+
+    # Log to Optuna if trial provided
+    if trial is not None:
+        log_metrics_to_optuna(trial, logs, final_metrics, optuna_callback)
+
     logger.info("Training complete!")
+    logger.info(f"Final reward: {final_reward:.4f}")
     logger.info(f"Checkpoint saved to: {checkpoint_path}")
 
     return {
         "trainer": trainer,
         "logs": logs,
+        "final_metrics": final_metrics,
         "plots": {
-            "loss": loss_plot,
+            "loss": visualize_training(logs),
             "reward": reward_plot,
             "action": action_plot,
         },
@@ -300,7 +530,23 @@ def main():
 
 
 # %%
-if __name__ == "__main__":
-    results = main()
-# %%
-main()
+def run_multiple_experiments(study_name: str, n_trials: int = 5) -> optuna.Study:
+    """Run multiple experiments and track with Optuna.
+
+    Args:
+        study_name: Name for the Optuna study
+        n_trials: Number of experiments to run
+
+    Returns:
+        Optuna study with all results
+    """
+    study = create_optuna_study(study_name)
+
+    def objective(trial):
+        # You can vary parameters here if desired
+        # For now, we just run the same experiment multiple times
+        result = run_single_experiment(trial)
+        return result["final_metrics"]["final_reward"]
+
+    study.optimize(objective, n_trials=n_trials)
+    return study
