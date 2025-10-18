@@ -1,17 +1,12 @@
-.Rproj.user
-.Rhistory
-.RData
 data/*
 necchi/*
 proposal/*
 working_papers/*
-test.R
 *.md
 */cache/*
 *cache
 cache/*
 .DS_Store
-*.Rapp.history
 *.sty
 *cache*
 various/*
@@ -103,12 +98,6 @@ coverage.xml
 
 # Plotly
 #*.html
-
-# R
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
 
 # macOS
 .DS_Store
