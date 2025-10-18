@@ -15,6 +15,7 @@ output:
     # highlight: tango
     # keep_md: false
 bibliography: library.bib
+
 header-includes:
   - \usepackage[utf8]{inputenc}
   - \usepackage{amsthm}

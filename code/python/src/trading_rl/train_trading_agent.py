@@ -23,6 +23,8 @@ from torchrl.envs.transforms import StepCounter
 from torchrl.envs.utils import set_exploration_type
 from utils import compare_rollouts
 
+from src.logger import get_logger as get_project_logger
+from src.logger import setup_logging as configure_root_logging
 from src.trading_rl import (
     DDPGTrainer,
     ExperimentConfig,
@@ -46,17 +48,16 @@ def setup_logging(config: ExperimentConfig) -> logging.Logger:
     # Disable matplotlib logging
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
-    # Configure logging
-    logging.basicConfig(
-        level=getattr(logging, config.logging.log_level),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.FileHandler(Path(config.logging.log_dir) / config.logging.log_file),
-            logging.StreamHandler(sys.stdout),
-        ],
+    log_file_path = Path(config.logging.log_dir) / config.logging.log_file
+
+    configure_root_logging(
+        level=config.logging.log_level,
+        log_file=str(log_file_path),
+        console_output=True,
+        colored_output=sys.stdout.isatty(),
     )
 
-    logger = logging.getLogger(__name__)
+    logger = get_project_logger(__name__)
     logger.info(f"Starting experiment: {config.experiment_name}")
     return logger
 

@@ -5,7 +5,7 @@ This package provides consistent logging configuration and utilities
 across all components
 """
 
-from logger.core import (
+from src.logger.core import (
     ColoredFormatter,
     StructuredFormatter,
     configure_logging,
@@ -13,7 +13,7 @@ from logger.core import (
     setup_component_logger,
     setup_logging,
 )
-from logger.utils import (
+from src.logger.utils import (
     LogContext,
     log_dataframe_info,
     log_error_with_context,
