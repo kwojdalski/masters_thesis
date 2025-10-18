@@ -1,0 +1,61 @@
+# Upward Drift Pattern Configuration for DDPG Validation
+# ======================================================
+
+experiment_name: "upward_drift_validation"
+seed: 99  # Fixed seed for reproducibility
+
+# Data Configuration - Upward Drift Pattern
+data:
+  data_path: "./data/raw/synthetic/upward_drift_validation.parquet"
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["DRIFT/UP"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 450  # Hold back last 50 steps for evaluation
+
+# Environment Configuration
+environment:
+  name: "UPDRIFT"
+  positions: [0, 1]  # Hold, long
+  trading_fees: 0.0  # No fees for synthetic validation
+  borrow_interest_rate: 0.0
+
+# Network Architecture - Lightweight for simple monotonic trend
+network:
+  actor_hidden_dims: [32, 16]
+  value_hidden_dims: [32, 16, 8]
+
+# Training Parameters - Encourage quick convergence on upward bias
+training:
+  actor_lr: 0.0004
+  value_lr: 0.0015
+  value_weight_decay: 0.004
+  max_training_steps: 8000  # Fewer steps needed due to simplicity
+  init_rand_steps: 10  # Minimal exploration
+  frames_per_batch: 200
+  optim_steps_per_batch: 40
+  sample_size: 32
+  buffer_size: 4000  # Small buffer since distribution is stable
+  tau: 0.006  # Faster target updates
+  loss_function: "l2"
+  eval_steps: 350  # Must be less than train_size (450)
+  eval_interval: 120
+  log_interval: 40
+
+# Logging Configuration
+logging:
+  log_dir: "logs/upward_drift"
+  log_level: "INFO"
+
+# Upward Drift Pattern Details (for documentation)
+pattern_info:
+  description: "Strong exponential upward drift with minimal volatility"
+  n_samples: 500
+  base_price: 50000.0
+  drift_rate: 0.0015
+  volatility: 0.0005
+  pullback_floor: 0.995
+  expected_strategy: "Stay long; small pullbacks rarely justify exiting"
+  optimal_return_estimate: "> 100%"  # Drift doubles price over the horizon
