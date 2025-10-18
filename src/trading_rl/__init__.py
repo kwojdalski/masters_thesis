@@ -1,6 +1,6 @@
 """Trading RL package with modular components for DDPG trading."""
 
-from src.trading_rl.config import (
+from trading_rl.config import (
     DataConfig,
     EnvConfig,
     ExperimentConfig,
@@ -8,7 +8,7 @@ from src.trading_rl.config import (
     NetworkConfig,
     TrainingConfig,
 )
-from src.trading_rl.data_utils import (
+from trading_rl.data_utils import (
     create_features,
     download_trading_data,
     load_trading_data,

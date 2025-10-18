@@ -21,11 +21,10 @@ from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
 from torchrl.envs.utils import set_exploration_type
-from utils import compare_rollouts
 
-from src.logger import get_logger as get_project_logger
-from src.logger import setup_logging as configure_root_logging
-from src.trading_rl import (
+from logger import get_logger as get_project_logger
+from logger import setup_logging as configure_root_logging
+from trading_rl import (
     DDPGTrainer,
     ExperimentConfig,
     create_actor,
@@ -33,6 +32,7 @@ from src.trading_rl import (
     prepare_data,
     reward_function,
 )
+from trading_rl.utils import compare_rollouts
 
 
 # %%
