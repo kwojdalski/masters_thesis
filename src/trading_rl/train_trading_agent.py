@@ -143,13 +143,14 @@ def visualize_training(logs: dict, save_path: str | None = None):
 
 # %%
 def create_optuna_study(
-    study_name: str, storage_url: str | None = None
+    study_name: str, storage_url: str | None = None, enable_multi_objective: bool = False
 ) -> optuna.Study:
     """Create or load Optuna study for experiment tracking.
 
     Args:
         study_name: Name of the study
         storage_url: Optional storage URL (defaults to SQLite)
+        enable_multi_objective: Whether to enable multi-objective optimization for tracking multiple metrics
 
     Returns:
         Optuna study object
@@ -157,12 +158,20 @@ def create_optuna_study(
     if storage_url is None:
         storage_url = f"sqlite:///{study_name}.db"
 
-    study = optuna.create_study(
-        study_name=study_name,
-        storage=storage_url,
-        direction="maximize",  # We'll track final reward
-        load_if_exists=True,
-    )
+    if enable_multi_objective:
+        study = optuna.create_study(
+            study_name=study_name,
+            storage=storage_url,
+            directions=["maximize", "minimize"],  # reward (maximize), position changes (minimize for stability)
+            load_if_exists=True,
+        )
+    else:
+        study = optuna.create_study(
+            study_name=study_name,
+            storage=storage_url,
+            direction="maximize",  # We'll track final reward
+            load_if_exists=True,
+        )
     return study
 
 
@@ -631,18 +640,52 @@ def run_multiple_experiments(
 def run_position_tracking_experiments(study_name: str, n_trials: int = 5) -> optuna.Study:
     """Run experiments specifically tracking position changes as the primary metric.
     
-    This is a convenience function that creates an Optuna study where position changes
-    are tracked in the intermediate values table instead of losses.
+    This creates a separate Optuna study where position changes appear in the
+    intermediate values plot instead of losses. This gives you a dedicated
+    plot for monitoring trading activity across trials.
 
     Args:
         study_name: Name for the Optuna study
         n_trials: Number of experiments to run
 
     Returns:
-        Optuna study with position change tracking
+        Optuna study with position change tracking as intermediate values
     """
     return run_multiple_experiments(
         study_name=f"{study_name}_position_tracking",
         n_trials=n_trials,
         track_position_changes_as_primary=True
     )
+
+
+def run_dual_tracking_experiments(study_name: str, n_trials: int = 5) -> tuple[optuna.Study, optuna.Study]:
+    """Run experiments with both loss tracking and position change tracking.
+    
+    This creates two separate studies:
+    1. Standard study tracking losses as intermediate values
+    2. Position study tracking position changes as intermediate values
+    
+    This gives you two separate intermediate value plots to compare.
+
+    Args:
+        study_name: Base name for the studies
+        n_trials: Number of experiments to run for each study
+
+    Returns:
+        Tuple of (loss_study, position_study)
+    """
+    # Run standard experiments (losses as intermediate values)
+    loss_study = run_multiple_experiments(
+        study_name=f"{study_name}_losses",
+        n_trials=n_trials,
+        track_position_changes_as_primary=False
+    )
+    
+    # Run position tracking experiments (position changes as intermediate values)  
+    position_study = run_multiple_experiments(
+        study_name=f"{study_name}_positions",
+        n_trials=n_trials,
+        track_position_changes_as_primary=True
+    )
+    
+    return loss_study, position_study

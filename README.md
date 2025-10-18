@@ -113,6 +113,8 @@ Options:
   --storage TEXT          Optuna storage URL
   --dashboard            Launch dashboard after completion
   --config, -c PATH       Custom config file
+  --track-positions      Track position changes as intermediate values
+  --dual-tracking        Run both loss and position tracking studies
 ```
 
 ### Analysis Commands
@@ -214,6 +216,19 @@ python src/cli.py experiment \
   --study "parameter_sweep" \
   --trials 20 \
   --dashboard
+
+# Run experiments with position change tracking in intermediate values
+python src/cli.py experiment \
+  --study "position_analysis" \
+  --trials 10 \
+  --track-positions \
+  --dashboard
+
+# Run dual tracking (both loss and position studies)
+python src/cli.py experiment \
+  --study "comprehensive_analysis" \
+  --trials 15 \
+  --dual-tracking
 
 # List all your studies
 python src/cli.py list-studies
@@ -333,8 +348,9 @@ The framework provides comprehensive experiment tracking via Optuna:
 
 ### Position Change Tracking
 
-The framework automatically tracks position changes during training:
+The framework provides comprehensive position change tracking with multiple visualization options:
 
+#### **Standard Tracking (User Attributes)**
 ```python
 # Position changes are tracked automatically in all experiments
 study = run_multiple_experiments("trading_study", n_trials=5)
@@ -346,8 +362,38 @@ for trial in study.trials:
     print(f"Trial {trial.number}: {pos_changes} total changes, {avg_changes:.2f} avg per episode")
 ```
 
+#### **Intermediate Values Tracking (Real-time Plots)**
+```python
+# Track position changes in intermediate values plot
+position_study = run_position_tracking_experiments("position_analysis", n_trials=5)
+
+# Or run both loss and position tracking
+loss_study, position_study = run_dual_tracking_experiments("comprehensive", n_trials=5)
+```
+
+#### **CLI Position Tracking**
+```bash
+# Position changes as intermediate values (creates separate plot)
+python src/cli.py experiment \
+  --study "position_tracking" \
+  --trials 10 \
+  --track-positions \
+  --dashboard
+
+# Dual tracking (creates two studies with different intermediate value plots)
+python src/cli.py experiment \
+  --study "dual_analysis" \
+  --trials 10 \
+  --dual-tracking
+```
+
 **Available Position Metrics:**
 - `total_position_changes` - Total position changes across all episodes
 - `avg_position_change_per_episode` - Average changes per episode
 - `max_position_changes_per_episode` - Maximum changes in a single episode
 - `intermediate_position_changes` - Step-by-step position change progression
+
+**Dashboard Features:**
+- **User Attributes Table**: Always shows position metrics for all studies
+- **Intermediate Values Plot**: Shows position changes over time when using `--track-positions`
+- **Dual Studies**: Compare loss curves and position activity side-by-side
