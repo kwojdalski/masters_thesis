@@ -78,7 +78,7 @@ logger.info("DQN loss, optimizer, and target updater created")
 # CSV Logger for TorchRL metrics
 # We'll be using a CSV logger to log our results, and save rendered videos.
 
-path = "./training_loop"
+path = "./runs"
 csv_logger = CSVLogger(exp_name="dqn", log_dir=path, video_format="mp4")
 video_recorder = VideoRecorder(csv_logger, tag="video")
 record_env = TransformedEnv(
@@ -135,5 +135,4 @@ record_env.rollout(max_steps=1000, policy=policy)
 video_recorder.dump()
 logger.info("Video saved successfully")
 
-# %%
 # %%

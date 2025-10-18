@@ -12,8 +12,8 @@ export PYTHONPATH="${PROJECT_DIR}/code/python:$PYTHONPATH"
 alias gendata="python ${PROJECT_DIR}/code/python/src/cli.py generate-data"
 
 # Alias for full CLI
-alias pcli="python ${PROJECT_DIR}/code/python/src/cli.py"
-alias tta="python ${PROJECT_DIR}/code/python/src/trading_rl/train_trading_agent.py"
+alias pcli="python ${PROJECT_DIR}/src/cli.py"
+alias tta="python ${PROJECT_DIR}/src/trading_rl/train_trading_agent.py"
 # Helper function to show available aliases
 alias show-aliases="echo 'Available project aliases:
   gendata         - Generate synthetic data (shortcut for: pcli generate-data)
