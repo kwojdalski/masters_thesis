@@ -5,7 +5,7 @@ Command-line interface for data generation and management tools.
 import argparse
 import sys
 
-from src.data_generator import PriceDataGenerator
+from data_generator import PriceDataGenerator
 
 
 def setup_data_generator_parser(subparsers):

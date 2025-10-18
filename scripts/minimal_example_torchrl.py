@@ -118,7 +118,7 @@ for i, data in enumerate(collector):
             total_episodes += data["next", "done"].sum()
     if max_length > 200:
         break
-
+# %%
 t1 = time.time()
 
 logger.info(

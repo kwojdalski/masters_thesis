@@ -6,6 +6,7 @@ This module provides the main logging setup and configuration utilities.
 
 import json
 import logging
+import os
 import sys
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
@@ -13,22 +14,70 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 
+def _supports_color() -> bool:
+    """Check if the current environment supports colored output."""
+    # Check for explicit environment variables
+    if os.environ.get("FORCE_COLOR") in ("1", "true", "True"):
+        return True
+    if os.environ.get("NO_COLOR"):
+        return False
+    
+    # Check if we're in IPython/Jupyter
+    try:
+        # This will succeed if we're in IPython
+        get_ipython()  # type: ignore
+        return True
+    except NameError:
+        pass
+    
+    # Check for common color-supporting terminals
+    if os.environ.get("COLORTERM") in ("truecolor", "24bit"):
+        return True
+    
+    term = os.environ.get("TERM", "")
+    if any(term_type in term for term_type in ["color", "256", "xterm"]):
+        return True
+    
+    # Fallback to isatty check
+    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+
+
 class ColoredFormatter(logging.Formatter):
     """Colored log formatter for enhanced console readability."""
 
     COLORS: ClassVar[dict[str, str]] = {
-        "DEBUG": "\033[36m",  # Cyan
-        "INFO": "\033[32m",  # Green
-        "WARNING": "\033[33m",  # Yellow
-        "ERROR": "\033[31m",  # Red
-        "CRITICAL": "\033[35m",  # Magenta
-        "RESET": "\033[0m",  # Reset
+        "DEBUG": "\033[96m",    # Bright cyan
+        "INFO": "\033[92m",     # Bright green  
+        "WARNING": "\033[93m",  # Bright yellow
+        "ERROR": "\033[91m",    # Bright red
+        "CRITICAL": "\033[95m", # Bright magenta
+        "RESET": "\033[0m",     # Reset
+        "BOLD": "\033[1m",      # Bold
+        "DIM": "\033[2m",       # Dim
     }
 
     def format(self, record):
+        if not _supports_color():
+            return super().format(record)
+            
         log_color = self.COLORS.get(record.levelname, self.COLORS["RESET"])
-        record.levelname = f"{log_color}{record.levelname}{self.COLORS['RESET']}"
-        return super().format(record)
+        
+        # Color the level name with bold
+        colored_levelname = (
+            f"{self.COLORS['BOLD']}{log_color}{record.levelname}{self.COLORS['RESET']}"
+        )
+        
+        # Store original levelname and replace temporarily
+        original_levelname = record.levelname
+        record.levelname = colored_levelname
+        
+        # Format the message
+        formatted = super().format(record)
+        
+        # Restore original levelname
+        record.levelname = original_levelname
+        
+        return formatted
 
 
 class StructuredFormatter(logging.Formatter):
@@ -102,7 +151,7 @@ def setup_logging(
 
         if structured_logging:
             console_formatter = StructuredFormatter()
-        elif colored_output and sys.stdout.isatty():
+        elif colored_output and _supports_color():
             console_formatter = ColoredFormatter(format_string)
         else:
             console_formatter = logging.Formatter(format_string)
@@ -239,7 +288,7 @@ def setup_component_logger(
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(numeric_level)
 
-    if sys.stdout.isatty():
+    if _supports_color():
         console_formatter = ColoredFormatter(
             f"%(asctime)s - {component_name} - %(levelname)s - %(message)s"
         )

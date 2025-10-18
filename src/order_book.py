@@ -9,7 +9,7 @@ from itertools import takewhile
 import databento as db
 from sortedcontainers import SortedDict
 
-from src.logger import configure_logging, get_logger
+from logger import configure_logging, get_logger
 
 
 def _env_flag(name: str, default: bool = False) -> bool:
