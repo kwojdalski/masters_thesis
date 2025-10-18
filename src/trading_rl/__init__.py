@@ -18,13 +18,14 @@ from trading_rl.data_utils import (
 
 from .models import DiscreteNet, count_parameters, create_actor, create_value_network
 from .train_trading_agent import (
-    OptunaTrainingCallback,
+    MLflowTrainingCallback,
     create_environment,
     evaluate_agent,
     run_multiple_experiments,
     run_single_experiment,
     set_seed,
     setup_logging,
+    setup_mlflow_experiment,
     visualize_training,
 )
 from .training import DDPGTrainer
@@ -56,7 +57,8 @@ __all__ = [
     "run_single_experiment",
     "set_seed",
     "setup_logging",
+    "setup_mlflow_experiment",
     "visualize_training",
-    # Optuna integration
-    "OptunaTrainingCallback",
+    # MLflow integration
+    "MLflowTrainingCallback",
 ]

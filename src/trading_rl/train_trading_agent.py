@@ -6,7 +6,6 @@ separated into reusable modules.
 """
 
 # %%
-import json
 import logging
 import sys
 from pathlib import Path
@@ -14,8 +13,8 @@ from typing import Any
 
 import gym_trading_env  # noqa: F401
 import gymnasium as gym
+import mlflow
 import numpy as np
-import optuna
 import pandas as pd
 import torch
 from joblib import Memory
@@ -142,53 +141,29 @@ def visualize_training(logs: dict, save_path: str | None = None):
 
 
 # %%
-def create_optuna_study(
-    study_name: str, storage_url: str | None = None, enable_multi_objective: bool = False
-) -> optuna.Study:
-    """Create or load Optuna study for experiment tracking.
+def setup_mlflow_experiment(experiment_name: str) -> None:
+    """Setup MLflow experiment for tracking.
 
     Args:
-        study_name: Name of the study
-        storage_url: Optional storage URL (defaults to SQLite)
-        enable_multi_objective: Whether to enable multi-objective optimization for tracking multiple metrics
-
-    Returns:
-        Optuna study object
+        experiment_name: Name of the MLflow experiment
     """
-    if storage_url is None:
-        storage_url = f"sqlite:///{study_name}.db"
-
-    if enable_multi_objective:
-        study = optuna.create_study(
-            study_name=study_name,
-            storage=storage_url,
-            directions=["maximize", "minimize"],  # reward (maximize), position changes (minimize for stability)
-            load_if_exists=True,
-        )
-    else:
-        study = optuna.create_study(
-            study_name=study_name,
-            storage=storage_url,
-            direction="maximize",  # We'll track final reward
-            load_if_exists=True,
-        )
-    return study
+    mlflow.set_experiment(experiment_name)
+    return experiment_name
 
 
 # %%
-class OptunaTrainingCallback:
-    """Callback for logging training progress to Optuna during training.
-    
-    This callback tracks both losses and position changes:
-    - Losses are reported as intermediate values (standard Optuna plot)
-    - Position statistics are stored as user attributes for comparison
+class MLflowTrainingCallback:
+    """Callback for logging training progress to MLflow.
+
+    Logs multiple metrics simultaneously:
+    - Actor and value losses
+    - Position changes and trading activity
+    - Portfolio values and rewards
+    - Custom plots and artifacts
     """
 
-    def __init__(self, trial: optuna.Trial):
-        self.trial = trial
+    def __init__(self, experiment_name: str = "trading_rl"):
         self.step_count = 0
-        self.intermediate_position_changes: list[dict[str, float | int]] = []
-        self.intermediate_rewards = []
         self.intermediate_losses = {"actor": [], "value": []}
         self.position_change_counts: list[int] = []
         self.training_stats = {
@@ -199,43 +174,32 @@ class OptunaTrainingCallback:
             "position_change_counts": [],
         }
 
+        # Set MLflow experiment
+        mlflow.set_experiment(experiment_name)
+
+        # Start run if not already active
+        if not mlflow.active_run():
+            mlflow.start_run()
+
     def log_training_step(self, step: int, actor_loss: float, value_loss: float):
-        """Log losses from a training step.
-        
-        Losses are always reported as intermediate values for the standard Optuna plot.
-        Position statistics are tracked separately as user attributes.
+        """Log losses from a training step to MLflow.
+
+        Logs multiple metrics simultaneously for rich tracking.
         """
         self.intermediate_losses["actor"].append(actor_loss)
         self.intermediate_losses["value"].append(value_loss)
         self.step_count = step
 
-        # Report intermediate values every 100 steps for Optuna visualization
-        if step % 100 == 0:
-            avg_actor_loss = np.mean(self.intermediate_losses["actor"][-100:])
-            avg_value_loss = np.mean(self.intermediate_losses["value"][-100:])
+        # Log losses to MLflow every step
+        mlflow.log_metric("actor_loss", actor_loss, step=step)
+        mlflow.log_metric("value_loss", value_loss, step=step)
 
-            # Always report value loss as intermediate value for standard plot
-            self.trial.report(avg_value_loss, step=step)
+        # Log position changes if available
+        if self.position_change_counts:
+            window = min(len(self.position_change_counts), 100)
+            avg_position_changes = float(np.mean(self.position_change_counts[-window:]))
+            mlflow.log_metric("avg_position_changes", avg_position_changes, step=step)
 
-            # Track position changes as user attributes for comparison
-            if self.position_change_counts:
-                window = min(len(self.position_change_counts), 100)
-                avg_position_changes = float(
-                    np.mean(self.position_change_counts[-window:])
-                )
-                self.intermediate_position_changes.append(
-                    {
-                        "step": step,
-                        "avg_position_changes": avg_position_changes,
-                    }
-                )
-                self.trial.set_user_attr(
-                    "intermediate_position_changes",
-                    json.dumps(self.intermediate_position_changes),
-                )
-                self.trial.set_user_attr(
-                    f"pos_changes_step_{step}", avg_position_changes
-                )
     def log_episode_stats(
         self,
         episode_reward: float,
@@ -243,14 +207,24 @@ class OptunaTrainingCallback:
         actions: list,
         exploration_ratio: float,
     ):
-        """Log statistics from an episode."""
+        """Log statistics from an episode to MLflow."""
         self.training_stats["episode_rewards"].append(episode_reward)
         self.training_stats["portfolio_values"].append(portfolio_value)
         self.training_stats["actions_taken"].extend(actions)
         self.training_stats["exploration_ratio"].append(exploration_ratio)
+
         position_changes = self._count_position_changes(actions)
         self.position_change_counts.append(position_changes)
         self.training_stats["position_change_counts"].append(position_changes)
+
+        # Log episode metrics to MLflow
+        episode_num = len(self.training_stats["episode_rewards"])
+        mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
+        mlflow.log_metric("portfolio_value", portfolio_value, step=episode_num)
+        mlflow.log_metric(
+            "position_changes_per_episode", position_changes, step=episode_num
+        )
+        mlflow.log_metric("exploration_ratio", exploration_ratio, step=episode_num)
 
     def get_training_curves(self) -> dict:
         """Get training curves for storage."""
@@ -278,127 +252,99 @@ class OptunaTrainingCallback:
         return changes
 
 
-def log_metrics_to_optuna(
-    trial: optuna.Trial,
+def log_final_metrics_to_mlflow(
     logs: dict,
     final_metrics: dict,
-    training_callback: OptunaTrainingCallback = None,
+    training_callback: MLflowTrainingCallback = None,
 ):
-    """Log training metrics to Optuna trial.
+    """Log final training metrics to MLflow.
 
     Args:
-        trial: Optuna trial object
         logs: Training logs dictionary
         final_metrics: Final evaluation metrics
-        training_callback: Optional callback with intermediate training data
+        training_callback: Optional callback with training data
     """
-    # Log final metrics as trial value (for tracking purposes)
-    trial.report(
-        final_metrics["final_reward"], step=final_metrics.get("training_steps", 0)
-    )
+    # Log final performance metrics
+    mlflow.log_metric("final_reward", final_metrics["final_reward"])
+    mlflow.log_metric("training_steps", final_metrics["training_steps"])
+    mlflow.log_metric("evaluation_steps", final_metrics["evaluation_steps"])
 
-    # Log performance metrics
-    trial.set_user_attr("final_reward", final_metrics["final_reward"])
-    trial.set_user_attr("training_steps", final_metrics["training_steps"])
-    trial.set_user_attr("evaluation_steps", final_metrics["evaluation_steps"])
-    trial.set_user_attr(
-        "final_value_loss", logs["loss_value"][-1] if logs["loss_value"] else 0.0
-    )
-    trial.set_user_attr(
-        "final_actor_loss", logs["loss_actor"][-1] if logs["loss_actor"] else 0.0
-    )
-    trial.set_user_attr(
-        "avg_value_loss", np.mean(logs["loss_value"]) if logs["loss_value"] else 0.0
-    )
-    trial.set_user_attr(
-        "avg_actor_loss", np.mean(logs["loss_actor"]) if logs["loss_actor"] else 0.0
-    )
+    if logs["loss_value"]:
+        mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
+        mlflow.log_metric("avg_value_loss", np.mean(logs["loss_value"]))
+
+    if logs["loss_actor"]:
+        mlflow.log_metric("final_actor_loss", logs["loss_actor"][-1])
+        mlflow.log_metric("avg_actor_loss", np.mean(logs["loss_actor"]))
 
     # Log training curves if callback provided
     if training_callback:
         training_curves = training_callback.get_training_curves()
 
-        # Store training curves as JSON strings
-        trial.set_user_attr("training_curves", json.dumps(training_curves))
-        if training_callback.intermediate_position_changes:
-            trial.set_user_attr(
-                "intermediate_position_changes",
-                json.dumps(training_callback.intermediate_position_changes),
-            )
-
-        # Store summary statistics
+        # Log summary statistics
         if training_curves["episode_rewards"]:
-            trial.set_user_attr(
+            mlflow.log_metric(
                 "avg_episode_reward", np.mean(training_curves["episode_rewards"])
             )
-            trial.set_user_attr(
+            mlflow.log_metric(
                 "max_episode_reward", np.max(training_curves["episode_rewards"])
             )
-            trial.set_user_attr(
+            mlflow.log_metric(
                 "min_episode_reward", np.min(training_curves["episode_rewards"])
             )
 
         if training_curves["portfolio_values"]:
-            trial.set_user_attr(
+            mlflow.log_metric(
                 "final_portfolio_value", training_curves["portfolio_values"][-1]
             )
-            trial.set_user_attr(
+            mlflow.log_metric(
                 "max_portfolio_value", np.max(training_curves["portfolio_values"])
             )
 
         if training_curves["exploration_ratios"]:
-            trial.set_user_attr(
+            mlflow.log_metric(
                 "avg_exploration_ratio", np.mean(training_curves["exploration_ratios"])
             )
+
         if training_curves["position_change_counts"]:
             position_changes = training_curves["position_change_counts"]
-            trial.set_user_attr(
+            mlflow.log_metric(
                 "avg_position_change_per_episode", float(np.mean(position_changes))
             )
-            trial.set_user_attr(
+            mlflow.log_metric(
                 "max_position_changes_per_episode", int(np.max(position_changes))
             )
-            trial.set_user_attr(
-                "total_position_changes", int(np.sum(position_changes))
-            )
-            trial.set_user_attr(
-                "position_change_counts", json.dumps(position_changes)
-            )
+            mlflow.log_metric("total_position_changes", int(np.sum(position_changes)))
 
-    # Log dataset metadata
-    trial.set_user_attr(
-        "data_start_date", final_metrics.get("data_start_date", "unknown")
-    )
-    trial.set_user_attr("data_end_date", final_metrics.get("data_end_date", "unknown"))
-    trial.set_user_attr("data_size", final_metrics.get("data_size", 0))
-    trial.set_user_attr("train_size", final_metrics.get("train_size", 0))
+    # Log dataset metadata as parameters
+    mlflow.log_param("data_start_date", final_metrics.get("data_start_date", "unknown"))
+    mlflow.log_param("data_end_date", final_metrics.get("data_end_date", "unknown"))
+    mlflow.log_param("data_size", final_metrics.get("data_size", 0))
+    mlflow.log_param("train_size", final_metrics.get("train_size", 0))
 
     # Log environment configuration
-    trial.set_user_attr("trading_fees", final_metrics.get("trading_fees", 0.0))
-    trial.set_user_attr(
+    mlflow.log_param("trading_fees", final_metrics.get("trading_fees", 0.0))
+    mlflow.log_param(
         "borrow_interest_rate", final_metrics.get("borrow_interest_rate", 0.0)
     )
-    trial.set_user_attr("positions", final_metrics.get("positions", "unknown"))
+    mlflow.log_param("positions", final_metrics.get("positions", "unknown"))
 
     # Log network architecture
-    trial.set_user_attr(
+    mlflow.log_param(
         "actor_hidden_dims", str(final_metrics.get("actor_hidden_dims", []))
     )
-    trial.set_user_attr(
+    mlflow.log_param(
         "value_hidden_dims", str(final_metrics.get("value_hidden_dims", []))
     )
-    trial.set_user_attr("n_observations", final_metrics.get("n_observations", 0))
-    trial.set_user_attr("n_actions", final_metrics.get("n_actions", 0))
+    mlflow.log_param("n_observations", final_metrics.get("n_observations", 0))
+    mlflow.log_param("n_actions", final_metrics.get("n_actions", 0))
 
     # Log experiment configuration
-    trial.set_user_attr(
-        "experiment_name", final_metrics.get("experiment_name", "unknown")
-    )
-    trial.set_user_attr("seed", final_metrics.get("seed", 0))
-
-    trial.set_user_attr("actor_lr", final_metrics.get("actor_lr", 0.0))
-    trial.set_user_attr("value_lr", final_metrics.get("value_lr", 0.0))
-    trial.set_user_attr("buffer_size", final_metrics.get("buffer_size", 0))
+    mlflow.log_param("experiment_name", final_metrics.get("experiment_name", "unknown"))
+    mlflow.log_param("seed", final_metrics.get("seed", 0))
+    mlflow.log_param("actor_lr", final_metrics.get("actor_lr", 0.0))
+    mlflow.log_param("value_lr", final_metrics.get("value_lr", 0.0))
+    mlflow.log_param("buffer_size", final_metrics.get("buffer_size", 0))
 
 
 def evaluate_agent(
@@ -473,17 +419,17 @@ def evaluate_agent(
 
 
 def run_single_experiment(
-    trial: optuna.Trial | None = None, 
-    custom_config: ExperimentConfig | None = None
+    experiment_name: str = "trading_rl", custom_config: ExperimentConfig | None = None
 ) -> dict:
-    """Run a single training experiment.
+    """Run a single training experiment with MLflow tracking.
 
-    This function tracks both losses and position statistics:
-    - Losses appear in intermediate values (standard Optuna plot)  
-    - Position statistics appear in user attributes for comparison
+    This function tracks both losses and position statistics in MLflow:
+    - Multiple metrics logged simultaneously (losses, positions, rewards)
+    - Parameters logged for configuration tracking
+    - Artifacts logged for plots and models
 
     Args:
-        trial: Optional Optuna trial for logging
+        experiment_name: MLflow experiment name
         custom_config: Optional custom configuration
 
     Returns:
@@ -507,6 +453,128 @@ def run_single_experiment(
         data_dir=config.data.data_dir,
         since=config.data.download_since,
     )
+
+    # Log data overview to MLflow
+    if mlflow.active_run():
+        # Log dataset metadata
+        mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
+        mlflow.log_param("dataset_columns", list(df.columns))
+        mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
+        mlflow.log_param("data_source", config.data.data_path)
+        
+        # Log price statistics
+        if 'close' in df.columns:
+            mlflow.log_metric("price_min", df['close'].min())
+            mlflow.log_metric("price_max", df['close'].max())
+            mlflow.log_metric("price_mean", df['close'].mean())
+            mlflow.log_metric("price_std", df['close'].std())
+        
+        # Log data sample as CSV artifact and generate plots
+        try:
+            import tempfile
+            import os
+            from plotnine import ggplot, aes, geom_line, geom_point, theme_minimal, labs, theme, element_text
+            import warnings
+            warnings.filterwarnings('ignore')  # Suppress plotnine warnings
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                # Get first 50 rows for overview
+                sample_df = df.head(50)
+                sample_df.to_csv(f.name)
+                mlflow.log_artifact(f.name, "data_overview")
+                os.unlink(f.name)  # Clean up temp file
+                
+            # Also log data statistics summary
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                f.write("Dataset Overview\n")
+                f.write("================\n\n")
+                f.write(f"Shape: {df.shape}\n")
+                f.write(f"Columns: {list(df.columns)}\n")
+                f.write(f"Date Range: {df.index.min()} to {df.index.max()}\n\n")
+                f.write("Data Types:\n")
+                f.write(str(df.dtypes))
+                f.write("\n\nStatistical Summary:\n")
+                f.write(str(df.describe()))
+                f.flush()
+                mlflow.log_artifact(f.name, "data_overview")
+                os.unlink(f.name)  # Clean up temp file
+            
+            # Generate plotnine plots for each variable
+            plot_df = df.head(200).reset_index()
+            plot_df['time_index'] = range(len(plot_df))  # Add explicit time index
+            
+            # OHLCV columns to plot
+            ohlcv_columns = ['open', 'high', 'low', 'close', 'volume']
+            available_columns = [col for col in ohlcv_columns if col in plot_df.columns]
+            
+            # Also include any feature columns (non-OHLCV)
+            feature_columns = [col for col in plot_df.columns 
+                             if col not in ohlcv_columns + [plot_df.columns[0], 'time_index']]
+            
+            all_plot_columns = available_columns + feature_columns[:5]  # Limit features to avoid too many plots
+            
+            for column in all_plot_columns:
+                try:
+                    # Create plot based on column type
+                    if column == 'volume':
+                        # Line plot for volume
+                        p = (ggplot(plot_df, aes(x='time_index', y=column)) +
+                             geom_line(color='blue', size=0.8) +
+                             theme_minimal() +
+                             labs(title=f'{column.title()} Over Time',
+                                  x='Time Index',
+                                  y=column.title()) +
+                             theme(plot_title=element_text(size=14, face='bold')))
+                    else:
+                        # Line plot for price/feature data
+                        color = 'green' if column == 'close' else 'steelblue'
+                        p = (ggplot(plot_df, aes(x='time_index', y=column)) +
+                             geom_line(color=color, size=0.8) +
+                             theme_minimal() +
+                             labs(title=f'{column.title()} Over Time',
+                                  x='Time Index',
+                                  y=column.title()) +
+                             theme(plot_title=element_text(size=14, face='bold')))
+                    
+                    # Save plot
+                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as plot_file:
+                        p.save(plot_file.name, width=10, height=6, dpi=150)
+                        mlflow.log_artifact(plot_file.name, f"data_overview/plots")
+                        os.unlink(plot_file.name)
+                        
+                except Exception as plot_error:
+                    logger.warning(f"Failed to create plot for {column}: {plot_error}")
+            
+            # Create combined OHLC plot if all price columns are available
+            if all(col in plot_df.columns for col in ['open', 'high', 'low', 'close']):
+                try:
+                    # Reshape data for multi-line plot
+                    import pandas as pd
+                    ohlc_melted = pd.melt(plot_df,
+                                        id_vars=['time_index'],
+                                        value_vars=['open', 'high', 'low', 'close'],
+                                        var_name='price_type',
+                                        value_name='price')
+                    
+                    p_combined = (ggplot(ohlc_melted, aes(x='time_index', y='price', color='price_type')) +
+                                geom_line(size=0.8) +
+                                theme_minimal() +
+                                labs(title='OHLC Prices Over Time',
+                                     x='Time Index',
+                                     y='Price',
+                                     color='Price Type') +
+                                theme(plot_title=element_text(size=14, face='bold')))
+                    
+                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as plot_file:
+                        p_combined.save(plot_file.name, width=12, height=6, dpi=150)
+                        mlflow.log_artifact(plot_file.name, f"data_overview/plots")
+                        os.unlink(plot_file.name)
+                        
+                except Exception as combined_error:
+                    logger.warning(f"Failed to create combined OHLC plot: {combined_error}")
+                
+        except Exception as e:
+            logger.warning(f"Failed to log data overview: {e}")
 
     # Create environment
     logger.info("Creating environment...")
@@ -540,14 +608,12 @@ def run_single_experiment(
         config=config.training,
     )
 
-    # Create Optuna callback if trial is provided
-    optuna_callback = None
-    if trial is not None:
-        optuna_callback = OptunaTrainingCallback(trial)
+    # Create MLflow callback
+    mlflow_callback = MLflowTrainingCallback(experiment_name)
 
     # Train
     logger.info("Starting training...")
-    logs = trainer.train(callback=optuna_callback)
+    logs = trainer.train(callback=mlflow_callback)
 
     # Save checkpoint
     checkpoint_path = (
@@ -592,9 +658,8 @@ def run_single_experiment(
         "buffer_size": config.training.buffer_size,
     }
 
-    # Log to Optuna if trial provided
-    if trial is not None:
-        log_metrics_to_optuna(trial, logs, final_metrics, optuna_callback)
+    # Log final metrics to MLflow
+    log_final_metrics_to_mlflow(logs, final_metrics, mlflow_callback)
 
     logger.info("Training complete!")
     logger.info(f"Final reward: {final_reward:.4f}")
@@ -613,38 +678,109 @@ def run_single_experiment(
 
 
 # %%
-def run_multiple_experiments(study_name: str, n_trials: int = 5, base_seed: int | None = None) -> optuna.Study:
-    """Run multiple experiments and track with Optuna.
+def run_multiple_experiments(
+    experiment_name: str, n_trials: int = 5, base_seed: int | None = None, custom_config: ExperimentConfig | None = None
+) -> str:
+    """Run multiple experiments and track with MLflow.
 
     Each experiment tracks:
-    - Losses as intermediate values (standard Optuna plot)
-    - Position statistics as user attributes (for comparison)
+    - Multiple metrics simultaneously (losses, positions, rewards)
+    - Parameters for configuration comparison
+    - Artifacts for plots and models
 
     Args:
-        study_name: Name for the Optuna study
+        experiment_name: Name for the MLflow experiment
         n_trials: Number of experiments to run
         base_seed: Base seed for reproducible experiments (each trial uses base_seed + trial_number)
 
     Returns:
-        Optuna study with all results
+        MLflow experiment name with all results
     """
-    study = create_optuna_study(study_name)
+    # Setup MLflow experiment
+    setup_mlflow_experiment(experiment_name)
 
-    def objective(trial):
+    results = []
+
+    for trial_number in range(n_trials):
+        print(f"Running trial {trial_number + 1}/{n_trials}")
+
         # Create config with deterministic seed based on trial number
         from trading_rl.config import ExperimentConfig
-        config = ExperimentConfig()
-        
+
+        if custom_config is not None:
+            # Use custom config as base and copy it for this trial
+            import copy
+            config = copy.deepcopy(custom_config)
+        else:
+            config = ExperimentConfig()
+
         if base_seed is not None:
-            config.seed = base_seed + trial.number
+            config.seed = base_seed + trial_number
         else:
             import random
+
             config.seed = random.randint(1, 100000)
-            
-        result = run_single_experiment(trial, custom_config=config)
-        return result["final_metrics"]["final_reward"]
 
-    study.optimize(objective, n_trials=n_trials)
-    return study
+        # Update experiment name to include trial number
+        config.experiment_name = f"{experiment_name}_trial_{trial_number}"
+
+        # Start a new MLflow run for this trial
+        with mlflow.start_run(run_name=f"trial_{trial_number}"):
+            result = run_single_experiment(experiment_name, custom_config=config)
+            results.append(result)
+
+    # Generate comparison plots after all trials complete
+    _create_mlflow_comparison_plots(experiment_name, results)
+
+    return experiment_name
 
 
+def _create_mlflow_comparison_plots(experiment_name: str, results: list):
+    """Create comparison plots for MLflow experiments."""
+    import matplotlib.pyplot as plt
+
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12))
+
+    # Extract data from results
+    trial_numbers = list(range(len(results)))
+    final_rewards = [r["final_metrics"]["final_reward"] for r in results]
+
+    # Get position data from training stats if available
+    total_positions = []
+    avg_positions = []
+
+    for result in results:
+        # Try to get position data from final metrics
+        total_pos = result["final_metrics"].get("total_position_changes", 0)
+        avg_pos = result["final_metrics"].get("avg_position_change_per_episode", 0)
+        total_positions.append(total_pos)
+        avg_positions.append(avg_pos)
+
+    # Plot 1: Final rewards per trial
+    ax1.bar(trial_numbers, final_rewards, alpha=0.7, color="red")
+    ax1.set_xlabel("Trial Number")
+    ax1.set_ylabel("Final Reward")
+    ax1.set_title(f"{experiment_name}: Final Rewards by Trial")
+
+    # Plot 2: Total position changes per trial
+    ax2.bar(trial_numbers, total_positions, alpha=0.7, color="blue")
+    ax2.set_xlabel("Trial Number")
+    ax2.set_ylabel("Total Position Changes")
+    ax2.set_title(f"{experiment_name}: Total Position Changes by Trial")
+
+    # Plot 3: Average position changes per episode
+    ax3.bar(trial_numbers, avg_positions, alpha=0.7, color="green")
+    ax3.set_xlabel("Trial Number")
+    ax3.set_ylabel("Avg Position Changes per Episode")
+    ax3.set_title(f"{experiment_name}: Average Position Changes per Episode by Trial")
+
+    plt.tight_layout()
+    plot_path = f"{experiment_name}_comparison.png"
+    plt.savefig(plot_path, dpi=150, bbox_inches="tight")
+    plt.close()
+
+    # Log the comparison plot as an artifact to MLflow
+    with mlflow.start_run(run_name="experiment_summary"):
+        mlflow.log_artifact(plot_path)
+
+    print(f"Comparison plots saved to: {plot_path}")
