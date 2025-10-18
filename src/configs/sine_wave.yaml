@@ -26,7 +26,7 @@ environment:
 network:
   # Actor network - simpler for predictable pattern
   actor_hidden_dims: [32, 16]
-  
+
   # Value network - simpler for predictable pattern
   value_hidden_dims: [32, 16, 8]
 
@@ -36,23 +36,23 @@ training:
   actor_lr: 0.0005
   value_lr: 0.002
   value_weight_decay: 0.005
-  
+
   # Training loop - longer training for convergence
   max_training_steps: 10000  # 50 episodes should be enough
   init_rand_steps: 20  # Less random exploration needed
   frames_per_batch: 200
   optim_steps_per_batch: 50
   sample_size: 32  # Smaller batch for faster updates
-  
+
   # Replay buffer - smaller for simple pattern
   buffer_size: 5000  # Don't need huge buffer
-  
+
   # Target network updates - faster for simple pattern
   tau: 0.005  # Faster target updates
-  
+
   # Loss function
   loss_function: "l2"
-  
+
   # Evaluation - more frequent for monitoring
   eval_steps: 300  # Must be less than train_size (400)
   eval_interval: 100  # Check progress more often

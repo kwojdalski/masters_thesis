@@ -461,32 +461,45 @@ def run_single_experiment(
         mlflow.log_param("dataset_columns", list(df.columns))
         mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
         mlflow.log_param("data_source", config.data.data_path)
-        
+
         # Log price statistics
-        if 'close' in df.columns:
-            mlflow.log_metric("price_min", df['close'].min())
-            mlflow.log_metric("price_max", df['close'].max())
-            mlflow.log_metric("price_mean", df['close'].mean())
-            mlflow.log_metric("price_std", df['close'].std())
-        
+        if "close" in df.columns:
+            mlflow.log_metric("price_min", df["close"].min())
+            mlflow.log_metric("price_max", df["close"].max())
+            mlflow.log_metric("price_mean", df["close"].mean())
+            mlflow.log_metric("price_std", df["close"].std())
+
         # Log data sample as CSV artifact and generate plots
         try:
-            
-            import tempfile
             import os
-            from plotnine import ggplot, aes, geom_line, geom_point, theme_minimal, labs, theme, element_text
+            import tempfile
             import warnings
-            warnings.filterwarnings('ignore')  # Suppress plotnine warnings
-            
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+
+            from plotnine import (
+                aes,
+                element_text,
+                geom_line,
+                ggplot,
+                labs,
+                theme,
+                theme_minimal,
+            )
+
+            warnings.filterwarnings("ignore")  # Suppress plotnine warnings
+
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".csv", delete=False
+            ) as f:
                 # Get first 50 rows for overview
                 sample_df = df.head(50)
                 sample_df.to_csv(f.name)
                 mlflow.log_artifact(f.name, "data_overview")
                 os.unlink(f.name)  # Clean up temp file
-                
+
             # Also log data statistics summary
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", delete=False
+            ) as f:
                 f.write("Dataset Overview\n")
                 f.write("================\n\n")
                 f.write(f"Shape: {df.shape}\n")
@@ -499,85 +512,116 @@ def run_single_experiment(
                 f.flush()
                 mlflow.log_artifact(f.name, "data_overview")
                 os.unlink(f.name)  # Clean up temp file
-            
+
             # Generate plotnine plots for each variable
             plot_df = df.head(200).reset_index()
-            plot_df['time_index'] = range(len(plot_df))  # Add explicit time index
-            
+            plot_df["time_index"] = range(len(plot_df))  # Add explicit time index
+
             # OHLCV columns to plot
-            ohlcv_columns = ['open', 'high', 'low', 'close', 'volume']
+            ohlcv_columns = ["open", "high", "low", "close", "volume"]
             available_columns = [col for col in ohlcv_columns if col in plot_df.columns]
-            
+
             # Also include any feature columns (non-OHLCV)
-            feature_columns = [col for col in plot_df.columns 
-                             if col not in ohlcv_columns + [plot_df.columns[0], 'time_index']]
-            
-            all_plot_columns = available_columns + feature_columns[:5]  # Limit features to avoid too many plots
-            
+            feature_columns = [
+                col
+                for col in plot_df.columns
+                if col not in ohlcv_columns + [plot_df.columns[0], "time_index"]
+            ]
+
+            all_plot_columns = (
+                available_columns + feature_columns[:5]
+            )  # Limit features to avoid too many plots
+
             for column in all_plot_columns:
                 try:
                     # Create plot based on column type
-                    if column == 'volume':
+                    if column == "volume":
                         # Line plot for volume
-                        p = (ggplot(plot_df, aes(x='time_index', y=column)) +
-                             geom_line(color='blue', size=0.8) +
-                             theme_minimal() +
-                             labs(title=f'{column.title()} Over Time',
-                                  x='Time Index',
-                                  y=column.title()) +
-                             theme(plot_title=element_text(size=14, face='bold')))
+                        p = (
+                            ggplot(plot_df, aes(x="time_index", y=column))
+                            + geom_line(color="blue", size=0.8)
+                            + theme_minimal()
+                            + labs(
+                                title=f"{column.title()} Over Time",
+                                x="Time Index",
+                                y=column.title(),
+                            )
+                            + theme(plot_title=element_text(size=14, face="bold"))
+                        )
                     else:
                         # Line plot for price/feature data
-                        color = 'green' if column == 'close' else 'steelblue'
-                        p = (ggplot(plot_df, aes(x='time_index', y=column)) +
-                             geom_line(color=color, size=0.8) +
-                             theme_minimal() +
-                             labs(title=f'{column.title()} Over Time',
-                                  x='Time Index',
-                                  y=column.title()) +
-                             theme(plot_title=element_text(size=14, face='bold')))
-                    
+                        color = "green" if column == "close" else "steelblue"
+                        p = (
+                            ggplot(plot_df, aes(x="time_index", y=column))
+                            + geom_line(color=color, size=0.8)
+                            + theme_minimal()
+                            + labs(
+                                title=f"{column.title()} Over Time",
+                                x="Time Index",
+                                y=column.title(),
+                            )
+                            + theme(plot_title=element_text(size=14, face="bold"))
+                        )
+
                     # Save plot
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as plot_file:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".png", delete=False
+                    ) as plot_file:
                         p.save(plot_file.name, width=10, height=6, dpi=150)
-                        mlflow.log_artifact(plot_file.name, f"data_overview/plots")
+                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
                         os.unlink(plot_file.name)
-                        
+
                 except Exception as plot_error:
                     logger.warning(f"Failed to create plot for {column}: {plot_error}")
-            
+
             # Create combined OHLC plot if all price columns are available
-            if all(col in plot_df.columns for col in ['open', 'high', 'low', 'close']):
+            if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
                 try:
                     # Ensure consistent data before melting
-                    ohlc_subset = plot_df[['time_index', 'open', 'high', 'low', 'close']].copy()
+                    ohlc_subset = plot_df[
+                        ["time_index", "open", "high", "low", "close"]
+                    ].copy()
                     ohlc_subset = ohlc_subset.dropna()  # Remove any NaN values
-                    
+
                     # Reshape data for multi-line plot
                     import pandas as pd
-                    ohlc_melted = pd.melt(ohlc_subset,
-                                        id_vars=['time_index'],
-                                        value_vars=['open', 'high', 'low', 'close'],
-                                        var_name='price_type',
-                                        value_name='price')
-                    
-                    p_combined = (ggplot(ohlc_melted, aes(x='time_index', y='price', color='price_type')) +
-                                geom_line(size=0.8) +
-                                theme_minimal() +
-                                labs(title='OHLC Prices Over Time',
-                                     x='Time Index',
-                                     y='Price',
-                                     color='Price Type') +
-                                theme(plot_title=element_text(size=14, face='bold')))
-                    
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as plot_file:
+
+                    ohlc_melted = pd.melt(
+                        ohlc_subset,
+                        id_vars=["time_index"],
+                        value_vars=["open", "high", "low", "close"],
+                        var_name="price_type",
+                        value_name="price",
+                    )
+
+                    p_combined = (
+                        ggplot(
+                            ohlc_melted,
+                            aes(x="time_index", y="price", color="price_type"),
+                        )
+                        + geom_line(size=0.8)
+                        + theme_minimal()
+                        + labs(
+                            title="OHLC Prices Over Time",
+                            x="Time Index",
+                            y="Price",
+                            color="Price Type",
+                        )
+                        + theme(plot_title=element_text(size=14, face="bold"))
+                    )
+
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".png", delete=False
+                    ) as plot_file:
                         p_combined.save(plot_file.name, width=12, height=6, dpi=150)
-                        mlflow.log_artifact(plot_file.name, f"data_overview/plots")
+                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
                         os.unlink(plot_file.name)
-                        
+
                 except Exception as combined_error:
-                    logger.warning(f"Failed to create combined OHLC plot: {combined_error}")
-                
+                    logger.warning(
+                        f"Failed to create combined OHLC plot: {combined_error}"
+                    )
+
         except Exception as e:
             logger.warning(f"Failed to log data overview: {e}")
 
@@ -686,7 +730,10 @@ def run_single_experiment(
 
 # %%
 def run_multiple_experiments(
-    experiment_name: str, n_trials: int = 5, base_seed: int | None = None, custom_config: ExperimentConfig | None = None
+    experiment_name: str,
+    n_trials: int = 5,
+    base_seed: int | None = None,
+    custom_config: ExperimentConfig | None = None,
 ) -> str:
     """Run multiple experiments and track with MLflow.
 
@@ -717,6 +764,7 @@ def run_multiple_experiments(
         if custom_config is not None:
             # Use custom config as base and copy it for this trial
             import copy
+
             config = copy.deepcopy(custom_config)
         else:
             config = ExperimentConfig()

@@ -123,7 +123,7 @@ class DDPGTrainer:
                     portfolio_value = portfolio_value.item()
                 actions = data.get("action", torch.tensor([])).flatten().tolist()
                 exploration_ratio = (
-                    0.5  # Placeholder - could be calculated from exploration strategy
+                    0.1  # Placeholder - could be calculated from exploration strategy
                 )
 
                 callback.log_episode_stats(

@@ -26,7 +26,7 @@ environment:
 network:
   # Actor network - needs to learn mean detection
   actor_hidden_dims: [48, 24]
-  
+
   # Value network - moderate complexity
   value_hidden_dims: [48, 24, 12]
 
@@ -36,23 +36,23 @@ training:
   actor_lr: 0.0003
   value_lr: 0.0015
   value_weight_decay: 0.008
-  
+
   # Training loop - longer for mean reversion strategy
   max_training_steps: 15000  # 75 episodes for convergence
   init_rand_steps: 30  # Some exploration needed
   frames_per_batch: 200
   optim_steps_per_batch: 50
   sample_size: 48  # Medium batch size
-  
+
   # Replay buffer - medium size
   buffer_size: 8000
-  
+
   # Target network updates - moderate speed
   tau: 0.003
-  
+
   # Loss function
   loss_function: "l2"
-  
+
   # Evaluation - frequent monitoring
   eval_steps: 400  # Must be less than train_size (450)
   eval_interval: 150

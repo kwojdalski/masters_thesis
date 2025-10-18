@@ -2,11 +2,71 @@
 Simple price data generator that loads existing parquet files and dumps them to synthetic data folder.
 """
 
+import logging
+import os
 import shutil
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+RESET_COLOR = "\033[0m"
+
+
+class ColoredFormatter(logging.Formatter):
+    """Formatter that adds ANSI colors based on the log level."""
+
+    LEVEL_COLORS = {
+        logging.DEBUG: "\033[36m",  # Cyan
+        logging.INFO: "\033[32m",  # Green
+        logging.WARNING: "\033[33m",  # Yellow
+        logging.ERROR: "\033[31m",  # Red
+        logging.CRITICAL: "\033[41m",  # Red background
+    }
+
+    def format(self, record: logging.LogRecord) -> str:
+        message = super().format(record)
+        color = self.LEVEL_COLORS.get(record.levelno)
+        if not color:
+            return message
+        return f"{color}{message}{RESET_COLOR}"
+
+
+def _parse_log_level(level: int | str | None) -> int:
+    """Convert log level provided as string or int into logging module constant."""
+    if isinstance(level, int):
+        return level
+    if isinstance(level, str):
+        return logging._nameToLevel.get(level.upper(), logging.INFO)
+    return logging.INFO
+
+
+def _configure_logger(level: int | str | None = None) -> logging.Logger:
+    """
+    Configure a module-level logger with colored output.
+
+    Parameters
+    ----------
+    level:
+        Desired log level (string or integer). If None, falls back to the
+        DATA_GENERATOR_LOG_LEVEL environment variable or INFO.
+    """
+    requested_level = level or os.getenv("DATA_GENERATOR_LOG_LEVEL") or logging.INFO
+
+    logger = logging.getLogger("data_generator")
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            ColoredFormatter(
+                "%(asctime)s | %(name)s | %(levelname)s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
+        logger.addHandler(handler)
+        logger.propagate = False
+
+    logger.setLevel(_parse_log_level(requested_level))
+    return logger
 
 
 class PriceDataGenerator:
@@ -16,6 +76,7 @@ class PriceDataGenerator:
         self,
         source_dir: str = "data/raw/binance",
         output_dir: str = "data/raw/synthetic",
+        log_level: int | str | None = None,
     ):
         """
         Initialize the price data generator.
@@ -27,9 +88,41 @@ class PriceDataGenerator:
         output_dir : str
             Directory to dump synthetic data
         """
+        base_logger = _configure_logger(log_level)
+        self.logger = base_logger.getChild(self.__class__.__name__)
+
         self.source_dir = Path(source_dir)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        self.logger.debug(
+            "Initialized generator with source_dir=%s, output_dir=%s",
+            self.source_dir,
+            self.output_dir,
+        )
+
+    def _log_dataset_summary(
+        self,
+        df: pd.DataFrame,
+        output_path: Path,
+        *,
+        context: str,
+    ) -> None:
+        """Log common dataset summary information."""
+        self.logger.info("%s saved to %s", context, output_path)
+        self.logger.debug("Shape=%s", df.shape)
+        if not df.empty:
+            self.logger.debug(
+                "Index range: %s -> %s",
+                df.index.min(),
+                df.index.max(),
+            )
+            if "close" in df.columns:
+                self.logger.debug(
+                    "Close price range: %.2f -> %.2f",
+                    df["close"].min(),
+                    df["close"].max(),
+                )
 
     def load_data(self, filename: str) -> pd.DataFrame:
         """
@@ -49,7 +142,9 @@ class PriceDataGenerator:
         if not filepath.exists():
             raise FileNotFoundError(f"File not found: {filepath}")
 
+        self.logger.debug("Loading dataset from %s", filepath)
         df = pd.read_parquet(filepath)
+        self.logger.debug("Loaded %s rows from %s", len(df), filepath)
         return df
 
     def generate_synthetic_sample(
@@ -89,21 +184,36 @@ class PriceDataGenerator:
             df = df[df.index >= start_date]
         if end_date is not None:
             df = df[df.index <= end_date]
+        if start_date or end_date:
+            self.logger.debug(
+                "Filtered data to date range %s -> %s (remaining rows: %s)",
+                start_date or df.index.min(),
+                end_date or df.index.max(),
+                len(df),
+            )
 
         # Sample if specified
         if sample_size is not None and sample_size < len(df):
             df = df.sample(n=sample_size, random_state=42).sort_index()
+            self.logger.debug("Sampled %s rows from source data", len(df))
 
         # Save to output directory
         if output_file is None:
             output_file = source_file.replace(".parquet", "_synthetic.parquet")
 
         output_path = self.output_dir / output_file
+        if df.empty:
+            self.logger.warning(
+                "Generated dataset for %s is empty after filtering; writing empty frame",
+                output_path,
+            )
         df.to_parquet(output_path)
 
-        print(f"Generated synthetic data: {output_path}")
-        print(f"Shape: {df.shape}")
-        print(f"Date range: {df.index.min()} to {df.index.max()}")
+        self._log_dataset_summary(
+            df,
+            output_path,
+            context="Synthetic sample",
+        )
 
         return df
 
@@ -125,8 +235,12 @@ class PriceDataGenerator:
 
         output_path = self.output_dir / output_file
 
+        if not source_path.exists():
+            raise FileNotFoundError(f"Source file not found: {source_path}")
+
+        self.logger.debug("Copying file from %s to %s", source_path, output_path)
         shutil.copy2(source_path, output_path)
-        print(f"Copied {source_path} to {output_path}")
+        self.logger.info("Copied %s to %s", source_path, output_path)
 
     def list_source_files(self) -> list[str]:
         """
@@ -138,7 +252,11 @@ class PriceDataGenerator:
             List of parquet file names
         """
         files = list(self.source_dir.glob("*.parquet"))
-        return [f.name for f in files]
+        filenames = [f.name for f in files]
+        self.logger.debug(
+            "Discovered %s parquet files in %s", len(filenames), self.source_dir
+        )
+        return filenames
 
     def generate_sine_wave_pattern(
         self,
@@ -146,9 +264,9 @@ class PriceDataGenerator:
         n_periods: int = 5,
         samples_per_period: int = 100,
         base_price: float = 50000.0,
-        amplitude: float = 5000.0,
-        trend_slope: float = 50.0,
-        volatility: float = 0.02,
+        amplitude: float = 30.0,
+        trend_slope: float = 0,
+        volatility: float = 0.0,
         start_date: str = "2024-01-01",
     ) -> pd.DataFrame:
         """
@@ -183,6 +301,14 @@ class PriceDataGenerator:
         pd.DataFrame
             Generated OHLCV data with datetime index
         """
+        self.logger.info(
+            "Generating sine wave pattern -> periods=%s, samples_per_period=%s, amplitude=%.2f, trend_slope=%.2f",
+            n_periods,
+            samples_per_period,
+            amplitude,
+            trend_slope,
+        )
+
         total_samples = n_periods * samples_per_period
 
         # Create time series
@@ -199,28 +325,45 @@ class PriceDataGenerator:
         # Base price series (close prices)
         base_prices = base_price + trend + sine_component
 
-        # Add controlled noise
-        noise = np.random.normal(0, volatility * base_prices, total_samples)
+        # Add deterministic secondary wave instead of random noise
+        if volatility > 0:
+            harmonic_frequency = 2.0
+            harmonic_phase = np.pi / 4
+            noise = (
+                volatility
+                * base_price
+                * np.sin(harmonic_frequency * t + harmonic_phase)
+            )
+        else:
+            noise = np.zeros_like(base_prices)
         close_prices = base_prices + noise
+
+        # Light smoothing to reduce short-term volatility
+        close_prices = (
+            pd.Series(close_prices)
+            .rolling(window=5, min_periods=1, center=False)
+            .mean()
+            .to_numpy()
+        )
 
         # Generate realistic OHLC from close prices
         # High: close + some upward variation
         # Low: close - some downward variation
         # Open: previous close with small gap
 
-        high_variation = np.abs(
-            np.random.normal(0, 0.5 * amplitude / 10, total_samples)
-        )
-        low_variation = np.abs(np.random.normal(0, 0.5 * amplitude / 10, total_samples))
+        variation_scale = max(amplitude * 0.05, base_price * 0.002)
+        high_variation = variation_scale * (0.5 + 0.5 * np.sin(t + np.pi / 3))
+        low_variation = variation_scale * (0.5 + 0.5 * np.sin(t + 4 * np.pi / 3))
 
         highs = close_prices + high_variation
         lows = close_prices - low_variation
 
-        # Opens: lag close by 1 period with small random gap
+        # Opens: lag close by 1 period with small deterministic gap
         opens = np.roll(close_prices, 1)
         opens[0] = close_prices[0]  # First open = first close
-        gap_noise = np.random.normal(0, 0.1 * volatility * close_prices, total_samples)
-        opens = opens + gap_noise
+        gap_amplitude = 0.1 * volatility * base_price
+        if gap_amplitude > 0:
+            opens = opens + gap_amplitude * np.sin(t + np.pi / 6)
 
         # Ensure OHLC relationships are valid
         highs = np.maximum(highs, np.maximum(opens, close_prices))
@@ -229,14 +372,12 @@ class PriceDataGenerator:
         # Generate volume with inverse correlation to price changes
         price_changes = np.abs(np.diff(close_prices, prepend=close_prices[0]))
         base_volume = 1000000
-        volume_variation = base_volume * (
-            0.5 + 0.5 * price_changes / np.max(price_changes)
-        )
-        volumes = (
-            base_volume
-            + volume_variation
-            + np.random.normal(0, base_volume * 0.1, total_samples)
-        )
+        price_change_scale = np.max(price_changes)
+        if price_change_scale == 0:
+            price_change_scale = 1.0
+        normalized_changes = price_changes / price_change_scale
+        volume_harmonic = 0.5 + 0.5 * np.sin(t + np.pi / 2)
+        volumes = base_volume * (1.0 + 0.5 * normalized_changes * volume_harmonic)
         volumes = np.maximum(volumes, base_volume * 0.1)  # Minimum volume
 
         # Create DataFrame
@@ -258,13 +399,146 @@ class PriceDataGenerator:
         output_path = self.output_dir / output_file
         df.to_parquet(output_path)
 
-        print(f"Generated sine wave pattern: {output_path}")
-        print(f"Shape: {df.shape}")
-        print(f"Date range: {df.index.min()} to {df.index.max()}")
-        print(f"Price range: {df['close'].min():.2f} to {df['close'].max():.2f}")
-        print(f"Periods: {n_periods}, Samples per period: {samples_per_period}")
-        print(
-            f"Expected strategy: Buy at troughs (~{(base_price - amplitude):.0f}), Sell at peaks (~{(base_price + amplitude):.0f})"
+        self._log_dataset_summary(
+            df,
+            output_path,
+            context="Sine wave pattern",
+        )
+        self.logger.info(
+            "Sine wave trading cues -> buy ≈ %.0f, sell ≈ %.0f",
+            base_price - amplitude,
+            base_price + amplitude,
+        )
+        self.logger.debug(
+            "Close price std dev: %.2f",
+            df["close"].std(),
+        )
+
+        return df
+
+    def generate_upward_drift_pattern(
+        self,
+        output_file: str,
+        n_samples: int = 500,
+        base_price: float = 50000.0,
+        drift_rate: float = 0.0015,
+        volatility: float = 0.0005,
+        pullback_floor: float = 0.995,
+        start_date: str = "2024-01-01",
+    ) -> pd.DataFrame:
+        """
+        Generate synthetic OHLCV data with strong upward drift and minimal volatility.
+
+        The pattern is intended for validating momentum strategies that assume a
+        persistent uptrend with very shallow pullbacks. Prices follow an exponential
+        drift curve with light, smoothed noise and tight OHLC spreads.
+
+        Parameters
+        ----------
+        output_file : str
+            Output parquet file name.
+        n_samples : int
+            Number of data points to generate.
+        base_price : float
+            Starting price level.
+        drift_rate : float
+            Exponential drift rate per step (e.g., 0.0015 ≈ 0.15%).
+        volatility : float
+            Multiplicative noise factor applied to the drift curve.
+        pullback_floor : float
+            Floor applied as a fraction of the running drift curve to cap drawdowns.
+        start_date : str
+            Start date for the time index.
+
+        Returns
+        -------
+        pd.DataFrame
+            Generated OHLCV data with datetime index.
+        """
+        self.logger.info(
+            "Generating upward drift pattern -> samples=%s, base_price=%.2f, drift_rate=%.4f, volatility=%.4f",
+            n_samples,
+            base_price,
+            drift_rate,
+            volatility,
+        )
+
+        # Generate datetime index (hourly frequency)
+        start_dt = pd.to_datetime(start_date)
+        dates = pd.date_range(start=start_dt, periods=n_samples, freq="h")
+
+        # Deterministic exponential drift curve
+        steps = np.arange(n_samples)
+        drift_curve = base_price * np.exp(drift_rate * steps)
+
+        # Light multiplicative noise to keep volatility minimal
+        noise = np.random.normal(0, volatility, n_samples)
+        noisy_curve = drift_curve * (1 + noise)
+
+        # Smooth noise to avoid erratic swings
+        close_prices = (
+            pd.Series(noisy_curve)
+            .rolling(window=5, min_periods=1)
+            .mean()
+            .to_numpy()
+        )
+
+        # Enforce shallow pullbacks relative to the drift curve
+        floor = pullback_floor * np.maximum.accumulate(drift_curve)
+        close_prices = np.maximum(close_prices, floor)
+        close_prices[0] = base_price
+
+        # Generate tight OHLC ranges around close prices
+        spread_scale = max(volatility * 10, 0.001)
+        high_spread = spread_scale * (1 + 0.5 * np.sin(steps / 12))
+        low_spread = spread_scale * (1 + 0.5 * np.cos(steps / 14))
+
+        highs = close_prices * (1 + high_spread)
+        lows = close_prices * (1 - low_spread)
+
+        opens = np.roll(close_prices, 1)
+        opens[0] = close_prices[0]
+        gap_noise = close_prices * (volatility * 0.5)
+        opens = opens + np.sign(high_spread - low_spread) * gap_noise * 0.1
+
+        # Ensure OHLC relationships are valid
+        highs = np.maximum(highs, np.maximum(opens, close_prices))
+        lows = np.minimum(lows, np.minimum(opens, close_prices))
+
+        # Volume trending higher with the drift
+        base_volume = 1_000_000
+        volume_trend = 1 + 0.8 * (steps / max(steps[-1], 1))
+        volume_noise = np.random.normal(0, 0.05, n_samples)
+        volumes = base_volume * volume_trend * (1 + volume_noise)
+        volumes = np.maximum(volumes, base_volume * 0.5)
+
+        df = pd.DataFrame(
+            {
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "close": close_prices,
+                "volume": volumes,
+            },
+            index=dates,
+        )
+
+        df = df.abs()
+
+        output_path = self.output_dir / output_file
+        df.to_parquet(output_path)
+
+        total_return = (df["close"].iloc[-1] / df["close"].iloc[0] - 1) * 100
+
+        self._log_dataset_summary(
+            df,
+            output_path,
+            context="Upward drift pattern",
+        )
+        self.logger.info(
+            "Upward drift stats -> total return %.2f%%, volatility %.4f",
+            total_return,
+            df["close"].pct_change().std(),
         )
 
         return df
@@ -312,6 +586,13 @@ class PriceDataGenerator:
         pd.DataFrame
             Generated OHLCV data with datetime index
         """
+        self.logger.info(
+            "Generating mean reversion pattern -> samples=%s, mean_price=%.2f, reversion_strength=%.2f",
+            n_samples,
+            mean_price,
+            reversion_strength,
+        )
+
         # Generate datetime index (hourly frequency)
         start_dt = pd.to_datetime(start_date)
         dates = pd.date_range(start=start_dt, periods=n_samples, freq="h")
@@ -392,16 +673,24 @@ class PriceDataGenerator:
         mean_deviation = np.mean(np.abs(prices - mean_price))
         max_deviation = np.max(np.abs(prices - mean_price))
 
-        print(f"Generated mean reversion pattern: {output_path}")
-        print(f"Shape: {df.shape}")
-        print(f"Date range: {df.index.min()} to {df.index.max()}")
-        print(f"Price range: {df['close'].min():.2f} to {df['close'].max():.2f}")
-        print(f"Mean price: {mean_price:.2f}, Actual mean: {df['close'].mean():.2f}")
-        print(
-            f"Mean deviation: {mean_deviation:.2f}, Max deviation: {max_deviation:.2f}"
+        self._log_dataset_summary(
+            df,
+            output_path,
+            context="Mean reversion pattern",
         )
-        print(
-            f"Strategy: Buy when price < {mean_price:.0f}, Sell when price > {mean_price:.0f}"
+        self.logger.info(
+            "Mean price target %.2f, actual %.2f (mean deviation %.2f, max deviation %.2f)",
+            mean_price,
+            df["close"].mean(),
+            mean_deviation,
+            max_deviation,
+        )
+        lower_bound = mean_price * 0.98
+        upper_bound = mean_price * 1.02
+        self.logger.info(
+            "Strategy hint -> accumulate below %.0f, distribute above %.0f",
+            lower_bound,
+            upper_bound,
         )
 
         return df
@@ -455,6 +744,13 @@ class PriceDataGenerator:
         pd.DataFrame
             Generated OHLCV data with datetime index
         """
+        self.logger.info(
+            "Generating trending pattern -> samples=%s, base_price=%.2f, n_trends=%s",
+            n_samples,
+            base_price,
+            n_trends,
+        )
+
         # Generate datetime index (hourly frequency)
         start_dt = pd.to_datetime(start_date)
         dates = pd.date_range(start=start_dt, periods=n_samples, freq="h")
@@ -593,13 +889,19 @@ class PriceDataGenerator:
         total_return = (prices[-1] / prices[0] - 1) * 100
         max_drawdown = np.min(prices / np.maximum.accumulate(prices) - 1) * 100
 
-        print(f"Generated trending pattern: {output_path}")
-        print(f"Shape: {df.shape}")
-        print(f"Date range: {df.index.min()} to {df.index.max()}")
-        print(f"Price range: {df['close'].min():.2f} to {df['close'].max():.2f}")
-        print(f"Total return: {total_return:.2f}%, Max drawdown: {max_drawdown:.2f}%")
-        print(
-            f"Trends: {len(trend_segments)}, Strategy: Follow momentum (buy uptrends, sell downtrends)"
+        self._log_dataset_summary(
+            df,
+            output_path,
+            context="Trending pattern",
+        )
+        self.logger.info(
+            "Momentum stats -> total return %.2f%%, max drawdown %.2f%%",
+            total_return,
+            max_drawdown,
+        )
+        self.logger.info(
+            "Trends identified: %s | Strategy hint -> ride momentum, manage reversals",
+            len(trend_segments),
         )
 
         return df
@@ -609,15 +911,16 @@ def main():
     """Example usage of PriceDataGenerator."""
     # Initialize generator
     generator = PriceDataGenerator()
+    logger = generator.logger
 
     # List available source files
-    print("Available source files:")
+    logger.info("Available source files:")
     source_files = generator.list_source_files()
     for f in source_files:
-        print(f"  - {f}")
+        logger.info("  - %s", f)
 
     # Generate synthetic patterns for DDPG validation
-    print("\nGenerating synthetic patterns for algorithm validation...")
+    logger.info("Generating synthetic patterns for algorithm validation...")
 
     # Generate sine wave pattern with trend (good for DDPG validation)
     generator.generate_sine_wave_pattern(
@@ -625,9 +928,19 @@ def main():
         n_periods=5,
         samples_per_period=100,
         base_price=50000.0,
-        amplitude=8000.0,
-        trend_slope=50.0,
-        volatility=0.02,
+        amplitude=100.0,
+        trend_slope=0.01,
+        volatility=0.05,
+    )
+
+    # Generate low-volatility upward drift pattern
+    generator.generate_upward_drift_pattern(
+        output_file="upward_drift_validation.parquet",
+        n_samples=400,
+        base_price=50000.0,
+        drift_rate=0.0012,
+        volatility=0.0004,
+        pullback_floor=0.997,
     )
 
     # Generate mean reversion pattern
@@ -656,7 +969,7 @@ def main():
 
     # Generate synthetic data from BTCUSDT if available
     if "binance-BTCUSDT-1h.parquet" in source_files:
-        print("\nGenerating synthetic data from BTCUSDT...")
+        logger.info("Generating synthetic data from BTCUSDT...")
 
         # Full dataset copy
         generator.copy_data("binance-BTCUSDT-1h.parquet", "BTCUSDT_full.parquet")

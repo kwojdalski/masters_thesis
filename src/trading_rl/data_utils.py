@@ -48,16 +48,21 @@ def download_trading_data(
 
 
 @memory.cache
-def load_trading_data(data_path: str) -> pd.DataFrame:
+def load_trading_data(
+    data_path: str, cache_bust: float | None = None
+) -> pd.DataFrame:
     """Load trading data from pickle file.
 
     Args:
         data_path: Path to pickle file
+        cache_bust: Optional timestamp or hash to bust joblib cache
 
     Returns:
         DataFrame with OHLCV data
     """
     logger.info(f"Loading data from {data_path}")
+    # cache_bust ensures cache invalidation when the file changes
+    _ = cache_bust
     df = pd.read_parquet(data_path)
     logger.info(f"Loaded {len(df)} rows of data")
     return df
@@ -129,7 +134,6 @@ def reward_function(history: dict) -> float:
     return returns
 
 
-@memory.cache
 def prepare_data(
     data_path: str,
     download_if_missing: bool = False,
@@ -164,7 +168,8 @@ def prepare_data(
             )
 
     # Load and process data
-    df = load_trading_data(data_path)
+    file_signature = Path(data_path).stat().st_mtime_ns
+    df = load_trading_data(data_path, cache_bust=file_signature)
     df = create_features(df)
 
     return df

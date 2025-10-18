@@ -126,6 +126,40 @@ def setup_data_generator_parser(subparsers):
         help="Random noise factor (default: 0.02)",
     )
 
+    parser.add_argument(
+        "--upward-drift",
+        action="store_true",
+        help="Generate a strong upward drift pattern (ignores source-file)",
+    )
+
+    parser.add_argument(
+        "--drift-samples",
+        type=int,
+        default=500,
+        help="Number of samples for the drift pattern (default: 500)",
+    )
+
+    parser.add_argument(
+        "--drift-rate",
+        type=float,
+        default=0.0015,
+        help="Exponential drift rate per step for the drift pattern (default: 0.0015)",
+    )
+
+    parser.add_argument(
+        "--drift-volatility",
+        type=float,
+        default=0.0005,
+        help="Volatility factor for the drift pattern (default: 0.0005)",
+    )
+
+    parser.add_argument(
+        "--drift-floor",
+        type=float,
+        default=0.995,
+        help="Pullback floor multiplier for the drift pattern (default: 0.995)",
+    )
+
     parser.set_defaults(func=handle_data_generator)
 
 
@@ -164,6 +198,26 @@ def handle_data_generator(args):
             return
         except Exception as e:
             print(f"Error generating sine wave pattern: {e}")
+            sys.exit(1)
+
+    if args.upward_drift:
+        output_file = args.output_file or "upward_drift_pattern.parquet"
+        try:
+            df = generator.generate_upward_drift_pattern(
+                output_file=output_file,
+                n_samples=args.drift_samples,
+                base_price=args.base_price,
+                drift_rate=args.drift_rate,
+                volatility=args.drift_volatility,
+                pullback_floor=args.drift_floor,
+                start_date=args.start_date or "2024-01-01",
+            )
+            print(
+                f"\nSuccessfully generated upward drift pattern with {len(df)} rows"
+            )
+            return
+        except Exception as e:
+            print(f"Error generating upward drift pattern: {e}")
             sys.exit(1)
 
     # Require source file for other operations
@@ -359,6 +413,11 @@ def experiment(
     max_steps: int | None = typer.Option(
         None, "--max-steps", help="Maximum training steps for each trial"
     ),
+    clear_cache: bool = typer.Option(
+        False,
+        "--clear-cache",
+        help="Clear cached datasets and models before running experiments",
+    ),
 ):
     """Run multiple experiments with MLflow tracking.
 
@@ -371,6 +430,24 @@ def experiment(
     import subprocess
 
     from trading_rl import ExperimentConfig, run_multiple_experiments
+
+    if clear_cache:
+        console.print("[blue]Clearing caches before experiments...[/blue]")
+        try:
+            from trading_rl.cache_utils import (
+                clear_data_cache,
+                clear_model_cache,
+                clear_training_cache,
+            )
+        except ImportError:
+            console.print(
+                "[yellow]Cache utilities unavailable; skipping cache clear.[/yellow]"
+            )
+        else:
+            clear_data_cache()
+            clear_model_cache()
+            clear_training_cache()
+            console.print("[green]Caches cleared.[/green]")
 
     # Create config and override with CLI parameters
     if config_file:
