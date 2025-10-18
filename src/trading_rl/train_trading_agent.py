@@ -471,6 +471,7 @@ def run_single_experiment(
         
         # Log data sample as CSV artifact and generate plots
         try:
+            
             import tempfile
             import os
             from plotnine import ggplot, aes, geom_line, geom_point, theme_minimal, labs, theme, element_text
@@ -548,9 +549,13 @@ def run_single_experiment(
             # Create combined OHLC plot if all price columns are available
             if all(col in plot_df.columns for col in ['open', 'high', 'low', 'close']):
                 try:
+                    # Ensure consistent data before melting
+                    ohlc_subset = plot_df[['time_index', 'open', 'high', 'low', 'close']].copy()
+                    ohlc_subset = ohlc_subset.dropna()  # Remove any NaN values
+                    
                     # Reshape data for multi-line plot
                     import pandas as pd
-                    ohlc_melted = pd.melt(plot_df,
+                    ohlc_melted = pd.melt(ohlc_subset,
                                         id_vars=['time_index'],
                                         value_vars=['open', 'high', 'low', 'close'],
                                         var_name='price_type',
@@ -623,11 +628,13 @@ def run_single_experiment(
 
     # Evaluate agent
     logger.info("Evaluating agent...")
+    # Ensure max_steps doesn't exceed available data
+    eval_max_steps = min(1000, len(df) - 1)  # -1 to account for shift operation
     reward_plot, action_plot, final_reward = evaluate_agent(
         env,
         actor,
         df,
-        max_steps=1000,
+        max_steps=eval_max_steps,
     )
 
     # Prepare comprehensive metrics
@@ -635,7 +642,7 @@ def run_single_experiment(
         # Performance metrics
         "final_reward": final_reward,
         "training_steps": len(logs.get("loss_value", [])),
-        "evaluation_steps": 1000,  # max_steps from evaluation
+        "evaluation_steps": eval_max_steps,  # actual max_steps used in evaluation
         # Dataset metadata
         "data_start_date": str(df.index[0]) if not df.empty else "unknown",
         "data_end_date": str(df.index[-1]) if not df.empty else "unknown",

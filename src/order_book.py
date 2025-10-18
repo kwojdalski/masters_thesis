@@ -295,7 +295,7 @@ if __name__ == "__main__":
 
     # Next, we will request MBO data starting from the beginning of pre-market trading hours
     # or load the file if we've already downloaded it.
-    data_path = "./data/raw/databento/20250501/glbx-mdp3-20250501.mbo.dbn"
+    data_path = "../data/raw/databento/20250501/glbx-mdp3-20250501.mbo.dbn"
     if os.path.exists(data_path):
         logger.info("Loading MBO data from %s", data_path)
         data = db.DBNStore.from_file(data_path)
