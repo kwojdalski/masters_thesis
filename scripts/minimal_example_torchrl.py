@@ -12,7 +12,7 @@ from torchrl.modules import MLP, EGreedyModule, QValueModule
 from torchrl.objectives import DQNLoss, SoftUpdate
 from torchrl.record import CSVLogger, VideoRecorder
 
-from src.logger import get_logger, setup_logging
+from logger import get_logger, setup_logging
 
 # %%
 # Setup custom logger

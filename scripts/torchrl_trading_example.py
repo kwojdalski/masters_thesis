@@ -24,7 +24,7 @@ from torchrl.modules import MLP, ProbabilisticActor, ValueOperator
 from torchrl.objectives import DDPGLoss, SoftUpdate
 from utils import compare_rollouts
 
-from src.logger import (
+from logger import (
     LogContext,
     get_logger,
     log_dataframe_info,
