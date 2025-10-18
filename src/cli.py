@@ -263,7 +263,11 @@ def train(
     console.print("[bold blue]Starting Trading Agent Training[/bold blue]")
 
     # Load base configuration
-    config = ExperimentConfig()
+    if config_file:
+        config = ExperimentConfig.from_yaml(config_file)
+        console.print(f"[blue]Loaded config from: {config_file}[/blue]")
+    else:
+        config = ExperimentConfig()
 
     # Handle seed: random by default, specific if provided
     if seed is not None:
@@ -369,7 +373,12 @@ def experiment(
     from trading_rl import ExperimentConfig, run_multiple_experiments
 
     # Create config and override with CLI parameters
-    config = ExperimentConfig()
+    if config_file:
+        config = ExperimentConfig.from_yaml(config_file)
+        console.print(f"[blue]Loaded config from: {config_file}[/blue]")
+    else:
+        config = ExperimentConfig()
+    
     if max_steps is not None:
         config.training.max_training_steps = max_steps
 

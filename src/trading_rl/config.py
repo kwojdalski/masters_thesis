@@ -4,6 +4,8 @@ import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import yaml
+
 
 @dataclass
 class DataConfig:
@@ -99,6 +101,161 @@ class ExperimentConfig:
 
     # Experiment metadata
     experiment_name: str = "ddpg_trading"
+
+    @classmethod
+    def from_yaml(cls, yaml_path: str | Path) -> "ExperimentConfig":
+        """Load configuration from YAML file.
+
+        Args:
+            yaml_path: Path to YAML configuration file
+
+        Returns:
+            ExperimentConfig instance loaded from YAML
+        """
+        yaml_path = Path(yaml_path)
+        if not yaml_path.exists():
+            raise FileNotFoundError(f"Config file not found: {yaml_path}")
+
+        with open(yaml_path) as f:
+            config_dict = yaml.safe_load(f)
+
+        return cls.from_dict(config_dict)
+
+    @classmethod
+    def from_dict(cls, config_dict: dict) -> "ExperimentConfig":
+        """Create config from dictionary.
+
+        Args:
+            config_dict: Dictionary with configuration values
+
+        Returns:
+            ExperimentConfig instance
+        """
+        # Create default config
+        config = cls()
+
+        # Update with provided values
+        if "experiment_name" in config_dict:
+            config.experiment_name = config_dict["experiment_name"]
+        if "seed" in config_dict and config_dict["seed"] is not None:
+            config.seed = config_dict["seed"]
+        if "device" in config_dict:
+            config.device = config_dict["device"]
+
+        # Update data config
+        if "data" in config_dict:
+            data_dict = config_dict["data"]
+            for key, value in data_dict.items():
+                if hasattr(config.data, key):
+                    # Handle datetime parsing
+                    if key == "download_since" and isinstance(value, str):
+                        setattr(
+                            config.data,
+                            key,
+                            datetime.datetime.fromisoformat(
+                                value.replace("Z", "+00:00")
+                            ),
+                        )
+                    else:
+                        setattr(config.data, key, value)
+
+        # Update environment config
+        if "environment" in config_dict:
+            env_dict = config_dict["environment"]
+            for key, value in env_dict.items():
+                if hasattr(config.env, key):
+                    setattr(config.env, key, value)
+
+        # Update network config
+        if "network" in config_dict:
+            net_dict = config_dict["network"]
+            for key, value in net_dict.items():
+                if hasattr(config.network, key):
+                    setattr(config.network, key, value)
+
+        # Update training config
+        if "training" in config_dict:
+            train_dict = config_dict["training"]
+            for key, value in train_dict.items():
+                if hasattr(config.training, key):
+                    setattr(config.training, key, value)
+
+        # Update logging config
+        if "logging" in config_dict:
+            log_dict = config_dict["logging"]
+            for key, value in log_dict.items():
+                if hasattr(config.logging, key):
+                    setattr(config.logging, key, value)
+
+        return config
+
+    def to_yaml(self, yaml_path: str | Path) -> None:
+        """Save configuration to YAML file.
+
+        Args:
+            yaml_path: Path where to save the YAML file
+        """
+        yaml_path = Path(yaml_path)
+        yaml_path.parent.mkdir(parents=True, exist_ok=True)
+
+        config_dict = self.to_dict()
+
+        with open(yaml_path, "w") as f:
+            yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
+
+    def to_dict(self) -> dict:
+        """Convert configuration to dictionary.
+
+        Returns:
+            Dictionary representation of the config
+        """
+        return {
+            "experiment_name": self.experiment_name,
+            "seed": self.seed,
+            "device": self.device,
+            "data": {
+                "data_path": self.data.data_path,
+                "download_data": self.data.download_data,
+                "exchange_names": self.data.exchange_names,
+                "symbols": self.data.symbols,
+                "timeframe": self.data.timeframe,
+                "data_dir": self.data.data_dir,
+                "download_since": self.data.download_since.isoformat(),
+                "train_size": self.data.train_size,
+            },
+            "environment": {
+                "name": self.env.name,
+                "positions": self.env.positions,
+                "trading_fees": self.env.trading_fees,
+                "borrow_interest_rate": self.env.borrow_interest_rate,
+            },
+            "network": {
+                "actor_hidden_dims": self.network.actor_hidden_dims,
+                "value_hidden_dims": self.network.value_hidden_dims,
+            },
+            "training": {
+                "actor_lr": self.training.actor_lr,
+                "value_lr": self.training.value_lr,
+                "value_weight_decay": self.training.value_weight_decay,
+                "max_training_steps": self.training.max_training_steps,
+                "init_rand_steps": self.training.init_rand_steps,
+                "frames_per_batch": self.training.frames_per_batch,
+                "optim_steps_per_batch": self.training.optim_steps_per_batch,
+                "sample_size": self.training.sample_size,
+                "buffer_size": self.training.buffer_size,
+                "tau": self.training.tau,
+                "loss_function": self.training.loss_function,
+                "eval_steps": self.training.eval_steps,
+                "eval_interval": self.training.eval_interval,
+                "log_interval": self.training.log_interval,
+            },
+            "logging": {
+                "log_dir": self.logging.log_dir,
+                "log_file": self.logging.log_file,
+                "log_level": self.logging.log_level,
+                "tensorboard_dir": self.logging.tensorboard_dir,
+            },
+        }
 
     def __post_init__(self):
         """Validate configuration after initialization."""
