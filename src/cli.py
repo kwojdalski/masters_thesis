@@ -166,7 +166,7 @@ def train(
         None, "--config", "-c", help="Path to custom config file"
     ),
     seed: int | None = typer.Option(
-        None, "--seed", "-s", help="Random seed for reproducibility"
+        None, "--seed", "-s", help="Set specific seed for reproducibility (default: random)"
     ),
     max_steps: int | None = typer.Option(
         None, "--max-steps", help="Maximum training steps"
@@ -193,11 +193,19 @@ def train(
     # Load base configuration
     config = ExperimentConfig()
 
+    # Handle seed: random by default, specific if provided
+    if seed is not None:
+        config.seed = seed
+        console.print(f"[blue]Using specified seed: {seed}[/blue]")
+    else:
+        import random
+        generated_seed = random.randint(1, 100000)
+        config.seed = generated_seed
+        console.print(f"[yellow]Using random seed: {generated_seed}[/yellow]")
+
     # Override with CLI parameters
     if experiment_name:
         config.experiment_name = experiment_name
-    if seed is not None:
-        config.seed = seed
     if max_steps is not None:
         config.training.max_training_steps = max_steps
     if actor_lr is not None:
@@ -269,28 +277,34 @@ def experiment(
     config_file: Path | None = typer.Option(
         None, "--config", "-c", help="Path to custom config file"
     ),
-    track_positions: bool = typer.Option(
-        False, "--track-positions", help="Track position changes as intermediate values"
-    ),
-    dual_tracking: bool = typer.Option(
-        False, "--dual-tracking", help="Run both loss and position tracking studies"
+    seed: int | None = typer.Option(
+        None, "--seed", help="Set base seed for reproducible experiments (default: random)"
     ),
 ):
-    """Run multiple experiments with Optuna tracking."""
+    """Run multiple experiments with Optuna tracking.
+
+    Each experiment tracks both losses and position statistics:
+    - Losses appear in intermediate values (standard Optuna plot)
+    - Position statistics appear in user attributes for comparison
+    """
     import subprocess
 
-    from trading_rl import run_multiple_experiments, run_position_tracking_experiments, run_dual_tracking_experiments
+    from trading_rl import run_multiple_experiments
 
-    if dual_tracking:
-        console.print(f"[bold blue]Running {n_trials} experiments with dual tracking[/bold blue]")
-        console.print(f"Base study name: [green]{study_name}[/green]")
-        console.print("[yellow]This will create two studies: one for losses, one for position changes[/yellow]")
-    elif track_positions:
-        console.print(f"[bold blue]Running {n_trials} experiments tracking position changes[/bold blue]")
-        console.print(f"Study: [green]{study_name}_position_tracking[/green]")
+    # Handle seed for experiments
+    if seed is not None:
+        console.print(f"[blue]Using base seed: {seed} (each trial will use seed+trial_number)[/blue]")
+        base_seed = seed
     else:
-        console.print(f"[bold blue]Running {n_trials} experiments[/bold blue]")
-        console.print(f"Study: [green]{study_name}[/green]")
+        import random
+        base_seed = random.randint(1, 100000)
+        console.print(f"[yellow]Using random base seed: {base_seed} (each trial will use seed+trial_number)[/yellow]")
+
+    console.print(f"[bold blue]Running {n_trials} experiments[/bold blue]")
+    console.print(f"Study: [green]{study_name}[/green]")
+    console.print(
+        "[dim]Tracking losses (intermediate values) and position statistics (user attributes)[/dim]"
+    )
 
     if storage_url:
         # Create study with custom storage
@@ -306,76 +320,44 @@ def experiment(
         task = progress.add_task(f"Running {n_trials} trials...", total=None)
 
         try:
-            if dual_tracking:
-                # Run dual tracking experiments
-                loss_study, position_study = run_dual_tracking_experiments(study_name, n_trials)
-                progress.update(task, description="Dual experiments complete!")
-                
-                console.print("\n[bold green]All dual tracking experiments completed![/bold green]")
-                console.print(f"Loss study: [green]{loss_study.study_name}[/green]")
-                console.print(f"  Best trial: {loss_study.best_trial.number}, Best reward: {loss_study.best_value:.4f}")
-                console.print(f"Position study: [green]{position_study.study_name}[/green]")
-                console.print(f"  Best trial: {position_study.best_trial.number}, Best reward: {position_study.best_value:.4f}")
-                
-                if dashboard:
-                    console.print("\n[blue]Launch dashboards for both studies:[/blue]")
-                    console.print(f"  Loss tracking: optuna-dashboard sqlite:///{study_name}_losses.db")
-                    console.print(f"  Position tracking: optuna-dashboard sqlite:///{study_name}_positions.db")
-                    
-            elif track_positions:
-                # Run position tracking experiments
-                study = run_position_tracking_experiments(study_name, n_trials)
-                progress.update(task, description="Position tracking experiments complete!")
-                
-                console.print("\n[bold green]Position tracking experiments completed![/bold green]")
-                console.print(f"Best trial: [green]{study.best_trial.number}[/green]")
-                console.print(f"Best reward: [green]{study.best_value:.4f}[/green]")
-                
-                # Show trial summary with position data
-                console.print("\n[bold]Trial Summary (with position changes):[/bold]")
-                for trial in study.trials:
-                    status = "✓" if trial.state.name == "COMPLETE" else "✗"
-                    reward = trial.user_attrs.get("final_reward", "N/A")
-                    pos_changes = trial.user_attrs.get("total_position_changes", "N/A")
-                    console.print(f"  {status} Trial {trial.number}: reward={reward}, positions={pos_changes}")
-                
-                if dashboard:
-                    db_path = f"{study_name}_position_tracking.db"
-                    console.print(f"\n[blue]Launching dashboard for position tracking: {db_path}[/blue]")
-                    console.print("[dim]Intermediate values will show position changes instead of losses[/dim]")
-                    try:
-                        subprocess.run(["optuna-dashboard", f"sqlite:///{db_path}"])
-                    except KeyboardInterrupt:
-                        console.print("\n[yellow]Dashboard stopped[/yellow]")
-                    except FileNotFoundError:
-                        console.print("[red]optuna-dashboard not found. Install with: pip install optuna-dashboard[/red]")
-            else:
-                # Run standard experiments
-                study = run_multiple_experiments(study_name, n_trials)
-                progress.update(task, description="Experiments complete!")
+            # Run experiments with unified tracking
+            study = run_multiple_experiments(study_name, n_trials, base_seed)
+            progress.update(task, description="Experiments complete!")
 
-                console.print("\n[bold green]All experiments completed![/bold green]")
-                console.print(f"Best trial: [green]{study.best_trial.number}[/green]")
-                console.print(f"Best reward: [green]{study.best_value:.4f}[/green]")
+            console.print("\n[bold green]All experiments completed![/bold green]")
+            console.print(f"Best trial: [green]{study.best_trial.number}[/green]")
+            console.print(f"Best reward: [green]{study.best_value:.4f}[/green]")
 
-                # Show trial summary
-                console.print("\n[bold]Trial Summary:[/bold]")
-                for trial in study.trials:
-                    status = "✓" if trial.state.name == "COMPLETE" else "✗"
-                    reward = trial.user_attrs.get("final_reward", "N/A")
-                    console.print(f"  {status} Trial {trial.number}: reward={reward}")
+            # Show trial summary with position data
+            console.print("\n[bold]Trial Summary:[/bold]")
+            for trial in study.trials:
+                status = "✓" if trial.state.name == "COMPLETE" else "✗"
+                reward = trial.user_attrs.get("final_reward", "N/A")
+                pos_changes = trial.user_attrs.get("total_position_changes", "N/A")
+                console.print(
+                    f"  {status} Trial {trial.number}: reward={reward}, positions={pos_changes}"
+                )
 
-                # Launch dashboard if requested
-                if dashboard:
-                    db_path = f"{study_name}.db"
-                    console.print(f"\n[blue]Launching Optuna dashboard for {db_path}[/blue]")
-                    console.print("[dim]Dashboard will be available at http://localhost:8080[/dim]")
-                    try:
-                        subprocess.run(["optuna-dashboard", f"sqlite:///{db_path}"])
-                    except KeyboardInterrupt:
-                        console.print("\n[yellow]Dashboard stopped[/yellow]")
-                    except FileNotFoundError:
-                        console.print("[red]optuna-dashboard not found. Install with: pip install optuna-dashboard[/red]")
+            # Launch dashboard if requested
+            if dashboard:
+                db_path = f"{study_name}.db"
+                console.print(
+                    f"\n[blue]Launching Optuna dashboard for {db_path}[/blue]"
+                )
+                console.print(
+                    "[dim]Dashboard will be available at http://localhost:8080[/dim]"
+                )
+                console.print(
+                    "[dim]Intermediate values show losses, user attributes show position statistics[/dim]"
+                )
+                try:
+                    subprocess.run(["optuna-dashboard", f"sqlite:///{db_path}"])
+                except KeyboardInterrupt:
+                    console.print("\n[yellow]Dashboard stopped[/yellow]")
+                except FileNotFoundError:
+                    console.print(
+                        "[red]optuna-dashboard not found. Install with: pip install optuna-dashboard[/red]"
+                    )
 
         except Exception as e:
             progress.update(task, description="Experiments failed!")

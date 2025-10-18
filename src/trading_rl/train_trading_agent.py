@@ -177,14 +177,16 @@ def create_optuna_study(
 
 # %%
 class OptunaTrainingCallback:
-    """Callback for logging training progress to Optuna during training."""
+    """Callback for logging training progress to Optuna during training.
+    
+    This callback tracks both losses and position changes:
+    - Losses are reported as intermediate values (standard Optuna plot)
+    - Position statistics are stored as user attributes for comparison
+    """
 
-    def __init__(
-        self, trial: optuna.Trial, track_position_changes_as_primary: bool = False
-    ):
+    def __init__(self, trial: optuna.Trial):
         self.trial = trial
         self.step_count = 0
-        self.track_position_changes_as_primary = track_position_changes_as_primary
         self.intermediate_position_changes: list[dict[str, float | int]] = []
         self.intermediate_rewards = []
         self.intermediate_losses = {"actor": [], "value": []}
@@ -198,7 +200,11 @@ class OptunaTrainingCallback:
         }
 
     def log_training_step(self, step: int, actor_loss: float, value_loss: float):
-        """Log losses from a training step."""
+        """Log losses from a training step.
+        
+        Losses are always reported as intermediate values for the standard Optuna plot.
+        Position statistics are tracked separately as user attributes.
+        """
         self.intermediate_losses["actor"].append(actor_loss)
         self.intermediate_losses["value"].append(value_loss)
         self.step_count = step
@@ -208,6 +214,10 @@ class OptunaTrainingCallback:
             avg_actor_loss = np.mean(self.intermediate_losses["actor"][-100:])
             avg_value_loss = np.mean(self.intermediate_losses["value"][-100:])
 
+            # Always report value loss as intermediate value for standard plot
+            self.trial.report(avg_value_loss, step=step)
+
+            # Track position changes as user attributes for comparison
             if self.position_change_counts:
                 window = min(len(self.position_change_counts), 100)
                 avg_position_changes = float(
@@ -226,15 +236,6 @@ class OptunaTrainingCallback:
                 self.trial.set_user_attr(
                     f"pos_changes_step_{step}", avg_position_changes
                 )
-            else:
-                avg_position_changes = None
-
-            if self.track_position_changes_as_primary and avg_position_changes is not None:
-                # Report position changes as the primary intermediate metric
-                self.trial.report(avg_position_changes, step=step)
-            else:
-                # Report average loss as intermediate value
-                self.trial.report(avg_value_loss, step=step)
     def log_episode_stats(
         self,
         episode_reward: float,
@@ -473,15 +474,17 @@ def evaluate_agent(
 
 def run_single_experiment(
     trial: optuna.Trial | None = None, 
-    custom_config: ExperimentConfig | None = None,
-    track_position_changes_as_primary: bool = False
+    custom_config: ExperimentConfig | None = None
 ) -> dict:
     """Run a single training experiment.
+
+    This function tracks both losses and position statistics:
+    - Losses appear in intermediate values (standard Optuna plot)  
+    - Position statistics appear in user attributes for comparison
 
     Args:
         trial: Optional Optuna trial for logging
         custom_config: Optional custom configuration
-        track_position_changes_as_primary: Whether to track position changes as primary metric
 
     Returns:
         Dictionary with results
@@ -540,7 +543,7 @@ def run_single_experiment(
     # Create Optuna callback if trial is provided
     optuna_callback = None
     if trial is not None:
-        optuna_callback = OptunaTrainingCallback(trial, track_position_changes_as_primary)
+        optuna_callback = OptunaTrainingCallback(trial)
 
     # Train
     logger.info("Starting training...")
@@ -610,17 +613,17 @@ def run_single_experiment(
 
 
 # %%
-def run_multiple_experiments(
-    study_name: str, 
-    n_trials: int = 5, 
-    track_position_changes_as_primary: bool = False
-) -> optuna.Study:
+def run_multiple_experiments(study_name: str, n_trials: int = 5, base_seed: int | None = None) -> optuna.Study:
     """Run multiple experiments and track with Optuna.
+
+    Each experiment tracks:
+    - Losses as intermediate values (standard Optuna plot)
+    - Position statistics as user attributes (for comparison)
 
     Args:
         study_name: Name for the Optuna study
         n_trials: Number of experiments to run
-        track_position_changes_as_primary: Whether to track position changes as primary metric
+        base_seed: Base seed for reproducible experiments (each trial uses base_seed + trial_number)
 
     Returns:
         Optuna study with all results
@@ -628,64 +631,20 @@ def run_multiple_experiments(
     study = create_optuna_study(study_name)
 
     def objective(trial):
-        # You can vary parameters here if desired
-        # For now, we just run the same experiment multiple times
-        result = run_single_experiment(trial, track_position_changes_as_primary=track_position_changes_as_primary)
+        # Create config with deterministic seed based on trial number
+        from trading_rl.config import ExperimentConfig
+        config = ExperimentConfig()
+        
+        if base_seed is not None:
+            config.seed = base_seed + trial.number
+        else:
+            import random
+            config.seed = random.randint(1, 100000)
+            
+        result = run_single_experiment(trial, custom_config=config)
         return result["final_metrics"]["final_reward"]
 
     study.optimize(objective, n_trials=n_trials)
     return study
 
 
-def run_position_tracking_experiments(study_name: str, n_trials: int = 5) -> optuna.Study:
-    """Run experiments specifically tracking position changes as the primary metric.
-    
-    This creates a separate Optuna study where position changes appear in the
-    intermediate values plot instead of losses. This gives you a dedicated
-    plot for monitoring trading activity across trials.
-
-    Args:
-        study_name: Name for the Optuna study
-        n_trials: Number of experiments to run
-
-    Returns:
-        Optuna study with position change tracking as intermediate values
-    """
-    return run_multiple_experiments(
-        study_name=f"{study_name}_position_tracking",
-        n_trials=n_trials,
-        track_position_changes_as_primary=True
-    )
-
-
-def run_dual_tracking_experiments(study_name: str, n_trials: int = 5) -> tuple[optuna.Study, optuna.Study]:
-    """Run experiments with both loss tracking and position change tracking.
-    
-    This creates two separate studies:
-    1. Standard study tracking losses as intermediate values
-    2. Position study tracking position changes as intermediate values
-    
-    This gives you two separate intermediate value plots to compare.
-
-    Args:
-        study_name: Base name for the studies
-        n_trials: Number of experiments to run for each study
-
-    Returns:
-        Tuple of (loss_study, position_study)
-    """
-    # Run standard experiments (losses as intermediate values)
-    loss_study = run_multiple_experiments(
-        study_name=f"{study_name}_losses",
-        n_trials=n_trials,
-        track_position_changes_as_primary=False
-    )
-    
-    # Run position tracking experiments (position changes as intermediate values)  
-    position_study = run_multiple_experiments(
-        study_name=f"{study_name}_positions",
-        n_trials=n_trials,
-        track_position_changes_as_primary=True
-    )
-    
-    return loss_study, position_study
