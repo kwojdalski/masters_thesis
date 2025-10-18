@@ -4,7 +4,7 @@ import pandas as pd
 from plotnine import aes, geom_line, ggplot, labs
 from torch import allclose
 
-from src.logger import get_logger
+from logger import get_logger
 
 logger = get_logger(__name__)
 

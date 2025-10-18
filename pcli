@@ -5,7 +5,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Set PYTHONPATH
-export PYTHONPATH="${SCRIPT_DIR}/code/python:$PYTHONPATH"
+export PYTHONPATH="${SCRIPT_DIR}:$PYTHONPATH"
 
 # Run the CLI
-python "${SCRIPT_DIR}/code/python/src/cli.py" "$@"
+python "${SCRIPT_DIR}/src/cli.py" "$@"

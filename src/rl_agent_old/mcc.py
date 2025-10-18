@@ -10,9 +10,9 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from src.rl_agent_python.reward import episode_backup, reward
-from src.rl_agent_python.rl_utils import choose_action, initialize_rl_framework
-from src.rl_agent_python.state_space import state_indexes, update_n
+from rl_agent_python.reward import episode_backup, reward
+from rl_agent_python.rl_utils import choose_action, initialize_rl_framework
+from rl_agent_python.state_space import state_indexes, update_n
 
 
 @dataclass

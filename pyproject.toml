@@ -79,9 +79,9 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["code/python"]
-include = ["scripts*", "src*", "logger*"]
-namespaces = true
+where = ["."]
+include = ["scripts*", "src*"]
+namespaces = false
 
 [tool.ruff]
 target-version = "py312"
