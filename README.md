@@ -318,12 +318,36 @@ The framework provides comprehensive experiment tracking via Optuna:
 ### Tracked Metrics
 - **Performance**: Final reward, training steps, episode rewards
 - **Training**: Actor/value losses, training curves, portfolio values
+- **Position Activity**: Position changes per episode, trading frequency, position holding duration
 - **Configuration**: All hyperparameters, network architecture
 - **Data**: Dataset info, start/end dates, data size
 - **Environment**: Trading fees, position types, action spaces
 
 ### Dashboard Features
 - **Interactive Plots**: Real-time training curves and loss visualization
+- **Position Tracking**: Monitor how frequently agents change positions
+- **Intermediate Values**: Track losses and position changes during training
 - **Parameter Analysis**: Hyperparameter importance and relationships
 - **Trial Comparison**: Side-by-side comparison of experiments
 - **Export Options**: Download results as CSV or visualization images
+
+### Position Change Tracking
+
+The framework automatically tracks position changes during training:
+
+```python
+# Position changes are tracked automatically in all experiments
+study = run_multiple_experiments("trading_study", n_trials=5)
+
+# View position activity in dashboard
+for trial in study.trials:
+    pos_changes = trial.user_attrs.get('total_position_changes', 0)
+    avg_changes = trial.user_attrs.get('avg_position_change_per_episode', 0)
+    print(f"Trial {trial.number}: {pos_changes} total changes, {avg_changes:.2f} avg per episode")
+```
+
+**Available Position Metrics:**
+- `total_position_changes` - Total position changes across all episodes
+- `avg_position_change_per_episode` - Average changes per episode
+- `max_position_changes_per_episode` - Maximum changes in a single episode
+- `intermediate_position_changes` - Step-by-step position change progression

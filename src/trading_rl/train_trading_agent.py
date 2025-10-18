@@ -6,6 +6,7 @@ separated into reusable modules.
 """
 
 # %%
+import json
 import logging
 import sys
 from pathlib import Path
@@ -169,16 +170,22 @@ def create_optuna_study(
 class OptunaTrainingCallback:
     """Callback for logging training progress to Optuna during training."""
 
-    def __init__(self, trial: optuna.Trial):
+    def __init__(
+        self, trial: optuna.Trial, track_position_changes_as_primary: bool = False
+    ):
         self.trial = trial
         self.step_count = 0
+        self.track_position_changes_as_primary = track_position_changes_as_primary
+        self.intermediate_position_changes: list[dict[str, float | int]] = []
         self.intermediate_rewards = []
         self.intermediate_losses = {"actor": [], "value": []}
+        self.position_change_counts: list[int] = []
         self.training_stats = {
             "episode_rewards": [],
             "portfolio_values": [],
             "actions_taken": [],
             "exploration_ratio": [],
+            "position_change_counts": [],
         }
 
     def log_training_step(self, step: int, actor_loss: float, value_loss: float):
@@ -192,9 +199,33 @@ class OptunaTrainingCallback:
             avg_actor_loss = np.mean(self.intermediate_losses["actor"][-100:])
             avg_value_loss = np.mean(self.intermediate_losses["value"][-100:])
 
-            # Report average loss as intermediate value
-            self.trial.report(avg_value_loss, step=step)
+            if self.position_change_counts:
+                window = min(len(self.position_change_counts), 100)
+                avg_position_changes = float(
+                    np.mean(self.position_change_counts[-window:])
+                )
+                self.intermediate_position_changes.append(
+                    {
+                        "step": step,
+                        "avg_position_changes": avg_position_changes,
+                    }
+                )
+                self.trial.set_user_attr(
+                    "intermediate_position_changes",
+                    json.dumps(self.intermediate_position_changes),
+                )
+                self.trial.set_user_attr(
+                    f"pos_changes_step_{step}", avg_position_changes
+                )
+            else:
+                avg_position_changes = None
 
+            if self.track_position_changes_as_primary and avg_position_changes is not None:
+                # Report position changes as the primary intermediate metric
+                self.trial.report(avg_position_changes, step=step)
+            else:
+                # Report average loss as intermediate value
+                self.trial.report(avg_value_loss, step=step)
     def log_episode_stats(
         self,
         episode_reward: float,
@@ -207,6 +238,9 @@ class OptunaTrainingCallback:
         self.training_stats["portfolio_values"].append(portfolio_value)
         self.training_stats["actions_taken"].extend(actions)
         self.training_stats["exploration_ratio"].append(exploration_ratio)
+        position_changes = self._count_position_changes(actions)
+        self.position_change_counts.append(position_changes)
+        self.training_stats["position_change_counts"].append(position_changes)
 
     def get_training_curves(self) -> dict:
         """Get training curves for storage."""
@@ -216,7 +250,22 @@ class OptunaTrainingCallback:
             "episode_rewards": self.training_stats["episode_rewards"],
             "portfolio_values": self.training_stats["portfolio_values"],
             "exploration_ratios": self.training_stats["exploration_ratio"],
+            "position_change_counts": self.training_stats["position_change_counts"],
         }
+
+    @staticmethod
+    def _count_position_changes(actions: list, tolerance: float = 1e-6) -> int:
+        """Count how often the agent changes positions within an episode."""
+        if len(actions) < 2:
+            return 0
+
+        changes = 0
+        prev_action = actions[0]
+        for action in actions[1:]:
+            if abs(action - prev_action) > tolerance:
+                changes += 1
+                prev_action = action
+        return changes
 
 
 def log_metrics_to_optuna(
@@ -260,7 +309,12 @@ def log_metrics_to_optuna(
         training_curves = training_callback.get_training_curves()
 
         # Store training curves as JSON strings
-        trial.set_user_attr("training_curves", str(training_curves))
+        trial.set_user_attr("training_curves", json.dumps(training_curves))
+        if training_callback.intermediate_position_changes:
+            trial.set_user_attr(
+                "intermediate_position_changes",
+                json.dumps(training_callback.intermediate_position_changes),
+            )
 
         # Store summary statistics
         if training_curves["episode_rewards"]:
@@ -285,6 +339,20 @@ def log_metrics_to_optuna(
         if training_curves["exploration_ratios"]:
             trial.set_user_attr(
                 "avg_exploration_ratio", np.mean(training_curves["exploration_ratios"])
+            )
+        if training_curves["position_change_counts"]:
+            position_changes = training_curves["position_change_counts"]
+            trial.set_user_attr(
+                "avg_position_change_per_episode", float(np.mean(position_changes))
+            )
+            trial.set_user_attr(
+                "max_position_changes_per_episode", int(np.max(position_changes))
+            )
+            trial.set_user_attr(
+                "total_position_changes", int(np.sum(position_changes))
+            )
+            trial.set_user_attr(
+                "position_change_counts", json.dumps(position_changes)
             )
 
     # Log dataset metadata
@@ -395,13 +463,16 @@ def evaluate_agent(
 
 
 def run_single_experiment(
-    trial: optuna.Trial | None = None, custom_config: ExperimentConfig | None = None
+    trial: optuna.Trial | None = None, 
+    custom_config: ExperimentConfig | None = None,
+    track_position_changes_as_primary: bool = False
 ) -> dict:
     """Run a single training experiment.
 
     Args:
         trial: Optional Optuna trial for logging
         custom_config: Optional custom configuration
+        track_position_changes_as_primary: Whether to track position changes as primary metric
 
     Returns:
         Dictionary with results
@@ -460,7 +531,7 @@ def run_single_experiment(
     # Create Optuna callback if trial is provided
     optuna_callback = None
     if trial is not None:
-        optuna_callback = OptunaTrainingCallback(trial)
+        optuna_callback = OptunaTrainingCallback(trial, track_position_changes_as_primary)
 
     # Train
     logger.info("Starting training...")
@@ -530,12 +601,17 @@ def run_single_experiment(
 
 
 # %%
-def run_multiple_experiments(study_name: str, n_trials: int = 5) -> optuna.Study:
+def run_multiple_experiments(
+    study_name: str, 
+    n_trials: int = 5, 
+    track_position_changes_as_primary: bool = False
+) -> optuna.Study:
     """Run multiple experiments and track with Optuna.
 
     Args:
         study_name: Name for the Optuna study
         n_trials: Number of experiments to run
+        track_position_changes_as_primary: Whether to track position changes as primary metric
 
     Returns:
         Optuna study with all results
@@ -545,8 +621,28 @@ def run_multiple_experiments(study_name: str, n_trials: int = 5) -> optuna.Study
     def objective(trial):
         # You can vary parameters here if desired
         # For now, we just run the same experiment multiple times
-        result = run_single_experiment(trial)
+        result = run_single_experiment(trial, track_position_changes_as_primary=track_position_changes_as_primary)
         return result["final_metrics"]["final_reward"]
 
     study.optimize(objective, n_trials=n_trials)
     return study
+
+
+def run_position_tracking_experiments(study_name: str, n_trials: int = 5) -> optuna.Study:
+    """Run experiments specifically tracking position changes as the primary metric.
+    
+    This is a convenience function that creates an Optuna study where position changes
+    are tracked in the intermediate values table instead of losses.
+
+    Args:
+        study_name: Name for the Optuna study
+        n_trials: Number of experiments to run
+
+    Returns:
+        Optuna study with position change tracking
+    """
+    return run_multiple_experiments(
+        study_name=f"{study_name}_position_tracking",
+        n_trials=n_trials,
+        track_position_changes_as_primary=True
+    )
