@@ -127,3 +127,5 @@ thesis/qmd/src/*files
 thesis/qmd/src/*.pdf
 render_logs/*
 *.pkl
+**/*.parquet
+logs/*

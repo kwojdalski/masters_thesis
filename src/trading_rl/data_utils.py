@@ -48,7 +48,7 @@ def load_trading_data(data_path: str) -> pd.DataFrame:
         DataFrame with OHLCV data
     """
     logger.info(f"Loading data from {data_path}")
-    df = pd.read_pickle(data_path)  # noqa: S301
+    df = pd.read_parquet(data_path)
     logger.info(f"Loaded {len(df)} rows of data")
     return df
 

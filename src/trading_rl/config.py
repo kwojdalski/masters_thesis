@@ -9,7 +9,7 @@ from pathlib import Path
 class DataConfig:
     """Data loading and preprocessing configuration."""
 
-    data_path: str = "./data/raw/binance/binance-BTCUSDT-1h.pkl"
+    data_path: str = "./data/raw/binance/binance-BTCUSDT-1h.parquet"
     download_data: bool = False
     exchange_names: list[str] = field(default_factory=lambda: ["binance"])
     symbols: list[str] = field(default_factory=lambda: ["BTC/USDT"])

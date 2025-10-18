@@ -46,7 +46,7 @@ logger.info("Initializing trading environment debugging")
 
 # %%
 # Getting data
-# Download BTC/USDT historical data from Binance and stores it to directory ./data/binance-BTCUSDT-1h.pkl
+# Download BTC/USDT historical data from Binance and stores it to directory ./data/binance-BTCUSDT-1h.parquet
 download_data = False
 if download_data:
     download(
@@ -57,7 +57,7 @@ if download_data:
         since=datetime.datetime(year=2025, month=4, day=27, tzinfo=datetime.UTC),
     )
 # %%
-df = pd.read_pickle("./data/raw/binance/binance-BTCUSDT-1h.pkl")
+df = pd.read_parquet("./data/raw/binance/binance-BTCUSDT-1h.parquet")
 
 
 # %%
