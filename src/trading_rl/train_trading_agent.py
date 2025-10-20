@@ -7,7 +7,6 @@ separated into reusable modules.
 
 # %%
 import logging
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +17,7 @@ import numpy as np
 import pandas as pd
 import torch
 from joblib import Memory
-from plotnine import aes, facet_wrap, geom_line, ggplot
+from plotnine import aes, geom_line, ggplot
 from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
@@ -29,6 +28,7 @@ from logger import setup_logging as configure_root_logging
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data, reward_function
 from trading_rl.models import create_actor, create_value_network
+from trading_rl.plotting import visualize_training, create_mlflow_comparison_plots
 from trading_rl.training import DDPGTrainer
 from trading_rl.utils import compare_rollouts
 
@@ -60,7 +60,8 @@ def setup_logging(config: ExperimentConfig) -> logging.Logger:
         level=config.logging.log_level,
         log_file=str(log_file_path),
         console_output=True,
-        colored_output=sys.stdout.isatty(),
+        # sys.stdout.isatty(),
+        colored_output=True,
     )
 
     logger = get_project_logger(__name__)
@@ -111,35 +112,6 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
 
 
 # %%
-def visualize_training(logs: dict, save_path: str | None = None):
-    """Visualize training progress.
-
-    Args:
-        logs: Dictionary of training logs
-        save_path: Optional path to save plot
-    """
-    # Create loss dataframe
-    loss_df = pd.DataFrame(
-        {
-            "step": range(len(logs["loss_value"])),
-            "Value Loss": logs["loss_value"],
-            "Actor Loss": logs["loss_actor"],
-        }
-    )
-
-    # Create plot
-    plot = (
-        ggplot(loss_df.melt(id_vars=["step"], var_name="Loss Type", value_name="Loss"))
-        + geom_line(aes(x="step", y="Loss", color="Loss Type"))
-        + facet_wrap("Loss Type", ncol=1, scales="free")
-    )
-
-    if save_path:
-        plot.save(save_path)
-
-    return plot
-
-
 # %%
 def setup_mlflow_experiment(experiment_name: str) -> None:
     """Setup MLflow experiment for tracking.
@@ -347,6 +319,120 @@ def log_final_metrics_to_mlflow(
     mlflow.log_param("buffer_size", final_metrics.get("buffer_size", 0))
 
 
+def _log_parameter_faq_artifact():
+    """Log parameter FAQ as both markdown and HTML artifacts."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Check MLflow run status
+        active_run = mlflow.active_run()
+        if not active_run:
+            logger.warning("No active MLflow run - skipping FAQ artifacts")
+            return
+
+        faq_path = Path(__file__).parent / "docs" / "parameter_faq.md"
+        if not faq_path.exists():
+            logger.warning(f"FAQ file not found: {faq_path}")
+            return
+
+        # Log original markdown
+        try:
+            mlflow.log_artifact(str(faq_path), "documentation")
+            logger.info("Successfully logged FAQ markdown artifact")
+        except Exception as md_error:
+            logger.error(f"Failed to log markdown FAQ: {md_error}")
+            return  # Don't continue if markdown fails
+
+        # Convert to HTML and log
+        try:
+            import markdown
+
+            # Read markdown content
+            with open(faq_path, encoding="utf-8") as f:
+                md_content = f.read()
+
+            # Convert to HTML with basic extensions (avoiding potential missing extensions)
+            try:
+                html_content = markdown.markdown(
+                    md_content, extensions=["tables", "fenced_code", "toc"]
+                )
+            except Exception as ext_error:
+                logger.warning(
+                    f"Failed with extensions, trying basic conversion: {ext_error}"
+                )
+                # Fallback to basic conversion without extensions
+                html_content = markdown.markdown(md_content)
+
+            # Add basic CSS styling
+            styled_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Parameter FAQ - Trading RL Experiments</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }}
+        h1, h2, h3 {{ color: #333; }}
+        h1 {{ border-bottom: 2px solid #eee; padding-bottom: 10px; }}
+        h2 {{ border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; }}
+        code {{ background: #f5f5f5; padding: 2px 4px; border-radius: 3px; font-family: 'Monaco', 'Consolas', monospace; }}
+        pre {{ background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }}
+        ul, ol {{ padding-left: 20px; }}
+        li {{ margin: 5px 0; }}
+        strong {{ color: #2c3e50; }}
+        blockquote {{ border-left: 4px solid #ddd; margin-left: 0; padding-left: 20px; color: #666; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 10px 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #f5f5f5; }}
+    </style>
+</head>
+<body>
+{html_content}
+</body>
+</html>"""
+
+            # Save HTML to temporary file with proper name and log
+            import os
+            import tempfile
+
+            # Create temp file with proper name
+            temp_dir = tempfile.gettempdir()
+            html_temp_path = os.path.join(temp_dir, "parameter_faq.html")
+
+            logger.info(f"Creating HTML file at: {html_temp_path}")
+            logger.info(f"HTML content length: {len(styled_html)} characters")
+
+            with open(html_temp_path, "w", encoding="utf-8") as f:
+                f.write(styled_html)
+
+            # Verify file was created
+            if os.path.exists(html_temp_path):
+                file_size = os.path.getsize(html_temp_path)
+                logger.info(f"HTML file created successfully, size: {file_size} bytes")
+            else:
+                logger.error("HTML file was not created!")
+                return
+
+            mlflow.log_artifact(html_temp_path, "documentation")
+            logger.info("Successfully logged FAQ HTML artifact")
+
+            # Verify cleanup
+            if os.path.exists(html_temp_path):
+                os.unlink(html_temp_path)
+                logger.info("Cleaned up temporary HTML file")
+            else:
+                logger.warning("Temporary HTML file already missing")
+
+        except ImportError:
+            logger.warning("Markdown library not available - skipping HTML conversion")
+        except Exception as html_error:
+            logger.error(f"Failed to create/log HTML FAQ: {html_error}")
+
+    except Exception as e:
+        logger.error(f"Error in FAQ artifact logging: {e}")
+
+
 def evaluate_agent(
     env: TransformedEnv,
     actor: Any,
@@ -456,6 +542,9 @@ def run_single_experiment(
 
     # Log data overview to MLflow
     if mlflow.active_run():
+        # Log parameter FAQ as artifacts (early in trial for immediate availability)
+        _log_parameter_faq_artifact()
+
         # Log dataset metadata
         mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
         mlflow.log_param("dataset_columns", list(df.columns))
@@ -785,57 +874,8 @@ def run_multiple_experiments(
             results.append(result)
 
     # Generate comparison plots after all trials complete
-    _create_mlflow_comparison_plots(experiment_name, results)
+    create_mlflow_comparison_plots(experiment_name, results)
 
     return experiment_name
 
 
-def _create_mlflow_comparison_plots(experiment_name: str, results: list):
-    """Create comparison plots for MLflow experiments."""
-    import matplotlib.pyplot as plt
-
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12))
-
-    # Extract data from results
-    trial_numbers = list(range(len(results)))
-    final_rewards = [r["final_metrics"]["final_reward"] for r in results]
-
-    # Get position data from training stats if available
-    total_positions = []
-    avg_positions = []
-
-    for result in results:
-        # Try to get position data from final metrics
-        total_pos = result["final_metrics"].get("total_position_changes", 0)
-        avg_pos = result["final_metrics"].get("avg_position_change_per_episode", 0)
-        total_positions.append(total_pos)
-        avg_positions.append(avg_pos)
-
-    # Plot 1: Final rewards per trial
-    ax1.bar(trial_numbers, final_rewards, alpha=0.7, color="red")
-    ax1.set_xlabel("Trial Number")
-    ax1.set_ylabel("Final Reward")
-    ax1.set_title(f"{experiment_name}: Final Rewards by Trial")
-
-    # Plot 2: Total position changes per trial
-    ax2.bar(trial_numbers, total_positions, alpha=0.7, color="blue")
-    ax2.set_xlabel("Trial Number")
-    ax2.set_ylabel("Total Position Changes")
-    ax2.set_title(f"{experiment_name}: Total Position Changes by Trial")
-
-    # Plot 3: Average position changes per episode
-    ax3.bar(trial_numbers, avg_positions, alpha=0.7, color="green")
-    ax3.set_xlabel("Trial Number")
-    ax3.set_ylabel("Avg Position Changes per Episode")
-    ax3.set_title(f"{experiment_name}: Average Position Changes per Episode by Trial")
-
-    plt.tight_layout()
-    plot_path = f"{experiment_name}_comparison.png"
-    plt.savefig(plot_path, dpi=150, bbox_inches="tight")
-    plt.close()
-
-    # Log the comparison plot as an artifact to MLflow
-    with mlflow.start_run(run_name="experiment_summary"):
-        mlflow.log_artifact(plot_path)
-
-    print(f"Comparison plots saved to: {plot_path}")
