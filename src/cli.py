@@ -2,8 +2,7 @@
 Command-line interface for data generation and trading agent training.
 """
 
-import argparse
-import sys
+import logging
 from pathlib import Path
 
 import typer
@@ -12,272 +11,161 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from data_generator import PriceDataGenerator
 
+# Create the main typer app
+app = typer.Typer(help="CLI tools for trading data science project")
+console = Console()
 
-def setup_data_generator_parser(subparsers):
-    """Setup argument parser for data generator commands."""
-    parser = subparsers.add_parser(
-        "generate-data",
-        help="Generate synthetic price data from existing parquet files",
-        description="Generate synthetic price data by sampling or filtering existing data",
-    )
 
-    parser.add_argument(
+@app.command(name="generate-data")
+def generate_data(
+    source_dir: str = typer.Option(
+        "data/raw/binance",
         "--source-dir",
-        type=str,
-        default="data/raw/binance",
-        help="Source directory containing parquet files (default: data/raw/binance)",
-    )
-
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default="data/raw/synthetic",
-        help="Output directory for synthetic data (default: data/raw/synthetic)",
-    )
-
-    parser.add_argument(
-        "--list",
-        action="store_true",
-        help="List available source files",
-    )
-
-    parser.add_argument(
-        "--source-file",
-        type=str,
-        help="Source parquet file name (e.g., binance-BTCUSDT-1h.parquet)",
-    )
-
-    parser.add_argument(
-        "--output-file",
-        type=str,
-        help="Output file name (default: source file with _synthetic suffix)",
-    )
-
-    parser.add_argument(
-        "--start-date",
-        type=str,
-        help="Start date for filtering (format: YYYY-MM-DD)",
-    )
-
-    parser.add_argument(
-        "--end-date",
-        type=str,
-        help="End date for filtering (format: YYYY-MM-DD)",
-    )
-
-    parser.add_argument(
-        "--sample-size",
-        type=int,
-        help="Number of rows to sample randomly",
-    )
-
-    parser.add_argument(
-        "--copy",
-        action="store_true",
-        help="Copy source file without modifications",
-    )
-
-    # Synthetic pattern generation arguments
-    parser.add_argument(
-        "--sine-wave",
-        action="store_true",
-        help="Generate sine wave pattern with trend (ignores source-file)",
-    )
-
-    parser.add_argument(
-        "--n-periods",
-        type=int,
-        default=3,
-        help="Number of sine wave periods (default: 3)",
-    )
-
-    parser.add_argument(
-        "--samples-per-period",
-        type=int,
-        default=120,
-        help="Samples per sine wave period (default: 120)",
-    )
-
-    parser.add_argument(
-        "--base-price",
-        type=float,
-        default=50000.0,
-        help="Base price level (default: 50000.0)",
-    )
-
-    parser.add_argument(
-        "--amplitude",
-        type=float,
-        default=5000.0,
-        help="Sine wave amplitude (default: 5000.0)",
-    )
-
-    parser.add_argument(
-        "--trend-slope",
-        type=float,
-        default=50.0,
-        help="Linear trend slope per step (default: 50.0)",
-    )
-
-    parser.add_argument(
-        "--volatility",
-        type=float,
-        default=0.02,
-        help="Random noise factor (default: 0.02)",
-    )
-
-    parser.add_argument(
-        "--upward-drift",
-        action="store_true",
-        help="Generate a strong upward drift pattern (ignores source-file)",
-    )
-
-    parser.add_argument(
-        "--drift-samples",
-        type=int,
-        default=500,
-        help="Number of samples for the drift pattern (default: 500)",
-    )
-
-    parser.add_argument(
-        "--drift-rate",
-        type=float,
-        default=0.0015,
-        help="Exponential drift rate per step for the drift pattern (default: 0.0015)",
-    )
-
-    parser.add_argument(
-        "--drift-volatility",
-        type=float,
-        default=0.0005,
-        help="Volatility factor for the drift pattern (default: 0.0005)",
-    )
-
-    parser.add_argument(
-        "--drift-floor",
-        type=float,
-        default=0.995,
-        help="Pullback floor multiplier for the drift pattern (default: 0.995)",
-    )
-
-    parser.set_defaults(func=handle_data_generator)
-
-
-def handle_data_generator(args):
-    """Handle data generator commands."""
-    generator = PriceDataGenerator(
-        source_dir=args.source_dir, output_dir=args.output_dir
-    )
+        help="Source directory containing parquet files",
+    ),
+    output_dir: str = typer.Option(
+        "data/raw/synthetic", "--output-dir", help="Output directory for synthetic data"
+    ),
+    list_files: bool = typer.Option(
+        False, "--list", help="List available source files"
+    ),
+    source_file: str | None = typer.Option(
+        None, "--source-file", help="Source parquet file name"
+    ),
+    output_file: str | None = typer.Option(
+        None, "--output-file", help="Output file name"
+    ),
+    start_date: str | None = typer.Option(
+        None, "--start-date", help="Start date for filtering (YYYY-MM-DD)"
+    ),
+    end_date: str | None = typer.Option(
+        None, "--end-date", help="End date for filtering (YYYY-MM-DD)"
+    ),
+    sample_size: int | None = typer.Option(
+        None, "--sample-size", help="Number of rows to sample randomly"
+    ),
+    copy: bool = typer.Option(
+        False, "--copy", help="Copy source file without modifications"
+    ),
+    sine_wave: bool = typer.Option(
+        False, "--sine-wave", help="Generate sine wave pattern with trend"
+    ),
+    n_periods: int = typer.Option(3, "--n-periods", help="Number of sine wave periods"),
+    samples_per_period: int = typer.Option(
+        120, "--samples-per-period", help="Samples per sine wave period"
+    ),
+    base_price: float = typer.Option(50000.0, "--base-price", help="Base price level"),
+    amplitude: float = typer.Option(5000.0, "--amplitude", help="Sine wave amplitude"),
+    trend_slope: float = typer.Option(
+        50.0, "--trend-slope", help="Linear trend slope per step"
+    ),
+    volatility: float = typer.Option(0.02, "--volatility", help="Random noise factor"),
+    upward_drift: bool = typer.Option(
+        False, "--upward-drift", help="Generate upward drift pattern"
+    ),
+    drift_samples: int = typer.Option(
+        500, "--drift-samples", help="Number of samples for drift pattern"
+    ),
+    drift_rate: float = typer.Option(
+        0.0015, "--drift-rate", help="Exponential drift rate per step"
+    ),
+    drift_volatility: float = typer.Option(
+        0.0005, "--drift-volatility", help="Volatility factor for drift pattern"
+    ),
+    drift_floor: float = typer.Option(
+        0.995, "--drift-floor", help="Pullback floor multiplier for drift pattern"
+    ),
+):
+    """Generate synthetic price data from existing parquet files."""
+    generator = PriceDataGenerator(source_dir=source_dir, output_dir=output_dir)
 
     # List available files
-    if args.list:
-        print("Available source files:")
+    if list_files:
+        logger = logging.getLogger(__name__)
+        logger.info("Available source files:")
         source_files = generator.list_source_files()
         if not source_files:
-            print("  No parquet files found in source directory")
+            logger.warning("  No parquet files found in source directory")
         else:
             for f in source_files:
-                print(f"  - {f}")
+                logger.info(f"  - {f}")
         return
 
     # Generate sine wave pattern
-    if args.sine_wave:
-        output_file = args.output_file or "sine_wave_pattern.parquet"
+    if sine_wave:
+        output_file_name = output_file or "sine_wave_pattern.parquet"
         try:
             df = generator.generate_sine_wave_pattern(
-                output_file=output_file,
-                n_periods=args.n_periods,
-                samples_per_period=args.samples_per_period,
-                base_price=args.base_price,
-                amplitude=args.amplitude,
-                trend_slope=args.trend_slope,
-                volatility=args.volatility,
-                start_date=args.start_date or "2024-01-01",
+                output_file=output_file_name,
+                n_periods=n_periods,
+                samples_per_period=samples_per_period,
+                base_price=base_price,
+                amplitude=amplitude,
+                trend_slope=trend_slope,
+                volatility=volatility,
+                start_date=start_date or "2024-01-01",
             )
-            print(f"\nSuccessfully generated sine wave pattern with {len(df)} rows")
+            logger = logging.getLogger(__name__)
+            logger.info(f"Successfully generated sine wave pattern with {len(df)} rows")
             return
         except Exception as e:
-            print(f"Error generating sine wave pattern: {e}")
-            sys.exit(1)
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error generating sine wave pattern: {e}")
+            raise typer.Exit(1)
 
-    if args.upward_drift:
-        output_file = args.output_file or "upward_drift_pattern.parquet"
+    if upward_drift:
+        output_file_name = output_file or "upward_drift_pattern.parquet"
         try:
             df = generator.generate_upward_drift_pattern(
-                output_file=output_file,
-                n_samples=args.drift_samples,
-                base_price=args.base_price,
-                drift_rate=args.drift_rate,
-                volatility=args.drift_volatility,
-                pullback_floor=args.drift_floor,
-                start_date=args.start_date or "2024-01-01",
+                output_file=output_file_name,
+                n_samples=drift_samples,
+                base_price=base_price,
+                drift_rate=drift_rate,
+                volatility=drift_volatility,
+                pullback_floor=drift_floor,
+                start_date=start_date or "2024-01-01",
             )
-            print(
-                f"\nSuccessfully generated upward drift pattern with {len(df)} rows"
+            logger = logging.getLogger(__name__)
+            logger.info(
+                f"Successfully generated upward drift pattern with {len(df)} rows"
             )
             return
         except Exception as e:
-            print(f"Error generating upward drift pattern: {e}")
-            sys.exit(1)
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error generating upward drift pattern: {e}")
+            raise typer.Exit(1)
 
     # Require source file for other operations
-    if not args.source_file:
-        print("Error: --source-file is required (or use --list to see available files, or --sine-wave for pattern generation)")
-        sys.exit(1)
+    if not source_file:
+        logger = logging.getLogger(__name__)
+        logger.error(
+            "Error: --source-file is required (or use --list to see available files, or --sine-wave for pattern generation)"
+        )
+        raise typer.Exit(1)
 
     # Copy operation
-    if args.copy:
-        generator.copy_data(args.source_file, args.output_file)
+    if copy:
+        generator.copy_data(source_file, output_file)
         return
 
     # Generate synthetic data
     try:
         df = generator.generate_synthetic_sample(
-            source_file=args.source_file,
-            output_file=args.output_file,
-            start_date=args.start_date,
-            end_date=args.end_date,
-            sample_size=args.sample_size,
+            source_file=source_file,
+            output_file=output_file,
+            start_date=start_date,
+            end_date=end_date,
+            sample_size=sample_size,
         )
-        print(f"\nSuccessfully generated synthetic data with {len(df)} rows")
+        logger = logging.getLogger(__name__)
+        logger.info(f"Successfully generated synthetic data with {len(df)} rows")
     except Exception as e:
-        print(f"Error generating data: {e}")
-        sys.exit(1)
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error generating data: {e}")
+        raise typer.Exit(1)
 
 
-def main():
-    """Main CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="CLI tools for trading data science project",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-
-    subparsers = parser.add_subparsers(
-        title="commands", description="Available commands", dest="command"
-    )
-
-    # Setup command parsers
-    setup_data_generator_parser(subparsers)
-
-    # Parse arguments
-    args = parser.parse_args()
-
-    # Show help if no command specified
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    # Execute command
-    args.func(args)
-
-
-# Typer CLI for Trading Agent
-app = typer.Typer(
-    name="trading-rl",
-    help="Trading RL CLI for training and experimentation",
-    add_completion=False,
-)
-console = Console()
+# Add the other trading-related commands to the main app
 
 
 @app.command()
@@ -455,7 +343,7 @@ def experiment(
         console.print(f"[blue]Loaded config from: {config_file}[/blue]")
     else:
         config = ExperimentConfig()
-    
+
     if max_steps is not None:
         config.training.max_training_steps = max_steps
 
@@ -603,14 +491,4 @@ def list_experiments():
 
 
 if __name__ == "__main__":
-    # Check if we should use the Typer CLI
-    if len(sys.argv) > 1 and sys.argv[1] in [
-        "train",
-        "experiment",
-        "dashboard",
-        "list-experiments",
-    ]:
-        app()
-    else:
-        # Fall back to original argparse CLI
-        main()
+    app()

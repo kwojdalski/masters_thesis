@@ -5,8 +5,10 @@ This module contains plotting functions for visualizing training progress
 and experiment comparisons using plotnine.
 """
 
-import pandas as pd
+import logging
+
 import mlflow
+import pandas as pd
 from plotnine import (
     aes,
     element_text,
@@ -14,10 +16,10 @@ from plotnine import (
     geom_col,
     geom_line,
     ggplot,
+    ggsave,
     labs,
     theme,
     theme_minimal,
-    ggsave,
 )
 
 
@@ -68,15 +70,17 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
         avg_positions.append(avg_pos)
 
     # Create combined dataframe for plotting
-    plot_data = pd.DataFrame({
-        "trial": trial_numbers * 3,
-        "metric_type": (
-            ["Final Reward"] * len(trial_numbers) +
-            ["Total Position Changes"] * len(trial_numbers) +
-            ["Avg Position Changes/Episode"] * len(trial_numbers)
-        ),
-        "value": final_rewards + total_positions + avg_positions
-    })
+    plot_data = pd.DataFrame(
+        {
+            "trial": trial_numbers * 3,
+            "metric_type": (
+                ["Final Reward"] * len(trial_numbers)
+                + ["Total Position Changes"] * len(trial_numbers)
+                + ["Avg Position Changes/Episode"] * len(trial_numbers)
+            ),
+            "value": final_rewards + total_positions + avg_positions,
+        }
+    )
 
     # Create the combined plot
     plot = (
@@ -87,13 +91,13 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
         + labs(
             title=f"{experiment_name}: Experiment Comparison",
             x="Trial Number",
-            y="Value"
+            y="Value",
         )
         + theme(
             plot_title=element_text(size=16, face="bold"),
             strip_text=element_text(size=12, face="bold"),
             axis_title=element_text(size=11),
-            figure_size=(12, 10)
+            figure_size=(12, 10),
         )
     )
 
@@ -105,4 +109,5 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
     with mlflow.start_run(run_name="experiment_summary"):
         mlflow.log_artifact(plot_path)
 
-    print(f"Comparison plots saved to: {plot_path}")
+    logger = logging.getLogger(__name__)
+    logger.info(f"Comparison plots saved to: {plot_path}")

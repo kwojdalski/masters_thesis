@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import torch
 from joblib import Memory
-from plotnine import aes, geom_line, ggplot
+from plotnine import aes, geom_line
 from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
@@ -28,7 +28,7 @@ from logger import setup_logging as configure_root_logging
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data, reward_function
 from trading_rl.models import create_actor, create_value_network
-from trading_rl.plotting import visualize_training, create_mlflow_comparison_plots
+from trading_rl.plotting import create_mlflow_comparison_plots, visualize_training
 from trading_rl.training import DDPGTrainer
 from trading_rl.utils import compare_rollouts
 
@@ -614,7 +614,7 @@ def run_single_experiment(
             feature_columns = [
                 col
                 for col in plot_df.columns
-                if col not in ohlcv_columns + [plot_df.columns[0], "time_index"]
+                if col not in [*ohlcv_columns, plot_df.columns[0], "time_index"]
             ]
 
             all_plot_columns = (
@@ -844,8 +844,10 @@ def run_multiple_experiments(
 
     results = []
 
+    logger = logging.getLogger(__name__)
+
     for trial_number in range(n_trials):
-        print(f"Running trial {trial_number + 1}/{n_trials}")
+        logger.info(f"Running trial {trial_number + 1}/{n_trials}")
 
         # Create config with deterministic seed based on trial number
         from trading_rl.config import ExperimentConfig
@@ -877,5 +879,3 @@ def run_multiple_experiments(
     create_mlflow_comparison_plots(experiment_name, results)
 
     return experiment_name
-
-
