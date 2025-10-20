@@ -865,7 +865,7 @@ def run_multiple_experiments(
         else:
             import random
 
-            config.seed = random.randint(1, 100000)
+            config.seed = random.randint(1, 100000)  # noqa: S311
 
         # Update experiment name to include trial number
         config.experiment_name = f"{experiment_name}_trial_{trial_number}"

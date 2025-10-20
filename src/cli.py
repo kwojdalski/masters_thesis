@@ -3,6 +3,8 @@ Command-line interface for data generation and trading agent training.
 """
 
 import logging
+import shutil
+import subprocess
 from pathlib import Path
 
 import typer
@@ -111,7 +113,7 @@ def generate_data(
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Error generating sine wave pattern: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     if upward_drift:
         output_file_name = output_file or "upward_drift_pattern.parquet"
@@ -133,7 +135,7 @@ def generate_data(
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Error generating upward drift pattern: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     # Require source file for other operations
     if not source_file:
@@ -162,7 +164,7 @@ def generate_data(
     except Exception as e:
         logger = logging.getLogger(__name__)
         logger.error(f"Error generating data: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # Add the other trading-related commands to the main app
@@ -173,7 +175,7 @@ def train(
     experiment_name: str | None = typer.Option(
         None, "--name", "-n", help="Experiment name (default: auto-generated)"
     ),
-    config_file: Path | None = typer.Option(
+    config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to custom config file"
     ),
     seed: int | None = typer.Option(
@@ -197,7 +199,7 @@ def train(
     save_plots: bool = typer.Option(
         False, "--save-plots", help="Save training plots to disk"
     ),
-    log_dir: Path | None = typer.Option(None, "--log-dir", help="Logging directory"),
+    log_dir: Path | None = typer.Option(None, "--log-dir", help="Logging directory"),  # noqa: B008
 ):
     """Train a single trading agent."""
     from trading_rl import ExperimentConfig, run_single_experiment
@@ -218,7 +220,7 @@ def train(
     else:
         import random
 
-        generated_seed = random.randint(1, 100000)
+        generated_seed = random.randint(1, 100000)  # noqa: S311
         config.seed = generated_seed
         console.print(f"[yellow]Using random seed: {generated_seed}[/yellow]")
 
@@ -278,7 +280,7 @@ def train(
         except Exception as e:
             progress.update(task, description="Training failed!")
             console.print(f"\n[bold red]Training failed: {e}[/bold red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 @app.command()
@@ -290,7 +292,7 @@ def experiment(
     dashboard: bool = typer.Option(
         False, "--dashboard", help="Launch MLflow UI after experiments"
     ),
-    config_file: Path | None = typer.Option(
+    config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to custom config file"
     ),
     seed: int | None = typer.Option(
@@ -315,8 +317,6 @@ def experiment(
     - Portfolio values and episode rewards
     - All parameters and configurations
     """
-    import subprocess
-
     from trading_rl import ExperimentConfig, run_multiple_experiments
 
     if clear_cache:
@@ -356,7 +356,7 @@ def experiment(
     else:
         import random
 
-        base_seed = random.randint(1, 100000)
+        base_seed = random.randint(1, 100000)  # noqa: S311
         console.print(
             f"[yellow]Using random base seed: {base_seed} (each trial will use seed+trial_number)[/yellow]"
         )
@@ -403,7 +403,13 @@ def experiment(
                     "[dim]View metrics: losses, position changes, rewards, and parameters[/dim]"
                 )
                 try:
-                    subprocess.run(["mlflow", "ui"])
+                    mlflow_cmd = shutil.which("mlflow")
+                    if not mlflow_cmd:
+                        console.print(
+                            "[red]MLflow not found. Install with: pip install mlflow[/red]"
+                        )
+                        return
+                    subprocess.run([mlflow_cmd, "ui"], check=False)  # noqa: S603
                 except KeyboardInterrupt:
                     console.print("\n[yellow]MLflow UI stopped[/yellow]")
                 except FileNotFoundError:
@@ -414,7 +420,7 @@ def experiment(
         except Exception as e:
             progress.update(task, description="Experiments failed!")
             console.print(f"\n[bold red]Experiments failed: {e}[/bold red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 @app.command()
@@ -423,28 +429,34 @@ def dashboard(
     host: str = typer.Option("localhost", "--host", help="Host for MLflow UI"),
 ):
     """Launch MLflow UI for viewing experiments."""
-    import subprocess
 
     console.print("[blue]Starting MLflow UI[/blue]")
     console.print(f"URL: [blue]http://{host}:{port}[/blue]")
     console.print("[dim]Press Ctrl+C to stop[/dim]")
 
     try:
-        subprocess.run(
+        mlflow_cmd = shutil.which("mlflow")
+        if not mlflow_cmd:
+            console.print(
+                "[red]MLflow not found. Install with: pip install mlflow[/red]"
+            )
+            raise typer.Exit(1)
+        subprocess.run(  # noqa: S603
             [
-                "mlflow",
+                mlflow_cmd,
                 "ui",
                 "--host",
                 host,
                 "--port",
                 str(port),
-            ]
+            ],
+            check=False,
         )
     except KeyboardInterrupt:
         console.print("\n[yellow]MLflow UI stopped[/yellow]")
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         console.print("[red]MLflow not found. Install with: pip install mlflow[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command()
