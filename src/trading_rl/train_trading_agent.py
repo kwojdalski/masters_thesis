@@ -761,12 +761,12 @@ def run_single_experiment(
 
     # Evaluate agent
     logger.info("Evaluating agent...")
-    # Ensure max_steps doesn't exceed available data
-    eval_max_steps = min(1000, len(df) - 1)  # -1 to account for shift operation
+    # Ensure max_steps doesn't exceed training data size
+    eval_max_steps = min(1000, config.data.train_size - 1)  # -1 to account for shift operation
     reward_plot, action_plot, final_reward = evaluate_agent(
         env,
         actor,
-        df,
+        df[: config.data.train_size],  # Pass only the training portion
         max_steps=eval_max_steps,
     )
 

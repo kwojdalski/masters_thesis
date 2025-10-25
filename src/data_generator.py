@@ -352,8 +352,9 @@ class PriceDataGenerator:
         # Open: previous close with small gap
 
         variation_scale = max(amplitude * 0.05, base_price * 0.002)
-        high_variation = variation_scale * (0.5 + 0.5 * np.sin(t + np.pi / 3))
-        low_variation = variation_scale * (0.5 + 0.5 * np.sin(t + 4 * np.pi / 3))
+        # Use small random variations instead of additional sine waves
+        high_variation = variation_scale * (0.5 + 0.3 * np.random.uniform(-1, 1, total_samples))
+        low_variation = variation_scale * (0.5 + 0.3 * np.random.uniform(-1, 1, total_samples))
 
         highs = close_prices + high_variation
         lows = close_prices - low_variation
@@ -365,9 +366,9 @@ class PriceDataGenerator:
         if gap_amplitude > 0:
             opens = opens + gap_amplitude * np.sin(t + np.pi / 6)
 
-        # Ensure OHLC relationships are valid
-        highs = np.maximum(highs, np.maximum(opens, close_prices))
-        lows = np.minimum(lows, np.minimum(opens, close_prices))
+        # Ensure OHLC relationships are valid: low ≤ open, close ≤ high
+        opens = np.clip(opens, lows, highs)
+        close_prices = np.clip(close_prices, lows, highs)
 
         # Generate volume with inverse correlation to price changes
         price_changes = np.abs(np.diff(close_prices, prepend=close_prices[0]))
@@ -488,22 +489,24 @@ class PriceDataGenerator:
         close_prices = np.maximum(close_prices, floor)
         close_prices[0] = base_price
 
-        # Generate tight OHLC ranges around close prices
+        # Generate tight OHLC ranges around close prices with consistent upward drift
         spread_scale = max(volatility * 10, 0.001)
-        high_spread = spread_scale * (1 + 0.5 * np.sin(steps / 12))
-        low_spread = spread_scale * (1 + 0.5 * np.cos(steps / 14))
+        # Use small random variations instead of sine waves to maintain drift consistency
+        high_spread = spread_scale * (1 + 0.1 * np.random.uniform(-1, 1, n_samples))
+        low_spread = spread_scale * (1 + 0.1 * np.random.uniform(-1, 1, n_samples))
 
         highs = close_prices * (1 + high_spread)
         lows = close_prices * (1 - low_spread)
 
         opens = np.roll(close_prices, 1)
         opens[0] = close_prices[0]
-        gap_noise = close_prices * (volatility * 0.5)
-        opens = opens + np.sign(high_spread - low_spread) * gap_noise * 0.1
+        # Use simple random gap noise to avoid patterns
+        gap_noise = np.random.normal(0, volatility * np.mean(close_prices) * 0.1, n_samples)
+        opens = opens + gap_noise
 
-        # Ensure OHLC relationships are valid
-        highs = np.maximum(highs, np.maximum(opens, close_prices))
-        lows = np.minimum(lows, np.minimum(opens, close_prices))
+        # Ensure OHLC relationships are valid: low ≤ open, close ≤ high
+        opens = np.clip(opens, lows, highs)
+        close_prices = np.clip(close_prices, lows, highs)
 
         # Volume trending higher with the drift
         base_volume = 1_000_000
@@ -638,9 +641,9 @@ class PriceDataGenerator:
         gap_noise = np.random.normal(0, 0.5 * volatility * mean_price, n_samples)
         opens = opens + gap_noise
 
-        # Ensure OHLC relationships are valid
-        highs = np.maximum(highs, np.maximum(opens, prices))
-        lows = np.minimum(lows, np.minimum(opens, prices))
+        # Ensure OHLC relationships are valid: low ≤ open, close ≤ high
+        opens = np.clip(opens, lows, highs)
+        prices = np.clip(prices, lows, highs)
 
         # Generate volume (higher when price deviates more from mean)
         price_deviation = np.abs(prices - mean_price) / mean_price
@@ -852,9 +855,9 @@ class PriceDataGenerator:
         gap_noise = np.random.normal(0, 0.3 * volatility * prices, n_samples)
         opens = opens + gap_noise
 
-        # Ensure OHLC relationships are valid
-        highs = np.maximum(highs, np.maximum(opens, prices))
-        lows = np.minimum(lows, np.minimum(opens, prices))
+        # Ensure OHLC relationships are valid: low ≤ open, close ≤ high
+        opens = np.clip(opens, lows, highs)
+        prices = np.clip(prices, lows, highs)
 
         # Generate volume (higher during trend changes)
         momentum = np.abs(np.diff(prices, prepend=prices[0]))

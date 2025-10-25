@@ -237,6 +237,23 @@ python src/cli.py list-studies
 python src/cli.py dashboard parameter_sweep.db --port 8080
 ```
 
+### Synthetic Data Simulations
+```bash
+# Generate synthetic patterns for controlled testing
+python src/cli.py generate-data --source-file binance-BTCUSDT-1h.parquet --output-file sine_wave_validation.parquet --sample-size 500
+
+# Train with pre-configured synthetic patterns
+python src/cli.py train --config src/configs/sine_wave.yaml        # Oscillating patterns
+python src/cli.py train --config src/configs/upward_drift.yaml     # Trending markets  
+python src/cli.py train --config src/configs/mean_reversion.yaml   # Mean-reverting patterns
+
+# Run experiments with synthetic data
+python src/cli.py experiment --config src/configs/sine_wave.yaml --name "synthetic_experiments"
+
+# View results
+python src/cli.py dashboard
+```
+
 ### Data Preparation Workflow
 ```bash
 # List available data

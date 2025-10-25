@@ -69,7 +69,7 @@ def load_trading_data(
 
 
 @memory.cache
-def create_features(df: pd.DataFrame) -> pd.DataFrame:
+def create_features(df: pd.DataFrame, data_path: str = "") -> pd.DataFrame:
     """Create technical features from OHLCV data.
 
     Features are normalized using z-score normalization.
@@ -77,12 +77,19 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
 
     Args:
         df: DataFrame with OHLCV columns (open, high, low, close, volume)
+        data_path: Path to data file (used to detect upward drift data)
 
     Returns:
         DataFrame with added feature columns
     """
     logger.info("Creating features")
     df = df.copy()
+
+    # Check if this is upward drift data
+    is_upward_drift = "upward_drift" in data_path.lower()
+    
+    if is_upward_drift:
+        logger.info("Detected upward drift data - skipping feature_high and feature_low")
 
     # Price return feature (log return)
     df["feature_return"] = (df["close"] / df["close"].shift(1) - 1).fillna(0)
@@ -96,17 +103,19 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
         df["feature_pct_chng"] - df["feature_pct_chng"].mean()
     ) / df["feature_pct_chng"].std()
 
-    # High relative to close
-    df["feature_high"] = (df["high"] / df["close"] - 1).fillna(0)
-    df["feature_high"] = (df["feature_high"] - df["feature_high"].mean()) / df[
-        "feature_high"
-    ].std()
+    # High relative to close (skip for upward drift)
+    if not is_upward_drift:
+        df["feature_high"] = (df["high"] / df["close"] - 1).fillna(0)
+        df["feature_high"] = (df["feature_high"] - df["feature_high"].mean()) / df[
+            "feature_high"
+        ].std()
 
-    # Low relative to close
-    df["feature_low"] = (df["low"] / df["close"] - 1).fillna(0)
-    df["feature_low"] = (df["feature_low"] - df["feature_low"].mean()) / df[
-        "feature_low"
-    ].std()
+    # Low relative to close (skip for upward drift)
+    if not is_upward_drift:
+        df["feature_low"] = (df["low"] / df["close"] - 1).fillna(0)
+        df["feature_low"] = (df["feature_low"] - df["feature_low"].mean()) / df[
+            "feature_low"
+        ].std()
 
     # Drop any rows with NaN values
     df = df.dropna()

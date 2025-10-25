@@ -9,7 +9,7 @@ PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export PYTHONPATH="${PROJECT_DIR}/src:$PYTHONPATH"
 
 # Alias for data generator CLI
-alias gendata="python ${PROJECT_DIR}/code/python/src/cli.py generate-data"
+alias gendata="python ${PROJECT_DIR}/src/cli.py generate-data"
 
 # Alias for full CLI
 alias pcli="python ${PROJECT_DIR}/src/cli.py"
