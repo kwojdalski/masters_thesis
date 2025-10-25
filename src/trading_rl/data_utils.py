@@ -48,9 +48,7 @@ def download_trading_data(
 
 
 @memory.cache
-def load_trading_data(
-    data_path: str, cache_bust: float | None = None
-) -> pd.DataFrame:
+def load_trading_data(data_path: str, cache_bust: float | None = None) -> pd.DataFrame:
     """Load trading data from pickle file.
 
     Args:
@@ -87,9 +85,11 @@ def create_features(df: pd.DataFrame, data_path: str = "") -> pd.DataFrame:
 
     # Check if this is upward drift data
     is_upward_drift = "upward_drift" in data_path.lower()
-    
+
     if is_upward_drift:
-        logger.info("Detected upward drift data - skipping feature_high and feature_low")
+        logger.info(
+            "Detected upward drift data - skipping feature_high and feature_low"
+        )
 
     # Price return feature (log return)
     df["feature_return"] = (df["close"] / df["close"].shift(1) - 1).fillna(0)
@@ -151,6 +151,7 @@ def prepare_data(
     timeframe: str = "1h",
     data_dir: str = "data",
     since: Any | None = None,
+    no_features: bool = False,
 ) -> pd.DataFrame:
     """Prepare trading data for RL training.
 
@@ -162,9 +163,10 @@ def prepare_data(
         timeframe: Data timeframe
         data_dir: Directory for downloaded data
         since: Start date for download
+        no_features: If True, skip feature engineering and return only OHLCV data
 
     Returns:
-        DataFrame with features
+        DataFrame with features (or just OHLCV if no_features=True)
     """
     # Check if data exists
     if not Path(data_path).exists():
@@ -179,6 +181,16 @@ def prepare_data(
     # Load and process data
     file_signature = Path(data_path).stat().st_mtime_ns
     df = load_trading_data(data_path, cache_bust=file_signature)
-    df = create_features(df)
+
+    if no_features:
+        # Skip feature creation - just drop NaN values and return OHLCV data
+        df = df.dropna()
+        logger.info(
+            f"Loaded data without features: {len(df)} rows, {len(df.columns)} columns"
+        )
+        logger.info(f"Columns: {list(df.columns)}")
+    else:
+        # Create features as usual
+        df = create_features(df, data_path=data_path)
 
     return df

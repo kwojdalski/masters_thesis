@@ -21,6 +21,7 @@ class DataConfig:
         default_factory=lambda: datetime.datetime(2025, 4, 27, tzinfo=datetime.UTC)
     )
     train_size: int = 1000
+    no_features: bool = False
 
 
 @dataclass

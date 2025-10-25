@@ -309,6 +309,11 @@ def experiment(
         "--clear-cache",
         help="Clear cached datasets and models before running experiments",
     ),
+    no_features: bool = typer.Option(
+        False,
+        "--no-features",
+        help="Skip feature engineering and use only raw OHLCV data",
+    ),
 ):
     """Run multiple experiments with MLflow tracking.
 
@@ -347,6 +352,9 @@ def experiment(
 
     if max_steps is not None:
         config.training.max_training_steps = max_steps
+
+    if no_features:
+        config.data.no_features = True
 
     # Handle seed for experiments
     if seed is not None:

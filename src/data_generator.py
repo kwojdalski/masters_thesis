@@ -353,8 +353,12 @@ class PriceDataGenerator:
 
         variation_scale = max(amplitude * 0.05, base_price * 0.002)
         # Use small random variations instead of additional sine waves
-        high_variation = variation_scale * (0.5 + 0.3 * np.random.uniform(-1, 1, total_samples))
-        low_variation = variation_scale * (0.5 + 0.3 * np.random.uniform(-1, 1, total_samples))
+        high_variation = variation_scale * (
+            0.5 + 0.3 * np.random.uniform(-1, 1, total_samples)
+        )
+        low_variation = variation_scale * (
+            0.5 + 0.3 * np.random.uniform(-1, 1, total_samples)
+        )
 
         highs = close_prices + high_variation
         lows = close_prices - low_variation
@@ -478,10 +482,7 @@ class PriceDataGenerator:
 
         # Smooth noise to avoid erratic swings
         close_prices = (
-            pd.Series(noisy_curve)
-            .rolling(window=5, min_periods=1)
-            .mean()
-            .to_numpy()
+            pd.Series(noisy_curve).rolling(window=5, min_periods=1).mean().to_numpy()
         )
 
         # Enforce shallow pullbacks relative to the drift curve
@@ -501,7 +502,9 @@ class PriceDataGenerator:
         opens = np.roll(close_prices, 1)
         opens[0] = close_prices[0]
         # Use simple random gap noise to avoid patterns
-        gap_noise = np.random.normal(0, volatility * np.mean(close_prices) * 0.1, n_samples)
+        gap_noise = np.random.normal(
+            0, volatility * np.mean(close_prices) * 0.1, n_samples
+        )
         opens = opens + gap_noise
 
         # Ensure OHLC relationships are valid: low ≤ open, close ≤ high

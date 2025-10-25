@@ -189,12 +189,21 @@ class MLflowTrainingCallback:
         self.position_change_counts.append(position_changes)
         self.training_stats["position_change_counts"].append(position_changes)
 
+        # Calculate position change ratio (position changes / episode length)
+        episode_length = len(actions)
+        position_change_ratio = (
+            position_changes / episode_length if episode_length > 0 else 0.0
+        )
+
         # Log episode metrics to MLflow
         episode_num = len(self.training_stats["episode_rewards"])
         mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
         mlflow.log_metric("portfolio_value", portfolio_value, step=episode_num)
         mlflow.log_metric(
             "position_changes_per_episode", position_changes, step=episode_num
+        )
+        mlflow.log_metric(
+            "position_change_ratio", position_change_ratio, step=episode_num
         )
         mlflow.log_metric("exploration_ratio", exploration_ratio, step=episode_num)
 
@@ -287,6 +296,25 @@ def log_final_metrics_to_mlflow(
                 "max_position_changes_per_episode", int(np.max(position_changes))
             )
             mlflow.log_metric("total_position_changes", int(np.sum(position_changes)))
+
+            # Calculate and log average position change ratio
+            # Note: We need episode lengths to calculate this properly
+            # For now, we'll estimate based on total actions vs episodes
+            total_episodes = len(training_curves["episode_rewards"])
+            total_actions = (
+                len(training_callback.training_stats["actions_taken"])
+                if training_callback
+                else 0
+            )
+            avg_episode_length = (
+                total_actions / total_episodes
+                if total_episodes > 0 and total_actions > 0
+                else 1
+            )
+            avg_position_change_ratio = np.mean(position_changes) / avg_episode_length
+            mlflow.log_metric(
+                "avg_position_change_ratio", float(avg_position_change_ratio)
+            )
 
     # Log dataset metadata as parameters
     mlflow.log_param("data_start_date", final_metrics.get("data_start_date", "unknown"))
@@ -538,6 +566,7 @@ def run_single_experiment(
         timeframe=config.data.timeframe,
         data_dir=config.data.data_dir,
         since=config.data.download_since,
+        no_features=getattr(config.data, "no_features", False),
     )
 
     # Log data overview to MLflow
@@ -762,7 +791,9 @@ def run_single_experiment(
     # Evaluate agent
     logger.info("Evaluating agent...")
     # Ensure max_steps doesn't exceed training data size
-    eval_max_steps = min(1000, config.data.train_size - 1)  # -1 to account for shift operation
+    eval_max_steps = min(
+        1000, config.data.train_size - 1
+    )  # -1 to account for shift operation
     reward_plot, action_plot, final_reward = evaluate_agent(
         env,
         actor,
