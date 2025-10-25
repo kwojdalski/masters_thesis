@@ -36,6 +36,12 @@ def download_trading_data(
         data_dir: Directory to save downloaded data
         since: Start date for data download
     """
+    if download is None:
+        raise ImportError(
+            "gym_trading_env package is required for data downloading. "
+            "Install it with: pip install gym-trading-env"
+        )
+
     logger.info(f"Downloading data for {symbols} from {exchange_names}")
     download(
         exchange_names=exchange_names,
@@ -183,12 +189,20 @@ def prepare_data(
     df = load_trading_data(data_path, cache_bust=file_signature)
 
     if no_features:
-        # Skip feature creation - just drop NaN values and return OHLCV data
+        # Skip feature creation but normalize OHLCV data for neural network
         df = df.dropna()
+        
+        # Normalize OHLCV columns to prevent scale issues
+        ohlcv_cols = ['open', 'high', 'low', 'close', 'volume']
+        for col in ohlcv_cols:
+            if col in df.columns:
+                df[col] = (df[col] - df[col].mean()) / df[col].std()
+
         logger.info(
             f"Loaded data without features: {len(df)} rows, {len(df.columns)} columns"
         )
         logger.info(f"Columns: {list(df.columns)}")
+        logger.info("Applied normalization to OHLCV columns")
     else:
         # Create features as usual
         df = create_features(df, data_path=data_path)

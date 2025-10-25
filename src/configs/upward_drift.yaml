@@ -18,7 +18,7 @@ data:
 # Environment Configuration
 environment:
   name: "UPDRIFT"
-  positions: [0, 1]  # Hold, long
+  positions: [-1, 0, 1]  # Hold, long
   trading_fees: 0.0  # No fees for synthetic validation
   borrow_interest_rate: 0.0
 
