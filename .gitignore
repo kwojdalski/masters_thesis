@@ -3,6 +3,7 @@ necchi/*
 proposal/*
 working_papers/*
 *.md
+!docs/*.md
 !README.md
 */cache/*
 *cache
@@ -122,7 +123,6 @@ notebooks/*/libs/quarto-html/
 .DS_Store
 thesis/build
 .cursor
-docs/*
 thesis/qmd/src/*.html
 thesis/qmd/src/*files
 thesis/qmd/src/*.pdf

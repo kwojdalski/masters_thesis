@@ -558,20 +558,6 @@ def run_single_experiment(
 
     # Prepare data
     logger.info("Preparing data...")
-
-    # First, load original data for benchmarks (needed for price-based calculations)
-    original_df = prepare_data(
-        data_path=config.data.data_path,
-        download_if_missing=config.data.download_data,
-        exchange_names=config.data.exchange_names,
-        symbols=config.data.symbols,
-        timeframe=config.data.timeframe,
-        data_dir=config.data.data_dir,
-        since=config.data.download_since,
-        no_features=False,  # Always load without normalization for benchmarks
-    )
-
-    # Then load normalized data for training (if using no_features)
     df = prepare_data(
         data_path=config.data.data_path,
         download_if_missing=config.data.download_data,
@@ -811,7 +797,7 @@ def run_single_experiment(
     reward_plot, action_plot, final_reward = evaluate_agent(
         env,
         actor,
-        original_df[: config.data.train_size],  # Pass original unnormalized data for benchmarks
+        df[: config.data.train_size],  # Pass only the training portion
         max_steps=eval_max_steps,
     )
 

@@ -343,6 +343,16 @@ df = generator.generate_synthetic_sample(
 files = generator.list_source_files()
 ```
 
+## Experiment Workflow
+
+For detailed information about how experiments work, including system architecture and component interactions, see [docs/experiment_workflow.md](docs/experiment_workflow.md). This documentation includes:
+
+- Complete experiment workflow with Mermaid diagrams
+- Component details and data flow
+- MLflow integration architecture  
+- Configuration options and usage examples
+- Performance optimization and debugging guides
+
 ## Experiment Tracking
 
 The framework provides comprehensive experiment tracking via Optuna:
