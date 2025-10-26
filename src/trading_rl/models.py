@@ -160,6 +160,51 @@ def create_value_network(
     return value_net
 
 
+def create_ppo_actor(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+    spec: Any | None = None,
+) -> ProbabilisticActor:
+    """Create a probabilistic actor specifically for PPO.
+
+    Args:
+        n_obs: Number of observations
+        n_act: Number of actions
+        hidden_dims: Hidden layer dimensions
+        spec: Action spec from environment
+
+    Returns:
+        ProbabilisticActor module configured for PPO
+    """
+    logger.info("Creating PPO actor network")
+
+    # Create base network
+    net = DiscreteNet(n_obs, n_act, hidden_dims)
+
+    # Wrap in TensorDictModule
+    module = TensorDictModule(
+        net,
+        in_keys=["observation"],
+        out_keys=["probs"],
+    )
+
+    # Create probabilistic actor with proper PPO configuration
+    # Don't specify both out_keys and return_log_prob to avoid conflicts
+    actor = ProbabilisticActor(
+        module=module,
+        distribution_class=d.OneHotCategorical,
+        in_keys=["probs"],
+        spec=None,  # Remove spec to avoid conflicts with multiple out_keys
+        safe=False,  # Must be False when spec=None
+        default_interaction_type=InteractionType.RANDOM,
+        return_log_prob=True,  # This automatically creates action_log_prob
+    )
+
+    logger.info("PPO actor network created")
+    return actor
+
+
 def create_ppo_value_network(
     n_obs: int,
     hidden_dims: list[int] | None = None,

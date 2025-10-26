@@ -389,7 +389,10 @@ def experiment(
         try:
             # Run experiments with unified tracking (always plot positions)
             experiment_result = run_multiple_experiments(
-                experiment_name, n_trials, base_seed, config
+                n_trials=n_trials,
+                base_seed=base_seed,
+                custom_config=config,
+                experiment_name=experiment_name
             )
             progress.update(task, description="Experiments complete!")
 

@@ -60,14 +60,13 @@ logging:
   log_dir: "logs/upward_drift_ppo"
   log_level: "INFO"
 
-# Upward Drift Pattern Details (for documentation)
-pattern_info:
-  description: "Strong exponential upward drift with minimal volatility"
+# Data Generator Configuration
+data_generator:
+  pattern_type: "upward_drift"
   n_samples: 500
   base_price: 50000.0
-  drift_rate: 0.03
+  drift_rate: 0.0015  # More reasonable 0.15% per step
   volatility: 0.0005
   pullback_floor: 0.995
-  expected_strategy: "Stay long; small pullbacks rarely justify exiting"
-  optimal_return_estimate: "> 100%"  # Drift doubles price over the horizon
-  algorithm: "PPO should learn to stay long with minimal position changes"
+  start_date: "2024-01-01"
+

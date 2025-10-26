@@ -6,9 +6,11 @@ import logging
 import os
 import shutil
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
+import yaml
 
 RESET_COLOR = "\033[0m"
 
@@ -421,10 +423,102 @@ class PriceDataGenerator:
 
         return df
 
+    def load_config(self, config_path: str) -> dict[str, Any]:
+        """
+        Load configuration from YAML file.
+
+        Parameters
+        ----------
+        config_path : str
+            Path to YAML configuration file
+
+        Returns
+        -------
+        dict[str, Any]
+            Configuration dictionary
+        """
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+        return config
+
+    def generate_from_config(self, config_path: str, output_file: str | None = None) -> pd.DataFrame:
+        """
+        Generate synthetic data using parameters from YAML config file.
+
+        Parameters
+        ----------
+        config_path : str
+            Path to YAML configuration file
+        output_file : str, optional
+            Output file name (if None, uses pattern_type from config)
+
+        Returns
+        -------
+        pd.DataFrame
+            Generated synthetic data
+        """
+        config = self.load_config(config_path)
+        data_gen_config = config.get('data_generator', {})
+
+        pattern_type = data_gen_config.get('pattern_type', 'upward_drift')
+
+        if output_file is None:
+            output_file = f"{pattern_type}_validation.parquet"
+
+        self.logger.info(f"Generating {pattern_type} pattern from config {config_path}")
+
+        if pattern_type == "upward_drift":
+            return self.generate_upward_drift_pattern(
+                output_file=output_file,
+                n_samples=data_gen_config.get('n_samples', 500),
+                base_price=data_gen_config.get('base_price', 50000.0),
+                drift_rate=data_gen_config.get('drift_rate', 0.0015),
+                volatility=data_gen_config.get('volatility', 0.0005),
+                pullback_floor=data_gen_config.get('pullback_floor', 0.995),
+                start_date=data_gen_config.get('start_date', "2024-01-01"),
+            )
+        elif pattern_type == "sine_wave":
+            return self.generate_sine_wave_pattern(
+                output_file=output_file,
+                n_periods=data_gen_config.get('n_periods', 5),
+                samples_per_period=data_gen_config.get('samples_per_period', 100),
+                base_price=data_gen_config.get('base_price', 50000.0),
+                amplitude=data_gen_config.get('amplitude', 30.0),
+                trend_slope=data_gen_config.get('trend_slope', 0),
+                volatility=data_gen_config.get('volatility', 0.0),
+                start_date=data_gen_config.get('start_date', "2024-01-01"),
+            )
+        elif pattern_type == "mean_reversion":
+            return self.generate_mean_reversion_pattern(
+                output_file=output_file,
+                n_samples=data_gen_config.get('n_samples', 500),
+                mean_price=data_gen_config.get('mean_price', 50000.0),
+                reversion_strength=data_gen_config.get('reversion_strength', 0.1),
+                volatility=data_gen_config.get('volatility', 0.05),
+                shock_probability=data_gen_config.get('shock_probability', 0.02),
+                shock_magnitude=data_gen_config.get('shock_magnitude', 0.15),
+                start_date=data_gen_config.get('start_date', "2024-01-01"),
+            )
+        elif pattern_type == "trending":
+            return self.generate_trending_pattern(
+                output_file=output_file,
+                n_samples=data_gen_config.get('n_samples', 500),
+                base_price=data_gen_config.get('base_price', 50000.0),
+                n_trends=data_gen_config.get('n_trends', 3),
+                min_trend_length=data_gen_config.get('min_trend_length', 50),
+                max_trend_length=data_gen_config.get('max_trend_length', 150),
+                trend_strength_range=tuple(data_gen_config.get('trend_strength_range', [0.5, 2.0])),
+                volatility=data_gen_config.get('volatility', 0.03),
+                consolidation_prob=data_gen_config.get('consolidation_prob', 0.2),
+                start_date=data_gen_config.get('start_date', "2024-01-01"),
+            )
+        else:
+            raise ValueError(f"Unknown pattern_type: {pattern_type}")
+
     def generate_upward_drift_pattern(
         self,
         output_file: str,
-        n_samples: int = 500,
+        n_samples: int = 1000,
         base_price: float = 50000.0,
         drift_rate: float = 0.0015,
         volatility: float = 0.0005,
@@ -942,7 +1036,7 @@ def main():
     # Generate low-volatility upward drift pattern
     generator.generate_upward_drift_pattern(
         output_file="upward_drift_validation.parquet",
-        n_samples=400,
+        n_samples=1000,
         base_price=50000.0,
         drift_rate=0.0012,
         volatility=0.0004,

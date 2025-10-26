@@ -4,7 +4,6 @@
 experiment_name: "sine_wave_validation"
 seed: 42  # Fixed seed for reproducibility
 
-# Data Configuration - Sine Wave Pattern
 data:
   data_path: "./data/raw/synthetic/sine_wave_validation.parquet"
   download_data: false
@@ -13,64 +12,49 @@ data:
   timeframe: "1h"
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
-  train_size: 400  # Use most of 500 samples
+  train_size: 400
+  no_features: false
 
-# Environment Configuration
-environment:
+env:
   name: "SINEWAVE"
-  positions: [-1, 0, 1]  # Short, hold, long
-  trading_fees: 0.0  # No fees for synthetic validation
+  positions: [-1, 0, 1]
+  trading_fees: 0.0
   borrow_interest_rate: 0.0
 
-# Network Architecture - Smaller for simple pattern
 network:
-  # Actor network - simpler for predictable pattern
   actor_hidden_dims: [32, 16]
-
-  # Value network - simpler for predictable pattern
   value_hidden_dims: [32, 16, 8]
 
-# Training Parameters - Optimized for sine wave learning
 training:
-  # Optimization - faster learning rates for simple pattern
+  algorithm: "DDPG"
   actor_lr: 0.0005
   value_lr: 0.002
   value_weight_decay: 0.005
-
-  # Training loop - longer training for convergence
-  max_training_steps: 10000  # 50 episodes should be enough
-  init_rand_steps: 20  # Less random exploration needed
+  max_training_steps: 10000
+  init_rand_steps: 20
   frames_per_batch: 200
   optim_steps_per_batch: 50
-  sample_size: 32  # Smaller batch for faster updates
-
-  # Replay buffer - smaller for simple pattern
-  buffer_size: 5000  # Don't need huge buffer
-
-  # Target network updates - faster for simple pattern
-  tau: 0.005  # Faster target updates
-
-  # Loss function
+  sample_size: 32
+  buffer_size: 5000
+  tau: 0.005
   loss_function: "l2"
+  eval_steps: 300
+  eval_interval: 100
+  log_interval: 25
 
-  # Evaluation - more frequent for monitoring
-  eval_steps: 300  # Must be less than train_size (400)
-  eval_interval: 100  # Check progress more often
-  log_interval: 25   # Log more frequently
-
-# Logging Configuration
 logging:
   log_dir: "logs/sine_wave"
   log_level: "INFO"
 
-# Sine Wave Pattern Details (for documentation)
-pattern_info:
-  description: "Predictable sine wave with upward trend"
+data_generator:
+  pattern_type: "sine_wave"
   n_periods: 5
   samples_per_period: 100
+  n_samples: 500
   base_price: 50000.0
   amplitude: 8000.0
   trend_slope: 50.0
   volatility: 0.02
+  description: "Predictable sine wave with upward trend"
   expected_strategy: "Buy at troughs (~42000), Sell at peaks (~58000)"
-  optimal_return_estimate: "> 200%"  # Should significantly outperform 47.55% market return
+  optimal_return_estimate: "> 200%"

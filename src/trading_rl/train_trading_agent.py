@@ -29,6 +29,7 @@ from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data, reward_function
 from trading_rl.models import (
     create_actor,
+    create_ppo_actor,
     create_ppo_value_network,
     create_value_network,
 )
@@ -536,8 +537,161 @@ def evaluate_agent(
     return reward_plot, action_plot, final_reward
 
 
+def _log_training_parameters(config: ExperimentConfig) -> None:
+    """Log all training parameters to MLflow."""
+    import json
+
+    try:
+        # Basic experiment parameters
+        mlflow.log_param("experiment_name", str(config.experiment_name))
+        mlflow.log_param("seed", int(config.seed))
+
+        # Data parameters
+        mlflow.log_param("data_train_size", int(config.data.train_size))
+        mlflow.log_param("data_timeframe", str(config.data.timeframe))
+        mlflow.log_param("data_exchange_names", json.dumps(config.data.exchange_names))
+        mlflow.log_param("data_symbols", json.dumps(config.data.symbols))
+        mlflow.log_param("data_download_data", bool(config.data.download_data))
+        mlflow.log_param("data_no_features", bool(getattr(config.data, "no_features", False)))
+
+        # Environment parameters
+        mlflow.log_param("env_name", str(config.env.name))
+        mlflow.log_param("env_positions", json.dumps(config.env.positions))
+        mlflow.log_param("env_trading_fees", float(config.env.trading_fees))
+        mlflow.log_param("env_borrow_interest_rate", float(config.env.borrow_interest_rate))
+
+        # Network architecture
+        mlflow.log_param("network_actor_hidden_dims", json.dumps(config.network.actor_hidden_dims))
+        mlflow.log_param("network_value_hidden_dims", json.dumps(config.network.value_hidden_dims))
+
+        # Training parameters
+        mlflow.log_param("training_algorithm", str(config.training.algorithm))
+        mlflow.log_param("training_actor_lr", float(config.training.actor_lr))
+        mlflow.log_param("training_value_lr", float(config.training.value_lr))
+        mlflow.log_param("training_value_weight_decay", float(config.training.value_weight_decay))
+        mlflow.log_param("training_max_training_steps", int(config.training.max_training_steps))
+        mlflow.log_param("training_init_rand_steps", int(config.training.init_rand_steps))
+        mlflow.log_param("training_frames_per_batch", int(config.training.frames_per_batch))
+        mlflow.log_param("training_optim_steps_per_batch", int(config.training.optim_steps_per_batch))
+        mlflow.log_param("training_sample_size", int(config.training.sample_size))
+        mlflow.log_param("training_buffer_size", int(config.training.buffer_size))
+        mlflow.log_param("training_loss_function", str(config.training.loss_function))
+        mlflow.log_param("training_eval_steps", int(config.training.eval_steps))
+        mlflow.log_param("training_eval_interval", int(config.training.eval_interval))
+        mlflow.log_param("training_log_interval", int(config.training.log_interval))
+
+        # Algorithm-specific parameters
+        if hasattr(config.training, "tau"):
+            mlflow.log_param("training_tau", float(config.training.tau))
+        if hasattr(config.training, "clip_epsilon"):
+            mlflow.log_param("training_clip_epsilon", float(config.training.clip_epsilon))
+        if hasattr(config.training, "entropy_bonus"):
+            mlflow.log_param("training_entropy_bonus", float(config.training.entropy_bonus))
+        if hasattr(config.training, "vf_coef"):
+            mlflow.log_param("training_vf_coef", float(config.training.vf_coef))
+        if hasattr(config.training, "ppo_epochs"):
+            mlflow.log_param("training_ppo_epochs", int(config.training.ppo_epochs))
+
+        # Logging parameters
+        mlflow.log_param("logging_log_dir", str(config.logging.log_dir))
+        mlflow.log_param("logging_log_level", str(config.logging.log_level))
+
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Failed to log some training parameters: {e}")
+
+
+def _log_config_artifact(config: ExperimentConfig) -> None:
+    """Log YAML config file as MLflow artifact if available."""
+    import tempfile
+    from pathlib import Path
+
+    import yaml
+
+    # Try to find the config file based on experiment name
+    config_dir = Path("src/configs")
+    possible_configs = [
+        config_dir / f"{config.experiment_name}.yaml",
+        config_dir / f"{config.experiment_name}_ppo.yaml",
+        config_dir / f"{config.experiment_name}_ddpg.yaml",
+    ]
+
+    config_file = None
+    for path in possible_configs:
+        if path.exists():
+            config_file = path
+            break
+
+    if config_file and config_file.exists():
+        # Log the original config file
+        mlflow.log_artifact(str(config_file), "config")
+    else:
+        # Create a config file from the current config object
+        config_dict = {
+            "experiment_name": config.experiment_name,
+            "seed": config.seed,
+            "data": {
+                "data_path": config.data.data_path,
+                "download_data": config.data.download_data,
+                "exchange_names": config.data.exchange_names,
+                "symbols": config.data.symbols,
+                "timeframe": config.data.timeframe,
+                "data_dir": config.data.data_dir,
+                "download_since": config.data.download_since,
+                "train_size": config.data.train_size,
+                "no_features": getattr(config.data, "no_features", False),
+            },
+            "env": {
+                "name": config.env.name,
+                "positions": config.env.positions,
+                "trading_fees": config.env.trading_fees,
+                "borrow_interest_rate": config.env.borrow_interest_rate,
+            },
+            "network": {
+                "actor_hidden_dims": config.network.actor_hidden_dims,
+                "value_hidden_dims": config.network.value_hidden_dims,
+            },
+            "training": {
+                "algorithm": config.training.algorithm,
+                "actor_lr": config.training.actor_lr,
+                "value_lr": config.training.value_lr,
+                "value_weight_decay": config.training.value_weight_decay,
+                "max_training_steps": config.training.max_training_steps,
+                "init_rand_steps": config.training.init_rand_steps,
+                "frames_per_batch": config.training.frames_per_batch,
+                "optim_steps_per_batch": config.training.optim_steps_per_batch,
+                "sample_size": config.training.sample_size,
+                "buffer_size": config.training.buffer_size,
+                "loss_function": config.training.loss_function,
+                "eval_steps": config.training.eval_steps,
+                "eval_interval": config.training.eval_interval,
+                "log_interval": config.training.log_interval,
+            },
+            "logging": {
+                "log_dir": config.logging.log_dir,
+                "log_level": config.logging.log_level,
+            },
+        }
+
+        # Add algorithm-specific parameters
+        if hasattr(config.training, "tau"):
+            config_dict["training"]["tau"] = config.training.tau
+        if hasattr(config.training, "clip_epsilon"):
+            config_dict["training"]["clip_epsilon"] = config.training.clip_epsilon
+        if hasattr(config.training, "entropy_bonus"):
+            config_dict["training"]["entropy_bonus"] = config.training.entropy_bonus
+        if hasattr(config.training, "vf_coef"):
+            config_dict["training"]["vf_coef"] = config.training.vf_coef
+        if hasattr(config.training, "ppo_epochs"):
+            config_dict["training"]["ppo_epochs"] = config.training.ppo_epochs
+
+        # Create temporary YAML file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
+            mlflow.log_artifact(f.name, "config")
+
+
 def run_single_experiment(
-    experiment_name: str = "trading_rl", custom_config: ExperimentConfig | None = None
+    custom_config: ExperimentConfig | None = None, experiment_name: str | None = None
 ) -> dict:
     """Run a single training experiment with MLflow tracking.
 
@@ -547,14 +701,17 @@ def run_single_experiment(
     - Artifacts logged for plots and models
 
     Args:
-        experiment_name: MLflow experiment name
         custom_config: Optional custom configuration
+        experiment_name: Optional override for MLflow experiment name (uses config.experiment_name by default)
 
     Returns:
         Dictionary with results
     """
     # Load configuration
     config = custom_config or ExperimentConfig()
+
+    # Use experiment name from config, with optional override
+    effective_experiment_name = experiment_name or config.experiment_name
 
     # Setup
     logger = setup_logging(config)
@@ -577,6 +734,12 @@ def run_single_experiment(
     if mlflow.active_run():
         # Log parameter FAQ as artifacts (early in trial for immediate availability)
         _log_parameter_faq_artifact()
+
+        # Log all training parameters
+        _log_training_parameters(config)
+
+        # Log YAML config file as artifact if available
+        _log_config_artifact(config)
 
         # Log dataset metadata
         mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
@@ -760,21 +923,27 @@ def run_single_experiment(
     algorithm = getattr(config.training, "algorithm", "PPO")
     logger.info(f"Creating models for {algorithm} algorithm...")
 
-    # Actor is the same for both algorithms (categorical for discrete actions)
-    actor = create_actor(
-        n_obs,
-        n_act,
-        hidden_dims=config.network.actor_hidden_dims,
-        spec=env.action_spec,
-    )
-
-    # Value network depends on algorithm
+    # Actor and value network depend on algorithm
     if algorithm.upper() == "PPO":
+        # PPO needs actor with log prob outputs
+        actor = create_ppo_actor(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.actor_hidden_dims,
+            spec=env.action_spec,
+        )
         value_net = create_ppo_value_network(
             n_obs,
             hidden_dims=config.network.value_hidden_dims,
         )
     else:  # DDPG
+        # DDPG uses original actor
+        actor = create_actor(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.actor_hidden_dims,
+            spec=env.action_spec,
+        )
         value_net = create_value_network(
             n_obs,
             n_act,
@@ -799,7 +968,7 @@ def run_single_experiment(
         )
 
     # Create MLflow callback
-    mlflow_callback = MLflowTrainingCallback(experiment_name)
+    mlflow_callback = MLflowTrainingCallback(effective_experiment_name)
 
     # Train
     logger.info("Starting training...")
@@ -813,16 +982,80 @@ def run_single_experiment(
 
     # Evaluate agent
     logger.info("Evaluating agent...")
-    # Ensure max_steps doesn't exceed training data size
+    # Ensure max_steps doesn't exceed available data size
     eval_max_steps = min(
-        1000, config.data.train_size - 1
-    )  # -1 to account for shift operation
+        config.training.eval_steps,
+        len(df) - 1,
+        config.data.train_size - 1
+    )  # Use the smallest of: eval_steps, actual data size, or train_size
     reward_plot, action_plot, final_reward = evaluate_agent(
         env,
         actor,
         df[: config.data.train_size],  # Pass only the training portion
         max_steps=eval_max_steps,
     )
+
+    # Save evaluation plots as MLflow artifacts
+    if mlflow.active_run():
+        import os
+        import tempfile
+
+        try:
+            # Save reward plot
+            with tempfile.NamedTemporaryFile(suffix='_rewards.png', delete=False) as tmp_reward:
+                reward_plot.save(filename=tmp_reward.name, format='png', width=10, height=6, dpi=150, units='in')
+                mlflow.log_artifact(tmp_reward.name, "evaluation_plots")
+                os.unlink(tmp_reward.name)
+
+            # Save action/position plot
+            with tempfile.NamedTemporaryFile(suffix='_positions.png', delete=False) as tmp_action:
+                action_plot.save(filename=tmp_action.name, format='png', width=10, height=6, dpi=150, units='in')
+                mlflow.log_artifact(tmp_action.name, "evaluation_plots")
+                os.unlink(tmp_action.name)
+
+            # Create and save training loss plots
+            if logs.get("loss_value") or logs.get("loss_actor"):
+                import pandas as pd
+                from plotnine import aes, geom_line, ggplot, labs, theme_minimal
+
+                # Create loss plot data
+                loss_data = []
+                if logs.get("loss_value"):
+                    loss_data.extend([
+                        {"step": i, "loss": loss, "type": "Value Loss"}
+                        for i, loss in enumerate(logs["loss_value"])
+                    ])
+                if logs.get("loss_actor"):
+                    loss_data.extend([
+                        {"step": i, "loss": loss, "type": "Actor Loss"}
+                        for i, loss in enumerate(logs["loss_actor"])
+                    ])
+
+                if loss_data:
+                    loss_df = pd.DataFrame(loss_data)
+
+                    # Create training loss plot
+                    loss_plot = (
+                        ggplot(loss_df, aes(x="step", y="loss", color="type"))
+                        + geom_line(size=1.2)
+                        + labs(
+                            title="Training Losses",
+                            x="Training Step",
+                            y="Loss Value",
+                            color="Loss Type"
+                        )
+                        + theme_minimal()
+                    )
+
+                    # Save training loss plot
+                    with tempfile.NamedTemporaryFile(suffix='_training_losses.png', delete=False) as tmp_loss:
+                        loss_plot.save(filename=tmp_loss.name, format='png', width=10, height=6, dpi=150, units='in')
+                        mlflow.log_artifact(tmp_loss.name, "training_plots")
+                        os.unlink(tmp_loss.name)
+
+            logger.info("Saved evaluation and training plots as MLflow artifacts")
+        except Exception as e:
+            logger.warning(f"Failed to save plots as artifacts: {e}")
 
     # Prepare comprehensive metrics
     final_metrics = {
@@ -873,10 +1106,10 @@ def run_single_experiment(
 
 # %%
 def run_multiple_experiments(
-    experiment_name: str,
     n_trials: int = 5,
     base_seed: int | None = None,
     custom_config: ExperimentConfig | None = None,
+    experiment_name: str | None = None,
 ) -> str:
     """Run multiple experiments and track with MLflow.
 
@@ -886,15 +1119,21 @@ def run_multiple_experiments(
     - Artifacts for plots and models
 
     Args:
-        experiment_name: Name for the MLflow experiment
         n_trials: Number of experiments to run
         base_seed: Base seed for reproducible experiments (each trial uses base_seed + trial_number)
+        custom_config: Optional custom configuration
+        experiment_name: Optional override for MLflow experiment name (uses config.experiment_name by default)
 
     Returns:
         MLflow experiment name with all results
     """
+    # Load configuration to get experiment name
+    from trading_rl.config import ExperimentConfig
+    config = custom_config or ExperimentConfig()
+    effective_experiment_name = experiment_name or config.experiment_name
+
     # Setup MLflow experiment
-    setup_mlflow_experiment(experiment_name)
+    setup_mlflow_experiment(effective_experiment_name)
 
     results = []
 
@@ -904,32 +1143,63 @@ def run_multiple_experiments(
         logger.info(f"Running trial {trial_number + 1}/{n_trials}")
 
         # Create config with deterministic seed based on trial number
-        from trading_rl.config import ExperimentConfig
-
         if custom_config is not None:
             # Use custom config as base and copy it for this trial
             import copy
 
-            config = copy.deepcopy(custom_config)
+            trial_config = copy.deepcopy(custom_config)
         else:
-            config = ExperimentConfig()
+            trial_config = ExperimentConfig()
 
         if base_seed is not None:
-            config.seed = base_seed + trial_number
+            trial_config.seed = base_seed + trial_number
         else:
             import random
 
-            config.seed = random.randint(1, 100000)  # noqa: S311
+            trial_config.seed = random.randint(1, 100000)  # noqa: S311
 
         # Update experiment name to include trial number
-        config.experiment_name = f"{experiment_name}_trial_{trial_number}"
+        trial_config.experiment_name = f"{effective_experiment_name}_trial_{trial_number}"
 
         # Start a new MLflow run for this trial
         with mlflow.start_run(run_name=f"trial_{trial_number}"):
-            result = run_single_experiment(experiment_name, custom_config=config)
+            result = run_single_experiment(custom_config=trial_config)
             results.append(result)
 
     # Generate comparison plots after all trials complete
-    create_mlflow_comparison_plots(experiment_name, results)
+    create_mlflow_comparison_plots(effective_experiment_name, results)
 
-    return experiment_name
+    return effective_experiment_name
+
+
+def run_experiment_from_config(config_path: str, n_trials: int = 1) -> str:
+    """Load experiment config from YAML file and run experiment(s).
+
+    This is a convenient wrapper that:
+    1. Loads configuration from a YAML file
+    2. Uses the experiment_name from the config for MLflow
+    3. Runs the specified number of trials
+
+    Args:
+        config_path: Path to YAML configuration file
+        n_trials: Number of trials to run (defaults to 1)
+
+    Returns:
+        MLflow experiment name
+    """
+    from trading_rl.config import ExperimentConfig
+
+    # Load config from file
+    config = ExperimentConfig.from_yaml(config_path)
+
+    if n_trials == 1:
+        # Run single experiment
+        with mlflow.start_run():
+            run_single_experiment(custom_config=config)
+        return config.experiment_name
+    else:
+        # Run multiple experiments
+        return run_multiple_experiments(
+            n_trials=n_trials,
+            custom_config=config
+        )

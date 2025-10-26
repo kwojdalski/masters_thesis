@@ -21,6 +21,7 @@ from .models import (
     count_parameters,
     create_actor,
     create_value_network,
+    create_ppo_actor,
     create_ppo_value_network,
     create_ddpg_actor,
 )
@@ -28,6 +29,7 @@ from .train_trading_agent import (
     MLflowTrainingCallback,
     create_environment,
     evaluate_agent,
+    run_experiment_from_config,
     run_multiple_experiments,
     run_single_experiment,
     set_seed,
@@ -53,6 +55,7 @@ __all__ = [
     "count_parameters",
     "create_actor",
     "create_value_network",
+    "create_ppo_actor",
     "create_ppo_value_network",
     "create_ddpg_actor",
     # Data
@@ -63,6 +66,7 @@ __all__ = [
     "load_trading_data",
     "prepare_data",
     "reward_function",
+    "run_experiment_from_config",
     "run_multiple_experiments",
     "run_single_experiment",
     "set_seed",

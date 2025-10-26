@@ -331,8 +331,8 @@ class PPOTrainer:
         self.total_episodes = 0
         self.logs = defaultdict(list)
 
-        # Enable composite LP aggregate for better performance
-        set_composite_lp_aggregate(True).set()
+        # Note: Don't set composite LP aggregate for PPO to avoid conflicts
+        # with log_prob_key property
 
         logger.info("PPO Trainer initialized")
         logger.info(f"Learning rate: {config.actor_lr}")
