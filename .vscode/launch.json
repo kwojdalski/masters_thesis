@@ -7,6 +7,29 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Trading RL Experiment",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/cli.py",
+            "args": [
+                "experiment",
+                "--config",
+                "src/configs/upward_drift.yaml",
+                "--trials",
+                "3",
+                "--max-steps",
+                "200"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}",
+                "VIRTUAL_ENV": "${workspaceFolder}/.venv",
+                "PATH": "${workspaceFolder}/.venv/bin:${env:PATH}"
+            }
         }
     ]
 }
