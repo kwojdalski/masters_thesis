@@ -27,9 +27,13 @@ from logger import get_logger as get_project_logger
 from logger import setup_logging as configure_root_logging
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data, reward_function
-from trading_rl.models import create_actor, create_value_network
+from trading_rl.models import (
+    create_actor,
+    create_ppo_value_network,
+    create_value_network,
+)
 from trading_rl.plotting import create_mlflow_comparison_plots, visualize_training
-from trading_rl.training import DDPGTrainer
+from trading_rl.training import DDPGTrainer, PPOTrainer
 from trading_rl.utils import compare_rollouts
 
 # Setup joblib memory for caching expensive operations
@@ -752,28 +756,47 @@ def run_single_experiment(
     n_act = env.action_spec.shape[-1]
     logger.info(f"Environment: {n_obs} observations, {n_act} actions")
 
-    # Create models
-    logger.info("Creating models...")
+    # Create models based on algorithm choice
+    algorithm = getattr(config.training, "algorithm", "PPO")
+    logger.info(f"Creating models for {algorithm} algorithm...")
+
+    # Actor is the same for both algorithms (categorical for discrete actions)
     actor = create_actor(
         n_obs,
         n_act,
         hidden_dims=config.network.actor_hidden_dims,
         spec=env.action_spec,
     )
-    value_net = create_value_network(
-        n_obs,
-        n_act,
-        hidden_dims=config.network.value_hidden_dims,
-    )
 
-    # Create trainer
-    logger.info("Initializing trainer...")
-    trainer = DDPGTrainer(
-        actor=actor,
-        value_net=value_net,
-        env=env,
-        config=config.training,
-    )
+    # Value network depends on algorithm
+    if algorithm.upper() == "PPO":
+        value_net = create_ppo_value_network(
+            n_obs,
+            hidden_dims=config.network.value_hidden_dims,
+        )
+    else:  # DDPG
+        value_net = create_value_network(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.value_hidden_dims,
+        )
+
+    # Create trainer based on algorithm
+    logger.info(f"Initializing {algorithm} trainer...")
+    if algorithm.upper() == "PPO":
+        trainer = PPOTrainer(
+            actor=actor,
+            value_net=value_net,
+            env=env,
+            config=config.training,
+        )
+    else:  # DDPG
+        trainer = DDPGTrainer(
+            actor=actor,
+            value_net=value_net,
+            env=env,
+            config=config.training,
+        )
 
     # Create MLflow callback
     mlflow_callback = MLflowTrainingCallback(experiment_name)

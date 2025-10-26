@@ -49,6 +49,9 @@ class NetworkConfig:
 class TrainingConfig:
     """Training hyperparameters configuration."""
 
+    # Algorithm selection
+    algorithm: str = "PPO"  # "PPO" or "DDPG"
+
     # Optimization
     actor_lr: float = 1e-4
     value_lr: float = 1e-3
@@ -64,8 +67,14 @@ class TrainingConfig:
     # Replay buffer
     buffer_size: int = 100_000
 
-    # Target network
-    tau: float = 0.001
+    # DDPG-specific parameters
+    tau: float = 0.001  # Target network update rate
+
+    # PPO-specific parameters
+    clip_epsilon: float = 0.2  # PPO clipping parameter
+    entropy_bonus: float = 0.01  # Entropy bonus coefficient
+    vf_coef: float = 0.5  # Value function loss coefficient
+    ppo_epochs: int = 4  # Number of PPO epochs per batch
 
     # Loss function
     loss_function: str = "l2"

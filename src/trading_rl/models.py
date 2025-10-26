@@ -160,6 +160,89 @@ def create_value_network(
     return value_net
 
 
+def create_ppo_value_network(
+    n_obs: int,
+    hidden_dims: list[int] | None = None,
+) -> ValueOperator:
+    """Create a value network for PPO (state value estimation).
+
+    Args:
+        n_obs: Number of observations
+        hidden_dims: Hidden layer dimensions for MLP
+
+    Returns:
+        ValueOperator module for V(s) estimation
+    """
+    logger.info("Creating PPO value network")
+
+    if hidden_dims is None:
+        hidden_dims = [64, 32, 16]
+
+    value_net = ValueOperator(
+        MLP(
+            in_features=n_obs,  # PPO value network only takes state
+            out_features=1,
+            num_cells=hidden_dims,
+        ),
+        in_keys=["observation"],  # Only state input for V(s)
+        out_keys=["state_value"],  # V(s) not Q(s,a)
+    )
+
+    logger.info(f"PPO value network created with hidden_dims={hidden_dims}")
+    return value_net
+
+
+def create_ddpg_actor(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+    spec: Any | None = None,
+) -> TensorDictModule:
+    """Create a deterministic actor for DDPG (continuous actions).
+
+    Args:
+        n_obs: Number of observations
+        n_act: Number of actions
+        hidden_dims: Hidden layer dimensions
+        spec: Action spec from environment
+
+    Returns:
+        Deterministic actor module for DDPG
+    """
+    logger.info("Creating DDPG deterministic actor")
+
+    if hidden_dims is None:
+        hidden_dims = [64, 32]
+
+    # Create deterministic network (no softmax)
+    actor_net = MLP(
+        in_features=n_obs,
+        out_features=n_act,
+        num_cells=hidden_dims,
+        activation_class=nn.ReLU,
+        out_features_last=n_act,
+        activate_last_layer=False,  # No activation on output
+    )
+
+    # Apply tanh for bounded continuous actions
+    if spec is not None:
+        # Scale actions to spec bounds
+        actor_net = nn.Sequential(
+            actor_net,
+            nn.Tanh(),  # Output in [-1, 1]
+        )
+
+    # Wrap in TensorDictModule
+    actor = TensorDictModule(
+        actor_net,
+        in_keys=["observation"],
+        out_keys=["action"],
+    )
+
+    logger.info("DDPG deterministic actor created")
+    return actor
+
+
 def count_parameters(model: nn.Module) -> int:
     """Count the number of trainable parameters in a model.
 
