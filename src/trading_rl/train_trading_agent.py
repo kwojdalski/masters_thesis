@@ -552,27 +552,45 @@ def _log_training_parameters(config: ExperimentConfig) -> None:
         mlflow.log_param("data_exchange_names", json.dumps(config.data.exchange_names))
         mlflow.log_param("data_symbols", json.dumps(config.data.symbols))
         mlflow.log_param("data_download_data", bool(config.data.download_data))
-        mlflow.log_param("data_no_features", bool(getattr(config.data, "no_features", False)))
+        mlflow.log_param(
+            "data_no_features", bool(getattr(config.data, "no_features", False))
+        )
 
         # Environment parameters
         mlflow.log_param("env_name", str(config.env.name))
         mlflow.log_param("env_positions", json.dumps(config.env.positions))
         mlflow.log_param("env_trading_fees", float(config.env.trading_fees))
-        mlflow.log_param("env_borrow_interest_rate", float(config.env.borrow_interest_rate))
+        mlflow.log_param(
+            "env_borrow_interest_rate", float(config.env.borrow_interest_rate)
+        )
 
         # Network architecture
-        mlflow.log_param("network_actor_hidden_dims", json.dumps(config.network.actor_hidden_dims))
-        mlflow.log_param("network_value_hidden_dims", json.dumps(config.network.value_hidden_dims))
+        mlflow.log_param(
+            "network_actor_hidden_dims", json.dumps(config.network.actor_hidden_dims)
+        )
+        mlflow.log_param(
+            "network_value_hidden_dims", json.dumps(config.network.value_hidden_dims)
+        )
 
         # Training parameters
         mlflow.log_param("training_algorithm", str(config.training.algorithm))
         mlflow.log_param("training_actor_lr", float(config.training.actor_lr))
         mlflow.log_param("training_value_lr", float(config.training.value_lr))
-        mlflow.log_param("training_value_weight_decay", float(config.training.value_weight_decay))
-        mlflow.log_param("training_max_training_steps", int(config.training.max_training_steps))
-        mlflow.log_param("training_init_rand_steps", int(config.training.init_rand_steps))
-        mlflow.log_param("training_frames_per_batch", int(config.training.frames_per_batch))
-        mlflow.log_param("training_optim_steps_per_batch", int(config.training.optim_steps_per_batch))
+        mlflow.log_param(
+            "training_value_weight_decay", float(config.training.value_weight_decay)
+        )
+        mlflow.log_param(
+            "training_max_training_steps", int(config.training.max_training_steps)
+        )
+        mlflow.log_param(
+            "training_init_rand_steps", int(config.training.init_rand_steps)
+        )
+        mlflow.log_param(
+            "training_frames_per_batch", int(config.training.frames_per_batch)
+        )
+        mlflow.log_param(
+            "training_optim_steps_per_batch", int(config.training.optim_steps_per_batch)
+        )
         mlflow.log_param("training_sample_size", int(config.training.sample_size))
         mlflow.log_param("training_buffer_size", int(config.training.buffer_size))
         mlflow.log_param("training_loss_function", str(config.training.loss_function))
@@ -584,9 +602,13 @@ def _log_training_parameters(config: ExperimentConfig) -> None:
         if hasattr(config.training, "tau"):
             mlflow.log_param("training_tau", float(config.training.tau))
         if hasattr(config.training, "clip_epsilon"):
-            mlflow.log_param("training_clip_epsilon", float(config.training.clip_epsilon))
+            mlflow.log_param(
+                "training_clip_epsilon", float(config.training.clip_epsilon)
+            )
         if hasattr(config.training, "entropy_bonus"):
-            mlflow.log_param("training_entropy_bonus", float(config.training.entropy_bonus))
+            mlflow.log_param(
+                "training_entropy_bonus", float(config.training.entropy_bonus)
+            )
         if hasattr(config.training, "vf_coef"):
             mlflow.log_param("training_vf_coef", float(config.training.vf_coef))
         if hasattr(config.training, "ppo_epochs"):
@@ -597,7 +619,9 @@ def _log_training_parameters(config: ExperimentConfig) -> None:
         mlflow.log_param("logging_log_level", str(config.logging.log_level))
 
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Failed to log some training parameters: {e}")
+        logging.getLogger(__name__).warning(
+            f"Failed to log some training parameters: {e}"
+        )
 
 
 def _log_config_artifact(config: ExperimentConfig) -> None:
@@ -685,7 +709,7 @@ def _log_config_artifact(config: ExperimentConfig) -> None:
             config_dict["training"]["ppo_epochs"] = config.training.ppo_epochs
 
         # Create temporary YAML file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
             mlflow.log_artifact(f.name, "config")
 
@@ -984,9 +1008,7 @@ def run_single_experiment(
     logger.info("Evaluating agent...")
     # Ensure max_steps doesn't exceed available data size
     eval_max_steps = min(
-        config.training.eval_steps,
-        len(df) - 1,
-        config.data.train_size - 1
+        config.training.eval_steps, len(df) - 1, config.data.train_size - 1
     )  # Use the smallest of: eval_steps, actual data size, or train_size
     reward_plot, action_plot, final_reward = evaluate_agent(
         env,
@@ -1001,17 +1023,31 @@ def run_single_experiment(
         import tempfile
 
         try:
-            # Save reward plot
-            with tempfile.NamedTemporaryFile(suffix='_rewards.png', delete=False) as tmp_reward:
-                reward_plot.save(filename=tmp_reward.name, format='png', width=10, height=6, dpi=150, units='in')
-                mlflow.log_artifact(tmp_reward.name, "evaluation_plots")
-                os.unlink(tmp_reward.name)
+            # Save reward plot using plotnine
+            with tempfile.NamedTemporaryFile(
+                suffix="_rewards.png", delete=False
+            ) as tmp_reward:
+                try:
+                    reward_plot.save(tmp_reward.name)
+                    mlflow.log_artifact(tmp_reward.name, "evaluation_plots")
+                except Exception as e:
+                    logger.warning(f"Failed to save reward plot: {e}")
+                finally:
+                    if os.path.exists(tmp_reward.name):
+                        os.unlink(tmp_reward.name)
 
-            # Save action/position plot
-            with tempfile.NamedTemporaryFile(suffix='_positions.png', delete=False) as tmp_action:
-                action_plot.save(filename=tmp_action.name, format='png', width=10, height=6, dpi=150, units='in')
-                mlflow.log_artifact(tmp_action.name, "evaluation_plots")
-                os.unlink(tmp_action.name)
+            # Save action/position plot using plotnine
+            with tempfile.NamedTemporaryFile(
+                suffix="_positions.png", delete=False
+            ) as tmp_action:
+                try:
+                    action_plot.save(tmp_action.name)
+                    mlflow.log_artifact(tmp_action.name, "evaluation_plots")
+                except Exception as e:
+                    logger.warning(f"Failed to save action plot: {e}")
+                finally:
+                    if os.path.exists(tmp_action.name):
+                        os.unlink(tmp_action.name)
 
             # Create and save training loss plots
             if logs.get("loss_value") or logs.get("loss_actor"):
@@ -1021,15 +1057,19 @@ def run_single_experiment(
                 # Create loss plot data
                 loss_data = []
                 if logs.get("loss_value"):
-                    loss_data.extend([
-                        {"step": i, "loss": loss, "type": "Value Loss"}
-                        for i, loss in enumerate(logs["loss_value"])
-                    ])
+                    loss_data.extend(
+                        [
+                            {"step": i, "loss": loss, "type": "Value Loss"}
+                            for i, loss in enumerate(logs["loss_value"])
+                        ]
+                    )
                 if logs.get("loss_actor"):
-                    loss_data.extend([
-                        {"step": i, "loss": loss, "type": "Actor Loss"}
-                        for i, loss in enumerate(logs["loss_actor"])
-                    ])
+                    loss_data.extend(
+                        [
+                            {"step": i, "loss": loss, "type": "Actor Loss"}
+                            for i, loss in enumerate(logs["loss_actor"])
+                        ]
+                    )
 
                 if loss_data:
                     loss_df = pd.DataFrame(loss_data)
@@ -1042,16 +1082,23 @@ def run_single_experiment(
                             title="Training Losses",
                             x="Training Step",
                             y="Loss Value",
-                            color="Loss Type"
+                            color="Loss Type",
                         )
                         + theme_minimal()
                     )
 
-                    # Save training loss plot
-                    with tempfile.NamedTemporaryFile(suffix='_training_losses.png', delete=False) as tmp_loss:
-                        loss_plot.save(filename=tmp_loss.name, format='png', width=10, height=6, dpi=150, units='in')
-                        mlflow.log_artifact(tmp_loss.name, "training_plots")
-                        os.unlink(tmp_loss.name)
+                    # Save training loss plot using plotnine
+                    with tempfile.NamedTemporaryFile(
+                        suffix="_training_losses.png", delete=False
+                    ) as tmp_loss:
+                        try:
+                            loss_plot.save(tmp_loss.name)
+                            mlflow.log_artifact(tmp_loss.name, "training_plots")
+                        except Exception as e:
+                            logger.warning(f"Failed to save training loss plot: {e}")
+                        finally:
+                            if os.path.exists(tmp_loss.name):
+                                os.unlink(tmp_loss.name)
 
             logger.info("Saved evaluation and training plots as MLflow artifacts")
         except Exception as e:
@@ -1129,6 +1176,7 @@ def run_multiple_experiments(
     """
     # Load configuration to get experiment name
     from trading_rl.config import ExperimentConfig
+
     config = custom_config or ExperimentConfig()
     effective_experiment_name = experiment_name or config.experiment_name
 
@@ -1159,7 +1207,9 @@ def run_multiple_experiments(
             trial_config.seed = random.randint(1, 100000)  # noqa: S311
 
         # Update experiment name to include trial number
-        trial_config.experiment_name = f"{effective_experiment_name}_trial_{trial_number}"
+        trial_config.experiment_name = (
+            f"{effective_experiment_name}_trial_{trial_number}"
+        )
 
         # Start a new MLflow run for this trial
         with mlflow.start_run(run_name=f"trial_{trial_number}"):
@@ -1199,7 +1249,4 @@ def run_experiment_from_config(config_path: str, n_trials: int = 1) -> str:
         return config.experiment_name
     else:
         # Run multiple experiments
-        return run_multiple_experiments(
-            n_trials=n_trials,
-            custom_config=config
-        )
+        return run_multiple_experiments(n_trials=n_trials, custom_config=config)
