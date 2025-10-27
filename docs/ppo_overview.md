@@ -26,7 +26,7 @@ sequenceDiagram
         PPO->>Loss: compute ClipPPOLoss
         Loss-->>PPO: loss_objective<br/>loss_critic<br/>loss_entropy
 
-        PPO->>Opt: total_loss.backward()<br/>optimizer.step()
+        PPO->>Opt: total_loss backward<br/>optimizer step
         Opt-->>PPO: update actor & critic weights
         PPO->>MLf: callback.log_training_step(...)
 
