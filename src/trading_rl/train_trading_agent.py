@@ -540,8 +540,8 @@ def evaluate_agent(
     )
 
     if save_path:
-        reward_plot.save(f"{save_path}_rewards.png")
-        action_plot.save(f"{save_path}_actions.png")
+        reward_plot.save(f"{save_path}_rewards.png", width=20, height=12, dpi=150)
+        action_plot.save(f"{save_path}_actions.png", width=20, height=12, dpi=150)
 
     # Calculate final reward for metrics
     final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
@@ -909,7 +909,7 @@ def run_single_experiment(
                     with tempfile.NamedTemporaryFile(
                         suffix=".png", delete=False
                     ) as plot_file:
-                        p.save(plot_file.name, width=10, height=6, dpi=150)
+                        p.save(plot_file.name, width=20, height=12, dpi=150)
                         mlflow.log_artifact(plot_file.name, "data_overview/plots")
                         os.unlink(plot_file.name)
 
@@ -955,7 +955,7 @@ def run_single_experiment(
                     with tempfile.NamedTemporaryFile(
                         suffix=".png", delete=False
                     ) as plot_file:
-                        p_combined.save(plot_file.name, width=12, height=6, dpi=150)
+                        p_combined.save(plot_file.name, width=24, height=12, dpi=150)
                         mlflow.log_artifact(plot_file.name, "data_overview/plots")
                         os.unlink(plot_file.name)
 
@@ -1071,7 +1071,7 @@ def run_single_experiment(
                 try:
                     with warnings.catch_warnings(), suppress_plotnine_output():
                         warnings.simplefilter("ignore", PlotnineWarning)
-                        reward_plot.save(tmp_reward.name)
+                        reward_plot.save(tmp_reward.name, width=20, height=12, dpi=150)
                     mlflow.log_artifact(tmp_reward.name, "evaluation_plots")
                 except Exception:
                     logger.exception("Failed to save reward plot")
@@ -1086,7 +1086,7 @@ def run_single_experiment(
                 try:
                     with warnings.catch_warnings(), suppress_plotnine_output():
                         warnings.simplefilter("ignore", PlotnineWarning)
-                        action_plot.save(tmp_action.name)
+                        action_plot.save(tmp_action.name, width=20, height=12, dpi=150)
                     mlflow.log_artifact(tmp_action.name, "evaluation_plots")
                 except Exception:
                     logger.exception("Failed to save action plot")
@@ -1139,7 +1139,7 @@ def run_single_experiment(
                         try:
                             with warnings.catch_warnings(), suppress_plotnine_output():
                                 warnings.simplefilter("ignore", PlotnineWarning)
-                                loss_plot.save(tmp_loss.name)
+                                loss_plot.save(tmp_loss.name, width=20, height=12, dpi=150)
                             mlflow.log_artifact(tmp_loss.name, "training_plots")
                         except Exception:
                             logger.exception("Failed to save training loss plot")

@@ -123,15 +123,14 @@ class DDPGTrainer:
                 # We can reconstruct portfolio value from cumulative log returns
                 episode_reward = data["next", "reward"].sum().item()
                 
-                # Initialize portfolio tracking if not exists
-                if not hasattr(callback, '_portfolio_value'):
-                    callback._portfolio_value = 10000.0  # Starting portfolio value
+                # Reset portfolio value to starting amount at the beginning of each episode
+                callback._portfolio_value = 10000.0  # Starting portfolio value
                 
-                # Update portfolio value based on reward (log return)
+                # Update portfolio value based on episode reward (cumulative log return)
                 if episode_reward != 0:
                     # exp(log_return) = portfolio_val[t] / portfolio_val[t-1]
-                    # portfolio_val[t] = portfolio_val[t-1] * exp(log_return)
-                    callback._portfolio_value *= np.exp(episode_reward)
+                    # For episode reward: portfolio_val_final = starting_val * exp(episode_reward)
+                    callback._portfolio_value = 10000.0 * np.exp(episode_reward)
                 
                 portfolio_valuation = callback._portfolio_value
                 actions = data.get("action", torch.tensor([])).flatten().tolist()
@@ -389,15 +388,14 @@ class PPOTrainer:
                 # We can reconstruct portfolio value from cumulative log returns
                 episode_reward = data["next", "reward"].sum().item()
                 
-                # Initialize portfolio tracking if not exists
-                if not hasattr(callback, '_portfolio_value'):
-                    callback._portfolio_value = 10000.0  # Starting portfolio value
+                # Reset portfolio value to starting amount at the beginning of each episode
+                callback._portfolio_value = 10000.0  # Starting portfolio value
                 
-                # Update portfolio value based on reward (log return)
+                # Update portfolio value based on episode reward (cumulative log return)
                 if episode_reward != 0:
                     # exp(log_return) = portfolio_val[t] / portfolio_val[t-1]
-                    # portfolio_val[t] = portfolio_val[t-1] * exp(log_return)
-                    callback._portfolio_value *= np.exp(episode_reward)
+                    # For episode reward: portfolio_val_final = starting_val * exp(episode_reward)
+                    callback._portfolio_value = 10000.0 * np.exp(episode_reward)
                 
                 portfolio_valuation = callback._portfolio_value
                 actions = data.get("action", torch.tensor([])).flatten().tolist()
