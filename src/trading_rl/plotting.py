@@ -47,7 +47,16 @@ def visualize_training(logs: dict, save_path: str | None = None):
     )
 
     if save_path:
-        plot.save(save_path)
+        import contextlib
+        import io
+        
+        @contextlib.contextmanager
+        def suppress_plotnine_output():
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                yield
+        
+        with suppress_plotnine_output():
+            plot.save(save_path)
 
     return plot
 
@@ -101,9 +110,18 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
         )
     )
 
-    # Save plot
+    # Save plot with output suppression
+    import contextlib
+    import io
+    
+    @contextlib.contextmanager
+    def suppress_plotnine_output():
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            yield
+    
     plot_path = f"{experiment_name}_comparison.png"
-    ggsave(plot, plot_path, width=12, height=10, dpi=150)
+    with suppress_plotnine_output():
+        ggsave(plot, plot_path, width=12, height=10, dpi=150)
 
     # Log the comparison plot as an artifact to MLflow
     with mlflow.start_run(run_name="experiment_summary"):

@@ -117,10 +117,10 @@ class DDPGTrainer:
             # Log episode statistics to callback if provided
             if callback and hasattr(callback, "log_episode_stats"):
                 episode_reward = data["next", "reward"].sum().item()
-                # Extract portfolio value and actions if available
-                portfolio_value = getattr(data.get("next", {}), "portfolio_value", 0.0)
-                if hasattr(portfolio_value, "item"):
-                    portfolio_value = portfolio_value.item()
+                # Extract portfolio valuation and actions if available
+                portfolio_valuation = getattr(data.get("next", {}), "portfolio_valuation", 0.0)
+                if hasattr(portfolio_valuation, "item"):
+                    portfolio_valuation = portfolio_valuation.item()
                 actions = data.get("action", torch.tensor([])).flatten().tolist()
                 exploration_ratio = (
                     0.1  # Placeholder - could be calculated from exploration strategy
@@ -128,7 +128,7 @@ class DDPGTrainer:
 
                 callback.log_episode_stats(
                     episode_reward=episode_reward,
-                    portfolio_value=portfolio_value,
+                    portfolio_valuation=portfolio_valuation,
                     actions=actions,
                     exploration_ratio=exploration_ratio,
                 )
@@ -371,16 +371,16 @@ class PPOTrainer:
             # Log episode statistics to callback if provided
             if callback and hasattr(callback, "log_episode_stats"):
                 episode_reward = data["next", "reward"].sum().item()
-                # Extract portfolio value and actions if available
-                portfolio_value = getattr(data.get("next", {}), "portfolio_value", 0.0)
-                if hasattr(portfolio_value, "item"):
-                    portfolio_value = portfolio_value.item()
+                # Extract portfolio valuation and actions if available
+                portfolio_valuation = getattr(data.get("next", {}), "portfolio_valuation", 0.0)
+                if hasattr(portfolio_valuation, "item"):
+                    portfolio_valuation = portfolio_valuation.item()
                 actions = data.get("action", torch.tensor([])).flatten().tolist()
                 exploration_ratio = getattr(self.config, "entropy_bonus", 0.01)
 
                 callback.log_episode_stats(
                     episode_reward=episode_reward,
-                    portfolio_value=portfolio_value,
+                    portfolio_valuation=portfolio_valuation,
                     actions=actions,
                     exploration_ratio=exploration_ratio,
                 )

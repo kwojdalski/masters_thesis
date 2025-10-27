@@ -4,6 +4,7 @@ Command-line interface for data generation and trading agent training.
 """
 
 import logging
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -13,6 +14,14 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from data_generator import PriceDataGenerator
+
+# Ensure matplotlib can cache fonts to a writable directory
+if "MPLCONFIGDIR" in os.environ:
+    Path(os.environ["MPLCONFIGDIR"]).mkdir(parents=True, exist_ok=True)
+else:
+    mpl_cache_dir = Path(".cache/matplotlib")
+    mpl_cache_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["MPLCONFIGDIR"] = str(mpl_cache_dir.resolve())
 
 # Create the main typer app
 app = typer.Typer(help="CLI tools for trading data science project")
@@ -286,8 +295,11 @@ def train(
 
 @app.command()
 def experiment(
-    experiment_name: str = typer.Option(
-        "trading_rl_experiment", "--name", "-n", help="MLflow experiment name"
+    experiment_name: str | None = typer.Option(
+        None,
+        "--name",
+        "-n",
+        help="MLflow experiment name (defaults to config's experiment_name)",
     ),
     n_trials: int = typer.Option(5, "--trials", "-t", help="Number of trials to run"),
     dashboard: bool = typer.Option(
@@ -370,8 +382,12 @@ def experiment(
             f"[yellow]Using random base seed: {base_seed} (each trial will use seed+trial_number)[/yellow]"
         )
 
+    # Determine effective experiment name (CLI override wins, otherwise config file)
+    effective_experiment_name = experiment_name or config.experiment_name
+    config.experiment_name = effective_experiment_name
+
     console.print(f"[bold blue]Running {n_trials} experiments[/bold blue]")
-    console.print(f"Experiment: [green]{experiment_name}[/green]")
+    console.print(f"Experiment: [green]{effective_experiment_name}[/green]")
     if max_steps is not None:
         episodes = max_steps // 200  # frames_per_batch = 200
         console.print(f"Max steps: [green]{max_steps}[/green] (~{episodes} episodes)")
@@ -392,7 +408,7 @@ def experiment(
                 n_trials=n_trials,
                 base_seed=base_seed,
                 custom_config=config,
-                experiment_name=experiment_name
+                experiment_name=effective_experiment_name,
             )
             progress.update(task, description="Experiments complete!")
 
@@ -406,7 +422,7 @@ def experiment(
             # Launch MLflow UI if requested
             if dashboard:
                 console.print(
-                    f"\n[blue]Launching MLflow UI for experiment: {experiment_name}[/blue]"
+                    f"\n[blue]Launching MLflow UI for experiment: {effective_experiment_name}[/blue]"
                 )
                 console.print(
                     "[dim]MLflow UI will be available at http://localhost:5000[/dim]"

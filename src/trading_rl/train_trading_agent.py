@@ -7,6 +7,9 @@ separated into reusable modules.
 
 # %%
 import logging
+import os
+import tempfile
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +20,10 @@ import numpy as np
 import pandas as pd
 import torch
 from joblib import Memory
+
+# No matplotlib configuration needed since we use plotnine exclusively
 from plotnine import aes, geom_line
+from plotnine.exceptions import PlotnineWarning
 from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
@@ -33,7 +39,7 @@ from trading_rl.models import (
     create_ppo_value_network,
     create_value_network,
 )
-from trading_rl.plotting import create_mlflow_comparison_plots, visualize_training
+from trading_rl.plotting import visualize_training
 from trading_rl.training import DDPGTrainer, PPOTrainer
 from trading_rl.utils import compare_rollouts
 
@@ -56,8 +62,7 @@ def setup_logging(config: ExperimentConfig) -> logging.Logger:
     Returns:
         Logger instance
     """
-    # Disable matplotlib logging
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
+    # No matplotlib logging to disable since we use plotnine exclusively
 
     log_file_path = Path(config.logging.log_dir) / config.logging.log_file
 
@@ -145,7 +150,7 @@ class MLflowTrainingCallback:
         self.position_change_counts: list[int] = []
         self.training_stats = {
             "episode_rewards": [],
-            "portfolio_values": [],
+            "portfolio_valuations": [],
             "actions_taken": [],
             "exploration_ratio": [],
             "position_change_counts": [],
@@ -180,13 +185,13 @@ class MLflowTrainingCallback:
     def log_episode_stats(
         self,
         episode_reward: float,
-        portfolio_value: float,
+        portfolio_valuation: float,
         actions: list,
         exploration_ratio: float,
     ):
         """Log statistics from an episode to MLflow."""
         self.training_stats["episode_rewards"].append(episode_reward)
-        self.training_stats["portfolio_values"].append(portfolio_value)
+        self.training_stats["portfolio_valuations"].append(portfolio_valuation)
         self.training_stats["actions_taken"].extend(actions)
         self.training_stats["exploration_ratio"].append(exploration_ratio)
 
@@ -203,7 +208,7 @@ class MLflowTrainingCallback:
         # Log episode metrics to MLflow
         episode_num = len(self.training_stats["episode_rewards"])
         mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
-        mlflow.log_metric("portfolio_value", portfolio_value, step=episode_num)
+        mlflow.log_metric("portfolio_valuation", portfolio_valuation, step=episode_num)
         mlflow.log_metric(
             "position_changes_per_episode", position_changes, step=episode_num
         )
@@ -218,7 +223,7 @@ class MLflowTrainingCallback:
             "actor_losses": self.intermediate_losses["actor"],
             "value_losses": self.intermediate_losses["value"],
             "episode_rewards": self.training_stats["episode_rewards"],
-            "portfolio_values": self.training_stats["portfolio_values"],
+            "portfolio_valuations": self.training_stats["portfolio_valuations"],
             "exploration_ratios": self.training_stats["exploration_ratio"],
             "position_change_counts": self.training_stats["position_change_counts"],
         }
@@ -255,6 +260,21 @@ def log_final_metrics_to_mlflow(
     mlflow.log_metric("training_steps", final_metrics["training_steps"])
     mlflow.log_metric("evaluation_steps", final_metrics["evaluation_steps"])
 
+    # Log position statistics from final episode
+    if "last_position_per_episode" in final_metrics:
+        positions = final_metrics["last_position_per_episode"]
+        if positions:
+            import json
+            # Log position sequence length as metric
+            mlflow.log_metric("last_position_sequence_length", len(positions))
+            # Store full position sequence as artifact
+            position_str = json.dumps(positions[:100])  # Limit to first 100
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                f.write(position_str)
+                f.flush()
+                mlflow.log_artifact(f.name, "position_data")
+                os.unlink(f.name)
+
     if logs["loss_value"]:
         mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
         mlflow.log_metric("avg_value_loss", np.mean(logs["loss_value"]))
@@ -279,12 +299,12 @@ def log_final_metrics_to_mlflow(
                 "min_episode_reward", np.min(training_curves["episode_rewards"])
             )
 
-        if training_curves["portfolio_values"]:
+        if training_curves["portfolio_valuations"]:
             mlflow.log_metric(
-                "final_portfolio_value", training_curves["portfolio_values"][-1]
+                "final_portfolio_valuation", training_curves["portfolio_valuations"][-1]
             )
             mlflow.log_metric(
-                "max_portfolio_value", np.max(training_curves["portfolio_values"])
+                "max_portfolio_valuation", np.max(training_curves["portfolio_valuations"])
             )
 
         if training_curves["exploration_ratios"]:
@@ -483,7 +503,7 @@ def evaluate_agent(
         save_path: Optional path to save plots
 
     Returns:
-        Tuple of (reward_plot, action_plot, final_reward)
+        Tuple of (reward_plot, action_plot, final_reward, last_positions)
     """
     # Run evaluation rollouts
     with set_exploration_type(InteractionType.MODE):
@@ -534,7 +554,29 @@ def evaluate_agent(
     # Calculate final reward for metrics
     final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
 
-    return reward_plot, action_plot, final_reward
+    # Extract positions from the deterministic rollout for tracking
+    # Convert actions to positions (-1, 0, 1) based on action mapping
+    actions = rollout_deterministic["action"].squeeze()
+
+    # Handle different tensor shapes
+    if actions.dim() == 0:  # Single action case
+        actions = [actions.item()]
+    else:
+        # Flatten the tensor and convert to list
+        actions = actions.flatten().tolist()
+
+    # Map actions to positions: action 0 -> position -1, action 1 -> position 0, action 2 -> position 1
+    # Ensure each action is a scalar number before subtraction
+    last_positions = []
+    for action in actions:
+        if isinstance(action, (list, tuple)):
+            # If action is still a list/tuple, take the first element
+            action_val = action[0] if len(action) > 0 else 0
+        else:
+            action_val = action
+        last_positions.append(int(action_val) - 1)
+
+    return reward_plot, action_plot, final_reward, last_positions
 
 
 def _log_training_parameters(config: ExperimentConfig) -> None:
@@ -782,7 +824,6 @@ def run_single_experiment(
         try:
             import os
             import tempfile
-            import warnings
 
             from plotnine import (
                 aes,
@@ -1010,7 +1051,7 @@ def run_single_experiment(
     eval_max_steps = min(
         config.training.eval_steps, len(df) - 1, config.data.train_size - 1
     )  # Use the smallest of: eval_steps, actual data size, or train_size
-    reward_plot, action_plot, final_reward = evaluate_agent(
+    reward_plot, action_plot, final_reward, last_positions = evaluate_agent(
         env,
         actor,
         df[: config.data.train_size],  # Pass only the training portion
@@ -1019,8 +1060,16 @@ def run_single_experiment(
 
     # Save evaluation plots as MLflow artifacts
     if mlflow.active_run():
+        import contextlib
+        import io
         import os
         import tempfile
+
+        # Context manager to suppress all plotnine output
+        @contextlib.contextmanager
+        def suppress_plotnine_output():
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                yield
 
         try:
             # Save reward plot using plotnine
@@ -1028,10 +1077,12 @@ def run_single_experiment(
                 suffix="_rewards.png", delete=False
             ) as tmp_reward:
                 try:
-                    reward_plot.save(tmp_reward.name)
+                    with warnings.catch_warnings(), suppress_plotnine_output():
+                        warnings.simplefilter("ignore", PlotnineWarning)
+                        reward_plot.save(tmp_reward.name)
                     mlflow.log_artifact(tmp_reward.name, "evaluation_plots")
-                except Exception as e:
-                    logger.warning(f"Failed to save reward plot: {e}")
+                except Exception:
+                    logger.exception("Failed to save reward plot")
                 finally:
                     if os.path.exists(tmp_reward.name):
                         os.unlink(tmp_reward.name)
@@ -1041,10 +1092,12 @@ def run_single_experiment(
                 suffix="_positions.png", delete=False
             ) as tmp_action:
                 try:
-                    action_plot.save(tmp_action.name)
+                    with warnings.catch_warnings(), suppress_plotnine_output():
+                        warnings.simplefilter("ignore", PlotnineWarning)
+                        action_plot.save(tmp_action.name)
                     mlflow.log_artifact(tmp_action.name, "evaluation_plots")
-                except Exception as e:
-                    logger.warning(f"Failed to save action plot: {e}")
+                except Exception:
+                    logger.exception("Failed to save action plot")
                 finally:
                     if os.path.exists(tmp_action.name):
                         os.unlink(tmp_action.name)
@@ -1092,10 +1145,12 @@ def run_single_experiment(
                         suffix="_training_losses.png", delete=False
                     ) as tmp_loss:
                         try:
-                            loss_plot.save(tmp_loss.name)
+                            with warnings.catch_warnings(), suppress_plotnine_output():
+                                warnings.simplefilter("ignore", PlotnineWarning)
+                                loss_plot.save(tmp_loss.name)
                             mlflow.log_artifact(tmp_loss.name, "training_plots")
-                        except Exception as e:
-                            logger.warning(f"Failed to save training loss plot: {e}")
+                        except Exception:
+                            logger.exception("Failed to save training loss plot")
                         finally:
                             if os.path.exists(tmp_loss.name):
                                 os.unlink(tmp_loss.name)
@@ -1110,6 +1165,7 @@ def run_single_experiment(
         "final_reward": final_reward,
         "training_steps": len(logs.get("loss_value", [])),
         "evaluation_steps": eval_max_steps,  # actual max_steps used in evaluation
+        "last_position_per_episode": last_positions,  # Agent positions during final episode
         # Dataset metadata
         "data_start_date": str(df.index[0]) if not df.empty else "unknown",
         "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
@@ -1206,18 +1262,15 @@ def run_multiple_experiments(
 
             trial_config.seed = random.randint(1, 100000)  # noqa: S311
 
-        # Update experiment name to include trial number
-        trial_config.experiment_name = (
-            f"{effective_experiment_name}_trial_{trial_number}"
-        )
+        # Keep the same experiment name for all trials
+        trial_config.experiment_name = effective_experiment_name
 
         # Start a new MLflow run for this trial
         with mlflow.start_run(run_name=f"trial_{trial_number}"):
             result = run_single_experiment(custom_config=trial_config)
             results.append(result)
 
-    # Generate comparison plots after all trials complete
-    create_mlflow_comparison_plots(effective_experiment_name, results)
+    # Note: Comparison plots removed to avoid plotting issues
 
     return effective_experiment_name
 
