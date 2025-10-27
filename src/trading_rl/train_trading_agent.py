@@ -523,20 +523,32 @@ def evaluate_agent(
         n_obs=max_steps,
     )
 
-    # Add benchmarks to reward plot
+    # Add benchmarks to reward plot with proper legend labels
+    from plotnine import ggplot, geom_line, labs, aes, scale_color_manual
+    
+    # Create benchmark data for legend
+    benchmark_data = []
+    for step, (bh_val, mp_val) in enumerate(zip(benchmark_df["buy_and_hold"], benchmark_df["max_profit"])):
+        benchmark_data.extend([
+            {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
+            {"Steps": step, "Cumulative_Reward": mp_val, "Run": "Max Profit"},
+        ])
+    
+    # Get original data from the plot
+    existing_data = reward_plot.data
+    combined_data = pd.concat([existing_data, pd.DataFrame(benchmark_data)], ignore_index=True)
+    
+    # Recreate plot with all data including benchmarks
     reward_plot = (
-        reward_plot
-        + geom_line(
-            data=benchmark_df,
-            mapping=aes(x="x", y="buy_and_hold"),
-            color="violet",
-        )
-        + geom_line(
-            data=benchmark_df,
-            mapping=aes(x="x", y="max_profit"),
-            color="green",
-            linetype="dashed",
-        )
+        ggplot(combined_data, aes(x="Steps", y="Cumulative_Reward", color="Run"))
+        + geom_line()
+        + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
+        + scale_color_manual(values={
+            "Deterministic": "#F8766D",  # Default ggplot red
+            "Random": "#00BFC4",         # Default ggplot blue  
+            "Buy-and-Hold": "violet",
+            "Max Profit": "green"
+        })
     )
 
     if save_path:
