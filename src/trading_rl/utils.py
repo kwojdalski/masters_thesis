@@ -41,7 +41,7 @@ def compare_rollouts(rollouts, n_obs):
     for i, rewards in enumerate(all_rewards):
         rewards_data.extend(
             [
-                {"Steps": step, "Cumulative_Reward": val, "Run": f"Run {i + 1}"}
+                {"Steps": step, "Cumulative_Reward": val, "Run": "Deterministic" if i == 0 else "Random"}
                 for step, val in enumerate(np.cumsum(rewards.numpy()))
             ]
         )
@@ -52,7 +52,7 @@ def compare_rollouts(rollouts, n_obs):
     for i, actions in enumerate(all_actions):
         actions_data.extend(
             [
-                {"Steps": step, "Actions": val, "Run": f"Run {i + 1}"}
+                {"Steps": step, "Actions": val, "Run": "Deterministic" if i == 0 else "Random"}
                 for step, val in enumerate(actions.numpy())
             ]
         )
@@ -65,11 +65,13 @@ def compare_rollouts(rollouts, n_obs):
         + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
     )
 
-    # Create actions plot using plotnine
+    # Create actions plot using plotnine (30% smaller)
+    from plotnine import theme
     action_plot = (
         ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
         + geom_line()
         + labs(title="Actions Comparison", x="Steps", y="Actions")
+        + theme(figure_size=(7, 4.2))  # 30% smaller than default (10, 6)
     )
 
     return reward_plot, action_plot

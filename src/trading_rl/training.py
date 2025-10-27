@@ -71,7 +71,7 @@ class DDPGTrainer:
             create_env_fn=lambda: env,
             policy=actor,
             frames_per_batch=config.frames_per_batch,
-            total_frames=config.max_training_steps,
+            total_frames=config.max_steps,
         )
 
         # Training state
@@ -133,7 +133,18 @@ class DDPGTrainer:
                     callback._portfolio_value = 10000.0 * np.exp(episode_reward)
                 
                 portfolio_valuation = callback._portfolio_value
-                actions = data.get("action", torch.tensor([])).flatten().tolist()
+                actions_tensor = data.get("action")
+                if isinstance(actions_tensor, torch.Tensor):
+                    if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
+                        actions = (
+                            actions_tensor.argmax(dim=-1)
+                            .reshape(-1)
+                            .tolist()
+                        )
+                    else:
+                        actions = actions_tensor.reshape(-1).tolist()
+                else:
+                    actions = []
                 exploration_ratio = (
                     0.1  # Placeholder - could be calculated from exploration strategy
                 )
@@ -146,9 +157,9 @@ class DDPGTrainer:
                 )
 
             # Check stopping condition
-            if self.total_count >= self.config.max_training_steps:
+            if self.total_count >= self.config.max_steps:
                 logger.info(
-                    f"Training stopped after {self.config.max_training_steps} steps"
+                    f"Training stopped after {self.config.max_steps} steps"
                 )
                 break
 
@@ -335,7 +346,7 @@ class PPOTrainer:
             create_env_fn=lambda: env,
             policy=actor,
             frames_per_batch=config.frames_per_batch,
-            total_frames=config.max_training_steps,
+            total_frames=config.max_steps,
         )
 
         # Training state
@@ -398,7 +409,18 @@ class PPOTrainer:
                     callback._portfolio_value = 10000.0 * np.exp(episode_reward)
                 
                 portfolio_valuation = callback._portfolio_value
-                actions = data.get("action", torch.tensor([])).flatten().tolist()
+                actions_tensor = data.get("action")
+                if isinstance(actions_tensor, torch.Tensor):
+                    if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
+                        actions = (
+                            actions_tensor.argmax(dim=-1)
+                            .reshape(-1)
+                            .tolist()
+                        )
+                    else:
+                        actions = actions_tensor.reshape(-1).tolist()
+                else:
+                    actions = []
                 exploration_ratio = getattr(self.config, "entropy_bonus", 0.01)
 
                 callback.log_episode_stats(
@@ -409,9 +431,9 @@ class PPOTrainer:
                 )
 
             # Check stopping condition
-            if self.total_count >= self.config.max_training_steps:
+            if self.total_count >= self.config.max_steps:
                 logger.info(
-                    f"PPO training stopped after {self.config.max_training_steps} steps"
+                    f"PPO training stopped after {self.config.max_steps} steps"
                 )
                 break
 

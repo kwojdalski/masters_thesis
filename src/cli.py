@@ -79,7 +79,7 @@ def generate_data(
         500, "--drift-samples", help="Number of samples for drift pattern"
     ),
     drift_rate: float = typer.Option(
-        0.0015, "--drift-rate", help="Exponential drift rate per step"
+        0.015, "--drift-rate", help="Exponential drift rate per step"
     ),
     drift_volatility: float = typer.Option(
         0.0005, "--drift-volatility", help="Volatility factor for drift pattern"
@@ -238,7 +238,7 @@ def train(
     if experiment_name:
         config.experiment_name = experiment_name
     if max_steps is not None:
-        config.training.max_training_steps = max_steps
+        config.training.max_steps = max_steps
     if actor_lr is not None:
         config.training.actor_lr = actor_lr
     if value_lr is not None:
@@ -250,7 +250,7 @@ def train(
 
     console.print(f"Experiment: [green]{config.experiment_name}[/green]")
     console.print(f"Seed: [green]{config.seed}[/green]")
-    console.print(f"Max steps: [green]{config.training.max_training_steps}[/green]")
+    console.print(f"Max steps: [green]{config.training.max_steps}[/green]")
 
     with Progress(
         SpinnerColumn(),
@@ -363,7 +363,7 @@ def experiment(
         config = ExperimentConfig()
 
     if max_steps is not None:
-        config.training.max_training_steps = max_steps
+        config.training.max_steps = max_steps
 
     if no_features:
         config.data.no_features = True

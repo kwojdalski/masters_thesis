@@ -312,7 +312,7 @@ from trading_rl import ExperimentConfig, run_single_experiment
 
 # Create custom configuration
 config = ExperimentConfig()
-config.training.max_training_steps = 100000
+config.training.max_steps = 100000
 config.training.actor_lr = 0.001
 config.training.value_lr = 0.002
 config.network.actor_hidden_dims = [256, 256]

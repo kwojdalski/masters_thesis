@@ -106,7 +106,7 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
             plot_title=element_text(size=16, face="bold"),
             strip_text=element_text(size=12, face="bold"),
             axis_title=element_text(size=11),
-            figure_size=(24, 20),
+            figure_size=(10, 8),
         )
     )
 
@@ -121,7 +121,7 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
     
     plot_path = f"{experiment_name}_comparison.png"
     with suppress_plotnine_output():
-        ggsave(plot, plot_path, width=24, height=20, dpi=150)
+        ggsave(plot, plot_path, width=10, height=8, dpi=150)
 
     # Log the comparison plot as an artifact to MLflow
     with mlflow.start_run(run_name="experiment_summary"):

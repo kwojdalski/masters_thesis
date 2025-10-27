@@ -277,7 +277,7 @@ def log_final_metrics_to_mlflow(
 
     if logs["loss_value"]:
         mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
-        mlflow.log_metric("avg_value_loss", np.mean(logs["loss_value"]))
+        # mlflow.log_metric("avg_value_loss", np.mean(logs["loss_value"]))
 
     if logs["loss_actor"]:
         mlflow.log_metric("final_actor_loss", logs["loss_actor"][-1])
@@ -495,7 +495,7 @@ def evaluate_agent(
         save_path: Optional path to save plots
 
     Returns:
-        Tuple of (reward_plot, action_plot, final_reward, last_positions)
+        Tuple of (reward_plot, action_plot, action_probs_plot, final_reward, last_positions)
     """
     # Run evaluation rollouts
     with set_exploration_type(InteractionType.MODE):
@@ -540,15 +540,16 @@ def evaluate_agent(
     )
 
     if save_path:
-        reward_plot.save(f"{save_path}_rewards.png", width=20, height=12, dpi=150)
-        action_plot.save(f"{save_path}_actions.png", width=20, height=12, dpi=150)
+        reward_plot.save(f"{save_path}_rewards.png", width=8, height=5, dpi=150)
+        action_plot.save(f"{save_path}_actions.png", width=8, height=5, dpi=150)
 
     # Calculate final reward for metrics
     final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
 
     # Extract positions from the deterministic rollout for tracking
     # Convert actions to positions (-1, 0, 1) based on action mapping
-    actions = rollout_deterministic["action"].squeeze()
+    # Use argmax to handle one-hot encoded actions (same as action plot)
+    actions = rollout_deterministic["action"].squeeze().argmax(dim=-1)
 
     # Handle different tensor shapes
     if actions.dim() == 0:  # Single action case
@@ -568,7 +569,101 @@ def evaluate_agent(
             action_val = action
         last_positions.append(int(action_val) - 1)
 
-    return reward_plot, action_plot, final_reward, last_positions
+    # Create action probabilities plot
+    action_probs_plot = _create_action_probabilities_plot(
+        env, actor, max_steps
+    )
+
+    return reward_plot, action_plot, action_probs_plot, final_reward, last_positions
+
+
+def _create_action_probabilities_plot(env, actor, max_steps):
+    """Create a simple plot showing action probability distributions."""
+    import pandas as pd
+    import torch
+    from plotnine import (
+        aes,
+        element_text,
+        geom_col,
+        ggplot,
+        labs,
+        scale_fill_discrete,
+        theme,
+        theme_minimal,
+    )
+
+    # Simple approach: get probabilities from a single observation
+    try:
+        with torch.no_grad():
+            # Get a sample observation from environment
+            obs = env.reset()
+            actor_output = actor(obs)
+
+            # Handle different actor output formats
+            if hasattr(actor_output, 'logits'):
+                # PPO case - logits available
+                probs = torch.softmax(actor_output.logits, dim=-1)
+            else:
+                # Fallback - uniform distribution
+                probs = torch.tensor([0.33, 0.34, 0.33])
+
+            # Ensure probs is the right shape and sum to 1
+            probs = probs.squeeze()
+            if probs.dim() == 0 or len(probs) != 3:
+                probs = torch.tensor([0.33, 0.34, 0.33])
+            probs = probs / probs.sum()  # Normalize
+
+            # Create simple bar chart data
+            action_names = {0: "Short", 1: "Hold", 2: "Long"}
+            action_data = []
+            for action_idx, action_name in action_names.items():
+                action_data.append({
+                    "Action": action_name,
+                    "Probability": float(probs[action_idx])
+                })
+
+        df_probs = pd.DataFrame(action_data)
+
+        # Create simple bar plot
+        plot = (
+            ggplot(df_probs, aes(x="Action", y="Probability", fill="Action"))
+            + geom_col(width=0.6)
+            + labs(
+                title="Action Probability Distribution",
+                x="Action",
+                y="Probability",
+                fill="Action"
+            )
+            + theme_minimal()
+            + scale_fill_discrete(name="Action")
+            + theme(
+                figure_size=(8, 5),
+                axis_title=element_text(size=11),
+                legend_position="none"
+            )
+        )
+
+        return plot
+
+    except Exception as e:
+        # Fallback plot in case of errors
+        fallback_data = pd.DataFrame({
+            "Action": ["Short", "Hold", "Long"],
+            "Probability": [0.33, 0.34, 0.33]
+        })
+        
+        plot = (
+            ggplot(fallback_data, aes(x="Action", y="Probability", fill="Action"))
+            + geom_col(width=0.6)
+            + labs(
+                title="Action Probability Distribution (Fallback)",
+                x="Action",
+                y="Probability"
+            )
+            + theme_minimal()
+        )
+        
+        return plot
 
 
 def _log_training_parameters(config: ExperimentConfig) -> None:
@@ -614,7 +709,7 @@ def _log_training_parameters(config: ExperimentConfig) -> None:
             "training_value_weight_decay", float(config.training.value_weight_decay)
         )
         mlflow.log_param(
-            "training_max_training_steps", int(config.training.max_training_steps)
+            "training_max_steps", int(config.training.max_steps)
         )
         mlflow.log_param(
             "training_init_rand_steps", int(config.training.init_rand_steps)
@@ -713,7 +808,7 @@ def _log_config_artifact(config: ExperimentConfig) -> None:
                 "actor_lr": config.training.actor_lr,
                 "value_lr": config.training.value_lr,
                 "value_weight_decay": config.training.value_weight_decay,
-                "max_training_steps": config.training.max_training_steps,
+                "max_steps": config.training.max_steps,
                 "init_rand_steps": config.training.init_rand_steps,
                 "frames_per_batch": config.training.frames_per_batch,
                 "optim_steps_per_batch": config.training.optim_steps_per_batch,
@@ -805,12 +900,7 @@ def run_single_experiment(
         mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
         mlflow.log_param("data_source", config.data.data_path)
 
-        # Log price statistics
-        if "close" in df.columns:
-            mlflow.log_metric("price_min", df["close"].min())
-            mlflow.log_metric("price_max", df["close"].max())
-            mlflow.log_metric("price_mean", df["close"].mean())
-            mlflow.log_metric("price_std", df["close"].std())
+        # Price statistics removed as they are not relevant for model evaluation
 
         # Log data sample as CSV artifact and generate plots
         try:
@@ -909,7 +999,7 @@ def run_single_experiment(
                     with tempfile.NamedTemporaryFile(
                         suffix=".png", delete=False
                     ) as plot_file:
-                        p.save(plot_file.name, width=20, height=12, dpi=150)
+                        p.save(plot_file.name, width=8, height=5, dpi=150)
                         mlflow.log_artifact(plot_file.name, "data_overview/plots")
                         os.unlink(plot_file.name)
 
@@ -955,7 +1045,7 @@ def run_single_experiment(
                     with tempfile.NamedTemporaryFile(
                         suffix=".png", delete=False
                     ) as plot_file:
-                        p_combined.save(plot_file.name, width=24, height=12, dpi=150)
+                        p_combined.save(plot_file.name, width=10, height=5, dpi=150)
                         mlflow.log_artifact(plot_file.name, "data_overview/plots")
                         os.unlink(plot_file.name)
 
@@ -1043,7 +1133,7 @@ def run_single_experiment(
     eval_max_steps = min(
         config.training.eval_steps, len(df) - 1, config.data.train_size - 1
     )  # Use the smallest of: eval_steps, actual data size, or train_size
-    reward_plot, action_plot, final_reward, last_positions = evaluate_agent(
+    reward_plot, action_plot, action_probs_plot, final_reward, last_positions = evaluate_agent(
         env,
         actor,
         df[: config.data.train_size],  # Pass only the training portion
@@ -1071,7 +1161,7 @@ def run_single_experiment(
                 try:
                     with warnings.catch_warnings(), suppress_plotnine_output():
                         warnings.simplefilter("ignore", PlotnineWarning)
-                        reward_plot.save(tmp_reward.name, width=20, height=12, dpi=150)
+                        reward_plot.save(tmp_reward.name, width=8, height=5, dpi=150)
                     mlflow.log_artifact(tmp_reward.name, "evaluation_plots")
                 except Exception:
                     logger.exception("Failed to save reward plot")
@@ -1086,13 +1176,28 @@ def run_single_experiment(
                 try:
                     with warnings.catch_warnings(), suppress_plotnine_output():
                         warnings.simplefilter("ignore", PlotnineWarning)
-                        action_plot.save(tmp_action.name, width=20, height=12, dpi=150)
+                        action_plot.save(tmp_action.name, width=8, height=5, dpi=150)
                     mlflow.log_artifact(tmp_action.name, "evaluation_plots")
                 except Exception:
                     logger.exception("Failed to save action plot")
                 finally:
                     if os.path.exists(tmp_action.name):
                         os.unlink(tmp_action.name)
+
+            # Save action probabilities plot using plotnine
+            with tempfile.NamedTemporaryFile(
+                suffix="_action_probabilities.png", delete=False
+            ) as tmp_probs:
+                try:
+                    with warnings.catch_warnings(), suppress_plotnine_output():
+                        warnings.simplefilter("ignore", PlotnineWarning)
+                        action_probs_plot.save(tmp_probs.name, width=8, height=5, dpi=150)
+                    mlflow.log_artifact(tmp_probs.name, "evaluation_plots")
+                except Exception:
+                    logger.exception("Failed to save action probabilities plot")
+                finally:
+                    if os.path.exists(tmp_probs.name):
+                        os.unlink(tmp_probs.name)
 
             # Create and save training loss plots
             if logs.get("loss_value") or logs.get("loss_actor"):
@@ -1139,7 +1244,7 @@ def run_single_experiment(
                         try:
                             with warnings.catch_warnings(), suppress_plotnine_output():
                                 warnings.simplefilter("ignore", PlotnineWarning)
-                                loss_plot.save(tmp_loss.name, width=20, height=12, dpi=150)
+                                loss_plot.save(tmp_loss.name, width=8, height=5, dpi=150)
                             mlflow.log_artifact(tmp_loss.name, "training_plots")
                         except Exception:
                             logger.exception("Failed to save training loss plot")

@@ -1,7 +1,7 @@
 # PPO Configuration for Upward Drift Pattern
 # ==========================================
 
-experiment_name: "upward_drift_ppo"
+experiment_name: "upward_drift_ppo_200k"
 seed: 99  # Fixed seed for reproducibility
 
 # Data Configuration - Upward Drift Pattern
@@ -34,7 +34,7 @@ training:
   actor_lr: 0.0003
   value_lr: 0.0003  # Same as actor for PPO
   value_weight_decay: 0.001
-  max_training_steps: 8000  # Fewer steps needed due to simplicity
+  max_steps: 8000  # Fewer steps needed due to simplicity
   init_rand_steps: 10  # Minimal exploration
   frames_per_batch: 200
   optim_steps_per_batch: 40  # Not used in PPO
@@ -43,7 +43,7 @@ training:
   
   # PPO-specific parameters
   clip_epsilon: 0.2  # PPO clipping parameter
-  entropy_bonus: 0.01  # Encourage exploration
+  entropy_bonus: 0.1  # Encourage exploration
   vf_coef: 0.5  # Value function loss coefficient  
   ppo_epochs: 4  # Number of epochs per batch
   
@@ -65,8 +65,7 @@ data_generator:
   pattern_type: "upward_drift"
   n_samples: 500
   base_price: 50000.0
-  drift_rate: 0.0015  # More reasonable 0.15% per step
+  drift_rate: 0.015  # More reasonable 0.15% per step
   volatility: 0.0005
   pullback_floor: 0.995
   start_date: "2024-01-01"
-

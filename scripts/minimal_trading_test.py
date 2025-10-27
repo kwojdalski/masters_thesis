@@ -182,11 +182,11 @@ for i, data in enumerate(collector):
         # Print progress
         if i % 10 == 0:  # Print every 10 steps
             avg_actor_loss = np.mean(actor_losses[-10:])
-            avg_value_loss = np.mean(value_losses[-10:])
+            # avg_value_loss = np.mean(value_losses[-10:])
             avg_return = np.mean(returns_history[-10:])
             print(f"Step {i}")
             print(f"  Actor Loss: {avg_actor_loss:.4f}")
-            print(f"  Value Loss: {avg_value_loss:.4f}")
+            # print(f"  Value Loss: {avg_value_loss:.4f}")
             print(f"  Avg Return: {avg_return:.4f}")
 
     if i * frames_per_batch >= total_frames:

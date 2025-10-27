@@ -58,7 +58,7 @@ class TrainingConfig:
     value_weight_decay: float = 1e-2
 
     # Training loop
-    max_training_steps: int = 5_000  # _000
+    max_steps: int = 5_000  # _000
     init_rand_steps: int = 50
     frames_per_batch: int = 200
     optim_steps_per_batch: int = 50
@@ -187,6 +187,9 @@ class ExperimentConfig:
         if "training" in config_dict:
             train_dict = config_dict["training"]
             for key, value in train_dict.items():
+                if key == "max_training_steps":
+                    setattr(config.training, "max_steps", value)
+                    continue
                 if hasattr(config.training, key):
                     setattr(config.training, key, value)
 
@@ -247,7 +250,7 @@ class ExperimentConfig:
                 "actor_lr": self.training.actor_lr,
                 "value_lr": self.training.value_lr,
                 "value_weight_decay": self.training.value_weight_decay,
-                "max_training_steps": self.training.max_training_steps,
+                "max_steps": self.training.max_steps,
                 "init_rand_steps": self.training.init_rand_steps,
                 "frames_per_batch": self.training.frames_per_batch,
                 "optim_steps_per_batch": self.training.optim_steps_per_batch,

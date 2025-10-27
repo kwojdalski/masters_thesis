@@ -30,7 +30,7 @@ training:
   actor_lr: 0.0003
   value_lr: 0.0015
   value_weight_decay: 0.008
-  max_training_steps: 15000
+  max_steps: 15000
   init_rand_steps: 30
   frames_per_batch: 200
   optim_steps_per_batch: 50

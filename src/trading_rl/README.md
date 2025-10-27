@@ -92,7 +92,7 @@ from trading_rl import ExperimentConfig, TrainingConfig
 # Create custom config
 config = ExperimentConfig()
 config.training.actor_lr = 5e-5
-config.training.max_training_steps = 1_000_000
+config.training.max_steps = 1_000_000
 config.data.train_size = 2000
 config.experiment_name = "my_experiment"
 
@@ -165,7 +165,7 @@ logs = trainer.train()
 ### Quick Experiment
 ```python
 config = ExperimentConfig()
-config.training.max_training_steps = 100_000
+config.training.max_steps = 100_000
 config.training.eval_interval = 500
 config.data.train_size = 500
 ```
@@ -173,7 +173,7 @@ config.data.train_size = 500
 ### Production Training
 ```python
 config = ExperimentConfig()
-config.training.max_training_steps = 10_000_000
+config.training.max_steps = 10_000_000
 config.training.actor_lr = 3e-5
 config.training.value_lr = 1e-3
 config.training.buffer_size = 1_000_000
@@ -185,7 +185,7 @@ config.network.value_hidden_dims = [128, 128, 64, 32]
 ### Debugging
 ```python
 config = ExperimentConfig()
-config.training.max_training_steps = 10_000
+config.training.max_steps = 10_000
 config.training.log_interval = 100
 config.logging.log_level = "DEBUG"
 config.data.train_size = 100
@@ -247,7 +247,7 @@ def sharpe_reward_function(history: dict) -> float:
 
 ## Tips
 
-1. **Start Small**: Use small train_size and max_training_steps for debugging
+1. **Start Small**: Use small train_size and max_steps for debugging
 2. **Monitor Logs**: Check loss values and eval metrics regularly
 3. **Save Checkpoints**: Enable checkpointing for long runs
 4. **Experiment Tracking**: Use different experiment_name for each run

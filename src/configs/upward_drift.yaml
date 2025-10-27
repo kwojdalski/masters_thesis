@@ -30,7 +30,7 @@ training:
   actor_lr: 0.0004
   value_lr: 0.0015
   value_weight_decay: 0.004
-  max_training_steps: 8000
+  max_steps: 8000
   init_rand_steps: 10
   frames_per_batch: 200
   optim_steps_per_batch: 40
@@ -50,7 +50,7 @@ data_generator:
   pattern_type: "upward_drift"
   n_samples: 500
   base_price: 50000.0
-  drift_rate: 0.0015
+  drift_rate: 0.015
   volatility: 0.0005
   pullback_floor: 0.995
   description: "Strong exponential upward drift with minimal volatility"

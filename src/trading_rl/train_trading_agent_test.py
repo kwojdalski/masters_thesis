@@ -103,7 +103,7 @@ loss_plot = visualize_training(
 # %%
 loss_plot
 # %%
-reward_plot, action_plot, final_reward = evaluate_agent(
+reward_plot, action_plot, action_probs_plot, final_reward, last_positions = evaluate_agent(
     env,
     actor,
     df,

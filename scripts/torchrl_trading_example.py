@@ -286,7 +286,7 @@ rb = ReplayBuffer(storage=LazyTensorStorage(100_000))
 total_count = 0  # Total number of environment steps taken
 total_episodes = 0  # Total number of completed episodes
 # Stopping conditions
-max_training_steps = 5000000  # Maximum number of training steps
+max_steps = 5_000_000  # Maximum number of training steps
 
 # Training hyperparameters
 init_rand_steps = 50  # More exploration
@@ -299,7 +299,7 @@ collector = SyncDataCollector(
     create_env_fn=lambda: env,
     policy=actor,
     frames_per_batch=frames_per_batch,
-    total_frames=max_training_steps,  # Set maximum total frames
+    total_frames=max_steps,  # Set maximum total frames
 )
 
 # %%
@@ -309,7 +309,7 @@ log_processing_step(
     "Training Start",
     "Beginning DDPG training loop",
     extra_data={
-        "max_training_steps": max_training_steps,
+        "max_steps": max_steps,
         "frames_per_batch": frames_per_batch,
         "optim_steps": optim_steps,
         "sample_size": sample_size,
@@ -418,15 +418,15 @@ with LogContext(logger, "Training Loop"):
                 ].sum()  # Increment completed episodes
 
                 # Check if we've exceeded maximum training steps
-                if total_count >= max_training_steps:
+                if total_count >= max_steps:
                     logger.info(
                         f"Training stopped after reaching maximum steps: "
-                        f"{max_training_steps}"
+                        f"{max_steps}"
                     )
                     break
 
         # Break outer loop if inner loop was broken
-        if total_count >= max_training_steps:
+        if total_count >= max_steps:
             break
 
 t1 = time.time()
