@@ -3,17 +3,20 @@
 Command-line interface for data generation and trading agent training.
 """
 
-import logging
 import os
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import typer
+import yaml
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from data_generator import PriceDataGenerator
+from logger import configure_logging, get_logger
 
 # Ensure matplotlib can cache fonts to a writable directory
 if "MPLCONFIGDIR" in os.environ:
@@ -23,20 +26,202 @@ else:
     mpl_cache_dir.mkdir(parents=True, exist_ok=True)
     os.environ["MPLCONFIGDIR"] = str(mpl_cache_dir.resolve())
 
+# Configure project logging for the CLI component before creating loggers
+configure_logging(component="cli", level="INFO", simplified=False)
+
 # Create the main typer app
 app = typer.Typer(help="CLI tools for trading data science project")
 console = Console()
+logger = get_logger(__name__)
+
+@dataclass
+class ScenarioDefaults:
+    """Container for scenario-derived default values."""
+
+    name: str | None = None
+    path: Path | None = None
+    pattern_type: str | None = None
+    pattern: dict[str, Any] | None = None
+    data: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        if self.pattern is None:
+            self.pattern = {}
+        if self.data is None:
+            self.data = {}
+
+
+def _coalesce(*values: Any) -> Any:
+    """Return the first value that is not None."""
+    for value in values:
+        if value is not None:
+            return value
+    return None
+
+
+def _resolve_config_path(scenario: str) -> Path:
+    """Find the configuration file associated with a scenario string."""
+    candidate_path = Path(scenario)
+
+    if candidate_path.is_dir():
+        candidate_path = candidate_path / "config.yaml"
+
+    search_paths = [
+        candidate_path,
+        Path("src/configs") / scenario,
+        Path("src/configs") / f"{scenario}.yaml",
+    ]
+
+    for path in search_paths:
+        if path.exists():
+            return path.resolve()
+
+    raise typer.BadParameter(
+        f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs."
+    )
+
+
+def _load_scenario_defaults(scenario: str | None) -> ScenarioDefaults:
+    """Load scenario defaults from YAML, if provided."""
+    if not scenario:
+        return ScenarioDefaults()
+
+    config_path = _resolve_config_path(scenario)
+    logger.info("Reading scenario defaults from %s", config_path)
+
+    with config_path.open("r", encoding="utf-8") as handle:
+        scenario_config = yaml.safe_load(handle) or {}
+
+    pattern_defaults = scenario_config.get("data_generator") or {}
+    data_defaults = scenario_config.get("data") or {}
+    raw_pattern = pattern_defaults.get("pattern_type")
+    pattern_type = str(raw_pattern).lower() if raw_pattern else None
+
+    return ScenarioDefaults(
+        name=scenario,
+        path=config_path,
+        pattern_type=pattern_type,
+        pattern=pattern_defaults,
+        data=data_defaults,
+    )
+
+
+def _derive_generation_flags(
+    explicit_sine: bool, explicit_drift: bool, pattern_type: str | None
+) -> tuple[bool, bool]:
+    """Resolve which synthetic pattern to generate, combining CLI flags with scenario defaults."""
+    sine_wave = explicit_sine
+    upward_drift = explicit_drift
+
+    if pattern_type == "sine_wave":
+        if upward_drift and not sine_wave:
+            raise typer.BadParameter(
+                "Scenario requires sine wave generation but --upward-drift was provided."
+            )
+        sine_wave = True
+        upward_drift = False
+    elif pattern_type == "upward_drift":
+        if sine_wave and not upward_drift:
+            raise typer.BadParameter(
+                "Scenario requires upward drift generation but --sine-wave was provided."
+            )
+        upward_drift = True
+        sine_wave = False
+
+    return sine_wave, upward_drift
+
+
+def _resolve_output_targets(
+    output_dir: str | None,
+    output_file: str | None,
+    data_defaults: dict[str, Any],
+) -> tuple[str | None, str | None]:
+    """Derive output directory and filename from CLI args and scenario defaults."""
+    if output_file is None and data_defaults.get("data_path"):
+        data_path = Path(str(data_defaults["data_path"]))
+        if data_path.name:
+            output_file = data_path.name
+        parent_dir = data_path.parent
+        if output_dir is None and str(parent_dir) not in {"", "."}:
+            output_dir = str(parent_dir)
+
+    return output_dir, output_file
+
+
+def _collect_sine_wave_params(
+    n_periods: int | None,
+    samples_per_period: int | None,
+    base_price: float | None,
+    amplitude: float | None,
+    trend_slope: float | None,
+    volatility: float | None,
+    start_date: str | None,
+    pattern_defaults: dict[str, Any],
+) -> dict[str, Any]:
+    """Build parameter dictionary for sine wave generation."""
+    return {
+        "n_periods": _coalesce(n_periods, pattern_defaults.get("n_periods"), 3),
+        "samples_per_period": _coalesce(
+            samples_per_period, pattern_defaults.get("samples_per_period"), 120
+        ),
+        "base_price": _coalesce(base_price, pattern_defaults.get("base_price"), 50000.0),
+        "amplitude": _coalesce(amplitude, pattern_defaults.get("amplitude"), 5000.0),
+        "trend_slope": _coalesce(trend_slope, pattern_defaults.get("trend_slope"), 0.0),
+        "volatility": _coalesce(
+            volatility, pattern_defaults.get("volatility"), 0.00001
+        ),
+        "start_date": _coalesce(
+            start_date, pattern_defaults.get("start_date"), "2024-01-01"
+        ),
+    }
+
+
+def _collect_upward_drift_params(
+    drift_samples: int | None,
+    base_price: float | None,
+    drift_rate: float | None,
+    drift_volatility: float | None,
+    drift_floor: float | None,
+    start_date: str | None,
+    pattern_defaults: dict[str, Any],
+) -> dict[str, Any]:
+    """Build parameter dictionary for upward drift generation."""
+    return {
+        "n_samples": _coalesce(drift_samples, pattern_defaults.get("n_samples"), 500),
+        "base_price": _coalesce(base_price, pattern_defaults.get("base_price"), 50000.0),
+        "drift_rate": _coalesce(drift_rate, pattern_defaults.get("drift_rate"), 0.015),
+        "volatility": _coalesce(
+            drift_volatility, pattern_defaults.get("volatility"), 0.0005
+        ),
+        "pullback_floor": _coalesce(
+            drift_floor, pattern_defaults.get("pullback_floor"), 0.995
+        ),
+        "start_date": _coalesce(
+            start_date, pattern_defaults.get("start_date"), "2024-01-01"
+        ),
+    }
 
 
 @app.command(name="generate-data")
 def generate_data(
-    source_dir: str = typer.Option(
-        "data/raw/binance",
+    scenario: str | None = typer.Option(
+        None,
+        "--scenario",
+        "-s",
+        help="Scenario config name (e.g., 'sine_wave') or path to YAML file defining defaults",
+        show_default=False,
+    ),
+    source_dir: str | None = typer.Option(
+        None,
         "--source-dir",
         help="Source directory containing parquet files",
+        show_default=False,
     ),
-    output_dir: str = typer.Option(
-        "data/raw/synthetic", "--output-dir", help="Output directory for synthetic data"
+    output_dir: str | None = typer.Option(
+        None,
+        "--output-dir",
+        help="Output directory for synthetic data",
+        show_default=False,
     ),
     list_files: bool = typer.Option(
         False, "--list", help="List available source files"
@@ -62,98 +247,153 @@ def generate_data(
     sine_wave: bool = typer.Option(
         False, "--sine-wave", help="Generate sine wave pattern with trend"
     ),
-    n_periods: int = typer.Option(3, "--n-periods", help="Number of sine wave periods"),
-    samples_per_period: int = typer.Option(
-        120, "--samples-per-period", help="Samples per sine wave period"
+    n_periods: int | None = typer.Option(
+        None, "--n-periods", help="Number of sine wave periods", show_default=False
     ),
-    base_price: float = typer.Option(50000.0, "--base-price", help="Base price level"),
-    amplitude: float = typer.Option(5000.0, "--amplitude", help="Sine wave amplitude"),
-    trend_slope: float = typer.Option(
-        0.0, "--trend-slope", help="Linear trend slope per step"
+    samples_per_period: int | None = typer.Option(
+        None,
+        "--samples-per-period",
+        help="Samples per sine wave period",
+        show_default=False,
     ),
-    volatility: float = typer.Option(
-        0.00001, "--volatility", help="Random noise factor"
+    base_price: float | None = typer.Option(
+        None, "--base-price", help="Base price level", show_default=False
+    ),
+    amplitude: float | None = typer.Option(
+        None, "--amplitude", help="Sine wave amplitude", show_default=False
+    ),
+    trend_slope: float | None = typer.Option(
+        None, "--trend-slope", help="Linear trend slope per step", show_default=False
+    ),
+    volatility: float | None = typer.Option(
+        None, "--volatility", help="Random noise factor", show_default=False
     ),
     upward_drift: bool = typer.Option(
         False, "--upward-drift", help="Generate upward drift pattern"
     ),
-    drift_samples: int = typer.Option(
-        500, "--drift-samples", help="Number of samples for drift pattern"
+    drift_samples: int | None = typer.Option(
+        None,
+        "--drift-samples",
+        help="Number of samples for drift pattern",
+        show_default=False,
     ),
-    drift_rate: float = typer.Option(
-        0.015, "--drift-rate", help="Exponential drift rate per step"
+    drift_rate: float | None = typer.Option(
+        None, "--drift-rate", help="Exponential drift rate per step", show_default=False
     ),
-    drift_volatility: float = typer.Option(
-        0.0005, "--drift-volatility", help="Volatility factor for drift pattern"
+    drift_volatility: float | None = typer.Option(
+        None,
+        "--drift-volatility",
+        help="Volatility factor for drift pattern",
+        show_default=False,
     ),
-    drift_floor: float = typer.Option(
-        0.995, "--drift-floor", help="Pullback floor multiplier for drift pattern"
+    drift_floor: float | None = typer.Option(
+        None,
+        "--drift-floor",
+        help="Pullback floor multiplier for drift pattern",
+        show_default=False,
     ),
 ):
     """Generate synthetic price data from existing parquet files."""
+
+    defaults = _load_scenario_defaults(scenario)
+    sine_wave, upward_drift = _derive_generation_flags(
+        sine_wave, upward_drift, defaults.pattern_type
+    )
+    if defaults.path:
+        logger.info(
+            "Loaded scenario defaults (pattern: %s)", defaults.pattern_type or "none"
+        )
+
+    output_dir, output_file = _resolve_output_targets(
+        output_dir, output_file, defaults.data
+    )
+    sample_size = _coalesce(sample_size, defaults.pattern.get("sample_size"))
+    start_date = _coalesce(start_date, defaults.pattern.get("start_date"))
+
+    # Resolve directories after applying scenario defaults
+    source_dir = source_dir or "data/raw/binance"
+    output_dir = output_dir or "data/raw/synthetic"
+
     generator = PriceDataGenerator(source_dir=source_dir, output_dir=output_dir)
 
     # List available files
     if list_files:
-        logger = logging.getLogger(__name__)
         logger.info("Available source files:")
         source_files = generator.list_source_files()
         if not source_files:
             logger.warning("  No parquet files found in source directory")
         else:
             for f in source_files:
-                logger.info(f"  - {f}")
+                logger.info("  - %s", f)
         return
 
     # Generate sine wave pattern
     if sine_wave:
         output_file_name = output_file or "sine_wave_pattern.parquet"
+        sine_params = _collect_sine_wave_params(
+            n_periods,
+            samples_per_period,
+            base_price,
+            amplitude,
+            trend_slope,
+            volatility,
+            start_date,
+            defaults.pattern,
+        )
+
         try:
             df = generator.generate_sine_wave_pattern(
                 output_file=output_file_name,
-                n_periods=n_periods,
-                samples_per_period=samples_per_period,
-                base_price=base_price,
-                amplitude=amplitude,
-                trend_slope=trend_slope,
-                volatility=volatility,
-                start_date=start_date or "2024-01-01",
+                n_periods=int(sine_params["n_periods"]),
+                samples_per_period=int(sine_params["samples_per_period"]),
+                base_price=float(sine_params["base_price"]),
+                amplitude=float(sine_params["amplitude"]),
+                trend_slope=float(sine_params["trend_slope"]),
+                volatility=float(sine_params["volatility"]),
+                start_date=str(sine_params["start_date"]),
             )
-            logger = logging.getLogger(__name__)
-            logger.info(f"Successfully generated sine wave pattern with {len(df)} rows")
+            logger.info(
+                "Successfully generated sine wave pattern with %s rows", len(df)
+            )
             return
         except Exception as e:
-            logger = logging.getLogger(__name__)
             logger.error(f"Error generating sine wave pattern: {e}")
             raise typer.Exit(1) from e
 
     if upward_drift:
         output_file_name = output_file or "upward_drift_pattern.parquet"
+        drift_params = _collect_upward_drift_params(
+            drift_samples,
+            base_price,
+            drift_rate,
+            drift_volatility,
+            drift_floor,
+            start_date,
+            defaults.pattern,
+        )
+
         try:
             df = generator.generate_upward_drift_pattern(
                 output_file=output_file_name,
-                n_samples=drift_samples,
-                base_price=base_price,
-                drift_rate=drift_rate,
-                volatility=drift_volatility,
-                pullback_floor=drift_floor,
-                start_date=start_date or "2024-01-01",
+                n_samples=int(drift_params["n_samples"]),
+                base_price=float(drift_params["base_price"]),
+                drift_rate=float(drift_params["drift_rate"]),
+                volatility=float(drift_params["volatility"]),
+                pullback_floor=float(drift_params["pullback_floor"]),
+                start_date=str(drift_params["start_date"]),
             )
-            logger = logging.getLogger(__name__)
             logger.info(
-                f"Successfully generated upward drift pattern with {len(df)} rows"
+                "Successfully generated upward drift pattern with %s rows", len(df)
             )
             return
         except Exception as e:
-            logger = logging.getLogger(__name__)
             logger.error(f"Error generating upward drift pattern: {e}")
             raise typer.Exit(1) from e
 
     # Require source file for other operations
     if not source_file:
-        logger = logging.getLogger(__name__)
         logger.error(
-            "Error: --source-file is required (or use --list to see available files, or --sine-wave for pattern generation)"
+            "Error: --source-file is required (or use --list to see available files, or provide a scenario/pattern flag)"
         )
         raise typer.Exit(1)
 
@@ -171,10 +411,8 @@ def generate_data(
             end_date=end_date,
             sample_size=sample_size,
         )
-        logger = logging.getLogger(__name__)
-        logger.info(f"Successfully generated synthetic data with {len(df)} rows")
+        logger.info("Successfully generated synthetic data with %s rows", len(df))
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.error(f"Error generating data: {e}")
         raise typer.Exit(1) from e
 

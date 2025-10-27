@@ -12,26 +12,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
-RESET_COLOR = "\033[0m"
-
-
-class ColoredFormatter(logging.Formatter):
-    """Formatter that adds ANSI colors based on the log level."""
-
-    LEVEL_COLORS = {
-        logging.DEBUG: "\033[36m",  # Cyan
-        logging.INFO: "\033[32m",  # Green
-        logging.WARNING: "\033[33m",  # Yellow
-        logging.ERROR: "\033[31m",  # Red
-        logging.CRITICAL: "\033[41m",  # Red background
-    }
-
-    def format(self, record: logging.LogRecord) -> str:
-        message = super().format(record)
-        color = self.LEVEL_COLORS.get(record.levelno)
-        if not color:
-            return message
-        return f"{color}{message}{RESET_COLOR}"
+from logger import get_logger
 
 
 def _parse_log_level(level: int | str | None) -> int:
@@ -41,34 +22,6 @@ def _parse_log_level(level: int | str | None) -> int:
     if isinstance(level, str):
         return logging._nameToLevel.get(level.upper(), logging.INFO)
     return logging.INFO
-
-
-def _configure_logger(level: int | str | None = None) -> logging.Logger:
-    """
-    Configure a module-level logger with colored output.
-
-    Parameters
-    ----------
-    level:
-        Desired log level (string or integer). If None, falls back to the
-        DATA_GENERATOR_LOG_LEVEL environment variable or INFO.
-    """
-    requested_level = level or os.getenv("DATA_GENERATOR_LOG_LEVEL") or logging.INFO
-
-    logger = logging.getLogger("data_generator")
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setFormatter(
-            ColoredFormatter(
-                "%(asctime)s | %(name)s | %(levelname)s | %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        )
-        logger.addHandler(handler)
-        logger.propagate = False
-
-    logger.setLevel(_parse_log_level(requested_level))
-    return logger
 
 
 class PriceDataGenerator:
@@ -90,8 +43,10 @@ class PriceDataGenerator:
         output_dir : str
             Directory to dump synthetic data
         """
-        base_logger = _configure_logger(log_level)
-        self.logger = base_logger.getChild(self.__class__.__name__)
+        self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
+        requested_level = log_level or os.getenv("DATA_GENERATOR_LOG_LEVEL")
+        if requested_level is not None:
+            self.logger.setLevel(_parse_log_level(requested_level))
 
         self.source_dir = Path(source_dir)
         self.output_dir = Path(output_dir)
