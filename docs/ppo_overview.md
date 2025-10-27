@@ -10,13 +10,13 @@ sequenceDiagram
     participant Col as SyncDataCollector
     participant Buf as ReplayBuffer
     participant Loss as ClipPPOLoss
-    participant Opt as Adam Optimizer
-    participant Eval as env.rollout (evaluate_agent)
+    participant Opt as AdamOptimizer
+    participant Eval as env.rollout_evaluate_agent
     participant MLf as MLflow
 
     CLI->>RME: experiment(...)
     RME->>RSE: run_single_experiment(trial_config)
-    RSE->>Col: create_ppo_actor/critic\n+ SyncDataCollector
+    RSE->>Col: create_ppo_actor/critic<br/>+ SyncDataCollector
     RSE->>PPO: trainer.train(callback)
 
     loop each batch (~frames_per_batch)
@@ -24,9 +24,9 @@ sequenceDiagram
         PPO->>Buf: replay_buffer.extend(data)
         PPO->>Buf: sample(batch_size)
         PPO->>Loss: compute ClipPPOLoss
-        Loss-->>PPO: loss_objective\nloss_critic\nloss_entropy
+        Loss-->>PPO: loss_objective<br/>loss_critic<br/>loss_entropy
 
-        PPO->>Opt: total_loss.backward()\noptimizer.step()
+        PPO->>Opt: total_loss.backward()<br/>optimizer.step()
         Opt-->>PPO: update actor & critic weights
         PPO->>MLf: callback.log_training_step(...)
 

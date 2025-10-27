@@ -344,7 +344,7 @@ files = generator.list_source_files()
 
 ## Experiment Workflow
 
-For detailed information about how experiments work, including system architecture and component interactions, see [docs/experiment_workflow.md](docs/experiment_workflow.md). For a visual walk-through of the PPO training pipeline used in this project, see [docs/ppo_overview.md](docs/ppo_overview.md). These documents include:
+For detailed information about how experiments work, including system architecture and component interactions, see [docs/experiment_workflow.md](docs/experiment_workflow.md). Visual walk-throughs of the algorithms are available in [docs/ppo_overview.md](docs/ppo_overview.md) and [docs/ddpg_data_flow.md](docs/ddpg_data_flow.md). These documents include:
 
 - Complete experiment workflow with Mermaid diagrams
 - Component details and data flow
