@@ -5,6 +5,7 @@ import time
 from collections import defaultdict
 from typing import Any
 
+import numpy as np
 import torch
 from tensordict.nn import InteractionType, set_composite_lp_aggregate
 from torch.optim import Adam
@@ -117,10 +118,22 @@ class DDPGTrainer:
             # Log episode statistics to callback if provided
             if callback and hasattr(callback, "log_episode_stats"):
                 episode_reward = data["next", "reward"].sum().item()
-                # Extract portfolio valuation and actions if available
-                portfolio_valuation = getattr(data.get("next", {}), "portfolio_valuation", 0.0)
-                if hasattr(portfolio_valuation, "item"):
-                    portfolio_valuation = portfolio_valuation.item()
+                # Calculate portfolio valuation from cumulative rewards
+                # Since reward = log(portfolio_val[t] / portfolio_val[t-1])
+                # We can reconstruct portfolio value from cumulative log returns
+                episode_reward = data["next", "reward"].sum().item()
+                
+                # Initialize portfolio tracking if not exists
+                if not hasattr(callback, '_portfolio_value'):
+                    callback._portfolio_value = 10000.0  # Starting portfolio value
+                
+                # Update portfolio value based on reward (log return)
+                if episode_reward != 0:
+                    # exp(log_return) = portfolio_val[t] / portfolio_val[t-1]
+                    # portfolio_val[t] = portfolio_val[t-1] * exp(log_return)
+                    callback._portfolio_value *= np.exp(episode_reward)
+                
+                portfolio_valuation = callback._portfolio_value
                 actions = data.get("action", torch.tensor([])).flatten().tolist()
                 exploration_ratio = (
                     0.1  # Placeholder - could be calculated from exploration strategy
@@ -371,10 +384,22 @@ class PPOTrainer:
             # Log episode statistics to callback if provided
             if callback and hasattr(callback, "log_episode_stats"):
                 episode_reward = data["next", "reward"].sum().item()
-                # Extract portfolio valuation and actions if available
-                portfolio_valuation = getattr(data.get("next", {}), "portfolio_valuation", 0.0)
-                if hasattr(portfolio_valuation, "item"):
-                    portfolio_valuation = portfolio_valuation.item()
+                # Calculate portfolio valuation from cumulative rewards
+                # Since reward = log(portfolio_val[t] / portfolio_val[t-1])
+                # We can reconstruct portfolio value from cumulative log returns
+                episode_reward = data["next", "reward"].sum().item()
+                
+                # Initialize portfolio tracking if not exists
+                if not hasattr(callback, '_portfolio_value'):
+                    callback._portfolio_value = 10000.0  # Starting portfolio value
+                
+                # Update portfolio value based on reward (log return)
+                if episode_reward != 0:
+                    # exp(log_return) = portfolio_val[t] / portfolio_val[t-1]
+                    # portfolio_val[t] = portfolio_val[t-1] * exp(log_return)
+                    callback._portfolio_value *= np.exp(episode_reward)
+                
+                portfolio_valuation = callback._portfolio_value
                 actions = data.get("action", torch.tensor([])).flatten().tolist()
                 exploration_ratio = getattr(self.config, "entropy_bonus", 0.01)
 

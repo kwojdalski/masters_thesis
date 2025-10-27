@@ -1,11 +1,11 @@
 # Trading RL Master's Thesis
 
-A comprehensive reinforcement learning framework for trading strategies using PyTorch and TorchRL, with integrated experiment tracking via Optuna.
+A comprehensive reinforcement learning framework for trading strategies using PyTorch and TorchRL, with integrated experiment tracking via MLflow.
 
 ## Features
 
-- **Deep RL Trading Agents**: DDPG implementation with custom trading environments
-- **Experiment Tracking**: Full Optuna integration with real-time training metrics
+- **Deep RL Trading Agents**: DDPG and PPO pipelines with custom trading environments
+- **Experiment Tracking**: MLflow integration with real-time metrics and artifact logging
 - **Rich CLI Interface**: Beautiful command-line tools using Typer and Rich
 - **Comprehensive Analytics**: Detailed performance tracking and visualization
 - **Modular Architecture**: Clean, reusable components for research
@@ -38,7 +38,7 @@ poetry install
 **Key Dependencies:**
 - **Deep Learning**: PyTorch, TorchRL, TensorDict
 - **Reinforcement Learning**: Gymnasium, Stable-Baselines3, gym-trading-env
-- **Experiment Tracking**: Optuna, Optuna-Dashboard
+- **Experiment Tracking**: MLflow
 - **Visualization**: Matplotlib, Seaborn, Plotnine
 - **CLI Tools**: Typer, Rich
 - **Data Science**: NumPy, Pandas, SciPy, Scikit-learn
@@ -55,7 +55,7 @@ masters_thesis/
 │   │   ├── data_utils.py     # Data processing utilities
 │   │   ├── models.py         # Neural network models
 │   │   ├── training.py       # DDPG trainer implementation
-│   │   ├── train_trading_agent.py  # Main training script with Optuna
+│   │   ├── train_trading_agent.py  # MLflow-enabled training orchestration
 │   │   └── utils.py          # Helper utilities
 │   ├── cli.py                # Command-line interface
 │   ├── data_generator.py     # Synthetic data generation
@@ -69,17 +69,19 @@ masters_thesis/
 
 ### 1. Train a Single Agent
 ```bash
-python src/cli.py train --name "my_experiment" --seed 42 --save-plots
+# Uses the experiment_name defined in the config unless you override --name
+python src/cli.py train --config src/configs/default.yaml --seed 42 --save-plots
 ```
 
-### 2. Run Multiple Experiments with Optuna
+### 2. Run a Batch of Experiments with MLflow Tracking
 ```bash
-python src/cli.py experiment --study "trading_study" --trials 10 --dashboard
+# Runs three trials; MLflow experiment name comes from the YAML unless --name is set
+python src/cli.py experiment --config src/configs/upward_drift_ppo.yaml --trials 3 --max-steps 8000
 ```
 
-### 3. View Results in Dashboard
+### 3. Launch the MLflow Dashboard
 ```bash
-python src/cli.py dashboard trading_study.db
+python src/cli.py dashboard --host 0.0.0.0 --port 5000
 ```
 
 ## CLI Commands
@@ -93,14 +95,15 @@ The project provides a rich command-line interface powered by Typer:
 python src/cli.py train [OPTIONS]
 
 Options:
-  --name, -n TEXT         Experiment name
+  --name, -n TEXT         Override experiment name (defaults to config)
+  --config, -c PATH       Path to config YAML (uses defaults if omitted)
   --seed, -s INTEGER      Random seed for reproducibility
   --max-steps INTEGER     Maximum training steps
-  --actor-lr FLOAT        Actor learning rate
-  --value-lr FLOAT        Value network learning rate
-  --buffer-size INTEGER   Replay buffer size
-  --save-plots           Save training plots to disk
-  --log-dir PATH         Logging directory
+  --actor-lr FLOAT        Actor learning rate override
+  --value-lr FLOAT        Value network learning rate override
+  --buffer-size INTEGER   Replay buffer size override
+  --save-plots            Save training plots to disk
+  --log-dir PATH          Logging directory override
 ```
 
 #### Multiple Experiments
@@ -108,32 +111,30 @@ Options:
 python src/cli.py experiment [OPTIONS]
 
 Options:
-  --study, -s TEXT        Optuna study name
-  --trials, -t INTEGER    Number of trials to run
-  --storage TEXT          Optuna storage URL
-  --dashboard            Launch dashboard after completion
-  --config, -c PATH       Custom config file
-  --track-positions      Track position changes as intermediate values
-  --dual-tracking        Run both loss and position tracking studies
+  --name, -n TEXT         Override MLflow experiment name
+  --trials, -t INTEGER    Number of trials to run (default: 5)
+  --dashboard             Launch MLflow UI after experiments finish
+  --config, -c PATH       Path to config YAML (required for custom setups)
+  --seed INTEGER          Base seed; each trial uses seed + trial_number
+  --max-steps INTEGER     Maximum training steps per trial
+  --clear-cache           Clear cached datasets/models before running
+  --no-features           Skip feature engineering (raw OHLCV only)
 ```
 
 ### Analysis Commands
 
 #### Launch Dashboard
 ```bash
-python src/cli.py dashboard STUDY_NAME [OPTIONS]
+python src/cli.py dashboard [OPTIONS]
 
 Options:
-  --port, -p INTEGER      Dashboard port (default: 8080)
-  --host TEXT            Dashboard host (default: localhost)
+  --port, -p INTEGER      MLflow UI port (default: 5000)
+  --host TEXT             MLflow UI host (default: localhost)
 ```
 
-#### List Studies
+#### List MLflow Experiments
 ```bash
-python src/cli.py list-studies [OPTIONS]
-
-Options:
-  --dir, -d PATH         Directory to search for databases
+python src/cli.py list-experiments
 ```
 
 ### Data Generation Commands
@@ -290,21 +291,19 @@ result = run_single_experiment(custom_config=config)
 print(f"Final reward: {result['final_metrics']['final_reward']}")
 ```
 
-### Multiple Experiments with Optuna
+### Multiple Experiments with MLflow
 ```python
-from trading_rl import run_multiple_experiments
+from trading_rl import ExperimentConfig, run_multiple_experiments
 
-# Run multiple experiments
-study = run_multiple_experiments("my_study", n_trials=10)
+# Load configuration and run three trials
+config = ExperimentConfig.from_yaml("src/configs/upward_drift_ppo.yaml")
+experiment_name = run_multiple_experiments(
+    n_trials=3,
+    base_seed=123,
+    custom_config=config,
+)
 
-# Access results
-print(f"Best trial: {study.best_trial.number}")
-print(f"Best reward: {study.best_value}")
-
-# View trial details
-for trial in study.trials:
-    reward = trial.user_attrs.get('final_reward', 'N/A')
-    print(f"Trial {trial.number}: {reward}")
+print(f"Results are logged in MLflow under: {experiment_name}")
 ```
 
 ### Custom Configuration
@@ -355,72 +354,18 @@ For detailed information about how experiments work, including system architectu
 
 ## Experiment Tracking
 
-The framework provides comprehensive experiment tracking via Optuna:
+All training runs are tracked in MLflow.
 
 ### Tracked Metrics
-- **Performance**: Final reward, training steps, episode rewards
-- **Training**: Actor/value losses, training curves, portfolio values
-- **Position Activity**: Position changes per episode, trading frequency, position holding duration
-- **Configuration**: All hyperparameters, network architecture
-- **Data**: Dataset info, start/end dates, data size
-- **Environment**: Trading fees, position types, action spaces
+- **Performance**: Final reward, total training steps, evaluation horizon
+- **Training Dynamics**: Actor/value losses, exploration ratios, checkpoint metadata
+- **Position Activity**: Per-episode position changes, portfolio trajectories, action distributions
+- **Configuration**: Every hyperparameter, network architecture, dataset stats, environment settings
 
 ### Dashboard Features
-- **Interactive Plots**: Real-time training curves and loss visualization
-- **Position Tracking**: Monitor how frequently agents change positions
-- **Intermediate Values**: Track losses and position changes during training
-- **Parameter Analysis**: Hyperparameter importance and relationships
-- **Trial Comparison**: Side-by-side comparison of experiments
-- **Export Options**: Download results as CSV or visualization images
+- Interactive loss and reward curves per trial
+- Automatically generated comparison plots saved as artifacts
+- Drill-down view of position changes and trading behaviour
+- Artifact bundles (plots, CSV summaries, configs) for offline analysis
 
-### Position Change Tracking
-
-The framework provides comprehensive position change tracking with multiple visualization options:
-
-#### **Standard Tracking (User Attributes)**
-```python
-# Position changes are tracked automatically in all experiments
-study = run_multiple_experiments("trading_study", n_trials=5)
-
-# View position activity in dashboard
-for trial in study.trials:
-    pos_changes = trial.user_attrs.get('total_position_changes', 0)
-    avg_changes = trial.user_attrs.get('avg_position_change_per_episode', 0)
-    print(f"Trial {trial.number}: {pos_changes} total changes, {avg_changes:.2f} avg per episode")
-```
-
-#### **Intermediate Values Tracking (Real-time Plots)**
-```python
-# Track position changes in intermediate values plot
-position_study = run_position_tracking_experiments("position_analysis", n_trials=5)
-
-# Or run both loss and position tracking
-loss_study, position_study = run_dual_tracking_experiments("comprehensive", n_trials=5)
-```
-
-#### **CLI Position Tracking**
-```bash
-# Position changes as intermediate values (creates separate plot)
-python src/cli.py experiment \
-  --study "position_tracking" \
-  --trials 10 \
-  --track-positions \
-  --dashboard
-
-# Dual tracking (creates two studies with different intermediate value plots)
-python src/cli.py experiment \
-  --study "dual_analysis" \
-  --trials 10 \
-  --dual-tracking
-```
-
-**Available Position Metrics:**
-- `total_position_changes` - Total position changes across all episodes
-- `avg_position_change_per_episode` - Average changes per episode
-- `max_position_changes_per_episode` - Maximum changes in a single episode
-- `intermediate_position_changes` - Step-by-step position change progression
-
-**Dashboard Features:**
-- **User Attributes Table**: Always shows position metrics for all studies
-- **Intermediate Values Plot**: Shows position changes over time when using `--track-positions`
-- **Dual Studies**: Compare loss curves and position activity side-by-side
+Launch the dashboard with `python src/cli.py dashboard` or open the experiment in any MLflow-compatible UI to explore results.
