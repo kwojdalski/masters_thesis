@@ -69,9 +69,11 @@ def generate_data(
     base_price: float = typer.Option(50000.0, "--base-price", help="Base price level"),
     amplitude: float = typer.Option(5000.0, "--amplitude", help="Sine wave amplitude"),
     trend_slope: float = typer.Option(
-        50.0, "--trend-slope", help="Linear trend slope per step"
+        0.0, "--trend-slope", help="Linear trend slope per step"
     ),
-    volatility: float = typer.Option(0.02, "--volatility", help="Random noise factor"),
+    volatility: float = typer.Option(
+        0.00001, "--volatility", help="Random noise factor"
+    ),
     upward_drift: bool = typer.Option(
         False, "--upward-drift", help="Generate upward drift pattern"
     ),

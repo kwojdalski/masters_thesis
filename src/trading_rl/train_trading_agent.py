@@ -208,14 +208,18 @@ class MLflowTrainingCallback:
         # Log episode metrics to MLflow
         episode_num = len(self.training_stats["episode_rewards"])
         mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
-        mlflow.log_metric("episode_portfolio_valuation", portfolio_valuation, step=episode_num)
+        mlflow.log_metric(
+            "episode_portfolio_valuation", portfolio_valuation, step=episode_num
+        )
         mlflow.log_metric(
             "episode_position_changes", position_changes, step=episode_num
         )
         mlflow.log_metric(
             "episode_position_change_ratio", position_change_ratio, step=episode_num
         )
-        mlflow.log_metric("episode_exploration_ratio", exploration_ratio, step=episode_num)
+        mlflow.log_metric(
+            "episode_exploration_ratio", exploration_ratio, step=episode_num
+        )
 
     def get_training_curves(self) -> dict:
         """Get training curves for storage."""
@@ -265,11 +269,14 @@ def log_final_metrics_to_mlflow(
         positions = final_metrics["last_position_per_episode"]
         if positions:
             import json
+
             # Log position sequence length as metric
             mlflow.log_metric("last_position_sequence_length", len(positions))
             # Store full position sequence as artifact
             position_str = json.dumps(positions[:100])  # Limit to first 100
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as f:
                 f.write(position_str)
                 f.flush()
                 mlflow.log_artifact(f.name, "position_data")
@@ -301,7 +308,8 @@ def log_final_metrics_to_mlflow(
 
         if training_curves["portfolio_valuations"]:
             mlflow.log_metric(
-                "episode_portfolio_valuation", training_curves["portfolio_valuations"][-1]
+                "episode_portfolio_valuation",
+                training_curves["portfolio_valuations"][-1],
             )
 
         # Removed avg_exploration_ratio metric
@@ -484,6 +492,7 @@ def evaluate_agent(
     df: pd.DataFrame,
     max_steps: int = 1000,
     save_path: str | None = None,
+    config: Any = None,
 ) -> tuple:
     """Evaluate trained agent and create visualizations.
 
@@ -524,31 +533,39 @@ def evaluate_agent(
     )
 
     # Add benchmarks to reward plot with proper legend labels
-    from plotnine import ggplot, geom_line, labs, aes, scale_color_manual
-    
+    from plotnine import ggplot, labs, scale_color_manual
+
     # Create benchmark data for legend
     benchmark_data = []
-    for step, (bh_val, mp_val) in enumerate(zip(benchmark_df["buy_and_hold"], benchmark_df["max_profit"])):
-        benchmark_data.extend([
-            {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
-            {"Steps": step, "Cumulative_Reward": mp_val, "Run": "Max Profit"},
-        ])
-    
+    for step, (bh_val, mp_val) in enumerate(
+        zip(benchmark_df["buy_and_hold"], benchmark_df["max_profit"], strict=False)
+    ):
+        benchmark_data.extend(
+            [
+                {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
+                {"Steps": step, "Cumulative_Reward": mp_val, "Run": "Max Profit"},
+            ]
+        )
+
     # Get original data from the plot
     existing_data = reward_plot.data
-    combined_data = pd.concat([existing_data, pd.DataFrame(benchmark_data)], ignore_index=True)
-    
+    combined_data = pd.concat(
+        [existing_data, pd.DataFrame(benchmark_data)], ignore_index=True
+    )
+
     # Recreate plot with all data including benchmarks
     reward_plot = (
         ggplot(combined_data, aes(x="Steps", y="Cumulative_Reward", color="Run"))
         + geom_line()
         + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
-        + scale_color_manual(values={
-            "Deterministic": "#F8766D",  # Default ggplot red
-            "Random": "#00BFC4",         # Default ggplot blue  
-            "Buy-and-Hold": "violet",
-            "Max Profit": "green"
-        })
+        + scale_color_manual(
+            values={
+                "Deterministic": "#F8766D",  # Default ggplot red
+                "Random": "#00BFC4",  # Default ggplot blue
+                "Buy-and-Hold": "violet",
+                "Max Profit": "green",
+            }
+        )
     )
 
     if save_path:
@@ -583,98 +600,218 @@ def evaluate_agent(
 
     # Create action probabilities plot
     action_probs_plot = _create_action_probabilities_plot(
-        env, actor, max_steps
+        env, actor, max_steps, df, config
     )
 
     return reward_plot, action_plot, action_probs_plot, final_reward, last_positions
 
 
-def _create_action_probabilities_plot(env, actor, max_steps):
-    """Create a simple plot showing action probability distributions."""
+def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=None):
+    """Create a plot showing action probability distributions over time steps."""
     import pandas as pd
     import torch
+    import torch.nn.functional as F
     from plotnine import (
-        aes,
         element_text,
-        geom_col,
+        geom_area,
         ggplot,
         labs,
-        scale_fill_discrete,
+        scale_fill_manual,
+        scale_x_continuous,
         theme,
         theme_minimal,
     )
 
-    # Simple approach: get probabilities from a single observation
     try:
         with torch.no_grad():
-            # Get a sample observation from environment
-            obs = env.reset()
-            actor_output = actor(obs)
+            # Use the original environment but force it to give us varying observations
+            # by resetting and running multiple short episodes
+            env_to_use = env
 
-            # Handle different actor output formats
-            if hasattr(actor_output, 'logits'):
-                # PPO case - logits available
-                probs = torch.softmax(actor_output.logits, dim=-1)
-            else:
-                # Fallback - uniform distribution
-                probs = torch.tensor([0.33, 0.34, 0.33])
-
-            # Ensure probs is the right shape and sum to 1
-            probs = probs.squeeze()
-            if probs.dim() == 0 or len(probs) != 3:
-                probs = torch.tensor([0.33, 0.34, 0.33])
-            probs = probs / probs.sum()  # Normalize
-
-            # Create simple bar chart data
+            # Reset environment and collect probabilities for each step
+            obs = env_to_use.reset()
             action_names = {0: "Short", 1: "Hold", 2: "Long"}
-            action_data = []
-            for action_idx, action_name in action_names.items():
-                action_data.append({
-                    "Action": action_name,
-                    "Probability": float(probs[action_idx])
-                })
+            action_probs_data = []
 
-        df_probs = pd.DataFrame(action_data)
+            # Limit steps for visualization (too many steps make plot unreadable)
+            viz_steps = min(max_steps, 500)
+            current_episode_steps = 0
+            max_episode_length = (
+                20  # Reset env every 20 steps to get varying observations
+            )
 
-        # Create simple bar plot
+            for step in range(viz_steps):
+                # Reset environment periodically to get different observations
+                if current_episode_steps >= max_episode_length:
+                    obs = env_to_use.reset()
+                    current_episode_steps = 0
+                # Extract observation from TensorDict if needed
+                if hasattr(obs, "get") and "observation" in obs:
+                    current_obs = obs["observation"]
+                else:
+                    current_obs = obs
+
+                # Get action probabilities from actor
+                actor_output = actor(current_obs)
+
+                # Handle different actor output formats
+                if hasattr(actor_output, "logits"):
+                    # Standard distribution with logits
+                    logits = actor_output.logits
+                    probs = torch.softmax(logits, dim=-1)
+
+                elif isinstance(actor_output, tuple) and len(actor_output) >= 1:
+                    # PPO case - returns tuple with probabilities as first element
+                    probs = actor_output[0]  # First element contains probabilities
+
+                elif hasattr(actor_output, "loc"):
+                    # DDPG case - continuous action, need to discretize
+                    action_val = torch.clamp(actor_output.loc, -1, 1)
+                    # Convert continuous [-1, 1] to discrete probabilities
+                    if action_val < -0.33:
+                        probs = torch.tensor([0.7, 0.2, 0.1])  # Mostly short
+                    elif action_val > 0.33:
+                        probs = torch.tensor([0.1, 0.2, 0.7])  # Mostly long
+                    else:
+                        probs = torch.tensor([0.2, 0.6, 0.2])  # Mostly hold
+
+                else:
+                    # Fallback - uniform distribution
+                    probs = torch.tensor([0.33, 0.34, 0.33])
+
+                # Ensure probs is the right shape and sum to 1
+                probs = probs.squeeze()
+                if probs.dim() == 0 or len(probs) != 3:
+                    probs = torch.tensor([0.33, 0.34, 0.33])
+                probs = probs / probs.sum()  # Normalize
+
+                # Add data for each action at this step
+                for action_idx, action_name in action_names.items():
+                    action_probs_data.append(
+                        {
+                            "Step": step,
+                            "Action": action_name,
+                            "Probability": float(probs[action_idx]),
+                        }
+                    )
+
+                # Take a step in the environment
+                if hasattr(actor_output, "sample"):
+                    action = actor_output.sample()
+                elif isinstance(actor_output, tuple) and len(actor_output) >= 2:
+                    # PPO actor returns (probs, action, log_prob)
+                    action = actor_output[1]
+                else:
+                    # Fallback - sample from probabilities manually (categorical draw)
+                    action_idx = torch.multinomial(probs, 1).item()
+                    action = F.one_hot(
+                        torch.tensor(action_idx), num_classes=len(action_names)
+                    ).to(torch.float32)
+
+                # Ensure action matches env spec (one-hot vector)
+                if isinstance(action, torch.Tensor):
+                    if action.dim() == 0:
+                        action = F.one_hot(
+                            action.long(), num_classes=len(action_names)
+                        ).to(torch.float32)
+                    elif action.dim() == 1 and action.shape[0] != len(action_names):
+                        action = F.one_hot(
+                            action.long(), num_classes=len(action_names)
+                        ).to(torch.float32)
+                    else:
+                        action = action.to(torch.float32)
+                if isinstance(action, torch.Tensor) and action.dim() > 1:
+                    action = action.squeeze(0)
+
+                # Step the environment using a cloned tensordict
+                action_td = obs.clone()
+                action_td.set("action", action)
+                step_result = env_to_use.step(action_td)
+
+                # Extract post-step observation for next iteration
+                if "next" in step_result.keys():
+                    next_obs = step_result.get("next").clone()
+                else:
+                    next_obs = step_result.clone()
+                obs = next_obs
+
+                # Increment episode step counter
+                current_episode_steps += 1
+
+                # Break if episode is done
+                if obs.get("done", torch.tensor(False)).any():
+                    current_episode_steps = (
+                        max_episode_length  # Force reset on next iteration
+                    )
+
+        df_probs = pd.DataFrame(action_probs_data)
+        action_order = ["Short", "Hold", "Long"]
+        df_probs["Action"] = pd.Categorical(
+            df_probs["Action"], categories=action_order, ordered=True
+        )
+
+        # Create stacked area plot showing probability distributions over time
         plot = (
-            ggplot(df_probs, aes(x="Action", y="Probability", fill="Action"))
-            + geom_col(width=0.6)
+            ggplot(df_probs, aes(x="Step", y="Probability", fill="Action"))
+            + geom_area(position="stack", alpha=0.8)
             + labs(
-                title="Action Probability Distribution",
-                x="Action",
+                title="Action Probability Distributions Over Time",
+                x="Time Step",
                 y="Probability",
-                fill="Action"
+                fill="Action",
             )
             + theme_minimal()
-            + scale_fill_discrete(name="Action")
+            + scale_fill_manual(
+                name="Action",
+                values={
+                    "Short": "#F8766D",  # red-ish at bottom
+                    "Hold": "#C0C0C0",  # neutral middle
+                    "Long": "#00BFC4",  # teal top
+                },
+            )
+            + scale_x_continuous(expand=(0, 0))
             + theme(
-                figure_size=(8, 5),
+                figure_size=(12, 6),
                 axis_title=element_text(size=11),
-                legend_position="none"
+                legend_position="right",
             )
         )
 
         return plot
 
-    except Exception as e:
-        # Fallback plot in case of errors
-        fallback_data = pd.DataFrame({
-            "Action": ["Short", "Hold", "Long"],
-            "Probability": [0.33, 0.34, 0.33]
-        })
-        
+    except Exception:
+        # Fallback plot in case of errors - show uniform distribution over steps
+        fallback_steps = min(max_steps, 500)
+        fallback_data = []
+        for step in range(fallback_steps):
+            for action in ["Short", "Hold", "Long"]:
+                fallback_data.append(
+                    {"Step": step, "Action": action, "Probability": 0.33}
+                )
+
+        df_fallback = pd.DataFrame(fallback_data)
+        df_fallback["Action"] = pd.Categorical(
+            df_fallback["Action"], categories=["Short", "Hold", "Long"], ordered=True
+        )
         plot = (
-            ggplot(fallback_data, aes(x="Action", y="Probability", fill="Action"))
-            + geom_col(width=0.6)
+            ggplot(df_fallback, aes(x="Step", y="Probability", fill="Action"))
+            + geom_area(position="stack", alpha=0.8)
             + labs(
                 title="Action Probability Distribution (Fallback)",
-                x="Action",
-                y="Probability"
+                x="Time Step",
+                y="Probability",
             )
             + theme_minimal()
+            + scale_fill_manual(
+                name="Action",
+                values={
+                    "Short": "#F8766D",
+                    "Hold": "#C0C0C0",
+                    "Long": "#00BFC4",
+                },
+            )
         )
-        
+
         return plot
 
 
@@ -720,9 +857,7 @@ def _log_training_parameters(config: ExperimentConfig) -> None:
         mlflow.log_param(
             "training_value_weight_decay", float(config.training.value_weight_decay)
         )
-        mlflow.log_param(
-            "training_max_steps", int(config.training.max_steps)
-        )
+        mlflow.log_param("training_max_steps", int(config.training.max_steps))
         mlflow.log_param(
             "training_init_rand_steps", int(config.training.init_rand_steps)
         )
@@ -1145,11 +1280,14 @@ def run_single_experiment(
     eval_max_steps = min(
         config.training.eval_steps, len(df) - 1, config.data.train_size - 1
     )  # Use the smallest of: eval_steps, actual data size, or train_size
-    reward_plot, action_plot, action_probs_plot, final_reward, last_positions = evaluate_agent(
-        env,
-        actor,
-        df[: config.data.train_size],  # Pass only the training portion
-        max_steps=eval_max_steps,
+    reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
+        evaluate_agent(
+            env,
+            actor,
+            df[: config.data.train_size],  # Pass only the training portion
+            max_steps=eval_max_steps,
+            config=config,
+        )
     )
 
     # Save evaluation plots as MLflow artifacts
@@ -1162,7 +1300,10 @@ def run_single_experiment(
         # Context manager to suppress all plotnine output
         @contextlib.contextmanager
         def suppress_plotnine_output():
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
                 yield
 
         try:
@@ -1203,7 +1344,9 @@ def run_single_experiment(
                 try:
                     with warnings.catch_warnings(), suppress_plotnine_output():
                         warnings.simplefilter("ignore", PlotnineWarning)
-                        action_probs_plot.save(tmp_probs.name, width=8, height=5, dpi=150)
+                        action_probs_plot.save(
+                            tmp_probs.name, width=8, height=5, dpi=150
+                        )
                     mlflow.log_artifact(tmp_probs.name, "evaluation_plots")
                 except Exception:
                     logger.exception("Failed to save action probabilities plot")
@@ -1256,7 +1399,9 @@ def run_single_experiment(
                         try:
                             with warnings.catch_warnings(), suppress_plotnine_output():
                                 warnings.simplefilter("ignore", PlotnineWarning)
-                                loss_plot.save(tmp_loss.name, width=8, height=5, dpi=150)
+                                loss_plot.save(
+                                    tmp_loss.name, width=8, height=5, dpi=150
+                                )
                             mlflow.log_artifact(tmp_loss.name, "training_plots")
                         except Exception:
                             logger.exception("Failed to save training loss plot")

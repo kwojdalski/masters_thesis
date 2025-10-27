@@ -68,6 +68,6 @@ data_generator:
   n_samples: 500
   base_price: 50000.0
   amplitude: 8000.0
-  trend_slope: 50.0
-  volatility: 0.02
+  trend_slope: 0.0
+  volatility: 0.0002
   start_date: "2024-01-01"
