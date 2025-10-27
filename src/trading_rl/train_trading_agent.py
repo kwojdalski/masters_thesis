@@ -208,14 +208,14 @@ class MLflowTrainingCallback:
         # Log episode metrics to MLflow
         episode_num = len(self.training_stats["episode_rewards"])
         mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
-        mlflow.log_metric("portfolio_valuation", portfolio_valuation, step=episode_num)
+        mlflow.log_metric("episode_portfolio_valuation", portfolio_valuation, step=episode_num)
         mlflow.log_metric(
-            "position_changes_per_episode", position_changes, step=episode_num
+            "episode_position_changes", position_changes, step=episode_num
         )
         mlflow.log_metric(
-            "position_change_ratio", position_change_ratio, step=episode_num
+            "episode_position_change_ratio", position_change_ratio, step=episode_num
         )
-        mlflow.log_metric("exploration_ratio", exploration_ratio, step=episode_num)
+        mlflow.log_metric("episode_exploration_ratio", exploration_ratio, step=episode_num)
 
     def get_training_curves(self) -> dict:
         """Get training curves for storage."""
@@ -290,36 +290,28 @@ def log_final_metrics_to_mlflow(
         # Log summary statistics
         if training_curves["episode_rewards"]:
             mlflow.log_metric(
-                "avg_episode_reward", np.mean(training_curves["episode_rewards"])
+                "episode_avg_reward", np.mean(training_curves["episode_rewards"])
             )
             mlflow.log_metric(
-                "max_episode_reward", np.max(training_curves["episode_rewards"])
+                "episode_max_reward", np.max(training_curves["episode_rewards"])
             )
             mlflow.log_metric(
-                "min_episode_reward", np.min(training_curves["episode_rewards"])
+                "episode_min_reward", np.min(training_curves["episode_rewards"])
             )
 
         if training_curves["portfolio_valuations"]:
             mlflow.log_metric(
-                "final_portfolio_valuation", training_curves["portfolio_valuations"][-1]
-            )
-            mlflow.log_metric(
-                "max_portfolio_valuation", np.max(training_curves["portfolio_valuations"])
+                "episode_portfolio_valuation", training_curves["portfolio_valuations"][-1]
             )
 
-        if training_curves["exploration_ratios"]:
-            mlflow.log_metric(
-                "avg_exploration_ratio", np.mean(training_curves["exploration_ratios"])
-            )
+        # Removed avg_exploration_ratio metric
 
         if training_curves["position_change_counts"]:
             position_changes = training_curves["position_change_counts"]
             mlflow.log_metric(
-                "avg_position_change_per_episode", float(np.mean(position_changes))
+                "episode_avg_position_change", float(np.mean(position_changes))
             )
-            mlflow.log_metric(
-                "max_position_changes_per_episode", int(np.max(position_changes))
-            )
+            # Removed max_position_changes_per_episode metric
             mlflow.log_metric("total_position_changes", int(np.sum(position_changes)))
 
             # Calculate and log average position change ratio
@@ -338,7 +330,7 @@ def log_final_metrics_to_mlflow(
             )
             avg_position_change_ratio = np.mean(position_changes) / avg_episode_length
             mlflow.log_metric(
-                "avg_position_change_ratio", float(avg_position_change_ratio)
+                "episode_avg_position_change_ratio", float(avg_position_change_ratio)
             )
 
     # Log dataset metadata as parameters
