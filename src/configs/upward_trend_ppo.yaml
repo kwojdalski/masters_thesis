@@ -14,7 +14,7 @@ data:
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
   train_size: 450  # Hold back last 50 steps for evaluation
-  no_features: true  # Use raw OHLCV only
+  no_features: false  # Use feature engineering
 
 # Environment Configuration  
 env:
