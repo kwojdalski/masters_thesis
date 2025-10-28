@@ -1,32 +1,32 @@
-# PPO Configuration for Sine Wave Pattern
-# ========================================
+# PPO Configuration for White Noise Pattern (No Trend)
+# ======================================================
 
-experiment_name: "sine_wave_ppo_200k"
+experiment_name: "white_noise_no_trend_ppo"
 seed: 99  # Fixed seed for reproducibility
 
-# Data Configuration - Sine Wave Pattern
+# Data Configuration - White Noise Pattern (No Trend)
 data:
-  data_path: "./data/raw/synthetic/sine_wave_validation.parquet"
+  data_path: "./data/raw/synthetic/white_noise_no_trend_ppo.parquet"
   download_data: false
   exchange_names: ["synthetic"]
-  symbols: ["SINE/WAVE"]
+  symbols: ["NOISE/WHITE"]
   timeframe: "1h"
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
   train_size: 450  # Hold back last 50 steps for evaluation
-  no_features: false # Use raw OHLCV only
+  no_features: false  # Use feature engineering for noise pattern
 
 # Environment Configuration  
 env:
-  name: "SINEWAVE"
+  name: "WHITE_NOISE"
   positions: [-1, 0, 1]  # Short, hold, long
   trading_fees: 0.0  # No fees for synthetic validation
   borrow_interest_rate: 0.0
 
-# Network Architecture - Lightweight for simple monotonic trend
+# Network Architecture - For random pattern recognition
 network:
-  actor_hidden_dims: [32, 16]
-  value_hidden_dims: [32, 16]
+  actor_hidden_dims: [64, 32]  # Larger network for noise handling
+  value_hidden_dims: [64, 32]
 
 # Training Parameters - PPO specific
 training:
@@ -34,16 +34,16 @@ training:
   actor_lr: 0.0003
   value_lr: 0.0003  # Same as actor for PPO
   value_weight_decay: 0.001
-  max_steps: 8000  # Fewer steps needed due to simplicity
-  init_rand_steps: 10  # Minimal exploration
+  max_steps: 12000  # More steps for noisy environment
+  init_rand_steps: 100  # High exploration for random environment
   frames_per_batch: 200
   optim_steps_per_batch: 40  # Not used in PPO
   sample_size: 64
-  buffer_size: 4000  # Small buffer since distribution is stable
+  buffer_size: 10000  # Large buffer for diverse experiences
   
   # PPO-specific parameters
   clip_epsilon: 0.2  # PPO clipping parameter
-  entropy_bonus: 0.1  # Encourage exploration
+  entropy_bonus: 0.2  # High entropy for exploration in noisy environment
   vf_coef: 0.5  # Value function loss coefficient  
   ppo_epochs: 4  # Number of epochs per batch
   
@@ -57,17 +57,15 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/sine_wave_ppo"
+  log_dir: "logs/white_noise_no_trend_ppo"
   log_level: "INFO"
 
 # Data Generator Configuration
 data_generator:
-  pattern_type: "sine_wave"
-  n_periods: 5
-  samples_per_period: 100
+  pattern_type: "upward_drift"  # Use upward_drift generator with zero drift
   n_samples: 500
   base_price: 50000.0
-  amplitude: 8000.0
-  trend_slope: 0.0
-  volatility: 0.0002
+  drift_rate: 0.0  # No drift - pure white noise
+  volatility: 0.001  # Higher volatility for white noise effect
+  pullback_floor: 0.98  # Allow more variation
   start_date: "2024-01-01"

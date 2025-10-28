@@ -5,7 +5,7 @@ experiment_name: "mean_reversion_validation"
 seed: 123  # Different seed for comparison
 
 data:
-  data_path: "./data/raw/synthetic/mean_reversion_validation.parquet"
+  data_path: "./data/raw/synthetic/mean_reversion.parquet"
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["MEAN/REVERT"]

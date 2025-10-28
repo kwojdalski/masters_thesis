@@ -237,6 +237,9 @@ def experiment(
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to custom config file"
     ),
+    scenario: str | None = typer.Option(
+        None, "--scenario", "-s", help="Scenario name (use 'list-scenarios' to see options)"
+    ),
     seed: int | None = typer.Option(
         None,
         "--seed",
@@ -255,6 +258,11 @@ def experiment(
         "--no-features",
         help="Skip feature engineering and use only raw OHLCV data",
     ),
+    generate_data: bool = typer.Option(
+        False,
+        "--generate-data",
+        help="Regenerate data from scenario configuration before experiments",
+    ),
 ):
     """Run multiple experiments with MLflow tracking.
 
@@ -270,10 +278,12 @@ def experiment(
         n_trials=n_trials,
         dashboard=dashboard,
         config_file=config_file,
+        scenario=scenario,
         seed=seed,
         max_steps=max_steps,
         clear_cache=clear_cache,
         no_features=no_features,
+        generate_data=generate_data,
     )
 
     experiment_cmd.execute(params)
@@ -294,6 +304,48 @@ def dashboard(
 def list_experiments():
     """List available MLflow experiments."""
     dashboard_cmd.list_experiments()
+
+
+@app.command()
+def list_scenarios():
+    """List available scenario configurations."""
+    import yaml
+
+    config_dir = Path("src/configs")
+    if not config_dir.exists():
+        console.print("[red]Config directory not found: src/configs[/red]")
+        return
+
+    console.print("[bold blue]Available Scenario Configurations:[/bold blue]\n")
+
+    # Find all YAML config files
+    config_files = sorted(config_dir.glob("*.yaml"))
+
+    if not config_files:
+        console.print("[yellow]No configuration files found[/yellow]")
+        return
+
+    for config_file in config_files:
+        try:
+            with config_file.open("r", encoding="utf-8") as f:
+                config = yaml.safe_load(f) or {}
+
+            # Extract key information
+            experiment_name = config.get("experiment_name", "N/A")
+            algorithm = config.get("training", {}).get("algorithm", "N/A")
+            data_path = config.get("data", {}).get("data_path", "N/A")
+            pattern_type = config.get("data_generator", {}).get("pattern_type", "N/A")
+
+            console.print(f"[green]{config_file.stem}[/green]:")
+            console.print(f"  Experiment: {experiment_name}")
+            console.print(f"  Algorithm: {algorithm}")
+            console.print(f"  Pattern: {pattern_type}")
+            console.print(f"  Data: {Path(data_path).name if data_path != 'N/A' else 'N/A'}")
+            console.print()
+
+        except Exception as e:
+            console.print(f"[red]{config_file.stem}[/red]: Error reading file ({e})")
+            console.print()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,73 @@
+# PPO Configuration for Pure Sine Wave Pattern (No Trend)
+# ==========================================================
+
+experiment_name: "sine_wave_ppo_no_trend"
+seed: 99  # Fixed seed for reproducibility
+
+# Data Configuration - Pure Sine Wave Pattern (No Trend)
+data:
+  data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["SINE/WAVE"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 450  # Hold back last 50 steps for evaluation
+  no_features: false # Use feature engineering for pattern recognition
+
+# Environment Configuration  
+env:
+  name: "SINEWAVE_NO_TREND"
+  positions: [-1, 0, 1]  # Short, hold, long
+  trading_fees: 0.0  # No fees for synthetic validation
+  borrow_interest_rate: 0.0
+
+# Network Architecture - For oscillating pattern recognition
+network:
+  actor_hidden_dims: [64, 32]  # Slightly larger for pattern learning
+  value_hidden_dims: [64, 32]
+
+# Training Parameters - PPO specific
+training:
+  algorithm: "PPO"  # Use PPO instead of DDPG
+  actor_lr: 0.0003
+  value_lr: 0.0003  # Same as actor for PPO
+  value_weight_decay: 0.001
+  max_steps: 15000  # More steps to learn oscillation pattern
+  init_rand_steps: 50  # More exploration for pattern discovery
+  frames_per_batch: 200
+  optim_steps_per_batch: 40  # Not used in PPO
+  sample_size: 64
+  buffer_size: 8000  # Larger buffer for pattern memory
+  
+  # PPO-specific parameters
+  clip_epsilon: 0.2  # PPO clipping parameter
+  entropy_bonus: 0.15  # Higher entropy for exploration of oscillations
+  vf_coef: 0.5  # Value function loss coefficient  
+  ppo_epochs: 4  # Number of epochs per batch
+  
+  # Loss function
+  loss_function: "l2"
+  
+  # Evaluation
+  eval_steps: 350  # Must be less than train_size (450)
+  eval_interval: 120
+  log_interval: 40
+
+# Logging Configuration
+logging:
+  log_dir: "logs/sine_wave_ppo_no_trend"
+  log_level: "INFO"
+
+# Data Generator Configuration
+data_generator:
+  pattern_type: "sine_wave"
+  n_periods: 5
+  samples_per_period: 100
+  n_samples: 500
+  base_price: 50000.0
+  amplitude: 8000.0
+  trend_slope: 0.0  # Pure oscillation, no trend
+  volatility: 0.0002
+  start_date: "2024-01-01"

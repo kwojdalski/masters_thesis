@@ -1,15 +1,15 @@
-# PPO Configuration for Upward Drift Pattern
-# ==========================================
+# PPO Configuration for Upward Trend Pattern
+# ===========================================
 
-experiment_name: "upward_drift_ppo_200k"
+experiment_name: "upward_trend_ppo"
 seed: 99  # Fixed seed for reproducibility
 
-# Data Configuration - Upward Drift Pattern
+# Data Configuration - Upward Trend Pattern
 data:
-  data_path: "./data/raw/synthetic/upward_drift_validation.parquet"
+  data_path: "./data/raw/synthetic/upward_trend_ppo.parquet"
   download_data: false
   exchange_names: ["synthetic"]
-  symbols: ["DRIFT/UP"]
+  symbols: ["TREND/UP"]
   timeframe: "1h"
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
@@ -18,7 +18,7 @@ data:
 
 # Environment Configuration  
 env:
-  name: "UPDRIFT"
+  name: "UPTREND"
   positions: [-1, 0, 1]  # Short, hold, long
   trading_fees: 0.0  # No fees for synthetic validation
   borrow_interest_rate: 0.0
@@ -57,7 +57,7 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/upward_drift_ppo"
+  log_dir: "logs/upward_trend_ppo"
   log_level: "INFO"
 
 # Data Generator Configuration
@@ -65,7 +65,7 @@ data_generator:
   pattern_type: "upward_drift"
   n_samples: 500
   base_price: 50000.0
-  drift_rate: 0.015  # More reasonable 0.15% per step
+  drift_rate: 0.0015  # More reasonable 0.15% per step
   volatility: 0.0005
   pullback_floor: 0.995
   start_date: "2024-01-01"

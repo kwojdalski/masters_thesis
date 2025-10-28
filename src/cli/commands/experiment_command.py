@@ -18,10 +18,12 @@ class ExperimentParams:
     n_trials: int = 5
     dashboard: bool = False
     config_file: Path | None = None
+    scenario: str | None = None
     seed: int | None = None
     max_steps: int | None = None
     clear_cache: bool = False
     no_features: bool = False
+    generate_data: bool = False
 
 
 class ExperimentCommand(BaseCommand):
@@ -37,6 +39,10 @@ class ExperimentCommand(BaseCommand):
             # Load and configure experiments
             config = self._load_experiment_config(params)
             base_seed = self.resolve_seed(params.seed)
+            
+            # Generate data if requested
+            if params.generate_data:
+                self._generate_data_from_config(config, params.scenario)
             
             # Display experiment info
             self._display_experiment_info(config, params, base_seed)
@@ -75,10 +81,19 @@ class ExperimentCommand(BaseCommand):
         """Load and configure experiment parameters."""
         from trading_rl import ExperimentConfig
         
+        # Validate that only one of config_file or scenario is provided
+        if params.config_file and params.scenario:
+            raise typer.BadParameter("Cannot specify both --config and --scenario. Use one or the other.")
+        
         # Create config and override with CLI parameters
         if params.config_file:
             config = ExperimentConfig.from_yaml(params.config_file)
-            self.console.print(f"[blue]Loaded config from: {params.config_file}[/blue]")
+            self.console.print(f"[blue]Loaded config from file: {params.config_file}[/blue]")
+        elif params.scenario:
+            # Resolve scenario to config file
+            config_file = self._resolve_scenario_config_path(params.scenario)
+            config = ExperimentConfig.from_yaml(config_file)
+            self.console.print(f"[blue]Loaded config from scenario: {params.scenario} -> {config_file}[/blue]")
         else:
             config = ExperimentConfig()
 
@@ -175,3 +190,95 @@ class ExperimentCommand(BaseCommand):
             self.console.print(
                 "[red]MLflow not found. Install with: pip install mlflow[/red]"
             )
+    
+    def _generate_data_from_config(self, config, provided_scenario: str | None = None) -> None:
+        """Generate data based on the scenario configuration."""
+        self.console.print("[blue]Generating data from scenario configuration...[/blue]")
+        
+        try:
+            # Use provided scenario or extract from config
+            scenario_name = provided_scenario or self._extract_scenario_name(config)
+            
+            if not scenario_name:
+                self.console.print("[yellow]Could not determine scenario for data generation[/yellow]")
+                return
+            
+            # Import and use DataGeneratorCommand
+            from .data_generator_command import (
+                DataGeneratorCommand,
+                DataGenerationParams,
+                SineWaveParams,
+                UpwardDriftParams,
+            )
+            
+            data_gen_cmd = DataGeneratorCommand(self.console)
+            
+            # Extract output file name from config
+            output_file = None
+            if hasattr(config, 'data') and hasattr(config.data, 'data_path'):
+                from pathlib import Path
+                data_path = Path(config.data.data_path)
+                output_file = data_path.name
+                self.console.print(f"[dim]Generating data for: {output_file}[/dim]")
+            
+            # Create parameters for data generation
+            params = DataGenerationParams(scenario=scenario_name, output_file=output_file)
+            sine_wave_params = SineWaveParams()
+            upward_drift_params = UpwardDriftParams()
+            
+            # Generate data
+            data_gen_cmd.execute(params, sine_wave_params, upward_drift_params)
+            
+            self.console.print("[green]Data generation completed![/green]")
+            
+        except Exception as e:
+            self.console.print(f"[yellow]Data generation failed: {e}[/yellow]")
+            self.logger.warning(f"Data generation failed: {e}")
+    
+    def _extract_scenario_name(self, config) -> str | None:
+        """Extract scenario name from config for data generation."""
+        # Try to get from config file path
+        if hasattr(config, '_config_file_path'):
+            config_path = Path(config._config_file_path)
+            scenario_name = config_path.stem
+            return scenario_name
+        
+        # Try to infer from experiment name
+        if hasattr(config, 'experiment_name') and config.experiment_name:
+            experiment_name = config.experiment_name
+            
+            # Map common experiment names to scenario names
+            scenario_mappings = {
+                'sine_wave_ppo_no_trend': 'sine_wave_ppo_no_trend',
+                'sine_wave_ppo_trend': 'sine_wave_ppo_trend',
+                'upward_trend_ppo': 'upward_trend_ppo',
+                'white_noise_no_trend_ppo': 'white_noise_no_trend_ppo',
+                'mean_reversion': 'mean_reversion',
+            }
+            
+            if experiment_name in scenario_mappings:
+                return scenario_mappings[experiment_name]
+        
+        return None
+    
+    def _resolve_scenario_config_path(self, scenario: str) -> Path:
+        """Resolve scenario name to config file path."""
+        candidate_path = Path(scenario)
+
+        if candidate_path.is_dir():
+            candidate_path = candidate_path / "config.yaml"
+
+        search_paths = [
+            candidate_path,
+            Path("src/configs") / scenario,
+            Path("src/configs") / f"{scenario}.yaml",
+        ]
+
+        for path in search_paths:
+            if path.exists():
+                return path.resolve()
+
+        raise typer.BadParameter(
+            f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs. "
+            f"Use 'list-scenarios' to see available options."
+        )
