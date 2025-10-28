@@ -1,7 +1,7 @@
 # Mean Reversion Pattern Configuration for DDPG Validation
 # ========================================================
 
-experiment_name: "mean_reversion_validation"
+experiment_name: "mean_reversion"
 seed: 123  # Different seed for comparison
 
 data:

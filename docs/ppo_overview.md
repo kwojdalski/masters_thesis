@@ -3,7 +3,9 @@
 ```mermaid
 sequenceDiagram
     autonumber
-    participant CLI as CLI
+    participant CLI as CLI (Typer)
+    participant ExCmd as ExperimentCommand
+    participant DataCmd as DataGeneratorCommand
     participant RME as RunMultipleExperiments
     participant RSE as RunSingleExperiment
     participant PPO as PPOTrainer
@@ -14,7 +16,15 @@ sequenceDiagram
     participant Eval as Evaluator
     participant MLf as MLflow
 
-    CLI->>RME: experiment()
+    CLI->>ExCmd: experiment(--scenario, --generate-data)
+    ExCmd->>ExCmd: load scenario config from src/configs/
+    
+    alt --generate-data
+        ExCmd->>DataCmd: generate synthetic data
+        DataCmd-->>ExCmd: data saved to standardized path
+    end
+    
+    ExCmd->>RME: run_multiple_experiments(config)
     RME->>RSE: run_single_experiment(trial_config)
     RSE->>Col: create_ppo_actor_critic + SyncDataCollector
     RSE->>PPO: trainer.train(callback)
@@ -53,9 +63,11 @@ sequenceDiagram
 
 **Key components**
 
-- **CLI (Typer)** invokes `run_multiple_experiments` when you call `python src/cli.py experiment`.
-- **run_multiple_experiments** fans out trial configs, seeds, and MLflow runs.
+- **CLI (Typer)** with command classes: `ExperimentCommand` handles `--scenario` and `--generate-data` flags.
+- **ExperimentCommand** loads scenario configs from standardized YAML files and coordinates data generation.
+- **DataGeneratorCommand** creates synthetic data patterns (sine_wave, mean_reversion, etc.) with consistent naming.
+- **run_multiple_experiments** fans out trial configs, seeds, and MLflow runs with scenario-based configuration.
 - **run_single_experiment** builds the PPO actor/critic, the TorchRL `SyncDataCollector`, and the `PPOTrainer`.
 - **PPOTrainer.train** loops over batches from the collector, fills the replay buffer, samples mini-batches, computes the clipped PPO loss, and applies the shared Adam optimiser.
 - **Evaluation** happens both periodically (during training) and once at the end via `evaluate_agent`, producing reward/action plots.
-- **MLflow** captures every metric, config parameter, checkpoint, and generated plot for later comparison.
+- **MLflow** captures every metric, config parameter, checkpoint, and generated plot with experiment names matching config files.

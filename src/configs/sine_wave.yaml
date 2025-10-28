@@ -1,7 +1,7 @@
 # Sine Wave Pattern Configuration for DDPG Validation
 # =====================================================
 
-experiment_name: "sine_wave_validation"
+experiment_name: "sine_wave"
 seed: 42  # Fixed seed for reproducibility
 
 data:

@@ -10,51 +10,63 @@ The experiment system is designed to train DDPG (Deep Deterministic Policy Gradi
 
 ``` mermaid
 flowchart TD
-    A[CLI Command: experiment] --> B[Load Configuration]
-    B --> C[run_multiple_experiments]
-    C --> D{For each trial}
+    A[CLI: python src/cli.py experiment] --> B[ExperimentCommand.execute]
+    B --> C{--scenario provided?}
+    C -->|Yes| D[Load scenario config<br/>from src/configs/]
+    C -->|No| E[Load config from<br/>--config path]
+    D --> F[ExperimentParams validation]
+    E --> F
+    F --> G{--generate-data?}
+    G -->|Yes| H[DataGeneratorCommand.execute<br/>Generate synthetic data]
+    G -->|No| I[run_multiple_experiments]
+    H --> I
     
-    D --> E[run_single_experiment]
-    E --> F[Setup Logging & Seed]
-    F --> G[Prepare Data]
-    G --> H[Create Environment]
-    H --> I[Create Actor & Value Networks]
-    I --> J[Setup DDPG Loss & Optimizer]
-    J --> K[Create Data Collector]
-    K --> L[Initialize Replay Buffer]
-    L --> M[Start MLflow Run]
+    I --> J{For each trial}
+    J --> K[run_single_experiment]
+    K --> L[Setup Logging & Seed]
+    L --> M[Prepare Data]
+    M --> N[Create Environment]
+    N --> O{Algorithm type?}
+    O -->|PPO| P[Create PPO Actor-Critic]
+    O -->|DDPG| Q[Create Actor & Value Networks]
+    P --> R[Setup PPO Loss & Optimizer]
+    Q --> S[Setup DDPG Loss & Optimizer]
+    R --> T[Create Data Collector]
+    S --> T
+    T --> U[Initialize Replay Buffer]
+    U --> V[Start MLflow Run]
     
+    V --> W[Training Loop]
+    W --> X{Training Steps < Max?}
+    X -->|Yes| Y[Collect Data]
+    Y --> Z[Update Replay Buffer]
+    Z --> AA[Optimize Networks]
+    AA --> BB[Log Metrics]
+    BB --> CC{Evaluation Interval?}
+    CC -->|Yes| DD[Evaluate Agent]
+    DD --> EE[Log Episode Metrics]
+    EE --> X
+    CC -->|No| X
     
-    M --> N[Training Loop]
-    N --> O{Training Steps < Max?}
-    O -->|Yes| P[Collect Data]
-    P --> Q[Update Replay Buffer]
-    Q --> R[Optimize Networks]
-    R --> S[Log Metrics]
-    S --> T{Evaluation Interval?}
-    T -->|Yes| U[Evaluate Agent]
-    U --> V[Log Episode Metrics]
-    V --> O
-    T -->|No| O
+    X -->|No| FF[Final Evaluation]
+    FF --> GG[Generate Plots]
+    GG --> HH[Save Checkpoint]
+    HH --> II[Log Artifacts]
+    II --> JJ[End MLflow Run]
     
-    O -->|No| W[Final Evaluation]
-    W --> X[Generate Plots]
-    X --> Y[Save Checkpoint]
-    Y --> Z[Log Artifacts]
-    Z --> AA[End MLflow Run]
-    
-    AA --> BB{More Trials?}
-    BB -->|Yes| D
-    BB -->|No| CC[Launch Dashboard?]
-    CC -->|Yes| DD[MLflow UI]
-    CC -->|No| EE[End]
-    DD --> EE
+    JJ --> KK{More Trials?}
+    KK -->|Yes| J
+    KK -->|No| LL{--dashboard?}
+    LL -->|Yes| MM[Launch MLflow UI]
+    LL -->|No| NN[End]
+    MM --> NN
     
     style A fill:#e1f5fe
-    style E fill:#f3e5f5
-    style N fill:#fff3e0
-    style W fill:#e8f5e8
-    style EE fill:#ffebee
+    style B fill:#f3e5f5
+    style W fill:#fff3e0
+    style FF fill:#e8f5e8
+    style NN fill:#ffebee
+    style H fill:#ffe0b2
 ```
 
 ## Component Details

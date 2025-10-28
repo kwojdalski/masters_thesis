@@ -1,7 +1,7 @@
 # Upward Drift Pattern Configuration for DDPG Validation
 # ======================================================
 
-experiment_name: "upward_drift_validation"
+experiment_name: "upward_trend_ddpg"
 seed: 99  # Fixed seed for reproducibility
 
 data:
