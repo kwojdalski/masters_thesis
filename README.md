@@ -20,6 +20,7 @@ A reinforcement learning framework for trading strategies using PyTorch and Torc
 
 ### Using Poetry (recommended)
 
+<!--pytest.mark.skip-->
 ```bash
 poetry install          # install dependencies into Poetry-managed venv
 poetry shell            # spawn a shell inside that environment
@@ -27,6 +28,7 @@ poetry shell            # spawn a shell inside that environment
 
 ### Using pip + venv
 
+<!--pytest.mark.skip-->
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # macOS/Linux
@@ -35,12 +37,6 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-
-<!--pytest.mark.skip-->
-```bash
-python src/cli.py train      # launch single-agent training with default config
-python src/cli.py dashboard  # start MLflow UI backed by sqlite:///mlflow.db
-```
 
 ### Common commands
 
@@ -53,6 +49,12 @@ All commands support the `--help` flag, which displays detailed information abou
 | `python src/cli.py dashboard [...]` | Manage the MLflow UI and helper scripts |
 | `python src/cli.py generate-data [...]` | Create or inspect synthetic datasets used for training |
 | `python src/cli.py list-experiments` | Enumerate tracked MLflow experiments |
+
+<!--pytest.mark.skip-->
+```bash
+python src/cli.py train      # launch single-agent training with default config
+python src/cli.py dashboard  # start MLflow UI backed by sqlite:///mlflow.db
+```
 
 ## Project Structure
 
@@ -88,7 +90,7 @@ See `src/logger/README.md` for advanced usage (structured logging, decorators, e
 
 ## Experiment Workflow
 
-For detailed information about how experiments work, including system architecture and component interactions, see [docs/experiment_workflow.md](docs/experiment_workflow.md). Visual walk-throughs of the algorithms are available in [docs/ppo_overview.md](docs/ppo_overview.md) and [docs/ddpg_data_flow.md](docs/ddpg_data_flow.md). These documents include:
+For detailed information about how experiments work, including system architecture and component interactions, see [docs/experiment_workflow.md](docs/experiment_workflow.md). Visual walk-throughs of the algorithms are available in [docs/ppo_overview.md](docs/ppo_overview.md) and [docs/ddpg_overview.md](docs/ddpg_overview.md). These documents include:
 
 - Complete experiment workflow with diagrams
 - Component details and data flow
@@ -108,6 +110,5 @@ All training runs are tracked in MLflow.
 
 ### Dashboard Features
 - Interactive loss and reward curves per trial
-- Automatically generated comparison plots saved as artifacts
 - Drill-down view of position changes and trading behaviour
-- Artifact bundles (plots, CSV summaries, configs) for offline analysis
+- Artifact bundles (plots, CSV summaries, configs)
