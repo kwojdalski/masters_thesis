@@ -14,18 +14,36 @@ A reinforcement learning framework for trading strategies using PyTorch and Torc
 ## Prerequisites
 
 - Python 3.12 or higher
-- pip / poetry
+- poetry (preferred) / pip
 
 ## Installation
 
 ### Create and activate environment
+
+- poetry
+ 
+```bash
+# Activate it
+poetry shell
+# Create new virtual environment
+poetry install
+```
+
+
+- pip 
+
 ```bash
 # Create new virtual environment
 python -m venv .venv
 
 # Activate it
 source .venv/bin/activate  # macOS/Linux
+
+# install dependencies
+pip install -r requirements.txt
 ```
+
+
 
 ### Install dependencies
 - Upgrade pip inside the activated virtualenv: `pip install --upgrade pip`

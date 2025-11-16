@@ -32,10 +32,22 @@ else:
     os.environ["MPLCONFIGDIR"] = str(mpl_cache_dir.resolve())
 
 # Configure project logging for the CLI component before creating loggers
-configure_logging(component="cli", level="INFO", simplified=False)
+app = typer.Typer(
+    help="CLI tools for trading data science project",
+    add_completion=False,
+)
 
-# Create the main typer app
-app = typer.Typer(help="CLI tools for trading data science project")
+def _configure_logging(verbose: bool) -> None:
+    """Configure logging based on CLI context."""
+    level = "DEBUG" if verbose else "INFO"
+    configure_logging(component="cli", level=level, simplified=not verbose)
+    os.environ["LOGLEVEL"] = level
+
+# Add global options
+@app.callback()
+def main(verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")):
+    """Global CLI options."""
+    _configure_logging(verbose)
 console = Console()
 
 # Command instances

@@ -12,7 +12,7 @@ class DataConfig:
     """Data loading and preprocessing configuration."""
 
     data_path: str = "../data/raw/binance/binance-BTCUSDT-1h.parquet"
-    download_data: bool = False
+    download_data: bool = True
     exchange_names: list[str] = field(default_factory=lambda: ["binance"])
     symbols: list[str] = field(default_factory=lambda: ["BTC/USDT"])
     timeframe: str = "1h"
