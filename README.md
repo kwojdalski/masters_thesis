@@ -18,46 +18,41 @@ A reinforcement learning framework for trading strategies using PyTorch and Torc
 
 ## Installation
 
-- poetry
- 
+### Using Poetry (recommended)
+
 ```bash
-# Activate it
-poetry shell
-# Create new virtual environment
-poetry install
+poetry install          # install dependencies into Poetry-managed venv
+poetry shell            # spawn a shell inside that environment
 ```
 
-- pip 
+### Using pip + venv
 
 ```bash
-# Create new virtual environment
 python -m venv .venv
-
-# Activate it
 source .venv/bin/activate  # macOS/Linux
-
-# install dependencies
 pip install -r requirements.txt
 ```
 
-## CLI Overview
+## Quick Start
+
+
+<!--pytest.mark.skip-->
+```bash
+python src/cli.py train      # launch single-agent training with default config
+python src/cli.py dashboard  # start MLflow UI backed by sqlite:///mlflow.db
+```
+
+### Common commands
+
+All commands support the `--help` flag, which displays detailed information about their usage and options.
 
 | Command | Purpose |
 | --- | --- |
 | `python src/cli.py train [...]` | Configure and launch a single agent training run |
 | `python src/cli.py experiment [...]` | Batch experiments with shared MLflow tracking |
 | `python src/cli.py dashboard [...]` | Manage the MLflow UI and helper scripts |
-| `python src/cli.py list-experiments` | Enumerate tracked MLflow experiments |
 | `python src/cli.py generate-data [...]` | Create or inspect synthetic datasets used for training |
-
-## Quick Start
-
-<!--pytest.mark.skip-->
-```bash
-python src/cli.py train  # launch single-agent training with default config
-python src/cli.py dashboard # this should create a mlflow db and trigger running mflow dashboard with the above-mentioned experiment
-```
-
+| `python src/cli.py list-experiments` | Enumerate tracked MLflow experiments |
 
 ## Project Structure
 
@@ -78,45 +73,6 @@ masters_thesis/
 ├── pyproject.toml            # Project configuration
 ├── README.md                 # This file
 └── .gitignore                # Git ignore rules
-```
-
-
-
-## Minimal Python Usage
-
-These short snippets keep README tests lightweight while showing how configurations can be reasoned about in code.
-
-```python
-class SimpleConfig:
-    """Tiny stand‑in for ExperimentConfig to illustrate attributes."""
-
-    def __init__(self):
-        self.experiment_name = "my_experiment"
-        self.seed = 42
-        self.max_steps = 10
-        self.hidden_dims = [8]
-
-config = SimpleConfig()
-print(f"Experiment: {config.experiment_name}")
-print(f"Seed: {config.seed}")
-print(f"Max steps: {config.max_steps}")
-print(f"Network layers: {config.hidden_dims}")
-```
-
-```python
-import pandas as pd
-
-sample = pd.DataFrame(
-    {
-        "open": [100.0, 101.0],
-        "high": [102.0, 103.0],
-        "low": [99.0, 100.0],
-        "close": [101.0, 102.0],
-        "volume": [1000, 1100],
-    }
-)
-print(f"Synthetic rows: {len(sample)}")
-print(f"Columns: {list(sample.columns)}")
 ```
 
 ## Logger Component
@@ -155,4 +111,3 @@ All training runs are tracked in MLflow.
 - Automatically generated comparison plots saved as artifacts
 - Drill-down view of position changes and trading behaviour
 - Artifact bundles (plots, CSV summaries, configs) for offline analysis
-
