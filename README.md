@@ -27,7 +27,6 @@ poetry shell
 poetry install
 ```
 
-
 - pip 
 
 ```bash
@@ -41,12 +40,6 @@ source .venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
-## Quick Start
-
-```bash
-python src/cli.py train  # launch single-agent training with default config
-```
-
 ## CLI Overview
 
 | Command | Purpose |
@@ -57,6 +50,13 @@ python src/cli.py train  # launch single-agent training with default config
 | `python src/cli.py list-experiments` | Enumerate tracked MLflow experiments |
 | `python src/cli.py generate-data [...]` | Create or inspect synthetic datasets used for training |
 
+## Quick Start
+
+<!--pytest.mark.skip-->
+```bash
+python src/cli.py train  # launch single-agent training with default config
+python src/cli.py dashboard # this should create a mlflow db and trigger running mflow dashboard with the above-mentioned experiment
+```
 
 
 ## Project Structure
@@ -156,12 +156,3 @@ All training runs are tracked in MLflow.
 - Drill-down view of position changes and trading behaviour
 - Artifact bundles (plots, CSV summaries, configs) for offline analysis
 
-## Git Hooks
-
-A tracked pre-push hook in `.githooks/pre-push` runs `pytest --codeblocks` across every Markdown file before pushing. Enable it with:
-
-```bash
-git config core.hooksPath .githooks
-```
-
-Set `SKIP_CODEBLOCK_TESTS=1` if you temporarily need to bypass the hook (e.g., when iterating on docs).

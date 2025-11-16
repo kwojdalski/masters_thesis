@@ -1,5 +1,6 @@
 """Dashboard command implementation."""
 
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -14,28 +15,36 @@ class DashboardParams:
     """Parameters for MLflow dashboard."""
     port: int = 5000
     host: str = "localhost"
+    tracking_uri: str | None = None
 
 
 class DashboardCommand(BaseCommand):
     """Command for managing MLflow dashboard."""
+
+    def __init__(self, console, default_tracking_uri: str | None = "sqlite:///mlflow.db"):
+        super().__init__(console)
+        self.default_tracking_uri = default_tracking_uri if default_tracking_uri else None
     
     def execute(self, params: DashboardParams) -> None:
         """Launch MLflow UI."""
+        tracking_uri = self._resolve_tracking_uri(params.tracking_uri)
         self.console.print("[blue]Starting MLflow UI[/blue]")
         self.console.print(f"URL: [blue]http://{params.host}:{params.port}[/blue]")
         self.console.print("[dim]Press Ctrl+C to stop[/dim]")
         
         try:
-            self._launch_mlflow_ui(params)
+            self._launch_mlflow_ui(params, tracking_uri)
         except KeyboardInterrupt:
             self.console.print("\n[yellow]MLflow UI stopped[/yellow]")
         except FileNotFoundError as e:
             self.handle_error(e, "MLflow UI launch")
     
-    def list_experiments(self) -> None:
+    def list_experiments(self, tracking_uri: str | None = None) -> None:
         """List available MLflow experiments."""
         import mlflow
         
+        resolved_uri = self._resolve_tracking_uri(tracking_uri)
+        mlflow.set_tracking_uri(resolved_uri)
         self.console.print("[bold blue]Available MLflow Experiments:[/bold blue]")
         
         try:
@@ -51,7 +60,7 @@ class DashboardCommand(BaseCommand):
         except Exception as e:
             self.handle_error(e, "Reading MLflow experiments")
     
-    def _launch_mlflow_ui(self, params: DashboardParams) -> None:
+    def _launch_mlflow_ui(self, params: DashboardParams, tracking_uri: str | None) -> None:
         """Launch MLflow UI subprocess."""
         mlflow_cmd = shutil.which("mlflow")
         if not mlflow_cmd:
@@ -61,7 +70,21 @@ class DashboardCommand(BaseCommand):
             mlflow_cmd, "ui",
             "--host", params.host,
             "--port", str(params.port),
+            "--backend-store-uri", tracking_uri,
+            "--registry-store-uri", tracking_uri,
         ], check=False)  # noqa: S603
+    
+    def _resolve_tracking_uri(self, override: str | None = None) -> str:
+        """Resolve tracking URI from option, env, or defaults."""
+        if override:
+            return override
+        env_uri = os.getenv("MLFLOW_TRACKING_URI")
+        if env_uri:
+            return env_uri
+        if self.default_tracking_uri:
+            return self.default_tracking_uri
+        # Fallback to legacy mlruns directory to avoid crashes
+        return "mlruns"
     
     def _display_experiment_summary(self, exp) -> None:
         """Display summary information for an experiment."""

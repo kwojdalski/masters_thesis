@@ -54,7 +54,7 @@ console = Console()
 data_gen_cmd = DataGeneratorCommand(console)
 training_cmd = TrainingCommand(console)
 experiment_cmd = ExperimentCommand(console)
-dashboard_cmd = DashboardCommand(console)
+dashboard_cmd = DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db")
 
 
 @app.command(name="generate-data")
@@ -305,17 +305,30 @@ def experiment(
 def dashboard(
     port: int = typer.Option(5000, "--port", "-p", help="Port for MLflow UI"),
     host: str = typer.Option("localhost", "--host", help="Host for MLflow UI"),
+    tracking_uri: str | None = typer.Option(
+        None,
+        "--tracking-uri",
+        help="MLflow tracking URI (default sqlite:///mlflow.db)",
+        show_default=False,
+    ),
 ):
     """Launch MLflow UI for viewing experiments."""
 
-    params = DashboardParams(port=port, host=host)
+    params = DashboardParams(port=port, host=host, tracking_uri=tracking_uri)
     dashboard_cmd.execute(params)
 
 
 @app.command()
-def list_experiments():
+def list_experiments(
+    tracking_uri: str | None = typer.Option(
+        None,
+        "--tracking-uri",
+        help="MLflow tracking URI (default sqlite:///mlflow.db)",
+        show_default=False,
+    )
+):
     """List available MLflow experiments."""
-    dashboard_cmd.list_experiments()
+    dashboard_cmd.list_experiments(tracking_uri)
 
 
 @app.command()
