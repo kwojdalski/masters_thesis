@@ -18,8 +18,6 @@ A reinforcement learning framework for trading strategies using PyTorch and Torc
 
 ## Installation
 
-### Create and activate environment
-
 - poetry
  
 ```bash
@@ -43,11 +41,22 @@ source .venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
+## Quick Start
 
+```bash
+python src/cli.py train  # launch single-agent training with default config
+```
 
-### Install dependencies
-- Upgrade pip inside the activated virtualenv: `pip install --upgrade pip`
-- Install project dependencies via Poetry: `poetry install`
+## CLI Overview
+
+| Command | Purpose |
+| --- | --- |
+| `python src/cli.py train [...]` | Configure and launch a single agent training run |
+| `python src/cli.py experiment [...]` | Batch experiments with shared MLflow tracking |
+| `python src/cli.py dashboard [...]` | Manage the MLflow UI and helper scripts |
+| `python src/cli.py list-experiments` | Enumerate tracked MLflow experiments |
+| `python src/cli.py generate-data [...]` | Create or inspect synthetic datasets used for training |
+
 
 
 ## Project Structure
@@ -71,37 +80,7 @@ masters_thesis/
 └── .gitignore                # Git ignore rules
 ```
 
-## Quick Start
 
-```bash
-# Activate the virtualenv created during installation
-source .venv/bin/activate
-
-# Inspect available commands
-python src/cli.py --help
-
-# Train a single agent (options visible with --help)
-python src/cli.py train --help
-
-# Run multiple experiments with MLflow tracking
-python src/cli.py experiment --help
-
-# Launch or inspect the tracking dashboard
-python src/cli.py dashboard --help
-
-# Generate or inspect synthetic datasets
-python src/cli.py generate-data --help
-```
-
-## CLI Overview
-
-| Command | Purpose |
-| --- | --- |
-| `python src/cli.py train [...]` | Configure and launch a single agent training run |
-| `python src/cli.py experiment [...]` | Batch experiments with shared MLflow tracking |
-| `python src/cli.py dashboard [...]` | Manage the MLflow UI and helper scripts |
-| `python src/cli.py list-experiments` | Enumerate tracked MLflow experiments |
-| `python src/cli.py generate-data [...]` | Create or inspect synthetic datasets used for training |
 
 ## Minimal Python Usage
 

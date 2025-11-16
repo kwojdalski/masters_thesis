@@ -64,10 +64,20 @@ def load_trading_data(data_path: str, cache_bust: float | None = None) -> pd.Dat
     Returns:
         DataFrame with OHLCV data
     """
-    logger.info(f"Loading data from {data_path}")
+    data_file = Path(data_path)
+    logger.info(f"Loading data from {data_file}")
     # cache_bust ensures cache invalidation when the file changes
     _ = cache_bust
-    df = pd.read_parquet(data_path)
+    suffix = data_file.suffix.lower()
+    if suffix in {".pkl", ".pickle"}:
+        df = pd.read_pickle(data_file)
+    elif suffix in {".parquet"}:
+        df = pd.read_parquet(data_file)
+    else:
+        raise ValueError(
+            f"Unsupported data format '{suffix}' for file {data_file}. "
+            "Supported formats: .pkl, .pickle, .parquet"
+        )
     logger.info(f"Loaded {len(df)} rows of data")
     return df
 

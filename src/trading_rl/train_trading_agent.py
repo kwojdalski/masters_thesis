@@ -123,14 +123,20 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
 
 # %%
 # %%
-def setup_mlflow_experiment(experiment_name: str) -> None:
+def setup_mlflow_experiment(
+    config: ExperimentConfig, experiment_name: str | None = None
+) -> str:
     """Setup MLflow experiment for tracking.
 
     Args:
         experiment_name: Name of the MLflow experiment
     """
-    mlflow.set_experiment(experiment_name)
-    return experiment_name
+    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+    exp_name = experiment_name or config.experiment_name
+    mlflow.set_experiment(exp_name)
+    return exp_name
 
 
 # %%
@@ -144,7 +150,11 @@ class MLflowTrainingCallback:
     - Custom plots and artifacts
     """
 
-    def __init__(self, experiment_name: str = "trading_rl"):
+    def __init__(
+        self,
+        experiment_name: str = "trading_rl",
+        tracking_uri: str | None = None,
+    ):
         self.step_count = 0
         self.intermediate_losses = {"actor": [], "value": []}
         self.position_change_counts: list[int] = []
@@ -156,7 +166,8 @@ class MLflowTrainingCallback:
             "position_change_counts": [],
         }
 
-        # Set MLflow experiment
+        if tracking_uri:
+            mlflow.set_tracking_uri(tracking_uri)
         mlflow.set_experiment(experiment_name)
 
         # Start run if not already active
@@ -1279,7 +1290,10 @@ def run_single_experiment(
         )
 
     # Create MLflow callback
-    mlflow_callback = MLflowTrainingCallback(effective_experiment_name)
+    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
+    mlflow_callback = MLflowTrainingCallback(
+        effective_experiment_name, tracking_uri=tracking_uri
+    )
 
     # Train
     logger.info("Starting training...")
@@ -1508,7 +1522,7 @@ def run_multiple_experiments(
     effective_experiment_name = experiment_name or config.experiment_name
 
     # Setup MLflow experiment
-    setup_mlflow_experiment(effective_experiment_name)
+    setup_mlflow_experiment(config, effective_experiment_name)
 
     results = []
 

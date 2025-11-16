@@ -11,14 +11,15 @@ import yaml
 class DataConfig:
     """Data loading and preprocessing configuration."""
 
-    data_path: str = "../data/raw/binance/binance-BTCUSDT-1h.parquet"
+    data_path: str = "data/bitfinex2-BTCUSDT-1m.pkl"
     download_data: bool = True
-    exchange_names: list[str] = field(default_factory=lambda: ["binance"])
+    exchange_names: list[str] = field(default_factory=lambda: ["bitfinex2"])
     symbols: list[str] = field(default_factory=lambda: ["BTC/USDT"])
-    timeframe: str = "1h"
+    timeframe: str = "1m"
     data_dir: str = "data"
     download_since: datetime.datetime = field(
-        default_factory=lambda: datetime.datetime(2025, 4, 27, tzinfo=datetime.UTC)
+        default_factory=lambda: datetime.datetime.now(datetime.UTC)
+        - datetime.timedelta(days=1)
     )
     train_size: int = 1000
     no_features: bool = False
@@ -91,8 +92,15 @@ class LoggingConfig:
 
     log_dir: str = "logs"
     log_file: str = "trading_env_debug.log"
-    log_level: str = "DEBUG"
+    log_level: str = "INFO"
     tensorboard_dir: str = "runs"
+
+
+@dataclass
+class TrackingConfig:
+    """MLflow tracking backend configuration."""
+
+    tracking_uri: str = "sqlite:///mlflow.db"
 
 
 @dataclass
@@ -104,6 +112,7 @@ class ExperimentConfig:
     network: NetworkConfig = field(default_factory=NetworkConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    tracking: TrackingConfig = field(default_factory=TrackingConfig)
 
     # Reproducibility
     seed: int = 42
@@ -199,6 +208,12 @@ class ExperimentConfig:
             for key, value in log_dict.items():
                 if hasattr(config.logging, key):
                     setattr(config.logging, key, value)
+
+        if "tracking" in config_dict:
+            tracking_dict = config_dict["tracking"]
+            for key, value in tracking_dict.items():
+                if hasattr(config.tracking, key):
+                    setattr(config.tracking, key, value)
 
         return config
 

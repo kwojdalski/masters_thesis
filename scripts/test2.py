@@ -50,11 +50,11 @@ logger.info("Initializing trading environment debugging")
 download_data = False
 if download_data:
     download(
-        exchange_names=["binance"],
+        exchange_names=["bitfinex2"],
         symbols=["BTC/USDT"],
-        timeframe="1s",
+        timeframe="1h",
         dir="data",
-        since=datetime.datetime(year=2025, month=4, day=27, tzinfo=datetime.UTC),
+        since=datetime.datetime(year=2025, month=11, day=16, tzinfo=datetime.UTC),
     )
 # %%
 df = pd.read_parquet("./data/raw/binance/binance-BTCUSDT-1h.parquet")
