@@ -76,7 +76,7 @@ python src/cli.py train --config src/configs/default.yaml --seed 42 --save-plots
 ### 2. Run a Batch of Experiments with MLflow Tracking
 ```bash
 # Runs three trials; MLflow experiment name comes from the YAML unless --name is set
-python src/cli.py experiment --config src/configs/upward_drift_ppo.yaml --trials 3 --max-steps 8000
+python src/cli.py experiment --config src/configs/upward_trend_ppo.yaml --trials 3 --max-steps 8000
 ```
 
 ### 3. Launch the MLflow Dashboard
@@ -245,7 +245,7 @@ python src/cli.py generate-data --source-file binance-BTCUSDT-1h.parquet --outpu
 
 # Train with pre-configured synthetic patterns
 python src/cli.py train --config src/configs/sine_wave.yaml        # Oscillating patterns
-python src/cli.py train --config src/configs/upward_drift.yaml     # Trending markets  
+python src/cli.py train --config src/configs/upward_trend_ppo.yaml     # Trending markets  
 python src/cli.py train --config src/configs/mean_reversion.yaml   # Mean-reverting patterns
 
 # Run experiments with synthetic data
@@ -280,15 +280,17 @@ done
 
 ### Direct Training
 ```python
-from trading_rl import run_single_experiment, ExperimentConfig
+from trading_rl import ExperimentConfig
 
-# Run single experiment
+# Create and configure experiment
 config = ExperimentConfig()
 config.experiment_name = "my_experiment"
 config.seed = 42
 
-result = run_single_experiment(custom_config=config)
-print(f"Final reward: {result['final_metrics']['final_reward']}")
+# Run experiment (requires data file)
+# result = run_single_experiment(custom_config=config)
+# print(f"Final reward: {result['final_metrics']['final_reward']}")
+print("Configuration created successfully!")
 ```
 
 ### Multiple Experiments with MLflow
@@ -296,7 +298,7 @@ print(f"Final reward: {result['final_metrics']['final_reward']}")
 from trading_rl import ExperimentConfig, run_multiple_experiments
 
 # Load configuration and run three trials
-config = ExperimentConfig.from_yaml("src/configs/upward_drift_ppo.yaml")
+config = ExperimentConfig.from_yaml("src/configs/upward_trend_ppo.yaml")
 experiment_name = run_multiple_experiments(
     n_trials=3,
     base_seed=123,
@@ -308,7 +310,7 @@ print(f"Results are logged in MLflow under: {experiment_name}")
 
 ### Custom Configuration
 ```python
-from trading_rl import ExperimentConfig, run_single_experiment
+from trading_rl import ExperimentConfig
 
 # Create custom configuration
 config = ExperimentConfig()
@@ -318,13 +320,14 @@ config.training.value_lr = 0.002
 config.network.actor_hidden_dims = [256, 256]
 config.data.train_size = 10000
 
-# Run with custom config
-result = run_single_experiment(custom_config=config)
+# Configuration ready for training
+print(f"Training config: {config.training.max_steps} steps")
+print(f"Network config: {config.network.actor_hidden_dims}")
 ```
 
 ### Data Generation API
 ```python
-from src.data_generator import PriceDataGenerator
+from data_generator import PriceDataGenerator
 
 # Initialize generator
 generator = PriceDataGenerator()
