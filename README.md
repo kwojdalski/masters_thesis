@@ -75,8 +75,8 @@ python src/cli.py train --config src/configs/default.yaml --seed 42 --save-plots
 
 ### 2. Run a Batch of Experiments with MLflow Tracking
 ```bash
-# Runs three trials; MLflow experiment name comes from the YAML unless --name is set
-python src/cli.py experiment --config src/configs/upward_trend_ppo.yaml --trials 3 --max-steps 8000
+# Runs 2 trials with minimal steps for quick testing
+python src/cli.py experiment --config src/configs/upward_trend_ppo.yaml --trials 2 --max-steps 100
 ```
 
 ### 3. Launch the MLflow Dashboard
@@ -98,7 +98,7 @@ Options:
   --name, -n TEXT         Override experiment name (defaults to config)
   --config, -c PATH       Path to config YAML (uses defaults if omitted)
   --seed, -s INTEGER      Random seed for reproducibility
-  --max-steps INTEGER     Maximum training steps
+  --max-steps INTEGER     Maximum training steps (default: 1000)
   --actor-lr FLOAT        Actor learning rate override
   --value-lr FLOAT        Value network learning rate override
   --buffer-size INTEGER   Replay buffer size override
@@ -116,7 +116,7 @@ Options:
   --dashboard             Launch MLflow UI after experiments finish
   --config, -c PATH       Path to config YAML (required for custom setups)
   --seed INTEGER          Base seed; each trial uses seed + trial_number
-  --max-steps INTEGER     Maximum training steps per trial
+  --max-steps INTEGER     Maximum training steps per trial (default: 1000)
   --clear-cache           Clear cached datasets/models before running
   --no-features           Skip feature engineering (raw OHLCV only)
 ```
@@ -197,59 +197,42 @@ python src/cli.py generate-data \
 
 ### Basic Training Workflow
 ```bash
-# Train a single agent with custom parameters
+# Train a single agent with minimal parameters
 python src/cli.py train \
-  --name "ddpg_experiment_1" \
+  --name "quick_test" \
   --seed 42 \
-  --max-steps 50000 \
-  --actor-lr 0.001 \
-  --value-lr 0.002 \
+  --max-steps 100 \
+  --actor-lr 0.01 \
   --save-plots
 
 # View results
-python src/cli.py dashboard ddpg_experiment_1.db
+python src/cli.py dashboard
 ```
 
 ### Research Experiment Workflow
 ```bash
-# Run multiple experiments for statistical analysis
+# Run minimal experiments for quick testing
 python src/cli.py experiment \
-  --study "parameter_sweep" \
-  --trials 20 \
+  --name "quick_test" \
+  --trials 2 \
+  --max-steps 50 \
   --dashboard
 
-# Run experiments with position change tracking in intermediate values
-python src/cli.py experiment \
-  --study "position_analysis" \
-  --trials 10 \
-  --track-positions \
-  --dashboard
+# List experiments
+python src/cli.py list-experiments
 
-# Run dual tracking (both loss and position studies)
-python src/cli.py experiment \
-  --study "comprehensive_analysis" \
-  --trials 15 \
-  --dual-tracking
-
-# List all your studies
-python src/cli.py list-studies
-
-# Launch dashboard for specific study
-python src/cli.py dashboard parameter_sweep.db --port 8080
+# Launch dashboard
+python src/cli.py dashboard --port 5000
 ```
 
 ### Synthetic Data Simulations
 ```bash
-# Generate synthetic patterns for controlled testing
-python src/cli.py generate-data --source-file binance-BTCUSDT-1h.parquet --output-file sine_wave_validation.parquet --sample-size 500
+# Generate small sample for testing
+python src/cli.py generate-data --source-file binance-BTCUSDT-1h.parquet --output-file test.parquet --sample-size 100
 
-# Train with pre-configured synthetic patterns
-python src/cli.py train --config src/configs/sine_wave.yaml        # Oscillating patterns
-python src/cli.py train --config src/configs/upward_trend_ppo.yaml     # Trending markets  
-python src/cli.py train --config src/configs/mean_reversion.yaml   # Mean-reverting patterns
-
-# Run experiments with synthetic data
-python src/cli.py experiment --config src/configs/sine_wave.yaml --name "synthetic_experiments"
+# Quick test with different patterns
+python src/cli.py train --config src/configs/sine_wave.yaml --max-steps 50
+python src/cli.py train --config src/configs/upward_trend_ppo.yaml --max-steps 50
 
 # View results
 python src/cli.py dashboard
@@ -260,20 +243,11 @@ python src/cli.py dashboard
 # List available data
 python src/cli.py generate-data --list
 
-# Generate training data for specific period
+# Generate small sample for testing
 python src/cli.py generate-data \
   --source-file binance-BTCUSDT-1h.parquet \
-  --output-file training_2023.parquet \
-  --start-date 2023-01-01 \
-  --end-date 2023-12-31
-
-# Generate multiple sample sizes for experiments
-for n in 100 500 1000 5000; do
-  python src/cli.py generate-data \
-    --source-file binance-BTCUSDT-1h.parquet \
-    --output-file sample_${n}.parquet \
-    --sample-size $n
-done
+  --output-file test_sample.parquet \
+  --sample-size 100
 ```
 
 ## Python API Usage
@@ -297,10 +271,10 @@ print("Configuration created successfully!")
 ```python
 from trading_rl import ExperimentConfig, run_multiple_experiments
 
-# Load configuration and run three trials
+# Load configuration and run minimal trials
 config = ExperimentConfig.from_yaml("src/configs/upward_trend_ppo.yaml")
 experiment_name = run_multiple_experiments(
-    n_trials=3,
+    n_trials=2,  # Minimal trials
     base_seed=123,
     custom_config=config,
 )
@@ -312,13 +286,12 @@ print(f"Results are logged in MLflow under: {experiment_name}")
 ```python
 from trading_rl import ExperimentConfig
 
-# Create custom configuration
+# Create minimal custom configuration
 config = ExperimentConfig()
-config.training.max_steps = 100000
-config.training.actor_lr = 0.001
-config.training.value_lr = 0.002
-config.network.actor_hidden_dims = [256, 256]
-config.data.train_size = 10000
+config.training.max_steps = 200  # Minimal for quick testing
+config.training.actor_lr = 0.01
+config.network.actor_hidden_dims = [16, 8]  # Small network
+config.data.train_size = 500  # Small dataset
 
 # Configuration ready for training
 print(f"Training config: {config.training.max_steps} steps")
@@ -332,13 +305,11 @@ from data_generator import PriceDataGenerator
 # Initialize generator
 generator = PriceDataGenerator()
 
-# Generate synthetic data
+# Generate small test sample
 df = generator.generate_synthetic_sample(
     source_file="binance-BTCUSDT-1h.parquet",
-    output_file="custom.parquet",
-    start_date="2023-01-01",
-    end_date="2023-12-31",
-    sample_size=1000
+    output_file="test.parquet",
+    sample_size=50  # Minimal for quick testing
 )
 
 # List available files
