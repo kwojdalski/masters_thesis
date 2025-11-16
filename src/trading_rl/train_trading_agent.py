@@ -623,6 +623,9 @@ def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=Non
     )
 
     try:
+        max_viz_steps = min(max_steps, 200)
+        max_episode_length = 20
+
         with torch.no_grad():
             # Use the original environment but force it to give us varying observations
             # by resetting and running multiple short episodes
@@ -634,13 +637,9 @@ def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=Non
             action_probs_data = []
 
             # Limit steps for visualization (too many steps make plot unreadable)
-            viz_steps = min(max_steps, 500)
             current_episode_steps = 0
-            max_episode_length = (
-                20  # Reset env every 20 steps to get varying observations
-            )
 
-            for step in range(viz_steps):
+            for step in range(max_viz_steps):
                 # Reset environment periodically to get different observations
                 if current_episode_steps >= max_episode_length:
                     obs = env_to_use.reset()
@@ -710,23 +709,40 @@ def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=Non
 
                 # Ensure action matches env spec (one-hot vector)
                 if isinstance(action, torch.Tensor):
-                    if action.dim() == 0:
-                        action = F.one_hot(
-                            action.long(), num_classes=len(action_names)
-                        ).to(torch.float32)
-                    elif action.dim() == 1 and action.shape[0] != len(action_names):
-                        action = F.one_hot(
-                            action.long(), num_classes=len(action_names)
-                        ).to(torch.float32)
-                    else:
-                        action = action.to(torch.float32)
-                if isinstance(action, torch.Tensor) and action.dim() > 1:
-                    action = action.squeeze(0)
+                    action = action.to(torch.float32)
+                else:
+                    action = torch.tensor(action, dtype=torch.float32)
+
+                # Convert scalar/discrete actions to one-hot vectors
+                if action.dim() == 0:
+                    action = F.one_hot(
+                        action.long(), num_classes=len(action_names)
+                    ).to(torch.float32)
+                elif action.dim() == 1 and action.shape[0] != len(action_names):
+                    action = F.one_hot(
+                        action.long(), num_classes=len(action_names)
+                    ).to(torch.float32)
+
+                # Ensure batch dimension matches observation batch size
+                if hasattr(obs, "batch_size") and obs.batch_size:
+                    expected_batch = obs.batch_size[0]
+                else:
+                    expected_batch = 1
+
+                if action.dim() == 1:
+                    action = action.unsqueeze(0)
+                if action.shape[0] != expected_batch:
+                    action = action.expand(expected_batch, action.shape[1])
 
                 # Step the environment using a cloned tensordict
-                action_td = obs.clone()
-                action_td.set("action", action)
-                step_result = env_to_use.step(action_td)
+                if hasattr(obs, "clone") and hasattr(obs, "set"):
+                    action_td = obs.clone()
+                    action_td.set("action", action)
+                    step_result = env_to_use.step(action_td)
+                else:
+                    # If obs is not a TensorDict, we can't safely step the env.
+                    # Break out so fallback plot is used.
+                    raise RuntimeError("Environment observation is not a TensorDict")
 
                 # Extract post-step observation for next iteration
                 if "next" in step_result.keys():
@@ -739,10 +755,11 @@ def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=Non
                 current_episode_steps += 1
 
                 # Break if episode is done
-                if obs.get("done", torch.tensor(False)).any():
-                    current_episode_steps = (
-                        max_episode_length  # Force reset on next iteration
-                    )
+                done_tensor = None
+                if hasattr(obs, "get"):
+                    done_tensor = obs.get("done", torch.tensor([False]))
+                if done_tensor is not None and torch.as_tensor(done_tensor).any():
+                    break
 
         df_probs = pd.DataFrame(action_probs_data)
         action_order = ["Short", "Hold", "Long"]

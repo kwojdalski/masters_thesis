@@ -122,25 +122,21 @@ class DDPGTrainer:
                 # Since reward = log(portfolio_val[t] / portfolio_val[t-1])
                 # We can reconstruct portfolio value from cumulative log returns
                 episode_reward = data["next", "reward"].sum().item()
-                
+
                 # Reset portfolio value to starting amount at the beginning of each episode
                 callback._portfolio_value = 10000.0  # Starting portfolio value
-                
+
                 # Update portfolio value based on episode reward (cumulative log return)
                 if episode_reward != 0:
                     # exp(log_return) = portfolio_val[t] / portfolio_val[t-1]
                     # For episode reward: portfolio_val_final = starting_val * exp(episode_reward)
                     callback._portfolio_value = 10000.0 * np.exp(episode_reward)
-                
+
                 portfolio_valuation = callback._portfolio_value
                 actions_tensor = data.get("action")
                 if isinstance(actions_tensor, torch.Tensor):
                     if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
-                        actions = (
-                            actions_tensor.argmax(dim=-1)
-                            .reshape(-1)
-                            .tolist()
-                        )
+                        actions = actions_tensor.argmax(dim=-1).reshape(-1).tolist()
                     else:
                         actions = actions_tensor.reshape(-1).tolist()
                 else:
@@ -158,9 +154,7 @@ class DDPGTrainer:
 
             # Check stopping condition
             if self.total_count >= self.config.max_steps:
-                logger.info(
-                    f"Training stopped after {self.config.max_steps} steps"
-                )
+                logger.info(f"Training stopped after {self.config.max_steps} steps")
                 break
 
         t1 = time.time()
@@ -398,25 +392,21 @@ class PPOTrainer:
                 # Since reward = log(portfolio_val[t] / portfolio_val[t-1])
                 # We can reconstruct portfolio value from cumulative log returns
                 episode_reward = data["next", "reward"].sum().item()
-                
+
                 # Reset portfolio value to starting amount at the beginning of each episode
                 callback._portfolio_value = 10000.0  # Starting portfolio value
-                
+
                 # Update portfolio value based on episode reward (cumulative log return)
                 if episode_reward != 0:
                     # exp(log_return) = portfolio_val[t] / portfolio_val[t-1]
                     # For episode reward: portfolio_val_final = starting_val * exp(episode_reward)
                     callback._portfolio_value = 10000.0 * np.exp(episode_reward)
-                
+
                 portfolio_valuation = callback._portfolio_value
                 actions_tensor = data.get("action")
                 if isinstance(actions_tensor, torch.Tensor):
                     if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
-                        actions = (
-                            actions_tensor.argmax(dim=-1)
-                            .reshape(-1)
-                            .tolist()
-                        )
+                        actions = actions_tensor.argmax(dim=-1).reshape(-1).tolist()
                     else:
                         actions = actions_tensor.reshape(-1).tolist()
                 else:
@@ -432,9 +422,7 @@ class PPOTrainer:
 
             # Check stopping condition
             if self.total_count >= self.config.max_steps:
-                logger.info(
-                    f"PPO training stopped after {self.config.max_steps} steps"
-                )
+                logger.info(f"PPO training stopped after {self.config.max_steps} steps")
                 break
 
         t1 = time.time()

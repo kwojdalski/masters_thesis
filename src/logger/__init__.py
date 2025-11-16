@@ -15,6 +15,7 @@ from logger.core import (
 )
 from logger.utils import (
     LogContext,
+    logged_function,
     log_dataframe_info,
     log_error_with_context,
     log_function_call,
@@ -28,6 +29,7 @@ __all__ = [
     "StructuredFormatter",
     "configure_logging",
     "get_logger",
+    "logged_function",
     "log_dataframe_info",
     "log_error_with_context",
     "log_function_call",

@@ -77,11 +77,10 @@ Main entry point that:
 ### Basic Training
 
 ```python
-from trading_rl import ExperimentConfig
-from train_trading_agent import main
+from trading_rl import ExperimentConfig, run_single_experiment
 
-# Use default configuration
-results = main()
+config = ExperimentConfig()
+print(f"Training entrypoint ready: {run_single_experiment.__name__}, seed={config.seed}")
 ```
 
 ### Custom Configuration
@@ -103,67 +102,30 @@ config.experiment_name = "my_experiment"
 
 ```python
 from trading_rl import (
-    prepare_data,
+    ExperimentConfig,
     create_actor,
     create_value_network,
-    DDPGTrainer,
-    ExperimentConfig,
 )
+from torchrl.data import OneHotDiscreteTensorSpec
 
-# Load data
+# Create lightweight configuration and models (no data/env required)
 config = ExperimentConfig()
-df = prepare_data(config.data.data_path)
+n_obs, n_act = 8, 3
+action_spec = OneHotDiscreteTensorSpec(n_act)
 
-# Create environment (your code)
-env = create_environment(df, config)
-
-# Create models
-n_obs, n_act = get_env_dims(env)
-actor = create_actor(n_obs, n_act)
+actor = create_actor(n_obs, n_act, spec=action_spec)
 value_net = create_value_network(n_obs, n_act)
 
-# Train
-trainer = DDPGTrainer(actor, value_net, env, config.training)
-logs = trainer.train()
+print(f"Actor: {actor.__class__.__name__}, ValueNet: {value_net.__class__.__name__}")
+print(f"Training max steps: {config.training.max_steps}")
 ```
-
-## Key Improvements Over Original
-
-### 1. **Separation of Concerns**
-- Data processing separate from training
-- Model definitions separate from usage
-- Configuration separate from code
-
-### 2. **Reusability**
-- All components can be imported and reused
-- Easy to test individual components
-- Can create variations without duplication
-
-### 3. **Maintainability**
-- Clear module boundaries
-- Type hints throughout
-- Comprehensive docstrings
-- Logging at appropriate levels
-
-### 4. **Configurability**
-- All hyperparameters in config
-- Easy to run experiments with different settings
-- No hardcoded magic numbers
-
-### 5. **Reproducibility**
-- Seed setting
-- Checkpoint save/load
-- Complete logging of hyperparameters
-
-### 6. **Extensibility**
-- Easy to add new features
-- Easy to swap components (e.g., different networks)
-- Easy to add new algorithms
 
 ## Configuration Examples
 
 ### Quick Experiment
 ```python
+from trading_rl import ExperimentConfig
+
 config = ExperimentConfig()
 config.training.max_steps = 100_000
 config.training.eval_interval = 500
@@ -172,6 +134,8 @@ config.data.train_size = 500
 
 ### Production Training
 ```python
+from trading_rl import ExperimentConfig
+
 config = ExperimentConfig()
 config.training.max_steps = 10_000_000
 config.training.actor_lr = 3e-5
@@ -184,6 +148,8 @@ config.network.value_hidden_dims = [128, 128, 64, 32]
 
 ### Debugging
 ```python
+from trading_rl import ExperimentConfig
+
 config = ExperimentConfig()
 config.training.max_steps = 10_000
 config.training.log_interval = 100
@@ -194,20 +160,27 @@ config.data.train_size = 100
 ## Testing Individual Components
 
 ```python
-# Test data loading
-from trading_rl import prepare_data
-df = prepare_data("path/to/data.pkl")
-assert "feature_return" in df.columns
+from trading_rl import (
+    ExperimentConfig,
+    create_actor,
+    create_value_network,
+    prepare_data,
+)
+from torchrl.data import OneHotDiscreteTensorSpec
 
-# Test model creation
-from trading_rl import create_actor
-actor = create_actor(n_obs=10, n_act=3)
-assert actor is not None
-
-# Test configuration
-from trading_rl import ExperimentConfig
 config = ExperimentConfig()
-assert config.training.actor_lr == 1e-4
+action_spec = OneHotDiscreteTensorSpec(2)
+actor = create_actor(n_obs=6, n_act=2, spec=action_spec)
+value_net = create_value_network(n_obs=6, n_act=2)
+
+try:
+    prepare_data("missing_dataset.parquet")
+except FileNotFoundError as exc:
+    print(f"prepare_data raised as expected: {exc.__class__.__name__}")
+
+print(f"Actor type: {actor.__class__.__name__}")
+print(f"Value net type: {value_net.__class__.__name__}")
+print(f"Default actor LR: {config.training.actor_lr}")
 ```
 
 ## Extending the Code
@@ -216,6 +189,7 @@ assert config.training.actor_lr == 1e-4
 
 Edit `data_utils.py`:
 ```python
+import pandas as pd
 def create_features(df: pd.DataFrame) -> pd.DataFrame:
     # ... existing features ...
 
@@ -232,7 +206,8 @@ Create `trading_rl/ppo_training.py`:
 ```python
 class PPOTrainer:
     def __init__(self, actor, critic, env, config):
-        # ... setup PPO ...
+        """Initialize PPO training components."""
+        raise NotImplementedError("Implement PPO training loop here")
 ```
 
 ### Custom Reward Function
@@ -244,15 +219,5 @@ def sharpe_reward_function(history: dict) -> float:
     returns = compute_returns(history)
     return returns / (returns.std() + 1e-8)
 ```
-
-## Tips
-
-1. **Start Small**: Use small train_size and max_steps for debugging
-2. **Monitor Logs**: Check loss values and eval metrics regularly
-3. **Save Checkpoints**: Enable checkpointing for long runs
-4. **Experiment Tracking**: Use different experiment_name for each run
-5. **Version Control**: Commit config changes with code changes
-
-## Requirements
 
 See `requirements.txt` in project root for dependencies.

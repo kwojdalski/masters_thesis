@@ -19,10 +19,10 @@ This package provides consistent, comprehensive logging functionality across all
 ### Basic Usage
 
 ```python
-from logger import get_logger, configure_weles_logging
+from logger import get_logger, configure_logging
 
 # Set up logging for your component
-configure_weles_logging(
+configure_logging(
     component="tardis_downloader",
     debug=False,
     log_dir="logs",
@@ -41,12 +41,12 @@ logger.error("An error occurred")
 ### Component-Specific Setup
 
 ```python
-from logger import configure_weles_logging, get_logger
+from logger import configure_logging, get_logger
 
 # Each component can have its own configuration
-configure_weles_logging("tardis_downloader", debug=True, log_dir="logs/tardis")
-configure_weles_logging("market_data_fetcher", structured_logging=True)
-configure_weles_logging("pyth_downloader", debug=False)
+configure_logging("tardis_downloader", debug=True, log_dir="logs/tardis")
+configure_logging("market_data_fetcher", structured_logging=True)
+configure_logging("pyth_downloader", debug=False)
 
 # Get component-specific loggers
 tardis_logger = get_logger("tardis_downloader.utils")
@@ -114,10 +114,10 @@ result = process_market_data("BTCUSDT", "binance")
 ### Structured Logging
 
 ```python
-from logger import configure_weles_logging, get_logger, log_processing_step
+from logger import configure_logging, get_logger, log_processing_step
 
 # Enable structured (JSON) logging
-configure_weles_logging("market_analysis", structured_logging=True)
+configure_logging("market_analysis", structured_logging=True)
 logger = get_logger(__name__)
 
 # Logs will be formatted as JSON
@@ -210,9 +210,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 # New way
-from logger import get_logger, configure_weles_logging
+from logger import get_logger, configure_logging
 
-configure_weles_logging("tardis_downloader")
+configure_logging("tardis_downloader")
 logger = get_logger(__name__)
 ```
 
@@ -220,9 +220,9 @@ logger = get_logger(__name__)
 
 ```python
 import pandas as pd
-from logger import get_logger, configure_weles_logging, log_dataframe_info
+from logger import get_logger, configure_logging, log_dataframe_info
 
-configure_weles_logging("market_data_fetcher", debug=True)
+configure_logging("market_data_fetcher", debug=True)
 logger = get_logger(__name__)
 
 # Create sample market data for demonstration
@@ -254,8 +254,8 @@ log_dataframe_info(logger, market_df, "Market Data")
    logger = logging.getLogger(__name__)
 
    # After
-   from logger import get_logger, configure_weles_logging
-   configure_weles_logging("your_component")
+   from logger import get_logger, configure_logging
+   configure_logging("your_component")
    logger = get_logger(__name__)
    ```
 
@@ -271,13 +271,13 @@ log_dataframe_info(logger, market_df, "Market Data")
 ### Basic Usage Example
 
 ```python
-from logger import get_logger, configure_weles_logging
+from logger import get_logger, configure_logging
 
 # Basic logger setup
 logger = get_logger(__name__)
 
 # Or set up component-specific logging
-configure_weles_logging(
+configure_logging(
     component="tardis_downloader",
     debug=True,
     log_dir="logs",
@@ -345,7 +345,7 @@ except Exception as e:
 
 ```python
 import time
-from logger import get_logger, log_performance
+from logger import get_logger, log_performance_metrics
 
 logger = get_logger(__name__)
 
@@ -354,7 +354,7 @@ start_time = time.time()
 time.sleep(0.1)  # Simulate work
 duration = time.time() - start_time
 
-log_performance(
+log_performance_metrics(
     logger,
     "Data processing",
     duration,
@@ -408,10 +408,10 @@ result = process_market_data("USDC/USD", "binance", "5m")
 ### Structured Logging Example
 
 ```python
-from logger import configure_weles_logging, get_logger, log_processing_step
+from logger import configure_logging, get_logger, log_processing_step
 
 # Configure with structured logging
-configure_weles_logging(
+configure_logging(
     component="market_analysis", structured_logging=True, include_console=True
 )
 
@@ -436,21 +436,21 @@ log_processing_step(
 ### Component-Specific Configuration Example
 
 ```python
-from logger import get_logger, configure_weles_logging
+from logger import get_logger, configure_logging
 
 # Tardis downloader logging
 tardis_logger = get_logger("tardis_downloader.utils")
-configure_weles_logging("tardis_downloader", debug=False, log_dir="logs/tardis")
+configure_logging("tardis_downloader", debug=False, log_dir="logs/tardis")
 
 # Market data fetcher logging
 market_logger = get_logger("market_data_fetcher.core")
-configure_weles_logging(
+configure_logging(
     "market_data_fetcher", debug=True, log_dir="logs/market_data"
 )
 
 # Pyth downloader logging
 pyth_logger = get_logger("pyth_downloader.analyzer")
-configure_weles_logging("pyth_downloader", debug=False, structured_logging=True)
+configure_logging("pyth_downloader", debug=False, structured_logging=True)
 
 # Each logger will have component-specific configuration
 tardis_logger.info("Downloading Tardis data")
