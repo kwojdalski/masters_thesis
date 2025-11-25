@@ -6,7 +6,6 @@ separated into reusable modules.
 """
 
 # %%
-import logging
 import os
 import tempfile
 import warnings
@@ -35,12 +34,15 @@ from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data, reward_function
 from trading_rl.models import (
     create_actor,
+    create_ddpg_actor,
     create_ppo_actor,
     create_ppo_value_network,
+    create_td3_actor,
+    create_td3_qvalue_network,
     create_value_network,
 )
 from trading_rl.plotting import visualize_training
-from trading_rl.training import DDPGTrainer, PPOTrainer
+from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 from trading_rl.utils import compare_rollouts
 
 # Setup joblib memory for caching expensive operations
@@ -53,15 +55,8 @@ def clear_cache():
 
 
 # %%
-def setup_logging(config: ExperimentConfig) -> logging.Logger:
-    """Setup logging configuration.
-
-    Args:
-        config: Experiment configuration
-
-    Returns:
-        Logger instance
-    """
+def setup_logging(config: ExperimentConfig):
+    """Setup logging configuration."""
     # No matplotlib logging to disable since we use plotnine exclusively
 
     log_file_path = Path(config.logging.log_dir) / config.logging.log_file
@@ -385,9 +380,7 @@ def log_final_metrics_to_mlflow(
 
 def _log_parameter_faq_artifact():
     """Log parameter FAQ as both markdown and HTML artifacts."""
-    import logging
-
-    logger = logging.getLogger(__name__)
+    logger = get_project_logger(__name__)
 
     try:
         # Check MLflow run status
@@ -923,7 +916,7 @@ def _log_training_parameters(config: ExperimentConfig) -> None:
         mlflow.log_param("logging_log_level", str(config.logging.log_level))
 
     except Exception as e:
-        logging.getLogger(__name__).warning(
+        get_project_logger(__name__).warning(
             f"Failed to log some training parameters: {e}"
         )
 
@@ -1245,6 +1238,7 @@ def run_single_experiment(
     algorithm = getattr(config.training, "algorithm", "PPO")
     logger.info(f"Creating models for {algorithm} algorithm...")
 
+    qvalue_nets: list[Any] | None = None
     # Actor and value network depend on algorithm
     if algorithm.upper() == "PPO":
         # PPO needs actor with log prob outputs
@@ -1258,6 +1252,26 @@ def run_single_experiment(
             n_obs,
             hidden_dims=config.network.value_hidden_dims,
         )
+    elif algorithm.upper() == "TD3":
+        actor = create_td3_actor(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.actor_hidden_dims,
+            spec=env.action_spec,
+        )
+        qvalue_nets = [
+            create_td3_qvalue_network(
+                n_obs,
+                n_act,
+                hidden_dims=config.network.value_hidden_dims,
+            ),
+            create_td3_qvalue_network(
+                n_obs,
+                n_act,
+                hidden_dims=config.network.value_hidden_dims,
+            ),
+        ]
+        value_net = None
     else:  # DDPG
         # DDPG uses original actor
         actor = create_actor(
@@ -1278,6 +1292,15 @@ def run_single_experiment(
         trainer = PPOTrainer(
             actor=actor,
             value_net=value_net,
+            env=env,
+            config=config.training,
+        )
+    elif algorithm.upper() == "TD3":
+        if qvalue_nets is None:
+            raise ValueError("TD3 requires initialized Q-value networks")
+        trainer = TD3Trainer(
+            actor=actor,
+            qvalue_nets=qvalue_nets,
             env=env,
             config=config.training,
         )
@@ -1526,7 +1549,7 @@ def run_multiple_experiments(
 
     results = []
 
-    logger = logging.getLogger(__name__)
+    logger = get_project_logger(__name__)
 
     for trial_number in range(n_trials):
         logger.info(f"Running trial {trial_number + 1}/{n_trials}")

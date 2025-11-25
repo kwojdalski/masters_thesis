@@ -5,8 +5,6 @@ This module contains plotting functions for visualizing training progress
 and experiment comparisons using plotnine.
 """
 
-import logging
-
 import mlflow
 import pandas as pd
 from plotnine import (
@@ -21,6 +19,10 @@ from plotnine import (
     theme,
     theme_minimal,
 )
+
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def visualize_training(logs: dict, save_path: str | None = None):
@@ -127,5 +129,4 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
     with mlflow.start_run(run_name="experiment_summary"):
         mlflow.log_artifact(plot_path)
 
-    logger = logging.getLogger(__name__)
     logger.info(f"Comparison plots saved to: {plot_path}")

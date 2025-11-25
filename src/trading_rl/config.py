@@ -51,7 +51,7 @@ class TrainingConfig:
     """Training hyperparameters configuration."""
 
     # Algorithm selection
-    algorithm: str = "PPO"  # "PPO" or "DDPG"
+    algorithm: str = "PPO"  # "PPO", "DDPG", or "TD3"
 
     # Optimization
     actor_lr: float = 1e-4
@@ -76,6 +76,12 @@ class TrainingConfig:
     entropy_bonus: float = 0.01  # Entropy bonus coefficient
     vf_coef: float = 0.5  # Value function loss coefficient
     ppo_epochs: int = 4  # Number of PPO epochs per batch
+
+    # TD3-specific parameters
+    policy_noise: float = 0.2
+    noise_clip: float = 0.5
+    delay_actor: bool = True
+    delay_qvalue: bool = True
 
     # Loss function
     loss_function: str = "l2"

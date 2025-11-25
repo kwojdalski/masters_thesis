@@ -1,6 +1,5 @@
 """Neural network models for trading RL."""
 
-import logging
 from typing import Any
 
 import torch.nn as nn
@@ -9,7 +8,9 @@ from tensordict.nn import InteractionType, TensorDictModule
 from torch import distributions as d
 from torchrl.modules import MLP, ProbabilisticActor, ValueOperator
 
-logger = logging.getLogger(__name__)
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 # Setup joblib memory for caching model creation
 memory = Memory(location=".cache/joblib", verbose=1)
@@ -286,6 +287,39 @@ def create_ddpg_actor(
 
     logger.info("DDPG deterministic actor created")
     return actor
+
+
+def create_td3_actor(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+    spec: Any | None = None,
+) -> TensorDictModule:
+    """Create deterministic actor for TD3 (continuous actions)."""
+    return create_ddpg_actor(n_obs, n_act, hidden_dims=hidden_dims, spec=spec)
+
+
+def create_td3_qvalue_network(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+) -> ValueOperator:
+    """Create Q-value network for TD3 taking observation and action."""
+    if hidden_dims is None:
+        hidden_dims = [64, 32, 16]
+
+    value_net = ValueOperator(
+        MLP(
+            in_features=n_obs + n_act,
+            out_features=1,
+            num_cells=hidden_dims,
+        ),
+        in_keys=["observation", "action"],
+        out_keys=["state_action_value"],
+    )
+
+    logger.info(f"TD3 Q-value network created with hidden_dims={hidden_dims}")
+    return value_net
 
 
 def count_parameters(model: nn.Module) -> int:

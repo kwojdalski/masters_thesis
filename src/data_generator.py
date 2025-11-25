@@ -2,7 +2,6 @@
 Simple price data generator that loads existing parquet files and dumps them to synthetic data folder.
 """
 
-import logging
 import os
 import shutil
 from pathlib import Path
@@ -16,12 +15,20 @@ from logger import get_logger
 
 
 def _parse_log_level(level: int | str | None) -> int:
-    """Convert log level provided as string or int into logging module constant."""
+    """Convert log level provided as string or int into numeric constant."""
+    level_map = {
+        "CRITICAL": 50,
+        "ERROR": 40,
+        "WARNING": 30,
+        "INFO": 20,
+        "DEBUG": 10,
+        "NOTSET": 0,
+    }
     if isinstance(level, int):
         return level
     if isinstance(level, str):
-        return logging._nameToLevel.get(level.upper(), logging.INFO)
-    return logging.INFO
+        return level_map.get(level.upper(), level_map["INFO"])
+    return level_map["INFO"]
 
 
 class PriceDataGenerator:

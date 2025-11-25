@@ -4,7 +4,7 @@ This document describes the complete workflow for running trading reinforcement 
 
 ## Overview
 
-The experiment system is designed to train DDPG (Deep Deterministic Policy Gradient) agents on trading environments with comprehensive MLflow tracking, evaluation, and visualization.
+The experiment system can train PPO, DDPG, or TD3 agents on trading environments with comprehensive MLflow tracking, evaluation, and visualization. Choose the algorithm via `training.algorithm` in the config (PPO, DDPG, or TD3).
 
 ## Workflow Diagram
 
@@ -29,10 +29,13 @@ flowchart TD
     N --> O{Algorithm type?}
     O -->|PPO| P[Create PPO Actor-Critic]
     O -->|DDPG| Q[Create Actor & Value Networks]
+    O -->|TD3| Q2[Create TD3 Actor & Twin Q-Nets]
     P --> R[Setup PPO Loss & Optimizer]
     Q --> S[Setup DDPG Loss & Optimizer]
+    Q2 --> S2[Setup TD3 Loss & Optimizers]
     R --> T[Create Data Collector]
     S --> T
+    S2 --> T
     T --> U[Initialize Replay Buffer]
     U --> V[Start MLflow Run]
     
@@ -99,7 +102,7 @@ flowchart TD
 ### 4. Network Architecture
 
 -   **Actor Network**: Policy network for action selection
--   **Value Network**: Critic network for value estimation
+-   **Value Network**: Critic network for value estimation (twin critics for TD3)
 -   **Configurable**: Hidden dimensions, activation functions
 -   **Location**: `src/trading_rl/models.py`
 
@@ -116,9 +119,9 @@ The main training loop performs these steps cyclically:
 #### Network Updates
 
 -   Sample batches from replay buffer
--   Compute DDPG losses (actor and critic)
+-   Compute losses (PPO, DDPG, or TD3)
 -   Update networks using gradient descent
--   Apply soft target updates
+-   Apply soft target updates (DDPG/TD3)
 
 #### Evaluation & Logging
 
@@ -184,6 +187,11 @@ Configuration dataclass containing all experiment parameters: - **DataConfig**: 
 ``` bash
 python src/cli.py experiment --config ./src/configs/default.yaml --trials 3
 ```
+
+### PPO/DDPG/TD3 Selection
+
+- Set `training.algorithm` in your config to `PPO`, `DDPG`, or `TD3`.
+- TD3 requires continuous-action setups (or a discretized wrapper) and twin Q-value networks; defaults are built when you pick TD3.
 
 ### Custom Configuration
 

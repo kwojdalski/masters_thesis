@@ -1,6 +1,5 @@
 """Data loading and preprocessing utilities for trading RL."""
 
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +8,9 @@ import pandas as pd
 from gym_trading_env.downloader import download
 from joblib import Memory
 
-logger = logging.getLogger(__name__)
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 # Setup joblib memory for caching expensive operations
 memory = Memory(location=".cache/joblib", verbose=1)

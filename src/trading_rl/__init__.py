@@ -1,4 +1,4 @@
-"""Trading RL package with modular components for DDPG trading."""
+"""Trading RL package with modular components for DDPG, PPO, and TD3 trading."""
 
 from trading_rl.config import (
     DataConfig,
@@ -24,6 +24,8 @@ from .models import (
     create_ppo_actor,
     create_ppo_value_network,
     create_ddpg_actor,
+    create_td3_actor,
+    create_td3_qvalue_network,
 )
 from .train_trading_agent import (
     MLflowTrainingCallback,
@@ -37,12 +39,13 @@ from .train_trading_agent import (
     setup_mlflow_experiment,
     visualize_training,
 )
-from .training import DDPGTrainer, PPOTrainer
+from .training import DDPGTrainer, PPOTrainer, TD3Trainer
 
 __all__ = [
     # Training
     "DDPGTrainer",
     "PPOTrainer",
+    "TD3Trainer",
     # Config
     "DataConfig",
     "EnvConfig",
@@ -58,6 +61,8 @@ __all__ = [
     "create_ppo_actor",
     "create_ppo_value_network",
     "create_ddpg_actor",
+    "create_td3_actor",
+    "create_td3_qvalue_network",
     # Data
     "create_environment",
     "create_features",
