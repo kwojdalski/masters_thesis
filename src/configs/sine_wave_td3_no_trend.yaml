@@ -1,0 +1,76 @@
+# TD3 Configuration for Pure Sine Wave Pattern (No Trend)
+# =========================================================
+
+experiment_name: "sine_wave_td3_no_trend"
+seed: 99  # Fixed seed for reproducibility
+
+# Data Configuration - Pure Sine Wave Pattern (No Trend)
+data:
+  data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"  # Reuse existing sinewave data
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["SINE/WAVE"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 450  # Hold back last 50 steps for evaluation
+  no_features: false # Use feature engineering for pattern recognition
+
+# Environment Configuration  
+env:
+  name: "SINEWAVE_NO_TREND_TD3"
+  positions: [-1, 0, 1]  # Short, hold, long
+  trading_fees: 0.0  # No fees for synthetic validation
+  borrow_interest_rate: 0.0
+
+# Network Architecture - For oscillating pattern recognition
+network:
+  actor_hidden_dims: [64, 32]  # Slightly larger for pattern learning
+  value_hidden_dims: [64, 32]  # TD3 uses Q-value networks (critics)
+
+# Training Parameters - TD3 specific
+training:
+  algorithm: "TD3"  # Use TD3 instead of PPO
+  actor_lr: 0.0003  # TD3 typically uses lower learning rates
+  value_lr: 0.001   # Higher for Q-value networks
+  value_weight_decay: 0.001
+  max_steps: 15000  # More steps to learn oscillation pattern
+  init_rand_steps: 100  # More exploration for pattern discovery (TD3 benefits from more initial exploration)
+  frames_per_batch: 200
+  optim_steps_per_batch: 40  # Used in TD3 (off-policy)
+  sample_size: 64
+  buffer_size: 10000  # Larger buffer for TD3 (off-policy can reuse data more efficiently)
+  
+  # DDPG/TD3-specific parameters
+  tau: 0.005  # Target network update rate (polyak averaging)
+  
+  # TD3-specific parameters
+  policy_noise: 0.2  # Target policy smoothing noise
+  noise_clip: 0.5    # Noise clipping for target policy smoothing
+  delay_actor: true  # Delayed actor updates (key TD3 feature)
+  delay_qvalue: true # Delayed Q-value target updates
+  
+  # Loss function
+  loss_function: "l2"
+  
+  # Evaluation
+  eval_steps: 350  # Must be less than train_size (450)
+  eval_interval: 120
+  log_interval: 40
+
+# Logging Configuration
+logging:
+  log_dir: "logs/sine_wave_td3_no_trend"
+  log_level: "INFO"
+
+# Data Generator Configuration (same as PPO version)
+data_generator:
+  pattern_type: "sine_wave"
+  n_periods: 5
+  samples_per_period: 100
+  n_samples: 500
+  base_price: 50000.0
+  amplitude: 8000.0
+  trend_slope: 0.0  # Pure oscillation, no trend
+  volatility: 0.0002
+  start_date: "2024-01-01"

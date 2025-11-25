@@ -266,7 +266,6 @@ def create_ddpg_actor(
         out_features=n_act,
         num_cells=hidden_dims,
         activation_class=nn.ReLU,
-        out_features_last=n_act,
         activate_last_layer=False,  # No activation on output
     )
 
