@@ -309,6 +309,7 @@ def log_final_metrics_to_mlflow(
         final_metrics: Final evaluation metrics
         training_callback: Optional callback with training data
     """
+    logger = get_project_logger(__name__)
     # Log final performance metrics
     mlflow.log_metric("final_reward", final_metrics["final_reward"])
     mlflow.log_metric("training_steps", final_metrics["training_steps"])
@@ -332,13 +333,17 @@ def log_final_metrics_to_mlflow(
                 mlflow.log_artifact(f.name, "position_data")
                 os.unlink(f.name)
 
-    if logs["loss_value"]:
+    if logs.get("loss_value") and len(logs["loss_value"]) > 0:
         mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
         # mlflow.log_metric("avg_value_loss", np.mean(logs["loss_value"]))
+    else:
+        logger.warning("No value loss data available for logging - training may have been skipped due to tensor shape issues")
 
-    if logs["loss_actor"]:
+    if logs.get("loss_actor") and len(logs["loss_actor"]) > 0:
         mlflow.log_metric("final_actor_loss", logs["loss_actor"][-1])
         mlflow.log_metric("avg_actor_loss", np.mean(logs["loss_actor"]))
+    else:
+        logger.warning("No actor loss data available for logging - training may have been skipped due to tensor shape issues")
 
     # Log training curves if callback provided
     if training_callback:
@@ -1549,7 +1554,7 @@ def run_single_experiment(
         "logs": logs,
         "final_metrics": final_metrics,
         "plots": {
-            "loss": visualize_training(logs),
+            "loss": visualize_training(logs) if logs.get("loss_value") or logs.get("loss_actor") else None,
             "reward": reward_plot,
             "action": action_plot,
         },

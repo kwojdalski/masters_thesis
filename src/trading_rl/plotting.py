@@ -32,12 +32,30 @@ def visualize_training(logs: dict, save_path: str | None = None):
         logs: Dictionary of training logs
         save_path: Optional path to save plot
     """
-    # Create loss dataframe
+    # Create loss dataframe with safety checks for empty logs
+    value_loss = logs.get("loss_value", [])
+    actor_loss = logs.get("loss_actor", [])
+    
+    # Use the longer of the two for step range, or empty if both are empty
+    max_steps = max(len(value_loss), len(actor_loss))
+    if max_steps == 0:
+        # Return empty plot if no training occurred
+        print("Warning: No training loss data available for plotting - all optimization steps may have been skipped due to tensor shape issues")
+        return None
+        
+    # Pad shorter lists with None values and warn about mismatched lengths
+    if len(value_loss) < max_steps:
+        print(f"Warning: Value loss data incomplete ({len(value_loss)} vs {max_steps} steps) - some optimization steps may have been skipped")
+        value_loss = value_loss + [None] * (max_steps - len(value_loss))
+    if len(actor_loss) < max_steps:
+        print(f"Warning: Actor loss data incomplete ({len(actor_loss)} vs {max_steps} steps) - some optimization steps may have been skipped")
+        actor_loss = actor_loss + [None] * (max_steps - len(actor_loss))
+    
     loss_df = pd.DataFrame(
         {
-            "step": range(len(logs["loss_value"])),
-            "Value Loss": logs["loss_value"],
-            "Actor Loss": logs["loss_actor"],
+            "step": range(max_steps),
+            "Value Loss": value_loss,
+            "Actor Loss": actor_loss,
         }
     )
 

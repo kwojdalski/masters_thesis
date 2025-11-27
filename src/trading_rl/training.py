@@ -617,6 +617,10 @@ class TD3Trainer(BaseTrainer):
         )
 
         self.policy_delay = getattr(config, "policy_delay", 2)
+        
+        # Counters for tracking successful vs skipped batches
+        self.successful_batches = 0
+        self.skipped_batches = 0
 
         logger.info("TD3 Trainer initialized")
         logger.info(
@@ -650,8 +654,11 @@ class TD3Trainer(BaseTrainer):
             # 1. Update critics  
             try:
                 loss_vals = self.td3_loss(sample)
+                # If we get here, the batch was successful
+                self.successful_batches += 1
             except RuntimeError as e:
                 if "All input tensors" in str(e) and "must share a unique shape" in str(e):
+                    self.skipped_batches += 1
                     logger.warning(f"TD3 tensor shape error: {e}, skipping this batch")
                     continue
                 else:
@@ -756,6 +763,23 @@ class TD3Trainer(BaseTrainer):
             f"TD3 Training complete: {self.total_count} steps, "
             f"{self.total_episodes} episodes, {t1 - t0:.2f}s"
         )
+        
+        # Log batch success/failure summary
+        total_batches = self.successful_batches + self.skipped_batches
+        if total_batches > 0:
+            success_rate = (self.successful_batches / total_batches) * 100
+            summary_msg = (
+                f"Batch processing summary: {self.successful_batches}/{total_batches} "
+                f"batches successful ({success_rate:.1f}%), {self.skipped_batches} skipped due to tensor shape errors"
+            )
+            
+            # Use warning if success rate is below 70%, otherwise info
+            if success_rate < 70.0:
+                logger.warning(summary_msg)
+            else:
+                logger.info(summary_msg)
+        else:
+            logger.warning("No optimization batches were attempted during training")
 
         return dict(self.logs)
 
