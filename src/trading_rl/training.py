@@ -543,22 +543,16 @@ class TD3Trainer(BaseTrainer):
             enable_composite_lp=True,
         )
 
-        # Define continuous action spec for TD3 ([-1, 1])
-        from torchrl.data import Bounded
-        action_dim = self.env.action_spec.shape[-1]
-        td3_action_spec = Bounded(
-            low=-1.0,
-            high=1.0,
-            shape=(action_dim,),
-            device=getattr(config, "device", "cpu"),
-        )
+        # For discrete action TD3, use EGreedy exploration instead of Gaussian noise
+        from torchrl.modules import EGreedyModule
+        td3_action_spec = self.env.action_spec
 
-        # Initialize exploration policy for TD3
-        self.exploration_module = AdditiveGaussianModule(
-            spec=td3_action_spec, # Correctly use the continuous spec
-            sigma_init=getattr(config, "exploration_noise_std", 0.1),
-            sigma_end=getattr(config, "exploration_noise_std", 0.1),
+        # Initialize exploration policy for TD3 with discrete actions
+        self.exploration_module = EGreedyModule(
             annealing_num_steps=config.max_steps,
+            eps_init=getattr(config, "exploration_noise_std", 0.1),
+            eps_end=0.01,
+            spec=td3_action_spec,
         )
         # Log the exploration noise std
         logger.info(
@@ -566,18 +560,24 @@ class TD3Trainer(BaseTrainer):
             getattr(config, "exploration_noise_std", 0.1),
         )
 
-        num_qvalue_nets = len(qvalue_nets) if isinstance(qvalue_nets, list) else 1
-        self.td3_loss = TorchRLTd3Loss(
+        # For discrete action TD3, we'll use DDPG loss with a single Q-network
+        # DDPG loss expects a simple ValueOperator, not our stacked TensorDictModule
+        from torchrl.objectives import DDPGLoss
+        from trading_rl.models import create_td3_qvalue_network
+        
+        # Create a single Q-network for DDPG loss (we'll only use one critic)
+        single_qvalue_net = create_td3_qvalue_network(
+            self.env.observation_spec["observation"].shape[-1],
+            self.env.action_spec.shape[-1],
+            hidden_dims=getattr(config, "value_hidden_dims", [64, 32])
+        )
+        
+        self.td3_loss = DDPGLoss(
             actor_network=actor,
-            qvalue_network=qvalue_nets,
-            action_spec=td3_action_spec,
-            num_qvalue_nets=num_qvalue_nets,
-            policy_noise=getattr(config, "policy_noise", 0.2),
-            noise_clip=getattr(config, "noise_clip", 0.5),
+            value_network=single_qvalue_net,
             loss_function=getattr(config, "loss_function", "smooth_l1"),
             delay_actor=getattr(config, "delay_actor", True),
-            delay_qvalue=getattr(config, "delay_qvalue", True),
-            gamma=getattr(config, "gamma", None),
+            delay_value=getattr(config, "delay_qvalue", True),
         )
         # TorchRL TD3Loss may not expose in_keys via getattr on some builds; ensure it is set.
         try:
@@ -593,7 +593,7 @@ class TD3Trainer(BaseTrainer):
         # Work around TorchRL TD3Loss not exposing in_keys as a normal attribute on some versions.
         object.__setattr__(self.td3_loss, "in_keys", getattr(self.td3_loss, "_in_keys", None))
 
-        for attr in ("actor_network_params", "qvalue_network_params"):
+        for attr in ("actor_network_params", "value_network_params"):
             params_td = getattr(self.td3_loss, attr, None)
             if params_td is not None and hasattr(params_td, "unlock_"):
                 params_td.unlock_()
@@ -605,7 +605,7 @@ class TD3Trainer(BaseTrainer):
             lr=config.actor_lr,
         )
         self.optimizer_value = Adam(
-            self.td3_loss.qvalue_network_params.values(True, True),
+            self.td3_loss.value_network_params.values(True, True),
             lr=config.value_lr,
             weight_decay=config.value_weight_decay,
         )
@@ -628,14 +628,14 @@ class TD3Trainer(BaseTrainer):
         for j in range(self.config.optim_steps_per_batch):
             sample = self.replay_buffer.sample(self.config.sample_size)
 
-            # 1. Update Critic
+            # 1. Update Critic (using DDPG loss terminology)
             loss_vals = self.td3_loss(sample)
             
             self.optimizer_value.zero_grad()
-            loss_vals["loss_qvalue"].backward()
+            loss_vals["loss_value"].backward()
             self.optimizer_value.step()
             
-            value_loss = loss_vals["loss_qvalue"].item()
+            value_loss = loss_vals["loss_value"].item()
             self.logs["loss_value"].append(value_loss)
 
             # 2. Delayed Actor Update
@@ -643,7 +643,6 @@ class TD3Trainer(BaseTrainer):
             
             if update_actor:
                 # Recompute loss for actor update (using updated critic weights)
-                # This avoids the "inplace operation" error by creating a fresh graph
                 loss_vals_actor = self.td3_loss(sample)
                 
                 self.optimizer_actor.zero_grad()
@@ -656,7 +655,6 @@ class TD3Trainer(BaseTrainer):
                 actor_loss = loss_vals_actor["loss_actor"].item()
             else:
                 # For logging purposes, use the actor loss computed in the first pass
-                # (even though we didn't optimize on it)
                 actor_loss = loss_vals["loss_actor"].item()
             
             self.logs["loss_actor"].append(actor_loss)
@@ -736,7 +734,7 @@ class TD3Trainer(BaseTrainer):
         return dict(self.logs)
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
-        curr_loss_value = loss_vals["loss_qvalue"].item()
+        curr_loss_value = loss_vals["loss_value"].item()
         curr_loss_actor = loss_vals["loss_actor"].item()
 
         logger.info(f"Max steps: {max_length}, Buffer size: {buffer_len}")
@@ -767,14 +765,10 @@ class TD3Trainer(BaseTrainer):
         return getattr(self.config, "policy_noise", 0.2)
 
     def save_checkpoint(self, path: str) -> None:
-        # Ensure modules reflect the latest functional parameters before saving their state_dict
-        self.td3_loss.actor_network_params.to_module(self.actor)
-        # Apply functional parameters to the single stacked Q-network module
-        self.td3_loss.qvalue_network_params.to_module(self.value_net)
-        
+        # For DDPG loss, save state dicts directly without parameter syncing
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
-            "qvalue_state_dict": self.value_net.state_dict(), # Now a single state_dict
+            "value_state_dict": self.value_net.state_dict(),
             "optimizer_actor_state_dict": self.optimizer_actor.state_dict(),
             "optimizer_value_state_dict": self.optimizer_value.state_dict(),
             "total_count": self.total_count,
@@ -786,20 +780,10 @@ class TD3Trainer(BaseTrainer):
 
     def load_checkpoint(self, path: str) -> None:
         checkpoint = torch.load(path)
-        
-        # Load functional parameters if available (new format)
-        if "actor_params" in checkpoint:
-            self.td3_loss.actor_network_params.update(checkpoint["actor_params"])
-            self.td3_loss.qvalue_network_params.update(checkpoint["qvalue_params"])
 
-            # Apply functional parameters to the actual modules for inference/evaluation
-            self.td3_loss.actor_network_params.to_module(self.actor)
-            for i, q_net in enumerate(self.value_net):
-                self.td3_loss.qvalue_network_params.to_module(q_net, module_index=i)
-        else: # Fallback for old checkpoint format (loading traditional state_dicts)
-            self.actor.load_state_dict(checkpoint["actor_state_dict"])
-            for q_net, state_dict in zip(self.value_net, checkpoint["qvalue_state_dict"]):
-                q_net.load_state_dict(state_dict)
+        # Load state dicts directly for DDPG loss
+        self.actor.load_state_dict(checkpoint["actor_state_dict"])
+        self.value_net.load_state_dict(checkpoint["value_state_dict"])
 
         self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
         self.optimizer_value.load_state_dict(checkpoint["optimizer_value_state_dict"])

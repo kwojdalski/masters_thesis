@@ -146,57 +146,8 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
         reward_function=reward_function,
     )
 
-    # Wrap for TorchRL
+    # Wrap for TorchRL - keep original discrete action space for TD3
     env = GymWrapper(base_env)
-    
-    # If TD3, manually override action spec to be continuous
-    if getattr(config.training, "algorithm", "PPO").upper() == "TD3":
-        # Check if action space is actually discrete (which it is with default positions)
-        if isinstance(base_env.action_space, gym.spaces.Discrete):
-            from torchrl.data import Bounded
-            import torch
-            
-            # Create continuous action spec for TD3
-            continuous_action_spec = Bounded(
-                low=-1.0,
-                high=1.0,
-                shape=(1,),  # Single continuous action
-                device="cpu",
-                dtype=torch.float32
-            )
-            
-            # Override the action spec directly 
-            env.action_spec = continuous_action_spec
-            
-            # Store original step method and override it
-            original_step = env.step
-            
-            def continuous_to_discrete_step(tensordict):
-                """Convert continuous action to discrete before calling original step."""
-                action = tensordict.get("action")
-                if action is not None:
-                    # Map continuous [-1, 1] to discrete [0, 2]
-                    action = action.squeeze(-1) if action.dim() > 0 else action
-                    action = action.item() if hasattr(action, 'item') else action
-                    
-                    # Simple binning
-                    if action < -0.33:
-                        discrete_action = 0
-                    elif action > 0.33:
-                        discrete_action = 2
-                    else:
-                        discrete_action = 1
-                    
-                    # Create new tensordict with discrete action as integer
-                    new_tensordict = tensordict.clone()
-                    new_tensordict.set("action", discrete_action)
-                    
-                    return original_step(new_tensordict)
-                else:
-                    return original_step(tensordict)
-            
-            # Replace step method
-            env.step = continuous_to_discrete_step
 
     # Always add step counter last
     # Handle the TorchRL deprecation warning
@@ -1345,7 +1296,9 @@ def run_single_experiment(
             hidden_dims=config.network.value_hidden_dims,
         )
     elif algorithm.upper() == "TD3":
-        actor = create_td3_actor(
+        # For TD3 with discrete actions, use DDPG actor (which works with discrete)
+        # but keep it discrete - don't try to make it continuous
+        actor = create_ddpg_actor(
             n_obs,
             n_act,
             hidden_dims=config.network.actor_hidden_dims,
