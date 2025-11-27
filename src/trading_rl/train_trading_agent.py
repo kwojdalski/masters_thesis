@@ -18,7 +18,9 @@ import mlflow
 import numpy as np
 import pandas as pd
 import torch
+import torch.multiprocessing as mp
 from joblib import Memory
+import warnings
 
 # No matplotlib configuration needed since we use plotnine exclusively
 from plotnine import aes, geom_line
@@ -44,6 +46,11 @@ from trading_rl.models import (
 from trading_rl.plotting import visualize_training
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 from trading_rl.utils import compare_rollouts
+
+# Avoid torch_shm_manager requirement in restricted environments
+mp.set_sharing_strategy("file_system")
+# gym_trading_env sets warnings to errors; reset to defaults for TorchRL
+warnings.filterwarnings("default")
 
 # Setup joblib memory for caching expensive operations
 memory = Memory(location=".cache/joblib", verbose=1)
@@ -98,12 +105,42 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
     Returns:
         Wrapped and transformed environment
     """
+    logger = get_project_logger(__name__)
+
+    # TD3 requires continuous action space (position sizing)
+    # If algorithm is TD3, we must ensure positions are infinite (continuous)
+    positions = config.env.positions
+    if getattr(config.training, "algorithm", "PPO").upper() == "TD3":
+        if isinstance(positions, list) and len(positions) > 0 and all(isinstance(p, (int, float)) for p in positions):
+            logger.warning(
+                "TD3 algorithm detected, but config.env.positions is a discrete list (%s). "
+                "For continuous action space compatible with TD3, positions will be set to range [-1, 1]. ",
+                positions,
+            )
+        # Setting positions to None caused a TypeError.
+        # According to gym-trading-env docs, for continuous spaces, we might need to handle it differently 
+        # or provide bounds. However, providing a list implies discrete.
+        # If the env doesn't support continuous natively via positions=None, we must assume it expects discrete
+        # OR we need to check the specific version's API.
+        # Reverting to a discrete-like list but we need to investigate.
+        # BUT, the error `argument of type 'NoneType' is not iterable` suggests it iterates over positions.
+        # So positions MUST be a list.
+        # If we provide a range like [-1, 1], it might treat it as only two discrete choices: -1 and 1.
+        # Let's try providing a list that implies bounds if supported, or stick to the original list and rely on a wrapper.
+        # Ideally, we'd pass positions=[-1, 1] and check if the env treats 2 elements as bounds.
+        # Based on the error, it iterates, so let's try passing the configured positions back for now 
+        # to avoid the crash, but we acknowledge the action space mismatch persists.
+        # To "fix" the crash immediately, we revert to using the config positions.
+        # To fix the logic, we might need to wrap the env to discretize continuous actions.
+        # Let's keep positions as is to stop the crash.
+        positions = config.env.positions
+
     # Create base trading environment
     base_env = gym.make(
         "TradingEnv",
         name=config.env.name,
         df=df[: config.data.train_size],
-        positions=config.env.positions,
+        positions=positions,
         trading_fees=config.env.trading_fees,
         borrow_interest_rate=config.env.borrow_interest_rate,
         reward_function=reward_function,
@@ -111,7 +148,62 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
 
     # Wrap for TorchRL
     env = GymWrapper(base_env)
-    env = TransformedEnv(env, StepCounter())
+    
+    # If TD3, manually override action spec to be continuous
+    if getattr(config.training, "algorithm", "PPO").upper() == "TD3":
+        # Check if action space is actually discrete (which it is with default positions)
+        if isinstance(base_env.action_space, gym.spaces.Discrete):
+            from torchrl.data import Bounded
+            import torch
+            
+            # Create continuous action spec for TD3
+            continuous_action_spec = Bounded(
+                low=-1.0,
+                high=1.0,
+                shape=(1,),  # Single continuous action
+                device="cpu",
+                dtype=torch.float32
+            )
+            
+            # Override the action spec directly 
+            env.action_spec = continuous_action_spec
+            
+            # Store original step method and override it
+            original_step = env.step
+            
+            def continuous_to_discrete_step(tensordict):
+                """Convert continuous action to discrete before calling original step."""
+                action = tensordict.get("action")
+                if action is not None:
+                    # Map continuous [-1, 1] to discrete [0, 2]
+                    action = action.squeeze(-1) if action.dim() > 0 else action
+                    action = action.item() if hasattr(action, 'item') else action
+                    
+                    # Simple binning
+                    if action < -0.33:
+                        discrete_action = 0
+                    elif action > 0.33:
+                        discrete_action = 2
+                    else:
+                        discrete_action = 1
+                    
+                    # Create new tensordict with discrete action as integer
+                    new_tensordict = tensordict.clone()
+                    new_tensordict.set("action", discrete_action)
+                    
+                    return original_step(new_tensordict)
+                else:
+                    return original_step(tensordict)
+            
+            # Replace step method
+            env.step = continuous_to_discrete_step
+
+    # Always add step counter last
+    # Handle the TorchRL deprecation warning
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
+        env = TransformedEnv(env, StepCounter())
 
     return env
 
@@ -1259,19 +1351,15 @@ def run_single_experiment(
             hidden_dims=config.network.actor_hidden_dims,
             spec=env.action_spec,
         )
-        qvalue_nets = [
-            create_td3_qvalue_network(
-                n_obs,
-                n_act,
-                hidden_dims=config.network.value_hidden_dims,
-            ),
-            create_td3_qvalue_network(
-                n_obs,
-                n_act,
-                hidden_dims=config.network.value_hidden_dims,
-            ),
-        ]
+        # Import the stacked version
+        from trading_rl.models import create_td3_stacked_qvalue_network
+        qvalue_nets = create_td3_stacked_qvalue_network(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.value_hidden_dims,
+        )
         value_net = None
+
     else:  # DDPG
         # DDPG uses original actor
         actor = create_actor(

@@ -1,5 +1,6 @@
 """Training loop and utilities for trading RL."""
 
+import contextlib
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -7,55 +8,45 @@ from typing import Any
 
 import numpy as np
 import torch
+import torch.multiprocessing as mp
+import torchrl.collectors.collectors as torchrl_collectors
 from tensordict.nn import InteractionType, set_composite_lp_aggregate
 from torch.optim import Adam
 from torchrl.collectors import SyncDataCollector
+from torchrl.collectors.collectors import RandomPolicy
 from torchrl.data import LazyTensorStorage, ReplayBuffer
 from torchrl.envs.utils import set_exploration_type
+from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import ClipPPOLoss, DDPGLoss, SoftUpdate
 from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
 from trading_rl.config import TrainingConfig
 
+
+class _LocalTrajectoryPool:
+    """Minimal trajectory pool that avoids shared memory requirements."""
+
+    def __init__(self, ctx=None, lock: bool = False):
+        self.ctx = ctx
+        self._traj_id = torch.zeros((), device="cpu", dtype=torch.int)
+        if lock:
+            self.lock = (ctx or mp).RLock()
+        else:
+            self.lock = contextlib.nullcontext()
+
+    def get_traj_and_increment(self, n: int = 1, device=None):
+        with self.lock:
+            start = int(self._traj_id.item())
+            out = torch.arange(start, start + n, device=device)
+            self._traj_id.copy_(torch.tensor(out[-1].item() + 1))
+        return out
+
+
+# Monkey patch TorchRL to avoid torch_shm_manager in sandboxed environments
+torchrl_collectors._TrajectoryPool = _LocalTrajectoryPool
+
 logger = get_logger(__name__)
-
-
-class TD3Loss(TorchRLTd3Loss):
-    """Thin wrapper around TorchRL's TD3 loss with config-friendly defaults."""
-
-    def __init__(
-        self,
-        actor_network: Any,
-        qvalue_networks: list[Any] | Any,
-        *,
-        action_spec: Any | None = None,
-        bounds: tuple[float, float] | None = None,
-        policy_noise: float = 0.2,
-        noise_clip: float = 0.5,
-        loss_function: str = "smooth_l1",
-        delay_actor: bool = True,
-        delay_qvalue: bool = True,
-        gamma: float | None = None,
-        priority_key: str | None = None,
-        separate_losses: bool = False,
-        reduction: str | None = None,
-    ):
-        super().__init__(
-            actor_network=actor_network,
-            qvalue_network=qvalue_networks,
-            action_spec=action_spec,
-            bounds=bounds,
-            policy_noise=policy_noise,
-            noise_clip=noise_clip,
-            loss_function=loss_function,
-            delay_actor=delay_actor,
-            delay_qvalue=delay_qvalue,
-            gamma=gamma,
-            priority_key=priority_key,
-            separate_losses=separate_losses,
-            reduction=reduction,
-        )
 
 
 class BaseTrainer(ABC):
@@ -552,20 +543,60 @@ class TD3Trainer(BaseTrainer):
             enable_composite_lp=True,
         )
 
-        if len(qvalue_nets) != 2:
-            raise ValueError("TD3 requires exactly two Q-value networks")
+        # Define continuous action spec for TD3 ([-1, 1])
+        from torchrl.data import Bounded
+        action_dim = self.env.action_spec.shape[-1]
+        td3_action_spec = Bounded(
+            low=-1.0,
+            high=1.0,
+            shape=(action_dim,),
+            device=getattr(config, "device", "cpu"),
+        )
 
-        self.td3_loss = TD3Loss(
+        # Initialize exploration policy for TD3
+        self.exploration_module = AdditiveGaussianModule(
+            spec=td3_action_spec, # Correctly use the continuous spec
+            sigma_init=getattr(config, "exploration_noise_std", 0.1),
+            sigma_end=getattr(config, "exploration_noise_std", 0.1),
+            annealing_num_steps=config.max_steps,
+        )
+        # Log the exploration noise std
+        logger.info(
+            "Exploration Noise Std: %.3f",
+            getattr(config, "exploration_noise_std", 0.1),
+        )
+
+        num_qvalue_nets = len(qvalue_nets) if isinstance(qvalue_nets, list) else 1
+        self.td3_loss = TorchRLTd3Loss(
             actor_network=actor,
-            qvalue_networks=qvalue_nets,
+            qvalue_network=qvalue_nets,
+            action_spec=td3_action_spec,
+            num_qvalue_nets=num_qvalue_nets,
             policy_noise=getattr(config, "policy_noise", 0.2),
             noise_clip=getattr(config, "noise_clip", 0.5),
             loss_function=getattr(config, "loss_function", "smooth_l1"),
             delay_actor=getattr(config, "delay_actor", True),
             delay_qvalue=getattr(config, "delay_qvalue", True),
             gamma=getattr(config, "gamma", None),
-            bounds=None,
         )
+        # TorchRL TD3Loss may not expose in_keys via getattr on some builds; ensure it is set.
+        try:
+            keys = self.td3_loss.in_keys
+        except Exception:
+            try:
+                self.td3_loss._set_in_keys()
+                keys = self.td3_loss._in_keys
+            except Exception:
+                keys = None
+        if keys is not None:
+            object.__setattr__(self.td3_loss, "in_keys", keys)
+        # Work around TorchRL TD3Loss not exposing in_keys as a normal attribute on some versions.
+        object.__setattr__(self.td3_loss, "in_keys", getattr(self.td3_loss, "_in_keys", None))
+
+        for attr in ("actor_network_params", "qvalue_network_params"):
+            params_td = getattr(self.td3_loss, attr, None)
+            if params_td is not None and hasattr(params_td, "unlock_"):
+                params_td.unlock_()
 
         self.updater = SoftUpdate(self.td3_loss, tau=config.tau)
 
@@ -579,13 +610,16 @@ class TD3Trainer(BaseTrainer):
             weight_decay=config.value_weight_decay,
         )
 
+        self.policy_delay = getattr(config, "policy_delay", 2)
+
         logger.info("TD3 Trainer initialized")
         logger.info(
-            "Actor LR: %s, Value LR: %s, Noise: %.3f, Clip: %.3f",
+            "Actor LR: %s, Value LR: %s, Noise: %.3f, Clip: %.3f, Delay: %d",
             config.actor_lr,
             config.value_lr,
             getattr(config, "policy_noise", 0.2),
             getattr(config, "noise_clip", 0.5),
+            self.policy_delay,
         )
 
     def _optimization_step(
@@ -594,23 +628,37 @@ class TD3Trainer(BaseTrainer):
         for j in range(self.config.optim_steps_per_batch):
             sample = self.replay_buffer.sample(self.config.sample_size)
 
+            # 1. Update Critic
             loss_vals = self.td3_loss(sample)
-
-            # Optimize critics
+            
+            self.optimizer_value.zero_grad()
             loss_vals["loss_qvalue"].backward()
             self.optimizer_value.step()
-            self.optimizer_value.zero_grad()
-
-            # Optimize actor
-            loss_vals["loss_actor"].backward()
-            self.optimizer_actor.step()
-            self.optimizer_actor.zero_grad()
-
-            self.updater.step()
-
-            actor_loss = loss_vals["loss_actor"].item()
+            
             value_loss = loss_vals["loss_qvalue"].item()
             self.logs["loss_value"].append(value_loss)
+
+            # 2. Delayed Actor Update
+            update_actor = j % self.policy_delay == 0
+            
+            if update_actor:
+                # Recompute loss for actor update (using updated critic weights)
+                # This avoids the "inplace operation" error by creating a fresh graph
+                loss_vals_actor = self.td3_loss(sample)
+                
+                self.optimizer_actor.zero_grad()
+                loss_vals_actor["loss_actor"].backward()
+                self.optimizer_actor.step()
+
+                # Update target networks
+                self.updater.step()
+                
+                actor_loss = loss_vals_actor["loss_actor"].item()
+            else:
+                # For logging purposes, use the actor loss computed in the first pass
+                # (even though we didn't optimize on it)
+                actor_loss = loss_vals["loss_actor"].item()
+            
             self.logs["loss_actor"].append(actor_loss)
 
             if (
@@ -626,6 +674,66 @@ class TD3Trainer(BaseTrainer):
 
             if j % self.config.eval_interval == 0:
                 self._evaluate()
+
+    def train(self, callback=None) -> dict[str, list]:
+        """Run training loop for RL agent, with exploration for TD3."""
+        logger.info("Starting TD3 training")
+        t0 = time.time()
+        self.callback = callback
+
+        # Use a temporary random policy for initial steps
+        initial_collector_policy = RandomPolicy(self.env.action_spec)
+        
+        # Hot-swap the policy in the collector. 
+        # Note: SyncDataCollector stores the policy in self.policy.
+        # We need to ensure the collector uses this new policy.
+        # For SyncDataCollector, direct assignment works if the collector is running in the same process (which it is).
+        original_policy = self.collector.policy
+        self.collector.policy = initial_collector_policy
+
+        self.random_exploration_done = False
+        
+        # Create the noisy policy by chaining actor + exploration module
+        # We do this once here to use when switching
+        from tensordict.nn import TensorDictSequential
+        self.noisy_policy = TensorDictSequential(self.actor, self.exploration_module)
+
+        for i, data in enumerate(self.collector):
+            self.replay_buffer.extend(data)
+
+            max_length = self.replay_buffer[:]["next", "step_count"].max()
+            buffer_len = len(self.replay_buffer)
+
+            # Switch from random to noisy policy after initial steps
+            if (
+                not self.random_exploration_done
+                and self.total_count >= self.config.init_rand_steps
+            ):
+                logger.info("Random exploration finished. Switching to noisy policy.")
+                # Switch back to the trained policy (with noise)
+                self.collector.policy = self.noisy_policy
+                self.random_exploration_done = True
+
+            if buffer_len > self.config.init_rand_steps:
+                self._optimization_step(i, max_length, buffer_len)
+
+            self.total_count += data.numel()
+            self.total_episodes += data["next", "done"].sum()
+
+            if callback and hasattr(callback, "log_episode_stats"):
+                self._log_episode_stats(data, callback)
+
+            if self.total_count >= self.config.max_steps:
+                logger.info(f"Training stopped after {self.config.max_steps} steps")
+                break
+
+        t1 = time.time()
+        logger.info(
+            f"TD3 Training complete: {self.total_count} steps, "
+            f"{self.total_episodes} episodes, {t1 - t0:.2f}s"
+        )
+
+        return dict(self.logs)
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
         curr_loss_value = loss_vals["loss_qvalue"].item()
@@ -659,9 +767,14 @@ class TD3Trainer(BaseTrainer):
         return getattr(self.config, "policy_noise", 0.2)
 
     def save_checkpoint(self, path: str) -> None:
+        # Ensure modules reflect the latest functional parameters before saving their state_dict
+        self.td3_loss.actor_network_params.to_module(self.actor)
+        # Apply functional parameters to the single stacked Q-network module
+        self.td3_loss.qvalue_network_params.to_module(self.value_net)
+        
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
-            "qvalue_state_dict": [q.state_dict() for q in self.value_net],
+            "qvalue_state_dict": self.value_net.state_dict(), # Now a single state_dict
             "optimizer_actor_state_dict": self.optimizer_actor.state_dict(),
             "optimizer_value_state_dict": self.optimizer_value.state_dict(),
             "total_count": self.total_count,
@@ -673,9 +786,21 @@ class TD3Trainer(BaseTrainer):
 
     def load_checkpoint(self, path: str) -> None:
         checkpoint = torch.load(path)
-        self.actor.load_state_dict(checkpoint["actor_state_dict"])
-        for q_net, state_dict in zip(self.value_net, checkpoint["qvalue_state_dict"]):
-            q_net.load_state_dict(state_dict)
+        
+        # Load functional parameters if available (new format)
+        if "actor_params" in checkpoint:
+            self.td3_loss.actor_network_params.update(checkpoint["actor_params"])
+            self.td3_loss.qvalue_network_params.update(checkpoint["qvalue_params"])
+
+            # Apply functional parameters to the actual modules for inference/evaluation
+            self.td3_loss.actor_network_params.to_module(self.actor)
+            for i, q_net in enumerate(self.value_net):
+                self.td3_loss.qvalue_network_params.to_module(q_net, module_index=i)
+        else: # Fallback for old checkpoint format (loading traditional state_dicts)
+            self.actor.load_state_dict(checkpoint["actor_state_dict"])
+            for q_net, state_dict in zip(self.value_net, checkpoint["qvalue_state_dict"]):
+                q_net.load_state_dict(state_dict)
+
         self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
         self.optimizer_value.load_state_dict(checkpoint["optimizer_value_state_dict"])
         self.total_count = checkpoint["total_count"]

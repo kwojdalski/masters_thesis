@@ -80,6 +80,8 @@ class TrainingConfig:
     # TD3-specific parameters
     policy_noise: float = 0.2
     noise_clip: float = 0.5
+    policy_delay: int = 2
+    exploration_noise_std: float = 0.1
     delay_actor: bool = True
     delay_qvalue: bool = True
 
