@@ -660,13 +660,13 @@ class TD3Trainer(BaseTrainer):
             getattr(config, "exploration_noise_std", 0.1),
         )
 
-        # TD3 uses two critics; pass list directly to TD3Loss
-        q_list = qvalue_nets
-        num_qvalue_nets = len(q_list)
+        # TD3 uses two critics; pass a single base net and let TD3Loss duplicate internally
+        base_qvalue_net = qvalue_nets[0]
+        num_qvalue_nets = 2
 
         self.td3_loss = TD3Loss(
             actor_network=actor,
-            qvalue_network=q_list,
+            qvalue_network=base_qvalue_net,
             action_spec=td3_action_spec,
             num_qvalue_nets=num_qvalue_nets,
             policy_noise=getattr(config, "policy_noise", 0.2),
@@ -896,7 +896,7 @@ class TD3Trainer(BaseTrainer):
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
-            "qvalue_state_dict": self.value_net.state_dict(),
+            "qvalue_state_dict": [q.state_dict() for q in self.value_net],
             "qvalue_params_state": self.td3_loss.qvalue_network_params.state_dict(),
             "optimizer_actor_state_dict": self.optimizer_actor.state_dict(),
             "optimizer_value_state_dict": self.optimizer_value.state_dict(),
@@ -920,11 +920,14 @@ class TD3Trainer(BaseTrainer):
             )
             # Sync back to modules for evaluation
             self.td3_loss.actor_network_params.to_module(self.actor)
-            self.td3_loss.qvalue_network_params.to_module(self.twin_qvalue_net)
-            self.value_net.load_state_dict(checkpoint["qvalue_state_dict"])
+            self.td3_loss.qvalue_network_params.to_module(self.value_net[0])
+            # Load saved critic modules
+            for q_net, state_dict in zip(self.value_net, checkpoint["qvalue_state_dict"]):
+                q_net.load_state_dict(state_dict)
         else:
             self.actor.load_state_dict(checkpoint["actor_state_dict"])
-            self.value_net.load_state_dict(checkpoint["qvalue_state_dict"])
+            for q_net, state_dict in zip(self.value_net, checkpoint["qvalue_state_dict"]):
+                q_net.load_state_dict(state_dict)
 
         self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
         self.optimizer_value.load_state_dict(checkpoint["optimizer_value_state_dict"])

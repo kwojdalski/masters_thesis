@@ -47,10 +47,11 @@ def compare_rollouts(rollouts, n_obs):
     # Create DataFrame for plotting rewards
     rewards_data = []
     for i, rewards in enumerate(all_rewards):
+        rewards_np = rewards.detach().cpu().numpy()
         rewards_data.extend(
             [
                 {"Steps": step, "Cumulative_Reward": val, "Run": "Deterministic" if i == 0 else "Random"}
-                for step, val in enumerate(np.cumsum(rewards.numpy()))
+                for step, val in enumerate(np.cumsum(rewards_np))
             ]
         )
     df_rewards = pd.DataFrame(rewards_data)
@@ -58,10 +59,11 @@ def compare_rollouts(rollouts, n_obs):
     # Create DataFrame for plotting actions
     actions_data = []
     for i, actions in enumerate(all_actions):
+        actions_np = actions.detach().cpu().numpy()
         actions_data.extend(
             [
                 {"Steps": step, "Actions": val, "Run": "Deterministic" if i == 0 else "Random"}
-                for step, val in enumerate(actions.numpy())
+                for step, val in enumerate(actions_np)
             ]
         )
     df_actions = pd.DataFrame(actions_data)
