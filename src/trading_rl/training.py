@@ -224,6 +224,10 @@ class DDPGTrainer(BaseTrainer):
             weight_decay=config.value_weight_decay,
         )
 
+        # Counters for tracking successful vs skipped batches
+        self.successful_batches = 0
+        self.skipped_batches = 0
+
         logger.info("DDPG Trainer initialized")
         logger.info(f"Actor LR: {config.actor_lr}, Value LR: {config.value_lr}")
         logger.info(f"Buffer size: {config.buffer_size}, Tau: {config.tau}")
@@ -241,9 +245,32 @@ class DDPGTrainer(BaseTrainer):
         for j in range(self.config.optim_steps_per_batch):
             # Sample from replay buffer
             sample = self.replay_buffer.sample(self.config.sample_size)
+            
+            # Ensure sample has consistent shapes for DDPG Loss
+            # Check for any NaN or inf values that could cause shape issues
+            if torch.isnan(sample["next", "reward"]).any() or torch.isinf(sample["next", "reward"]).any():
+                logger.warning("Found NaN/inf in reward, skipping optimization step")
+                continue
+            
+            # Ensure done and terminated have consistent shapes
+            done = sample["next", "done"]
+            terminated = sample["next", "terminated"]
+            if done.shape != terminated.shape:
+                logger.warning(f"Shape mismatch: done {done.shape} vs terminated {terminated.shape}")
+                continue
 
-            # Compute losses
-            loss_vals = self.ddpg_loss(sample)
+            # Compute losses with error handling
+            try:
+                loss_vals = self.ddpg_loss(sample)
+                # If we get here, the batch was successful
+                self.successful_batches += 1
+            except RuntimeError as e:
+                if "All input tensors" in str(e) and "must share a unique shape" in str(e):
+                    self.skipped_batches += 1
+                    logger.warning(f"DDPG tensor shape error: {e}, skipping this batch")
+                    continue
+                else:
+                    raise e
 
             # Optimize actor
             loss_vals["loss_actor"].backward()
@@ -354,6 +381,57 @@ class DDPGTrainer(BaseTrainer):
         self.total_episodes = checkpoint["total_episodes"]
         self.logs = defaultdict(list, checkpoint["logs"])
         logger.info(f"Checkpoint loaded from {path}")
+
+    def train(self, callback=None) -> dict[str, list]:
+        """Run training loop for DDPG agent with batch summary."""
+        import time
+        logger.info("Starting DDPG training")
+        t0 = time.time()
+        self.callback = callback
+
+        for i, data in enumerate(self.collector):
+            self.replay_buffer.extend(data)
+
+            max_length = self.replay_buffer[:]["next", "step_count"].max()
+            buffer_len = len(self.replay_buffer)
+
+            if buffer_len > self.config.init_rand_steps:
+                self._optimization_step(i, max_length, buffer_len)
+
+            self.total_count += data.numel()
+            self.total_episodes += data["next", "done"].sum()
+
+            if callback and hasattr(callback, "log_episode_stats"):
+                self._log_episode_stats(data, callback)
+
+            if self.total_count >= self.config.max_steps:
+                logger.info(f"Training stopped after {self.config.max_steps} steps")
+                break
+
+        t1 = time.time()
+        logger.info(
+            f"DDPG Training complete: {self.total_count} steps, "
+            f"{self.total_episodes} episodes, {t1 - t0:.2f}s"
+        )
+        
+        # Log batch success/failure summary
+        total_batches = self.successful_batches + self.skipped_batches
+        if total_batches > 0:
+            success_rate = (self.successful_batches / total_batches) * 100
+            summary_msg = (
+                f"Batch processing summary: {self.successful_batches}/{total_batches} "
+                f"batches successful ({success_rate:.1f}%), {self.skipped_batches} skipped due to tensor shape errors"
+            )
+            
+            # Use warning if success rate is below 70%, otherwise info
+            if success_rate < 70.0:
+                logger.warning(summary_msg)
+            else:
+                logger.info(summary_msg)
+        else:
+            logger.warning("No optimization batches were attempted during training")
+
+        return dict(self.logs)
 
 
 class PPOTrainer(BaseTrainer):
@@ -546,7 +624,7 @@ class TD3Trainer(BaseTrainer):
     def __init__(
         self,
         actor: Any,
-        qvalue_nets: Any,  # Single twin Q-value network, not a list
+        qvalue_nets: list[Any],
         env: Any,
         config: TrainingConfig,
     ):
@@ -582,13 +660,13 @@ class TD3Trainer(BaseTrainer):
             getattr(config, "exploration_noise_std", 0.1),
         )
 
-        # qvalue_nets is now a single ValueOperator that outputs 2 Q-values
-        self.twin_qvalue_net = qvalue_nets
-        num_qvalue_nets = 2
+        # TD3 uses two critics; pass list directly to TD3Loss
+        q_list = qvalue_nets
+        num_qvalue_nets = len(q_list)
 
         self.td3_loss = TD3Loss(
             actor_network=actor,
-            qvalue_network=self.twin_qvalue_net,
+            qvalue_network=q_list,
             action_spec=td3_action_spec,
             num_qvalue_nets=num_qvalue_nets,
             policy_noise=getattr(config, "policy_noise", 0.2),

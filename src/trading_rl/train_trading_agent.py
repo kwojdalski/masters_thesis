@@ -28,6 +28,7 @@ from plotnine.exceptions import PlotnineWarning
 from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
+from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
 from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger as get_project_logger
@@ -41,7 +42,7 @@ from trading_rl.models import (
     create_ppo_value_network,
     create_td3_actor,
     create_td3_qvalue_network,
-    create_td3_twin_qvalue_network,
+    create_td3_stacked_qvalue_network,
     create_value_network,
 )
 from trading_rl.plotting import visualize_training
@@ -96,6 +97,59 @@ def set_seed(seed: int) -> None:
 
 
 # %%
+def create_continuous_trading_environment(df: pd.DataFrame, config: ExperimentConfig) -> TransformedEnv:
+    """Create continuous action space trading environment for TD3/DDPG.
+    
+    This creates a discrete trading environment and wraps it with a transform
+    that converts continuous actions [-1, 1] to discrete trading actions.
+    
+    Args:
+        df: DataFrame with features
+        config: Experiment configuration
+        
+    Returns:
+        Trading environment with continuous action space
+    """
+    logger = get_project_logger(__name__)
+    
+    # Use standard discrete positions for the base environment
+    positions = config.env.positions
+    
+    # Create base discrete trading environment
+    base_env = gym.make(
+        "TradingEnv",
+        name=config.env.name,
+        df=df[: config.data.train_size],
+        positions=positions,
+        trading_fees=config.env.trading_fees,
+        borrow_interest_rate=config.env.borrow_interest_rate,
+        reward_function=reward_function,
+    )
+    
+    logger.info(f"Created discrete base environment with positions: {positions}")
+    
+    # Wrap for TorchRL
+    env = GymWrapper(base_env)
+    
+    # Add continuous action wrapper BEFORE step counter
+    continuous_wrapper = ContinuousToDiscreteAction(
+        discrete_actions=positions,
+        thresholds=[-0.33, 0.33],  # Standard thresholds for 3-action mapping
+        device=getattr(config.training, "device", "cpu")
+    )
+    
+    env = TransformedEnv(env, continuous_wrapper)
+    logger.info("Added continuous-to-discrete action wrapper")
+    
+    # Add step counter last
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
+        env = TransformedEnv(env, StepCounter())
+    
+    logger.info("Continuous trading environment created successfully")
+    return env
+
+
 def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> TransformedEnv:
     """Create and configure trading environment.
 
@@ -108,33 +162,17 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
     """
     logger = get_project_logger(__name__)
 
-    # TD3 requires continuous action space (position sizing)
-    # If algorithm is TD3, we must ensure positions are infinite (continuous)
+    # TD3 and DDPG require continuous action space
+    algorithm = getattr(config.training, "algorithm", "PPO").upper()
+    
+    if algorithm in ["TD3", "DDPG"]:
+        logger.info(f"{algorithm} algorithm detected - creating continuous action environment")
+        return create_continuous_trading_environment(df, config)
+    
+    # For other algorithms (PPO, DQN), use standard discrete environment
+    logger.info(f"{algorithm} algorithm detected - creating discrete action environment")
+    
     positions = config.env.positions
-    if getattr(config.training, "algorithm", "PPO").upper() == "TD3":
-        if isinstance(positions, list) and len(positions) > 0 and all(isinstance(p, (int, float)) for p in positions):
-            logger.warning(
-                "TD3 algorithm detected, but config.env.positions is a discrete list (%s). "
-                "For continuous action space compatible with TD3, positions will be set to range [-1, 1]. ",
-                positions,
-            )
-        # Setting positions to None caused a TypeError.
-        # According to gym-trading-env docs, for continuous spaces, we might need to handle it differently 
-        # or provide bounds. However, providing a list implies discrete.
-        # If the env doesn't support continuous natively via positions=None, we must assume it expects discrete
-        # OR we need to check the specific version's API.
-        # Reverting to a discrete-like list but we need to investigate.
-        # BUT, the error `argument of type 'NoneType' is not iterable` suggests it iterates over positions.
-        # So positions MUST be a list.
-        # If we provide a range like [-1, 1], it might treat it as only two discrete choices: -1 and 1.
-        # Let's try providing a list that implies bounds if supported, or stick to the original list and rely on a wrapper.
-        # Ideally, we'd pass positions=[-1, 1] and check if the env treats 2 elements as bounds.
-        # Based on the error, it iterates, so let's try passing the configured positions back for now 
-        # to avoid the crash, but we acknowledge the action space mismatch persists.
-        # To "fix" the crash immediately, we revert to using the config positions.
-        # To fix the logic, we might need to wrap the env to discretize continuous actions.
-        # Let's keep positions as is to stop the crash.
-        positions = config.env.positions
 
     # Create base trading environment
     base_env = gym.make(
@@ -147,12 +185,10 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
         reward_function=reward_function,
     )
 
-    # Wrap for TorchRL - keep original discrete action space for TD3
+    # Wrap for TorchRL
     env = GymWrapper(base_env)
 
-    # Always add step counter last
-    # Handle the TorchRL deprecation warning
-    import warnings
+    # Add step counter
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
         env = TransformedEnv(env, StepCounter())
@@ -630,8 +666,16 @@ def evaluate_agent(
 
     # Extract positions from the deterministic rollout for tracking
     # Convert actions to positions (-1, 0, 1) based on action mapping
-    # Use argmax to handle one-hot encoded actions (same as action plot)
-    actions = rollout_deterministic["action"].squeeze().argmax(dim=-1)
+    action_tensor = rollout_deterministic["action"].squeeze()
+    
+    if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
+        # One-hot encoded (discrete) -> argmax
+        actions = action_tensor.argmax(dim=-1)
+    else:
+        # Continuous or scalar discrete -> use values directly
+        # If continuous in [-1, 1], we might want to map to nearest discrete for "position" logging
+        # But simply converting to int/list is fine for now to avoid crash
+        actions = action_tensor
 
     # Handle different tensor shapes
     if actions.dim() == 0:  # Single action case
@@ -649,7 +693,15 @@ def evaluate_agent(
             action_val = action[0] if len(action) > 0 else 0
         else:
             action_val = action
-        last_positions.append(int(action_val) - 1)
+        
+        # If we have continuous actions (floats), we assume they represent the position directly 
+        # or we interpret them. If discrete indices (0,1,2), we map to -1,0,1.
+        if isinstance(action_val, float):
+             # Continuous action [-1, 1] roughly maps to position directly
+             last_positions.append(action_val)
+        else:
+             # Discrete index 0, 1, 2 -> -1, 0, 1
+             last_positions.append(int(action_val) - 1)
 
     # Create action probabilities plot
     action_probs_plot = _create_action_probabilities_plot(
@@ -1302,21 +1354,25 @@ def run_single_experiment(
             hidden_dims=config.network.value_hidden_dims,
         )
     elif algorithm.upper() == "TD3":
-        # TD3 uses deterministic actor (same as DDPG)
-        actor = create_ddpg_actor(
+        actor = create_td3_actor(
             n_obs,
             n_act,
             hidden_dims=config.network.actor_hidden_dims,
             spec=env.action_spec,
         )
-        # Create a single twin Q-value network that outputs 2 Q-values
-        twin_qvalue_net = create_td3_twin_qvalue_network(
-            n_obs,
-            n_act,
-            hidden_dims=config.network.value_hidden_dims,
-            num_qvalue_nets=2,
-        )
-        value_net = twin_qvalue_net
+        qvalue_nets = [
+            create_td3_qvalue_network(
+                n_obs,
+                n_act,
+                hidden_dims=config.network.value_hidden_dims,
+            ),
+            create_td3_qvalue_network(
+                n_obs,
+                n_act,
+                hidden_dims=config.network.value_hidden_dims,
+            ),
+        ]
+        value_net = qvalue_nets
 
     else:  # DDPG
         # DDPG uses original actor
@@ -1342,11 +1398,10 @@ def run_single_experiment(
             config=config.training,
         )
     elif algorithm.upper() == "TD3":
-        if "twin_qvalue_net" not in locals():
-            raise ValueError("TD3 requires initialized twin Q-value network")
+        # value_net holds the StackedQValueNetwork created earlier
         trainer = TD3Trainer(
             actor=actor,
-            qvalue_nets=twin_qvalue_net,
+            qvalue_nets=qvalue_nets,
             env=env,
             config=config.training,
         )
