@@ -29,7 +29,7 @@ flowchart TD
     N --> O{Algorithm type?}
     O -->|PPO| P[Create PPO Actor-Critic]
     O -->|DDPG| Q[Create Actor & Value Networks]
-    O -->|TD3| Q2[Create TD3 Actor & Twin Q-Nets]
+    O -->|TD3| Q2[Create TD3 Actor & Stacked Twin Q-Net]
     P --> R[Setup PPO Loss & Optimizer]
     Q --> S[Setup DDPG Loss & Optimizer]
     Q2 --> S2[Setup TD3 Loss & Optimizers]

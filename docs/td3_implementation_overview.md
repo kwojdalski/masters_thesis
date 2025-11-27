@@ -20,12 +20,11 @@ flowchart TD
 
     subgraph Models
         D["create_td3_actor<br/>deterministic MLP -> action"]
-        E1["create_td3_qvalue_network (Q1)"]
-        E2["create_td3_qvalue_network (Q2)"]
+        E["create_td3_stacked_qvalue_network<br/>StackedQValueNetwork (Twin Q1+Q2)"]
     end
 
     subgraph Trainer
-        F["TD3Trainer.__init__<br/>TD3Loss (actor + twin Q)<br/>SoftUpdate<br/>ReplayBuffer LazyTensorStorage<br/>SyncDataCollector"]
+        F["TD3Trainer.__init__<br/>TD3Loss (actor + stacked Q)<br/>SoftUpdate<br/>ReplayBuffer LazyTensorStorage<br/>SyncDataCollector"]
         G["TD3Trainer.train<br/>for each collector batch"]
         H["ReplayBuffer.extend"]
         I["ReplayBuffer.sample"]
@@ -48,11 +47,9 @@ flowchart TD
 
     A --> A1 --> B --> B1 --> C
     C --> D
-    C --> E1
-    C --> E2
+    C --> E
     D --> F
-    E1 --> F
-    E2 --> F
+    E --> F
     F --> G
     G --> H --> I --> J
     J --> K
@@ -65,15 +62,15 @@ flowchart TD
 ```
 
 ## Core Ideas
-- **Twin Critics**: Two Q-networks; target uses the minimum prediction to curb overestimation.
+- **Twin Critics**: Two Q-networks combined into a single StackedQValueNetwork; target uses the minimum prediction to curb overestimation.
 - **Delayed Policy Updates**: Actor updates happen less frequently than critic updates.
-- **Target Policy Smoothing**: Noise is added to target actions and clipped to keep them near the original action.
+- **Target Policy Smoothing**: Noise is added to target actions during critic updates for regularization.
 
 ## Minimal Wiring Steps
-1. Create **two** Q-value networks and a deterministic actor for continuous actions.
-2. Instantiate `TD3Loss(actor_network=actor, qvalue_networks=[q1, q2], policy_noise=0.2, noise_clip=0.5, loss_function="smooth_l1")`.
-3. Use separate optimizers for actor and critics; delay actor steps (e.g., every 2 critic steps).
-4. Use a replay buffer with random starts, like the DDPG trainer.
+1. Create a **StackedQValueNetwork** (containing two Q-networks) and a deterministic actor for continuous actions.
+2. Instantiate `TD3Loss(actor_network=actor, qvalue_network=stacked_q_net, num_qvalue_nets=2, ...)`.
+3. Use separate optimizers for actor and the stacked critic module; delay actor steps (e.g., every 2 critic steps).
+4. Use a replay buffer with random starts, utilizing `RandomPolicy` with a continuous spec initially.
 5. Periodically soft-update target networks (tau ≈ 0.005–0.01).
 
 ## Suggested Hyperparameters

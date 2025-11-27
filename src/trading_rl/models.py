@@ -410,6 +410,37 @@ class StackedQValueNetwork(TensorDictModule):
         return tensordict
 
 
+def create_td3_twin_qvalue_network(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+    num_qvalue_nets: int = 2,
+) -> ValueOperator:
+    """
+    Create a twin Q-value network for TD3 that outputs multiple Q-values.
+
+    This creates a single ValueOperator that outputs num_qvalue_nets Q-values,
+    which is what TorchRL's TD3Loss expects.
+    """
+    logger.info(f"Creating TD3 twin Q-value network with {num_qvalue_nets} outputs")
+    if hidden_dims is None:
+        hidden_dims = [64, 32, 16]
+
+    # Create MLP that outputs num_qvalue_nets Q-values
+    value_net = ValueOperator(
+        MLP(
+            in_features=n_obs + n_act,
+            out_features=num_qvalue_nets,  # Output multiple Q-values
+            num_cells=hidden_dims,
+        ),
+        in_keys=["observation", "action"],
+        out_keys=["state_action_value"],
+    )
+
+    logger.info(f"TD3 twin Q-value network created with hidden_dims={hidden_dims}, outputs={num_qvalue_nets}")
+    return value_net
+
+
 def create_td3_stacked_qvalue_network(
     n_obs: int,
     n_act: int,
@@ -417,6 +448,8 @@ def create_td3_stacked_qvalue_network(
 ) -> TensorDictModule:
     """
     Create a combined Q-value network for TD3 that outputs stacked Q-values.
+
+    Deprecated: Use create_td3_twin_qvalue_network instead for better TD3Loss compatibility.
     """
     logger.info("Creating TD3 stacked Q-value networks")
     # Create two individual Q-networks using the existing factory

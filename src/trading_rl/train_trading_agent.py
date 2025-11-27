@@ -41,6 +41,7 @@ from trading_rl.models import (
     create_ppo_value_network,
     create_td3_actor,
     create_td3_qvalue_network,
+    create_td3_twin_qvalue_network,
     create_value_network,
 )
 from trading_rl.plotting import visualize_training
@@ -1296,22 +1297,21 @@ def run_single_experiment(
             hidden_dims=config.network.value_hidden_dims,
         )
     elif algorithm.upper() == "TD3":
-        # For TD3 with discrete actions, use DDPG actor (which works with discrete)
-        # but keep it discrete - don't try to make it continuous
+        # TD3 uses deterministic actor (same as DDPG)
         actor = create_ddpg_actor(
             n_obs,
             n_act,
             hidden_dims=config.network.actor_hidden_dims,
             spec=env.action_spec,
         )
-        # Import the stacked version
-        from trading_rl.models import create_td3_stacked_qvalue_network
-        qvalue_nets = create_td3_stacked_qvalue_network(
+        # Create a single twin Q-value network that outputs 2 Q-values
+        twin_qvalue_net = create_td3_twin_qvalue_network(
             n_obs,
             n_act,
             hidden_dims=config.network.value_hidden_dims,
+            num_qvalue_nets=2,
         )
-        value_net = None
+        value_net = twin_qvalue_net
 
     else:  # DDPG
         # DDPG uses original actor
@@ -1337,11 +1337,11 @@ def run_single_experiment(
             config=config.training,
         )
     elif algorithm.upper() == "TD3":
-        if qvalue_nets is None:
-            raise ValueError("TD3 requires initialized Q-value networks")
+        if "twin_qvalue_net" not in locals():
+            raise ValueError("TD3 requires initialized twin Q-value network")
         trainer = TD3Trainer(
             actor=actor,
-            qvalue_nets=qvalue_nets,
+            qvalue_nets=twin_qvalue_net,
             env=env,
             config=config.training,
         )
