@@ -69,9 +69,12 @@ def setup_logging(config: ExperimentConfig):
     # No matplotlib logging to disable since we use plotnine exclusively
 
     log_file_path = Path(config.logging.log_dir) / config.logging.log_file
+    
+    # Check for LOG_LEVEL environment variable override
+    log_level = os.getenv("LOG_LEVEL") or config.logging.log_level
 
     configure_root_logging(
-        level=config.logging.log_level,
+        level=log_level,
         log_file=str(log_file_path),
         console_output=True,
         # sys.stdout.isatty(),
@@ -937,6 +940,54 @@ def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=Non
         return plot
 
 
+def _print_config_debug(config: ExperimentConfig, logger) -> None:
+    """Print configuration values in debug mode using automatic traversal."""
+    from dataclasses import is_dataclass, fields
+    import datetime
+    
+    if not logger.isEnabledFor(10):  # DEBUG level
+        return
+        
+    def format_key(key: str) -> str:
+        """Format key: remove underscores and title case."""
+        return key.replace('_', ' ').title()
+    
+    def format_value(value) -> str:
+        """Format value for display."""
+        if isinstance(value, datetime.datetime):
+            return value.isoformat()
+        elif isinstance(value, list):
+            return str(value)
+        else:
+            return str(value)
+    
+    def print_dataclass(obj, indent: int = 0, logger=logger):
+        """Recursively print dataclass fields."""
+        if not is_dataclass(obj):
+            return
+            
+        prefix = "  " * indent
+        for field in fields(obj):
+            key = field.name
+            value = getattr(obj, key)
+            formatted_key = format_key(key)
+            
+            if is_dataclass(value):
+                # Print section header for nested dataclass
+                logger.debug(f"{prefix}{formatted_key}:")
+                print_dataclass(value, indent + 1, logger)
+            else:
+                # Print key-value pair
+                formatted_value = format_value(value)
+                logger.debug(f"{prefix}{formatted_key}: {formatted_value}")
+    
+    logger.debug("=" * 60)
+    logger.debug("CONFIGURATION VALUES")
+    logger.debug("=" * 60)
+    print_dataclass(config)
+    logger.debug("=" * 60)
+
+
 def _log_training_parameters(config: ExperimentConfig) -> None:
     """Log all training parameters to MLflow."""
     import json
@@ -963,6 +1014,7 @@ def _log_training_parameters(config: ExperimentConfig) -> None:
         mlflow.log_param(
             "env_borrow_interest_rate", float(config.env.borrow_interest_rate)
         )
+        mlflow.log_param("env_backend", str(getattr(config.env, "backend", "gym_anytrading.forex")))
 
         # Network architecture
         mlflow.log_param(
@@ -1138,6 +1190,9 @@ def run_single_experiment(
     # Setup
     logger = setup_logging(config)
     set_seed(config.seed)
+    
+    # Print config values in debug mode
+    _print_config_debug(config, logger)
 
     # Prepare data
     logger.info("Preparing data...")
