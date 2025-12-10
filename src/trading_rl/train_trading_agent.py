@@ -6,6 +6,8 @@ separated into reusable modules.
 """
 
 # %%
+import contextlib
+import logging
 import os
 import tempfile
 import warnings
@@ -20,7 +22,6 @@ import pandas as pd
 import torch
 import torch.multiprocessing as mp
 from joblib import Memory
-import warnings
 
 # No matplotlib configuration needed since we use plotnine exclusively
 from plotnine import aes, geom_line
@@ -28,21 +29,19 @@ from plotnine.exceptions import PlotnineWarning
 from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
-from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
 from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger as get_project_logger
 from logger import setup_logging as configure_root_logging
 from trading_rl.config import ExperimentConfig
+from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
 from trading_rl.data_utils import prepare_data, reward_function
 from trading_rl.models import (
     create_actor,
-    create_ddpg_actor,
     create_ppo_actor,
     create_ppo_value_network,
     create_td3_actor,
     create_td3_qvalue_network,
-    create_td3_stacked_qvalue_network,
     create_value_network,
 )
 from trading_rl.plotting import visualize_training
@@ -69,7 +68,7 @@ def setup_logging(config: ExperimentConfig):
     # No matplotlib logging to disable since we use plotnine exclusively
 
     log_file_path = Path(config.logging.log_dir) / config.logging.log_file
-    
+
     # Check for LOG_LEVEL environment variable override
     log_level = os.getenv("LOG_LEVEL") or config.logging.log_level
 
@@ -80,6 +79,12 @@ def setup_logging(config: ExperimentConfig):
         # sys.stdout.isatty(),
         colored_output=True,
     )
+
+    # Suppress noisy external library loggers
+    import logging
+
+    logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
     logger = get_project_logger(__name__)
     logger.info(f"Starting experiment: {config.experiment_name}")
@@ -93,6 +98,10 @@ def set_seed(seed: int) -> None:
     Args:
         seed: Random seed value
     """
+    import random
+
+    # Seed all random number generators
+    random.seed(seed)  # Python's built-in random module
     torch.manual_seed(seed)
     np.random.seed(seed)
     if torch.cuda.is_available():
@@ -100,24 +109,32 @@ def set_seed(seed: int) -> None:
 
 
 # %%
-def create_continuous_trading_environment(df: pd.DataFrame, config: ExperimentConfig) -> TransformedEnv:
+def create_continuous_trading_environment(
+    df: pd.DataFrame, config: ExperimentConfig
+) -> TransformedEnv:
     """Create continuous action space trading environment for TD3/DDPG.
-    
+
     This creates a discrete trading environment and wraps it with a transform
     that converts continuous actions [-1, 1] to discrete trading actions.
-    
+
     Args:
         df: DataFrame with features
         config: Experiment configuration
-        
+
     Returns:
         Trading environment with continuous action space
     """
     logger = get_project_logger(__name__)
-    
+
     # Use standard discrete positions for the base environment
     positions = config.env.positions
-    
+
+    logger.debug(f"Creating continuous environment for {config.training.algorithm}")
+    logger.debug(f"  Data shape for training: {df[: config.data.train_size].shape}")
+    logger.debug(f"  Positions: {positions}")
+    logger.debug(f"  Trading fees: {config.env.trading_fees}")
+    logger.debug(f"  Borrow interest rate: {config.env.borrow_interest_rate}")
+
     # Create base discrete trading environment
     base_env = gym.make(
         "TradingEnv",
@@ -127,29 +144,32 @@ def create_continuous_trading_environment(df: pd.DataFrame, config: ExperimentCo
         trading_fees=config.env.trading_fees,
         borrow_interest_rate=config.env.borrow_interest_rate,
         reward_function=reward_function,
+        verbose=0,  # Disable gym_trading_env print statements
     )
-    
+
     logger.info(f"Created discrete base environment with positions: {positions}")
-    
+
     # Wrap for TorchRL
     env = GymWrapper(base_env)
-    
+
     # Add continuous action wrapper BEFORE step counter
     continuous_wrapper = ContinuousToDiscreteAction(
         discrete_actions=positions,
         thresholds=[-0.33, 0.33],  # Standard thresholds for 3-action mapping
-        device=getattr(config.training, "device", "cpu")
+        device=getattr(config.training, "device", "cpu"),
     )
-    
+
     env = TransformedEnv(env, continuous_wrapper)
     logger.info("Added continuous-to-discrete action wrapper")
-    
+    logger.debug(f"  Continuous action spec: {env.action_spec}")
+
     # Add step counter last
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
         env = TransformedEnv(env, StepCounter())
-    
+
     logger.info("Continuous trading environment created successfully")
+    logger.debug(f"  Observation spec: {env.observation_spec}")
     return env
 
 
@@ -167,14 +187,18 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
 
     # TD3 and DDPG require continuous action space
     algorithm = getattr(config.training, "algorithm", "PPO").upper()
-    
+
     if algorithm in ["TD3", "DDPG"]:
-        logger.info(f"{algorithm} algorithm detected - creating continuous action environment")
+        logger.info(
+            f"{algorithm} algorithm detected - creating continuous action environment"
+        )
         return create_continuous_trading_environment(df, config)
-    
+
     # For other algorithms (PPO, DQN), use standard discrete environment
-    logger.info(f"{algorithm} algorithm detected - creating discrete action environment")
-    
+    logger.info(
+        f"{algorithm} algorithm detected - creating discrete action environment"
+    )
+
     positions = config.env.positions
 
     # Create base trading environment
@@ -186,6 +210,7 @@ def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> Transforme
         trading_fees=config.env.trading_fees,
         borrow_interest_rate=config.env.borrow_interest_rate,
         reward_function=reward_function,
+        verbose=0,  # Disable gym_trading_env print statements
     )
 
     # Wrap for TorchRL
@@ -232,6 +257,8 @@ class MLflowTrainingCallback:
         self,
         experiment_name: str = "trading_rl",
         tracking_uri: str | None = None,
+        progress_bar=None,
+        total_episodes: int | None = None,
     ):
         self.step_count = 0
         self.intermediate_losses = {"actor": [], "value": []}
@@ -244,6 +271,11 @@ class MLflowTrainingCallback:
             "position_change_counts": [],
         }
 
+        # Progress bar tracking
+        self.progress_bar = progress_bar
+        self.progress_task = None
+        self.total_episodes = total_episodes
+
         if tracking_uri:
             mlflow.set_tracking_uri(tracking_uri)
         mlflow.set_experiment(experiment_name)
@@ -251,6 +283,12 @@ class MLflowTrainingCallback:
         # Start run if not already active
         if not mlflow.active_run():
             mlflow.start_run()
+
+        # Initialize progress bar task if provided
+        if self.progress_bar and self.total_episodes:
+            self.progress_task = self.progress_bar.add_task(
+                "[cyan]Training Episodes", total=self.total_episodes
+            )
 
     def log_training_step(self, step: int, actor_loss: float, value_loss: float):
         """Log losses from a training step to MLflow.
@@ -309,6 +347,14 @@ class MLflowTrainingCallback:
         mlflow.log_metric(
             "episode_exploration_ratio", exploration_ratio, step=episode_num
         )
+
+        # Update progress bar if available
+        if self.progress_bar and self.progress_task is not None:
+            self.progress_bar.update(
+                self.progress_task,
+                advance=1,
+                description=f"[cyan]Episode {episode_num} | Reward: {episode_reward:.4f} | Portfolio: ${portfolio_valuation:,.0f}",
+            )
 
     def get_training_curves(self) -> dict:
         """Get training curves for storage."""
@@ -376,13 +422,17 @@ def log_final_metrics_to_mlflow(
         mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
         # mlflow.log_metric("avg_value_loss", np.mean(logs["loss_value"]))
     else:
-        logger.warning("No value loss data available for logging - training may have been skipped due to tensor shape issues")
+        logger.warning(
+            "No value loss data available for logging - training may have been skipped due to tensor shape issues"
+        )
 
     if logs.get("loss_actor") and len(logs["loss_actor"]) > 0:
         mlflow.log_metric("final_actor_loss", logs["loss_actor"][-1])
         mlflow.log_metric("avg_actor_loss", np.mean(logs["loss_actor"]))
     else:
-        logger.warning("No actor loss data available for logging - training may have been skipped due to tensor shape issues")
+        logger.warning(
+            "No actor loss data available for logging - training may have been skipped due to tensor shape issues"
+        )
 
     # Log training curves if callback provided
     if training_callback:
@@ -598,12 +648,46 @@ def evaluate_agent(
     Returns:
         Tuple of (reward_plot, action_plot, action_probs_plot, final_reward, last_positions)
     """
+    logger = get_project_logger(__name__)
+
     # Run evaluation rollouts
+    logger.debug(f"Running deterministic evaluation for {max_steps} steps")
     with set_exploration_type(InteractionType.MODE):
         rollout_deterministic = env.rollout(max_steps=max_steps, policy=actor)
 
+    logger.debug(f"Running random evaluation for {max_steps} steps")
     with set_exploration_type(InteractionType.RANDOM):
         rollout_random = env.rollout(max_steps=max_steps, policy=actor)
+
+    # DEBUG: Log rollout statistics
+    if logger.isEnabledFor(logging.DEBUG):
+        det_actions = rollout_deterministic["action"]
+        det_rewards = rollout_deterministic["next", "reward"]
+
+        logger.debug("=" * 60)
+        logger.debug("DETERMINISTIC ROLLOUT STATISTICS")
+        logger.debug("=" * 60)
+        logger.debug(f"  Actions shape: {det_actions.shape}")
+        logger.debug(
+            f"  Actions - mean: {det_actions.mean():.4f}, std: {det_actions.std():.4f}"
+        )
+        logger.debug(
+            f"  Actions - min: {det_actions.min():.4f}, max: {det_actions.max():.4f}"
+        )
+        logger.debug(
+            f"  Rewards - mean: {det_rewards.mean():.6f}, std: {det_rewards.std():.6f}"
+        )
+        logger.debug(f"  Rewards - sum: {det_rewards.sum():.6f}")
+
+        # Show first 20 actions
+        actions_flat = det_actions.flatten()[:20].cpu().detach().numpy()
+        logger.debug(f"  First 20 actions: {actions_flat}")
+
+        # Check if stuck
+        if det_actions.std() < 0.01:
+            logger.warning("⚠️  AGENT IS STUCK - Taking nearly identical actions!")
+            logger.warning(f"    Action std={det_actions.std():.6f} is very low")
+        logger.debug("=" * 60)
 
     # Create benchmark comparisons
     benchmark_df = pd.DataFrame(
@@ -667,10 +751,26 @@ def evaluate_agent(
     # Calculate final reward for metrics
     final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
 
+    # Calculate and log final returns (replaces gym_trading_env verbose output)
+    initial_portfolio = 10000.0
+    final_portfolio = initial_portfolio * np.exp(final_reward)
+    portfolio_return = 100 * (final_portfolio / initial_portfolio - 1)
+    market_return = 100 * (np.exp(final_reward) - 1)
+
+    logger.info("=" * 60)
+    logger.info("FINAL EVALUATION RESULTS")
+    logger.info("=" * 60)
+    logger.info(f"Market Return      : {market_return:5.2f}%")
+    logger.info(f"Portfolio Return   : {portfolio_return:5.2f}%")
+    logger.info(f"Initial Portfolio  : ${initial_portfolio:,.2f}")
+    logger.info(f"Final Portfolio    : ${final_portfolio:,.2f}")
+    logger.info(f"Total Reward (log) : {final_reward:.6f}")
+    logger.info("=" * 60)
+
     # Extract positions from the deterministic rollout for tracking
     # Convert actions to positions (-1, 0, 1) based on action mapping
     action_tensor = rollout_deterministic["action"].squeeze()
-    
+
     if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
         # One-hot encoded (discrete) -> argmax
         actions = action_tensor.argmax(dim=-1)
@@ -696,15 +796,15 @@ def evaluate_agent(
             action_val = action[0] if len(action) > 0 else 0
         else:
             action_val = action
-        
-        # If we have continuous actions (floats), we assume they represent the position directly 
+
+        # If we have continuous actions (floats), we assume they represent the position directly
         # or we interpret them. If discrete indices (0,1,2), we map to -1,0,1.
         if isinstance(action_val, float):
-             # Continuous action [-1, 1] roughly maps to position directly
-             last_positions.append(action_val)
+            # Continuous action [-1, 1] roughly maps to position directly
+            last_positions.append(action_val)
         else:
-             # Discrete index 0, 1, 2 -> -1, 0, 1
-             last_positions.append(int(action_val) - 1)
+            # Discrete index 0, 1, 2 -> -1, 0, 1
+            last_positions.append(int(action_val) - 1)
 
     # Create action probabilities plot
     action_probs_plot = _create_action_probabilities_plot(
@@ -823,13 +923,13 @@ def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=Non
 
                 # Convert scalar/discrete actions to one-hot vectors
                 if action.dim() == 0:
-                    action = F.one_hot(
-                        action.long(), num_classes=len(action_names)
-                    ).to(torch.float32)
+                    action = F.one_hot(action.long(), num_classes=len(action_names)).to(
+                        torch.float32
+                    )
                 elif action.dim() == 1 and action.shape[0] != len(action_names):
-                    action = F.one_hot(
-                        action.long(), num_classes=len(action_names)
-                    ).to(torch.float32)
+                    action = F.one_hot(action.long(), num_classes=len(action_names)).to(
+                        torch.float32
+                    )
 
                 # Ensure batch dimension matches observation batch size
                 if hasattr(obs, "batch_size") and obs.batch_size:
@@ -942,16 +1042,16 @@ def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=Non
 
 def _print_config_debug(config: ExperimentConfig, logger) -> None:
     """Print configuration values in debug mode using automatic traversal."""
-    from dataclasses import is_dataclass, fields
     import datetime
-    
-    if not logger.isEnabledFor(10):  # DEBUG level
+    from dataclasses import fields, is_dataclass
+
+    if not logger.isEnabledFor(logging.DEBUG):
         return
-        
+
     def format_key(key: str) -> str:
         """Format key: remove underscores and title case."""
-        return key.replace('_', ' ').title()
-    
+        return key.replace("_", " ").title()
+
     def format_value(value) -> str:
         """Format value for display."""
         if isinstance(value, datetime.datetime):
@@ -960,27 +1060,31 @@ def _print_config_debug(config: ExperimentConfig, logger) -> None:
             return str(value)
         else:
             return str(value)
-    
+
     def print_dataclass(obj, indent: int = 0, logger=logger):
         """Recursively print dataclass fields."""
         if not is_dataclass(obj):
             return
-            
+
         prefix = "  " * indent
         for field in fields(obj):
             key = field.name
             value = getattr(obj, key)
             formatted_key = format_key(key)
-            
+
             if is_dataclass(value):
-                # Print section header for nested dataclass
-                logger.debug(f"{prefix}{formatted_key}:")
+                # Print section header for nested dataclass with yellow highlighting
+                if indent == 0:
+                    # Top-level sections get yellow highlighting
+                    logger.debug(f"{prefix}\033[93m{formatted_key}:\033[0m")
+                else:
+                    logger.debug(f"{prefix}{formatted_key}:")
                 print_dataclass(value, indent + 1, logger)
             else:
                 # Print key-value pair
                 formatted_value = format_value(value)
                 logger.debug(f"{prefix}{formatted_key}: {formatted_value}")
-    
+
     logger.debug("=" * 60)
     logger.debug("CONFIGURATION VALUES")
     logger.debug("=" * 60)
@@ -1014,7 +1118,9 @@ def _log_training_parameters(config: ExperimentConfig) -> None:
         mlflow.log_param(
             "env_borrow_interest_rate", float(config.env.borrow_interest_rate)
         )
-        mlflow.log_param("env_backend", str(getattr(config.env, "backend", "gym_anytrading.forex")))
+        mlflow.log_param(
+            "env_backend", str(getattr(config.env, "backend", "gym_anytrading.forex"))
+        )
 
         # Network architecture
         mlflow.log_param(
@@ -1165,7 +1271,9 @@ def _log_config_artifact(config: ExperimentConfig) -> None:
 
 
 def run_single_experiment(
-    custom_config: ExperimentConfig | None = None, experiment_name: str | None = None
+    custom_config: ExperimentConfig | None = None,
+    experiment_name: str | None = None,
+    progress_bar=None,
 ) -> dict:
     """Run a single training experiment with MLflow tracking.
 
@@ -1177,6 +1285,7 @@ def run_single_experiment(
     Args:
         custom_config: Optional custom configuration
         experiment_name: Optional override for MLflow experiment name (uses config.experiment_name by default)
+        progress_bar: Optional Rich progress bar for episode tracking
 
     Returns:
         Dictionary with results
@@ -1190,12 +1299,16 @@ def run_single_experiment(
     # Setup
     logger = setup_logging(config)
     set_seed(config.seed)
-    
+
     # Print config values in debug mode
     _print_config_debug(config, logger)
 
     # Prepare data
     logger.info("Preparing data...")
+    logger.debug(f"  Data path: {config.data.data_path}")
+    logger.debug(f"  Train size: {config.data.train_size}")
+    logger.debug(f"  No features: {getattr(config.data, 'no_features', False)}")
+
     df = prepare_data(
         data_path=config.data.data_path,
         download_if_missing=config.data.download_data,
@@ -1206,6 +1319,23 @@ def run_single_experiment(
         since=config.data.download_since,
         no_features=getattr(config.data, "no_features", False),
     )
+
+    logger.debug(f"Data loaded - shape: {df.shape}, columns: {list(df.columns)}")
+
+    # DEBUG: Show data statistics
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("Data statistics:")
+        logger.debug(
+            f"  Close price - min: {df['close'].min():.2f}, max: {df['close'].max():.2f}, mean: {df['close'].mean():.2f}"
+        )
+        logger.debug(f"  Close price std: {df['close'].std():.2f}")
+
+        # Check for features
+        feature_cols = [col for col in df.columns if "feature" in col.lower()]
+        if feature_cols:
+            logger.debug(f"  Features found: {feature_cols}")
+        else:
+            logger.debug("  No features found in data (using raw OHLCV only)")
 
     # Log data overview to MLflow
     if mlflow.active_run():
@@ -1390,6 +1520,11 @@ def run_single_experiment(
     n_act = env.action_spec.shape[-1]
     logger.info(f"Environment: {n_obs} observations, {n_act} actions")
 
+    logger.debug("Environment specs:")
+    logger.debug(f"  Observation spec: {env.observation_spec}")
+    logger.debug(f"  Action spec: {env.action_spec}")
+    logger.debug(f"  Reward spec: {env.reward_spec}")
+
     # Create models based on algorithm choice
     algorithm = getattr(config.training, "algorithm", "PPO")
     logger.info(f"Creating models for {algorithm} algorithm...")
@@ -1468,11 +1603,22 @@ def run_single_experiment(
             config=config.training,
         )
 
-    # Create MLflow callback
+    # Create MLflow callback with progress bar
     tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
+
+    # Estimate total episodes (rough approximation based on steps and episode length)
+    # Average episode length is approximately train_size for trading environments
+    estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
+
     mlflow_callback = MLflowTrainingCallback(
-        effective_experiment_name, tracking_uri=tracking_uri
+        effective_experiment_name,
+        tracking_uri=tracking_uri,
+        progress_bar=progress_bar,
+        total_episodes=estimated_episodes if progress_bar else None,
     )
+
+    # Re-configure logging because MLflow might have hijacked the root logger handlers
+    logger = setup_logging(config)
 
     # Train
     logger.info("Starting training...")
@@ -1664,7 +1810,9 @@ def run_single_experiment(
         "logs": logs,
         "final_metrics": final_metrics,
         "plots": {
-            "loss": visualize_training(logs) if logs.get("loss_value") or logs.get("loss_actor") else None,
+            "loss": visualize_training(logs)
+            if logs.get("loss_value") or logs.get("loss_actor")
+            else None,
             "reward": reward_plot,
             "action": action_plot,
         },
@@ -1677,6 +1825,7 @@ def run_multiple_experiments(
     base_seed: int | None = None,
     custom_config: ExperimentConfig | None = None,
     experiment_name: str | None = None,
+    show_progress: bool = True,
 ) -> str:
     """Run multiple experiments and track with MLflow.
 
@@ -1690,11 +1839,14 @@ def run_multiple_experiments(
         base_seed: Base seed for reproducible experiments (each trial uses base_seed + trial_number)
         custom_config: Optional custom configuration
         experiment_name: Optional override for MLflow experiment name (uses config.experiment_name by default)
+        show_progress: Whether to show progress bar for episodes
 
     Returns:
         MLflow experiment name with all results
     """
     # Load configuration to get experiment name
+    from rich.progress import Progress
+
     from trading_rl.config import ExperimentConfig
 
     config = custom_config or ExperimentConfig()
@@ -1707,32 +1859,39 @@ def run_multiple_experiments(
 
     logger = get_project_logger(__name__)
 
-    for trial_number in range(n_trials):
-        logger.info(f"Running trial {trial_number + 1}/{n_trials}")
+    # Create progress bar context if requested
+    progress_context = Progress() if show_progress else None
 
-        # Create config with deterministic seed based on trial number
-        if custom_config is not None:
-            # Use custom config as base and copy it for this trial
-            import copy
+    with progress_context if progress_context else contextlib.nullcontext() as progress:
+        for trial_number in range(n_trials):
+            logger.info(f"Running trial {trial_number + 1}/{n_trials}")
 
-            trial_config = copy.deepcopy(custom_config)
-        else:
-            trial_config = ExperimentConfig()
+            # Create config with deterministic seed based on trial number
+            if custom_config is not None:
+                # Use custom config as base and copy it for this trial
+                import copy
 
-        if base_seed is not None:
-            trial_config.seed = base_seed + trial_number
-        else:
-            import random
+                trial_config = copy.deepcopy(custom_config)
+            else:
+                trial_config = ExperimentConfig()
 
-            trial_config.seed = random.randint(1, 100000)  # noqa: S311
+            if base_seed is not None:
+                trial_config.seed = base_seed + trial_number
+            else:
+                import random
 
-        # Keep the same experiment name for all trials
-        trial_config.experiment_name = effective_experiment_name
+                trial_config.seed = random.randint(1, 100000)  # noqa: S311
 
-        # Start a new MLflow run for this trial
-        with mlflow.start_run(run_name=f"trial_{trial_number}"):
-            result = run_single_experiment(custom_config=trial_config)
-            results.append(result)
+            # Keep the same experiment name for all trials
+            trial_config.experiment_name = effective_experiment_name
+
+            # Start a new MLflow run for this trial
+            with mlflow.start_run(run_name=f"trial_{trial_number}"):
+                result = run_single_experiment(
+                    custom_config=trial_config,
+                    progress_bar=progress if show_progress else None,
+                )
+                results.append(result)
 
     # Note: Comparison plots removed to avoid plotting issues
 

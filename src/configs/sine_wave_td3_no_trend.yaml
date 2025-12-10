@@ -2,7 +2,7 @@
 # =========================================================
 
 experiment_name: "sine_wave_td3_no_trend"
-seed: 99  # Fixed seed for reproducibility
+#seed: 99  # Fixed seed for reproducibility
 
 # Data Configuration - Pure Sine Wave Pattern (No Trend)
 data:
