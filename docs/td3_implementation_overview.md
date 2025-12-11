@@ -20,11 +20,11 @@ flowchart TD
 
     subgraph Models
         D["create_td3_actor<br/>deterministic MLP -> action"]
-        E["create_td3_stacked_qvalue_network<br/>StackedQValueNetwork (Twin Q1+Q2)"]
+        E["create_td3_twin_qvalue_network<br/>TwinQValueNetwork (1 network, 2 heads)"]
     end
 
     subgraph Trainer
-        F["TD3Trainer.__init__<br/>TD3Loss (actor + stacked Q)<br/>SoftUpdate<br/>ReplayBuffer LazyTensorStorage<br/>SyncDataCollector"]
+        F["TD3Trainer.__init__<br/>TD3Loss (actor + twin Q)<br/>SoftUpdate<br/>ReplayBuffer LazyTensorStorage<br/>SyncDataCollector"]
         G["TD3Trainer.train<br/>for each collector batch"]
         H["ReplayBuffer.extend"]
         I["ReplayBuffer.sample"]
@@ -62,14 +62,14 @@ flowchart TD
 ```
 
 ## Core Ideas
-- **Twin Critics**: Two Q-networks combined into a single StackedQValueNetwork; target uses the minimum prediction to curb overestimation.
+- **Twin Critics**: A single Q-network with two heads (a TwinQValueNetwork); the target uses the minimum prediction of the two heads to curb overestimation.
 - **Delayed Policy Updates**: Actor updates happen less frequently than critic updates.
 - **Target Policy Smoothing**: Noise is added to target actions during critic updates for regularization.
 
 ## Minimal Wiring Steps
-1. Create a **StackedQValueNetwork** (containing two Q-networks) and a deterministic actor for continuous actions.
-2. Instantiate `TD3Loss(actor_network=actor, qvalue_network=stacked_q_net, num_qvalue_nets=2, ...)`.
-3. Use separate optimizers for actor and the stacked critic module; delay actor steps (e.g., every 2 critic steps).
+1. Create a **TwinQValueNetwork** (a single network with two Q-value heads) and a deterministic actor for continuous actions.
+2. Instantiate `TD3Loss(actor_network=actor, qvalue_network=twin_q_net, num_qvalue_nets=2, ...)`.
+3. Use separate optimizers for actor and the twin critic module; delay actor steps (e.g., every 2 critic steps).
 4. Use a replay buffer with random starts, utilizing `RandomPolicy` with a continuous spec initially.
 5. Periodically soft-update target networks (tau ≈ 0.005–0.01).
 

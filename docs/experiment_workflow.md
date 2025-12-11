@@ -27,9 +27,9 @@ flowchart TD
     L --> M[Prepare Data]
     M --> N[Create Environment]
     N --> O{Algorithm type?}
-    O -->|PPO| P[Create PPO Actor-Critic]
-    O -->|DDPG| Q[Create Actor & Value Networks]
-    O -->|TD3| Q2[Create TD3 Actor & Stacked Twin Q-Net]
+    O -->|PPO| P[Trainer.build_models -> PPO Actor-Critic]
+    O -->|DDPG| Q[Trainer.build_models -> Actor & Value Networks]
+    O -->|TD3| Q2[Trainer.build_models -> TD3 Actor & Twin Q-Nets]
     P --> R[Setup PPO Loss & Optimizer]
     Q --> S[Setup DDPG Loss & Optimizer]
     Q2 --> S2[Setup TD3 Loss & Optimizers]
@@ -104,7 +104,7 @@ flowchart TD
 -   **Actor Network**: Policy network for action selection
 -   **Value Network**: Critic network for value estimation (twin critics for TD3)
 -   **Configurable**: Hidden dimensions, activation functions
--   **Location**: `src/trading_rl/models.py`
+-   **Construction**: Each trainer exposes `build_models(...)` and delegates to `trading_rl.models` factories
 
 ### 5. Training Loop
 
@@ -166,8 +166,8 @@ Configuration dataclass containing all experiment parameters: - **DataConfig**: 
 1.  **Raw Data** → `load_trading_data()`
 2.  **Feature Engineering** → `create_features()`
 3.  **Environment** → TorchRL trading environment
-4.  **Agent Training** → DDPG algorithm
-5.  **Evaluation** → Performance metrics and plots
+4.  **Agent Training** → PPO / DDPG / TD3 trainers
+5.  **Evaluation** → Performance metrics and plots (reward/actions plus PPO action probabilities)
 
 ### Evaluation Process
 
@@ -175,7 +175,8 @@ Configuration dataclass containing all experiment parameters: - **DataConfig**: 
 -   **Generates**:
     -   Reward comparison plots (agent vs benchmarks)
     -   Action sequence visualizations
-    -   Performance metrics
+    -   PPO-only action probability distribution plot
+    -   Combined evaluation plot artifact (reward | actions) / probs when available
 -   **Benchmarks**:
     -   Buy-and-hold strategy
     -   Maximum theoretical profit

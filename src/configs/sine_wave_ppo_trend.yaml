@@ -22,6 +22,7 @@ env:
   positions: [-1, 0, 1]  # Short, hold, long
   trading_fees: 0.0  # No fees for synthetic validation
   borrow_interest_rate: 0.0
+  backend: "gym_anytrading.forex"
 
 # Network Architecture - Lightweight for simple monotonic trend
 network:
