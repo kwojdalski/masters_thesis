@@ -264,10 +264,12 @@ class MLflowTrainingCallback:
 
             # Network parameters
             mlflow.log_param(
-                "network_actor_hidden_dims", json.dumps(config.network.actor_hidden_dims)
+                "network_actor_hidden_dims",
+                json.dumps(config.network.actor_hidden_dims),
             )
             mlflow.log_param(
-                "network_value_hidden_dims", json.dumps(config.network.value_hidden_dims)
+                "network_value_hidden_dims",
+                json.dumps(config.network.value_hidden_dims),
             )
 
             # Training parameters
@@ -290,9 +292,13 @@ class MLflowTrainingCallback:
             )
             mlflow.log_param("training_sample_size", int(config.training.sample_size))
             mlflow.log_param("training_buffer_size", int(config.training.buffer_size))
-            mlflow.log_param("training_loss_function", str(config.training.loss_function))
+            mlflow.log_param(
+                "training_loss_function", str(config.training.loss_function)
+            )
             mlflow.log_param("training_eval_steps", int(config.training.eval_steps))
-            mlflow.log_param("training_eval_interval", int(config.training.eval_interval))
+            mlflow.log_param(
+                "training_eval_interval", int(config.training.eval_interval)
+            )
             mlflow.log_param("training_log_interval", int(config.training.log_interval))
 
             if hasattr(config.training, "tau"):
@@ -331,7 +337,9 @@ class MLflowTrainingCallback:
                 logger.warning("No active MLflow run - skipping FAQ artifacts")
                 return
 
-            faq_path = Path(__file__).resolve().parent.parent / "docs" / "parameter_faq.md"
+            faq_path = (
+                Path(__file__).resolve().parent.parent / "docs" / "parameter_faq.md"
+            )
             if not faq_path.exists():
                 logger.warning(f"FAQ file not found: {faq_path}")
                 return
@@ -404,7 +412,9 @@ class MLflowTrainingCallback:
                     logger.error("HTML file was not created!")
 
             except ImportError:
-                logger.warning("Markdown library not available - skipping HTML conversion")
+                logger.warning(
+                    "Markdown library not available - skipping HTML conversion"
+                )
             except Exception as html_error:
                 logger.error(f"Failed to create/log HTML FAQ: {html_error}")
 
@@ -422,6 +432,7 @@ class MLflowTrainingCallback:
 
         try:
             import tempfile
+
             import pandas as pd
             from plotnine import (
                 aes,
@@ -439,13 +450,17 @@ class MLflowTrainingCallback:
             mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
             mlflow.log_param("data_source", config.data.data_path)
 
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".csv", delete=False
+            ) as f:
                 sample_df = df.head(50)
                 sample_df.to_csv(f.name)
                 mlflow.log_artifact(f.name, "data_overview")
                 os.unlink(f.name)
 
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", delete=False
+            ) as f:
                 f.write("Dataset Overview\n")
                 f.write("================\n\n")
                 f.write(f"Shape: {df.shape}\n")
@@ -499,7 +514,9 @@ class MLflowTrainingCallback:
                             + theme(plot_title=element_text(size=14, face="bold"))
                         )
 
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as plot_file:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".png", delete=False
+                    ) as plot_file:
                         p.save(plot_file.name, width=8, height=5, dpi=150)
                         mlflow.log_artifact(plot_file.name, "data_overview/plots")
                         os.unlink(plot_file.name)
@@ -509,7 +526,9 @@ class MLflowTrainingCallback:
 
             if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
                 try:
-                    ohlc_subset = plot_df[["time_index", "open", "high", "low", "close"]].copy()
+                    ohlc_subset = plot_df[
+                        ["time_index", "open", "high", "low", "close"]
+                    ].copy()
                     ohlc_subset = ohlc_subset.dropna()
 
                     ohlc_melted = pd.melt(
@@ -521,7 +540,10 @@ class MLflowTrainingCallback:
                     )
 
                     p_combined = (
-                        ggplot(ohlc_melted, aes(x="time_index", y="price", color="price_type"))
+                        ggplot(
+                            ohlc_melted,
+                            aes(x="time_index", y="price", color="price_type"),
+                        )
                         + geom_line(size=0.8)
                         + theme_minimal()
                         + labs(
@@ -533,144 +555,17 @@ class MLflowTrainingCallback:
                         + theme(plot_title=element_text(size=14, face="bold"))
                     )
 
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as plot_file:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".png", delete=False
+                    ) as plot_file:
                         p_combined.save(plot_file.name, width=10, height=5, dpi=150)
                         mlflow.log_artifact(plot_file.name, "data_overview/plots")
                         os.unlink(plot_file.name)
 
                 except Exception as combined_error:  # pragma: no cover - logging only
-                    logger.warning(f"Failed to create combined OHLC plot: {combined_error}")
-
-        except Exception as e:  # pragma: no cover - logging only
-            logger.warning(f"Failed to log data overview: {e}")
-    def log_data_overview(self, df, config) -> None:
-        """Log dataset overview, sample, and quick visuals to MLflow."""
-        logger = get_project_logger(__name__)
-
-        if not mlflow.active_run():
-            logger.warning("No active MLflow run - skipping data overview logging")
-            return
-
-        try:
-            import tempfile
-            import pandas as pd
-            from plotnine import (
-                aes,
-                element_text,
-                geom_line,
-                ggplot,
-                labs,
-                theme,
-                theme_minimal,
-            )
-
-            # Log dataset metadata
-            mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
-            mlflow.log_param("dataset_columns", list(df.columns))
-            mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
-            mlflow.log_param("data_source", config.data.data_path)
-
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
-                sample_df = df.head(50)
-                sample_df.to_csv(f.name)
-                mlflow.log_artifact(f.name, "data_overview")
-                os.unlink(f.name)
-
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-                f.write("Dataset Overview\n")
-                f.write("================\n\n")
-                f.write(f"Shape: {df.shape}\n")
-                f.write(f"Columns: {list(df.columns)}\n")
-                f.write(f"Date Range: {df.index.min()} to {df.index.max()}\n\n")
-                f.write("Data Types:\n")
-                f.write(str(df.dtypes))
-                f.write("\n\nStatistical Summary:\n")
-                f.write(str(df.describe()))
-                f.flush()
-                mlflow.log_artifact(f.name, "data_overview")
-                os.unlink(f.name)
-
-            plot_df = df.head(200).reset_index()
-            plot_df["time_index"] = range(len(plot_df))
-
-            ohlcv_columns = ["open", "high", "low", "close", "volume"]
-            available_columns = [col for col in ohlcv_columns if col in plot_df.columns]
-            feature_columns = [
-                col
-                for col in plot_df.columns
-                if col not in [*ohlcv_columns, plot_df.columns[0], "time_index"]
-            ]
-            all_plot_columns = available_columns + feature_columns[:5]
-
-            for column in all_plot_columns:
-                try:
-                    if column == "volume":
-                        p = (
-                            ggplot(plot_df, aes(x="time_index", y=column))
-                            + geom_line(color="blue", size=0.8)
-                            + theme_minimal()
-                            + labs(
-                                title=f"{column.title()} Over Time",
-                                x="Time Index",
-                                y=column.title(),
-                            )
-                            + theme(plot_title=element_text(size=14, face="bold"))
-                        )
-                    else:
-                        color = "green" if column == "close" else "steelblue"
-                        p = (
-                            ggplot(plot_df, aes(x="time_index", y=column))
-                            + geom_line(color=color, size=0.8)
-                            + theme_minimal()
-                            + labs(
-                                title=f"{column.title()} Over Time",
-                                x="Time Index",
-                                y=column.title(),
-                            )
-                            + theme(plot_title=element_text(size=14, face="bold"))
-                        )
-
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as plot_file:
-                        p.save(plot_file.name, width=8, height=5, dpi=150)
-                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
-                        os.unlink(plot_file.name)
-
-                except Exception as plot_error:  # pragma: no cover - logging only
-                    logger.warning(f"Failed to create plot for {column}: {plot_error}")
-
-            if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
-                try:
-                    ohlc_subset = plot_df[["time_index", "open", "high", "low", "close"]].copy()
-                    ohlc_subset = ohlc_subset.dropna()
-
-                    ohlc_melted = pd.melt(
-                        ohlc_subset,
-                        id_vars=["time_index"],
-                        value_vars=["open", "high", "low", "close"],
-                        var_name="price_type",
-                        value_name="price",
+                    logger.warning(
+                        f"Failed to create combined OHLC plot: {combined_error}"
                     )
-
-                    p_combined = (
-                        ggplot(ohlc_melted, aes(x="time_index", y="price", color="price_type"))
-                        + geom_line(size=0.8)
-                        + theme_minimal()
-                        + labs(
-                            title="OHLC Prices Over Time",
-                            x="Time Index",
-                            y="Price",
-                            color="Price Type",
-                        )
-                        + theme(plot_title=element_text(size=14, face="bold"))
-                    )
-
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as plot_file:
-                        p_combined.save(plot_file.name, width=10, height=5, dpi=150)
-                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
-                        os.unlink(plot_file.name)
-
-                except Exception as combined_error:  # pragma: no cover - logging only
-                    logger.warning(f"Failed to create combined OHLC plot: {combined_error}")
 
         except Exception as e:  # pragma: no cover - logging only
             logger.warning(f"Failed to log data overview: {e}")
@@ -740,7 +635,9 @@ class MLflowTrainingCallback:
                 mlflow.log_metric(
                     "episode_avg_position_change", float(np.mean(position_changes))
                 )
-                mlflow.log_metric("total_position_changes", int(np.sum(position_changes)))
+                mlflow.log_metric(
+                    "total_position_changes", int(np.sum(position_changes))
+                )
 
                 total_episodes = len(training_curves["episode_rewards"])
                 total_actions = (
@@ -758,7 +655,127 @@ class MLflowTrainingCallback:
                     avg_position_change_ratio = (
                         np.mean(position_changes) / avg_episode_length
                     )
-                    mlflow.log_metric(
-                        "episode_avg_position_change_ratio",
-                        avg_position_change_ratio,
+                mlflow.log_metric(
+                    "episode_avg_position_change_ratio",
+                    avg_position_change_ratio,
+                )
+
+    @staticmethod
+    def log_evaluation_plots(
+        reward_plot,
+        action_plot,
+        action_probs_plot=None,
+        logs=None,
+    ) -> None:
+        """Save evaluation/training plots as MLflow artifacts."""
+        logger = get_project_logger(__name__)
+
+        if not mlflow.active_run():
+            logger.warning("No active MLflow run - skipping plot artifact logging")
+            return
+
+        import contextlib
+        import io
+        import warnings
+
+        from plotnine.exceptions import PlotnineWarning
+
+        # Context manager to suppress all plotnine output
+        @contextlib.contextmanager
+        def suppress_plotnine_output():
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                yield
+
+        try:
+
+            def _save_plot_as_artifact(plot_obj, suffix, artifact_dir, logger):
+                """Helper to save plot to temp file and log as MLflow artifact."""
+                import os
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(
+                    suffix=suffix, delete=False
+                ) as tmp_file:
+                    tmp_path = tmp_file.name
+                try:
+                    with warnings.catch_warnings(), suppress_plotnine_output():
+                        warnings.simplefilter("ignore", PlotnineWarning)
+                        # Handle plotnine plots ("save") and matplotlib figures ("savefig")
+                        if hasattr(plot_obj, "save"):
+                            plot_obj.save(tmp_path, width=8, height=5, dpi=150)
+                        elif hasattr(plot_obj, "savefig"):
+                            plot_obj.savefig(tmp_path, dpi=150)
+                        else:
+                            raise RuntimeError("Unsupported plot object for saving")
+                    mlflow.log_artifact(tmp_path, artifact_dir)
+                except Exception:
+                    logger.exception(f"Failed to save {suffix} plot")
+                finally:
+                    if os.path.exists(tmp_path):
+                        os.unlink(tmp_path)
+
+            # Save reward plot using plotnine
+            _save_plot_as_artifact(
+                reward_plot, "_rewards.png", "evaluation_plots", logger
+            )
+
+            # Save action/position plot using plotnine
+            _save_plot_as_artifact(
+                action_plot, "_positions.png", "evaluation_plots", logger
+            )
+
+            # Save action probabilities plot (if present)
+            if action_probs_plot is not None:
+                _save_plot_as_artifact(
+                    action_probs_plot,
+                    "_action_probabilities.png",
+                    "evaluation_plots",
+                    logger,
+                )
+
+            # Create and save training loss plots
+            if logs and (logs.get("loss_value") or logs.get("loss_actor")):
+                import pandas as pd
+                from plotnine import aes, geom_line, ggplot, labs, theme_minimal
+
+                loss_data = []
+                if logs.get("loss_value"):
+                    loss_data.extend(
+                        [
+                            {"step": i, "loss": loss, "type": "Value Loss"}
+                            for i, loss in enumerate(logs["loss_value"])
+                        ]
                     )
+                if logs.get("loss_actor"):
+                    loss_data.extend(
+                        [
+                            {"step": i, "loss": loss, "type": "Actor Loss"}
+                            for i, loss in enumerate(logs["loss_actor"])
+                        ]
+                    )
+
+                if loss_data:
+                    loss_df = pd.DataFrame(loss_data)
+
+                    loss_plot = (
+                        ggplot(loss_df, aes(x="step", y="loss", color="type"))
+                        + geom_line(size=1.2)
+                        + labs(
+                            title="Training Losses",
+                            x="Training Step",
+                            y="Loss Value",
+                            color="Loss Type",
+                        )
+                        + theme_minimal()
+                    )
+
+                    _save_plot_as_artifact(
+                        loss_plot, "_training_losses.png", "training_plots", logger
+                    )
+
+            logger.info("Saved evaluation and training plots as MLflow artifacts")
+        except Exception as e:  # pragma: no cover - defensive logging only
+            logger.warning(f"Failed to save plots as artifacts: {e}")

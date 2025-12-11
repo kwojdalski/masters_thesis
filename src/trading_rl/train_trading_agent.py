@@ -24,7 +24,6 @@ from joblib import Memory
 
 # No matplotlib configuration needed since we use plotnine exclusively
 from plotnine import aes, geom_line
-from plotnine.exceptions import PlotnineWarning
 from tensordict.nn import InteractionType
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
@@ -630,9 +629,6 @@ def run_single_experiment(
         total_episodes=estimated_episodes if progress_bar else None,
     )
 
-    # Re-configure logging because MLflow might have hijacked the root logger handlers
-    logger = setup_logging(config)
-
     # Train
     logger.info("Starting training...")
     logs = trainer.train(callback=mlflow_callback)
@@ -662,133 +658,12 @@ def run_single_experiment(
     )
 
     # Save evaluation plots as MLflow artifacts
-    if mlflow.active_run():
-        import contextlib
-        import io
-        import os
-        import tempfile
-
-        # Context manager to suppress all plotnine output
-        @contextlib.contextmanager
-        def suppress_plotnine_output():
-            with (
-                contextlib.redirect_stdout(io.StringIO()),
-                contextlib.redirect_stderr(io.StringIO()),
-            ):
-                yield
-
-        try:
-            # Save reward plot using plotnine
-            with tempfile.NamedTemporaryFile(
-                suffix="_rewards.png", delete=False
-            ) as tmp_reward:
-                try:
-                    with warnings.catch_warnings(), suppress_plotnine_output():
-                        warnings.simplefilter("ignore", PlotnineWarning)
-                        reward_plot.save(tmp_reward.name, width=8, height=5, dpi=150)
-                    mlflow.log_artifact(tmp_reward.name, "evaluation_plots")
-                except Exception:
-                    logger.exception("Failed to save reward plot")
-                finally:
-                    if os.path.exists(tmp_reward.name):
-                        os.unlink(tmp_reward.name)
-
-            # Save action/position plot using plotnine
-            with tempfile.NamedTemporaryFile(
-                suffix="_positions.png", delete=False
-            ) as tmp_action:
-                try:
-                    with warnings.catch_warnings(), suppress_plotnine_output():
-                        warnings.simplefilter("ignore", PlotnineWarning)
-                        action_plot.save(tmp_action.name, width=8, height=5, dpi=150)
-                    mlflow.log_artifact(tmp_action.name, "evaluation_plots")
-                except Exception:
-                    logger.exception("Failed to save action plot")
-                finally:
-                    if os.path.exists(tmp_action.name):
-                        os.unlink(tmp_action.name)
-
-            # Save action probabilities plot (if present)
-            if action_probs_plot is not None:
-                with tempfile.NamedTemporaryFile(
-                    suffix="_action_probabilities.png", delete=False
-                ) as tmp_probs:
-                    try:
-                        with warnings.catch_warnings(), suppress_plotnine_output():
-                            warnings.simplefilter("ignore", PlotnineWarning)
-                            if hasattr(action_probs_plot, "save"):
-                                action_probs_plot.save(
-                                    tmp_probs.name, width=8, height=5, dpi=150
-                                )  # type: ignore[arg-type]
-                            elif hasattr(action_probs_plot, "savefig"):
-                                action_probs_plot.savefig(tmp_probs.name, dpi=150)
-                            else:
-                                raise RuntimeError("Unsupported plot object for saving")
-                        mlflow.log_artifact(tmp_probs.name, "evaluation_plots")
-                    except Exception:
-                        logger.exception("Failed to save action probabilities plot")
-                    finally:
-                        if os.path.exists(tmp_probs.name):
-                            os.unlink(tmp_probs.name)
-
-            # Create and save training loss plots
-            if logs.get("loss_value") or logs.get("loss_actor"):
-                import pandas as pd
-                from plotnine import aes, geom_line, ggplot, labs, theme_minimal
-
-                # Create loss plot data
-                loss_data = []
-                if logs.get("loss_value"):
-                    loss_data.extend(
-                        [
-                            {"step": i, "loss": loss, "type": "Value Loss"}
-                            for i, loss in enumerate(logs["loss_value"])
-                        ]
-                    )
-                if logs.get("loss_actor"):
-                    loss_data.extend(
-                        [
-                            {"step": i, "loss": loss, "type": "Actor Loss"}
-                            for i, loss in enumerate(logs["loss_actor"])
-                        ]
-                    )
-
-                if loss_data:
-                    loss_df = pd.DataFrame(loss_data)
-
-                    # Create training loss plot
-                    loss_plot = (
-                        ggplot(loss_df, aes(x="step", y="loss", color="type"))
-                        + geom_line(size=1.2)
-                        + labs(
-                            title="Training Losses",
-                            x="Training Step",
-                            y="Loss Value",
-                            color="Loss Type",
-                        )
-                        + theme_minimal()
-                    )
-
-                    # Save training loss plot using plotnine
-                    with tempfile.NamedTemporaryFile(
-                        suffix="_training_losses.png", delete=False
-                    ) as tmp_loss:
-                        try:
-                            with warnings.catch_warnings(), suppress_plotnine_output():
-                                warnings.simplefilter("ignore", PlotnineWarning)
-                                loss_plot.save(
-                                    tmp_loss.name, width=8, height=5, dpi=150
-                                )
-                            mlflow.log_artifact(tmp_loss.name, "training_plots")
-                        except Exception:
-                            logger.exception("Failed to save training loss plot")
-                        finally:
-                            if os.path.exists(tmp_loss.name):
-                                os.unlink(tmp_loss.name)
-
-            logger.info("Saved evaluation and training plots as MLflow artifacts")
-        except Exception as e:
-            logger.warning(f"Failed to save plots as artifacts: {e}")
+    MLflowTrainingCallback.log_evaluation_plots(
+        reward_plot=reward_plot,
+        action_plot=action_plot,
+        action_probs_plot=action_probs_plot,
+        logs=logs,
+    )
 
     # Prepare comprehensive metrics
     final_metrics = {
