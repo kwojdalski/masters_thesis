@@ -746,9 +746,12 @@ class MLflowTrainingCallback:
                 if loss_data:
                     loss_df = pd.DataFrame(loss_data)
 
+                    from plotnine import facet_wrap
+
                     loss_plot = (
                         ggplot(loss_df, aes(x="step", y="loss", color="type"))
                         + geom_line(size=1.2)
+                        + facet_wrap("type", ncol=1, scales="free")
                         + labs(
                             title="Training Losses",
                             x="Training Step",
