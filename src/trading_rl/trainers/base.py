@@ -93,6 +93,10 @@ class BaseTrainer(ABC):
         """Algorithm-specific exploration metric."""
         return 0.0
 
+    def create_action_probabilities_plot(self, max_steps: int, df=None, config=None):
+        """Optional action-probability visualization; default is not implemented."""
+        return None
+
     def _log_episode_stats(self, data, callback) -> None:
         """Log episode statistics to provided callback."""
         episode_reward = data["next", "reward"].sum().item()

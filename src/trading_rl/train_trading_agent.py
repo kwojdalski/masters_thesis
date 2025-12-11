@@ -362,6 +362,8 @@ def evaluate_agent(
     max_steps: int = 1000,
     save_path: str | None = None,
     config: Any = None,
+    trainer: Any | None = None,
+    algorithm: str | None = None,
 ) -> tuple:
     """Evaluate trained agent and create visualizations.
 
@@ -371,6 +373,8 @@ def evaluate_agent(
         df: Original dataframe for benchmarks
         max_steps: Number of steps for evaluation
         save_path: Optional path to save plots
+        trainer: Optional trainer instance (used for PPO-specific plots)
+        algorithm: Algorithm name to gate algorithm-specific visuals
 
     Returns:
         Tuple of (reward_plot, action_plot, action_probs_plot, final_reward, last_positions)
@@ -533,238 +537,24 @@ def evaluate_agent(
             # Discrete index 0, 1, 2 -> -1, 0, 1
             last_positions.append(int(action_val) - 1)
 
-    # Create action probabilities plot
-    action_probs_plot = _create_action_probabilities_plot(
-        env, actor, max_steps, df, config
+    action_probs_plot = None
+    if (
+        algorithm
+        and algorithm.upper() == "PPO"
+        and trainer
+        and hasattr(trainer, "create_action_probabilities_plot")
+    ):
+        action_probs_plot = trainer.create_action_probabilities_plot(
+            max_steps, df, config
+        )
+
+    return (
+        reward_plot,
+        action_plot,
+        action_probs_plot,
+        final_reward,
+        last_positions,
     )
-
-    return reward_plot, action_plot, action_probs_plot, final_reward, last_positions
-
-
-def _create_action_probabilities_plot(env, actor, max_steps, df=None, config=None):
-    """Create a plot showing action probability distributions over time steps."""
-    import pandas as pd
-    import torch
-    import torch.nn.functional as F
-    from plotnine import (
-        element_text,
-        geom_area,
-        ggplot,
-        labs,
-        scale_fill_manual,
-        scale_x_continuous,
-        theme,
-        theme_minimal,
-    )
-
-    try:
-        max_viz_steps = min(max_steps, 200)
-        max_episode_length = 20
-
-        with torch.no_grad():
-            # Use the original environment but force it to give us varying observations
-            # by resetting and running multiple short episodes
-            env_to_use = env
-
-            # Reset environment and collect probabilities for each step
-            obs = env_to_use.reset()
-            action_names = {0: "Short", 1: "Hold", 2: "Long"}
-            action_probs_data = []
-
-            # Limit steps for visualization (too many steps make plot unreadable)
-            current_episode_steps = 0
-
-            for step in range(max_viz_steps):
-                # Reset environment periodically to get different observations
-                if current_episode_steps >= max_episode_length:
-                    obs = env_to_use.reset()
-                    current_episode_steps = 0
-                # Extract observation from TensorDict if needed
-                if hasattr(obs, "get") and "observation" in obs:
-                    current_obs = obs["observation"]
-                else:
-                    current_obs = obs
-
-                # Get action probabilities from actor
-                actor_output = actor(current_obs)
-
-                # Handle different actor output formats
-                if hasattr(actor_output, "logits"):
-                    # Standard distribution with logits
-                    logits = actor_output.logits
-                    probs = torch.softmax(logits, dim=-1)
-
-                elif isinstance(actor_output, tuple) and len(actor_output) >= 1:
-                    # PPO case - returns tuple with probabilities as first element
-                    probs = actor_output[0]  # First element contains probabilities
-
-                elif hasattr(actor_output, "loc"):
-                    # DDPG case - continuous action, need to discretize
-                    action_val = torch.clamp(actor_output.loc, -1, 1)
-                    # Convert continuous [-1, 1] to discrete probabilities
-                    if action_val < -0.33:
-                        probs = torch.tensor([0.7, 0.2, 0.1])  # Mostly short
-                    elif action_val > 0.33:
-                        probs = torch.tensor([0.1, 0.2, 0.7])  # Mostly long
-                    else:
-                        probs = torch.tensor([0.2, 0.6, 0.2])  # Mostly hold
-
-                else:
-                    # Fallback - uniform distribution
-                    probs = torch.tensor([0.33, 0.34, 0.33])
-
-                # Ensure probs is the right shape and sum to 1
-                probs = probs.squeeze()
-                if probs.dim() == 0 or len(probs) != 3:
-                    probs = torch.tensor([0.33, 0.34, 0.33])
-                probs = probs / probs.sum()  # Normalize
-
-                # Add data for each action at this step
-                for action_idx, action_name in action_names.items():
-                    action_probs_data.append(
-                        {
-                            "Step": step,
-                            "Action": action_name,
-                            "Probability": float(probs[action_idx]),
-                        }
-                    )
-
-                # Take a step in the environment
-                if hasattr(actor_output, "sample"):
-                    action = actor_output.sample()
-                elif isinstance(actor_output, tuple) and len(actor_output) >= 2:
-                    # PPO actor returns (probs, action, log_prob)
-                    action = actor_output[1]
-                else:
-                    # Fallback - sample from probabilities manually (categorical draw)
-                    action_idx = torch.multinomial(probs, 1).item()
-                    action = F.one_hot(
-                        torch.tensor(action_idx), num_classes=len(action_names)
-                    ).to(torch.float32)
-
-                # Ensure action matches env spec (one-hot vector)
-                if isinstance(action, torch.Tensor):
-                    action = action.to(torch.float32)
-                else:
-                    action = torch.tensor(action, dtype=torch.float32)
-
-                # Convert scalar/discrete actions to one-hot vectors
-                if action.dim() == 0:
-                    action = F.one_hot(action.long(), num_classes=len(action_names)).to(
-                        torch.float32
-                    )
-                elif action.dim() == 1 and action.shape[0] != len(action_names):
-                    action = F.one_hot(action.long(), num_classes=len(action_names)).to(
-                        torch.float32
-                    )
-
-                # Ensure batch dimension matches observation batch size
-                if hasattr(obs, "batch_size") and obs.batch_size:
-                    expected_batch = obs.batch_size[0]
-                else:
-                    expected_batch = 1
-
-                if action.dim() == 1:
-                    action = action.unsqueeze(0)
-                if action.shape[0] != expected_batch:
-                    action = action.expand(expected_batch, action.shape[1])
-
-                # Step the environment using a cloned tensordict
-                if hasattr(obs, "clone") and hasattr(obs, "set"):
-                    action_td = obs.clone()
-                    action_td.set("action", action)
-                    step_result = env_to_use.step(action_td)
-                else:
-                    # If obs is not a TensorDict, we can't safely step the env.
-                    # Break out so fallback plot is used.
-                    raise RuntimeError("Environment observation is not a TensorDict")
-
-                # Extract post-step observation for next iteration
-                if "next" in step_result.keys():
-                    next_obs = step_result.get("next").clone()
-                else:
-                    next_obs = step_result.clone()
-                obs = next_obs
-
-                # Increment episode step counter
-                current_episode_steps += 1
-
-                # Break if episode is done
-                done_tensor = None
-                if hasattr(obs, "get"):
-                    done_tensor = obs.get("done", torch.tensor([False]))
-                if done_tensor is not None and torch.as_tensor(done_tensor).any():
-                    break
-
-        df_probs = pd.DataFrame(action_probs_data)
-        action_order = ["Short", "Hold", "Long"]
-        df_probs["Action"] = pd.Categorical(
-            df_probs["Action"], categories=action_order, ordered=True
-        )
-
-        # Create stacked area plot showing probability distributions over time
-        plot = (
-            ggplot(df_probs, aes(x="Step", y="Probability", fill="Action"))
-            + geom_area(position="stack", alpha=0.8)
-            + labs(
-                title="Action Probability Distributions Over Time",
-                x="Time Step",
-                y="Probability",
-                fill="Action",
-            )
-            + theme_minimal()
-            + scale_fill_manual(
-                name="Action",
-                values={
-                    "Short": "#F8766D",  # red-ish at bottom
-                    "Hold": "#C0C0C0",  # neutral middle
-                    "Long": "#00BFC4",  # teal top
-                },
-            )
-            + scale_x_continuous(expand=(0, 0))
-            + theme(
-                figure_size=(12, 6),
-                axis_title=element_text(size=11),
-                legend_position="right",
-            )
-        )
-
-        return plot
-
-    except Exception:
-        # Fallback plot in case of errors - show uniform distribution over steps
-        fallback_steps = min(max_steps, 500)
-        fallback_data = []
-        for step in range(fallback_steps):
-            for action in ["Short", "Hold", "Long"]:
-                fallback_data.append(
-                    {"Step": step, "Action": action, "Probability": 0.33}
-                )
-
-        df_fallback = pd.DataFrame(fallback_data)
-        df_fallback["Action"] = pd.Categorical(
-            df_fallback["Action"], categories=["Short", "Hold", "Long"], ordered=True
-        )
-        plot = (
-            ggplot(df_fallback, aes(x="Step", y="Probability", fill="Action"))
-            + geom_area(position="stack", alpha=0.8)
-            + labs(
-                title="Action Probability Distribution (Fallback)",
-                x="Time Step",
-                y="Probability",
-            )
-            + theme_minimal()
-            + scale_fill_manual(
-                name="Action",
-                values={
-                    "Short": "#F8766D",
-                    "Hold": "#C0C0C0",
-                    "Long": "#00BFC4",
-                },
-            )
-        )
-
-        return plot
 
 
 def _print_config_debug(config: ExperimentConfig, logger) -> None:
@@ -1370,6 +1160,8 @@ def run_single_experiment(
             df[: config.data.train_size],  # Pass only the training portion
             max_steps=eval_max_steps,
             config=config,
+            trainer=trainer,
+            algorithm=algorithm,
         )
     )
 
@@ -1420,22 +1212,28 @@ def run_single_experiment(
                     if os.path.exists(tmp_action.name):
                         os.unlink(tmp_action.name)
 
-            # Save action probabilities plot using plotnine
-            with tempfile.NamedTemporaryFile(
-                suffix="_action_probabilities.png", delete=False
-            ) as tmp_probs:
-                try:
-                    with warnings.catch_warnings(), suppress_plotnine_output():
-                        warnings.simplefilter("ignore", PlotnineWarning)
-                        action_probs_plot.save(
-                            tmp_probs.name, width=8, height=5, dpi=150
-                        )
-                    mlflow.log_artifact(tmp_probs.name, "evaluation_plots")
-                except Exception:
-                    logger.exception("Failed to save action probabilities plot")
-                finally:
-                    if os.path.exists(tmp_probs.name):
-                        os.unlink(tmp_probs.name)
+            # Save action probabilities plot (if present)
+            if action_probs_plot is not None:
+                with tempfile.NamedTemporaryFile(
+                    suffix="_action_probabilities.png", delete=False
+                ) as tmp_probs:
+                    try:
+                        with warnings.catch_warnings(), suppress_plotnine_output():
+                            warnings.simplefilter("ignore", PlotnineWarning)
+                            if hasattr(action_probs_plot, "save"):
+                                action_probs_plot.save(
+                                    tmp_probs.name, width=8, height=5, dpi=150
+                                )  # type: ignore[arg-type]
+                            elif hasattr(action_probs_plot, "savefig"):
+                                action_probs_plot.savefig(tmp_probs.name, dpi=150)
+                            else:
+                                raise RuntimeError("Unsupported plot object for saving")
+                        mlflow.log_artifact(tmp_probs.name, "evaluation_plots")
+                    except Exception:
+                        logger.exception("Failed to save action probabilities plot")
+                    finally:
+                        if os.path.exists(tmp_probs.name):
+                            os.unlink(tmp_probs.name)
 
             # Create and save training loss plots
             if logs.get("loss_value") or logs.get("loss_actor"):

@@ -35,7 +35,7 @@ training:
   actor_lr: 0.0003
   value_lr: 0.0003  # Same as actor for PPO
   value_weight_decay: 0.001
-  max_steps: 15000  # More steps to learn oscillation pattern
+  max_steps: 3000  # Reduced steps for faster runs
   init_rand_steps: 50  # More exploration for pattern discovery
   frames_per_batch: 200
   optim_steps_per_batch: 40  # Not used in PPO
