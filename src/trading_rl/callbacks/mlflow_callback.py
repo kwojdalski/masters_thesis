@@ -319,6 +319,98 @@ class MLflowTrainingCallback:
                 f"Failed to log some training parameters: {e}"
             )
 
+    @staticmethod
+    def log_parameter_faq_artifact() -> None:
+        """Log parameter FAQ as both markdown and HTML artifacts."""
+        logger = get_project_logger(__name__)
+
+        try:
+            # Check MLflow run status
+            active_run = mlflow.active_run()
+            if not active_run:
+                logger.warning("No active MLflow run - skipping FAQ artifacts")
+                return
+
+            faq_path = Path(__file__).resolve().parent.parent / "docs" / "parameter_faq.md"
+            if not faq_path.exists():
+                logger.warning(f"FAQ file not found: {faq_path}")
+                return
+
+            # Log original markdown
+            try:
+                mlflow.log_artifact(str(faq_path), "documentation")
+                logger.info("Successfully logged FAQ markdown artifact")
+            except Exception as md_error:
+                logger.error(f"Failed to log markdown FAQ: {md_error}")
+                return
+
+            # Convert to HTML and log
+            try:
+                import markdown
+
+                with open(faq_path, encoding="utf-8") as f:
+                    md_content = f.read()
+
+                try:
+                    html_content = markdown.markdown(
+                        md_content, extensions=["tables", "fenced_code", "toc"]
+                    )
+                except Exception as ext_error:
+                    logger.warning(
+                        f"Failed with extensions, trying basic conversion: {ext_error}"
+                    )
+                    html_content = markdown.markdown(md_content)
+
+                styled_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Parameter FAQ - Trading RL Experiments</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }}
+        h1, h2, h3 {{ color: #333; }}
+        h1 {{ border-bottom: 2px solid #eee; padding-bottom: 10px; }}
+        h2 {{ border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; }}
+        code {{ background: #f5f5f5; padding: 2px 4px; border-radius: 3px; font-family: 'Monaco', 'Consolas', monospace; }}
+        pre {{ background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }}
+        ul, ol {{ padding-left: 20px; }}
+        li {{ margin: 5px 0; }}
+        strong {{ color: #2c3e50; }}
+        blockquote {{ border-left: 4px solid #ddd; margin-left: 0; padding-left: 20px; color: #666; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 10px 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #f5f5f5; }}
+    </style>
+</head>
+<body>
+{html_content}
+</body>
+</html>"""
+
+                temp_dir = tempfile.gettempdir()
+                html_temp_path = os.path.join(temp_dir, "parameter_faq.html")
+
+                logger.info(f"Creating HTML file at: {html_temp_path}")
+                logger.info(f"HTML content length: {len(styled_html)} characters")
+
+                with open(html_temp_path, "w", encoding="utf-8") as f:
+                    f.write(styled_html)
+
+                if os.path.exists(html_temp_path):
+                    mlflow.log_artifact(html_temp_path, "documentation")
+                    logger.info("Successfully logged FAQ HTML artifact")
+                    os.unlink(html_temp_path)
+                else:
+                    logger.error("HTML file was not created!")
+
+            except ImportError:
+                logger.warning("Markdown library not available - skipping HTML conversion")
+            except Exception as html_error:
+                logger.error(f"Failed to create/log HTML FAQ: {html_error}")
+
+        except Exception as e:
+            logger.error(f"Error in FAQ artifact logging: {e}")
+
 
 def log_final_metrics_to_mlflow(
     logs: dict,

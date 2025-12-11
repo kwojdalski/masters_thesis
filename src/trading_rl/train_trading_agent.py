@@ -243,118 +243,6 @@ def setup_mlflow_experiment(
 
 
 # %%
-def _log_parameter_faq_artifact():
-    """Log parameter FAQ as both markdown and HTML artifacts."""
-    logger = get_project_logger(__name__)
-
-    try:
-        # Check MLflow run status
-        active_run = mlflow.active_run()
-        if not active_run:
-            logger.warning("No active MLflow run - skipping FAQ artifacts")
-            return
-
-        faq_path = Path(__file__).parent / "docs" / "parameter_faq.md"
-        if not faq_path.exists():
-            logger.warning(f"FAQ file not found: {faq_path}")
-            return
-
-        # Log original markdown
-        try:
-            mlflow.log_artifact(str(faq_path), "documentation")
-            logger.info("Successfully logged FAQ markdown artifact")
-        except Exception as md_error:
-            logger.error(f"Failed to log markdown FAQ: {md_error}")
-            return  # Don't continue if markdown fails
-
-        # Convert to HTML and log
-        try:
-            import markdown
-
-            # Read markdown content
-            with open(faq_path, encoding="utf-8") as f:
-                md_content = f.read()
-
-            # Convert to HTML with basic extensions (avoiding potential missing extensions)
-            try:
-                html_content = markdown.markdown(
-                    md_content, extensions=["tables", "fenced_code", "toc"]
-                )
-            except Exception as ext_error:
-                logger.warning(
-                    f"Failed with extensions, trying basic conversion: {ext_error}"
-                )
-                # Fallback to basic conversion without extensions
-                html_content = markdown.markdown(md_content)
-
-            # Add basic CSS styling
-            styled_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Parameter FAQ - Trading RL Experiments</title>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }}
-        h1, h2, h3 {{ color: #333; }}
-        h1 {{ border-bottom: 2px solid #eee; padding-bottom: 10px; }}
-        h2 {{ border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; }}
-        code {{ background: #f5f5f5; padding: 2px 4px; border-radius: 3px; font-family: 'Monaco', 'Consolas', monospace; }}
-        pre {{ background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }}
-        ul, ol {{ padding-left: 20px; }}
-        li {{ margin: 5px 0; }}
-        strong {{ color: #2c3e50; }}
-        blockquote {{ border-left: 4px solid #ddd; margin-left: 0; padding-left: 20px; color: #666; }}
-        table {{ border-collapse: collapse; width: 100%; margin: 10px 0; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #f5f5f5; }}
-    </style>
-</head>
-<body>
-{html_content}
-</body>
-</html>"""
-
-            # Save HTML to temporary file with proper name and log
-            import os
-            import tempfile
-
-            # Create temp file with proper name
-            temp_dir = tempfile.gettempdir()
-            html_temp_path = os.path.join(temp_dir, "parameter_faq.html")
-
-            logger.info(f"Creating HTML file at: {html_temp_path}")
-            logger.info(f"HTML content length: {len(styled_html)} characters")
-
-            with open(html_temp_path, "w", encoding="utf-8") as f:
-                f.write(styled_html)
-
-            # Verify file was created
-            if os.path.exists(html_temp_path):
-                file_size = os.path.getsize(html_temp_path)
-                logger.info(f"HTML file created successfully, size: {file_size} bytes")
-            else:
-                logger.error("HTML file was not created!")
-                return
-
-            mlflow.log_artifact(html_temp_path, "documentation")
-            logger.info("Successfully logged FAQ HTML artifact")
-
-            # Verify cleanup
-            if os.path.exists(html_temp_path):
-                os.unlink(html_temp_path)
-                logger.info("Cleaned up temporary HTML file")
-            else:
-                logger.warning("Temporary HTML file already missing")
-
-        except ImportError:
-            logger.warning("Markdown library not available - skipping HTML conversion")
-        except Exception as html_error:
-            logger.error(f"Failed to create/log HTML FAQ: {html_error}")
-
-    except Exception as e:
-        logger.error(f"Error in FAQ artifact logging: {e}")
-
-
 def evaluate_agent(
     env: TransformedEnv,
     actor: Any,
@@ -679,7 +567,7 @@ def run_single_experiment(
     # Log data overview to MLflow
     if mlflow.active_run():
         # Log parameter FAQ as artifacts (early in trial for immediate availability)
-        _log_parameter_faq_artifact()
+        MLflowTrainingCallback.log_parameter_faq_artifact()
 
         # Log all training parameters
         MLflowTrainingCallback.log_training_parameters(config)
