@@ -3,9 +3,11 @@
 import json
 import os
 import tempfile
+from pathlib import Path
 
 import mlflow
 import numpy as np
+import yaml
 
 from logger import get_logger as get_project_logger
 
@@ -147,6 +149,175 @@ class MLflowTrainingCallback:
                 changes += 1
                 prev_action = action
         return changes
+
+    @staticmethod
+    def log_config_artifact(config) -> None:
+        """Log YAML config file as an MLflow artifact."""
+        # Try to find an existing config file by experiment name
+        config_dir = Path("src/configs")
+        possible_configs = [
+            config_dir / f"{config.experiment_name}.yaml",
+            config_dir / f"{config.experiment_name}_ppo.yaml",
+            config_dir / f"{config.experiment_name}_ddpg.yaml",
+        ]
+
+        config_file = None
+        for path in possible_configs:
+            if path.exists():
+                config_file = path
+                break
+
+        if config_file and config_file.exists():
+            mlflow.log_artifact(str(config_file), "config")
+            return
+
+        # Otherwise, serialize the in-memory config
+        config_dict = {
+            "experiment_name": config.experiment_name,
+            "seed": config.seed,
+            "data": {
+                "data_path": config.data.data_path,
+                "download_data": config.data.download_data,
+                "exchange_names": config.data.exchange_names,
+                "symbols": config.data.symbols,
+                "timeframe": config.data.timeframe,
+                "data_dir": config.data.data_dir,
+                "download_since": config.data.download_since,
+                "train_size": config.data.train_size,
+                "no_features": getattr(config.data, "no_features", False),
+            },
+            "env": {
+                "name": config.env.name,
+                "positions": config.env.positions,
+                "trading_fees": config.env.trading_fees,
+                "borrow_interest_rate": config.env.borrow_interest_rate,
+            },
+            "network": {
+                "actor_hidden_dims": config.network.actor_hidden_dims,
+                "value_hidden_dims": config.network.value_hidden_dims,
+            },
+            "training": {
+                "algorithm": config.training.algorithm,
+                "actor_lr": config.training.actor_lr,
+                "value_lr": config.training.value_lr,
+                "value_weight_decay": config.training.value_weight_decay,
+                "max_steps": config.training.max_steps,
+                "init_rand_steps": config.training.init_rand_steps,
+                "frames_per_batch": config.training.frames_per_batch,
+                "optim_steps_per_batch": config.training.optim_steps_per_batch,
+                "sample_size": config.training.sample_size,
+                "buffer_size": config.training.buffer_size,
+                "loss_function": config.training.loss_function,
+                "eval_steps": config.training.eval_steps,
+                "eval_interval": config.training.eval_interval,
+                "log_interval": config.training.log_interval,
+            },
+            "logging": {
+                "log_dir": config.logging.log_dir,
+                "log_level": config.logging.log_level,
+            },
+        }
+
+        # Add algorithm-specific parameters
+        if hasattr(config.training, "tau"):
+            config_dict["training"]["tau"] = config.training.tau
+        if hasattr(config.training, "clip_epsilon"):
+            config_dict["training"]["clip_epsilon"] = config.training.clip_epsilon
+        if hasattr(config.training, "entropy_bonus"):
+            config_dict["training"]["entropy_bonus"] = config.training.entropy_bonus
+        if hasattr(config.training, "vf_coef"):
+            config_dict["training"]["vf_coef"] = config.training.vf_coef
+        if hasattr(config.training, "ppo_epochs"):
+            config_dict["training"]["ppo_epochs"] = config.training.ppo_epochs
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
+            mlflow.log_artifact(f.name, "config")
+            os.unlink(f.name)
+
+    @staticmethod
+    def log_training_parameters(config) -> None:
+        """Log core training parameters to MLflow."""
+        try:
+            mlflow.log_param("experiment_name", str(config.experiment_name))
+            mlflow.log_param("seed", int(config.seed))
+
+            # Data parameters
+            mlflow.log_param("data_train_size", int(config.data.train_size))
+            mlflow.log_param("data_timeframe", str(config.data.timeframe))
+            mlflow.log_param(
+                "data_exchange_names", json.dumps(config.data.exchange_names)
+            )
+            mlflow.log_param("data_symbols", json.dumps(config.data.symbols))
+            mlflow.log_param("data_download_data", bool(config.data.download_data))
+            mlflow.log_param(
+                "data_no_features", bool(getattr(config.data, "no_features", False))
+            )
+
+            # Environment parameters
+            mlflow.log_param("env_name", str(config.env.name))
+            mlflow.log_param("env_positions", json.dumps(config.env.positions))
+            mlflow.log_param("env_trading_fees", float(config.env.trading_fees))
+            mlflow.log_param(
+                "env_borrow_interest_rate", float(config.env.borrow_interest_rate)
+            )
+
+            # Network parameters
+            mlflow.log_param(
+                "network_actor_hidden_dims", json.dumps(config.network.actor_hidden_dims)
+            )
+            mlflow.log_param(
+                "network_value_hidden_dims", json.dumps(config.network.value_hidden_dims)
+            )
+
+            # Training parameters
+            mlflow.log_param("training_algorithm", str(config.training.algorithm))
+            mlflow.log_param("training_actor_lr", float(config.training.actor_lr))
+            mlflow.log_param("training_value_lr", float(config.training.value_lr))
+            mlflow.log_param(
+                "training_value_weight_decay", float(config.training.value_weight_decay)
+            )
+            mlflow.log_param("training_max_steps", int(config.training.max_steps))
+            mlflow.log_param(
+                "training_init_rand_steps", int(config.training.init_rand_steps)
+            )
+            mlflow.log_param(
+                "training_frames_per_batch", int(config.training.frames_per_batch)
+            )
+            mlflow.log_param(
+                "training_optim_steps_per_batch",
+                int(config.training.optim_steps_per_batch),
+            )
+            mlflow.log_param("training_sample_size", int(config.training.sample_size))
+            mlflow.log_param("training_buffer_size", int(config.training.buffer_size))
+            mlflow.log_param("training_loss_function", str(config.training.loss_function))
+            mlflow.log_param("training_eval_steps", int(config.training.eval_steps))
+            mlflow.log_param("training_eval_interval", int(config.training.eval_interval))
+            mlflow.log_param("training_log_interval", int(config.training.log_interval))
+
+            if hasattr(config.training, "tau"):
+                mlflow.log_param("training_tau", float(config.training.tau))
+            if hasattr(config.training, "clip_epsilon"):
+                mlflow.log_param(
+                    "training_clip_epsilon", float(config.training.clip_epsilon)
+                )
+            if hasattr(config.training, "entropy_bonus"):
+                mlflow.log_param(
+                    "training_entropy_bonus", float(config.training.entropy_bonus)
+                )
+            if hasattr(config.training, "vf_coef"):
+                mlflow.log_param("training_vf_coef", float(config.training.vf_coef))
+            if hasattr(config.training, "ppo_epochs"):
+                mlflow.log_param("training_ppo_epochs", int(config.training.ppo_epochs))
+
+            # Logging parameters
+            mlflow.log_param("logging_log_dir", str(config.logging.log_dir))
+            mlflow.log_param("logging_log_level", str(config.logging.log_level))
+
+        except Exception as e:  # pragma: no cover - defensive
+            get_project_logger(__name__).warning(
+                f"Failed to log some training parameters: {e}"
+            )
 
 
 def log_final_metrics_to_mlflow(
