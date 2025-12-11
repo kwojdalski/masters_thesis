@@ -33,6 +33,7 @@ class EnvConfig:
     positions: list[int] = field(default_factory=lambda: [-1, 0, 1])
     trading_fees: float = 0.0  # 0.01% = 0.0001
     borrow_interest_rate: float = 0.0  # 0.0003% = 0.000003
+    backend: str = "gym_anytrading.forex"  # Backend type: gym_trading_env.discrete, gym_trading_env.continuous, gym_anytrading.forex, gym_anytrading.stocks
 
 
 @dataclass
@@ -205,7 +206,7 @@ class ExperimentConfig:
             train_dict = config_dict["training"]
             for key, value in train_dict.items():
                 if key == "max_training_steps":
-                    setattr(config.training, "max_steps", value)
+                    config.training.max_steps = value
                     continue
                 if hasattr(config.training, key):
                     setattr(config.training, key, value)
@@ -264,6 +265,7 @@ class ExperimentConfig:
                 "positions": self.env.positions,
                 "trading_fees": self.env.trading_fees,
                 "borrow_interest_rate": self.env.borrow_interest_rate,
+                "backend": self.env.backend,
             },
             "network": {
                 "actor_hidden_dims": self.network.actor_hidden_dims,

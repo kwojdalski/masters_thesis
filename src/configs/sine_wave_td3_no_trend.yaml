@@ -2,7 +2,7 @@
 # =========================================================
 
 experiment_name: "sine_wave_td3_no_trend"
-seed: 99  # Fixed seed for reproducibility
+#seed: 99  # Fixed seed for reproducibility
 
 # Data Configuration - Pure Sine Wave Pattern (No Trend)
 data:
@@ -22,6 +22,7 @@ env:
   positions: [-1, 0, 1]  # Short, hold, long
   trading_fees: 0.0  # No fees for synthetic validation
   borrow_interest_rate: 0.0
+  backend: "gym_anytrading.forex"
 
 # Network Architecture - For oscillating pattern recognition
 network:

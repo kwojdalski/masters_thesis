@@ -324,90 +324,50 @@ def create_td3_qvalue_network(
 
 
 class StackedQValueNetwork(TensorDictModule):
-
-
     """
-
-
     A TensorDictModule that combines two Q-value networks (ValueOperator) and stacks their outputs.
-
-
     The combined module takes 'observation' and 'action' and outputs 'state_action_value'
-
-
     where the last dimension of 'state_action_value' contains the Q-values from each critic.
-
-
     """
-
 
     def __init__(self, qvalue_net1: ValueOperator, qvalue_net2: ValueOperator):
-
-
         # Pass a dummy nn.Identity() module as the 'module' argument
-
-
         # The actual logic is in the forward method of StackedQValueNetwork itself.
 
-
         super().__init__(
-
-
-            module=nn.Identity(), # Dummy module to satisfy TensorDictModule's __init__
-
-
-            in_keys=qvalue_net1.in_keys, # Assume in_keys are consistent
-
-
-            out_keys=qvalue_net1.out_keys # Assume out_keys are consistent
-
-
+            module=nn.Identity(),  # Dummy module to satisfy TensorDictModule's __init__
+            in_keys=qvalue_net1.in_keys,  # Assume in_keys are consistent
+            out_keys=qvalue_net1.out_keys,  # Assume out_keys are consistent
         )
-
 
         self.qvalue_nets = nn.ModuleList([qvalue_net1, qvalue_net2])
 
+        def forward(self, tensordict: TensorDict) -> TensorDict:
+            # Call each Q-network sequentially, passing a clone to avoid in-place modification issues
 
+            q_outputs = []
 
+            for q_net in self.qvalue_nets:
+                q_output_td = q_net(
+                    tensordict.clone()
+                )  # Clone to prevent in-place modification of tensordict for next net
 
+                q_outputs.append(
+                    q_output_td.get(self.out_keys[0])
+                )  # Assuming single output key for ValueOperator
 
-    def forward(self, tensordict: TensorDict) -> TensorDict:
+            # Concatenate the Q-values along the last dimension
 
+            # Each q_output is [..., 1]. We want [..., 2].
 
-        # Call each Q-network sequentially, passing a clone to avoid in-place modification issues
+            stacked_q_values = torch.cat(
+                q_outputs, dim=-1
+            )  # Output shape will be [..., 2]
 
+            # Set the stacked Q-values in the original tensordict
+            tensordict.set(self.out_keys[0], stacked_q_values)
 
-        q_outputs = []
-
-
-        for q_net in self.qvalue_nets:
-
-
-            q_output_td = q_net(tensordict.clone()) # Clone to prevent in-place modification of tensordict for next net
-
-
-            q_outputs.append(q_output_td.get(self.out_keys[0])) # Assuming single output key for ValueOperator
-
-
-
-
-
-        # Stack the Q-values along a new dimension
-
-
-        stacked_q_values = torch.stack(q_outputs, dim=-1) # Output shape will be [..., 1, 2]
-
-
-
-
-
-        # Set the stacked Q-values in the original tensordict
-
-
-        tensordict.set(self.out_keys[0], stacked_q_values)
-
-
-        return tensordict
+            return tensordict
 
 
 def create_td3_twin_qvalue_network(
@@ -437,7 +397,9 @@ def create_td3_twin_qvalue_network(
         out_keys=["state_action_value"],
     )
 
-    logger.info(f"TD3 twin Q-value network created with hidden_dims={hidden_dims}, outputs={num_qvalue_nets}")
+    logger.info(
+        f"TD3 twin Q-value network created with hidden_dims={hidden_dims}, outputs={num_qvalue_nets}"
+    )
     return value_net
 
 

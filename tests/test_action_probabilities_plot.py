@@ -3,8 +3,6 @@ Test module for action probabilities plotting functionality.
 """
 
 import os
-
-# Import the function we want to test
 import sys
 from unittest.mock import Mock
 
@@ -14,7 +12,7 @@ import torch
 from tensordict import TensorDict
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from trading_rl.train_trading_agent import _create_action_probabilities_plot
+from trading_rl.trainers.ppo import PPOTrainer
 
 
 class TestActionProbabilitiesPlot:
@@ -93,7 +91,7 @@ class TestActionProbabilitiesPlot:
         max_steps = 10
 
         # Call the function
-        plot = _create_action_probabilities_plot(
+        plot = PPOTrainer._build_action_probabilities_plot(
             self.mock_env, self.mock_actor, max_steps
         )
 
@@ -114,7 +112,7 @@ class TestActionProbabilitiesPlot:
         max_steps = 9  # Test with 9 steps
 
         # Call the function
-        plot = _create_action_probabilities_plot(
+        plot = PPOTrainer._build_action_probabilities_plot(
             self.mock_env, self.mock_actor, max_steps
         )
 
@@ -153,24 +151,24 @@ class TestActionProbabilitiesPlot:
         max_steps = 5
 
         # Call the function
-        _create_action_probabilities_plot(self.mock_env, self.mock_actor, max_steps)
+        PPOTrainer._build_action_probabilities_plot(
+            self.mock_env, self.mock_actor, max_steps
+        )
 
         # Verify that actor was called with proper observation tensors
         for call in self.mock_actor.call_args_list:
             obs_arg = call[0][0]  # First argument to actor call
 
-            # Verify it's a tensor (not a TensorDict)
-            assert isinstance(obs_arg, torch.Tensor)
-
-            # Verify it has the expected shape (should be observation data)
-            assert obs_arg.shape[-1] == 6  # Should be 6 features
+            # Actor now receives a TensorDict with observation key
+            assert isinstance(obs_arg, TensorDict)
+            assert "observation" in obs_arg.keys()
 
     def test_episode_termination_handling(self):
         """Test that the function properly handles episode termination."""
         max_steps = 15  # More than our mock episode length
 
         # Call the function
-        plot = _create_action_probabilities_plot(
+        plot = PPOTrainer._build_action_probabilities_plot(
             self.mock_env, self.mock_actor, max_steps
         )
 
@@ -192,7 +190,9 @@ class TestActionProbabilitiesPlot:
         max_steps = 10
 
         # Call the function - should not raise but return fallback plot
-        plot = _create_action_probabilities_plot(self.mock_env, broken_actor, max_steps)
+        plot = PPOTrainer._build_action_probabilities_plot(
+            self.mock_env, broken_actor, max_steps
+        )
 
         # Verify that a plot is still returned (fallback behavior)
         assert plot is not None
@@ -202,7 +202,7 @@ class TestActionProbabilitiesPlot:
         max_steps = 500  # Large number
 
         # Call the function
-        plot = _create_action_probabilities_plot(
+        plot = PPOTrainer._build_action_probabilities_plot(
             self.mock_env, self.mock_actor, max_steps
         )
 

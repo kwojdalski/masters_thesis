@@ -20,6 +20,8 @@ env:
   positions: [-1, 0, 1]  # Short, hold, long
   trading_fees: 0.0
   borrow_interest_rate: 0.0
+  # backend: "gym_trading_env.discrete"
+  backend: "gym_anytrading.forex"
 
 network:
   actor_hidden_dims: [64, 32]

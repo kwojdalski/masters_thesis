@@ -4,10 +4,10 @@ A reinforcement learning framework for trading strategies using PyTorch and Torc
 
 ## Features
 
-- **Deep RL Trading Agents**: DDPG and PPO pipelines with custom trading environments
-- **Experiment Tracking**: MLflow integration with real-time metrics and logging
+- **Deep RL Trading Agents**: PPO, DDPG, TD3 pipelines with custom trading environments
+- **Experiment Tracking**: MLflow integration with config/data artifacts, combined evaluation plots, and metrics
 - **CLI Interface**: command-line tools using Typer and Rich
-- **Comprehensive Analytics**: Detailed performance tracking and visualization
+- **Comprehensive Analytics**: Reward/action comparisons plus PPO action-probability visualization
 - **Modular Architecture**: Reusable components for research
 
 
@@ -65,8 +65,8 @@ masters_thesis/
 │   │   ├── __init__.py       # Package exports
 │   │   ├── config.py         # Configuration classes
 │   │   ├── data_utils.py     # Data processing utilities
-│   │   ├── models.py         # Neural network models
-│   │   ├── training.py       # DDPG trainer implementation
+│   │   ├── models.py         # Neural network model factories
+│   │   ├── trainers/         # PPO, DDPG, TD3 trainer implementations (build_models + train)
 │   │   ├── train_trading_agent.py  # MLflow-enabled training orchestration
 │   │   └── utils.py          # Helper utilities
 │   ├── cli.py                # Command-line interface

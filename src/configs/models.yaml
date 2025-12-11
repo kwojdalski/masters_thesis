@@ -1,0 +1,38 @@
+# =============================================================================
+# Model Architecture Configuration
+# =============================================================================
+# This file defines the neural network architectures for the RL agents.
+# It allows you to specify the hidden layer sizes for the actor (policy) and
+# critic (value) networks on a per-algorithm basis.
+# =============================================================================
+
+model:
+  # --- Configuration for the PPO (Proximal Policy Optimization) Algorithm ---
+  ppo:
+    actor:
+      # Defines the size and number of hidden layers for the PPO actor network.
+      # Corresponds to the `hidden_dims` parameter in `create_ppo_actor`.
+      # The default in the code is [64, 32].
+      hidden_dims: [128, 128]
+
+    critic:
+      # Defines the hidden layers for the PPO critic (state-value) network.
+      # Corresponds to the `hidden_dims` in `create_ppo_value_network`.
+      # This network estimates V(s). The default is [64, 32, 16].
+      hidden_dims: [128, 128]
+
+  # --- Configuration for TD3 (Twin Delayed DDPG) and DDPG Algorithms ---
+  # TD3 and DDPG use the same fundamental network structures, so they can
+  # share a configuration block.
+  td3:
+    actor:
+      # Defines the hidden layers for the deterministic TD3/DDPG actor.
+      # Corresponds to the `hidden_dims` in `create_td3_actor`.
+      # The default in the code is [64, 32].
+      hidden_dims: [256, 256]
+
+    critic:
+      # Defines the hidden layers for the TD3 twin critic (Q-value) network.
+      # Corresponds to the `hidden_dims` in `create_td3_twin_qvalue_network`.
+      # This network estimates Q(s, a). The default is [64, 32, 16].
+      hidden_dims: [256, 256]
