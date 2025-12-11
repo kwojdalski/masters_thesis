@@ -1,6 +1,7 @@
 """MLflow callback and utilities for training logging."""
 
 import json
+import logging
 import os
 import tempfile
 from pathlib import Path
@@ -676,6 +677,7 @@ class MLflowTrainingCallback:
 
         import contextlib
         import io
+        import tempfile
         import warnings
 
         from plotnine.exceptions import PlotnineWarning
@@ -689,13 +691,12 @@ class MLflowTrainingCallback:
             ):
                 yield
 
+        saved_paths: dict[str, str] = {}
+
         try:
 
             def _save_plot_as_artifact(plot_obj, suffix, artifact_dir, logger):
                 """Helper to save plot to temp file and log as MLflow artifact."""
-                import os
-                import tempfile
-
                 with tempfile.NamedTemporaryFile(
                     suffix=suffix, delete=False
                 ) as tmp_file:
@@ -710,12 +711,19 @@ class MLflowTrainingCallback:
                             plot_obj.savefig(tmp_path, dpi=150)
                         else:
                             raise RuntimeError("Unsupported plot object for saving")
-                    mlflow.log_artifact(tmp_path, artifact_dir)
+                    # Temporarily silence noisy third-party loggers during save
+
+                    pil_logger = logging.getLogger("PIL.PngImagePlugin")
+                    previous_level = pil_logger.level
+                    pil_logger.setLevel(logging.INFO)
+                    try:
+                        mlflow.log_artifact(tmp_path, artifact_dir)
+                    finally:
+                        pil_logger.setLevel(previous_level)
+                    saved_paths[suffix] = tmp_path
                 except Exception:
                     logger.exception(f"Failed to save {suffix} plot")
-                finally:
-                    if os.path.exists(tmp_path):
-                        os.unlink(tmp_path)
+                # cleanup deferred for optional combination
 
             # Save reward plot using plotnine
             _save_plot_as_artifact(
@@ -735,6 +743,8 @@ class MLflowTrainingCallback:
                     "evaluation_plots",
                     logger,
                 )
+            else:
+                logger.info("Action probability plot missing; skipping that artifact")
 
             # Create and save training loss plots
             if logs and (logs.get("loss_value") or logs.get("loss_actor")):
@@ -776,6 +786,77 @@ class MLflowTrainingCallback:
                         loss_plot, "_training_losses.png", "training_plots", logger
                     )
 
+            # Combine existing evaluation plots using plotnine patchwork when available
+            combined_path = None
+            try:
+                from plotnine import patchwork  # type: ignore
+
+                combined_plot = None
+                if reward_plot is not None and action_plot is not None:
+                    combined_plot = reward_plot | action_plot
+                    if action_probs_plot is not None:
+                        combined_plot = combined_plot / action_probs_plot
+                elif reward_plot is not None:
+                    combined_plot = reward_plot
+                elif action_plot is not None:
+                    combined_plot = action_plot
+                elif action_probs_plot is not None:
+                    combined_plot = action_probs_plot
+
+                if combined_plot is not None:
+                    _save_plot_as_artifact(
+                        combined_plot,
+                        "_combined_evaluation.png",
+                        "evaluation_plots",
+                        logger,
+                    )
+            except ImportError:
+                # Fallback: combine PNGs with Pillow in a (p1 | p2) / p3 layout
+                if {
+                    "_rewards.png",
+                    "_positions.png",
+                    "_action_probabilities.png",
+                } <= set(saved_paths.keys()):
+                    try:
+                        from PIL import Image
+
+                        reward_img = Image.open(saved_paths["_rewards.png"])
+                        action_img = Image.open(saved_paths["_positions.png"])
+                        probs_img = Image.open(saved_paths["_action_probabilities.png"])
+
+                        top_width = reward_img.width + action_img.width
+                        top_height = max(reward_img.height, action_img.height)
+                        bottom_width = probs_img.width
+                        bottom_height = probs_img.height
+
+                        combined_width = max(top_width, bottom_width)
+                        combined_height = top_height + bottom_height
+
+                        combined = Image.new(
+                            "RGB", (combined_width, combined_height), "white"
+                        )
+                        combined.paste(reward_img, (0, 0))
+                        combined.paste(action_img, (reward_img.width, 0))
+                        combined.paste(probs_img, (0, top_height))
+
+                        with tempfile.NamedTemporaryFile(
+                            suffix="_combined_evaluation.png", delete=False
+                        ) as tmp_combined:
+                            combined.save(tmp_combined.name, format="PNG")
+                            mlflow.log_artifact(tmp_combined.name, "evaluation_plots")
+                            combined_path = tmp_combined.name
+                    except (
+                        Exception
+                    ) as combine_error:  # pragma: no cover - logging only
+                        logger.warning(
+                            f"Failed to create combined evaluation plot: {combine_error}"
+                        )
+
             logger.info("Saved evaluation and training plots as MLflow artifacts")
         except Exception as e:  # pragma: no cover - defensive logging only
             logger.warning(f"Failed to save plots as artifacts: {e}")
+        finally:
+            # Clean up temporary files we kept for optional combination
+            for path in saved_paths.values():
+                if os.path.exists(path):
+                    os.unlink(path)

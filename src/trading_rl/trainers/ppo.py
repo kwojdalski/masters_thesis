@@ -240,7 +240,7 @@ class PPOTrainer(BaseTrainer):
     def _build_action_probabilities_plot(env, actor, max_steps, df=None, config=None):
         """Create a plot showing action probability distributions over time steps for PPO."""
         try:
-            max_viz_steps = min(max_steps, 200)
+            max_viz_steps = max_steps
             max_episode_length = 20
 
             with torch.no_grad():
