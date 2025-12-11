@@ -18,6 +18,7 @@ from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
 from trading_rl.config import TrainingConfig
+from trading_rl.models import create_td3_actor, create_td3_qvalue_network
 from trading_rl.trainers.base import BaseTrainer
 
 logger = get_logger(__name__)
@@ -78,6 +79,29 @@ class TD3Trainer(BaseTrainer):
             "Exploration Noise Std: %.3f",
             getattr(config, "exploration_noise_std", 0.1),
         )
+
+    @staticmethod
+    def build_models(n_obs: int, n_act: int, config: Any, env: Any):
+        """Factory for TD3 actor and Q-value networks."""
+        actor = create_td3_actor(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.actor_hidden_dims,
+            spec=env.action_spec,
+        )
+        qvalue_nets = [
+            create_td3_qvalue_network(
+                n_obs,
+                n_act,
+                hidden_dims=config.network.value_hidden_dims,
+            ),
+            create_td3_qvalue_network(
+                n_obs,
+                n_act,
+                hidden_dims=config.network.value_hidden_dims,
+            ),
+        ]
+        return actor, qvalue_nets
 
         # TD3 uses two critics; pass a single base net and let TD3Loss duplicate internally
         base_qvalue_net = qvalue_nets[0]

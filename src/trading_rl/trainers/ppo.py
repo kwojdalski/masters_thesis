@@ -25,6 +25,7 @@ from plotnine import (
 
 from logger import get_logger
 from trading_rl.config import TrainingConfig
+from trading_rl.models import create_ppo_actor, create_ppo_value_network
 from trading_rl.trainers.base import BaseTrainer
 
 logger = get_logger(__name__)
@@ -212,6 +213,21 @@ class PPOTrainer(BaseTrainer):
         self.total_episodes = checkpoint["total_episodes"]
         self.logs = defaultdict(list, checkpoint["logs"])
         logger.info(f"PPO checkpoint loaded from {path}")
+
+    @staticmethod
+    def build_models(n_obs: int, n_act: int, config: Any, env: Any):
+        """Factory for PPO actor and value network."""
+        actor = create_ppo_actor(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.actor_hidden_dims,
+            spec=env.action_spec,
+        )
+        value_net = create_ppo_value_network(
+            n_obs,
+            hidden_dims=config.network.value_hidden_dims,
+        )
+        return actor, value_net
 
     def create_action_probabilities_plot(
         self, max_steps: int, df=None, config=None

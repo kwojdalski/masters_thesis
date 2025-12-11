@@ -79,6 +79,11 @@ class BaseTrainer(ABC):
         if enable_composite_lp:
             set_composite_lp_aggregate(True).set()
 
+    @staticmethod
+    @abstractmethod
+    def build_models(n_obs: int, n_act: int, config: Any, env: Any):
+        """Factory method that returns the actor and value/Q networks for the trainer."""
+
     @abstractmethod
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int

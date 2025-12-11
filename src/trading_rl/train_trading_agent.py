@@ -35,14 +35,6 @@ from logger import setup_logging as configure_root_logging
 from trading_rl.config import ExperimentConfig
 from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
 from trading_rl.data_utils import prepare_data, reward_function
-from trading_rl.models import (
-    create_actor,
-    create_ppo_actor,
-    create_ppo_value_network,
-    create_td3_actor,
-    create_td3_qvalue_network,
-    create_value_network,
-)
 from trading_rl.plotting import visualize_training
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 from trading_rl.utils import compare_rollouts
@@ -756,54 +748,15 @@ def run_single_experiment(
     algorithm = getattr(config.training, "algorithm", "PPO")
     logger.info(f"Creating models for {algorithm} algorithm...")
 
-    qvalue_nets: list[Any] | None = None
-    # Actor and value network depend on algorithm
     if algorithm.upper() == "PPO":
-        # PPO needs actor with log prob outputs
-        actor = create_ppo_actor(
-            n_obs,
-            n_act,
-            hidden_dims=config.network.actor_hidden_dims,
-            spec=env.action_spec,
-        )
-        value_net = create_ppo_value_network(
-            n_obs,
-            hidden_dims=config.network.value_hidden_dims,
-        )
+        actor, value_net = PPOTrainer.build_models(n_obs, n_act, config, env)
+        qvalue_nets = None
     elif algorithm.upper() == "TD3":
-        actor = create_td3_actor(
-            n_obs,
-            n_act,
-            hidden_dims=config.network.actor_hidden_dims,
-            spec=env.action_spec,
-        )
-        qvalue_nets = [
-            create_td3_qvalue_network(
-                n_obs,
-                n_act,
-                hidden_dims=config.network.value_hidden_dims,
-            ),
-            create_td3_qvalue_network(
-                n_obs,
-                n_act,
-                hidden_dims=config.network.value_hidden_dims,
-            ),
-        ]
+        actor, qvalue_nets = TD3Trainer.build_models(n_obs, n_act, config, env)
         value_net = qvalue_nets
-
     else:  # DDPG
-        # DDPG uses original actor
-        actor = create_actor(
-            n_obs,
-            n_act,
-            hidden_dims=config.network.actor_hidden_dims,
-            spec=env.action_spec,
-        )
-        value_net = create_value_network(
-            n_obs,
-            n_act,
-            hidden_dims=config.network.value_hidden_dims,
-        )
+        actor, value_net = DDPGTrainer.build_models(n_obs, n_act, config, env)
+        qvalue_nets = None
 
     # Create trainer based on algorithm
     logger.info(f"Initializing {algorithm} trainer...")
