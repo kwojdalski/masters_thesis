@@ -5,7 +5,6 @@ import time
 from collections import defaultdict
 from typing import Any
 
-import numpy as np
 import torch
 from tensordict.nn import InteractionType, TensorDictSequential
 from torch.optim import Adam
@@ -80,30 +79,7 @@ class TD3Trainer(BaseTrainer):
             getattr(config, "exploration_noise_std", 0.1),
         )
 
-    @staticmethod
-    def build_models(n_obs: int, n_act: int, config: Any, env: Any):
-        """Factory for TD3 actor and Q-value networks."""
-        actor = create_td3_actor(
-            n_obs,
-            n_act,
-            hidden_dims=config.network.actor_hidden_dims,
-            spec=env.action_spec,
-        )
-        qvalue_nets = [
-            create_td3_qvalue_network(
-                n_obs,
-                n_act,
-                hidden_dims=config.network.value_hidden_dims,
-            ),
-            create_td3_qvalue_network(
-                n_obs,
-                n_act,
-                hidden_dims=config.network.value_hidden_dims,
-            ),
-        ]
-        return actor, qvalue_nets
-
-        # TD3 uses two critics; pass a single base net and let TD3Loss duplicate internally
+        # TD3 uses two critics; configure loss and optimizers
         base_qvalue_net = qvalue_nets[0]
         num_qvalue_nets = 2
 
@@ -117,7 +93,6 @@ class TD3Trainer(BaseTrainer):
             loss_function=getattr(config, "loss_function", "smooth_l1"),
             delay_actor=getattr(config, "delay_actor", True),
             delay_qvalue=getattr(config, "delay_qvalue", True),
-            # Remove gamma parameter completely - let TD3Loss use defaults
         )
 
         for attr in ("actor_network_params", "qvalue_network_params"):
@@ -152,6 +127,29 @@ class TD3Trainer(BaseTrainer):
             getattr(config, "noise_clip", 0.5),
             self.policy_delay,
         )
+
+    @staticmethod
+    def build_models(n_obs: int, n_act: int, config: Any, env: Any):
+        """Factory for TD3 actor and Q-value networks."""
+        actor = create_td3_actor(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.actor_hidden_dims,
+            spec=env.action_spec,
+        )
+        qvalue_nets = [
+            create_td3_qvalue_network(
+                n_obs,
+                n_act,
+                hidden_dims=config.network.value_hidden_dims,
+            ),
+            create_td3_qvalue_network(
+                n_obs,
+                n_act,
+                hidden_dims=config.network.value_hidden_dims,
+            ),
+        ]
+        return actor, qvalue_nets
 
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int
@@ -248,7 +246,9 @@ class TD3Trainer(BaseTrainer):
                 current_step = batch_idx * self.config.optim_steps_per_batch + j
                 self.callback.log_training_step(current_step, actor_loss, value_loss)
 
-            if j % self.config.log_interval == 0:
+            # Log progress similar to PPO (info level)
+
+            if j % max(1, self.config.log_interval) == 0:
                 self._log_progress(max_length, buffer_len, loss_vals)
 
             if j % self.config.eval_interval == 0:

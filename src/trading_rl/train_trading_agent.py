@@ -1,4 +1,4 @@
-"""Main training script for DDPG trading agent - refactored version.
+"""Main training script for trading agent - refactored version.
 
 This is a clean, modular version of the trading RL training script.
 All configuration, data processing, models, and training logic have been
@@ -628,7 +628,7 @@ def run_single_experiment(
         progress_bar=progress_bar,
         total_episodes=estimated_episodes if progress_bar else None,
     )
-
+    setup_logging(config)
     # Train
     logger.info("Starting training...")
     logs = trainer.train(callback=mlflow_callback)
