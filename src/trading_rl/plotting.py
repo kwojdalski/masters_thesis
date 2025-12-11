@@ -17,7 +17,6 @@ from plotnine import (
     ggsave,
     labs,
     theme,
-    theme_minimal,
 )
 
 from logger import get_logger
@@ -116,7 +115,6 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
         ggplot(plot_data, aes(x="trial", y="value", fill="metric_type"))
         + geom_col(alpha=0.7, show_legend=False)
         + facet_wrap("metric_type", scales="free_y", ncol=1)
-        + theme_minimal()
         + labs(
             title=f"{experiment_name}: Experiment Comparison",
             x="Trial Number",

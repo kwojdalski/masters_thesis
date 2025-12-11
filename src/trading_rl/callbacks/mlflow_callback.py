@@ -435,15 +435,7 @@ class MLflowTrainingCallback:
             import tempfile
 
             import pandas as pd
-            from plotnine import (
-                aes,
-                element_text,
-                geom_line,
-                ggplot,
-                labs,
-                theme,
-                theme_minimal,
-            )
+            from plotnine import aes, element_text, geom_line, ggplot, labs, theme
 
             # Log dataset metadata
             mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
@@ -489,31 +481,16 @@ class MLflowTrainingCallback:
 
             for column in all_plot_columns:
                 try:
-                    if column == "volume":
-                        p = (
-                            ggplot(plot_df, aes(x="time_index", y=column))
-                            + geom_line(color="blue", size=0.8)
-                            + theme_minimal()
-                            + labs(
-                                title=f"{column.title()} Over Time",
-                                x="Time Index",
-                                y=column.title(),
-                            )
-                            + theme(plot_title=element_text(size=14, face="bold"))
+                    p = (
+                        ggplot(plot_df, aes(x="time_index", y=column))
+                        + geom_line(color="steelblue", size=0.8)
+                        + labs(
+                            title=f"{column.title()} Over Time",
+                            x="Time Index",
+                            y=column.title(),
                         )
-                    else:
-                        color = "green" if column == "close" else "steelblue"
-                        p = (
-                            ggplot(plot_df, aes(x="time_index", y=column))
-                            + geom_line(color=color, size=0.8)
-                            + theme_minimal()
-                            + labs(
-                                title=f"{column.title()} Over Time",
-                                x="Time Index",
-                                y=column.title(),
-                            )
-                            + theme(plot_title=element_text(size=14, face="bold"))
-                        )
+                        + theme(plot_title=element_text(size=14, face="bold"))
+                    )
 
                     with tempfile.NamedTemporaryFile(
                         suffix=".png", delete=False
@@ -546,7 +523,6 @@ class MLflowTrainingCallback:
                             aes(x="time_index", y="price", color="price_type"),
                         )
                         + geom_line(size=0.8)
-                        + theme_minimal()
                         + labs(
                             title="OHLC Prices Over Time",
                             x="Time Index",
@@ -749,7 +725,7 @@ class MLflowTrainingCallback:
             # Create and save training loss plots
             if logs and (logs.get("loss_value") or logs.get("loss_actor")):
                 import pandas as pd
-                from plotnine import aes, geom_line, ggplot, labs, theme_minimal
+                from plotnine import aes, geom_line, ggplot, labs
 
                 loss_data = []
                 if logs.get("loss_value"):
@@ -779,7 +755,6 @@ class MLflowTrainingCallback:
                             y="Loss Value",
                             color="Loss Type",
                         )
-                        + theme_minimal()
                     )
 
                     _save_plot_as_artifact(

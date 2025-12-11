@@ -52,7 +52,7 @@ training:
   loss_function: "l2"
   
   # Evaluation
-  eval_steps: 350  # Must be less than train_size (450)
+  eval_steps: 450  # Must be less than train_size (450)
   eval_interval: 120
   log_interval: 40
 

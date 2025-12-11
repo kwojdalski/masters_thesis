@@ -6,11 +6,6 @@ from typing import Any
 import pandas as pd
 import torch
 import torch.nn.functional as F
-from tensordict import TensorDict
-from tensordict.nn import InteractionType
-from torch.optim import Adam
-from torchrl.envs.utils import set_exploration_type
-from torchrl.objectives import ClipPPOLoss
 from plotnine import (
     aes,
     element_text,
@@ -20,8 +15,12 @@ from plotnine import (
     scale_fill_manual,
     scale_x_continuous,
     theme,
-    theme_minimal,
 )
+from tensordict import TensorDict
+from tensordict.nn import InteractionType
+from torch.optim import Adam
+from torchrl.envs.utils import set_exploration_type
+from torchrl.objectives import ClipPPOLoss
 
 from logger import get_logger
 from trading_rl.config import TrainingConfig
@@ -229,9 +228,7 @@ class PPOTrainer(BaseTrainer):
         )
         return actor, value_net
 
-    def create_action_probabilities_plot(
-        self, max_steps: int, df=None, config=None
-    ):  # noqa: D401
+    def create_action_probabilities_plot(self, max_steps: int, df=None, config=None):
         return self._build_action_probabilities_plot(
             self.env, self.actor, max_steps, df, config
         )
@@ -319,7 +316,10 @@ class PPOTrainer(BaseTrainer):
                             }
                         )
 
-                    if isinstance(actor_output, TensorDict) and "action" in actor_output.keys():
+                    if (
+                        isinstance(actor_output, TensorDict)
+                        and "action" in actor_output.keys()
+                    ):
                         action = actor_output.get("action")
                     elif hasattr(actor_output, "sample"):
                         action = actor_output.sample()
@@ -336,17 +336,15 @@ class PPOTrainer(BaseTrainer):
                         action_tensor = F.one_hot(
                             action_tensor.long(), num_classes=len(action_names)
                         ).to(torch.float32)
-                    elif (
-                        action_tensor.dim() == 1
-                        and action_tensor.shape[0] != len(action_names)
+                    elif action_tensor.dim() == 1 and action_tensor.shape[0] != len(
+                        action_names
                     ):
                         action_tensor = F.one_hot(
                             action_tensor.long(), num_classes=len(action_names)
                         ).to(torch.float32)
 
-                    if (
-                        action_tensor.dim() == 1
-                        and action_tensor.shape[0] == len(action_names)
+                    if action_tensor.dim() == 1 and action_tensor.shape[0] == len(
+                        action_names
                     ):
                         action_tensor = action_tensor.unsqueeze(0)
 
@@ -370,7 +368,9 @@ class PPOTrainer(BaseTrainer):
                         action_td.set("action", action)
                         step_result = env_to_use.step(action_td)
                     else:
-                        raise RuntimeError("Environment observation is not a TensorDict")
+                        raise RuntimeError(
+                            "Environment observation is not a TensorDict"
+                        )
 
                     if "next" in step_result.keys():
                         next_obs = step_result.get("next").clone()
@@ -400,7 +400,6 @@ class PPOTrainer(BaseTrainer):
                     y="Probability",
                     fill="Action",
                 )
-                + theme_minimal()
                 + scale_fill_manual(
                     name="Action",
                     values={
@@ -443,7 +442,6 @@ class PPOTrainer(BaseTrainer):
                     x="Time Step",
                     y="Probability",
                 )
-                + theme_minimal()
                 + scale_fill_manual(
                     name="Action",
                     values={
