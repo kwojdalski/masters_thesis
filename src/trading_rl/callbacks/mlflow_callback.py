@@ -1,0 +1,256 @@
+"""MLflow callback and utilities for training logging."""
+
+import json
+import os
+import tempfile
+
+import mlflow
+import numpy as np
+
+from logger import get_logger as get_project_logger
+
+
+class MLflowTrainingCallback:
+    """Callback for logging training progress to MLflow.
+
+    Logs multiple metrics simultaneously:
+    - Actor and value losses
+    - Position changes and trading activity
+    - Portfolio values and rewards
+    - Custom plots and artifacts
+    """
+
+    def __init__(
+        self,
+        experiment_name: str = "trading_rl",
+        tracking_uri: str | None = None,
+        progress_bar=None,
+        total_episodes: int | None = None,
+    ):
+        self.step_count = 0
+        self.intermediate_losses = {"actor": [], "value": []}
+        self.position_change_counts: list[int] = []
+        self.training_stats = {
+            "episode_rewards": [],
+            "portfolio_valuations": [],
+            "actions_taken": [],
+            "exploration_ratio": [],
+            "position_change_counts": [],
+        }
+
+        # Progress bar tracking
+        self.progress_bar = progress_bar
+        self.progress_task = None
+        self.total_episodes = total_episodes
+
+        if tracking_uri:
+            mlflow.set_tracking_uri(tracking_uri)
+        mlflow.set_experiment(experiment_name)
+
+        # Start run if not already active
+        if not mlflow.active_run():
+            mlflow.start_run()
+
+        # Initialize progress bar task if provided
+        if self.progress_bar and self.total_episodes:
+            self.progress_task = self.progress_bar.add_task(
+                "[cyan]Training Episodes", total=self.total_episodes
+            )
+
+    def log_training_step(self, step: int, actor_loss: float, value_loss: float):
+        """Log losses from a training step to MLflow.
+
+        Logs multiple metrics simultaneously for rich tracking.
+        """
+        self.intermediate_losses["actor"].append(actor_loss)
+        self.intermediate_losses["value"].append(value_loss)
+        self.step_count = step
+
+        # Log losses to MLflow every step
+        mlflow.log_metric("actor_loss", actor_loss, step=step)
+        mlflow.log_metric("value_loss", value_loss, step=step)
+
+        # Log position changes if available
+        if self.position_change_counts:
+            window = min(len(self.position_change_counts), 100)
+            avg_position_changes = float(np.mean(self.position_change_counts[-window:]))
+            mlflow.log_metric("avg_position_changes", avg_position_changes, step=step)
+
+    def log_episode_stats(
+        self,
+        episode_reward: float,
+        portfolio_valuation: float,
+        actions: list,
+        exploration_ratio: float,
+    ):
+        """Log statistics from an episode to MLflow."""
+        self.training_stats["episode_rewards"].append(episode_reward)
+        self.training_stats["portfolio_valuations"].append(portfolio_valuation)
+        self.training_stats["actions_taken"].extend(actions)
+        self.training_stats["exploration_ratio"].append(exploration_ratio)
+
+        position_changes = self._count_position_changes(actions)
+        self.position_change_counts.append(position_changes)
+        self.training_stats["position_change_counts"].append(position_changes)
+
+        # Calculate position change ratio (position changes / episode length)
+        episode_length = len(actions)
+        position_change_ratio = (
+            position_changes / episode_length if episode_length > 0 else 0.0
+        )
+
+        # Log episode metrics to MLflow
+        episode_num = len(self.training_stats["episode_rewards"])
+        mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
+        mlflow.log_metric(
+            "episode_portfolio_valuation", portfolio_valuation, step=episode_num
+        )
+        mlflow.log_metric(
+            "episode_position_changes", position_changes, step=episode_num
+        )
+        mlflow.log_metric(
+            "episode_position_change_ratio", position_change_ratio, step=episode_num
+        )
+        mlflow.log_metric(
+            "episode_exploration_ratio", exploration_ratio, step=episode_num
+        )
+
+        # Update progress bar if available
+        if self.progress_bar and self.progress_task is not None:
+            self.progress_bar.update(
+                self.progress_task,
+                advance=1,
+                description=f"[cyan]Episode {episode_num} | Reward: {episode_reward:.4f} | Portfolio: ${portfolio_valuation:,.0f}",
+            )
+
+    def get_training_curves(self) -> dict:
+        """Get training curves for storage."""
+        return {
+            "actor_losses": self.intermediate_losses["actor"],
+            "value_losses": self.intermediate_losses["value"],
+            "episode_rewards": self.training_stats["episode_rewards"],
+            "portfolio_valuations": self.training_stats["portfolio_valuations"],
+            "exploration_ratios": self.training_stats["exploration_ratio"],
+            "position_change_counts": self.training_stats["position_change_counts"],
+        }
+
+    @staticmethod
+    def _count_position_changes(actions: list, tolerance: float = 1e-6) -> int:
+        """Count how often the agent changes positions within an episode."""
+        if len(actions) < 2:
+            return 0
+
+        changes = 0
+        prev_action = actions[0]
+        for action in actions[1:]:
+            if abs(action - prev_action) > tolerance:
+                changes += 1
+                prev_action = action
+        return changes
+
+
+def log_final_metrics_to_mlflow(
+    logs: dict,
+    final_metrics: dict,
+    training_callback: MLflowTrainingCallback = None,
+):
+    """Log final training metrics to MLflow.
+
+    Args:
+        logs: Training logs dictionary
+        final_metrics: Final evaluation metrics
+        training_callback: Optional callback with training data
+    """
+    logger = get_project_logger(__name__)
+    # Log final performance metrics
+    mlflow.log_metric("final_reward", final_metrics["final_reward"])
+    mlflow.log_metric("training_steps", final_metrics["training_steps"])
+    mlflow.log_metric("evaluation_steps", final_metrics["evaluation_steps"])
+
+    # Log position statistics from final episode
+    if "last_position_per_episode" in final_metrics:
+        positions = final_metrics["last_position_per_episode"]
+        if positions:
+            # Log position sequence length as metric
+            mlflow.log_metric("last_position_sequence_length", len(positions))
+            # Store full position sequence as artifact
+            position_str = json.dumps(positions[:100])  # Limit to first 100
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as f:
+                f.write(position_str)
+                f.flush()
+                mlflow.log_artifact(f.name, "position_data")
+                os.unlink(f.name)
+
+    if logs.get("loss_value") and len(logs["loss_value"]) > 0:
+        mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
+        # mlflow.log_metric("avg_value_loss", np.mean(logs["loss_value"]))
+    else:
+        logger.warning(
+            "No value loss data available for logging - training may have been skipped due to tensor shape issues"
+        )
+
+    if logs.get("loss_actor") and len(logs["loss_actor"]) > 0:
+        mlflow.log_metric("final_actor_loss", logs["loss_actor"][-1])
+        mlflow.log_metric("avg_actor_loss", np.mean(logs["loss_actor"]))
+    else:
+        logger.warning(
+            "No actor loss data available for logging - training may have been skipped due to tensor shape issues"
+        )
+
+    # Log training curves if callback provided
+    if training_callback:
+        training_curves = training_callback.get_training_curves()
+
+        # Log summary statistics
+        if training_curves["episode_rewards"]:
+            mlflow.log_metric(
+                "episode_avg_reward", np.mean(training_curves["episode_rewards"])
+            )
+            mlflow.log_metric(
+                "episode_max_reward", np.max(training_curves["episode_rewards"])
+            )
+            mlflow.log_metric(
+                "episode_min_reward", np.min(training_curves["episode_rewards"])
+            )
+
+        if training_curves["portfolio_valuations"]:
+            mlflow.log_metric(
+                "episode_portfolio_valuation",
+                training_curves["portfolio_valuations"][-1],
+            )
+
+        # Removed avg_exploration_ratio metric
+
+        if training_curves["position_change_counts"]:
+            position_changes = training_curves["position_change_counts"]
+            mlflow.log_metric(
+                "episode_avg_position_change", float(np.mean(position_changes))
+            )
+            # Removed max_position_changes_per_episode metric
+            mlflow.log_metric("total_position_changes", int(np.sum(position_changes)))
+
+            # Calculate and log average position change ratio
+            # Note: We need episode lengths to calculate this properly
+            # For now, we'll estimate based on total actions vs episodes
+            total_episodes = len(training_curves["episode_rewards"])
+            total_actions = (
+                len(training_callback.training_stats["actions_taken"])
+                if training_callback
+                else 0
+            )
+            avg_episode_length = (
+                total_actions / total_episodes
+                if total_episodes > 0 and total_actions > 0
+                else 1.0
+            )
+
+            # Avoid division by zero
+            if avg_episode_length > 0:
+                avg_position_change_ratio = (
+                    np.mean(position_changes) / avg_episode_length
+                )
+                mlflow.log_metric(
+                    "episode_avg_position_change_ratio", avg_position_change_ratio
+                )
