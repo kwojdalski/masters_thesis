@@ -629,6 +629,11 @@ def run_single_experiment(
         total_episodes=estimated_episodes if progress_bar else None,
     )
     setup_logging(config)
+    if mlflow.active_run():
+        MLflowTrainingCallback.log_parameter_faq_artifact()
+        MLflowTrainingCallback.log_training_parameters(config)
+        MLflowTrainingCallback.log_config_artifact(config)
+        MLflowTrainingCallback.log_data_overview(df, config)
     # Train
     logger.info("Starting training...")
     logs = trainer.train(callback=mlflow_callback)
