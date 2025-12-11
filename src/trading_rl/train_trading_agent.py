@@ -32,13 +32,13 @@ from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger as get_project_logger
 from logger import setup_logging as configure_root_logging
+from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
 from trading_rl.data_utils import prepare_data, reward_function
 from trading_rl.plotting import visualize_training
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 from trading_rl.utils import compare_rollouts
-from trading_rl.callbacks import MLflowTrainingCallback, log_final_metrics_to_mlflow
 
 # Avoid torch_shm_manager requirement in restricted environments
 mp.set_sharing_strategy("file_system")
@@ -567,168 +567,8 @@ def run_single_experiment(
         # Log YAML config file as artifact if available
         MLflowTrainingCallback.log_config_artifact(config)
 
-        # Log dataset metadata
-        mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
-        mlflow.log_param("dataset_columns", list(df.columns))
-        mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
-        mlflow.log_param("data_source", config.data.data_path)
-
-        # Price statistics removed as they are not relevant for model evaluation
-
-        # Log data sample as CSV artifact and generate plots
-        try:
-            import os
-            import tempfile
-
-            from plotnine import (
-                aes,
-                element_text,
-                geom_line,
-                ggplot,
-                labs,
-                theme,
-                theme_minimal,
-            )
-
-            warnings.filterwarnings("ignore")  # Suppress plotnine warnings
-
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".csv", delete=False
-            ) as f:
-                # Get first 50 rows for overview
-                sample_df = df.head(50)
-                sample_df.to_csv(f.name)
-                mlflow.log_artifact(f.name, "data_overview")
-                os.unlink(f.name)  # Clean up temp file
-
-            # Also log data statistics summary
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".txt", delete=False
-            ) as f:
-                f.write("Dataset Overview\n")
-                f.write("================\n\n")
-                f.write(f"Shape: {df.shape}\n")
-                f.write(f"Columns: {list(df.columns)}\n")
-                f.write(f"Date Range: {df.index.min()} to {df.index.max()}\n\n")
-                f.write("Data Types:\n")
-                f.write(str(df.dtypes))
-                f.write("\n\nStatistical Summary:\n")
-                f.write(str(df.describe()))
-                f.flush()
-                mlflow.log_artifact(f.name, "data_overview")
-                os.unlink(f.name)  # Clean up temp file
-
-            # Generate plotnine plots for each variable
-            plot_df = df.head(200).reset_index()
-            plot_df["time_index"] = range(len(plot_df))  # Add explicit time index
-
-            # OHLCV columns to plot
-            ohlcv_columns = ["open", "high", "low", "close", "volume"]
-            available_columns = [col for col in ohlcv_columns if col in plot_df.columns]
-
-            # Also include any feature columns (non-OHLCV)
-            feature_columns = [
-                col
-                for col in plot_df.columns
-                if col not in [*ohlcv_columns, plot_df.columns[0], "time_index"]
-            ]
-
-            all_plot_columns = (
-                available_columns + feature_columns[:5]
-            )  # Limit features to avoid too many plots
-
-            for column in all_plot_columns:
-                try:
-                    # Create plot based on column type
-                    if column == "volume":
-                        # Line plot for volume
-                        p = (
-                            ggplot(plot_df, aes(x="time_index", y=column))
-                            + geom_line(color="blue", size=0.8)
-                            + theme_minimal()
-                            + labs(
-                                title=f"{column.title()} Over Time",
-                                x="Time Index",
-                                y=column.title(),
-                            )
-                            + theme(plot_title=element_text(size=14, face="bold"))
-                        )
-                    else:
-                        # Line plot for price/feature data
-                        color = "green" if column == "close" else "steelblue"
-                        p = (
-                            ggplot(plot_df, aes(x="time_index", y=column))
-                            + geom_line(color=color, size=0.8)
-                            + theme_minimal()
-                            + labs(
-                                title=f"{column.title()} Over Time",
-                                x="Time Index",
-                                y=column.title(),
-                            )
-                            + theme(plot_title=element_text(size=14, face="bold"))
-                        )
-
-                    # Save plot
-                    with tempfile.NamedTemporaryFile(
-                        suffix=".png", delete=False
-                    ) as plot_file:
-                        p.save(plot_file.name, width=8, height=5, dpi=150)
-                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
-                        os.unlink(plot_file.name)
-
-                except Exception as plot_error:
-                    logger.warning(f"Failed to create plot for {column}: {plot_error}")
-
-            # Create combined OHLC plot if all price columns are available
-            if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
-                try:
-                    # Ensure consistent data before melting
-                    ohlc_subset = plot_df[
-                        ["time_index", "open", "high", "low", "close"]
-                    ].copy()
-                    ohlc_subset = ohlc_subset.dropna()  # Remove any NaN values
-
-                    # Reshape data for multi-line plot
-                    import pandas as pd
-
-                    ohlc_melted = pd.melt(
-                        ohlc_subset,
-                        id_vars=["time_index"],
-                        value_vars=["open", "high", "low", "close"],
-                        var_name="price_type",
-                        value_name="price",
-                    )
-
-                    p_combined = (
-                        ggplot(
-                            ohlc_melted,
-                            aes(x="time_index", y="price", color="price_type"),
-                        )
-                        + geom_line(size=0.8)
-                        + theme_minimal()
-                        + labs(
-                            title="OHLC Prices Over Time",
-                            x="Time Index",
-                            y="Price",
-                            color="Price Type",
-                        )
-                        + theme(plot_title=element_text(size=14, face="bold"))
-                    )
-
-                    with tempfile.NamedTemporaryFile(
-                        suffix=".png", delete=False
-                    ) as plot_file:
-                        p_combined.save(plot_file.name, width=10, height=5, dpi=150)
-                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
-                        os.unlink(plot_file.name)
-
-                except Exception as combined_error:
-                    logger.warning(
-                        f"Failed to create combined OHLC plot: {combined_error}"
-                    )
-
-        except Exception as e:
-            logger.warning(f"Failed to log data overview: {e}")
+        # Log data overview artifacts via callback helper
+        MLflowTrainingCallback.log_data_overview(df, config)
 
     # Create environment
     logger.info("Creating environment...")
@@ -744,39 +584,32 @@ def run_single_experiment(
     logger.debug(f"  Action spec: {env.action_spec}")
     logger.debug(f"  Reward spec: {env.reward_spec}")
 
-    # Create models based on algorithm choice
-    algorithm = getattr(config.training, "algorithm", "PPO")
+    # Create models and trainer based on algorithm choice
+    algorithm = getattr(config.training, "algorithm", "PPO").upper()
     logger.info(f"Creating models for {algorithm} algorithm...")
 
-    if algorithm.upper() == "PPO":
-        actor, value_net = PPOTrainer.build_models(n_obs, n_act, config, env)
-        qvalue_nets = None
-    elif algorithm.upper() == "TD3":
-        actor, qvalue_nets = TD3Trainer.build_models(n_obs, n_act, config, env)
-        value_net = qvalue_nets
-    else:  # DDPG
-        actor, value_net = DDPGTrainer.build_models(n_obs, n_act, config, env)
-        qvalue_nets = None
+    trainer_cls_map = {
+        "PPO": PPOTrainer,
+        "TD3": TD3Trainer,
+        "DDPG": DDPGTrainer,
+    }
+    trainer_cls = trainer_cls_map.get(algorithm)
+    if not trainer_cls:
+        raise ValueError(f"Unsupported algorithm: {algorithm}")
 
-    # Create trainer based on algorithm
-    logger.info(f"Initializing {algorithm} trainer...")
-    if algorithm.upper() == "PPO":
-        trainer = PPOTrainer(
-            actor=actor,
-            value_net=value_net,
-            env=env,
-            config=config.training,
-        )
-    elif algorithm.upper() == "TD3":
-        # value_net holds the StackedQValueNetwork created earlier
-        trainer = TD3Trainer(
+    if algorithm == "TD3":
+        actor, qvalue_nets = trainer_cls.build_models(n_obs, n_act, config, env)
+        value_net = qvalue_nets
+        trainer = trainer_cls(
             actor=actor,
             qvalue_nets=qvalue_nets,
             env=env,
             config=config.training,
         )
-    else:  # DDPG
-        trainer = DDPGTrainer(
+    else:
+        actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
+        qvalue_nets = None
+        trainer = trainer_cls(
             actor=actor,
             value_net=value_net,
             env=env,
@@ -987,7 +820,7 @@ def run_single_experiment(
     }
 
     # Log final metrics to MLflow
-    log_final_metrics_to_mlflow(logs, final_metrics, mlflow_callback)
+    MLflowTrainingCallback.log_final_metrics(logs, final_metrics, mlflow_callback)
 
     logger.info("Training complete!")
     logger.info(f"Final reward: {final_reward:.4f}")

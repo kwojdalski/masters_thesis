@@ -411,109 +411,354 @@ class MLflowTrainingCallback:
         except Exception as e:
             logger.error(f"Error in FAQ artifact logging: {e}")
 
+    @staticmethod
+    def log_data_overview(df, config) -> None:
+        """Log dataset overview, sample, and quick visuals to MLflow."""
+        logger = get_project_logger(__name__)
 
-def log_final_metrics_to_mlflow(
-    logs: dict,
-    final_metrics: dict,
-    training_callback: MLflowTrainingCallback = None,
-):
-    """Log final training metrics to MLflow.
+        if not mlflow.active_run():
+            logger.warning("No active MLflow run - skipping data overview logging")
+            return
 
-    Args:
-        logs: Training logs dictionary
-        final_metrics: Final evaluation metrics
-        training_callback: Optional callback with training data
-    """
-    logger = get_project_logger(__name__)
-    # Log final performance metrics
-    mlflow.log_metric("final_reward", final_metrics["final_reward"])
-    mlflow.log_metric("training_steps", final_metrics["training_steps"])
-    mlflow.log_metric("evaluation_steps", final_metrics["evaluation_steps"])
+        try:
+            import tempfile
+            import pandas as pd
+            from plotnine import (
+                aes,
+                element_text,
+                geom_line,
+                ggplot,
+                labs,
+                theme,
+                theme_minimal,
+            )
 
-    # Log position statistics from final episode
-    if "last_position_per_episode" in final_metrics:
-        positions = final_metrics["last_position_per_episode"]
-        if positions:
-            # Log position sequence length as metric
-            mlflow.log_metric("last_position_sequence_length", len(positions))
-            # Store full position sequence as artifact
-            position_str = json.dumps(positions[:100])  # Limit to first 100
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as f:
-                f.write(position_str)
-                f.flush()
-                mlflow.log_artifact(f.name, "position_data")
+            # Log dataset metadata
+            mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
+            mlflow.log_param("dataset_columns", list(df.columns))
+            mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
+            mlflow.log_param("data_source", config.data.data_path)
+
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+                sample_df = df.head(50)
+                sample_df.to_csv(f.name)
+                mlflow.log_artifact(f.name, "data_overview")
                 os.unlink(f.name)
 
-    if logs.get("loss_value") and len(logs["loss_value"]) > 0:
-        mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
-        # mlflow.log_metric("avg_value_loss", np.mean(logs["loss_value"]))
-    else:
-        logger.warning(
-            "No value loss data available for logging - training may have been skipped due to tensor shape issues"
-        )
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+                f.write("Dataset Overview\n")
+                f.write("================\n\n")
+                f.write(f"Shape: {df.shape}\n")
+                f.write(f"Columns: {list(df.columns)}\n")
+                f.write(f"Date Range: {df.index.min()} to {df.index.max()}\n\n")
+                f.write("Data Types:\n")
+                f.write(str(df.dtypes))
+                f.write("\n\nStatistical Summary:\n")
+                f.write(str(df.describe()))
+                f.flush()
+                mlflow.log_artifact(f.name, "data_overview")
+                os.unlink(f.name)
 
-    if logs.get("loss_actor") and len(logs["loss_actor"]) > 0:
-        mlflow.log_metric("final_actor_loss", logs["loss_actor"][-1])
-        mlflow.log_metric("avg_actor_loss", np.mean(logs["loss_actor"]))
-    else:
-        logger.warning(
-            "No actor loss data available for logging - training may have been skipped due to tensor shape issues"
-        )
+            plot_df = df.head(200).reset_index()
+            plot_df["time_index"] = range(len(plot_df))
 
-    # Log training curves if callback provided
-    if training_callback:
-        training_curves = training_callback.get_training_curves()
+            ohlcv_columns = ["open", "high", "low", "close", "volume"]
+            available_columns = [col for col in ohlcv_columns if col in plot_df.columns]
+            feature_columns = [
+                col
+                for col in plot_df.columns
+                if col not in [*ohlcv_columns, plot_df.columns[0], "time_index"]
+            ]
+            all_plot_columns = available_columns + feature_columns[:5]
 
-        # Log summary statistics
-        if training_curves["episode_rewards"]:
-            mlflow.log_metric(
-                "episode_avg_reward", np.mean(training_curves["episode_rewards"])
+            for column in all_plot_columns:
+                try:
+                    if column == "volume":
+                        p = (
+                            ggplot(plot_df, aes(x="time_index", y=column))
+                            + geom_line(color="blue", size=0.8)
+                            + theme_minimal()
+                            + labs(
+                                title=f"{column.title()} Over Time",
+                                x="Time Index",
+                                y=column.title(),
+                            )
+                            + theme(plot_title=element_text(size=14, face="bold"))
+                        )
+                    else:
+                        color = "green" if column == "close" else "steelblue"
+                        p = (
+                            ggplot(plot_df, aes(x="time_index", y=column))
+                            + geom_line(color=color, size=0.8)
+                            + theme_minimal()
+                            + labs(
+                                title=f"{column.title()} Over Time",
+                                x="Time Index",
+                                y=column.title(),
+                            )
+                            + theme(plot_title=element_text(size=14, face="bold"))
+                        )
+
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as plot_file:
+                        p.save(plot_file.name, width=8, height=5, dpi=150)
+                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
+                        os.unlink(plot_file.name)
+
+                except Exception as plot_error:  # pragma: no cover - logging only
+                    logger.warning(f"Failed to create plot for {column}: {plot_error}")
+
+            if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
+                try:
+                    ohlc_subset = plot_df[["time_index", "open", "high", "low", "close"]].copy()
+                    ohlc_subset = ohlc_subset.dropna()
+
+                    ohlc_melted = pd.melt(
+                        ohlc_subset,
+                        id_vars=["time_index"],
+                        value_vars=["open", "high", "low", "close"],
+                        var_name="price_type",
+                        value_name="price",
+                    )
+
+                    p_combined = (
+                        ggplot(ohlc_melted, aes(x="time_index", y="price", color="price_type"))
+                        + geom_line(size=0.8)
+                        + theme_minimal()
+                        + labs(
+                            title="OHLC Prices Over Time",
+                            x="Time Index",
+                            y="Price",
+                            color="Price Type",
+                        )
+                        + theme(plot_title=element_text(size=14, face="bold"))
+                    )
+
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as plot_file:
+                        p_combined.save(plot_file.name, width=10, height=5, dpi=150)
+                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
+                        os.unlink(plot_file.name)
+
+                except Exception as combined_error:  # pragma: no cover - logging only
+                    logger.warning(f"Failed to create combined OHLC plot: {combined_error}")
+
+        except Exception as e:  # pragma: no cover - logging only
+            logger.warning(f"Failed to log data overview: {e}")
+    def log_data_overview(self, df, config) -> None:
+        """Log dataset overview, sample, and quick visuals to MLflow."""
+        logger = get_project_logger(__name__)
+
+        if not mlflow.active_run():
+            logger.warning("No active MLflow run - skipping data overview logging")
+            return
+
+        try:
+            import tempfile
+            import pandas as pd
+            from plotnine import (
+                aes,
+                element_text,
+                geom_line,
+                ggplot,
+                labs,
+                theme,
+                theme_minimal,
             )
-            mlflow.log_metric(
-                "episode_max_reward", np.max(training_curves["episode_rewards"])
-            )
-            mlflow.log_metric(
-                "episode_min_reward", np.min(training_curves["episode_rewards"])
+
+            # Log dataset metadata
+            mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
+            mlflow.log_param("dataset_columns", list(df.columns))
+            mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
+            mlflow.log_param("data_source", config.data.data_path)
+
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+                sample_df = df.head(50)
+                sample_df.to_csv(f.name)
+                mlflow.log_artifact(f.name, "data_overview")
+                os.unlink(f.name)
+
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+                f.write("Dataset Overview\n")
+                f.write("================\n\n")
+                f.write(f"Shape: {df.shape}\n")
+                f.write(f"Columns: {list(df.columns)}\n")
+                f.write(f"Date Range: {df.index.min()} to {df.index.max()}\n\n")
+                f.write("Data Types:\n")
+                f.write(str(df.dtypes))
+                f.write("\n\nStatistical Summary:\n")
+                f.write(str(df.describe()))
+                f.flush()
+                mlflow.log_artifact(f.name, "data_overview")
+                os.unlink(f.name)
+
+            plot_df = df.head(200).reset_index()
+            plot_df["time_index"] = range(len(plot_df))
+
+            ohlcv_columns = ["open", "high", "low", "close", "volume"]
+            available_columns = [col for col in ohlcv_columns if col in plot_df.columns]
+            feature_columns = [
+                col
+                for col in plot_df.columns
+                if col not in [*ohlcv_columns, plot_df.columns[0], "time_index"]
+            ]
+            all_plot_columns = available_columns + feature_columns[:5]
+
+            for column in all_plot_columns:
+                try:
+                    if column == "volume":
+                        p = (
+                            ggplot(plot_df, aes(x="time_index", y=column))
+                            + geom_line(color="blue", size=0.8)
+                            + theme_minimal()
+                            + labs(
+                                title=f"{column.title()} Over Time",
+                                x="Time Index",
+                                y=column.title(),
+                            )
+                            + theme(plot_title=element_text(size=14, face="bold"))
+                        )
+                    else:
+                        color = "green" if column == "close" else "steelblue"
+                        p = (
+                            ggplot(plot_df, aes(x="time_index", y=column))
+                            + geom_line(color=color, size=0.8)
+                            + theme_minimal()
+                            + labs(
+                                title=f"{column.title()} Over Time",
+                                x="Time Index",
+                                y=column.title(),
+                            )
+                            + theme(plot_title=element_text(size=14, face="bold"))
+                        )
+
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as plot_file:
+                        p.save(plot_file.name, width=8, height=5, dpi=150)
+                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
+                        os.unlink(plot_file.name)
+
+                except Exception as plot_error:  # pragma: no cover - logging only
+                    logger.warning(f"Failed to create plot for {column}: {plot_error}")
+
+            if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
+                try:
+                    ohlc_subset = plot_df[["time_index", "open", "high", "low", "close"]].copy()
+                    ohlc_subset = ohlc_subset.dropna()
+
+                    ohlc_melted = pd.melt(
+                        ohlc_subset,
+                        id_vars=["time_index"],
+                        value_vars=["open", "high", "low", "close"],
+                        var_name="price_type",
+                        value_name="price",
+                    )
+
+                    p_combined = (
+                        ggplot(ohlc_melted, aes(x="time_index", y="price", color="price_type"))
+                        + geom_line(size=0.8)
+                        + theme_minimal()
+                        + labs(
+                            title="OHLC Prices Over Time",
+                            x="Time Index",
+                            y="Price",
+                            color="Price Type",
+                        )
+                        + theme(plot_title=element_text(size=14, face="bold"))
+                    )
+
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as plot_file:
+                        p_combined.save(plot_file.name, width=10, height=5, dpi=150)
+                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
+                        os.unlink(plot_file.name)
+
+                except Exception as combined_error:  # pragma: no cover - logging only
+                    logger.warning(f"Failed to create combined OHLC plot: {combined_error}")
+
+        except Exception as e:  # pragma: no cover - logging only
+            logger.warning(f"Failed to log data overview: {e}")
+
+    @staticmethod
+    def log_final_metrics(
+        logs: dict,
+        final_metrics: dict,
+        training_callback: "MLflowTrainingCallback | None" = None,
+    ) -> None:
+        """Log final training metrics to MLflow."""
+        logger = get_project_logger(__name__)
+        mlflow.log_metric("final_reward", final_metrics["final_reward"])
+        mlflow.log_metric("training_steps", final_metrics["training_steps"])
+        mlflow.log_metric("evaluation_steps", final_metrics["evaluation_steps"])
+
+        if "last_position_per_episode" in final_metrics:
+            positions = final_metrics["last_position_per_episode"]
+            if positions:
+                mlflow.log_metric("last_position_sequence_length", len(positions))
+                position_str = json.dumps(positions[:100])
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as f:
+                    f.write(position_str)
+                    f.flush()
+                    mlflow.log_artifact(f.name, "position_data")
+                    os.unlink(f.name)
+
+        if logs.get("loss_value"):
+            mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
+        else:
+            logger.warning(
+                "No value loss data available for logging - training may have been skipped due to tensor shape issues"
             )
 
-        if training_curves["portfolio_valuations"]:
-            mlflow.log_metric(
-                "episode_portfolio_valuation",
-                training_curves["portfolio_valuations"][-1],
+        if logs.get("loss_actor"):
+            mlflow.log_metric("final_actor_loss", logs["loss_actor"][-1])
+            mlflow.log_metric("avg_actor_loss", np.mean(logs["loss_actor"]))
+        else:
+            logger.warning(
+                "No actor loss data available for logging - training may have been skipped due to tensor shape issues"
             )
 
-        # Removed avg_exploration_ratio metric
+        if training_callback:
+            training_curves = training_callback.get_training_curves()
 
-        if training_curves["position_change_counts"]:
-            position_changes = training_curves["position_change_counts"]
-            mlflow.log_metric(
-                "episode_avg_position_change", float(np.mean(position_changes))
-            )
-            # Removed max_position_changes_per_episode metric
-            mlflow.log_metric("total_position_changes", int(np.sum(position_changes)))
-
-            # Calculate and log average position change ratio
-            # Note: We need episode lengths to calculate this properly
-            # For now, we'll estimate based on total actions vs episodes
-            total_episodes = len(training_curves["episode_rewards"])
-            total_actions = (
-                len(training_callback.training_stats["actions_taken"])
-                if training_callback
-                else 0
-            )
-            avg_episode_length = (
-                total_actions / total_episodes
-                if total_episodes > 0 and total_actions > 0
-                else 1.0
-            )
-
-            # Avoid division by zero
-            if avg_episode_length > 0:
-                avg_position_change_ratio = (
-                    np.mean(position_changes) / avg_episode_length
+            if training_curves["episode_rewards"]:
+                mlflow.log_metric(
+                    "episode_avg_reward", np.mean(training_curves["episode_rewards"])
                 )
                 mlflow.log_metric(
-                    "episode_avg_position_change_ratio", avg_position_change_ratio
+                    "episode_max_reward", np.max(training_curves["episode_rewards"])
                 )
+                mlflow.log_metric(
+                    "episode_min_reward", np.min(training_curves["episode_rewards"])
+                )
+
+            if training_curves["portfolio_valuations"]:
+                mlflow.log_metric(
+                    "episode_portfolio_valuation",
+                    training_curves["portfolio_valuations"][-1],
+                )
+
+            if training_curves["position_change_counts"]:
+                position_changes = training_curves["position_change_counts"]
+                mlflow.log_metric(
+                    "episode_avg_position_change", float(np.mean(position_changes))
+                )
+                mlflow.log_metric("total_position_changes", int(np.sum(position_changes)))
+
+                total_episodes = len(training_curves["episode_rewards"])
+                total_actions = (
+                    len(training_callback.training_stats["actions_taken"])
+                    if training_callback
+                    else 0
+                )
+                avg_episode_length = (
+                    total_actions / total_episodes
+                    if total_episodes > 0 and total_actions > 0
+                    else 1.0
+                )
+
+                if avg_episode_length > 0:
+                    avg_position_change_ratio = (
+                        np.mean(position_changes) / avg_episode_length
+                    )
+                    mlflow.log_metric(
+                        "episode_avg_position_change_ratio",
+                        avg_position_change_ratio,
+                    )
