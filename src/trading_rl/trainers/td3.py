@@ -128,6 +128,80 @@ class TD3Trainer(BaseTrainer):
             self.policy_delay,
         )
 
+    def evaluate(self, df, max_steps: int, config=None, algorithm: str | None = None):
+        from trading_rl.utils import compare_rollouts
+        import pandas as pd
+        import numpy as np
+        from plotnine import aes, geom_line, ggplot, labs, scale_color_manual
+
+        logger = get_logger(__name__)
+
+        logger.debug(f"Running deterministic evaluation for {max_steps} steps")
+        with set_exploration_type(InteractionType.MODE):
+            rollout_deterministic = self.env.rollout(
+                max_steps=max_steps, policy=self.actor
+            )
+
+        logger.debug(f"Running random evaluation for {max_steps} steps")
+        random_policy = TensorDictSequential(self.actor, self.exploration_module)
+        with set_exploration_type(InteractionType.RANDOM):
+            rollout_random = self.env.rollout(max_steps=max_steps, policy=random_policy)
+
+        reward_plot, action_plot = compare_rollouts(
+            [rollout_deterministic, rollout_random],
+            n_obs=max_steps,
+        )
+
+        benchmark_df = pd.DataFrame(
+            {
+                "x": range(max_steps),
+                "buy_and_hold": np.log(df["close"] / df["close"].shift(1))
+                .fillna(0)
+                .cumsum()[:max_steps],
+                "max_profit": np.log(abs(df["close"] / df["close"].shift(1) - 1) + 1)
+                .fillna(0)
+                .cumsum()[:max_steps],
+            }
+        )
+        benchmark_data = []
+        for step, (bh_val, mp_val) in enumerate(
+            zip(benchmark_df["buy_and_hold"], benchmark_df["max_profit"], strict=False)
+        ):
+            benchmark_data.extend(
+                [
+                    {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
+                    {"Steps": step, "Cumulative_Reward": mp_val, "Run": "Max Profit"},
+                ]
+            )
+        existing_data = reward_plot.data
+        combined_data = pd.concat(
+            [existing_data, pd.DataFrame(benchmark_data)], ignore_index=True
+        )
+        reward_plot = (
+            ggplot(combined_data, aes(x="Steps", y="Cumulative_Reward", color="Run"))
+            + geom_line()
+            + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
+            + scale_color_manual(
+                values={
+                    "Deterministic": "#F8766D",
+                    "Random": "#00BFC4",
+                    "Buy-and-Hold": "violet",
+                    "Max Profit": "green",
+                }
+            )
+        )
+
+        final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
+        action_tensor = rollout_deterministic["action"].squeeze()
+        if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
+            actions = action_tensor.argmax(dim=-1)
+        else:
+            actions = action_tensor
+        actions = actions.flatten().tolist() if hasattr(actions, "flatten") else []
+        last_positions = [float(a) for a in actions] if actions else []
+
+        return reward_plot, action_plot, None, final_reward, last_positions
+
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):
         """Factory for TD3 actor and Q-value networks."""
