@@ -30,7 +30,6 @@ from .models import (
 from .train_trading_agent import (
     MLflowTrainingCallback,
     create_environment,
-    evaluate_agent,
     run_experiment_from_config,
     run_multiple_experiments,
     run_single_experiment,
@@ -67,7 +66,6 @@ __all__ = [
     "create_environment",
     "create_features",
     "download_trading_data",
-    "evaluate_agent",
     "load_trading_data",
     "prepare_data",
     "reward_function",

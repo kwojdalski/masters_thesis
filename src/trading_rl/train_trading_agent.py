@@ -25,6 +25,7 @@ from joblib import Memory
 # No matplotlib configuration needed since we use plotnine exclusively
 from plotnine import aes, geom_line
 from tensordict.nn import InteractionType
+from torchrl.collectors.collectors import RandomPolicy
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import StepCounter
 from torchrl.envs.utils import set_exploration_type
@@ -234,207 +235,6 @@ def setup_mlflow_experiment(
 
 
 # %%
-def evaluate_agent(
-    env: TransformedEnv,
-    actor: Any,
-    df: pd.DataFrame,
-    max_steps: int = 1000,
-    save_path: str | None = None,
-    config: Any = None,
-    trainer: Any | None = None,
-    algorithm: str | None = None,
-) -> tuple:
-    """Evaluate trained agent and create visualizations.
-
-    Args:
-        env: Trading environment
-        actor: Trained actor network
-        df: Original dataframe for benchmarks
-        max_steps: Number of steps for evaluation
-        save_path: Optional path to save plots
-        trainer: Optional trainer instance (used for PPO-specific plots)
-        algorithm: Algorithm name to gate algorithm-specific visuals
-
-    Returns:
-        Tuple of (reward_plot, action_plot, action_probs_plot, final_reward, last_positions)
-    """
-    logger = get_project_logger(__name__)
-
-    # Run evaluation rollouts
-    logger.debug(f"Running deterministic evaluation for {max_steps} steps")
-    with set_exploration_type(InteractionType.MODE):
-        rollout_deterministic = env.rollout(max_steps=max_steps, policy=actor)
-
-    logger.debug(f"Running random evaluation for {max_steps} steps")
-    with set_exploration_type(InteractionType.RANDOM):
-        rollout_random = env.rollout(max_steps=max_steps, policy=actor)
-
-    # DEBUG: Log rollout statistics
-    if logger.isEnabledFor(logging.DEBUG):
-        det_actions = rollout_deterministic["action"]
-        det_rewards = rollout_deterministic["next", "reward"]
-
-        logger.debug("=" * 60)
-        logger.debug("DETERMINISTIC ROLLOUT STATISTICS")
-        logger.debug("=" * 60)
-        logger.debug(f"  Actions shape: {det_actions.shape}")
-        logger.debug(
-            f"  Actions - mean: {det_actions.mean():.4f}, std: {det_actions.std():.4f}"
-        )
-        logger.debug(
-            f"  Actions - min: {det_actions.min():.4f}, max: {det_actions.max():.4f}"
-        )
-        logger.debug(
-            f"  Rewards - mean: {det_rewards.mean():.6f}, std: {det_rewards.std():.6f}"
-        )
-        logger.debug(f"  Rewards - sum: {det_rewards.sum():.6f}")
-
-        # Show first 20 actions
-        actions_flat = det_actions.flatten()[:20].cpu().detach().numpy()
-        logger.debug(f"  First 20 actions: {actions_flat}")
-
-        # Check if stuck
-        if det_actions.std() < 0.01:
-            logger.warning("⚠️  AGENT IS STUCK - Taking nearly identical actions!")
-            logger.warning(f"    Action std={det_actions.std():.6f} is very low")
-        logger.debug("=" * 60)
-
-    # Create benchmark comparisons
-    benchmark_df = pd.DataFrame(
-        {
-            "x": range(max_steps),
-            "buy_and_hold": np.log(df["close"] / df["close"].shift(1))
-            .fillna(0)
-            .cumsum()[:max_steps],
-            "max_profit": np.log(abs(df["close"] / df["close"].shift(1) - 1) + 1)
-            .fillna(0)
-            .cumsum()[:max_steps],
-        }
-    )
-
-    # Compare rollouts
-    reward_plot, action_plot = compare_rollouts(
-        [rollout_deterministic, rollout_random],
-        n_obs=max_steps,
-    )
-
-    # Add benchmarks to reward plot with proper legend labels
-    from plotnine import ggplot, labs, scale_color_manual
-
-    # Create benchmark data for legend
-    benchmark_data = []
-    for step, (bh_val, mp_val) in enumerate(
-        zip(benchmark_df["buy_and_hold"], benchmark_df["max_profit"], strict=False)
-    ):
-        benchmark_data.extend(
-            [
-                {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
-                {"Steps": step, "Cumulative_Reward": mp_val, "Run": "Max Profit"},
-            ]
-        )
-
-    # Get original data from the plot
-    existing_data = reward_plot.data
-    combined_data = pd.concat(
-        [existing_data, pd.DataFrame(benchmark_data)], ignore_index=True
-    )
-
-    # Recreate plot with all data including benchmarks
-    reward_plot = (
-        ggplot(combined_data, aes(x="Steps", y="Cumulative_Reward", color="Run"))
-        + geom_line()
-        + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
-        + scale_color_manual(
-            values={
-                "Deterministic": "#F8766D",  # Default ggplot red
-                "Random": "#00BFC4",  # Default ggplot blue
-                "Buy-and-Hold": "violet",
-                "Max Profit": "green",
-            }
-        )
-    )
-
-    if save_path:
-        reward_plot.save(f"{save_path}_rewards.png", width=8, height=5, dpi=150)
-        action_plot.save(f"{save_path}_actions.png", width=8, height=5, dpi=150)
-
-    # Calculate final reward for metrics
-    final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
-
-    # Calculate and log final returns (replaces gym_trading_env verbose output)
-    initial_portfolio = 10000.0
-    final_portfolio = initial_portfolio * np.exp(final_reward)
-    portfolio_return = 100 * (final_portfolio / initial_portfolio - 1)
-    market_return = 100 * (np.exp(final_reward) - 1)
-
-    logger.info("=" * 60)
-    logger.info("FINAL EVALUATION RESULTS")
-    logger.info("=" * 60)
-    logger.info(f"Market Return      : {market_return:5.2f}%")
-    logger.info(f"Portfolio Return   : {portfolio_return:5.2f}%")
-    logger.info(f"Initial Portfolio  : ${initial_portfolio:,.2f}")
-    logger.info(f"Final Portfolio    : ${final_portfolio:,.2f}")
-    logger.info(f"Total Reward (log) : {final_reward:.6f}")
-    logger.info("=" * 60)
-
-    # Extract positions from the deterministic rollout for tracking
-    # Convert actions to positions (-1, 0, 1) based on action mapping
-    action_tensor = rollout_deterministic["action"].squeeze()
-
-    if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
-        # One-hot encoded (discrete) -> argmax
-        actions = action_tensor.argmax(dim=-1)
-    else:
-        # Continuous or scalar discrete -> use values directly
-        # If continuous in [-1, 1], we might want to map to nearest discrete for "position" logging
-        # But simply converting to int/list is fine for now to avoid crash
-        actions = action_tensor
-
-    # Handle different tensor shapes
-    if actions.dim() == 0:  # Single action case
-        actions = [actions.item()]
-    else:
-        # Flatten the tensor and convert to list
-        actions = actions.flatten().tolist()
-
-    # Map actions to positions: action 0 -> position -1, action 1 -> position 0, action 2 -> position 1
-    # Ensure each action is a scalar number before subtraction
-    last_positions = []
-    for action in actions:
-        if isinstance(action, (list, tuple)):
-            # If action is still a list/tuple, take the first element
-            action_val = action[0] if len(action) > 0 else 0
-        else:
-            action_val = action
-
-        # If we have continuous actions (floats), we assume they represent the position directly
-        # or we interpret them. If discrete indices (0,1,2), we map to -1,0,1.
-        if isinstance(action_val, float):
-            # Continuous action [-1, 1] roughly maps to position directly
-            last_positions.append(action_val)
-        else:
-            # Discrete index 0, 1, 2 -> -1, 0, 1
-            last_positions.append(int(action_val) - 1)
-
-    action_probs_plot = None
-    if (
-        algorithm
-        and algorithm.upper() == "PPO"
-        and trainer
-        and hasattr(trainer, "create_action_probabilities_plot")
-    ):
-        action_probs_plot = trainer.create_action_probabilities_plot(
-            max_steps, df, config
-        )
-
-    return (
-        reward_plot,
-        action_plot,
-        action_probs_plot,
-        final_reward,
-        last_positions,
-    )
-
 
 def _print_config_debug(config: ExperimentConfig, logger) -> None:
     """Print configuration values in debug mode using automatic traversal."""
@@ -651,13 +451,10 @@ def run_single_experiment(
         config.training.eval_steps, len(df) - 1, config.data.train_size - 1
     )  # Use the smallest of: eval_steps, actual data size, or train_size
     reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
-        evaluate_agent(
-            env,
-            actor,
+        trainer.evaluate(
             df[: config.data.train_size],  # Pass only the training portion
             max_steps=eval_max_steps,
             config=config,
-            trainer=trainer,
             algorithm=algorithm,
         )
     )
