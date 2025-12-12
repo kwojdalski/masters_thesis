@@ -10,11 +10,9 @@ trading_rl/
 ├── config.py             # Configuration dataclasses
 ├── data_utils.py         # Data loading and preprocessing
 ├── models.py             # Neural network architectures
+├── train_trading_agent.py # Main training script
 ├── training.py           # Training loop and utilities
 └── README.md            # This file
-
-../scripts/
-└── train_trading_agent.py  # Main training script
 ```
 
 ## Module Overview
