@@ -98,6 +98,12 @@ flowchart TD
     -   Initialize TorchRL trading environment
     -   Apply transforms (StepCounter, etc.)
     -   Set reward function and trading parameters
+    -   **Action Space**:
+        -   Default discrete positions: `[-1, 0, 1]` (Short, Neutral, Long).
+        -   **Continuous Actions (TD3/DDPG)**: Wrapped with `ContinuousToDiscreteAction` which maps continuous inputs `[-1, 1]` to discrete positions:
+            -   `x < -0.33` → Short (-1)
+            -   `-0.33 <= x <= 0.33` → Neutral (0)
+            -   `x > 0.33` → Long (1)
 
 ### 4. Network Architecture
 
