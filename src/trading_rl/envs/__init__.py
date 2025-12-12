@@ -12,6 +12,7 @@ from trading_rl.envs.trading_envs import (
     get_environment_factory,
     validate_backend,
 )
+from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory, TradingEnvXYWrapper
 
 __all__ = [
     "AlgorithmicEnvironmentBuilder",
@@ -21,6 +22,8 @@ __all__ = [
     "DiscreteActionWrapper",
     "ForexEnvironmentFactory",
     "StocksEnvironmentFactory",
+    "TradingEnvXYFactory",
+    "TradingEnvXYWrapper",
     "create_environment",
     "create_continuous_trading_environment",
     "get_environment_factory",
