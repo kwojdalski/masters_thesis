@@ -1,6 +1,6 @@
-# Trading RL - Modular DDPG Implementation
+# Trading RL - Modular Implementation (PPO, DDPG, TD3)
 
-A clean, modular implementation of DDPG (Deep Deterministic Policy Gradient) for trading environments using TorchRL.
+A clean, modular implementation of PPO, DDPG, and TD3 for trading environments using TorchRL.
 
 ## Project Structure
 
@@ -13,7 +13,7 @@ trading_rl/
 ├── training.py           # Training loop and utilities
 └── README.md            # This file
 
-scripts/
+../scripts/
 └── train_trading_agent.py  # Main training script
 ```
 
@@ -51,7 +51,11 @@ Neural network components:
 
 ### `training.py`
 Training infrastructure:
-- `DDPGTrainer`: Complete training loop with:
+- `BaseTrainer`: Abstract base class with shared logic
+- `DDPGTrainer`: DDPG implementation
+- `PPOTrainer`: PPO implementation
+- `TD3Trainer`: TD3 implementation
+- **Features**:
   - Replay buffer management
   - Data collection
   - Optimization steps
@@ -200,14 +204,20 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 ```
 
-### Using a Different Algorithm
+### Adding a New Algorithm
 
-Create `trading_rl/ppo_training.py`:
+Extend `BaseTrainer` in `trading_rl/training.py`:
 ```python
-class PPOTrainer:
-    def __init__(self, actor, critic, env, config):
-        """Initialize PPO training components."""
-        raise NotImplementedError("Implement PPO training loop here")
+class MyNewAlgoTrainer(BaseTrainer):
+    def __init__(self, actor, value_net, env, config):
+        """Initialize algorithm components."""
+        super().__init__(env, config)
+        # Initialize specific loss modules and optimizers here
+
+    def train_step(self, batch):
+        """Implement single training step."""
+        # Calculate loss, update networks
+        return metrics
 ```
 
 ### Custom Reward Function

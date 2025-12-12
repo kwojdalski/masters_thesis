@@ -12,7 +12,7 @@ from torchrl.objectives import DDPGLoss, SoftUpdate
 
 from logger import get_logger
 from trading_rl.config import TrainingConfig
-from trading_rl.models import create_actor, create_value_network
+from trading_rl.models import create_ddpg_actor, create_value_network
 from trading_rl.trainers.base import BaseTrainer
 
 logger = get_logger(__name__)
@@ -76,7 +76,7 @@ class DDPGTrainer(BaseTrainer):
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):
         """Factory for DDPG actor and value network."""
-        actor = create_actor(
+        actor = create_ddpg_actor(
             n_obs,
             n_act,
             hidden_dims=config.network.actor_hidden_dims,
