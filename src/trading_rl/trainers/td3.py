@@ -129,10 +129,11 @@ class TD3Trainer(BaseTrainer):
         )
 
     def evaluate(self, df, max_steps: int, config=None, algorithm: str | None = None):
-        from trading_rl.utils import compare_rollouts
-        import pandas as pd
         import numpy as np
+        import pandas as pd
         from plotnine import aes, geom_line, ggplot, labs, scale_color_manual
+
+        from trading_rl.utils import compare_rollouts
 
         logger = get_logger(__name__)
 
@@ -181,7 +182,9 @@ class TD3Trainer(BaseTrainer):
         reward_plot = (
             ggplot(combined_data, aes(x="Steps", y="Cumulative_Reward", color="Run"))
             + geom_line(alpha=0.5)
-            + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
+            + labs(
+                title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward"
+            )
             + scale_color_manual(
                 values={
                     "Deterministic": "#F8766D",

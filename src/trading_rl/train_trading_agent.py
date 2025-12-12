@@ -11,34 +11,23 @@ import logging
 import os
 import warnings
 from pathlib import Path
-from typing import Any
 
 import gym_trading_env  # noqa: F401
-import gymnasium as gym
 import mlflow
 import numpy as np
-import pandas as pd
 import torch
 import torch.multiprocessing as mp
 from joblib import Memory
 
 # No matplotlib configuration needed since we use plotnine exclusively
-from plotnine import aes, geom_line
-from tensordict.nn import InteractionType
-from torchrl.collectors.collectors import RandomPolicy
-from torchrl.envs import GymWrapper, TransformedEnv
-from torchrl.envs.transforms import StepCounter
-from torchrl.envs.utils import set_exploration_type
-
 from logger import get_logger as get_project_logger
 from logger import setup_logging as configure_root_logging
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
-from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
-from trading_rl.data_utils import prepare_data, reward_function
+from trading_rl.data_utils import prepare_data
+from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.plotting import visualize_training
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
-from trading_rl.utils import compare_rollouts
 
 # Avoid torch_shm_manager requirement in restricted environments
 mp.set_sharing_strategy("file_system")
@@ -100,120 +89,8 @@ def set_seed(seed: int) -> None:
         torch.cuda.manual_seed(seed)
 
 
-# %%
-def create_continuous_trading_environment(
-    df: pd.DataFrame, config: ExperimentConfig
-) -> TransformedEnv:
-    """Create continuous action space trading environment for TD3/DDPG.
-
-    This creates a discrete trading environment and wraps it with a transform
-    that converts continuous actions [-1, 1] to discrete trading actions.
-
-    Args:
-        df: DataFrame with features
-        config: Experiment configuration
-
-    Returns:
-        Trading environment with continuous action space
-    """
-    logger = get_project_logger(__name__)
-
-    # Use standard discrete positions for the base environment
-    positions = config.env.positions
-
-    logger.debug(f"Creating continuous environment for {config.training.algorithm}")
-    logger.debug(f"  Data shape for training: {df[: config.data.train_size].shape}")
-    logger.debug(f"  Positions: {positions}")
-    logger.debug(f"  Trading fees: {config.env.trading_fees}")
-    logger.debug(f"  Borrow interest rate: {config.env.borrow_interest_rate}")
-
-    # Create base discrete trading environment
-    base_env = gym.make(
-        "TradingEnv",
-        name=config.env.name,
-        df=df[: config.data.train_size],
-        positions=positions,
-        trading_fees=config.env.trading_fees,
-        borrow_interest_rate=config.env.borrow_interest_rate,
-        reward_function=reward_function,
-        verbose=0,  # Disable gym_trading_env print statements
-    )
-
-    logger.info(f"Created discrete base environment with positions: {positions}")
-
-    # Wrap for TorchRL
-    env = GymWrapper(base_env)
-
-    # Add continuous action wrapper BEFORE step counter
-    continuous_wrapper = ContinuousToDiscreteAction(
-        discrete_actions=positions,
-        thresholds=[-0.33, 0.33],  # Standard thresholds for 3-action mapping
-        device=getattr(config.training, "device", "cpu"),
-    )
-
-    env = TransformedEnv(env, continuous_wrapper)
-    logger.info("Added continuous-to-discrete action wrapper")
-    logger.debug(f"  Continuous action spec: {env.action_spec}")
-
-    # Add step counter last
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
-        env = TransformedEnv(env, StepCounter())
-
-    logger.info("Continuous trading environment created successfully")
-    logger.debug(f"  Observation spec: {env.observation_spec}")
-    return env
-
-
-def create_environment(df: pd.DataFrame, config: ExperimentConfig) -> TransformedEnv:
-    """Create and configure trading environment.
-
-    Args:
-        df: DataFrame with features
-        config: Experiment configuration
-
-    Returns:
-        Wrapped and transformed environment
-    """
-    logger = get_project_logger(__name__)
-
-    # TD3 and DDPG require continuous action space
-    algorithm = getattr(config.training, "algorithm", "PPO").upper()
-
-    if algorithm in ["TD3", "DDPG"]:
-        logger.info(
-            f"{algorithm} algorithm detected - creating continuous action environment"
-        )
-        return create_continuous_trading_environment(df, config)
-
-    # For other algorithms (PPO, DQN), use standard discrete environment
-    logger.info(
-        f"{algorithm} algorithm detected - creating discrete action environment"
-    )
-
-    positions = config.env.positions
-
-    # Create base trading environment
-    base_env = gym.make(
-        "TradingEnv",
-        name=config.env.name,
-        df=df[: config.data.train_size],
-        positions=positions,
-        trading_fees=config.env.trading_fees,
-        borrow_interest_rate=config.env.borrow_interest_rate,
-        reward_function=reward_function,
-        verbose=0,  # Disable gym_trading_env print statements
-    )
-
-    # Wrap for TorchRL
-    env = GymWrapper(base_env)
-
-    # Add step counter
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
-        env = TransformedEnv(env, StepCounter())
-
-    return env
+# Environment builder used throughout training
+env_builder = AlgorithmicEnvironmentBuilder()
 
 
 # %%
@@ -235,6 +112,7 @@ def setup_mlflow_experiment(
 
 
 # %%
+
 
 def _print_config_debug(config: ExperimentConfig, logger) -> None:
     """Print configuration values in debug mode using automatic traversal."""
@@ -371,7 +249,7 @@ def run_single_experiment(
 
     # Create environment
     logger.info("Creating environment...")
-    env = create_environment(df, config)
+    env = env_builder.create(df, config)
 
     # Get environment specs
     n_obs = env.observation_spec["observation"].shape[-1]

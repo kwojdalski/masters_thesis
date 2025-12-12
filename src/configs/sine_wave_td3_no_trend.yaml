@@ -19,15 +19,15 @@ data:
 # Environment Configuration  
 env:
   name: "SINEWAVE_NO_TREND_TD3"
-  positions: [0, 1]  # short, long
+  positions: [-1, 1]  # short, long
   trading_fees: 0.0  # No fees for synthetic validation
   borrow_interest_rate: 0.0
-  backend: "gym_anytrading.forex"
+  backend: "gym_trading_env.continuous"
 
 # Network Architecture - For oscillating pattern recognition
 network:
   actor_hidden_dims: [64, 32]  # Slightly larger for pattern learning
-  value_hidden_dims: [64, 16]  # TD3 uses Q-value networks (critics)
+  value_hidden_dims: [64, 32]  # TD3 uses Q-value networks (critics)
 
 # Training Parameters - TD3 specific
 training:

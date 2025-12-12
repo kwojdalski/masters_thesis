@@ -15,6 +15,7 @@ from trading_rl.data_utils import (
     prepare_data,
     reward_function,
 )
+from trading_rl.envs import AlgorithmicEnvironmentBuilder
 
 from .models import (
     DiscreteNet,
@@ -29,7 +30,6 @@ from .models import (
 )
 from .train_trading_agent import (
     MLflowTrainingCallback,
-    create_environment,
     run_experiment_from_config,
     run_multiple_experiments,
     run_single_experiment,
@@ -39,6 +39,13 @@ from .train_trading_agent import (
     visualize_training,
 )
 from .training import DDPGTrainer, PPOTrainer, TD3Trainer
+
+# Backwards-compatible convenience function for environment creation
+_env_builder = AlgorithmicEnvironmentBuilder()
+
+
+def create_environment(df, config):
+    return _env_builder.create(df, config)
 
 __all__ = [
     # Training
@@ -76,6 +83,7 @@ __all__ = [
     "setup_logging",
     "setup_mlflow_experiment",
     "visualize_training",
+    "AlgorithmicEnvironmentBuilder",
     # MLflow integration
     "MLflowTrainingCallback",
 ]

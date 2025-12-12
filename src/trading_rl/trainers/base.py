@@ -1,7 +1,6 @@
 """Base trainer and utilities."""
 
 import contextlib
-import logging
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -157,17 +156,20 @@ class BaseTrainer(ABC):
         self, df, max_steps: int, config=None, algorithm: str | None = None
     ) -> tuple:
         """Default evaluation: deterministic vs random rollout comparison."""
-        from trading_rl.utils import compare_rollouts
-        import pandas as pd
         import numpy as np
+        import pandas as pd
         from plotnine import aes, geom_line, ggplot, labs, scale_color_manual
+
+        from trading_rl.utils import compare_rollouts
 
         logger = get_logger(__name__)
 
         # Deterministic rollout
         logger.debug(f"Running deterministic evaluation for {max_steps} steps")
         with set_exploration_type(InteractionType.MODE):
-            rollout_deterministic = self.env.rollout(max_steps=max_steps, policy=self.actor)
+            rollout_deterministic = self.env.rollout(
+                max_steps=max_steps, policy=self.actor
+            )
 
         # Random rollout (can be overridden in subclasses)
         logger.debug(f"Running random evaluation for {max_steps} steps")
@@ -208,7 +210,9 @@ class BaseTrainer(ABC):
         reward_plot = (
             ggplot(combined_data, aes(x="Steps", y="Cumulative_Reward", color="Run"))
             + geom_line()
-            + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
+            + labs(
+                title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward"
+            )
             + scale_color_manual(
                 values={
                     "Deterministic": "#F8766D",
