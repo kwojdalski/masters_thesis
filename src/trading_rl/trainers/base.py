@@ -10,9 +10,10 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 import torchrl.collectors.collectors as torchrl_collectors
-from tensordict.nn import set_composite_lp_aggregate
+from tensordict.nn import InteractionType, set_composite_lp_aggregate
 from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
+from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
 from trading_rl.config import TrainingConfig
@@ -104,7 +105,6 @@ class BaseTrainer(ABC):
     def _log_episode_stats(self, data, callback) -> None:
         """Log episode statistics to provided callback."""
         episode_reward = data["next", "reward"].sum().item()
-
         # Reset portfolio value to starting amount at the beginning of each episode
         callback._portfolio_value = 10000.0  # Starting portfolio value
 
@@ -138,12 +138,18 @@ class BaseTrainer(ABC):
             callback._episode_count = 1
 
         # Calculate returns
-        initial_portfolio = 10000.0
-        portfolio_return = 100 * (portfolio_valuation / initial_portfolio - 1)
+        # Portfolio return is the episode cumulative log return expressed in percent
+        portfolio_return = 100 * (np.exp(episode_reward) - 1)
 
-        # Market return would need market data, for now we use episode reward as proxy
-        # Episode reward is cumulative log return, convert to percentage
-        market_return = 100 * (np.exp(episode_reward) - 1)
+        # Compute buy-and-hold benchmark if price series is available on the callback
+        market_return = None
+        price_series = getattr(callback, "price_series", None)
+        episode_length = len(actions)
+        if price_series is not None and episode_length > 0:
+            end_idx = min(episode_length, len(price_series) - 1)
+            start_price = price_series.iloc[0]
+            end_price = price_series.iloc[end_idx]
+            market_return = 100 * (end_price / start_price - 1)
 
         logger.info(
             f"Episode {callback._episode_count} complete | "

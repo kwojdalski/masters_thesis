@@ -29,6 +29,7 @@ class MLflowTrainingCallback:
         tracking_uri: str | None = None,
         progress_bar=None,
         total_episodes: int | None = None,
+        price_series=None,
     ):
         self.step_count = 0
         self.intermediate_losses = {"actor": [], "value": []}
@@ -40,6 +41,7 @@ class MLflowTrainingCallback:
             "exploration_ratio": [],
             "position_change_counts": [],
         }
+        self.price_series = price_series
 
         # Progress bar tracking
         self.progress_bar = progress_bar

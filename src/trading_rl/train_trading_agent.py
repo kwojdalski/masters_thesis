@@ -60,7 +60,6 @@ def setup_logging(config: ExperimentConfig):
         # sys.stdout.isatty(),
         colored_output=True,
     )
-
     # Suppress noisy external library loggers
     import logging
 
@@ -305,6 +304,7 @@ def run_single_experiment(
         tracking_uri=tracking_uri,
         progress_bar=progress_bar,
         total_episodes=estimated_episodes if progress_bar else None,
+        price_series=df["close"][: config.data.train_size],
     )
     setup_logging(config)
     if mlflow.active_run():
