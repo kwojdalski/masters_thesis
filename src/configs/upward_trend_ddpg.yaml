@@ -17,7 +17,7 @@ data:
 
 env:
   name: "UPDRIFT"
-  positions: [-1, 0, 1]
+  positions: [0, 1]
   trading_fees: 0.0
   borrow_interest_rate: 0.0
   backend: "gym_anytrading.forex"
@@ -39,7 +39,7 @@ training:
   buffer_size: 4000
   tau: 0.006
   loss_function: "l2"
-  eval_steps: 350
+  eval_steps: 450
   eval_interval: 120
   log_interval: 40
 

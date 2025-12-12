@@ -188,8 +188,8 @@ class ExperimentConfig:
                         setattr(config.data, key, value)
 
         # Update environment config
-        if "environment" in config_dict:
-            env_dict = config_dict["environment"]
+        if "environment" in config_dict or "env" in config_dict:
+            env_dict = config_dict.get("environment", config_dict.get("env", {}))
             for key, value in env_dict.items():
                 if hasattr(config.env, key):
                     setattr(config.env, key, value)
