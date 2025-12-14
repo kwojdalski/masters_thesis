@@ -23,6 +23,7 @@ Backend = Literal[
     "gym_trading_env.continuous",
     "gym_anytrading.forex",
     "gym_anytrading.stocks",
+    "tradingenv",
 ]
 
 # Supported backend values for validation
@@ -31,6 +32,7 @@ SUPPORTED_BACKENDS = [
     "gym_trading_env.continuous",
     "gym_anytrading.forex",
     "gym_anytrading.stocks",
+    "tradingenv",
 ]
 
 
@@ -270,6 +272,12 @@ def get_environment_factory(
         return ForexEnvironmentFactory()
     elif backend == "gym_anytrading.stocks":
         return StocksEnvironmentFactory()
+    elif backend == "tradingenv":
+        # Import here to avoid circular dependency and keep it optional
+        from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory
+
+        config = kwargs.get("config")
+        return TradingEnvXYFactory(config)
     else:
         # This should not happen after validation, but keeping for safety
         raise ValueError(f"Unsupported backend: {backend}")
@@ -334,6 +342,24 @@ def create_environment(
             return factory.make(df, config, backend=backend)
         else:
             return factory.make(df, config, backend=backend)
+    elif backend == "tradingenv":
+        # TradingEnv backend - supports continuous portfolio allocation
+        if config is None:
+            raise ValueError("config is required when using tradingenv backend")
+        factory = get_environment_factory(backend, config=config)
+
+        # Extract column specifications from config if available
+        price_columns = getattr(config.env, "price_columns", None)
+        feature_columns = getattr(config.env, "feature_columns", None)
+
+        # Pass to factory with column specifications
+        return factory.make(
+            df=df,
+            config=config,
+            price_columns=price_columns,
+            feature_columns=feature_columns,
+            **kwargs,
+        )
     else:
         factory = get_environment_factory(backend, **kwargs)
         return factory.make(df, **kwargs)

@@ -1,0 +1,86 @@
+# PPO Configuration with TradingEnv Backend (XAI Asset Management Library)
+# ========================================================================
+# This configuration uses the tradingenv library for continuous portfolio allocation
+# https://github.com/xaiassetmanagement/tradingenv
+
+experiment_name: "tradingenv_ppo_example"
+seed: 42
+
+# Data Configuration
+data:
+  data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["SINE/WAVE"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 450
+  no_features: false
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_PORTFOLIO"
+  backend: "tradingenv"
+
+  # Transaction costs
+  trading_fees: 0.001  # 0.1% proportional fee
+
+  # Column specifications (optional - if not set, uses all columns)
+  # price_columns: ["close"]  # Columns to use as asset prices
+  # feature_columns: null     # null = use all columns as features
+
+  # Note: positions parameter is not used with tradingenv backend
+  # Actions are continuous portfolio weights instead of discrete positions
+
+# Network Architecture
+network:
+  actor_hidden_dims: [128, 64]  # Larger network for portfolio optimization
+  value_hidden_dims: [128, 64]
+
+# Training Parameters - PPO
+training:
+  algorithm: "PPO"  # PPO works well with continuous actions
+
+  # Learning rates
+  actor_lr: 0.0003
+  value_lr: 0.0003
+  value_weight_decay: 0.001
+
+  # Training loop
+  max_steps: 5000
+  init_rand_steps: 100  # Initial random exploration
+  frames_per_batch: 256
+  sample_size: 64
+  buffer_size: 10000
+
+  # PPO-specific parameters
+  clip_epsilon: 0.2
+  entropy_bonus: 0.01  # Encourage exploration of portfolio weights
+  vf_coef: 0.5
+  ppo_epochs: 4
+
+  # Loss function
+  loss_function: "l2"
+
+  # Evaluation
+  eval_steps: 440
+  eval_interval: 200
+  log_interval: 100
+
+# Logging Configuration
+logging:
+  log_dir: "logs/tradingenv_ppo_example"
+  log_level: "INFO"
+
+# Data Generator Configuration (for synthetic data)
+data_generator:
+  pattern_type: "sine_wave"
+  n_periods: 5
+  samples_per_period: 100
+  n_samples: 500
+  base_price: 50000.0
+  amplitude: 8000.0
+  trend_slope: 0.0
+  volatility: 0.0002
+  start_date: "2024-01-01"
