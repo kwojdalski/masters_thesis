@@ -9,11 +9,14 @@ from logger import get_logger
 logger = get_logger(__name__)
 
 
-def compare_rollouts(rollouts, n_obs):
+def compare_rollouts(rollouts, n_obs, is_portfolio=False):
     """Compare multiple rollouts and visualize their actions and rewards.
 
     Args:
         rollouts: List of rollout TensorDicts to compare
+        n_obs: Number of observations to include in plots
+        is_portfolio: Whether actions represent portfolio weights (True) or discrete positions (False)
+
     Returns:
         tuple: (reward_plot, action_plot) containing the visualization plots
     """
@@ -76,11 +79,20 @@ def compare_rollouts(rollouts, n_obs):
     )
 
     # Create actions plot using plotnine (30% smaller)
+    # Use backend-aware labels
     from plotnine import theme
+
+    if is_portfolio:
+        y_label = "Portfolio Weight"
+        title = "Portfolio Allocation Comparison"
+    else:
+        y_label = "Actions"
+        title = "Actions Comparison"
+
     action_plot = (
         ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
         + geom_line()
-        + labs(title="Actions Comparison", x="Steps", y="Actions")
+        + labs(title=title, x="Steps", y=y_label)
         + theme(figure_size=(7, 4.2))  # 30% smaller than default (10, 6)
     )
 

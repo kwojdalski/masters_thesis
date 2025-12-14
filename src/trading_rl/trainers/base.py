@@ -225,9 +225,13 @@ class BaseTrainer(ABC):
         with set_exploration_type(InteractionType.RANDOM):
             rollout_random = self.env.rollout(max_steps=max_steps, policy=self.actor)
 
+        # Detect backend type for proper plot labeling
+        is_portfolio = self._is_portfolio_backend(config)
+
         reward_plot, action_plot = compare_rollouts(
             [rollout_deterministic, rollout_random],
             n_obs=max_steps,
+            is_portfolio=is_portfolio,
         )
 
         # Benchmarks
@@ -275,8 +279,7 @@ class BaseTrainer(ABC):
         # Final metrics
         final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
 
-        # Detect backend type and extract actions appropriately
-        is_portfolio = self._is_portfolio_backend(config)
+        # Extract actions appropriately (is_portfolio already detected above)
         actions = self._extract_actions(rollout_deterministic, is_portfolio)
 
         if is_portfolio:
