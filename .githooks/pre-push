@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Allow skipping via environment variable
+if [ "${SKIP_CODEBLOCK_TESTS:-0}" = "1" ]; then
+    echo "SKIP_CODEBLOCK_TESTS=1 -> skipping pytest README.md --codeblocks"
+    exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+if [ -f ".venv/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    . ".venv/bin/activate"
+fi
+
+MD_FILES=()
+while IFS= read -r file; do
+    MD_FILES+=("$file")
+done < <(git ls-files '*.md')
+
+if [ "${#MD_FILES[@]}" -eq 0 ]; then
+    echo "No Markdown files found, skipping pytest --codeblocks"
+    exit 0
+fi
+
+echo "Running pytest --codeblocks for all Markdown files..."
+pytest "${MD_FILES[@]}" --codeblocks
