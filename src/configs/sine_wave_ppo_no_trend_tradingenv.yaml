@@ -36,7 +36,7 @@ env:
 # Network Architecture
 network:
   actor_hidden_dims: [64, 32]  # Larger network for portfolio optimization
-  value_hidden_dims: [64, 32]
+  value_hidden_dims: [6, 32]
 
 # Training Parameters - PPO
 training:

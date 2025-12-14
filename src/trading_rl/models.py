@@ -6,9 +6,10 @@ import torch
 import torch.nn as nn
 from joblib import Memory
 from tensordict import TensorDict
-from tensordict.nn import InteractionType, TensorDictModule
+from tensordict.nn import InteractionType, TensorDictModule, NormalParamExtractor
 from torch import distributions as d
 from torchrl.modules import MLP, ProbabilisticActor, ValueOperator
+from torchrl.modules.distributions import TanhNormal
 
 from logger import get_logger
 
@@ -205,6 +206,70 @@ def create_ppo_actor(
     )
 
     logger.info("PPO actor network created")
+    return actor
+
+
+def create_continuous_ppo_actor(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+    spec: Any | None = None,
+) -> ProbabilisticActor:
+    """Create a probabilistic actor for continuous action spaces (PPO).
+
+    Uses a TanhNormal distribution where the network outputs mean (loc)
+    and scale (standard deviation).
+
+    Args:
+        n_obs: Number of observations
+        n_act: Number of actions
+        hidden_dims: Hidden layer dimensions
+        spec: Action spec from environment
+
+    Returns:
+        ProbabilisticActor module configured for continuous PPO
+    """
+    logger.info("Creating Continuous PPO actor network")
+
+    if hidden_dims is None:
+        hidden_dims = [64, 32]
+
+    # Create base MLP that outputs 2 * n_act (loc and scale for each action dim)
+    net = MLP(
+        in_features=n_obs,
+        out_features=n_act * 2,  # Output loc and scale
+        num_cells=hidden_dims,
+        activation_class=nn.Tanh,
+    )
+
+    # Add NormalParamExtractor to split output into loc and scale
+    extractor = NormalParamExtractor()
+    
+    # Combined network
+    net = nn.Sequential(net, extractor)
+
+    # Wrap in TensorDictModule
+    module = TensorDictModule(
+        net,
+        in_keys=["observation"],
+        out_keys=["loc", "scale"],
+    )
+
+    # Create probabilistic actor using TanhNormal
+    # TanhNormal ensures actions are bounded in [-1, 1] (or spec bounds)
+    actor = ProbabilisticActor(
+        module=module,
+        distribution_class=TanhNormal,
+        distribution_kwargs={},
+        in_keys=["loc", "scale"],
+        out_keys=["action"],
+        spec=spec,
+        safe=False,
+        default_interaction_type=InteractionType.RANDOM,
+        return_log_prob=True,
+    )
+
+    logger.info("Continuous PPO actor network created")
     return actor
 
 
