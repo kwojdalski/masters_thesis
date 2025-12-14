@@ -26,9 +26,9 @@ env:
   # Transaction costs
   trading_fees: 0.001  # 0.1% proportional fee
 
-  # Column specifications (optional - if not set, uses all columns)
-  # price_columns: ["close"]  # Columns to use as asset prices
-  # feature_columns: null     # null = use all columns as features
+  # Column specifications - IMPORTANT: price_columns must contain only positive values
+  price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
+  feature_columns: ["open", "high", "low", "close", "volume"]  # Columns for observations
 
   # Note: positions parameter is not used with tradingenv backend
   # Actions are continuous portfolio weights instead of discrete positions

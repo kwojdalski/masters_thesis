@@ -9,6 +9,7 @@ from typing import Any
 import gymnasium as gym
 import pandas as pd
 from torchrl.envs import GymWrapper, TransformedEnv
+from torchrl.envs.transforms import RenameTransform
 from tradingenv import TradingEnv
 from tradingenv.contracts import Stock
 from tradingenv.features import Feature
@@ -193,6 +194,16 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
 
         # Wrap for TorchRL
         wrapped_env = GymWrapper(gym_env)
+
+        # Rename observation key to match expected format
+        # TradingEnv creates observations with key "CustomFeature"
+        # but training script expects "observation"
+        wrapped_env = TransformedEnv(
+            wrapped_env,
+            RenameTransform(in_keys=["CustomFeature"], out_keys=["observation"]),
+        )
+
+        # Add step counter
         wrapped_env = self._wrap_with_step_counter(wrapped_env)
 
         logger.info("Created TradingEnv environment successfully")
