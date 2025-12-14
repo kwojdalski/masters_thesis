@@ -561,6 +561,7 @@ class MLflowTrainingCallback:
         mlflow.log_metric("training_steps", final_metrics["training_steps"])
         mlflow.log_metric("evaluation_steps", final_metrics["evaluation_steps"])
 
+        # Handle both discrete positions and portfolio weights
         if "last_position_per_episode" in final_metrics:
             positions = final_metrics["last_position_per_episode"]
             if positions:
@@ -572,6 +573,18 @@ class MLflowTrainingCallback:
                     f.write(position_str)
                     f.flush()
                     mlflow.log_artifact(f.name, "position_data")
+                    os.unlink(f.name)
+        elif "portfolio_weights" in final_metrics:
+            weights = final_metrics["portfolio_weights"]
+            if weights:
+                mlflow.log_metric("portfolio_weights_sequence_length", len(weights))
+                weights_str = json.dumps(weights[:100])
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as f:
+                    f.write(weights_str)
+                    f.flush()
+                    mlflow.log_artifact(f.name, "portfolio_weights_data")
                     os.unlink(f.name)
 
         if logs.get("loss_value"):
