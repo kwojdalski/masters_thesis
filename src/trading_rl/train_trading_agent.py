@@ -348,13 +348,17 @@ def run_single_experiment(
         logs=logs,
     )
 
+    # Detect backend type for proper metric naming
+    is_portfolio_backend = config.env.backend == "tradingenv"
+
     # Prepare comprehensive metrics
     final_metrics = {
         # Performance metrics
         "final_reward": final_reward,
         "training_steps": len(logs.get("loss_value", [])),
         "evaluation_steps": eval_max_steps,  # actual max_steps used in evaluation
-        "last_position_per_episode": last_positions,  # Agent positions during final episode
+        # Use backend-aware naming for positions/weights
+        ("portfolio_weights" if is_portfolio_backend else "last_position_per_episode"): last_positions,
         # Dataset metadata
         "data_start_date": str(df.index[0]) if not df.empty else "unknown",
         "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
