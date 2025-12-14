@@ -22,6 +22,7 @@ from joblib import Memory
 # No matplotlib configuration needed since we use plotnine exclusively
 from logger import get_logger as get_project_logger
 from logger import setup_logging as configure_root_logging
+from logger import trace_calls
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data
@@ -94,6 +95,7 @@ env_builder = AlgorithmicEnvironmentBuilder()
 
 # %%
 # %%
+@trace_calls(show_return=True)
 def setup_mlflow_experiment(
     config: ExperimentConfig, experiment_name: str | None = None
 ) -> str:
@@ -165,6 +167,7 @@ def _print_config_debug(config: ExperimentConfig, logger) -> None:
     logger.debug("=" * 60)
 
 
+@trace_calls(show_return=False)
 def run_single_experiment(
     custom_config: ExperimentConfig | None = None,
     experiment_name: str | None = None,
@@ -396,6 +399,7 @@ def run_single_experiment(
 
 
 # %%
+@trace_calls(show_return=True)
 def run_multiple_experiments(
     n_trials: int = 5,
     base_seed: int | None = None,
@@ -474,6 +478,7 @@ def run_multiple_experiments(
     return effective_experiment_name
 
 
+@trace_calls(show_return=True)
 def run_experiment_from_config(config_path: str, n_trials: int = 1) -> str:
     """Load experiment config from YAML file and run experiment(s).
 
