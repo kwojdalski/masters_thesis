@@ -28,15 +28,15 @@ env:
 
   # Column specifications - IMPORTANT: price_columns must contain only positive values
   price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
-  feature_columns: ["open", "high", "low", "close", "volume"]  # Columns for observations
+  feature_columns: ["feature_return", "feature_pct_chng", "feature_high", "feature_low"]  # Normalized features for RL stability
 
   # Note: positions parameter is not used with tradingenv backend
   # Actions are continuous portfolio weights instead of discrete positions
 
 # Network Architecture
 network:
-  actor_hidden_dims: [128, 64]  # Larger network for portfolio optimization
-  value_hidden_dims: [128, 64]
+  actor_hidden_dims: [64, 32]  # Larger network for portfolio optimization
+  value_hidden_dims: [64, 32]
 
 # Training Parameters - PPO
 training:

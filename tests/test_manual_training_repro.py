@@ -28,7 +28,7 @@ def test_sine_wave_ppo_training_debug():
 
     params = TrainingParams(
         config_file=config_path,
-        max_steps=500,
+        max_steps=600,  # Divisible by frames_per_batch (200)
         actor_lr=0.0001,
         # experiment_name="debug_repro_test", # Optional: set a name if desired
         # log_dir=Path("logs/debug_test"),    # Optional: override log dir
