@@ -81,10 +81,14 @@ def trace_calls(show_return: bool = False) -> Callable:
                     level=logging.DEBUG,
                     format="%(levelname)s - %(name)s - %(message)s",
                 )
-            elif env_log_level == "DEBUG" and not logger.isEnabledFor(logging.DEBUG):
-                # Env var says DEBUG but logger isn't configured yet
-                # Temporarily set to DEBUG for this trace
-                logger.setLevel(logging.DEBUG)
+            elif env_log_level == "DEBUG":
+                # Env var says DEBUG - ensure logger and handlers are configured
+                if not logger.isEnabledFor(logging.DEBUG):
+                    logger.setLevel(logging.DEBUG)
+                # Also ensure root logger handlers are at DEBUG level
+                for handler in logging.getLogger().handlers:
+                    if handler.level > logging.DEBUG:
+                        handler.setLevel(logging.DEBUG)
 
             # Get current depth for indentation
             depth = _get_call_depth()
@@ -95,11 +99,6 @@ def trace_calls(show_return: bool = False) -> Callable:
             # Format function call
             func_name = func.__name__
             module_name = func.__module__.split(".")[-1]
-
-            # DEBUG: Print to verify decorator is running
-            print(
-                f"[DECORATOR DEBUG] About to log entry trace for {module_name}.{func_name}"
-            )
 
             # Format arguments (truncate long values)
             args_repr = []
