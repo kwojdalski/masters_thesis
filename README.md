@@ -65,6 +65,7 @@ masters_thesis/
 │   │   ├── __init__.py       # Package exports
 │   │   ├── config.py         # Configuration classes
 │   │   ├── data_utils.py     # Data processing utilities
+│   │   ├── envs/             # Environment builders/factories (backend-aware)
 │   │   ├── models.py         # Neural network model factories
 │   │   ├── trainers/         # PPO, DDPG, TD3 trainer implementations (build_models + train)
 │   │   ├── train_trading_agent.py  # MLflow-enabled training orchestration
