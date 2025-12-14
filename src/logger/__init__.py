@@ -13,6 +13,7 @@ from logger.core import (
     setup_component_logger,
     setup_logging,
 )
+from logger.decorators import trace_calls
 from logger.utils import (
     LogContext,
     logged_function,
@@ -37,4 +38,5 @@ __all__ = [
     "log_processing_step",
     "setup_component_logger",
     "setup_logging",
+    "trace_calls",
 ]
