@@ -66,7 +66,7 @@ def test_ppo_tradingenv():
     configure_logging(component="test_ppo_tradingenv", level="DEBUG")
 
     # Setup Parameters
-    config_path = Path("src/configs/tradingenv_ppo_example.yaml")
+    config_path = Path("src/configs/sine_wave_ppo_no_trend_tradingenv.yaml")
 
     params = TrainingParams(
         config_file=config_path,
