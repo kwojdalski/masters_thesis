@@ -161,7 +161,8 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         stocks = [Stock(col) for col in price_columns]
 
         # Create BoxPortfolio action space for continuous allocations
-        action_space = BoxPortfolio(stocks)
+        # Allow short selling by setting low to -1.0
+        action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
 
         # Create custom features for observations
         features = [CustomFeature(feature_columns, df[feature_columns])]

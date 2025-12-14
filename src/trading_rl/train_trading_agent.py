@@ -29,6 +29,7 @@ from trading_rl.data_utils import prepare_data
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.plotting import visualize_training
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
+from trading_rl.trainers.ppo import PPOTrainerContinuous
 
 # Avoid torch_shm_manager requirement in restricted environments
 mp.set_sharing_strategy("file_system")
@@ -263,17 +264,30 @@ def run_single_experiment(
     logger.debug(f"  Action spec: {env.action_spec}")
     logger.debug(f"  Reward spec: {env.reward_spec}")
 
+    # Determine if environment is continuous
+    backend = getattr(config.env, "backend", "")
+    is_continuous_env = (
+        backend == "tradingenv"
+        or backend == "gym_trading_env.continuous"
+    )
+
     # Create models and trainer based on algorithm choice
     algorithm = getattr(config.training, "algorithm", "PPO").upper()
-    logger.info(f"Creating models for {algorithm} algorithm...")
+    logger.info(f"Creating models for {algorithm} algorithm (Backend: {backend})...")
 
-    trainer_cls_map = {
-        "PPO": PPOTrainer,
-        "TD3": TD3Trainer,
-        "DDPG": DDPGTrainer,
-    }
-    trainer_cls = trainer_cls_map.get(algorithm)
-    if not trainer_cls:
+    # Select trainer class
+    if algorithm == "PPO":
+        if is_continuous_env:
+            logger.info("Selected PPOTrainerContinuous for continuous environment")
+            trainer_cls = PPOTrainerContinuous
+        else:
+            logger.info("Selected PPOTrainer for discrete environment")
+            trainer_cls = PPOTrainer
+    elif algorithm == "TD3":
+        trainer_cls = TD3Trainer
+    elif algorithm == "DDPG":
+        trainer_cls = DDPGTrainer
+    else:
         raise ValueError(f"Unsupported algorithm: {algorithm}")
 
     if algorithm == "TD3":
@@ -502,6 +516,9 @@ def run_experiment_from_config(config_path: str, n_trials: int = 1) -> str:
 
     # Load config from file
     config = ExperimentConfig.from_yaml(config_path)
+
+    # Ensure MLflow experiment is set up before starting run
+    setup_mlflow_experiment(config)
 
     if n_trials == 1:
         # Run single experiment

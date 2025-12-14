@@ -215,10 +215,18 @@ class BaseTrainer(ABC):
 
         # Deterministic rollout
         logger.debug(f"Running deterministic evaluation for {max_steps} steps")
-        with set_exploration_type(InteractionType.MODE):
-            rollout_deterministic = self.env.rollout(
-                max_steps=max_steps, policy=self.actor
-            )
+        try:
+            with set_exploration_type(InteractionType.MODE):
+                rollout_deterministic = self.env.rollout(
+                    max_steps=max_steps, policy=self.actor
+                )
+        except RuntimeError:
+            # Fallback for distributions without analytical mode (e.g. TanhNormal)
+            logger.debug("MODE exploration failed, falling back to MEAN/DETERMINISTIC")
+            with set_exploration_type(InteractionType.DETERMINISTIC):
+                rollout_deterministic = self.env.rollout(
+                    max_steps=max_steps, policy=self.actor
+                )
 
         # Random rollout (can be overridden in subclasses)
         logger.debug(f"Running random evaluation for {max_steps} steps")

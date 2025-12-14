@@ -1,0 +1,79 @@
+# PPO Configuration for Pure Sine Wave Pattern (No Trend) - Continuous Action Space
+# =================================================================================
+
+experiment_name: "sine_wave_ppo_no_trend_continuous"
+seed: 99  # Fixed seed for reproducibility
+
+# Data Configuration - Pure Sine Wave Pattern (No Trend)
+data:
+  data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["SINE/WAVE"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 450  # Hold back last 50 steps for evaluation
+  no_features: false # Use feature engineering for pattern recognition
+
+# Environment Configuration - TradingEnv (Continuous Portfolio)
+env:
+  name: "SINEWAVE_NO_TREND_CONTINUOUS"
+  backend: "tradingenv"  # Triggers PPOTrainerContinuous
+  
+  # Transaction costs
+  trading_fees: 0.0  # No fees for synthetic validation
+  borrow_interest_rate: 0.0
+  
+  # Column specifications for TradingEnv
+  price_columns: ["close"]
+  feature_columns: ["feature_return", "feature_pct_chng", "feature_high", "feature_low"]
+
+# Network Architecture
+network:
+  actor_hidden_dims: [64, 32]
+  value_hidden_dims: [64, 32]
+
+# Training Parameters - PPO specific
+training:
+  algorithm: "PPO"  # Will use PPOTrainerContinuous due to backend
+  actor_lr: 0.0003
+  value_lr: 0.0003
+  value_weight_decay: 0.001
+  max_steps: 3000
+  init_rand_steps: 50
+  frames_per_batch: 200
+  optim_steps_per_batch: 40  # Not used in PPO
+  sample_size: 64
+  buffer_size: 8000
+  
+  # PPO-specific parameters
+  clip_epsilon: 0.2
+  entropy_bonus: 0.15
+  vf_coef: 0.5
+  ppo_epochs: 4
+  
+  # Loss function
+  loss_function: "l2"
+  
+  # Evaluation
+  eval_steps: 440
+  eval_interval: 120
+  log_interval: 40
+
+# Logging Configuration
+logging:
+  log_dir: "logs/sine_wave_ppo_no_trend_continuous"
+  log_level: "INFO"
+
+# Data Generator Configuration
+data_generator:
+  pattern_type: "sine_wave"
+  n_periods: 5
+  samples_per_period: 100
+  n_samples: 500
+  base_price: 50000.0
+  amplitude: 8000.0
+  trend_slope: 0.0
+  volatility: 0.0002
+  start_date: "2024-01-01"
