@@ -158,6 +158,49 @@ class BaseTrainer(ABC):
             f"Portfolio Value: ${portfolio_valuation:,.2f}"
         )
 
+    def _is_portfolio_backend(self, config) -> bool:
+        """Detect if backend uses continuous portfolio weights.
+
+        Args:
+            config: Experiment configuration
+
+        Returns:
+            True if backend is portfolio-based (continuous weights), False otherwise
+        """
+        if config is None:
+            return False
+        backend = getattr(config.env, "backend", None)
+        return backend == "tradingenv"
+
+    def _extract_actions(self, rollout, is_portfolio: bool):
+        """Extract actions from rollout based on backend type.
+
+        Args:
+            rollout: TensorDict containing rollout data
+            is_portfolio: Whether backend uses portfolio weights
+
+        Returns:
+            Tensor of actions (continuous weights or discrete positions)
+        """
+        action_tensor = rollout["action"].squeeze()
+
+        if is_portfolio:
+            # Portfolio weights: keep continuous values as-is
+            if action_tensor.ndim > 1:
+                # Multi-asset: return all weights [batch, n_assets]
+                return action_tensor
+            else:
+                # Single asset: return weights [batch]
+                return action_tensor
+        else:
+            # Discrete positions: convert to position indices
+            if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
+                # One-hot encoded -> argmax
+                return action_tensor.argmax(dim=-1)
+            else:
+                # Already discrete
+                return action_tensor
+
     def evaluate(
         self, df, max_steps: int, config=None, algorithm: str | None = None
     ) -> tuple:
@@ -231,13 +274,23 @@ class BaseTrainer(ABC):
 
         # Final metrics
         final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
-        action_tensor = rollout_deterministic["action"].squeeze()
-        if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
-            actions = action_tensor.argmax(dim=-1)
+
+        # Detect backend type and extract actions appropriately
+        is_portfolio = self._is_portfolio_backend(config)
+        actions = self._extract_actions(rollout_deterministic, is_portfolio)
+
+        if is_portfolio:
+            # Store portfolio weights (continuous values 0-1)
+            if actions.ndim > 1:
+                # Multi-asset: store mean allocation per asset
+                last_positions = actions.mean(dim=0).tolist()
+            else:
+                # Single asset: store allocation over time
+                last_positions = actions.flatten().tolist()
         else:
-            actions = action_tensor
-        actions = actions.flatten().tolist() if hasattr(actions, "flatten") else []
-        last_positions = [int(a) - 1 for a in actions] if actions else []
+            # Store discrete positions (e.g., [-1, 0, 1])
+            actions_flat = actions.flatten().tolist() if hasattr(actions, "flatten") else []
+            last_positions = [int(a) - 1 for a in actions_flat] if actions_flat else []
 
         return reward_plot, action_plot, None, final_reward, last_positions
 
