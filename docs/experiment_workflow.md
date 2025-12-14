@@ -92,18 +92,17 @@ flowchart TD
 
 ### 3. Environment Creation
 
--   **Function**: `create_environment()`
--   **Location**: `src/trading_rl/train_trading_agent.py`
+-   **Builder**: `AlgorithmicEnvironmentBuilder` with backend-aware factories
+-   **Location**: `src/trading_rl/envs/`
 -   **Steps**:
-    -   Initialize TorchRL trading environment
-    -   Apply transforms (StepCounter, etc.)
-    -   Set reward function and trading parameters
-    -   **Action Space**:
-        -   Default discrete positions: `[-1, 0, 1]` (Short, Neutral, Long).
-        -   **Continuous Actions (TD3/DDPG)**: Wrapped with `ContinuousToDiscreteAction` which maps continuous inputs `[-1, 1]` to discrete positions:
-            -   `x < -0.33` → Short (-1)
-            -   `-0.33 <= x <= 0.33` → Neutral (0)
-            -   `x > 0.33` → Long (1)
+    -   Backend is chosen from `config.env.backend` (fallback: algorithm default)
+    -   Supported backends:
+        -   `gym_trading_env.discrete` (default, positions e.g. `[-1, 0, 1]`)
+        -   `gym_trading_env.continuous` (TD3/DDPG; continuous → discrete wrapper)
+        -   `gym_anytrading.forex` (requires positions `[0, 1]` short/long)
+        -   `gym_anytrading.stocks` (requires positions `[0, 1]` short/long)
+    -   Applies transforms (StepCounter, optional Continuous→Discrete action map)
+    -   Trading params and reward function come from config
 
 ### 4. Network Architecture
 

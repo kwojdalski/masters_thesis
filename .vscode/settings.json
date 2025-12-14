@@ -13,6 +13,13 @@
             }
         ]
     },
+    "python.testing.pytestEnabled": true,
+    "python.testing.cwd": "${workspaceFolder}",
+    "python.testing.pytestArgs": [
+        "-c",
+        "pytest.ini"
+    ],
+    "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
     "search.exclude": {
         "**/venv": true,
         "**/.git": true,
@@ -42,13 +49,14 @@
         "**/build"
     ],
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/code/python"
+        "${workspaceFolder}/src"
     ],
     "jupyter.notebookFileRoot": "${workspaceFolder}",
     "terminal.integrated.env.osx": {
-        "PYTHONPATH": "${workspaceFolder}/code/python:${env:PYTHONPATH}"
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
     },
     "terminal.integrated.env.linux": {
-        "PYTHONPATH": "${workspaceFolder}/code/python:${env:PYTHONPATH}"
-    }
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
+    },
+    "python.testing.unittestEnabled": false
 }
