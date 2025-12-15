@@ -29,7 +29,9 @@ env:
 
   # Column specifications
   price_columns: ["close"]
-  feature_columns: ["feature_return", "feature_pct_chng", "feature_high", "feature_low"]
+  # NOTE: upward_drift data only creates feature_return and feature_pct_chng
+  # feature_high and feature_low are skipped (see data_utils.py:106-108)
+  feature_columns: ["feature_return", "feature_pct_chng"]
 
 # Network Architecture
 network:
