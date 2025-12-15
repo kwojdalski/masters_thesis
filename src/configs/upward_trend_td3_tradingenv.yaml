@@ -29,9 +29,9 @@ env:
 
   # Column specifications
   price_columns: ["close"]
-  # NOTE: upward_drift data only creates feature_return (and skips feature_high, feature_low)
-  # feature_pct_chng is redundant (identical to feature_return) - see data_utils.py:106-121
-  feature_columns: ["feature_return"]
+  # feature_return: z-scored returns (no trend signal due to normalization)
+  # feature_trend: price relative to start, min-max scaled to [0,1] (preserves upward trend!)
+  feature_columns: ["feature_return", "feature_trend"]
 
 # Network Architecture
 network:
