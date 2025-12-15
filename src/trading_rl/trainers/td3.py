@@ -235,6 +235,18 @@ class TD3Trainer(BaseTrainer):
         for j in range(self.config.optim_steps_per_batch):
             sample = self.replay_buffer.sample(self.config.sample_size)
 
+            # TorchRL's TD3Loss requires reward/done/terminated to have identical shapes.
+            # Some env wrappers emit 1D tensors which then trigger a shape error; normalize here.
+            for key in [("next", "reward"), ("next", "done"), ("next", "terminated")]:
+                tensor = sample.get(key)
+                if tensor is None:
+                    continue
+                if tensor.ndim == 0:
+                    tensor = tensor.unsqueeze(0).unsqueeze(-1)
+                elif tensor.ndim == 1:
+                    tensor = tensor.unsqueeze(-1)
+                sample.set(key, tensor)
+
             # DEBUG: Log sample statistics
             if logger.isEnabledFor(logging.DEBUG):
                 actions = sample["action"]
