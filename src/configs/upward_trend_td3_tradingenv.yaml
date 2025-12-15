@@ -16,7 +16,7 @@ data:
   timeframe: "1h"
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
-  train_size: 450
+  train_size: 50000
   no_features: false
 
 # Environment Configuration - TradingEnv Backend
@@ -31,8 +31,8 @@ env:
   price_columns: ["close"]
   # feature_return: z-scored returns (no trend signal due to normalization)
   # feature_trend: price relative to start, min-max scaled to [0,1] (preserves upward trend!)
-  feature_columns: ["feature_return", "feature_trend"]
-
+  feature_columns: [ "feature_trend"]
+# "feature_return",
 # Network Architecture
 network:
   actor_hidden_dims: [128, 64]  # Larger for better function approximation
@@ -48,16 +48,16 @@ training:
   value_weight_decay: 0.001
 
   # Training loop
-  max_steps: 10000
+  max_steps: 50000
   init_rand_steps: 2000  # Fill 10% of buffer with diverse exploration
   frames_per_batch: 200
-  optim_steps_per_batch: 10  # CRITICAL: Reduced from 50 to prevent overfitting
+  optim_steps_per_batch: 5  # CRITICAL: Reduced from 50 to prevent overfitting
   sample_size: 64
-  buffer_size: 20000
+  buffer_size: 100000
 
   # TD3-specific parameters
-  tau: 0.01  # CRITICAL: Faster target updates (was 0.005)
-  policy_noise: 0.2
+  tau: 0.005  # CRITICAL: Faster target updates (was 0.005)
+  policy_noise: 0.15
   noise_clip: 0.5
   policy_delay: 2
   delay_actor: true
@@ -80,9 +80,9 @@ logging:
 # Data Generator Configuration
 data_generator:
   pattern_type: "upward_drift"
-  n_samples: 500
+  n_samples: 50000
   base_price: 50000.0
   drift_rate: 0.0015  # 0.15% per step - strong uptrend
-  volatility: 0.0005  # Small noise
-  pullback_floor: 0.995  # Occasional small pullbacks
+  volatility: 0.000  # Small noise
+  # pullback_floor: 0.995  # Occasional small pullbacks
   start_date: "2024-01-01"
