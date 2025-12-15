@@ -4,7 +4,7 @@ A reinforcement learning framework for trading strategies using PyTorch and Torc
 
 ## Features
 
-- **Deep RL Trading Agents**: PPO, DDPG, TD3 pipelines with custom trading environments
+- **Deep RL Trading Agents**: PPO (Discrete & Continuous), DDPG, TD3 pipelines with custom trading environments
 - **Experiment Tracking**: MLflow integration with config/data artifacts, combined evaluation plots, and metrics
 - **CLI Interface**: command-line tools using Typer and Rich
 - **Comprehensive Analytics**: Reward/action comparisons plus PPO action-probability visualization

@@ -3,12 +3,12 @@
 from trading_rl.trainers.base import BaseTrainer
 from trading_rl.trainers.ddpg import DDPGTrainer
 from trading_rl.trainers.ppo import PPOTrainer
-from trading_rl.trainers.td3 import TD3Trainer, TD3Loss
+from trading_rl.trainers.td3 import TD3Loss, TD3Trainer
 
 __all__ = [
     "BaseTrainer",
     "DDPGTrainer",
     "PPOTrainer",
-    "TD3Trainer",
     "TD3Loss",
+    "TD3Trainer",
 ]

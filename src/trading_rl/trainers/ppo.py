@@ -27,8 +27,8 @@ from torchrl.objectives import ClipPPOLoss
 from logger import get_logger
 from trading_rl.config import TrainingConfig
 from trading_rl.models import (
-    create_ppo_actor,
     create_continuous_ppo_actor,
+    create_ppo_actor,
     create_ppo_value_network,
 )
 from trading_rl.trainers.base import BaseTrainer
@@ -169,7 +169,9 @@ class PPOTrainer(BaseTrainer):
                 with set_exploration_type(InteractionType.MODE):
                     eval_rollout = self.env.rollout(self.config.eval_steps, self.actor)
             except RuntimeError:
-                logger.debug("Mode not available for distribution, falling back to Mean")
+                logger.debug(
+                    "Mode not available for distribution, falling back to Mean"
+                )
                 with set_exploration_type(InteractionType.DETERMINISTIC):
                     eval_rollout = self.env.rollout(self.config.eval_steps, self.actor)
 
@@ -538,25 +540,33 @@ class PPOTrainerContinuous(PPOTrainer):
                     # --- Continuous Output Handling ---
                     if hasattr(actor_output, "loc"):
                         mean = actor_output.loc.squeeze()
-                        scale = getattr(actor_output, "scale", torch.zeros_like(mean)).squeeze()
-                        
+                        scale = getattr(
+                            actor_output, "scale", torch.zeros_like(mean)
+                        ).squeeze()
+
                         # Handle multi-dimensional continuous actions (take first dim)
                         if mean.ndim > 0:
                             mean = mean[0]
                             scale = scale[0]
-                        
+
                         mean_val = float(mean.item())
                         std_val = float(scale.item())
-                        
-                        continuous_data.append({
-                            "Step": step,
-                            "Mean": mean_val,
-                            "Upper": mean_val + std_val,
-                            "Lower": mean_val - std_val
-                        })
-                        
+
+                        continuous_data.append(
+                            {
+                                "Step": step,
+                                "Mean": mean_val,
+                                "Upper": mean_val + std_val,
+                                "Lower": mean_val - std_val,
+                            }
+                        )
+
                         # Sample action for simulation
-                        action = actor_output.sample() if hasattr(actor_output, "sample") else actor_output.loc
+                        action = (
+                            actor_output.sample()
+                            if hasattr(actor_output, "sample")
+                            else actor_output.loc
+                        )
                     else:
                         # Fallback for unexpected output format
                         continue
@@ -564,7 +574,7 @@ class PPOTrainerContinuous(PPOTrainer):
                     # --- Environment Step ---
                     # Ensure action tensor is correctly shaped for the environment
                     action_tensor = torch.as_tensor(action)
-                    
+
                     if hasattr(obs, "batch_size") and obs.batch_size:
                         expected_batch = obs.batch_size[0]
                     else:
@@ -572,8 +582,8 @@ class PPOTrainerContinuous(PPOTrainer):
 
                     # Ensure batch dimension
                     if action_tensor.dim() == 0:
-                         action_tensor = action_tensor.unsqueeze(0)
-                    
+                        action_tensor = action_tensor.unsqueeze(0)
+
                     # Fix batch size mismatch if necessary
                     if action_tensor.shape[0] != expected_batch:
                         if action_tensor.shape[0] == 1:
@@ -584,7 +594,7 @@ class PPOTrainerContinuous(PPOTrainer):
                                 action_tensor = action_tensor.expand(expected_batch, -1)
                         else:
                             # Just take the first one if we have too many
-                             action_tensor = action_tensor[:expected_batch]
+                            action_tensor = action_tensor[:expected_batch]
 
                     if hasattr(obs, "clone") and hasattr(obs, "set"):
                         action_td = obs.clone()
@@ -611,11 +621,13 @@ class PPOTrainerContinuous(PPOTrainer):
             # --- Plotting ---
             df_cont = pd.DataFrame(continuous_data)
             if df_cont.empty:
-                 return None
+                return None
 
             plot = (
                 ggplot(df_cont, aes(x="Step"))
-                + geom_ribbon(aes(ymin="Lower", ymax="Upper"), fill="#00BFC4", alpha=0.3)
+                + geom_ribbon(
+                    aes(ymin="Lower", ymax="Upper"), fill="#00BFC4", alpha=0.3
+                )
                 + geom_line(aes(y="Mean"), color="#00BFC4", size=1)
                 + labs(
                     title="Continuous Action Distribution (Mean ± Std)",
