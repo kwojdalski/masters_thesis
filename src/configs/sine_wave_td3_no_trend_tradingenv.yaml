@@ -57,7 +57,7 @@ training:
 
   # TD3-specific parameters
   tau: 0.005  # Soft update coefficient for target networks
-  policy_noise: 0.2  # Target policy smoothing noise std
+  policy_noise: 0.3  # Target policy smoothing noise std
   noise_clip: 0.5  # Range to clip target policy noise
   policy_delay: 2  # Frequency of delayed policy updates
   delay_actor: true  # Enable delayed actor updates
