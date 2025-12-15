@@ -28,7 +28,7 @@ env:
 
   # Column specifications - IMPORTANT: price_columns must contain only positive values
   price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
-  feature_columns: ["feature_return", "feature_pct_chng", "feature_high", "feature_low"]  # Normalized features for RL stability
+  feature_columns: ["feature_return", "feature_high", "feature_low"]  # Normalized features (removed redundant feature_pct_chng)
 
   # Note: positions parameter is not used with tradingenv backend
   # Actions are continuous portfolio weights instead of discrete positions
