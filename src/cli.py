@@ -107,7 +107,7 @@ def generate_data(
     ),
     samples_per_period: int | None = typer.Option(
         None,
-        "--samples-per-period",
+        "--samples-per_period",
         help="Samples per sine wave period",
         show_default=False,
     ),
@@ -203,6 +203,9 @@ def train(
     max_steps: int | None = typer.Option(
         None, "--max-steps", help="Maximum training steps"
     ),
+    init_rand_steps: int | None = typer.Option(
+        None, "--init-rand-steps", help="Initial random exploration steps"
+    ),
     actor_lr: float | None = typer.Option(
         None, "--actor-lr", help="Actor learning rate"
     ),
@@ -224,6 +227,7 @@ def train(
         config_file=config_file,
         seed=seed,
         max_steps=max_steps,
+        init_rand_steps=init_rand_steps,
         actor_lr=actor_lr,
         value_lr=value_lr,
         buffer_size=buffer_size,
