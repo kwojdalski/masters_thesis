@@ -304,6 +304,13 @@ class TD3Trainer(BaseTrainer):
             loss_vals["loss_qvalue"].backward()
             self.optimizer_value.step()
 
+            # Sync functional critic params back to critic modules used for collection/eval
+            for q_net in self.value_net:
+                self.td3_loss.qvalue_network_params.to_module(q_net)
+
+                # for name, param in list(q_net.named_parameters())[:3]:
+                #     logger.debug(f"{name}, {param.view(-1)[:5]}")
+
             value_loss = loss_vals["loss_qvalue"].item()
             self.logs["loss_value"].append(value_loss)
 
@@ -317,6 +324,9 @@ class TD3Trainer(BaseTrainer):
                 self.optimizer_actor.zero_grad()
                 loss_vals_actor["loss_actor"].backward()
                 self.optimizer_actor.step()
+
+                # Sync functional actor params back to the actor module the collector uses
+                self.td3_loss.actor_network_params.to_module(self.actor)
 
                 # Update target networks
                 self.updater.step()

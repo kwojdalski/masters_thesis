@@ -35,3 +35,7 @@ __all__ = [
     "get_environment_factory",
     "validate_backend",
 ]
+# The following shell command is an example for running training using a specific configuration.
+# Move this to documentation or comments, not Python code.
+
+# Example shell command (for README or comments):

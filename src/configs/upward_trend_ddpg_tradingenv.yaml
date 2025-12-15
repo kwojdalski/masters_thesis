@@ -1,0 +1,67 @@
+# DDPG Configuration with TradingEnv Backend - Upward Trend Pattern
+# ==================================================================
+# Simple upward trend to verify DDPG can learn to stay long (weight ≈ 1.0)
+
+experiment_name: "ddpg_tradingenv_uptrend"
+seed: 123
+
+# Data Configuration - Upward Trend Pattern
+data:
+  data_path: "./data/raw/synthetic/upward_trend_td3_tradingenv.parquet"
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["TREND/UP"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 450
+  no_features: false
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_DDPG_UPTREND"
+  backend: "tradingenv"
+  trading_fees: 0.001
+  price_columns: ["close"]
+  feature_columns: ["feature_return", "feature_trend"]
+
+# Network Architecture
+network:
+  actor_hidden_dims: [128, 64]
+  value_hidden_dims: [128, 64]
+
+# Training Parameters - DDPG
+training:
+  algorithm: "DDPG"
+  actor_lr: 0.0003
+  value_lr: 0.001
+  value_weight_decay: 0.001
+
+  max_steps: 10000
+  init_rand_steps: 900
+  frames_per_batch: 200
+  optim_steps_per_batch: 10
+  sample_size: 64
+  buffer_size: 20000
+
+  tau: 0.01
+  loss_function: "smooth_l1"
+
+  eval_steps: 440
+  eval_interval: 500
+  log_interval: 100
+
+# Logging Configuration
+logging:
+  log_dir: "logs/ddpg_tradingenv_uptrend"
+  log_level: "INFO"
+
+# Data Generator Configuration (for reference)
+data_generator:
+  pattern_type: "upward_drift"
+  n_samples: 500
+  base_price: 50000.0
+  drift_rate: 0.0015
+  volatility: 0.0005
+  pullback_floor: 0.995
+  start_date: "2024-01-01"
