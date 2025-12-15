@@ -338,10 +338,10 @@ class TD3Trainer(BaseTrainer):
 
             # Log progress similar to PPO (info level)
 
-            if j % max(1, self.config.log_interval) == 0:
+            if current_step % max(1, self.config.log_interval) == 0:
                 self._log_progress(max_length, buffer_len, loss_vals)
 
-            if j % self.config.eval_interval == 0:
+            if current_step % self.config.eval_interval == 0:
                 self._evaluate()
 
     def train(self, callback=None) -> dict[str, list]:
