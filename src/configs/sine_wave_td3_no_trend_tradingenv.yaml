@@ -1,0 +1,89 @@
+# TD3 Configuration with TradingEnv Backend (XAI Asset Management Library)
+# ========================================================================
+# This configuration uses the tradingenv library for continuous portfolio allocation
+# with TD3 (Twin Delayed DDPG) algorithm
+# https://github.com/xaiassetmanagement/tradingenv
+
+experiment_name: "td3_tradingenv_sine"
+seed: 42
+
+# Data Configuration
+data:
+  data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["SINE/WAVE"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 450
+  no_features: false
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_TD3_PORTFOLIO"
+  backend: "tradingenv"
+
+  # Transaction costs
+  trading_fees: 0.001  # 0.1% proportional fee
+
+  # Column specifications - IMPORTANT: price_columns must contain only positive values
+  price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
+  feature_columns: ["feature_return", "feature_pct_chng", "feature_high", "feature_low"]  # Normalized features for RL stability
+
+  # Note: positions parameter is not used with tradingenv backend
+  # Actions are continuous portfolio weights instead of discrete positions
+
+# Network Architecture
+network:
+  actor_hidden_dims: [64, 32]  # Actor network for policy
+  value_hidden_dims: [64, 32]  # Critic network for Q-values
+
+# Training Parameters - TD3
+training:
+  algorithm: "TD3"  # Twin Delayed DDPG - off-policy actor-critic
+
+  # Learning rates
+  actor_lr: 0.0003
+  value_lr: 0.0003
+  value_weight_decay: 0.001
+
+  # Training loop
+  max_steps: 10000  # TD3 may need more steps than PPO
+  init_rand_steps: 500  # Initial random exploration
+  frames_per_batch: 200
+  sample_size: 64
+  buffer_size: 20000  # Larger buffer for off-policy learning
+
+  # TD3-specific parameters
+  tau: 0.005  # Soft update coefficient for target networks
+  policy_noise: 0.2  # Target policy smoothing noise std
+  noise_clip: 0.5  # Range to clip target policy noise
+  policy_delay: 2  # Frequency of delayed policy updates
+  delay_actor: true  # Enable delayed actor updates
+  delay_qvalue: true  # Enable delayed Q-value updates
+
+  # Loss function
+  loss_function: "l2"
+
+  # Evaluation
+  eval_steps: 440
+  eval_interval: 500
+  log_interval: 200
+
+# Logging Configuration
+logging:
+  log_dir: "logs/td3_tradingenv_sine"
+  log_level: "INFO"
+
+# Data Generator Configuration (for synthetic data)
+data_generator:
+  pattern_type: "sine_wave"
+  n_periods: 5
+  samples_per_period: 100
+  n_samples: 500
+  base_price: 50000.0
+  amplitude: 8000.0
+  trend_slope: 0.0  # No trend - pure oscillation for testing TD3's ability to time cycles
+  volatility: 0.0002
+  start_date: "2024-01-01"
