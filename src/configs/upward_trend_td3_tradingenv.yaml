@@ -57,12 +57,12 @@ training:
 
   # TD3-specific parameters
   tau: 0.005  # CRITICAL: Faster target updates (was 0.005)
-  policy_noise: 0.15
+  policy_noise: 0.05
   noise_clip: 0.5
   policy_delay: 2
   delay_actor: true
   delay_qvalue: true
-  exploration_noise_std: 0.15  # Good exploration for off-policy learning
+  exploration_noise_std: 0.05  # Good exploration for off-policy learning
 
   # Loss function
   loss_function: "smooth_l1"  # CRITICAL: More stable than L2

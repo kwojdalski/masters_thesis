@@ -317,6 +317,7 @@ class TD3Trainer(BaseTrainer):
             # 2. Delayed actor update
             update_actor = j % self.policy_delay == 0
 
+            extra_metrics = None
             if update_actor:
                 # Recompute loss for actor update (using updated critic weights)
                 loss_vals_actor = self.td3_loss(sample)
@@ -332,6 +333,23 @@ class TD3Trainer(BaseTrainer):
                 self.updater.step()
 
                 actor_loss = loss_vals_actor["loss_actor"].item()
+
+                # Optional debug: prepare parameter magnitude summaries
+                if logger.isEnabledFor(logging.DEBUG):
+                    actor_sum = float(
+                        sum(p.abs().sum().item() for p in self.actor.parameters())
+                    )
+                    critic_sum = float(
+                        sum(
+                            p.abs().sum().item()
+                            for q_net in self.value_net
+                            for p in q_net.parameters()
+                        )
+                    )
+                    extra_metrics = {
+                        "actor_param_abs_sum": actor_sum,
+                        "critic_param_abs_sum": critic_sum,
+                    }
             else:
                 # For logging purposes, use the actor loss computed in the first pass
                 actor_loss = loss_vals["loss_actor"].item()
@@ -344,7 +362,9 @@ class TD3Trainer(BaseTrainer):
                 and hasattr(self.callback, "log_training_step")
             ):
                 current_step = batch_idx * self.config.optim_steps_per_batch + j
-                self.callback.log_training_step(current_step, actor_loss, value_loss)
+                self.callback.log_training_step(
+                    current_step, actor_loss, value_loss, extra_metrics=extra_metrics
+                )
 
             # Log progress similar to PPO (info level)
 
