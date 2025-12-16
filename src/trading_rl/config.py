@@ -36,8 +36,12 @@ class EnvConfig:
     backend: str = "gym_anytrading.forex"  # Backend type: gym_trading_env.discrete, gym_trading_env.continuous, gym_anytrading.forex, gym_anytrading.stocks, tradingenv
 
     # TradingEnv-specific configuration (optional)
-    price_columns: list[str] | None = None  # Columns to use as asset prices (for tradingenv backend)
-    feature_columns: list[str] | None = None  # Columns to use as features/observations (for tradingenv backend)
+    price_columns: list[str] | None = (
+        None  # Columns to use as asset prices (for tradingenv backend)
+    )
+    feature_columns: list[str] | None = (
+        None  # Columns to use as features/observations (for tradingenv backend)
+    )
 
 
 @dataclass
@@ -86,7 +90,7 @@ class TrainingConfig:
     policy_noise: float = 0.2
     noise_clip: float = 0.5
     policy_delay: int = 2
-    exploration_noise_std: float = 0.1
+    exploration_noise_std: float = 0.2
     delay_actor: bool = True
     delay_qvalue: bool = True
 
@@ -271,8 +275,16 @@ class ExperimentConfig:
                 "borrow_interest_rate": self.env.borrow_interest_rate,
                 "backend": self.env.backend,
                 # TradingEnv-specific fields (only include if set)
-                **({"price_columns": self.env.price_columns} if self.env.price_columns is not None else {}),
-                **({"feature_columns": self.env.feature_columns} if self.env.feature_columns is not None else {}),
+                **(
+                    {"price_columns": self.env.price_columns}
+                    if self.env.price_columns is not None
+                    else {}
+                ),
+                **(
+                    {"feature_columns": self.env.feature_columns}
+                    if self.env.feature_columns is not None
+                    else {}
+                ),
             },
             "network": {
                 "actor_hidden_dims": self.network.actor_hidden_dims,

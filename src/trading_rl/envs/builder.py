@@ -41,11 +41,11 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
 
         # TD3/DDPG require continuous action space; enforce compatible backend
         if str(algorithm).upper() in {"TD3", "DDPG"}:
-            if explicit_backend and explicit_backend not in {"gym_trading_env.continuous"}:
+            if explicit_backend and explicit_backend not in {"gym_trading_env.continuous", "tradingenv"}:
                 raise ValueError(
-                    f"{algorithm} requires a continuous backend ('gym_trading_env.continuous'), "
+                    f"{algorithm} requires a continuous backend ('gym_trading_env.continuous' or 'tradingenv'), "
                     f"but config.env.backend is '{explicit_backend}'. "
-                    "Please set env.backend to 'gym_trading_env.continuous' or switch algorithm."
+                    "Please set env.backend to 'gym_trading_env.continuous' or 'tradingenv', or switch algorithm."
                 )
             algo_backend = "gym_trading_env.continuous"
         else:

@@ -17,6 +17,7 @@ class TrainingParams:
     config_file: Path | None = None
     seed: int | None = None
     max_steps: int | None = None
+    init_rand_steps: int | None = None
     actor_lr: float | None = None
     value_lr: float | None = None
     buffer_size: int | None = None
@@ -73,6 +74,8 @@ class TrainingCommand(BaseCommand):
             config.experiment_name = params.experiment_name
         if params.max_steps is not None:
             config.training.max_steps = params.max_steps
+        if params.init_rand_steps is not None:
+            config.training.init_rand_steps = params.init_rand_steps
         if params.actor_lr is not None:
             config.training.actor_lr = params.actor_lr
         if params.value_lr is not None:

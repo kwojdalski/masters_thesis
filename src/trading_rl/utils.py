@@ -37,8 +37,9 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
     # Compare actions and rewards between all pairs of rollouts
     for i in range(len(rollouts)):
         for j in range(i + 1, len(rollouts)):
-            actions_equal = bool(allclose(all_actions[i], all_actions[j]))
-            rewards_equal = bool(allclose(all_rewards[i], all_rewards[j]))
+            # Convert to same dtype before comparison to avoid dtype mismatch
+            actions_equal = bool(allclose(all_actions[i].float(), all_actions[j].float()))
+            rewards_equal = bool(allclose(all_rewards[i].float(), all_rewards[j].float()))
             logger.info(
                 "Run %s vs Run %s | actions_identical=%s rewards_identical=%s",
                 i + 1,

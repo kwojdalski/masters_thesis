@@ -235,6 +235,18 @@ class TD3Trainer(BaseTrainer):
         for j in range(self.config.optim_steps_per_batch):
             sample = self.replay_buffer.sample(self.config.sample_size)
 
+            # TorchRL's TD3Loss requires reward/done/terminated to have identical shapes.
+            # Some env wrappers emit 1D tensors which then trigger a shape error; normalize here.
+            for key in [("next", "reward"), ("next", "done"), ("next", "terminated")]:
+                tensor = sample.get(key)
+                if tensor is None:
+                    continue
+                if tensor.ndim == 0:
+                    tensor = tensor.unsqueeze(0).unsqueeze(-1)
+                elif tensor.ndim == 1:
+                    tensor = tensor.unsqueeze(-1)
+                sample.set(key, tensor)
+
             # DEBUG: Log sample statistics
             if logger.isEnabledFor(logging.DEBUG):
                 actions = sample["action"]
@@ -292,12 +304,20 @@ class TD3Trainer(BaseTrainer):
             loss_vals["loss_qvalue"].backward()
             self.optimizer_value.step()
 
+            # Sync functional critic params back to critic modules used for collection/eval
+            for q_net in self.value_net:
+                self.td3_loss.qvalue_network_params.to_module(q_net)
+
+                # for name, param in list(q_net.named_parameters())[:3]:
+                #     logger.debug(f"{name}, {param.view(-1)[:5]}")
+
             value_loss = loss_vals["loss_qvalue"].item()
             self.logs["loss_value"].append(value_loss)
 
             # 2. Delayed actor update
             update_actor = j % self.policy_delay == 0
 
+            extra_metrics = None
             if update_actor:
                 # Recompute loss for actor update (using updated critic weights)
                 loss_vals_actor = self.td3_loss(sample)
@@ -306,10 +326,30 @@ class TD3Trainer(BaseTrainer):
                 loss_vals_actor["loss_actor"].backward()
                 self.optimizer_actor.step()
 
+                # Sync functional actor params back to the actor module the collector uses
+                self.td3_loss.actor_network_params.to_module(self.actor)
+
                 # Update target networks
                 self.updater.step()
 
                 actor_loss = loss_vals_actor["loss_actor"].item()
+
+                # Optional debug: prepare parameter magnitude summaries
+                if logger.isEnabledFor(logging.DEBUG):
+                    actor_sum = float(
+                        sum(p.abs().sum().item() for p in self.actor.parameters())
+                    )
+                    critic_sum = float(
+                        sum(
+                            p.abs().sum().item()
+                            for q_net in self.value_net
+                            for p in q_net.parameters()
+                        )
+                    )
+                    extra_metrics = {
+                        "actor_param_abs_sum": actor_sum,
+                        "critic_param_abs_sum": critic_sum,
+                    }
             else:
                 # For logging purposes, use the actor loss computed in the first pass
                 actor_loss = loss_vals["loss_actor"].item()
@@ -322,14 +362,16 @@ class TD3Trainer(BaseTrainer):
                 and hasattr(self.callback, "log_training_step")
             ):
                 current_step = batch_idx * self.config.optim_steps_per_batch + j
-                self.callback.log_training_step(current_step, actor_loss, value_loss)
+                self.callback.log_training_step(
+                    current_step, actor_loss, value_loss, extra_metrics=extra_metrics
+                )
 
             # Log progress similar to PPO (info level)
 
-            if j % max(1, self.config.log_interval) == 0:
+            if current_step % max(1, self.config.log_interval) == 0:
                 self._log_progress(max_length, buffer_len, loss_vals)
 
-            if j % self.config.eval_interval == 0:
+            if current_step % self.config.eval_interval == 0:
                 self._evaluate()
 
     def train(self, callback=None) -> dict[str, list]:

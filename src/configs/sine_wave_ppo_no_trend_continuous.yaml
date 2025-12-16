@@ -27,7 +27,7 @@ env:
   
   # Column specifications for TradingEnv
   price_columns: ["close"]
-  feature_columns: ["feature_return", "feature_pct_chng", "feature_high", "feature_low"]
+  feature_columns: ["feature_return", "feature_high", "feature_low"]  # Removed redundant feature_pct_chng
 
 # Network Architecture
 network:
