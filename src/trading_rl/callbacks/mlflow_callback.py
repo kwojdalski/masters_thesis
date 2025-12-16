@@ -62,7 +62,13 @@ class MLflowTrainingCallback:
                 "[cyan]Training Episodes", total=self.total_episodes
             )
 
-    def log_training_step(self, step: int, actor_loss: float, value_loss: float):
+    def log_training_step(
+        self,
+        step: int,
+        actor_loss: float,
+        value_loss: float,
+        extra_metrics: dict[str, float] | None = None,
+    ):
         """Log losses from a training step to MLflow.
 
         Logs multiple metrics simultaneously for rich tracking.
@@ -74,6 +80,10 @@ class MLflowTrainingCallback:
         # Log losses to MLflow every step
         mlflow.log_metric("actor_loss", actor_loss, step=step)
         mlflow.log_metric("value_loss", value_loss, step=step)
+
+        if extra_metrics:
+            for key, val in extra_metrics.items():
+                mlflow.log_metric(key, val, step=step)
 
         # Log position changes if available
         if self.position_change_counts:
