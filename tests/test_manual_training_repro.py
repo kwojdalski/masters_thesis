@@ -48,6 +48,68 @@ def test_sine_wave_ppo_training_debug():
         pytest.fail(f"Training failed with error: {e}")
 
 
+def test_upward_trend_td3_training_debug():
+    """
+    Reproduces the CLI command (shortened for test):
+    LOG_LEVEL=DEBUG python src/cli.py train \
+      --config src/configs/upward_trend_td3_tradingenv.yaml \
+      --max-steps 40000 \
+      --actor-lr 0.0003 \
+      --init-rand-steps 900
+
+    In test form we lower max_steps to keep runtime reasonable.
+    """
+    os.environ["LOG_LEVEL"] = "DEBUG"
+    configure_logging(component="test_repro", level="DEBUG")
+
+    config_path = Path("src/configs/upward_trend_td3_tradingenv.yaml")
+
+    params = TrainingParams(
+        config_file=config_path,
+        max_steps=2000,  # shorter than full run for test
+        actor_lr=0.0003,
+        init_rand_steps=900,
+    )
+
+    console = Console(force_terminal=True)
+    cmd = TrainingCommand(console)
+
+    try:
+        cmd.execute(params)
+    except Exception as e:
+        pytest.fail(f"TD3 training failed with error: {e}")
+
+
+def test_upward_trend_ddpg_training_debug():
+    """
+    Quick DDPG tradingenv uptrend repro (shortened for test runtime).
+    Mirrors:
+    LOG_LEVEL=DEBUG python src/cli.py train \
+      --config src/configs/upward_trend_ddpg_tradingenv.yaml \
+      --max-steps 40000 \
+      --init-rand-steps 900
+    """
+    os.environ["LOG_LEVEL"] = "DEBUG"
+    configure_logging(component="test_repro", level="DEBUG")
+
+    config_path = Path("src/configs/upward_trend_ddpg_tradingenv.yaml")
+
+    params = TrainingParams(
+        config_file=config_path,
+        max_steps=2000,  # shorten for test
+        init_rand_steps=900,
+        actor_lr=0.0003,
+    )
+
+    console = Console(force_terminal=True)
+    cmd = TrainingCommand(console)
+
+    try:
+        cmd.execute(params)
+    except Exception as e:
+        pytest.fail(f"DDPG training failed with error: {e}")
+
+
 if __name__ == "__main__":
     # Allows running directly with python tests/test_manual_training_repro.py
     test_sine_wave_ppo_training_debug()

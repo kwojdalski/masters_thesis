@@ -1,0 +1,88 @@
+# TD3 Configuration with TradingEnv Backend - Upward Trend Pattern
+# ===================================================================
+# This configuration uses an obvious upward trend to test if TD3 can learn
+# Expected behavior: Agent should learn to stay fully long (weight ≈ 1.0)
+# https://github.com/xaiassetmanagement/tradingenv
+
+experiment_name: "td3_tradingenv_uptrend"
+seed: 99  # Fixed seed for reproducibility
+
+# Data Configuration - Upward Trend Pattern
+data:
+  data_path: "./data/raw/synthetic/upward_trend_td3_tradingenv.parquet"
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["TREND/UP"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 50000
+  no_features: false
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_TD3_UPTREND"
+  backend: "tradingenv"
+
+  # Transaction costs
+  trading_fees: 0.001  # 0.1% proportional fee
+
+  # Column specifications
+  price_columns: ["close"]
+  # feature_return: z-scored returns (no trend signal due to normalization)
+  # feature_trend: price relative to start, min-max scaled to [0,1] (preserves upward trend!)
+  feature_columns: [ "feature_trend"]
+# "feature_return",
+# Network Architecture
+network:
+  actor_hidden_dims: [128, 64]  # Larger for better function approximation
+  value_hidden_dims: [128, 64]  # Twin critics need capacity
+
+# Training Parameters - TD3 with Stability Fixes
+training:
+  algorithm: "TD3"
+
+  # Learning rates
+  actor_lr: 0.0003
+  value_lr: 0.0003
+  value_weight_decay: 0.001
+
+  # Training loop
+  max_steps: 50000
+  init_rand_steps: 2000  # Fill 10% of buffer with diverse exploration
+  frames_per_batch: 200
+  optim_steps_per_batch: 5  # CRITICAL: Reduced from 50 to prevent overfitting
+  sample_size: 64
+  buffer_size: 100000
+
+  # TD3-specific parameters
+  tau: 0.005  # CRITICAL: Faster target updates (was 0.005)
+  policy_noise: 0.05
+  noise_clip: 0.5
+  policy_delay: 2
+  delay_actor: true
+  delay_qvalue: true
+  exploration_noise_std: 0.05  # Good exploration for off-policy learning
+
+  # Loss function
+  loss_function: "smooth_l1"  # CRITICAL: More stable than L2
+
+  # Evaluation
+  eval_steps: 440
+  eval_interval: 500  # Every 500 optimization steps
+  log_interval: 100  # Every 100 optimization steps
+
+# Logging Configuration
+logging:
+  log_dir: "logs/td3_tradingenv_uptrend"
+  log_level: "INFO"
+
+# Data Generator Configuration
+data_generator:
+  pattern_type: "upward_drift"
+  n_samples: 50000
+  base_price: 50000.0
+  drift_rate: 0.0015  # 0.15% per step - strong uptrend
+  volatility: 0.000  # Small noise
+  # pullback_floor: 0.995  # Occasional small pullbacks
+  start_date: "2024-01-01"

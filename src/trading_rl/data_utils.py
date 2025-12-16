@@ -134,6 +134,18 @@ def create_features(df: pd.DataFrame, data_path: str = "") -> pd.DataFrame:
             "feature_low"
         ].std()
 
+    # Trend feature: price relative to initial price (NOT z-scored to preserve trend)
+    # This feature captures the cumulative price movement
+    # For upward drift: will increase from 1.0 to ~2.1 (110% gain)
+    # Scaled to [0, 1] range for stability
+    df["feature_trend"] = df["close"] / df["close"].iloc[0]
+    # Min-max normalization to [0, 1] instead of z-score
+    feature_trend_min = df["feature_trend"].min()
+    feature_trend_max = df["feature_trend"].max()
+    df["feature_trend"] = (df["feature_trend"] - feature_trend_min) / (
+        feature_trend_max - feature_trend_min + 1e-8
+    )
+
     # Drop any rows with NaN values
     df = df.dropna()
 
