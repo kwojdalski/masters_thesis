@@ -95,7 +95,8 @@ graph TD
     M1 -->|All Combined| M6[<b>Rainbow DQN</b><br/>Double + Dueling + PER<br/>+ Noisy + Multi-step + Distributional]
 
     %% Continuous Action Space - Policy Types
-    N --> N1{<b>Policy Type?</b>}
+    N --> N0[<b>Continuous Control</b><br/>Approach Selection]
+    N0 --> N1{<b>Policy Type?</b>}
     N1 -->|Deterministic| N2[<b>Deterministic Policy</b><br/>DDPG / TD3]
     N1 -->|Stochastic| N3[<b>Stochastic Policy</b><br/>PPO / TRPO / SAC]
 
