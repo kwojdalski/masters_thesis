@@ -3,7 +3,7 @@ necchi/*
 proposal/*
 working_papers/*
 *.md
-!docs/*.md
+docs/*.md
 !README.md
 */cache/*
 *cache
