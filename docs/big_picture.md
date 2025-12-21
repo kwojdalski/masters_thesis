@@ -70,17 +70,6 @@ graph TD
 
     style A fill:#f9f,stroke:#333,stroke-width:2px,color:#000
     style B fill:#f9f,stroke:#333,stroke-width:2px,color:#000
-    style C color:#000
-    style D color:#000
-    style E color:#000
-    style F color:#000
-    style G color:#000
-    style H color:#000
-    style I color:#000
-    style J color:#000
     style K fill:#bbf,stroke:#333,stroke-width:2px,color:#000
-    style L color:#000
-    style M color:#000
-    style N color:#000
     style O fill:#bfb,stroke:#333,stroke-width:2px,color:#000
 ```
