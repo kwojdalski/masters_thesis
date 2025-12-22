@@ -2,7 +2,7 @@ data/*
 necchi/*
 proposal/*
 working_papers/*
-*.md
+/*.md
 docs/*.md
 !README.md
 */cache/*

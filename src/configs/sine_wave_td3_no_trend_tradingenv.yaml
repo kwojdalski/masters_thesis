@@ -16,7 +16,7 @@ data:
   timeframe: "1h"
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
-  train_size: 450
+  train_size: 5000  # Increased from 450 to match n_samples - prevents severe overfitting
   no_features: false
 
 # Environment Configuration - TradingEnv Backend
@@ -36,40 +36,46 @@ env:
 
 # Network Architecture
 network:
-  actor_hidden_dims: [64, 32]  # Actor network for policy
-  value_hidden_dims: [64, 32]  # Critic network for Q-values
+  actor_hidden_dims: [128, 64]  # Larger network for better pattern learning (was [64, 32])
+  value_hidden_dims: [128, 64]  # Larger critics for stable Q-value estimation (was [64, 32])
 
 # Training Parameters - TD3
 training:
   algorithm: "TD3"  # Twin Delayed DDPG - off-policy actor-critic
 
-  # Learning rates
-  actor_lr: 0.0003
-  value_lr: 0.0003
+  # Learning rates - CRITICAL: Reduced for stability
+  actor_lr: 0.0001  # Reduced from 0.0003 to prevent Q-value explosions
+  value_lr: 0.0001  # Reduced from 0.0003 for more conservative updates
   value_weight_decay: 0.001
 
   # Training loop
-  max_steps: 10000  # TD3 may need more steps than PPO
-  init_rand_steps: 500  # Initial random exploration
+  max_steps: 50000  # Increased from 10,000 for better convergence
+  init_rand_steps: 2000  # CRITICAL: Increased to 4% of max_steps for better buffer diversity
   frames_per_batch: 200
-  sample_size: 64
-  buffer_size: 20000  # Larger buffer for off-policy learning
+  optim_steps_per_batch: 5  # CRITICAL: Prevents overfitting to small batches
+  sample_size: 128  # Increased from 64 for more stable gradient estimates
+  buffer_size: 50000  # Increased from 20,000 to match max_steps
+
+  # Discount factor
+  gamma: 0.99  # Discount factor for future rewards
 
   # TD3-specific parameters
-  tau: 0.005  # Soft update coefficient for target networks
-  policy_noise: 0.3  # Target policy smoothing noise std
-  noise_clip: 0.5  # Range to clip target policy noise
+  tau: 0.001  # CRITICAL: Slower target updates (was 0.005) for more stable targets
+  policy_noise: 0.02  # CRITICAL: Further reduced (was 0.05) for cleaner learning signal
+  noise_clip: 0.3  # Reduced from 0.5 - tighter noise bounds
   policy_delay: 2  # Frequency of delayed policy updates
   delay_actor: true  # Enable delayed actor updates
   delay_qvalue: true  # Enable delayed Q-value updates
+  exploration_noise_std: 0.02  # CRITICAL: Reduced from 0.05 for less random exploration
+
 
   # Loss function
-  loss_function: "l2"
+  loss_function: "smooth_l1"  # CRITICAL: More stable than l2 for TD learning
 
   # Evaluation
   eval_steps: 440
   eval_interval: 500
-  log_interval: 200
+  log_interval: 100  # Reduced from 200 for more frequent monitoring
 
 # Logging Configuration
 logging:
@@ -79,9 +85,9 @@ logging:
 # Data Generator Configuration (for synthetic data)
 data_generator:
   pattern_type: "sine_wave"
-  n_periods: 5
-  samples_per_period: 100
-  n_samples: 500
+  n_periods: 10  # Increased from 5 for more pattern repetitions
+  samples_per_period: 500  # Increased from 100 for smoother patterns
+  n_samples: 5000  # CRITICAL: Increased from 500 (10x more data prevents overfitting)
   base_price: 50000.0
   amplitude: 8000.0
   trend_slope: 0.0  # No trend - pure oscillation for testing TD3's ability to time cycles
