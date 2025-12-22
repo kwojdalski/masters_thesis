@@ -27,9 +27,9 @@ While the paper demonstrates a promising application of Deep Reinforcement Learn
 *   **Issue:** RL is notoriously unstable. Results can vary wildly based on the random seed.
 *   **Critique:** The paper does not clearly state if the results are the **average of multiple runs** or a **single "lucky" seed**. It mentions selecting an agent generation "halfway through training," which is an arbitrary heuristic. Without an ensemble of runs or error bars, it is impossible to know if `PPO_T` is truly superior or if it just got a lucky initialization that `DDQN` missed.
 
-## 6. Execution Reality
-*   **Issue:** Transaction costs were set (0.01% - 0.1%), but **slippage** and **market impact** were ignored.
-*   **Critique:** The assumption that execution is always at the closing price is standard for backtests but dangerous for "AI" strategies. If the AI learns to trade on high volatility days (even if it tries to avoid them), the bid-ask spreads in reality would be much wider than the fixed provision assumes.
+## 6. Real-World Execution Considerations
+*   **Issue:** The paper uses fixed, relatively low transaction costs (0.01% - 0.1%) and **does not explicitly account for slippage or market impact**.
+*   **Critique:** While such simplifications are common and often necessary in academic research to isolate and focus on algorithmic performance, it's crucial to acknowledge that in real-world trading, these factors significantly erode profits. The assumption of execution at the closing price, especially for frequent or large trades, can be overly optimistic. For practical deployment, a more detailed model of market microstructure (including variable bid-ask spreads, liquidity constraints, and potential price impact) would be essential to validate profitability.
 
 ## 7. Bitcoin "Win" Anomaly
 *   **Issue:** `PPO_T` achieved a massive 69.65% CAGR on Bitcoin vs. "Buy and Hold" 60.6%.
