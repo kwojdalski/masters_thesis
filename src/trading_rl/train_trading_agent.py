@@ -291,11 +291,11 @@ def run_single_experiment(
         raise ValueError(f"Unsupported algorithm: {algorithm}")
 
     if algorithm == "TD3":
-        actor, qvalue_nets = trainer_cls.build_models(n_obs, n_act, config, env)
-        value_net = qvalue_nets
+        actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
+        value_net = qvalue_net
         trainer = trainer_cls(
             actor=actor,
-            qvalue_nets=qvalue_nets,
+            qvalue_net=qvalue_net,
             env=env,
             config=config.training,
         )

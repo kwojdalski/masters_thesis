@@ -44,13 +44,13 @@ class TD3Trainer(BaseTrainer):
     def __init__(
         self,
         actor: Any,
-        qvalue_nets: list[Any],
+        qvalue_net: Any,
         env: Any,
         config: TrainingConfig,
     ):
         super().__init__(
             actor=actor,
-            value_net=qvalue_nets,
+            value_net=qvalue_net,
             env=env,
             config=config,
             enable_composite_lp=True,
@@ -80,14 +80,11 @@ class TD3Trainer(BaseTrainer):
         )
 
         # TD3 uses two critics; configure loss and optimizers
-        base_qvalue_net = qvalue_nets[0]
-        num_qvalue_nets = 2
-
         self.td3_loss = TD3Loss(
             actor_network=actor,
-            qvalue_network=base_qvalue_net,
+            qvalue_network=qvalue_net,
             action_spec=td3_action_spec,
-            num_qvalue_nets=num_qvalue_nets,
+            num_qvalue_nets=2,
             policy_noise=getattr(config, "policy_noise", 0.2),
             noise_clip=getattr(config, "noise_clip", 0.5),
             loss_function=getattr(config, "loss_function", "smooth_l1"),
@@ -215,19 +212,12 @@ class TD3Trainer(BaseTrainer):
             hidden_dims=config.network.actor_hidden_dims,
             spec=env.action_spec,
         )
-        qvalue_nets = [
-            create_td3_qvalue_network(
-                n_obs,
-                n_act,
-                hidden_dims=config.network.value_hidden_dims,
-            ),
-            create_td3_qvalue_network(
-                n_obs,
-                n_act,
-                hidden_dims=config.network.value_hidden_dims,
-            ),
-        ]
-        return actor, qvalue_nets
+        qvalue_net = create_td3_qvalue_network(
+            n_obs,
+            n_act,
+            hidden_dims=config.network.value_hidden_dims,
+        )
+        return actor, qvalue_net
 
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int
@@ -304,12 +294,11 @@ class TD3Trainer(BaseTrainer):
             loss_vals["loss_qvalue"].backward()
             self.optimizer_value.step()
 
-            # Sync functional critic params back to critic modules used for collection/eval
-            for q_net in self.value_net:
-                self.td3_loss.qvalue_network_params.to_module(q_net)
+            # Sync functional critic params back to critic module used for collection/eval
+            self.td3_loss.qvalue_network_params.to_module(self.value_net)
 
-                # for name, param in list(q_net.named_parameters())[:3]:
-                #     logger.debug(f"{name}, {param.view(-1)[:5]}")
+            # for name, param in list(self.value_net.named_parameters())[:3]:
+            #     logger.debug(f"{name}, {param.view(-1)[:5]}")
 
             value_loss = loss_vals["loss_qvalue"].item()
             self.logs["loss_value"].append(value_loss)
@@ -340,11 +329,7 @@ class TD3Trainer(BaseTrainer):
                         sum(p.abs().sum().item() for p in self.actor.parameters())
                     )
                     critic_sum = float(
-                        sum(
-                            p.abs().sum().item()
-                            for q_net in self.value_net
-                            for p in q_net.parameters()
-                        )
+                        sum(p.abs().sum().item() for p in self.value_net.parameters())
                     )
                     extra_metrics = {
                         "actor_param_abs_sum": actor_sum,
@@ -353,6 +338,28 @@ class TD3Trainer(BaseTrainer):
             else:
                 # For logging purposes, use the actor loss computed in the first pass
                 actor_loss = loss_vals["loss_actor"].item()
+
+            if logger.isEnabledFor(logging.DEBUG):
+                critic_param_diff = None
+                params = self.td3_loss.qvalue_network_params
+                if getattr(params, "batch_size", None) and params.batch_size[0] >= 2:
+                    params0 = params[0]
+                    params1 = params[1]
+                    max_diff = 0.0
+                    for key, p0 in params0.items(True, True):
+                        p1 = params1.get(key)
+                        if isinstance(p0, torch.Tensor) and isinstance(
+                            p1, torch.Tensor
+                        ):
+                            diff = (p0 - p1).abs().max().item()
+                            if diff > max_diff:
+                                max_diff = diff
+                    critic_param_diff = max_diff
+
+                if critic_param_diff is not None:
+                    if extra_metrics is None:
+                        extra_metrics = {}
+                    extra_metrics["critic_qvalue_params_max_diff"] = critic_param_diff
 
             self.logs["loss_actor"].append(actor_loss)
 
@@ -552,7 +559,7 @@ class TD3Trainer(BaseTrainer):
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
-            "qvalue_state_dict": [q.state_dict() for q in self.value_net],
+            "qvalue_state_dict": self.value_net.state_dict(),
             "qvalue_params_state": self.td3_loss.qvalue_network_params.state_dict(),
             "optimizer_actor_state_dict": self.optimizer_actor.state_dict(),
             "optimizer_value_state_dict": self.optimizer_value.state_dict(),
@@ -576,18 +583,22 @@ class TD3Trainer(BaseTrainer):
             )
             # Sync back to modules for evaluation
             self.td3_loss.actor_network_params.to_module(self.actor)
-            self.td3_loss.qvalue_network_params.to_module(self.value_net[0])
-            # Load saved critic modules
-            for q_net, state_dict in zip(
-                self.value_net, checkpoint["qvalue_state_dict"], strict=False
-            ):
-                q_net.load_state_dict(state_dict)
+            self.td3_loss.qvalue_network_params.to_module(self.value_net)
+            # Load saved critic module (backward compatible with list format)
+            qvalue_state = checkpoint.get("qvalue_state_dict")
+            if isinstance(qvalue_state, list):
+                if qvalue_state:
+                    self.value_net.load_state_dict(qvalue_state[0])
+            elif qvalue_state is not None:
+                self.value_net.load_state_dict(qvalue_state)
         else:
             self.actor.load_state_dict(checkpoint["actor_state_dict"])
-            for q_net, state_dict in zip(
-                self.value_net, checkpoint["qvalue_state_dict"], strict=False
-            ):
-                q_net.load_state_dict(state_dict)
+            qvalue_state = checkpoint.get("qvalue_state_dict")
+            if isinstance(qvalue_state, list):
+                if qvalue_state:
+                    self.value_net.load_state_dict(qvalue_state[0])
+            elif qvalue_state is not None:
+                self.value_net.load_state_dict(qvalue_state)
 
         self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
         self.optimizer_value.load_state_dict(checkpoint["optimizer_value_state_dict"])
