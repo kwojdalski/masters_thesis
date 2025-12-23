@@ -33,8 +33,8 @@ network:
 training:
   algorithm: "TD3"  # Use TD3 instead of PPO
   actor_lr: 0.0003  # TD3 typically uses lower learning rates
-  value_lr: 0.001   # Higher for Q-value networks
-  value_weight_decay: 0.001
+  value_lr: 0.002   # Higher for Q-value networks
+  value_weight_decay: 0.00001
   max_steps: 15000  # More steps to learn oscillation pattern
   init_rand_steps: 100  # More exploration for pattern discovery (TD3 benefits from more initial exploration)
   frames_per_batch: 200
