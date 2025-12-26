@@ -564,6 +564,7 @@ class TD3Trainer(BaseTrainer):
         import mlflow
 
         run = mlflow.active_run()
+        tracking_uri = mlflow.get_tracking_uri()
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
@@ -575,6 +576,8 @@ class TD3Trainer(BaseTrainer):
             "total_episodes": self.total_episodes,
             "logs": dict(self.logs),
             "mlflow_run_id": run.info.run_id if run else None,
+            "mlflow_tracking_uri": tracking_uri,
+            "mlflow_experiment_id": run.info.experiment_id if run else None,
         }
         torch.save(checkpoint, path)
         logger.info(f"TD3 checkpoint saved to {path}")
@@ -615,4 +618,6 @@ class TD3Trainer(BaseTrainer):
         self.total_episodes = checkpoint["total_episodes"]
         self.logs = defaultdict(list, checkpoint["logs"])
         self.mlflow_run_id = checkpoint.get("mlflow_run_id")
+        self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
+        self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
         logger.info(f"TD3 checkpoint loaded from {path}")
