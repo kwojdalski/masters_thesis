@@ -280,5 +280,5 @@ class ExperimentCommand(BaseCommand):
 
         raise typer.BadParameter(
             f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs. "
-            f"Use 'list-scenarios' to see available options."
+                f"Use 'scenarios' to see available options."
         )

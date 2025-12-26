@@ -88,8 +88,8 @@ def _parse_checkpoint_step(filename: str) -> int | None:
         return None
 
 
-@app.command(name="list-checkpoints")
-def list_checkpoints(
+@app.command(name="checkpoints")
+def checkpoints(
     log_dir: Path = typer.Option(  # noqa: B008
         Path("logs"), "--log-dir", help="Root directory to scan for checkpoints"
     )
@@ -441,8 +441,8 @@ def dashboard(
     dashboard_cmd.execute(params)
 
 
-@app.command()
-def list_experiments(
+@app.command(name="experiments")
+def experiments(
     tracking_uri: str | None = typer.Option(
         None,
         "--tracking-uri",
@@ -454,8 +454,8 @@ def list_experiments(
     dashboard_cmd.list_experiments(tracking_uri)
 
 
-@app.command()
-def list_scenarios():
+@app.command(name="scenarios")
+def scenarios():
     """List available scenario configurations."""
     import yaml
 
