@@ -140,7 +140,7 @@ class ExperimentConfig:
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
 
     # Reproducibility
-    seed: int = 42
+    seed: int | None = None
     device: str = "cpu"  # or "cuda"
 
     # Experiment metadata

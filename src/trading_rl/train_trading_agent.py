@@ -74,13 +74,18 @@ def setup_logging(config: ExperimentConfig):
 
 
 # %%
-def set_seed(seed: int) -> None:
+def set_seed(seed: int | None) -> int:
     """Set random seeds for reproducibility.
 
     Args:
-        seed: Random seed value
+        seed: Random seed value (None generates a random seed)
     """
     import random
+    import logging
+
+    if seed is None:
+        seed = random.randint(1, 100000)  # noqa: S311
+        logging.getLogger(__name__).info("Generated random seed: %s", seed)
 
     # Seed all random number generators
     random.seed(seed)  # Python's built-in random module
@@ -88,6 +93,7 @@ def set_seed(seed: int) -> None:
     np.random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
+    return seed
 
 
 # Environment builder used throughout training
@@ -178,7 +184,7 @@ def build_training_context(
     effective_experiment_name = experiment_name or config.experiment_name
 
     logger = setup_logging(config)
-    set_seed(config.seed)
+    config.seed = set_seed(config.seed)
 
     _print_config_debug(config, logger)
 
