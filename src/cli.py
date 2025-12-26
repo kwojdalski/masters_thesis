@@ -37,18 +37,33 @@ app = typer.Typer(
     add_completion=False,
 )
 
+
 def _configure_logging(verbose: bool) -> None:
     """Configure logging based on CLI context."""
-    level = "DEBUG" if verbose else "INFO"
+    env_level = os.environ.get("LOG_LEVEL", "").upper()
+    if env_level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+        env_level = ""
+    if verbose:
+        level = "DEBUG"
+    elif env_level:
+        level = env_level
+    else:
+        level = "INFO"
     configure_logging(component="cli", level=level, simplified=not verbose)
     os.environ["LOG_LEVEL"] = level
-    os.environ["LOGLEVEL"] = level
+
 
 # Add global options
 @app.callback()
-def main(verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")):
+def main(
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
+):
     """Global CLI options."""
     _configure_logging(verbose)
+
+
 console = Console()
 
 # Command instances
@@ -231,6 +246,9 @@ def train(
         "--additional-steps",
         help="Additional steps to train when resuming (requires --checkpoint)",
     ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
 ):
     """Train a single trading agent.
 
@@ -239,6 +257,9 @@ def train(
     Example:
         python src/cli.py train --checkpoint logs/td3_tradingenv_btc/td3_tradingenv_btc_checkpoint.pt --additional-steps 50000
     """
+
+    if verbose:
+        _configure_logging(True)
 
     params = TrainingParams(
         experiment_name=experiment_name,
@@ -274,7 +295,10 @@ def experiment(
         None, "--config", "-c", help="Path to custom config file"
     ),
     scenario: str | None = typer.Option(
-        None, "--scenario", "-s", help="Scenario name (use 'list-scenarios' to see options)"
+        None,
+        "--scenario",
+        "-s",
+        help="Scenario name (use 'list-scenarios' to see options)",
     ),
     seed: int | None = typer.Option(
         None,
@@ -349,7 +373,7 @@ def list_experiments(
         "--tracking-uri",
         help="MLflow tracking URI (default sqlite:///mlflow.db)",
         show_default=False,
-    )
+    ),
 ):
     """List available MLflow experiments."""
     dashboard_cmd.list_experiments(tracking_uri)
@@ -389,7 +413,9 @@ def list_scenarios():
             console.print(f"  Experiment: {experiment_name}")
             console.print(f"  Algorithm: {algorithm}")
             console.print(f"  Pattern: {pattern_type}")
-            console.print(f"  Data: {Path(data_path).name if data_path != 'N/A' else 'N/A'}")
+            console.print(
+                f"  Data: {Path(data_path).name if data_path != 'N/A' else 'N/A'}"
+            )
             console.print()
 
         except Exception as e:
