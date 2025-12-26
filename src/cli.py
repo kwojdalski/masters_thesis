@@ -325,9 +325,6 @@ def generate_data(
 
 @app.command()
 def train(
-    experiment_name: str | None = typer.Option(
-        None, "--name", "-n", help="Experiment name (default: auto-generated)"
-    ),
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to custom config file"
     ),
@@ -336,12 +333,6 @@ def train(
         "--config-override",
         "-o",
         help="OmegaConf override in dotlist format (repeatable)",
-    ),
-    seed: int | None = typer.Option(
-        None,
-        "--seed",
-        "-s",
-        help="Set specific seed for reproducibility (default: random)",
     ),
     from_checkpoint: Path | None = typer.Option(  # noqa: B008
         None,
@@ -384,10 +375,8 @@ def train(
         _configure_logging(verbose, log_regex)
 
     params = TrainingParams(
-        experiment_name=experiment_name,
         config_file=config_file,
         config_overrides=config_override,
-        seed=seed,
         from_checkpoint=from_checkpoint,
         from_last_checkpoint=from_last_checkpoint,
         mlflow_run_id=mlflow_run_id,

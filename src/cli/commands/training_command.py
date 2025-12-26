@@ -13,10 +13,8 @@ from .base_command import BaseCommand
 class TrainingParams:
     """Parameters for single agent training."""
 
-    experiment_name: str | None = None
     config_file: Path | None = None
     config_overrides: list[str] | None = None
-    seed: int | None = None
     checkpoint_path: Path | None = None  # Path to checkpoint to resume from
     additional_steps: int | None = None  # Additional steps when resuming
     from_checkpoint: Path | None = None  # Path to checkpoint alias
@@ -87,8 +85,6 @@ class TrainingCommand(BaseCommand):
 
     def _apply_training_overrides(self, config, params: TrainingParams) -> None:
         """Apply CLI parameter overrides to config."""
-        if params.experiment_name:
-            config.experiment_name = params.experiment_name
 
     def _display_config(self, config, params: TrainingParams) -> None:
         """Display training configuration."""
