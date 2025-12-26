@@ -236,18 +236,61 @@ class TrainingCommand(BaseCommand):
         trainer.save_checkpoint(str(checkpoint_path))
         self.console.print(f"[green]New checkpoint saved: {checkpoint_path}[/green]")
 
-        # Prepare result (similar to run_single_experiment)
+        # Evaluate agent (just like normal training does)
+        self.console.print("[cyan]Evaluating agent...[/cyan]")
+        eval_max_steps = min(
+            config.training.eval_steps, len(df) - 1, config.data.train_size - 1
+        )
+
+        reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
+            trainer.evaluate(
+                df[: config.data.train_size],
+                max_steps=eval_max_steps,
+                config=config,
+                algorithm=algorithm,
+            )
+        )
+
+        # Log evaluation plots to MLflow
+        MLflowTrainingCallback.log_evaluation_plots(
+            reward_plot=reward_plot,
+            action_plot=action_plot,
+            action_probs_plot=action_probs_plot,
+            logs=logs,
+        )
+
+        # Detect backend type for proper metric naming
+        is_portfolio_backend = config.env.backend == "tradingenv"
+
+        # Prepare comprehensive metrics (matching run_single_experiment)
+        final_metrics = {
+            "final_reward": final_reward,
+            "training_steps": trainer.total_count,
+            "evaluation_steps": eval_max_steps,
+            ("portfolio_weights" if is_portfolio_backend else "last_position_per_episode"): last_positions,
+            "data_start_date": str(df.index[0]) if not df.empty else "unknown",
+            "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
+            "data_size": len(df),
+            "train_size": config.data.train_size,
+            "trading_fees": config.env.trading_fees,
+            "experiment_name": config.experiment_name,
+            "resumed_from_step": original_steps,
+        }
+
+        # Log final metrics to MLflow
+        MLflowTrainingCallback.log_final_metrics(logs, final_metrics, mlflow_callback)
+
+        # Prepare result (matching run_single_experiment)
         return {
             "trainer": trainer,
             "logs": logs,
-            "final_metrics": {
-                "final_reward": 0.0,  # Will be updated by evaluation if needed
-                "training_steps": trainer.total_count,
-            },
+            "final_metrics": final_metrics,
             "plots": {
                 "loss": visualize_training(logs)
                 if logs.get("loss_value") or logs.get("loss_actor")
                 else None,
+                "reward": reward_plot,
+                "action": action_plot,
             },
         }
 
