@@ -185,9 +185,6 @@ class TrainingCommand(BaseCommand):
         if not Path(params.checkpoint_path).exists():
             raise FileNotFoundError(f"Checkpoint not found: {params.checkpoint_path}")
 
-        # Setup MLflow experiment (like run_single_experiment does)
-        setup_mlflow_experiment(config)
-
         self.console.print(
             f"[cyan]Loading checkpoint from {params.checkpoint_path}...[/cyan]"
         )
@@ -209,6 +206,27 @@ class TrainingCommand(BaseCommand):
         self.console.print(
             f"[green]Checkpoint loaded! Resuming from step {original_steps}[/green]"
         )
+        tracking_uri = getattr(trainer, "mlflow_tracking_uri", None)
+        if tracking_uri:
+            mlflow.set_tracking_uri(tracking_uri)
+
+        resume_experiment_name = getattr(trainer, "mlflow_experiment_name", None)
+        if not resume_experiment_name:
+            experiment_id = getattr(trainer, "mlflow_experiment_id", None)
+            if experiment_id:
+                experiment = mlflow.get_experiment(experiment_id)
+                resume_experiment_name = experiment.name if experiment else None
+
+        if resume_experiment_name:
+            if resume_experiment_name != config.experiment_name:
+                logger.info(
+                    "Resuming MLflow experiment name from checkpoint: %s",
+                    resume_experiment_name,
+                )
+            config.experiment_name = resume_experiment_name
+            if hasattr(trainer, "checkpoint_prefix"):
+                trainer.checkpoint_prefix = resume_experiment_name
+        setup_mlflow_experiment(config, config.experiment_name)
         mlflow_callback = None
 
         # Update max_steps
@@ -253,9 +271,6 @@ class TrainingCommand(BaseCommand):
             )
         elif getattr(trainer, "mlflow_run_id", None):
             run_id = trainer.mlflow_run_id
-            tracking_uri = getattr(trainer, "mlflow_tracking_uri", None)
-            if tracking_uri:
-                mlflow.set_tracking_uri(tracking_uri)
             logger.info(f"Resuming MLflow run: {run_id}")
             self.console.print(f"[cyan]Resuming MLflow run: {run_id}[/cyan]")
             with mlflow.start_run(run_id=run_id):

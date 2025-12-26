@@ -236,6 +236,10 @@ class DDPGTrainer(BaseTrainer):
         run = mlflow.active_run()
         tracking_uri = mlflow.get_tracking_uri()
         run_name = run.data.tags.get("mlflow.runName") if run else None
+        experiment_name = None
+        if run:
+            experiment = mlflow.get_experiment(run.info.experiment_id)
+            experiment_name = experiment.name if experiment else None
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "value_net_state_dict": self.value_net.state_dict(),
@@ -248,6 +252,7 @@ class DDPGTrainer(BaseTrainer):
             "mlflow_run_name": run_name,
             "mlflow_tracking_uri": tracking_uri,
             "mlflow_experiment_id": run.info.experiment_id if run else None,
+            "mlflow_experiment_name": experiment_name,
         }
         torch.save(checkpoint, path)
         logger.info(f"Checkpoint saved to {path}")
@@ -270,6 +275,7 @@ class DDPGTrainer(BaseTrainer):
         self.mlflow_run_name = checkpoint.get("mlflow_run_name")
         self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
         self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
+        self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
         logger.info(f"Checkpoint loaded from {path}")
 
     def train(self, callback=None) -> dict[str, list]:
