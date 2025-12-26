@@ -112,6 +112,9 @@ def checkpoints(
     force: bool = typer.Option(
         False, "--force", help="Delete without confirmation"
     ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be deleted"
+    ),
 ):
     """List checkpoints grouped by experiment with size, mtime, and step."""
     checkpoints: dict[str, list[dict[str, str]]] = {}
@@ -156,6 +159,11 @@ def checkpoints(
         ]
         if not targets:
             console.print("[yellow]No checkpoints matched for deletion.[/yellow]")
+            raise typer.Exit(0)
+        if dry_run:
+            console.print("[yellow]Dry run: checkpoints to delete[/yellow]")
+            for path in targets:
+                console.print(f"  {path}")
             raise typer.Exit(0)
         if not _confirm_delete([str(p) for p in targets], force):
             console.print("[yellow]Deletion cancelled.[/yellow]")
@@ -497,6 +505,9 @@ def experiments(
     force: bool = typer.Option(
         False, "--force", help="Delete without confirmation"
     ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be deleted"
+    ),
 ):
     """List available MLflow experiments."""
     if not delete and not delete_all:
@@ -517,6 +528,11 @@ def experiments(
     if not targets:
         console.print("[yellow]No experiments matched for deletion.[/yellow]")
         raise typer.Exit(0)
+    if dry_run:
+        console.print("[yellow]Dry run: experiments to delete[/yellow]")
+        for exp in targets:
+            console.print(f"  {exp.name}")
+        raise typer.Exit(0)
     if not _confirm_delete([exp.name for exp in targets], force):
         console.print("[yellow]Deletion cancelled.[/yellow]")
         raise typer.Exit(0)
@@ -535,6 +551,9 @@ def scenarios(
     ),
     force: bool = typer.Option(
         False, "--force", help="Delete without confirmation"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be deleted"
     ),
 ):
     """List available scenario configurations."""
@@ -561,6 +580,11 @@ def scenarios(
         ]
         if not targets:
             console.print("[yellow]No scenarios matched for deletion.[/yellow]")
+            raise typer.Exit(0)
+        if dry_run:
+            console.print("[yellow]Dry run: scenarios to delete[/yellow]")
+            for path in targets:
+                console.print(f"  {path}")
             raise typer.Exit(0)
         if not _confirm_delete([str(f) for f in targets], force):
             console.print("[yellow]Deletion cancelled.[/yellow]")
