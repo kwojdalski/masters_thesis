@@ -352,6 +352,9 @@ def train(
     buffer_size: int | None = typer.Option(
         None, "--buffer-size", help="Replay buffer size"
     ),
+    save_buffer: bool = typer.Option(
+        False, "--save-buffer", help="Save replay buffer in checkpoint (increases file size)"
+    ),
     save_plots: bool = typer.Option(
         False, "--save-plots", help="Save training plots to disk"
     ),
@@ -405,6 +408,7 @@ def train(
         actor_lr=actor_lr,
         value_lr=value_lr,
         buffer_size=buffer_size,
+        save_buffer=save_buffer,
         save_plots=save_plots,
         log_dir=log_dir,
         from_checkpoint=from_checkpoint,
