@@ -4,6 +4,7 @@ Refactored command-line interface using command classes.
 """
 
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -88,14 +89,33 @@ def _parse_checkpoint_step(filename: str) -> int | None:
         return None
 
 
+def _confirm_delete(items: list[str], force: bool) -> bool:
+    if force:
+        return True
+    console.print("[yellow]Delete the following items?[/yellow]")
+    for item in items:
+        console.print(f"  {item}")
+    return typer.confirm("Proceed with deletion?", default=False)
+
+
 @app.command(name="checkpoints")
 def checkpoints(
     log_dir: Path = typer.Option(  # noqa: B008
         Path("logs"), "--log-dir", help="Root directory to scan for checkpoints"
-    )
+    ),
+    delete: str | None = typer.Option(
+        None, "--delete", help="Delete checkpoints matching regex"
+    ),
+    delete_all: bool = typer.Option(
+        False, "--delete-all", help="Delete all checkpoints"
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Delete without confirmation"
+    ),
 ):
     """List checkpoints grouped by experiment with size, mtime, and step."""
     checkpoints: dict[str, list[dict[str, str]]] = {}
+    checkpoint_paths: list[Path] = []
 
     if not log_dir.exists():
         console.print(f"[red]Log directory not found: {log_dir}[/red]")
@@ -107,6 +127,7 @@ def checkpoints(
                 continue
             experiment = name.split("_checkpoint", 1)[0]
             path = Path(root) / name
+            checkpoint_paths.append(path)
             stat = path.stat()
             size_kb = f"{stat.st_size / 1024:.1f} KB"
             modified = datetime.fromtimestamp(stat.st_mtime).strftime(
@@ -122,8 +143,26 @@ def checkpoints(
                 }
             )
 
-    if not checkpoints:
+    if not checkpoint_paths:
         console.print("[yellow]No checkpoints found.[/yellow]")
+        raise typer.Exit(0)
+
+    if delete_all or delete:
+        pattern = re.compile(delete) if delete else None
+        targets = [
+            p
+            for p in checkpoint_paths
+            if delete_all or (pattern and pattern.search(p.name))
+        ]
+        if not targets:
+            console.print("[yellow]No checkpoints matched for deletion.[/yellow]")
+            raise typer.Exit(0)
+        if not _confirm_delete([str(p) for p in targets], force):
+            console.print("[yellow]Deletion cancelled.[/yellow]")
+            raise typer.Exit(0)
+        for path in targets:
+            path.unlink(missing_ok=True)
+        console.print(f"[green]Deleted {len(targets)} checkpoints.[/green]")
         raise typer.Exit(0)
 
     for experiment, items in sorted(checkpoints.items()):
@@ -449,13 +488,55 @@ def experiments(
         help="MLflow tracking URI (default sqlite:///mlflow.db)",
         show_default=False,
     ),
+    delete: str | None = typer.Option(
+        None, "--delete", help="Delete experiments matching regex"
+    ),
+    delete_all: bool = typer.Option(
+        False, "--delete-all", help="Delete all experiments"
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Delete without confirmation"
+    ),
 ):
     """List available MLflow experiments."""
-    dashboard_cmd.list_experiments(tracking_uri)
+    if not delete and not delete_all:
+        dashboard_cmd.list_experiments(tracking_uri)
+        return
+
+    import mlflow
+
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+    experiments_list = mlflow.search_experiments()
+    pattern = re.compile(delete) if delete else None
+    targets = [
+        exp
+        for exp in experiments_list
+        if delete_all or (pattern and pattern.search(exp.name))
+    ]
+    if not targets:
+        console.print("[yellow]No experiments matched for deletion.[/yellow]")
+        raise typer.Exit(0)
+    if not _confirm_delete([exp.name for exp in targets], force):
+        console.print("[yellow]Deletion cancelled.[/yellow]")
+        raise typer.Exit(0)
+    for exp in targets:
+        mlflow.delete_experiment(exp.experiment_id)
+    console.print(f"[green]Deleted {len(targets)} experiments.[/green]")
 
 
 @app.command(name="scenarios")
-def scenarios():
+def scenarios(
+    delete: str | None = typer.Option(
+        None, "--delete", help="Delete scenarios matching regex"
+    ),
+    delete_all: bool = typer.Option(
+        False, "--delete-all", help="Delete all scenarios"
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Delete without confirmation"
+    ),
+):
     """List available scenario configurations."""
     import yaml
 
@@ -464,8 +545,6 @@ def scenarios():
         console.print("[red]Config directory not found: src/configs[/red]")
         return
 
-    console.print("[bold blue]Available Scenario Configurations:[/bold blue]\n")
-
     # Find all YAML config files
     config_files = sorted(config_dir.glob("*.yaml"))
 
@@ -473,6 +552,25 @@ def scenarios():
         console.print("[yellow]No configuration files found[/yellow]")
         return
 
+    if delete_all or delete:
+        pattern = re.compile(delete) if delete else None
+        targets = [
+            f
+            for f in config_files
+            if delete_all or (pattern and pattern.search(f.stem))
+        ]
+        if not targets:
+            console.print("[yellow]No scenarios matched for deletion.[/yellow]")
+            raise typer.Exit(0)
+        if not _confirm_delete([str(f) for f in targets], force):
+            console.print("[yellow]Deletion cancelled.[/yellow]")
+            raise typer.Exit(0)
+        for path in targets:
+            path.unlink(missing_ok=True)
+        console.print(f"[green]Deleted {len(targets)} scenarios.[/green]")
+        raise typer.Exit(0)
+
+    console.print("[bold blue]Available Scenario Configurations:[/bold blue]\n")
     for config_file in config_files:
         try:
             with config_file.open("r", encoding="utf-8") as f:
