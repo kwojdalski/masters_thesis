@@ -652,6 +652,55 @@ def _list_run_artifacts(client, run_id: str, prefix: str | None = None) -> list:
     return artifacts
 
 
+def _safe_search_experiments(tracking_uri: str | None = None) -> list[dict[str, str]]:
+    import yaml
+    from urllib.parse import urlparse
+
+    try:
+        experiments_list = mlflow.search_experiments()
+        return [
+            {"experiment_id": exp.experiment_id, "name": exp.name}
+            for exp in experiments_list
+        ]
+    except Exception as exc:  # pragma: no cover - fallback for malformed stores
+        console.print(
+            f"[yellow]Warning: failed to list experiments via MLflow ({exc}). "
+            "Falling back to scanning the file store.[/yellow]"
+        )
+
+    uri = tracking_uri or mlflow.get_tracking_uri()
+    parsed = urlparse(uri)
+    if parsed.scheme in ("", "file"):
+        base_path = Path(parsed.path or uri)
+    else:
+        console.print(
+            "[red]Unable to recover experiments from non-file tracking URI.[/red]"
+        )
+        raise typer.Exit(1)
+
+    mlruns_dir = base_path if base_path.name == "mlruns" else base_path / "mlruns"
+    if not mlruns_dir.exists():
+        console.print(f"[red]MLflow directory not found: {mlruns_dir}[/red]")
+        raise typer.Exit(1)
+
+    experiments = []
+    for exp_dir in sorted(mlruns_dir.iterdir()):
+        if not exp_dir.is_dir():
+            continue
+        meta_path = exp_dir / "meta.yaml"
+        if not meta_path.exists():
+            continue
+        try:
+            meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
+            exp_id = meta.get("experiment_id")
+            exp_name = meta.get("name")
+            if exp_id and exp_name:
+                experiments.append({"experiment_id": exp_id, "name": exp_name})
+        except Exception:
+            continue
+    return experiments
+
+
 @app.command(name="artifacts")
 def artifacts(
     tracking_uri: str | None = typer.Option(
@@ -740,26 +789,26 @@ def artifacts(
         _print_run_artifacts(exp_name, run, artifacts_list)
         return
 
-    experiments_list = mlflow.search_experiments()
+    experiments_list = _safe_search_experiments(tracking_uri)
     pattern = re.compile(experiment) if experiment else None
     targets = [
         exp
         for exp in experiments_list
-        if not pattern or pattern.search(exp.name)
+        if not pattern or pattern.search(exp["name"])
     ]
     if not targets:
         console.print("[yellow]No experiments matched.[/yellow]")
         raise typer.Exit(0)
 
     delete_any = delete_all or delete
-    for exp in sorted(targets, key=lambda e: e.name):
+    for exp in sorted(targets, key=lambda e: e["name"]):
         runs = mlflow.search_runs(
-            experiment_ids=[exp.experiment_id],
+            experiment_ids=[exp["experiment_id"]],
             max_results=max_runs,
             order_by=["start_time DESC"],
         )
         if runs.empty:
-            console.print(f"[yellow]No runs for experiment {exp.name}.[/yellow]")
+            console.print(f"[yellow]No runs for experiment {exp['name']}.[/yellow]")
             continue
         delete_targets = []
         for _, row in runs.iterrows():
@@ -773,7 +822,7 @@ def artifacts(
                     if delete_all or (pattern and pattern.search(entry.path))
                 )
             else:
-                _print_run_artifacts(exp.name, run, artifacts_list)
+                _print_run_artifacts(exp["name"], run, artifacts_list)
         if delete_any:
             if not delete_targets:
                 console.print("[yellow]No artifacts matched for deletion.[/yellow]")
