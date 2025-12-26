@@ -258,7 +258,7 @@ class DDPGTrainer(BaseTrainer):
         # Optionally save replay buffer (can be very large)
         if getattr(self.config, "save_buffer", False):
             logger.info("Saving replay buffer to checkpoint (this may take a while)...")
-            checkpoint["replay_buffer"] = self.replay_buffer._storage._storage
+            checkpoint["replay_buffer"] = self.replay_buffer  # Save entire buffer with all state
             checkpoint["buffer_metadata"] = {
                 "buffer_size": len(self.replay_buffer),
                 "max_size": self.replay_buffer._storage.max_size,
@@ -293,10 +293,15 @@ class DDPGTrainer(BaseTrainer):
         # Optionally restore replay buffer if it was saved
         if "replay_buffer" in checkpoint:
             logger.info("Restoring replay buffer from checkpoint...")
-            self.replay_buffer._storage._storage = checkpoint["replay_buffer"]
-            buffer_metadata = checkpoint.get("buffer_metadata", {})
-            buffer_size = buffer_metadata.get("buffer_size", len(self.replay_buffer))
+            self.replay_buffer = checkpoint["replay_buffer"]  # Restore entire buffer with all state
+            buffer_size = len(self.replay_buffer)
             logger.info(f"Replay buffer restored: {buffer_size} experiences")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    f"Buffer state: cursor={self.replay_buffer._writer._cursor}, "
+                    f"write_count={self.replay_buffer._writer._write_count}, "
+                    f"is_full={self.replay_buffer._storage._is_full}"
+                )
         else:
             logger.info("No replay buffer in checkpoint - starting with empty buffer")
 
