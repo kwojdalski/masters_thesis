@@ -216,14 +216,21 @@ python src/cli.py experiment \
 -   `--clear-cache`: Clear data processing cache
 -   `--seed`: Set random seed for reproducibility
 
+### CLI Helpers (Train)
+
+-   `--config-override/-o`: Apply OmegaConf dotlist overrides to training config (repeatable)
+-   `--from-checkpoint`: Resume from a specific checkpoint file
+-   `--from-last-checkpoint`: Resume from the most recent checkpoint for the experiment
+-   `--log-regex`: Filter console logs by regex (useful for debugging)
+
 ## Output Structure
 
 ```         
 logs/
-├── experiment_name/
-│   ├── training.log
-│   ├── model_checkpoint.pt
-│   └── evaluation_plots/
+├── <log_dir>/
+│   ├── <experiment>_checkpoint.pt
+│   ├── <experiment>_checkpoint_step_<N>.pt
+│   └── <experiment>_checkpoint_step_<N>_buffer/  (optional replay buffer dump)
 └── mlruns/
     └── experiment_id/
         ├── run_id_1/
