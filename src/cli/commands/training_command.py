@@ -21,6 +21,7 @@ class TrainingParams:
     actor_lr: float | None = None
     value_lr: float | None = None
     buffer_size: int | None = None
+    save_buffer: bool | None = None  # Save replay buffer in checkpoint
     save_plots: bool = False
     log_dir: Path | None = None
     checkpoint_path: Path | None = None  # Path to checkpoint to resume from
@@ -103,6 +104,8 @@ class TrainingCommand(BaseCommand):
             config.training.value_lr = params.value_lr
         if params.buffer_size is not None:
             config.training.buffer_size = params.buffer_size
+        if params.save_buffer is not None:
+            config.training.save_buffer = params.save_buffer
         if params.log_dir is not None:
             config.logging.log_dir = str(params.log_dir)
 
