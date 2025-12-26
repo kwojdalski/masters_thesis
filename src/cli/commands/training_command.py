@@ -243,6 +243,7 @@ class TrainingCommand(BaseCommand):
 
         # Continue training - use existing run if active, otherwise create new run
         logger.info("Starting training...")
+        resume_run_id = None
         active_run = mlflow.active_run()
         if active_run:
             # Continue with existing run
@@ -250,6 +251,7 @@ class TrainingCommand(BaseCommand):
             self.console.print(
                 f"[cyan]Continuing existing MLflow run: {active_run.info.run_id}[/cyan]"
             )
+            resume_run_id = active_run.info.run_id
             mlflow_callback = MLflowTrainingCallback(
                 config.experiment_name,
                 tracking_uri=getattr(
@@ -273,6 +275,7 @@ class TrainingCommand(BaseCommand):
             run_id = trainer.mlflow_run_id
             logger.info(f"Resuming MLflow run: {run_id}")
             self.console.print(f"[cyan]Resuming MLflow run: {run_id}[/cyan]")
+            resume_run_id = run_id
             with mlflow.start_run(run_id=run_id):
                 mlflow_callback = MLflowTrainingCallback(
                     config.experiment_name,
@@ -287,6 +290,7 @@ class TrainingCommand(BaseCommand):
             run_id = params.mlflow_run_id
             logger.info(f"Resuming MLflow run (CLI): {run_id}")
             self.console.print(f"[cyan]Resuming MLflow run (CLI): {run_id}[/cyan]")
+            resume_run_id = run_id
             with mlflow.start_run(run_id=run_id):
                 mlflow_callback = MLflowTrainingCallback(
                     config.experiment_name,
@@ -312,7 +316,8 @@ class TrainingCommand(BaseCommand):
             logger.info(
                 f"Creating new MLflow run for resumed training from step {original_steps}"
             )
-            with mlflow.start_run(run_name=f"resumed_step_{original_steps}"):
+            with mlflow.start_run(run_name=f"resumed_step_{original_steps}") as run:
+                resume_run_id = run.info.run_id
                 mlflow_callback = MLflowTrainingCallback(
                     config.experiment_name,
                     tracking_uri=getattr(
@@ -333,74 +338,83 @@ class TrainingCommand(BaseCommand):
                     f"[green]New checkpoint saved: {checkpoint_path}[/green]"
                 )
 
-        # Evaluate agent (just like normal training does)
-        logger.info("Evaluating agent...")
-        self.console.print("[cyan]Evaluating agent...[/cyan]")
-        eval_max_steps = min(
-            config.training.eval_steps, len(df) - 1, config.data.train_size - 1
-        )
-        logger.debug(f"Evaluation max_steps: {eval_max_steps}")
-
-        reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
-            trainer.evaluate(
-                df[: config.data.train_size],
-                max_steps=eval_max_steps,
-                config=config,
-                algorithm=algorithm,
+        def _evaluate_and_log() -> dict[str, Any]:
+            """Evaluate and log results under the active MLflow run."""
+            logger.info("Evaluating agent...")
+            self.console.print("[cyan]Evaluating agent...[/cyan]")
+            eval_max_steps = min(
+                config.training.eval_steps, len(df) - 1, config.data.train_size - 1
             )
-        )
+            logger.debug(f"Evaluation max_steps: {eval_max_steps}")
 
-        # Log evaluation plots to MLflow
-        MLflowTrainingCallback.log_evaluation_plots(
-            reward_plot=reward_plot,
-            action_plot=action_plot,
-            action_probs_plot=action_probs_plot,
-            logs=logs,
-        )
+            reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
+                trainer.evaluate(
+                    df[: config.data.train_size],
+                    max_steps=eval_max_steps,
+                    config=config,
+                    algorithm=algorithm,
+                )
+            )
 
-        # Detect backend type for proper metric naming
-        is_portfolio_backend = config.env.backend == "tradingenv"
+            # Log evaluation plots to MLflow
+            MLflowTrainingCallback.log_evaluation_plots(
+                reward_plot=reward_plot,
+                action_plot=action_plot,
+                action_probs_plot=action_probs_plot,
+                logs=logs,
+            )
 
-        # Prepare comprehensive metrics (matching run_single_experiment)
-        final_metrics = {
-            "final_reward": final_reward,
-            "training_steps": trainer.total_count,
-            "evaluation_steps": eval_max_steps,
-            (
-                "portfolio_weights"
-                if is_portfolio_backend
-                else "last_position_per_episode"
-            ): last_positions,
-            "data_start_date": str(df.index[0]) if not df.empty else "unknown",
-            "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
-            "data_size": len(df),
-            "train_size": config.data.train_size,
-            "trading_fees": config.env.trading_fees,
-            "experiment_name": config.experiment_name,
-            "resumed_from_step": original_steps,
-        }
+            # Detect backend type for proper metric naming
+            is_portfolio_backend = config.env.backend == "tradingenv"
 
-        # Log final metrics to MLflow
-        MLflowTrainingCallback.log_final_metrics(logs, final_metrics, mlflow_callback)
+            # Prepare comprehensive metrics (matching run_single_experiment)
+            final_metrics = {
+                "final_reward": final_reward,
+                "training_steps": trainer.total_count,
+                "evaluation_steps": eval_max_steps,
+                (
+                    "portfolio_weights"
+                    if is_portfolio_backend
+                    else "last_position_per_episode"
+                ): last_positions,
+                "data_start_date": str(df.index[0]) if not df.empty else "unknown",
+                "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
+                "data_size": len(df),
+                "train_size": config.data.train_size,
+                "trading_fees": config.env.trading_fees,
+                "experiment_name": config.experiment_name,
+                "resumed_from_step": original_steps,
+            }
 
-        # Final logging (like run_single_experiment)
-        logger.info("Training complete!")
-        logger.info(f"Final reward: {final_reward:.4f}")
-        logger.info(f"Total training steps: {trainer.total_count}")
+            # Log final metrics to MLflow
+            MLflowTrainingCallback.log_final_metrics(
+                logs, final_metrics, mlflow_callback
+            )
 
-        # Prepare result (matching run_single_experiment)
-        return {
-            "trainer": trainer,
-            "logs": logs,
-            "final_metrics": final_metrics,
-            "plots": {
-                "loss": visualize_training(logs)
-                if logs.get("loss_value") or logs.get("loss_actor")
-                else None,
-                "reward": reward_plot,
-                "action": action_plot,
-            },
-        }
+            # Final logging (like run_single_experiment)
+            logger.info("Training complete!")
+            logger.info(f"Final reward: {final_reward:.4f}")
+            logger.info(f"Total training steps: {trainer.total_count}")
+
+            # Prepare result (matching run_single_experiment)
+            return {
+                "trainer": trainer,
+                "logs": logs,
+                "final_metrics": final_metrics,
+                "plots": {
+                    "loss": visualize_training(logs)
+                    if logs.get("loss_value") or logs.get("loss_actor")
+                    else None,
+                    "reward": reward_plot,
+                    "action": action_plot,
+                },
+            }
+
+        if not mlflow.active_run() and resume_run_id:
+            with mlflow.start_run(run_id=resume_run_id):
+                return _evaluate_and_log()
+
+        return _evaluate_and_log()
 
     def _display_training_results(self, result: dict[str, Any]) -> None:
         """Display training results."""
