@@ -286,6 +286,15 @@ class TrainingCommand(BaseCommand):
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
                 logs = trainer.train(callback=mlflow_callback)
+                checkpoint_path = (
+                    Path(config.logging.log_dir)
+                    / f"{config.experiment_name}_checkpoint_step_{trainer.total_count}.pt"
+                )
+                trainer.save_checkpoint(str(checkpoint_path))
+                logger.info(f"Checkpoint saved to: {checkpoint_path}")
+                self.console.print(
+                    f"[green]New checkpoint saved: {checkpoint_path}[/green]"
+                )
         elif params.mlflow_run_id:
             run_id = params.mlflow_run_id
             logger.info(f"Resuming MLflow run (CLI): {run_id}")
