@@ -511,12 +511,12 @@ class MLflowTrainingCallback:
                         + theme(plot_title=element_text(size=14, face="bold"))
                     )
 
-                    with tempfile.NamedTemporaryFile(
-                        suffix=".png", delete=False
-                    ) as plot_file:
-                        p.save(plot_file.name, width=8, height=5, dpi=150)
-                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
-                        os.unlink(plot_file.name)
+                    # Use variable name as filename
+                    filename = f"{column}.png"
+                    temp_path = os.path.join(tempfile.gettempdir(), filename)
+                    p.save(temp_path, width=8, height=5, dpi=150)
+                    mlflow.log_artifact(temp_path, "data_overview/plots")
+                    os.unlink(temp_path)
 
                 except Exception as plot_error:  # pragma: no cover - logging only
                     logger.warning(f"Failed to create plot for {column}: {plot_error}")
@@ -551,12 +551,12 @@ class MLflowTrainingCallback:
                         + theme(plot_title=element_text(size=14, face="bold"))
                     )
 
-                    with tempfile.NamedTemporaryFile(
-                        suffix=".png", delete=False
-                    ) as plot_file:
-                        p_combined.save(plot_file.name, width=10, height=5, dpi=150)
-                        mlflow.log_artifact(plot_file.name, "data_overview/plots")
-                        os.unlink(plot_file.name)
+                    # Use descriptive filename for combined OHLC plot
+                    filename = "ohlc_combined.png"
+                    temp_path = os.path.join(tempfile.gettempdir(), filename)
+                    p_combined.save(temp_path, width=10, height=5, dpi=150)
+                    mlflow.log_artifact(temp_path, "data_overview/plots")
+                    os.unlink(temp_path)
 
                 except Exception as combined_error:  # pragma: no cover - logging only
                     logger.warning(
