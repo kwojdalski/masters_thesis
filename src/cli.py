@@ -123,12 +123,8 @@ def checkpoints(
     delete_all: bool = typer.Option(
         False, "--delete-all", help="Delete all checkpoints"
     ),
-    force: bool = typer.Option(
-        False, "--force", help="Delete without confirmation"
-    ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be deleted"
-    ),
+    force: bool = typer.Option(False, "--force", help="Delete without confirmation"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
 ):
     """List checkpoints grouped by experiment with size, mtime, and step."""
     checkpoints: dict[str, list[dict[str, str]]] = {}
@@ -521,12 +517,8 @@ def experiments(
     delete_all: bool = typer.Option(
         False, "--delete-all", help="Delete all experiments"
     ),
-    force: bool = typer.Option(
-        False, "--force", help="Delete without confirmation"
-    ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be deleted"
-    ),
+    force: bool = typer.Option(False, "--force", help="Delete without confirmation"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
 ):
     """List available MLflow experiments."""
     if not delete and not delete_all:
@@ -565,15 +557,9 @@ def scenarios(
     delete: str | None = typer.Option(
         None, "--delete", help="Delete scenarios matching regex"
     ),
-    delete_all: bool = typer.Option(
-        False, "--delete-all", help="Delete all scenarios"
-    ),
-    force: bool = typer.Option(
-        False, "--force", help="Delete without confirmation"
-    ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be deleted"
-    ),
+    delete_all: bool = typer.Option(False, "--delete-all", help="Delete all scenarios"),
+    force: bool = typer.Option(False, "--force", help="Delete without confirmation"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
 ):
     """List available scenario configurations."""
     import yaml
@@ -652,16 +638,24 @@ def _list_run_artifacts(client, run_id: str, prefix: str | None = None) -> list:
     return artifacts
 
 
-def _safe_search_experiments(tracking_uri: str | None = None) -> list[dict[str, str]]:
-    import yaml
+def _safe_search_experiments(
+    tracking_uri: str | None = None,
+) -> tuple[list[dict[str, str]], bool, Path | None]:
     from urllib.parse import urlparse
+
+    import mlflow
+    import yaml
 
     try:
         experiments_list = mlflow.search_experiments()
-        return [
-            {"experiment_id": exp.experiment_id, "name": exp.name}
-            for exp in experiments_list
-        ]
+        return (
+            [
+                {"experiment_id": exp.experiment_id, "name": exp.name}
+                for exp in experiments_list
+            ],
+            False,
+            None,
+        )
     except Exception as exc:  # pragma: no cover - fallback for malformed stores
         console.print(
             f"[yellow]Warning: failed to list experiments via MLflow ({exc}). "
@@ -698,7 +692,89 @@ def _safe_search_experiments(tracking_uri: str | None = None) -> list[dict[str, 
                 experiments.append({"experiment_id": exp_id, "name": exp_name})
         except Exception:
             continue
-    return experiments
+    return experiments, True, mlruns_dir
+
+
+def _safe_list_runs_file_store(
+    mlruns_dir: Path, experiment_id: str
+) -> list[dict[str, str]]:
+    import yaml
+
+    runs = []
+    exp_dir = mlruns_dir / experiment_id
+    if not exp_dir.exists():
+        return runs
+    for run_dir in exp_dir.iterdir():
+        if not run_dir.is_dir():
+            continue
+        meta_path = run_dir / "meta.yaml"
+        if not meta_path.exists():
+            continue
+        try:
+            meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
+            run_id = meta.get("run_id") or meta.get("run_uuid")
+            if not run_id:
+                continue
+            run_name = ""
+            tags = meta.get("tags") or []
+            for tag in tags:
+                if tag.get("key") == "mlflow.runName":
+                    run_name = tag.get("value") or ""
+                    break
+            runs.append(
+                {
+                    "run_id": run_id,
+                    "run_name": run_name,
+                    "artifact_uri": meta.get("artifact_uri"),
+                }
+            )
+        except Exception:
+            continue
+    return runs
+
+
+def _list_artifacts_file_store(
+    artifact_uri: str | None, prefix: str | None
+) -> list[dict[str, str | int]]:
+    from urllib.parse import urlparse
+
+    if not artifact_uri:
+        return []
+    parsed = urlparse(artifact_uri)
+    if parsed.scheme not in ("", "file"):
+        return []
+    artifact_root = Path(parsed.path or artifact_uri)
+    scan_root = artifact_root / prefix if prefix else artifact_root
+    if not scan_root.exists():
+        return []
+    artifacts = []
+    for path in scan_root.rglob("*"):
+        if path.is_dir():
+            continue
+        rel_path = path.relative_to(artifact_root)
+        artifacts.append(
+            {"path": str(rel_path), "file_size": path.stat().st_size}
+        )
+    return artifacts
+
+
+def _delete_artifacts_file_store(
+    artifact_uri: str | None, entries: list[dict[str, str | int]]
+) -> None:
+    from urllib.parse import urlparse
+
+    if not artifact_uri:
+        return
+    parsed = urlparse(artifact_uri)
+    if parsed.scheme not in ("", "file"):
+        return
+    base_path = Path(parsed.path or artifact_uri)
+    for entry in entries:
+        path = base_path / entry["path"]
+        path.unlink(missing_ok=True)
+    for path in sorted(base_path.rglob("*"), reverse=True):
+        if path.is_dir():
+            path.rmdir()
 
 
 @app.command(name="artifacts")
@@ -724,12 +800,8 @@ def artifacts(
     delete_all: bool = typer.Option(
         False, "--delete-all", help="Delete all artifacts for selected runs"
     ),
-    force: bool = typer.Option(
-        False, "--force", help="Delete without confirmation"
-    ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be deleted"
-    ),
+    force: bool = typer.Option(False, "--force", help="Delete without confirmation"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
     max_runs: int = typer.Option(
         50, "--max-runs", help="Maximum runs to show per experiment"
     ),
@@ -789,12 +861,12 @@ def artifacts(
         _print_run_artifacts(exp_name, run, artifacts_list)
         return
 
-    experiments_list = _safe_search_experiments(tracking_uri)
+    experiments_list, file_store_fallback, mlruns_dir = _safe_search_experiments(
+        tracking_uri
+    )
     pattern = re.compile(experiment) if experiment else None
     targets = [
-        exp
-        for exp in experiments_list
-        if not pattern or pattern.search(exp["name"])
+        exp for exp in experiments_list if not pattern or pattern.search(exp["name"])
     ]
     if not targets:
         console.print("[yellow]No experiments matched.[/yellow]")
@@ -802,43 +874,95 @@ def artifacts(
 
     delete_any = delete_all or delete
     for exp in sorted(targets, key=lambda e: e["name"]):
-        runs = mlflow.search_runs(
-            experiment_ids=[exp["experiment_id"]],
-            max_results=max_runs,
-            order_by=["start_time DESC"],
-        )
-        if runs.empty:
-            console.print(f"[yellow]No runs for experiment {exp['name']}.[/yellow]")
-            continue
         delete_targets = []
-        for _, row in runs.iterrows():
-            run = client.get_run(row["run_id"])
-            artifacts_list = _list_run_artifacts(client, run.info.run_id, prefix)
-            if delete_any:
-                pattern = re.compile(delete) if delete else None
-                delete_targets.extend(
-                    (run.info.run_id, entry)
-                    for entry in artifacts_list
-                    if delete_all or (pattern and pattern.search(entry.path))
+        if file_store_fallback:
+            runs = _safe_list_runs_file_store(mlruns_dir, exp["experiment_id"])
+            if not runs:
+                console.print(
+                    f"[yellow]No runs for experiment {exp['name']}.[/yellow]"
                 )
-            else:
-                _print_run_artifacts(exp["name"], run, artifacts_list)
+                continue
+            for run in runs[:max_runs]:
+                artifacts_list = _list_artifacts_file_store(
+                    run.get("artifact_uri"), prefix
+                )
+                if delete_any:
+                    pattern = re.compile(delete) if delete else None
+                    delete_targets.extend(
+                        (run["run_id"], run.get("artifact_uri"), entry)
+                        for entry in artifacts_list
+                        if delete_all
+                        or (pattern and pattern.search(entry["path"]))
+                    )
+                else:
+                    title = f"Run: {run['run_id']}"
+                    if run.get("run_name"):
+                        title += f" ({run['run_name']})"
+                    table = Table(title=f"Experiment: {exp['name']} | {title}")
+                    table.add_column("Artifact")
+                    table.add_column("Size", justify="right")
+                    if not artifacts_list:
+                        console.print(
+                            f"[yellow]No artifacts for run {run['run_id']}[/yellow]"
+                        )
+                    else:
+                        for entry in sorted(
+                            artifacts_list, key=lambda e: e["path"]
+                        ):
+                            size = (
+                                f"{entry['file_size'] / 1024:.1f} KB"
+                                if entry["file_size"]
+                                else "-"
+                            )
+                            table.add_row(entry["path"], size)
+                        console.print(table)
+        else:
+            runs = mlflow.search_runs(
+                experiment_ids=[exp["experiment_id"]],
+                max_results=max_runs,
+                order_by=["start_time DESC"],
+            )
+            if runs.empty:
+                console.print(
+                    f"[yellow]No runs for experiment {exp['name']}.[/yellow]"
+                )
+                continue
+            for _, row in runs.iterrows():
+                run = client.get_run(row["run_id"])
+                artifacts_list = _list_run_artifacts(client, run.info.run_id, prefix)
+                if delete_any:
+                    pattern = re.compile(delete) if delete else None
+                    delete_targets.extend(
+                        (run.info.run_id, None, entry)
+                        for entry in artifacts_list
+                        if delete_all or (pattern and pattern.search(entry.path))
+                    )
+                else:
+                    _print_run_artifacts(exp["name"], run, artifacts_list)
         if delete_any:
             if not delete_targets:
                 console.print("[yellow]No artifacts matched for deletion.[/yellow]")
                 raise typer.Exit(0)
             if dry_run:
                 console.print("[yellow]Dry run: artifacts to delete[/yellow]")
-                for run_id_val, entry in delete_targets:
-                    console.print(f"  {run_id_val}:{entry.path}")
+                for run_id_val, _artifact_uri, entry in delete_targets:
+                    path = entry["path"] if isinstance(entry, dict) else entry.path
+                    console.print(f"  {run_id_val}:{path}")
                 raise typer.Exit(0)
             if not _confirm_delete(
-                [f"{rid}:{e.path}" for rid, e in delete_targets], force
+                [
+                    f"{rid}:{(e['path'] if isinstance(e, dict) else e.path)}"
+                    for rid, _artifact_uri, e in delete_targets
+                ],
+                force,
             ):
                 console.print("[yellow]Deletion cancelled.[/yellow]")
                 raise typer.Exit(0)
-            for run_id_val, entry in delete_targets:
-                client.delete_artifacts(run_id_val, entry.path)
+            for run_id_val, artifact_uri, entry in delete_targets:
+                if isinstance(entry, dict):
+                    _delete_artifacts_file_store(artifact_uri, [entry])
+                else:
+                    client.delete_artifacts(run_id_val, entry.path)
             console.print(f"[green]Deleted {len(delete_targets)} artifacts.[/green]")
 
 
