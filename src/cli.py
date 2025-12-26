@@ -778,7 +778,10 @@ def _delete_artifacts_file_store(
         path.unlink(missing_ok=True)
     for path in sorted(base_path.rglob("*"), reverse=True):
         if path.is_dir():
-            path.rmdir()
+            try:
+                path.rmdir()
+            except OSError:
+                continue
 
 
 def _delete_artifact_path(
