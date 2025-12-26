@@ -98,7 +98,3 @@ flowchart TD
 - Collect batch → extend replay buffer → sample minibatches.
 - Critic and actor updates each step.
 - Soft-update target networks with `tau`.
-
-## Evaluation and Tracking
-- Deterministic vs random rollouts via `compare_rollouts`.
-- Reward/action plots logged to MLflow; checkpoints in `logs/<experiment>/`.
