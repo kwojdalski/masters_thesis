@@ -601,7 +601,9 @@ class TD3Trainer(BaseTrainer):
         logger.info(f"\033[95mTD3 checkpoint saved to {path}\033[0m")
 
     def load_checkpoint(self, path: str) -> None:
-        checkpoint = torch.load(path)
+        # Load checkpoint with weights_only=False for TorchRL compatibility
+        # TensorDict objects require custom unpickling that isn't in PyTorch's safe allowlist
+        checkpoint = torch.load(path, weights_only=False)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
                 "TD3 checkpoint keys: %s", sorted(checkpoint.keys())
