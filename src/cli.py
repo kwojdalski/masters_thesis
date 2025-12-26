@@ -352,11 +352,11 @@ def train(
     buffer_size: int | None = typer.Option(
         None, "--buffer-size", help="Replay buffer size"
     ),
-    save_buffer: bool = typer.Option(
-        False, "--save-buffer", help="Save replay buffer in checkpoint (increases file size)"
+    save_buffer: bool | None = typer.Option(
+        None, "--save-buffer", help="Save replay buffer in checkpoint (increases file size)"
     ),
-    save_plots: bool = typer.Option(
-        False, "--save-plots", help="Save training plots to disk"
+    save_plots: bool | None = typer.Option(
+        None, "--save-plots", help="Save training plots to disk"
     ),
     log_dir: Path | None = typer.Option(None, "--log-dir", help="Logging directory"),  # noqa: B008
     from_checkpoint: Path | None = typer.Option(  # noqa: B008
