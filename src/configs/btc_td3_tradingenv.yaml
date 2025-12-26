@@ -1,0 +1,83 @@
+# TD3 Configuration with TradingEnv Backend (XAI Asset Management Library)
+# ========================================================================
+# This configuration uses the tradingenv library for continuous portfolio allocation
+# with TD3 (Twin Delayed DDPG) algorithm
+# https://github.com/xaiassetmanagement/tradingenv
+
+experiment_name: "td3_tradingenv_btc"
+seed: 42
+
+# Data Configuration
+data:
+  data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
+  download_data: false
+  exchange_names: ["binance"]
+  symbols: ["BTC/USDT"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2023-01-01T00:00:00+00:00"
+  train_size: 7000  # ~8 months for training (total: 8736 hourly candles in 2023)
+  no_features: false
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_TD3_BTC"
+  backend: "tradingenv"
+
+  # Transaction costs
+  trading_fees: 0.001  # 0.1% proportional fee (typical for crypto exchanges)
+
+  # Column specifications - IMPORTANT: price_columns must contain only positive values
+  price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
+  feature_columns: ["feature_return", "feature_high", "feature_low"]  # Normalized features (removed redundant feature_pct_chng)
+
+  # Note: positions parameter is not used with tradingenv backend
+  # Actions are continuous portfolio weights instead of discrete positions
+
+# Network Architecture
+network:
+  actor_hidden_dims: [128, 64]  # Larger network for better pattern learning (was [64, 32])
+  value_hidden_dims: [128, 64]  # Larger critics for stable Q-value estimation (was [64, 32])
+
+# Training Parameters - TD3
+training:
+  algorithm: "TD3"  # Twin Delayed DDPG - off-policy actor-critic
+
+  # Learning rates - CRITICAL: Reduced for stability
+  actor_lr: 0.0001  # Reduced from 0.0003 to prevent Q-value explosions
+  value_lr: 0.0001  # Reduced from 0.0003 for more conservative updates
+  value_weight_decay: 0.00001
+
+  # Training loop
+  max_steps: 100000  # Increased for real market data (noisier than synthetic)
+  init_rand_steps: 5000  # CRITICAL: 5% of max_steps for diverse exploration of real market conditions
+  frames_per_batch: 200
+  optim_steps_per_batch: 5  # CRITICAL: Prevents overfitting to small batches
+  sample_size: 128  # Increased from 64 for more stable gradient estimates
+  buffer_size: 100000  # Larger buffer to capture diverse real market conditions
+
+  # Discount factor
+  gamma: 0.99  # Discount factor for future rewards
+
+  # TD3-specific parameters
+  tau: 0.001  # CRITICAL: Slower target updates (was 0.005) for more stable targets
+  policy_noise: 0.02  # CRITICAL: Further reduced (was 0.05) for cleaner learning signal
+  noise_clip: 0.3  # Reduced from 0.5 - tighter noise bounds
+  policy_delay: 2  # Frequency of delayed policy updates
+  delay_actor: true  # Enable delayed actor updates
+  delay_qvalue: true  # Enable delayed Q-value updates
+  exploration_noise_std: 0.02  # CRITICAL: Reduced from 0.05 for less random exploration
+
+
+  # Loss function
+  loss_function: "smooth_l1"  # CRITICAL: More stable than l2 for TD learning
+
+  # Evaluation
+  eval_steps: 720  # 30 days at hourly resolution for realistic evaluation
+  eval_interval: 1000  # Evaluate every 1000 steps
+  log_interval: 100  # Reduced from 200 for more frequent monitoring
+
+# Logging Configuration
+logging:
+  log_dir: "logs/td3_tradingenv_btc"
+  log_level: "INFO"
