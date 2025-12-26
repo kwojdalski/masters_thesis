@@ -241,6 +241,15 @@ class TrainingCommand(BaseCommand):
             )
             mlflow_callback._episode_count = trainer.total_episodes
             logs = trainer.train(callback=mlflow_callback)
+            checkpoint_path = (
+                Path(config.logging.log_dir)
+                / f"{config.experiment_name}_checkpoint_step_{trainer.total_count}.pt"
+            )
+            trainer.save_checkpoint(str(checkpoint_path))
+            logger.info(f"Checkpoint saved to: {checkpoint_path}")
+            self.console.print(
+                f"[green]New checkpoint saved: {checkpoint_path}[/green]"
+            )
         elif getattr(trainer, "mlflow_run_id", None):
             run_id = trainer.mlflow_run_id
             tracking_uri = getattr(trainer, "mlflow_tracking_uri", None)
@@ -271,6 +280,15 @@ class TrainingCommand(BaseCommand):
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
                 logs = trainer.train(callback=mlflow_callback)
+                checkpoint_path = (
+                    Path(config.logging.log_dir)
+                    / f"{config.experiment_name}_checkpoint_step_{trainer.total_count}.pt"
+                )
+                trainer.save_checkpoint(str(checkpoint_path))
+                logger.info(f"Checkpoint saved to: {checkpoint_path}")
+                self.console.print(
+                    f"[green]New checkpoint saved: {checkpoint_path}[/green]"
+                )
         else:
             # Create new run for resumed training
             logger.info(
@@ -286,15 +304,15 @@ class TrainingCommand(BaseCommand):
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
                 logs = trainer.train(callback=mlflow_callback)
-
-        # Save new checkpoint
-        checkpoint_path = (
-            Path(config.logging.log_dir)
-            / f"{config.experiment_name}_checkpoint_step_{trainer.total_count}.pt"
-        )
-        trainer.save_checkpoint(str(checkpoint_path))
-        logger.info(f"Checkpoint saved to: {checkpoint_path}")
-        self.console.print(f"[green]New checkpoint saved: {checkpoint_path}[/green]")
+                checkpoint_path = (
+                    Path(config.logging.log_dir)
+                    / f"{config.experiment_name}_checkpoint_step_{trainer.total_count}.pt"
+                )
+                trainer.save_checkpoint(str(checkpoint_path))
+                logger.info(f"Checkpoint saved to: {checkpoint_path}")
+                self.console.print(
+                    f"[green]New checkpoint saved: {checkpoint_path}[/green]"
+                )
 
         # Evaluate agent (just like normal training does)
         logger.info("Evaluating agent...")
