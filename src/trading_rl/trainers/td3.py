@@ -650,14 +650,36 @@ class TD3Trainer(BaseTrainer):
         # Optionally restore replay buffer if it was saved
         if "replay_buffer" in checkpoint:
             logger.info("Restoring replay buffer from checkpoint...")
-            self.replay_buffer = checkpoint["replay_buffer"]  # Restore entire buffer with all state
-            buffer_size = len(self.replay_buffer)
-            logger.info(f"Replay buffer restored: {buffer_size} experiences")
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(
-                    f"Buffer state: cursor={self.replay_buffer._writer._cursor}, "
-                    f"write_count={self.replay_buffer._writer._write_count}, "
-                    f"is_full={self.replay_buffer._storage._is_full}"
+            saved_buffer = checkpoint["replay_buffer"]
+
+            # Check if this is old format (TensorDict) or new format (ReplayBuffer)
+            from torchrl.data import ReplayBuffer as ReplayBufferType
+            from tensordict import TensorDict
+
+            if isinstance(saved_buffer, ReplayBufferType):
+                # New format: restore entire buffer object
+                self.replay_buffer = saved_buffer
+                buffer_size = len(self.replay_buffer)
+                logger.info(f"Replay buffer restored (new format): {buffer_size} experiences")
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(
+                        f"Buffer state: cursor={self.replay_buffer._writer._cursor}, "
+                        f"write_count={self.replay_buffer._writer._write_count}, "
+                        f"is_full={self.replay_buffer._storage._is_full}"
+                    )
+            elif isinstance(saved_buffer, TensorDict):
+                # Old format: just storage data, copy into new buffer
+                logger.warning(
+                    "Loading old checkpoint format (storage only). "
+                    "Buffer metadata will be reset. Consider re-saving checkpoint with new format."
+                )
+                self.replay_buffer._storage._storage = saved_buffer
+                buffer_metadata = checkpoint.get("buffer_metadata", {})
+                buffer_size = buffer_metadata.get("buffer_size", len(self.replay_buffer))
+                logger.info(f"Replay buffer restored (old format): {buffer_size} experiences")
+            else:
+                logger.warning(
+                    f"Unexpected replay_buffer type: {type(saved_buffer)}. Starting with empty buffer."
                 )
         else:
             logger.info("No replay buffer in checkpoint - starting with empty buffer")
