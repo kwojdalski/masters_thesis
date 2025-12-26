@@ -1,7 +1,11 @@
-# TD3 Overview
+# TD3 Implementation Overview
 
-Twin Delayed DDPG (TD3) improves on DDPG by reducing overestimation bias with twin critics and adding target policy smoothing. This project now includes a thin wrapper `TD3Loss` (see `src/trading_rl/training.py`) built on TorchRL’s implementation, ready to plug into a trainer once twin Q networks are provided.
+## Summary
+- Off-policy actor-critic with twin critics and target policy smoothing.
+- Deterministic actor, critic(s) trained via TD3 loss with delayed policy updates.
+- Replay buffer and exploration noise drive sample efficiency.
 
+## Flow
 ```mermaid
 flowchart TD
     subgraph Entry
@@ -20,11 +24,11 @@ flowchart TD
 
     subgraph Models
         D["create_td3_actor<br/>deterministic MLP -> action"]
-        E["create_td3_twin_qvalue_network<br/>TwinQValueNetwork (1 network, 2 heads)"]
+        E["create_td3_qvalue_network<br/>single-head critic"]
     end
 
     subgraph Trainer
-        F["TD3Trainer.__init__<br/>TD3Loss (actor + twin Q)<br/>SoftUpdate<br/>ReplayBuffer LazyTensorStorage<br/>SyncDataCollector"]
+        F["TD3Trainer.__init__<br/>TD3Loss (actor + critic, num_qvalue_nets=2)<br/>SoftUpdate<br/>ReplayBuffer LazyTensorStorage<br/>SyncDataCollector"]
         G["TD3Trainer.train<br/>for each collector batch"]
         H["ReplayBuffer.extend"]
         I["ReplayBuffer.sample"]
@@ -62,16 +66,25 @@ flowchart TD
 ```
 
 ## Core Ideas
-- **Twin Critics**: A single Q-network with two heads (a TwinQValueNetwork); the target uses the minimum prediction of the two heads to curb overestimation.
+- **Twin Critics**: TD3Loss maintains two critic parameter sets and uses the minimum target prediction to curb overestimation.
 - **Delayed Policy Updates**: Actor updates happen less frequently than critic updates.
 - **Target Policy Smoothing**: Noise is added to target actions during critic updates for regularization.
 
-## Minimal Wiring Steps
-1. Create a **TwinQValueNetwork** (a single network with two Q-value heads) and a deterministic actor for continuous actions.
-2. Instantiate `TD3Loss(actor_network=actor, qvalue_network=twin_q_net, num_qvalue_nets=2, ...)`.
-3. Use separate optimizers for actor and the twin critic module; delay actor steps (e.g., every 2 critic steps).
-4. Use a replay buffer with random starts, utilizing `RandomPolicy` with a continuous spec initially.
-5. Periodically soft-update target networks (tau ≈ 0.005–0.01).
+## Components
+- **CLI + configs**: `training.algorithm: TD3` selects TD3 trainer and models.
+- **Models**: deterministic actor + critic; TD3Loss expands critic params to two critics.
+- **Loss/optimizers**: separate Adam optimizers for actor and critic.
+- **Collector/buffer**: `SyncDataCollector` + replay buffer with initial random exploration.
+
+## Training Loop
+- Collect batch → replay buffer → sample minibatches.
+- Critic update every step; actor update delayed by `policy_delay`.
+- Target policy smoothing via `policy_noise` and `noise_clip`.
+- Soft-update target params with `tau`.
+
+## Evaluation and Tracking
+- Periodic deterministic evaluation rollouts plus final eval.
+- Reward/action plots logged to MLflow; checkpoints stored in `logs/`.
 
 ## Suggested Hyperparameters
 - `policy_noise`: 0.2 (relative to action scale)

@@ -1,4 +1,11 @@
-# DDPG Data & Control Flow
+# DDPG Implementation Overview
+
+## Summary
+- Off-policy deterministic actor-critic for continuous actions.
+- Uses replay buffer, target networks, and soft updates.
+- Training logs and evaluations flow through MLflow.
+
+## Flow
 
 ```mermaid
 flowchart TD
@@ -33,7 +40,7 @@ flowchart TD
     end
 
     subgraph Models
-        F["create_actor<br/>DiscreteNet -> ProbabilisticActor"]
+        F["create_ddpg_actor<br/>deterministic MLP -> action"]
         G["create_value_network<br/>ValueOperator over MLP"]
         F1[Architecture from config.network]
     end
@@ -81,11 +88,17 @@ flowchart TD
     R --> T
 ```
 
-**Highlights**
+## Components
+- **CLI + configs**: scenario/config selection and optional data generation.
+- **Environment**: Gym trading env wrapped for TorchRL and `StepCounter`.
+- **Models**: deterministic actor (`create_ddpg_actor`) + critic (`create_value_network`).
+- **Trainer**: `DDPGTrainer` with `DDPGLoss`, replay buffer, and `SoftUpdate`.
 
-- **Data**: `prepare_data` fetches parquet data, optional feature engineering, and returns the DataFrame slice defined by `train_size`.
-- **Environment**: The Gym trading environment is wrapped for TorchRL and augmented with a `StepCounter` transform.
-- **Models**: `create_actor` builds a `ProbabilisticActor` over your discrete policy network; `create_value_network` constructs the Q-value estimator.
-- **Trainer**: `DDPGTrainer` orchestrates the TorchRL `SyncDataCollector`, replay buffer, `DDPGLoss`, and SoftUpdate target sync; training logs stream to the MLflow callback.
-- **Evaluation**: `evaluate_agent` runs both deterministic and random rollouts, then `compare_rollouts` produces the reward/action plots that get logged.
-- **Tracking**: MLflow holds metrics, params, and artifacts; checkpoints land in `logs/<experiment>/`.
+## Training Loop
+- Collect batch → extend replay buffer → sample minibatches.
+- Critic and actor updates each step.
+- Soft-update target networks with `tau`.
+
+## Evaluation and Tracking
+- Deterministic vs random rollouts via `compare_rollouts`.
+- Reward/action plots logged to MLflow; checkpoints in `logs/<experiment>/`.
