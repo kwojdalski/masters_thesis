@@ -238,6 +238,7 @@ class TrainingCommand(BaseCommand):
                     getattr(config, "tracking", None), "tracking_uri", None
                 ),
                 price_series=df["close"][: config.data.train_size],
+                start_run=False,
             )
             mlflow_callback._episode_count = trainer.total_episodes
             logs = trainer.train(callback=mlflow_callback)
@@ -263,6 +264,7 @@ class TrainingCommand(BaseCommand):
                     tracking_uri=tracking_uri
                     or getattr(getattr(config, "tracking", None), "tracking_uri", None),
                     price_series=df["close"][: config.data.train_size],
+                    start_run=False,
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
                 logs = trainer.train(callback=mlflow_callback)
@@ -277,6 +279,7 @@ class TrainingCommand(BaseCommand):
                         getattr(config, "tracking", None), "tracking_uri", None
                     ),
                     price_series=df["close"][: config.data.train_size],
+                    start_run=False,
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
                 logs = trainer.train(callback=mlflow_callback)
@@ -301,6 +304,7 @@ class TrainingCommand(BaseCommand):
                         getattr(config, "tracking", None), "tracking_uri", None
                     ),
                     price_series=df["close"][: config.data.train_size],
+                    start_run=False,
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
                 logs = trainer.train(callback=mlflow_callback)

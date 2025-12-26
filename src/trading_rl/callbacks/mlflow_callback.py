@@ -30,6 +30,7 @@ class MLflowTrainingCallback:
         progress_bar=None,
         total_episodes: int | None = None,
         price_series=None,
+        start_run: bool = True,
     ):
         self.step_count = 0
         self.intermediate_losses = {"actor": [], "value": []}
@@ -53,7 +54,7 @@ class MLflowTrainingCallback:
         mlflow.set_experiment(experiment_name)
 
         # Start run if not already active
-        if not mlflow.active_run():
+        if start_run and not mlflow.active_run():
             mlflow.start_run()
 
         # Initialize progress bar task if provided
