@@ -77,6 +77,7 @@ class TrainingConfig:
 
     # Replay buffer
     buffer_size: int = 100_000
+    save_buffer: bool = False  # Save replay buffer in checkpoint (increases file size significantly)
 
     # DDPG-specific parameters
     tau: float = 0.001  # Target network update rate

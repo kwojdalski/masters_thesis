@@ -55,6 +55,7 @@ training:
   optim_steps_per_batch: 5  # CRITICAL: Prevents overfitting to small batches
   sample_size: 128  # Increased from 64 for more stable gradient estimates
   buffer_size: 100000  # Larger buffer to capture diverse real market conditions
+  save_buffer: false  # Set to true to save replay buffer in checkpoint (increases file size ~10-100x)
 
   # Discount factor
   gamma: 0.99  # Discount factor for future rewards
