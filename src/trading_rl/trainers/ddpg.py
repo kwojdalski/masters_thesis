@@ -255,7 +255,7 @@ class DDPGTrainer(BaseTrainer):
             "mlflow_experiment_name": experiment_name,
         }
         torch.save(checkpoint, path)
-        logger.info(f"Checkpoint saved to {path}")
+        logger.info(f"\033[95mDDPG checkpoint saved to {path}\033[0m")
 
     def load_checkpoint(self, path: str) -> None:
         """Load training checkpoint.
@@ -276,7 +276,7 @@ class DDPGTrainer(BaseTrainer):
         self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
         self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
         self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
-        logger.info(f"Checkpoint loaded from {path}")
+        logger.info(f"\033[95mDDPG checkpoint loaded from {path}\033[0m")
 
     def train(self, callback=None) -> dict[str, list]:
         """Run training loop for DDPG agent with batch summary."""
