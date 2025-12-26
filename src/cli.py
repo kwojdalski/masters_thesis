@@ -299,11 +299,15 @@ def train(
         False, "--save-plots", help="Save training plots to disk"
     ),
     log_dir: Path | None = typer.Option(None, "--log-dir", help="Logging directory"),  # noqa: B008
-    checkpoint: Path | None = typer.Option(  # noqa: B008
+    from_checkpoint: Path | None = typer.Option(  # noqa: B008
         None,
-        "--checkpoint",
-        "--resume",
+        "--from-checkpoint",
         help="Path to checkpoint file to resume training from",
+    ),
+    from_last_checkpoint: bool = typer.Option(
+        False,
+        "--from-last-checkpoint",
+        help="Resume from the most recent checkpoint for the experiment",
     ),
     additional_steps: int | None = typer.Option(
         None,
@@ -316,10 +320,10 @@ def train(
 ):
     """Train a single trading agent.
 
-    You can resume training from a checkpoint by providing --checkpoint flag:
+    You can resume training from a checkpoint by providing --from-checkpoint flag:
 
     Example:
-        python src/cli.py train --checkpoint logs/td3_tradingenv_btc/td3_tradingenv_btc_checkpoint.pt --additional-steps 50000
+        python src/cli.py train --from-checkpoint logs/td3_tradingenv_btc/td3_tradingenv_btc_checkpoint.pt --additional-steps 50000
     """
 
     if verbose:
@@ -336,7 +340,8 @@ def train(
         buffer_size=buffer_size,
         save_plots=save_plots,
         log_dir=log_dir,
-        checkpoint_path=checkpoint,
+        from_checkpoint=from_checkpoint,
+        from_last_checkpoint=from_last_checkpoint,
         additional_steps=additional_steps,
     )
 

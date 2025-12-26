@@ -25,6 +25,8 @@ class TrainingParams:
     log_dir: Path | None = None
     checkpoint_path: Path | None = None  # Path to checkpoint to resume from
     additional_steps: int | None = None  # Additional steps when resuming
+    from_checkpoint: Path | None = None  # Path to checkpoint alias
+    from_last_checkpoint: bool = False  # Resume from most recent checkpoint
 
 
 class TrainingCommand(BaseCommand):
@@ -33,6 +35,17 @@ class TrainingCommand(BaseCommand):
     def execute(self, params: TrainingParams) -> None:
         """Execute single training run."""
         try:
+            if (
+                (params.from_checkpoint and params.from_last_checkpoint)
+            ):
+                raise ValueError(
+                    "Use only one of --from-checkpoint or --from-last-checkpoint."
+                )
+
+            # Load and configure experiment
+            config = self._load_training_config(params)
+            self._resolve_checkpoint_path(config, params)
+
             if params.checkpoint_path:
                 self.console.print(
                     "[bold blue]Resuming Training from Checkpoint[/bold blue]"
@@ -42,9 +55,6 @@ class TrainingCommand(BaseCommand):
                 self.console.print(
                     "[bold blue]Starting Trading Agent Training[/bold blue]"
                 )
-
-            # Load and configure experiment
-            config = self._load_training_config(params)
 
             # Display configuration
             self._display_config(config, params)
@@ -105,6 +115,26 @@ class TrainingCommand(BaseCommand):
             )
         else:
             self.console.print(f"Max steps: [green]{config.training.max_steps}[/green]")
+
+    def _resolve_checkpoint_path(self, config, params: TrainingParams) -> None:
+        """Resolve checkpoint path from aliases or latest checkpoint option."""
+        if params.checkpoint_path:
+            return
+        if params.from_checkpoint:
+            params.checkpoint_path = params.from_checkpoint
+            return
+        if not params.from_last_checkpoint:
+            return
+
+        log_dir = Path(params.log_dir or config.logging.log_dir)
+        pattern = f"{config.experiment_name}_checkpoint*.pt"
+        matches = list(log_dir.rglob(pattern))
+        if not matches:
+            raise FileNotFoundError(
+                f"No checkpoints found for {config.experiment_name} in {log_dir}"
+            )
+        latest = max(matches, key=lambda p: p.stat().st_mtime)
+        params.checkpoint_path = latest
 
     def _run_training_with_progress(
         self, config, params: TrainingParams
@@ -179,6 +209,7 @@ class TrainingCommand(BaseCommand):
         self.console.print(
             f"[green]Checkpoint loaded! Resuming from step {original_steps}[/green]"
         )
+        mlflow_callback._episode_count = trainer.total_episodes
 
         # Update max_steps
         if params.additional_steps:
