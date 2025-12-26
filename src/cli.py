@@ -639,5 +639,98 @@ def scenarios(
             console.print()
 
 
+def _list_run_artifacts(client, run_id: str, prefix: str | None = None) -> list:
+    artifacts = []
+    stack = [prefix or ""]
+    while stack:
+        path = stack.pop()
+        for entry in client.list_artifacts(run_id, path):
+            if entry.is_dir:
+                stack.append(entry.path)
+            else:
+                artifacts.append(entry)
+    return artifacts
+
+
+@app.command(name="artifacts")
+def artifacts(
+    tracking_uri: str | None = typer.Option(
+        None,
+        "--tracking-uri",
+        help="MLflow tracking URI (default sqlite:///mlflow.db)",
+        show_default=False,
+    ),
+    experiment: str | None = typer.Option(
+        None, "--experiment", help="Filter experiments by regex"
+    ),
+    run_id: str | None = typer.Option(
+        None, "--run-id", help="List artifacts for a specific run id"
+    ),
+    prefix: str | None = typer.Option(
+        None, "--prefix", help="Only list artifacts under this path prefix"
+    ),
+    max_runs: int = typer.Option(
+        50, "--max-runs", help="Maximum runs to show per experiment"
+    ),
+):
+    """List MLflow artifacts grouped by experiment and run."""
+    import mlflow
+    from mlflow.tracking import MlflowClient
+
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+
+    client = MlflowClient()
+
+    def _print_run_artifacts(exp_name: str, run, artifacts_list: list) -> None:
+        run_name = run.data.tags.get("mlflow.runName", "") if run else ""
+        title = f"Run: {run.info.run_id}"
+        if run_name:
+            title += f" ({run_name})"
+        table = Table(title=f"Experiment: {exp_name} | {title}")
+        table.add_column("Artifact")
+        table.add_column("Size", justify="right")
+        if not artifacts_list:
+            console.print(f"[yellow]No artifacts for run {run.info.run_id}[/yellow]")
+            return
+        for entry in sorted(artifacts_list, key=lambda e: e.path):
+            size = f"{entry.file_size / 1024:.1f} KB" if entry.file_size else "-"
+            table.add_row(entry.path, size)
+        console.print(table)
+
+    if run_id:
+        run = client.get_run(run_id)
+        experiment_obj = client.get_experiment(run.info.experiment_id)
+        exp_name = experiment_obj.name if experiment_obj else run.info.experiment_id
+        artifacts_list = _list_run_artifacts(client, run_id, prefix)
+        _print_run_artifacts(exp_name, run, artifacts_list)
+        return
+
+    experiments_list = mlflow.search_experiments()
+    pattern = re.compile(experiment) if experiment else None
+    targets = [
+        exp
+        for exp in experiments_list
+        if not pattern or pattern.search(exp.name)
+    ]
+    if not targets:
+        console.print("[yellow]No experiments matched.[/yellow]")
+        raise typer.Exit(0)
+
+    for exp in sorted(targets, key=lambda e: e.name):
+        runs = mlflow.search_runs(
+            experiment_ids=[exp.experiment_id],
+            max_results=max_runs,
+            order_by=["start_time DESC"],
+        )
+        if runs.empty:
+            console.print(f"[yellow]No runs for experiment {exp.name}.[/yellow]")
+            continue
+        for _, row in runs.iterrows():
+            run = client.get_run(row["run_id"])
+            artifacts_list = _list_run_artifacts(client, run.info.run_id, prefix)
+            _print_run_artifacts(exp.name, run, artifacts_list)
+
+
 if __name__ == "__main__":
     app()
