@@ -4,10 +4,12 @@ Refactored command-line interface using command classes.
 """
 
 import os
+from datetime import datetime
 from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.table import Table
 
 from cli.commands import (
     DashboardCommand,
@@ -71,6 +73,68 @@ data_gen_cmd = DataGeneratorCommand(console)
 training_cmd = TrainingCommand(console)
 experiment_cmd = ExperimentCommand(console)
 dashboard_cmd = DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db")
+
+
+def _parse_checkpoint_step(filename: str) -> int | None:
+    marker = "_checkpoint_step_"
+    if marker not in filename:
+        return None
+    suffix = filename.split(marker, 1)[1]
+    if suffix.endswith(".pt"):
+        suffix = suffix[:-3]
+    try:
+        return int(suffix)
+    except ValueError:
+        return None
+
+
+@app.command(name="list-checkpoints")
+def list_checkpoints(
+    log_dir: Path = typer.Option(  # noqa: B008
+        Path("logs"), "--log-dir", help="Root directory to scan for checkpoints"
+    )
+):
+    """List checkpoints grouped by experiment with size, mtime, and step."""
+    checkpoints: dict[str, list[dict[str, str]]] = {}
+
+    if not log_dir.exists():
+        console.print(f"[red]Log directory not found: {log_dir}[/red]")
+        raise typer.Exit(1)
+
+    for root, _dirs, files in os.walk(log_dir):
+        for name in files:
+            if not name.endswith(".pt") or "_checkpoint" not in name:
+                continue
+            experiment = name.split("_checkpoint", 1)[0]
+            path = Path(root) / name
+            stat = path.stat()
+            size_kb = f"{stat.st_size / 1024:.1f} KB"
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+            step = _parse_checkpoint_step(name)
+            checkpoints.setdefault(experiment, []).append(
+                {
+                    "path": str(path),
+                    "size": size_kb,
+                    "modified": modified,
+                    "step": str(step) if step is not None else "-",
+                }
+            )
+
+    if not checkpoints:
+        console.print("[yellow]No checkpoints found.[/yellow]")
+        raise typer.Exit(0)
+
+    for experiment, items in sorted(checkpoints.items()):
+        table = Table(title=f"Experiment: {experiment}")
+        table.add_column("Checkpoint")
+        table.add_column("Step", justify="right")
+        table.add_column("Size", justify="right")
+        table.add_column("Modified", justify="right")
+        for item in sorted(items, key=lambda x: x["path"]):
+            table.add_row(item["path"], item["step"], item["size"], item["modified"])
+        console.print(table)
 
 
 @app.command(name="generate-data")
