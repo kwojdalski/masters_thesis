@@ -556,6 +556,9 @@ class TD3Trainer(BaseTrainer):
         return getattr(self.config, "policy_noise", 0.2)
 
     def save_checkpoint(self, path: str) -> None:
+        import mlflow
+
+        run = mlflow.active_run()
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
@@ -566,6 +569,7 @@ class TD3Trainer(BaseTrainer):
             "total_count": self.total_count,
             "total_episodes": self.total_episodes,
             "logs": dict(self.logs),
+            "mlflow_run_id": run.info.run_id if run else None,
         }
         torch.save(checkpoint, path)
         logger.info(f"TD3 checkpoint saved to {path}")
@@ -605,4 +609,5 @@ class TD3Trainer(BaseTrainer):
         self.total_count = checkpoint["total_count"]
         self.total_episodes = checkpoint["total_episodes"]
         self.logs = defaultdict(list, checkpoint["logs"])
+        self.mlflow_run_id = checkpoint.get("mlflow_run_id")
         logger.info(f"TD3 checkpoint loaded from {path}")

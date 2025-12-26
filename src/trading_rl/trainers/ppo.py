@@ -201,6 +201,9 @@ class PPOTrainer(BaseTrainer):
         Args:
             path: Path to save checkpoint
         """
+        import mlflow
+
+        run = mlflow.active_run()
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "value_net_state_dict": self.value_net.state_dict(),
@@ -208,6 +211,7 @@ class PPOTrainer(BaseTrainer):
             "total_count": self.total_count,
             "total_episodes": self.total_episodes,
             "logs": dict(self.logs),
+            "mlflow_run_id": run.info.run_id if run else None,
         }
         torch.save(checkpoint, path)
         logger.info(f"PPO checkpoint saved to {path}")
@@ -225,6 +229,7 @@ class PPOTrainer(BaseTrainer):
         self.total_count = checkpoint["total_count"]
         self.total_episodes = checkpoint["total_episodes"]
         self.logs = defaultdict(list, checkpoint["logs"])
+        self.mlflow_run_id = checkpoint.get("mlflow_run_id")
         logger.info(f"PPO checkpoint loaded from {path}")
 
     @staticmethod

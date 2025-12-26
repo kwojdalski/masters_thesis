@@ -233,6 +233,12 @@ class TrainingCommand(BaseCommand):
                 f"[cyan]Continuing existing MLflow run: {active_run.info.run_id}[/cyan]"
             )
             logs = trainer.train(callback=mlflow_callback)
+        elif getattr(trainer, "mlflow_run_id", None):
+            run_id = trainer.mlflow_run_id
+            logger.info(f"Resuming MLflow run: {run_id}")
+            self.console.print(f"[cyan]Resuming MLflow run: {run_id}[/cyan]")
+            with mlflow.start_run(run_id=run_id):
+                logs = trainer.train(callback=mlflow_callback)
         else:
             # Create new run for resumed training
             logger.info(
