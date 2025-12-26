@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 import pandas as pd
-from plotnine import aes, geom_line, ggplot, labs
+from plotnine import aes, geom_line, ggplot, labs, theme
 from torch import allclose
 
 from logger import get_logger
@@ -72,17 +72,16 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
         )
     df_actions = pd.DataFrame(actions_data)
 
-    # Create reward plot using plotnine
+    # Create reward plot using plotnine (30% bigger than default)
     reward_plot = (
         ggplot(df_rewards, aes(x="Steps", y="Cumulative_Reward", color="Run"))
         + geom_line()
         + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
+        + theme(figure_size=(13, 7.8))  # 30% bigger than default (10, 6)
     )
 
-    # Create actions plot using plotnine (30% smaller)
+    # Create actions plot using plotnine (30% bigger than default)
     # Use backend-aware labels
-    from plotnine import theme
-
     if is_portfolio:
         y_label = "Portfolio Weight"
         title = "Portfolio Allocation Comparison"
@@ -94,7 +93,7 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
         ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
         + geom_line()
         + labs(title=title, x="Steps", y=y_label)
-        + theme(figure_size=(7, 4.2))  # 30% smaller than default (10, 6)
+        + theme(figure_size=(13, 7.8))  # 30% bigger than default (10, 6)
     )
 
     return reward_plot, action_plot
