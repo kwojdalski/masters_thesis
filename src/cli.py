@@ -987,6 +987,9 @@ def artifacts(
                 console.print("[yellow]Deletion cancelled.[/yellow]")
                 raise typer.Exit(0)
             for run_id_val, artifact_uri, entry in delete_targets:
+                if not artifact_uri:
+                    run_info = client.get_run(run_id_val)
+                    artifact_uri = getattr(run_info.info, "artifact_uri", None)
                 if isinstance(entry, dict):
                     _delete_artifact_path(
                         client, run_id_val, entry["path"], artifact_uri
