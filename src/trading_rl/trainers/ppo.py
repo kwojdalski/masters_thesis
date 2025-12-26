@@ -209,6 +209,7 @@ class PPOTrainer(BaseTrainer):
 
         run = mlflow.active_run()
         tracking_uri = mlflow.get_tracking_uri()
+        run_name = run.data.tags.get("mlflow.runName") if run else None
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "value_net_state_dict": self.value_net.state_dict(),
@@ -217,6 +218,7 @@ class PPOTrainer(BaseTrainer):
             "total_episodes": self.total_episodes,
             "logs": dict(self.logs),
             "mlflow_run_id": run.info.run_id if run else None,
+            "mlflow_run_name": run_name,
             "mlflow_tracking_uri": tracking_uri,
             "mlflow_experiment_id": run.info.experiment_id if run else None,
         }
@@ -237,6 +239,7 @@ class PPOTrainer(BaseTrainer):
         self.total_episodes = checkpoint["total_episodes"]
         self.logs = defaultdict(list, checkpoint["logs"])
         self.mlflow_run_id = checkpoint.get("mlflow_run_id")
+        self.mlflow_run_name = checkpoint.get("mlflow_run_name")
         self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
         self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
         logger.info(f"PPO checkpoint loaded from {path}")
