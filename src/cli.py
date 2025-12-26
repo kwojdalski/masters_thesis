@@ -41,6 +41,7 @@ def _configure_logging(verbose: bool) -> None:
     """Configure logging based on CLI context."""
     level = "DEBUG" if verbose else "INFO"
     configure_logging(component="cli", level=level, simplified=not verbose)
+    os.environ["LOG_LEVEL"] = level
     os.environ["LOGLEVEL"] = level
 
 # Add global options

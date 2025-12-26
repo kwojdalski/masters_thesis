@@ -39,7 +39,7 @@ flowchart TD
         N["callback.log_training_step<br/>log_episode_stats -> MLflow"]
     end
 
-    subgraph Eval
+    subgraph Evaluation
         O["evaluate_agent<br/>deterministic rollout"]
         P["Reward/Action plots"]
     end
