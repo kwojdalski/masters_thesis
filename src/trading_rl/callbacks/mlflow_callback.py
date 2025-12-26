@@ -596,13 +596,14 @@ class MLflowTrainingCallback:
             if weights:
                 mlflow.log_metric("portfolio_weights_sequence_length", len(weights))
                 weights_str = json.dumps(weights[:100])
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".json", delete=False
-                ) as f:
+                # Use ISO 8601 datetime format for filename
+                timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                filename = f"{timestamp}_weights.json"
+                temp_path = os.path.join(tempfile.gettempdir(), filename)
+                with open(temp_path, "w") as f:
                     f.write(weights_str)
-                    f.flush()
-                    mlflow.log_artifact(f.name, "portfolio_weights_data")
-                    os.unlink(f.name)
+                mlflow.log_artifact(temp_path, "portfolio_weights_data")
+                os.unlink(temp_path)
 
         if logs.get("loss_value"):
             mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
