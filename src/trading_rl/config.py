@@ -6,6 +6,11 @@ from pathlib import Path
 
 import yaml
 
+try:
+    from omegaconf import OmegaConf
+except ImportError:  # pragma: no cover - optional dependency
+    OmegaConf = None
+
 
 @dataclass
 class DataConfig:
@@ -142,11 +147,14 @@ class ExperimentConfig:
     experiment_name: str = "ddpg_trading"
 
     @classmethod
-    def from_yaml(cls, yaml_path: str | Path) -> "ExperimentConfig":
+    def from_yaml(
+        cls, yaml_path: str | Path, overrides: list[str] | None = None
+    ) -> "ExperimentConfig":
         """Load configuration from YAML file.
 
         Args:
             yaml_path: Path to YAML configuration file
+            overrides: Optional OmegaConf dotlist overrides
 
         Returns:
             ExperimentConfig instance loaded from YAML
@@ -155,10 +163,22 @@ class ExperimentConfig:
         if not yaml_path.exists():
             raise FileNotFoundError(f"Config file not found: {yaml_path}")
 
-        with open(yaml_path) as f:
-            config_dict = yaml.safe_load(f)
+        overrides = overrides or []
+        if OmegaConf is not None:
+            cfg = OmegaConf.load(str(yaml_path))
+            if overrides:
+                cfg = OmegaConf.merge(cfg, OmegaConf.from_dotlist(overrides))
+            config_dict = OmegaConf.to_container(cfg, resolve=True)
+        else:
+            if overrides:
+                raise ImportError(
+                    "OmegaConf is required for config overrides. "
+                    "Install it or remove overrides."
+                )
+            with open(yaml_path) as f:
+                config_dict = yaml.safe_load(f)
 
-        return cls.from_dict(config_dict)
+        return cls.from_dict(config_dict or {})
 
     @classmethod
     def from_dict(cls, config_dict: dict) -> "ExperimentConfig":
