@@ -65,7 +65,7 @@ class TrainingCommand(BaseCommand):
             result = self._run_training_with_progress(config, params)
 
             # Save plots if requested
-            if params.save_plots:
+            if config.logging.save_plots:
                 self._save_training_plots(result, config, params)
 
         except Exception as e:
@@ -106,6 +106,8 @@ class TrainingCommand(BaseCommand):
             config.training.buffer_size = params.buffer_size
         if params.save_buffer is not None:
             config.training.save_buffer = params.save_buffer
+        if params.save_plots is not None:
+            config.logging.save_plots = params.save_plots
         if params.log_dir is not None:
             config.logging.log_dir = str(params.log_dir)
 

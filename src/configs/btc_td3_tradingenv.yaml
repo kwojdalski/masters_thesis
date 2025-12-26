@@ -82,3 +82,4 @@ training:
 logging:
   log_dir: "logs/td3_tradingenv_btc"
   log_level: "INFO"
+  save_plots: false  # Save training plots to disk in addition to MLflow

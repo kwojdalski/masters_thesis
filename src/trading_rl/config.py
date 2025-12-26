@@ -113,6 +113,7 @@ class LoggingConfig:
     log_file: str = "trading_env_debug.log"
     log_level: str = "INFO"
     tensorboard_dir: str = "runs"
+    save_plots: bool = False  # Save training plots to disk in addition to MLflow
 
 
 @dataclass
