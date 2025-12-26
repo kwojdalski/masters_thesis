@@ -3,7 +3,9 @@
 import json
 import logging
 import os
+import shutil
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 import mlflow
@@ -683,7 +685,6 @@ class MLflowTrainingCallback:
 
         import contextlib
         import io
-        import tempfile
         import warnings
 
         from plotnine.exceptions import PlotnineWarning
@@ -698,15 +699,14 @@ class MLflowTrainingCallback:
                 yield
 
         saved_paths: dict[str, str] = {}
+        batch_temp_dir = tempfile.mkdtemp()
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
         try:
 
-            def _save_plot_as_artifact(plot_obj, suffix, artifact_dir, logger):
+            def _save_plot_as_artifact(plot_obj, filename, key, artifact_dir, logger):
                 """Helper to save plot to temp file and log as MLflow artifact."""
-                with tempfile.NamedTemporaryFile(
-                    suffix=suffix, delete=False
-                ) as tmp_file:
-                    tmp_path = tmp_file.name
+                tmp_path = os.path.join(batch_temp_dir, filename)
                 try:
                     with warnings.catch_warnings(), suppress_plotnine_output():
                         warnings.simplefilter("ignore", PlotnineWarning)
@@ -726,26 +726,36 @@ class MLflowTrainingCallback:
                         mlflow.log_artifact(tmp_path, artifact_dir)
                     finally:
                         pil_logger.setLevel(previous_level)
-                    saved_paths[suffix] = tmp_path
+                    if key:
+                        saved_paths[key] = tmp_path
                 except Exception:
-                    logger.exception(f"Failed to save {suffix} plot")
+                    logger.exception(f"Failed to save {filename} plot")
                 # cleanup deferred for optional combination
 
             # Save reward plot using plotnine
             _save_plot_as_artifact(
-                reward_plot, "_rewards.png", "evaluation_plots", logger
+                reward_plot,
+                f"{timestamp}_rewards.png",
+                "rewards",
+                "evaluation_plots",
+                logger,
             )
 
             # Save action/position plot using plotnine
             _save_plot_as_artifact(
-                action_plot, "_positions.png", "evaluation_plots", logger
+                action_plot,
+                f"{timestamp}_positions.png",
+                "positions",
+                "evaluation_plots",
+                logger,
             )
 
             # Save action probabilities plot (if present)
             if action_probs_plot is not None:
                 _save_plot_as_artifact(
                     action_probs_plot,
-                    "_action_probabilities.png",
+                    f"{timestamp}_action_probabilities.png",
+                    "action_probabilities",
                     "evaluation_plots",
                     logger,
                 )
@@ -755,7 +765,7 @@ class MLflowTrainingCallback:
             # Create and save training loss plots
             if logs and (logs.get("loss_value") or logs.get("loss_actor")):
                 import pandas as pd
-                from plotnine import aes, geom_line, ggplot, labs
+                from plotnine import aes, geom_line, ggplot, labs, facet_wrap
 
                 loss_data = []
                 if logs.get("loss_value"):
@@ -776,8 +786,6 @@ class MLflowTrainingCallback:
                 if loss_data:
                     loss_df = pd.DataFrame(loss_data)
 
-                    from plotnine import facet_wrap
-
                     loss_plot = (
                         ggplot(loss_df, aes(x="step", y="loss", color="type"))
                         + geom_line(size=1.2)
@@ -791,7 +799,11 @@ class MLflowTrainingCallback:
                     )
 
                     _save_plot_as_artifact(
-                        loss_plot, "_training_losses.png", "training_plots", logger
+                        loss_plot,
+                        f"{timestamp}_training_losses.png",
+                        None,
+                        "training_plots",
+                        logger,
                     )
 
             # Combine existing evaluation plots using plotnine patchwork when available
@@ -814,23 +826,24 @@ class MLflowTrainingCallback:
                 if combined_plot is not None:
                     _save_plot_as_artifact(
                         combined_plot,
-                        "_combined_evaluation.png",
+                        f"{timestamp}_combined_evaluation.png",
+                        None,
                         "evaluation_plots",
                         logger,
                     )
             except ImportError:
                 # Fallback: combine PNGs with Pillow in a (p1 | p2) / p3 layout
                 if {
-                    "_rewards.png",
-                    "_positions.png",
-                    "_action_probabilities.png",
+                    "rewards",
+                    "positions",
+                    "action_probabilities",
                 } <= set(saved_paths.keys()):
                     try:
                         from PIL import Image
 
-                        reward_img = Image.open(saved_paths["_rewards.png"])
-                        action_img = Image.open(saved_paths["_positions.png"])
-                        probs_img = Image.open(saved_paths["_action_probabilities.png"])
+                        reward_img = Image.open(saved_paths["rewards"])
+                        action_img = Image.open(saved_paths["positions"])
+                        probs_img = Image.open(saved_paths["action_probabilities"])
 
                         top_width = reward_img.width + action_img.width
                         top_height = max(reward_img.height, action_img.height)
@@ -847,12 +860,12 @@ class MLflowTrainingCallback:
                         combined.paste(action_img, (reward_img.width, 0))
                         combined.paste(probs_img, (0, top_height))
 
-                        with tempfile.NamedTemporaryFile(
-                            suffix="_combined_evaluation.png", delete=False
-                        ) as tmp_combined:
-                            combined.save(tmp_combined.name, format="PNG")
-                            mlflow.log_artifact(tmp_combined.name, "evaluation_plots")
-                            combined_path = tmp_combined.name
+                        combined_filename = f"{timestamp}_combined_evaluation.png"
+                        tmp_combined_path = os.path.join(batch_temp_dir, combined_filename)
+                        
+                        combined.save(tmp_combined_path, format="PNG")
+                        mlflow.log_artifact(tmp_combined_path, "evaluation_plots")
+                        combined_path = tmp_combined_path
                     except (
                         Exception
                     ) as combine_error:  # pragma: no cover - logging only
@@ -864,7 +877,6 @@ class MLflowTrainingCallback:
         except Exception as e:  # pragma: no cover - defensive logging only
             logger.warning(f"Failed to save plots as artifacts: {e}")
         finally:
-            # Clean up temporary files we kept for optional combination
-            for path in saved_paths.values():
-                if os.path.exists(path):
-                    os.unlink(path)
+            # Clean up temporary directory
+            if os.path.exists(batch_temp_dir):
+                shutil.rmtree(batch_temp_dir)
