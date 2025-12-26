@@ -22,7 +22,7 @@ class TrainingParams:
     value_lr: float | None = None
     buffer_size: int | None = None
     save_buffer: bool | None = None  # Save replay buffer in checkpoint
-    save_plots: bool = False
+    save_plots: bool | None = None  # Save training plots to disk
     log_dir: Path | None = None
     checkpoint_path: Path | None = None  # Path to checkpoint to resume from
     additional_steps: int | None = None  # Additional steps when resuming
