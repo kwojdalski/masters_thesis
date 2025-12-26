@@ -49,7 +49,7 @@ training:
   value_weight_decay: 0.00001
 
   # Training loop
-  max_steps: 100000  # Increased for real market data (noisier than synthetic)
+  max_steps: 250000  # Increased for real market data (noisier than synthetic)
   init_rand_steps: 5000  # CRITICAL: 5% of max_steps for diverse exploration of real market conditions
   frames_per_batch: 200
   optim_steps_per_batch: 5  # CRITICAL: Prevents overfitting to small batches
