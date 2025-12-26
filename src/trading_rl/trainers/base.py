@@ -333,6 +333,10 @@ class BaseTrainer(ABC):
         logger.info("Starting training")
         t0 = time.time()
         self.callback = callback
+        self._log_step_offset = max(
+            len(self.logs.get("loss_actor", [])),
+            len(self.logs.get("loss_value", [])),
+        )
 
         for i, data in enumerate(self.collector):
             self.replay_buffer.extend(data)

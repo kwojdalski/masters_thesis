@@ -372,7 +372,10 @@ class TD3Trainer(BaseTrainer):
                 and self.callback
                 and hasattr(self.callback, "log_training_step")
             ):
-                current_step = batch_idx * self.config.optim_steps_per_batch + j
+                offset = getattr(self, "_log_step_offset", 0)
+                current_step = offset + (
+                    batch_idx * self.config.optim_steps_per_batch + j
+                )
                 self.callback.log_training_step(
                     current_step, actor_loss, value_loss, extra_metrics=extra_metrics
                 )
@@ -396,6 +399,10 @@ class TD3Trainer(BaseTrainer):
 
         t0 = time.time()
         self.callback = callback
+        self._log_step_offset = max(
+            len(self.logs.get("loss_actor", [])),
+            len(self.logs.get("loss_value", [])),
+        )
 
         # Use a temporary random policy for initial steps
         initial_collector_policy = RandomPolicy(self.td3_action_spec)
