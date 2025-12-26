@@ -242,14 +242,16 @@ class TrainingCommand(BaseCommand):
             logs = trainer.train(callback=mlflow_callback)
         elif getattr(trainer, "mlflow_run_id", None):
             run_id = trainer.mlflow_run_id
+            tracking_uri = getattr(trainer, "mlflow_tracking_uri", None)
+            if tracking_uri:
+                mlflow.set_tracking_uri(tracking_uri)
             logger.info(f"Resuming MLflow run: {run_id}")
             self.console.print(f"[cyan]Resuming MLflow run: {run_id}[/cyan]")
             with mlflow.start_run(run_id=run_id):
                 mlflow_callback = MLflowTrainingCallback(
                     config.experiment_name,
-                    tracking_uri=getattr(
-                        getattr(config, "tracking", None), "tracking_uri", None
-                    ),
+                    tracking_uri=tracking_uri
+                    or getattr(getattr(config, "tracking", None), "tracking_uri", None),
                     price_series=df["close"][: config.data.train_size],
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
