@@ -73,6 +73,7 @@ class TrainingConfig:
     frames_per_batch: int = 200
     optim_steps_per_batch: int = 50
     sample_size: int = 50
+    checkpoint_interval: int = 0
 
     # Replay buffer
     buffer_size: int = 100_000
@@ -300,6 +301,7 @@ class ExperimentConfig:
                 "optim_steps_per_batch": self.training.optim_steps_per_batch,
                 "sample_size": self.training.sample_size,
                 "buffer_size": self.training.buffer_size,
+                "checkpoint_interval": self.training.checkpoint_interval,
                 "tau": self.training.tau,
                 "loss_function": self.training.loss_function,
                 "eval_steps": self.training.eval_steps,

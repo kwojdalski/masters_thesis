@@ -79,6 +79,8 @@ trainer = DDPGTrainer(
     value_net=value_net,
     env=env,
     config=config.training,
+    checkpoint_dir=config.logging.log_dir,
+    checkpoint_prefix=config.experiment_name,
 )
 # %%
 # Train

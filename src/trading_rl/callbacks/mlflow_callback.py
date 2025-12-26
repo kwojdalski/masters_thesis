@@ -306,6 +306,10 @@ class MLflowTrainingCallback:
             mlflow.log_param("training_sample_size", int(config.training.sample_size))
             mlflow.log_param("training_buffer_size", int(config.training.buffer_size))
             mlflow.log_param(
+                "training_checkpoint_interval",
+                int(getattr(config.training, "checkpoint_interval", 0)),
+            )
+            mlflow.log_param(
                 "training_loss_function", str(config.training.loss_function)
             )
             mlflow.log_param("training_eval_steps", int(config.training.eval_steps))

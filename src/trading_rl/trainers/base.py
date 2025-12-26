@@ -16,6 +16,7 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
+from pathlib import Path
 from trading_rl.config import TrainingConfig
 
 
@@ -55,12 +56,17 @@ class BaseTrainer(ABC):
         config: TrainingConfig,
         *,
         enable_composite_lp: bool = False,
+        checkpoint_dir: str | None = None,
+        checkpoint_prefix: str | None = None,
     ):
         self.actor = actor
         self.value_net = value_net
         self.env = env
         self.config = config
         self.callback = None
+        self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_prefix = checkpoint_prefix
+        self._last_checkpoint_step = 0
 
         # Replay buffer and data collector shared by both algorithms
         self.replay_buffer = ReplayBuffer(storage=LazyTensorStorage(config.buffer_size))
@@ -78,6 +84,23 @@ class BaseTrainer(ABC):
 
         if enable_composite_lp:
             set_composite_lp_aggregate(True).set()
+
+    def _maybe_save_checkpoint(self) -> None:
+        interval = getattr(self.config, "checkpoint_interval", 0)
+        if interval <= 0:
+            return
+        if not self.checkpoint_dir or not self.checkpoint_prefix:
+            return
+        if self.total_count - self._last_checkpoint_step < interval:
+            return
+
+        Path(self.checkpoint_dir).mkdir(parents=True, exist_ok=True)
+        path = (
+            Path(self.checkpoint_dir)
+            / f"{self.checkpoint_prefix}_checkpoint_step_{self.total_count}.pt"
+        )
+        self.save_checkpoint(str(path))
+        self._last_checkpoint_step = self.total_count
 
     @staticmethod
     @abstractmethod
@@ -322,6 +345,7 @@ class BaseTrainer(ABC):
 
             self.total_count += data.numel()
             self.total_episodes += data["next", "done"].sum()
+            self._maybe_save_checkpoint()
 
             if callback and hasattr(callback, "log_episode_stats"):
                 self._log_episode_stats(data, callback)

@@ -27,6 +27,8 @@ class DDPGTrainer(BaseTrainer):
         value_net: Any,
         env: Any,
         config: TrainingConfig,
+        checkpoint_dir: str | None = None,
+        checkpoint_prefix: str | None = None,
     ):
         """Initialize DDPG trainer.
 
@@ -42,6 +44,8 @@ class DDPGTrainer(BaseTrainer):
             env=env,
             config=config,
             enable_composite_lp=True,
+            checkpoint_dir=checkpoint_dir,
+            checkpoint_prefix=checkpoint_prefix,
         )
 
         # Initialize loss module
@@ -277,6 +281,7 @@ class DDPGTrainer(BaseTrainer):
 
             self.total_count += data.numel()
             self.total_episodes += data["next", "done"].sum()
+            self._maybe_save_checkpoint()
 
             if callback and hasattr(callback, "log_episode_stats"):
                 self._log_episode_stats(data, callback)
