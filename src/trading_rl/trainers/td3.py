@@ -565,6 +565,7 @@ class TD3Trainer(BaseTrainer):
 
         run = mlflow.active_run()
         tracking_uri = mlflow.get_tracking_uri()
+        run_name = run.data.tags.get("mlflow.runName") if run else None
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
@@ -576,6 +577,7 @@ class TD3Trainer(BaseTrainer):
             "total_episodes": self.total_episodes,
             "logs": dict(self.logs),
             "mlflow_run_id": run.info.run_id if run else None,
+            "mlflow_run_name": run_name,
             "mlflow_tracking_uri": tracking_uri,
             "mlflow_experiment_id": run.info.experiment_id if run else None,
         }
@@ -584,6 +586,10 @@ class TD3Trainer(BaseTrainer):
 
     def load_checkpoint(self, path: str) -> None:
         checkpoint = torch.load(path)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "TD3 checkpoint keys: %s", sorted(checkpoint.keys())
+            )
 
         # Restore functional params and sync modules
         if "actor_params_state" in checkpoint:
@@ -618,6 +624,15 @@ class TD3Trainer(BaseTrainer):
         self.total_episodes = checkpoint["total_episodes"]
         self.logs = defaultdict(list, checkpoint["logs"])
         self.mlflow_run_id = checkpoint.get("mlflow_run_id")
+        self.mlflow_run_name = checkpoint.get("mlflow_run_name")
         self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
         self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "Loaded TD3 checkpoint state: total_count=%s, total_episodes=%s, mlflow_run_id=%s, mlflow_run_name=%s",
+                self.total_count,
+                self.total_episodes,
+                self.mlflow_run_id,
+                self.mlflow_run_name,
+            )
         logger.info(f"TD3 checkpoint loaded from {path}")
