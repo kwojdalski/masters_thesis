@@ -191,11 +191,10 @@ class TrainingCommand(BaseCommand):
             f"[cyan]Loading checkpoint from {params.checkpoint_path}...[/cyan]"
         )
 
-        context = build_training_context(config)
+        context = build_training_context(config, create_mlflow_callback=False)
         logger = context["logger"]
         df = context["df"]
         trainer = context["trainer"]
-        mlflow_callback = context["mlflow_callback"]
         algorithm = context["algorithm"]
 
         logger.info("Resuming training from checkpoint")
@@ -209,7 +208,7 @@ class TrainingCommand(BaseCommand):
         self.console.print(
             f"[green]Checkpoint loaded! Resuming from step {original_steps}[/green]"
         )
-        mlflow_callback._episode_count = trainer.total_episodes
+        mlflow_callback = None
 
         # Update max_steps
         if params.additional_steps:
@@ -232,12 +231,28 @@ class TrainingCommand(BaseCommand):
             self.console.print(
                 f"[cyan]Continuing existing MLflow run: {active_run.info.run_id}[/cyan]"
             )
+            mlflow_callback = MLflowTrainingCallback(
+                config.experiment_name,
+                tracking_uri=getattr(
+                    getattr(config, "tracking", None), "tracking_uri", None
+                ),
+                price_series=df["close"][: config.data.train_size],
+            )
+            mlflow_callback._episode_count = trainer.total_episodes
             logs = trainer.train(callback=mlflow_callback)
         elif getattr(trainer, "mlflow_run_id", None):
             run_id = trainer.mlflow_run_id
             logger.info(f"Resuming MLflow run: {run_id}")
             self.console.print(f"[cyan]Resuming MLflow run: {run_id}[/cyan]")
             with mlflow.start_run(run_id=run_id):
+                mlflow_callback = MLflowTrainingCallback(
+                    config.experiment_name,
+                    tracking_uri=getattr(
+                        getattr(config, "tracking", None), "tracking_uri", None
+                    ),
+                    price_series=df["close"][: config.data.train_size],
+                )
+                mlflow_callback._episode_count = trainer.total_episodes
                 logs = trainer.train(callback=mlflow_callback)
         else:
             # Create new run for resumed training
@@ -245,6 +260,14 @@ class TrainingCommand(BaseCommand):
                 f"Creating new MLflow run for resumed training from step {original_steps}"
             )
             with mlflow.start_run(run_name=f"resumed_step_{original_steps}"):
+                mlflow_callback = MLflowTrainingCallback(
+                    config.experiment_name,
+                    tracking_uri=getattr(
+                        getattr(config, "tracking", None), "tracking_uri", None
+                    ),
+                    price_series=df["close"][: config.data.train_size],
+                )
+                mlflow_callback._episode_count = trainer.total_episodes
                 logs = trainer.train(callback=mlflow_callback)
 
         # Save new checkpoint

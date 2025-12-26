@@ -172,6 +172,7 @@ def build_training_context(
     config: ExperimentConfig,
     experiment_name: str | None = None,
     progress_bar=None,
+    create_mlflow_callback: bool = True,
 ) -> dict:
     """Build common training context used by fresh and resumed runs."""
     effective_experiment_name = experiment_name or config.experiment_name
@@ -277,15 +278,17 @@ def build_training_context(
             checkpoint_prefix=config.experiment_name,
         )
 
-    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
-    estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
-    mlflow_callback = MLflowTrainingCallback(
-        effective_experiment_name,
-        tracking_uri=tracking_uri,
-        progress_bar=progress_bar,
-        total_episodes=estimated_episodes if progress_bar else None,
-        price_series=df["close"][: config.data.train_size],
-    )
+    mlflow_callback = None
+    if create_mlflow_callback:
+        tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
+        estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
+        mlflow_callback = MLflowTrainingCallback(
+            effective_experiment_name,
+            tracking_uri=tracking_uri,
+            progress_bar=progress_bar,
+            total_episodes=estimated_episodes if progress_bar else None,
+            price_series=df["close"][: config.data.train_size],
+        )
 
     return {
         "logger": logger,
