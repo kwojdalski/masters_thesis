@@ -17,11 +17,6 @@ class TrainingParams:
     config_file: Path | None = None
     config_overrides: list[str] | None = None
     seed: int | None = None
-    max_steps: int | None = None
-    init_rand_steps: int | None = None
-    actor_lr: float | None = None
-    value_lr: float | None = None
-    buffer_size: int | None = None
     save_buffer: bool | None = None  # Save replay buffer in checkpoint
     save_plots: bool | None = None  # Save training plots to disk
     log_dir: Path | None = None
@@ -97,16 +92,6 @@ class TrainingCommand(BaseCommand):
         """Apply CLI parameter overrides to config."""
         if params.experiment_name:
             config.experiment_name = params.experiment_name
-        if params.max_steps is not None:
-            config.training.max_steps = params.max_steps
-        if params.init_rand_steps is not None:
-            config.training.init_rand_steps = params.init_rand_steps
-        if params.actor_lr is not None:
-            config.training.actor_lr = params.actor_lr
-        if params.value_lr is not None:
-            config.training.value_lr = params.value_lr
-        if params.buffer_size is not None:
-            config.training.buffer_size = params.buffer_size
         if params.save_buffer is not None:
             config.training.save_buffer = params.save_buffer
         if params.save_plots is not None:
