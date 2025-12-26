@@ -7,6 +7,7 @@ This module provides the main logging setup and configuration utilities.
 import json
 import logging
 import os
+import re
 import sys
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
@@ -112,6 +113,7 @@ def setup_logging(
     max_file_size: int = 10 * 1024 * 1024,  # 10MB
     backup_count: int = 5,
     format_string: str | None = None,
+    log_regex: str | None = None,
 ) -> logging.Logger:
     """
     Set up comprehensive logging configuration for the project.
@@ -144,6 +146,27 @@ def setup_logging(
     root_logger.handlers.clear()
     root_logger.setLevel(numeric_level)
 
+    if log_regex is None:
+        log_regex = os.environ.get("LOG_REGEX")
+
+    class _RegexFilter(logging.Filter):
+        def __init__(self, pattern: str):
+            super().__init__()
+            self._pattern = re.compile(pattern)
+
+        def filter(self, record: logging.LogRecord) -> bool:
+            return bool(self._pattern.search(record.getMessage()))
+
+    regex_filter = None
+    if log_regex:
+        try:
+            regex_filter = _RegexFilter(log_regex)
+        except re.error:
+            print(
+                f"Invalid LOG_REGEX pattern ignored: {log_regex}",
+                file=sys.stderr,
+            )
+
     # Console handler
     if console_output:
         console_handler = logging.StreamHandler(sys.stdout)
@@ -157,6 +180,8 @@ def setup_logging(
             console_formatter = logging.Formatter(format_string)
 
         console_handler.setFormatter(console_formatter)
+        if regex_filter is not None:
+            console_handler.addFilter(regex_filter)
         root_logger.addHandler(console_handler)
 
     # File handler with rotation
@@ -213,6 +238,7 @@ def configure_logging(
     log_dir: str | None = None,
     structured_logging: bool = False,
     include_console: bool = True,
+    log_regex: str | None = None,
 ) -> logging.Logger:
     """
     Configure logging for project components.
@@ -254,6 +280,7 @@ def configure_logging(
         colored_output=not structured_logging,
         structured_logging=structured_logging,
         format_string=format_string,
+        log_regex=log_regex,
     )
 
 

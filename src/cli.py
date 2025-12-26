@@ -41,7 +41,7 @@ app = typer.Typer(
 )
 
 
-def _configure_logging(verbose: bool) -> None:
+def _configure_logging(verbose: bool, log_regex: str | None) -> None:
     """Configure logging based on CLI context."""
     env_level = os.environ.get("LOG_LEVEL", "").upper()
     if env_level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
@@ -52,7 +52,16 @@ def _configure_logging(verbose: bool) -> None:
         level = env_level
     else:
         level = "INFO"
-    configure_logging(component="cli", level=level, simplified=not verbose)
+    if log_regex:
+        os.environ["LOG_REGEX"] = log_regex
+    else:
+        os.environ.pop("LOG_REGEX", None)
+    configure_logging(
+        component="cli",
+        level=level,
+        simplified=not verbose,
+        log_regex=log_regex,
+    )
     os.environ["LOG_LEVEL"] = level
 
 
@@ -62,9 +71,14 @@ def main(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose logging"
     ),
+    log_regex: str | None = typer.Option(
+        None,
+        "--log-regex",
+        help="Only show log lines that match this regex",
+    ),
 ):
     """Global CLI options."""
-    _configure_logging(verbose)
+    _configure_logging(verbose, log_regex)
 
 
 console = Console()
