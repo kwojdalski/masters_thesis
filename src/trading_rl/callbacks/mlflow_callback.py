@@ -704,7 +704,15 @@ class MLflowTrainingCallback:
 
         try:
 
-            def _save_plot_as_artifact(plot_obj, filename, key, artifact_dir, logger):
+            def _save_plot_as_artifact(
+                plot_obj,
+                filename,
+                key,
+                artifact_dir,
+                logger,
+                width: float = 8,
+                height: float = 5,
+            ):
                 """Helper to save plot to temp file and log as MLflow artifact."""
                 tmp_path = os.path.join(batch_temp_dir, filename)
                 try:
@@ -712,7 +720,7 @@ class MLflowTrainingCallback:
                         warnings.simplefilter("ignore", PlotnineWarning)
                         # Handle plotnine plots ("save") and matplotlib figures ("savefig")
                         if hasattr(plot_obj, "save"):
-                            plot_obj.save(tmp_path, width=8, height=5, dpi=150)
+                            plot_obj.save(tmp_path, width=width, height=height, dpi=150)
                         elif hasattr(plot_obj, "savefig"):
                             plot_obj.savefig(tmp_path, dpi=150)
                         else:
@@ -804,6 +812,8 @@ class MLflowTrainingCallback:
                         None,
                         "training_plots",
                         logger,
+                        width=10.4,
+                        height=6.5,
                     )
 
             # Combine existing evaluation plots using plotnine patchwork when available
