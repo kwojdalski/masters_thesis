@@ -383,6 +383,11 @@ def train(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose logging"
     ),
+    log_regex: str | None = typer.Option(
+        None,
+        "--log-regex",
+        help="Only show log lines that match this regex",
+    ),
 ):
     """Train a single trading agent.
 
@@ -392,8 +397,8 @@ def train(
         python src/cli.py train --from-checkpoint logs/td3_tradingenv_btc/td3_tradingenv_btc_checkpoint.pt --additional-steps 50000
     """
 
-    if verbose:
-        _configure_logging(True)
+    if verbose or log_regex:
+        _configure_logging(verbose, log_regex)
 
     params = TrainingParams(
         experiment_name=experiment_name,
