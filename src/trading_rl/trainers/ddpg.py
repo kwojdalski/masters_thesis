@@ -254,6 +254,17 @@ class DDPGTrainer(BaseTrainer):
             "mlflow_experiment_id": run.info.experiment_id if run else None,
             "mlflow_experiment_name": experiment_name,
         }
+
+        # Optionally save replay buffer (can be very large)
+        if getattr(self.config, "save_buffer", False):
+            logger.info("Saving replay buffer to checkpoint (this may take a while)...")
+            checkpoint["replay_buffer"] = self.replay_buffer._storage._storage
+            checkpoint["buffer_metadata"] = {
+                "buffer_size": len(self.replay_buffer),
+                "max_size": self.replay_buffer._storage.max_size,
+            }
+            logger.info(f"Replay buffer saved: {len(self.replay_buffer)} experiences")
+
         torch.save(checkpoint, path)
         logger.info(f"\033[95mDDPG checkpoint saved to {path}\033[0m")
 
@@ -276,6 +287,17 @@ class DDPGTrainer(BaseTrainer):
         self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
         self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
         self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
+
+        # Optionally restore replay buffer if it was saved
+        if "replay_buffer" in checkpoint:
+            logger.info("Restoring replay buffer from checkpoint...")
+            self.replay_buffer._storage._storage = checkpoint["replay_buffer"]
+            buffer_metadata = checkpoint.get("buffer_metadata", {})
+            buffer_size = buffer_metadata.get("buffer_size", len(self.replay_buffer))
+            logger.info(f"Replay buffer restored: {buffer_size} experiences")
+        else:
+            logger.info("No replay buffer in checkpoint - starting with empty buffer")
+
         logger.info(f"\033[95mDDPG checkpoint loaded from {path}\033[0m")
 
     def train(self, callback=None) -> dict[str, list]:
