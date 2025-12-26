@@ -228,7 +228,7 @@ class PPOTrainer(BaseTrainer):
             "mlflow_experiment_name": experiment_name,
         }
         torch.save(checkpoint, path)
-        logger.info(f"PPO checkpoint saved to {path}")
+        logger.info(f"\033[95mPPO checkpoint saved to {path}\033[0m")
 
     def load_checkpoint(self, path: str) -> None:
         """Load PPO training checkpoint.
@@ -248,7 +248,7 @@ class PPOTrainer(BaseTrainer):
         self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
         self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
         self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
-        logger.info(f"PPO checkpoint loaded from {path}")
+        logger.info(f"\033[95mPPO checkpoint loaded from {path}\033[0m")
 
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):
