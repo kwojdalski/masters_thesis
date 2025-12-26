@@ -309,6 +309,11 @@ def train(
         "--from-last-checkpoint",
         help="Resume from the most recent checkpoint for the experiment",
     ),
+    mlflow_run_id: str | None = typer.Option(
+        None,
+        "--mlflow-run-id",
+        help="Resume training into an existing MLflow run ID",
+    ),
     additional_steps: int | None = typer.Option(
         None,
         "--additional-steps",
@@ -342,6 +347,7 @@ def train(
         log_dir=log_dir,
         from_checkpoint=from_checkpoint,
         from_last_checkpoint=from_last_checkpoint,
+        mlflow_run_id=mlflow_run_id,
         additional_steps=additional_steps,
     )
 
