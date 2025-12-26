@@ -343,21 +343,6 @@ def train(
         "-s",
         help="Set specific seed for reproducibility (default: random)",
     ),
-    max_steps: int | None = typer.Option(
-        None, "--max-steps", help="Maximum training steps"
-    ),
-    init_rand_steps: int | None = typer.Option(
-        None, "--init-rand-steps", help="Initial random exploration steps"
-    ),
-    actor_lr: float | None = typer.Option(
-        None, "--actor-lr", help="Actor learning rate"
-    ),
-    value_lr: float | None = typer.Option(
-        None, "--value-lr", help="Value network learning rate"
-    ),
-    buffer_size: int | None = typer.Option(
-        None, "--buffer-size", help="Replay buffer size"
-    ),
     save_buffer: bool | None = typer.Option(
         None, "--save-buffer", help="Save replay buffer in checkpoint (increases file size)"
     ),
@@ -410,11 +395,6 @@ def train(
         config_file=config_file,
         config_overrides=config_override,
         seed=seed,
-        max_steps=max_steps,
-        init_rand_steps=init_rand_steps,
-        actor_lr=actor_lr,
-        value_lr=value_lr,
-        buffer_size=buffer_size,
         save_buffer=save_buffer,
         save_plots=save_plots,
         log_dir=log_dir,
