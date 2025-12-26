@@ -217,9 +217,16 @@ class TrainingCommand(BaseCommand):
             price_series=df["close"][: config.data.train_size],
         )
 
-        # Continue training
-        with mlflow.start_run(run_name=f"resumed_step_{original_steps}"):
+        # Continue training - use existing run if active, otherwise create new run
+        active_run = mlflow.active_run()
+        if active_run:
+            # Continue with existing run
+            self.console.print(f"[cyan]Continuing existing MLflow run: {active_run.info.run_id}[/cyan]")
             logs = trainer.train(callback=mlflow_callback)
+        else:
+            # Create new run for resumed training
+            with mlflow.start_run(run_name=f"resumed_step_{original_steps}"):
+                logs = trainer.train(callback=mlflow_callback)
 
         # Save new checkpoint
         checkpoint_path = (
