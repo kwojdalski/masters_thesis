@@ -174,7 +174,10 @@ class DDPGTrainer(BaseTrainer):
                 and self.callback
                 and hasattr(self.callback, "log_training_step")
             ):
-                current_step = batch_idx * self.config.optim_steps_per_batch + j
+                offset = getattr(self, "_log_step_offset", 0)
+                current_step = offset + (
+                    batch_idx * self.config.optim_steps_per_batch + j
+                )
                 self.callback.log_training_step(current_step, actor_loss, value_loss)
 
             # Periodic logging and evaluation
@@ -335,6 +338,10 @@ class DDPGTrainer(BaseTrainer):
         logger.info("Starting DDPG training")
         t0 = time.time()
         self.callback = callback
+        self._log_step_offset = max(
+            len(self.logs.get("loss_actor", [])),
+            len(self.logs.get("loss_value", [])),
+        )
 
         for i, data in enumerate(self.collector):
             self.replay_buffer.extend(data)

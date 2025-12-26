@@ -138,7 +138,8 @@ class PPOTrainer(BaseTrainer):
                 and self.callback
                 and hasattr(self.callback, "log_training_step")
             ):
-                current_step = batch_idx * ppo_epochs + j
+                offset = getattr(self, "_log_step_offset", 0)
+                current_step = offset + (batch_idx * ppo_epochs + j)
                 self.callback.log_training_step(current_step, actor_loss, value_loss)
 
             # Periodic logging and evaluation
