@@ -669,6 +669,18 @@ def artifacts(
     prefix: str | None = typer.Option(
         None, "--prefix", help="Only list artifacts under this path prefix"
     ),
+    delete: str | None = typer.Option(
+        None, "--delete", help="Delete artifacts matching regex"
+    ),
+    delete_all: bool = typer.Option(
+        False, "--delete-all", help="Delete all artifacts for selected runs"
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Delete without confirmation"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be deleted"
+    ),
     max_runs: int = typer.Option(
         50, "--max-runs", help="Maximum runs to show per experiment"
     ),
@@ -703,6 +715,28 @@ def artifacts(
         experiment_obj = client.get_experiment(run.info.experiment_id)
         exp_name = experiment_obj.name if experiment_obj else run.info.experiment_id
         artifacts_list = _list_run_artifacts(client, run_id, prefix)
+        if delete_all or delete:
+            pattern = re.compile(delete) if delete else None
+            targets = [
+                entry
+                for entry in artifacts_list
+                if delete_all or (pattern and pattern.search(entry.path))
+            ]
+            if not targets:
+                console.print("[yellow]No artifacts matched for deletion.[/yellow]")
+                raise typer.Exit(0)
+            if dry_run:
+                console.print("[yellow]Dry run: artifacts to delete[/yellow]")
+                for entry in targets:
+                    console.print(f"  {run_id}:{entry.path}")
+                raise typer.Exit(0)
+            if not _confirm_delete([f"{run_id}:{e.path}" for e in targets], force):
+                console.print("[yellow]Deletion cancelled.[/yellow]")
+                raise typer.Exit(0)
+            for entry in targets:
+                client.delete_artifacts(run_id, entry.path)
+            console.print(f"[green]Deleted {len(targets)} artifacts.[/green]")
+            return
         _print_run_artifacts(exp_name, run, artifacts_list)
         return
 
@@ -717,6 +751,7 @@ def artifacts(
         console.print("[yellow]No experiments matched.[/yellow]")
         raise typer.Exit(0)
 
+    delete_any = delete_all or delete
     for exp in sorted(targets, key=lambda e: e.name):
         runs = mlflow.search_runs(
             experiment_ids=[exp.experiment_id],
@@ -726,10 +761,36 @@ def artifacts(
         if runs.empty:
             console.print(f"[yellow]No runs for experiment {exp.name}.[/yellow]")
             continue
+        delete_targets = []
         for _, row in runs.iterrows():
             run = client.get_run(row["run_id"])
             artifacts_list = _list_run_artifacts(client, run.info.run_id, prefix)
-            _print_run_artifacts(exp.name, run, artifacts_list)
+            if delete_any:
+                pattern = re.compile(delete) if delete else None
+                delete_targets.extend(
+                    (run.info.run_id, entry)
+                    for entry in artifacts_list
+                    if delete_all or (pattern and pattern.search(entry.path))
+                )
+            else:
+                _print_run_artifacts(exp.name, run, artifacts_list)
+        if delete_any:
+            if not delete_targets:
+                console.print("[yellow]No artifacts matched for deletion.[/yellow]")
+                raise typer.Exit(0)
+            if dry_run:
+                console.print("[yellow]Dry run: artifacts to delete[/yellow]")
+                for run_id_val, entry in delete_targets:
+                    console.print(f"  {run_id_val}:{entry.path}")
+                raise typer.Exit(0)
+            if not _confirm_delete(
+                [f"{rid}:{e.path}" for rid, e in delete_targets], force
+            ):
+                console.print("[yellow]Deletion cancelled.[/yellow]")
+                raise typer.Exit(0)
+            for run_id_val, entry in delete_targets:
+                client.delete_artifacts(run_id_val, entry.path)
+            console.print(f"[green]Deleted {len(delete_targets)} artifacts.[/green]")
 
 
 if __name__ == "__main__":
