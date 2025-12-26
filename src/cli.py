@@ -331,6 +331,12 @@ def train(
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to custom config file"
     ),
+    config_override: list[str] | None = typer.Option(
+        None,
+        "--config-override",
+        "-o",
+        help="OmegaConf override in dotlist format (repeatable)",
+    ),
     seed: int | None = typer.Option(
         None,
         "--seed",
@@ -402,6 +408,7 @@ def train(
     params = TrainingParams(
         experiment_name=experiment_name,
         config_file=config_file,
+        config_overrides=config_override,
         seed=seed,
         max_steps=max_steps,
         init_rand_steps=init_rand_steps,

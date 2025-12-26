@@ -15,6 +15,7 @@ class TrainingParams:
 
     experiment_name: str | None = None
     config_file: Path | None = None
+    config_overrides: list[str] | None = None
     seed: int | None = None
     max_steps: int | None = None
     init_rand_steps: int | None = None
@@ -77,7 +78,9 @@ class TrainingCommand(BaseCommand):
 
         # Load base configuration
         if params.config_file:
-            config = ExperimentConfig.from_yaml(params.config_file)
+            config = ExperimentConfig.from_yaml(
+                params.config_file, overrides=params.config_overrides
+            )
             self.console.print(f"[blue]Loaded config from: {params.config_file}[/blue]")
         else:
             config = ExperimentConfig()
