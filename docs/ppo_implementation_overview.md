@@ -1,4 +1,11 @@
-# PPO Training Flow
+# PPO Implementation Overview
+
+## Summary
+- On-policy actor-critic with clipped surrogate objective.
+- Supports discrete and continuous action spaces via separate trainers.
+- Training uses collector batches, mini-batch updates, and periodic evaluation/logging.
+
+## Flow
 
 ```mermaid
 sequenceDiagram
@@ -62,32 +69,24 @@ sequenceDiagram
 
 ```
 
-**Key components**
+## Components
+- **CLI + configs**: `ExperimentCommand` loads YAML configs and optionally triggers data generation.
+- **Trainer selection**: `PPOTrainer` for discrete envs, `PPOTrainerContinuous` for continuous envs.
+- **Loss**: `ClipPPOLoss` with shared Adam optimizer for actor/critic.
+- **Collector/buffer**: `SyncDataCollector` + replay buffer for minibatch sampling.
 
-- **CLI (Typer)** with command classes: `ExperimentCommand` handles `--scenario` and `--generate-data` flags.
-- **ExperimentCommand** loads scenario configs from standardized YAML files and coordinates data generation.
-- **DataGeneratorCommand** creates synthetic data patterns (sine_wave, mean_reversion, etc.) with consistent naming.
-- **run_multiple_experiments** fans out trial configs, seeds, and MLflow runs with scenario-based configuration.
-- **run_single_experiment** automatically selects the appropriate trainer:
-    - `PPOTrainer` for discrete environments (e.g., `gym_trading_env.discrete`).
-    - `PPOTrainerContinuous` for continuous environments (e.g., `tradingenv`, `gym_trading_env.continuous`).
-- **PPOTrainer.train** loops over batches from the collector, fills the replay buffer, samples mini-batches, computes the clipped PPO loss, and applies the shared Adam optimiser.
-- **Evaluation** happens both periodically (during training) and once at the end via `evaluate_agent`, producing reward/action plots plus a PPO-only action-probability plot over the full requested horizon; MLflow also saves a combined evaluation figure when all three plots are present.
-- **MLflow** captures every metric, config parameter, checkpoint, and generated plot with experiment names matching config files.
+## Training Loop
+- Collect batch → extend replay buffer → sample minibatches.
+- Compute clipped PPO loss (objective + critic + entropy).
+- Backprop and step optimizer; log per-step metrics.
+- Periodic buffer stats and evaluation rollouts.
 
-## Continuous Action Support
+## Evaluation and Tracking
+- Periodic eval during training plus final eval at the end.
+- Reward/action plots, plus PPO-only action-probability plot.
+- MLflow logs metrics, params, artifacts, and checkpoints.
 
-The system supports continuous action spaces (e.g., for portfolio optimization) through `PPOTrainerContinuous`.
-
-### Architecture
-- **Actor:** Uses `TanhNormal` distribution to output bounded continuous actions (e.g., portfolio weights in `[-1, 1]`).
-- **Network:** The actor network outputs `loc` (mean) and `scale` (std) parameters for the distribution.
-- **Trainer:** `PPOTrainerContinuous` inherits from `PPOTrainer` but overrides model creation and visualization logic.
-
-### Visualization
-- **Discrete PPO:** Visualizes action probabilities (Short/Hold/Long) over time as stacked areas.
-- **Continuous PPO:** Visualizes the **Action Mean ± Std** over time as a line plot with a shaded ribbon, showing the policy's deterministic tendency and uncertainty.
-
-### Evaluation Logic
-- The evaluation process automatically handles different distribution types.
-- For `TanhNormal` (which lacks an analytical mode), the system gracefully falls back to `InteractionType.DETERMINISTIC` (returning the `tanh(loc)` value) during deterministic rollouts.
+## Continuous Action Notes
+- **Actor** uses `TanhNormal` to keep actions in bounds (e.g., `[-1, 1]`).
+- **Visualization**: discrete uses stacked action probabilities; continuous uses mean ± std ribbon.
+- **Deterministic eval** falls back to `tanh(loc)` for `TanhNormal`.

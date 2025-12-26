@@ -1,6 +1,6 @@
 # The Big Picture of Reinforcement Learning (Enhanced Proposal)
 
-Based on the [Reddit discussion](https://www.reddit.com/r/reinforcementlearning/comments/1prttxz/let_me_know_whether_my_bigpicture_understanding/), this document maps the landscape of Reinforcement Learning (RL) by starting with the theoretical ideal and introducing algorithms as solutions to specific practical constraints ("relaxations").
+This document maps the landscape of Reinforcement Learning (RL) by starting with the theoretical ideal and introducing algorithms as solutions to specific practical constraints ("relaxations").
 
 ## 1. The Theoretical Foundation (The "Ideal")
 At its core, RL models problems as **Markov Decision Processes (MDPs)**.

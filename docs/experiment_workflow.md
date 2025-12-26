@@ -48,8 +48,8 @@ flowchart TD
     BB --> CC{Evaluation Interval?}
     CC -->|Yes| DD[Evaluate Agent]
     DD --> EE[Log Episode Metrics]
-    EE --> X
-    CC -->|No| X
+EE --> X
+CC -->|No| X
     
     X -->|No| FF[Final Evaluation]
     FF --> GG[Generate Plots]
@@ -64,12 +64,12 @@ flowchart TD
     LL -->|No| NN[End]
     MM --> NN
     
-    style A fill:#e1f5fe
-    style B fill:#f3e5f5
-    style W fill:#fff3e0
-    style FF fill:#e8f5e8
-    style NN fill:#ffebee
-    style H fill:#ffe0b2
+    style A fill:#e1f5fe,color:black
+    style B fill:#f3e5f5,color:black
+    style W fill:#fff3e0,color:black
+    style FF fill:#e8f5e8,color:black
+    style NN fill:#ffebee,color:black
+    style H fill:#ffe0b2,color:black
 ```
 
 ## Component Details
@@ -256,3 +256,6 @@ The system includes comprehensive error handling for: - **Data Loading**: Missin
 -   **High Position Changes**: Often indicates scale/normalization issues
 -   **Flat Learning**: May need different learning rates or architecture
 -   **Evaluation Errors**: Usually related to data preprocessing mismatches
+-   **Overfitting**: Agent performs well on training data but fails on validation, often due to lack of regularization or too many parameters
+-   **Reward Instability**: Large fluctuations in reward per episode, suggesting the reward function might be too sparse or noisy
+-   **NaN Gradients**: Exploding gradients caused by unscaled inputs or too high learning rates; check data normalization
