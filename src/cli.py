@@ -781,6 +781,25 @@ def _delete_artifacts_file_store(
             path.rmdir()
 
 
+def _delete_artifact_path(
+    client, run_id: str, artifact_path: str, artifact_uri: str | None = None
+) -> None:
+    import mlflow
+
+    if hasattr(client, "delete_artifacts"):
+        client.delete_artifacts(run_id, artifact_path)
+        return
+    if hasattr(mlflow, "artifacts") and hasattr(mlflow.artifacts, "delete_artifacts"):
+        mlflow.artifacts.delete_artifacts(run_id, artifact_path)
+        return
+    if artifact_uri:
+        _delete_artifacts_file_store(artifact_uri, [{"path": artifact_path}])
+        return
+    console.print(
+        f"[yellow]Skipping delete for {run_id}:{artifact_path} (unsupported backend).[/yellow]"
+    )
+
+
 @app.command(name="artifacts")
 def artifacts(
     tracking_uri: str | None = typer.Option(
@@ -859,7 +878,12 @@ def artifacts(
                 console.print("[yellow]Deletion cancelled.[/yellow]")
                 raise typer.Exit(0)
             for entry in targets:
-                client.delete_artifacts(run_id, entry.path)
+                _delete_artifact_path(
+                    client,
+                    run_id,
+                    entry.path,
+                    getattr(run.info, "artifact_uri", None),
+                )
             console.print(f"[green]Deleted {len(targets)} artifacts.[/green]")
             return
         _print_run_artifacts(exp_name, run, artifacts_list)
@@ -964,9 +988,13 @@ def artifacts(
                 raise typer.Exit(0)
             for run_id_val, artifact_uri, entry in delete_targets:
                 if isinstance(entry, dict):
-                    _delete_artifacts_file_store(artifact_uri, [entry])
+                    _delete_artifact_path(
+                        client, run_id_val, entry["path"], artifact_uri
+                    )
                 else:
-                    client.delete_artifacts(run_id_val, entry.path)
+                    _delete_artifact_path(
+                        client, run_id_val, entry.path, artifact_uri
+                    )
             console.print(f"[green]Deleted {len(delete_targets)} artifacts.[/green]")
 
 
