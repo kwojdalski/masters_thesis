@@ -343,13 +343,6 @@ def train(
         "-s",
         help="Set specific seed for reproducibility (default: random)",
     ),
-    save_buffer: bool | None = typer.Option(
-        None, "--save-buffer", help="Save replay buffer in checkpoint (increases file size)"
-    ),
-    save_plots: bool | None = typer.Option(
-        None, "--save-plots", help="Save training plots to disk"
-    ),
-    log_dir: Path | None = typer.Option(None, "--log-dir", help="Logging directory"),  # noqa: B008
     from_checkpoint: Path | None = typer.Option(  # noqa: B008
         None,
         "--from-checkpoint",
@@ -395,9 +388,6 @@ def train(
         config_file=config_file,
         config_overrides=config_override,
         seed=seed,
-        save_buffer=save_buffer,
-        save_plots=save_plots,
-        log_dir=log_dir,
         from_checkpoint=from_checkpoint,
         from_last_checkpoint=from_last_checkpoint,
         mlflow_run_id=mlflow_run_id,

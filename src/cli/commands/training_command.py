@@ -17,9 +17,6 @@ class TrainingParams:
     config_file: Path | None = None
     config_overrides: list[str] | None = None
     seed: int | None = None
-    save_buffer: bool | None = None  # Save replay buffer in checkpoint
-    save_plots: bool | None = None  # Save training plots to disk
-    log_dir: Path | None = None
     checkpoint_path: Path | None = None  # Path to checkpoint to resume from
     additional_steps: int | None = None  # Additional steps when resuming
     from_checkpoint: Path | None = None  # Path to checkpoint alias
@@ -92,12 +89,6 @@ class TrainingCommand(BaseCommand):
         """Apply CLI parameter overrides to config."""
         if params.experiment_name:
             config.experiment_name = params.experiment_name
-        if params.save_buffer is not None:
-            config.training.save_buffer = params.save_buffer
-        if params.save_plots is not None:
-            config.logging.save_plots = params.save_plots
-        if params.log_dir is not None:
-            config.logging.log_dir = str(params.log_dir)
 
     def _display_config(self, config, params: TrainingParams) -> None:
         """Display training configuration."""
@@ -120,7 +111,7 @@ class TrainingCommand(BaseCommand):
         if not params.from_last_checkpoint:
             return
 
-        log_dir = Path(params.log_dir or config.logging.log_dir)
+        log_dir = Path(config.logging.log_dir)
         pattern = f"{config.experiment_name}_checkpoint*.pt"
         matches = list(log_dir.rglob(pattern))
         if not matches:
