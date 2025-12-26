@@ -263,6 +263,8 @@ def build_training_context(
             qvalue_net=qvalue_net,
             env=env,
             config=config.training,
+            checkpoint_dir=config.logging.log_dir,
+            checkpoint_prefix=config.experiment_name,
         )
     else:
         actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
@@ -271,6 +273,8 @@ def build_training_context(
             value_net=value_net,
             env=env,
             config=config.training,
+            checkpoint_dir=config.logging.log_dir,
+            checkpoint_prefix=config.experiment_name,
         )
 
     tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)

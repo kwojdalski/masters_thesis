@@ -47,6 +47,8 @@ class TD3Trainer(BaseTrainer):
         qvalue_net: Any,
         env: Any,
         config: TrainingConfig,
+        checkpoint_dir: str | None = None,
+        checkpoint_prefix: str | None = None,
     ):
         super().__init__(
             actor=actor,
@@ -54,6 +56,8 @@ class TD3Trainer(BaseTrainer):
             env=env,
             config=config,
             enable_composite_lp=True,
+            checkpoint_dir=checkpoint_dir,
+            checkpoint_prefix=checkpoint_prefix,
         )
 
         # Continuous action spec in [-1, 1] to match the deterministic actor
@@ -455,6 +459,7 @@ class TD3Trainer(BaseTrainer):
 
             self.total_count += data.numel()
             self.total_episodes += data["next", "done"].sum()
+            self._maybe_save_checkpoint()
 
             if callback and hasattr(callback, "log_episode_stats"):
                 self._log_episode_stats(data, callback)

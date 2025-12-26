@@ -45,6 +45,8 @@ class PPOTrainer(BaseTrainer):
         value_net: Any,
         env: Any,
         config: TrainingConfig,
+        checkpoint_dir: str | None = None,
+        checkpoint_prefix: str | None = None,
     ):
         """Initialize PPO trainer.
 
@@ -60,6 +62,8 @@ class PPOTrainer(BaseTrainer):
             env=env,
             config=config,
             enable_composite_lp=False,
+            checkpoint_dir=checkpoint_dir,
+            checkpoint_prefix=checkpoint_prefix,
         )
 
         # Initialize PPO loss module
