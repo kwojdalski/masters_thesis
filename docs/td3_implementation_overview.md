@@ -82,10 +82,6 @@ flowchart TD
 - Target policy smoothing via `policy_noise` and `noise_clip`.
 - Soft-update target params with `tau`.
 
-## Evaluation and Tracking
-- Periodic deterministic evaluation rollouts plus final eval.
-- Reward/action plots logged to MLflow; checkpoints stored in `logs/`.
-
 ## Suggested Hyperparameters
 - `policy_noise`: 0.2 (relative to action scale)
 - `noise_clip`: 0.5

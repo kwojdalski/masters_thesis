@@ -8,65 +8,66 @@
 ## Flow
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant CLI as CLI (Typer)
-    participant ExCmd as ExperimentCommand
-    participant DataCmd as DataGeneratorCommand
-    participant RME as RunMultipleExperiments
-    participant RSE as RunSingleExperiment
-    participant PPO as PPOTrainer / PPOTrainerContinuous
-    participant Col as SyncDataCollector
-    participant Buf as ReplayBuffer
-    participant Loss as ClipPPOLoss
-    participant Opt as AdamOptimizer
-    participant Eval as Evaluator
-    participant MLf as MLflow
-
-    CLI->>ExCmd: experiment(--scenario, --generate-data)
-    ExCmd->>ExCmd: load scenario config from src/configs/
-    
-    alt --generate-data
-        ExCmd->>DataCmd: generate synthetic data
-        DataCmd-->>ExCmd: data saved to standardized path
-    end
-    
-    ExCmd->>RME: run_multiple_experiments(config)
-    RME->>RSE: run_single_experiment(trial_config)
-    RSE->>RSE: Select Trainer (Discrete vs Continuous)
-    RSE->>Col: create_actor_critic + SyncDataCollector
-    RSE->>PPO: trainer.train(callback)
-
-    loop each batch frames_per_batch
-        Col->>PPO: yield data TensorDict
-        PPO->>Buf: replay_buffer.extend(data)
-        Buf->>PPO: sample(batch_size)
-        PPO->>Loss: compute ClipPPOLoss
-        Loss-->>PPO: loss_objective + loss_critic + loss_entropy
-
-        PPO->>Opt: backward_pass
-        PPO->>Opt: optimization_step
-        Opt-->>PPO: update actor and critic weights
-        PPO->>MLf: callback.log_training_step()
-
-        alt log_interval
-            PPO->>Buf: gather buffer stats
-            PPO->>MLf: log buffer metrics
-        end
-
-        alt eval_interval
-            PPO->>Eval: env.rollout(eval_steps)
-            Eval-->>PPO: rewards actions stats
-            PPO->>MLf: log eval metrics
-        end
+flowchart TD
+    subgraph CLI_Commands
+        A[python src/cli.py experiment]
+        A1[ExperimentCommand.execute]
+        A2[--scenario or --config]
+        A3[--generate-data flag]
     end
 
-    PPO-->>RSE: logs and checkpoint saved
-    RSE->>Eval: evaluate_agent deterministic rollout
-    Eval-->>RSE: reward action plots final reward
-    RSE->>MLf: log final metrics and artifacts
-    RME->>MLf: comparison plots across trials
+    subgraph Scenario_Loading
+        B["ScenarioConfig<br/>sine_wave / mean_reversion / etc."]
+        B1[Load from src/configs/*.yaml]
+        B2[Standardized naming:<br/>yaml_name.parquet]
+    end
 
+    subgraph Data_Generation
+        C["DataGeneratorCommand<br/>if --generate-data"]
+        C1[Generate synthetic patterns]
+        C2[Save to data/raw/synthetic/]
+    end
+
+    subgraph DataPrep
+        D[prepare_data<br/>load_trading_data<br/>create_features]
+        D1[Load from standardized paths]
+        D2["Feature engineering if enabled"]
+    end
+
+    subgraph EnvSetup
+        E["create_environment<br/>Gym TradingEnv -> GymWrapper -> TransformedEnv StepCounter"]
+        E1[Environment name from config.env.name]
+    end
+
+    subgraph Models
+        F["create_ppo_actor or create_continuous_ppo_actor"]
+        G["create_value_network<br/>ValueOperator over MLP"]
+        F1[Architecture from config.network]
+    end
+
+    subgraph Trainer
+        H["PPOTrainer.__init__<br/>ClipPPOLoss<br/>ReplayBuffer LazyTensorStorage<br/>SyncDataCollector"]
+        I[PPOTrainer.train<br/>for each collector batch]
+        J[ReplayBuffer.extend]
+        K[ReplayBuffer.sample]
+        L["ClipPPOLoss sample"]
+        M["optimizer.step (actor + critic)"]
+        N[callback.log_training_step<br/>log_episode_stats -> MLflow]
+    end
+
+    A --> A1 --> A2
+    A2 --> B --> B1 --> B2
+    A3 --> C --> C1 --> C2
+    B2 --> D --> D1 --> D2
+    C2 --> D
+    D2 --> E --> E1
+    E1 --> F --> F1
+    E1 --> G
+    F1 --> H
+    G --> H
+    H --> I
+    I --> J --> K --> L --> M
+    I --> N
 ```
 
 ## Components
@@ -80,11 +81,6 @@ sequenceDiagram
 - Compute clipped PPO loss (objective + critic + entropy).
 - Backprop and step optimizer; log per-step metrics.
 - Periodic buffer stats and evaluation rollouts.
-
-## Evaluation and Tracking
-- Periodic eval during training plus final eval at the end.
-- Reward/action plots, plus PPO-only action-probability plot.
-- MLflow logs metrics, params, artifacts, and checkpoints.
 
 ## Continuous Action Notes
 - **Actor** uses `TanhNormal` to keep actions in bounds (e.g., `[-1, 1]`).
