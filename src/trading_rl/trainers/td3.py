@@ -587,7 +587,7 @@ class TD3Trainer(BaseTrainer):
             "mlflow_experiment_name": experiment_name,
         }
         torch.save(checkpoint, path)
-        logger.info(f"TD3 checkpoint saved to {path}")
+        logger.info(f"\033[95mTD3 checkpoint saved to {path}\033[0m")
 
     def load_checkpoint(self, path: str) -> None:
         checkpoint = torch.load(path)
@@ -635,7 +635,7 @@ class TD3Trainer(BaseTrainer):
         self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
-                "\033[91mLoaded TD3 checkpoint state: total_count=%s, total_episodes=%s, mlflow_run_id=%s, mlflow_run_name=%s, mlflow_experiment_name=%s\033[0m",
+                "\033[95mLoaded TD3 checkpoint state: total_count=%s, total_episodes=%s, mlflow_run_id=%s, mlflow_run_name=%s, mlflow_experiment_name=%s\033[0m",
                 self.total_count,
                 self.total_episodes,
                 self.mlflow_run_id,
