@@ -142,14 +142,29 @@ class TrainingCommand(BaseCommand):
         from trading_rl.trainers.ppo import PPOTrainerContinuous
         from trading_rl.callbacks import MLflowTrainingCallback
         from trading_rl.plotting import visualize_training
+        from trading_rl.train_trading_agent import setup_logging, set_seed, setup_mlflow_experiment
 
         # Validate checkpoint exists
         if not Path(params.checkpoint_path).exists():
             raise FileNotFoundError(f"Checkpoint not found: {params.checkpoint_path}")
 
+        # Setup logging (like run_single_experiment does)
+        logger = setup_logging(config)
+        logger.info("Resuming training from checkpoint")
+        logger.info(f"Checkpoint: {params.checkpoint_path}")
+
+        # Set seed for reproducibility
+        set_seed(config.seed)
+
+        # Setup MLflow experiment (like run_single_experiment does)
+        setup_mlflow_experiment(config)
+
         self.console.print(f"[cyan]Loading checkpoint from {params.checkpoint_path}...[/cyan]")
 
-        # Prepare data
+        # Prepare data (with logging like run_single_experiment)
+        logger.info("Preparing data...")
+        logger.debug(f"  Data path: {config.data.data_path}")
+        logger.debug(f"  Train size: {config.data.train_size}")
         df = prepare_data(
             data_path=config.data.data_path,
             download_if_missing=config.data.download_data,
@@ -160,19 +175,23 @@ class TrainingCommand(BaseCommand):
             since=config.data.download_since,
             no_features=getattr(config.data, "no_features", False),
         )
+        logger.debug(f"Data loaded - shape: {df.shape}, columns: {list(df.columns)}")
 
-        # Create environment
+        # Create environment (with logging like run_single_experiment)
+        logger.info("Creating environment...")
         env_builder = AlgorithmicEnvironmentBuilder()
         env = env_builder.create(df, config)
 
         # Get environment specs
         n_obs = env.observation_spec["observation"].shape[-1]
         n_act = env.action_spec.shape[-1]
+        logger.info(f"Environment: {n_obs} observations, {n_act} actions")
 
-        # Determine algorithm and trainer class
+        # Determine algorithm and trainer class (with logging)
         algorithm = getattr(config.training, "algorithm", "PPO").upper()
         backend = getattr(config.env, "backend", "")
         is_continuous_env = backend == "tradingenv" or backend == "gym_trading_env.continuous"
+        logger.info(f"Creating models for {algorithm} algorithm (Backend: {backend})...")
 
         if algorithm == "PPO":
             trainer_cls = PPOTrainerContinuous if is_continuous_env else PPOTrainer
@@ -196,13 +215,17 @@ class TrainingCommand(BaseCommand):
             )
 
         # Load checkpoint
+        logger.info(f"Loading checkpoint from {params.checkpoint_path}...")
         trainer.load_checkpoint(str(params.checkpoint_path))
         original_steps = trainer.total_count
+        logger.info(f"Checkpoint loaded! Resuming from step {original_steps}")
         self.console.print(f"[green]Checkpoint loaded! Resuming from step {original_steps}[/green]")
 
         # Update max_steps
         if params.additional_steps:
             trainer.config.max_steps = original_steps + params.additional_steps
+            logger.info(f"Training for {params.additional_steps} additional steps")
+            logger.info(f"Target: {trainer.config.max_steps} total steps")
             self.console.print(
                 f"[cyan]Training for {params.additional_steps} additional steps[/cyan]"
             )
@@ -217,14 +240,24 @@ class TrainingCommand(BaseCommand):
             price_series=df["close"][: config.data.train_size],
         )
 
+        # Log parameter FAQ, training parameters, config, and data overview (like run_single_experiment)
+        if mlflow.active_run():
+            MLflowTrainingCallback.log_parameter_faq_artifact()
+            MLflowTrainingCallback.log_training_parameters(config)
+            MLflowTrainingCallback.log_config_artifact(config)
+            MLflowTrainingCallback.log_data_overview(df, config)
+
         # Continue training - use existing run if active, otherwise create new run
+        logger.info("Starting training...")
         active_run = mlflow.active_run()
         if active_run:
             # Continue with existing run
+            logger.info(f"Continuing existing MLflow run: {active_run.info.run_id}")
             self.console.print(f"[cyan]Continuing existing MLflow run: {active_run.info.run_id}[/cyan]")
             logs = trainer.train(callback=mlflow_callback)
         else:
             # Create new run for resumed training
+            logger.info(f"Creating new MLflow run for resumed training from step {original_steps}")
             with mlflow.start_run(run_name=f"resumed_step_{original_steps}"):
                 logs = trainer.train(callback=mlflow_callback)
 
@@ -234,13 +267,16 @@ class TrainingCommand(BaseCommand):
             / f"{config.experiment_name}_checkpoint_step_{trainer.total_count}.pt"
         )
         trainer.save_checkpoint(str(checkpoint_path))
+        logger.info(f"Checkpoint saved to: {checkpoint_path}")
         self.console.print(f"[green]New checkpoint saved: {checkpoint_path}[/green]")
 
         # Evaluate agent (just like normal training does)
+        logger.info("Evaluating agent...")
         self.console.print("[cyan]Evaluating agent...[/cyan]")
         eval_max_steps = min(
             config.training.eval_steps, len(df) - 1, config.data.train_size - 1
         )
+        logger.debug(f"Evaluation max_steps: {eval_max_steps}")
 
         reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
             trainer.evaluate(
@@ -279,6 +315,11 @@ class TrainingCommand(BaseCommand):
 
         # Log final metrics to MLflow
         MLflowTrainingCallback.log_final_metrics(logs, final_metrics, mlflow_callback)
+
+        # Final logging (like run_single_experiment)
+        logger.info("Training complete!")
+        logger.info(f"Final reward: {final_reward:.4f}")
+        logger.info(f"Total training steps: {trainer.total_count}")
 
         # Prepare result (matching run_single_experiment)
         return {
