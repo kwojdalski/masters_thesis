@@ -244,6 +244,17 @@ class TrainingCommand(BaseCommand):
         # Continue training - use existing run if active, otherwise create new run
         logger.info("Starting training...")
         resume_run_id = None
+
+        def _log_resume_artifacts() -> None:
+            """Log config/data artifacts during resume when a run is active."""
+            if not mlflow.active_run():
+                logger.warning("No active MLflow run - skipping resume artifacts")
+                return
+            MLflowTrainingCallback.log_parameter_faq_artifact()
+            MLflowTrainingCallback.log_training_parameters(config)
+            MLflowTrainingCallback.log_config_artifact(config)
+            MLflowTrainingCallback.log_data_overview(df, config)
+
         active_run = mlflow.active_run()
         if active_run:
             # Continue with existing run
@@ -261,6 +272,7 @@ class TrainingCommand(BaseCommand):
                 start_run=False,
             )
             mlflow_callback._episode_count = trainer.total_episodes
+            _log_resume_artifacts()
             logs = trainer.train(callback=mlflow_callback)
             checkpoint_path = (
                 Path(config.logging.log_dir)
@@ -285,6 +297,7 @@ class TrainingCommand(BaseCommand):
                     start_run=False,
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
+                _log_resume_artifacts()
                 logs = trainer.train(callback=mlflow_callback)
                 checkpoint_path = (
                     Path(config.logging.log_dir)
@@ -310,6 +323,7 @@ class TrainingCommand(BaseCommand):
                     start_run=False,
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
+                _log_resume_artifacts()
                 logs = trainer.train(callback=mlflow_callback)
                 checkpoint_path = (
                     Path(config.logging.log_dir)
@@ -336,6 +350,7 @@ class TrainingCommand(BaseCommand):
                     start_run=False,
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
+                _log_resume_artifacts()
                 logs = trainer.train(callback=mlflow_callback)
                 checkpoint_path = (
                     Path(config.logging.log_dir)
