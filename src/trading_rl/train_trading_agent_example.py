@@ -32,7 +32,7 @@ config = ExperimentConfig()
 
 # Setup
 logger = setup_logging(config)
-set_seed(config.seed)
+config.seed = set_seed(config.seed)
 
 # Prepare data
 logger.info("Preparing data...")

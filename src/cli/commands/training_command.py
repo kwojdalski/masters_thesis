@@ -76,7 +76,7 @@ class TrainingCommand(BaseCommand):
             config = ExperimentConfig()
 
         # Handle seed generation
-        config.seed = self.resolve_seed(params.seed)
+        config.seed = self.resolve_seed(config.seed)
 
         # Apply CLI overrides
         self._apply_training_overrides(config, params)
