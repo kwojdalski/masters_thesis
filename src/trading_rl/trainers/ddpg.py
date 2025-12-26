@@ -232,6 +232,7 @@ class DDPGTrainer(BaseTrainer):
             path: Path to save checkpoint
         """
         import mlflow
+        from pathlib import Path
 
         run = mlflow.active_run()
         tracking_uri = mlflow.get_tracking_uri()
@@ -257,13 +258,24 @@ class DDPGTrainer(BaseTrainer):
 
         # Optionally save replay buffer (can be very large)
         if getattr(self.config, "save_buffer", False):
-            logger.info("Saving replay buffer to checkpoint (this may take a while)...")
-            checkpoint["replay_buffer"] = self.replay_buffer  # Save entire buffer with all state
-            checkpoint["buffer_metadata"] = {
-                "buffer_size": len(self.replay_buffer),
-                "max_size": self.replay_buffer._storage.max_size,
-            }
-            logger.info(f"Replay buffer saved: {len(self.replay_buffer)} experiences")
+            logger.info("Saving replay buffer to disk (this may take a while)...")
+            path_obj = Path(path)
+            buffer_dir = path_obj.with_suffix("")
+            buffer_dir = buffer_dir.with_name(f"{buffer_dir.name}_buffer")
+            try:
+                self.replay_buffer.dumps(buffer_dir)
+                checkpoint["replay_buffer_path"] = str(buffer_dir)
+                checkpoint["buffer_metadata"] = {
+                    "buffer_size": len(self.replay_buffer),
+                    "max_size": self.replay_buffer._storage.max_size,
+                }
+                logger.info(
+                    "Replay buffer saved to %s (%s experiences)",
+                    buffer_dir,
+                    len(self.replay_buffer),
+                )
+            except Exception:
+                logger.exception("Failed to save replay buffer")
 
         torch.save(checkpoint, path)
         logger.info(f"\033[95mDDPG checkpoint saved to {path}\033[0m")
@@ -276,6 +288,8 @@ class DDPGTrainer(BaseTrainer):
         """
         # Load checkpoint with weights_only=False for TorchRL compatibility
         # TensorDict objects require custom unpickling that isn't in PyTorch's safe allowlist
+        from pathlib import Path
+
         checkpoint = torch.load(path, weights_only=False)
         self.actor.load_state_dict(checkpoint["actor_state_dict"])
         self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
@@ -292,18 +306,27 @@ class DDPGTrainer(BaseTrainer):
 
         # Optionally restore replay buffer if it was saved
         if "replay_buffer" in checkpoint:
-            logger.info("Restoring replay buffer from checkpoint...")
-            self.replay_buffer = checkpoint["replay_buffer"]  # Restore entire buffer with all state
+            logger.info("Restoring replay buffer from checkpoint (legacy)...")
+            self.replay_buffer = checkpoint["replay_buffer"]
             buffer_size = len(self.replay_buffer)
-            logger.info(f"Replay buffer restored: {buffer_size} experiences")
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(
-                    f"Buffer state: cursor={self.replay_buffer._writer._cursor}, "
-                    f"write_count={self.replay_buffer._writer._write_count}, "
-                    f"is_full={self.replay_buffer._storage._is_full}"
-                )
+            logger.info("Replay buffer restored: %s experiences", buffer_size)
         else:
-            logger.info("No replay buffer in checkpoint - starting with empty buffer")
+            buffer_path = checkpoint.get("replay_buffer_path")
+            if buffer_path and Path(buffer_path).exists():
+                try:
+                    self.replay_buffer.loads(buffer_path)
+                    buffer_size = len(self.replay_buffer)
+                    logger.info(
+                        "Replay buffer loaded from %s (%s experiences)",
+                        buffer_path,
+                        buffer_size,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to load replay buffer from %s", buffer_path
+                    )
+            else:
+                logger.info("No replay buffer in checkpoint - starting with empty buffer")
 
         logger.info(f"\033[95mDDPG checkpoint loaded from {path}\033[0m")
 
