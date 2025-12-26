@@ -274,7 +274,9 @@ class DDPGTrainer(BaseTrainer):
         Args:
             path: Path to checkpoint
         """
-        checkpoint = torch.load(path)
+        # Load checkpoint with weights_only=False for TorchRL compatibility
+        # TensorDict objects require custom unpickling that isn't in PyTorch's safe allowlist
+        checkpoint = torch.load(path, weights_only=False)
         self.actor.load_state_dict(checkpoint["actor_state_dict"])
         self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
         self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
