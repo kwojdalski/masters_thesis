@@ -27,6 +27,7 @@ class TrainingParams:
     additional_steps: int | None = None  # Additional steps when resuming
     from_checkpoint: Path | None = None  # Path to checkpoint alias
     from_last_checkpoint: bool = False  # Resume from most recent checkpoint
+    mlflow_run_id: str | None = None  # Resume MLflow run by ID
 
 
 class TrainingCommand(BaseCommand):
@@ -252,6 +253,20 @@ class TrainingCommand(BaseCommand):
                     config.experiment_name,
                     tracking_uri=tracking_uri
                     or getattr(getattr(config, "tracking", None), "tracking_uri", None),
+                    price_series=df["close"][: config.data.train_size],
+                )
+                mlflow_callback._episode_count = trainer.total_episodes
+                logs = trainer.train(callback=mlflow_callback)
+        elif params.mlflow_run_id:
+            run_id = params.mlflow_run_id
+            logger.info(f"Resuming MLflow run (CLI): {run_id}")
+            self.console.print(f"[cyan]Resuming MLflow run (CLI): {run_id}[/cyan]")
+            with mlflow.start_run(run_id=run_id):
+                mlflow_callback = MLflowTrainingCallback(
+                    config.experiment_name,
+                    tracking_uri=getattr(
+                        getattr(config, "tracking", None), "tracking_uri", None
+                    ),
                     price_series=df["close"][: config.data.train_size],
                 )
                 mlflow_callback._episode_count = trainer.total_episodes
