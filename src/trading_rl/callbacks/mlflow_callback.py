@@ -740,22 +740,26 @@ class MLflowTrainingCallback:
                     logger.exception(f"Failed to save {filename} plot")
                 # cleanup deferred for optional combination
 
-            # Save reward plot using plotnine
+            # Save reward plot using plotnine (larger size for file export)
             _save_plot_as_artifact(
                 reward_plot,
                 f"{timestamp}_rewards.png",
                 "rewards",
                 "evaluation_plots",
                 logger,
+                width=16,  # Larger for saved files (vs 13 for MLflow display)
+                height=10,  # Larger for saved files (vs 7.8 for MLflow display)
             )
 
-            # Save action/position plot using plotnine
+            # Save action/position plot using plotnine (larger size for file export)
             _save_plot_as_artifact(
                 action_plot,
                 f"{timestamp}_positions.png",
                 "positions",
                 "evaluation_plots",
                 logger,
+                width=16,  # Larger for saved files
+                height=10,  # Larger for saved files
             )
 
             # Save action probabilities plot (if present)
@@ -766,6 +770,8 @@ class MLflowTrainingCallback:
                     "action_probabilities",
                     "evaluation_plots",
                     logger,
+                    width=16,  # Larger for saved files
+                    height=10,  # Larger for saved files
                 )
             else:
                 logger.info("Action probability plot missing; skipping that artifact")
@@ -812,8 +818,8 @@ class MLflowTrainingCallback:
                         None,
                         "training_plots",
                         logger,
-                        width=10.4,
-                        height=6.5,
+                        width=16,  # Larger for saved files
+                        height=10,  # Larger for saved files
                     )
 
             # Combine existing evaluation plots using plotnine patchwork when available
@@ -840,6 +846,8 @@ class MLflowTrainingCallback:
                         None,
                         "evaluation_plots",
                         logger,
+                        width=20,  # Larger for combined plots
+                        height=12,  # Larger for combined plots
                     )
             except ImportError:
                 # Fallback: combine PNGs with Pillow in a (p1 | p2) / p3 layout
