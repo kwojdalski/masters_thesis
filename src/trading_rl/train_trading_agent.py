@@ -168,6 +168,134 @@ def _print_config_debug(config: ExperimentConfig, logger) -> None:
     logger.debug("=" * 60)
 
 
+def build_training_context(
+    config: ExperimentConfig,
+    experiment_name: str | None = None,
+    progress_bar=None,
+) -> dict:
+    """Build common training context used by fresh and resumed runs."""
+    effective_experiment_name = experiment_name or config.experiment_name
+
+    logger = setup_logging(config)
+    set_seed(config.seed)
+
+    _print_config_debug(config, logger)
+
+    logger.info("Preparing data...")
+    logger.debug(f"  Data path: {config.data.data_path}")
+    logger.debug(f"  Train size: {config.data.train_size}")
+    logger.debug(f"  No features: {getattr(config.data, 'no_features', False)}")
+
+    df = prepare_data(
+        data_path=config.data.data_path,
+        download_if_missing=config.data.download_data,
+        exchange_names=config.data.exchange_names,
+        symbols=config.data.symbols,
+        timeframe=config.data.timeframe,
+        data_dir=config.data.data_dir,
+        since=config.data.download_since,
+        no_features=getattr(config.data, "no_features", False),
+    )
+
+    logger.debug(f"Data loaded - shape: {df.shape}, columns: {list(df.columns)}")
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("Data statistics:")
+        logger.debug(
+            "  Close price - min: %.2f, max: %.2f, mean: %.2f",
+            df["close"].min(),
+            df["close"].max(),
+            df["close"].mean(),
+        )
+        logger.debug(f"  Close price std: {df['close'].std():.2f}")
+
+        feature_cols = [col for col in df.columns if "feature" in col.lower()]
+        if feature_cols:
+            logger.debug(f"  Features found: {feature_cols}")
+        else:
+            logger.debug("  No features found in data (using raw OHLCV only)")
+
+    if mlflow.active_run():
+        MLflowTrainingCallback.log_parameter_faq_artifact()
+        MLflowTrainingCallback.log_training_parameters(config)
+        MLflowTrainingCallback.log_config_artifact(config)
+        MLflowTrainingCallback.log_data_overview(df, config)
+
+    logger.info("Creating environment...")
+    env = env_builder.create(df, config)
+
+    n_obs = env.observation_spec["observation"].shape[-1]
+    n_act = env.action_spec.shape[-1]
+    logger.info(f"Environment: {n_obs} observations, {n_act} actions")
+
+    logger.debug("Environment specs:")
+    logger.debug(f"  Observation spec: {env.observation_spec}")
+    logger.debug(f"  Action spec: {env.action_spec}")
+    logger.debug(f"  Reward spec: {env.reward_spec}")
+
+    backend = getattr(config.env, "backend", "")
+    is_continuous_env = (
+        backend == "tradingenv"
+        or backend == "gym_trading_env.continuous"
+    )
+
+    algorithm = getattr(config.training, "algorithm", "PPO").upper()
+    logger.info(f"Creating models for {algorithm} algorithm (Backend: {backend})...")
+
+    if algorithm == "PPO":
+        if is_continuous_env:
+            logger.info("Selected PPOTrainerContinuous for continuous environment")
+            trainer_cls = PPOTrainerContinuous
+        else:
+            logger.info("Selected PPOTrainer for discrete environment")
+            trainer_cls = PPOTrainer
+    elif algorithm == "TD3":
+        trainer_cls = TD3Trainer
+    elif algorithm == "DDPG":
+        trainer_cls = DDPGTrainer
+    else:
+        raise ValueError(f"Unsupported algorithm: {algorithm}")
+
+    if algorithm == "TD3":
+        actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
+        trainer = trainer_cls(
+            actor=actor,
+            qvalue_net=qvalue_net,
+            env=env,
+            config=config.training,
+        )
+    else:
+        actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
+        trainer = trainer_cls(
+            actor=actor,
+            value_net=value_net,
+            env=env,
+            config=config.training,
+        )
+
+    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
+    estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
+    mlflow_callback = MLflowTrainingCallback(
+        effective_experiment_name,
+        tracking_uri=tracking_uri,
+        progress_bar=progress_bar,
+        total_episodes=estimated_episodes if progress_bar else None,
+        price_series=df["close"][: config.data.train_size],
+    )
+
+    return {
+        "logger": logger,
+        "df": df,
+        "env": env,
+        "trainer": trainer,
+        "mlflow_callback": mlflow_callback,
+        "algorithm": algorithm,
+        "n_obs": n_obs,
+        "n_act": n_act,
+        "effective_experiment_name": effective_experiment_name,
+    }
+
+
 @trace_calls(show_return=False)
 def run_single_experiment(
     custom_config: ExperimentConfig | None = None,
@@ -189,146 +317,20 @@ def run_single_experiment(
     Returns:
         Dictionary with results
     """
-    # Load configuration
     config = custom_config or ExperimentConfig()
-
-    # Use experiment name from config, with optional override
-    effective_experiment_name = experiment_name or config.experiment_name
-
-    # Setup
-    logger = setup_logging(config)
-    set_seed(config.seed)
-
-    # Print config values in debug mode
-    _print_config_debug(config, logger)
-
-    # Prepare data
-    logger.info("Preparing data...")
-    logger.debug(f"  Data path: {config.data.data_path}")
-    logger.debug(f"  Train size: {config.data.train_size}")
-    logger.debug(f"  No features: {getattr(config.data, 'no_features', False)}")
-
-    df = prepare_data(
-        data_path=config.data.data_path,
-        download_if_missing=config.data.download_data,
-        exchange_names=config.data.exchange_names,
-        symbols=config.data.symbols,
-        timeframe=config.data.timeframe,
-        data_dir=config.data.data_dir,
-        since=config.data.download_since,
-        no_features=getattr(config.data, "no_features", False),
-    )
-
-    logger.debug(f"Data loaded - shape: {df.shape}, columns: {list(df.columns)}")
-
-    # DEBUG: Show data statistics
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug("Data statistics:")
-        logger.debug(
-            f"  Close price - min: {df['close'].min():.2f}, max: {df['close'].max():.2f}, mean: {df['close'].mean():.2f}"
-        )
-        logger.debug(f"  Close price std: {df['close'].std():.2f}")
-
-        # Check for features
-        feature_cols = [col for col in df.columns if "feature" in col.lower()]
-        if feature_cols:
-            logger.debug(f"  Features found: {feature_cols}")
-        else:
-            logger.debug("  No features found in data (using raw OHLCV only)")
-
-    # Log data overview to MLflow
-    if mlflow.active_run():
-        # Log parameter FAQ as artifacts (early in trial for immediate availability)
-        MLflowTrainingCallback.log_parameter_faq_artifact()
-
-        # Log all training parameters
-        MLflowTrainingCallback.log_training_parameters(config)
-
-        # Log YAML config file as artifact if available
-        MLflowTrainingCallback.log_config_artifact(config)
-
-        # Log data overview artifacts via callback helper
-        MLflowTrainingCallback.log_data_overview(df, config)
-
-    # Create environment
-    logger.info("Creating environment...")
-    env = env_builder.create(df, config)
-
-    # Get environment specs
-    n_obs = env.observation_spec["observation"].shape[-1]
-    n_act = env.action_spec.shape[-1]
-    logger.info(f"Environment: {n_obs} observations, {n_act} actions")
-
-    logger.debug("Environment specs:")
-    logger.debug(f"  Observation spec: {env.observation_spec}")
-    logger.debug(f"  Action spec: {env.action_spec}")
-    logger.debug(f"  Reward spec: {env.reward_spec}")
-
-    # Determine if environment is continuous
-    backend = getattr(config.env, "backend", "")
-    is_continuous_env = (
-        backend == "tradingenv"
-        or backend == "gym_trading_env.continuous"
-    )
-
-    # Create models and trainer based on algorithm choice
-    algorithm = getattr(config.training, "algorithm", "PPO").upper()
-    logger.info(f"Creating models for {algorithm} algorithm (Backend: {backend})...")
-
-    # Select trainer class
-    if algorithm == "PPO":
-        if is_continuous_env:
-            logger.info("Selected PPOTrainerContinuous for continuous environment")
-            trainer_cls = PPOTrainerContinuous
-        else:
-            logger.info("Selected PPOTrainer for discrete environment")
-            trainer_cls = PPOTrainer
-    elif algorithm == "TD3":
-        trainer_cls = TD3Trainer
-    elif algorithm == "DDPG":
-        trainer_cls = DDPGTrainer
-    else:
-        raise ValueError(f"Unsupported algorithm: {algorithm}")
-
-    if algorithm == "TD3":
-        actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
-        value_net = qvalue_net
-        trainer = trainer_cls(
-            actor=actor,
-            qvalue_net=qvalue_net,
-            env=env,
-            config=config.training,
-        )
-    else:
-        actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
-        qvalue_nets = None
-        trainer = trainer_cls(
-            actor=actor,
-            value_net=value_net,
-            env=env,
-            config=config.training,
-        )
-
-    # Create MLflow callback with progress bar
-    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
-
-    # Estimate total episodes (rough approximation based on steps and episode length)
-    # Average episode length is approximately train_size for trading environments
-    estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
-
-    mlflow_callback = MLflowTrainingCallback(
-        effective_experiment_name,
-        tracking_uri=tracking_uri,
+    context = build_training_context(
+        config=config,
+        experiment_name=experiment_name,
         progress_bar=progress_bar,
-        total_episodes=estimated_episodes if progress_bar else None,
-        price_series=df["close"][: config.data.train_size],
     )
-    setup_logging(config)
-    if mlflow.active_run():
-        MLflowTrainingCallback.log_parameter_faq_artifact()
-        MLflowTrainingCallback.log_training_parameters(config)
-        MLflowTrainingCallback.log_config_artifact(config)
-        MLflowTrainingCallback.log_data_overview(df, config)
+    logger = context["logger"]
+    df = context["df"]
+    trainer = context["trainer"]
+    mlflow_callback = context["mlflow_callback"]
+    algorithm = context["algorithm"]
+    n_obs = context["n_obs"]
+    n_act = context["n_act"]
+    effective_experiment_name = context["effective_experiment_name"]
     # Train
     logger.info("Starting training...")
     logs = trainer.train(callback=mlflow_callback)

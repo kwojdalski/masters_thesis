@@ -55,6 +55,16 @@ flowchart TD
         N[callback.log_training_step<br/>log_episode_stats -> MLflow]
     end
 
+    subgraph Evaluation
+        O[evaluate_agent<br/>Deterministic rollout]
+        P[Reward/Action plots]
+    end
+
+    subgraph Tracking
+        Q[MLflow<br/>Metrics + Params + Artifacts]
+        R[Checkpoint Save<br/>logs/<experiment>/]
+    end
+
     A --> A1 --> A2
     A2 --> B --> B1 --> B2
     A3 --> C --> C1 --> C2
@@ -68,6 +78,9 @@ flowchart TD
     H --> I
     I --> J --> K --> L --> M
     I --> N
+    I --> O --> P --> Q
+    I --> Q
+    P --> R
 ```
 
 ## Components
