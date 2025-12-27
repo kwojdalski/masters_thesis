@@ -5,6 +5,11 @@
 - Supports discrete and continuous action spaces via separate trainers.
 - Training uses collector batches, mini-batch updates, and periodic evaluation/logging.
 
+## Core Ideas
+- **Clipped Objective**: Limits policy update size via probability ratio clipping.
+- **On-Policy Updates**: Uses fresh rollouts with advantage estimates.
+- **Entropy Regularization**: Encourages exploration during training.
+
 ## Flow
 
 ```mermaid
@@ -82,6 +87,55 @@ flowchart TD
     I --> Q
     P --> R
 ```
+
+## Optimization Detail
+```mermaid
+flowchart TD
+    P1["Collect rollout (s,a,r,s',d)"]
+    P2["Compute advantages A_t and returns R_hat using (1-d) mask"]
+    P3["Compute ratio r_t = pi_theta(a|s) / pi_old(a|s)"]
+    P4["Compute PPO loss (clip + value + entropy)"]
+    P5["Backprop loss"]
+    P6["optimizer.step (actor + critic)"]
+
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6
+```
+
+## Math Summary
+
+Let $\pi_\theta(a\mid s)$ be the policy and $V_\phi(s)$ the value function. Define the probability ratio
+$$
+r_t(\theta) = \frac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_{\text{old}}}(a_t\mid s_t)}.
+$$
+
+**Notation**
+- $s_t, a_t, r_t$: state, action, reward at time $t$.
+- $\hat{A}_t$: advantage estimate.
+- $\hat{R}_t$: return estimate.
+- $\epsilon$: clip range.
+- $c_1, c_2$: value and entropy coefficients.
+- $\theta$: policy parameters; $\phi$: value parameters.
+
+**Clipped surrogate objective**
+$$
+L^{\text{CLIP}}(\theta) =
+\mathbb{E}_t\left[\min\left(r_t(\theta)\hat{A}_t,\ \mathrm{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]
+$$
+
+**Value loss**
+$$
+L^{V}(\phi) = \mathbb{E}_t\left[\left(V_\phi(s_t) - \hat{R}_t\right)^2\right]
+$$
+
+**Entropy bonus**
+$$
+L^{H}(\theta) = \mathbb{E}_t\left[\mathcal{H}(\pi_\theta(\cdot\mid s_t))\right]
+$$
+
+**Total objective**
+$$
+L(\theta,\phi) = L^{\text{CLIP}}(\theta) - c_1 L^{V}(\phi) + c_2 L^{H}(\theta)
+$$
 
 ## Components
 - **CLI + configs**: `ExperimentCommand` loads YAML configs and optionally triggers data generation.

@@ -5,6 +5,11 @@
 - Deterministic actor, critic(s) trained via TD3 loss with delayed policy updates.
 - Replay buffer and exploration noise drive sample efficiency.
 
+## Core Ideas
+- **Twin Critics**: TD3Loss maintains two critic parameter sets and uses the minimum target prediction to curb overestimation.
+- **Delayed Policy Updates**: Actor updates happen less frequently than critic updates.
+- **Target Policy Smoothing**: Noise is added to target actions during critic updates for regularization.
+
 ## Flow
 ```mermaid
 flowchart TD
@@ -65,14 +70,46 @@ flowchart TD
     P --> R
 ```
 
-## Core Ideas
-- **Twin Critics**: TD3Loss maintains two critic parameter sets and uses the minimum target prediction to curb overestimation.
-- **Delayed Policy Updates**: Actor updates happen less frequently than critic updates.
-- **Target Policy Smoothing**: Noise is added to target actions during critic updates for regularization.
+## Optimization Detail
+```mermaid
+flowchart LR
+    subgraph Critic_Update["Critic optimization (every step)"]
+        C1["Sample (s,a,r,s',d) from replay buffer"]
+        C2["Compute target action: a_tilde = target_actor(s') + noise"]
+        C3["Compute target Q: y = r + gamma*(1-d)*min(Q1_t, Q2_t)"]
+        C4[Compute critic losses L1, L2]
+        C5[Backprop critic loss]
+        C6[optimizer_value.step]
+        C1 --> C2 --> C3 --> C4 --> C5 --> C6
+    end
+
+    subgraph Actor_Update["Actor optimization (delayed)"]
+        A1["Sample s from replay buffer"]
+        A2["Compute action: a = actor(s)"]
+        A3["Compute actor loss J = -Q1(s,a)"]
+        A4[Backprop actor loss]
+        A5[optimizer_actor.step]
+        A6[SoftUpdate targets]
+        A1 --> A2 --> A3 --> A4 --> A5 --> A6
+    end
+
+    Critic_Update --- Actor_Update
+```
 
 ## Math Summary
 
 Let the actor be $\mu_\theta(s)$ and critics be $Q_{\phi_1}(s,a), Q_{\phi_2}(s,a)$. Target networks are $\mu_{\bar\theta}, Q_{\bar\phi_1}, Q_{\bar\phi_2}$.
+
+**Notation**
+- $s, a, r, s', d$: state, action, reward, next state, and done flag.
+- $\mathcal{B}$: replay buffer distribution.
+- $\gamma$: discount factor.
+- $\tau$: soft-update rate.
+- $\theta$: actor parameters; $\bar\theta$: target actor parameters.
+- $\phi_i$: critic parameters; $\bar\phi_i$: target critic parameters.
+- $\tilde{a}$: target action after policy smoothing.
+- $\sigma, c$: policy noise std and clip range.
+- $d_{delay}$: policy delay (actor/target update period).
 
 **Target policy smoothing**
 $$
@@ -96,7 +133,7 @@ $$
 
 **Delayed update schedule**
 $$
-\text{Update actor/targets at step } t \text{ if } t \bmod d = 0,\ \ d=\text{policy\_delay}
+\text{Update actor/targets at step } t \text{ if } t \bmod d_{delay} = 0,\ \ d_{delay}=\text{policy\_delay}
 $$
 
 **Soft target updates**
