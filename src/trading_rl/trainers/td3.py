@@ -157,10 +157,12 @@ class TD3Trainer(BaseTrainer):
         )
 
         # Create actual returns plot (separate from training rewards)
+        # Pass env to extract actual portfolio values from TradingEnv broker
         actual_returns_plot = create_actual_returns_plot(
             [rollout_deterministic, rollout_random],
             n_obs=max_steps,
             df_prices=df,
+            env=self.env,
         )
 
         benchmark_df = pd.DataFrame(
