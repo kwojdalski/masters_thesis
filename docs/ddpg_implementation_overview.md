@@ -5,6 +5,11 @@
 - Uses replay buffer, target networks, and soft updates.
 - Training logs and evaluations flow through MLflow.
 
+## Core Ideas
+- **Deterministic Policy**: Actor outputs continuous actions directly.
+- **Target Networks**: Stabilize critic targets via lagged copies.
+- **Replay Buffer**: Off-policy updates from stored transitions.
+
 ## Flow
 
 ```mermaid
@@ -87,6 +92,66 @@ flowchart TD
     I --> Q --> R --> S
     R --> T
 ```
+
+## Optimization Detail
+```mermaid
+flowchart LR
+    subgraph Critic_Update["Critic optimization (every step)"]
+        C1["Sample (s,a,r,s',d) from replay buffer"]
+        C2["Compute target action: a_tgt = target_actor(s')"]
+        C3["Compute target Q: y = r + gamma*(1-d)*Q_t(s', a_tgt)"]
+        C4[Compute critic loss]
+        C5[Backprop critic loss]
+        C6[optimizer_value.step]
+        C1 --> C2 --> C3 --> C4 --> C5 --> C6
+    end
+
+    subgraph Actor_Update["Actor optimization (every step)"]
+        A1["Sample s from replay buffer"]
+        A2["Compute action: a = actor(s)"]
+        A3["Compute actor loss J = -Q(s,a)"]
+        A4[Backprop actor loss]
+        A5[optimizer_actor.step]
+        A6[SoftUpdate targets]
+        A1 --> A2 --> A3 --> A4 --> A5 --> A6
+    end
+
+    Critic_Update --- Actor_Update
+```
+
+## Math Summary
+
+Let the actor be $\mu_\theta(s)$ and the critic be $Q_\phi(s,a)$. Target networks are $\mu_{\bar\theta}, Q_{\bar\phi}$.
+
+**Notation**
+- $s, a, r, s', d$: state, action, reward, next state, and done flag.
+- $\mathcal{B}$: replay buffer distribution.
+- $\gamma$: discount factor.
+- $\tau$: soft-update rate.
+- $\theta$: actor parameters; $\bar\theta$: target actor parameters.
+- $\phi$: critic parameters; $\bar\phi$: target critic parameters.
+- $a_{tgt}$: target action from target actor.
+
+**Critic target**
+$$
+y = r + \gamma (1-d)\, Q_{\bar\phi}(s', \mu_{\bar\theta}(s'))
+$$
+
+**Critic loss**
+$$
+L(\phi) = \mathbb{E}_{(s,a,r,s',d)\sim\mathcal{B}} \left( Q_\phi(s,a) - y \right)^2
+$$
+
+**Actor loss**
+$$
+J(\theta) = - \mathbb{E}_{s\sim\mathcal{B}} \left[ Q_\phi(s, \mu_\theta(s)) \right]
+$$
+
+**Soft target updates**
+$$
+\bar\phi \leftarrow \tau \phi + (1-\tau)\bar\phi,\quad
+\bar\theta \leftarrow \tau \theta + (1-\tau)\bar\theta
+$$
 
 ## Components
 - **CLI + configs**: scenario/config selection and optional data generation.
