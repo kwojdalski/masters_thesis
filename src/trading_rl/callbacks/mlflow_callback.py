@@ -120,7 +120,7 @@ class MLflowTrainingCallback:
         )
 
         # Log episode metrics to MLflow
-        episode_base = getattr(self, "_log_step_offset", 0)
+        episode_base = self._episode_count
         if isinstance(episode_base, torch.Tensor):
             episode_base = int(episode_base.item())
         episode_num = int(episode_base) + len(self.training_stats["episode_rewards"])
