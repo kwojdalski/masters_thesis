@@ -94,6 +94,11 @@ $$
 J(\theta) = - \mathbb{E}_{s\sim\mathcal{B}} \left[ Q_{\phi_1}(s, \mu_\theta(s)) \right]
 $$
 
+**Delayed update schedule**
+$$
+\text{Update actor/targets at step } t \text{ if } t \bmod d = 0,\ \ d=\text{policy\_delay}
+$$
+
 **Soft target updates**
 $$
 \bar\phi \leftarrow \tau \phi + (1-\tau)\bar\phi,\quad
