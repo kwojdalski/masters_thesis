@@ -337,8 +337,6 @@ class BaseTrainer(ABC):
             len(self.logs.get("loss_actor", [])),
             len(self.logs.get("loss_value", [])),
         )
-        if self.callback is not None:
-            self.callback._log_step_offset = self._log_step_offset
 
         for i, data in enumerate(self.collector):
             self.replay_buffer.extend(data)
