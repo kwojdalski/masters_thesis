@@ -608,15 +608,7 @@ class MLflowTrainingCallback:
                 mlflow.log_artifact(temp_path, "portfolio_weights_data")
                 os.unlink(temp_path)
 
-        if logs.get("loss_value"):
-            mlflow.log_metric("final_value_loss", logs["loss_value"][-1])
-        else:
-            logger.warning(
-                "No value loss data available for logging - training may have been skipped due to tensor shape issues"
-            )
-
         if logs.get("loss_actor"):
-            mlflow.log_metric("final_actor_loss", logs["loss_actor"][-1])
             mlflow.log_metric("avg_actor_loss", np.mean(logs["loss_actor"]))
         else:
             logger.warning(
