@@ -403,6 +403,8 @@ class TD3Trainer(BaseTrainer):
             len(self.logs.get("loss_actor", [])),
             len(self.logs.get("loss_value", [])),
         )
+        if self.callback is not None:
+            self.callback._log_step_offset = self._log_step_offset
 
         # Use a temporary random policy for initial steps
         initial_collector_policy = RandomPolicy(self.td3_action_spec)
