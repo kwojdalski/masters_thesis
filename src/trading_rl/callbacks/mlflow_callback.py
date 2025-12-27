@@ -108,8 +108,8 @@ class MLflowTrainingCallback:
         self.training_stats["portfolio_valuations"].append(portfolio_valuation)
         self.training_stats["actions_taken"].extend(actions)
         self.training_stats["exploration_ratio"].append(exploration_ratio)
-
-        position_changes = self._count_position_changes(actions)
+        # TODO: Make tolerance configurable
+        position_changes = self._count_position_changes(actions, tolerance=0.1)
         self.position_change_counts.append(position_changes)
         self.training_stats["position_change_counts"].append(position_changes)
 
@@ -769,7 +769,7 @@ class MLflowTrainingCallback:
             # Create and save training loss plots
             if logs and (logs.get("loss_value") or logs.get("loss_actor")):
                 import pandas as pd
-                from plotnine import aes, geom_line, ggplot, labs, facet_wrap
+                from plotnine import aes, facet_wrap, geom_line, ggplot, labs
 
                 loss_data = []
                 if logs.get("loss_value"):
@@ -869,8 +869,10 @@ class MLflowTrainingCallback:
                         combined.paste(probs_img, (0, top_height))
 
                         combined_filename = f"{timestamp}_combined_evaluation.png"
-                        tmp_combined_path = os.path.join(batch_temp_dir, combined_filename)
-                        
+                        tmp_combined_path = os.path.join(
+                            batch_temp_dir, combined_filename
+                        )
+
                         combined.save(tmp_combined_path, format="PNG")
                         mlflow.log_artifact(tmp_combined_path, "evaluation_plots")
                         combined_path = tmp_combined_path

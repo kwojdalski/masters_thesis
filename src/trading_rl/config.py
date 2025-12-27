@@ -71,7 +71,7 @@ class TrainingConfig:
     actor_lr: float = 1e-4
     value_lr: float = 1e-3
     value_weight_decay: float = 1e-2
-
+    actor_weight_decay: float = 1e-4
     # Training loop
     max_steps: int = 5_000  # _000
     init_rand_steps: int = 50
@@ -82,7 +82,9 @@ class TrainingConfig:
 
     # Replay buffer
     buffer_size: int = 100_000
-    save_buffer: bool = False  # Save replay buffer in checkpoint (increases file size significantly)
+    save_buffer: bool = (
+        False  # Save replay buffer in checkpoint (increases file size significantly)
+    )
 
     # DDPG-specific parameters
     tau: float = 0.001  # Target network update rate
