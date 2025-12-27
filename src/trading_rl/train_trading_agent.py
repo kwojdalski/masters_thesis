@@ -385,7 +385,6 @@ def run_single_experiment(
         # Performance metrics
         "final_reward": final_reward,
         "training_steps": len(logs.get("loss_value", [])),
-        "evaluation_steps": eval_max_steps,  # actual max_steps used in evaluation
         # Use backend-aware naming for positions/weights
         ("portfolio_weights" if is_portfolio_backend else "last_position_per_episode"): last_positions,
         # Dataset metadata

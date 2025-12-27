@@ -581,7 +581,6 @@ class MLflowTrainingCallback:
         logger = get_project_logger(__name__)
         mlflow.log_metric("final_reward", final_metrics["final_reward"])
         mlflow.log_metric("training_steps", final_metrics["training_steps"])
-        mlflow.log_metric("evaluation_steps", final_metrics["evaluation_steps"])
 
         # Handle both discrete positions and portfolio weights
         if "last_position_per_episode" in final_metrics:
@@ -599,7 +598,6 @@ class MLflowTrainingCallback:
         elif "portfolio_weights" in final_metrics:
             weights = final_metrics["portfolio_weights"]
             if weights:
-                mlflow.log_metric("portfolio_weights_sequence_length", len(weights))
                 weights_str = json.dumps(weights[:100])
                 # Use ISO 8601 datetime format for filename
                 timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -631,12 +629,6 @@ class MLflowTrainingCallback:
             if training_curves["episode_rewards"]:
                 mlflow.log_metric(
                     "episode_avg_reward", np.mean(training_curves["episode_rewards"])
-                )
-                mlflow.log_metric(
-                    "episode_max_reward", np.max(training_curves["episode_rewards"])
-                )
-                mlflow.log_metric(
-                    "episode_min_reward", np.min(training_curves["episode_rewards"])
                 )
 
             if training_curves["portfolio_valuations"]:
