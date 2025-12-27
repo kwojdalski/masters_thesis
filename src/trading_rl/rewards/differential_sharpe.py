@@ -22,17 +22,20 @@ class DifferentialSharpeRatio(AbstractReward):
     The DSR uses exponential moving averages to compute an online estimate of the
     Sharpe ratio's derivative, providing a stationary reward signal suitable for RL.
 
-    Formula:
-        DSR_t = (A_t * ΔR_t - B_t * R_t) / ((A_t - B_t^2)^1.5 + ε)
+    Formula (from Moody & Saffell 2001):
+        D_t = (B_{t-1} * ΔA_t - A_{t-1} * ΔB_t / 2) / ((B_{t-1} - A_{t-1}^2)^1.5 + ε)
 
         where:
-        - A_t = (1 - η) * A_{t-1} + η * R_t^2  (EMA of squared returns)
-        - B_t = (1 - η) * B_{t-1} + η * R_t    (EMA of returns)
-        - Var_t = A_t - B_t^2                   (variance estimate)
-        - ΔR_t = R_t - B_{t-1}                  (return minus previous mean)
+        - A_t = (1 - η) * A_{t-1} + η * R_t    (EMA of returns - first moment)
+        - B_t = (1 - η) * B_{t-1} + η * R_t^2  (EMA of squared returns - second moment)
+        - ΔA_t = R_t - A_{t-1}                  (change in mean estimate)
+        - ΔB_t = R_t^2 - B_{t-1}                (change in second moment)
+        - Var = B_{t-1} - A_{t-1}^2             (variance estimate)
         - R_t = log(V_t / V_{t-1})              (log return of portfolio value)
         - η = learning rate (typically 0.001 to 0.1)
         - ε = small constant for numerical stability
+
+    Note: DSR must be calculated BEFORE updating the EMAs to use old values (t-1).
 
     Args:
         eta: Learning rate for exponential moving averages (default: 0.01)
@@ -41,8 +44,8 @@ class DifferentialSharpeRatio(AbstractReward):
         epsilon: Small constant for numerical stability (default: 1e-8)
 
     Attributes:
-        A_t: Current EMA of squared returns (variance estimate)
-        B_t: Current EMA of returns (mean estimate)
+        A_t: Current EMA of returns (mean estimate)
+        B_t: Current EMA of squared returns (second moment estimate)
     """
 
     def __init__(self, eta: float = 0.01, epsilon: float = 1e-8):
@@ -61,8 +64,8 @@ class DifferentialSharpeRatio(AbstractReward):
         self.epsilon = epsilon
 
         # Initialize EMAs
-        self.A_t = 0.0  # EMA of R^2
-        self.B_t = 0.0  # EMA of R
+        self.A_t = 0.0  # EMA of R (mean)
+        self.B_t = 0.0  # EMA of R^2 (second moment)
 
         # Track previous portfolio value for return calculation
         self._prev_nlv = None
@@ -97,19 +100,20 @@ class DifferentialSharpeRatio(AbstractReward):
 
         R_t = float(np.log(nlv_now / self._prev_nlv))
 
-        # Calculate ΔR_t = R_t - B_{t-1} (return minus previous mean estimate)
-        delta_R = R_t - self.B_t
+        # Calculate deltas using OLD EMA values (t-1)
+        # Following Moody & Saffell (2001) and github.com/AchillesJJ/DSR
+        delta_A = R_t - self.A_t  # ΔA_t = R_t - A_{t-1}
+        delta_B = R_t ** 2 - self.B_t  # ΔB_t = R_t^2 - B_{t-1}
 
-        # Update EMAs
-        self.A_t = (1 - self.eta) * self.A_t + self.eta * (R_t ** 2)
-        self.B_t = (1 - self.eta) * self.B_t + self.eta * R_t
-
-        # Calculate DSR
-        # Variance = A_t - B_t^2 (second moment minus squared first moment)
-        # DSR denominator is variance^1.5 for proper Sharpe ratio scaling
-        variance = self.A_t - self.B_t ** 2
+        # Calculate DSR using old EMA values
+        # D_t = (B_{t-1} * ΔA_t - A_{t-1} * ΔB_t / 2) / (B_{t-1} - A_{t-1}^2)^(3/2)
+        variance = self.B_t - self.A_t ** 2  # Var = B_{t-1} - A_{t-1}^2
         denominator = variance ** 1.5 + self.epsilon
-        dsr = (self.A_t * delta_R - self.B_t * R_t) / denominator
+        dsr = (self.B_t * delta_A - self.A_t * delta_B / 2) / denominator
+
+        # NOW update EMAs for next step
+        self.A_t = (1 - self.eta) * self.A_t + self.eta * R_t
+        self.B_t = (1 - self.eta) * self.B_t + self.eta * (R_t ** 2)
 
         # Update previous NLV for next step
         self._prev_nlv = nlv_now

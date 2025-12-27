@@ -116,8 +116,8 @@ class TestDifferentialSharpeRatio:
 
         # Should have positive DSR for positive return
         assert isinstance(reward2, float)
-        assert dsr.A_t > 0  # Variance should be positive
-        assert dsr.B_t > 0  # Mean should be positive
+        assert dsr.A_t > 0  # Mean should be positive for gain
+        assert dsr.B_t > 0  # Second moment should be positive (always R^2)
 
     def test_negative_return(self):
         """Test DSR calculation with negative returns."""
@@ -138,8 +138,8 @@ class TestDifferentialSharpeRatio:
         reward2 = dsr.calculate(env)
 
         assert isinstance(reward2, float)
-        assert dsr.A_t > 0  # Variance should be positive
-        assert dsr.B_t < 0  # Mean should be negative
+        assert dsr.A_t < 0  # Mean should be negative for loss
+        assert dsr.B_t > 0  # Second moment should be positive (always R^2)
 
     def test_zero_return(self):
         """Test DSR calculation with zero return."""
@@ -160,9 +160,9 @@ class TestDifferentialSharpeRatio:
         reward2 = dsr.calculate(env)
 
         assert isinstance(reward2, float)
-        # With zero return, A_t and B_t should remain near 0
-        assert abs(dsr.A_t) < 1e-6
-        assert abs(dsr.B_t) < 1e-6
+        # With zero return, both A_t (mean) and B_t (second moment) should remain near 0
+        assert abs(dsr.A_t) < 1e-6  # Mean ≈ 0
+        assert abs(dsr.B_t) < 1e-6  # Second moment ≈ 0
 
     def test_ema_updates(self):
         """Test that EMAs update correctly over multiple steps."""
@@ -184,8 +184,8 @@ class TestDifferentialSharpeRatio:
         assert rewards[0] == 0.0
 
         # EMAs should have been updated
-        assert dsr.A_t > 0
-        assert dsr.B_t > 0
+        assert dsr.A_t > 0  # Mean should be positive (gains)
+        assert dsr.B_t > 0  # Second moment should be positive (always)
 
         # All rewards should be finite
         assert all(np.isfinite(r) for r in rewards)
