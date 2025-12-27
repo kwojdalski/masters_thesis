@@ -106,6 +106,7 @@ class TD3Trainer(BaseTrainer):
         self.optimizer_actor = Adam(
             self.td3_loss.actor_network_params.values(True, True),
             lr=config.actor_lr,
+            weight_decay=config.actor_weight_decay,
         )
         self.optimizer_value = Adam(
             self.td3_loss.qvalue_network_params.values(True, True),
