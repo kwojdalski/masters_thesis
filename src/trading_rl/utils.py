@@ -178,30 +178,44 @@ def calculate_actual_returns(rollout, env=None):
     return cumulative_returns
 
 
-def create_actual_returns_plot(rollouts, n_obs, df_prices=None):
+def create_actual_returns_plot(rollouts, n_obs, df_prices=None, env=None):
     """Create a plot showing actual portfolio returns (not training rewards).
 
     This generates a separate plot that ALWAYS shows actual dollar returns,
     regardless of what reward function (DSR, LogReturn, etc.) was used for training.
 
+    For TradingEnv backend, this extracts actual portfolio values from the broker's
+    track_record, ensuring true P&L is shown even when training with DSR.
+
     Args:
         rollouts: List of rollout TensorDicts (deterministic, random)
         n_obs: Number of observations to plot
-        df_prices: Optional DataFrame with price data for calculating returns
+        df_prices: Optional DataFrame with price data (unused for now)
+        env: Optional environment instance for accessing TradingEnv broker state
 
     Returns:
         plotnine.ggplot: Plot showing actual cumulative returns
     """
-    # Calculate actual returns for each rollout
     returns_data = []
 
     for i, rollout in enumerate(rollouts):
-        # For now, use rewards as proxy (will be improved)
-        # TODO: Calculate actual portfolio value changes
-        rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
-        cumulative_returns = np.cumsum(rewards)
-
         run_name = "Deterministic" if i == 0 else "Random"
+
+        # Try to extract actual returns from TradingEnv broker
+        actual_returns = _extract_tradingenv_returns(env, n_obs) if env else None
+
+        if actual_returns is not None:
+            # Use actual portfolio value changes (TradingEnv)
+            cumulative_returns = actual_returns[:n_obs]
+            logger.debug(
+                f"{run_name}: Using actual portfolio returns from TradingEnv broker"
+            )
+        else:
+            # Fallback: use rollout rewards (works for LogReturn, shows DSR for DSR)
+            rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
+            cumulative_returns = np.cumsum(rewards)
+            logger.debug(f"{run_name}: Using rollout rewards as fallback")
+
         returns_data.extend(
             [
                 {"Steps": step, "Cumulative_Return": val, "Run": run_name}
@@ -224,3 +238,79 @@ def create_actual_returns_plot(rollouts, n_obs, df_prices=None):
     )
 
     return returns_plot
+
+
+def _extract_tradingenv_returns(env, n_steps):
+    """Extract actual portfolio returns from TradingEnv broker.
+
+    Args:
+        env: Wrapped TradingEnv (TransformedEnv -> GymnasiumWrapper -> TradingEnv)
+        n_steps: Number of steps to extract
+
+    Returns:
+        np.ndarray: Cumulative log returns, or None if extraction fails
+    """
+    try:
+        # Unwrap layers to get to TradingEnv
+        # Structure: TransformedEnv -> GymnasiumTradingEnvWrapper -> TradingEnv
+        if hasattr(env, "_env") and hasattr(env._env, "_env"):
+            trading_env = env._env._env
+        else:
+            logger.debug("Cannot unwrap to TradingEnv - missing _env attribute")
+            return None
+
+        # Check if this is actually TradingEnv with broker
+        if not hasattr(trading_env, "broker"):
+            logger.debug("Unwrapped env has no broker attribute")
+            return None
+
+        broker = trading_env.broker
+
+        # Check if track_record exists and has data
+        if not hasattr(broker, "track_record") or len(broker.track_record) == 0:
+            logger.debug("Broker has no track_record or it's empty")
+            return None
+
+        # Extract NLV values from track_record
+        # Use context_post.nlv which is the portfolio value after each step
+        # Note: TrackRecord doesn't support slicing, must iterate
+        nlv_values = []
+        max_records = min(n_steps, len(broker.track_record))
+        for i in range(max_records):
+            record = broker.track_record[i]
+            if hasattr(record, "context_post") and hasattr(record.context_post, "nlv"):
+                nlv_values.append(float(record.context_post.nlv))
+            else:
+                logger.warning("Track record missing context_post.nlv")
+                return None
+
+        if len(nlv_values) < 2:
+            logger.debug(f"Insufficient NLV values: {len(nlv_values)}")
+            return None
+
+        # Calculate log returns from NLV changes
+        log_returns = []
+        for i in range(1, len(nlv_values)):
+            if nlv_values[i - 1] > 0 and nlv_values[i] > 0:
+                log_ret = np.log(nlv_values[i] / nlv_values[i - 1])
+                log_returns.append(log_ret)
+            else:
+                logger.warning(f"Invalid NLV values: {nlv_values[i-1]}, {nlv_values[i]}")
+                return None
+
+        # Prepend 0 for first step (no return yet)
+        log_returns = [0.0] + log_returns
+
+        # Return cumulative log returns
+        cumulative_returns = np.cumsum(log_returns)
+
+        logger.info(
+            f"Extracted {len(cumulative_returns)} actual returns from TradingEnv broker. "
+            f"Final return: {cumulative_returns[-1]:.6f}"
+        )
+
+        return cumulative_returns
+
+    except Exception as e:
+        logger.warning(f"Failed to extract TradingEnv returns: {e}")
+        return None
