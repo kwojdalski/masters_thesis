@@ -70,6 +70,36 @@ flowchart TD
 - **Delayed Policy Updates**: Actor updates happen less frequently than critic updates.
 - **Target Policy Smoothing**: Noise is added to target actions during critic updates for regularization.
 
+## Math Summary
+
+Let the actor be $\mu_\theta(s)$ and critics be $Q_{\phi_1}(s,a), Q_{\phi_2}(s,a)$. Target networks are $\mu_{\bar\theta}, Q_{\bar\phi_1}, Q_{\bar\phi_2}$.
+
+**Target policy smoothing**
+$$
+\tilde{a} = \mu_{\bar\theta}(s') + \epsilon,\quad \epsilon \sim \mathrm{clip}(\mathcal{N}(0,\sigma^2), -c, c)
+$$
+
+**Clipped double-Q target**
+$$
+y = r + \gamma (1-d)\, \min_{i=1,2} Q_{\bar\phi_i}(s', \tilde{a})
+$$
+
+**Critic loss (each critic)**
+$$
+L(\phi_i) = \mathbb{E}_{(s,a,r,s',d)\sim\mathcal{B}} \left( Q_{\phi_i}(s,a) - y \right)^2
+$$
+
+**Actor loss (delayed updates)**
+$$
+J(\theta) = - \mathbb{E}_{s\sim\mathcal{B}} \left[ Q_{\phi_1}(s, \mu_\theta(s)) \right]
+$$
+
+**Soft target updates**
+$$
+\bar\phi \leftarrow \tau \phi + (1-\tau)\bar\phi,\quad
+\bar\theta \leftarrow \tau \theta + (1-\tau)\bar\theta
+$$
+
 ## Components
 - **CLI + configs**: `training.algorithm: TD3` selects TD3 trainer and models.
 - **Models**: deterministic actor + critic; TD3Loss expands critic params to two critics.
