@@ -163,8 +163,8 @@ class PPOTrainer(BaseTrainer):
         curr_loss_entropy = loss_vals["loss_entropy"].item()
 
         logger.info(f"Max steps: {max_length}, Buffer size: {buffer_len}")
-        logger.info(f"PPO Actor loss: {curr_loss_actor:.4f}")
         logger.info(f"PPO Value loss: {curr_loss_value:.4f}")
+        logger.info(f"PPO Actor loss: {curr_loss_actor:.4f}")
         logger.info(f"PPO Entropy loss: {curr_loss_entropy:.4f}")
 
     def _evaluate(self) -> None:
@@ -199,6 +199,46 @@ class PPOTrainer(BaseTrainer):
 
     def _compute_exploration_ratio(self) -> float:
         return getattr(self.config, "entropy_bonus", 0.01)
+
+    def train(self, callback=None) -> dict[str, list]:
+        """Run training loop for PPO agent."""
+        import time
+
+        logger.info("Starting PPO training")
+        t0 = time.time()
+        self.callback = callback
+        self._log_step_offset = max(
+            len(self.logs.get("loss_actor", [])),
+            len(self.logs.get("loss_value", [])),
+        )
+
+        for i, data in enumerate(self.collector):
+            self.replay_buffer.extend(data)
+
+            max_length = self.replay_buffer[:]["next", "step_count"].max()
+            buffer_len = len(self.replay_buffer)
+
+            if buffer_len > self.config.init_rand_steps:
+                self._optimization_step(i, max_length, buffer_len)
+
+            self.total_count += data.numel()
+            self.total_episodes += data["next", "done"].sum()
+            self._maybe_save_checkpoint()
+
+            if callback and hasattr(callback, "log_episode_stats"):
+                self._log_episode_stats(data, callback)
+
+            if self.total_count >= self.config.max_steps:
+                logger.info(f"Training stopped after {self.config.max_steps} steps")
+                break
+
+        t1 = time.time()
+        logger.info(
+            f"PPO Training complete: {self.total_count} steps, "
+            f"{self.total_episodes} episodes, {t1 - t0:.2f}s"
+        )
+
+        return dict(self.logs)
 
     def save_checkpoint(self, path: str) -> None:
         """Save PPO training checkpoint.

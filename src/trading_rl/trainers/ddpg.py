@@ -200,8 +200,8 @@ class DDPGTrainer(BaseTrainer):
         curr_loss_actor = loss_vals["loss_actor"].item()
 
         logger.info(f"Max steps: {max_length}, Buffer size: {buffer_len}")
-        logger.info(f"Loss value: {curr_loss_value:.4f}")
-        logger.info(f"Loss actor: {curr_loss_actor:.4f}")
+        logger.info(f"DDPG Value loss: {curr_loss_value:.4f}")
+        logger.info(f"DDPG Actor loss: {curr_loss_actor:.4f}")
 
     def _evaluate(self) -> None:
         """Evaluate current policy."""
@@ -218,9 +218,9 @@ class DDPGTrainer(BaseTrainer):
             self.logs["eval_step_count"].append(max_steps)
 
             logger.info(
-                f"Eval - Mean reward: {mean_reward:.4f}, "
-                f"Sum reward: {sum_reward:.4f}, "
-                f"Max steps: {max_steps}"
+                f"\033[92mDDPG Eval\033[0m - \033[93mMean reward:\033[0m {mean_reward:.4f}, "
+                f"\033[93mSum reward:\033[0m {sum_reward:.4f}, "
+                f"\033[93mMax steps:\033[0m {max_steps}"
             )
 
             del eval_rollout
