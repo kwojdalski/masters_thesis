@@ -45,6 +45,7 @@ training:
 
   # Learning rates - CRITICAL: Reduced for stability
   actor_lr: 0.0001  # Reduced from 0.0003 to prevent Q-value explosions
+  actor_weight_decay: 0
   value_lr: 0.0001  # Reduced from 0.0003 for more conservative updates
   value_weight_decay: 0.00001
 
