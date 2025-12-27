@@ -82,14 +82,6 @@ flowchart TD
 - Target policy smoothing via `policy_noise` and `noise_clip`.
 - Soft-update target params with `tau`.
 
-## Suggested Hyperparameters
-- `policy_noise`: 0.2 (relative to action scale)
-- `noise_clip`: 0.5
-- `delay_actor`: True (actor every 2 critic steps)
-- `gamma`: 0.99
-- `tau`: 0.005–0.01
-- Replay buffer: 1e5–1e6 transitions; batch 64–256
-
 ## Integration Notes
 - The existing `BaseTrainer` in `src/trading_rl/training.py` handles collection, replay, and logging; a `TD3Trainer` can reuse it similarly to `DDPGTrainer`/`PPOTrainer`.
 - Ensure the environment exposes continuous actions (or a discretized wrapper is provided).
