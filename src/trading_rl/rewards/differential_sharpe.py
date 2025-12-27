@@ -23,11 +23,12 @@ class DifferentialSharpeRatio(AbstractReward):
     Sharpe ratio's derivative, providing a stationary reward signal suitable for RL.
 
     Formula:
-        DSR_t = (A_t * ΔR_t - B_t * R_t) / (A_t^1.5 + ε)
+        DSR_t = (A_t * ΔR_t - B_t * R_t) / ((A_t - B_t^2)^1.5 + ε)
 
         where:
         - A_t = (1 - η) * A_{t-1} + η * R_t^2  (EMA of squared returns)
         - B_t = (1 - η) * B_{t-1} + η * R_t    (EMA of returns)
+        - Var_t = A_t - B_t^2                   (variance estimate)
         - ΔR_t = R_t - B_{t-1}                  (return minus previous mean)
         - R_t = log(V_t / V_{t-1})              (log return of portfolio value)
         - η = learning rate (typically 0.001 to 0.1)
@@ -104,8 +105,10 @@ class DifferentialSharpeRatio(AbstractReward):
         self.B_t = (1 - self.eta) * self.B_t + self.eta * R_t
 
         # Calculate DSR
-        # Note: A_t approximates variance, so A_t^1.5 scales with std^3
-        denominator = self.A_t ** 1.5 + self.epsilon
+        # Variance = A_t - B_t^2 (second moment minus squared first moment)
+        # DSR denominator is variance^1.5 for proper Sharpe ratio scaling
+        variance = self.A_t - self.B_t ** 2
+        denominator = variance ** 1.5 + self.epsilon
         dsr = (self.A_t * delta_R - self.B_t * R_t) / denominator
 
         # Update previous NLV for next step
