@@ -363,13 +363,18 @@ def run_single_experiment(
     eval_max_steps = min(
         config.training.eval_steps, len(df) - 1, config.data.train_size - 1
     )  # Use the smallest of: eval_steps, actual data size, or train_size
-    reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
-        trainer.evaluate(
-            df[: config.data.train_size],  # Pass only the training portion
-            max_steps=eval_max_steps,
-            config=config,
-            algorithm=algorithm,
-        )
+    (
+        reward_plot,
+        action_plot,
+        action_probs_plot,
+        final_reward,
+        last_positions,
+        actual_returns_plot,
+    ) = trainer.evaluate(
+        df[: config.data.train_size],  # Pass only the training portion
+        max_steps=eval_max_steps,
+        config=config,
+        algorithm=algorithm,
     )
 
     # Save evaluation plots as MLflow artifacts
@@ -377,6 +382,7 @@ def run_single_experiment(
         reward_plot=reward_plot,
         action_plot=action_plot,
         action_probs_plot=action_probs_plot,
+        actual_returns_plot=actual_returns_plot,
         logs=logs,
     )
 
