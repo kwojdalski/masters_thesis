@@ -10,6 +10,7 @@ from pathlib import Path
 
 import mlflow
 import numpy as np
+import torch
 import yaml
 
 from logger import get_logger as get_project_logger
@@ -119,7 +120,10 @@ class MLflowTrainingCallback:
         )
 
         # Log episode metrics to MLflow
-        episode_num = self._episode_count + len(self.training_stats["episode_rewards"])
+        episode_base = self._episode_count
+        if isinstance(episode_base, torch.Tensor):
+            episode_base = int(episode_base.item())
+        episode_num = int(episode_base) + len(self.training_stats["episode_rewards"])
         mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
         mlflow.log_metric(
             "episode_portfolio_valuation", portfolio_valuation, step=episode_num

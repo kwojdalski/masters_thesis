@@ -225,6 +225,12 @@ class TrainingCommand(BaseCommand):
         logger.info("Starting training...")
         resume_run_id = None
 
+        def _episode_count_value() -> int:
+            total = trainer.total_episodes
+            if hasattr(total, "item"):
+                return int(total.item())
+            return int(total)
+
         def _log_resume_artifacts() -> None:
             """Log config/data artifacts during resume when a run is active."""
             if not mlflow.active_run():
@@ -251,7 +257,7 @@ class TrainingCommand(BaseCommand):
                 price_series=df["close"][: config.data.train_size],
                 start_run=False,
             )
-            mlflow_callback._episode_count = trainer.total_episodes
+            mlflow_callback._episode_count = _episode_count_value()
             _log_resume_artifacts()
             logs = trainer.train(callback=mlflow_callback)
             checkpoint_path = (
@@ -276,7 +282,7 @@ class TrainingCommand(BaseCommand):
                     price_series=df["close"][: config.data.train_size],
                     start_run=False,
                 )
-                mlflow_callback._episode_count = trainer.total_episodes
+                mlflow_callback._episode_count = _episode_count_value()
                 _log_resume_artifacts()
                 logs = trainer.train(callback=mlflow_callback)
                 checkpoint_path = (
@@ -302,7 +308,7 @@ class TrainingCommand(BaseCommand):
                     price_series=df["close"][: config.data.train_size],
                     start_run=False,
                 )
-                mlflow_callback._episode_count = trainer.total_episodes
+                mlflow_callback._episode_count = _episode_count_value()
                 _log_resume_artifacts()
                 logs = trainer.train(callback=mlflow_callback)
                 checkpoint_path = (
@@ -329,7 +335,7 @@ class TrainingCommand(BaseCommand):
                     price_series=df["close"][: config.data.train_size],
                     start_run=False,
                 )
-                mlflow_callback._episode_count = trainer.total_episodes
+                mlflow_callback._episode_count = _episode_count_value()
                 _log_resume_artifacts()
                 logs = trainer.train(callback=mlflow_callback)
                 checkpoint_path = (
