@@ -204,6 +204,9 @@ def build_training_context(
         no_features=getattr(config.data, "no_features", False),
     )
 
+    if logger.isEnabledFor(logging.INFO):
+        logger.info("\033[95mTraining data head:\n%s\033[0m", df.head())
+
     logger.debug(f"Data loaded - shape: {df.shape}, columns: {list(df.columns)}")
 
     if logger.isEnabledFor(logging.DEBUG):
