@@ -145,6 +145,9 @@ def setup_logging(
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
     root_logger.setLevel(numeric_level)
+    # Silence noisy asyncio selector debug output on macOS
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    logging.getLogger("selectors").setLevel(logging.WARNING)
 
     if log_regex is None:
         log_regex = os.environ.get("LOG_REGEX")
