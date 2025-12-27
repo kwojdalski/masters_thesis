@@ -48,6 +48,10 @@ class EnvConfig:
         None  # Columns to use as features/observations (for tradingenv backend)
     )
 
+    # Reward function configuration (for tradingenv backend)
+    reward_type: str = "log_return"  # Reward type: "log_return" or "differential_sharpe"
+    reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")
+
 
 @dataclass
 class NetworkConfig:
@@ -310,6 +314,8 @@ class ExperimentConfig:
                     if self.env.feature_columns is not None
                     else {}
                 ),
+                "reward_type": self.env.reward_type,
+                "reward_eta": self.env.reward_eta,
             },
             "network": {
                 "actor_hidden_dims": self.network.actor_hidden_dims,

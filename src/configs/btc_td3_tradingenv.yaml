@@ -31,6 +31,10 @@ env:
   price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
   feature_columns: ["feature_return", "feature_high", "feature_low", "feature_volume"]  # Normalized features including log-normalized volume
 
+  # Reward function configuration
+  reward_type: "differential_sharpe"  # Use Differential Sharpe Ratio for risk-adjusted rewards
+  reward_eta: 0.01  # Learning rate for DSR exponential moving averages (0.001 to 0.1)
+
   # Note: positions parameter is not used with tradingenv backend
   # Actions are continuous portfolio weights instead of discrete positions
 

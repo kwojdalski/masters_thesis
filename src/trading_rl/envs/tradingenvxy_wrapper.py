@@ -19,6 +19,7 @@ from tradingenv.spaces import BoxPortfolio
 from logger import get_logger
 from trading_rl.config import ExperimentConfig
 from trading_rl.envs.trading_envs import BaseTradingEnvironmentFactory
+from trading_rl.rewards import DifferentialSharpeRatio
 
 logger = get_logger(__name__)
 
@@ -136,15 +137,34 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         # Extract environment parameters from config if available
         initial_cash = 10000
         fee = 0.0
+        reward_type = "log_return"
+        reward_eta = 0.01
         if config is not None:
             env_config = getattr(config, "env", None)
             if env_config is not None:
                 initial_cash = getattr(env_config, "cash", 10000)
                 fee = getattr(env_config, "trading_fees", 0.0)
+                reward_type = getattr(env_config, "reward_type", "log_return")
+                reward_eta = getattr(env_config, "reward_eta", 0.01)
 
         # Override with explicit kwargs
         initial_cash = kwargs.pop("cash", initial_cash)
         fee = kwargs.pop("fee", fee)
+        reward_type = kwargs.pop("reward_type", reward_type)
+        reward_eta = kwargs.pop("reward_eta", reward_eta)
+
+        # Create reward function based on configuration
+        if reward_type == "differential_sharpe":
+            reward = DifferentialSharpeRatio(eta=reward_eta)
+            logger.info(f"Using Differential Sharpe Ratio reward with eta={reward_eta}")
+        elif reward_type == "log_return":
+            reward = LogReturn()
+            logger.info("Using LogReturn reward")
+        else:
+            raise ValueError(
+                f"Unknown reward type: {reward_type}. "
+                "Supported types: 'log_return', 'differential_sharpe'"
+            )
 
         logger.info(
             "Creating TradingEnv environment",
@@ -154,6 +174,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
                 "price_columns": price_columns,
                 "initial_cash": initial_cash,
                 "fee": fee,
+                "reward_type": reward_type,
             },
         )
 
@@ -183,7 +204,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         env = TradingEnv(
             action_space=action_space,
             state=features,
-            reward=LogReturn(),
+            reward=reward,
             prices=prices,
             initial_cash=initial_cash,
             broker_fees=broker_fees,

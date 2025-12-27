@@ -33,6 +33,10 @@ env:
   # feature_trend: price relative to start, min-max scaled to [0,1] (preserves upward trend!)
   feature_columns: [ "feature_trend"]
 # "feature_return",
+
+  # Reward function configuration
+  reward_type: "log_return"  # Use log return for upward trend test
+  reward_eta: 0.01  # Not used for log_return
 # Network Architecture
 network:
   actor_hidden_dims: [128, 64]  # Larger for better function approximation
