@@ -466,6 +466,7 @@ class TD3Trainer(BaseTrainer):
 
             self.total_count += data.numel()
             self.total_episodes += data["next", "done"].sum()
+            # logger.debug("AAAA: %s", self.total_episodes)
             self._maybe_save_checkpoint()
 
             if callback and hasattr(callback, "log_episode_stats"):
@@ -568,8 +569,9 @@ class TD3Trainer(BaseTrainer):
         return getattr(self.config, "policy_noise", 0.2)
 
     def save_checkpoint(self, path: str) -> None:
-        import mlflow
         from pathlib import Path
+
+        import mlflow
 
         run = mlflow.active_run()
         tracking_uri = mlflow.get_tracking_uri()
@@ -587,6 +589,11 @@ class TD3Trainer(BaseTrainer):
             "optimizer_value_state_dict": self.optimizer_value.state_dict(),
             "total_count": self.total_count,
             "total_episodes": self.total_episodes,
+            "episode_log_count": (
+                int(self.logs.get("episode_log_count", [0])[-1])
+                if self.logs.get("episode_log_count")
+                else 0
+            ),
             "logs": dict(self.logs),
             "mlflow_run_id": run.info.run_id if run else None,
             "mlflow_run_name": run_name,
@@ -626,9 +633,7 @@ class TD3Trainer(BaseTrainer):
 
         checkpoint = torch.load(path, weights_only=False)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(
-                "TD3 checkpoint keys: %s", sorted(checkpoint.keys())
-            )
+            logger.debug("TD3 checkpoint keys: %s", sorted(checkpoint.keys()))
 
         # Restore functional params and sync modules
         if "actor_params_state" in checkpoint:
@@ -690,7 +695,9 @@ class TD3Trainer(BaseTrainer):
                         "Failed to load replay buffer from %s", buffer_path
                     )
             else:
-                logger.info("No replay buffer in checkpoint - starting with empty buffer")
+                logger.info(
+                    "No replay buffer in checkpoint - starting with empty buffer"
+                )
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(

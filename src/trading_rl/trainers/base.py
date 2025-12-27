@@ -159,6 +159,7 @@ class BaseTrainer(ABC):
             callback._episode_count += 1
         else:
             callback._episode_count = 1
+        self.logs["episode_log_count"].append(int(callback._episode_count))
 
         # Calculate returns
         # Portfolio return is the episode cumulative log return expressed in percent

@@ -28,9 +28,7 @@ class TrainingCommand(BaseCommand):
     def execute(self, params: TrainingParams) -> None:
         """Execute single training run."""
         try:
-            if (
-                (params.from_checkpoint and params.from_last_checkpoint)
-            ):
+            if params.from_checkpoint and params.from_last_checkpoint:
                 raise ValueError(
                     "Use only one of --from-checkpoint or --from-last-checkpoint."
                 )
@@ -182,10 +180,10 @@ class TrainingCommand(BaseCommand):
         logger.info(f"Loading checkpoint from {params.checkpoint_path}...")
         trainer.load_checkpoint(str(params.checkpoint_path))
         original_steps = trainer.total_count
-        if trainer.total_episodes == 0:
-            raise ValueError(
-                "Checkpoint has total_episodes=0; episode metrics will reset on resume."
-            )
+        # if trainer.total_episodes == 0:
+        # raise ValueError(
+        #     f"Checkpoint has total_episodes={trainer.total_episodes}; episode metrics will reset on resume."
+        # )
         logger.info(f"Checkpoint loaded! Resuming from step {original_steps}")
         self.console.print(
             f"[green]Checkpoint loaded! Resuming from step {original_steps}[/green]"
@@ -230,6 +228,13 @@ class TrainingCommand(BaseCommand):
         resume_run_id = None
 
         def _episode_count_value() -> int:
+            logged = (
+                trainer.logs.get("episode_log_count")
+                if hasattr(trainer, "logs")
+                else None
+            )
+            if logged:
+                return int(logged[-1])
             total = trainer.total_episodes
             if hasattr(total, "item"):
                 return int(total.item())
@@ -361,13 +366,17 @@ class TrainingCommand(BaseCommand):
             )
             logger.debug(f"Evaluation max_steps: {eval_max_steps}")
 
-            reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
-                trainer.evaluate(
-                    df[: config.data.train_size],
-                    max_steps=eval_max_steps,
-                    config=config,
-                    algorithm=algorithm,
-                )
+            (
+                reward_plot,
+                action_plot,
+                action_probs_plot,
+                final_reward,
+                last_positions,
+            ) = trainer.evaluate(
+                df[: config.data.train_size],
+                max_steps=eval_max_steps,
+                config=config,
+                algorithm=algorithm,
             )
 
             # Log evaluation plots to MLflow
