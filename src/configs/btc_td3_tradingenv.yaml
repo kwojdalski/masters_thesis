@@ -25,11 +25,11 @@ env:
   backend: "tradingenv"
 
   # Transaction costs
-  trading_fees: 0.000  # 0.1% proportional fee (typical for crypto exchanges)
+  trading_fees: 0.00035  # 0.1% proportional fee (typical for crypto exchanges)
 
   # Column specifications - IMPORTANT: price_columns must contain only positive values
   price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
-  feature_columns: ["feature_return", "feature_high", "feature_low"]  # Normalized features (removed redundant feature_pct_chng)
+  feature_columns: ["feature_return", "feature_high", "feature_low", "feature_volume"]  # Normalized features including log-normalized volume
 
   # Note: positions parameter is not used with tradingenv backend
   # Actions are continuous portfolio weights instead of discrete positions
@@ -62,12 +62,12 @@ training:
 
   # TD3-specific parameters
   tau: 0.001  # CRITICAL: Slower target updates (was 0.005) for more stable targets
-  policy_noise: 0.1  # CRITICAL: Further reduced (was 0.05) for cleaner learning signal
+  policy_noise: 0.2  # CRITICAL: Further reduced (was 0.05) for cleaner learning signal
   noise_clip: 0.3  # Reduced from 0.5 - tighter noise bounds
   policy_delay: 2  # Frequency of delayed policy updates
   delay_actor: true  # Enable delayed actor updates
   delay_qvalue: true  # Enable delayed Q-value updates
-  exploration_noise_std: 0.1  # CRITICAL: Reduced from 0.05 for less random exploration
+  exploration_noise_std: 0.2  # CRITICAL: Reduced from 0.05 for less random exploration
 
 
   # Loss function
