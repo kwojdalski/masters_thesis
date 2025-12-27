@@ -664,6 +664,7 @@ class MLflowTrainingCallback:
         reward_plot,
         action_plot,
         action_probs_plot=None,
+        actual_returns_plot=None,
         logs=None,
     ) -> None:
         """Save evaluation/training plots as MLflow artifacts."""
@@ -765,6 +766,20 @@ class MLflowTrainingCallback:
                 )
             else:
                 logger.info("Action probability plot missing; skipping that artifact")
+
+            # Save actual returns plot (always present, shows true dollar returns)
+            if actual_returns_plot is not None:
+                _save_plot_as_artifact(
+                    actual_returns_plot,
+                    f"{timestamp}_actual_returns.png",
+                    "actual_returns",
+                    "evaluation_plots",
+                    logger,
+                    width=16,  # Larger for saved files
+                    height=10,  # Larger for saved files
+                )
+            else:
+                logger.warning("Actual returns plot missing; skipping that artifact")
 
             # Create and save training loss plots
             if logs and (logs.get("loss_value") or logs.get("loss_actor")):

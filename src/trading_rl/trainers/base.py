@@ -233,7 +233,7 @@ class BaseTrainer(ABC):
         import pandas as pd
         from plotnine import aes, geom_line, ggplot, labs, scale_color_manual
 
-        from trading_rl.utils import compare_rollouts
+        from trading_rl.utils import compare_rollouts, create_actual_returns_plot
 
         logger = get_logger(__name__)
 
@@ -264,6 +264,13 @@ class BaseTrainer(ABC):
             [rollout_deterministic, rollout_random],
             n_obs=max_steps,
             is_portfolio=is_portfolio,
+        )
+
+        # Create actual returns plot (separate from training rewards)
+        actual_returns_plot = create_actual_returns_plot(
+            [rollout_deterministic, rollout_random],
+            n_obs=max_steps,
+            df_prices=df,
         )
 
         # Benchmarks
@@ -333,7 +340,14 @@ class BaseTrainer(ABC):
             )
             last_positions = [int(a) - 1 for a in actions_flat] if actions_flat else []
 
-        return reward_plot, action_plot, None, final_reward, last_positions
+        return (
+            reward_plot,
+            action_plot,
+            None,
+            final_reward,
+            last_positions,
+            actual_returns_plot,
+        )
 
     def train(self, callback=None) -> dict[str, list]:
         """Run training loop for RL agent."""

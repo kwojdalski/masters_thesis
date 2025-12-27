@@ -135,7 +135,7 @@ class TD3Trainer(BaseTrainer):
         import pandas as pd
         from plotnine import aes, geom_line, ggplot, labs, scale_color_manual
 
-        from trading_rl.utils import compare_rollouts
+        from trading_rl.utils import compare_rollouts, create_actual_returns_plot
 
         logger = get_logger(__name__)
 
@@ -154,6 +154,13 @@ class TD3Trainer(BaseTrainer):
         reward_plot, action_plot = compare_rollouts(
             [rollout_deterministic, rollout_random],
             n_obs=max_steps,
+        )
+
+        # Create actual returns plot (separate from training rewards)
+        actual_returns_plot = create_actual_returns_plot(
+            [rollout_deterministic, rollout_random],
+            n_obs=max_steps,
+            df_prices=df,
         )
 
         benchmark_df = pd.DataFrame(
@@ -210,7 +217,14 @@ class TD3Trainer(BaseTrainer):
         actions = actions.flatten().tolist() if hasattr(actions, "flatten") else []
         last_positions = [float(a) for a in actions] if actions else []
 
-        return reward_plot, action_plot, None, final_reward, last_positions
+        return (
+            reward_plot,
+            action_plot,
+            None,
+            final_reward,
+            last_positions,
+            actual_returns_plot,
+        )
 
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):

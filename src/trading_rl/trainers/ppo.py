@@ -319,13 +319,25 @@ class PPOTrainer(BaseTrainer):
         )
 
     def evaluate(self, df, max_steps: int, config=None, algorithm: str | None = None):
-        reward_plot, action_plot, _, final_reward, last_positions = super().evaluate(
-            df, max_steps, config=config, algorithm=algorithm
-        )
+        (
+            reward_plot,
+            action_plot,
+            _,
+            final_reward,
+            last_positions,
+            actual_returns_plot,
+        ) = super().evaluate(df, max_steps, config=config, algorithm=algorithm)
         action_probs_plot = self.create_action_probabilities_plot(
             max_steps=max_steps, df=df, config=config
         )
-        return reward_plot, action_plot, action_probs_plot, final_reward, last_positions
+        return (
+            reward_plot,
+            action_plot,
+            action_probs_plot,
+            final_reward,
+            last_positions,
+            actual_returns_plot,
+        )
 
     @staticmethod
     def _build_action_probabilities_plot(env, actor, max_steps, df=None, config=None):
