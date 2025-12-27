@@ -46,10 +46,10 @@ training:
   # Learning rates - CRITICAL: Reduced for stability
   actor_lr: 0.0001  # Reduced from 0.0003 to prevent Q-value explosions
   value_lr: 0.0001  # Reduced from 0.0003 for more conservative updates
-  value_weight_decay: 0.00001
-
+  value_weight_decay: 0.000002
+  actor_weight_decay: 0.000002
   # Training loop
-  max_steps: 250000  # Increased for real market data (noisier than synthetic)
+  max_steps: 5000000  # Increased for real market data (noisier than synthetic)
   init_rand_steps: 5000  # CRITICAL: 5% of max_steps for diverse exploration of real market conditions
   frames_per_batch: 200
   optim_steps_per_batch: 5  # CRITICAL: Prevents overfitting to small batches
@@ -62,12 +62,12 @@ training:
 
   # TD3-specific parameters
   tau: 0.001  # CRITICAL: Slower target updates (was 0.005) for more stable targets
-  policy_noise: 0.02  # CRITICAL: Further reduced (was 0.05) for cleaner learning signal
+  policy_noise: 0.1  # CRITICAL: Further reduced (was 0.05) for cleaner learning signal
   noise_clip: 0.3  # Reduced from 0.5 - tighter noise bounds
   policy_delay: 2  # Frequency of delayed policy updates
   delay_actor: true  # Enable delayed actor updates
   delay_qvalue: true  # Enable delayed Q-value updates
-  exploration_noise_std: 0.02  # CRITICAL: Reduced from 0.05 for less random exploration
+  exploration_noise_std: 0.1  # CRITICAL: Reduced from 0.05 for less random exploration
 
 
   # Loss function

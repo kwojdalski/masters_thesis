@@ -29,6 +29,7 @@ network:
 training:
   algorithm: "DDPG"
   actor_lr: 0.0005
+  actor_weight_decay: 0
   value_lr: 0.002
   value_weight_decay: 0.005
   max_steps: 10000
