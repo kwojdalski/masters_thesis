@@ -561,9 +561,9 @@ class TD3Trainer(BaseTrainer):
                     )
 
             logger.info(
-                f"TD3 Eval - Mean reward: {mean_reward:.4f}, "
-                f"Sum reward: {sum_reward:.4f}, "
-                f"Max steps: {max_steps}"
+                f"\033[92mTD3 Eval\033[0m - \033[93mMean reward:\033[0m {mean_reward:.4f}, "
+                f"\033[93mSum reward:\033[0m {sum_reward:.4f}, "
+                f"\033[93mMax steps:\033[0m {max_steps}"
             )
 
             del eval_rollout
@@ -711,4 +711,4 @@ class TD3Trainer(BaseTrainer):
                 self.mlflow_run_name,
                 self.mlflow_experiment_name,
             )
-        logger.info(f"TD3 checkpoint loaded from {path}")
+        logger.info(f"\033[95mTD3 checkpoint loaded from {path}\033[0m")
