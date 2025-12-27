@@ -25,7 +25,7 @@ env:
   backend: "tradingenv"
 
   # Transaction costs
-  trading_fees: 0.001  # 0.1% proportional fee (typical for crypto exchanges)
+  trading_fees: 0.000  # 0.1% proportional fee (typical for crypto exchanges)
 
   # Column specifications - IMPORTANT: price_columns must contain only positive values
   price_columns: ["close"]  # Columns to use as asset prices (OHLC data)

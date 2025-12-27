@@ -221,6 +221,11 @@ class PPOTrainer(BaseTrainer):
             "optimizer_state_dict": self.optimizer.state_dict(),
             "total_count": self.total_count,
             "total_episodes": self.total_episodes,
+            "episode_log_count": (
+                int(self.logs.get("episode_log_count", [0])[-1])
+                if self.logs.get("episode_log_count")
+                else 0
+            ),
             "logs": dict(self.logs),
             "mlflow_run_id": run.info.run_id if run else None,
             "mlflow_run_name": run_name,
