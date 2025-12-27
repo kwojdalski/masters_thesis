@@ -394,12 +394,11 @@ class TrainingCommand(BaseCommand):
             final_metrics = {
                 "final_reward": final_reward,
                 "training_steps": trainer.total_count,
-                "evaluation_steps": eval_max_steps,
-                (
-                    "portfolio_weights"
-                    if is_portfolio_backend
-                    else "last_position_per_episode"
-                ): last_positions,
+            (
+                "portfolio_weights"
+                if is_portfolio_backend
+                else "last_position_per_episode"
+            ): last_positions,
                 "data_start_date": str(df.index[0]) if not df.empty else "unknown",
                 "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
                 "data_size": len(df),
