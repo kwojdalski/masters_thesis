@@ -4,6 +4,7 @@ import contextlib
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -16,7 +17,6 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
-from pathlib import Path
 from trading_rl.config import TrainingConfig
 
 
@@ -285,7 +285,11 @@ class BaseTrainer(ABC):
             benchmark_data.extend(
                 [
                     {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
-                    {"Steps": step, "Cumulative_Reward": mp_val, "Run": "Max Profit"},
+                    {
+                        "Steps": step,
+                        "Cumulative_Reward": mp_val,
+                        "Run": "Max Profit (Unleveraged)",
+                    },
                 ]
             )
         existing_data = reward_plot.data
@@ -303,7 +307,7 @@ class BaseTrainer(ABC):
                     "Deterministic": "#F8766D",
                     "Random": "#00BFC4",
                     "Buy-and-Hold": "violet",
-                    "Max Profit": "green",
+                    "Max Profit (Unleveraged)": "green",
                 }
             )
         )
@@ -324,7 +328,9 @@ class BaseTrainer(ABC):
                 last_positions = actions.flatten().tolist()
         else:
             # Store discrete positions (e.g., [-1, 0, 1])
-            actions_flat = actions.flatten().tolist() if hasattr(actions, "flatten") else []
+            actions_flat = (
+                actions.flatten().tolist() if hasattr(actions, "flatten") else []
+            )
             last_positions = [int(a) - 1 for a in actions_flat] if actions_flat else []
 
         return reward_plot, action_plot, None, final_reward, last_positions

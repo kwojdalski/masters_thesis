@@ -173,7 +173,11 @@ class TD3Trainer(BaseTrainer):
             benchmark_data.extend(
                 [
                     {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
-                    {"Steps": step, "Cumulative_Reward": mp_val, "Run": "Max Profit"},
+                    {
+                        "Steps": step,
+                        "Cumulative_Reward": mp_val,
+                        "Run": "Max Profit (Unleveraged)",
+                    },
                 ]
             )
         existing_data = reward_plot.data
@@ -191,7 +195,7 @@ class TD3Trainer(BaseTrainer):
                     "Deterministic": "#F8766D",
                     "Random": "#00BFC4",
                     "Buy-and-Hold": "violet",
-                    "Max Profit": "green",
+                    "Max Profit (Unleveraged)": "green",
                 }
             )
         )
@@ -466,7 +470,6 @@ class TD3Trainer(BaseTrainer):
 
             self.total_count += data.numel()
             self.total_episodes += data["next", "done"].sum()
-            # logger.debug("AAAA: %s", self.total_episodes)
             self._maybe_save_checkpoint()
 
             if callback and hasattr(callback, "log_episode_stats"):
