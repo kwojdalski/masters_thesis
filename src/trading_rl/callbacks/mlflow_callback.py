@@ -35,6 +35,7 @@ class MLflowTrainingCallback:
         start_run: bool = True,
     ):
         self.step_count = 0
+        self._episode_count = 0
         self.intermediate_losses = {"actor": [], "value": []}
         self.position_change_counts: list[int] = []
         self.training_stats = {
@@ -118,7 +119,7 @@ class MLflowTrainingCallback:
         )
 
         # Log episode metrics to MLflow
-        episode_num = len(self.training_stats["episode_rewards"])
+        episode_num = self._episode_count + len(self.training_stats["episode_rewards"])
         mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
         mlflow.log_metric(
             "episode_portfolio_valuation", portfolio_valuation, step=episode_num
