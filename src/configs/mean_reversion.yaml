@@ -22,6 +22,10 @@ env:
   borrow_interest_rate: 0.0
   backend: "gym_anytrading.forex"
 
+  # Reward function configuration
+  reward_type: "log_return"  # Options: "log_return", "differential_sharpe"
+  reward_eta: 0.01  # DSR learning rate (only used when reward_type="differential_sharpe")
+
 network:
   actor_hidden_dims: [48, 24]
   value_hidden_dims: [48, 24, 12]

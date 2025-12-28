@@ -34,6 +34,10 @@ env:
   # Note: positions parameter is not used with tradingenv backend
   # Actions are continuous portfolio weights instead of discrete positions
 
+  # Reward function configuration
+  reward_type: "log_return"  # Options: "log_return", "differential_sharpe"
+  reward_eta: 0.01  # DSR learning rate (only used when reward_type="differential_sharpe")
+
 # Network Architecture
 network:
   actor_hidden_dims: [128, 64]  # Larger network for better pattern learning (was [64, 32])

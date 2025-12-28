@@ -16,13 +16,17 @@ data:
   train_size: 450  # Hold back last 50 steps for evaluation
   no_features: false  # Use feature engineering
 
-# Environment Configuration  
+# Environment Configuration
 env:
   name: "UPTREND"
   positions: [0, 1]  # Short, hold, long
   trading_fees: 0.0  # No fees for synthetic validation
   borrow_interest_rate: 0.0
   backend: "gym_anytrading.forex"
+
+  # Reward function configuration
+  reward_type: "log_return"  # Options: "log_return", "differential_sharpe"
+  reward_eta: 0.01  # DSR learning rate (only used when reward_type="differential_sharpe")
 
 # Network Architecture - Lightweight for simple monotonic trend
 network:

@@ -25,6 +25,10 @@ env:
   price_columns: ["close"]
   feature_columns: ["feature_return", "feature_trend"]
 
+  # Reward function configuration
+  reward_type: "log_return"  # Options: "log_return", "differential_sharpe"
+  reward_eta: 0.01  # DSR learning rate (only used when reward_type="differential_sharpe")
+
 # Network Architecture
 network:
   actor_hidden_dims: [128, 64]
