@@ -208,8 +208,11 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
 class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
     """Factory for forex-v0 environments."""
 
+    def __init__(self, config: ExperimentConfig | None = None):
+        self.config = config
+
     def make(self, df: pd.DataFrame | None = None, **kwargs) -> TransformedEnv:
-        """Create forex trading environment."""
+        """Create forex trading environment with optional DSR reward."""
         env_kwargs = kwargs.copy()
         if df is not None:
             # Map lowercase columns to Capitalized for gym-anytrading
@@ -224,6 +227,23 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
             env_kwargs["df"] = df
 
         base_env = gym.make("forex-v0", **env_kwargs)
+
+        # Apply DSR wrapper if configured
+        if self.config is not None:
+            reward_type = getattr(self.config.env, "reward_type", "log_return")
+            if reward_type == "differential_sharpe":
+                from trading_rl.rewards.dsr_wrapper import (
+                    DifferentialSharpeRatioAnyTrading,
+                    StatefulRewardWrapper,
+                )
+
+                reward_eta = getattr(self.config.env, "reward_eta", 0.01)
+                dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta)
+                base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
+                logger.info(
+                    f"Applied DSR reward to forex-v0 environment (eta={reward_eta})"
+                )
+
         base_env = DiscreteActionWrapper(base_env)
         env = GymWrapper(base_env)
         env = self._wrap_with_step_counter(env)
@@ -235,8 +255,11 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
 class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
     """Factory for stocks-v0 environments."""
 
+    def __init__(self, config: ExperimentConfig | None = None):
+        self.config = config
+
     def make(self, df: pd.DataFrame | None = None, **kwargs) -> TransformedEnv:
-        """Create stocks trading environment."""
+        """Create stocks trading environment with optional DSR reward."""
         env_kwargs = kwargs.copy()
         if df is not None:
             # Map lowercase columns to Capitalized for gym-anytrading
@@ -251,6 +274,23 @@ class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
             env_kwargs["df"] = df
 
         base_env = gym.make("stocks-v0", **env_kwargs)
+
+        # Apply DSR wrapper if configured
+        if self.config is not None:
+            reward_type = getattr(self.config.env, "reward_type", "log_return")
+            if reward_type == "differential_sharpe":
+                from trading_rl.rewards.dsr_wrapper import (
+                    DifferentialSharpeRatioAnyTrading,
+                    StatefulRewardWrapper,
+                )
+
+                reward_eta = getattr(self.config.env, "reward_eta", 0.01)
+                dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta)
+                base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
+                logger.info(
+                    f"Applied DSR reward to stocks-v0 environment (eta={reward_eta})"
+                )
+
         base_env = DiscreteActionWrapper(base_env)
         env = GymWrapper(base_env)
         env = self._wrap_with_step_counter(env)
@@ -265,18 +305,18 @@ def get_environment_factory(
     """Factory function to get the appropriate environment factory based on backend."""
     validate_backend(backend, log_backend=False)
 
+    config = kwargs.get("config")
+
     if backend in ["gym_trading_env.discrete", "gym_trading_env.continuous"]:
-        config = kwargs.get("config")
         return CustomTradingEnvironmentFactory(config)
     elif backend == "gym_anytrading.forex":
-        return ForexEnvironmentFactory()
+        return ForexEnvironmentFactory(config)
     elif backend == "gym_anytrading.stocks":
-        return StocksEnvironmentFactory()
+        return StocksEnvironmentFactory(config)
     elif backend == "tradingenv":
         # Import here to avoid circular dependency and keep it optional
         from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory
 
-        config = kwargs.get("config")
         return TradingEnvXYFactory(config)
     else:
         # This should not happen after validation, but keeping for safety
@@ -361,5 +401,6 @@ def create_environment(
             **kwargs,
         )
     else:
-        factory = get_environment_factory(backend, **kwargs)
+        # gym_anytrading backends (forex, stocks)
+        factory = get_environment_factory(backend, config=config, **kwargs)
         return factory.make(df, **kwargs)

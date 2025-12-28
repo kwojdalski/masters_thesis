@@ -1,0 +1,57 @@
+# Example: DQN with DSR reward on gym_anytrading forex environment
+#
+# This config demonstrates using Differential Sharpe Ratio (DSR) reward
+# with gym_anytrading's forex-v0 environment.
+#
+# Usage:
+#   python src/trading_rl/train_trading_agent.py --config configs/forex_dqn_dsr.yaml
+
+# Data Configuration
+data:
+  name: "btc"
+  train_size: 1000
+  window_size: 10
+
+# Environment Configuration
+env:
+  name: "forex-v0-dsr"
+  backend: "gym_anytrading.forex"  # Use gym_anytrading forex environment
+  positions: [0, 1]  # Binary actions: 0=short, 1=long
+  trading_fees: 0.001  # 0.1% trading fees
+  borrow_interest_rate: 0.0
+
+  # Reward function configuration
+  reward_type: "differential_sharpe"  # Use DSR instead of default log_return
+  reward_eta: 0.01  # DSR learning rate (controls EMA adaptation speed)
+
+# Network Architecture
+network:
+  actor_hidden_dims: [128, 64]
+  value_hidden_dims: [128, 64]
+
+# Training Configuration
+training:
+  algorithm: "dqn"
+  max_steps: 50000
+  frames_per_batch: 128
+  buffer_size: 10000
+  init_rand_steps: 1000
+  batch_size: 64
+  learning_rate: 0.0003
+  gamma: 0.99
+  device: "cpu"
+
+  # DQN-specific
+  eps_start: 1.0
+  eps_end: 0.05
+  eps_decay: 0.99
+  target_update_freq: 100
+
+  # Checkpointing
+  checkpoint_interval: 10000
+
+# MLflow Tracking
+mlflow:
+  experiment_name: "forex_dqn_dsr"
+  run_name: "forex_dqn_dsr_eta0.01"
+  tracking_uri: "mlruns"
