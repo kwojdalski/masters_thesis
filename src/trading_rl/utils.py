@@ -230,9 +230,38 @@ def create_actual_returns_plot(
             ]
         )
 
+    # Add benchmark series if price data is available
+    if df_prices is not None:
+        # Buy-and-Hold: cumulative log returns of holding the asset
+        buy_and_hold = (
+            np.log(df_prices["close"] / df_prices["close"].shift(1))
+            .fillna(0)
+            .cumsum()[:n_obs]
+        )
+
+        # Max Profit (Unleveraged): theoretical maximum with perfect foresight
+        max_profit = (
+            np.log(abs(df_prices["close"] / df_prices["close"].shift(1) - 1) + 1)
+            .fillna(0)
+            .cumsum()[:n_obs]
+        )
+
+        # Add benchmarks to data
+        for step, (bh_val, mp_val) in enumerate(zip(buy_and_hold, max_profit, strict=False)):
+            returns_data.extend(
+                [
+                    {"Steps": step, "Cumulative_Return": bh_val, "Run": "Buy-and-Hold"},
+                    {
+                        "Steps": step,
+                        "Cumulative_Return": mp_val,
+                        "Run": "Max Profit (Unleveraged)",
+                    },
+                ]
+            )
+
     df_returns = pd.DataFrame(returns_data)
 
-    # Create plot
+    # Create plot with custom colors for benchmarks
     returns_plot = (
         ggplot(df_returns, aes(x="Steps", y="Cumulative_Return", color="Run"))
         + geom_line()
@@ -240,6 +269,14 @@ def create_actual_returns_plot(
             title="Actual Portfolio Returns (Log Returns)",
             x="Steps",
             y="Cumulative Log Return",
+        )
+        + scale_color_manual(
+            values={
+                "Deterministic": "#F8766D",
+                "Random": "#00BFC4",
+                "Buy-and-Hold": "violet",
+                "Max Profit (Unleveraged)": "green",
+            }
         )
         + theme(figure_size=(13, 7.8))
     )
