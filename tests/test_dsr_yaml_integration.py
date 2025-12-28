@@ -136,6 +136,22 @@ class TestDSRYamlIntegration:
         assert rewards1[0].item() == 0.0
         assert rewards2[0].item() == 0.0
 
+    def test_invalid_reward_type_raises_error(self):
+        """Test that invalid reward_type raises ValueError."""
+        env_config = EnvConfig(
+            name="forex-invalid",
+            backend="gym_anytrading.forex",
+            positions=[0, 1],
+            reward_type="invalid_reward",  # Invalid value
+        )
+
+        config = ExperimentConfig(env=env_config)
+        df = create_sample_dataframe()
+
+        # Should raise ValueError
+        with pytest.raises(ValueError, match="Unknown reward type: invalid_reward"):
+            env = create_environment(df, config=config)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
