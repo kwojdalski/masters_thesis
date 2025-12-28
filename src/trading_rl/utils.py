@@ -178,7 +178,9 @@ def calculate_actual_returns(rollout, env=None):
     return cumulative_returns
 
 
-def create_actual_returns_plot(rollouts, n_obs, df_prices=None, env=None):
+def create_actual_returns_plot(
+    rollouts, n_obs, df_prices=None, env=None, actual_returns_list=None
+):
     """Create a plot showing actual portfolio returns (not training rewards).
 
     This generates a separate plot that ALWAYS shows actual dollar returns,
@@ -192,6 +194,7 @@ def create_actual_returns_plot(rollouts, n_obs, df_prices=None, env=None):
         n_obs: Number of observations to plot
         df_prices: Optional DataFrame with price data (unused for now)
         env: Optional environment instance for accessing TradingEnv broker state
+        actual_returns_list: Optional pre-extracted list of return arrays (one per rollout)
 
     Returns:
         plotnine.ggplot: Plot showing actual cumulative returns
@@ -201,8 +204,12 @@ def create_actual_returns_plot(rollouts, n_obs, df_prices=None, env=None):
     for i, rollout in enumerate(rollouts):
         run_name = "Deterministic" if i == 0 else "Random"
 
-        # Try to extract actual returns from TradingEnv broker
-        actual_returns = _extract_tradingenv_returns(env, n_obs) if env else None
+        # Use pre-extracted returns if available
+        if actual_returns_list and i < len(actual_returns_list):
+            actual_returns = actual_returns_list[i]
+        else:
+            # Try to extract actual returns from TradingEnv broker
+            actual_returns = _extract_tradingenv_returns(env, n_obs) if env else None
 
         if actual_returns is not None:
             # Use actual portfolio value changes (TradingEnv)
