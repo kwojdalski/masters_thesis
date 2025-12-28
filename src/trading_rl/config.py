@@ -48,7 +48,7 @@ class EnvConfig:
         None  # Columns to use as features/observations (for tradingenv backend)
     )
 
-    # Reward function configuration (for tradingenv backend)
+    # Reward function configuration (all backends)
     reward_type: str = "log_return"  # Reward type: "log_return" or "differential_sharpe"
     reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")
 

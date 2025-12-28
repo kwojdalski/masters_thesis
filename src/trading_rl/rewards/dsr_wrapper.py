@@ -56,22 +56,26 @@ class StatefulRewardWrapper(gym.Wrapper):
         obs, reward, terminated, truncated, info = self.env.step(action)
 
         # Replace reward with custom reward function
-        # Most gym_anytrading/gym_trading_env expose history in info
+        # gym_anytrading exposes _get_info() method
         if hasattr(self.env.unwrapped, '_get_info'):
             # gym_anytrading pattern
             history = self.env.unwrapped._get_info()
-            custom_reward = self.reward_fn(history)
+            custom_reward = float(self.reward_fn(history))
         elif 'history' in info:
             # Direct history in info
-            custom_reward = self.reward_fn(info['history'])
+            custom_reward = float(self.reward_fn(info['history']))
+        elif hasattr(self.env.unwrapped, 'history'):
+            # Direct history attribute
+            history = self.env.unwrapped.history
+            custom_reward = float(self.reward_fn(history))
         else:
-            # Fallback: try to access history directly
-            try:
-                history = self.env.unwrapped.history
-                custom_reward = self.reward_fn(history)
-            except AttributeError:
-                # Cannot access history - use original reward
-                custom_reward = reward
+            # Cannot access history - log warning and use original reward
+            import warnings
+            warnings.warn(
+                f"Cannot access history from {type(self.env.unwrapped).__name__}. "
+                "Using original reward. DSR wrapper may not be working correctly."
+            )
+            custom_reward = reward
 
         return obs, custom_reward, terminated, truncated, info
 
