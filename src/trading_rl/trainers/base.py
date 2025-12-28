@@ -252,10 +252,18 @@ class BaseTrainer(ABC):
                     max_steps=max_steps, policy=self.actor
                 )
 
+        # Extract actual returns immediately (before next rollout overwrites broker state)
+        from trading_rl.utils import _extract_tradingenv_returns
+
+        actual_returns_deterministic = _extract_tradingenv_returns(self.env, max_steps)
+
         # Random rollout (can be overridden in subclasses)
         logger.debug(f"Running random evaluation for {max_steps} steps")
         with set_exploration_type(InteractionType.RANDOM):
             rollout_random = self.env.rollout(max_steps=max_steps, policy=self.actor)
+
+        # Extract actual returns immediately (for random rollout)
+        actual_returns_random = _extract_tradingenv_returns(self.env, max_steps)
 
         # Detect backend type for proper plot labeling
         is_portfolio = self._is_portfolio_backend(config)
@@ -266,13 +274,13 @@ class BaseTrainer(ABC):
             is_portfolio=is_portfolio,
         )
 
-        # Create actual returns plot (separate from training rewards)
-        # Pass env to extract actual portfolio values from TradingEnv broker
+        # Create actual returns plot with pre-extracted returns
         actual_returns_plot = create_actual_returns_plot(
             [rollout_deterministic, rollout_random],
             n_obs=max_steps,
             df_prices=df,
-            env=self.env,
+            env=None,  # Don't pass env, use pre-extracted returns
+            actual_returns_list=[actual_returns_deterministic, actual_returns_random],
         )
 
         # Benchmarks
