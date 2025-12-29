@@ -6,6 +6,7 @@ seed: 123  # Different seed for comparison
 
 data:
   data_path: "./data/raw/synthetic/mean_reversion.parquet"
+  data_config: "configs/data/mean_reversion.yaml"  # Config for regenerating data
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["MEAN/REVERT"]

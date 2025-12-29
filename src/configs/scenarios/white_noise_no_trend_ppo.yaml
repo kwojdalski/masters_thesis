@@ -7,6 +7,7 @@ seed: 99  # Fixed seed for reproducibility
 # Data Configuration - White Noise Pattern (No Trend)
 data:
   data_path: "./data/raw/synthetic/white_noise_no_trend_ppo.parquet"
+  data_config: "configs/data/white_noise.yaml"  # Config for regenerating data
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["NOISE/WHITE"]

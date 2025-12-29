@@ -7,6 +7,7 @@ experiment_name: "sine_wave_td3_no_trend"
 # Data Configuration - Pure Sine Wave Pattern (No Trend)
 data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"  # Reuse existing sinewave data
+  data_config: "configs/data/sine_wave_standard.yaml"  # Config for regenerating data
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["SINE/WAVE"]

@@ -6,6 +6,7 @@ seed: 99  # Fixed seed for reproducibility
 
 data:
   data_path: "./data/raw/synthetic/upward_trend_ddpg.parquet"
+  data_config: "configs/data/upward_drift_strong.yaml"  # Config for regenerating data
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["DRIFT/UP"]
