@@ -1,59 +1,76 @@
 # Trading RL Master's Thesis
 
-A reinforcement learning framework for trading strategies using PyTorch and TorchRL, with integrated experiment tracking via MLflow.
+Research codebase for trading strategy experiments with TorchRL. It includes
+synthetic price generation, Gymnasium-compatible environments, and MLflow-based
+experiment tracking.
 
-## Features
+## Highlights
 
-- **Deep RL Trading Agents**: PPO (Discrete & Continuous), DDPG, TD3 pipelines with custom trading environments
-- **Experiment Tracking**: MLflow integration with config/data artifacts, combined evaluation plots, and metrics
-- **CLI Interface**: command-line tools using Typer and Rich
-- **Comprehensive Analytics**: Reward/action comparisons plus PPO action-probability visualization
-- **Modular Architecture**: Reusable components for research
-
+- PPO, DDPG, and TD3 trainers for discrete and continuous action spaces
+- Scenario-driven YAML configs in `src/configs`
+- Synthetic data generator (sine wave, upward drift, sampled OHLCV)
+- MLflow tracking plus CLI utilities for experiments, checkpoints, and artifacts
+- Plotnine-based analytics and reusable logging utilities
 
 ## Prerequisites
 
-- Python 3.12 or higher
-- poetry (preferred) / pip
+- Python 3.12
+- pip or Poetry
 
 ## Installation
 
-### Using Poetry (recommended)
-
-<!--pytest.mark.skip-->
-```bash
-poetry install          # install dependencies into Poetry-managed venv
-poetry shell            # spawn a shell inside that environment
-```
-
-### Using pip + venv
+### pip + venv (recommended)
 
 <!--pytest.mark.skip-->
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # macOS/Linux
+source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+### Poetry
+
+<!--pytest.mark.skip-->
+```bash
+poetry config virtualenvs.in-project true
+poetry install
+source .venv/bin/activate
 ```
 
 ## Quick Start
 
-
-### Common commands
-
-All commands support the `--help` flag, which displays detailed information about their usage and options.
-
-| Command | Purpose |
-| --- | --- |
-| `python src/cli.py train [...]` | Configure and launch a single agent training run |
-| `python src/cli.py experiment [...]` | Batch experiments with shared MLflow tracking |
-| `python src/cli.py dashboard [...]` | Manage the MLflow UI and helper scripts |
-| `python src/cli.py generate-data [...]` | Create or inspect synthetic datasets used for training |
-| `python src/cli.py list-experiments` | Enumerate tracked MLflow experiments |
+Activate the environment before running commands:
 
 <!--pytest.mark.skip-->
 ```bash
-python src/cli.py train      # launch single-agent training with default config
-python src/cli.py dashboard  # start MLflow UI backed by sqlite:///mlflow.db
+source .venv/bin/activate
+```
+
+Common commands (`python src/cli.py --help` for full details):
+
+| Command | Purpose |
+| --- | --- |
+| `python src/cli.py scenarios` | List available scenario configs |
+| `python src/cli.py generate-data --scenario sine_wave` | Generate synthetic data |
+| `python src/cli.py train --config src/configs/sine_wave_ppo_no_trend_tradingenv.yaml` | Train a single agent |
+| `python src/cli.py experiment --config src/configs/sine_wave_ppo_no_trend.yaml --trials 3` | Run multiple trials |
+| `python src/cli.py dashboard` | Launch the MLflow UI |
+| `python src/cli.py checkpoints` | Inspect or clean checkpoints |
+| `python src/cli.py experiments` | List MLflow experiments |
+| `python src/cli.py artifacts --experiment <regex>` | List artifacts per run |
+
+## Configuration
+
+- Scenario YAML files live in `src/configs`.
+- Provide a custom config with `--config`.
+- Override values with dotlist syntax via `--config-override`, for example:
+
+<!--pytest.mark.skip-->
+```bash
+python src/cli.py train \
+  --config src/configs/sine_wave_ppo_no_trend_tradingenv.yaml \
+  --config-override training.max_steps=50000 \
+  --config-override training.actor_lr=3e-5
 ```
 
 ## Project Structure
@@ -61,55 +78,40 @@ python src/cli.py dashboard  # start MLflow UI backed by sqlite:///mlflow.db
 ```
 masters_thesis/
 ├── src/
-│   ├── trading_rl/           # Main RL package
-│   │   ├── __init__.py       # Package exports
-│   │   ├── config.py         # Configuration classes
-│   │   ├── data_utils.py     # Data processing utilities
-│   │   ├── envs/             # Environment builders/factories (backend-aware)
-│   │   ├── models.py         # Neural network model factories
-│   │   ├── trainers/         # PPO, DDPG, TD3 trainer implementations (build_models + train)
-│   │   ├── train_trading_agent.py  # MLflow-enabled training orchestration
-│   │   └── utils.py          # Helper utilities
-│   ├── cli.py                # Command-line interface
-│   ├── data_generator.py     # Synthetic data generation
-│   └── logger.py             # Logging utilities
-├── pyproject.toml            # Project configuration
-├── README.md                 # This file
-└── .gitignore                # Git ignore rules
+│   ├── cli/                 # CLI command implementations
+│   ├── cli.py               # CLI entrypoint
+│   ├── configs/             # Scenario and model YAML configs
+│   ├── data_generator.py    # Synthetic data generation
+│   ├── logger/              # Shared logging utilities
+│   └── trading_rl/          # Core RL package
+│       ├── envs/            # Environment builders/wrappers
+│       ├── rewards/         # Reward functions
+│       ├── trainers/        # PPO, DDPG, TD3 trainers
+│       └── training.py      # Training loops and helpers
+├── data/                    # Raw and synthetic data
+├── docs/                    # Experiment and algorithm docs
+├── notebooks/               # Research notebooks
+├── scripts/                 # Debugging and helper scripts
+└── tests/                   # Unit tests
 ```
 
-## Logger Component
+## Docs and References
 
-The project ships with a reusable logging package (`src/logger`) that standardizes log formatting, destinations, and utilities across the CLI, data tools, and TorchRL workflows.
-
-- **Centralized setup** via `configure_logging` or `setup_component_logger`, so every module inherits the same log level, handlers, and rotation strategy.
-- **Rich console/file output** with optional levels and structured (JSON) records for downstream processing.
-- **Productivity helpers** such as `LogContext` for scoped timing, `log_dataframe_info` for quick pandas diagnostics, and `log_processing_step` / `log_error_with_context` for consistent telemetry.
-- **Environment overrides** allow tuning per component (e.g., `export TRADING_RL_LOG_LEVEL=DEBUG`) without code changes.
-
-See `src/logger/README.md` for advanced usage (structured logging, decorators, env variables, etc.).
-
-## Experiment Workflow
-
-For detailed information about how experiments work, including system architecture and component interactions, see [docs/experiment_workflow.md](docs/experiment_workflow.md). Visual walk-throughs of the algorithms are available in [docs/ppo_overview.md](docs/ppo_overview.md) and [docs/ddpg_overview.md](docs/ddpg_overview.md). These documents include:
-
-- Complete experiment workflow with diagrams
-- Component details and data flow
-- MLflow integration architecture  
-- Configuration options and usage examples
-- Performance optimization and debugging guides
+- `docs/experiment_workflow.md`
+- `docs/ppo_implementation_overview.md`
+- `docs/ddpg_implementation_overview.md`
+- `docs/td3_implementation_overview.md`
+- `src/trading_rl/README.md`
+- `src/logger/README.md`
 
 ## Experiment Tracking
 
-All training runs are tracked in MLflow.
+Training runs are tracked in MLflow. The default store is `sqlite:///mlflow.db`
+with artifacts in `mlruns/`.
 
-### Tracked Metrics
-- **Performance**: Final reward, total training steps, evaluation horizon
-- **Training Dynamics**: Actor/value losses, exploration ratios, checkpoint metadata
-- **Position Activity**: Per-episode position changes, portfolio trajectories, action distributions
-- **Configuration**: Every hyperparameter, network architecture, dataset stats, environment settings
-
-### Dashboard Features
-- Interactive loss and reward curves per trial
-- Drill-down view of position changes and trading behaviour
-- Artifact bundles (plots, CSV summaries, configs)
+<!--pytest.mark.skip-->
+```bash
+python src/cli.py dashboard
+python src/cli.py experiments
+python src/cli.py artifacts --experiment sine_wave
+```
