@@ -1,0 +1,78 @@
+# Complete Technical Analysis Suite
+# ==================================
+# Use this for: Full technical analysis approach
+# Required columns: high, low, close, volume
+
+features:
+  # Price momentum
+  - name: "log_return"
+    feature_type: "log_return"
+    normalize: true
+
+  # Intraday volatility
+  - name: "high"
+    feature_type: "high"
+    normalize: true
+
+  - name: "low"
+    feature_type: "low"
+    normalize: true
+
+  # Trend - Moving Averages
+  - name: "sma_20"
+    feature_type: "sma"
+    params:
+      period: 20
+    normalize: true
+
+  - name: "ema_20"
+    feature_type: "ema"
+    params:
+      period: 20
+    normalize: true
+
+  # Momentum Oscillators
+  - name: "rsi_14"
+    feature_type: "talib_rsi"
+    params:
+      period: 14
+    normalize: true
+
+  - name: "macd"
+    feature_type: "macd"
+    normalize: true
+
+  - name: "willr_14"
+    feature_type: "willr"
+    params:
+      period: 14
+    normalize: true
+
+  # Volatility
+  - name: "atr_14"
+    feature_type: "atr"
+    params:
+      period: 14
+    normalize: true
+
+  - name: "bbands_20"
+    feature_type: "bbands"
+    params:
+      period: 20
+    normalize: true
+
+  # Volume
+  - name: "log_vol"
+    feature_type: "log_volume"
+    normalize: true
+
+  - name: "obv"
+    feature_type: "obv"
+    normalize: true
+
+  # Trend Strength
+  - name: "adx_14"
+    feature_type: "adx"
+    params:
+      period: 14
+    normalize: true

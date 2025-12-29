@@ -534,9 +534,9 @@ def scenarios(
     """List available scenario configurations."""
     import yaml
 
-    config_dir = Path("src/configs")
+    config_dir = Path("src/configs/scenarios")
     if not config_dir.exists():
-        console.print("[red]Config directory not found: src/configs[/red]")
+        console.print("[red]Config directory not found: src/configs/scenarios[/red]")
         return
 
     # Find all YAML config files

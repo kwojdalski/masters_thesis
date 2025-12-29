@@ -1,0 +1,9 @@
+# Minimal Feature Set - Close Price Only
+# =====================================
+# Use this for: Quick experiments, baseline models
+# Required columns: close
+
+features:
+  - name: "log_return"
+    feature_type: "log_return"
+    normalize: true

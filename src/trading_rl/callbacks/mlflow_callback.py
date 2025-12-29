@@ -175,7 +175,7 @@ class MLflowTrainingCallback:
     def log_config_artifact(config) -> None:
         """Log YAML config file as an MLflow artifact."""
         # Try to find an existing config file by experiment name
-        config_dir = Path("src/configs")
+        config_dir = Path("src/configs/scenarios")
         possible_configs = [
             config_dir / f"{config.experiment_name}.yaml",
             config_dir / f"{config.experiment_name}_ppo.yaml",

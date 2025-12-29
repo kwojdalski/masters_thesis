@@ -13,7 +13,7 @@ def test_sine_wave_ppo_training_debug():
     """
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \
-      --config src/configs/sine_wave_ppo_no_trend.yaml \
+      --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml \
       --max-steps 50000 \
       --actor-lr 0.0001
     """
@@ -24,7 +24,7 @@ def test_sine_wave_ppo_training_debug():
 
     # 2. Setup Parameters (equivalent to CLI args)
     # Note: paths should be relative to project root where pytest is run
-    config_path = Path("src/configs/sine_wave_ppo_no_trend.yaml")
+    config_path = Path("src/configs/scenarios/sine_wave_ppo_no_trend.yaml")
 
     params = TrainingParams(
         config_file=config_path,
@@ -52,7 +52,7 @@ def test_upward_trend_td3_training_debug():
     """
     Reproduces the CLI command (shortened for test):
     LOG_LEVEL=DEBUG python src/cli.py train \
-      --config src/configs/upward_trend_td3_tradingenv.yaml \
+      --config src/configs/scenarios/upward_trend_td3_tradingenv.yaml \
       --max-steps 40000 \
       --actor-lr 0.0003 \
       --init-rand-steps 900
@@ -62,7 +62,7 @@ def test_upward_trend_td3_training_debug():
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_repro", level="DEBUG")
 
-    config_path = Path("src/configs/upward_trend_td3_tradingenv.yaml")
+    config_path = Path("src/configs/scenarios/upward_trend_td3_tradingenv.yaml")
 
     params = TrainingParams(
         config_file=config_path,
@@ -85,14 +85,14 @@ def test_upward_trend_ddpg_training_debug():
     Quick DDPG tradingenv uptrend repro (shortened for test runtime).
     Mirrors:
     LOG_LEVEL=DEBUG python src/cli.py train \
-      --config src/configs/upward_trend_ddpg_tradingenv.yaml \
+      --config src/configs/scenarios/upward_trend_ddpg_tradingenv.yaml \
       --max-steps 40000 \
       --init-rand-steps 900
     """
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_repro", level="DEBUG")
 
-    config_path = Path("src/configs/upward_trend_ddpg_tradingenv.yaml")
+    config_path = Path("src/configs/scenarios/upward_trend_ddpg_tradingenv.yaml")
 
     params = TrainingParams(
         config_file=config_path,
