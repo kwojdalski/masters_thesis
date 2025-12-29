@@ -1,0 +1,16 @@
+# Upward Trend with Returns
+# ==========================
+# Used in: upward_trend_ddpg_tradingenv.yaml
+# Required columns: close
+# Pattern: Strong upward drift
+
+features:
+  # Price momentum/returns (z-scored, loses trend signal)
+  - name: "log_return"
+    feature_type: "log_return"
+    normalize: true
+
+  # Cumulative trend (min-max normalized, preserves trend!)
+  - name: "trend"
+    feature_type: "trend"
+    normalize: false  # Already min-max normalized in compute()

@@ -1,187 +1,258 @@
-# Feature Configuration Files
+# Feature Configurations - Based on Actual Scenarios
 
-Pre-configured feature sets for different trading strategies and use cases.
+These feature configurations are extracted from actual experiment scenarios in `configs/scenarios/`.
 
 ## Available Configurations
 
-### 1. `minimal.yaml` - Close Only
-**Required columns:** `close`
-**Features:** 1
-**Use for:** Quick experiments, baseline models
+### 1. `sine_wave_price_action.yaml` (3 features)
+**Used in:**
+- `sine_wave_ppo_no_trend_continuous.yaml`
+- `sine_wave_ppo_no_trend_tradingenv.yaml`
+- `sine_wave_td3_no_trend_tradingenv.yaml`
 
-```yaml
-features:
-  - log_return
-```
-
-### 2. `price_action.yaml` - OHLC
 **Required columns:** `open`, `high`, `low`, `close`
-**Features:** 4
-**Use for:** Pure price-based strategies
 
+**Pattern:** Mean-reverting sine wave
+
+**Features:**
 ```yaml
 features:
-  - log_return
-  - high (relative to close)
-  - low (relative to close)
-  - atr_14
+  - log_return  # Price momentum
+  - high        # Intraday volatility (upside)
+  - low         # Intraday volatility (downside)
 ```
 
-### 3. `momentum.yaml` - Momentum Focus
-**Required columns:** `high`, `low`, `close`
-**Features:** 9
-**Use for:** Trend-following, momentum strategies
+**Use case:** Cyclical/mean-reverting patterns where intraday volatility helps identify turning points.
 
+---
+
+### 2. `btc_with_volume.yaml` (4 features)
+**Used in:**
+- `btc_td3_tradingenv.yaml`
+
+**Required columns:** `open`, `high`, `low`, `close`, `volume`
+
+**Pattern:** Real cryptocurrency market data
+
+**Features:**
 ```yaml
 features:
-  - log_return
-  - rsi_7, rsi_14, rsi_21
-  - macd
-  - roc_10
-  - willr_14
-  - cci_14
-  - adx_14
+  - log_return   # Price momentum
+  - high         # Intraday volatility (upside)
+  - low          # Intraday volatility (downside)
+  - log_volume   # Trading volume indicator
 ```
 
-### 4. `volatility.yaml` - Volatility Focus
-**Required columns:** `high`, `low`, `close`
-**Features:** 7
-**Use for:** Volatility-based strategies, risk management
+**Use case:** Real market trading where volume provides information about market strength and participation.
 
-```yaml
-features:
-  - log_return
-  - high, low
-  - atr_14, natr_14
-  - bbands_20, bbands_10
-```
+---
 
-### 5. `volume.yaml` - Volume Focus
-**Required columns:** `high`, `low`, `close`, `volume`
-**Features:** 7
-**Use for:** Volume analysis, market strength
+### 3. `upward_trend_with_return.yaml` (2 features)
+**Used in:**
+- `upward_trend_ddpg_tradingenv.yaml`
 
-```yaml
-features:
-  - log_return
-  - log_vol, vol_change, vol_ma_20
-  - obv, ad, adosc
-```
-
-### 6. `moving_averages.yaml` - MA Suite
 **Required columns:** `close`
-**Features:** 9
-**Use for:** Trend identification, crossover strategies
 
+**Pattern:** Strong upward drift
+
+**Features:**
 ```yaml
 features:
-  - log_return
-  - sma_10, sma_20, sma_50
-  - ema_10, ema_20, ema_50
-  - dema_20, tema_20
+  - log_return  # Price momentum (z-scored, no trend info)
+  - trend       # Cumulative trend (preserves upward drift)
 ```
 
-### 7. `technical_suite.yaml` - Complete TA
-**Required columns:** `high`, `low`, `close`, `volume`
-**Features:** 14
-**Use for:** Full technical analysis approach
+**Use case:** Trending markets where both short-term momentum and long-term trend are important.
 
+**Note:** `log_return` is z-score normalized so loses trend signal; `trend` preserves it via min-max normalization.
+
+---
+
+### 4. `upward_trend_only.yaml` (1 feature)
+**Used in:**
+- `upward_trend_td3_tradingenv.yaml`
+
+**Required columns:** `close`
+
+**Pattern:** Strong upward drift
+
+**Features:**
 ```yaml
 features:
-  - Price: log_return, high, low
-  - Trend: sma_20, ema_20
-  - Momentum: rsi_14, macd, willr_14
-  - Volatility: atr_14, bbands_20
-  - Volume: log_vol, obv
-  - Strength: adx_14
+  - trend  # Cumulative trend only
 ```
 
-### 8. `multi_timeframe.yaml` - Multiple Horizons
-**Required columns:** `high`, `low`, `close`
-**Features:** 11
-**Use for:** Capturing multiple time horizons
+**Use case:** Pure trend-following in strong directional markets. Forces agent to learn from cumulative price movement only.
+
+**Note:** This is the minimal signal for trend following - just the cumulative price ratio.
+
+---
+
+## Feature Selection by Market Pattern
+
+| Market Pattern | Recommended Config | Features Count | Rationale |
+|----------------|-------------------|----------------|-----------|
+| Mean-reverting cycles | `sine_wave_price_action.yaml` | 3 | Intraday volatility helps identify reversals |
+| Real market (crypto) | `btc_with_volume.yaml` | 4 | Volume adds market strength signal |
+| Trending + momentum | `upward_trend_with_return.yaml` | 2 | Both short-term and long-term signals |
+| Pure trend following | `upward_trend_only.yaml` | 1 | Minimal, forces focus on trend |
+
+## How to Use in Your Experiments
+
+### Option 1: Reference in Scenario Config
+
+Update your scenario YAML to reference a feature config:
 
 ```yaml
-features:
-  - Short (7): rsi_7, sma_7, atr_7
-  - Medium (14): rsi_14, sma_14, atr_14
-  - Long (21): rsi_21, sma_21, atr_21
-  - Very Long (50): sma_50
+# In your experiment config
+env:
+  backend: "tradingenv"
+
+  # OLD WAY (deprecated)
+  # feature_columns: ["feature_log_return", "feature_high", "feature_low"]
+
+  # NEW WAY - Reference feature config
+  feature_config_file: "configs/features/sine_wave_price_action.yaml"
 ```
 
-## How to Use
-
-### In Your Experiment Config
-
-```yaml
-# Option 1: Reference feature config file
-feature_config_file: "configs/features/momentum.yaml"
-
-# Option 2: Inline features
-features:
-  - name: "log_return"
-    feature_type: "log_return"
-```
-
-### In Python
+### Option 2: Load in Python
 
 ```python
 import yaml
 from trading_rl.features import FeaturePipeline
 
 # Load feature config
-with open("configs/features/momentum.yaml") as f:
+with open("configs/features/sine_wave_price_action.yaml") as f:
     feature_config = yaml.safe_load(f)
 
 # Create pipeline
 pipeline = FeaturePipeline.from_config_dict(feature_config["features"])
 
-# Fit and transform
+# Fit on training data
 pipeline.fit(train_df)
+
+# Transform
 features = pipeline.transform(df)
 ```
 
-## Choosing the Right Config
+### Option 3: Inline in Scenario
 
-| Strategy Type | Recommended Config | Data Requirements |
-|---------------|-------------------|-------------------|
-| Quick baseline | `minimal.yaml` | Close only |
-| Day trading | `price_action.yaml` | OHLC |
-| Trend following | `momentum.yaml` | OHLC |
-| Mean reversion | `volatility.yaml` | OHLC |
-| Volume analysis | `volume.yaml` | Full OHLCV |
-| Classic TA | `technical_suite.yaml` | Full OHLCV |
-| Multi-scale | `multi_timeframe.yaml` | OHLC |
+You can also inline the features directly:
+
+```yaml
+# In your experiment config
+env:
+  backend: "tradingenv"
+
+  # Inline feature definition
+  features:
+    - name: "log_return"
+      feature_type: "log_return"
+    - name: "high"
+      feature_type: "high"
+    - name: "low"
+      feature_type: "low"
+```
+
+## Migration from Old Format
+
+### Old Format (feature_columns)
+```yaml
+env:
+  feature_columns: ["feature_log_return", "feature_high", "feature_low"]
+```
+
+### New Format (features)
+```yaml
+env:
+  features:
+    - name: "log_return"
+      feature_type: "log_return"
+    - name: "high"
+      feature_type: "high"
+    - name: "low"
+      feature_type: "low"
+```
+
+**OR**
+
+```yaml
+env:
+  feature_config_file: "configs/features/sine_wave_price_action.yaml"
+```
+
+## Feature Characteristics
+
+### log_return (Price Returns)
+- **Normalization:** Z-score (mean=0, std=1)
+- **Stationarity:** Yes
+- **Trend preservation:** **No** (z-score removes trend)
+- **Use:** Short-term momentum, mean reversion
+
+### high / low (Intraday Volatility)
+- **Normalization:** Z-score
+- **Stationarity:** Yes
+- **Information:** Intraday range relative to close
+- **Use:** Volatility signals, reversal detection
+
+### log_volume (Volume)
+- **Normalization:** Z-score on log-transformed values
+- **Stationarity:** Yes (after log transform)
+- **Information:** Trading activity level
+- **Use:** Market strength, breakout confirmation
+
+### trend (Cumulative Trend)
+- **Normalization:** Min-max to [0, 1]
+- **Stationarity:** **No** (cumulative)
+- **Trend preservation:** **Yes**
+- **Use:** Long-term directional signal
+
+## Best Practices
+
+1. **Match features to pattern:**
+   - Mean-reverting → Include intraday volatility (high/low)
+   - Trending → Include trend feature
+   - Real markets → Add volume
+
+2. **Understand normalization:**
+   - Z-score normalization **removes trend**
+   - Use `trend` feature to preserve long-term direction
+   - Mix both for multi-timeframe strategies
+
+3. **Start simple:**
+   - Begin with `upward_trend_only.yaml` (1 feature) for trending
+   - Or `sine_wave_price_action.yaml` (3 features) for mean-reverting
+   - Add features incrementally
+
+4. **Validate features:**
+   ```python
+   features = pipeline.transform(train_df)
+   print(features.describe())  # Check mean ≈ 0, std ≈ 1
+   ```
 
 ## Creating Custom Configs
 
-1. Copy an existing config
-2. Modify feature selection
-3. Adjust parameters
-4. Save with descriptive name
+Copy an existing config and modify:
 
-Example:
+```bash
+cp configs/features/sine_wave_price_action.yaml configs/features/my_custom.yaml
+# Edit my_custom.yaml with your features
+```
+
+Example custom config:
 ```yaml
-# my_custom_features.yaml
+# my_custom.yaml
 features:
   - name: "log_return"
     feature_type: "log_return"
 
-  - name: "rsi_custom"
+  - name: "rsi_14"
     feature_type: "talib_rsi"
     params:
-      period: 9  # Custom period
+      period: 14
 
-  - name: "my_sma"
+  - name: "sma_20"
     feature_type: "sma"
     params:
-      period: 15  # Custom period
+      period: 20
 ```
-
-## Feature Count vs Performance
-
-- **Too few features:** May miss important patterns
-- **Too many features:** Overfitting, slower training
-- **Sweet spot:** 5-15 features for most strategies
-
-Start with `minimal.yaml` or `price_action.yaml`, then gradually add features based on performance.

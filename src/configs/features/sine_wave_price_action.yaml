@@ -1,0 +1,21 @@
+# Sine Wave Price Action Features
+# =================================
+# Used in: sine_wave_ppo_no_trend_*, sine_wave_td3_no_trend_*
+# Required columns: open, high, low, close
+# Pattern: Mean-reverting sine wave pattern
+
+features:
+  # Price momentum/returns
+  - name: "log_return"
+    feature_type: "log_return"
+    normalize: true
+
+  # Intraday volatility - high relative to close
+  - name: "high"
+    feature_type: "high"
+    normalize: true
+
+  # Intraday volatility - low relative to close
+  - name: "low"
+    feature_type: "low"
+    normalize: true
