@@ -84,7 +84,7 @@ def load_trading_data(data_path: str, cache_bust: float | None = None) -> pd.Dat
 
 
 @memory.cache
-def create_features(df: pd.DataFrame, data_path: str = "") -> pd.DataFrame:
+def create_features(df: pd.DataFrame) -> pd.DataFrame:
     """Create technical features from OHLCV data.
 
     Features are normalized using z-score normalization.
@@ -92,7 +92,6 @@ def create_features(df: pd.DataFrame, data_path: str = "") -> pd.DataFrame:
 
     Args:
         df: DataFrame with OHLCV columns (open, high, low, close, volume)
-        data_path: Path to data file (unused, kept for backward compatibility)
 
     Returns:
         DataFrame with added feature columns
@@ -105,12 +104,6 @@ def create_features(df: pd.DataFrame, data_path: str = "") -> pd.DataFrame:
     df["feature_return"] = (df["feature_return"] - df["feature_return"].mean()) / df[
         "feature_return"
     ].std()
-
-    # Percentage change feature
-    df["feature_pct_chng"] = df["close"].pct_change().fillna(0)
-    df["feature_pct_chng"] = (
-        df["feature_pct_chng"] - df["feature_pct_chng"].mean()
-    ) / df["feature_pct_chng"].std()
 
     # High relative to close
     df["feature_high"] = (df["high"] / df["close"] - 1).fillna(0)
@@ -217,6 +210,6 @@ def prepare_data(
         logger.info(f"Columns: {list(df.columns)}")
     else:
         # Create features as usual
-        df = create_features(df, data_path=data_path)
+        df = create_features(df)
 
     return df
