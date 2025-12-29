@@ -117,11 +117,11 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
         "feature_low"
     ].std()
 
-    # Volume feature (log-normalized to handle skewness)
+    # Log volume feature (log-normalized to handle skewness)
     # Log transform handles the heavy right tail of volume distribution
-    df["feature_volume"] = np.log1p(df["volume"])  # log1p = log(1 + x) handles zero volumes
-    df["feature_volume"] = (df["feature_volume"] - df["feature_volume"].mean()) / df[
-        "feature_volume"
+    df["feature_log_volume"] = np.log1p(df["volume"])  # log1p = log(1 + x) handles zero volumes
+    df["feature_log_volume"] = (df["feature_log_volume"] - df["feature_log_volume"].mean()) / df[
+        "feature_log_volume"
     ].std()
 
     # Trend feature: price relative to initial price (NOT z-scored to preserve trend)
