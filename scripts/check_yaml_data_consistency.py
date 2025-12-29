@@ -7,7 +7,7 @@ import yaml
 
 
 def check_consistency():
-    config_dir = Path("src/configs")
+    config_dir = Path("src/configs/scenarios")
     issues = []
 
     for yaml_file in config_dir.glob("*.yaml"):

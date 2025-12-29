@@ -7,7 +7,7 @@ experiment tracking.
 ## Highlights
 
 - PPO, DDPG, and TD3 trainers for discrete and continuous action spaces
-- Scenario-driven YAML configs in `src/configs`
+- Scenario-driven YAML configs in `src/configs/scenarios`
 - Synthetic data generator (sine wave, upward drift, sampled OHLCV)
 - MLflow tracking plus CLI utilities for experiments, checkpoints, and artifacts
 - Plotnine-based analytics and reusable logging utilities
@@ -52,8 +52,8 @@ Common commands (`python src/cli.py --help` for full details):
 | --- | --- |
 | `python src/cli.py scenarios` | List available scenario configs |
 | `python src/cli.py generate-data --scenario sine_wave` | Generate synthetic data |
-| `python src/cli.py train --config src/configs/sine_wave_ppo_no_trend_tradingenv.yaml` | Train a single agent |
-| `python src/cli.py experiment --config src/configs/sine_wave_ppo_no_trend.yaml --trials 3` | Run multiple trials |
+| `python src/cli.py train --config src/configs/scenarios/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml` | Train a single agent |
+| `python src/cli.py experiment --config src/configs/scenarios/scenarios/sine_wave_ppo_no_trend.yaml --trials 3` | Run multiple trials |
 | `python src/cli.py dashboard` | Launch the MLflow UI |
 | `python src/cli.py checkpoints` | Inspect or clean checkpoints |
 | `python src/cli.py experiments` | List MLflow experiments |
@@ -61,14 +61,14 @@ Common commands (`python src/cli.py --help` for full details):
 
 ## Configuration
 
-- Scenario YAML files live in `src/configs`.
+- Scenario YAML files live in `src/configs/scenarios`.
 - Provide a custom config with `--config`.
 - Override values with dotlist syntax via `--config-override`, for example:
 
 <!--pytest.mark.skip-->
 ```bash
 python src/cli.py train \
-  --config src/configs/sine_wave_ppo_no_trend_tradingenv.yaml \
+  --config src/configs/scenarios/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml \
   --config-override training.max_steps=50000 \
   --config-override training.actor_lr=3e-5
 ```

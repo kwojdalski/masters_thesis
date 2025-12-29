@@ -14,7 +14,7 @@ def test_continuous_ppo_sine_wave():
     """Test full training loop for Continuous PPO on sine wave data."""
 
     # Path to the new config file
-    config_path = "src/configs/sine_wave_ppo_no_trend_continuous.yaml"
+    config_path = "src/configs/scenarios/sine_wave_ppo_no_trend_continuous.yaml"
 
     # Verify config exists
     assert os.path.exists(config_path), f"Config file not found: {config_path}"

@@ -4,7 +4,7 @@
 # with gym_anytrading's forex-v0 environment.
 #
 # Usage:
-#   python src/trading_rl/train_trading_agent.py --config configs/forex_dqn_dsr.yaml
+#   python src/trading_rl/train_trading_agent.py --config src/configs/scenarios/forex_dqn_dsr.yaml
 
 # Data Configuration
 data:

@@ -134,8 +134,8 @@ class DataGeneratorCommand(BaseCommand):
 
         search_paths = [
             candidate_path,
-            Path("src/configs") / scenario,
-            Path("src/configs") / f"{scenario}.yaml",
+            Path("src/configs/scenarios") / scenario,
+            Path("src/configs/scenarios") / f"{scenario}.yaml",
         ]
 
         for path in search_paths:
@@ -143,7 +143,7 @@ class DataGeneratorCommand(BaseCommand):
                 return path.resolve()
 
         raise typer.BadParameter(
-            f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs."
+            f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs/scenarios."
         )
     
     def _derive_generation_flags(

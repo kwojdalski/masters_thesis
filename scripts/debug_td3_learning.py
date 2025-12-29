@@ -2,7 +2,7 @@
 
 Usage (from repo root):
   PYTHONPATH=src python scripts/debug_td3_learning.py \
-    --config src/configs/sine_wave_td3_no_trend_tradingenv.yaml \
+    --config src/configs/scenarios/sine_wave_td3_no_trend_tradingenv.yaml \
     --max-steps 40000 --actor-lr 0.0003 --init-rand-steps 5000
 
 This mirrors the CLI call and prints parameter stats before/after training so
