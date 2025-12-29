@@ -9,4 +9,4 @@ export PYTHONPATH="${SCRIPT_DIR}:$PYTHONPATH"
 
 # Run the CLI
 ###############################################################################
-python "${SCRIPT_DIR}/src/cli.py" generate-data "$@"
+python "${SCRIPT_DIR}/src/cli.py" data generate "$@"

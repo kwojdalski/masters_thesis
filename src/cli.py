@@ -39,6 +39,8 @@ app = typer.Typer(
     help="CLI tools for trading data science project",
     add_completion=False,
 )
+data_app = typer.Typer(help="Data generation utilities")
+app.add_typer(data_app, name="data")
 
 
 def _configure_logging(verbose: bool, log_regex: str | None) -> None:
@@ -194,7 +196,7 @@ def checkpoints(
         console.print(table)
 
 
-@app.command(name="generate-data")
+@data_app.command(name="generate")
 def generate_data(
     scenario: str | None = typer.Option(
         None,
