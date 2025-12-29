@@ -9,6 +9,7 @@ seed: 42
 # Data Configuration
 data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
+  data_config: "configs/data/sine_wave_standard.yaml"  # Config for regenerating data
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["SINE/WAVE"]

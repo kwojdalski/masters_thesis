@@ -6,6 +6,7 @@ seed: 42  # Fixed seed for reproducibility
 
 data:
   data_path: "./data/raw/synthetic/sine_wave.parquet"
+  data_config: "configs/data/sine_wave_with_trend.yaml"  # Config for regenerating data
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["SINE/WAVE"]

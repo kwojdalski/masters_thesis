@@ -7,6 +7,7 @@ seed: 99  # Fixed seed for reproducibility
 # Data Configuration - Sine Wave Pattern with Upward Trend
 data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_trend.parquet"
+  data_config: "configs/data/sine_wave_with_trend.yaml"  # Config for regenerating data
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["SINE/WAVE"]
