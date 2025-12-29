@@ -1,0 +1,17 @@
+# White Noise - Random Walk
+# ==========================
+# Pattern: Pure random walk with no predictable pattern
+# Use: Testing that agent doesn't learn spurious patterns
+
+data_generator:
+  pattern_type: "upward_drift"  # Using drift generator with zero drift
+  n_samples: 500
+  base_price: 50000.0
+  drift_rate: 0.0  # No drift - pure white noise
+  volatility: 0.001  # Higher volatility for random walk effect
+  pullback_floor: 0.98  # Allow more variation
+  start_date: "2024-01-01"
+
+  # Expected behavior:
+  # - No consistent strategy should work
+  # - Agent should learn to stay neutral/minimize trading

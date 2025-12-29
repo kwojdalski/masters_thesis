@@ -1,0 +1,19 @@
+# Mean Reversion Pattern
+# =======================
+# Pattern: Price reverts to mean with occasional shocks
+# Use: Testing mean-reversion strategies
+
+data_generator:
+  pattern_type: "mean_reversion"
+  n_samples: 500
+  base_price: 50000.0
+  reversion_strength: 0.12  # Strength of reversion to mean
+  volatility: 0.04
+  shock_probability: 0.03  # 3% chance of shock per step
+  shock_magnitude: 0.15  # 15% magnitude shocks
+  start_date: "2024-01-01"
+
+  # Expected behavior:
+  # - Buy when price < 50000
+  # - Sell when price > 50000
+  # - Optimal return estimate: > 150%
