@@ -50,7 +50,7 @@ training:
   actor_lr: 0.0003
   actor_weight_decay: 0
   value_lr: 0.0003
-  value_weight_decay: 0.001
+  value_weight_decay: 0.00005
 
   # Training loop
   max_steps: 5000
