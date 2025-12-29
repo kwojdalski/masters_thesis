@@ -71,6 +71,52 @@ class FeaturePipeline:
         feature_configs = [FeatureConfig(**cfg) for cfg in config_dict]
         return cls(feature_configs)
 
+    @classmethod
+    def from_yaml(cls, config_path: str) -> "FeaturePipeline":
+        """Create pipeline from YAML configuration file.
+
+        Args:
+            config_path: Path to YAML file with 'features' key containing list of feature configs
+
+        Returns:
+            FeaturePipeline instance
+
+        Example:
+            pipeline = FeaturePipeline.from_yaml("configs/features/sine_wave_price_action.yaml")
+
+        YAML format:
+            features:
+              - name: "log_return"
+                feature_type: "log_return"
+                normalize: true
+              - name: "rsi"
+                feature_type: "rsi"
+                params:
+                  period: 14
+                normalize: true
+        """
+        import yaml
+        from pathlib import Path
+
+        config_file = Path(config_path)
+        if not config_file.exists():
+            raise FileNotFoundError(f"Feature config file not found: {config_path}")
+
+        logger.info(f"Loading feature pipeline from: {config_path}")
+
+        with config_file.open("r") as f:
+            config_data = yaml.safe_load(f)
+
+        if not config_data or "features" not in config_data:
+            raise ValueError(
+                f"Invalid feature config: missing 'features' key in {config_path}"
+            )
+
+        feature_list = config_data["features"]
+        logger.info(f"Found {len(feature_list)} features in config")
+
+        return cls.from_config_dict(feature_list)
+
     def fit(self, df: pd.DataFrame) -> "FeaturePipeline":
         """Fit normalization parameters on training data.
 
@@ -194,3 +240,63 @@ class FeaturePipeline:
             f"fitted={self._is_fitted}, "
             f"outputs={feature_names})"
         )
+
+
+def create_default_pipeline() -> FeaturePipeline:
+    """Create default feature pipeline matching legacy create_features() behavior.
+
+    This factory creates a pipeline with the same features as the old create_features()
+    function, maintaining backward compatibility.
+
+    Returns:
+        FeaturePipeline with default features:
+        - feature_log_return: Log returns (normalized)
+        - feature_high: High relative to close (normalized)
+        - feature_low: Low relative to close (normalized)
+        - feature_log_volume: Log volume (normalized)
+        - feature_trend: Price trend from start (min-max scaled)
+
+    Example:
+        pipeline = create_default_pipeline()
+        pipeline.fit(train_df)
+        train_features = pipeline.transform(train_df)
+        test_features = pipeline.transform(test_df)
+    """
+    logger.info("Creating default feature pipeline (legacy create_features behavior)")
+
+    configs = [
+        FeatureConfig(
+            name="log_return",
+            feature_type="log_return",
+            normalize=True,
+            params={},
+        ),
+        FeatureConfig(
+            name="high",
+            feature_type="high",
+            normalize=True,
+            params={},
+        ),
+        FeatureConfig(
+            name="low",
+            feature_type="low",
+            normalize=True,
+            params={},
+        ),
+        FeatureConfig(
+            name="log_volume",
+            feature_type="log_volume",
+            normalize=True,
+            params={},
+        ),
+        FeatureConfig(
+            name="trend",
+            feature_type="trend",
+            normalize=False,  # Uses custom min-max scaling
+            params={},
+        ),
+    ]
+
+    pipeline = FeaturePipeline(configs)
+    logger.info("Default pipeline created with 5 features")
+    return pipeline

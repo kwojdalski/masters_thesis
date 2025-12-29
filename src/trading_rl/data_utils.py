@@ -164,6 +164,7 @@ def reward_function(history: dict) -> float:
 
 def prepare_data(
     data_path: str,
+    train_size: int,
     download_if_missing: bool = False,
     exchange_names: list[str] | None = None,
     symbols: list[str] | None = None,
@@ -171,11 +172,16 @@ def prepare_data(
     data_dir: str = "data",
     since: Any | None = None,
     no_features: bool = False,
-) -> pd.DataFrame:
-    """Prepare trading data for RL training.
+    feature_config_path: str | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Prepare trading data for RL training with proper train/test split.
+
+    CRITICAL: This function splits data BEFORE feature engineering to prevent
+    data leakage. Normalization statistics are computed only on training data.
 
     Args:
         data_path: Path to data file
+        train_size: Number of samples to use for training (rest is test)
         download_if_missing: Whether to download data if file doesn't exist
         exchange_names: Exchange names for download
         symbols: Trading symbols for download
@@ -183,9 +189,17 @@ def prepare_data(
         data_dir: Directory for downloaded data
         since: Start date for download
         no_features: If True, skip feature engineering and return only OHLCV data
+        feature_config_path: Path to YAML config for features. If None, uses default pipeline.
 
     Returns:
-        DataFrame with features (or just OHLCV if no_features=True)
+        Tuple of (train_df, test_df) with features (or just OHLCV if no_features=True)
+
+    Example:
+        train_df, test_df = prepare_data(
+            data_path="data.parquet",
+            train_size=450,
+            feature_config_path="configs/features/sine_wave.yaml"
+        )
     """
     # Check if data exists
     if not Path(data_path).exists():
@@ -197,19 +211,49 @@ def prepare_data(
                 "Set download_if_missing=True to download."
             )
 
-    # Load and process data
+    # Load raw OHLCV data
     file_signature = Path(data_path).stat().st_mtime_ns
     df = load_trading_data(data_path, cache_bust=file_signature)
+    df = df.dropna()
+
+    logger.info(f"Loaded raw data: {len(df)} rows, {len(df.columns)} columns")
+
+    # Split data BEFORE feature engineering (critical for preventing leakage!)
+    train_df_raw = df[:train_size].copy()
+    test_df_raw = df[train_size:].copy()
+
+    logger.info(f"Split data: train={len(train_df_raw)}, test={len(test_df_raw)}")
 
     if no_features:
-        # Skip feature creation and return raw OHLCV data
-        df = df.dropna()
-        logger.info(
-            f"Loaded data without features: {len(df)} rows, {len(df.columns)} columns"
-        )
-        logger.info(f"Columns: {list(df.columns)}")
-    else:
-        # Create features as usual
-        df = create_features(df)
+        # Return raw OHLCV data without features
+        logger.info("Returning raw OHLCV data (no_features=True)")
+        logger.info(f"Columns: {list(train_df_raw.columns)}")
+        return train_df_raw, test_df_raw
 
-    return df
+    # Create feature pipeline
+    from trading_rl.features import FeaturePipeline, create_default_pipeline
+
+    if feature_config_path:
+        logger.info(f"Loading feature pipeline from: {feature_config_path}")
+        pipeline = FeaturePipeline.from_yaml(feature_config_path)
+    else:
+        logger.info("Using default feature pipeline (legacy create_features behavior)")
+        pipeline = create_default_pipeline()
+
+    # Fit pipeline on training data ONLY (prevents test data leakage)
+    logger.info("Fitting feature pipeline on training data...")
+    pipeline.fit(train_df_raw)
+
+    # Transform both train and test using fitted parameters
+    logger.info("Transforming training data...")
+    train_df = pipeline.transform(train_df_raw)
+
+    logger.info("Transforming test data...")
+    test_df = pipeline.transform(test_df_raw)
+
+    logger.info(
+        f"Feature engineering complete: train={train_df.shape}, test={test_df.shape}"
+    )
+    logger.info(f"Features: {list(train_df.columns)}")
+
+    return train_df, test_df
