@@ -339,43 +339,16 @@ def train(
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to custom config file"
     ),
-    scenario: str | None = typer.Option(
-        None,
-        "--scenario",
-        "-s",
-        help="Scenario name (use 'scenarios' to see options)",
-    ),
     config_override: list[str] | None = typer.Option(
         None,
         "--config-override",
         "-o",
         help="OmegaConf override in dotlist format (repeatable)",
     ),
-    seed: int | None = typer.Option(
-        None,
-        "--seed",
-        help="Set base seed for reproducible experiments (default: random)",
-    ),
-    max_steps: int | None = typer.Option(
-        None, "--max-steps", help="Maximum training steps for each trial"
-    ),
     clear_cache: bool = typer.Option(
         False,
         "--clear-cache",
         help="Clear cached datasets and models before running experiments",
-    ),
-    no_features: bool = typer.Option(
-        False,
-        "--no-features",
-        help="Skip feature engineering and use only raw OHLCV data",
-    ),
-    generate_data: bool = typer.Option(
-        False,
-        "--generate-data",
-        help="Regenerate data from scenario configuration before experiments",
-    ),
-    dashboard: bool = typer.Option(
-        False, "--dashboard", help="Launch MLflow UI after experiments"
     ),
     from_checkpoint: Path | None = typer.Option(  # noqa: B008
         None,
@@ -427,14 +400,8 @@ def train(
         params = ExperimentParams(
             experiment_name=experiment_name,
             n_trials=trials,
-            dashboard=dashboard,
             config_file=config_file,
-            scenario=scenario,
-            seed=seed,
-            max_steps=max_steps,
             clear_cache=clear_cache,
-            no_features=no_features,
-            generate_data=generate_data,
             config_overrides=config_override,
         )
         experiment_cmd.execute(params)
@@ -442,12 +409,8 @@ def train(
 
     params = TrainingParams(
         config_file=config_file,
-        scenario=scenario,
         config_overrides=config_override,
         experiment_name=experiment_name,
-        seed=seed,
-        max_steps=max_steps,
-        no_features=no_features,
         from_checkpoint=from_checkpoint,
         from_last_checkpoint=from_last_checkpoint,
         mlflow_run_id=mlflow_run_id,
