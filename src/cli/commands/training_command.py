@@ -13,8 +13,13 @@ from .base_command import BaseCommand
 class TrainingParams:
     """Parameters for single agent training."""
 
+    experiment_name: str | None = None
     config_file: Path | None = None
+    scenario: str | None = None
     config_overrides: list[str] | None = None
+    seed: int | None = None
+    max_steps: int | None = None
+    no_features: bool = False
     checkpoint_path: Path | None = None  # Path to checkpoint to resume from
     additional_steps: int | None = None  # Additional steps when resuming
     from_checkpoint: Path | None = None  # Path to checkpoint alias
@@ -65,24 +70,66 @@ class TrainingCommand(BaseCommand):
         from trading_rl import ExperimentConfig
 
         # Load base configuration
+        if params.config_file and params.scenario:
+            raise ValueError("Cannot specify both --config and --scenario.")
+
         if params.config_file:
             config = ExperimentConfig.from_yaml(
                 params.config_file, overrides=params.config_overrides
             )
             self.console.print(f"[blue]Loaded config from: {params.config_file}[/blue]")
+        elif params.scenario:
+            config_file = self._resolve_scenario_config_path(params.scenario)
+            config = ExperimentConfig.from_yaml(
+                config_file, overrides=params.config_overrides
+            )
+            self.console.print(
+                f"[blue]Loaded config from scenario: {params.scenario} -> {config_file}[/blue]"
+            )
         else:
+            if params.config_overrides:
+                raise ValueError("--config-override requires --config or --scenario.")
             config = ExperimentConfig()
-
-        # Handle seed generation
-        config.seed = self.resolve_seed(config.seed)
 
         # Apply CLI overrides
         self._apply_training_overrides(config, params)
+
+        # Handle seed generation
+        config.seed = self.resolve_seed(config.seed)
 
         return config
 
     def _apply_training_overrides(self, config, params: TrainingParams) -> None:
         """Apply CLI parameter overrides to config."""
+        if params.experiment_name:
+            config.experiment_name = params.experiment_name
+        if params.seed is not None:
+            config.seed = params.seed
+        if params.max_steps is not None:
+            config.training.max_steps = params.max_steps
+        if params.no_features:
+            config.data.no_features = True
+
+    def _resolve_scenario_config_path(self, scenario: str) -> Path:
+        """Resolve scenario name to config file path."""
+        candidate_path = Path(scenario)
+
+        if candidate_path.is_dir():
+            candidate_path = candidate_path / "config.yaml"
+
+        search_paths = [
+            candidate_path,
+            Path("src/configs/scenarios") / scenario,
+            Path("src/configs/scenarios") / f"{scenario}.yaml",
+        ]
+
+        for path in search_paths:
+            if path.exists():
+                return path.resolve()
+
+        raise ValueError(
+            f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs/scenarios."
+        )
 
     def _display_config(self, config, params: TrainingParams) -> None:
         """Display training configuration."""

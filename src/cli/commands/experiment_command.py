@@ -19,6 +19,7 @@ class ExperimentParams:
     dashboard: bool = False
     config_file: Path | None = None
     scenario: str | None = None
+    config_overrides: list[str] | None = None
     seed: int | None = None
     max_steps: int | None = None
     clear_cache: bool = False
@@ -87,14 +88,22 @@ class ExperimentCommand(BaseCommand):
         
         # Create config and override with CLI parameters
         if params.config_file:
-            config = ExperimentConfig.from_yaml(params.config_file)
+            config = ExperimentConfig.from_yaml(
+                params.config_file, overrides=params.config_overrides
+            )
             self.console.print(f"[blue]Loaded config from file: {params.config_file}[/blue]")
         elif params.scenario:
             # Resolve scenario to config file
             config_file = self._resolve_scenario_config_path(params.scenario)
-            config = ExperimentConfig.from_yaml(config_file)
+            config = ExperimentConfig.from_yaml(
+                config_file, overrides=params.config_overrides
+            )
             self.console.print(f"[blue]Loaded config from scenario: {params.scenario} -> {config_file}[/blue]")
         else:
+            if params.config_overrides:
+                raise typer.BadParameter(
+                    "--config-override requires --config or --scenario."
+                )
             config = ExperimentConfig()
 
         if params.max_steps is not None:

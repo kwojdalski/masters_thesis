@@ -53,7 +53,7 @@ Common commands (`python src/cli.py --help` for full details):
 | `python src/cli.py scenarios` | List available scenario configs |
 | `python src/cli.py data generate --scenario sine_wave` | Generate synthetic data |
 | `python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml` | Train a single agent |
-| `python src/cli.py experiment --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --trials 3` | Run multiple trials |
+| `python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --trials 3` | Run multiple trials |
 | `python src/cli.py dashboard` | Launch the MLflow UI |
 | `python src/cli.py checkpoints` | Inspect or clean checkpoints |
 | `python src/cli.py experiments` | List MLflow experiments |

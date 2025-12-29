@@ -327,14 +327,55 @@ def generate_data(
 
 @app.command()
 def train(
+    trials: int = typer.Option(
+        1, "--trials", "-t", help="Number of trials to run (1 = single run)"
+    ),
+    experiment_name: str | None = typer.Option(
+        None,
+        "--name",
+        "-n",
+        help="MLflow experiment name (defaults to config's experiment_name)",
+    ),
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to custom config file"
+    ),
+    scenario: str | None = typer.Option(
+        None,
+        "--scenario",
+        "-s",
+        help="Scenario name (use 'scenarios' to see options)",
     ),
     config_override: list[str] | None = typer.Option(
         None,
         "--config-override",
         "-o",
         help="OmegaConf override in dotlist format (repeatable)",
+    ),
+    seed: int | None = typer.Option(
+        None,
+        "--seed",
+        help="Set base seed for reproducible experiments (default: random)",
+    ),
+    max_steps: int | None = typer.Option(
+        None, "--max-steps", help="Maximum training steps for each trial"
+    ),
+    clear_cache: bool = typer.Option(
+        False,
+        "--clear-cache",
+        help="Clear cached datasets and models before running experiments",
+    ),
+    no_features: bool = typer.Option(
+        False,
+        "--no-features",
+        help="Skip feature engineering and use only raw OHLCV data",
+    ),
+    generate_data: bool = typer.Option(
+        False,
+        "--generate-data",
+        help="Regenerate data from scenario configuration before experiments",
+    ),
+    dashboard: bool = typer.Option(
+        False, "--dashboard", help="Launch MLflow UI after experiments"
     ),
     from_checkpoint: Path | None = typer.Option(  # noqa: B008
         None,
@@ -365,9 +406,11 @@ def train(
         help="Only show log lines that match this regex",
     ),
 ):
-    """Train a single trading agent.
+    """Train trading agents (single run or multiple trials).
 
-    You can resume training from a checkpoint by providing --from-checkpoint flag:
+    Single run is the default. Use --trials > 1 to run multiple trials.
+    You can resume single-run training from a checkpoint by providing
+    --from-checkpoint flag:
 
     Example:
         python src/cli.py train --from-checkpoint logs/td3_tradingenv_btc/td3_tradingenv_btc_checkpoint.pt --additional-steps 50000
@@ -376,9 +419,35 @@ def train(
     if verbose or log_regex:
         _configure_logging(verbose, log_regex)
 
+    if trials > 1:
+        if from_checkpoint or from_last_checkpoint or mlflow_run_id or additional_steps:
+            raise typer.BadParameter(
+                "Checkpoint resume options are only supported for single-run training."
+            )
+        params = ExperimentParams(
+            experiment_name=experiment_name,
+            n_trials=trials,
+            dashboard=dashboard,
+            config_file=config_file,
+            scenario=scenario,
+            seed=seed,
+            max_steps=max_steps,
+            clear_cache=clear_cache,
+            no_features=no_features,
+            generate_data=generate_data,
+            config_overrides=config_override,
+        )
+        experiment_cmd.execute(params)
+        return
+
     params = TrainingParams(
         config_file=config_file,
+        scenario=scenario,
         config_overrides=config_override,
+        experiment_name=experiment_name,
+        seed=seed,
+        max_steps=max_steps,
+        no_features=no_features,
         from_checkpoint=from_checkpoint,
         from_last_checkpoint=from_last_checkpoint,
         mlflow_run_id=mlflow_run_id,
@@ -386,76 +455,6 @@ def train(
     )
 
     training_cmd.execute(params)
-
-
-@app.command()
-def experiment(
-    experiment_name: str | None = typer.Option(
-        None,
-        "--name",
-        "-n",
-        help="MLflow experiment name (defaults to config's experiment_name)",
-    ),
-    n_trials: int = typer.Option(5, "--trials", "-t", help="Number of trials to run"),
-    dashboard: bool = typer.Option(
-        False, "--dashboard", help="Launch MLflow UI after experiments"
-    ),
-    config_file: Path | None = typer.Option(  # noqa: B008
-        None, "--config", "-c", help="Path to custom config file"
-    ),
-    scenario: str | None = typer.Option(
-        None,
-        "--scenario",
-        "-s",
-        help="Scenario name (use 'list-scenarios' to see options)",
-    ),
-    seed: int | None = typer.Option(
-        None,
-        "--seed",
-        help="Set base seed for reproducible experiments (default: random)",
-    ),
-    max_steps: int | None = typer.Option(
-        None, "--max-steps", help="Maximum training steps for each trial"
-    ),
-    clear_cache: bool = typer.Option(
-        False,
-        "--clear-cache",
-        help="Clear cached datasets and models before running experiments",
-    ),
-    no_features: bool = typer.Option(
-        False,
-        "--no-features",
-        help="Skip feature engineering and use only raw OHLCV data",
-    ),
-    generate_data: bool = typer.Option(
-        False,
-        "--generate-data",
-        help="Regenerate data from scenario configuration before experiments",
-    ),
-):
-    """Run multiple experiments with MLflow tracking.
-
-    Each experiment tracks multiple metrics simultaneously:
-    - Actor and value losses over training steps
-    - Position changes and trading activity
-    - Portfolio values and episode rewards
-    - All parameters and configurations
-    """
-
-    params = ExperimentParams(
-        experiment_name=experiment_name,
-        n_trials=n_trials,
-        dashboard=dashboard,
-        config_file=config_file,
-        scenario=scenario,
-        seed=seed,
-        max_steps=max_steps,
-        clear_cache=clear_cache,
-        no_features=no_features,
-        generate_data=generate_data,
-    )
-
-    experiment_cmd.execute(params)
 
 
 @app.command()
