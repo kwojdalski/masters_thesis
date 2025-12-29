@@ -64,7 +64,7 @@ FAILED_SCENARIOS=()
 for scenario in "${SCENARIOS[@]}"; do
     echo "Running scenario: $scenario"
     
-    if ! python src/cli.py experiment --scenario "$scenario" --trials "$TRIALS" --max-steps "$STEPS" --generate-data; then
+    if ! python src/cli.py train --scenario "$scenario" --trials "$TRIALS" --max-steps "$STEPS" --generate-data; then
         echo "ERROR: Scenario $scenario failed!"
         FAILED_SCENARIOS+=("$scenario")
         continue
