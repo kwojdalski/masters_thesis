@@ -16,9 +16,44 @@ from trading_rl.features.price_features import (
     HighFeature,
     LogReturnFeature,
     LowFeature,
+    RSIFeature,
+    SimpleReturnFeature,
     TrendFeature,
 )
-from trading_rl.features.volume_features import LogVolumeFeature
+from trading_rl.features.volume_features import (
+    LogVolumeFeature,
+    VolumeChangeFeature,
+    VolumeMAFeature,
+)
+
+# Import TA-Lib features to register them
+try:
+    from trading_rl.features.talib_features import (
+        ADFeature,
+        ADOSCFeature,
+        ADXFeature,
+        AROONFeature,
+        ATRFeature,
+        BBANDSFeature,
+        CCIFeature,
+        CMOFeature,
+        DEMAFeature,
+        EMAFeature,
+        MACDFeature,
+        MOMFeature,
+        NATRFeature,
+        OBVFeature,
+        ROCFeature,
+        SMAFeature,
+        TALibRSIFeature,
+        TEMAFeature,
+        WILLRFeature,
+        WMAFeature,
+    )
+
+    _TALIB_AVAILABLE = True
+except ImportError:
+    _TALIB_AVAILABLE = False
 
 __all__ = [
     "Feature",
@@ -26,9 +61,40 @@ __all__ = [
     "FeaturePipeline",
     "FeatureRegistry",
     "register_feature",
+    # Price features
     "LogReturnFeature",
+    "SimpleReturnFeature",
     "HighFeature",
     "LowFeature",
-    "LogVolumeFeature",
     "TrendFeature",
+    "RSIFeature",
+    # Volume features
+    "LogVolumeFeature",
+    "VolumeChangeFeature",
+    "VolumeMAFeature",
 ]
+
+if _TALIB_AVAILABLE:
+    __all__ += [
+        # TA-Lib features
+        "SMAFeature",
+        "EMAFeature",
+        "WMAFeature",
+        "DEMAFeature",
+        "TEMAFeature",
+        "TALibRSIFeature",
+        "MACDFeature",
+        "MOMFeature",
+        "ROCFeature",
+        "CMOFeature",
+        "WILLRFeature",
+        "CCIFeature",
+        "ATRFeature",
+        "NATRFeature",
+        "BBANDSFeature",
+        "OBVFeature",
+        "ADFeature",
+        "ADOSCFeature",
+        "ADXFeature",
+        "AROONFeature",
+    ]
