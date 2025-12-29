@@ -81,13 +81,3 @@ training:
 logging:
   log_dir: "logs/td3_tradingenv_uptrend"
   log_level: "INFO"
-
-# Data Generator Configuration
-data_generator:
-  pattern_type: "upward_drift"
-  n_samples: 50000
-  base_price: 50000.0
-  drift_rate: 0.0015  # 0.15% per step - strong uptrend
-  volatility: 0.000  # Small noise
-  # pullback_floor: 0.995  # Occasional small pullbacks
-  start_date: "2024-01-01"

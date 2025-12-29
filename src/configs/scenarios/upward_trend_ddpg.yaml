@@ -51,14 +51,3 @@ training:
 logging:
   log_dir: "logs/upward_drift"
   log_level: "INFO"
-
-data_generator:
-  pattern_type: "upward_drift"
-  n_samples: 500
-  base_price: 50000.0
-  drift_rate: 0.015
-  volatility: 0.0005
-  pullback_floor: 0.995
-  description: "Strong exponential upward drift with minimal volatility"
-  expected_strategy: "Stay long; small pullbacks rarely justify exiting"
-  optimal_return_estimate: "> 100%"

@@ -51,16 +51,3 @@ training:
 logging:
   log_dir: "logs/sine_wave"
   log_level: "INFO"
-
-data_generator:
-  pattern_type: "sine_wave"
-  n_periods: 5
-  samples_per_period: 100
-  n_samples: 500
-  base_price: 50000.0
-  amplitude: 8000.0
-  trend_slope: 50.0
-  volatility: 0.02
-  description: "Predictable sine wave with upward trend"
-  expected_strategy: "Buy at troughs (~42000), Sell at peaks (~58000)"
-  optimal_return_estimate: "> 200%"

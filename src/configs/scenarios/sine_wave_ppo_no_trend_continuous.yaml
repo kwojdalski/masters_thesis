@@ -70,15 +70,3 @@ training:
 logging:
   log_dir: "logs/sine_wave_ppo_no_trend_continuous"
   log_level: "INFO"
-
-# Data Generator Configuration
-data_generator:
-  pattern_type: "sine_wave"
-  n_periods: 5
-  samples_per_period: 100
-  n_samples: 500
-  base_price: 50000.0
-  amplitude: 8000.0
-  trend_slope: 0.0
-  volatility: 0.0002
-  start_date: "2024-01-01"

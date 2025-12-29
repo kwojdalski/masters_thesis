@@ -60,13 +60,3 @@ training:
 logging:
   log_dir: "logs/ddpg_tradingenv_uptrend"
   log_level: "INFO"
-
-# Data Generator Configuration (for reference)
-data_generator:
-  pattern_type: "upward_drift"
-  n_samples: 500
-  base_price: 50000.0
-  drift_rate: 0.0015
-  volatility: 0.0005
-  pullback_floor: 0.995
-  start_date: "2024-01-01"
