@@ -28,8 +28,8 @@ from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.plotting import visualize_training
-from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 from trading_rl.trainers.ppo import PPOTrainerContinuous
+from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 
 # Avoid torch_shm_manager requirement in restricted environments
 mp.set_sharing_strategy("file_system")
@@ -80,8 +80,8 @@ def set_seed(seed: int | None) -> int:
     Args:
         seed: Random seed value (None generates a random seed)
     """
-    import random
     import logging
+    import random
 
     if seed is None:
         seed = random.randint(1, 100000)  # noqa: S311
@@ -225,12 +225,6 @@ def build_training_context(
         else:
             logger.debug("  No features found in data (using raw OHLCV only)")
 
-    if mlflow.active_run():
-        MLflowTrainingCallback.log_parameter_faq_artifact()
-        MLflowTrainingCallback.log_training_parameters(config)
-        MLflowTrainingCallback.log_config_artifact(config)
-        MLflowTrainingCallback.log_data_overview(df, config)
-
     logger.info("Creating environment...")
     env = env_builder.create(df, config)
 
@@ -245,8 +239,7 @@ def build_training_context(
 
     backend = getattr(config.env, "backend", "")
     is_continuous_env = (
-        backend == "tradingenv"
-        or backend == "gym_trading_env.continuous"
+        backend == "tradingenv" or backend == "gym_trading_env.continuous"
     )
 
     algorithm = getattr(config.training, "algorithm", "PPO").upper()
@@ -298,6 +291,12 @@ def build_training_context(
             total_episodes=estimated_episodes if progress_bar else None,
             price_series=df["close"][: config.data.train_size],
         )
+
+    if mlflow.active_run():
+        MLflowTrainingCallback.log_parameter_faq_artifact()
+        MLflowTrainingCallback.log_training_parameters(config)
+        MLflowTrainingCallback.log_config_artifact(config)
+        MLflowTrainingCallback.log_data_overview(df, config)
 
     return {
         "logger": logger,
@@ -395,7 +394,9 @@ def run_single_experiment(
         "final_reward": final_reward,
         "training_steps": len(logs.get("loss_value", [])),
         # Use backend-aware naming for positions/weights
-        ("portfolio_weights" if is_portfolio_backend else "last_position_per_episode"): last_positions,
+        (
+            "portfolio_weights" if is_portfolio_backend else "last_position_per_episode"
+        ): last_positions,
         # Dataset metadata
         "data_start_date": str(df.index[0]) if not df.empty else "unknown",
         "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
