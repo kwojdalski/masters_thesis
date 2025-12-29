@@ -1,11 +1,10 @@
 #!/bin/bash
-# Run all scenarios with specified trials and steps
+# Run all scenarios with specified trials
 
 set -e  # Exit on error
 
 # Default values
 TRIALS=1
-STEPS=1000
 FILTER=""
 
 # Parse named arguments
@@ -15,18 +14,13 @@ while [[ $# -gt 0 ]]; do
             TRIALS="$2"
             shift 2
             ;;
-        --steps)
-            STEPS="$2"
-            shift 2
-            ;;
         --filter)
             FILTER="$2"
             shift 2
             ;;
         -h|--help)
-            echo "Usage: $0 [--trials N] [--steps N] [--filter PATTERN]"
+            echo "Usage: $0 [--trials N] [--filter PATTERN]"
             echo "  --trials N      Number of trials per scenario (default: 1)"
-            echo "  --steps N       Number of steps per trial (default: 1000)"
             echo "  --filter PATTERN  Only run scenarios matching grep pattern"
             exit 0
             ;;
@@ -48,10 +42,10 @@ if [[ -n "$FILTER" ]]; then
             SCENARIOS+=("$scenario")
         fi
     done
-    echo "Running filtered scenarios (pattern: '$FILTER') with $TRIALS trials and $STEPS steps each..."
+    echo "Running filtered scenarios (pattern: '$FILTER') with $TRIALS trials each..."
 else
     SCENARIOS=("${ALL_SCENARIOS[@]}")
-    echo "Running all scenarios with $TRIALS trials and $STEPS steps each..."
+    echo "Running all scenarios with $TRIALS trials each..."
 fi
 
 if [[ ${#SCENARIOS[@]} -eq 0 ]]; then
@@ -63,8 +57,9 @@ FAILED_SCENARIOS=()
 
 for scenario in "${SCENARIOS[@]}"; do
     echo "Running scenario: $scenario"
-    
-    if ! python src/cli.py train --scenario "$scenario" --trials "$TRIALS" --max-steps "$STEPS" --generate-data; then
+
+    config_path="src/configs/scenarios/${scenario}.yaml"
+    if ! python src/cli.py train --config "$config_path" --trials "$TRIALS"; then
         echo "ERROR: Scenario $scenario failed!"
         FAILED_SCENARIOS+=("$scenario")
         continue
