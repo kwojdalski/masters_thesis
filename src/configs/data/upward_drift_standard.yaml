@@ -1,0 +1,13 @@
+# Upward Drift - Standard Configuration
+# =======================================
+# Pattern: Moderate upward trend with small pullbacks
+# Use: Testing trend-following strategies
+
+data_generator:
+  pattern_type: "upward_drift"
+  n_samples: 500
+  base_price: 50000.0
+  drift_rate: 0.0015  # 0.15% per step
+  volatility: 0.0005
+  pullback_floor: 0.995  # Small occasional pullbacks
+  start_date: "2024-01-01"

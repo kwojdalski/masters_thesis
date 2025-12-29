@@ -1,0 +1,18 @@
+# Upward Drift - Strong Trend
+# =============================
+# Pattern: Strong exponential upward drift
+# Use: Testing pure trend-following (stay long)
+
+data_generator:
+  pattern_type: "upward_drift"
+  n_samples: 500
+  base_price: 50000.0
+  drift_rate: 0.015  # 1.5% per step - very strong
+  volatility: 0.0005
+  pullback_floor: 0.995
+  start_date: "2024-01-01"
+
+  # Expected behavior:
+  # - Stay long throughout
+  # - Small pullbacks rarely justify exiting
+  # - Optimal return estimate: > 100%

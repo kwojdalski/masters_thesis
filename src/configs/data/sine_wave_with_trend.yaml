@@ -1,0 +1,20 @@
+# Sine Wave - With Upward Trend
+# ===============================
+# Pattern: Oscillation combined with upward drift
+# Use: Testing strategies that balance trend-following and mean-reversion
+
+data_generator:
+  pattern_type: "sine_wave"
+  n_periods: 5
+  samples_per_period: 100
+  n_samples: 500
+  base_price: 50000.0
+  amplitude: 8000.0
+  trend_slope: 50.0  # Upward trend added to oscillation
+  volatility: 0.02
+  start_date: "2024-01-01"
+
+  # Expected behavior:
+  # - Buy at troughs (~42000)
+  # - Sell at peaks (~58000)
+  # - Optimal return estimate: > 200%

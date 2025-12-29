@@ -1,0 +1,14 @@
+# Upward Drift - Large Dataset
+# ==============================
+# Pattern: Extended upward trend for long training
+# Use: Preventing overfitting with more data
+
+data_generator:
+  pattern_type: "upward_drift"
+  n_samples: 50000  # 100x more data
+  base_price: 50000.0
+  drift_rate: 0.0015  # 0.15% per step
+  volatility: 0.000  # Minimal noise
+  start_date: "2024-01-01"
+
+  # Note: pullback_floor commented out for smoother trend
