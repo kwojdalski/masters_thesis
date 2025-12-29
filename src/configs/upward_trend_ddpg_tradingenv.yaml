@@ -23,7 +23,7 @@ env:
   backend: "tradingenv"
   trading_fees: 0.001
   price_columns: ["close"]
-  feature_columns: ["feature_return", "feature_trend"]
+  feature_columns: ["feature_log_return", "feature_trend"]
 
   # Reward function configuration
   reward_type: "log_return"  # Options: "log_return", "differential_sharpe"
