@@ -54,7 +54,7 @@ def test_ppo_tradingenv():
 
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \\
-      --config src/configs/scenarios/tradingenv_ppo_example.yaml \\
+      --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml \\
       --max-steps 500
 
     Backend: tradingenv (continuous portfolio allocation)

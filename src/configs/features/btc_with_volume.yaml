@@ -1,0 +1,26 @@
+# BTC Trading with Volume Features
+# ==================================
+# Used in: btc_td3_tradingenv.yaml
+# Required columns: open, high, low, close, volume
+# Pattern: Real cryptocurrency market data
+
+features:
+  # Price momentum/returns
+  - name: "log_return"
+    feature_type: "log_return"
+    normalize: true
+
+  # Intraday volatility - high relative to close
+  - name: "high"
+    feature_type: "high"
+    normalize: true
+
+  # Intraday volatility - low relative to close
+  - name: "low"
+    feature_type: "low"
+    normalize: true
+
+  # Volume indicator (log-transformed)
+  - name: "log_volume"
+    feature_type: "log_volume"
+    normalize: true

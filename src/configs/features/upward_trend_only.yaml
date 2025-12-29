@@ -1,0 +1,13 @@
+# Upward Trend - Trend Feature Only
+# ===================================
+# Used in: upward_trend_td3_tradingenv.yaml
+# Required columns: close
+# Pattern: Strong upward drift, trend-only signal
+
+features:
+  # Cumulative trend (min-max normalized, preserves trend!)
+  # Note: feature_log_return is z-scored so it loses trend signal
+  # Using trend alone forces agent to learn from cumulative price movement
+  - name: "trend"
+    feature_type: "trend"
+    normalize: false  # Already min-max normalized in compute()
