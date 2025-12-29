@@ -51,15 +51,3 @@ training:
 logging:
   log_dir: "logs/mean_reversion"
   log_level: "INFO"
-
-data_generator:
-  pattern_type: "mean_reversion"
-  n_samples: 500
-  base_price: 50000.0
-  reversion_strength: 0.12
-  volatility: 0.04
-  shock_probability: 0.03
-  shock_magnitude: 0.15
-  description: "Mean reverting price with occasional shocks"
-  expected_strategy: "Buy when price < 50000, Sell when price > 50000"
-  optimal_return_estimate: "> 150%"
