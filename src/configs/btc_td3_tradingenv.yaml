@@ -29,7 +29,7 @@ env:
 
   # Column specifications - IMPORTANT: price_columns must contain only positive values
   price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
-  feature_columns: ["feature_return", "feature_high", "feature_low", "feature_volume"]  # Normalized features including log-normalized volume
+  feature_columns: ["feature_log_return", "feature_high", "feature_low", "feature_volume"]  # Normalized features including log-normalized volume
 
   # Reward function configuration
   reward_type: "differential_sharpe"  # Use Differential Sharpe Ratio for risk-adjusted rewards

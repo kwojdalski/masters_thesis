@@ -27,7 +27,7 @@ env:
   
   # Column specifications for TradingEnv
   price_columns: ["close"]
-  feature_columns: ["feature_return", "feature_high", "feature_low"]  # Removed redundant feature_pct_chng
+  feature_columns: ["feature_log_return", "feature_high", "feature_low"]
 
   # Reward function configuration
   reward_type: "log_return"  # Options: "log_return", "differential_sharpe"

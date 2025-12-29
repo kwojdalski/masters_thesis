@@ -99,10 +99,10 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Creating features")
     df = df.copy()
 
-    # Price return feature (log return)
-    df["feature_return"] = (df["close"] / df["close"].shift(1) - 1).fillna(0)
-    df["feature_return"] = (df["feature_return"] - df["feature_return"].mean()) / df[
-        "feature_return"
+    # Log return feature
+    df["feature_log_return"] = (df["close"] / df["close"].shift(1) - 1).fillna(0)
+    df["feature_log_return"] = (df["feature_log_return"] - df["feature_log_return"].mean()) / df[
+        "feature_log_return"
     ].std()
 
     # High relative to close

@@ -29,10 +29,10 @@ env:
 
   # Column specifications
   price_columns: ["close"]
-  # feature_return: z-scored returns (no trend signal due to normalization)
+  # feature_log_return: z-scored returns (no trend signal due to normalization)
   # feature_trend: price relative to start, min-max scaled to [0,1] (preserves upward trend!)
   feature_columns: ["feature_trend"]
-  # "feature_return",
+  # "feature_log_return",
 
   # Reward function configuration
   reward_type: "log_return"  # Options: "log_return", "differential_sharpe"
