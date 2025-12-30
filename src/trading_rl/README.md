@@ -59,6 +59,17 @@ for custom features.
 
 **Benefits**: Configurable feature sets, no data leakage, and easy extension.
 
+Example feature config snippet:
+```yaml
+features:
+  - name: "return_lag_3"
+    feature_type: "return_lag"
+    params:
+      column: "close"
+      lag: 3
+    normalize: true
+```
+
 ### `models.py`
 Neural network components:
 - `DiscreteNet`: Flexible discrete action network

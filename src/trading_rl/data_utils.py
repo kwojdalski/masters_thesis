@@ -100,7 +100,7 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # Log return feature
-    df["feature_log_return"] = (df["close"] / df["close"].shift(1) - 1).fillna(0)
+    df["feature_log_return"] = np.log(df["close"] / df["close"].shift(1)).fillna(0)
     df["feature_log_return"] = (df["feature_log_return"] - df["feature_log_return"].mean()) / df[
         "feature_log_return"
     ].std()
