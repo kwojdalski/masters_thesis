@@ -28,6 +28,7 @@ class DataConfig:
     )
     train_size: int = 1000
     no_features: bool = False
+    feature_config: str | None = None  # Path to feature config YAML
 
 
 @dataclass
