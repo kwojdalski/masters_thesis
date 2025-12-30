@@ -5,8 +5,8 @@ Usage (from repo root):
     --config src/configs/scenarios/sine_wave_td3_no_trend_tradingenv.yaml \
     --max-steps 40000 --actor-lr 0.0003 --init-rand-steps 5000
 
-This mirrors the CLI call and prints parameter stats before/after training so
-you can confirm the actor/critics are actually learning.
+This script overrides config values directly and prints parameter stats
+before/after training so you can confirm the actor/critics are actually learning.
 """
 
 from __future__ import annotations

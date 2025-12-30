@@ -15,8 +15,7 @@ def test_ppo_anytrading_forex():
 
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \\
-      --config src/configs/scenarios/upward_trend_ppo.yaml \\
-      --max-steps 500
+      --config src/configs/scenarios/upward_trend_ppo.yaml
 
     Backend: gym_anytrading.forex (discrete: 2 actions [short=0, long=1])
     Algorithm: PPO (works with both discrete and continuous)
@@ -27,13 +26,12 @@ def test_ppo_anytrading_forex():
 
     configure_logging(component="test_ppo_anytrading", level="DEBUG")
 
-    # Setup Parameters
+    # Setup Parameters (override config in code for shorter runs)
     config_path = Path("src/configs/scenarios/upward_trend_ppo.yaml")
 
     params = TrainingParams(
         config_file=config_path,
         max_steps=600,  # Divisible by frames_per_batch (200)
-        actor_lr=0.0003,
     )
 
     # Initialize Command
@@ -54,8 +52,7 @@ def test_ppo_tradingenv():
 
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \\
-      --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml \\
-      --max-steps 500
+      --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml
 
     Backend: tradingenv (continuous portfolio allocation)
     Algorithm: PPO (works with both discrete and continuous)
@@ -65,13 +62,12 @@ def test_ppo_tradingenv():
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_ppo_tradingenv", level="DEBUG")
 
-    # Setup Parameters
+    # Setup Parameters (override config in code for shorter runs)
     config_path = Path("src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml")
 
     params = TrainingParams(
         config_file=config_path,
         max_steps=512,  # Divisible by frames_per_batch (256)
-        actor_lr=0.0003,
     )
 
     # Initialize Command
@@ -92,8 +88,7 @@ def test_ddpg_continuous():
 
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \\
-      --config src/configs/scenarios/sine_wave.yaml \\
-      --max-steps 500
+      --config src/configs/scenarios/sine_wave.yaml
 
     Backend: gym_trading_env.continuous (continuous actions mapped to discrete positions)
     Algorithm: DDPG (requires continuous action space)
@@ -107,7 +102,7 @@ def test_ddpg_continuous():
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_ddpg_continuous", level="DEBUG")
 
-    # Setup Parameters
+    # Setup Parameters (override config in code for shorter runs)
     # Note: Using sine_wave.yaml as base, but backend incompatibility
     # should be handled by the builder (auto-resolution or error)
     config_path = Path("src/configs/scenarios/sine_wave.yaml")
@@ -115,7 +110,6 @@ def test_ddpg_continuous():
     params = TrainingParams(
         config_file=config_path,
         max_steps=600,  # Divisible by frames_per_batch (200)
-        actor_lr=0.0005,
     )
 
     # Initialize Command
@@ -136,8 +130,7 @@ def test_td3_continuous():
 
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \\
-      --config src/configs/scenarios/sine_wave_td3_no_trend.yaml \\
-      --max-steps 500
+      --config src/configs/scenarios/sine_wave_td3_no_trend.yaml
 
     Backend: gym_trading_env.continuous (continuous actions)
     Algorithm: TD3 (requires continuous action space)
@@ -147,13 +140,12 @@ def test_td3_continuous():
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_td3_continuous", level="DEBUG")
 
-    # Setup Parameters
+    # Setup Parameters (override config in code for shorter runs)
     config_path = Path("src/configs/scenarios/sine_wave_td3_no_trend.yaml")
 
     params = TrainingParams(
         config_file=config_path,
         max_steps=600,  # Divisible by frames_per_batch (200)
-        actor_lr=0.0003,
     )
 
     # Initialize Command
