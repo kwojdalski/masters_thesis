@@ -14,8 +14,7 @@ def test_sine_wave_ppo_training_debug():
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \
       --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml \
-      --max-steps 50000 \
-      --actor-lr 0.0001
+      # Edit config for max_steps/actor_lr as needed
     """
     # 1. Configure Logging (equivalent to LOG_LEVEL=DEBUG)
     # The CLI main callback does this:
@@ -29,7 +28,6 @@ def test_sine_wave_ppo_training_debug():
     params = TrainingParams(
         config_file=config_path,
         max_steps=600,  # Divisible by frames_per_batch (200)
-        actor_lr=0.0001,
         # experiment_name="debug_repro_test", # Optional: set a name if desired
         # log_dir=Path("logs/debug_test"),    # Optional: override log dir
     )
@@ -53,9 +51,7 @@ def test_upward_trend_td3_training_debug():
     Reproduces the CLI command (shortened for test):
     LOG_LEVEL=DEBUG python src/cli.py train \
       --config src/configs/scenarios/upward_trend_td3_tradingenv.yaml \
-      --max-steps 40000 \
-      --actor-lr 0.0003 \
-      --init-rand-steps 900
+      # Edit config for max_steps/actor_lr/init_rand_steps as needed
 
     In test form we lower max_steps to keep runtime reasonable.
     """
@@ -67,8 +63,6 @@ def test_upward_trend_td3_training_debug():
     params = TrainingParams(
         config_file=config_path,
         max_steps=2000,  # shorter than full run for test
-        actor_lr=0.0003,
-        init_rand_steps=900,
     )
 
     console = Console(force_terminal=True)
@@ -86,8 +80,7 @@ def test_upward_trend_ddpg_training_debug():
     Mirrors:
     LOG_LEVEL=DEBUG python src/cli.py train \
       --config src/configs/scenarios/upward_trend_ddpg_tradingenv.yaml \
-      --max-steps 40000 \
-      --init-rand-steps 900
+      # Edit config for max_steps/init_rand_steps as needed
     """
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_repro", level="DEBUG")
@@ -97,8 +90,6 @@ def test_upward_trend_ddpg_training_debug():
     params = TrainingParams(
         config_file=config_path,
         max_steps=2000,  # shorten for test
-        init_rand_steps=900,
-        actor_lr=0.0003,
     )
 
     console = Console(force_terminal=True)
