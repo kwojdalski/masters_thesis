@@ -15,6 +15,7 @@ from pathlib import Path
 import gym_trading_env  # noqa: F401
 import mlflow
 import numpy as np
+import pandas as pd
 import torch
 import torch.multiprocessing as mp
 from joblib import Memory
@@ -192,9 +193,12 @@ def build_training_context(
     logger.debug(f"  Data path: {config.data.data_path}")
     logger.debug(f"  Train size: {config.data.train_size}")
     logger.debug(f"  No features: {getattr(config.data, 'no_features', False)}")
+    logger.debug(f"  Feature config: {getattr(config.data, 'feature_config', None)}")
 
-    df = prepare_data(
+    # NEW: prepare_data() now returns (train_df, test_df) and splits BEFORE features
+    train_df, test_df = prepare_data(
         data_path=config.data.data_path,
+        train_size=config.data.train_size,  # NEW: required for splitting
         download_if_missing=config.data.download_data,
         exchange_names=config.data.exchange_names,
         symbols=config.data.symbols,
@@ -202,31 +206,37 @@ def build_training_context(
         data_dir=config.data.data_dir,
         since=config.data.download_since,
         no_features=getattr(config.data, "no_features", False),
+        feature_config_path=getattr(config.data, "feature_config", None),  # NEW
     )
 
     if logger.isEnabledFor(logging.INFO):
-        logger.info("\033[95mTraining data head:\n%s\033[0m", df.head())
+        logger.info("\033[95mTraining data head:\n%s\033[0m", train_df.head())
 
-    logger.debug(f"Data loaded - shape: {df.shape}, columns: {list(df.columns)}")
+    logger.debug(
+        f"Data loaded - train: {train_df.shape}, test: {test_df.shape}, "
+        f"columns: {list(train_df.columns)}"
+    )
 
     if logger.isEnabledFor(logging.DEBUG):
-        logger.debug("Data statistics:")
-        logger.debug(
-            "  Close price - min: %.2f, max: %.2f, mean: %.2f",
-            df["close"].min(),
-            df["close"].max(),
-            df["close"].mean(),
-        )
-        logger.debug(f"  Close price std: {df['close'].std():.2f}")
+        logger.debug("Training data statistics:")
+        # Check if we have raw OHLCV or features
+        if "close" in train_df.columns:
+            logger.debug(
+                "  Close price - min: %.2f, max: %.2f, mean: %.2f",
+                train_df["close"].min(),
+                train_df["close"].max(),
+                train_df["close"].mean(),
+            )
+            logger.debug(f"  Close price std: {train_df['close'].std():.2f}")
 
-        feature_cols = [col for col in df.columns if "feature" in col.lower()]
+        feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
         if feature_cols:
             logger.debug(f"  Features found: {feature_cols}")
         else:
             logger.debug("  No features found in data (using raw OHLCV only)")
 
     logger.info("Creating environment...")
-    env = env_builder.create(df, config)
+    env = env_builder.create(train_df, config)
 
     n_obs = env.observation_spec["observation"].shape[-1]
     n_act = env.action_spec.shape[-1]
@@ -284,23 +294,31 @@ def build_training_context(
     if create_mlflow_callback:
         tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
         estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
+        # Use close from train_df if available, otherwise use train_df index length
+        if "close" in train_df.columns:
+            price_series = train_df["close"]
+        else:
+            # For feature-only data, create a dummy series
+            price_series = pd.Series(range(len(train_df)), index=train_df.index)
+
         mlflow_callback = MLflowTrainingCallback(
             effective_experiment_name,
             tracking_uri=tracking_uri,
             progress_bar=progress_bar,
             total_episodes=estimated_episodes if progress_bar else None,
-            price_series=df["close"][: config.data.train_size],
+            price_series=price_series,
         )
 
     if mlflow.active_run():
         MLflowTrainingCallback.log_parameter_faq_artifact()
         MLflowTrainingCallback.log_training_parameters(config)
         MLflowTrainingCallback.log_config_artifact(config)
-        MLflowTrainingCallback.log_data_overview(df, config)
+        MLflowTrainingCallback.log_data_overview(train_df, config)
 
     return {
         "logger": logger,
-        "df": df,
+        "train_df": train_df,
+        "test_df": test_df,
         "env": env,
         "trainer": trainer,
         "mlflow_callback": mlflow_callback,
@@ -339,7 +357,8 @@ def run_single_experiment(
         progress_bar=progress_bar,
     )
     logger = context["logger"]
-    df = context["df"]
+    train_df = context["train_df"]
+    test_df = context["test_df"]
     trainer = context["trainer"]
     mlflow_callback = context["mlflow_callback"]
     algorithm = context["algorithm"]
@@ -360,8 +379,8 @@ def run_single_experiment(
     logger.info("Evaluating agent...")
     # Ensure max_steps doesn't exceed available data size
     eval_max_steps = min(
-        config.training.eval_steps, len(df) - 1, config.data.train_size - 1
-    )  # Use the smallest of: eval_steps, actual data size, or train_size
+        config.training.eval_steps, len(train_df) - 1
+    )  # Use the smallest of: eval_steps or training data size
     (
         reward_plot,
         action_plot,
@@ -370,7 +389,7 @@ def run_single_experiment(
         last_positions,
         actual_returns_plot,
     ) = trainer.evaluate(
-        df[: config.data.train_size],  # Pass only the training portion
+        train_df,  # Already split, no slicing needed
         max_steps=eval_max_steps,
         config=config,
         algorithm=algorithm,
@@ -398,10 +417,15 @@ def run_single_experiment(
             "portfolio_weights" if is_portfolio_backend else "last_position_per_episode"
         ): last_positions,
         # Dataset metadata
-        "data_start_date": str(df.index[0]) if not df.empty else "unknown",
-        "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
-        "data_size": len(df),
-        "train_size": config.data.train_size,
+        "data_start_date": str(train_df.index[0]) if not train_df.empty else "unknown",
+        "data_end_date": (
+            str(test_df.index[-1])
+            if not test_df.empty
+            else (str(train_df.index[-1]) if not train_df.empty else "unknown")
+        ),
+        "data_size_total": len(train_df) + len(test_df),
+        "train_size": len(train_df),
+        "test_size": len(test_df),
         # Environment configuration
         "trading_fees": config.env.trading_fees,
         "borrow_interest_rate": config.env.borrow_interest_rate,
