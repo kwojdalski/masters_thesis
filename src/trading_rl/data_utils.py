@@ -246,14 +246,18 @@ def prepare_data(
 
     # Transform both train and test using fitted parameters
     logger.info("Transforming training data...")
-    train_df = pipeline.transform(train_df_raw)
+    train_features = pipeline.transform(train_df_raw)
 
     logger.info("Transforming test data...")
-    test_df = pipeline.transform(test_df_raw)
+    test_features = pipeline.transform(test_df_raw)
+
+    # Keep raw OHLCV for price/info columns, append engineered features
+    train_df = pd.concat([train_df_raw, train_features], axis=1)
+    test_df = pd.concat([test_df_raw, test_features], axis=1)
 
     logger.info(
         f"Feature engineering complete: train={train_df.shape}, test={test_df.shape}"
     )
-    logger.info(f"Features: {list(train_df.columns)}")
+    logger.info(f"Features: {list(train_features.columns)}")
 
     return train_df, test_df
