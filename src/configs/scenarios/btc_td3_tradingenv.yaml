@@ -10,6 +10,7 @@ seed: 42
 # Data Configuration
 data:
   data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
+  feature_config: "configs/features/btc_with_volume.yaml"  # Config for feature engineering
   download_data: false
   exchange_names: ["binance"]
   symbols: ["BTC/USDT"]

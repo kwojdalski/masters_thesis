@@ -11,6 +11,7 @@ seed: 42
 data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
   data_config: "configs/data/sine_wave_large.yaml"  # Config for regenerating data
+  feature_config: "configs/features/sine_wave_price_action.yaml"  # Config for feature engineering
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["SINE/WAVE"]

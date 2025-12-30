@@ -141,11 +141,15 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
     def _create_base_environment(
         self, df: pd.DataFrame, config: ExperimentConfig
     ) -> gym.Env:
-        """Create the base trading environment."""
+        """Create the base trading environment.
+
+        NOTE: df should already be split to training size by prepare_data().
+        We no longer slice here to avoid data leakage issues.
+        """
         return gym.make(
             "TradingEnv",
             name=config.env.name,
-            df=df[: config.data.train_size],
+            df=df,  # Already split in prepare_data()
             positions=config.env.positions,
             trading_fees=config.env.trading_fees,
             borrow_interest_rate=config.env.borrow_interest_rate,
