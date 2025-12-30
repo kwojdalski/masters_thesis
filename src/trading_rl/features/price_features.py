@@ -1,5 +1,6 @@
 """Price-based features."""
 
+import numpy as np
 import pandas as pd
 
 from trading_rl.features.base import Feature
@@ -8,7 +9,7 @@ from trading_rl.features.registry import register_feature
 
 @register_feature("log_return")
 class LogReturnFeature(Feature):
-    """Log return feature: (close_t / close_t-1) - 1.
+    """Log return feature: log(close_t / close_t-1).
 
     Captures price momentum and direction.
     """
@@ -18,7 +19,7 @@ class LogReturnFeature(Feature):
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
         """Compute log returns."""
-        return (df["close"] / df["close"].shift(1) - 1).fillna(0)
+        return np.log(df["close"] / df["close"].shift(1)).fillna(0)
 
 
 @register_feature("high")
@@ -126,3 +127,23 @@ class RSIFeature(Feature):
 
         # Normalize to [-1, 1] range for consistency
         return (rsi - 50) / 50
+
+
+@register_feature("return_lag")
+class ReturnLagFeature(Feature):
+    """Lagged return feature.
+
+    Computes simple return for a column and shifts it by a specified lag.
+    Useful for building autoregressive signals without leaking future data.
+    """
+
+    def required_columns(self) -> list[str]:
+        column = self.config.params.get("column", "close")
+        return [column]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        """Compute lagged simple return."""
+        column = self.config.params.get("column", "close")
+        lag = int(self.config.params.get("lag", 1))
+        returns = df[column].pct_change().fillna(0)
+        return returns.shift(lag).fillna(0)

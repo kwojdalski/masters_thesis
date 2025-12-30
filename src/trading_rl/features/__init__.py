@@ -17,6 +17,7 @@ from trading_rl.features.price_features import (
     LogReturnFeature,
     LowFeature,
     RSIFeature,
+    ReturnLagFeature,
     SimpleReturnFeature,
     TrendFeature,
 )
@@ -69,6 +70,7 @@ __all__ = [
     "LowFeature",
     "TrendFeature",
     "RSIFeature",
+    "ReturnLagFeature",
     # Volume features
     "LogVolumeFeature",
     "VolumeChangeFeature",
