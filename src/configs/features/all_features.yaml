@@ -1,0 +1,252 @@
+# All Available Features
+# ======================
+# This config aggregates every registered feature type currently available
+# in src/trading_rl/features.
+#
+# Required columns: open, high, low, close, volume
+# Recommended index: DatetimeIndex (required for temporal features)
+
+defaults: &norm_true
+  normalize: true
+
+defaults_no_norm: &norm_false
+  normalize: false
+
+features:
+  # ---------------------------------------------------------------------------
+  # Price features
+  # ---------------------------------------------------------------------------
+  - <<: *norm_true
+    name: "log_return"
+    feature_type: "log_return"
+
+  - <<: *norm_true
+    name: "high"
+    feature_type: "high"
+
+  - <<: *norm_true
+    name: "low"
+    feature_type: "low"
+
+  - <<: *norm_false
+    name: "trend"
+    feature_type: "trend"
+
+  - <<: *norm_true
+    name: "simple_return"
+    feature_type: "simple_return"
+
+  - <<: *norm_true
+    name: "rsi"
+    feature_type: "rsi"
+    params:
+      period: 14
+
+  - <<: *norm_true
+    name: "return_lag_1"
+    feature_type: "return_lag"
+    params:
+      column: "close"
+      lag: 1
+
+  # ---------------------------------------------------------------------------
+  # Volume features
+  # ---------------------------------------------------------------------------
+  - <<: *norm_true
+    name: "log_volume"
+    feature_type: "log_volume"
+
+  - <<: *norm_true
+    name: "volume_change"
+    feature_type: "volume_change"
+
+  - <<: *norm_true
+    name: "volume_ma_ratio_20"
+    feature_type: "volume_ma_ratio"
+    params:
+      window: 20
+
+  - <<: *norm_true
+    name: "amihud_illiquidity"
+    feature_type: "amihud_illiquidity"
+    params:
+      window: 1
+
+  # ---------------------------------------------------------------------------
+  # Volatility features
+  # ---------------------------------------------------------------------------
+  - <<: *norm_true
+    name: "realized_volatility_20"
+    feature_type: "realized_volatility"
+    params:
+      window: 20
+
+  - <<: *norm_true
+    name: "volatility_ratio_5_60"
+    feature_type: "volatility_ratio"
+    params:
+      short_window: 5
+      long_window: 60
+
+  # ---------------------------------------------------------------------------
+  # Temporal features (require DatetimeIndex)
+  # ---------------------------------------------------------------------------
+  - <<: *norm_false
+    name: "hour_sin"
+    feature_type: "hour_sin"
+
+  - <<: *norm_false
+    name: "hour_cos"
+    feature_type: "hour_cos"
+
+  - <<: *norm_false
+    name: "day_of_week_sin"
+    feature_type: "day_of_week_sin"
+
+  - <<: *norm_false
+    name: "day_of_week_cos"
+    feature_type: "day_of_week_cos"
+
+  - <<: *norm_false
+    name: "minute_of_hour_sin"
+    feature_type: "minute_of_hour_sin"
+
+  - <<: *norm_false
+    name: "minute_of_hour_cos"
+    feature_type: "minute_of_hour_cos"
+
+  # ---------------------------------------------------------------------------
+  # TA-Lib trend indicators
+  # ---------------------------------------------------------------------------
+  - <<: *norm_true
+    name: "sma_20"
+    feature_type: "sma"
+    params:
+      period: 20
+
+  - <<: *norm_true
+    name: "ema_20"
+    feature_type: "ema"
+    params:
+      period: 20
+
+  - <<: *norm_true
+    name: "wma_20"
+    feature_type: "wma"
+    params:
+      period: 20
+
+  - <<: *norm_true
+    name: "dema_20"
+    feature_type: "dema"
+    params:
+      period: 20
+
+  - <<: *norm_true
+    name: "tema_20"
+    feature_type: "tema"
+    params:
+      period: 20
+
+  # ---------------------------------------------------------------------------
+  # TA-Lib momentum indicators
+  # ---------------------------------------------------------------------------
+  - <<: *norm_true
+    name: "talib_rsi_14"
+    feature_type: "talib_rsi"
+    params:
+      period: 14
+
+  - <<: *norm_true
+    name: "macd_12_26_9"
+    feature_type: "macd"
+    params:
+      fastperiod: 12
+      slowperiod: 26
+      signalperiod: 9
+
+  - <<: *norm_true
+    name: "mom_10"
+    feature_type: "mom"
+    params:
+      period: 10
+
+  - <<: *norm_true
+    name: "roc_10"
+    feature_type: "roc"
+    params:
+      period: 10
+
+  - <<: *norm_true
+    name: "cmo_14"
+    feature_type: "cmo"
+    params:
+      period: 14
+
+  - <<: *norm_true
+    name: "willr_14"
+    feature_type: "willr"
+    params:
+      period: 14
+
+  - <<: *norm_true
+    name: "cci_14"
+    feature_type: "cci"
+    params:
+      period: 14
+
+  # ---------------------------------------------------------------------------
+  # TA-Lib volatility indicators
+  # ---------------------------------------------------------------------------
+  - <<: *norm_true
+    name: "atr_14"
+    feature_type: "atr"
+    params:
+      period: 14
+
+  - <<: *norm_true
+    name: "natr_14"
+    feature_type: "natr"
+    params:
+      period: 14
+
+  - <<: *norm_true
+    name: "bbands_20"
+    feature_type: "bbands"
+    params:
+      period: 20
+      nbdevup: 2
+      nbdevdn: 2
+
+  # ---------------------------------------------------------------------------
+  # TA-Lib volume indicators
+  # ---------------------------------------------------------------------------
+  - <<: *norm_true
+    name: "obv"
+    feature_type: "obv"
+
+  - <<: *norm_true
+    name: "ad"
+    feature_type: "ad"
+
+  - <<: *norm_true
+    name: "adosc_3_10"
+    feature_type: "adosc"
+    params:
+      fastperiod: 3
+      slowperiod: 10
+
+  # ---------------------------------------------------------------------------
+  # TA-Lib trend strength indicators
+  # ---------------------------------------------------------------------------
+  - <<: *norm_true
+    name: "adx_14"
+    feature_type: "adx"
+    params:
+      period: 14
+
+  - <<: *norm_true
+    name: "aroon_14"
+    feature_type: "aroon"
+    params:
+      period: 14
