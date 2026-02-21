@@ -193,7 +193,7 @@ class MLflowTrainingCallback:
         if config is None:
             return f"{safe_experiment}_{timestamp}"
         signature = MLflowTrainingCallback._config_signature(config)
-        return f"{safe_experiment}_{signature}_{timestamp}"
+        return f"{signature}_{timestamp}"
 
     @staticmethod
     def _normalize_for_hash(value: Any) -> Any:
