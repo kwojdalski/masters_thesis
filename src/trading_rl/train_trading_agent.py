@@ -436,6 +436,7 @@ def build_training_context(
             price_series=price_series,
             initial_portfolio_value=config.env.initial_portfolio_value,
             reward_type=config.env.reward_type,
+            config_for_run_name=config,
         )
 
     if mlflow.active_run():
