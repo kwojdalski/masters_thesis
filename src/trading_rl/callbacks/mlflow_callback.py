@@ -5,8 +5,11 @@ import logging
 import os
 import shutil
 import tempfile
+from dataclasses import asdict, is_dataclass
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
+from typing import Any
 
 import mlflow
 import numpy as np
@@ -36,6 +39,7 @@ class MLflowTrainingCallback:
         start_run: bool = True,
         initial_portfolio_value: float = 10000.0,
         reward_type: str = "log_return",
+        config_for_run_name: Any | None = None,
     ):
         self.step_count = 0
         self._episode_count = 0
@@ -64,7 +68,12 @@ class MLflowTrainingCallback:
 
         # Start run if not already active
         if start_run and not mlflow.active_run():
-            mlflow.start_run(run_name=self._default_run_name(experiment_name))
+            mlflow.start_run(
+                run_name=self._default_run_name(
+                    experiment_name=experiment_name,
+                    config=config_for_run_name,
+                )
+            )
 
         # Initialize progress bar task if provided
         if self.progress_bar and self.total_episodes:
@@ -177,11 +186,102 @@ class MLflowTrainingCallback:
         return changes
 
     @staticmethod
-    def _default_run_name(experiment_name: str) -> str:
-        """Build a deterministic, human-readable run name for fresh runs."""
+    def _default_run_name(experiment_name: str, config: Any | None = None) -> str:
+        """Build deterministic human-readable run name for fresh runs."""
         safe_experiment = experiment_name.replace("/", "_").replace(" ", "_")
         timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-        return f"{safe_experiment}_{timestamp}"
+        if config is None:
+            return f"{safe_experiment}_{timestamp}"
+        signature = MLflowTrainingCallback._config_signature(config)
+        return f"{safe_experiment}_{signature}_{timestamp}"
+
+    @staticmethod
+    def _normalize_for_hash(value: Any) -> Any:
+        """Normalize nested values so hashing is deterministic."""
+        if is_dataclass(value):
+            return MLflowTrainingCallback._normalize_for_hash(asdict(value))
+        if isinstance(value, dict):
+            return {
+                str(k): MLflowTrainingCallback._normalize_for_hash(v)
+                for k, v in sorted(value.items(), key=lambda item: str(item[0]))
+            }
+        if isinstance(value, (list, tuple)):
+            return [MLflowTrainingCallback._normalize_for_hash(v) for v in value]
+        if isinstance(value, datetime):
+            return value.astimezone(UTC).isoformat()
+        if isinstance(value, Path):
+            return str(value)
+        return value
+
+    @staticmethod
+    def _config_signature(config: Any) -> str:
+        """Encode config into a stable 3-word signature + short hash suffix."""
+        adjectives = (
+            "amber",
+            "brisk",
+            "calm",
+            "daring",
+            "eager",
+            "frozen",
+            "golden",
+            "hidden",
+            "ivory",
+            "jade",
+            "keen",
+            "lunar",
+            "mellow",
+            "noble",
+            "opal",
+            "proud",
+        )
+        nouns = (
+            "atlas",
+            "beacon",
+            "cipher",
+            "delta",
+            "ember",
+            "falcon",
+            "grove",
+            "harbor",
+            "island",
+            "jungle",
+            "kernel",
+            "lagoon",
+            "matrix",
+            "nebula",
+            "orbit",
+            "pulse",
+        )
+        suffixes = (
+            "alpha",
+            "bravo",
+            "charlie",
+            "delta",
+            "echo",
+            "foxtrot",
+            "golf",
+            "hotel",
+            "india",
+            "juliet",
+            "kilo",
+            "lima",
+            "mike",
+            "november",
+            "oscar",
+            "papa",
+        )
+
+        normalized = MLflowTrainingCallback._normalize_for_hash(config)
+        payload = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
+        digest = sha256(payload.encode("utf-8")).hexdigest()
+        b0 = int(digest[0:2], 16)
+        b1 = int(digest[2:4], 16)
+        b2 = int(digest[4:6], 16)
+
+        w1 = adjectives[b0 % len(adjectives)]
+        w2 = nouns[b1 % len(nouns)]
+        w3 = suffixes[b2 % len(suffixes)]
+        return f"{w1}-{w2}-{w3}-{digest[:6]}"
 
     @staticmethod
     def log_config_artifact(config) -> None:
