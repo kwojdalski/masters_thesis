@@ -234,7 +234,9 @@ def prepare_data(
     from trading_rl.features import FeaturePipeline, create_default_pipeline
 
     if feature_config_path:
-        logger.info(f"Loading feature pipeline from: {feature_config_path}")
+        logger.info(
+            f"Loading feature pipeline from: \033[96m{feature_config_path}\033[0m"
+        )
         pipeline = FeaturePipeline.from_yaml(feature_config_path)
     else:
         logger.info("Using default feature pipeline (legacy create_features behavior)")
