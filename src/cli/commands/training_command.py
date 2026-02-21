@@ -515,10 +515,8 @@ class TrainingCommand(BaseCommand):
             evaluation_report = metrics.get("evaluation_report")
             if isinstance(evaluation_report, dict) and evaluation_report:
                 key_metrics = [
-                    ("annualized_return_cagr", "CAGR"),
                     ("sharpe_ratio", "Sharpe ratio"),
                     ("sortino_ratio", "Sortino ratio"),
-                    ("calmar_ratio", "Calmar ratio"),
                     ("annualized_volatility", "Annualized volatility"),
                     ("max_drawdown", "Max drawdown"),
                     ("win_rate", "Win rate"),
@@ -530,7 +528,6 @@ class TrainingCommand(BaseCommand):
                 table.add_column("Metric", style="bold")
                 table.add_column("Value", justify="right", style="cyan")
                 pct_keys = {
-                    "annualized_return_cagr",
                     "annualized_volatility",
                     "max_drawdown",
                     "win_rate",
