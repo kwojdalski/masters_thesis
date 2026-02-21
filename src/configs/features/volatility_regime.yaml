@@ -1,0 +1,29 @@
+# Volatility Regime Features
+# ==========================
+# Focus: realized volatility at multiple horizons + short/long vol ratio.
+
+features:
+  - name: "rv_5"
+    feature_type: "realized_volatility"
+    params:
+      window: 5
+    normalize: true
+
+  - name: "rv_20"
+    feature_type: "realized_volatility"
+    params:
+      window: 20
+    normalize: true
+
+  - name: "rv_60"
+    feature_type: "realized_volatility"
+    params:
+      window: 60
+    normalize: true
+
+  - name: "vol_ratio_5_60"
+    feature_type: "volatility_ratio"
+    params:
+      short_window: 5
+      long_window: 60
+    normalize: true
