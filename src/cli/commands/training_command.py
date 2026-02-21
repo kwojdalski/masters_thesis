@@ -531,7 +531,7 @@ class TrainingCommand(BaseCommand):
                     if key == "win_rate" and value is None:
                         value = evaluation_report.get("hit_rate")
                     if isinstance(value, (int, float)) and math.isfinite(value):
-                        self.console.print(f"{label}: [cyan]{value:.6f}[/cyan]")
+                        self.console.print(f"{label}: [cyan]{value:.4f}[/cyan]")
 
     def _save_training_plots(
         self, result: dict[str, Any], config, params: TrainingParams
