@@ -65,7 +65,7 @@ class TrainingCommand(BaseCommand):
         except Exception as e:
             self.handle_error(e, "Training")
 
-    def _load_training_config(self, params: TrainingParams):
+    def _load_training_config(self, params: TrainingParams) -> Any:
         """Load and configure training parameters."""
         from trading_rl import ExperimentConfig
 
@@ -99,7 +99,7 @@ class TrainingCommand(BaseCommand):
 
         return config
 
-    def _apply_training_overrides(self, config, params: TrainingParams) -> None:
+    def _apply_training_overrides(self, config: Any, params: TrainingParams) -> None:
         """Apply CLI parameter overrides to config."""
         if params.experiment_name:
             config.experiment_name = params.experiment_name
@@ -131,7 +131,7 @@ class TrainingCommand(BaseCommand):
             f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs/scenarios."
         )
 
-    def _display_config(self, config, params: TrainingParams) -> None:
+    def _display_config(self, config: Any, params: TrainingParams) -> None:
         """Display training configuration."""
         self.console.print(f"Experiment: [green]{config.experiment_name}[/green]")
         self.console.print(f"Seed: [green]{config.seed}[/green]")
@@ -142,7 +142,7 @@ class TrainingCommand(BaseCommand):
         else:
             self.console.print(f"Max steps: [green]{config.training.max_steps}[/green]")
 
-    def _resolve_checkpoint_path(self, config, params: TrainingParams) -> None:
+    def _resolve_checkpoint_path(self, config: Any, params: TrainingParams) -> None:
         """Resolve checkpoint path from aliases or latest checkpoint option."""
         if params.checkpoint_path:
             return
@@ -163,7 +163,7 @@ class TrainingCommand(BaseCommand):
         params.checkpoint_path = latest
 
     def _run_training_with_progress(
-        self, config, params: TrainingParams
+        self, config: Any, params: TrainingParams
     ) -> dict[str, Any]:
         """Run training with progress display."""
         from trading_rl import run_single_experiment
@@ -192,7 +192,7 @@ class TrainingCommand(BaseCommand):
                 raise e
 
     def _resume_from_checkpoint(
-        self, config, params: TrainingParams, progress
+        self, config: Any, params: TrainingParams, progress: Any
     ) -> dict[str, Any]:
         """Resume training from a checkpoint file."""
         from pathlib import Path

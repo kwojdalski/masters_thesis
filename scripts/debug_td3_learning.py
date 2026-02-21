@@ -3,9 +3,11 @@
 Usage (from repo root):
   PYTHONPATH=src python scripts/debug_td3_learning.py \
     --config src/configs/scenarios/sine_wave_td3_no_trend_tradingenv.yaml \
-    --max-steps 40000 --actor-lr 0.0003 --init-rand-steps 5000
+    -o training.max_steps=40000 \
+    -o training.actor_lr=0.0003 \
+    -o training.init_rand_steps=5000
 
-This script overrides config values directly and prints parameter stats
+This script uses OmegaConf overrides and prints parameter stats
 before/after training so you can confirm the actor/critics are actually learning.
 """
 
@@ -46,32 +48,22 @@ def _print_summary(label: str, stats: dict[str, float]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="TD3 learning debug script")
     parser.add_argument("--config", required=True, help="Path to YAML config")
-    parser.add_argument("--max-steps", type=int, help="Override max_steps")
-    parser.add_argument("--init-rand-steps", type=int, help="Override init_rand_steps")
-    parser.add_argument("--actor-lr", type=float, help="Override actor LR")
-    parser.add_argument("--value-lr", type=float, help="Override critic LR")
-    parser.add_argument("--buffer-size", type=int, help="Override replay buffer size")
-    parser.add_argument("--seed", type=int, help="Override seed for reproducibility")
+    parser.add_argument(
+        "-o",
+        "--config-override",
+        action="append",
+        dest="overrides",
+        help="OmegaConf override in dotlist format (e.g., training.max_steps=40000)",
+    )
     args = parser.parse_args()
 
-    config = ExperimentConfig.from_yaml(args.config)
-    if args.max_steps is not None:
-        config.training.max_steps = args.max_steps
-    if args.init_rand_steps is not None:
-        config.training.init_rand_steps = args.init_rand_steps
-    if args.actor_lr is not None:
-        config.training.actor_lr = args.actor_lr
-    if args.value_lr is not None:
-        config.training.value_lr = args.value_lr
-    if args.buffer_size is not None:
-        config.training.buffer_size = args.buffer_size
-    if args.seed is not None:
-        config.seed = args.seed
+    config = ExperimentConfig.from_yaml(args.config, overrides=args.overrides)
 
     set_seed(config.seed)
 
-    df = prepare_data(
+    train_df, test_df = prepare_data(
         data_path=config.data.data_path,
+        train_size=config.data.train_size,
         download_if_missing=config.data.download_data,
         exchange_names=config.data.exchange_names,
         symbols=config.data.symbols,
@@ -79,9 +71,10 @@ def main() -> None:
         data_dir=config.data.data_dir,
         since=config.data.download_since,
         no_features=getattr(config.data, "no_features", False),
+        feature_config_path=getattr(config.data, "feature_config", None),
     )
 
-    env = env_builder.create(df, config)
+    env = env_builder.create(train_df, config)
     n_obs = env.observation_spec["observation"].shape[-1]
     n_act = env.action_spec.shape[-1]
     actor, qnets = TD3Trainer.build_models(n_obs, n_act, config, env)

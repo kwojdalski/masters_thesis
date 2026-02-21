@@ -19,8 +19,8 @@
                 "src/configs/upward_drift.yaml",
                 "--trials",
                 "3",
-                "--max-steps",
-                "200"
+                "-o",
+                "training.max_steps=200"
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
