@@ -120,6 +120,7 @@ class PPOTrainer(BaseTrainer):
         for j in range(ppo_epochs):
             # Sample from FRESH batch only (not from accumulated old experiences)
             sample = fresh_buffer.sample(self.config.sample_size)
+            current_step = self._global_optimization_step(batch_idx, j, ppo_epochs)
 
             # Compute PPO losses
             loss_vals = self.ppo_loss(sample)
@@ -149,16 +150,14 @@ class PPOTrainer(BaseTrainer):
                 and self.callback
                 and hasattr(self.callback, "log_training_step")
             ):
-                offset = getattr(self, "_log_step_offset", 0)
-                current_step = offset + (batch_idx * ppo_epochs + j)
                 self.callback.log_training_step(current_step, actor_loss, value_loss)
 
             # Periodic logging and evaluation
-            if j % self.config.log_interval == 0:
+            if self._should_log_step(current_step):
                 self._log_progress(max_length, buffer_len, loss_vals)
 
             # Periodic evaluation
-            if j % self.config.eval_interval == 0:
+            if self._should_eval_step(current_step):
                 self._evaluate()
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:

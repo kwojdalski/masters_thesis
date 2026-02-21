@@ -130,6 +130,22 @@ class BaseTrainer(ABC):
         self.save_checkpoint(str(path))
         return str(path)
 
+    def _global_optimization_step(
+        self, batch_idx: int, inner_idx: int, steps_per_batch: int
+    ) -> int:
+        """Compute stable global optimization step index."""
+        offset = getattr(self, "_log_step_offset", 0)
+        return offset + (batch_idx * steps_per_batch + inner_idx)
+
+    def _should_log_step(self, step: int) -> bool:
+        """Return True when progress logging should run at this optimization step."""
+        return step % max(1, self.config.log_interval) == 0
+
+    def _should_eval_step(self, step: int) -> bool:
+        """Return True when policy evaluation should run at this optimization step."""
+        interval = getattr(self.config, "eval_interval", 0)
+        return interval > 0 and step % interval == 0
+
     @staticmethod
     @abstractmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):

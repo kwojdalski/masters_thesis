@@ -256,8 +256,9 @@ class TD3Trainer(BaseTrainer):
     ) -> None:
         for j in range(self.config.optim_steps_per_batch):
             sample = self.replay_buffer.sample(self.config.sample_size)
-            offset = getattr(self, "_log_step_offset", 0)
-            current_step = offset + (batch_idx * self.config.optim_steps_per_batch + j)
+            current_step = self._global_optimization_step(
+                batch_idx, j, self.config.optim_steps_per_batch
+            )
 
             # TorchRL's TD3Loss requires reward/done/terminated to have identical shapes.
             # Some env wrappers emit 1D tensors which then trigger a shape error; normalize here.
@@ -408,10 +409,10 @@ class TD3Trainer(BaseTrainer):
 
             # Log progress similar to PPO (info level)
 
-            if current_step % max(1, self.config.log_interval) == 0:
+            if self._should_log_step(current_step):
                 self._log_progress(max_length, buffer_len, loss_vals)
 
-            if current_step % self.config.eval_interval == 0:
+            if self._should_eval_step(current_step):
                 self._evaluate()
 
     def train(self, callback=None) -> dict[str, list]:
