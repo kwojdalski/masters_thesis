@@ -210,6 +210,37 @@ def build_training_context(
         feature_config_path=getattr(config.data, "feature_config", None),  # NEW
     )
 
+    # Validate loaded data
+    if train_df.empty:
+        raise ValueError("Training data is empty. Check data_path or download settings.")
+    if test_df.empty:
+        raise ValueError("Test data is empty. Check train_size setting.")
+
+    # Check for required columns (close price is critical for most environments)
+    if not getattr(config.data, "no_features", False):
+        # If using features, expect feature columns
+        feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
+        if not feature_cols and "close" not in train_df.columns:
+            raise ValueError(
+                f"Data must contain 'close' column or feature columns. "
+                f"Found columns: {list(train_df.columns)}"
+            )
+    else:
+        # Raw OHLCV mode requires close column
+        if "close" not in train_df.columns:
+            raise ValueError(
+                f"Data must contain 'close' column for raw OHLCV mode. "
+                f"Found columns: {list(train_df.columns)}"
+            )
+
+    # Check for NaN/Inf values
+    if train_df.isnull().any().any():
+        nan_cols = train_df.columns[train_df.isnull().any()].tolist()
+        raise ValueError(
+            f"Training data contains NaN values in columns: {nan_cols}. "
+            f"Clean the data before training."
+        )
+
     if logger.isEnabledFor(logging.INFO):
         logger.info("\033[95mTraining data head:\n%s\033[0m", train_df.head())
 
