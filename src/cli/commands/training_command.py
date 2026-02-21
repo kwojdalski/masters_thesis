@@ -1,5 +1,6 @@
 """Training command implementation."""
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -509,6 +510,26 @@ class TrainingCommand(BaseCommand):
                 self.console.print(
                     f"Training steps: [green]{metrics['training_steps']}[/green]"
                 )
+
+            evaluation_report = metrics.get("evaluation_report")
+            if isinstance(evaluation_report, dict) and evaluation_report:
+                key_metrics = [
+                    ("annualized_return_cagr", "CAGR"),
+                    ("sharpe_ratio", "Sharpe ratio"),
+                    ("sortino_ratio", "Sortino ratio"),
+                    ("calmar_ratio", "Calmar ratio"),
+                    ("annualized_volatility", "Annualized volatility"),
+                    ("max_drawdown", "Max drawdown"),
+                    ("hit_rate", "Hit rate"),
+                    ("profit_factor", "Profit factor"),
+                    ("var_95", "VaR (95%)"),
+                    ("cvar_95", "CVaR (95%)"),
+                ]
+                self.console.print("Key evaluation metrics:")
+                for key, label in key_metrics:
+                    value = evaluation_report.get(key)
+                    if isinstance(value, (int, float)) and math.isfinite(value):
+                        self.console.print(f"{label}: [cyan]{value:.6f}[/cyan]")
 
     def _save_training_plots(
         self, result: dict[str, Any], config, params: TrainingParams
