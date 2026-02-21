@@ -216,7 +216,8 @@ class TrainingCommand(BaseCommand):
 
         context = build_training_context(config, create_mlflow_callback=False)
         logger = context["logger"]
-        df = context["df"]
+        train_df = context["train_df"]
+        test_df = context["test_df"]
         trainer = context["trainer"]
         algorithm = context["algorithm"]
 
@@ -295,7 +296,7 @@ class TrainingCommand(BaseCommand):
             MLflowTrainingCallback.log_parameter_faq_artifact()
             MLflowTrainingCallback.log_training_parameters(config)
             MLflowTrainingCallback.log_config_artifact(config)
-            MLflowTrainingCallback.log_data_overview(df, config)
+            MLflowTrainingCallback.log_data_overview(train_df, config)
 
         active_run = mlflow.active_run()
         if active_run:
@@ -310,7 +311,7 @@ class TrainingCommand(BaseCommand):
                 tracking_uri=getattr(
                     getattr(config, "tracking", None), "tracking_uri", None
                 ),
-                price_series=df["close"][: config.data.train_size],
+                price_series=train_df["close"],
                 start_run=False,
             )
             mlflow_callback._episode_count = _episode_count_value()
@@ -335,7 +336,7 @@ class TrainingCommand(BaseCommand):
                     config.experiment_name,
                     tracking_uri=tracking_uri
                     or getattr(getattr(config, "tracking", None), "tracking_uri", None),
-                    price_series=df["close"][: config.data.train_size],
+                    price_series=train_df["close"],
                     start_run=False,
                 )
                 mlflow_callback._episode_count = _episode_count_value()
@@ -361,7 +362,7 @@ class TrainingCommand(BaseCommand):
                     tracking_uri=getattr(
                         getattr(config, "tracking", None), "tracking_uri", None
                     ),
-                    price_series=df["close"][: config.data.train_size],
+                    price_series=train_df["close"],
                     start_run=False,
                 )
                 mlflow_callback._episode_count = _episode_count_value()
@@ -388,7 +389,7 @@ class TrainingCommand(BaseCommand):
                     tracking_uri=getattr(
                         getattr(config, "tracking", None), "tracking_uri", None
                     ),
-                    price_series=df["close"][: config.data.train_size],
+                    price_series=train_df["close"],
                     start_run=False,
                 )
                 mlflow_callback._episode_count = _episode_count_value()
@@ -409,7 +410,7 @@ class TrainingCommand(BaseCommand):
             logger.info("Evaluating agent...")
             self.console.print("[cyan]Evaluating agent...[/cyan]")
             eval_max_steps = min(
-                config.training.eval_steps, len(df) - 1, config.data.train_size - 1
+                config.training.eval_steps, len(train_df) - 1
             )
             logger.debug(f"Evaluation max_steps: {eval_max_steps}")
 
@@ -420,7 +421,7 @@ class TrainingCommand(BaseCommand):
                 final_reward,
                 last_positions,
             ) = trainer.evaluate(
-                df[: config.data.train_size],
+                train_df,
                 max_steps=eval_max_steps,
                 config=config,
                 algorithm=algorithm,
@@ -446,9 +447,9 @@ class TrainingCommand(BaseCommand):
                 if is_portfolio_backend
                 else "last_position_per_episode"
             ): last_positions,
-                "data_start_date": str(df.index[0]) if not df.empty else "unknown",
-                "data_end_date": str(df.index[-1]) if not df.empty else "unknown",
-                "data_size": len(df),
+                "data_start_date": str(train_df.index[0]) if not train_df.empty else "unknown",
+                "data_end_date": str(test_df.index[-1]) if not test_df.empty else "unknown",
+                "data_size": len(train_df) + len(test_df),
                 "train_size": config.data.train_size,
                 "trading_fees": config.env.trading_fees,
                 "experiment_name": config.experiment_name,
