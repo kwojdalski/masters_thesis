@@ -200,6 +200,7 @@ class TrainingCommand(BaseCommand):
         import mlflow
 
         from trading_rl.callbacks import MLflowTrainingCallback
+        from trading_rl.evaluation import build_evaluation_report_for_trainer
         from trading_rl.plotting import visualize_training
         from trading_rl.train_trading_agent import (
             build_training_context,
@@ -432,6 +433,13 @@ class TrainingCommand(BaseCommand):
                 actual_returns_plot=actual_returns_plot,
                 logs=logs,
             )
+            evaluation_report = build_evaluation_report_for_trainer(
+                trainer=trainer,
+                df_prices=train_df,
+                max_steps=eval_max_steps,
+                config=config,
+            )
+            MLflowTrainingCallback.log_evaluation_report(evaluation_report)
 
             # Detect backend type for proper metric naming
             is_portfolio_backend = config.env.backend == "tradingenv"
@@ -452,6 +460,7 @@ class TrainingCommand(BaseCommand):
                 "trading_fees": config.env.trading_fees,
                 "experiment_name": config.experiment_name,
                 "resumed_from_step": original_steps,
+                "evaluation_report": evaluation_report,
             }
 
             # Log final metrics to MLflow
