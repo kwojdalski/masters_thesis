@@ -416,6 +416,7 @@ class TrainingCommand(BaseCommand):
                 action_probs_plot,
                 final_reward,
                 last_positions,
+                actual_returns_plot,
             ) = trainer.evaluate(
                 train_df,
                 max_steps=eval_max_steps,
@@ -428,6 +429,7 @@ class TrainingCommand(BaseCommand):
                 reward_plot=reward_plot,
                 action_plot=action_plot,
                 action_probs_plot=action_probs_plot,
+                actual_returns_plot=actual_returns_plot,
                 logs=logs,
             )
 
