@@ -66,6 +66,9 @@ class PPOTrainer(BaseTrainer):
             checkpoint_prefix=checkpoint_prefix,
         )
 
+        # PPO is on-policy: train only on fresh data, don't accumulate in replay buffer
+        self._use_replay_buffer = False
+
         # Initialize PPO loss module
         self.ppo_loss = ClipPPOLoss(
             actor_network=actor,
@@ -106,9 +109,17 @@ class PPOTrainer(BaseTrainer):
         # PPO typically does multiple epochs per batch
         ppo_epochs = getattr(self.config, "ppo_epochs", 4)
 
+        # PPO is on-policy: create temporary buffer from fresh batch only
+        from torchrl.data import LazyTensorStorage, ReplayBuffer
+
+        fresh_buffer = ReplayBuffer(
+            storage=LazyTensorStorage(self.config.frames_per_batch)
+        )
+        fresh_buffer.extend(self._current_batch)
+
         for j in range(ppo_epochs):
-            # Sample from replay buffer
-            sample = self.replay_buffer.sample(self.config.sample_size)
+            # Sample from FRESH batch only (not from accumulated old experiences)
+            sample = fresh_buffer.sample(self.config.sample_size)
 
             # Compute PPO losses
             loss_vals = self.ppo_loss(sample)
