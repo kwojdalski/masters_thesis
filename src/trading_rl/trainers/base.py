@@ -438,9 +438,12 @@ class BaseTrainer(ABC):
                 # On-policy algorithms (PPO) skip buffer and train on fresh data only
                 if self._use_replay_buffer:
                     self.replay_buffer.extend(data)
-
-                max_length = self.replay_buffer[:]["next", "step_count"].max()
-                buffer_len = len(self.replay_buffer)
+                    max_length = self.replay_buffer[:]["next", "step_count"].max()
+                    buffer_len = len(self.replay_buffer)
+                else:
+                    # On-policy: get max_length from current batch, buffer stays empty
+                    max_length = data["next", "step_count"].max()
+                    buffer_len = data.numel()
 
                 if buffer_len > self.config.init_rand_steps:
                     self._optimization_step(i, max_length, buffer_len)
