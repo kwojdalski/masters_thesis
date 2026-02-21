@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 from .base_command import BaseCommand
 
@@ -525,13 +526,17 @@ class TrainingCommand(BaseCommand):
                     ("var_95", "VaR (95%)"),
                     ("cvar_95", "CVaR (95%)"),
                 ]
-                self.console.print("Key evaluation metrics:")
+                table = Table(title="Key Evaluation Metrics")
+                table.add_column("Metric", style="bold")
+                table.add_column("Value", justify="right", style="cyan")
                 for key, label in key_metrics:
                     value = evaluation_report.get(key)
                     if key == "win_rate" and value is None:
                         value = evaluation_report.get("hit_rate")
                     if isinstance(value, (int, float)) and math.isfinite(value):
-                        self.console.print(f"{label}: [cyan]{value:.4f}[/cyan]")
+                        table.add_row(label, f"{value:.4f}")
+                if table.row_count > 0:
+                    self.console.print(table)
 
     def _save_training_plots(
         self, result: dict[str, Any], config, params: TrainingParams
