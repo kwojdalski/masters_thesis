@@ -11,6 +11,7 @@ import logging
 import os
 import warnings
 from pathlib import Path
+from typing import Any
 
 import gym_trading_env  # noqa: F401
 import mlflow
@@ -47,7 +48,7 @@ def clear_cache():
 
 
 # %%
-def setup_logging(config: ExperimentConfig):
+def setup_logging(config: ExperimentConfig) -> logging.Logger:
     """Setup logging configuration."""
     # No matplotlib logging to disable since we use plotnine exclusively
 
@@ -123,7 +124,7 @@ def setup_mlflow_experiment(
 # %%
 
 
-def _print_config_debug(config: ExperimentConfig, logger) -> None:
+def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> None:
     """Print configuration values in debug mode using automatic traversal."""
     import datetime
     from dataclasses import fields, is_dataclass
@@ -178,9 +179,9 @@ def _print_config_debug(config: ExperimentConfig, logger) -> None:
 def build_training_context(
     config: ExperimentConfig,
     experiment_name: str | None = None,
-    progress_bar=None,
+    progress_bar: Any = None,
     create_mlflow_callback: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """Build common training context used by fresh and resumed runs."""
     effective_experiment_name = experiment_name or config.experiment_name
 
@@ -307,6 +308,8 @@ def build_training_context(
             progress_bar=progress_bar,
             total_episodes=estimated_episodes if progress_bar else None,
             price_series=price_series,
+            initial_portfolio_value=config.env.initial_portfolio_value,
+            reward_type=config.env.reward_type,
         )
 
     if mlflow.active_run():
@@ -333,8 +336,8 @@ def build_training_context(
 def run_single_experiment(
     custom_config: ExperimentConfig | None = None,
     experiment_name: str | None = None,
-    progress_bar=None,
-) -> dict:
+    progress_bar: Any = None,
+) -> dict[str, Any]:
     """Run a single training experiment with MLflow tracking.
 
     This function tracks both losses and position statistics in MLflow:

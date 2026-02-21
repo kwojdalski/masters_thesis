@@ -34,9 +34,14 @@ class MLflowTrainingCallback:
         total_episodes: int | None = None,
         price_series=None,
         start_run: bool = True,
+        initial_portfolio_value: float = 10000.0,
+        reward_type: str = "log_return",
     ):
         self.step_count = 0
         self._episode_count = 0
+        self.initial_portfolio_value = initial_portfolio_value
+        self.reward_type = reward_type
+        self._portfolio_value = initial_portfolio_value
         self.intermediate_losses = {"actor": [], "value": []}
         self.position_change_counts: list[int] = []
         self.training_stats = {
@@ -281,6 +286,9 @@ class MLflowTrainingCallback:
             mlflow.log_param("env_trading_fees", float(config.env.trading_fees))
             mlflow.log_param(
                 "env_borrow_interest_rate", float(config.env.borrow_interest_rate)
+            )
+            mlflow.log_param(
+                "env_initial_portfolio_value", float(getattr(config.env, "initial_portfolio_value", 10000.0))
             )
 
             # Network parameters

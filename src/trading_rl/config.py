@@ -39,6 +39,7 @@ class EnvConfig:
     positions: list[int] = field(default_factory=lambda: [-1, 0, 1])
     trading_fees: float = 0.0  # 0.01% = 0.0001
     borrow_interest_rate: float = 0.0  # 0.0003% = 0.000003
+    initial_portfolio_value: float = 10000.0  # Starting portfolio value for logging
     backend: str = "gym_anytrading.forex"  # Backend type: gym_trading_env.discrete, gym_trading_env.continuous, gym_anytrading.forex, gym_anytrading.stocks, tradingenv
 
     # TradingEnv-specific configuration (optional)
@@ -303,6 +304,7 @@ class ExperimentConfig:
                 "positions": self.env.positions,
                 "trading_fees": self.env.trading_fees,
                 "borrow_interest_rate": self.env.borrow_interest_rate,
+                "initial_portfolio_value": self.env.initial_portfolio_value,
                 "backend": self.env.backend,
                 # TradingEnv-specific fields (only include if set)
                 **(
