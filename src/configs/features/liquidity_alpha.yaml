@@ -1,0 +1,21 @@
+# Liquidity Alpha Features
+# Focus: Amihud illiquidity and relative volume (RVOL) for detecting breakout and thin market sessions.
+
+name: "liquidity_alpha"
+pipeline:
+  - feature_type: "amihud_illiquidity"
+    name: "feature_illiquidity_1h" # 1-step (instantaneous)
+    params:
+      window: 1
+  - feature_type: "amihud_illiquidity"
+    name: "feature_illiquidity_20h" # 20-step smoothed (regime)
+    params:
+      window: 20
+  - feature_type: "relative_volume"
+    name: "feature_rvol_20h" # Breaking volume indicator
+    params:
+      window: 20
+  - feature_type: "relative_volume"
+    name: "feature_rvol_5h" # Faster reaction to volume surges
+    params:
+      window: 5

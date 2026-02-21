@@ -83,6 +83,12 @@ class BaseTrainer(ABC):
         self.total_episodes = 0
         self.logs = defaultdict(list)
 
+        # On-policy vs off-policy handling
+        # Off-policy algorithms (TD3, DDPG) accumulate experiences in replay buffer
+        # On-policy algorithms (PPO) only train on fresh data
+        self._use_replay_buffer = True  # Default for off-policy algorithms
+        self._current_batch = None  # Stores fresh batch for on-policy algorithms
+
         if enable_composite_lp:
             set_composite_lp_aggregate(True).set()
 
@@ -403,7 +409,14 @@ class BaseTrainer(ABC):
             if on_batch_start is not None:
                 on_batch_start(i, data)
 
-            self.replay_buffer.extend(data)
+            # Store current batch for on-policy algorithms (PPO)
+            self._current_batch = data
+
+            # Off-policy algorithms (TD3, DDPG) accumulate in replay buffer
+            # On-policy algorithms (PPO) skip buffer and train on fresh data only
+            if self._use_replay_buffer:
+                self.replay_buffer.extend(data)
+
             max_length = self.replay_buffer[:]["next", "step_count"].max()
             buffer_len = len(self.replay_buffer)
 
