@@ -1,7 +1,6 @@
 """TD3 Trainer implementation."""
 
 import logging
-import time
 from collections import defaultdict
 from typing import Any
 
@@ -257,6 +256,8 @@ class TD3Trainer(BaseTrainer):
     ) -> None:
         for j in range(self.config.optim_steps_per_batch):
             sample = self.replay_buffer.sample(self.config.sample_size)
+            offset = getattr(self, "_log_step_offset", 0)
+            current_step = offset + (batch_idx * self.config.optim_steps_per_batch + j)
 
             # TorchRL's TD3Loss requires reward/done/terminated to have identical shapes.
             # Some env wrappers emit 1D tensors which then trigger a shape error; normalize here.
@@ -401,10 +402,6 @@ class TD3Trainer(BaseTrainer):
                 and self.callback
                 and hasattr(self.callback, "log_training_step")
             ):
-                offset = getattr(self, "_log_step_offset", 0)
-                current_step = offset + (
-                    batch_idx * self.config.optim_steps_per_batch + j
-                )
                 self.callback.log_training_step(
                     current_step, actor_loss, value_loss, extra_metrics=extra_metrics
                 )
@@ -419,28 +416,14 @@ class TD3Trainer(BaseTrainer):
 
     def train(self, callback=None) -> dict[str, list]:
         """Run training loop for RL agent, with exploration for TD3."""
-        logger.info("Starting TD3 training")
         logger.debug("TD3 Training configuration:")
         logger.debug(f"  Max steps: {self.config.max_steps}")
         logger.debug(f"  Init random steps: {self.config.init_rand_steps}")
         logger.debug(f"  Frames per batch: {self.config.frames_per_batch}")
         logger.debug(f"  Buffer size: {self.config.buffer_size}")
 
-        t0 = time.time()
-        self.callback = callback
-        self._log_step_offset = max(
-            len(self.logs.get("loss_actor", [])),
-            len(self.logs.get("loss_value", [])),
-        )
-
         # Use a temporary random policy for initial steps
         initial_collector_policy = RandomPolicy(self.td3_action_spec)
-
-        # Hot-swap the policy in the collector.
-        # Note: SyncDataCollector stores the policy in self.policy.
-        # We need to ensure the collector uses this new policy.
-        # For SyncDataCollector, direct assignment works if the collector is running in the same process (which it is).
-        original_policy = self.collector.policy
         self.collector.policy = initial_collector_policy
 
         self.random_exploration_done = False
@@ -453,15 +436,11 @@ class TD3Trainer(BaseTrainer):
             f"Using random policy for first {self.config.init_rand_steps} steps"
         )
 
-        for i, data in enumerate(self.collector):
-            self.replay_buffer.extend(data)
-
-            max_length = self.replay_buffer[:]["next", "step_count"].max()
-            buffer_len = len(self.replay_buffer)
-
+        def on_batch_start(i, data) -> None:
             # DEBUG: Log data collection statistics
             if logger.isEnabledFor(logging.DEBUG) and i % 10 == 0:  # Every 10 batches
                 episode_rewards = data["next", "reward"]
+                buffer_len = len(self.replay_buffer)
                 logger.debug(
                     f"[Batch {i}] Collected {data.numel()} steps, buffer size: {buffer_len}"
                 )
@@ -475,11 +454,13 @@ class TD3Trainer(BaseTrainer):
                     f"  Collected actions - mean: {collected_actions.mean():.4f}, std: {collected_actions.std():.4f}"
                 )
 
+        def on_batch_end(i, data) -> None:
             # Switch from random to noisy policy after initial steps
             if (
                 not self.random_exploration_done
                 and self.total_count >= self.config.init_rand_steps
             ):
+                buffer_len = len(self.replay_buffer)
                 logger.info(
                     f"✓ Random exploration finished at {self.total_count} steps. Switching to noisy policy."
                 )
@@ -490,26 +471,17 @@ class TD3Trainer(BaseTrainer):
                 self.collector.policy = self.noisy_policy
                 self.random_exploration_done = True
 
-            if buffer_len > self.config.init_rand_steps:
-                self._optimization_step(i, max_length, buffer_len)
-
-            self.total_count += data.numel()
-            self.total_episodes += data["next", "done"].sum()
-            self._maybe_save_checkpoint()
-
-            if callback and hasattr(callback, "log_episode_stats"):
-                self._log_episode_stats(data, callback)
-
-            if self.total_count >= self.config.max_steps:
-                logger.info(f"Training stopped after {self.config.max_steps} steps")
-                break
-
-        t1 = time.time()
-        logger.info(
-            f"TD3 Training complete: {self.total_count} steps, "
-            f"{self.total_episodes} episodes, {t1 - t0:.2f}s"
+        return self._run_training_loop(
+            callback,
+            start_message="Starting TD3 training",
+            completion_prefix="TD3 Training complete",
+            on_batch_start=on_batch_start,
+            on_batch_end=on_batch_end,
+            on_train_end=self._log_batch_summary,
         )
 
+    def _log_batch_summary(self) -> None:
+        """Log successful vs skipped optimization batch summary."""
         # Log batch success/failure summary
         total_batches = self.successful_batches + self.skipped_batches
         if total_batches > 0:
@@ -526,8 +498,6 @@ class TD3Trainer(BaseTrainer):
                 logger.info(summary_msg)
         else:
             logger.warning("No optimization batches were attempted during training")
-
-        return dict(self.logs)
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
         curr_loss_value = loss_vals["loss_qvalue"].item()
@@ -570,7 +540,7 @@ class TD3Trainer(BaseTrainer):
                 )
                 if len(unique_actions) <= 10:
                     logger.debug(
-                        f"  Action distribution: {dict(zip(unique_actions, counts))}"
+                        f"  Action distribution: {dict(zip(unique_actions, counts, strict=False))}"
                     )
                 else:
                     # Show percentiles if too many unique values
