@@ -228,10 +228,6 @@ class TrainingCommand(BaseCommand):
         logger.info(f"Loading checkpoint from {params.checkpoint_path}...")
         trainer.load_checkpoint(str(params.checkpoint_path))
         original_steps = trainer.total_count
-        # if trainer.total_episodes == 0:
-        # raise ValueError(
-        #     f"Checkpoint has total_episodes={trainer.total_episodes}; episode metrics will reset on resume."
-        # )
         logger.info(f"Checkpoint loaded! Resuming from step {original_steps}")
         self.console.print(
             f"[green]Checkpoint loaded! Resuming from step {original_steps}[/green]"
