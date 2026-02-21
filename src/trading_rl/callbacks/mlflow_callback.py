@@ -5,7 +5,7 @@ import logging
 import os
 import shutil
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import mlflow
@@ -64,7 +64,7 @@ class MLflowTrainingCallback:
 
         # Start run if not already active
         if start_run and not mlflow.active_run():
-            mlflow.start_run()
+            mlflow.start_run(run_name=self._default_run_name(experiment_name))
 
         # Initialize progress bar task if provided
         if self.progress_bar and self.total_episodes:
@@ -175,6 +175,13 @@ class MLflowTrainingCallback:
                 changes += 1
                 prev_action = action
         return changes
+
+    @staticmethod
+    def _default_run_name(experiment_name: str) -> str:
+        """Build a deterministic, human-readable run name for fresh runs."""
+        safe_experiment = experiment_name.replace("/", "_").replace(" ", "_")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        return f"{safe_experiment}_{timestamp}"
 
     @staticmethod
     def log_config_artifact(config) -> None:
@@ -608,7 +615,7 @@ class MLflowTrainingCallback:
             if weights:
                 weights_str = json.dumps(weights[:100])
                 # Use ISO 8601 datetime format for filename
-                timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
                 filename = f"{timestamp}_weights.json"
                 temp_path = os.path.join(tempfile.gettempdir(), filename)
                 with open(temp_path, "w") as f:
@@ -729,7 +736,7 @@ class MLflowTrainingCallback:
 
         saved_paths: dict[str, str] = {}
         batch_temp_dir = tempfile.mkdtemp()
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
 
         try:
 
@@ -866,9 +873,11 @@ class MLflowTrainingCallback:
                     )
 
             # Combine existing evaluation plots using plotnine patchwork when available
-            combined_path = None
             try:
-                from plotnine import patchwork  # type: ignore
+                import importlib.util
+
+                if importlib.util.find_spec("plotnine.patchwork") is None:
+                    raise ImportError("plotnine.patchwork is unavailable")
 
                 combined_plot = None
                 if reward_plot is not None and action_plot is not None:
@@ -928,7 +937,6 @@ class MLflowTrainingCallback:
 
                         combined.save(tmp_combined_path, format="PNG")
                         mlflow.log_artifact(tmp_combined_path, "evaluation_plots")
-                        combined_path = tmp_combined_path
                     except (
                         Exception
                     ) as combine_error:  # pragma: no cover - logging only
