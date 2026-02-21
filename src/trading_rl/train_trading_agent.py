@@ -309,7 +309,7 @@ def build_training_context(
             env=env,
             config=config.training,
             checkpoint_dir=config.logging.log_dir,
-            checkpoint_prefix=config.experiment_name,
+            checkpoint_prefix=effective_experiment_name,
         )
     else:
         actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
@@ -319,7 +319,7 @@ def build_training_context(
             env=env,
             config=config.training,
             checkpoint_dir=config.logging.log_dir,
-            checkpoint_prefix=config.experiment_name,
+            checkpoint_prefix=effective_experiment_name,
         )
 
     mlflow_callback = None
@@ -405,7 +405,7 @@ def run_single_experiment(
 
     # Save checkpoint
     checkpoint_path = (
-        Path(config.logging.log_dir) / f"{config.experiment_name}_checkpoint.pt"
+        Path(config.logging.log_dir) / f"{effective_experiment_name}_checkpoint.pt"
     )
     trainer.save_checkpoint(str(checkpoint_path))
 
@@ -470,7 +470,7 @@ def run_single_experiment(
         "n_observations": n_obs,
         "n_actions": n_act,
         # Training configuration
-        "experiment_name": config.experiment_name,
+        "experiment_name": effective_experiment_name,
         "seed": config.seed,
         "actor_lr": config.training.actor_lr,
         "value_lr": config.training.value_lr,
