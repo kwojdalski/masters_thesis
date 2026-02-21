@@ -1,0 +1,127 @@
+# PPO Configuration with TradingEnv Backend (XAI Asset Management Library)
+# ========================================================================
+# This configuration uses the tradingenv library for continuous portfolio allocation
+# with PPO algorithm
+# https://github.com/xaiassetmanagement/tradingenv
+
+experiment_name: "ppo_tradingenv_btc_all_features_log_return"
+seed: 42
+
+# Data Configuration
+data:
+  data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
+  feature_config: "src/configs/features/all_features.yaml"  # Config for feature engineering
+  download_data: false
+  exchange_names: ["binance"]
+  symbols: ["BTC/USDT"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2023-01-01T00:00:00+00:00"
+  train_size: 7000  # ~8 months for training (total: 8736 hourly candles in 2023)
+  no_features: false
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_PPO_BTC"
+  backend: "tradingenv"
+
+  # Transaction costs
+  trading_fees: 0.00035  # 0.1% proportional fee (typical for crypto exchanges)
+
+  # Column specifications - IMPORTANT: price_columns must contain only positive values
+  price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
+  feature_columns: [
+    "feature_log_return",
+    "feature_high",
+    "feature_low",
+    "feature_trend",
+    "feature_simple_return",
+    "feature_rsi",
+    "feature_return_lag_1",
+    "feature_log_volume",
+    "feature_volume_change",
+    "feature_volume_ma_ratio_20",
+    "feature_amihud_illiquidity",
+    "feature_realized_volatility_20",
+    "feature_volatility_ratio_5_60",
+    "feature_hour_sin",
+    "feature_hour_cos",
+    "feature_day_of_week_sin",
+    "feature_day_of_week_cos",
+    "feature_minute_of_hour_sin",
+    "feature_minute_of_hour_cos",
+    "feature_sma_20",
+    "feature_ema_20",
+    "feature_wma_20",
+    "feature_dema_20",
+    "feature_tema_20",
+    "feature_talib_rsi_14",
+    "feature_macd_12_26_9",
+    "feature_mom_10",
+    "feature_roc_10",
+    "feature_cmo_14",
+    "feature_willr_14",
+    "feature_cci_14",
+    "feature_atr_14",
+    "feature_natr_14",
+    "feature_bbands_20",
+    "feature_obv",
+    "feature_ad",
+    "feature_adosc_3_10",
+    "feature_adx_14",
+    "feature_aroon_14",
+  ]  # All engineered features from all_features.yaml
+
+  # Reward function configuration
+  reward_type: "log_return"
+  reward_eta: 0.01  # Only used when reward_type="differential_sharpe"
+
+  # Note: positions parameter is not used with tradingenv backend
+  # Actions are continuous portfolio weights instead of discrete positions
+
+# Network Architecture
+network:
+  actor_hidden_dims: [128, 64]  # Larger network for better pattern learning (was [64, 32])
+  value_hidden_dims: [128, 64]  # Larger critics for stable Q-value estimation (was [64, 32])
+
+# Training Parameters - PPO
+training:
+  algorithm: "PPO"  # On-policy actor-critic
+
+  # Learning rates
+  actor_lr: 0.0003
+  value_lr: 0.0003
+  value_weight_decay: 0.000002
+  actor_weight_decay: 0.000002
+
+  # Training loop
+  max_steps: 5000000
+  init_rand_steps: 5000
+  frames_per_batch: 256
+  optim_steps_per_batch: 40
+  sample_size: 128
+  buffer_size: 100000  # Larger buffer to capture diverse real market conditions
+  save_buffer: true  # Set to true to save replay buffer in checkpoint (increases file size ~10-100x)
+
+  # Discount factor
+  gamma: 0.99  # Discount factor for future rewards
+
+  # PPO-specific parameters
+  clip_epsilon: 0.2
+  entropy_bonus: 0.01
+  vf_coef: 0.5
+  ppo_epochs: 4
+
+  # Loss function
+  loss_function: "l2"
+
+  # Evaluation
+  eval_steps: 720  # 30 days at hourly resolution for realistic evaluation
+  eval_interval: 1000  # Evaluate every 1000 steps
+  log_interval: 100  # Reduced from 200 for more frequent monitoring
+
+# Logging Configuration
+logging:
+  log_dir: "logs/ppo_tradingenv_btc_all_features_log_return"
+  log_level: "INFO"
+  save_plots: false  # Save training plots to disk in addition to MLflow
