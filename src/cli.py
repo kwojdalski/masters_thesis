@@ -386,29 +386,14 @@ def train(
     --from-checkpoint flag.
 
     Examples:
-        # Basic training with default config
-        python src/cli.py train
-
-        # Training with custom config file
-        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml
-
-        # Training with config overrides
-        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml -o training.max_steps=10000 -o training.actor_lr=0.0003
-
-        # Custom experiment name (overrides config)
-        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --name my_experiment
-
-        # Multiple trials with different seeds
-        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --trials 5
-
-        # Resume from last checkpoint
-        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --from-last-checkpoint --additional-steps 5000
-
-        # Resume from specific checkpoint
-        python src/cli.py train --from-checkpoint logs/my_experiment/my_experiment_checkpoint_step_1000.pt --additional-steps 10000
-
-        # Resume with verbose logging
-        python src/cli.py train --from-last-checkpoint --additional-steps 5000 --verbose
+        python src/cli.py train                                                                                        # Basic training with default config
+        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml                             # Training with custom config file
+        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml -o training.max_steps=10000 # Training with config overrides
+        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --name my_experiment        # Custom experiment name
+        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --trials 5                  # Multiple trials with different seeds
+        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --from-last-checkpoint --additional-steps 5000     # Resume from last checkpoint
+        python src/cli.py train --from-checkpoint logs/my_experiment/my_experiment_checkpoint_step_1000.pt --additional-steps 10000           # Resume from specific checkpoint
+        python src/cli.py train --from-last-checkpoint --additional-steps 5000 --verbose                               # Resume with verbose logging
     """
 
     if verbose or log_regex:
