@@ -154,6 +154,135 @@ class ExperimentConfig:
     # Experiment metadata
     experiment_name: str = "ddpg_trading"
 
+    def __post_init__(self):
+        """Validate configuration after initialization."""
+        errors = []
+
+        # Training hyperparameter validation
+        if self.training.actor_lr <= 0:
+            errors.append(
+                f"training.actor_lr must be > 0, got {self.training.actor_lr}"
+            )
+        if self.training.value_lr <= 0:
+            errors.append(
+                f"training.value_lr must be > 0, got {self.training.value_lr}"
+            )
+        if self.training.max_steps <= 0:
+            errors.append(
+                f"training.max_steps must be > 0, got {self.training.max_steps}"
+            )
+        if self.training.init_rand_steps < 0:
+            errors.append(
+                f"training.init_rand_steps must be >= 0, got {self.training.init_rand_steps}"
+            )
+        if self.training.max_steps <= self.training.init_rand_steps:
+            errors.append(
+                f"training.max_steps ({self.training.max_steps}) must be > "
+                f"init_rand_steps ({self.training.init_rand_steps})"
+            )
+        if self.training.frames_per_batch <= 0:
+            errors.append(
+                f"training.frames_per_batch must be > 0, got {self.training.frames_per_batch}"
+            )
+        if self.training.buffer_size <= 0:
+            errors.append(
+                f"training.buffer_size must be > 0, got {self.training.buffer_size}"
+            )
+        if self.training.eval_steps <= 0:
+            errors.append(
+                f"training.eval_steps must be > 0, got {self.training.eval_steps}"
+            )
+        if self.training.checkpoint_interval < 0:
+            errors.append(
+                f"training.checkpoint_interval must be >= 0, got {self.training.checkpoint_interval}"
+            )
+
+        # PPO-specific validation
+        if self.training.algorithm.upper() == "PPO":
+            if not (0 < self.training.clip_epsilon < 1):
+                errors.append(
+                    f"training.clip_epsilon must be in (0, 1), got {self.training.clip_epsilon}"
+                )
+            if self.training.entropy_bonus < 0:
+                errors.append(
+                    f"training.entropy_bonus must be >= 0, got {self.training.entropy_bonus}"
+                )
+            if self.training.ppo_epochs <= 0:
+                errors.append(
+                    f"training.ppo_epochs must be > 0, got {self.training.ppo_epochs}"
+                )
+
+        # DDPG/TD3-specific validation
+        if self.training.algorithm.upper() in ["DDPG", "TD3"]:
+            if not (0 < self.training.tau <= 1):
+                errors.append(
+                    f"training.tau must be in (0, 1], got {self.training.tau}"
+                )
+
+        # Data configuration validation
+        if self.data.train_size <= 0:
+            errors.append(f"data.train_size must be > 0, got {self.data.train_size}")
+        if self.data.train_size < self.training.frames_per_batch:
+            errors.append(
+                f"data.train_size ({self.data.train_size}) must be >= "
+                f"frames_per_batch ({self.training.frames_per_batch})"
+            )
+
+        # Environment configuration validation
+        if self.env.trading_fees < 0:
+            errors.append(
+                f"env.trading_fees must be >= 0, got {self.env.trading_fees}"
+            )
+        if self.env.borrow_interest_rate < 0:
+            errors.append(
+                f"env.borrow_interest_rate must be >= 0, got {self.env.borrow_interest_rate}"
+            )
+        if self.env.initial_portfolio_value <= 0:
+            errors.append(
+                f"env.initial_portfolio_value must be > 0, got {self.env.initial_portfolio_value}"
+            )
+        if not self.env.positions:
+            errors.append("env.positions must not be empty")
+
+        # Reward configuration validation
+        if self.env.reward_type not in ["log_return", "differential_sharpe"]:
+            errors.append(
+                f"env.reward_type must be 'log_return' or 'differential_sharpe', "
+                f"got '{self.env.reward_type}'"
+            )
+        if self.env.reward_type == "differential_sharpe" and self.env.reward_eta <= 0:
+            errors.append(
+                f"env.reward_eta must be > 0 when using differential_sharpe, "
+                f"got {self.env.reward_eta}"
+            )
+
+        # Network configuration validation
+        if not self.network.actor_hidden_dims:
+            errors.append("network.actor_hidden_dims must not be empty")
+        if not self.network.value_hidden_dims:
+            errors.append("network.value_hidden_dims must not be empty")
+        if any(dim <= 0 for dim in self.network.actor_hidden_dims):
+            errors.append("network.actor_hidden_dims must contain only positive integers")
+        if any(dim <= 0 for dim in self.network.value_hidden_dims):
+            errors.append("network.value_hidden_dims must contain only positive integers")
+
+        # Algorithm validation
+        valid_algorithms = ["PPO", "DDPG", "TD3"]
+        if self.training.algorithm.upper() not in valid_algorithms:
+            errors.append(
+                f"training.algorithm must be one of {valid_algorithms}, "
+                f"got '{self.training.algorithm}'"
+            )
+
+        if errors:
+            raise ValueError(
+                "Configuration validation failed:\n  - " + "\n  - ".join(errors)
+            )
+
+        # Create directories if they don't exist
+        Path(self.logging.log_dir).mkdir(parents=True, exist_ok=True)
+        Path(self.logging.tensorboard_dir).mkdir(parents=True, exist_ok=True)
+
     @classmethod
     def from_yaml(
         cls, yaml_path: str | Path, overrides: list[str] | None = None
@@ -348,9 +477,3 @@ class ExperimentConfig:
                 "tensorboard_dir": self.logging.tensorboard_dir,
             },
         }
-
-    def __post_init__(self):
-        """Validate configuration after initialization."""
-        # Create directories if they don't exist
-        Path(self.logging.log_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.logging.tensorboard_dir).mkdir(parents=True, exist_ok=True)
