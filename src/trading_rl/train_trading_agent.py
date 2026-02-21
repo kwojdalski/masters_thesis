@@ -62,23 +62,34 @@ def _format_head_value(value: Any) -> str:
     return str(value)
 
 
-def _print_training_data_head_table(train_df: pd.DataFrame, n_rows: int = 5) -> None:
+def _print_training_data_head_table(
+    train_df: pd.DataFrame, n_rows: int = 5, max_columns: int = 12
+) -> None:
     """Print a nicely formatted training data head table using Rich."""
     if train_df.empty:
         return
 
     head_df = train_df.head(n_rows)
+    visible_columns = list(head_df.columns[:max_columns])
+    hidden_count = max(0, len(head_df.columns) - len(visible_columns))
+
     table = Table(title="Training Data Head")
     table.add_column("index", style="cyan")
-    for col in head_df.columns:
+    for col in visible_columns:
         table.add_column(str(col), justify="right")
 
     for idx, row in head_df.iterrows():
         row_cells = [str(idx)]
-        row_cells.extend(_format_head_value(row[col]) for col in head_df.columns)
+        row_cells.extend(_format_head_value(row[col]) for col in visible_columns)
         table.add_row(*row_cells)
 
-    Console().print(table)
+    console = Console()
+    console.print(table)
+    if hidden_count > 0:
+        console.print(
+            f"[dim]Showing {len(visible_columns)} of {len(head_df.columns)} columns "
+            f"({hidden_count} hidden).[/dim]"
+        )
 
 
 # %%
