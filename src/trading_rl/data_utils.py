@@ -165,6 +165,7 @@ def reward_function(history: dict) -> float:
 def prepare_data(
     data_path: str,
     train_size: int,
+    validation_size: int | None = None,
     download_if_missing: bool = False,
     exchange_names: list[str] | None = None,
     symbols: list[str] | None = None,
@@ -173,15 +174,17 @@ def prepare_data(
     since: Any | None = None,
     no_features: bool = False,
     feature_config_path: str | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Prepare trading data for RL training with proper train/test split.
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Prepare trading data for RL training with proper train/val/test split.
 
     CRITICAL: This function splits data BEFORE feature engineering to prevent
     data leakage. Normalization statistics are computed only on training data.
 
     Args:
         data_path: Path to data file
-        train_size: Number of samples to use for training (rest is test)
+        train_size: Number of samples to use for training
+        validation_size: Number of samples for validation. If None, split the
+            remaining data equally between validation and test.
         download_if_missing: Whether to download data if file doesn't exist
         exchange_names: Exchange names for download
         symbols: Trading symbols for download
@@ -192,10 +195,10 @@ def prepare_data(
         feature_config_path: Path to YAML config for features. If None, uses default pipeline.
 
     Returns:
-        Tuple of (train_df, test_df) with features (or just OHLCV if no_features=True)
+        Tuple of (train_df, val_df, test_df) with features (or just OHLCV if no_features=True)
 
     Example:
-        train_df, test_df = prepare_data(
+        train_df, val_df, test_df = prepare_data(
             data_path="data.parquet",
             train_size=450,
             feature_config_path="configs/features/sine_wave.yaml"
@@ -219,16 +222,38 @@ def prepare_data(
     logger.info(f"Loaded raw data: {len(df)} rows, {len(df.columns)} columns")
 
     # Split data BEFORE feature engineering (critical for preventing leakage!)
-    train_df_raw = df[:train_size].copy()
-    test_df_raw = df[train_size:].copy()
+    if train_size >= len(df):
+        raise ValueError(
+            f"train_size ({train_size}) must be smaller than dataset length ({len(df)})"
+        )
+    remaining = len(df) - train_size
+    if validation_size is None:
+        validation_size = remaining // 2
+    if validation_size < 0:
+        raise ValueError(f"validation_size must be >= 0, got {validation_size}")
+    if validation_size >= remaining:
+        raise ValueError(
+            f"validation_size ({validation_size}) must be smaller than remaining "
+            f"data after train split ({remaining})"
+        )
 
-    logger.info(f"Split data: train={len(train_df_raw)}, test={len(test_df_raw)}")
+    val_end = train_size + validation_size
+    train_df_raw = df[:train_size].copy()
+    val_df_raw = df[train_size:val_end].copy()
+    test_df_raw = df[val_end:].copy()
+
+    logger.info(
+        "Split data: train=%s, val=%s, test=%s",
+        len(train_df_raw),
+        len(val_df_raw),
+        len(test_df_raw),
+    )
 
     if no_features:
         # Return raw OHLCV data without features
         logger.info("Returning raw OHLCV data (no_features=True)")
         logger.info(f"Columns: {list(train_df_raw.columns)}")
-        return train_df_raw, test_df_raw
+        return train_df_raw, val_df_raw, test_df_raw
 
     # Create feature pipeline
     from trading_rl.features import FeaturePipeline, create_default_pipeline
@@ -246,20 +271,27 @@ def prepare_data(
     logger.info("Fitting feature pipeline on training data...")
     pipeline.fit(train_df_raw)
 
-    # Transform both train and test using fitted parameters
+    # Transform train/validation/test using fitted parameters
     logger.info("Transforming training data...")
     train_features = pipeline.transform(train_df_raw)
+
+    logger.info("Transforming validation data...")
+    val_features = pipeline.transform(val_df_raw)
 
     logger.info("Transforming test data...")
     test_features = pipeline.transform(test_df_raw)
 
     # Keep raw OHLCV for price/info columns, append engineered features
     train_df = pd.concat([train_df_raw, train_features], axis=1)
+    val_df = pd.concat([val_df_raw, val_features], axis=1)
     test_df = pd.concat([test_df_raw, test_features], axis=1)
 
     logger.info(
-        f"Feature engineering complete: train={train_df.shape}, test={test_df.shape}"
+        "Feature engineering complete: train=%s, val=%s, test=%s",
+        train_df.shape,
+        val_df.shape,
+        test_df.shape,
     )
     logger.info(f"Features: {list(train_features.columns)}")
 
-    return train_df, test_df
+    return train_df, val_df, test_df

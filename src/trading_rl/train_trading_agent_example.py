@@ -36,8 +36,10 @@ config.seed = set_seed(config.seed)
 
 # Prepare data
 logger.info("Preparing data...")
-df = prepare_data(
+train_df, _val_df, _test_df = prepare_data(
     data_path=config.data.data_path,
+    train_size=config.data.train_size,
+    validation_size=getattr(config.data, "validation_size", None),
     download_if_missing=config.data.download_data,
     exchange_names=config.data.exchange_names,
     symbols=config.data.symbols,
@@ -49,7 +51,7 @@ df = prepare_data(
 # %%
 # Create environment
 logger.info("Creating environment...")
-env = create_environment(df, config)
+env = create_environment(train_df, config)
 # %%
 # Get environment specs
 n_obs = env.observation_spec["observation"].shape[-1]
@@ -108,7 +110,7 @@ loss_plot
 reward_plot, action_plot, action_probs_plot, final_reward, last_positions = evaluate_agent(
     env,
     actor,
-    df,
+    train_df,
     max_steps=1000,
     # save_path=str(Path(config.logging.log_dir) / f"{config.experiment_name}_eval"),
 )

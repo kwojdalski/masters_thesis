@@ -6,18 +6,21 @@ flowchart TD
     B -- "Yes" --> E["load_trading_data"]
     C --> E
     E --> F["drop NaNs"]
-    F --> G["split raw data into train and test"]
+    F --> G["split raw data into train, validation, and test"]
     G --> H{"no_features is true?"}
-    H -- "Yes" --> I["return raw train and raw test"]
+    H -- "Yes" --> I["return raw train, raw validation, and raw test"]
     H -- "No" --> J{"feature config path provided?"}
     J -- "Yes" --> K["FeaturePipeline.from_yaml"]
     J -- "No" --> L["create_default_pipeline"]
     K --> M["pipeline.fit on train raw only"]
     L --> M
     M --> N["transform train raw"]
-    M --> O["transform test raw"]
-    N --> P["concat raw train with train features"]
-    O --> Q["concat raw test with test features"]
-    P --> R["return train_df and test_df"]
-    Q --> R
+    M --> O["transform validation raw"]
+    M --> P["transform test raw"]
+    N --> Q["concat raw train with train features"]
+    O --> R["concat raw validation with validation features"]
+    P --> S["concat raw test with test features"]
+    Q --> T["return train_df, val_df, and test_df"]
+    R --> T
+    S --> T
 ```

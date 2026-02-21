@@ -220,6 +220,7 @@ class TrainingCommand(BaseCommand):
         context = build_training_context(config, create_mlflow_callback=False)
         logger = context["logger"]
         train_df = context["train_df"]
+        val_df = context["val_df"]
         test_df = context["test_df"]
         trainer = context["trainer"]
         algorithm = context["algorithm"]
@@ -408,8 +409,9 @@ class TrainingCommand(BaseCommand):
             """Evaluate and log results under the active MLflow run."""
             logger.info("Evaluating agent...")
             self.console.print("[cyan]Evaluating agent...[/cyan]")
+            eval_df = val_df if not val_df.empty else train_df
             eval_max_steps = min(
-                config.training.eval_steps, len(train_df) - 1
+                config.training.eval_steps, len(eval_df) - 1
             )
             logger.debug(f"Evaluation max_steps: {eval_max_steps}")
 
@@ -421,7 +423,7 @@ class TrainingCommand(BaseCommand):
                 last_positions,
                 actual_returns_plot,
             ) = trainer.evaluate(
-                train_df,
+                eval_df,
                 max_steps=eval_max_steps,
                 config=config,
                 algorithm=algorithm,
@@ -437,7 +439,7 @@ class TrainingCommand(BaseCommand):
             )
             evaluation_report = build_evaluation_report_for_trainer(
                 trainer=trainer,
-                df_prices=train_df,
+                df_prices=eval_df,
                 max_steps=eval_max_steps,
                 config=config,
             )
@@ -457,8 +459,9 @@ class TrainingCommand(BaseCommand):
             ): last_positions,
                 "data_start_date": str(train_df.index[0]) if not train_df.empty else "unknown",
                 "data_end_date": str(test_df.index[-1]) if not test_df.empty else "unknown",
-                "data_size": len(train_df) + len(test_df),
+                "data_size": len(train_df) + len(val_df) + len(test_df),
                 "train_size": config.data.train_size,
+                "validation_size": len(val_df),
                 "trading_fees": config.env.trading_fees,
                 "experiment_name": config.experiment_name,
                 "resumed_from_step": original_steps,
