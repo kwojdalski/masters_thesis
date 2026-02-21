@@ -9,17 +9,21 @@ This module provides a flexible, configurable feature engineering system that:
 
 from trading_rl.features.base import Feature, FeatureConfig
 from trading_rl.features.pipeline import FeaturePipeline, create_default_pipeline
-from trading_rl.features.registry import FeatureRegistry, register_feature
 
 # Import concrete features to register them
 from trading_rl.features.price_features import (
     HighFeature,
     LogReturnFeature,
     LowFeature,
-    RSIFeature,
     ReturnLagFeature,
+    RSIFeature,
     SimpleReturnFeature,
     TrendFeature,
+)
+from trading_rl.features.registry import FeatureRegistry, register_feature
+from trading_rl.features.volatility_features import (
+    RealizedVolatilityFeature,
+    VolatilityRatioFeature,
 )
 from trading_rl.features.volume_features import (
     LogVolumeFeature,
@@ -60,44 +64,43 @@ __all__ = [
     "Feature",
     "FeatureConfig",
     "FeaturePipeline",
-    "create_default_pipeline",
     "FeatureRegistry",
-    "register_feature",
-    # Price features
-    "LogReturnFeature",
-    "SimpleReturnFeature",
     "HighFeature",
-    "LowFeature",
-    "TrendFeature",
-    "RSIFeature",
-    "ReturnLagFeature",
-    # Volume features
+    "LogReturnFeature",
     "LogVolumeFeature",
+    "LowFeature",
+    "RSIFeature",
+    "RealizedVolatilityFeature",
+    "ReturnLagFeature",
+    "SimpleReturnFeature",
+    "TrendFeature",
+    "VolatilityRatioFeature",
     "VolumeChangeFeature",
     "VolumeMAFeature",
+    "create_default_pipeline",
+    "register_feature",
 ]
 
 if _TALIB_AVAILABLE:
     __all__ += [
-        # TA-Lib features
-        "SMAFeature",
-        "EMAFeature",
-        "WMAFeature",
-        "DEMAFeature",
-        "TEMAFeature",
-        "TALibRSIFeature",
-        "MACDFeature",
-        "MOMFeature",
-        "ROCFeature",
-        "CMOFeature",
-        "WILLRFeature",
-        "CCIFeature",
-        "ATRFeature",
-        "NATRFeature",
-        "BBANDSFeature",
-        "OBVFeature",
         "ADFeature",
         "ADOSCFeature",
         "ADXFeature",
         "AROONFeature",
+        "ATRFeature",
+        "BBANDSFeature",
+        "CCIFeature",
+        "CMOFeature",
+        "DEMAFeature",
+        "EMAFeature",
+        "MACDFeature",
+        "MOMFeature",
+        "NATRFeature",
+        "OBVFeature",
+        "ROCFeature",
+        "SMAFeature",
+        "TALibRSIFeature",
+        "TEMAFeature",
+        "WILLRFeature",
+        "WMAFeature",
     ]
