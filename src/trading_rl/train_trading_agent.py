@@ -66,9 +66,15 @@ def setup_logging(config: ExperimentConfig) -> logging.Logger:
     )
     # Suppress noisy external library loggers
     import logging
+    import warnings
+
+    from plotnine.exceptions import PlotnineWarning
 
     logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
+
+    # Suppress plotnine save warnings (verbose image size/filename info)
+    warnings.filterwarnings("ignore", category=PlotnineWarning)
 
     logger = get_project_logger(__name__)
     logger.info(f"Starting experiment: {config.experiment_name}")
