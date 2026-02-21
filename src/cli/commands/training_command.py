@@ -520,7 +520,7 @@ class TrainingCommand(BaseCommand):
                     ("calmar_ratio", "Calmar ratio"),
                     ("annualized_volatility", "Annualized volatility"),
                     ("max_drawdown", "Max drawdown"),
-                    ("hit_rate", "Hit rate"),
+                    ("win_rate", "Win rate"),
                     ("profit_factor", "Profit factor"),
                     ("var_95", "VaR (95%)"),
                     ("cvar_95", "CVaR (95%)"),
@@ -528,6 +528,8 @@ class TrainingCommand(BaseCommand):
                 self.console.print("Key evaluation metrics:")
                 for key, label in key_metrics:
                     value = evaluation_report.get(key)
+                    if key == "win_rate" and value is None:
+                        value = evaluation_report.get("hit_rate")
                     if isinstance(value, (int, float)) and math.isfinite(value):
                         self.console.print(f"{label}: [cyan]{value:.6f}[/cyan]")
 
