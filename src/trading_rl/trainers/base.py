@@ -5,6 +5,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -108,6 +109,26 @@ class BaseTrainer(ABC):
         )
         self.save_checkpoint(str(path))
         self._last_checkpoint_step = self.total_count
+
+    def _save_interrupt_checkpoint(self) -> str | None:
+        """Persist an emergency checkpoint when training is interrupted."""
+        if not self.checkpoint_dir or not self.checkpoint_prefix:
+            logger.warning(
+                "Interrupted, but checkpoint_dir/checkpoint_prefix is not configured."
+            )
+            return None
+
+        Path(self.checkpoint_dir).mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        path = (
+            Path(self.checkpoint_dir)
+            / (
+                f"{self.checkpoint_prefix}_checkpoint_interrupt_"
+                f"step_{self.total_count}_{timestamp}.pt"
+            )
+        )
+        self.save_checkpoint(str(path))
+        return str(path)
 
     @staticmethod
     @abstractmethod
@@ -405,37 +426,44 @@ class BaseTrainer(ABC):
             len(self.logs.get("loss_value", [])),
         )
 
-        for i, data in enumerate(self.collector):
-            if on_batch_start is not None:
-                on_batch_start(i, data)
+        try:
+            for i, data in enumerate(self.collector):
+                if on_batch_start is not None:
+                    on_batch_start(i, data)
 
-            # Store current batch for on-policy algorithms (PPO)
-            self._current_batch = data
+                # Store current batch for on-policy algorithms (PPO)
+                self._current_batch = data
 
-            # Off-policy algorithms (TD3, DDPG) accumulate in replay buffer
-            # On-policy algorithms (PPO) skip buffer and train on fresh data only
-            if self._use_replay_buffer:
-                self.replay_buffer.extend(data)
+                # Off-policy algorithms (TD3, DDPG) accumulate in replay buffer
+                # On-policy algorithms (PPO) skip buffer and train on fresh data only
+                if self._use_replay_buffer:
+                    self.replay_buffer.extend(data)
 
-            max_length = self.replay_buffer[:]["next", "step_count"].max()
-            buffer_len = len(self.replay_buffer)
+                max_length = self.replay_buffer[:]["next", "step_count"].max()
+                buffer_len = len(self.replay_buffer)
 
-            if buffer_len > self.config.init_rand_steps:
-                self._optimization_step(i, max_length, buffer_len)
+                if buffer_len > self.config.init_rand_steps:
+                    self._optimization_step(i, max_length, buffer_len)
 
-            self.total_count += data.numel()
-            self.total_episodes += data["next", "done"].sum()
-            self._maybe_save_checkpoint()
+                self.total_count += data.numel()
+                self.total_episodes += data["next", "done"].sum()
+                self._maybe_save_checkpoint()
 
-            if self.callback and hasattr(self.callback, "log_episode_stats"):
-                self._log_episode_stats(data, self.callback)
+                if self.callback and hasattr(self.callback, "log_episode_stats"):
+                    self._log_episode_stats(data, self.callback)
 
-            if on_batch_end is not None:
-                on_batch_end(i, data)
+                if on_batch_end is not None:
+                    on_batch_end(i, data)
 
-            if self.total_count >= self.config.max_steps:
-                logger.info(f"Training stopped after {self.config.max_steps} steps")
-                break
+                if self.total_count >= self.config.max_steps:
+                    logger.info(f"Training stopped after {self.config.max_steps} steps")
+                    break
+        except KeyboardInterrupt:
+            logger.warning("Training interrupted by user (Ctrl-C). Saving checkpoint...")
+            checkpoint_path = self._save_interrupt_checkpoint()
+            if checkpoint_path:
+                logger.info("Interrupt checkpoint saved to: %s", checkpoint_path)
+            raise
 
         if on_train_end is not None:
             on_train_end()
