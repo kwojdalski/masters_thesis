@@ -14,7 +14,7 @@ before/after training so you can confirm the actor/critics are actually learning
 from __future__ import annotations
 
 import argparse
-from typing import Iterable
+from collections.abc import Iterable
 
 import torch
 
@@ -61,9 +61,10 @@ def main() -> None:
 
     set_seed(config.seed)
 
-    train_df, test_df = prepare_data(
+    train_df, _val_df, _test_df = prepare_data(
         data_path=config.data.data_path,
         train_size=config.data.train_size,
+        validation_size=getattr(config.data, "validation_size", None),
         download_if_missing=config.data.download_data,
         exchange_names=config.data.exchange_names,
         symbols=config.data.symbols,

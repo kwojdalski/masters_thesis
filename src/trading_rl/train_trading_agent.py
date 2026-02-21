@@ -160,11 +160,17 @@ def setup_mlflow_experiment(
 # %%
 
 
-def _validate_data(train_df: pd.DataFrame, test_df: pd.DataFrame, config: ExperimentConfig) -> None:
+def _validate_data(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    config: ExperimentConfig,
+) -> None:
     """Validate loaded data for training.
 
     Args:
         train_df: Training dataframe
+        val_df: Validation dataframe
         test_df: Test dataframe
         config: Experiment configuration
 
@@ -174,8 +180,10 @@ def _validate_data(train_df: pd.DataFrame, test_df: pd.DataFrame, config: Experi
     # Check for empty dataframes
     if train_df.empty:
         raise ValueError("Training data is empty. Check data_path or download settings.")
+    if val_df.empty:
+        raise ValueError("Validation data is empty. Check train/validation sizes.")
     if test_df.empty:
-        raise ValueError("Test data is empty. Check train_size setting.")
+        raise ValueError("Test data is empty. Check train/validation size settings.")
 
     # Check for required columns (close price is critical for most environments)
     if not getattr(config.data, "no_features", False):
@@ -307,10 +315,10 @@ def build_training_context(
     logger.debug(f"  No features: {getattr(config.data, 'no_features', False)}")
     logger.debug(f"  Feature config: {getattr(config.data, 'feature_config', None)}")
 
-    # NEW: prepare_data() now returns (train_df, test_df) and splits BEFORE features
-    train_df, test_df = prepare_data(
+    train_df, val_df, test_df = prepare_data(
         data_path=config.data.data_path,
-        train_size=config.data.train_size,  # NEW: required for splitting
+        train_size=config.data.train_size,
+        validation_size=getattr(config.data, "validation_size", None),
         download_if_missing=config.data.download_data,
         exchange_names=config.data.exchange_names,
         symbols=config.data.symbols,
@@ -322,13 +330,13 @@ def build_training_context(
     )
 
     # Validate loaded data
-    _validate_data(train_df, test_df, config)
+    _validate_data(train_df, val_df, test_df, config)
 
     if logger.isEnabledFor(logging.INFO):
         _print_training_data_head_table(train_df)
 
     logger.debug(
-        f"Data loaded - train: {train_df.shape}, test: {test_df.shape}, "
+        f"Data loaded - train: {train_df.shape}, val: {val_df.shape}, test: {test_df.shape}, "
         f"columns: {list(train_df.columns)}"
     )
 
@@ -428,6 +436,7 @@ def build_training_context(
     return {
         "logger": logger,
         "train_df": train_df,
+        "val_df": val_df,
         "test_df": test_df,
         "env": env,
         "trainer": trainer,
@@ -468,6 +477,7 @@ def run_single_experiment(
     )
     logger = context["logger"]
     train_df = context["train_df"]
+    val_df = context["val_df"]
     test_df = context["test_df"]
     trainer = context["trainer"]
     mlflow_callback = context["mlflow_callback"]
@@ -488,9 +498,8 @@ def run_single_experiment(
     # Evaluate agent
     logger.info("Evaluating agent...")
     # Ensure max_steps doesn't exceed available data size
-    eval_max_steps = min(
-        config.training.eval_steps, len(train_df) - 1
-    )  # Use the smallest of: eval_steps or training data size
+    eval_df = val_df if not val_df.empty else train_df
+    eval_max_steps = min(config.training.eval_steps, len(eval_df) - 1)
     (
         reward_plot,
         action_plot,
@@ -499,7 +508,7 @@ def run_single_experiment(
         last_positions,
         actual_returns_plot,
     ) = trainer.evaluate(
-        train_df,  # Already split, no slicing needed
+        eval_df,
         max_steps=eval_max_steps,
         config=config,
         algorithm=algorithm,
@@ -515,7 +524,7 @@ def run_single_experiment(
     )
     evaluation_report = build_evaluation_report_for_trainer(
         trainer=trainer,
-        df_prices=train_df,
+        df_prices=eval_df,
         max_steps=eval_max_steps,
         config=config,
     )
@@ -540,8 +549,9 @@ def run_single_experiment(
             if not test_df.empty
             else (str(train_df.index[-1]) if not train_df.empty else "unknown")
         ),
-        "data_size_total": len(train_df) + len(test_df),
+        "data_size_total": len(train_df) + len(val_df) + len(test_df),
         "train_size": len(train_df),
+        "validation_size": len(val_df),
         "test_size": len(test_df),
         # Environment configuration
         "trading_fees": config.env.trading_fees,

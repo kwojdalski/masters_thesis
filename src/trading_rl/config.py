@@ -27,6 +27,7 @@ class DataConfig:
         - datetime.timedelta(days=1)
     )
     train_size: int = 1000
+    validation_size: int | None = None
     no_features: bool = False
     feature_config: str | None = None  # Path to feature config YAML
 
@@ -222,6 +223,11 @@ class ExperimentConfig:
         # Data configuration validation
         if self.data.train_size <= 0:
             errors.append(f"data.train_size must be > 0, got {self.data.train_size}")
+        if self.data.validation_size is not None and self.data.validation_size < 0:
+            errors.append(
+                "data.validation_size must be >= 0 when provided, "
+                f"got {self.data.validation_size}"
+            )
         if self.data.train_size < self.training.frames_per_batch:
             errors.append(
                 f"data.train_size ({self.data.train_size}) must be >= "
@@ -427,6 +433,7 @@ class ExperimentConfig:
                 "data_dir": self.data.data_dir,
                 "download_since": self.data.download_since.isoformat(),
                 "train_size": self.data.train_size,
+                "validation_size": self.data.validation_size,
             },
             "environment": {
                 "name": self.env.name,
