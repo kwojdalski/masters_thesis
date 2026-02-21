@@ -37,7 +37,7 @@ else:
 # Configure project logging for the CLI component before creating loggers
 app = typer.Typer(
     help="CLI tools for trading data science project",
-    add_completion=False,
+    add_completion=True,
 )
 data_app = typer.Typer(help="Data generation utilities")
 app.add_typer(data_app, name="data")
