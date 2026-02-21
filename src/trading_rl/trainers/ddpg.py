@@ -1,6 +1,4 @@
 """DDPG Trainer implementation."""
-
-import time
 from collections import defaultdict
 from typing import Any
 
@@ -234,8 +232,9 @@ class DDPGTrainer(BaseTrainer):
         Args:
             path: Path to save checkpoint
         """
-        import mlflow
         from pathlib import Path
+
+        import mlflow
 
         run = mlflow.active_run()
         tracking_uri = mlflow.get_tracking_uri()
@@ -340,40 +339,15 @@ class DDPGTrainer(BaseTrainer):
 
     def train(self, callback=None) -> dict[str, list]:
         """Run training loop for DDPG agent with batch summary."""
-        logger.info("Starting DDPG training")
-        t0 = time.time()
-        self.callback = callback
-        self._log_step_offset = max(
-            len(self.logs.get("loss_actor", [])),
-            len(self.logs.get("loss_value", [])),
+        return self._run_training_loop(
+            callback,
+            start_message="Starting DDPG training",
+            completion_prefix="DDPG Training complete",
+            on_train_end=self._log_batch_summary,
         )
 
-        for i, data in enumerate(self.collector):
-            self.replay_buffer.extend(data)
-
-            max_length = self.replay_buffer[:]["next", "step_count"].max()
-            buffer_len = len(self.replay_buffer)
-
-            if buffer_len > self.config.init_rand_steps:
-                self._optimization_step(i, max_length, buffer_len)
-
-            self.total_count += data.numel()
-            self.total_episodes += data["next", "done"].sum()
-            self._maybe_save_checkpoint()
-
-            if callback and hasattr(callback, "log_episode_stats"):
-                self._log_episode_stats(data, callback)
-
-            if self.total_count >= self.config.max_steps:
-                logger.info(f"Training stopped after {self.config.max_steps} steps")
-                break
-
-        t1 = time.time()
-        logger.info(
-            f"DDPG Training complete: {self.total_count} steps, "
-            f"{self.total_episodes} episodes, {t1 - t0:.2f}s"
-        )
-
+    def _log_batch_summary(self) -> None:
+        """Log successful vs skipped optimization batch summary."""
         # Log batch success/failure summary
         total_batches = self.successful_batches + self.skipped_batches
         if total_batches > 0:
@@ -390,5 +364,3 @@ class DDPGTrainer(BaseTrainer):
                 logger.info(summary_msg)
         else:
             logger.warning("No optimization batches were attempted during training")
-
-        return dict(self.logs)

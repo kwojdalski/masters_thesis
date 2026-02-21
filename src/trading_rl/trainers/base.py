@@ -4,6 +4,7 @@ import contextlib
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -121,21 +122,41 @@ class BaseTrainer(ABC):
         """Algorithm-specific exploration metric."""
         return 0.0
 
-    def create_action_probabilities_plot(self, max_steps: int, df=None, config=None):
+    def create_action_probabilities_plot(
+        self, max_steps: int, df: Any = None, config: Any = None
+    ) -> Any:
         """Optional action-probability visualization; default is not implemented."""
         return None
 
-    def _log_episode_stats(self, data, callback) -> None:
+    def _log_episode_stats(self, data: Any, callback: Any) -> None:
         """Log episode statistics to provided callback."""
         episode_reward = data["next", "reward"].sum().item()
         # Reset portfolio value to starting amount at the beginning of each episode
-        callback._portfolio_value = 10000.0  # Starting portfolio value
+        initial_val = getattr(callback, "initial_portfolio_value", 10000.0)
+        reward_type = getattr(callback, "reward_type", "log_return")
 
-        # Update portfolio value based on episode reward (cumulative log return)
-        if episode_reward != 0:
-            callback._portfolio_value = 10000.0 * np.exp(episode_reward)
+        # Determine actual portfolio valuation based on reward type
+        if reward_type == "log_return":
+            # For log_return, reward matches portfolio growth
+            portfolio_valuation = initial_val * np.exp(episode_reward)
+        elif reward_type == "differential_sharpe":
+            # For DSR, extract actual dollar returns from environment broker
+            from trading_rl.utils import _extract_tradingenv_returns
 
-        portfolio_valuation = callback._portfolio_value
+            # Extract cumulative returns from broker (ignores the DSR RL reward)
+            actual_returns = _extract_tradingenv_returns(self.env, data.numel())
+            if actual_returns is not None and len(actual_returns) > 0:
+                portfolio_valuation = initial_val * np.exp(actual_returns[-1])
+            else:
+                # Fallback to cumulative reward if extraction fails
+                logger.warning("Failed to extract actual returns for DSR; falling back to reward sum")
+                portfolio_valuation = initial_val * np.exp(episode_reward)
+        else:
+            # Fallback for any other custom reward types
+            logger.debug(f"Unrecognized reward_type '{reward_type}'; assuming reward matches log-return for valuation")
+            portfolio_valuation = initial_val * np.exp(episode_reward)
+
+        callback._portfolio_value = portfolio_valuation
         actions_tensor = data.get("action")
         if isinstance(actions_tensor, torch.Tensor):
             if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
@@ -161,9 +182,9 @@ class BaseTrainer(ABC):
             callback._episode_count = 1
         self.logs["episode_log_count"].append(int(callback._episode_count))
 
-        # Calculate returns
-        # Portfolio return is the episode cumulative log return expressed in percent
-        portfolio_return = 100 * (np.exp(episode_reward) - 1)
+        # Calculate portfolio return in percent (standardized formula)
+        # Use initial_val from callback and portfolio_valuation calculated above
+        portfolio_return = 100 * (portfolio_valuation / initial_val - 1)
 
         # Compute buy-and-hold benchmark if price series is available on the callback
         market_return = None
@@ -182,7 +203,7 @@ class BaseTrainer(ABC):
             f"Portfolio Value: ${portfolio_valuation:,.2f}"
         )
 
-    def _is_portfolio_backend(self, config) -> bool:
+    def _is_portfolio_backend(self, config: Any) -> bool:
         """Detect if backend uses continuous portfolio weights.
 
         Args:
@@ -196,7 +217,7 @@ class BaseTrainer(ABC):
         backend = getattr(config.env, "backend", None)
         return backend == "tradingenv"
 
-    def _extract_actions(self, rollout, is_portfolio: bool):
+    def _extract_actions(self, rollout: Any, is_portfolio: bool) -> Any:
         """Extract actions from rollout based on backend type.
 
         Args:
@@ -226,8 +247,8 @@ class BaseTrainer(ABC):
                 return action_tensor
 
     def evaluate(
-        self, df, max_steps: int, config=None, algorithm: str | None = None
-    ) -> tuple:
+        self, df: Any, max_steps: int, config: Any = None, algorithm: str | None = None
+    ) -> tuple[Any, ...]:
         """Default evaluation: deterministic vs random rollout comparison."""
         import numpy as np
         import pandas as pd
@@ -359,9 +380,18 @@ class BaseTrainer(ABC):
             actual_returns_plot,
         )
 
-    def train(self, callback=None) -> dict[str, list]:
-        """Run training loop for RL agent."""
-        logger.info("Starting training")
+    def _run_training_loop(
+        self,
+        callback: Any = None,
+        *,
+        start_message: str = "Starting training",
+        completion_prefix: str = "Training complete",
+        on_batch_start: Callable[[int, Any], None] | None = None,
+        on_batch_end: Callable[[int, Any], None] | None = None,
+        on_train_end: Callable[[], None] | None = None,
+    ) -> dict[str, list]:
+        """Shared training loop with optional algorithm-specific hooks."""
+        logger.info(start_message)
         t0 = time.time()
         self.callback = callback
         self._log_step_offset = max(
@@ -370,8 +400,10 @@ class BaseTrainer(ABC):
         )
 
         for i, data in enumerate(self.collector):
-            self.replay_buffer.extend(data)
+            if on_batch_start is not None:
+                on_batch_start(i, data)
 
+            self.replay_buffer.extend(data)
             max_length = self.replay_buffer[:]["next", "step_count"].max()
             buffer_len = len(self.replay_buffer)
 
@@ -382,17 +414,26 @@ class BaseTrainer(ABC):
             self.total_episodes += data["next", "done"].sum()
             self._maybe_save_checkpoint()
 
-            if callback and hasattr(callback, "log_episode_stats"):
-                self._log_episode_stats(data, callback)
+            if self.callback and hasattr(self.callback, "log_episode_stats"):
+                self._log_episode_stats(data, self.callback)
+
+            if on_batch_end is not None:
+                on_batch_end(i, data)
 
             if self.total_count >= self.config.max_steps:
                 logger.info(f"Training stopped after {self.config.max_steps} steps")
                 break
 
+        if on_train_end is not None:
+            on_train_end()
+
         t1 = time.time()
         logger.info(
-            f"Training complete: {self.total_count} steps, "
+            f"{completion_prefix}: {self.total_count} steps, "
             f"{self.total_episodes} episodes, {t1 - t0:.2f}s"
         )
-
         return dict(self.logs)
+
+    def train(self, callback: Any = None) -> dict[str, list]:
+        """Run training loop for RL agent."""
+        return self._run_training_loop(callback)
