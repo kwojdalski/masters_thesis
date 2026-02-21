@@ -30,6 +30,14 @@ from trading_rl.features.volume_features import (
     VolumeChangeFeature,
     VolumeMAFeature,
 )
+from trading_rl.features.temporal_features import (
+    DayOfWeekCosFeature,
+    DayOfWeekSinFeature,
+    HourCosFeature,
+    HourSinFeature,
+    MinuteOfHourCosFeature,
+    MinuteOfHourSinFeature,
+)
 
 # Import TA-Lib features to register them
 try:
@@ -65,10 +73,16 @@ __all__ = [
     "FeatureConfig",
     "FeaturePipeline",
     "FeatureRegistry",
+    "DayOfWeekCosFeature",
+    "DayOfWeekSinFeature",
     "HighFeature",
+    "HourCosFeature",
+    "HourSinFeature",
     "LogReturnFeature",
     "LogVolumeFeature",
     "LowFeature",
+    "MinuteOfHourCosFeature",
+    "MinuteOfHourSinFeature",
     "RSIFeature",
     "RealizedVolatilityFeature",
     "ReturnLagFeature",
