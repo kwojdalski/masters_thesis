@@ -445,10 +445,14 @@ class BaseTrainer(ABC):
                     max_length = data["next", "step_count"].max()
                     buffer_len = data.numel()
 
-                if buffer_len > self.config.init_rand_steps:
-                    self._optimization_step(i, max_length, buffer_len)
-
                 self.total_count += data.numel()
+
+                # Check if we've collected enough experience to start training
+                # For off-policy: check replay buffer size
+                # For on-policy: check total steps collected
+                collected_steps = self.total_count if not self._use_replay_buffer else buffer_len
+                if collected_steps > self.config.init_rand_steps:
+                    self._optimization_step(i, max_length, buffer_len)
                 self.total_episodes += data["next", "done"].sum()
                 self._maybe_save_checkpoint()
 
