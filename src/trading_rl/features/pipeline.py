@@ -95,14 +95,15 @@ class FeaturePipeline:
                   period: 14
                 normalize: true
         """
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         config_file = Path(config_path)
         if not config_file.exists():
             raise FileNotFoundError(f"Feature config file not found: {config_path}")
 
-        logger.info(f"Loading feature pipeline from: {config_path}")
+        logger.info(f"Loading feature pipeline from: \033[96m{config_path}\033[0m")
 
         with config_file.open("r") as f:
             config_data = yaml.safe_load(f)
