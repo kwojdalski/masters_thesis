@@ -20,6 +20,8 @@ import pandas as pd
 import torch
 import torch.multiprocessing as mp
 from joblib import Memory
+from rich.console import Console
+from rich.table import Table
 
 # No matplotlib configuration needed since we use plotnine exclusively
 from logger import get_logger as get_project_logger
@@ -46,6 +48,37 @@ memory = Memory(location=".cache/joblib", verbose=1)
 def clear_cache():
     """Clear all joblib caches."""
     memory.clear(warn=True)
+
+
+def _format_head_value(value: Any) -> str:
+    """Format dataframe values for compact console table display."""
+    if isinstance(value, float):
+        abs_value = abs(value)
+        if (abs_value >= 1e5) or (0 < abs_value < 1e-3):
+            return f"{value:.4e}"
+        return f"{value:.6f}"
+    if isinstance(value, (int, np.integer)):
+        return str(value)
+    return str(value)
+
+
+def _print_training_data_head_table(train_df: pd.DataFrame, n_rows: int = 5) -> None:
+    """Print a nicely formatted training data head table using Rich."""
+    if train_df.empty:
+        return
+
+    head_df = train_df.head(n_rows)
+    table = Table(title="Training Data Head")
+    table.add_column("index", style="cyan")
+    for col in head_df.columns:
+        table.add_column(str(col), justify="right")
+
+    for idx, row in head_df.iterrows():
+        row_cells = [str(idx)]
+        row_cells.extend(_format_head_value(row[col]) for col in head_df.columns)
+        table.add_row(*row_cells)
+
+    Console().print(table)
 
 
 # %%
@@ -249,7 +282,7 @@ def build_training_context(
         )
 
     if logger.isEnabledFor(logging.INFO):
-        logger.info("\033[95mTraining data head:\n%s\033[0m", train_df.head())
+        _print_training_data_head_table(train_df)
 
     logger.debug(
         f"Data loaded - train: {train_df.shape}, test: {test_df.shape}, "
