@@ -668,6 +668,36 @@ class MLflowTrainingCallback:
                 )
 
     @staticmethod
+    def log_evaluation_report(report: dict[str, float]) -> None:
+        """Log evaluation report metrics and JSON artifact to MLflow."""
+        logger = get_project_logger(__name__)
+        if not mlflow.active_run():
+            logger.warning("No active MLflow run - skipping evaluation report logging")
+            return
+
+        clean_report: dict[str, float] = {}
+        for key, value in report.items():
+            try:
+                metric_value = float(value)
+            except (TypeError, ValueError):
+                continue
+            if np.isfinite(metric_value):
+                clean_report[key] = metric_value
+                mlflow.log_metric(f"eval_{key}", metric_value)
+
+        if not clean_report:
+            logger.warning("No finite evaluation metrics to log")
+            return
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as handle:
+            json.dump(clean_report, handle, indent=2, sort_keys=True)
+            handle.flush()
+            mlflow.log_artifact(handle.name, "evaluation_metrics")
+            os.unlink(handle.name)
+
+    @staticmethod
     def log_evaluation_plots(
         reward_plot,
         action_plot,

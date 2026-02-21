@@ -29,6 +29,7 @@ from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
+from trading_rl.evaluation import build_evaluation_report_for_trainer
 from trading_rl.plotting import visualize_training
 from trading_rl.trainers.ppo import PPOTrainerContinuous
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
@@ -443,6 +444,13 @@ def run_single_experiment(
         actual_returns_plot=actual_returns_plot,
         logs=logs,
     )
+    evaluation_report = build_evaluation_report_for_trainer(
+        trainer=trainer,
+        df_prices=train_df,
+        max_steps=eval_max_steps,
+        config=config,
+    )
+    MLflowTrainingCallback.log_evaluation_report(evaluation_report)
 
     # Detect backend type for proper metric naming
     is_portfolio_backend = config.env.backend == "tradingenv"
@@ -481,6 +489,8 @@ def run_single_experiment(
         "actor_lr": config.training.actor_lr,
         "value_lr": config.training.value_lr,
         "buffer_size": config.training.buffer_size,
+        # Quantitative finance evaluation report (25 metrics)
+        "evaluation_report": evaluation_report,
     }
 
     # Log final metrics to MLflow
