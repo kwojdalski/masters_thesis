@@ -8,6 +8,8 @@ from typing import Any
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
+from cli.services import validate_experiment_config
+
 from .base_command import BaseCommand
 
 
@@ -98,8 +100,31 @@ class TrainingCommand(BaseCommand):
 
         # Handle seed generation
         config.seed = self.resolve_seed(config.seed)
+        self._prevalidate_or_fail(config)
 
         return config
+
+    def _prevalidate_or_fail(self, config: Any) -> None:
+        """Run validation before training starts and fail fast on errors."""
+        report = validate_experiment_config(config)
+        if report.has_warnings:
+            self.console.print(
+                f"[yellow]Validation warnings: {report.warning_count}[/yellow]"
+            )
+            for issue in report.issues:
+                if issue.severity == "warning":
+                    self.console.print(
+                        f"[yellow]- {issue.check} ({issue.code}): {issue.message}[/yellow]"
+                    )
+        if report.has_errors:
+            error_lines = [
+                f"- {issue.check} ({issue.code}): {issue.message}"
+                for issue in report.issues
+                if issue.severity == "error"
+            ]
+            raise ValueError(
+                "Validation failed before training:\n" + "\n".join(error_lines)
+            )
 
     def _apply_training_overrides(self, config: Any, params: TrainingParams) -> None:
         """Apply CLI parameter overrides to config."""

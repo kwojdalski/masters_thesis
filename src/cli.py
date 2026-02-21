@@ -23,6 +23,8 @@ from cli.commands import (
     TrainingCommand,
     TrainingParams,
     UpwardDriftParams,
+    ValidationCommand,
+    ValidationParams,
 )
 from logger import configure_logging
 
@@ -90,6 +92,7 @@ data_gen_cmd = DataGeneratorCommand(console)
 training_cmd = TrainingCommand(console)
 experiment_cmd = ExperimentCommand(console)
 dashboard_cmd = DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db")
+validation_cmd = ValidationCommand(console)
 
 
 def _parse_checkpoint_step(filename: str) -> int | None:
@@ -440,6 +443,30 @@ def train(
     )
 
     training_cmd.execute(params)
+
+
+@app.command()
+def validate(
+    config_file: Path | None = typer.Option(  # noqa: B008
+        None, "--config", "-c", help="Path to config file"
+    ),
+    scenario: str | None = typer.Option(
+        None, "--scenario", "-s", help="Scenario name or path to scenario file"
+    ),
+    config_override: list[str] | None = typer.Option(
+        None,
+        "--config-override",
+        "-o",
+        help="OmegaConf override in dotlist format (repeatable)",
+    ),
+):
+    """Validate experiment config, data dependencies, and feature wiring."""
+    params = ValidationParams(
+        config_file=config_file,
+        scenario=scenario,
+        config_overrides=config_override,
+    )
+    validation_cmd.execute(params)
 
 
 @app.command()
