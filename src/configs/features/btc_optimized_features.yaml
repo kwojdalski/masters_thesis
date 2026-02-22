@@ -1,0 +1,163 @@
+# Optimized BTC Trading Features for RL
+# ======================================
+# Designed for TD3/PPO with continuous action spaces
+# Philosophy: Diverse, non-redundant features covering multiple timescales
+# Target: 15-18 features (sweet spot for RL convergence)
+
+defaults: &norm_true
+  normalize: true
+
+defaults_no_norm: &norm_false
+  normalize: false
+
+features:
+  # ---------------------------------------------------------------------------
+  # 1. MULTI-TIMESCALE MOMENTUM (5 features)
+  # ---------------------------------------------------------------------------
+  # Short, medium, long-term returns for state differentiation
+
+  - <<: *norm_true
+    name: "return_lag_1"
+    feature_type: "return_lag"
+    params:
+      column: "close"
+      lag: 1  # 1 hour ago (immediate)
+
+  - <<: *norm_true
+    name: "return_lag_6"
+    feature_type: "return_lag"
+    params:
+      column: "close"
+      lag: 6  # 6 hours ago (short-term)
+
+  - <<: *norm_true
+    name: "return_lag_24"
+    feature_type: "return_lag"
+    params:
+      column: "close"
+      lag: 24  # 1 day ago (daily cycle)
+
+  - <<: *norm_true
+    name: "return_lag_168"
+    feature_type: "return_lag"
+    params:
+      column: "close"
+      lag: 168  # 1 week ago (weekly pattern)
+
+  - <<: *norm_true
+    name: "log_return"
+    feature_type: "log_return"  # Current return (0 lag)
+
+  # ---------------------------------------------------------------------------
+  # 2. VOLATILITY (2 features)
+  # ---------------------------------------------------------------------------
+  # Risk metrics across timescales
+
+  - <<: *norm_true
+    name: "realized_volatility_24"
+    feature_type: "realized_volatility"
+    params:
+      window: 24  # 1-day volatility
+
+  - <<: *norm_true
+    name: "volatility_ratio_6_168"
+    feature_type: "volatility_ratio"
+    params:
+      short_window: 6   # 6-hour vol
+      long_window: 168  # 1-week vol
+      # Ratio > 1 means recent volatility spike
+
+  # ---------------------------------------------------------------------------
+  # 3. PRICE RANGE (1 feature)
+  # ---------------------------------------------------------------------------
+  # Intraday price movement
+
+  - <<: *norm_true
+    name: "high_low_spread"
+    feature_type: "high_low_spread"
+
+  # ---------------------------------------------------------------------------
+  # 4. VOLUME (3 features)
+  # ---------------------------------------------------------------------------
+  # Market participation and liquidity
+
+  - <<: *norm_true
+    name: "volume_ma_ratio_24"
+    feature_type: "volume_ma_ratio"
+    params:
+      window: 24  # Current volume vs 24h average
+
+  - <<: *norm_true
+    name: "volume_change"
+    feature_type: "volume_change"  # Immediate volume shift
+
+  - <<: *norm_true
+    name: "amihud_illiquidity"
+    feature_type: "amihud_illiquidity"
+    params:
+      window: 1  # Price impact per unit volume
+
+  # ---------------------------------------------------------------------------
+  # 5. TECHNICAL INDICATORS (3 features)
+  # ---------------------------------------------------------------------------
+  # Proven momentum/trend signals (keep only the best)
+
+  - <<: *norm_true
+    name: "rsi_14"
+    feature_type: "talib_rsi"
+    params:
+      period: 14  # Overbought/oversold
+
+  - <<: *norm_true
+    name: "macd_signal"
+    feature_type: "macd"
+    params:
+      fastperiod: 12
+      slowperiod: 26
+      signalperiod: 9  # Trend change indicator
+
+  - <<: *norm_true
+    name: "bbands_20"
+    feature_type: "bbands"
+    params:
+      period: 20
+      nbdevup: 2
+      nbdevdn: 2  # Mean reversion signal
+
+  # ---------------------------------------------------------------------------
+  # 6. TEMPORAL CONTEXT (4 features)
+  # ---------------------------------------------------------------------------
+  # Time-of-day patterns (crypto has strong hourly cycles)
+
+  - <<: *norm_false
+    name: "hour_sin"
+    feature_type: "hour_sin"
+
+  - <<: *norm_false
+    name: "hour_cos"
+    feature_type: "hour_cos"
+
+  - <<: *norm_false
+    name: "day_of_week_sin"
+    feature_type: "day_of_week_sin"
+
+  - <<: *norm_false
+    name: "day_of_week_cos"
+    feature_type: "day_of_week_cos"
+
+# TOTAL: 18 features
+#
+# Feature diversity breakdown:
+#   - Momentum (multi-timescale): 5 features
+#   - Volatility/risk: 2 features
+#   - Price range: 1 feature
+#   - Volume/liquidity: 3 features
+#   - Technical indicators: 3 features
+#   - Temporal context: 4 features
+#
+# Design principles:
+#   ✓ Multiple timescales (1h, 6h, 24h, 168h)
+#   ✓ Diverse information (price, volume, volatility, time)
+#   ✓ No redundancy (removed 4 duplicate MAs, duplicate RSI, etc.)
+#   ✓ RL-friendly size (18 features, not 40+)
+#   ✓ Proven indicators only (RSI, MACD, BBands)
