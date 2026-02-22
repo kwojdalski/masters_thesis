@@ -1,0 +1,26 @@
+# Sine Wave OHLV Pass-Through Features (no feature_close)
+# =======================================================
+# Intended for feature-only observation policy where raw close remains in
+# env.price_columns for pricing/reward, and observations use feature_* only.
+
+features:
+  - name: "open"
+    feature_type: "column_value"
+    params: {column: "open"}
+    normalize: true
+
+  - name: "high"
+    feature_type: "column_value"
+    params: {column: "high"}
+    normalize: true
+
+  - name: "low"
+    feature_type: "column_value"
+    params: {column: "low"}
+    normalize: true
+
+  - name: "volume"
+    feature_type: "column_value"
+    params: {column: "volume"}
+    normalize: true
+

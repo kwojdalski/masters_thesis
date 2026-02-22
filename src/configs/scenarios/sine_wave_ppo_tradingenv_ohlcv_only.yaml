@@ -10,7 +10,7 @@ seed: 42
 data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
   data_config: "src/configs/data/sine_wave_large.yaml"  # Config for regenerating data
-  feature_config: "src/configs/features/sine_wave_price_action.yaml"  # Feature pipeline config
+  feature_config: "src/configs/features/sine_wave_ohlv_passthrough.yaml"  # OHLV pass-through features (no feature_close)
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["SINE/WAVE"]
@@ -29,7 +29,7 @@ env:
 
   # Column specifications - IMPORTANT: price_columns must contain only positive values
   price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
-  feature_columns: ["open", "high", "low", "close", "volume"]  # OHLCV only
+  feature_columns: ["feature_open", "feature_high", "feature_low", "feature_volume"]  # Feature-only observations; raw close remains in price_columns
 
   # Note: positions parameter is not used with tradingenv backend
   # Actions are continuous portfolio weights instead of discrete positions
