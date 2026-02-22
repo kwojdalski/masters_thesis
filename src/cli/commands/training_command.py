@@ -202,7 +202,12 @@ class TrainingCommand(BaseCommand):
                 else:
                     result = run_single_experiment(custom_config=config)
 
-                progress.update(task, description="Training complete!")
+                if result.get("interrupted"):
+                    progress.update(
+                        task, description="Training interrupted; final evaluation complete!"
+                    )
+                else:
+                    progress.update(task, description="Training complete!")
 
                 self._display_training_results(result)
                 return result
@@ -234,9 +239,14 @@ class TrainingCommand(BaseCommand):
             progress_bar=progress,
         )
 
-        self.console.print(
-            "[green]Training resumed and completed successfully![/green]"
-        )
+        if result.get("interrupted"):
+            self.console.print(
+                "[yellow]Training resumed, interrupted, and final evaluation completed.[/yellow]"
+            )
+        else:
+            self.console.print(
+                "[green]Training resumed and completed successfully![/green]"
+            )
         return result
 
     def _display_training_results(self, result: dict[str, Any]) -> None:
