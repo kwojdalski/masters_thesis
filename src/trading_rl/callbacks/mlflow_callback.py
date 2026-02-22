@@ -189,11 +189,10 @@ class MLflowTrainingCallback:
     def _default_run_name(experiment_name: str, config: Any | None = None) -> str:
         """Build deterministic human-readable run name for fresh runs."""
         safe_experiment = experiment_name.replace("/", "_").replace(" ", "_")
-        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         if config is None:
-            return f"{safe_experiment}_{timestamp}"
+            return safe_experiment
         signature = MLflowTrainingCallback._config_signature(config)
-        return f"{signature}_{timestamp}"
+        return signature
 
     @staticmethod
     def _normalize_for_hash(value: Any) -> Any:
@@ -215,7 +214,7 @@ class MLflowTrainingCallback:
 
     @staticmethod
     def _config_signature(config: Any) -> str:
-        """Encode config into a stable 3-word signature + short hash suffix."""
+        """Encode config into a stable 3-word signature."""
         adjectives = (
             "amber",
             "brisk",
@@ -281,7 +280,7 @@ class MLflowTrainingCallback:
         w1 = adjectives[b0 % len(adjectives)]
         w2 = nouns[b1 % len(nouns)]
         w3 = suffixes[b2 % len(suffixes)]
-        return f"{w1}-{w2}-{w3}-{digest[:6]}"
+        return f"{w1}-{w2}-{w3}"
 
     @staticmethod
     def log_config_artifact(config) -> None:
