@@ -63,7 +63,8 @@ class TD3Trainer(BaseTrainer):
         # target action clipping are defined in the same domain as the env.
         env_action_spec = getattr(self.env, "action_spec", None)
         if isinstance(env_action_spec, Bounded):
-            td3_action_spec = env_action_spec
+            # Ensure dtype is float32 to match network parameters
+            td3_action_spec = env_action_spec.to(torch.float32)
         else:
             action_dim = self.env.action_spec.shape[-1]
             td3_action_spec = Bounded(
@@ -71,6 +72,7 @@ class TD3Trainer(BaseTrainer):
                 high=1.0,
                 shape=(action_dim,),
                 device=getattr(config, "device", "cpu"),
+                dtype=torch.float32,
             )
             logger.warning(
                 "Environment action_spec is not a Bounded spec; falling back to TD3 default [-1, 1] bounds."
