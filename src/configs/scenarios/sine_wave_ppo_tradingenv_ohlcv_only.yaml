@@ -54,7 +54,7 @@ training:
   value_weight_decay: 0.00005
 
   # Training loop
-  max_steps: 250000
+  max_steps: 25000
   checkpoint_interval: 10000
   init_rand_steps: 100  # PPO starts learning quickly; keep short warm-up threshold
   frames_per_batch: 200
