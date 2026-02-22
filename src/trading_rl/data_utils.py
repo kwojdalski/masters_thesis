@@ -172,7 +172,6 @@ def prepare_data(
     timeframe: str = "1h",
     data_dir: str = "data",
     since: Any | None = None,
-    no_features: bool = False,
     feature_config_path: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Prepare trading data for RL training with proper train/val/test split.
@@ -191,11 +190,10 @@ def prepare_data(
         timeframe: Data timeframe
         data_dir: Directory for downloaded data
         since: Start date for download
-        no_features: If True, skip feature engineering and return only OHLCV data
         feature_config_path: Path to YAML config for features. If None, uses default pipeline.
 
     Returns:
-        Tuple of (train_df, val_df, test_df) with features (or just OHLCV if no_features=True)
+        Tuple of (train_df, val_df, test_df) with raw OHLCV plus engineered features.
 
     Example:
         train_df, val_df, test_df = prepare_data(
@@ -248,12 +246,6 @@ def prepare_data(
         len(val_df_raw),
         len(test_df_raw),
     )
-
-    if no_features:
-        # Return raw OHLCV data without features
-        logger.info("Returning raw OHLCV data (no_features=True)")
-        logger.info(f"Columns: {list(train_df_raw.columns)}")
-        return train_df_raw, val_df_raw, test_df_raw
 
     # Create feature pipeline
     from trading_rl.features import FeaturePipeline, create_default_pipeline

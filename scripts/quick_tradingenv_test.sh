@@ -19,13 +19,14 @@ data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
   download_data: false
   train_size: 100
-  no_features: false
+  feature_config: "src/configs/features/sine_wave_price_action.yaml"
 
 env:
   name: "TEST_PORTFOLIO"
   backend: "tradingenv"
   trading_fees: 0.001
   price_columns: ["close"]
+  feature_columns: ["feature_log_return", "feature_high", "feature_low"]
 
 training:
   algorithm: "PPO"

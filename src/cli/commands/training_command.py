@@ -23,7 +23,6 @@ class TrainingParams:
     config_overrides: list[str] | None = None
     seed: int | None = None
     max_steps: int | None = None
-    no_features: bool = False
     checkpoint_path: Path | None = None  # Path to checkpoint to resume from
     additional_steps: int | None = None  # Additional steps when resuming
     from_checkpoint: Path | None = None  # Path to checkpoint alias
@@ -132,8 +131,6 @@ class TrainingCommand(BaseCommand):
             config.seed = params.seed
         if params.max_steps is not None:
             config.training.max_steps = params.max_steps
-        if params.no_features:
-            config.data.no_features = True
 
     def _resolve_scenario_config_path(self, scenario: str) -> Path:
         """Resolve scenario name to config file path."""

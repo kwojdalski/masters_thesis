@@ -317,7 +317,6 @@ class MLflowTrainingCallback:
                 "data_dir": config.data.data_dir,
                 "download_since": config.data.download_since,
                 "train_size": config.data.train_size,
-                "no_features": getattr(config.data, "no_features", False),
             },
             "env": {
                 "name": config.env.name,
@@ -383,10 +382,6 @@ class MLflowTrainingCallback:
             )
             mlflow.log_param("data_symbols", json.dumps(config.data.symbols))
             mlflow.log_param("data_download_data", bool(config.data.download_data))
-            mlflow.log_param(
-                "data_no_features", bool(getattr(config.data, "no_features", False))
-            )
-
             # Environment parameters
             mlflow.log_param("env_name", str(config.env.name))
             mlflow.log_param("env_positions", json.dumps(config.env.positions))

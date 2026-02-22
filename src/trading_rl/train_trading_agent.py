@@ -209,13 +209,6 @@ def _validate_data(
         raise ValueError("Test data is empty. Check train/validation size settings.")
 
     # Check for required columns (close price is critical for most environments)
-    if getattr(config.data, "no_features", False):
-        raise ValueError(
-            "data.no_features=true is no longer supported for training observations. "
-            "Use the feature pipeline and configure env.feature_columns with only "
-            "feature_* columns (for example, add pass-through feature_close)."
-        )
-
     if "close" not in train_df.columns:
         raise ValueError(
             f"Data must contain raw 'close' column for environment pricing. "
@@ -226,7 +219,7 @@ def _validate_data(
     if not feature_cols:
         raise ValueError(
             "No feature_* columns found in prepared data. "
-            "Define features in data.feature_config and set data.no_features=false."
+            "Define features in data.feature_config."
         )
 
     env_feature_cols = getattr(config.env, "feature_columns", None)
@@ -350,7 +343,6 @@ def build_training_context(
     logger.info("Preparing data...")
     logger.debug(f"  Data path: {config.data.data_path}")
     logger.debug(f"  Train size: {config.data.train_size}")
-    logger.debug(f"  No features: {getattr(config.data, 'no_features', False)}")
     logger.debug(f"  Feature config: {getattr(config.data, 'feature_config', None)}")
 
     train_df, val_df, test_df = prepare_data(
@@ -363,7 +355,6 @@ def build_training_context(
         timeframe=config.data.timeframe,
         data_dir=config.data.data_dir,
         since=config.data.download_since,
-        no_features=getattr(config.data, "no_features", False),
         feature_config_path=getattr(config.data, "feature_config", None),  # NEW
     )
 
@@ -394,7 +385,7 @@ def build_training_context(
         if feature_cols:
             logger.debug(f"  Features found: {feature_cols}")
         else:
-            logger.debug("  No features found in data (using raw OHLCV only)")
+            logger.debug("  No feature_* columns found in prepared data")
 
     logger.info("Creating environment...")
     env_builder = AlgorithmicEnvironmentBuilder()

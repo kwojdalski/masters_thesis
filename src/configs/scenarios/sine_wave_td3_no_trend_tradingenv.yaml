@@ -19,7 +19,6 @@ data:
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
   train_size: 5000  # Increased from 450 to match n_samples - prevents severe overfitting
-  no_features: false
 
 # Environment Configuration - TradingEnv Backend
 env:

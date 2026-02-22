@@ -71,7 +71,6 @@ def main() -> None:
         timeframe=config.data.timeframe,
         data_dir=config.data.data_dir,
         since=config.data.download_since,
-        no_features=getattr(config.data, "no_features", False),
         feature_config_path=getattr(config.data, "feature_config", None),
     )
 
