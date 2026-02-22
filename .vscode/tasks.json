@@ -37,6 +37,28 @@
           "isDefault": true
         },
         "problemMatcher": []
+      },
+      {
+        "label": "Render Thesis to PDF",
+        "type": "shell",
+        "command": "cd thesis/qmd/src && quarto render masters-thesis.qmd --to pdf --no-execute && open ../../build/masters-thesis.pdf",
+        "group": "build",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "Render Thesis (All Formats)",
+        "type": "shell",
+        "command": "cd thesis/qmd/src && quarto render masters-thesis.qmd --no-execute",
+        "group": "build",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
       }
     ]
 }
