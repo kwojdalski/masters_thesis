@@ -118,6 +118,7 @@ further investigation.
 {{< include ./06-00-implementation-of-the-trading-agent.qmd >}}
 {{< include ./06-01-data-preparation.qmd >}}
 {{< include ./06-02-code.qmd >}}
+{{< include ./06-03-td3-training-pipeline.qmd >}}
 
 {{< include ./07-00-empirical-evaluation-and-performance-analysis.qmd >}}
 {{< include ./07-01-statistical-validation.qmd >}}
