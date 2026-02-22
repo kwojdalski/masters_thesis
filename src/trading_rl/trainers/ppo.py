@@ -109,13 +109,24 @@ class PPOTrainer(BaseTrainer):
         # PPO typically does multiple epochs per batch
         ppo_epochs = getattr(self.config, "ppo_epochs", 4)
 
+        # Compute trajectory-based targets (GAE/value_target) on the full ordered
+        # rollout before random minibatch sampling. Computing these on shuffled
+        # minibatches breaks temporal structure and can destabilize PPO updates.
+        ppo_batch = self._current_batch.clone()
+        with torch.no_grad():
+            self.ppo_loss.value_estimator(
+                ppo_batch,
+                params=self.ppo_loss._cached_critic_network_params_detached,
+                target_params=getattr(self.ppo_loss, "target_critic_network_params", None),
+            )
+
         # PPO is on-policy: create temporary buffer from fresh batch only
         from torchrl.data import LazyTensorStorage, ReplayBuffer
 
         fresh_buffer = ReplayBuffer(
             storage=LazyTensorStorage(self.config.frames_per_batch)
         )
-        fresh_buffer.extend(self._current_batch)
+        fresh_buffer.extend(ppo_batch)
 
         # Clear gradients before starting PPO epochs to prevent accumulation
         self.optimizer.zero_grad()
