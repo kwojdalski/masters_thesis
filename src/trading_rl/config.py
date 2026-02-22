@@ -320,7 +320,23 @@ class ExperimentConfig:
             with open(yaml_path) as f:
                 config_dict = yaml.safe_load(f)
 
-        return cls.from_dict(config_dict or {})
+        config_dict = config_dict or {}
+        if not isinstance(config_dict, dict):
+            raise ValueError(
+                f"Expected top-level config mapping in {yaml_path}, got {type(config_dict).__name__}"
+            )
+
+        derived_name = yaml_path.stem
+        if "experiment_name" not in config_dict:
+            config_dict["experiment_name"] = derived_name
+
+        log_dict = config_dict.get("logging")
+        if log_dict is None:
+            config_dict["logging"] = {"log_dir": str(Path("logs") / derived_name)}
+        elif isinstance(log_dict, dict) and "log_dir" not in log_dict:
+            log_dict["log_dir"] = str(Path("logs") / derived_name)
+
+        return cls.from_dict(config_dict)
 
     @classmethod
     def from_dict(cls, config_dict: dict) -> "ExperimentConfig":
