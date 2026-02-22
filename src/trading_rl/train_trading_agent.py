@@ -10,6 +10,7 @@ import contextlib
 import logging
 import os
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,15 @@ memory = Memory(location=".cache/joblib", verbose=1)
 def clear_cache():
     """Clear all joblib caches."""
     memory.clear(warn=True)
+
+
+@dataclass
+class CheckpointResumptionResult:
+    """Result from checkpoint resumption setup."""
+
+    mlflow_callback: MLflowTrainingCallback
+    effective_experiment_name: str
+    original_steps: int
 
 
 def _format_head_value(value: Any) -> str:
@@ -462,6 +472,177 @@ def build_training_context(
     }
 
 
+def _setup_mlflow_tracking_from_checkpoint(trainer: Any) -> str | None:
+    """Extract and setup MLflow tracking URI from checkpoint."""
+    tracking_uri = getattr(trainer, "mlflow_tracking_uri", None)
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+    return tracking_uri
+
+
+def _resolve_experiment_name_from_checkpoint(
+    trainer: Any,
+    config: ExperimentConfig,
+    effective_experiment_name: str,
+    logger: logging.Logger,
+) -> str:
+    """Resolve experiment name from checkpoint metadata, updating config if needed."""
+    resume_experiment_name = getattr(trainer, "mlflow_experiment_name", None)
+
+    # Fallback to experiment ID lookup
+    if not resume_experiment_name:
+        experiment_id = getattr(trainer, "mlflow_experiment_id", None)
+        if experiment_id:
+            experiment = mlflow.get_experiment(experiment_id)
+            resume_experiment_name = experiment.name if experiment else None
+
+    # Update config and trainer if we found a name
+    if resume_experiment_name:
+        if resume_experiment_name != config.experiment_name:
+            logger.info(
+                "Resuming MLflow experiment name from checkpoint: %s",
+                resume_experiment_name,
+            )
+        config.experiment_name = resume_experiment_name
+        effective_experiment_name = resume_experiment_name
+        if hasattr(trainer, "checkpoint_prefix"):
+            trainer.checkpoint_prefix = resume_experiment_name
+
+    return effective_experiment_name
+
+
+def _start_mlflow_run_for_resumption(
+    trainer: Any,
+    original_steps: int,
+    logger: logging.Logger,
+) -> None:
+    """Start or resume MLflow run for checkpoint resumption."""
+    resume_run_id = getattr(trainer, "mlflow_run_id", None)
+    if resume_run_id:
+        logger.info(f"Resuming MLflow run: {resume_run_id}")
+        mlflow.start_run(run_id=resume_run_id)
+    else:
+        logger.info(
+            f"Creating new MLflow run for resumed training from step {original_steps}"
+        )
+        mlflow.start_run(run_name=f"resumed_step_{original_steps}")
+
+
+def _get_episode_count_from_trainer(trainer: Any) -> int:
+    """Extract current episode count from trainer state."""
+    logged = (
+        trainer.logs.get("episode_log_count") if hasattr(trainer, "logs") else None
+    )
+    if logged:
+        return int(logged[-1])
+    total = trainer.total_episodes
+    if hasattr(total, "item"):
+        return int(total.item())
+    return int(total)
+
+
+def _create_resumption_callback(
+    trainer: Any,
+    config: ExperimentConfig,
+    train_df: pd.DataFrame,
+    effective_experiment_name: str,
+    tracking_uri: str | None,
+) -> MLflowTrainingCallback:
+    """Create MLflow callback for resumed training with proper state."""
+    price_series = train_df["close"] if "close" in train_df.columns else None
+    fallback_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
+
+    mlflow_callback = MLflowTrainingCallback(
+        effective_experiment_name,
+        tracking_uri=tracking_uri or fallback_uri,
+        price_series=price_series,
+        start_run=False,  # We already started it
+    )
+    mlflow_callback._episode_count = _get_episode_count_from_trainer(trainer)
+
+    return mlflow_callback
+
+
+def _setup_checkpoint_resumption(
+    checkpoint_path: str,
+    trainer: Any,
+    config: ExperimentConfig,
+    train_df: pd.DataFrame,
+    effective_experiment_name: str,
+    additional_steps: int | None,
+    logger: logging.Logger,
+) -> CheckpointResumptionResult:
+    """Load checkpoint, setup MLflow tracking, and create callback for resumed training.
+
+    This handles:
+    1. Checkpoint validation and loading
+    2. MLflow experiment/run resumption
+    3. Callback creation with proper state
+
+    Modifies trainer and config in place.
+
+    Args:
+        checkpoint_path: Path to checkpoint file
+        trainer: Trainer instance to load checkpoint into
+        config: Experiment configuration (modified in place)
+        train_df: Training dataframe for price series
+        effective_experiment_name: Initial experiment name (may be updated)
+        additional_steps: Optional additional training steps
+        logger: Logger instance
+
+    Returns:
+        CheckpointResumptionResult with callback, experiment name, and original steps
+    """
+    # Validate checkpoint exists
+    if not Path(checkpoint_path).exists():
+        raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
+
+    logger.info("Resuming training from checkpoint")
+    logger.info(f"Checkpoint: {checkpoint_path}")
+
+    # Load checkpoint
+    trainer.load_checkpoint(str(checkpoint_path))
+    original_steps = trainer.total_count
+    logger.info(f"Checkpoint loaded! Resuming from step {original_steps}")
+
+    # Update max_steps for additional training
+    if additional_steps:
+        trainer.config.max_steps = original_steps + additional_steps
+        logger.info(f"Training for {additional_steps} additional steps")
+        logger.info(f"Target: {trainer.config.max_steps} total steps")
+
+    # Setup MLflow tracking
+    tracking_uri = _setup_mlflow_tracking_from_checkpoint(trainer)
+
+    # Resolve experiment name from checkpoint
+    effective_experiment_name = _resolve_experiment_name_from_checkpoint(
+        trainer, config, effective_experiment_name, logger
+    )
+
+    setup_mlflow_experiment(config, effective_experiment_name)
+
+    # Start MLflow run (resume or create new)
+    _start_mlflow_run_for_resumption(trainer, original_steps, logger)
+
+    # Create callback
+    mlflow_callback = _create_resumption_callback(
+        trainer, config, train_df, effective_experiment_name, tracking_uri
+    )
+
+    # Log artifacts
+    if mlflow.active_run():
+        MLflowTrainingCallback.log_parameter_faq_artifact()
+        MLflowTrainingCallback.log_training_parameters(config)
+        MLflowTrainingCallback.log_config_artifact(config)
+        MLflowTrainingCallback.log_data_overview(train_df, config)
+
+    return CheckpointResumptionResult(
+        mlflow_callback=mlflow_callback,
+        effective_experiment_name=effective_experiment_name,
+        original_steps=original_steps,
+    )
+
+
 @trace_calls(show_return=False)
 def run_single_experiment(
     custom_config: ExperimentConfig | None = None,
@@ -488,12 +669,6 @@ def run_single_experiment(
     Returns:
         Dictionary with results
     """
-    from pathlib import Path
-
-    import mlflow
-
-    from trading_rl.callbacks import MLflowTrainingCallback
-
     config = custom_config or ExperimentConfig()
 
     # For checkpoint resume, don't create MLflow callback yet
@@ -519,84 +694,17 @@ def run_single_experiment(
 
     # Handle checkpoint resumption
     if checkpoint_path:
-        # Validate checkpoint exists
-        if not Path(checkpoint_path).exists():
-            raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
-
-        logger.info("Resuming training from checkpoint")
-        logger.info(f"Checkpoint: {checkpoint_path}")
-
-        # Load checkpoint
-        trainer.load_checkpoint(str(checkpoint_path))
-        original_steps = trainer.total_count
-        logger.info(f"Checkpoint loaded! Resuming from step {original_steps}")
-
-        # Update max_steps for additional training
-        if additional_steps:
-            trainer.config.max_steps = original_steps + additional_steps
-            logger.info(f"Training for {additional_steps} additional steps")
-            logger.info(f"Target: {trainer.config.max_steps} total steps")
-
-        # Setup MLflow run resumption
-        tracking_uri = getattr(trainer, "mlflow_tracking_uri", None)
-        if tracking_uri:
-            mlflow.set_tracking_uri(tracking_uri)
-
-        # Get experiment name from checkpoint or config
-        resume_experiment_name = getattr(trainer, "mlflow_experiment_name", None)
-        if not resume_experiment_name:
-            experiment_id = getattr(trainer, "mlflow_experiment_id", None)
-            if experiment_id:
-                experiment = mlflow.get_experiment(experiment_id)
-                resume_experiment_name = experiment.name if experiment else None
-
-        if resume_experiment_name:
-            if resume_experiment_name != config.experiment_name:
-                logger.info(
-                    "Resuming MLflow experiment name from checkpoint: %s",
-                    resume_experiment_name,
-                )
-            config.experiment_name = resume_experiment_name
-            effective_experiment_name = resume_experiment_name
-            if hasattr(trainer, "checkpoint_prefix"):
-                trainer.checkpoint_prefix = resume_experiment_name
-
-        setup_mlflow_experiment(config, effective_experiment_name)
-
-        # Determine episode count for callback
-        def _get_episode_count() -> int:
-            logged = trainer.logs.get("episode_log_count") if hasattr(trainer, "logs") else None
-            if logged:
-                return int(logged[-1])
-            total = trainer.total_episodes
-            if hasattr(total, "item"):
-                return int(total.item())
-            return int(total)
-
-        # Resume or create MLflow run
-        resume_run_id = getattr(trainer, "mlflow_run_id", None)
-        if resume_run_id:
-            logger.info(f"Resuming MLflow run: {resume_run_id}")
-            mlflow.start_run(run_id=resume_run_id)
-        else:
-            logger.info(f"Creating new MLflow run for resumed training from step {original_steps}")
-            mlflow.start_run(run_name=f"resumed_step_{original_steps}")
-
-        # Create callback for resumed run
-        mlflow_callback = MLflowTrainingCallback(
-            effective_experiment_name,
-            tracking_uri=tracking_uri or getattr(getattr(config, "tracking", None), "tracking_uri", None),
-            price_series=train_df["close"] if "close" in train_df.columns else None,
-            start_run=False,  # We already started it above
+        result = _setup_checkpoint_resumption(
+            checkpoint_path=checkpoint_path,
+            trainer=trainer,
+            config=config,
+            train_df=train_df,
+            effective_experiment_name=effective_experiment_name,
+            additional_steps=additional_steps,
+            logger=logger,
         )
-        mlflow_callback._episode_count = _get_episode_count()
-
-        # Log resume artifacts
-        if mlflow.active_run():
-            MLflowTrainingCallback.log_parameter_faq_artifact()
-            MLflowTrainingCallback.log_training_parameters(config)
-            MLflowTrainingCallback.log_config_artifact(config)
-            MLflowTrainingCallback.log_data_overview(train_df, config)
+        mlflow_callback = result.mlflow_callback
+        effective_experiment_name = result.effective_experiment_name
 
     # Train
     logger.info("Starting training...")
