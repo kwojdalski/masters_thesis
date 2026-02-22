@@ -1,0 +1,83 @@
+# PPO Configuration with TradingEnv Backend (XAI Asset Management Library)
+# ========================================================================
+# This configuration uses the tradingenv library for continuous portfolio allocation
+# https://github.com/xaiassetmanagement/tradingenv
+
+experiment_name: "ppo_tradingenv_sine_ohlcv_only"
+seed: 42
+
+# Data Configuration
+data:
+  data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
+  data_config: "src/configs/data/sine_wave_large.yaml"  # Config for regenerating data
+  feature_config: "src/configs/features/sine_wave_price_action.yaml"  # Unused when no_features=true
+  download_data: false
+  exchange_names: ["synthetic"]
+  symbols: ["SINE/WAVE"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2024-01-01T00:00:00+00:00"
+  train_size: 450
+  no_features: true
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_PPO_SINE_OHLCV_ONLY"
+  backend: "tradingenv"
+
+  # Transaction costs
+  trading_fees: 0.001  # 0.1% proportional fee
+
+  # Column specifications - IMPORTANT: price_columns must contain only positive values
+  price_columns: ["close"]  # Columns to use as asset prices (OHLC data)
+  feature_columns: ["open", "high", "low", "close", "volume"]  # OHLCV only
+
+  # Note: positions parameter is not used with tradingenv backend
+  # Actions are continuous portfolio weights instead of discrete positions
+
+  # Reward function configuration
+  reward_type: "differential_sharpe"  # Match TD3 OHLCV-only scenario for comparison
+  reward_eta: 0.01  # DSR learning rate (only used when reward_type="differential_sharpe")
+
+# Network Architecture
+network:
+  actor_hidden_dims: [128, 64]
+  value_hidden_dims: [128, 64]
+
+# Training Parameters - PPO
+training:
+  algorithm: "PPO"  # PPO works well with continuous actions
+
+  # Learning rates
+  actor_lr: 0.0003
+  actor_weight_decay: 0
+  value_lr: 0.0003
+  value_weight_decay: 0.00005
+
+  # Training loop
+  max_steps: 250000
+  checkpoint_interval: 10000
+  init_rand_steps: 100  # PPO starts learning quickly; keep short warm-up threshold
+  frames_per_batch: 200
+  sample_size: 128
+  buffer_size: 10000
+
+  # PPO-specific parameters
+  clip_epsilon: 0.2
+  entropy_bonus: 0.01  # Encourage exploration of portfolio weights
+  vf_coef: 0.5
+  ppo_epochs: 4
+
+  # Loss function
+  loss_function: "l2"
+
+  # Evaluation
+  eval_steps: 440
+  eval_interval: 500
+  log_interval: 100
+
+# Logging Configuration
+logging:
+  log_dir: "logs/ppo_tradingenv_sine_ohlcv_only"
+  log_level: "INFO"
+  save_plots: false
