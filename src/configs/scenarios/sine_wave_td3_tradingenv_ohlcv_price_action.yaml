@@ -4,7 +4,7 @@
 # with TD3 (Twin Delayed DDPG) algorithm
 # https://github.com/xaiassetmanagement/tradingenv
 
-experiment_name: "td3_tradingenv_sine_ohlcv_only"
+experiment_name: "td3_tradingenv_sine_ohlcv_price_action"
 seed: 42
 
 # Data Configuration
@@ -40,7 +40,7 @@ env:
   ]  # OHLCV only (no engineered features)
 
   # Reward function configuration
-  reward_type: "differential_sharpe"  # Use Differential Sharpe Ratio for risk-adjusted rewards
+  reward_type: "log_return"  # Use Differential Sharpe Ratio for risk-adjusted rewards
   reward_eta: 0.01  # Learning rate for DSR exponential moving averages (0.001 to 0.1)
 
   # Note: positions parameter is not used with tradingenv backend
@@ -93,6 +93,6 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/td3_tradingenv_sine_ohlcv_only"
+  log_dir: "logs/td3_tradingenv_sine_ohlcv_price_action"
   log_level: "INFO"
   save_plots: false  # Save training plots to disk in addition to MLflow
