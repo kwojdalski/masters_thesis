@@ -117,6 +117,9 @@ class PPOTrainer(BaseTrainer):
         )
         fresh_buffer.extend(self._current_batch)
 
+        # Clear gradients before starting PPO epochs to prevent accumulation
+        self.optimizer.zero_grad()
+
         for j in range(ppo_epochs):
             # Sample from FRESH batch only (not from accumulated old experiences)
             sample = fresh_buffer.sample(self.config.sample_size)
