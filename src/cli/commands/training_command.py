@@ -8,6 +8,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from cli.services import validate_experiment_config
+from trading_rl import ExperimentConfig, run_single_experiment
 
 from .base_command import BaseCommand
 
@@ -70,8 +71,6 @@ class TrainingCommand(BaseCommand):
 
     def _load_training_config(self, params: TrainingParams) -> Any:
         """Load and configure training parameters."""
-        from trading_rl import ExperimentConfig
-
         # Load base configuration
         if params.config_file and params.scenario:
             raise ValueError("Cannot specify both --config and --scenario.")
@@ -192,8 +191,6 @@ class TrainingCommand(BaseCommand):
         self, config: Any, params: TrainingParams
     ) -> dict[str, Any]:
         """Run training with progress display."""
-        from trading_rl import run_single_experiment
-
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -224,10 +221,6 @@ class TrainingCommand(BaseCommand):
 
         This is now a thin wrapper around run_single_experiment.
         """
-        from pathlib import Path
-
-        from trading_rl import run_single_experiment
-
         # Validate checkpoint exists
         if not Path(params.checkpoint_path).exists():
             raise FileNotFoundError(f"Checkpoint not found: {params.checkpoint_path}")
@@ -244,7 +237,9 @@ class TrainingCommand(BaseCommand):
             progress_bar=progress,
         )
 
-        self.console.print("[green]Training resumed and completed successfully![/green]")
+        self.console.print(
+            "[green]Training resumed and completed successfully![/green]"
+        )
         return result
 
     def _display_training_results(self, result: dict[str, Any]) -> None:
