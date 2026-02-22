@@ -433,19 +433,25 @@ class TD3Trainer(BaseTrainer):
         logger.debug(f"  Frames per batch: {self.config.frames_per_batch}")
         logger.debug(f"  Buffer size: {self.config.buffer_size}")
 
-        # Use a temporary random policy for initial steps
-        initial_collector_policy = RandomPolicy(self.td3_action_spec)
-        self.collector.policy = initial_collector_policy
-
-        self.random_exploration_done = False
-
         # Create the noisy policy by chaining actor + exploration module
         # We do this once here to use when switching
         self.noisy_policy = TensorDictSequential(self.actor, self.exploration_module)
-
-        logger.info(
-            f"Using random policy for first {self.config.init_rand_steps} steps"
-        )
+        # Choose initial collector policy based on current training progress.
+        # This keeps resume behavior consistent: if random warmup is already over,
+        # do not collect one extra random batch before switching back.
+        if self.total_count >= self.config.init_rand_steps:
+            self.collector.policy = self.noisy_policy
+            self.random_exploration_done = True
+            logger.info(
+                "Random exploration already complete at %s steps; starting with noisy policy.",
+                self.total_count,
+            )
+        else:
+            self.collector.policy = RandomPolicy(self.td3_action_spec)
+            self.random_exploration_done = False
+            logger.info(
+                f"Using random policy for first {self.config.init_rand_steps} steps"
+            )
 
         def on_batch_start(i, data) -> None:
             # DEBUG: Log data collection statistics
