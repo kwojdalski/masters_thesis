@@ -712,9 +712,17 @@ def run_single_experiment(
         mlflow_callback = result.mlflow_callback
         effective_experiment_name = result.effective_experiment_name
 
-    # Train
+    # Train (Ctrl-C should still trigger final evaluation on the current model state)
     logger.info("Starting training...")
-    logs = trainer.train(callback=mlflow_callback)
+    interrupted = False
+    try:
+        logs = trainer.train(callback=mlflow_callback)
+    except KeyboardInterrupt:
+        interrupted = True
+        logger.warning(
+            "Training interrupted by user (Ctrl-C). Running final evaluation on current model state..."
+        )
+        logs = dict(trainer.logs)
 
     # Save checkpoint
     if checkpoint_path:
@@ -773,6 +781,7 @@ def run_single_experiment(
         # Performance metrics
         "final_reward": final_reward,
         "training_steps": len(logs.get("loss_value", [])),
+        "interrupted": interrupted,
         # Use backend-aware naming for positions/weights
         (
             "portfolio_weights" if is_portfolio_backend else "last_position_per_episode"
@@ -810,13 +819,17 @@ def run_single_experiment(
     # Log final metrics to MLflow
     MLflowTrainingCallback.log_final_metrics(logs, final_metrics, mlflow_callback)
 
-    logger.info("Training complete!")
+    if interrupted:
+        logger.info("Training interrupted; final evaluation complete!")
+    else:
+        logger.info("Training complete!")
     logger.info(f"Final reward: {final_reward:.4f}")
     logger.info(f"Checkpoint saved to: {final_checkpoint_path}")
 
     return {
         "trainer": trainer,
         "logs": logs,
+        "interrupted": interrupted,
         "final_metrics": final_metrics,
         "plots": {
             "loss": visualize_training(logs)
