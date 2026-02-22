@@ -95,7 +95,7 @@ training:
   value_weight_decay: 0.000002
   actor_weight_decay: 0.000002
   # Training loop
-  max_steps: 50000  # Synthetic data converges faster; keep runs practical
+  max_steps: 250000  # 5x longer run for deeper convergence testing on sine-wave
   checkpoint_interval: 10000
   init_rand_steps: 2000  # Match sine-wave TD3 baseline exploration warm-up
   frames_per_batch: 200
