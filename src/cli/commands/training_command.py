@@ -254,15 +254,31 @@ class TrainingCommand(BaseCommand):
         table.add_column("Metric", style="cyan")
         table.add_column("Value", style="green")
 
-        # Display available metrics from result
-        if "final_reward" in result:
-            table.add_row("Final Reward", f"{result['final_reward']:.4f}")
-        if "checkpoint_path" in result:
-            table.add_row("Checkpoint Path", str(result["checkpoint_path"]))
-        if "total_steps" in result:
-            table.add_row("Total Steps", f"{result['total_steps']:,}")
-        if "training_time" in result:
-            table.add_row("Training Time", f"{result['training_time']:.2f}s")
+        # Extract metrics from nested structure
+        final_metrics = result.get("final_metrics", {})
+        eval_report = final_metrics.get("evaluation_report", {})
+
+        # Core performance metrics
+        if "final_reward" in final_metrics:
+            table.add_row("Final Reward", f"{final_metrics['final_reward']:.4f}")
+        if "training_steps" in final_metrics:
+            table.add_row("Training Steps", f"{final_metrics['training_steps']:,}")
+
+        # Key trading performance metrics
+        if "total_return" in eval_report:
+            table.add_row("Total Return", f"{eval_report['total_return']:.2%}")
+        if "annualized_return_cagr" in eval_report:
+            table.add_row("CAGR", f"{eval_report['annualized_return_cagr']:.2%}")
+        if "sharpe_ratio" in eval_report:
+            table.add_row("Sharpe Ratio", f"{eval_report['sharpe_ratio']:.3f}")
+        if "sortino_ratio" in eval_report:
+            table.add_row("Sortino Ratio", f"{eval_report['sortino_ratio']:.3f}")
+        if "max_drawdown" in eval_report:
+            table.add_row("Max Drawdown", f"{eval_report['max_drawdown']:.2%}")
+        if "win_rate" in eval_report:
+            table.add_row("Win Rate", f"{eval_report['win_rate']:.2%}")
+        if "profit_factor" in eval_report:
+            table.add_row("Profit Factor", f"{eval_report['profit_factor']:.3f}")
 
         self.console.print(table)
 
