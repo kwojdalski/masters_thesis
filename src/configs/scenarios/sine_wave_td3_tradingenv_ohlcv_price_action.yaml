@@ -4,14 +4,14 @@
 # with TD3 (Twin Delayed DDPG) algorithm
 # https://github.com/xaiassetmanagement/tradingenv
 
-experiment_name: "td3_tradingenv_sine_ohlcv_price_action"
+experiment_name: "td3_tradingenv_sine_ohlcv_only"
 seed: 42
 
 # Data Configuration
 data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
   data_config: "src/configs/data/sine_wave_large.yaml"  # Config for regenerating data
-  feature_config: "src/configs/features/sine_wave_price_action.yaml"  # Minimal engineered features for sine-wave
+  feature_config: "src/configs/features/sine_wave_price_action.yaml"  # Unused when no_features=true
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["SINE/WAVE"]
@@ -19,11 +19,11 @@ data:
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
   train_size: 450  # Match current local sine-wave dataset size (~500 rows)
-  no_features: false
+  no_features: true
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_SINE_OHLCV_PRICE_ACTION"
+  name: "TRADINGENV_TD3_SINE_OHLCV_ONLY"
   backend: "tradingenv"
 
   # Transaction costs
@@ -37,10 +37,7 @@ env:
     "low",
     "close",
     "volume",
-    "feature_log_return",
-    "feature_high",
-    "feature_low",
-  ]  # OHLCV + minimal price-action engineered features
+  ]  # OHLCV only (no engineered features)
 
   # Reward function configuration
   reward_type: "differential_sharpe"  # Use Differential Sharpe Ratio for risk-adjusted rewards
@@ -96,6 +93,6 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/td3_tradingenv_sine_ohlcv_price_action"
+  log_dir: "logs/td3_tradingenv_sine_ohlcv_only"
   log_level: "INFO"
   save_plots: false  # Save training plots to disk in addition to MLflow
