@@ -1,16 +1,16 @@
-## 4.x TD3-Based Training Pipeline for Continuous-Action Trading
+## TD3-Based Training Pipeline for Continuous-Action Trading
 
 This subchapter presents the training workflow used for experiments based on the Twin Delayed Deep Deterministic Policy Gradient (TD3) algorithm in a reinforcement learning framework for algorithmic trading. The focus is on a continuous-action setting in which the agent outputs portfolio allocation weights bounded in the interval `[-1, 1]`, where negative values represent short exposure, positive values represent long exposure, and magnitudes represent position intensity. The aim of this section is to describe the methodological pipeline used to conduct controlled, reproducible experiments suitable for academic evaluation, rather than to document low-level software implementation.
 
 The description assumes a single-asset trading setting with market data represented as OHLCV time series and optional engineered features. However, the same workflow generalizes to multi-asset settings with vector-valued allocations.
 
-### 4.x.1 Rationale for TD3 in Continuous Portfolio Allocation
+### Rationale for TD3 in Continuous Portfolio Allocation
 
 TD3 is a suitable choice for portfolio-allocation problems in which the action space is continuous rather than categorical. In many trading formulations, a decision is not limited to discrete actions such as buy, hold, or sell; instead, the agent must determine a target exposure level. This formulation is particularly relevant when leverage, short-selling, or partial allocations are allowed. In such cases, an action of `0.25` may represent a moderate long position, while `-0.80` may represent a strong short allocation.
 
 Compared with discrete-action methods, continuous-action algorithms provide finer control over risk exposure and can model more realistic portfolio management behavior. TD3 is especially attractive because it addresses well-known instability issues of deterministic actor-critic methods through three mechanisms: twin critics (to reduce overestimation bias), delayed policy updates (to stabilize actor learning), and target policy smoothing (to regularize target value estimation under noisy actions). These properties are useful in financial environments, where rewards are noisy, transitions are non-stationary, and overestimation can lead to unstable policies.
 
-### 4.x.2 Configuration-Driven Experiment Design
+### Configuration-Driven Experiment Design
 
 The training pipeline is organized as a configuration-driven workflow. Experimental scenarios are defined externally (for example, in YAML files with override support), allowing the researcher to vary data sources, feature sets, reward functions, environment settings, and optimization hyperparameters without modifying source code. This design supports repeatability and reduces the risk of undocumented manual changes between runs.
 
@@ -18,7 +18,7 @@ A typical experiment configuration specifies the dataset path, data split sizes,
 
 An additional benefit of configuration-driven experiments is compatibility with systematic validation prior to training. A validation stage can verify that referenced files exist, feature definitions are valid, required columns are available, and data splits are feasible before computationally expensive training begins.
 
-### 4.x.3 Data Preparation and Leakage-Controlled Splitting
+### Data Preparation and Leakage-Controlled Splitting
 
 A critical aspect of the workflow is the separation of data preparation into a sequence that prevents information leakage. The dataset is first loaded and cleaned (for example, removal of invalid or missing rows). It is then split into three chronological subsets: training, validation, and test. Chronological splitting is essential in financial time series because shuffling would destroy temporal structure and create unrealistic information flow.
 
@@ -28,7 +28,7 @@ Feature engineering is performed only after the split. More precisely, any featu
 
 Because the feature pipeline is defined externally, the workflow supports rapid experimentation with technical indicators, lagged returns, volatility estimators, and momentum measures while preserving the same leakage-control logic.
 
-### 4.x.4 Environment Construction and Action Semantics
+### Environment Construction and Action Semantics
 
 After data preparation, the environment is created from the processed training dataset. The environment exposes observations composed of raw market fields (for example, prices) and engineered features, and it defines a continuous action space corresponding to portfolio weights. The environment also encodes market frictions such as transaction fees and, when applicable, financing or borrowing costs.
 
@@ -36,7 +36,7 @@ In this formulation, the semantics of the action are not "trade direction only,"
 
 Reward design is another key component of environment construction. Depending on the research question, the reward may be defined as log return, differential Sharpe-like objectives, or other risk-adjusted formulations. The pipeline can support multiple reward types, but the evaluation stage must remain consistent with the chosen reward semantics. In particular, if the reward is not an exact per-step log return, it should not be directly interpreted as such in downstream performance calculations.
 
-### 4.x.5 TD3 Training Loop and Optimization Workflow
+### TD3 Training Loop and Optimization Workflow
 
 Once the environment and models are initialized, training proceeds through iterative interaction and optimization. At each step, the agent observes the current state and proposes a continuous action. During training, exploration noise is added to the action to encourage state-space coverage and prevent premature convergence to a narrow policy. The environment returns the next state, reward, and termination signal, and the transition is stored in a replay buffer.
 
@@ -74,7 +74,7 @@ Output: trained policy, checkpoints, evaluation metrics, plots
 13. Compute quantitative finance performance metrics and export results
 ```
 
-### 4.x.6 Checkpointing, Resumption, and Reproducibility
+### Checkpointing, Resumption, and Reproducibility
 
 Reproducibility is a fundamental requirement in a master's thesis. The pipeline therefore includes explicit controls for random seeding, configuration logging, and checkpoint persistence. Random seeds should be applied consistently across numerical libraries and the RL framework so that repeated runs under identical settings produce comparable trajectories, subject to stochastic effects introduced by the environment or hardware.
 
@@ -82,7 +82,7 @@ Checkpointing serves two roles. First, it protects long-running experiments from
 
 Experiment tracking with a system such as MLflow contributes to scientific traceability by storing parameters, metrics, artifacts, and run metadata. In a thesis setting, this enables auditable comparisons across hyperparameter settings, feature sets, and reward functions. It also facilitates retrospective analysis when results are unexpected or unstable.
 
-### 4.x.7 Evaluation Protocol and Quantitative Performance Assessment
+### Evaluation Protocol and Quantitative Performance Assessment
 
 The evaluation stage should be conceptually separated from training. In a rigorous workflow, the final reported performance should be obtained on a dedicated out-of-sample dataset (validation for model selection, test for final reporting), using an evaluation environment built from that dataset. This distinction is critical because evaluating on the same environment used for training can produce overly optimistic conclusions.
 
@@ -92,7 +92,7 @@ Financial outputs include cumulative reward curves and benchmark comparisons, su
 
 To support quantitative finance interpretation, the pipeline can compute a set of performance metrics including annualized return, annualized volatility, Sharpe ratio, Sortino ratio, maximum drawdown, win rate, profit factor, and downside risk measures such as Value at Risk (VaR) and Conditional Value at Risk (CVaR). These metrics provide complementary views of performance and are particularly valuable because raw reward alone may not capture risk concentration, tail losses, or trading aggressiveness.
 
-### 4.x.8 Methodological Risks and Common Pipeline Pitfalls
+### Methodological Risks and Common Pipeline Pitfalls
 
 Even a well-structured RL trading workflow is vulnerable to methodological errors. A primary risk is train/evaluation leakage, which may occur if evaluation rollouts are inadvertently executed on the training environment while benchmark or plotting data are taken from validation or test data. This can create internally inconsistent results that are difficult to diagnose from summary metrics alone.
 
@@ -102,6 +102,6 @@ A third risk is overfitting through repeated validation exposure. Frequent inspe
 
 Finally, operational issues such as missing checkpoints, inconsistent configuration paths, or unvalidated feature definitions can compromise reproducibility. A pre-training validation stage and standardized logging materially reduce these risks.
 
-### 4.x.9 Summary
+### Summary
 
 The TD3 training pipeline described in this subchapter provides a structured methodology for continuous-action trading experiments in a quantitative finance research setting. Its key strengths are configuration-driven experiment specification, leakage-aware data preparation, continuous-action environment modeling, stable off-policy learning through TD3 mechanisms, and reproducible experiment management via seeding, checkpointing, and tracking. Equally important, the pipeline highlights the need for strict separation between training and evaluation and for consistent interpretation of reward and return. These design choices are essential for producing results that are not only computationally reproducible but also methodologically defensible in an academic thesis.
