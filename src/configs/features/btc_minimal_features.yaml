@@ -53,14 +53,38 @@ features:
       window: 24
 
   # ---------------------------------------------------------------------------
-  # 4. TECHNICAL (1 feature) - Mean reversion
+  # 4. TECHNICAL INDICATORS (4 features)
   # ---------------------------------------------------------------------------
 
+  # RSI - Overbought/oversold momentum
   - <<: *norm_true
     name: "rsi_14"
     feature_type: "talib_rsi"
     params:
       period: 14
+
+  # Moving Average - Trend direction
+  - <<: *norm_true
+    name: "ema_20"
+    feature_type: "ema"
+    params:
+      period: 20
+
+  # ATR - Volatility/risk measure
+  - <<: *norm_true
+    name: "atr_14"
+    feature_type: "atr"
+    params:
+      period: 14
+
+  # MACD - Trend change signal
+  - <<: *norm_true
+    name: "macd_12_26_9"
+    feature_type: "macd"
+    params:
+      fastperiod: 12
+      slowperiod: 26
+      signalperiod: 9
 
   # ---------------------------------------------------------------------------
   # 5. TEMPORAL (2 features) - Time patterns
@@ -74,10 +98,17 @@ features:
     name: "hour_cos"
     feature_type: "hour_cos"
 
-# TOTAL: 8 features
+# TOTAL: 11 features
+#
+# Feature breakdown:
+#   - Returns (multi-timescale): 3 features
+#   - Volatility: 1 feature
+#   - Volume: 1 feature
+#   - Technical indicators: 4 features (RSI, EMA, ATR, MACD)
+#   - Temporal context: 2 features
 #
 # Use this for:
 #   - Quick baseline experiments
 #   - Testing if RL works at all
 #   - Ablation study starting point
-#   - Fast iteration (trains 2-3x faster than 18 features)
+#   - Fast iteration (still faster than 18-feature optimized set)

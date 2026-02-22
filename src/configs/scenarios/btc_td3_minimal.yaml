@@ -34,8 +34,11 @@ env:
     "feature_realized_volatility_24",
     # Volume (1)
     "feature_volume_ma_ratio_24",
-    # Technical (1)
+    # Technical Indicators (4)
     "feature_rsi_14",
+    "feature_ema_20",
+    "feature_atr_14",
+    "feature_macd_12_26_9",
     # Temporal (2)
     "feature_hour_sin",
     "feature_hour_cos",
@@ -44,7 +47,7 @@ env:
   reward_type: "log_return"
   reward_eta: 0.01
 
-# Network Architecture (smaller for 8 features)
+# Network Architecture (smaller for 11 features)
 network:
   actor_hidden_dims: [64, 32]
   value_hidden_dims: [64, 32]
