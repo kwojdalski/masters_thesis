@@ -258,27 +258,26 @@ class TrainingCommand(BaseCommand):
         final_metrics = result.get("final_metrics", {})
         eval_report = final_metrics.get("evaluation_report", {})
 
-        # Core performance metrics
-        if "final_reward" in final_metrics:
-            table.add_row("Final Reward", f"{final_metrics['final_reward']:.4f}")
-        if "training_steps" in final_metrics:
-            table.add_row("Training Steps", f"{final_metrics['training_steps']:,}")
+        # Define metrics to display: (source_dict, key, display_name, format_spec)
+        metrics_spec = [
+            # Core training metrics
+            (final_metrics, "final_reward", "Final Reward", ".4f"),
+            (final_metrics, "training_steps", "Training Steps", ","),
+            # Trading performance metrics
+            (eval_report, "total_return", "Total Return", ".2%"),
+            (eval_report, "annualized_return_cagr", "CAGR", ".2%"),
+            (eval_report, "sharpe_ratio", "Sharpe Ratio", ".3f"),
+            (eval_report, "sortino_ratio", "Sortino Ratio", ".3f"),
+            (eval_report, "max_drawdown", "Max Drawdown", ".2%"),
+            (eval_report, "win_rate", "Win Rate", ".2%"),
+            (eval_report, "profit_factor", "Profit Factor", ".3f"),
+        ]
 
-        # Key trading performance metrics
-        if "total_return" in eval_report:
-            table.add_row("Total Return", f"{eval_report['total_return']:.2%}")
-        if "annualized_return_cagr" in eval_report:
-            table.add_row("CAGR", f"{eval_report['annualized_return_cagr']:.2%}")
-        if "sharpe_ratio" in eval_report:
-            table.add_row("Sharpe Ratio", f"{eval_report['sharpe_ratio']:.3f}")
-        if "sortino_ratio" in eval_report:
-            table.add_row("Sortino Ratio", f"{eval_report['sortino_ratio']:.3f}")
-        if "max_drawdown" in eval_report:
-            table.add_row("Max Drawdown", f"{eval_report['max_drawdown']:.2%}")
-        if "win_rate" in eval_report:
-            table.add_row("Win Rate", f"{eval_report['win_rate']:.2%}")
-        if "profit_factor" in eval_report:
-            table.add_row("Profit Factor", f"{eval_report['profit_factor']:.3f}")
+        # Add rows for available metrics
+        for source, key, display_name, fmt in metrics_spec:
+            if key in source:
+                value = source[key]
+                table.add_row(display_name, f"{value:{fmt}}")
 
         self.console.print(table)
 
