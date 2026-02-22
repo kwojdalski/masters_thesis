@@ -92,6 +92,17 @@ def _validate_paths(config: ExperimentConfig, report: ValidationReport) -> None:
 
 def _build_feature_pipeline(config: ExperimentConfig, report: ValidationReport):
     if getattr(config.data, "no_features", False):
+        report.add(
+            code="NO_FEATURES_UNSUPPORTED",
+            severity="error",
+            check="feature_pipeline",
+            message=(
+                "data.no_features=true is not supported for training observations. "
+                "Use the feature pipeline and expose only feature_* columns in "
+                "env.feature_columns (including pass-through features such as "
+                "feature_close if needed)."
+            ),
+        )
         return None
     feature_cfg = getattr(config.data, "feature_config", None)
     try:
@@ -180,6 +191,20 @@ def _validate_env_columns(
                     f"{missing_feat}. Available: {sorted(available_columns)}"
                 ),
             )
+        non_feature_prefixed = [
+            col for col in feature_columns if not str(col).startswith("feature_")
+        ]
+        if non_feature_prefixed:
+            report.add(
+                code="FEATURE_COLUMNS_NOT_FEATURE_PREFIXED",
+                severity="error",
+                check="env_columns",
+                message=(
+                    "env.feature_columns must contain only feature pipeline outputs "
+                    "(feature_*). Found non-feature columns: "
+                    f"{non_feature_prefixed}"
+                ),
+            )
 
 
 def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
@@ -219,9 +244,7 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
     _validate_split_feasibility(config, dataset_len, report)
 
     raw_columns = set(df.columns)
-    if getattr(config.data, "no_features", False):
-        available_columns = raw_columns
-    elif pipeline is not None:
+    if pipeline is not None:
         available_columns = raw_columns.union(set(pipeline.get_feature_names()))
     else:
         available_columns = raw_columns

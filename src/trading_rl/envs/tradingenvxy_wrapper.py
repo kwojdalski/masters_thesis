@@ -128,11 +128,36 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         """
         config = config or self.config
 
-        # Default to all columns as both features and prices if not specified
+        # Observations should come only from feature pipeline outputs.
         if feature_columns is None:
-            feature_columns = df.columns.tolist()
+            feature_columns = [
+                col for col in df.columns.tolist() if str(col).startswith("feature_")
+            ]
         if price_columns is None:
             price_columns = df.columns.tolist()
+
+        if not feature_columns:
+            raise ValueError(
+                "No observation feature columns provided/found. "
+                "Configure env.feature_columns with feature_* columns or include "
+                "feature pipeline outputs in the dataframe."
+            )
+
+        non_feature_columns = [
+            col for col in feature_columns if not str(col).startswith("feature_")
+        ]
+        if non_feature_columns:
+            raise ValueError(
+                "TradingEnv observations must use only feature_* columns. "
+                f"Found non-feature columns in env.feature_columns: {non_feature_columns}"
+            )
+
+        missing_feature_columns = sorted(set(feature_columns) - set(df.columns))
+        if missing_feature_columns:
+            raise ValueError(
+                "Observation feature columns missing from dataframe: "
+                f"{missing_feature_columns}"
+            )
 
         # Extract environment parameters from config if available
         initial_cash = 10000

@@ -209,20 +209,35 @@ def _validate_data(
         raise ValueError("Test data is empty. Check train/validation size settings.")
 
     # Check for required columns (close price is critical for most environments)
-    if not getattr(config.data, "no_features", False):
-        # If using features, expect feature columns
-        feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
-        if not feature_cols and "close" not in train_df.columns:
+    if getattr(config.data, "no_features", False):
+        raise ValueError(
+            "data.no_features=true is no longer supported for training observations. "
+            "Use the feature pipeline and configure env.feature_columns with only "
+            "feature_* columns (for example, add pass-through feature_close)."
+        )
+
+    if "close" not in train_df.columns:
+        raise ValueError(
+            f"Data must contain raw 'close' column for environment pricing. "
+            f"Found columns: {list(train_df.columns)}"
+        )
+
+    feature_cols = [col for col in train_df.columns if str(col).startswith("feature_")]
+    if not feature_cols:
+        raise ValueError(
+            "No feature_* columns found in prepared data. "
+            "Define features in data.feature_config and set data.no_features=false."
+        )
+
+    env_feature_cols = getattr(config.env, "feature_columns", None)
+    if env_feature_cols:
+        non_feature_cols = [
+            col for col in env_feature_cols if not str(col).startswith("feature_")
+        ]
+        if non_feature_cols:
             raise ValueError(
-                f"Data must contain 'close' column or feature columns. "
-                f"Found columns: {list(train_df.columns)}"
-            )
-    else:
-        # Raw OHLCV mode requires close column
-        if "close" not in train_df.columns:
-            raise ValueError(
-                f"Data must contain 'close' column for raw OHLCV mode. "
-                f"Found columns: {list(train_df.columns)}"
+                "env.feature_columns must contain only feature_* columns. "
+                f"Found: {non_feature_cols}"
             )
 
     # Check for NaN/Inf values
