@@ -54,6 +54,7 @@ class MLflowTrainingCallback:
             "actions_taken": [],
             "exploration_ratio": [],
             "position_change_counts": [],
+            "sum_positions": [],
         }
         self.price_series = price_series
 
@@ -126,6 +127,8 @@ class MLflowTrainingCallback:
         position_changes = self._count_position_changes(actions, tolerance=0.1)
         self.position_change_counts.append(position_changes)
         self.training_stats["position_change_counts"].append(position_changes)
+        episode_sum_position = float(np.sum(actions)) if actions else 0.0
+        self.training_stats["sum_positions"].append(episode_sum_position)
 
         # Calculate position change ratio (position changes / episode length)
         episode_length = len(actions)
@@ -149,6 +152,9 @@ class MLflowTrainingCallback:
             "episode_position_change_ratio", position_change_ratio, step=episode_num
         )
         mlflow.log_metric(
+            "episode_sum_position", episode_sum_position, step=episode_num
+        )
+        mlflow.log_metric(
             "episode_exploration_ratio", exploration_ratio, step=episode_num
         )
 
@@ -169,6 +175,7 @@ class MLflowTrainingCallback:
             "portfolio_valuations": self.training_stats["portfolio_valuations"],
             "exploration_ratios": self.training_stats["exploration_ratio"],
             "position_change_counts": self.training_stats["position_change_counts"],
+            "sum_positions": self.training_stats["sum_positions"],
         }
 
     @staticmethod
