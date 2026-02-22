@@ -19,7 +19,6 @@ data:
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
   train_size: 50000
-  no_features: false
 
 # Environment Configuration - TradingEnv Backend
 env:

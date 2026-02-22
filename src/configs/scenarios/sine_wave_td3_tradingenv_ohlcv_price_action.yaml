@@ -11,7 +11,7 @@ seed: 42
 data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
   data_config: "src/configs/data/sine_wave_large.yaml"  # Config for regenerating data
-  feature_config: "src/configs/features/sine_wave_price_action.yaml"  # Unused when no_features=true
+  feature_config: "src/configs/features/sine_wave_price_action.yaml"  # Feature pipeline config
   download_data: false
   exchange_names: ["synthetic"]
   symbols: ["SINE/WAVE"]
@@ -19,7 +19,6 @@ data:
   data_dir: "data"
   download_since: "2024-01-01T00:00:00+00:00"
   train_size: 450  # Match current local sine-wave dataset size (~500 rows)
-  no_features: true
 
 # Environment Configuration - TradingEnv Backend
 env:

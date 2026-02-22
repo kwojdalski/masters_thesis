@@ -18,7 +18,6 @@ def _write_config(path: Path, data_path: str, feature_config: str | None = None)
         f'  data_path: "{data_path}"\n'
         "  train_size: 10\n"
         "  validation_size: 5\n"
-        "  no_features: false\n"
         f"{feature_cfg_line}"
         "env:\n"
         '  backend: "tradingenv"\n'

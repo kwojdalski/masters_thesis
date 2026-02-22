@@ -28,7 +28,6 @@ class DataConfig:
     )
     train_size: int = 1000
     validation_size: int | None = None
-    no_features: bool = False
     feature_config: str | None = None  # Path to feature config YAML
 
 

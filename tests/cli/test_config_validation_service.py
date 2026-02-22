@@ -41,7 +41,6 @@ def test_valid_config_no_errors(tmp_path: Path):
     config.data.data_path = str(data_path)
     config.data.train_size = 10
     config.data.validation_size = 5
-    config.data.no_features = False
     config.data.feature_config = str(feat_cfg)
     config.env.price_columns = ["close"]
     config.env.feature_columns = ["feature_f1"]
@@ -76,9 +75,10 @@ def test_unknown_feature_type_is_error(tmp_path: Path):
 
 def test_infeasible_split_is_error(tmp_path: Path):
     data_path = _write_dataset(tmp_path / "data.parquet", rows=10)
+    feat_cfg = _write_feature_config(tmp_path / "features.yaml")
     config = ExperimentConfig()
     config.data.data_path = str(data_path)
-    config.data.no_features = True
+    config.data.feature_config = str(feat_cfg)
     config.data.train_size = 10
 
     report = validate_experiment_config(config)
@@ -101,10 +101,10 @@ def test_missing_env_feature_column_is_error(tmp_path: Path):
 
 
 def test_missing_data_path_is_warning_only(tmp_path: Path):
+    feat_cfg = _write_feature_config(tmp_path / "features.yaml")
     config = ExperimentConfig()
     config.data.data_path = str(tmp_path / "missing.parquet")
-    config.data.no_features = True
-    config.data.feature_config = None
+    config.data.feature_config = str(feat_cfg)
 
     report = validate_experiment_config(config)
     assert report.warning_count >= 1

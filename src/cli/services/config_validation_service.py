@@ -91,19 +91,6 @@ def _validate_paths(config: ExperimentConfig, report: ValidationReport) -> None:
 
 
 def _build_feature_pipeline(config: ExperimentConfig, report: ValidationReport):
-    if getattr(config.data, "no_features", False):
-        report.add(
-            code="NO_FEATURES_UNSUPPORTED",
-            severity="error",
-            check="feature_pipeline",
-            message=(
-                "data.no_features=true is not supported for training observations. "
-                "Use the feature pipeline and expose only feature_* columns in "
-                "env.feature_columns (including pass-through features such as "
-                "feature_close if needed)."
-            ),
-        )
-        return None
     feature_cfg = getattr(config.data, "feature_config", None)
     try:
         if feature_cfg:
