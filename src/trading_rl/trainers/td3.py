@@ -59,14 +59,22 @@ class TD3Trainer(BaseTrainer):
             checkpoint_prefix=checkpoint_prefix,
         )
 
-        # Continuous action spec in [-1, 1] to match the deterministic actor
-        action_dim = self.env.action_spec.shape[-1]
-        td3_action_spec = Bounded(
-            low=-1.0,
-            high=1.0,
-            shape=(action_dim,),
-            device=getattr(config, "device", "cpu"),
-        )
+        # Prefer the environment's bounded action spec so exploration and TD3
+        # target action clipping are defined in the same domain as the env.
+        env_action_spec = getattr(self.env, "action_spec", None)
+        if isinstance(env_action_spec, Bounded):
+            td3_action_spec = env_action_spec
+        else:
+            action_dim = self.env.action_spec.shape[-1]
+            td3_action_spec = Bounded(
+                low=-1.0,
+                high=1.0,
+                shape=(action_dim,),
+                device=getattr(config, "device", "cpu"),
+            )
+            logger.warning(
+                "Environment action_spec is not a Bounded spec; falling back to TD3 default [-1, 1] bounds."
+            )
         self.td3_action_spec = td3_action_spec
 
         # Gaussian exploration around the deterministic policy

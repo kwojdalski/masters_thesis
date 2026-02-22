@@ -19,6 +19,46 @@ logger = get_logger(__name__)
 memory = Memory(location=".cache/joblib", verbose=1)
 
 
+class ScaleFromUnitRange(nn.Module):
+    """Map actions from normalized [-1, 1] range to environment action bounds."""
+
+    def __init__(self, low: torch.Tensor, high: torch.Tensor):
+        super().__init__()
+        self.register_buffer("low", torch.as_tensor(low))
+        self.register_buffer("high", torch.as_tensor(high))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        low = self.low.to(device=x.device, dtype=x.dtype)
+        high = self.high.to(device=x.device, dtype=x.dtype)
+        return low + (x + 1.0) * (high - low) / 2.0
+
+
+def _extract_action_bounds_from_spec(spec: Any) -> tuple[torch.Tensor, torch.Tensor] | None:
+    """Extract low/high action bounds from a TorchRL spec if available."""
+    if spec is None:
+        return None
+
+    low = None
+    high = None
+
+    # TorchRL Bounded specs commonly expose bounds via spec.space.low/high.
+    space = getattr(spec, "space", None)
+    if space is not None:
+        low = getattr(space, "low", None)
+        high = getattr(space, "high", None)
+
+    # Fallback for specs that expose low/high directly.
+    if low is None:
+        low = getattr(spec, "low", None)
+    if high is None:
+        high = getattr(spec, "high", None)
+
+    if low is None or high is None:
+        return None
+
+    return torch.as_tensor(low), torch.as_tensor(high)
+
+
 def clear_model_cache():
     """Clear model creation cache."""
     memory.clear(warn=True)
@@ -336,13 +376,16 @@ def create_ddpg_actor(
         activate_last_layer=False,  # No activation on output
     )
 
-    # Apply tanh for bounded continuous actions
-    # Always apply Tanh for DDPG/TD3 to ensure actions are in [-1, 1]
-    # If spec is provided, we could scale, but standard DDPG assumes [-1, 1]
-    actor_net = nn.Sequential(
-        actor_net,
-        nn.Tanh(),  # Output in [-1, 1]
-    )
+    # Produce normalized actions in [-1, 1], then map to env bounds if a bounded
+    # spec is provided. This keeps the actor stable while supporting non-unit
+    # action domains (e.g. [0, 1] long-only allocations).
+    actor_layers: list[nn.Module] = [actor_net, nn.Tanh()]
+    bounds = _extract_action_bounds_from_spec(spec)
+    if bounds is not None:
+        low, high = bounds
+        actor_layers.append(ScaleFromUnitRange(low=low, high=high))
+
+    actor_net = nn.Sequential(*actor_layers)
 
     # Wrap in TensorDictModule
     actor = TensorDictModule(
