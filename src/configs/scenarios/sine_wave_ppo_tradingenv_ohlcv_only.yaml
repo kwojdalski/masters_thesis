@@ -36,7 +36,7 @@ env:
   # Actions are continuous portfolio weights instead of discrete positions
 
   # Reward function configuration
-  reward_type: "differential_sharpe"  # Match TD3 OHLCV-only scenario for comparison
+  reward_type: "log_return"  # Match TD3 OHLCV-only scenario for comparison
   reward_eta: 0.01  # DSR learning rate (only used when reward_type="differential_sharpe")
 
 # Network Architecture
