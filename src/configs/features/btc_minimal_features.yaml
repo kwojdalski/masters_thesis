@@ -1,0 +1,83 @@
+# Minimal BTC Trading Features for RL (Baseline)
+# ================================================
+# Ultra-minimal set for fast iteration and baseline performance
+# Target: 8-10 features (fastest convergence)
+
+defaults: &norm_true
+  normalize: true
+
+defaults_no_norm: &norm_false
+  normalize: false
+
+features:
+  # ---------------------------------------------------------------------------
+  # 1. RETURNS (3 features) - Multi-timescale momentum
+  # ---------------------------------------------------------------------------
+
+  - <<: *norm_true
+    name: "log_return"
+    feature_type: "log_return"  # Current return
+
+  - <<: *norm_true
+    name: "return_lag_24"
+    feature_type: "return_lag"
+    params:
+      column: "close"
+      lag: 24  # 1 day
+
+  - <<: *norm_true
+    name: "return_lag_168"
+    feature_type: "return_lag"
+    params:
+      column: "close"
+      lag: 168  # 1 week
+
+  # ---------------------------------------------------------------------------
+  # 2. VOLATILITY (1 feature) - Risk signal
+  # ---------------------------------------------------------------------------
+
+  - <<: *norm_true
+    name: "realized_volatility_24"
+    feature_type: "realized_volatility"
+    params:
+      window: 24
+
+  # ---------------------------------------------------------------------------
+  # 3. VOLUME (1 feature) - Market activity
+  # ---------------------------------------------------------------------------
+
+  - <<: *norm_true
+    name: "volume_ma_ratio_24"
+    feature_type: "volume_ma_ratio"
+    params:
+      window: 24
+
+  # ---------------------------------------------------------------------------
+  # 4. TECHNICAL (1 feature) - Mean reversion
+  # ---------------------------------------------------------------------------
+
+  - <<: *norm_true
+    name: "rsi_14"
+    feature_type: "talib_rsi"
+    params:
+      period: 14
+
+  # ---------------------------------------------------------------------------
+  # 5. TEMPORAL (2 features) - Time patterns
+  # ---------------------------------------------------------------------------
+
+  - <<: *norm_false
+    name: "hour_sin"
+    feature_type: "hour_sin"
+
+  - <<: *norm_false
+    name: "hour_cos"
+    feature_type: "hour_cos"
+
+# TOTAL: 8 features
+#
+# Use this for:
+#   - Quick baseline experiments
+#   - Testing if RL works at all
+#   - Ablation study starting point
+#   - Fast iteration (trains 2-3x faster than 18 features)

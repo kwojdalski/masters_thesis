@@ -1,0 +1,107 @@
+# TD3 Configuration with Optimized Features for BTC Trading
+# ===========================================================
+# Uses scientifically-selected 18 features (not 40+)
+# Faster convergence, better generalization
+
+seed: 42
+
+# Data Configuration
+data:
+  data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
+  feature_config: "src/configs/features/btc_optimized_features.yaml"  # ← OPTIMIZED
+  download_data: false
+  exchange_names: ["binance"]
+  symbols: ["BTC/USDT"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2023-01-01T00:00:00+00:00"
+  train_size: 7000  # ~8 months
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_TD3_BTC_OPTIMIZED"
+  backend: "tradingenv"
+
+  trading_fees: 0.0007  # 0.07% (Binance taker fee)
+
+  # Optimized feature columns (18 features)
+  price_columns: ["close"]
+  feature_columns: [
+    # Momentum (5)
+    "feature_return_lag_1",
+    "feature_return_lag_6",
+    "feature_return_lag_24",
+    "feature_return_lag_168",
+    "feature_log_return",
+    # Volatility (2)
+    "feature_realized_volatility_24",
+    "feature_volatility_ratio_6_168",
+    # Price range (1)
+    "feature_high_low_spread",
+    # Volume (3)
+    "feature_volume_ma_ratio_24",
+    "feature_volume_change",
+    "feature_amihud_illiquidity",
+    # Technical (3)
+    "feature_rsi_14",
+    "feature_macd_signal",
+    "feature_bbands_20",
+    # Temporal (4)
+    "feature_hour_sin",
+    "feature_hour_cos",
+    "feature_day_of_week_sin",
+    "feature_day_of_week_cos",
+  ]
+
+  reward_type: "log_return"
+  reward_eta: 0.01
+
+# Network Architecture (adjusted for smaller input)
+network:
+  actor_hidden_dims: [128, 64]  # Input: 18 features
+  value_hidden_dims: [128, 64]
+
+# Training Parameters - TD3
+training:
+  algorithm: "TD3"
+
+  # Learning rates
+  actor_lr: 0.0001
+  value_lr: 0.0001
+  value_weight_decay: 0.000002
+  actor_weight_decay: 0.000002
+
+  # Training loop
+  max_steps: 5000000
+  checkpoint_interval: 100000
+  init_rand_steps: 5000
+  frames_per_batch: 200
+  optim_steps_per_batch: 5
+  sample_size: 128
+  buffer_size: 100000
+  save_buffer: false  # Set to true to save replay buffer
+
+  # Discount factor
+  gamma: 0.99
+
+  # TD3-specific
+  tau: 0.001
+  policy_noise: 0.2
+  noise_clip: 0.3
+  policy_delay: 2
+  delay_actor: true
+  delay_qvalue: true
+  exploration_noise_std: 0.2
+
+  # Loss function
+  loss_function: "smooth_l1"
+
+  # Evaluation
+  eval_steps: 720  # 30 days
+  eval_interval: 1000
+  log_interval: 100
+
+# Logging Configuration
+logging:
+  log_level: "INFO"
+  save_plots: false
