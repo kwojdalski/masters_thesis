@@ -248,6 +248,24 @@ class TrainingCommand(BaseCommand):
         self.console.print("[green]Training resumed and completed successfully![/green]")
         return result
 
+    def _display_training_results(self, result: dict[str, Any]) -> None:
+        """Display training results in a formatted table."""
+        table = Table(title="Training Results", show_header=True, header_style="bold")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", style="green")
+
+        # Display available metrics from result
+        if "final_reward" in result:
+            table.add_row("Final Reward", f"{result['final_reward']:.4f}")
+        if "checkpoint_path" in result:
+            table.add_row("Checkpoint Path", str(result["checkpoint_path"]))
+        if "total_steps" in result:
+            table.add_row("Total Steps", f"{result['total_steps']:,}")
+        if "training_time" in result:
+            table.add_row("Training Time", f"{result['training_time']:.2f}s")
+
+        self.console.print(table)
+
     def _save_training_plots(
         self, result: dict[str, Any], config, params: TrainingParams
     ) -> None:
