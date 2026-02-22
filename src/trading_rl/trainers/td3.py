@@ -151,7 +151,7 @@ class TD3Trainer(BaseTrainer):
 
         logger.debug(f"Running random evaluation for {max_steps} steps")
         # Use explicit random policy to ensure a distinct trajectory
-        random_policy = RandomPolicy(self.env.action_spec)
+        random_policy = RandomPolicy(self.td3_action_spec)
         with set_exploration_type(InteractionType.RANDOM):
             rollout_random = self.env.rollout(max_steps=max_steps, policy=random_policy)
 
