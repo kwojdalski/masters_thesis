@@ -8,6 +8,7 @@ This module provides a flexible, configurable feature engineering system that:
 """
 
 from trading_rl.features.base import Feature, FeatureConfig
+from trading_rl.features.column_features import ColumnValueFeature
 from trading_rl.features.pipeline import FeaturePipeline, create_default_pipeline
 
 # Import concrete features to register them
@@ -73,6 +74,7 @@ __all__ = [
     "FeatureConfig",
     "FeaturePipeline",
     "FeatureRegistry",
+    "ColumnValueFeature",
     "DayOfWeekCosFeature",
     "DayOfWeekSinFeature",
     "HighFeature",
