@@ -1,7 +1,6 @@
 # Sine Wave Pattern Configuration for DDPG Validation
 # =====================================================
 
-experiment_name: "sine_wave"
 seed: 42  # Fixed seed for reproducibility
 
 data:
@@ -49,5 +48,4 @@ training:
   log_interval: 25
 
 logging:
-  log_dir: "logs/sine_wave"
   log_level: "INFO"

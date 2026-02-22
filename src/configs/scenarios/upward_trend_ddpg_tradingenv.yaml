@@ -2,7 +2,6 @@
 # ==================================================================
 # Simple upward trend to verify DDPG can learn to stay long (weight ≈ 1.0)
 
-experiment_name: "ddpg_tradingenv_uptrend"
 seed: 123
 
 # Data Configuration - Upward Trend Pattern
@@ -59,5 +58,4 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/ddpg_tradingenv_uptrend"
   log_level: "INFO"

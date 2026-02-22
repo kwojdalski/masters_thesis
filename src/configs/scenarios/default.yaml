@@ -1,7 +1,6 @@
 # Default Configuration for Trading RL Experiments
 # ===================================================
 
-experiment_name: "trading_rl_default"
 seed: null  # Random seed if null
 
 data:
@@ -49,5 +48,4 @@ training:
   log_interval: 50
 
 logging:
-  log_dir: "logs"
   log_level: "INFO"

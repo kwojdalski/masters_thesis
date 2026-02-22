@@ -1,7 +1,6 @@
 # PPO Configuration for Sine Wave Pattern with Trend
 # ===================================================
 
-experiment_name: "sine_wave_ppo_trend"
 seed: 99  # Fixed seed for reproducibility
 
 # Data Configuration - Sine Wave Pattern with Upward Trend
@@ -63,5 +62,4 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/sine_wave_ppo_trend"
   log_level: "INFO"
