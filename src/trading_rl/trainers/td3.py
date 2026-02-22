@@ -339,7 +339,7 @@ class TD3Trainer(BaseTrainer):
             self.logs["loss_value"].append(value_loss)
 
             # 2. Delayed actor update
-            update_actor = j % self.policy_delay == 0
+            update_actor = current_step % self.policy_delay == 0
 
             extra_metrics = None
             if update_actor:
