@@ -171,6 +171,73 @@ class BaseTrainer(ABC):
         """Optional action-probability visualization; default is not implemented."""
         return None
 
+    def _initialize_offpolicy_collection_policy(
+        self,
+        exploration_policy: Any,
+        action_spec: Any,
+        *,
+        algorithm_label: str = "Off-policy",
+    ) -> None:
+        """Configure collector policy for off-policy warmup and resume.
+
+        Uses random actions until ``init_rand_steps`` is reached, then switches to
+        the provided exploration policy. On resume, if warmup is already complete,
+        it starts directly with the exploration policy to avoid collecting an extra
+        random batch.
+        """
+        self._offpolicy_exploration_policy = exploration_policy
+        warmup_steps = int(getattr(self.config, "init_rand_steps", 0))
+
+        if self.total_count >= warmup_steps:
+            self.collector.policy = exploration_policy
+            self.random_exploration_done = True
+            logger.info(
+                "%s random warmup already complete at %s steps; starting with exploration policy.",
+                algorithm_label,
+                self.total_count,
+            )
+            return
+
+        self.collector.policy = torchrl_collectors.RandomPolicy(action_spec)
+        self.random_exploration_done = False
+        logger.info(
+            "%s using random policy for first %s steps",
+            algorithm_label,
+            warmup_steps,
+        )
+
+    def _maybe_switch_from_random_warmup(
+        self,
+        *,
+        algorithm_label: str = "Off-policy",
+    ) -> None:
+        """Switch collector from random warmup to exploration policy once ready."""
+        if getattr(self, "random_exploration_done", True):
+            return
+
+        warmup_steps = int(getattr(self.config, "init_rand_steps", 0))
+        if self.total_count < warmup_steps:
+            return
+
+        exploration_policy = getattr(self, "_offpolicy_exploration_policy", None)
+        if exploration_policy is None:
+            logger.warning(
+                "%s warmup threshold reached but no exploration policy configured.",
+                algorithm_label,
+            )
+            return
+
+        buffer_len = len(self.replay_buffer) if getattr(self, "_use_replay_buffer", True) else 0
+        logger.info(
+            "%s random exploration finished at %s steps. Switching to exploration policy.",
+            algorithm_label,
+            self.total_count,
+        )
+        logger.debug("  Buffer now contains %s transitions", buffer_len)
+
+        self.collector.policy = exploration_policy
+        self.random_exploration_done = True
+
     def _log_episode_stats(self, data: Any, callback: Any) -> None:
         """Log episode statistics to provided callback."""
         episode_reward = data["next", "reward"].sum().item()

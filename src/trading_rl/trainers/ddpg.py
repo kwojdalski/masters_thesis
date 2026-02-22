@@ -1,11 +1,14 @@
 """DDPG Trainer implementation."""
+import logging
 from collections import defaultdict
 from typing import Any
 
 import torch
-from tensordict.nn import InteractionType
+from tensordict.nn import InteractionType, TensorDictSequential
 from torch.optim import Adam
+from torchrl.data import Bounded
 from torchrl.envs.utils import set_exploration_type
+from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import DDPGLoss, SoftUpdate
 
 from logger import get_logger
@@ -65,6 +68,35 @@ class DDPGTrainer(BaseTrainer):
             self.ddpg_loss.value_network_params.values(True, True),
             lr=config.value_lr,
             weight_decay=config.value_weight_decay,
+        )
+
+        # Prefer bounded env action spec for random warmup and exploration noise.
+        env_action_spec = getattr(self.env, "action_spec", None)
+        if isinstance(env_action_spec, Bounded):
+            ddpg_action_spec = env_action_spec.to(torch.float32)
+        else:
+            action_dim = self.env.action_spec.shape[-1]
+            ddpg_action_spec = Bounded(
+                low=-1.0,
+                high=1.0,
+                shape=(action_dim,),
+                device=getattr(config, "device", "cpu"),
+                dtype=torch.float32,
+            )
+            logger.warning(
+                "Environment action_spec is not a Bounded spec; falling back to DDPG default [-1, 1] bounds."
+            )
+        self.ddpg_action_spec = ddpg_action_spec
+
+        self.exploration_module = AdditiveGaussianModule(
+            spec=ddpg_action_spec,
+            sigma_init=getattr(config, "exploration_noise_std", 0.1),
+            sigma_end=getattr(config, "exploration_noise_std", 0.1),
+            annealing_num_steps=config.max_steps,
+        )
+        logger.info(
+            "Exploration Noise Std: %.3f",
+            getattr(config, "exploration_noise_std", 0.1),
         )
 
         # Counters for tracking successful vs skipped batches
@@ -223,7 +255,7 @@ class DDPGTrainer(BaseTrainer):
             del eval_rollout
 
     def _compute_exploration_ratio(self) -> float:
-        return 0.1  # Placeholder - could be calculated from exploration strategy
+        return getattr(self.config, "exploration_noise_std", 0.1)
 
     def save_checkpoint(self, path: str) -> None:
         """Save training checkpoint.
@@ -338,10 +370,37 @@ class DDPGTrainer(BaseTrainer):
 
     def train(self, callback=None) -> dict[str, list]:
         """Run training loop for DDPG agent with batch summary."""
+        self.noisy_policy = TensorDictSequential(self.actor, self.exploration_module)
+        self._initialize_offpolicy_collection_policy(
+            self.noisy_policy,
+            self.ddpg_action_spec,
+            algorithm_label="DDPG",
+        )
+
+        def on_batch_start(i, data) -> None:
+            if logger.isEnabledFor(logging.DEBUG) and i % 10 == 0:
+                episode_rewards = data["next", "reward"]
+                buffer_len = len(self.replay_buffer)
+                logger.debug(
+                    f"[Batch {i}] Collected {data.numel()} steps, buffer size: {buffer_len}"
+                )
+                logger.debug(
+                    f"  Episode rewards - mean: {episode_rewards.mean():.4f}, std: {episode_rewards.std():.4f}"
+                )
+                collected_actions = data["action"]
+                logger.debug(
+                    f"  Collected actions - mean: {collected_actions.mean():.4f}, std: {collected_actions.std():.4f}"
+                )
+
+        def on_batch_end(i, data) -> None:
+            self._maybe_switch_from_random_warmup(algorithm_label="DDPG")
+
         return self._run_training_loop(
             callback,
             start_message="Starting DDPG training",
             completion_prefix="DDPG Training complete",
+            on_batch_start=on_batch_start,
+            on_batch_end=on_batch_end,
             on_train_end=self._log_batch_summary,
         )
 

@@ -436,22 +436,11 @@ class TD3Trainer(BaseTrainer):
         # Create the noisy policy by chaining actor + exploration module
         # We do this once here to use when switching
         self.noisy_policy = TensorDictSequential(self.actor, self.exploration_module)
-        # Choose initial collector policy based on current training progress.
-        # This keeps resume behavior consistent: if random warmup is already over,
-        # do not collect one extra random batch before switching back.
-        if self.total_count >= self.config.init_rand_steps:
-            self.collector.policy = self.noisy_policy
-            self.random_exploration_done = True
-            logger.info(
-                "Random exploration already complete at %s steps; starting with noisy policy.",
-                self.total_count,
-            )
-        else:
-            self.collector.policy = RandomPolicy(self.td3_action_spec)
-            self.random_exploration_done = False
-            logger.info(
-                f"Using random policy for first {self.config.init_rand_steps} steps"
-            )
+        self._initialize_offpolicy_collection_policy(
+            self.noisy_policy,
+            self.td3_action_spec,
+            algorithm_label="TD3",
+        )
 
         def on_batch_start(i, data) -> None:
             # DEBUG: Log data collection statistics
@@ -472,21 +461,7 @@ class TD3Trainer(BaseTrainer):
                 )
 
         def on_batch_end(i, data) -> None:
-            # Switch from random to noisy policy after initial steps
-            if (
-                not self.random_exploration_done
-                and self.total_count >= self.config.init_rand_steps
-            ):
-                buffer_len = len(self.replay_buffer)
-                logger.info(
-                    f"✓ Random exploration finished at {self.total_count} steps. Switching to noisy policy."
-                )
-                logger.debug(
-                    f"  Buffer now contains {buffer_len} transitions from random policy"
-                )
-                # Switch back to the trained policy (with noise)
-                self.collector.policy = self.noisy_policy
-                self.random_exploration_done = True
+            self._maybe_switch_from_random_warmup(algorithm_label="TD3")
 
         return self._run_training_loop(
             callback,
