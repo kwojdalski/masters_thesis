@@ -592,8 +592,10 @@ class TD3Trainer(BaseTrainer):
         checkpoint = {
             "actor_state_dict": self.actor.state_dict(),
             "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
+            "target_actor_params_state": self.td3_loss.target_actor_network_params.state_dict(),
             "qvalue_state_dict": self.value_net.state_dict(),
             "qvalue_params_state": self.td3_loss.qvalue_network_params.state_dict(),
+            "target_qvalue_params_state": self.td3_loss.target_qvalue_network_params.state_dict(),
             "optimizer_actor_state_dict": self.optimizer_actor.state_dict(),
             "optimizer_value_state_dict": self.optimizer_value.state_dict(),
             "total_count": self.total_count,
@@ -651,6 +653,12 @@ class TD3Trainer(BaseTrainer):
             )
             self.td3_loss.qvalue_network_params.load_state_dict(
                 checkpoint["qvalue_params_state"]
+            )
+            self.td3_loss.target_actor_network_params.load_state_dict(
+                checkpoint["target_actor_params_state"]
+            )
+            self.td3_loss.target_qvalue_network_params.load_state_dict(
+                checkpoint["target_qvalue_params_state"]
             )
             # Sync back to modules for evaluation
             self.td3_loss.actor_network_params.to_module(self.actor)
