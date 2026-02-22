@@ -4,7 +4,6 @@
 # with TD3 (Twin Delayed DDPG) algorithm
 # https://github.com/xaiassetmanagement/tradingenv
 
-experiment_name: "td3_tradingenv_btc"
 seed: 42
 
 # Data Configuration
@@ -84,6 +83,5 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/td3_tradingenv_btc"
   log_level: "INFO"
   save_plots: false  # Save training plots to disk in addition to MLflow

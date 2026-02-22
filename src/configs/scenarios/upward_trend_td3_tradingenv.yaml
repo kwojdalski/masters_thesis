@@ -4,7 +4,6 @@
 # Expected behavior: Agent should learn to stay fully long (weight ≈ 1.0)
 # https://github.com/xaiassetmanagement/tradingenv
 
-experiment_name: "td3_tradingenv_uptrend"
 seed: 99  # Fixed seed for reproducibility
 
 # Data Configuration - Upward Trend Pattern
@@ -80,5 +79,4 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/td3_tradingenv_uptrend"
   log_level: "INFO"

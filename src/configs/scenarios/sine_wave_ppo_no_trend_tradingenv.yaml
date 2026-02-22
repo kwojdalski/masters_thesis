@@ -3,7 +3,6 @@
 # This configuration uses the tradingenv library for continuous portfolio allocation
 # https://github.com/xaiassetmanagement/tradingenv
 
-experiment_name: "tradingenv_ppo_example"
 seed: 42
 
 # Data Configuration
@@ -76,5 +75,4 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/tradingenv_ppo_example"
   log_level: "INFO"

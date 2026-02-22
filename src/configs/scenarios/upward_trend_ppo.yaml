@@ -1,7 +1,6 @@
 # PPO Configuration for Upward Trend Pattern
 # ===========================================
 
-experiment_name: "upward_trend_ppo"
 seed: 99  # Fixed seed for reproducibility
 
 # Data Configuration - Upward Trend Pattern
@@ -63,5 +62,4 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/upward_trend_ppo"
   log_level: "INFO"

@@ -1,7 +1,6 @@
 # Mean Reversion Pattern Configuration for DDPG Validation
 # ========================================================
 
-experiment_name: "mean_reversion"
 seed: 123  # Different seed for comparison
 
 data:
@@ -49,5 +48,4 @@ training:
   log_interval: 50
 
 logging:
-  log_dir: "logs/mean_reversion"
   log_level: "INFO"

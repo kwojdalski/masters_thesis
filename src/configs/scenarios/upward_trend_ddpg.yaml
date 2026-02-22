@@ -1,7 +1,6 @@
 # Upward Drift Pattern Configuration for DDPG Validation
 # ======================================================
 
-experiment_name: "upward_trend_ddpg"
 seed: 99  # Fixed seed for reproducibility
 
 data:
@@ -49,5 +48,4 @@ training:
   log_interval: 40
 
 logging:
-  log_dir: "logs/upward_drift"
   log_level: "INFO"

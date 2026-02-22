@@ -1,7 +1,6 @@
 # PPO Configuration for White Noise Pattern (No Trend)
 # ======================================================
 
-experiment_name: "white_noise_no_trend_ppo"
 seed: 99  # Fixed seed for reproducibility
 
 # Data Configuration - White Noise Pattern (No Trend)
@@ -63,5 +62,4 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/white_noise_no_trend_ppo"
   log_level: "INFO"

@@ -4,7 +4,6 @@
 # with PPO algorithm
 # https://github.com/xaiassetmanagement/tradingenv
 
-experiment_name: "ppo_tradingenv_btc_all_features"
 seed: 42
 
 # Data Configuration
@@ -122,6 +121,5 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/ppo_tradingenv_btc_all_features"
   log_level: "INFO"
   save_plots: false  # Save training plots to disk in addition to MLflow

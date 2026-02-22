@@ -1,7 +1,6 @@
 # PPO Configuration for Pure Sine Wave Pattern (No Trend)
 # ==========================================================
 
-experiment_name: "sine_wave_ppo_no_trend"
 seed: 99  # Fixed seed for reproducibility
 
 # Data Configuration - Pure Sine Wave Pattern (No Trend)
@@ -63,5 +62,4 @@ training:
 
 # Logging Configuration
 logging:
-  log_dir: "logs/sine_wave_ppo_no_trend"
   log_level: "INFO"
