@@ -139,7 +139,14 @@ class TD3Trainer(BaseTrainer):
             self.policy_delay,
         )
 
-    def evaluate(self, df, max_steps: int, config=None, algorithm: str | None = None):
+    def evaluate(
+        self,
+        df,
+        max_steps: int,
+        config=None,
+        algorithm: str | None = None,
+        eval_env: Any | None = None,
+    ):
         import numpy as np
         import pandas as pd
         from plotnine import aes, geom_line, ggplot, labs, scale_color_manual
@@ -148,25 +155,27 @@ class TD3Trainer(BaseTrainer):
 
         logger = get_logger(__name__)
 
+        env_to_use = eval_env or self.env
+
         logger.debug(f"Running deterministic evaluation for {max_steps} steps")
         with set_exploration_type(InteractionType.MODE):
-            rollout_deterministic = self.env.rollout(
+            rollout_deterministic = env_to_use.rollout(
                 max_steps=max_steps, policy=self.actor
             )
 
         # Extract actual returns immediately (before next rollout overwrites broker state)
         from trading_rl.utils import _extract_tradingenv_returns
 
-        actual_returns_deterministic = _extract_tradingenv_returns(self.env, max_steps)
+        actual_returns_deterministic = _extract_tradingenv_returns(env_to_use, max_steps)
 
         logger.debug(f"Running random evaluation for {max_steps} steps")
         # Use explicit random policy to ensure a distinct trajectory
         random_policy = RandomPolicy(self.td3_action_spec)
         with set_exploration_type(InteractionType.RANDOM):
-            rollout_random = self.env.rollout(max_steps=max_steps, policy=random_policy)
+            rollout_random = env_to_use.rollout(max_steps=max_steps, policy=random_policy)
 
         # Extract actual returns immediately (for random rollout)
-        actual_returns_random = _extract_tradingenv_returns(self.env, max_steps)
+        actual_returns_random = _extract_tradingenv_returns(env_to_use, max_steps)
 
         reward_plot, action_plot = compare_rollouts(
             [rollout_deterministic, rollout_random],

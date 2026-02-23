@@ -740,8 +740,10 @@ def run_single_experiment(
 
     # Evaluate agent
     logger.info("Evaluating agent...")
-    # Ensure max_steps doesn't exceed available data size
+    # Keep train-split final evaluation by default for now, but build a dedicated
+    # eval environment from the same dataframe to avoid train-env / eval-df mismatch.
     eval_df = train_df
+    eval_env = AlgorithmicEnvironmentBuilder().create(eval_df, config)
     eval_max_steps = min(config.training.eval_steps, len(eval_df) - 1)
     (
         reward_plot,
@@ -755,6 +757,7 @@ def run_single_experiment(
         max_steps=eval_max_steps,
         config=config,
         algorithm=algorithm,
+        eval_env=eval_env,
     )
 
     # Save evaluation plots as MLflow artifacts
@@ -770,6 +773,7 @@ def run_single_experiment(
         df_prices=eval_df,
         max_steps=eval_max_steps,
         config=config,
+        eval_env=eval_env,
     )
     MLflowTrainingCallback.log_evaluation_report(evaluation_report)
 
