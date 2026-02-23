@@ -49,7 +49,7 @@ env:
     "feature_day_of_week_cos",
   ]
 
-  reward_type: "log_return"
+  reward_type: "differential_sharpe"
   reward_eta: 0.01
 
 # Network Architecture
@@ -102,3 +102,9 @@ training:
 logging:
   log_level: "INFO"
   save_plots: false
+
+# Explainability Configuration
+explainability:
+  enabled: true
+  n_steps: 500
+  methods: ["permutation", "integrated_gradients"]
