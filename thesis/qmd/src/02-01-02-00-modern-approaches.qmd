@@ -1,1 +1,68 @@
 ## Modern Approaches in Algorithmic Trading
+
+Modern algorithmic trading has evolved from static rule-based systems toward
+data-intensive, adaptive, and increasingly automated decision architectures.
+While early algorithmic strategies relied heavily on pre-defined heuristics and
+manually calibrated thresholds, contemporary approaches combine statistical
+modelling, machine learning, high-frequency data processing, and real-time risk
+controls. This transition reflects both technological progress and the growing
+complexity of financial markets, in which competitive advantages are often
+small, transient, and highly sensitive to implementation quality.
+
+One major development has been the expansion of data sources used in trading
+models. In addition to price and volume data, modern systems may incorporate
+order book information, derivatives-implied signals, macroeconomic releases,
+cross-asset relationships, and alternative data. The practical implication is
+that the modelling problem is no longer only one of prediction, but also one of
+feature selection, data alignment, latency management, and robustness under
+changing data quality conditions. As a result, the data engineering layer has
+become a central component of the trading research workflow.
+
+Contemporary algorithmic trading methods can be broadly grouped into several
+categories. Statistical arbitrage approaches continue to play an important role,
+but their implementation increasingly relies on dynamic parameter estimation and
+portfolio-level optimization rather than fixed spread thresholds. Predictive
+models based on supervised learning are widely used for forecasting returns,
+volatility, direction, or execution costs, especially when the trading decision
+can be expressed as a classification or regression problem. Unsupervised and
+representation-learning techniques are applied for clustering market regimes,
+anomaly detection, dimensionality reduction, and latent-state extraction.
+
+Reinforcement learning (RL) represents a distinct modern approach because it
+optimizes sequential decisions directly in interaction with an environment. In
+contrast to purely predictive models, RL allows the objective to incorporate
+transaction costs, position constraints, and path-dependent risk considerations
+within the optimization loop. This is particularly relevant in portfolio
+allocation and trade execution settings, where the quality of a decision cannot
+be evaluated independently of subsequent states and actions. However, RL also
+introduces additional complexity, including reward design, training stability,
+exploration strategy, and sensitivity to environment specification.
+
+Another important trend is the increasing use of hybrid architectures. In
+practice, many high-performing systems combine elements of classical finance and
+machine learning rather than replacing one with the other. For example, factor
+models may be used for risk decomposition, while a machine learning model
+generates timing or allocation adjustments. Similarly, a supervised forecaster
+may be embedded inside an RL environment as a state input, or an RL agent may be
+constrained by traditional portfolio risk limits. Such hybrid designs are often
+more interpretable and operationally robust than purely end-to-end systems.
+
+Modern approaches also place greater emphasis on realistic backtesting and model
+governance. The literature increasingly recognizes that strong in-sample
+performance can result from data leakage, overfitting, survivorship bias, or
+unrealistic market assumptions. Consequently, research-quality workflows
+typically include chronological data splits, validation and test partitions,
+transaction cost modelling, sensitivity analysis, and multi-seed or repeated-run
+evaluation. These practices are particularly important for machine learning and
+RL systems, where model capacity can easily absorb noise and produce spurious
+signals.
+
+For the purposes of this thesis, modern approaches in algorithmic trading are
+not treated as a homogeneous class of methods, but as a methodological spectrum
+ranging from structured statistical models to adaptive learning systems. This
+perspective is important because it motivates the research design adopted later
+in the thesis: reinforcement learning is evaluated not as a universal
+replacement for classical methods, but as a candidate framework whose strengths
+and limitations must be assessed under realistic constraints, benchmarked
+against established approaches, and interpreted in the context of risk,
+transaction costs, and non-stationary market structure.
