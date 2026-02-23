@@ -113,6 +113,7 @@ further investigation.
 {{< include ./05-03-reward-function.qmd >}}
 {{< include ./05-04-value-function.qmd >}}
 {{< include ./05-05-policy.qmd >}}
+{{< include ./05-06-discount-factor.qmd >}}
 {{< include ./05-07-step-size.qmd >}}
 
 {{< include ./06-00-implementation-of-the-trading-agent.qmd >}}

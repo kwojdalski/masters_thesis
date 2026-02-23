@@ -1,1 +1,118 @@
 ## Value Function
+
+The value function constitutes the core mechanism through which the reinforcement learning agent evaluates the desirability of states and actions. It provides the foundation for policy optimization by estimating expected cumulative future rewards. In actor-critic architectures such as TD3, the value function guides policy improvement through gradient-based updates.
+
+### State-Value vs Action-Value Functions
+
+Reinforcement learning employs two primary value function formulations:
+
+**State-value function** $V^\pi(s)$ estimates the expected return when starting from state $s$ and following policy $\pi$ thereafter:
+
+$$V^\pi(s) = \mathbb{E}_\pi\left[\sum_{k=0}^\infty \gamma^k r_{t+k+1} \,\middle|\, s_t = s\right]$$
+
+where $\gamma \in [0,1]$ is the discount factor and $r_t$ represents the reward at time $t$.
+
+**Action-value function** (Q-function) $Q^\pi(s,a)$ estimates the expected return when taking action $a$ in state $s$ and following policy $\pi$ subsequently:
+
+$$Q^\pi(s,a) = \mathbb{E}_\pi\left[\sum_{k=0}^\infty \gamma^k r_{t+k+1} \,\middle|\, s_t = s, a_t = a\right]$$
+
+The Q-function is generally more informative for policy improvement in continuous action spaces, as it explicitly evaluates state-action pairs rather than requiring action marginalization. In TD3 and DDPG, Q-functions are central to the algorithmic design.
+
+### Q-Function in TD3: Twin Critics
+
+Twin Delayed Deep Deterministic Policy Gradient (TD3) employs two separate Q-networks—referred to as twin critics—to mitigate overestimation bias inherent in value-based reinforcement learning. Overestimation arises because the max operator in the Bellman optimality equation amplifies function approximation errors, leading to systematically inflated value estimates.
+
+The twin critic architecture maintains two independent Q-networks, $Q_{\theta_1}(s,a)$ and $Q_{\theta_2}(s,a)$, parameterized by $\theta_1$ and $\theta_2$ respectively. During Bellman target computation, TD3 uses the minimum of the two critics' estimates:
+
+$$y_t = r_t + \gamma \min_{i=1,2} Q_{\theta_i'}(s_{t+1}, \tilde{a}_{t+1})$$
+
+where $\theta_i'$ denote the parameters of target networks (slowly updated copies of the critics) and $\tilde{a}_{t+1} = \pi_{\phi'}(s_{t+1}) + \epsilon$ is the target action with exploration noise. Taking the minimum provides a pessimistic estimate that counteracts the upward bias introduced by function approximation and bootstrapping.
+
+### Bellman Equation and Temporal Difference Learning
+
+The Q-function satisfies the Bellman equation:
+
+$$Q^\pi(s,a) = \mathbb{E}[r + \gamma Q^\pi(s', \pi(s'))]$$
+
+In practice, the agent does not know the true environment dynamics or reward distribution. Temporal Difference (TD) learning approximates the Q-function by minimizing the TD error, defined as the discrepancy between the current estimate and the bootstrapped target:
+
+$$\delta_t = r_t + \gamma Q_{\theta'}(s_{t+1}, a_{t+1}) - Q_\theta(s_t, a_t)$$
+
+The Q-network parameters $\theta$ are updated to minimize the mean-squared TD error:
+
+$$\mathcal{L}(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}\left[\left(r + \gamma Q_{\theta'}(s', \pi_{\phi'}(s')) - Q_\theta(s,a)\right)^2\right]$$
+
+where $\mathcal{D}$ is a replay buffer storing past transitions, and $\theta'$ and $\phi'$ denote target network parameters that are updated slowly to stabilize learning.
+
+### Neural Network Parameterization
+
+The Q-function is approximated using a feedforward neural network. The network architecture typically consists of:
+
+1. **Input layer**: Concatenation of state and action vectors, $[s, a] \in \mathbb{R}^{d_s + d_a}$, where $d_s$ is the state dimension (e.g., 16 in the reduced feature set) and $d_a$ is the action dimension (1 for single-asset trading).
+
+2. **Hidden layers**: Fully connected layers with ReLU or Tanh activations. Common configurations include two hidden layers with 128 and 64 neurons, respectively.
+
+3. **Output layer**: A single scalar representing $Q(s,a)$, the estimated action-value.
+
+Formally, the Q-network computes:
+
+$$Q_\theta(s,a) = f_\theta([s, a])$$
+
+where $f_\theta$ is the neural network with parameters $\theta$ (weights and biases). In TD3, two such networks are instantiated with independent initializations to form the twin critics.
+
+### Target Networks and Soft Updates
+
+To prevent instability during Q-learning, TD3 employs target networks $Q_{\theta_1'}$ and $Q_{\theta_2'}$ that are slowly updated copies of the main critics. Rather than updating target parameters every step, soft updates are applied:
+
+$$\theta_i' \leftarrow \tau \theta_i + (1 - \tau) \theta_i'$$
+
+where $\tau \in (0, 1)$ is a small constant (typically 0.001 to 0.01). This ensures target values change gradually, reducing oscillations in the Q-function estimates.
+
+### Value Function Role in Policy Optimization
+
+The policy (actor) is optimized to maximize the expected Q-value:
+
+$$\nabla_\phi J(\phi) = \mathbb{E}_{s \sim \mathcal{D}}\left[\nabla_a Q_{\theta_1}(s,a)\big|_{a=\pi_\phi(s)} \nabla_\phi \pi_\phi(s)\right]$$
+
+This gradient ascent updates the policy parameters $\phi$ in the direction that increases the Q-value, as estimated by the first critic. The second critic is not directly used in policy gradients but influences learning through the Bellman target computation.
+
+### Discount Factor and Time Horizon
+
+The discount factor $\gamma$ determines the relative importance of immediate versus future rewards. In this implementation, $\gamma = 0.99$, implying that rewards 100 steps ahead are discounted to approximately $0.37$ of their nominal value. This horizon is appropriate for hourly trading data, balancing short-term profitability with medium-term strategic positioning.
+
+A lower $\gamma$ (e.g., 0.9) would prioritize immediate returns, potentially inducing myopic strategies. A higher $\gamma$ (e.g., 0.999) would extend the planning horizon but may increase variance in value estimates due to the longer accumulation of stochastic rewards.
+
+### Loss Function: Smooth L1 vs MSE
+
+While standard Q-learning uses mean-squared error (MSE), TD3 in this implementation employs the Smooth L1 loss (also known as Huber loss):
+
+$$\mathcal{L}_{\text{Smooth L1}}(\delta) = \begin{cases}
+0.5 \delta^2, & \text{if } |\delta| \leq 1 \\
+|\delta| - 0.5, & \text{otherwise}
+\end{cases}$$
+
+where $\delta$ is the TD error. This loss function is less sensitive to outliers compared to MSE, providing robustness to occasional large TD errors that may occur during market volatility or regime shifts. The quadratic term near zero ensures smooth gradients for small errors, while the linear term for large errors prevents extreme gradient magnitudes.
+
+### Value Function Interpretability in Trading
+
+In a trading context, the Q-function $Q(s,a)$ estimates the expected cumulative discounted reward when taking allocation $a$ in market state $s$. For example:
+
+* If $Q(s, 0.8) > Q(s, 0.0)$, the agent expects higher returns from a substantial long position than from remaining neutral.
+* The difference $Q(s, a_1) - Q(s, a_2)$ quantifies the relative desirability of two actions.
+* High Q-values across all actions suggest a favorable state, while uniformly low Q-values indicate poor trading opportunities.
+
+The Q-function implicitly incorporates risk considerations when trained with risk-adjusted rewards (e.g., Sharpe-based rewards), encoding the trade-off between return and volatility.
+
+### Challenges and Limitations
+
+Despite its theoretical elegance, the Q-function approximation faces several practical challenges:
+
+1. **Non-stationarity**: As the policy evolves, the distribution of states and actions changes, violating the i.i.d. assumption of supervised learning.
+
+2. **Bootstrapping bias**: Using the Q-network's own estimates as targets can propagate errors and lead to divergence. Target networks and twin critics mitigate but do not eliminate this issue.
+
+3. **Out-of-distribution generalization**: The Q-network must evaluate state-action pairs not encountered during training, particularly during test-time deployment under novel market conditions.
+
+4. **Reward sparsity**: In financial environments, meaningful rewards may be infrequent, making credit assignment difficult. Careful reward design (e.g., incorporating step-wise log returns) alleviates this problem.
+
+The combination of twin critics, target networks, delayed policy updates, and robust loss functions in TD3 addresses many of these challenges, providing a stable framework for Q-function learning in continuous-action trading environments.

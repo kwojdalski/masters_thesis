@@ -1,15 +1,115 @@
-### Book Pressure-Related Variables
+## State Space
 
+The state space defines the informational representation available to the agent at each decision point. A well-designed state space captures relevant market dynamics while maintaining computational tractability and avoiding redundancy. The state vector $s_t \in \mathcal{S}$ at time $t$ encodes the agent's observation of the trading environment.
 
+### State Representation Requirements
 
-### Volume-Related Variables
+An effective state representation for trading must satisfy several criteria:
 
+1. **Markov Property**: The state should contain sufficient information such that future states and rewards depend only on the current state and action, not on the entire history. While financial markets exhibit memory effects, a properly engineered feature set can approximate this property.
 
-### Last Trade Price-Related Variables
+2. **Stationarity**: Features should ideally exhibit relatively stable statistical properties over time. Non-stationary raw prices are typically transformed into returns or normalized indicators to improve learning stability.
 
+3. **Informational Relevance**: The state should contain predictive signals related to future price movements, volatility, or trading opportunities, while excluding noise or redundant correlations.
 
-### Time-Related Variables
+4. **Dimensionality**: The state space should balance expressiveness with computational efficiency. High-dimensional states increase network complexity and sample requirements, while overly sparse states may lack discriminative power.
 
-### Technical Indicators
+### Feature Engineering Approach
 
-### Autoregressive Variables
+The state space in this implementation consists of engineered features rather than raw OHLCV (Open, High, Low, Close, Volume) data. Feature engineering serves multiple purposes:
+
+* **Dimensionality reduction**: Transforming raw tick-level or high-frequency data into compact statistical summaries
+* **Stationarity induction**: Converting non-stationary prices into stationary returns, volatilities, and normalized indicators
+* **Signal extraction**: Emphasizing patterns relevant to trading decisions (momentum, mean reversion, volatility regimes)
+* **Noise reduction**: Aggregating information over multiple time scales to filter out random fluctuations
+
+Two feature configurations are employed in the empirical analysis:
+
+1. **Comprehensive feature set**: Includes extensive technical indicators, order book imbalances, volume metrics, and temporal patterns (approximately 30-40 features)
+2. **Reduced non-redundant feature set**: A minimal subset designed to avoid multicollinearity while preserving signal diversity (16 features)
+
+The reduced feature set is presented below as an illustrative example of the state space design.
+
+### Reduced Feature Set Composition
+
+The minimal state vector consists of 16 features categorized into five groups:
+
+#### Autoregressive Return Features
+
+Lagged returns capture short- to medium-term momentum and mean-reversion dynamics:
+
+* `feature_return_lag_1`: One-period log return, $r_{t-1} = \log(P_{t-1}/P_{t-2})$
+* `feature_return_lag_6`: Six-period lagged return, capturing intra-day momentum patterns
+* `feature_return_lag_24`: Daily return lag (24 hourly periods), representing daily trend persistence
+* `feature_return_lag_168`: Weekly return lag (168 hourly periods), capturing longer-term directional bias
+
+These features provide a multi-scale view of recent price evolution without including redundant intermediate lags.
+
+#### Volatility Features
+
+Volatility measures quantify market uncertainty and regime changes:
+
+* `feature_realized_volatility_24`: Rolling standard deviation of returns over the past 24 periods, $\sigma_{t}^{24} = \sqrt{\frac{1}{24}\sum_{i=1}^{24}r_{t-i}^2}$
+* `feature_volatility_ratio_6_168`: Ratio of short-term (6-period) to long-term (168-period) volatility, indicating volatility regime transitions. A ratio greater than 1 signals increasing short-term uncertainty.
+
+#### Volume and Liquidity Features
+
+Volume-based indicators reveal market participation intensity and potential liquidity shocks:
+
+* `feature_volume_ma_ratio_24`: Current volume relative to its 24-period moving average, $V_t / \overline{V}_{t}^{24}$, signaling abnormal trading activity
+* `feature_volume_change`: First-order difference in volume, $\Delta V_t = V_t - V_{t-1}$
+* `feature_amihud_illiquidity`: Amihud's illiquidity measure, defined as $|r_t| / V_t$, quantifying price impact per unit volume. Higher values indicate thinner liquidity and greater transaction costs.
+
+#### Technical Indicators
+
+Classical technical analysis tools encode price patterns and momentum:
+
+* `feature_rsi_14`: Relative Strength Index over 14 periods, bounded in $[0, 100]$, measuring overbought ($>70$) and oversold ($<30$) conditions
+* `feature_macd_signal`: Moving Average Convergence Divergence signal line difference, capturing momentum crossover signals
+* `feature_bbands_20`: Bollinger Bands position, measuring the current price relative to 20-period moving average plus/minus two standard deviations. Values near $\pm 1$ indicate boundary proximity, potentially signaling reversals.
+
+#### Temporal Context Features
+
+Cyclical time encodings capture intraday and weekly seasonality without imposing ordinality:
+
+* `feature_hour_sin`, `feature_hour_cos`: Sine and cosine transformations of the hour-of-day, $\sin(2\pi h/24)$ and $\cos(2\pi h/24)$, representing the 24-hour cycle
+* `feature_day_of_week_sin`, `feature_day_of_week_cos`: Sine and cosine transformations of the day-of-week, representing weekly periodicity (e.g., Monday effects, weekend sentiment)
+
+These circular encodings ensure temporal continuity—for example, 23:00 and 00:00 are represented as neighbors rather than distant integers.
+
+### State Space Dimensionality
+
+The complete state vector is:
+
+$$s_t = [r_{t-1}, r_{t-6}, r_{t-24}, r_{t-168}, \sigma_t^{24}, \text{vol\_ratio}_t, \ldots, \sin(h_t), \cos(h_t)] \in \mathbb{R}^{16}$$
+
+This 16-dimensional representation provides a compact yet informative summary of market conditions. Higher-dimensional formulations (30-40 features) include additional technical indicators, order flow imbalances, and higher-order lags at the cost of increased network complexity and potential overfitting.
+
+### Feature Normalization and Preprocessing
+
+Raw features exhibit varying scales—returns are typically $O(10^{-3})$ to $O(10^{-2})$, while RSI is bounded in $[0, 100]$ and volume can span several orders of magnitude. To facilitate neural network training, features undergo standardization:
+
+$$\tilde{x}_i = \frac{x_i - \mu_i^{\text{train}}}{\sigma_i^{\text{train}}}$$
+
+where $\mu_i^{\text{train}}$ and $\sigma_i^{\text{train}}$ are the mean and standard deviation computed exclusively on the training set. This transformation is applied consistently to validation and test sets using the same training statistics to prevent data leakage.
+
+Temporal features (sine and cosine encodings) are inherently bounded in $[-1, 1]$ and do not require normalization. Missing values, if present, are forward-filled or interpolated to maintain temporal continuity.
+
+### Observation Space Specification
+
+Formally, the observation space is defined as a continuous box:
+
+$$\mathcal{S} = [-\infty, \infty]^{16}$$
+
+In practice, after standardization, most feature values concentrate within $[-3, 3]$ under Gaussian assumptions, though extreme market events can produce outliers. The neural network policy and value functions must generalize to states outside the training distribution, particularly during stress periods or regime shifts.
+
+### Design Rationale and Trade-offs
+
+The reduced feature set prioritizes interpretability and robustness:
+
+* **Non-redundancy**: Avoids including multiple overlapping moving averages (e.g., 5, 10, 20, 50-period MAs) that convey similar information
+* **Multi-scale structure**: Captures dynamics at multiple time horizons (hourly, daily, weekly) without excessive granularity
+* **Signal diversity**: Combines momentum (returns, MACD), volatility (realized vol, volatility ratio), volume (liquidity, participation), and pattern recognition (RSI, Bollinger Bands)
+* **Temporal awareness**: Encodes seasonality patterns that may correlate with systematic trading activity (e.g., institutional flows at market open/close)
+
+The trade-off is that a compact state space may omit potentially informative signals present in the comprehensive feature set. Empirical evaluation compares performance across feature configurations to assess this balance.
