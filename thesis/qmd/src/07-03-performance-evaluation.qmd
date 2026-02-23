@@ -1,1 +1,92 @@
 ## Performance Evaluation
+
+This section reports performance metrics and evaluation figures generated from
+the latest completed run of the selected experiment. The results are read
+directly from experiment tracking artifacts to maintain consistency with the
+recorded evaluation outputs.
+
+```{python}
+#| label: perf_eval_setup
+#| echo: false
+#| warning: false
+
+from pathlib import Path
+import pandas as pd
+import matplotlib.pyplot as plt
+from PIL import Image
+
+from thesis_mlflow_results import load_experiment_snapshot, format_key_metrics
+
+EXPERIMENT_NAME = "btc_td3_tradingenv_reduced_features"
+snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
+finished = snapshot.latest_finished
+```
+
+### Selected Metrics from the Latest Completed Run
+
+```{python}
+#| echo: false
+
+if finished is None:
+    print(f"No finished runs available for experiment: {EXPERIMENT_NAME}")
+else:
+    key_metrics_df = format_key_metrics(finished.get("evaluation_report"))
+    if key_metrics_df.empty:
+        print("No evaluation report artifact found for the latest completed run.")
+    else:
+        display(key_metrics_df)
+```
+
+### Evaluation Metadata Snapshot
+
+```{python}
+#| echo: false
+
+if finished is not None:
+    params = finished.get("params", {})
+    latest = finished.get("latest_metrics")
+    rows = [
+        ("Run Name", finished.get("run_name")),
+        ("Status", finished.get("status")),
+        ("Start Time", str(finished.get("start_time"))),
+        ("End Time", str(finished.get("end_time"))),
+        ("Seed", params.get("seed")),
+        ("Train Size", params.get("data_train_size")),
+        ("Algorithm", params.get("training_algorithm")),
+        ("Reward Type", params.get("env_reward_type")),
+        ("Training Steps (latest metric)", None if latest is None else latest.get("training_steps")),
+        ("Final Reward (latest metric)", None if latest is None else latest.get("final_reward")),
+    ]
+    meta_df = pd.DataFrame(rows, columns=["Field", "Value"])
+    display(meta_df)
+```
+
+### Evaluation Plots
+
+```{python}
+#| echo: false
+#| warning: false
+
+if finished is None:
+    print("No finished run available to display evaluation plots.")
+else:
+    plots = finished.get("evaluation_plots", {})
+    ordered = [
+        ("Merged comparison", "merged_comparison"),
+        ("Actual returns", "actual_returns"),
+        ("Rewards", "rewards"),
+        ("Positions", "positions"),
+    ]
+
+    for title, key in ordered:
+        plot_path = plots.get(key)
+        if plot_path and Path(plot_path).exists():
+            img = Image.open(plot_path)
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.imshow(img)
+            ax.axis("off")
+            ax.set_title(title)
+            plt.show()
+        else:
+            print(f"{title}: artifact not found")
+```
