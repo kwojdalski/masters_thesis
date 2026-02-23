@@ -1,78 +1,36 @@
 ## Seminal Works in RL
 
-The development of reinforcement learning as a mature discipline spans decades of theoretical advances and algorithmic innovations. This section reviews pivotal contributions that shaped modern RL and enabled its application to complex domains such as financial trading.
+This subsection reviews seminal reinforcement learning works from the perspective
+of their relevance to financial trading research. To avoid repeating the generic
+algorithm timeline and formal theory already covered in Chapter 4, the emphasis
+here is on which contributions matter for trading applications and why they are
+frequently cited in the finance RL literature.
 
-### Foundational Theory (1950s-1980s)
+### General RL Milestones Relevant to Trading (Abridged Context)
 
-**Dynamic Programming and Optimal Control**
+The broad theoretical foundations of reinforcement learning are rooted in
+dynamic programming and sequential decision-making theory, especially the work of
+@Bellman1957 and later syntheses such as @Bertsekas1996. For financial research,
+their primary importance is conceptual: they provide the language of long-horizon
+decision optimization and value-based reasoning that later RL trading systems
+inherit.
 
-Richard Bellman's @Bellman1957 formulation of dynamic programming established the mathematical foundations for sequential decision-making. The Bellman equation, expressing optimal value functions recursively, remains central to virtually all RL algorithms. Bellman's principle of optimality—that optimal policies must be composed of optimal subpolicies—provides both theoretical justification and computational methods for solving MDPs.
+The shift from model-based reasoning to learning from experience is driven by
+temporal-difference learning @Sutton1988, Q-learning @Watkins1989; @Watkins1992,
+and policy-gradient methods @Williams1992; @Sutton2000. These works are
+frequently referenced in finance because market transition dynamics are unknown,
+historical data is limited, and many trading problems require direct policy
+optimization rather than exact dynamic-programming solutions.
 
-@Bertsekas1996 provide comprehensive treatment of dynamic programming and optimal control, bridging operations research and machine learning perspectives. Their work on approximate dynamic programming anticipated function approximation methods central to modern deep RL.
-
-**Temporal Difference Learning**
-
-@Sutton1988 introduced temporal difference learning, synthesizing Monte Carlo and dynamic programming approaches. TD learning's ability to learn from incomplete episodes and bootstrap from current value estimates revolutionized RL by enabling online learning in continuing tasks. Sutton's insight that TD methods converge to correct predictions under appropriate conditions established theoretical foundations for modern algorithms.
-
-### Classical Algorithms (1989-1992)
-
-**Q-Learning**
-
-@Watkins1989 introduced Q-learning in his doctoral thesis, proving that off-policy TD learning converges to optimal action-values under tabular representations. The elegance of the Q-learning update rule:
-
-$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha [r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)]$$
-
-combined simplicity with theoretical guarantees, making Q-learning the foundation for numerous subsequent algorithms. @Watkins1992 provided convergence proofs under standard assumptions, establishing Q-learning as a cornerstone algorithm in RL.
-
-**SARSA**
-
-@Rummery1994 developed SARSA (State-Action-Reward-State-Action), an on-policy alternative to Q-learning. While less prominent in theoretical literature, SARSA's on-policy nature makes it more conservative and often more stable in practice, particularly relevant for financial applications where exploration risks are significant.
-
-**Policy Gradient Theorem**
-
-@Williams1992 introduced REINFORCE, the first practical policy gradient algorithm. Williams demonstrated that policies could be directly optimized through gradient ascent on expected return, circumventing the need for value function estimation. This work established policy gradient methods as a distinct paradigm complementing value-based approaches.
-
-### Function Approximation Era (1990s-2000s)
-
-**Convergence Analysis**
-
-@Tsitsiklis1997 provided rigorous analysis of TD learning with function approximation, identifying conditions under which convergence is guaranteed and scenarios where divergence occurs. Their work revealed fundamental challenges in combining off-policy learning with non-linear function approximation—issues that persist in modern deep RL.
-
-@Sutton1996 introduced gradient TD methods with improved convergence properties, advancing the theoretical understanding of function approximation in RL. These contributions established that not all function approximation schemes are equally suitable for TD learning.
-
-**Policy Gradient Refinements**
-
-@Sutton2000 formalized the policy gradient theorem, proving that policy gradients can be estimated without differentiating the environment dynamics—a critical insight enabling practical policy optimization. This theorem underlies modern actor-critic methods including those employed in financial trading applications.
-
-@Kakade2001 introduced natural policy gradients, leveraging Fisher information geometry to improve optimization efficiency. Natural gradients account for policy parameterization, often yielding more stable and sample-efficient learning than vanilla gradients.
-
-### Modern Deep RL Era (2013-Present)
-
-**Deep Q-Networks (DQN)**
-
-@Mnih2013 and @Mnih2015 achieved human-level performance on Atari games using deep neural networks to approximate Q-functions, catalyzing the deep RL revolution. Key innovations included:
-
-* **Experience replay**: Storing and resampling transitions to break temporal correlations
-* **Target networks**: Stabilizing learning by slowly updating target Q-values
-* **End-to-end learning**: Learning directly from high-dimensional sensory inputs
-
-DQN demonstrated that deep learning could address RL's scalability challenges, inspiring applications across domains including finance.
-
-**Policy Gradient Advances**
-
-@Schulman2015 introduced Trust Region Policy Optimization (TRPO), guaranteeing monotonic policy improvement through constrained optimization. TRPO's theoretical guarantees and empirical performance established it as a state-of-the-art policy gradient method.
-
-@Schulman2017 simplified TRPO's implementation with Proximal Policy Optimization (PPO), achieving similar performance with first-order optimization. PPO's simplicity and robustness made it the de facto standard for continuous control tasks, including portfolio optimization.
-
-**Actor-Critic Refinements**
-
-@Lillicrap2015 developed Deep Deterministic Policy Gradient (DDPG), extending DQN's insights to continuous control. DDPG combines deterministic policy gradients with deep function approximation, target networks, and experience replay—a combination particularly suitable for trading applications with continuous action spaces.
-
-@Fujimoto2018 identified overestimation bias in actor-critic methods, introducing Twin Delayed DDPG (TD3). TD3's innovations—twin critics taking minimum Q-values, delayed policy updates, and target policy smoothing—significantly improve stability and performance. This thesis employs TD3 for precisely these stability properties in the noisy financial environment.
-
-**Soft Actor-Critic**
-
-@Haarnoja2018 proposed Soft Actor-Critic (SAC), incorporating maximum entropy reinforcement learning principles. SAC's entropy regularization encourages exploration and often improves robustness to hyperparameters—advantageous properties for financial applications where exploration-exploitation balance is critical.
+The deep RL era made RL materially more applicable to finance by combining
+function approximation with stabilizing mechanisms and scalable optimization.
+Commonly cited milestones in finance-oriented papers include DQN
+(@Mnih2013; @Mnih2015), continuous-control actor-critic methods such as DDPG
+@Lillicrap2015, stability improvements such as TD3 @Fujimoto2018, entropy-based
+methods such as SAC @Haarnoja2018, and practical policy-gradient refinements
+such as PPO @Schulman2017. Chapter 4 provides the chronological timeline and
+algorithmic classification of these methods; the present subsection focuses on
+their role in financial research.
 
 ### RL for Trading: Key Works
 
@@ -102,7 +60,7 @@ DQN demonstrated that deep learning could address RL's scalability challenges, i
 
 @Levine2020 formalized offline (batch) reinforcement learning, learning policies exclusively from fixed datasets without environment interaction. Offline RL is especially relevant for finance where online experimentation is costly and risky. @Kumar2020 address distribution shift challenges in offline RL, proposing conservative Q-learning to prevent overestimation on out-of-distribution actions.
 
-### Impact on Trading Systems
+### Impact on Trading Systems and This Thesis
 
 These seminal works collectively enable modern RL-based trading systems by providing:
 
@@ -112,4 +70,9 @@ These seminal works collectively enable modern RL-based trading systems by provi
 * **Stable learning**: Algorithmic innovations (target networks, twin critics) mitigating instability
 * **Sample efficiency**: Off-policy and offline methods learning from historical data
 
-The methodology in this thesis synthesizes these advances, employing TD3 for stable continuous control, Differential Sharpe Ratio for risk-adjusted optimization, and careful feature engineering informed by decades of RL research. Subsequent chapters detail how these theoretical foundations translate to practical trading system implementation.
+In this thesis, these contributions primarily inform three design choices:
+(1) stable continuous-control learning (TD3), (2) risk-aware reward design
+(Differential Sharpe Ratio), and (3) cautious interpretation of results under
+limited and non-stationary financial data. The formal RL mechanics are presented
+in Chapter 4, while the trading-agent design and empirical implementation are
+detailed in Chapters 5-7.
