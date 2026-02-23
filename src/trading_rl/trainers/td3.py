@@ -644,13 +644,8 @@ class TD3Trainer(BaseTrainer):
             # Sync back to modules for evaluation
             self.td3_loss.actor_network_params.to_module(self.actor)
             self.td3_loss.qvalue_network_params.to_module(self.value_net)
-            # Load saved critic module (backward compatible with list format)
-            qvalue_state = checkpoint.get("qvalue_state_dict")
-            if isinstance(qvalue_state, list):
-                if qvalue_state:
-                    self.value_net.load_state_dict(qvalue_state[0])
-            elif qvalue_state is not None:
-                self.value_net.load_state_dict(qvalue_state)
+            # For modern checkpoints, functional params are the source of truth.
+            # Do not overwrite the synced critic module with qvalue_state_dict.
         else:
             self.actor.load_state_dict(checkpoint["actor_state_dict"])
             qvalue_state = checkpoint.get("qvalue_state_dict")
