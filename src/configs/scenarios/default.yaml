@@ -49,3 +49,8 @@ training:
 
 logging:
   log_level: "INFO"
+
+explainability:
+  enabled: false
+  n_steps: 500
+  methods: ["permutation", "integrated_gradients"]
