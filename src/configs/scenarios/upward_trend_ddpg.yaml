@@ -7,11 +7,6 @@ data:
   data_path: "./data/raw/synthetic/upward_trend_ddpg.parquet"
   data_config: "src/configs/data/upward_drift_strong.yaml"  # Config for regenerating data
   download_data: false
-  exchange_names: ["synthetic"]
-  symbols: ["DRIFT/UP"]
-  timeframe: "1h"
-  data_dir: "data"
-  download_since: "2024-01-01T00:00:00+00:00"
   train_size: 450
 
 env:

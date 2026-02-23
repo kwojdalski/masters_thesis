@@ -11,11 +11,6 @@ data:
   data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
   feature_config: "src/configs/features/btc_with_volume.yaml"  # Config for feature engineering
   download_data: false
-  exchange_names: ["binance"]
-  symbols: ["BTC/USDT"]
-  timeframe: "1h"
-  data_dir: "data"
-  download_since: "2023-01-01T00:00:00+00:00"
   train_size: 7000  # ~8 months for training (total: 8736 hourly candles in 2023)
 
 # Environment Configuration - TradingEnv Backend

@@ -8,11 +8,6 @@ data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
   data_config: "src/configs/data/sine_wave_standard.yaml"  # Config for regenerating data
   download_data: false
-  exchange_names: ["synthetic"]
-  symbols: ["SINE/WAVE"]
-  timeframe: "1h"
-  data_dir: "data"
-  download_since: "2024-01-01T00:00:00+00:00"
   train_size: 450  # Hold back last 50 steps for evaluation
 
 # Environment Configuration  

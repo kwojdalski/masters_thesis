@@ -11,11 +11,6 @@ data:
   data_config: "src/configs/data/sine_wave_standard.yaml"  # Config for regenerating data
   feature_config: "src/configs/features/sine_wave_price_action.yaml"  # Config for feature engineering
   download_data: false
-  exchange_names: ["synthetic"]
-  symbols: ["SINE/WAVE"]
-  timeframe: "1h"
-  data_dir: "data"
-  download_since: "2024-01-01T00:00:00+00:00"
   train_size: 450
 
 # Environment Configuration - TradingEnv Backend
