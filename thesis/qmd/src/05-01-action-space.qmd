@@ -1,1 +1,64 @@
 ## Action Space
+
+The action space defines the set of permissible decisions available to the trading agent at each time step. This design choice fundamentally shapes the agent's behavior and determines the granularity of control over portfolio positions.
+
+### Continuous vs Discrete Actions
+
+Trading systems can be formulated with either discrete or continuous action spaces:
+
+**Discrete action spaces** restrict the agent to a finite set of categorical decisions. Common formulations include:
+
+* Three actions: $\{-1, 0, 1\}$ representing short, neutral, and long positions
+* Two actions: $\{0, 1\}$ representing short and long positions only
+* Five actions: $\{-1, -0.5, 0, 0.5, 1\}$ for finer-grained position sizing
+
+While discrete actions simplify the learning problem and are compatible with algorithms such as Deep Q-Networks (DQN), they impose artificial constraints on portfolio management. Real-world traders continuously adjust position sizes based on conviction levels and risk tolerance.
+
+**Continuous action spaces** allow the agent to output any value within a specified range, enabling smooth portfolio allocation decisions. This formulation is more realistic for institutional trading where positions can be scaled incrementally.
+
+### Implementation: Box Portfolio Action Space
+
+In this implementation, the action space is defined as a continuous interval:
+
+$$\mathcal{A} = [-1.0, 1.0]$$
+
+where the action $a_t \in \mathcal{A}$ at time $t$ represents the target portfolio allocation for the traded asset. The semantic interpretation is:
+
+* $a_t = 1.0$: Maximum long exposure (fully invested long position)
+* $a_t = 0.0$: Neutral position (no exposure, cash equivalent)
+* $a_t = -1.0$: Maximum short exposure (fully invested short position)
+* $a_t \in (0, 1)$: Partial long position scaled by magnitude
+* $a_t \in (-1, 0)$: Partial short position scaled by magnitude
+
+This formulation explicitly supports short-selling, which is realistic in foreign exchange and cryptocurrency markets where symmetric long/short positions are standard. The continuous nature enables the agent to express varying degrees of conviction—for example, $a_t = 0.3$ indicates a moderately bullish stance, while $a_t = -0.8$ signals strong bearish conviction.
+
+### Action Constraints and Transaction Costs
+
+The action space is bounded to prevent unrealistic leverage. In practice, unbounded actions could lead to positions exceeding available capital or margin requirements. The $[-1, 1]$ range implicitly assumes unit leverage without margin multipliers.
+
+Transaction costs are applied proportionally to position changes. If the agent transitions from $a_{t-1}$ to $a_t$, the turnover magnitude is $|a_t - a_{t-1}|$, and fees are calculated as:
+
+$$\text{fee}_t = \text{trading\_fees} \times |a_t - a_{t-1}| \times \text{notional value}$$
+
+This incentivizes the agent to minimize unnecessary portfolio rebalancing, as frequent adjustments erode returns. During training, the reinforcement learning algorithm must learn to balance the potential gains from reallocation against the friction costs incurred.
+
+### Algorithmic Compatibility
+
+The continuous action space requires policy gradient methods or actor-critic algorithms capable of handling continuous control. Suitable algorithms include:
+
+* **Deep Deterministic Policy Gradient (DDPG)**: Deterministic policy for continuous actions
+* **Twin Delayed Deep Deterministic Policy Gradient (TD3)**: Improved DDPG variant with twin critics and delayed updates
+* **Proximal Policy Optimization (PPO)**: Stochastic policy supporting continuous action distributions
+* **Soft Actor-Critic (SAC)**: Maximum entropy framework for continuous control
+
+In the empirical implementation, TD3 is employed due to its stability improvements over DDPG, particularly the use of twin Q-networks to reduce overestimation bias and delayed policy updates to stabilize training dynamics. These properties are valuable in financial environments characterized by noisy reward signals and non-stationary dynamics.
+
+### Action Smoothing and Exploration Noise
+
+During training, exploration is introduced through additive Gaussian noise:
+
+$$a_t^{\text{noisy}} = \text{clip}(a_t + \epsilon, -1.0, 1.0)$$
+
+where $\epsilon \sim \mathcal{N}(0, \sigma^2)$ and $\sigma$ is the exploration noise standard deviation (typically 0.1 to 0.3). The clipping operation ensures actions remain within valid bounds. This exploration mechanism encourages the agent to discover diverse trading strategies during early training phases while gradually converging to deterministic exploitation as learning progresses.
+
+Additionally, TD3 employs target policy smoothing during critic updates, adding noise to target actions when computing Bellman targets. This regularization technique prevents the critics from overfitting to narrow peaks in the value function caused by function approximation errors.
