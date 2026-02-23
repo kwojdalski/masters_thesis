@@ -191,31 +191,72 @@ class TD3Trainer(BaseTrainer):
             actual_returns_list=[actual_returns_deterministic, actual_returns_random],
         )
 
-        benchmark_df = pd.DataFrame(
-            {
-                "x": range(max_steps),
-                "buy_and_hold": np.log(df["close"] / df["close"].shift(1))
-                .fillna(0)
-                .cumsum()[:max_steps],
-                "max_profit": np.log(abs(df["close"] / df["close"].shift(1) - 1) + 1)
-                .fillna(0)
-                .cumsum()[:max_steps],
-            }
-        )
+        # Add benchmarks based on reward type
+        reward_type = getattr(config.env, "reward_type", "log_return") if config else "log_return"
         benchmark_data = []
-        for step, (bh_val, mp_val) in enumerate(
-            zip(benchmark_df["buy_and_hold"], benchmark_df["max_profit"], strict=False)
-        ):
-            benchmark_data.extend(
-                [
-                    {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
-                    {
-                        "Steps": step,
-                        "Cumulative_Reward": mp_val,
-                        "Run": "Max Profit (Unleveraged)",
-                    },
-                ]
+
+        if reward_type == "differential_sharpe":
+            # For DSR, calculate DSR benchmarks
+            from trading_rl.utils import calculate_benchmark_dsr
+
+            # Get DSR parameters from config (reward_eta is the standard name)
+            dsr_eta = getattr(config.env, "reward_eta", 0.01) if config else 0.01
+
+            logger.debug(f"Calculating DSR benchmarks with eta={dsr_eta}")
+
+            # Calculate DSR for buy-and-hold
+            bh_dsr, _ = calculate_benchmark_dsr(
+                df, strategy="buy_and_hold", eta=dsr_eta, max_steps=max_steps
             )
+
+            # Calculate DSR for max profit
+            mp_dsr, _ = calculate_benchmark_dsr(
+                df, strategy="max_profit", eta=dsr_eta, max_steps=max_steps
+            )
+
+            # Add to benchmark data
+            for step, (bh_val, mp_val) in enumerate(zip(bh_dsr, mp_dsr, strict=False)):
+                benchmark_data.extend(
+                    [
+                        {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
+                        {
+                            "Steps": step,
+                            "Cumulative_Reward": mp_val,
+                            "Run": "Max Profit (Unleveraged)",
+                        },
+                    ]
+                )
+
+            y_label = "Cumulative DSR"
+        else:
+            # For log_return and other rewards, use log return benchmarks
+            benchmark_df = pd.DataFrame(
+                {
+                    "x": range(max_steps),
+                    "buy_and_hold": np.log(df["close"] / df["close"].shift(1))
+                    .fillna(0)
+                    .cumsum()[:max_steps],
+                    "max_profit": np.log(abs(df["close"] / df["close"].shift(1) - 1) + 1)
+                    .fillna(0)
+                    .cumsum()[:max_steps],
+                }
+            )
+            for step, (bh_val, mp_val) in enumerate(
+                zip(benchmark_df["buy_and_hold"], benchmark_df["max_profit"], strict=False)
+            ):
+                benchmark_data.extend(
+                    [
+                        {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
+                        {
+                            "Steps": step,
+                            "Cumulative_Reward": mp_val,
+                            "Run": "Max Profit (Unleveraged)",
+                        },
+                    ]
+                )
+
+            y_label = "Cumulative Reward"
+
         existing_data = reward_plot.data
         combined_data = pd.concat(
             [existing_data, pd.DataFrame(benchmark_data)], ignore_index=True
@@ -224,7 +265,7 @@ class TD3Trainer(BaseTrainer):
             ggplot(combined_data, aes(x="Steps", y="Cumulative_Reward", color="Run"))
             + geom_line(alpha=0.5)
             + labs(
-                title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward"
+                title="Cumulative Rewards Comparison", x="Steps", y=y_label
             )
             + scale_color_manual(
                 values={

@@ -284,6 +284,99 @@ def create_actual_returns_plot(
     return returns_plot
 
 
+def calculate_benchmark_dsr(df_prices, strategy="buy_and_hold", eta=0.01, epsilon=1e-8, max_steps=None):
+    """Calculate Differential Sharpe Ratio for a benchmark trading strategy.
+
+    This function simulates a benchmark strategy and calculates its DSR rewards
+    over time, making it comparable to RL agents trained with DSR rewards.
+
+    Args:
+        df_prices: DataFrame with 'close' column containing price data
+        strategy: Strategy type - "buy_and_hold" or "max_profit"
+        eta: DSR learning rate (default: 0.01, same as typical DSR reward)
+        epsilon: DSR stability constant (default: 1e-8)
+        max_steps: Maximum number of steps to calculate (None = all available)
+
+    Returns:
+        tuple: (cumulative_dsr, portfolio_values)
+            - cumulative_dsr: np.ndarray of cumulative DSR rewards
+            - portfolio_values: np.ndarray of portfolio values over time
+    """
+    prices = df_prices["close"].values
+    if max_steps is None:
+        max_steps = len(prices) - 1
+    else:
+        max_steps = min(max_steps, len(prices) - 1)
+
+    # Initialize portfolio
+    initial_value = 10000.0
+    portfolio_values = [initial_value]
+
+    # Calculate price returns
+    price_returns = np.diff(prices[:max_steps + 1]) / prices[:max_steps]
+
+    # Determine positions based on strategy
+    if strategy == "buy_and_hold":
+        # Always long position (weight = 1.0)
+        positions = np.ones(len(price_returns))
+    elif strategy == "max_profit":
+        # Perfect foresight: long if next return > 0, short if < 0
+        positions = np.sign(price_returns)
+        positions[positions == 0] = 1  # If price unchanged, hold long
+    else:
+        raise ValueError(f"Unknown strategy: {strategy}")
+
+    # Simulate portfolio value changes
+    for pos, ret in zip(positions, price_returns, strict=False):
+        # Portfolio simple return = position * price_return
+        portfolio_return = pos * ret
+        new_value = portfolio_values[-1] * (1 + portfolio_return)
+        portfolio_values.append(new_value)
+
+    # Now calculate DSR from portfolio values
+    portfolio_values = np.array(portfolio_values)
+
+    # Initialize DSR state
+    A_t = 0.0  # EMA of returns (mean)
+    B_t = 0.0  # EMA of squared returns (second moment)
+    dsr_values = [0.0]  # First step has no previous value, DSR = 0
+
+    # Calculate DSR for each step
+    for i in range(1, len(portfolio_values)):
+        # Log return
+        if portfolio_values[i - 1] <= 0 or portfolio_values[i] <= 0:
+            logger.warning(f"Invalid portfolio value at step {i}: {portfolio_values[i-1]} -> {portfolio_values[i]}")
+            dsr_values.append(0.0)
+            continue
+
+        R_t = float(np.log(portfolio_values[i] / portfolio_values[i - 1]))
+
+        # Calculate deltas using OLD EMA values (t-1)
+        delta_A = R_t - A_t
+        delta_B = R_t ** 2 - B_t
+
+        # Calculate DSR using old EMA values
+        variance = B_t - A_t ** 2
+        denominator = variance ** 1.5 + epsilon
+        dsr = (B_t * delta_A - A_t * delta_B / 2) / denominator
+
+        # Update EMAs for next step
+        A_t = (1 - eta) * A_t + eta * R_t
+        B_t = (1 - eta) * B_t + eta * (R_t ** 2)
+
+        dsr_values.append(dsr)
+
+    # Return cumulative DSR
+    cumulative_dsr = np.cumsum(dsr_values)
+
+    logger.debug(
+        f"Calculated {strategy} DSR benchmark: {len(cumulative_dsr)} steps, "
+        f"final DSR: {cumulative_dsr[-1]:.4f}, final portfolio: ${portfolio_values[-1]:.2f}"
+    )
+
+    return cumulative_dsr, portfolio_values
+
+
 def _extract_tradingenv_returns(env, n_steps):
     """Extract actual portfolio returns from TradingEnv broker.
 
