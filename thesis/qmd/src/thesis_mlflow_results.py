@@ -1,16 +1,18 @@
-"""Utilities for loading MLflow experiment outputs into Quarto chapters.
+"""Utilities for loading thesis experiment outputs into Quarto chapters.
 
-This module is intentionally lightweight and read-only. It reads run metadata
-from the local MLflow SQLite backend and loads selected artifacts (JSON reports
-and evaluation plot images) from the artifact store.
+This module prefers exported thesis result snapshots (JSON / Parquet / PNG)
+stored under ``thesis/qmd/results``. If no snapshot is available, it falls back
+to read-only queries against the local MLflow SQLite backend and artifact store.
 """
 
 from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
 from typing import Any
 
 import pandas as pd
@@ -23,6 +25,15 @@ def _repo_root() -> Path:
 
 def mlflow_db_path() -> Path:
     return _repo_root() / "mlflow.db"
+
+
+def thesis_results_root() -> Path:
+    return _repo_root() / "thesis" / "qmd" / "results"
+
+
+def _experiment_snapshot_dir(experiment_name: str, output_root: Path | None = None) -> Path:
+    root = output_root if output_root is not None else thesis_results_root()
+    return root / experiment_name
 
 
 def _connect() -> sqlite3.Connection:
@@ -179,7 +190,7 @@ def latest_run_for_experiment(experiment_name: str, status: str | None = None) -
     return row
 
 
-def runs_overview_table(experiment_name: str) -> pd.DataFrame:
+def _runs_overview_table_from_mlflow(experiment_name: str) -> pd.DataFrame:
     exp = get_experiment_by_name(experiment_name)
     if exp is None:
         return pd.DataFrame()
@@ -244,9 +255,251 @@ class ExperimentSnapshot:
     latest_finished: dict[str, Any] | None
 
 
-def load_experiment_snapshot(experiment_name: str) -> ExperimentSnapshot:
+def _load_experiment_snapshot_from_mlflow(experiment_name: str) -> ExperimentSnapshot:
     return ExperimentSnapshot(
         experiment_name=experiment_name,
         latest_running=latest_run_for_experiment(experiment_name, status="RUNNING"),
         latest_finished=latest_run_for_experiment(experiment_name, status="FINISHED"),
     )
+
+
+def _write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, default=str))
+
+
+def _iso_or_none(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, pd.Timestamp):
+        if pd.isna(value):
+            return None
+        return value.isoformat()
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
+
+
+def _json_number_or_none(value: Any) -> Any:
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+    if isinstance(value, (int, float, str, bool)):
+        return value
+    return str(value)
+
+
+def _copy_plots_to_snapshot(plots: dict[str, Path], destination_dir: Path) -> dict[str, str]:
+    copied: dict[str, str] = {}
+    plot_dir = destination_dir / "plots"
+    plot_dir.mkdir(parents=True, exist_ok=True)
+    for key, src in plots.items():
+        if not Path(src).exists():
+            continue
+        filename = f"{key}{Path(src).suffix.lower() or '.png'}"
+        dst = plot_dir / filename
+        shutil.copy2(src, dst)
+        copied[key] = str(dst.relative_to(destination_dir))
+    return copied
+
+
+def _serialize_run_payload_for_export(run: dict[str, Any], destination_dir: Path) -> dict[str, Any]:
+    destination_dir.mkdir(parents=True, exist_ok=True)
+
+    params = dict(run.get("params", {}) or {})
+    latest_metrics_obj = run.get("latest_metrics")
+    latest_metrics_dict: dict[str, Any]
+    if isinstance(latest_metrics_obj, pd.Series):
+        latest_metrics_dict = {
+            str(k): _json_number_or_none(v)
+            for k, v in latest_metrics_obj.to_dict().items()
+        }
+    elif isinstance(latest_metrics_obj, dict):
+        latest_metrics_dict = {
+            str(k): _json_number_or_none(v)
+            for k, v in latest_metrics_obj.items()
+        }
+    else:
+        latest_metrics_dict = {}
+
+    _write_json(destination_dir / "params.json", params)
+    _write_json(destination_dir / "latest_metrics.json", latest_metrics_dict)
+
+    evaluation_report_file: str | None = None
+    evaluation_report = run.get("evaluation_report")
+    if isinstance(evaluation_report, dict):
+        evaluation_report_file = "evaluation_report.json"
+        _write_json(destination_dir / evaluation_report_file, evaluation_report)
+
+    plots = run.get("evaluation_plots", {}) or {}
+    plot_relpaths = _copy_plots_to_snapshot(plots, destination_dir) if plots else {}
+
+    run_json = {
+        "run_id": run.get("run_id"),
+        "run_name": run.get("run_name"),
+        "status": run.get("status"),
+        "start_time": _iso_or_none(run.get("start_time")),
+        "end_time": _iso_or_none(run.get("end_time")),
+        "artifact_uri": run.get("artifact_uri"),
+        "experiment_name": run.get("experiment_name"),
+        "experiment_id": run.get("experiment_id"),
+        "files": {
+            "params": "params.json",
+            "latest_metrics": "latest_metrics.json",
+            "evaluation_report": evaluation_report_file,
+        },
+        "evaluation_plots": plot_relpaths,
+    }
+    _write_json(destination_dir / "run.json", run_json)
+    return run_json
+
+
+def export_experiment_snapshot(experiment_name: str, output_root: Path | None = None) -> Path:
+    """Export a thesis-friendly snapshot for an MLflow experiment.
+
+    The export contains JSON/Parquet/PNG artifacts so Quarto can render without
+    querying the live MLflow database.
+    """
+    output_dir = _experiment_snapshot_dir(experiment_name, output_root=output_root)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    snapshot = _load_experiment_snapshot_from_mlflow(experiment_name)
+    runs_df = _runs_overview_table_from_mlflow(experiment_name)
+
+    # Refresh directory contents while preserving the top-level directory itself.
+    for child in output_dir.iterdir():
+        if child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+
+    if not runs_df.empty:
+        runs_df.to_parquet(output_dir / "runs_overview.parquet", index=False)
+        runs_df.assign(
+            start_time=runs_df["start_time"].astype(str),
+            end_time=runs_df["end_time"].astype(str),
+        ).to_json(output_dir / "runs_overview.json", orient="records", indent=2)
+    else:
+        pd.DataFrame().to_parquet(output_dir / "runs_overview.parquet", index=False)
+        _write_json(output_dir / "runs_overview.json", [])
+
+    exported_runs: dict[str, Any] = {}
+    for slot_name in ("latest_running", "latest_finished"):
+        run = getattr(snapshot, slot_name)
+        if run is None:
+            exported_runs[slot_name] = None
+            continue
+        slot_dir = output_dir / slot_name
+        exported_runs[slot_name] = _serialize_run_payload_for_export(run, slot_dir)
+
+    manifest = {
+        "schema_version": 1,
+        "experiment_name": experiment_name,
+        "exported_at_utc": datetime.now(timezone.utc).isoformat(),
+        "source": {
+            "type": "mlflow",
+            "mlflow_db_path": str(mlflow_db_path()),
+        },
+        "files": {
+            "runs_overview_parquet": "runs_overview.parquet",
+            "runs_overview_json": "runs_overview.json",
+        },
+        "runs": {
+            "latest_running": None if exported_runs["latest_running"] is None else "latest_running/run.json",
+            "latest_finished": None if exported_runs["latest_finished"] is None else "latest_finished/run.json",
+        },
+    }
+    _write_json(output_dir / "manifest.json", manifest)
+    return output_dir
+
+
+def _load_run_from_export(run_json_path: Path) -> dict[str, Any] | None:
+    if not run_json_path.exists():
+        return None
+    raw = json.loads(run_json_path.read_text())
+    base_dir = run_json_path.parent
+
+    params_file = raw.get("files", {}).get("params")
+    latest_metrics_file = raw.get("files", {}).get("latest_metrics")
+    evaluation_report_file = raw.get("files", {}).get("evaluation_report")
+
+    params = {}
+    if params_file:
+        p = base_dir / params_file
+        if p.exists():
+            params = json.loads(p.read_text())
+
+    latest_metrics = pd.Series(dtype=float)
+    if latest_metrics_file:
+        p = base_dir / latest_metrics_file
+        if p.exists():
+            latest_metrics_dict = json.loads(p.read_text())
+            latest_metrics = pd.Series(latest_metrics_dict, dtype="float64")
+
+    evaluation_report = None
+    if evaluation_report_file:
+        p = base_dir / evaluation_report_file
+        if p.exists():
+            evaluation_report = json.loads(p.read_text())
+
+    evaluation_plots = {
+        key: (base_dir / rel_path)
+        for key, rel_path in (raw.get("evaluation_plots") or {}).items()
+    }
+
+    loaded = dict(raw)
+    loaded["start_time"] = pd.to_datetime(raw.get("start_time"), errors="coerce")
+    loaded["end_time"] = pd.to_datetime(raw.get("end_time"), errors="coerce")
+    loaded["params"] = params
+    loaded["latest_metrics"] = latest_metrics
+    loaded["evaluation_report"] = evaluation_report
+    loaded["evaluation_plots"] = evaluation_plots
+    return loaded
+
+
+def _load_experiment_snapshot_from_export(experiment_name: str) -> ExperimentSnapshot | None:
+    snapshot_dir = _experiment_snapshot_dir(experiment_name)
+    manifest_path = snapshot_dir / "manifest.json"
+    if not manifest_path.exists():
+        return None
+
+    manifest = json.loads(manifest_path.read_text())
+    runs = manifest.get("runs", {})
+    latest_running = None
+    latest_finished = None
+    if runs.get("latest_running"):
+        latest_running = _load_run_from_export(snapshot_dir / runs["latest_running"])
+    if runs.get("latest_finished"):
+        latest_finished = _load_run_from_export(snapshot_dir / runs["latest_finished"])
+
+    return ExperimentSnapshot(
+        experiment_name=experiment_name,
+        latest_running=latest_running,
+        latest_finished=latest_finished,
+    )
+
+
+def load_experiment_snapshot(experiment_name: str) -> ExperimentSnapshot:
+    exported = _load_experiment_snapshot_from_export(experiment_name)
+    if exported is not None:
+        return exported
+    return _load_experiment_snapshot_from_mlflow(experiment_name)
+
+
+def runs_overview_table(experiment_name: str) -> pd.DataFrame:
+    snapshot_dir = _experiment_snapshot_dir(experiment_name)
+    json_path = snapshot_dir / "runs_overview.json"
+    parquet_path = snapshot_dir / "runs_overview.parquet"
+    if json_path.exists():
+        df = pd.read_json(json_path)
+        for col in ("start_time", "end_time"):
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors="coerce")
+        return df
+    if parquet_path.exists():
+        return pd.read_parquet(parquet_path)
+    return _runs_overview_table_from_mlflow(experiment_name)
