@@ -2,7 +2,17 @@
 import numpy as np
 import pandas as pd
 import torch
-from plotnine import aes, geom_line, ggplot, labs, scale_color_manual, theme
+from plotnine import (
+    aes,
+    element_text,
+    geom_line,
+    ggplot,
+    guide_legend,
+    guides,
+    labs,
+    scale_color_manual,
+    theme,
+)
 from torch import allclose
 
 from logger import get_logger
@@ -78,7 +88,13 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
         ggplot(df_rewards, aes(x="Steps", y="Cumulative_Reward", color="Run"))
         + geom_line()
         + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
-        + theme(figure_size=(13, 7.8))  # 30% bigger than default (10, 6)
+        + theme(
+            figure_size=(13, 7.8),  # 30% bigger than default (10, 6)
+            legend_position="right",
+            legend_title=element_text(weight="bold", size=11),
+            legend_text=element_text(size=10),
+        )
+        + guides(color=guide_legend(title="Strategy"))
     )
 
     # Create actions plot using plotnine (30% bigger than default)
@@ -94,7 +110,13 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
         ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
         + geom_line()
         + labs(title=title, x="Steps", y=y_label)
-        + theme(figure_size=(13, 7.8))  # 30% bigger than default (10, 6)
+        + theme(
+            figure_size=(13, 7.8),  # 30% bigger than default (10, 6)
+            legend_position="right",
+            legend_title=element_text(weight="bold", size=11),
+            legend_text=element_text(size=10),
+        )
+        + guides(color=guide_legend(title="Strategy"))
     )
 
     return reward_plot, action_plot
@@ -282,6 +304,63 @@ def create_actual_returns_plot(
     )
 
     return returns_plot
+
+
+def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
+    """Merge reward and action comparison plots into a single vertical layout.
+
+    This creates a combined figure with:
+    - Top panel: Cumulative rewards comparison with legend
+    - Bottom panel: Actions/portfolio weights comparison with legend
+
+    Args:
+        reward_plot: plotnine ggplot object for rewards
+        action_plot: plotnine ggplot object for actions
+        save_path: Optional path to save the merged plot
+
+    Returns:
+        matplotlib.figure.Figure: Combined figure with both plots
+    """
+    import tempfile
+
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    # Create temporary files for individual plots
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_reward, \
+         tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_action:
+
+        # Save plots to temporary files
+        reward_plot.save(tmp_reward.name, dpi=150, verbose=False)
+        action_plot.save(tmp_action.name, dpi=150, verbose=False)
+
+        # Load images
+        img_reward = Image.open(tmp_reward.name)
+        img_action = Image.open(tmp_action.name)
+
+        # Create figure with 2 subplots (vertical stack)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(13, 15))
+
+        # Display images
+        ax1.imshow(img_reward)
+        ax1.axis('off')
+
+        ax2.imshow(img_action)
+        ax2.axis('off')
+
+        # Adjust spacing between subplots
+        plt.tight_layout(pad=0.5)
+
+        # Clean up temporary files
+        import os
+        os.unlink(tmp_reward.name)
+        os.unlink(tmp_action.name)
+
+    if save_path:
+        logger.info(f"Saving merged comparison plot to {save_path}")
+        fig.savefig(save_path, dpi=150, bbox_inches='tight')
+
+    return fig
 
 
 def calculate_benchmark_dsr(df_prices, strategy="buy_and_hold", eta=0.01, epsilon=1e-8, max_steps=None):

@@ -812,6 +812,7 @@ class MLflowTrainingCallback:
         action_probs_plot=None,
         actual_returns_plot=None,
         logs=None,
+        merged_plot=None,
     ) -> None:
         """Save evaluation/training plots as MLflow artifacts."""
         logger = get_project_logger(__name__)
@@ -926,6 +927,20 @@ class MLflowTrainingCallback:
                 )
             else:
                 logger.warning("Actual returns plot missing; skipping that artifact")
+
+            # Save merged comparison plot (rewards + actions stacked vertically)
+            if merged_plot is not None:
+                _save_plot_as_artifact(
+                    merged_plot,
+                    f"{timestamp}_merged_comparison.png",
+                    "merged_comparison",
+                    "evaluation_plots",
+                    logger,
+                    width=16,  # Larger for saved files
+                    height=16,  # Taller for 2 stacked plots
+                )
+            else:
+                logger.info("Merged comparison plot missing; skipping that artifact")
 
             # Create and save training loss plots
             if logs and (logs.get("loss_value") or logs.get("loss_actor")):

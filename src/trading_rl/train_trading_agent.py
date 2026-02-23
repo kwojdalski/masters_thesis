@@ -779,6 +779,7 @@ def run_single_experiment(
         final_reward,
         last_positions,
         actual_returns_plot,
+        merged_plot,
     ) = trainer.evaluate(
         eval_ctx.df,
         max_steps=eval_ctx.max_steps,
@@ -794,6 +795,7 @@ def run_single_experiment(
         action_probs_plot=action_probs_plot,
         actual_returns_plot=actual_returns_plot,
         logs=logs,
+        merged_plot=merged_plot,
     )
     evaluation_report = build_evaluation_report_for_trainer(
         trainer=trainer,
