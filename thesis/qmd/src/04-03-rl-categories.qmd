@@ -23,8 +23,6 @@ efficiency compared to model-based approaches, as environmental information
 is integrated with potentially inaccurate state value estimations
 @Dayan2008.
 
-##
-
 
 ### Value-Based vs Policy-Based vs Actor-Critic
 
@@ -129,8 +127,6 @@ and the policy $\pi^{*}$ approaches optimality. This convergence requires that
 all state-action pairs be visited infinitely often, and that the agent adopts
 a greedy strategy once it identifies the optimal action for each state.
 
-
-#### On-Policy vs Off-Policy
 
 #### On-Policy vs Off-Policy
 
