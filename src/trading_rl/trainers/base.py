@@ -367,9 +367,23 @@ class BaseTrainer(ABC):
         """Default evaluation: deterministic vs random rollout comparison."""
         import numpy as np
         import pandas as pd
-        from plotnine import aes, geom_line, ggplot, labs, scale_color_manual
+        from plotnine import (
+            aes,
+            element_text,
+            geom_line,
+            ggplot,
+            guide_legend,
+            guides,
+            labs,
+            scale_color_manual,
+            theme,
+        )
 
-        from trading_rl.utils import compare_rollouts, create_actual_returns_plot
+        from trading_rl.utils import (
+            compare_rollouts,
+            create_actual_returns_plot,
+            create_merged_comparison_plot,
+        )
 
         logger = get_logger(__name__)
 
@@ -505,7 +519,17 @@ class BaseTrainer(ABC):
                     "Max Profit (Unleveraged)": "green",
                 }
             )
+            + theme(
+                figure_size=(13, 7.8),
+                legend_position="right",
+                legend_title=element_text(weight="bold", size=11),
+                legend_text=element_text(size=10),
+            )
+            + guides(color=guide_legend(title="Strategy"))
         )
+
+        # Create merged comparison plot (rewards + actions stacked vertically)
+        merged_plot = create_merged_comparison_plot(reward_plot, action_plot)
 
         # Final metrics
         final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
@@ -535,6 +559,7 @@ class BaseTrainer(ABC):
             final_reward,
             last_positions,
             actual_returns_plot,
+            merged_plot,
         )
 
     def _run_training_loop(
