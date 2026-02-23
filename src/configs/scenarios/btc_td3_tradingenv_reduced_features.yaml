@@ -16,7 +16,7 @@ data:
   timeframe: "1h"
   data_dir: "data"
   download_since: "2023-01-01T00:00:00+00:00"
-  train_size: 1000
+  train_size: 7000
 
 # Environment Configuration - TradingEnv Backend
 env:
@@ -24,21 +24,19 @@ env:
   backend: "tradingenv"
 
   # Transaction costs
-  trading_fees: 0.00035
+  trading_fees: 0.0000
 
   # Raw price for env pricing/PnL
   price_columns: ["close"]
 
-  # Non-redundant engineered feature subset (18 features)
+  # Non-redundant engineered feature subset (16 features)
   feature_columns: [
     "feature_return_lag_1",
     "feature_return_lag_6",
     "feature_return_lag_24",
     "feature_return_lag_168",
-    "feature_log_return",
     "feature_realized_volatility_24",
     "feature_volatility_ratio_6_168",
-    "feature_high_low_spread",
     "feature_volume_ma_ratio_24",
     "feature_volume_change",
     "feature_amihud_illiquidity",
