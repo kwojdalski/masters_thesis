@@ -54,3 +54,4 @@ explainability:
   enabled: false
   n_steps: 500
   methods: ["permutation", "integrated_gradients"]
+  temp_explainability_interval: null  # Run explainability every N steps during training (null = disabled)

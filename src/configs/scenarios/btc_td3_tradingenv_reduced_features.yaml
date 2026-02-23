@@ -108,3 +108,4 @@ explainability:
   enabled: true
   n_steps: 500
   methods: ["permutation", "integrated_gradients"]
+  temp_explainability_interval: null  # Example: 1000000 to run every 1M steps (expensive!)

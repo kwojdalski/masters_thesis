@@ -94,6 +94,14 @@ class BaseTrainer(ABC):
         self._periodic_eval_env = None
         self._last_eval_step = 0
 
+        # Periodic explainability parameters (set via setup_periodic_explainability)
+        self._periodic_explainability_enabled = False
+        self._periodic_explainability_df = None
+        self._periodic_explainability_max_steps = None
+        self._periodic_explainability_config = None
+        self._periodic_explainability_env = None
+        self._last_explainability_step = 0
+
         # On-policy vs off-policy handling
         # Off-policy algorithms (TD3, DDPG) accumulate experiences in replay buffer
         # On-policy algorithms (PPO) only train on fresh data
@@ -688,6 +696,101 @@ class BaseTrainer(ABC):
             logger.error(f"Temporary evaluation failed at step {step_number}: {e}")
             # Don't crash training on eval failure - just log and continue
 
+    def setup_periodic_explainability(
+        self,
+        df: Any,
+        max_steps: int,
+        config: Any,
+        eval_env: Any = None,
+    ) -> None:
+        """Setup parameters for periodic explainability analysis during training.
+
+        Call this before train() to enable temporary explainability every N steps.
+
+        Args:
+            df: DataFrame with evaluation data
+            max_steps: Maximum steps for explainability rollout
+            config: Experiment configuration (must have explainability.temp_explainability_interval set)
+            eval_env: Optional dedicated evaluation environment
+        """
+        explainability_interval = getattr(config.explainability, "temp_explainability_interval", None)
+        if explainability_interval is None or explainability_interval <= 0:
+            logger.info("Periodic explainability disabled (temp_explainability_interval not set)")
+            self._periodic_explainability_enabled = False
+            return
+
+        if not config.explainability.enabled:
+            logger.info("Periodic explainability disabled (explainability.enabled is False)")
+            self._periodic_explainability_enabled = False
+            return
+
+        self._periodic_explainability_enabled = True
+        self._periodic_explainability_df = df
+        self._periodic_explainability_max_steps = max_steps
+        self._periodic_explainability_config = config
+        self._periodic_explainability_env = eval_env
+        self._last_explainability_step = 0
+
+        logger.info(
+            f"Periodic explainability enabled: will analyze every {explainability_interval} training steps"
+        )
+
+    def _run_temporary_explainability(
+        self,
+        step_number: int,
+        df: Any,
+        max_steps: int,
+        config: Any,
+        eval_env: Any = None,
+    ) -> None:
+        """Run temporary explainability analysis during training and log plots to MLflow.
+
+        This runs feature importance analysis and logs to a temporary directory structure:
+        explainability_temp/step_{step_number:08d}/
+
+        Args:
+            step_number: Current training step for folder naming (zero-padded to 8 digits)
+            df: DataFrame with evaluation data
+            max_steps: Maximum steps for explainability rollout
+            config: Experiment configuration
+            eval_env: Optional dedicated evaluation environment
+        """
+        logger = get_logger(__name__)
+        logger.info(f"Running temporary explainability analysis at step {step_number}...")
+
+        try:
+            from trading_rl.evaluation import EvaluationContext
+            from trading_rl.train_trading_agent import _run_explainability_analysis
+
+            # Create evaluation context
+            eval_ctx = EvaluationContext(
+                split="temp",
+                df=df,
+                env=eval_env if eval_env else self.env,
+                max_steps=max_steps,
+            )
+
+            # Zero-pad step number for correct alphanumeric sorting
+            artifact_prefix = f"explainability_temp/step_{step_number:08d}"
+
+            # Run explainability analysis
+            _run_explainability_analysis(
+                config=config,
+                trainer=self,
+                eval_ctx=eval_ctx,
+                train_df=df,
+                logger=logger,
+                artifact_path_prefix=artifact_prefix,
+            )
+
+            logger.info(
+                f"Temporary explainability complete: plots saved to {artifact_prefix}"
+            )
+
+        except Exception as e:
+            logger.error(f"Temporary explainability failed at step {step_number}: {e}")
+            # Don't crash training on explainability failure - just log and continue
+
     def _run_training_loop(
         self,
         callback: Any = None,
@@ -752,6 +855,21 @@ class BaseTrainer(ABC):
                             eval_env=self._periodic_eval_env,
                         )
                         self._last_eval_step = self.total_count
+
+                # Check for periodic explainability
+                if self._periodic_explainability_enabled:
+                    explainability_interval = self._periodic_explainability_config.explainability.temp_explainability_interval
+                    steps_since_last_explainability = self.total_count - self._last_explainability_step
+
+                    if steps_since_last_explainability >= explainability_interval:
+                        self._run_temporary_explainability(
+                            step_number=self.total_count,
+                            df=self._periodic_explainability_df,
+                            max_steps=self._periodic_explainability_max_steps,
+                            config=self._periodic_explainability_config,
+                            eval_env=self._periodic_explainability_env,
+                        )
+                        self._last_explainability_step = self.total_count
 
                 if self.callback and hasattr(self.callback, "log_episode_stats"):
                     self._log_episode_stats(data, self.callback)
