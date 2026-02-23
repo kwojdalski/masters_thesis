@@ -155,10 +155,10 @@ class RLInterpretabilityAnalyzer:
             + labs(title=title, x="Feature", y="Importance Score")
             + theme_minimal()
             + theme(
-                figure_size=(24, 10),  # 2x bigger: was (12, 5)
-                plot_title=element_text(size=16, weight="bold"),  # Larger font
-                axis_title=element_text(size=14),  # Larger font
-                axis_text=element_text(size=12)  # Larger font
+                figure_size=(24, 20),  # 2x taller: was (24, 10), originally (12, 5)
+                plot_title=element_text(size=16, weight="bold"),
+                axis_title=element_text(size=14),
+                axis_text=element_text(size=12)
             )
         )
         return plot
