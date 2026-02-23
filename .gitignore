@@ -133,3 +133,4 @@ logs/*
 *.db
 src/mlruns
 mlruns
+thesis/qmd/results/

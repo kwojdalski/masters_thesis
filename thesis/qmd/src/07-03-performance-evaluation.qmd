@@ -1,9 +1,10 @@
 ## Performance Evaluation
 
 This section reports performance metrics and evaluation figures generated from
-the latest completed run of the selected experiment. The results are read
-directly from experiment tracking artifacts to maintain consistency with the
-recorded evaluation outputs.
+the latest completed run of the selected experiment. The results are loaded
+from an exported thesis result snapshot (with a local tracking-store fallback)
+to maintain consistency with recorded evaluation artifacts while improving
+render-time reproducibility.
 
 ```{python}
 #| label: perf_eval_setup
