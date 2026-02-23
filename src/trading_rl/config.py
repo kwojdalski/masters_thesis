@@ -144,6 +144,7 @@ class ExplainabilityConfig:
     enabled: bool = False
     n_steps: int = 500
     methods: list[str] = field(default_factory=lambda: ["permutation", "integrated_gradients"])
+    temp_explainability_interval: int | None = None  # Run temporary explainability every N steps (None = disabled)
 
 
 @dataclass

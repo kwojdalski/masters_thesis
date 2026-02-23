@@ -841,6 +841,14 @@ def run_single_experiment(
         eval_env=eval_ctx.env,
     )
 
+    # Setup periodic explainability (if enabled in config)
+    trainer.setup_periodic_explainability(
+        df=eval_ctx.df,
+        max_steps=config.explainability.n_steps,
+        config=config,
+        eval_env=eval_ctx.env,
+    )
+
     # Train (Ctrl-C should still trigger final evaluation on the current model state)
     logger.info("Starting training...")
     interrupted = False
