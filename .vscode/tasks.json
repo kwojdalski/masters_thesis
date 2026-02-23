@@ -21,7 +21,7 @@
       {
         "label": "Build Masters Thesis Proposal",
         "type": "shell",
-        "command": "zsh -c 'source ~/.zshrc; quarto render ${file} --output-dir ../../build && open ${fileDirname}/../../build/${fileBasenameNoExtension}.pdf'",
+        "command": "zsh -c 'source ~/.zshrc; quarto render ${file} --to pdf --no-execute && cp ${fileBasenameNoExtension}.pdf ../../build/${fileBasenameNoExtension}.pdf && open ${fileDirname}/../../build/${fileBasenameNoExtension}.pdf'",
         "group": {
           "kind": "build",
           "isDefault": true
@@ -41,7 +41,7 @@
       {
         "label": "Render Thesis to PDF",
         "type": "shell",
-        "command": "cd thesis/qmd/src && quarto render masters-thesis.qmd --to pdf --no-execute && open ../../build/masters-thesis.pdf",
+        "command": "cd thesis/qmd/src && quarto render masters-thesis.qmd --to pdf --no-execute && cp masters-thesis.pdf ../../build/masters-thesis.pdf && open ../../build/masters-thesis.pdf",
         "group": "build",
         "problemMatcher": [],
         "presentation": {
