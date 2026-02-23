@@ -12,11 +12,6 @@ data:
   data_config: "src/configs/data/sine_wave_large.yaml"  # Config for regenerating data
   feature_config: "src/configs/features/all_features.yaml"  # Config for feature engineering
   download_data: false
-  exchange_names: ["synthetic"]
-  symbols: ["SINE/WAVE"]
-  timeframe: "1h"
-  data_dir: "data"
-  download_since: "2024-01-01T00:00:00+00:00"
   train_size: 450  # Match current local sine-wave dataset size (~500 rows)
 
 # Environment Configuration - TradingEnv Backend
