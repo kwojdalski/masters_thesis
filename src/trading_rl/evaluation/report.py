@@ -43,15 +43,17 @@ def build_evaluation_report_for_trainer(
     df_prices: pd.DataFrame,
     max_steps: int,
     config: Any,
+    eval_env: Any | None = None,
 ) -> dict[str, float]:
     """Build the 25-metric evaluation report for deterministic policy rollout."""
+    env_to_use = eval_env or trainer.env
     with torch.no_grad():
         try:
             with set_exploration_type(InteractionType.MODE):
-                rollout = trainer.env.rollout(max_steps=max_steps, policy=trainer.actor)
+                rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
         except RuntimeError:
             with set_exploration_type(InteractionType.DETERMINISTIC):
-                rollout = trainer.env.rollout(max_steps=max_steps, policy=trainer.actor)
+                rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
 
     strategy_log_returns = (
         rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]

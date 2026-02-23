@@ -123,8 +123,21 @@ class DDPGTrainer(BaseTrainer):
         )
         return actor, value_net
 
-    def evaluate(self, df, max_steps: int, config=None, algorithm: str | None = None):
-        return super().evaluate(df, max_steps, config=config, algorithm=algorithm)
+    def evaluate(
+        self,
+        df,
+        max_steps: int,
+        config=None,
+        algorithm: str | None = None,
+        eval_env: Any | None = None,
+    ):
+        return super().evaluate(
+            df,
+            max_steps,
+            config=config,
+            algorithm=algorithm,
+            eval_env=eval_env,
+        )
 
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int

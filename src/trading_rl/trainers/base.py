@@ -357,7 +357,12 @@ class BaseTrainer(ABC):
                 return action_tensor
 
     def evaluate(
-        self, df: Any, max_steps: int, config: Any = None, algorithm: str | None = None
+        self,
+        df: Any,
+        max_steps: int,
+        config: Any = None,
+        algorithm: str | None = None,
+        eval_env: Any | None = None,
     ) -> tuple[Any, ...]:
         """Default evaluation: deterministic vs random rollout comparison."""
         import numpy as np
@@ -368,33 +373,35 @@ class BaseTrainer(ABC):
 
         logger = get_logger(__name__)
 
+        env_to_use = eval_env or self.env
+
         # Deterministic rollout
         logger.debug(f"Running deterministic evaluation for {max_steps} steps")
         try:
             with set_exploration_type(InteractionType.MODE):
-                rollout_deterministic = self.env.rollout(
+                rollout_deterministic = env_to_use.rollout(
                     max_steps=max_steps, policy=self.actor
                 )
         except RuntimeError:
             # Fallback for distributions without analytical mode (e.g. TanhNormal)
             logger.debug("MODE exploration failed, falling back to MEAN/DETERMINISTIC")
             with set_exploration_type(InteractionType.DETERMINISTIC):
-                rollout_deterministic = self.env.rollout(
+                rollout_deterministic = env_to_use.rollout(
                     max_steps=max_steps, policy=self.actor
                 )
 
         # Extract actual returns immediately (before next rollout overwrites broker state)
         from trading_rl.utils import _extract_tradingenv_returns
 
-        actual_returns_deterministic = _extract_tradingenv_returns(self.env, max_steps)
+        actual_returns_deterministic = _extract_tradingenv_returns(env_to_use, max_steps)
 
         # Random rollout (can be overridden in subclasses)
         logger.debug(f"Running random evaluation for {max_steps} steps")
         with set_exploration_type(InteractionType.RANDOM):
-            rollout_random = self.env.rollout(max_steps=max_steps, policy=self.actor)
+            rollout_random = env_to_use.rollout(max_steps=max_steps, policy=self.actor)
 
         # Extract actual returns immediately (for random rollout)
-        actual_returns_random = _extract_tradingenv_returns(self.env, max_steps)
+        actual_returns_random = _extract_tradingenv_returns(env_to_use, max_steps)
 
         # Detect backend type for proper plot labeling
         is_portfolio = self._is_portfolio_backend(config)

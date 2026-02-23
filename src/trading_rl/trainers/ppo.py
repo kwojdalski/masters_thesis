@@ -305,12 +305,25 @@ class PPOTrainer(BaseTrainer):
         )
         return actor, value_net
 
-    def create_action_probabilities_plot(self, max_steps: int, df=None, config=None):
+    def create_action_probabilities_plot(
+        self,
+        max_steps: int,
+        df=None,
+        config=None,
+        eval_env: Any | None = None,
+    ):
         return self._build_action_probabilities_plot(
-            self.env, self.actor, max_steps, df, config
+            eval_env or self.env, self.actor, max_steps, df, config
         )
 
-    def evaluate(self, df, max_steps: int, config=None, algorithm: str | None = None):
+    def evaluate(
+        self,
+        df,
+        max_steps: int,
+        config=None,
+        algorithm: str | None = None,
+        eval_env: Any | None = None,
+    ):
         (
             reward_plot,
             action_plot,
@@ -318,9 +331,15 @@ class PPOTrainer(BaseTrainer):
             final_reward,
             last_positions,
             actual_returns_plot,
-        ) = super().evaluate(df, max_steps, config=config, algorithm=algorithm)
+        ) = super().evaluate(
+            df,
+            max_steps,
+            config=config,
+            algorithm=algorithm,
+            eval_env=eval_env,
+        )
         action_probs_plot = self.create_action_probabilities_plot(
-            max_steps=max_steps, df=df, config=config
+            max_steps=max_steps, df=df, config=config, eval_env=eval_env
         )
         return (
             reward_plot,
