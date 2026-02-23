@@ -10,7 +10,12 @@ import torch
 from tensordict.nn import InteractionType
 from torchrl.envs.utils import set_exploration_type
 
+from logger import get_logger
 from trading_rl.evaluation.metrics import build_metric_report
+from trading_rl.utils import _extract_tradingenv_returns
+
+
+logger = get_logger(__name__)
 
 
 def periods_per_year_from_timeframe(timeframe: str) -> int:
@@ -55,17 +60,55 @@ def build_evaluation_report_for_trainer(
             with set_exploration_type(InteractionType.DETERMINISTIC):
                 rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
 
-    strategy_log_returns = (
-        rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
-    )
-    strategy_simple_returns = np.exp(strategy_log_returns) - 1.0
+    reward_type = getattr(getattr(config, "env", None), "reward_type", "log_return")
+    backend = getattr(getattr(config, "env", None), "backend", None)
+
+    # Reward can be a shaped signal (e.g., differential Sharpe), so only interpret
+    # rollout reward as log-return when reward_type explicitly says so.
+    if str(reward_type).lower() == "log_return":
+        strategy_log_returns = (
+            rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
+        )
+        strategy_simple_returns = np.exp(strategy_log_returns) - 1.0
+    else:
+        strategy_simple_returns = np.array([], dtype=float)
+
+        # TradingEnv backend can expose true NLV path via broker.track_record.
+        if str(backend).lower() == "tradingenv":
+            cumulative_log_returns = _extract_tradingenv_returns(env_to_use, max_steps)
+            if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
+                cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
+                step_log_returns = np.diff(cumulative_log_returns, prepend=0.0)
+                strategy_simple_returns = np.exp(step_log_returns) - 1.0
+                logger.info(
+                    "Evaluation metrics using actual TradingEnv broker returns "
+                    "(reward_type=%s, %d steps).",
+                    reward_type,
+                    len(strategy_simple_returns),
+                )
+            else:
+                logger.warning(
+                    "Could not extract TradingEnv broker returns for evaluation "
+                    "(reward_type=%s); falling back to reward-as-log-return proxy.",
+                    reward_type,
+                )
+
+        if strategy_simple_returns.size == 0:
+            proxy_log_returns = (
+                rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
+            )
+            strategy_simple_returns = np.exp(proxy_log_returns) - 1.0
+            logger.warning(
+                "Evaluation metrics fallback is using reward stream as log-return proxy; "
+                "return/CAGR metrics may be invalid when reward_type=%s.",
+                reward_type,
+            )
 
     benchmark_log_returns = (
         np.log(df_prices["close"] / df_prices["close"].shift(1)).fillna(0).to_numpy()
     )[:max_steps]
     benchmark_simple_returns = np.exp(benchmark_log_returns) - 1.0
 
-    backend = getattr(config.env, "backend", None) if config is not None else None
     is_portfolio = backend == "tradingenv"
     actions = _extract_action_array(rollout, is_portfolio=is_portfolio)
     timeframe = getattr(getattr(config, "data", None), "timeframe", "1d")
