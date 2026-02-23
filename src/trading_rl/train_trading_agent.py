@@ -888,19 +888,30 @@ def run_single_experiment(
             # 2. Analyze
             analyzer = RLInterpretabilityAnalyzer(trainer, feature_names)
 
+            # Collect results for merged plot
+            perm_df = None
+            ig_df = None
+
             if "permutation" in config.explainability.methods:
-                importance_df = analyzer.compute_global_importance(obs_batch)
-                importance_plot = analyzer.plot_importance(importance_df, title="Global Feature Importance (Permutation)")
-                metrics = analyzer.quantify_interpretability(importance_df)
-                MLflowTrainingCallback.log_explainability_results(importance_df, importance_plot, method="permutation", metrics=metrics)
+                perm_df = analyzer.compute_global_importance(obs_batch)
+                importance_plot = analyzer.plot_importance(perm_df, title="Global Feature Importance (Permutation)", color="steelblue")
+                metrics = analyzer.quantify_interpretability(perm_df)
+                MLflowTrainingCallback.log_explainability_results(perm_df, importance_plot, method="permutation", metrics=metrics)
                 logger.info("Permutation importance analysis complete.")
 
             if "integrated_gradients" in config.explainability.methods:
-                importance_df = analyzer.compute_global_ig(obs_batch)
-                importance_plot = analyzer.plot_importance(importance_df, title="Global Feature Importance (Integrated Gradients)")
-                metrics = analyzer.quantify_interpretability(importance_df)
-                MLflowTrainingCallback.log_explainability_results(importance_df, importance_plot, method="integrated_gradients", metrics=metrics)
+                ig_df = analyzer.compute_global_ig(obs_batch)
+                importance_plot = analyzer.plot_importance(ig_df, title="Global Feature Importance (Integrated Gradients)", color="coral")
+                metrics = analyzer.quantify_interpretability(ig_df)
+                MLflowTrainingCallback.log_explainability_results(ig_df, importance_plot, method="integrated_gradients", metrics=metrics)
                 logger.info("Integrated gradients importance analysis complete.")
+
+            # Create merged plot if both methods were run
+            if perm_df is not None and ig_df is not None:
+                logger.info("Creating merged explainability plot...")
+                merged_plot = analyzer.plot_importance_merged(perm_df, ig_df)
+                MLflowTrainingCallback.log_explainability_results(None, merged_plot, method="merged", metrics=None)
+                logger.info("Merged explainability plot saved.")
 
         except Exception as e:
             logger.error(f"Failed to run explainability analysis: {e}")

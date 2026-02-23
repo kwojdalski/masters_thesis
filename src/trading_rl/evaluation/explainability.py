@@ -16,6 +16,8 @@ from plotnine import (
     ggplot,
     labs,
     theme_minimal,
+    theme,
+    element_text,
 )
 from tensordict import TensorDict
 
@@ -138,22 +140,50 @@ class RLInterpretabilityAnalyzer:
         })
         return df
 
-    def plot_importance(self, df: pd.DataFrame, title: str = "Feature Importance"):
+    def plot_importance(self, df: pd.DataFrame, title: str = "Feature Importance", color: str = "steelblue"):
         """Visualize the importance using plotnine."""
         # Clean up column names for plotting
         if "importance" in df.columns:
             val_col = "importance"
         else:
             val_col = "attribution"
-            
+
         plot = (
             ggplot(df, aes(x=f"reorder(feature, {val_col})", y=val_col))
-            + geom_col(fill="steelblue")
+            + geom_col(fill=color)
             + coord_flip()
             + labs(title=title, x="Feature", y="Importance Score")
             + theme_minimal()
+            + theme(
+                figure_size=(12, 5),
+                plot_title=element_text(size=14, weight="bold"),
+                axis_title=element_text(size=12),
+                axis_text=element_text(size=10)
+            )
         )
         return plot
+
+    def plot_importance_merged(
+        self,
+        df_permutation: pd.DataFrame,
+        df_ig: pd.DataFrame,
+    ):
+        """Create a merged plot with both permutation and integrated gradients importance stacked vertically."""
+        p1 = self.plot_importance(
+            df_permutation,
+            title="Global Feature Importance (Permutation)",
+            color="steelblue"
+        )
+
+        p2 = self.plot_importance(
+            df_ig,
+            title="Global Feature Importance (Integrated Gradients)",
+            color="coral"
+        )
+
+        # Stack vertically using / operator
+        merged_plot = p1 / p2
+        return merged_plot
 
     def quantify_interpretability(self, importance_df: pd.DataFrame) -> dict[str, float]:
         """Quantify interpretability metrics from importance data."""
