@@ -621,10 +621,10 @@ class BaseTrainer(ABC):
         """Run temporary evaluation during training and log plots to MLflow.
 
         This leverages the existing evaluate() method but logs plots to a
-        temporary directory structure: evaluation_plots_temp/step_{step_number}/
+        temporary directory structure: evaluation_plots_temp/step_{step_number:08d}/
 
         Args:
-            step_number: Current training step for folder naming
+            step_number: Current training step for folder naming (zero-padded to 8 digits)
             df: DataFrame with evaluation data
             max_steps: Maximum steps for evaluation rollout
             config: Experiment configuration
@@ -656,7 +656,8 @@ class BaseTrainer(ABC):
             if mlflow.active_run():
                 from trading_rl.callbacks import MLflowTrainingCallback
 
-                artifact_prefix = f"evaluation_plots_temp/step_{step_number}"
+                # Zero-pad step number for correct alphanumeric sorting
+                artifact_prefix = f"evaluation_plots_temp/step_{step_number:08d}"
 
                 MLflowTrainingCallback.log_evaluation_plots(
                     reward_plot=reward_plot,
