@@ -534,7 +534,7 @@ class BaseTrainer(ABC):
                 legend_position="right",
                 legend_title=element_text(weight="bold", size=11),
                 legend_text=element_text(size=10),
-                subplots_adjust={'right': 0.80},
+                subplots_adjust={'left': 0.10, 'right': 0.80},
             )
             + guides(color=guide_legend(title="Strategy"))
         )

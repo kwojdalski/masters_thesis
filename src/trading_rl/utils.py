@@ -96,7 +96,7 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
             legend_position="right",
             legend_title=element_text(weight="bold", size=11),
             legend_text=element_text(size=10),
-            subplots_adjust={'right': 0.80},  # Fixed right edge for plot area
+            subplots_adjust={'left': 0.10, 'right': 0.80},  # Fixed plot area bounds
         )
         + guides(color=guide_legend(title="Strategy"))
     )
@@ -119,7 +119,7 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
             legend_position="right",
             legend_title=element_text(weight="bold", size=11),
             legend_text=element_text(size=10),
-            subplots_adjust={'right': 0.80},  # Fixed right edge for plot area (same as rewards)
+            subplots_adjust={'left': 0.10, 'right': 0.80},  # Fixed plot area bounds
         )
         + guides(color=guide_legend(title="Strategy"))
     )
@@ -345,19 +345,20 @@ def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
         img_reward = Image.open(tmp_reward.name)
         img_action = Image.open(tmp_action.name)
 
-        # Ensure both images have the same width by padding
+        # Ensure both images have the same width by padding.
+        # Pad on the right only so the left edge (and plot panel origin) stays aligned.
         max_width = max(img_reward.width, img_action.width)
 
-        # Pad images to same width (center-align)
+        # Pad images to same width (left-align)
         if img_reward.width < max_width:
             new_img = Image.new('RGB', (max_width, img_reward.height), 'white')
-            offset = (max_width - img_reward.width) // 2
+            offset = 0
             new_img.paste(img_reward, (offset, 0))
             img_reward = new_img
 
         if img_action.width < max_width:
             new_img = Image.new('RGB', (max_width, img_action.height), 'white')
-            offset = (max_width - img_action.width) // 2
+            offset = 0
             new_img.paste(img_action, (offset, 0))
             img_action = new_img
 
