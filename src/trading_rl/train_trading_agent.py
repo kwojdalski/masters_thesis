@@ -32,7 +32,7 @@ from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
-from trading_rl.evaluation import build_evaluation_report_for_trainer
+from trading_rl.evaluation import EvaluationContext, build_evaluation_report_for_trainer
 from trading_rl.plotting import visualize_training
 from trading_rl.trainers.ppo import PPOTrainerContinuous
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
@@ -486,6 +486,32 @@ def _setup_mlflow_tracking_from_checkpoint(trainer: Any) -> str | None:
     return tracking_uri
 
 
+def _build_final_evaluation_context(
+    *,
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    config: ExperimentConfig,
+) -> EvaluationContext:
+    """Build final evaluation context.
+
+    Current default remains in-sample (`train`) for compatibility.
+    The context object keeps the dataframe and environment coupled so they
+    cannot silently diverge in later refactors.
+    """
+    del val_df, test_df  # Reserved for future split selection
+    split = "train"
+    eval_df = train_df
+    eval_env = AlgorithmicEnvironmentBuilder().create(eval_df, config)
+    eval_max_steps = min(config.training.eval_steps, len(eval_df) - 1)
+    return EvaluationContext(
+        split=split,
+        df=eval_df,
+        env=eval_env,
+        max_steps=eval_max_steps,
+    )
+
+
 def _resolve_experiment_name_from_checkpoint(
     trainer: Any,
     config: ExperimentConfig,
@@ -740,11 +766,12 @@ def run_single_experiment(
 
     # Evaluate agent
     logger.info("Evaluating agent...")
-    # Keep train-split final evaluation by default for now, but build a dedicated
-    # eval environment from the same dataframe to avoid train-env / eval-df mismatch.
-    eval_df = train_df
-    eval_env = AlgorithmicEnvironmentBuilder().create(eval_df, config)
-    eval_max_steps = min(config.training.eval_steps, len(eval_df) - 1)
+    eval_ctx = _build_final_evaluation_context(
+        train_df=train_df,
+        val_df=val_df,
+        test_df=test_df,
+        config=config,
+    )
     (
         reward_plot,
         action_plot,
@@ -753,11 +780,11 @@ def run_single_experiment(
         last_positions,
         actual_returns_plot,
     ) = trainer.evaluate(
-        eval_df,
-        max_steps=eval_max_steps,
+        eval_ctx.df,
+        max_steps=eval_ctx.max_steps,
         config=config,
         algorithm=algorithm,
-        eval_env=eval_env,
+        eval_env=eval_ctx.env,
     )
 
     # Save evaluation plots as MLflow artifacts
@@ -770,10 +797,10 @@ def run_single_experiment(
     )
     evaluation_report = build_evaluation_report_for_trainer(
         trainer=trainer,
-        df_prices=eval_df,
-        max_steps=eval_max_steps,
+        df_prices=eval_ctx.df,
+        max_steps=eval_ctx.max_steps,
         config=config,
-        eval_env=eval_env,
+        eval_env=eval_ctx.env,
     )
     MLflowTrainingCallback.log_evaluation_report(evaluation_report)
 
@@ -812,6 +839,7 @@ def run_single_experiment(
         "n_actions": n_act,
         # Training configuration
         "experiment_name": effective_experiment_name,
+        "evaluation_split": eval_ctx.split,
         "seed": config.seed,
         "actor_lr": config.training.actor_lr,
         "value_lr": config.training.value_lr,
