@@ -11,11 +11,6 @@ data:
   data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
   feature_config: "src/configs/features/btc_optimized_features.yaml"
   download_data: false
-  exchange_names: ["binance"]
-  symbols: ["BTC/USDT"]
-  timeframe: "1h"
-  data_dir: "data"
-  download_since: "2023-01-01T00:00:00+00:00"
   train_size: 7000
 
 # Environment Configuration - TradingEnv Backend
@@ -108,4 +103,4 @@ explainability:
   enabled: true
   n_steps: 500
   methods: ["permutation", "integrated_gradients"]
-  temp_explainability_interval: null  # Example: 1000000 to run every 1M steps (expensive!)
+  temp_explainability_interval: 50000  # Example: 1000000 to run every 1M steps (expensive!)
