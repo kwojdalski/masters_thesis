@@ -312,13 +312,11 @@ def create_actual_returns_plot(
 
 
 def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
-    """Merge reward and action comparison plots into a single vertical layout.
+    """Merge reward and action comparison plots into a single vertical layout using plotnine.
 
     This creates a combined figure with:
     - Top panel: Cumulative rewards comparison with legend
     - Bottom panel: Actions/portfolio weights comparison with legend
-
-    The plots are aligned by padding to the same width.
 
     Args:
         reward_plot: plotnine ggplot object for rewards
@@ -326,64 +324,16 @@ def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
         save_path: Optional path to save the merged plot
 
     Returns:
-        matplotlib.figure.Figure: Combined figure with both plots
+        plotnine.composition._stack.Stack: Combined plotnine stacked plot
     """
-    import tempfile
-
-    import matplotlib.pyplot as plt
-    from PIL import Image
-
-    # Create temporary files for individual plots
-    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_reward, \
-         tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_action:
-
-        # Save plots to temporary files with same DPI
-        reward_plot.save(tmp_reward.name, dpi=150, verbose=False)
-        action_plot.save(tmp_action.name, dpi=150, verbose=False)
-
-        # Load images
-        img_reward = Image.open(tmp_reward.name)
-        img_action = Image.open(tmp_action.name)
-
-        # Ensure both images have the same width by padding.
-        # Pad on the right only so the left edge (and plot panel origin) stays aligned.
-        max_width = max(img_reward.width, img_action.width)
-
-        # Pad images to same width (left-align)
-        if img_reward.width < max_width:
-            new_img = Image.new('RGB', (max_width, img_reward.height), 'white')
-            offset = 0
-            new_img.paste(img_reward, (offset, 0))
-            img_reward = new_img
-
-        if img_action.width < max_width:
-            new_img = Image.new('RGB', (max_width, img_action.height), 'white')
-            offset = 0
-            new_img.paste(img_action, (offset, 0))
-            img_action = new_img
-
-        # Create combined image (vertical stack)
-        total_height = img_reward.height + img_action.height
-        combined = Image.new('RGB', (max_width, total_height), 'white')
-        combined.paste(img_reward, (0, 0))
-        combined.paste(img_action, (0, img_reward.height))
-
-        # Create matplotlib figure
-        fig, ax = plt.subplots(figsize=(max_width / 150, total_height / 150), dpi=150)
-        ax.imshow(combined)
-        ax.axis('off')
-        plt.tight_layout(pad=0)
-
-        # Clean up temporary files
-        import os
-        os.unlink(tmp_reward.name)
-        os.unlink(tmp_action.name)
+    # Use plotnine's vertical stacking operator
+    merged_plot = reward_plot / action_plot
 
     if save_path:
         logger.info(f"Saving merged comparison plot to {save_path}")
-        fig.savefig(save_path, dpi=150, bbox_inches='tight')
+        merged_plot.save(save_path, dpi=150, verbose=False)
 
-    return fig
+    return merged_plot
 
 
 def calculate_benchmark_dsr(df_prices, strategy="buy_and_hold", eta=0.01, epsilon=1e-8, max_steps=None):
