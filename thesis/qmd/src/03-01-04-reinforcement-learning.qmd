@@ -1,47 +1,12 @@
 ### Reinforcement Learning
 
-Reinforcement learning (RL) represents a distinct paradigm in machine learning
-where an agent learns optimal behaviors through trial-and-error interactions
-with an environment. The agent perceives the environment's state as a feature
-vector, executes actions, and receives rewards that may lead to new states.
-
-The fundamental objective in RL is to develop a policy—a function mapping
-states to actions that maximizes expected cumulative rewards over time. This
-approach differs significantly from both supervised and unsupervised learning
-paradigms.
-
-Key characteristics of reinforcement learning include:
-
-- **Sequential Decision Making**: RL addresses problems where decisions occur in
-  sequence and have long-term implications.
-
-- **Delayed Rewards**: Actions may not yield immediate benefits but contribute
-  to greater cumulative rewards in the future.
-
-- **Exploration vs. Exploitation**: Agents must balance discovering new
-  potentially better strategies against utilizing known rewarding actions.
-
-RL is particularly well-suited for non-stationary environments where
-relationships between variables evolve over time. The agent continuously adapts
-its policy to changing conditions, making it useful for applications where
- dynamics constantly shift.
-
-This interdisciplinary field incorporates influences from engineering,
-economics, mathematics, neuroscience, psychology, and computer science.
-Applications span diverse domains including game playing, robotics, resource
-management, logistics, and, increasingly, financial trading strategies.
-
-Unlike supervised learning, RL does not rely on labeled examples that specify
-exactly what an algorithm should do. Instead, the agent must learn from its own
-actions, sense states, and accumulate experience. The only feedback received is
-a scalar reward signal.
-
-While unsupervised learning focuses on identifying structures in unlabeled
-datasets, RL specifically aims to maximize a long-run value function comprising
-summed (discounted) rewards. Finding data patterns may be useful, but it
-addresses a fundamentally different objective than the RL problem.
-
-The environment changes stochastically and interacts with the agent, requiring
-a policy design that balances exploration of new actions against exploitation
-of known solutions. This prevents purely greedy behavior that might lead to
-suboptimal outcomes.
+Among the machine learning paradigms discussed above, reinforcement learning is
+the most directly aligned with trading as a sequential decision-making problem:
+an agent observes the market state, takes an action (e.g., adjusts exposure),
+and receives a reward that may reflect both return and risk. In contrast to
+supervised learning (prediction from labeled examples) and unsupervised learning
+(structure discovery), reinforcement learning optimizes behavior through
+interaction under delayed rewards and uncertainty. For this reason, the thesis
+uses reinforcement learning as the core modelling framework, while the formal
+theoretical foundations (system components, value functions, exploration, and
+algorithm categories) are developed in detail in Chapter 4.
