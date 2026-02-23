@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import mlflow
 import numpy as np
 import torch
 import torch.multiprocessing as mp
@@ -83,6 +84,15 @@ class BaseTrainer(ABC):
         self.total_count = 0
         self.total_episodes = 0
         self.logs = defaultdict(list)
+
+        # Periodic evaluation parameters (set via setup_periodic_evaluation)
+        self._periodic_eval_enabled = False
+        self._periodic_eval_df = None
+        self._periodic_eval_max_steps = None
+        self._periodic_eval_config = None
+        self._periodic_eval_algorithm = None
+        self._periodic_eval_env = None
+        self._last_eval_episode = 0
 
         # On-policy vs off-policy handling
         # Off-policy algorithms (TD3, DDPG) accumulate experiences in replay buffer
@@ -562,6 +572,120 @@ class BaseTrainer(ABC):
             merged_plot,
         )
 
+    def setup_periodic_evaluation(
+        self,
+        df: Any,
+        max_steps: int,
+        config: Any,
+        algorithm: str,
+        eval_env: Any = None,
+    ) -> None:
+        """Setup parameters for periodic evaluation during training.
+
+        Call this before train() to enable temporary evaluations every N episodes.
+
+        Args:
+            df: DataFrame with evaluation data
+            max_steps: Maximum steps for evaluation rollout
+            config: Experiment configuration (must have training.eval_every_episodes set)
+            algorithm: Algorithm name
+            eval_env: Optional dedicated evaluation environment
+        """
+        eval_interval = getattr(config.training, "eval_every_episodes", None)
+        if eval_interval is None or eval_interval <= 0:
+            logger.info("Periodic evaluation disabled (eval_every_episodes not set)")
+            self._periodic_eval_enabled = False
+            return
+
+        self._periodic_eval_enabled = True
+        self._periodic_eval_df = df
+        self._periodic_eval_max_steps = max_steps
+        self._periodic_eval_config = config
+        self._periodic_eval_algorithm = algorithm
+        self._periodic_eval_env = eval_env
+        self._last_eval_episode = 0
+
+        logger.info(
+            f"Periodic evaluation enabled: will evaluate every {eval_interval} episodes"
+        )
+
+    def _run_temporary_evaluation(
+        self,
+        episode_number: int,
+        df: Any,
+        max_steps: int,
+        config: Any,
+        algorithm: str,
+        eval_env: Any = None,
+    ) -> None:
+        """Run temporary evaluation during training and log plots to MLflow.
+
+        This leverages the existing evaluate() method but logs plots to a
+        temporary directory structure: evaluation_plots_temp/{episode_number}/
+
+        Args:
+            episode_number: Current episode number for folder naming
+            df: DataFrame with evaluation data
+            max_steps: Maximum steps for evaluation rollout
+            config: Experiment configuration
+            algorithm: Algorithm name (for logging)
+            eval_env: Optional dedicated evaluation environment
+        """
+        logger = get_logger(__name__)
+        logger.info(f"Running temporary evaluation at episode {episode_number}...")
+
+        try:
+            # Run evaluation using existing framework
+            (
+                reward_plot,
+                action_plot,
+                action_probs_plot,
+                final_reward,
+                last_positions,
+                actual_returns_plot,
+                merged_plot,
+            ) = self.evaluate(
+                df=df,
+                max_steps=max_steps,
+                config=config,
+                algorithm=algorithm,
+                eval_env=eval_env,
+            )
+
+            # Log plots to temporary directory structure
+            if mlflow.active_run():
+                from trading_rl.callbacks import MLflowTrainingCallback
+
+                artifact_prefix = f"evaluation_plots_temp/episode_{episode_number}"
+
+                MLflowTrainingCallback.log_evaluation_plots(
+                    reward_plot=reward_plot,
+                    action_plot=action_plot,
+                    action_probs_plot=action_probs_plot,
+                    actual_returns_plot=actual_returns_plot,
+                    logs=None,  # Don't log training loss plots for temp evals
+                    merged_plot=merged_plot,
+                    artifact_path_prefix=artifact_prefix,
+                )
+
+                # Log summary metric for this episode
+                mlflow.log_metric(
+                    "temp_eval_reward",
+                    final_reward,
+                    step=episode_number,
+                )
+
+                logger.info(
+                    f"Temporary evaluation complete: reward={final_reward:.4f}, "
+                    f"plots saved to {artifact_prefix}"
+                )
+            else:
+                logger.warning("No active MLflow run - skipping temp evaluation logging")
+
+        except Exception as e:
+            logger.error(f"Temporary evaluation failed at episode {episode_number}: {e}")
+            # Don't crash training on eval failure - just log and continue
+
     def _run_training_loop(
         self,
         callback: Any = None,
@@ -610,6 +734,22 @@ class BaseTrainer(ABC):
                     self._optimization_step(i, max_length, buffer_len)
                 self.total_episodes += data["next", "done"].sum()
                 self._maybe_save_checkpoint()
+
+                # Check for periodic evaluation
+                if self._periodic_eval_enabled:
+                    eval_interval = self._periodic_eval_config.training.eval_every_episodes
+                    episodes_since_last_eval = int(self.total_episodes) - self._last_eval_episode
+
+                    if episodes_since_last_eval >= eval_interval:
+                        self._run_temporary_evaluation(
+                            episode_number=int(self.total_episodes),
+                            df=self._periodic_eval_df,
+                            max_steps=self._periodic_eval_max_steps,
+                            config=self._periodic_eval_config,
+                            algorithm=self._periodic_eval_algorithm,
+                            eval_env=self._periodic_eval_env,
+                        )
+                        self._last_eval_episode = int(self.total_episodes)
 
                 if self.callback and hasattr(self.callback, "log_episode_stats"):
                     self._log_episode_stats(data, self.callback)

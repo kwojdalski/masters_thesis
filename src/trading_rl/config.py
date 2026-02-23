@@ -116,6 +116,7 @@ class TrainingConfig:
     eval_interval: int = 1000
     eval_steps: int = 500
     log_interval: int = 1000
+    eval_every_episodes: int | None = None  # Run temporary evaluation every N episodes (None = disabled)
 
 
 @dataclass

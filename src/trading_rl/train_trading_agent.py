@@ -738,6 +738,22 @@ def run_single_experiment(
         mlflow_callback = result.mlflow_callback
         effective_experiment_name = result.effective_experiment_name
 
+    # Setup periodic evaluation (if enabled in config)
+    # Build evaluation context early so it's available during training
+    eval_ctx = _build_final_evaluation_context(
+        train_df=train_df,
+        val_df=val_df,
+        test_df=test_df,
+        config=config,
+    )
+    trainer.setup_periodic_evaluation(
+        df=eval_ctx.df,
+        max_steps=eval_ctx.max_steps,
+        config=config,
+        algorithm=algorithm,
+        eval_env=eval_ctx.env,
+    )
+
     # Train (Ctrl-C should still trigger final evaluation on the current model state)
     logger.info("Starting training...")
     interrupted = False
@@ -766,12 +782,7 @@ def run_single_experiment(
 
     # Evaluate agent
     logger.info("Evaluating agent...")
-    eval_ctx = _build_final_evaluation_context(
-        train_df=train_df,
-        val_df=val_df,
-        test_df=test_df,
-        config=config,
-    )
+    # eval_ctx was already built before training for periodic evaluation
     (
         reward_plot,
         action_plot,
