@@ -1,1 +1,105 @@
 ## Key Concepts from Reinforcement Learning
+
+Reinforcement learning provides a mathematical framework for sequential decision-making under uncertainty. This section examines foundational concepts that underpin RL applications in financial trading, establishing the theoretical basis for the methodology employed in this thesis.
+
+### Markov Decision Processes
+
+The Markov Decision Process (MDP) constitutes the formal mathematical framework for modeling decision-making in stochastic environments. Introduced by @Bellman1957, an MDP is defined by the tuple $(S, A, P, R, \gamma)$ where:
+
+* $S$ is the state space representing all possible environmental configurations
+* $A$ is the action space containing available decisions
+* $P: S \times A \times S \to [0,1]$ is the state transition probability function
+* $R: S \times A \to \mathbb{R}$ is the reward function mapping state-action pairs to scalar rewards
+* $\gamma \in [0,1]$ is the discount factor governing temporal preference
+
+The Markov property—that future states depend only on the current state and action, not on history—simplifies the decision problem while maintaining practical applicability to many real-world domains. @Puterman1994 provides comprehensive treatment of MDP theory and solution methods.
+
+In financial markets, the MDP framework models trading as a sequential decision process where states encode market conditions, actions represent portfolio allocations, and rewards capture risk-adjusted returns. However, financial MDPs often violate strict stationarity assumptions due to regime changes and structural breaks, necessitating robust learning algorithms.
+
+### The Bellman Equation and Dynamic Programming
+
+Richard Bellman's principle of optimality states that an optimal policy has the property that, regardless of initial state and action, remaining decisions must constitute an optimal policy with regard to the state resulting from the first decision @Bellman1957. This principle yields the Bellman equation for the optimal value function:
+
+$$V^*(s) = \max_a \left[R(s,a) + \gamma \sum_{s'} P(s'|s,a) V^*(s')\right]$$
+
+For the action-value function (Q-function), the Bellman optimality equation becomes:
+
+$$Q^*(s,a) = R(s,a) + \gamma \sum_{s'} P(s'|s,a) \max_{a'} Q^*(s',a')$$
+
+Dynamic programming algorithms such as value iteration and policy iteration leverage these recursive relationships to compute optimal policies when the MDP model is known. However, financial trading operates in model-free settings where transition dynamics are unknown, motivating the development of temporal difference learning methods.
+
+### Temporal Difference Learning
+
+Temporal difference (TD) learning, pioneered by @Sutton1988, combines Monte Carlo sampling with dynamic programming bootstrapping to learn value functions from experience without requiring a model. The fundamental TD(0) update rule is:
+
+$$V(s_t) \leftarrow V(s_t) + \alpha [r_t + \gamma V(s_{t+1}) - V(s_t)]$$
+
+where $\alpha$ is the learning rate and the term $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ is the TD error quantifying prediction discrepancy. TD methods enable online learning from incomplete episodes, making them particularly suitable for continuing tasks like trading.
+
+Q-learning, introduced by @Watkins1989, extends TD learning to action-value functions:
+
+$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha [r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)]$$
+
+As an off-policy algorithm, Q-learning learns the optimal policy while following an exploratory behavior policy, facilitating efficient learning from historical data—a critical advantage in financial applications where real-time experimentation is costly.
+
+### Policy Gradient Methods
+
+While value-based methods like Q-learning are effective for discrete action spaces, many trading problems require continuous control over portfolio weights. Policy gradient methods directly parameterize and optimize the policy $\pi_\theta(a|s)$ using gradient ascent on expected return $J(\theta) = \mathbb{E}_{\pi_\theta}[G_t]$.
+
+The policy gradient theorem @Sutton2000 establishes that:
+
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a|s) Q^{\pi_\theta}(s,a)\right]$$
+
+REINFORCE @Williams1992 implements this gradient through Monte Carlo sampling, while actor-critic methods combine policy gradients with learned value function baselines to reduce variance. These approaches naturally accommodate continuous action spaces and stochastic policies, both desirable properties for portfolio optimization.
+
+### Exploration-Exploitation Tradeoff
+
+A fundamental challenge in reinforcement learning is balancing exploration (gathering information about the environment) and exploitation (maximizing reward based on current knowledge). @Sutton2018 characterize this as the central dilemma of sequential decision-making.
+
+Classical approaches include:
+
+* **$\epsilon$-greedy**: Select optimal action with probability $1-\epsilon$, random action otherwise
+* **Boltzmann exploration**: Sample actions according to softmax distribution over Q-values
+* **Upper Confidence Bound (UCB)**: Select actions balancing estimated value and uncertainty
+
+In financial contexts, exploration carries real costs through suboptimal trades, while insufficient exploration risks missing profitable strategies. @Moody1998 propose risk-adjusted performance measures that implicitly balance exploration and exploitation for trading applications.
+
+### Function Approximation and Deep RL
+
+Tabular representations of value functions become intractable in high-dimensional state spaces characteristic of financial markets with numerous features. Function approximation using neural networks addresses this curse of dimensionality by generalizing across similar states.
+
+Deep Q-Networks (DQN) @Mnih2015 demonstrated that deep neural networks can successfully approximate Q-functions in complex environments, employing experience replay and target networks to stabilize learning. This breakthrough catalyzed applications of deep RL to trading @Deng2016.
+
+However, function approximation introduces approximation error and can destabilize TD learning. @Tsitsiklis1997 analyze convergence properties, identifying conditions under which off-policy learning with function approximation diverges. Twin Delayed DDPG (TD3) @Fujimoto2018, employed in this thesis, mitigates these issues through twin critics and delayed policy updates.
+
+### Reward Shaping and Credit Assignment
+
+The choice of reward function critically influences learned behavior. Sparse rewards (e.g., only terminal profit/loss) complicate credit assignment—determining which actions contributed to outcomes. Dense rewards (e.g., per-step returns) provide more frequent learning signals but may induce myopic behavior.
+
+@Ng1999 formalize reward shaping, proving that potential-based shaping preserves optimal policies while accelerating learning. In trading contexts, reward functions often incorporate risk adjustment:
+
+* **Sharpe ratio**: $\frac{E[R] - R_f}{\sigma(R)}$ balances return and volatility
+* **Differential Sharpe ratio**: Online variant enabling gradient-based optimization @Moody1998
+* **Maximum drawdown penalties**: Discourage large losses
+* **Transaction cost awareness**: Reward only net-of-fees returns
+
+The reward design in this thesis employs log returns and Differential Sharpe Ratio, providing both dense feedback and risk-adjusted objectives aligned with institutional trading objectives.
+
+### Sample Efficiency and Off-Policy Learning
+
+Financial data is inherently limited—historical price series are finite, and real-time trading incurs opportunity costs. Sample efficiency—learning from minimal data—is thus paramount. Off-policy algorithms learn from any experience, including historical data and sub-optimal policies, improving sample efficiency relative to on-policy methods.
+
+@Precup2000 establish importance sampling corrections enabling off-policy learning with function approximation. Experience replay @Lin1992, employed in DQN and TD3, further improves sample efficiency by reusing past transitions multiple times, particularly valuable when data acquisition is expensive or risky.
+
+### Non-Stationarity and Continuous Adaptation
+
+Financial markets exhibit non-stationarity—statistical properties evolve over time due to regime changes, structural breaks, and feedback effects from algorithmic trading. Classical RL theory assumes stationary environments, limiting direct applicability.
+
+@Sutton2018 discuss continual learning and meta-learning approaches for non-stationary settings. @Deng2016 propose time-varying discount factors adapting to market volatility regimes. This thesis addresses non-stationarity through:
+
+* Feature engineering emphasizing stationary statistics (returns rather than prices)
+* Conservative learning rates enabling gradual adaptation
+* Regularization preventing catastrophic forgetting
+* Out-of-sample validation on held-out temporal data
+
+These concepts collectively establish the theoretical foundation for applying reinforcement learning to trading, informing the methodological choices in subsequent chapters.

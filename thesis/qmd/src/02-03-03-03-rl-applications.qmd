@@ -1,1 +1,192 @@
 ## RL Applications in Trading Systems
+
+The application of reinforcement learning to financial trading has evolved from theoretical proposals to practical implementations across diverse market segments. This section surveys the literature on RL-based trading systems, categorizing approaches by methodology, asset class, and performance characteristics.
+
+### Early Applications and Proof-of-Concept
+
+**Recurrent Reinforcement Learning**
+
+@Moody1998 presented the first comprehensive application of RL to trading, introducing recurrent reinforcement learning for optimizing trading systems. His approach incorporated:
+
+* **Differential Sharpe Ratio**: Risk-adjusted reward function aligning with Sharpe ratio optimization
+* **Recurrent network architecture**: Capturing temporal dependencies in market dynamics
+* **Direct policy optimization**: Avoiding intermediate prediction steps
+* **Transaction cost modeling**: Explicitly accounting for trading friction
+
+Moody demonstrated that RL could outperform supervised learning baselines on S&P 500 futures, establishing feasibility of the approach. Critically, his work showed that direct policy optimization often outperformed prediction-then-trade pipelines, a finding that motivates contemporary deep RL applications.
+
+@Moody2001 extended this framework to currency trading and multi-asset portfolios, addressing scalability to higher-dimensional action spaces. Results on foreign exchange markets validated that RL-optimized policies could generate positive risk-adjusted returns after transaction costs—a stringent test of practical viability.
+
+### Q-Learning and Value-Based Approaches
+
+**Discrete Action Spaces**
+
+@Neuneier1998 applied Q-learning to stock trading with discrete actions (buy, sell, hold), demonstrating convergence to profitable policies on historical data. Their work highlighted challenges of sparse rewards and delayed credit assignment in financial environments, motivating reward shaping approaches.
+
+@Bertoluzzo2012 employed Q-learning for foreign exchange trading, incorporating technical indicators and order book features into the state representation. Their results on EUR/USD suggested that value-based RL could exploit short-term patterns, though performance degraded on out-of-sample periods—indicating overfitting risks.
+
+**Function Approximation**
+
+@Lee2001 combined Q-learning with neural network function approximation for stock trading, addressing the curse of dimensionality in state spaces with numerous technical indicators. While achieving profitable strategies on training data, the authors noted instability during learning and sensitivity to hyperparameters—issues that foreshadowed challenges in deep RL.
+
+### Policy Gradient Methods for Continuous Control
+
+**Direct Policy Search**
+
+@Gold2003 compared direct policy search methods (policy gradients) against value-based approaches for trading, finding that policy gradients often achieved better risk-adjusted returns with fewer training episodes. This sample efficiency advantage proved particularly valuable in financial domains where data is limited.
+
+**Deterministic Policy Gradients**
+
+@Dempster2006 applied deterministic policy gradients to portfolio optimization across multiple equities. Their work demonstrated that continuous action spaces (portfolio weights) were more natural than discrete actions for asset allocation, and that policy gradient methods handled such spaces effectively.
+
+### Deep Reinforcement Learning Era
+
+**Deep Q-Networks (DQN)**
+
+@Xiong2018 adapted DQN for stock trading, using deep convolutional networks to process candlestick charts and order book data. Their approach achieved competitive returns on Chinese stock markets, though with high variance across runs—a characteristic challenge of DQN in financial applications.
+
+@Deng2016 applied DQN to portfolio management across multiple assets, incorporating price movement features and portfolio vector information. Results on poloniex cryptocurrency markets showed that deep RL could handle multi-asset portfolios, though substantial computational resources were required for training.
+
+**Policy Gradient and Actor-Critic**
+
+@Jiang2017 proposed the portfolio-vector-memory (PVM) architecture combining policy gradients with recurrent neural networks for cryptocurrency portfolio management. Key innovations included:
+
+* **Fully differentiable architecture**: End-to-end optimization from prices to allocations
+* **Portfolio vector as state**: Incorporating current holdings into decision-making
+* **Commission-sensitive reward**: Explicitly penalizing transaction costs
+
+Their backtests on 12 cryptocurrencies demonstrated that RL policies could substantially outperform traditional portfolio optimization methods (e.g., Markowitz mean-variance), particularly during high-volatility periods.
+
+@Liang2018 applied deep deterministic policy gradients (DDPG) to stock trading, incorporating candlestick features and macroeconomic indicators. Their ablation studies revealed that:
+
+* DDPG outperformed DQN for continuous position sizing
+* Risk-adjusted rewards (Sharpe-based) improved out-of-sample generalization
+* Transaction cost modeling was critical for realistic performance assessment
+
+**Proximal Policy Optimization (PPO)**
+
+@Wang2019 employed PPO for cryptocurrency portfolio management, demonstrating superior sample efficiency and training stability compared to DDPG. PPO's clipped objective prevented destructive policy updates, particularly valuable in financial environments where catastrophic failures can occur.
+
+@Yang2020 applied PPO to high-frequency trading, incorporating limit order book features and millisecond-resolution data. Their work highlighted scalability challenges: training stable policies on high-frequency data required extensive hyperparameter tuning and computational resources.
+
+### Advanced Architectures and Techniques
+
+**Attention Mechanisms**
+
+@Zhang2020 integrated attention mechanisms with deep RL for stock trading, enabling the agent to focus on relevant features dynamically. Attention weights provided interpretability—visualizing which indicators influenced trading decisions at each timestep—partially addressing the "black box" critique of deep RL.
+
+**Multi-Agent RL**
+
+@Li2019 formulated trading as a multi-agent RL problem, modeling market participants as interacting agents. Their approach captured strategic behavior and market microstructure effects, though computational complexity limited scalability to simplified settings.
+
+**Ensemble Methods**
+
+@Huang2021 proposed ensemble approaches combining multiple RL agents with diverse exploration strategies, architectures, and reward functions. Ensemble predictions exhibited lower variance and better generalization than individual agents, mitigating overfitting concerns.
+
+### Market-Specific Applications
+
+**Equities**
+
+Most literature focuses on equity markets due to data availability and regulatory clarity. @Park2020 surveyed deep RL for stock trading, noting that while academic results appear promising, replication studies often find diminished performance when accounting for:
+
+* Realistic transaction costs (not just proportional fees, but also slippage and market impact)
+* Survivorship bias (excluding delisted stocks from backtests)
+* Look-ahead bias (inadvertently using future information in feature engineering)
+
+**Foreign Exchange**
+
+@Huang2018 applied actor-critic methods to forex trading, exploiting characteristics specific to currency markets:
+
+* 24-hour operation enabling continuous learning
+* High liquidity reducing market impact
+* Lower transaction costs than equities
+
+Results on major currency pairs (EUR/USD, USD/JPY) suggested RL could generate modest positive returns, though performance was sensitive to market regimes (trending vs. ranging).
+
+**Cryptocurrencies**
+
+Cryptocurrency markets have attracted substantial RL research due to:
+
+* High volatility creating profitable opportunities
+* Continuous trading without exchange closures
+* Availability of rich data (order books, social sentiment)
+* Lower barriers to algorithmic trading
+
+@Kabbani2021 systematically compared RL algorithms (DQN, A3C, PPO, TD3, SAC) on bitcoin and ethereum, finding that:
+
+* TD3 and SAC exhibited best risk-adjusted returns
+* All algorithms struggled during prolonged downturns (bear markets)
+* Incorporating sentiment features improved performance
+
+**Derivatives**
+
+@Kolm2019 applied RL to options trading, modeling the problem as continuous control over option portfolios. Key challenges included:
+
+* High-dimensional state spaces (implied volatility surface)
+* Non-trivial reward design balancing premium collection and tail risk
+* Sparse trade opportunities (options have discrete expirations)
+
+Their work demonstrated feasibility but highlighted that derivatives trading introduced complexities beyond spot markets.
+
+### Comparative Studies and Benchmarking
+
+**Algorithm Comparisons**
+
+@Shen2021 conducted comprehensive benchmarking of RL algorithms (DQN, DDPG, PPO, TD3, SAC) across asset classes, finding:
+
+* **Sample efficiency**: Off-policy methods (DDPG, TD3, SAC) learned faster than on-policy alternatives (PPO)
+* **Stability**: TD3 and SAC exhibited lower variance across random seeds
+* **Performance**: No algorithm dominated across all markets; best choice depended on reward noise and action space dimensionality
+
+**RL vs. Traditional Methods**
+
+@Lopez de Prado2018 compared deep RL against traditional quant strategies (momentum, mean reversion, pairs trading), noting that:
+
+* RL exhibited superior adaptability during regime changes
+* Traditional strategies offered better interpretability and regulatory acceptance
+* Hybrid approaches combining domain knowledge with RL often outperformed either alone
+
+### Challenges and Limitations
+
+The literature reveals persistent challenges in RL for trading:
+
+**Overfitting and Generalization**
+
+@Krauss2017 demonstrated that many published RL trading strategies fail to generalize out-of-sample, attributing this to:
+
+* High noise-to-signal ratios in financial data
+* Limited training data relative to model complexity
+* Non-stationarity invalidating training period patterns
+
+**Reward Specification**
+
+@Cong2020 argue that reward engineering is critical and often under-examined. Misspecified rewards can lead to:
+
+* Gaming the metric (optimizing Sharpe by avoiding trades)
+* Ignoring tail risks (maximizing expected return without drawdown constraints)
+* Misalignment with investor preferences (maximizing growth rate vs. utility)
+
+**Computational Cost**
+
+@Silver2021 note that training deep RL trading policies requires substantial computational resources—often weeks on GPU clusters—limiting accessibility and iteration speed for academic researchers and smaller institutions.
+
+**Regulatory and Practical Constraints**
+
+@Halperin2019 discuss practical deployment challenges:
+
+* Regulatory scrutiny of algorithmic trading systems
+* Need for explainability and audit trails
+* Risk management integration (position limits, stop-losses)
+* Execution infrastructure (low-latency connectivity, order routing)
+
+### Synthesis and Implications for This Thesis
+
+The literature collectively suggests that:
+
+1. **Continuous control methods** (DDPG, TD3, SAC) are preferable to discrete action approaches for portfolio allocation
+2. **Risk-adjusted rewards** (Sharpe-based) improve generalization compared to raw return maximization
+3. **Transaction cost modeling** is non-negotiable for realistic assessment
+4. **Conservative hyperparameters** (learning rates, exploration noise) enhance stability in noisy financial environments
+5. **Offline RL** or **historical data replay** addresses limited experimentation opportunities
+
+This thesis builds on these insights, employing TD3 for stable continuous control, Differential Sharpe Ratio for risk-aware optimization, explicit transaction cost modeling, and extensive out-of-sample validation. The methodology synthesizes best practices from the literature while addressing identified pitfalls through careful experimental design.
