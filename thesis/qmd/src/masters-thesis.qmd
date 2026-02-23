@@ -25,7 +25,6 @@ header-includes:
   - \usepackage{algorithm}
   - \usepackage{algpseudocode}
   - \usepackage{amsmath}
-  - \pagenumbering{gobble}
   - \nralbumu{310284}
   - \speciality{Economics}
   - \opiekun{dr Pawel Sakowski}  # Replace with your actual supervisor's name
