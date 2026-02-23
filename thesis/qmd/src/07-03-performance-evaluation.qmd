@@ -90,3 +90,40 @@ else:
         else:
             print(f"{title}: artifact not found")
 ```
+
+### Discussion: Feature Redundancy and State Representation Quality
+
+The empirical results should be interpreted with caution when comparing large and
+small feature sets, because reinforcement learning performance is highly
+sensitive to the quality of the state representation. In particular, increasing
+the number of input variables does not guarantee improved performance. A larger
+feature set can increase the dimensionality of the learning problem while adding
+little incremental information if many variables encode similar market behavior
+(for example, multiple indicators derived from closely related moving-average or
+momentum transformations).
+
+This issue is especially important in actor-critic methods. The critic must
+learn a stable mapping from state-action pairs to expected returns under noisy
+financial dynamics. When the state vector contains redundant or weakly
+informative features, the signal-to-noise ratio available to the critic may
+deteriorate. In practice, this can manifest as unstable policy updates, noisy
+training curves, and weak out-of-sample performance, even when the optimization
+loss appears well-behaved.
+
+From a methodological perspective, these observations support a hypothesis-driven
+approach to feature engineering rather than a purely additive one. In practical
+terms, this means that indiscriminately adding available variables to the model
+is unlikely to improve reinforcement learning performance and may instead reduce
+it. Features should be selected because they provide complementary information
+about market structure, volatility, liquidity, or temporal regime behavior, not
+merely because they are available. This is consistent with the role of feature
+ablation studies in the present workflow: reduced, non-redundant feature sets
+may yield more stable learning and more interpretable behavior than larger but
+highly overlapping representations.
+
+More broadly, this result highlights a key difference between statistical
+modelling convenience and reinforcement learning utility. In RL, the state
+representation affects not only prediction quality, but also credit assignment,
+exploration efficiency, and policy optimization stability. Consequently, feature
+selection should be treated as a central component of experimental design rather
+than a secondary preprocessing detail.
