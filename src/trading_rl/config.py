@@ -138,6 +138,15 @@ class TrackingConfig:
 
 
 @dataclass
+class ExplainabilityConfig:
+    """Post-training explainability configuration."""
+
+    enabled: bool = False
+    n_steps: int = 500
+    methods: list[str] = field(default_factory=lambda: ["permutation", "integrated_gradients"])
+
+
+@dataclass
 class ExperimentConfig:
     """Full experiment configuration."""
 
@@ -147,6 +156,7 @@ class ExperimentConfig:
     training: TrainingConfig = field(default_factory=TrainingConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
+    explainability: ExplainabilityConfig = field(default_factory=ExplainabilityConfig)
 
     # Reproducibility
     seed: int | None = None
@@ -414,6 +424,12 @@ class ExperimentConfig:
                 if hasattr(config.tracking, key):
                     setattr(config.tracking, key, value)
 
+        if "explainability" in config_dict:
+            exp_dict = config_dict["explainability"]
+            for key, value in exp_dict.items():
+                if hasattr(config.explainability, key):
+                    setattr(config.explainability, key, value)
+
         return config
 
     def to_yaml(self, yaml_path: str | Path) -> None:
@@ -498,5 +514,10 @@ class ExperimentConfig:
                 "log_file": self.logging.log_file,
                 "log_level": self.logging.log_level,
                 "tensorboard_dir": self.logging.tensorboard_dir,
+            },
+            "explainability": {
+                "enabled": self.explainability.enabled,
+                "n_steps": self.explainability.n_steps,
+                "methods": self.explainability.methods,
             },
         }

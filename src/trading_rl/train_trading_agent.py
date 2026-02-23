@@ -33,6 +33,7 @@ from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import EvaluationContext, build_evaluation_report_for_trainer
+from trading_rl.evaluation.explainability import RLInterpretabilityAnalyzer
 from trading_rl.plotting import visualize_training
 from trading_rl.trainers.ppo import PPOTrainerContinuous
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
@@ -863,6 +864,46 @@ def run_single_experiment(
 
     # Log final metrics to MLflow
     MLflowTrainingCallback.log_final_metrics(logs, final_metrics, mlflow_callback)
+
+    # Explainability (Optional)
+    if config.explainability.enabled:
+        logger.info("Running explainability analysis (post-mortem)...")
+        try:
+            # Extract feature names from environment config (matches observation dimensions)
+            if config.env.feature_columns:
+                feature_names = config.env.feature_columns
+            else:
+                # Fallback: extract all feature columns from train_df
+                feature_names = [col for col in train_df.columns if str(col).startswith("feature_")]
+
+            logger.debug(f"Using {len(feature_names)} features for explainability: {feature_names}")
+
+            # 1. Get rollout for analysis (using validation or training set)
+            # Use eval_ctx environment and rollout
+            rollout = eval_ctx.env.rollout(max_steps=config.explainability.n_steps)
+            obs_batch = rollout["observation"]
+
+            logger.debug(f"Observation batch shape: {obs_batch.shape}")
+
+            # 2. Analyze
+            analyzer = RLInterpretabilityAnalyzer(trainer, feature_names)
+
+            if "permutation" in config.explainability.methods:
+                importance_df = analyzer.compute_global_importance(obs_batch)
+                importance_plot = analyzer.plot_importance(importance_df, title="Global Feature Importance (Permutation)")
+                metrics = analyzer.quantify_interpretability(importance_df)
+                MLflowTrainingCallback.log_explainability_results(importance_df, importance_plot, method="permutation", metrics=metrics)
+                logger.info("Permutation importance analysis complete.")
+
+            if "integrated_gradients" in config.explainability.methods:
+                importance_df = analyzer.compute_global_ig(obs_batch)
+                importance_plot = analyzer.plot_importance(importance_df, title="Global Feature Importance (Integrated Gradients)")
+                metrics = analyzer.quantify_interpretability(importance_df)
+                MLflowTrainingCallback.log_explainability_results(importance_df, importance_plot, method="integrated_gradients", metrics=metrics)
+                logger.info("Integrated gradients importance analysis complete.")
+
+        except Exception as e:
+            logger.error(f"Failed to run explainability analysis: {e}")
 
     if interrupted:
         logger.info("Training interrupted; final evaluation complete!")

@@ -13,6 +13,7 @@ from typing import Any
 
 import mlflow
 import numpy as np
+import pandas as pd
 import torch
 import yaml
 
@@ -804,6 +805,35 @@ class MLflowTrainingCallback:
             handle.flush()
             mlflow.log_artifact(handle.name, "evaluation_metrics")
             os.unlink(handle.name)
+
+    @staticmethod
+    def log_explainability_results(
+        importance_df: pd.DataFrame, 
+        importance_plot: Any,
+        method: str = "permutation",
+        metrics: dict[str, float] | None = None
+    ):
+        """Log explainability plots and importance data to MLflow."""
+        if not mlflow.active_run():
+            return
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            
+            # Save plot
+            plot_path = tmp_path / f"explainability_{method}.png"
+            importance_plot.save(str(plot_path))
+            mlflow.log_artifact(str(plot_path), "explainability")
+            
+            # Save CSV
+            csv_path = tmp_path / f"importance_{method}.csv"
+            importance_df.to_csv(csv_path, index=False)
+            mlflow.log_artifact(str(csv_path), "explainability")
+            
+            # Log metrics if provided
+            if metrics:
+                prefixed_metrics = {f"{method}_{k}": v for k, v in metrics.items()}
+                mlflow.log_metrics(prefixed_metrics)
 
     @staticmethod
     def log_evaluation_plots(

@@ -140,7 +140,7 @@ Their work demonstrated feasibility but highlighted that derivatives trading int
 
 **RL vs. Traditional Methods**
 
-@Lopez de Prado2018 compared deep RL against traditional quant strategies (momentum, mean reversion, pairs trading), noting that:
+@Lopez2018 compared deep RL against traditional quant strategies (momentum, mean reversion, pairs trading), noting that:
 
 * RL exhibited superior adaptability during regime changes
 * Traditional strategies offered better interpretability and regulatory acceptance
