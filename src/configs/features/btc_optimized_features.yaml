@@ -68,13 +68,14 @@ features:
       # Ratio > 1 means recent volatility spike
 
   # ---------------------------------------------------------------------------
-  # 3. PRICE RANGE (1 feature)
+  # 3. PRICE RANGE / INTRACANDLE UPSIDE (1 feature)
   # ---------------------------------------------------------------------------
-  # Intraday price movement
+  # Proxy for intraday range pressure (using high relative to close).
+  # Kept under the original feature name for scenario compatibility.
 
   - <<: *norm_true
     name: "high_low_spread"
-    feature_type: "high_low_spread"
+    feature_type: "high"
 
   # ---------------------------------------------------------------------------
   # 4. VOLUME (3 features)

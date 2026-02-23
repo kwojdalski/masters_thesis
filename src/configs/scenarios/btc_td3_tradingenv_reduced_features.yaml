@@ -1,0 +1,106 @@
+# TD3 Configuration with TradingEnv Backend and Reduced Non-Redundant Feature Set
+# ============================================================================
+# This scenario is a lighter alternative to btc_td3_tradingenv_all_features.yaml.
+# It keeps one or a few representatives per signal family (momentum, volatility,
+# volume, temporal context) and avoids stacking multiple overlapping moving averages.
+
+seed: 42
+
+# Data Configuration
+data:
+  data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
+  feature_config: "src/configs/features/btc_optimized_features.yaml"
+  download_data: false
+  exchange_names: ["binance"]
+  symbols: ["BTC/USDT"]
+  timeframe: "1h"
+  data_dir: "data"
+  download_since: "2023-01-01T00:00:00+00:00"
+  train_size: 1000
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_TD3_BTC_REDUCED_FEATURES"
+  backend: "tradingenv"
+
+  # Transaction costs
+  trading_fees: 0.00035
+
+  # Raw price for env pricing/PnL
+  price_columns: ["close"]
+
+  # Non-redundant engineered feature subset (18 features)
+  feature_columns: [
+    "feature_return_lag_1",
+    "feature_return_lag_6",
+    "feature_return_lag_24",
+    "feature_return_lag_168",
+    "feature_log_return",
+    "feature_realized_volatility_24",
+    "feature_volatility_ratio_6_168",
+    "feature_high_low_spread",
+    "feature_volume_ma_ratio_24",
+    "feature_volume_change",
+    "feature_amihud_illiquidity",
+    "feature_rsi_14",
+    "feature_macd_signal",
+    "feature_bbands_20",
+    "feature_hour_sin",
+    "feature_hour_cos",
+    "feature_day_of_week_sin",
+    "feature_day_of_week_cos",
+  ]
+
+  reward_type: "log_return"
+  reward_eta: 0.01
+
+# Network Architecture
+network:
+  actor_hidden_dims: [128, 64]
+  value_hidden_dims: [128, 64]
+
+# Training Parameters - TD3
+training:
+  algorithm: "TD3"
+  temp_eval_interval: 100000
+
+  # Learning rates
+  actor_lr: 0.0001
+  value_lr: 0.0001
+  value_weight_decay: 0.000002
+  actor_weight_decay: 0.000002
+
+  # Training loop
+  max_steps: 5000000
+  checkpoint_interval: 100000
+  init_rand_steps: 500
+  frames_per_batch: 200
+  optim_steps_per_batch: 5
+  sample_size: 128
+  buffer_size: 100000
+  save_buffer: true
+
+  # Discount factor
+  gamma: 0.99
+
+  # TD3-specific parameters
+  tau: 0.001
+  policy_noise: 0.2
+  noise_clip: 0.3
+  policy_delay: 2
+  delay_actor: true
+  delay_qvalue: true
+  exploration_noise_std: 0.2
+
+  # Loss function
+  loss_function: "smooth_l1"
+
+  # Evaluation
+  eval_steps: 720
+  eval_interval: 1000
+  log_interval: 100
+
+# Logging Configuration
+logging:
+  log_level: "INFO"
+  save_plots: false
