@@ -811,7 +811,8 @@ class MLflowTrainingCallback:
         importance_df: pd.DataFrame | None,
         importance_plot: Any,
         method: str = "permutation",
-        metrics: dict[str, float] | None = None
+        metrics: dict[str, float] | None = None,
+        artifact_path_prefix: str | None = None
     ):
         """Log explainability plots and importance data to MLflow.
 
@@ -820,9 +821,14 @@ class MLflowTrainingCallback:
             importance_plot: Plot object to save
             method: Method name for artifact naming
             metrics: Optional metrics dictionary to log
+            artifact_path_prefix: Optional path prefix for MLflow artifacts
+                (default: "explainability", for temp: "explainability_temp/step_00005000")
         """
         if not mlflow.active_run():
             return
+
+        # Use custom artifact path if provided, otherwise default to "explainability"
+        artifact_dir = artifact_path_prefix if artifact_path_prefix else "explainability"
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
@@ -830,13 +836,13 @@ class MLflowTrainingCallback:
             # Save plot
             plot_path = tmp_path / f"explainability_{method}.png"
             importance_plot.save(str(plot_path))
-            mlflow.log_artifact(str(plot_path), "explainability")
+            mlflow.log_artifact(str(plot_path), artifact_dir)
 
             # Save CSV (only if dataframe is provided)
             if importance_df is not None:
                 csv_path = tmp_path / f"importance_{method}.csv"
                 importance_df.to_csv(csv_path, index=False)
-                mlflow.log_artifact(str(csv_path), "explainability")
+                mlflow.log_artifact(str(csv_path), artifact_dir)
 
             # Log metrics if provided
             if metrics:

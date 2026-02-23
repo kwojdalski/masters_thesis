@@ -494,6 +494,7 @@ def _run_explainability_analysis(
     eval_ctx: EvaluationContext,
     train_df: pd.DataFrame,
     logger: logging.Logger,
+    artifact_path_prefix: str | None = None,
 ) -> None:
     """Run explainability analysis and log results to MLflow.
 
@@ -503,11 +504,13 @@ def _run_explainability_analysis(
         eval_ctx: Evaluation context with environment for rollout
         train_df: Training dataframe to extract feature names
         logger: Logger instance
+        artifact_path_prefix: Optional path prefix for MLflow artifacts
+            (default: "explainability", for temp: "explainability_temp/step_00005000")
     """
     if not config.explainability.enabled:
         return
 
-    logger.info("Running explainability analysis (post-mortem)...")
+    logger.info("Running explainability analysis...")
 
     try:
         # Extract feature names from environment config (matches observation dimensions)
@@ -537,7 +540,9 @@ def _run_explainability_analysis(
                 df = analyzer.compute_global_importance(obs_batch)
                 plot = analyzer.plot_importance(df, title="Global Feature Importance (Permutation)", color="steelblue")
                 metrics = analyzer.quantify_interpretability(df)
-                MLflowTrainingCallback.log_explainability_results(df, plot, method="permutation", metrics=metrics)
+                MLflowTrainingCallback.log_explainability_results(
+                    df, plot, method="permutation", metrics=metrics, artifact_path_prefix=artifact_path_prefix
+                )
                 results["permutation"] = df
                 logger.info("Permutation importance analysis complete.")
 
@@ -546,7 +551,9 @@ def _run_explainability_analysis(
                 df = analyzer.compute_global_ig(obs_batch)
                 plot = analyzer.plot_importance(df, title="Global Feature Importance (Integrated Gradients)", color="coral")
                 metrics = analyzer.quantify_interpretability(df)
-                MLflowTrainingCallback.log_explainability_results(df, plot, method="integrated_gradients", metrics=metrics)
+                MLflowTrainingCallback.log_explainability_results(
+                    df, plot, method="integrated_gradients", metrics=metrics, artifact_path_prefix=artifact_path_prefix
+                )
                 results["integrated_gradients"] = df
                 logger.info("Integrated gradients importance analysis complete.")
 
@@ -557,7 +564,9 @@ def _run_explainability_analysis(
                 results["permutation"],
                 results["integrated_gradients"]
             )
-            MLflowTrainingCallback.log_explainability_results(None, merged_plot, method="merged", metrics=None)
+            MLflowTrainingCallback.log_explainability_results(
+                None, merged_plot, method="merged", metrics=None, artifact_path_prefix=artifact_path_prefix
+            )
             logger.info("Merged explainability plot saved.")
 
     except Exception as e:
