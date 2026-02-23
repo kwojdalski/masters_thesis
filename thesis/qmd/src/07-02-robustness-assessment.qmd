@@ -1,1 +1,159 @@
 ## Robustness Assessment
+
+Robustness assessment evaluates whether observed performance remains stable when
+the experimental conditions are perturbed in controlled ways. In reinforcement
+learning for trading, this step is critical because apparent gains may arise
+from a favorable combination of data segment, random seed, feature selection, or
+reward specification rather than from a reliably learnable trading policy.
+
+This section documents the robustness dimensions used in the present research
+and provides a structured basis for interpreting noisy results. The goal is not
+to eliminate all uncertainty, but to determine whether the conclusions are
+sensitive to reasonable variations in modelling and market assumptions.
+
+```{python}
+#| label: robustness_setup
+#| echo: false
+#| warning: false
+
+import pandas as pd
+
+from thesis_mlflow_results import load_experiment_snapshot, runs_overview_table
+
+EXPERIMENT_NAME = "btc_td3_tradingenv_reduced_features"
+snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
+finished = snapshot.latest_finished
+runs_df = runs_overview_table(EXPERIMENT_NAME)
+```
+
+### Why Robustness Matters in Reinforcement Learning Trading Experiments
+
+Unlike static supervised learning tasks, reinforcement learning combines
+representation learning, policy optimization, and sequential credit assignment.
+As a result, performance variability can emerge from several sources at once:
+stochastic initialization, exploration dynamics, replay sampling, and the
+interaction between policy updates and non-stationary market behavior. This
+makes robustness assessment a primary component of the empirical evaluation,
+rather than a secondary sensitivity check.
+
+A robust result in this thesis is therefore defined as one that remains
+directionally consistent across plausible variations of the experiment design,
+while preserving economically interpretable behavior (e.g., turnover, drawdown,
+and risk-adjusted performance).
+
+### Current Evaluation Context
+
+The following snapshot provides the current experiment context used in the
+automated Chapter 7 result wiring. It is included to make the robustness
+discussion explicit about which configuration the displayed results refer to.
+
+```{python}
+#| echo: false
+
+if finished is None:
+    print(f"No finished runs available for experiment: {EXPERIMENT_NAME}")
+else:
+    params = finished.get("params", {})
+    latest = finished.get("latest_metrics")
+    rows = [
+        ("Experiment", EXPERIMENT_NAME),
+        ("Run Name", finished.get("run_name")),
+        ("Seed", params.get("seed")),
+        ("Algorithm", params.get("training_algorithm")),
+        ("Reward Type", params.get("env_reward_type")),
+        ("Train Size", params.get("data_train_size")),
+        ("Feature Config", params.get("data_feature_config")),
+        ("Finished Runs in Snapshot", 0 if runs_df.empty else int((runs_df["status"] == "FINISHED").sum())),
+        ("Latest Training Steps", None if latest is None else latest.get("training_steps")),
+    ]
+    display(pd.DataFrame(rows, columns=["Field", "Value"]))
+```
+
+### Robustness Dimensions Considered in This Thesis
+
+The robustness framework is organized around six dimensions that correspond to
+the most common failure modes in financial reinforcement learning experiments:
+
+1. **Random-seed sensitivity**: evaluates whether observed performance is stable
+   under repeated runs with different initialization and sampling trajectories.
+2. **Feature-set sensitivity**: compares broader feature collections with
+   reduced, less redundant subsets to assess whether performance depends on
+   state-representation complexity rather than genuine signal extraction.
+3. **Reward-function sensitivity**: tests whether conclusions persist when the
+   optimization objective changes (e.g., log-return reward versus risk-adjusted
+   shaped reward).
+4. **Transaction-cost sensitivity**: evaluates whether performance survives
+   realistic cost assumptions and whether gains are driven by excessive
+   turnover.
+5. **Data-split sensitivity**: examines whether results are stable across
+   different chronological train/validation/test allocations or rolling periods.
+6. **Algorithm sensitivity**: compares policy behavior and performance across
+   algorithms with different optimization biases (e.g., PPO, DDPG, TD3).
+
+Together, these dimensions address both methodological and economic robustness.
+
+### Robustness Matrix for Experimental Reporting
+
+The table below defines a practical robustness matrix for the empirical part of
+the thesis. It can be used as a reporting checklist when final results are
+compiled.
+
+```{python}
+#| echo: false
+
+robustness_rows = [
+    ("Random seed", "seed", "Stochastic training path sensitivity", ">= 5 seeds per selected configuration", "Required"),
+    ("Feature subset", "env.feature_columns / feature pipeline", "State representation redundancy and overfitting", "All-features vs reduced non-redundant set", "Required"),
+    ("Reward function", "reward_type", "Objective-function dependence", "log_return vs differential_sharpe", "Recommended"),
+    ("Transaction costs", "trading_fees", "Turnover-driven performance inflation", "Zero-cost and nonzero-cost comparison", "Required"),
+    ("Train split length", "train_size / split design", "Sample size and regime exposure sensitivity", "Short vs longer train windows", "Recommended"),
+    ("Algorithm", "training.algorithm", "Optimizer and update-rule dependence", "PPO/DDPG/TD3 under matched data pipeline", "Recommended"),
+]
+
+robustness_df = pd.DataFrame(
+    robustness_rows,
+    columns=["Dimension", "Control Variable", "Primary Risk Addressed", "Assessment Design", "Priority"],
+)
+display(robustness_df)
+```
+
+### Interpreting Noisy Training Curves in Robustness Terms
+
+Noisy training curves are common in actor-critic methods and should not be
+interpreted in isolation as evidence of implementation failure. In the present
+workflow, training-time diagnostics are collected under exploration and are
+therefore expected to exhibit substantial variance. A more informative
+robustness interpretation is to examine whether the same configuration produces
+consistent *evaluation* outcomes across repeated runs and whether qualitative
+behavior (for example, persistent overtrading or persistent short bias) changes
+systematically under alternative feature sets, rewards, or cost assumptions.
+
+This perspective is particularly relevant when comparing large feature sets with
+reduced subsets. If a reduced, less redundant feature set yields more stable
+behavior across seeds and lower dispersion in evaluation metrics, this should be
+interpreted as evidence that robustness improved through better state
+representation design rather than through stronger optimization alone.
+
+### Methodological Limits of the Current Robustness Snapshot
+
+The current snapshot-based Chapter 7 integration supports reproducible loading
+of run summaries and evaluation artifacts, but robustness conclusions remain
+conditional on the set of experiments already executed and exported. In
+particular, a single finished run or a small number of repeated runs can
+illustrate workflow behavior, yet is insufficient for strong comparative claims.
+
+For this reason, the final thesis interpretation should report robustness
+findings only after completing the planned perturbation matrix with repeated
+seeds and consistent evaluation settings. The robustness framework presented in
+this section provides the structure for that reporting and helps prevent
+post-hoc interpretation based on isolated favorable runs.
+
+### Summary
+
+Robustness assessment in this thesis is treated as a structured empirical test
+of whether observed reinforcement learning performance survives reasonable
+variations in stochastic initialization, state representation, objective
+function, transaction costs, and data segmentation. This approach complements
+statistical validation by addressing model fragility and experimental-design
+dependence, both of which are central concerns in financial reinforcement
+learning research.
