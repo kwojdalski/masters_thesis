@@ -825,7 +825,7 @@ class MLflowTrainingCallback:
             logs: Optional training logs for loss plots
             merged_plot: Optional merged comparison plot (rewards + actions)
             artifact_path_prefix: Optional path prefix for MLflow artifacts
-                (default: "evaluation_plots", for temp evals: "evaluation_plots_temp/step_N")
+                (default: "evaluation_plots", for temp evals: "evaluation_plots_temp/step_00005000")
         """
         logger = get_project_logger(__name__)
 
