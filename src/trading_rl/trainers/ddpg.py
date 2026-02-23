@@ -364,29 +364,32 @@ class DDPGTrainer(BaseTrainer):
         checkpoint = torch.load(path, weights_only=False)
         actor_params_state = checkpoint.get("actor_params_state")
         value_params_state = checkpoint.get("value_params_state")
-        if actor_params_state is not None and value_params_state is not None:
-            self.ddpg_loss.actor_network_params.load_state_dict(actor_params_state)
-            self.ddpg_loss.value_network_params.load_state_dict(value_params_state)
-
-            target_actor_params = getattr(
-                self.ddpg_loss, "target_actor_network_params", None
+        if actor_params_state is None or value_params_state is None:
+            raise KeyError(
+                "DDPG checkpoint is missing functional parameter states "
+                "(actor_params_state/value_params_state). "
+                "Legacy module-only checkpoints are no longer supported."
             )
-            target_value_params = getattr(
-                self.ddpg_loss, "target_value_network_params", None
-            )
-            target_actor_state = checkpoint.get("target_actor_params_state")
-            target_value_state = checkpoint.get("target_value_params_state")
-            if target_actor_params is not None and target_actor_state is not None:
-                target_actor_params.load_state_dict(target_actor_state)
-            if target_value_params is not None and target_value_state is not None:
-                target_value_params.load_state_dict(target_value_state)
 
-            # Sync functional params back to visible modules used for collection/eval.
-            self.ddpg_loss.actor_network_params.to_module(self.actor)
-            self.ddpg_loss.value_network_params.to_module(self.value_net)
-        else:
-            self.actor.load_state_dict(checkpoint["actor_state_dict"])
-            self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
+        self.ddpg_loss.actor_network_params.load_state_dict(actor_params_state)
+        self.ddpg_loss.value_network_params.load_state_dict(value_params_state)
+
+        target_actor_params = getattr(
+            self.ddpg_loss, "target_actor_network_params", None
+        )
+        target_value_params = getattr(
+            self.ddpg_loss, "target_value_network_params", None
+        )
+        target_actor_state = checkpoint.get("target_actor_params_state")
+        target_value_state = checkpoint.get("target_value_params_state")
+        if target_actor_params is not None and target_actor_state is not None:
+            target_actor_params.load_state_dict(target_actor_state)
+        if target_value_params is not None and target_value_state is not None:
+            target_value_params.load_state_dict(target_value_state)
+
+        # Sync functional params back to visible modules used for collection/eval.
+        self.ddpg_loss.actor_network_params.to_module(self.actor)
+        self.ddpg_loss.value_network_params.to_module(self.value_net)
         self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
         self.optimizer_value.load_state_dict(checkpoint["optimizer_value_state_dict"])
         self.total_count = checkpoint["total_count"]
