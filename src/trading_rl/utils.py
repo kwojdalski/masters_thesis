@@ -4,6 +4,8 @@ import pandas as pd
 import torch
 from plotnine import (
     aes,
+    element_blank,
+    element_rect,
     element_text,
     geom_line,
     ggplot,
@@ -84,6 +86,7 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
     df_actions = pd.DataFrame(actions_data)
 
     # Create reward plot using plotnine (30% bigger than default)
+    # Use fixed subplot dimensions to ensure alignment with actions plot
     reward_plot = (
         ggplot(df_rewards, aes(x="Steps", y="Cumulative_Reward", color="Run"))
         + geom_line()
@@ -93,6 +96,7 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
             legend_position="right",
             legend_title=element_text(weight="bold", size=11),
             legend_text=element_text(size=10),
+            subplots_adjust={'right': 0.80},  # Fixed right edge for plot area
         )
         + guides(color=guide_legend(title="Strategy"))
     )
@@ -115,6 +119,7 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
             legend_position="right",
             legend_title=element_text(weight="bold", size=11),
             legend_text=element_text(size=10),
+            subplots_adjust={'right': 0.80},  # Fixed right edge for plot area (same as rewards)
         )
         + guides(color=guide_legend(title="Strategy"))
     )
