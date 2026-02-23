@@ -92,7 +92,7 @@ class BaseTrainer(ABC):
         self._periodic_eval_config = None
         self._periodic_eval_algorithm = None
         self._periodic_eval_env = None
-        self._last_eval_episode = 0
+        self._last_eval_step = 0
 
         # On-policy vs off-policy handling
         # Off-policy algorithms (TD3, DDPG) accumulate experiences in replay buffer
@@ -582,18 +582,18 @@ class BaseTrainer(ABC):
     ) -> None:
         """Setup parameters for periodic evaluation during training.
 
-        Call this before train() to enable temporary evaluations every N episodes.
+        Call this before train() to enable temporary evaluations every N steps.
 
         Args:
             df: DataFrame with evaluation data
             max_steps: Maximum steps for evaluation rollout
-            config: Experiment configuration (must have training.eval_every_episodes set)
+            config: Experiment configuration (must have training.temp_eval_interval set)
             algorithm: Algorithm name
             eval_env: Optional dedicated evaluation environment
         """
-        eval_interval = getattr(config.training, "eval_every_episodes", None)
+        eval_interval = getattr(config.training, "temp_eval_interval", None)
         if eval_interval is None or eval_interval <= 0:
-            logger.info("Periodic evaluation disabled (eval_every_episodes not set)")
+            logger.info("Periodic evaluation disabled (temp_eval_interval not set)")
             self._periodic_eval_enabled = False
             return
 
@@ -603,15 +603,15 @@ class BaseTrainer(ABC):
         self._periodic_eval_config = config
         self._periodic_eval_algorithm = algorithm
         self._periodic_eval_env = eval_env
-        self._last_eval_episode = 0
+        self._last_eval_step = 0
 
         logger.info(
-            f"Periodic evaluation enabled: will evaluate every {eval_interval} episodes"
+            f"Periodic evaluation enabled: will evaluate every {eval_interval} training steps"
         )
 
     def _run_temporary_evaluation(
         self,
-        episode_number: int,
+        step_number: int,
         df: Any,
         max_steps: int,
         config: Any,
@@ -621,10 +621,10 @@ class BaseTrainer(ABC):
         """Run temporary evaluation during training and log plots to MLflow.
 
         This leverages the existing evaluate() method but logs plots to a
-        temporary directory structure: evaluation_plots_temp/{episode_number}/
+        temporary directory structure: evaluation_plots_temp/step_{step_number}/
 
         Args:
-            episode_number: Current episode number for folder naming
+            step_number: Current training step for folder naming
             df: DataFrame with evaluation data
             max_steps: Maximum steps for evaluation rollout
             config: Experiment configuration
@@ -632,7 +632,7 @@ class BaseTrainer(ABC):
             eval_env: Optional dedicated evaluation environment
         """
         logger = get_logger(__name__)
-        logger.info(f"Running temporary evaluation at episode {episode_number}...")
+        logger.info(f"Running temporary evaluation at step {step_number}...")
 
         try:
             # Run evaluation using existing framework
@@ -656,7 +656,7 @@ class BaseTrainer(ABC):
             if mlflow.active_run():
                 from trading_rl.callbacks import MLflowTrainingCallback
 
-                artifact_prefix = f"evaluation_plots_temp/episode_{episode_number}"
+                artifact_prefix = f"evaluation_plots_temp/step_{step_number}"
 
                 MLflowTrainingCallback.log_evaluation_plots(
                     reward_plot=reward_plot,
@@ -668,11 +668,11 @@ class BaseTrainer(ABC):
                     artifact_path_prefix=artifact_prefix,
                 )
 
-                # Log summary metric for this episode
+                # Log summary metric for this step
                 mlflow.log_metric(
                     "temp_eval_reward",
                     final_reward,
-                    step=episode_number,
+                    step=step_number,
                 )
 
                 logger.info(
@@ -683,7 +683,7 @@ class BaseTrainer(ABC):
                 logger.warning("No active MLflow run - skipping temp evaluation logging")
 
         except Exception as e:
-            logger.error(f"Temporary evaluation failed at episode {episode_number}: {e}")
+            logger.error(f"Temporary evaluation failed at step {step_number}: {e}")
             # Don't crash training on eval failure - just log and continue
 
     def _run_training_loop(
@@ -737,19 +737,19 @@ class BaseTrainer(ABC):
 
                 # Check for periodic evaluation
                 if self._periodic_eval_enabled:
-                    eval_interval = self._periodic_eval_config.training.eval_every_episodes
-                    episodes_since_last_eval = int(self.total_episodes) - self._last_eval_episode
+                    eval_interval = self._periodic_eval_config.training.temp_eval_interval
+                    steps_since_last_eval = self.total_count - self._last_eval_step
 
-                    if episodes_since_last_eval >= eval_interval:
+                    if steps_since_last_eval >= eval_interval:
                         self._run_temporary_evaluation(
-                            episode_number=int(self.total_episodes),
+                            step_number=self.total_count,
                             df=self._periodic_eval_df,
                             max_steps=self._periodic_eval_max_steps,
                             config=self._periodic_eval_config,
                             algorithm=self._periodic_eval_algorithm,
                             eval_env=self._periodic_eval_env,
                         )
-                        self._last_eval_episode = int(self.total_episodes)
+                        self._last_eval_step = self.total_count
 
                 if self.callback and hasattr(self.callback, "log_episode_stats"):
                     self._log_episode_stats(data, self.callback)
