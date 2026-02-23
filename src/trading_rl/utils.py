@@ -313,6 +313,8 @@ def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
     - Top panel: Cumulative rewards comparison with legend
     - Bottom panel: Actions/portfolio weights comparison with legend
 
+    The plots are aligned by padding to the same width.
+
     Args:
         reward_plot: plotnine ggplot object for rewards
         action_plot: plotnine ggplot object for actions
@@ -330,7 +332,7 @@ def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_reward, \
          tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_action:
 
-        # Save plots to temporary files
+        # Save plots to temporary files with same DPI
         reward_plot.save(tmp_reward.name, dpi=150, verbose=False)
         action_plot.save(tmp_action.name, dpi=150, verbose=False)
 
@@ -338,18 +340,33 @@ def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
         img_reward = Image.open(tmp_reward.name)
         img_action = Image.open(tmp_action.name)
 
-        # Create figure with 2 subplots (vertical stack)
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(13, 15))
+        # Ensure both images have the same width by padding
+        max_width = max(img_reward.width, img_action.width)
 
-        # Display images
-        ax1.imshow(img_reward)
-        ax1.axis('off')
+        # Pad images to same width (center-align)
+        if img_reward.width < max_width:
+            new_img = Image.new('RGB', (max_width, img_reward.height), 'white')
+            offset = (max_width - img_reward.width) // 2
+            new_img.paste(img_reward, (offset, 0))
+            img_reward = new_img
 
-        ax2.imshow(img_action)
-        ax2.axis('off')
+        if img_action.width < max_width:
+            new_img = Image.new('RGB', (max_width, img_action.height), 'white')
+            offset = (max_width - img_action.width) // 2
+            new_img.paste(img_action, (offset, 0))
+            img_action = new_img
 
-        # Adjust spacing between subplots
-        plt.tight_layout(pad=0.5)
+        # Create combined image (vertical stack)
+        total_height = img_reward.height + img_action.height
+        combined = Image.new('RGB', (max_width, total_height), 'white')
+        combined.paste(img_reward, (0, 0))
+        combined.paste(img_action, (0, img_reward.height))
+
+        # Create matplotlib figure
+        fig, ax = plt.subplots(figsize=(max_width / 150, total_height / 150), dpi=150)
+        ax.imshow(combined)
+        ax.axis('off')
+        plt.tight_layout(pad=0)
 
         # Clean up temporary files
         import os
