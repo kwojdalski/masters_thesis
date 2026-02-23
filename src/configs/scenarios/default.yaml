@@ -6,11 +6,6 @@ seed: null  # Random seed if null
 data:
   data_path: "./data/raw/binance/binance-BTCUSDT-1h.parquet"
   download_data: false
-  exchange_names: ["binance"]
-  symbols: ["BTC/USDT"]
-  timeframe: "1h"
-  data_dir: "data"
-  download_since: "2025-04-27T00:00:00+00:00"
   train_size: 1000
 
 env:
