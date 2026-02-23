@@ -93,10 +93,10 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
         + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
         + theme(
             figure_size=(13, 7.8),  # 30% bigger than default (10, 6)
-            legend_position="right",
+            legend_position="bottom",
             legend_title=element_text(weight="bold", size=11),
             legend_text=element_text(size=10),
-            subplots_adjust={'left': 0.10, 'right': 0.80},  # Fixed plot area bounds
+            subplots_adjust={'left': 0.10, 'right': 0.95},
         )
         + guides(color=guide_legend(title="Strategy"))
     )
@@ -116,10 +116,10 @@ def compare_rollouts(rollouts, n_obs, is_portfolio=False):
         + labs(title=title, x="Steps", y=y_label)
         + theme(
             figure_size=(13, 7.8),  # 30% bigger than default (10, 6)
-            legend_position="right",
+            legend_position="bottom",
             legend_title=element_text(weight="bold", size=11),
             legend_text=element_text(size=10),
-            subplots_adjust={'left': 0.10, 'right': 0.80},  # Fixed plot area bounds
+            subplots_adjust={'left': 0.10, 'right': 0.95},
         )
         + guides(color=guide_legend(title="Strategy"))
     )
