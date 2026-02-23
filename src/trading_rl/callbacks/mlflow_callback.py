@@ -813,8 +813,20 @@ class MLflowTrainingCallback:
         actual_returns_plot=None,
         logs=None,
         merged_plot=None,
+        artifact_path_prefix=None,
     ) -> None:
-        """Save evaluation/training plots as MLflow artifacts."""
+        """Save evaluation/training plots as MLflow artifacts.
+
+        Args:
+            reward_plot: Cumulative rewards comparison plot
+            action_plot: Actions/portfolio weights plot
+            action_probs_plot: Optional action probabilities plot
+            actual_returns_plot: Actual portfolio returns plot
+            logs: Optional training logs for loss plots
+            merged_plot: Optional merged comparison plot (rewards + actions)
+            artifact_path_prefix: Optional path prefix for MLflow artifacts
+                (default: "evaluation_plots", for temp evals: "evaluation_plots_temp/episode_N")
+        """
         logger = get_project_logger(__name__)
 
         if not mlflow.active_run():
@@ -839,6 +851,9 @@ class MLflowTrainingCallback:
         saved_paths: dict[str, str] = {}
         batch_temp_dir = tempfile.mkdtemp()
         timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
+
+        # Use custom artifact path if provided, otherwise default to "evaluation_plots"
+        artifact_dir = artifact_path_prefix if artifact_path_prefix else "evaluation_plots"
 
         try:
 
@@ -883,7 +898,7 @@ class MLflowTrainingCallback:
                 reward_plot,
                 f"{timestamp}_rewards.png",
                 "rewards",
-                "evaluation_plots",
+                artifact_dir,
                 logger,
                 width=16,  # Larger for saved files (vs 13 for MLflow display)
                 height=10,  # Larger for saved files (vs 7.8 for MLflow display)
@@ -894,7 +909,7 @@ class MLflowTrainingCallback:
                 action_plot,
                 f"{timestamp}_positions.png",
                 "positions",
-                "evaluation_plots",
+                artifact_dir,
                 logger,
                 width=16,  # Larger for saved files
                 height=10,  # Larger for saved files
@@ -906,7 +921,7 @@ class MLflowTrainingCallback:
                     action_probs_plot,
                     f"{timestamp}_action_probabilities.png",
                     "action_probabilities",
-                    "evaluation_plots",
+                    artifact_dir,
                     logger,
                     width=16,  # Larger for saved files
                     height=10,  # Larger for saved files
@@ -920,7 +935,7 @@ class MLflowTrainingCallback:
                     actual_returns_plot,
                     f"{timestamp}_actual_returns.png",
                     "actual_returns",
-                    "evaluation_plots",
+                    artifact_dir,
                     logger,
                     width=16,  # Larger for saved files
                     height=10,  # Larger for saved files
@@ -934,7 +949,7 @@ class MLflowTrainingCallback:
                     merged_plot,
                     f"{timestamp}_merged_comparison.png",
                     "merged_comparison",
-                    "evaluation_plots",
+                    artifact_dir,
                     logger,
                     width=16,  # Larger for saved files
                     height=16,  # Taller for 2 stacked plots
@@ -1012,7 +1027,7 @@ class MLflowTrainingCallback:
                         combined_plot,
                         f"{timestamp}_combined_evaluation.png",
                         None,
-                        "evaluation_plots",
+                        artifact_dir,
                         logger,
                         width=20,  # Larger for combined plots
                         height=12,  # Larger for combined plots
@@ -1052,7 +1067,7 @@ class MLflowTrainingCallback:
                         )
 
                         combined.save(tmp_combined_path, format="PNG")
-                        mlflow.log_artifact(tmp_combined_path, "evaluation_plots")
+                        mlflow.log_artifact(tmp_combined_path, artifact_dir)
                     except (
                         Exception
                     ) as combine_error:  # pragma: no cover - logging only
