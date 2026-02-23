@@ -1,1 +1,199 @@
 ### Market Anomalies
+
+Market anomalies are patterns in security returns that contradict the Efficient Market Hypothesis and cannot be explained by established asset pricing models such as CAPM or the Fama-French factor models. This subsection catalogs prominent anomalies documented in the academic literature, many of which persist despite widespread awareness.
+
+#### Calendar Effects
+
+Calendar anomalies represent systematic return patterns tied to specific time periods.
+
+**January Effect**
+
+@Rozeff1976 and @Keim1983 documented the January effect: abnormal positive returns in January, particularly pronounced for small-capitalization stocks. Average January returns for small stocks exceed those of other months by 3-7 percentage points. Various explanations have been proposed:
+
+* **Tax-loss selling**: Investors sell losing positions in December for tax harvesting, depressing prices, followed by January recovery
+* **Window dressing**: Institutional portfolio managers sell risky small-cap stocks at year-end to improve reported holdings
+* **New investment flows**: Year-end bonuses and IRA contributions in January create buying pressure
+
+While the January effect has diminished since publication @Schwert2003, residual patterns persist in less liquid markets.
+
+**Monday Effect**
+
+@French1980 documented systematically negative Monday returns, with average Monday returns significantly below other weekdays. @Keim1984 found this weekend effect is strongest for small stocks. Proposed explanations include:
+
+* Negative weekend news accumulation released Monday
+* Settlement conventions affecting Friday vs. Monday trading
+* Psychological factors: weekend leisure improving mood reduces Monday risk-taking
+
+**Turn-of-the-Month Effect**
+
+@Lakonishok1988 identified that average stock returns are significantly higher on the last trading day of the month and the first three trading days of the next month. This pattern correlates with:
+
+* Pension fund inflows at month-end
+* Window dressing by institutional investors
+* Behavioral patterns in individual investor trading
+
+**Holiday Effect**
+
+@Ariel1990 documented abnormal positive returns preceding market holidays. Pre-holiday trading days exhibit returns approximately 14 times higher than average trading days. This effect persists across international markets, suggesting systematic behavioral patterns rather than institutional factors specific to individual countries.
+
+#### Size Effect
+
+The size effect, first documented by @Banz1981, refers to the empirical observation that small-capitalization stocks generate higher risk-adjusted returns than large-cap stocks. Over 1926-1980, the smallest decile of NYSE stocks outperformed the largest decile by 19.8% annually, far exceeding beta-predicted differences.
+
+@Fama1993 incorporated size as a fundamental risk factor (SMB - Small Minus Big) in their three-factor model. However, debate continues whether size represents compensation for risk or market inefficiency:
+
+**Risk-based explanations:**
+* Small firms face higher bankruptcy risk and financial distress
+* Small stocks have lower liquidity, requiring liquidity premiums
+* Information asymmetry is greater for small firms
+
+**Inefficiency-based explanations:**
+* Institutional neglect: Large institutions avoid illiquid small stocks, reducing arbitrage capital
+* Transaction costs: Bid-ask spreads and market impact limit arbitrage in small-cap markets
+* Information processing costs: Analysts cover fewer small firms, creating information inefficiency
+
+@Hou2011 show the size premium has largely disappeared post-1980 in the U.S., but persists internationally and in microcap stocks with severe liquidity constraints.
+
+#### Value Premium
+
+The value premium—higher returns for stocks with high book-to-market, earnings-to-price, or cash-flow-to-price ratios—is among the most robust anomalies.
+
+@Fama1992 documented that value stocks (high book-to-market) outperform growth stocks (low book-to-market) by approximately 0.5% monthly. This pattern:
+
+* Persists across 70+ years of U.S. data
+* Appears in international developed and emerging markets @Fama1998
+* Survives adjustments for beta, size, and other known factors
+* Remains economically significant after realistic transaction costs
+
+**Competing Interpretations:**
+
+@Fama1993 argue the value premium compensates for higher systematic risk, representing rational pricing. Value stocks may be distressed firms with greater sensitivity to economic downturns.
+
+@Lakonishok1994 contend the value premium arises from behavioral biases:
+* Extrapolation error: Investors overextrapolate past growth, overpricing growth stocks
+* Overreaction: Markets overreact to good news about growth stocks and bad news about value stocks
+* Agency problems: Fund managers favor glamorous growth stocks despite lower expected returns
+
+The value premium partially arbitraged away post-publication but resurged during 2000-2002 tech crash, suggesting behavioral foundations.
+
+#### Momentum Effect
+
+@Jegadeesh1993 documented that stocks exhibiting strong performance over 3-12 months continue outperforming in subsequent months. A zero-investment portfolio buying past winners and selling past losers earns approximately 1% monthly, with Sharpe ratios exceeding traditional equity portfolios.
+
+Momentum exhibits several distinctive properties:
+
+* **Medium-term horizon**: Strongest at 3-12 month formation and holding periods
+* **Long-term reversal**: Momentum profits reverse over 3-5 year horizons
+* **Crashes**: Momentum strategies suffer severe losses during market reversals @Daniel2012
+* **Industry patterns**: Momentum is stronger within industries than across industries
+* **Global phenomenon**: Documented across 40+ countries @Griffin2003
+
+**Behavioral Explanations:**
+
+@Hong1999 model momentum via gradual information diffusion. News slowly spreads across investors, creating predictable price continuation.
+
+@Barberis1998 propose models where investors underreact to information, generating momentum, followed by overreaction creating long-term reversals.
+
+**Risk-based Explanations:**
+
+@Chordia2002 argue momentum profits compensate for time-varying risk. However, traditional factor models fail to explain momentum, necessitating behavioral interpretations.
+
+#### Post-Earnings Announcement Drift (PEAD)
+
+@Ball1968 discovered that stock prices continue drifting in the direction of earnings surprises for 60+ days post-announcement. Stocks with positive earnings surprises earn 2-3% abnormal returns over subsequent months, while negative surprise stocks underperform by similar magnitudes.
+
+PEAD violates semi-strong efficiency, as publicly announced information is not immediately incorporated into prices. The anomaly persists because:
+
+* **Limited attention**: Investors have finite attention, delaying processing of earnings information @Hirshleifer2003
+* **Transaction costs**: Bid-ask spreads and price impact make PEAD unexploitable for small investors
+* **Short-sale constraints**: Difficulty shorting prevents full arbitrage of negative surprise stocks
+* **Discretionary accruals**: Sophisticated parsing of accounting information requires expertise
+
+Despite widespread awareness, PEAD remains economically significant in 2020s data @Chordia2009, particularly for small stocks and during high-uncertainty periods.
+
+#### Accrual Anomaly
+
+@Sloan1996 documented that firms with high accounting accruals (earnings exceeding cash flows) subsequently underperform, while low-accrual firms outperform. A hedge portfolio exploiting this anomaly earns approximately 10% annually.
+
+The accrual anomaly arises because:
+
+* Investors fixate on earnings, neglecting quality differences between accruals and cash flows
+* Accruals are less persistent than cash flows, but markets fail to adjust valuations appropriately
+* Agency problems: Managers manipulate accruals to inflate reported earnings
+
+@Richardson2005 show the anomaly persists and is stronger for firms with earnings management incentives.
+
+#### Volatility Puzzle
+
+@Ang2006 and @Baker2011 documented that high-volatility stocks systematically earn lower returns than low-volatility stocks—directly contradicting fundamental finance theory predicting positive risk-return tradeoffs.
+
+**Idiosyncratic Volatility:**
+
+@Ang2009 find stocks with high idiosyncratic volatility (risk uncorrelated with market) earn -1% monthly returns relative to low-volatility stocks. This pattern:
+
+* Cannot be explained by leverage or distress risk
+* Persists internationally
+* Intensifies during high sentiment periods
+
+**Explanations:**
+
+* **Lottery preferences**: Retail investors prefer volatile "lottery-like" stocks, inflating prices @Kumar2009
+* **Leverage constraints**: Institutional investors cannot lever low-volatility portfolios, underweighting them relative to efficient portfolios
+* **Benchmarking**: Active managers avoid low-volatility stocks to maintain tracking error, preventing arbitrage
+
+#### Profitability and Investment Anomalies
+
+@Novy-Marx2013 documented that profitable firms (high gross profitability) outperform unprofitable firms by 0.3% monthly, independent of value effects.
+
+@Titman1993 and @Cooper2008 found that firms with high asset growth subsequently underperform. This investment anomaly reflects:
+
+* Overinvestment by empire-building managers
+* Market overreaction to growth signals
+* Agency costs depleting shareholder value
+
+@Fama2015 incorporate profitability (RMW - Robust Minus Weak) and investment (CMA - Conservative Minus Aggressive) into their five-factor model, capturing these anomalies.
+
+#### Behavioral Biases and Limits to Arbitrage
+
+Several factors explain anomaly persistence:
+
+**Limited Arbitrage Capital**
+
+@Shleifer1997 formalize limits to arbitrage. Even recognized mispricings may not be corrected if:
+
+* Noise trader risk: Mispricings can worsen before correcting, inflicting losses on arbitrageurs
+* Short-sale constraints: Difficulty borrowing shares limits arbitrage of overpriced securities
+* Synchronization risk: Arbitrageurs with finite horizons cannot wait indefinitely for convergence
+* Fundamental risk: Perceived mispricing may reflect omitted risk factors
+
+**Transaction Costs**
+
+Many anomalies are small after accounting for:
+
+* Bid-ask spreads (0.1-1% for typical stocks)
+* Market impact costs from trading
+* Opportunity costs of capital
+* Operational costs of strategy implementation
+
+@Lesmond2004 show that after transaction costs, most anomalies are unexploitable for retail traders, explaining persistence.
+
+**Institutional Constraints**
+
+@Blitz2010 note that institutional investors face constraints preventing full arbitrage:
+
+* Benchmark tracking requirements limiting deviation from indices
+* Prohibition on short-selling in many mandates
+* Quarterly evaluation creating short horizons
+* Career concerns favoring conventional strategies
+
+#### Implications for Reinforcement Learning Trading Systems
+
+Market anomalies directly motivate RL approaches to trading:
+
+1. **Multi-signal integration**: Anomalies often interact; RL can learn complex combinations of signals
+2. **Non-linearity**: Anomaly magnitudes vary with market conditions; neural network policies capture these non-linearities
+3. **Transaction cost awareness**: RL naturally incorporates costs into optimization, exploiting only net-profitable patterns
+4. **Adaptation**: As anomalies strengthen and weaken, RL agents continuously adapt policies
+5. **Risk management**: Anomaly-based strategies often crash during regime changes; RL can learn defensive policies
+
+The documented persistence of these anomalies, even decades post-publication, validates the premise that markets exhibit exploitable inefficiencies. Reinforcement learning provides a principled framework to systematically identify and exploit such patterns while managing the risks inherent in statistical arbitrage.
