@@ -808,28 +808,36 @@ class MLflowTrainingCallback:
 
     @staticmethod
     def log_explainability_results(
-        importance_df: pd.DataFrame, 
+        importance_df: pd.DataFrame | None,
         importance_plot: Any,
         method: str = "permutation",
         metrics: dict[str, float] | None = None
     ):
-        """Log explainability plots and importance data to MLflow."""
+        """Log explainability plots and importance data to MLflow.
+
+        Args:
+            importance_df: DataFrame with importance scores (None for merged plots)
+            importance_plot: Plot object to save
+            method: Method name for artifact naming
+            metrics: Optional metrics dictionary to log
+        """
         if not mlflow.active_run():
             return
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
-            
+
             # Save plot
             plot_path = tmp_path / f"explainability_{method}.png"
             importance_plot.save(str(plot_path))
             mlflow.log_artifact(str(plot_path), "explainability")
-            
-            # Save CSV
-            csv_path = tmp_path / f"importance_{method}.csv"
-            importance_df.to_csv(csv_path, index=False)
-            mlflow.log_artifact(str(csv_path), "explainability")
-            
+
+            # Save CSV (only if dataframe is provided)
+            if importance_df is not None:
+                csv_path = tmp_path / f"importance_{method}.csv"
+                importance_df.to_csv(csv_path, index=False)
+                mlflow.log_artifact(str(csv_path), "explainability")
+
             # Log metrics if provided
             if metrics:
                 prefixed_metrics = {f"{method}_{k}": v for k, v in metrics.items()}
