@@ -861,17 +861,29 @@ def run_single_experiment(
         )
         logs = dict(trainer.logs)
 
-    # Save checkpoint
+    # Save checkpoint using MLflow run name if available
+    run = mlflow.active_run()
+    if run and run.info.run_name:
+        # Use MLflow run name, sanitized for filesystem safety
+        base_name = (
+            run.info.run_name.replace(" ", "_")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
+    else:
+        # Fallback to experiment name if no run is active
+        base_name = effective_experiment_name
+
     if checkpoint_path:
         # For resumed training, save with step count
         final_checkpoint_path = (
             Path(config.logging.log_dir)
-            / f"{effective_experiment_name}_checkpoint_step_{trainer.total_count}.pt"
+            / f"{base_name}_checkpoint_step_{trainer.total_count}.pt"
         )
     else:
         # For fresh training, simple name
         final_checkpoint_path = (
-            Path(config.logging.log_dir) / f"{effective_experiment_name}_checkpoint.pt"
+            Path(config.logging.log_dir) / f"{base_name}_checkpoint.pt"
         )
     trainer.save_checkpoint(str(final_checkpoint_path))
 
