@@ -352,3 +352,42 @@ def setup_component_logger(
     logger.propagate = False
 
     return logger
+
+
+# Alias for weles compatibility
+def configure_weles_logging(
+    component: str = "weles",
+    debug: bool = False,
+    level: str = "INFO",
+    simplified: bool = True,
+    log_dir: str | None = None,
+    structured_logging: bool = False,
+    include_console: bool = True,
+) -> logging.Logger:
+    """
+    Configure logging for Weles components (compatibility alias).
+
+    This is an alias to configure_logging() for compatibility with
+    weles project modules that expect this function.
+
+    Args:
+        component: Component name
+        debug: Enable debug logging
+        level: Log level
+        simplified: Use simplified format
+        log_dir: Directory to store log files
+        structured_logging: Use JSON structured logging
+        include_console: Include console output
+
+    Returns:
+        Configured logger
+    """
+    return configure_logging(
+        component=component,
+        debug=debug,
+        level=level,
+        simplified=simplified,
+        log_dir=log_dir,
+        structured_logging=structured_logging,
+        include_console=include_console,
+    )
