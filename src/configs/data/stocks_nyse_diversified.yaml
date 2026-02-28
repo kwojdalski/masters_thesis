@@ -1,0 +1,34 @@
+# Stock Data Configuration - NYSE Diversified Portfolio
+# ======================================================
+# Fetches data for diversified portfolio from NYSE
+# Use: Multi-asset portfolio training
+
+stock_data:
+  # Diversified portfolio across sectors
+  symbols:
+    - "JPM"    # Finance: JPMorgan Chase
+    - "JNJ"    # Healthcare: Johnson & Johnson
+    - "XOM"    # Energy: Exxon Mobil
+    - "WMT"    # Retail: Walmart
+    - "BA"     # Aerospace: Boeing
+    - "DIS"    # Entertainment: Disney
+    - "GE"     # Industrial: General Electric
+
+  # Date range
+  start_date: "2023-01-01"
+  end_date: "2023-12-31"
+
+  # Data source configuration
+  source: "databento"
+  dataset: "XNYS.TRADES"  # NYSE
+  schema: "trades"
+  timeframe: "1h"
+
+  # Output configuration
+  save_to_file: true
+  output_filename: "nyse_diversified_2023_1h.parquet"
+
+  # Additional parameters
+  additional_params:
+    stype_in: "raw_symbol"
+    cache_enabled: true

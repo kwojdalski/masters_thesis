@@ -1,0 +1,29 @@
+# Stock Data Configuration - Single Symbol (Apple)
+# =================================================
+# Fetches data for a single stock for focused analysis
+# Use: Testing and development with single asset
+
+stock_data:
+  # Stock symbols to fetch
+  symbols:
+    - "AAPL"   # Apple Inc.
+
+  # Date range - full year 2024
+  start_date: "2024-01-01"
+  end_date: "2024-12-31"
+
+  # Data source configuration
+  source: "databento"
+  dataset: "XNAS.ITCH"  # NASDAQ
+  schema: "trades"       # Trade-level data
+  timeframe: "1h"        # Aggregate to 1-hour bars
+
+  # Output configuration
+  save_to_file: true
+  output_filename: "AAPL_2024_1h.parquet"
+
+  # Additional parameters
+  additional_params:
+    stype_in: "raw_symbol"
+    cache_enabled: true
+    cache_ttl_hours: 168  # 7 days cache

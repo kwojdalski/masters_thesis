@@ -1,0 +1,35 @@
+# Stock Data Configuration - NASDAQ Tech Stocks
+# ==============================================
+# Fetches data for major tech stocks from NASDAQ using Databento
+# Use: Training on real stock market data
+
+stock_data:
+  # Stock symbols to fetch
+  symbols:
+    - "AAPL"   # Apple
+    - "MSFT"   # Microsoft
+    - "GOOGL"  # Alphabet/Google
+    - "AMZN"   # Amazon
+    - "NVDA"   # NVIDIA
+    - "TSLA"   # Tesla
+    - "META"   # Meta/Facebook
+
+  # Date range
+  start_date: "2023-01-01"
+  end_date: "2023-12-31"
+
+  # Data source configuration
+  source: "databento"
+  dataset: "XNAS.ITCH"  # NASDAQ
+  schema: "trades"       # Trade-level data
+  timeframe: "1h"        # Aggregate to 1-hour bars
+
+  # Output configuration
+  save_to_file: true
+  output_filename: "nasdaq_tech_2023_1h.parquet"
+
+  # Additional parameters for market_data_fetcher
+  additional_params:
+    stype_in: "raw_symbol"
+    cache_enabled: true
+    cache_ttl_hours: 24

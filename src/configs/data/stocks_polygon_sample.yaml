@@ -1,0 +1,30 @@
+# Stock Data Configuration - Polygon.io Source
+# =============================================
+# Alternative data source using Polygon.io API
+# Use: When Databento is unavailable or for comparison
+
+stock_data:
+  # Stock symbols to fetch
+  symbols:
+    - "AAPL"
+    - "MSFT"
+    - "GOOGL"
+
+  # Date range - Q1 2024
+  start_date: "2024-01-01"
+  end_date: "2024-03-31"
+
+  # Data source configuration
+  source: "polygon"
+  dataset: "stocks"      # Polygon stocks dataset
+  schema: "trades"
+  timeframe: "1h"
+
+  # Output configuration
+  save_to_file: true
+  output_filename: "polygon_stocks_q1_2024_1h.parquet"
+
+  # Additional parameters
+  additional_params:
+    cache_enabled: true
+    cache_ttl_hours: 48
