@@ -196,6 +196,26 @@ class TD3Trainer(BaseTrainer):
             n_obs=max_steps,
         )
 
+        benchmark_price_column = "close"
+        if config:
+            price_cols = getattr(config.env, "price_columns", None)
+            if isinstance(price_cols, (list, tuple)) and len(price_cols) > 0:
+                benchmark_price_column = str(price_cols[0])
+
+        if benchmark_price_column in df.columns:
+            benchmark_series = df[benchmark_price_column]
+        elif "close" in df.columns:
+            logger.warning(
+                "Benchmark column '%s' missing in evaluation frame; falling back to 'close'.",
+                benchmark_price_column,
+            )
+            benchmark_series = df["close"]
+            benchmark_price_column = "close"
+        else:
+            raise ValueError(
+                "Evaluation benchmarks require env.price_columns[0] or 'close' in dataframe."
+            )
+
         # Create actual returns plot with pre-extracted returns
         actual_returns_plot = create_actual_returns_plot(
             [rollout_deterministic, rollout_random],
@@ -208,6 +228,7 @@ class TD3Trainer(BaseTrainer):
                 if config
                 else 10000.0
             ),
+            benchmark_price_column=benchmark_price_column,
         )
 
         # Add benchmarks based on reward type
@@ -225,12 +246,20 @@ class TD3Trainer(BaseTrainer):
 
             # Calculate DSR for buy-and-hold
             bh_dsr, _ = calculate_benchmark_dsr(
-                df, strategy="buy_and_hold", eta=dsr_eta, max_steps=max_steps
+                df,
+                strategy="buy_and_hold",
+                eta=dsr_eta,
+                max_steps=max_steps,
+                price_column=benchmark_price_column,
             )
 
             # Calculate DSR for max profit
             mp_dsr, _ = calculate_benchmark_dsr(
-                df, strategy="max_profit", eta=dsr_eta, max_steps=max_steps
+                df,
+                strategy="max_profit",
+                eta=dsr_eta,
+                max_steps=max_steps,
+                price_column=benchmark_price_column,
             )
 
             # Add to benchmark data
@@ -252,10 +281,12 @@ class TD3Trainer(BaseTrainer):
             benchmark_df = pd.DataFrame(
                 {
                     "x": range(max_steps),
-                    "buy_and_hold": np.log(df["close"] / df["close"].shift(1))
+                    "buy_and_hold": np.log(benchmark_series / benchmark_series.shift(1))
                     .fillna(0)
                     .cumsum()[:max_steps],
-                    "max_profit": np.log(abs(df["close"] / df["close"].shift(1) - 1) + 1)
+                    "max_profit": np.log(
+                        abs(benchmark_series / benchmark_series.shift(1) - 1) + 1
+                    )
                     .fillna(0)
                     .cumsum()[:max_steps],
                 }

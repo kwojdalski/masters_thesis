@@ -209,6 +209,7 @@ def create_actual_returns_plot(
     env=None,
     actual_returns_list=None,
     initial_capital: float = 10000.0,
+    benchmark_price_column: str = "close",
 ):
     """Create a plot showing actual portfolio returns (not training rewards).
 
@@ -226,6 +227,8 @@ def create_actual_returns_plot(
         actual_returns_list: Optional pre-extracted list of return arrays (one per rollout)
         initial_capital: Starting portfolio value used to convert log returns
             to dollar-equity values
+        benchmark_price_column: Column used to compute buy-and-hold and
+            max-profit benchmarks when df_prices is provided.
 
     Returns:
         plotnine.ggplot: Plot showing actual portfolio value
@@ -267,16 +270,40 @@ def create_actual_returns_plot(
 
     # Add benchmark series if price data is available
     if df_prices is not None:
+        benchmark_col = benchmark_price_column
+        if benchmark_col not in df_prices.columns:
+            if "close" in df_prices.columns:
+                logger.warning(
+                    "Benchmark price column '%s' not found; falling back to 'close'.",
+                    benchmark_col,
+                )
+                benchmark_col = "close"
+            else:
+                logger.warning(
+                    "Benchmark price column '%s' missing and no 'close' fallback available; skipping benchmarks.",
+                    benchmark_col,
+                )
+                benchmark_col = ""
+
+        if benchmark_col:
+            price_series = df_prices[benchmark_col]
+        else:
+            price_series = None
+
+        if price_series is None:
+            df_prices = None
+
+    if df_prices is not None:
         # Buy-and-Hold: cumulative log returns of holding the asset
         buy_and_hold = (
-            np.log(df_prices["close"] / df_prices["close"].shift(1))
+            np.log(price_series / price_series.shift(1))
             .fillna(0)
             .cumsum()[:n_obs]
         )
 
         # Max Profit (Unleveraged): theoretical maximum with perfect foresight
         max_profit = (
-            np.log(abs(df_prices["close"] / df_prices["close"].shift(1) - 1) + 1)
+            np.log(abs(price_series / price_series.shift(1) - 1) + 1)
             .fillna(0)
             .cumsum()[:n_obs]
         )
@@ -353,25 +380,45 @@ def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
     return merged_plot
 
 
-def calculate_benchmark_dsr(df_prices, strategy="buy_and_hold", eta=0.01, epsilon=1e-8, max_steps=None):
+def calculate_benchmark_dsr(
+    df_prices,
+    strategy="buy_and_hold",
+    eta=0.01,
+    epsilon=1e-8,
+    max_steps=None,
+    price_column: str = "close",
+):
     """Calculate Differential Sharpe Ratio for a benchmark trading strategy.
 
     This function simulates a benchmark strategy and calculates its DSR rewards
     over time, making it comparable to RL agents trained with DSR rewards.
 
     Args:
-        df_prices: DataFrame with 'close' column containing price data
+        df_prices: DataFrame with benchmark price column containing price data
         strategy: Strategy type - "buy_and_hold" or "max_profit"
         eta: DSR learning rate (default: 0.01, same as typical DSR reward)
         epsilon: DSR stability constant (default: 1e-8)
         max_steps: Maximum number of steps to calculate (None = all available)
+        price_column: Column used as price series for benchmark simulation
 
     Returns:
         tuple: (cumulative_dsr, portfolio_values)
             - cumulative_dsr: np.ndarray of cumulative DSR rewards
             - portfolio_values: np.ndarray of portfolio values over time
     """
-    prices = df_prices["close"].values
+    if price_column not in df_prices.columns:
+        if "close" in df_prices.columns:
+            logger.warning(
+                "DSR benchmark price column '%s' not found; falling back to 'close'.",
+                price_column,
+            )
+            price_column = "close"
+        else:
+            raise ValueError(
+                f"DSR benchmark requires '{price_column}' or 'close' in df_prices columns."
+            )
+
+    prices = df_prices[price_column].values
     if max_steps is None:
         max_steps = len(prices) - 1
     else:
