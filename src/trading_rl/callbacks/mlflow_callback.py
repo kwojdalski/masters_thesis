@@ -576,7 +576,7 @@ class MLflowTrainingCallback:
             import tempfile
 
             import pandas as pd
-            from plotnine import aes, element_text, geom_line, ggplot, labs, theme
+            from plotnine import aes, element_text, geom_step, ggplot, labs, theme
 
             # Log dataset metadata
             mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
@@ -624,7 +624,7 @@ class MLflowTrainingCallback:
                 try:
                     p = (
                         ggplot(plot_df, aes(x="time_index", y=column))
-                        + geom_line(color="steelblue", size=0.8)
+                        + geom_step(color="steelblue", size=0.8)
                         + labs(
                             title=f"{column.title()} Over Time",
                             x="Time Index",
@@ -636,7 +636,7 @@ class MLflowTrainingCallback:
                     # Use variable name as filename
                     filename = f"{column}.png"
                     temp_path = os.path.join(tempfile.gettempdir(), filename)
-                    p.save(temp_path, width=8, height=5, dpi=150)
+                    p.save(temp_path, width=16, height=10, dpi=150)
                     mlflow.log_artifact(temp_path, "data_overview/plots")
                     os.unlink(temp_path)
 
@@ -663,7 +663,7 @@ class MLflowTrainingCallback:
                             ohlc_melted,
                             aes(x="time_index", y="price", color="price_type"),
                         )
-                        + geom_line(size=0.8)
+                        + geom_step(size=0.8)
                         + labs(
                             title="OHLC Prices Over Time",
                             x="Time Index",
@@ -676,7 +676,7 @@ class MLflowTrainingCallback:
                     # Use descriptive filename for combined OHLC plot
                     filename = "ohlc_combined.png"
                     temp_path = os.path.join(tempfile.gettempdir(), filename)
-                    p_combined.save(temp_path, width=10, height=5, dpi=150)
+                    p_combined.save(temp_path, width=20, height=10, dpi=150)
                     mlflow.log_artifact(temp_path, "data_overview/plots")
                     os.unlink(temp_path)
 
