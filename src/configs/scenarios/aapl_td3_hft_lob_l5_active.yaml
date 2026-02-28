@@ -1,19 +1,20 @@
-# TD3 Configuration for AAPL with HFT/LOB Features
-# ============================================================================
-# This scenario uses high-frequency trading features from Level-2 order book data.
-# Uses raw MBP-10 (Market by Price, 10 levels) data from Databento for AAPL.
+# TD3 Configuration for AAPL with HFT/LOB Features (L0-L5 Active Only)
+# ========================================================================
+# This scenario uses high-frequency trading features from Level-2 order book data,
+# focusing only on the first 5 levels (L0-L4) and filtering out unchanged data.
 #
-# Data: Tick-level order book snapshots with bid/ask prices and sizes at 10 levels
+# Data: Tick-level order book snapshots, filtered to only include rows where
+#       at least one of the first 5 levels changed (price or size)
 # Backend: TradingEnv (supports continuous actions)
 # Algorithm: TD3 (Twin Delayed Deep Deterministic Policy Gradient)
-# Features: LOB microstructure features including:
-#   - Book pressure (volume imbalances at L0-L2)
-#   - Microprice and microprice divergence
-#   - Spread in basis points
-#   - Multi-level order book imbalance
-#   - Depth ratio and VWMP skew
-#   - Bid/ask slopes (price elasticity)
-#   - Raw prices and sizes (L0-L2)
+# Features: 33 LOB microstructure features including:
+#   - Book pressure (volume imbalances at L0-L4) - 5 features
+#   - Microprice and microprice divergence - 2 features
+#   - Spread in basis points - 1 feature
+#   - Multi-level order book imbalance (5 levels) - 1 feature
+#   - Depth ratio and VWMP skew - 2 features
+#   - Bid/ask slopes (price elasticity) - 2 features
+#   - Raw prices and sizes (L0-L4) - 20 features
 
 seed: 42
 
@@ -21,13 +22,21 @@ seed: 42
 data:
   data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
   # data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_small.parquet"
-  feature_config: "src/configs/features/hft_lob_features.yaml"
+  feature_config: "src/configs/features/hft_lob_l5_active.yaml"
   download_data: false
   train_size: 15000  # ~2M ticks for training (filtered to US market hours 9:30 AM - 4:00 PM EST)
 
+  # LOB data filtering configuration
+  filter_lob: true  # Enable LOB filtering
+  lob_filter_levels: 5  # Check first 5 levels for changes
+  lob_filter_unchanged: true  # Remove rows where LOB hasn't changed
+  lob_validate: true  # Validate LOB data (remove crossed books, invalid spreads, etc.)
+  lob_min_spread_bps: 0.5  # Minimum spread in basis points
+  lob_max_spread_bps: 50.0  # Maximum spread in basis points
+
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_AAPL_HFT"
+  name: "TRADINGENV_TD3_AAPL_HFT_L5_ACTIVE"
   backend: "tradingenv"
   mode: "hft"  # Enable HFT mode to accept HFT domain features
 
@@ -38,25 +47,27 @@ env:
   # Using mid price from best bid/ask
   price_column: "close"  # or we could compute mid: (bid_px_00 + ask_px_00) / 2
 
-  # HFT/LOB microstructure features (22 features)
+  # HFT/LOB microstructure features (33 features total)
   feature_columns: [
-    # Book pressure features (3)
+    # Book pressure features L0-L4 (5)
     "feature_hft_book_pressure_l0",
     "feature_hft_book_pressure_l1",
     "feature_hft_book_pressure_l2",
+    "feature_hft_book_pressure_l3",
+    "feature_hft_book_pressure_l4",
     # Microprice features (2)
     "feature_hft_microprice",
     "feature_hft_microprice_divergence",
     # Spread and cost (1)
     "feature_hft_spread_bps",
     # Order book depth features (3)
-    "feature_hft_order_book_imbalance_3l",
+    "feature_hft_order_book_imbalance_5l",
     "feature_hft_depth_ratio",
-    "feature_hft_vwmp_skew",
+    "feature_hft_vwmp_skew_5l",
     # Slope features (2)
     "feature_hft_bid_slope",
     "feature_hft_ask_slope",
-    # Raw prices and sizes L0-L2 (12)
+    # Raw prices and sizes L0-L4 (20 features)
     "feature_hft_bid_px_00",
     "feature_hft_ask_px_00",
     "feature_hft_bid_sz_00",
@@ -69,16 +80,24 @@ env:
     "feature_hft_ask_px_02",
     "feature_hft_bid_sz_02",
     "feature_hft_ask_sz_02",
+    "feature_hft_bid_px_03",
+    "feature_hft_ask_px_03",
+    "feature_hft_bid_sz_03",
+    "feature_hft_ask_sz_03",
+    "feature_hft_bid_px_04",
+    "feature_hft_ask_px_04",
+    "feature_hft_bid_sz_04",
+    "feature_hft_ask_sz_04",
   ]
 
   reward_type: "differential_sharpe"
   reward_eta: 0.01
 
 # Network Architecture
-# Smaller networks for faster training on high-frequency data
+# Adjusted for larger feature space (33 features vs 12)
 network:
-  actor_hidden_dims: [128, 64]
-  value_hidden_dims: [128, 64]
+  actor_hidden_dims: [256, 128]
+  value_hidden_dims: [256, 128]
 
 # Training Parameters - TD3
 training:

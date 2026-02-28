@@ -1,0 +1,287 @@
+# High-Frequency Trading (HFT) LOB Features - L0-L5 Active Only
+# ==============================================================
+#
+# This feature set uses only the first 5 levels (L0-L4) of the order book
+# and is designed to work with filtered data where LOB changes are active.
+#
+# Data filtering: Only include rows where at least one of the first 5 levels
+# has changed (price or size) compared to the previous tick.
+#
+# Required columns:
+#   bid_px_00..bid_px_04, ask_px_00..ask_px_04,
+#   bid_sz_00..bid_sz_04, ask_sz_00..ask_sz_04
+
+features:
+  # =============================================================================
+  # Book Pressure Features (L0-L4)
+  # =============================================================================
+  # Volume imbalance at each of the first 5 levels
+
+  - name: "hft_book_pressure_l0"
+    feature_type: "book_pressure"
+    normalize: true
+    domain: "hft"
+    params:
+      level: 0
+
+  - name: "hft_book_pressure_l1"
+    feature_type: "book_pressure"
+    normalize: true
+    domain: "hft"
+    params:
+      level: 1
+
+  - name: "hft_book_pressure_l2"
+    feature_type: "book_pressure"
+    normalize: true
+    domain: "hft"
+    params:
+      level: 2
+
+  - name: "hft_book_pressure_l3"
+    feature_type: "book_pressure"
+    normalize: true
+    domain: "hft"
+    params:
+      level: 3
+
+  - name: "hft_book_pressure_l4"
+    feature_type: "book_pressure"
+    normalize: true
+    domain: "hft"
+    params:
+      level: 4
+
+  # =============================================================================
+  # Microprice and Fair Value
+  # =============================================================================
+
+  - name: "hft_microprice"
+    feature_type: "microprice"
+    normalize: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_microprice_divergence"
+    feature_type: "microprice_divergence"
+    normalize: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  # =============================================================================
+  # Spread and Cost
+  # =============================================================================
+
+  - name: "hft_spread_bps"
+    feature_type: "spread_bps"
+    normalize: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+
+  # =============================================================================
+  # Multi-Level Depth Features (using L0-L4)
+  # =============================================================================
+
+  # 5-level order book imbalance
+  - name: "hft_order_book_imbalance_5l"
+    feature_type: "order_book_imbalance"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 5
+
+  # Depth ratio: L1 vs L2-L4
+  - name: "hft_depth_ratio"
+    feature_type: "depth_ratio"
+    normalize: true
+    domain: "hft"
+    params:
+      levels_deep: 4  # L2-L5 (indices 1-4)
+
+  # VWMP skew across 5 levels
+  - name: "hft_vwmp_skew_5l"
+    feature_type: "vwmp_skew"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 5
+
+  # =============================================================================
+  # Price Elasticity (Slope) Features
+  # =============================================================================
+
+  - name: "hft_bid_slope"
+    feature_type: "bid_ask_slope"
+    normalize: true
+    domain: "hft"
+    params:
+      side: "bid"
+      levels: 5
+
+  - name: "hft_ask_slope"
+    feature_type: "bid_ask_slope"
+    normalize: true
+    domain: "hft"
+    params:
+      side: "ask"
+      levels: 5
+
+  # =============================================================================
+  # Raw Prices and Sizes (L0-L4)
+  # =============================================================================
+  # Include raw features for the agent to learn its own combinations
+
+  # Level 0 (Best bid/ask)
+  - name: "hft_bid_px_00"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_00"
+
+  - name: "hft_ask_px_00"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_00"
+
+  - name: "hft_bid_sz_00"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_00"
+
+  - name: "hft_ask_sz_00"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_00"
+
+  # Level 1
+  - name: "hft_bid_px_01"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_01"
+
+  - name: "hft_ask_px_01"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_01"
+
+  - name: "hft_bid_sz_01"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_01"
+
+  - name: "hft_ask_sz_01"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_01"
+
+  # Level 2
+  - name: "hft_bid_px_02"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_02"
+
+  - name: "hft_ask_px_02"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_02"
+
+  - name: "hft_bid_sz_02"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_02"
+
+  - name: "hft_ask_sz_02"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_02"
+
+  # Level 3
+  - name: "hft_bid_px_03"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_03"
+
+  - name: "hft_ask_px_03"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_03"
+
+  - name: "hft_bid_sz_03"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_03"
+
+  - name: "hft_ask_sz_03"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_03"
+
+  # Level 4
+  - name: "hft_bid_px_04"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_04"
+
+  - name: "hft_ask_px_04"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_04"
+
+  - name: "hft_bid_sz_04"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_04"
+
+  - name: "hft_ask_sz_04"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_04"

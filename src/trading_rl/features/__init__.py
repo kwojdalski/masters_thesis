@@ -40,6 +40,18 @@ from trading_rl.features.temporal_features import (
     MinuteOfHourSinFeature,
 )
 
+# Import LOB (Limit Order Book) features to register them
+from trading_rl.features.lob_features import (
+    BidAskSlopeFeature,
+    BookPressureFeature,
+    DepthRatioFeature,
+    MicropriceDivergenceFeature,
+    MicropriceFeature,
+    OrderBookImbalanceFeature,
+    SpreadBpsFeature,
+    VWMPSkewFeature,
+)
+
 # Import TA-Lib features to register them
 try:
     from trading_rl.features.talib_features import (
@@ -95,6 +107,15 @@ __all__ = [
     "VolumeMAFeature",
     "create_default_pipeline",
     "register_feature",
+    # LOB Features
+    "BidAskSlopeFeature",
+    "BookPressureFeature",
+    "DepthRatioFeature",
+    "MicropriceDivergenceFeature",
+    "MicropriceFeature",
+    "OrderBookImbalanceFeature",
+    "SpreadBpsFeature",
+    "VWMPSkewFeature",
 ]
 
 if _TALIB_AVAILABLE:
