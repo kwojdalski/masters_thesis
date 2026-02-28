@@ -1,11 +1,8 @@
 # %%
 import numpy as np
 import pandas as pd
-import torch
 from plotnine import (
     aes,
-    element_blank,
-    element_rect,
     element_text,
     geom_line,
     ggplot,
@@ -206,7 +203,12 @@ def calculate_actual_returns(rollout, env=None):
 
 
 def create_actual_returns_plot(
-    rollouts, n_obs, df_prices=None, env=None, actual_returns_list=None
+    rollouts,
+    n_obs,
+    df_prices=None,
+    env=None,
+    actual_returns_list=None,
+    initial_capital: float = 10000.0,
 ):
     """Create a plot showing actual portfolio returns (not training rewards).
 
@@ -222,10 +224,15 @@ def create_actual_returns_plot(
         df_prices: Optional DataFrame with price data (unused for now)
         env: Optional environment instance for accessing TradingEnv broker state
         actual_returns_list: Optional pre-extracted list of return arrays (one per rollout)
+        initial_capital: Starting portfolio value used to convert log returns
+            to dollar-equity values
 
     Returns:
-        plotnine.ggplot: Plot showing actual cumulative returns
+        plotnine.ggplot: Plot showing actual portfolio value
     """
+    if initial_capital <= 0:
+        raise ValueError(f"initial_capital must be > 0, got {initial_capital}")
+
     returns_data = []
 
     for i, rollout in enumerate(rollouts):
@@ -239,21 +246,22 @@ def create_actual_returns_plot(
             actual_returns = _extract_tradingenv_returns(env, n_obs) if env else None
 
         if actual_returns is not None:
-            # Use actual portfolio value changes (TradingEnv)
-            cumulative_returns = actual_returns[:n_obs]
+            # Use actual portfolio log returns from TradingEnv broker
+            cumulative_log_returns = np.asarray(actual_returns[:n_obs], dtype=float)
             logger.debug(
                 f"{run_name}: Using actual portfolio returns from TradingEnv broker"
             )
         else:
             # Fallback: use rollout rewards (works for LogReturn, shows DSR for DSR)
             rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
-            cumulative_returns = np.cumsum(rewards)
+            cumulative_log_returns = np.cumsum(rewards)
             logger.debug(f"{run_name}: Using rollout rewards as fallback")
 
+        portfolio_values = initial_capital * np.exp(cumulative_log_returns)
         returns_data.extend(
             [
-                {"Steps": step, "Cumulative_Return": val, "Run": run_name}
-                for step, val in enumerate(cumulative_returns)
+                {"Steps": step, "Portfolio_Value": val, "Run": run_name}
+                for step, val in enumerate(portfolio_values)
             ]
         )
 
@@ -273,14 +281,23 @@ def create_actual_returns_plot(
             .cumsum()[:n_obs]
         )
 
+        buy_and_hold_values = initial_capital * np.exp(
+            np.asarray(buy_and_hold, dtype=float)
+        )
+        max_profit_values = initial_capital * np.exp(
+            np.asarray(max_profit, dtype=float)
+        )
+
         # Add benchmarks to data
-        for step, (bh_val, mp_val) in enumerate(zip(buy_and_hold, max_profit, strict=False)):
+        for step, (bh_val, mp_val) in enumerate(
+            zip(buy_and_hold_values, max_profit_values, strict=False)
+        ):
             returns_data.extend(
                 [
-                    {"Steps": step, "Cumulative_Return": bh_val, "Run": "Buy-and-Hold"},
+                    {"Steps": step, "Portfolio_Value": bh_val, "Run": "Buy-and-Hold"},
                     {
                         "Steps": step,
-                        "Cumulative_Return": mp_val,
+                        "Portfolio_Value": mp_val,
                         "Run": "Max Profit (Unleveraged)",
                     },
                 ]
@@ -290,12 +307,12 @@ def create_actual_returns_plot(
 
     # Create plot with custom colors for benchmarks
     returns_plot = (
-        ggplot(df_returns, aes(x="Steps", y="Cumulative_Return", color="Run"))
+        ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run"))
         + geom_line()
         + labs(
-            title="Actual Portfolio Returns (Log Returns)",
+            title=f"Actual Portfolio Value (Start ${initial_capital:,.0f})",
             x="Steps",
-            y="Cumulative Log Return",
+            y="Portfolio Value ($)",
         )
         + scale_color_manual(
             values={
@@ -488,7 +505,7 @@ def _extract_tradingenv_returns(env, n_steps):
                 return None
 
         # Prepend 0 for first step (no return yet)
-        log_returns = [0.0] + log_returns
+        log_returns = [0.0, *log_returns]
 
         # Return cumulative log returns
         cumulative_returns = np.cumsum(log_returns)
