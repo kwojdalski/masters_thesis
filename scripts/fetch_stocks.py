@@ -1,157 +1,193 @@
 #!/usr/bin/env python
 """
-Simple interactive script to download stock data.
+Download stock data from Databento or Polygon.
 
-Just run: python fetch_stocks_simple.py
+Interactive mode: python scripts/fetch_stocks.py --interactive
+CLI mode: python scripts/fetch_stocks.py --symbols AAPL --start-date 2024-01-01 --end-date 2024-03-31
 """
 
 import os
 import sys
 from pathlib import Path
 
+import typer
+from typing_extensions import Annotated
+
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from logger import get_logger
+
+logger = get_logger(__name__)
+
+app = typer.Typer(help="Download stock data from Databento or Polygon")
 
 
-def check_api_key():
+def check_api_key() -> str:
     """Check if Databento API key is set."""
     api_key = os.getenv("DATABENTO_API_KEY")
     if not api_key:
-        print("❌ ERROR: DATABENTO_API_KEY environment variable not set")
-        print("\nTo fix this, run:")
-        print("  export DATABENTO_API_KEY='your-api-key-here'")
-        print("\nGet your API key from: https://databento.com")
-        sys.exit(1)
+        logger.error("DATABENTO_API_KEY environment variable not set")
+        logger.info("\nTo fix this, run:")
+        logger.info("  export DATABENTO_API_KEY='your-api-key-here'")
+        logger.info("\nGet your API key from: https://databento.com")
+        raise typer.Exit(code=1)
     else:
-        print(f"✓ API key found: {api_key[:10]}...")
+        logger.info(f"API key found: {api_key[:10]}...")
+        return api_key
 
 
-def main():
-    """Main function."""
-    print("\n" + "=" * 80)
-    print("Stock Data Downloader (Databento)")
-    print("=" * 80)
-
+@app.command()
+def download_stocks(
+    symbols: Annotated[
+        str,
+        typer.Option(
+            "--symbols",
+            "-s",
+            help="Stock symbol(s), comma-separated (e.g., AAPL or AAPL,MSFT)",
+        ),
+    ] = "AAPL",
+    start_date: Annotated[
+        str,
+        typer.Option("--start-date", "-d", help="Start date (YYYY-MM-DD)"),
+    ] = "2024-01-01",
+    end_date: Annotated[
+        str,
+        typer.Option("--end-date", "-e", help="End date (YYYY-MM-DD)"),
+    ] = "2024-03-31",
+    dataset: Annotated[
+        str,
+        typer.Option(
+            "--dataset", help="Dataset (XNAS.ITCH for NASDAQ, XNYS.TRADES for NYSE)"
+        ),
+    ] = "XNAS.ITCH",
+    schema: Annotated[
+        str,
+        typer.Option(
+            "--schema",
+            help="Schema (trades, tbbo, mbp-1, mbp-10)",
+        ),
+    ] = "trades",
+    timeframe: Annotated[
+        str,
+        typer.Option(
+            "--timeframe",
+            "-t",
+            help="Timeframe for aggregation (1h, 1d, 5m) - only for aggregated data",
+        ),
+    ] = "1h",
+    aggregate: Annotated[
+        bool,
+        typer.Option("--aggregate/--raw", help="Aggregate to OHLCV or keep raw data"),
+    ] = True,
+    output_dir: Annotated[
+        str,
+        typer.Option("--output-dir", "-o", help="Output directory"),
+    ] = "data/raw/stocks",
+    interactive: Annotated[
+        bool,
+        typer.Option("--interactive", "-i", help="Run in interactive mode"),
+    ] = False,
+):
+    """Download stock data from Databento."""
     # Check API key
     check_api_key()
+
+    logger.info("Stock Data Downloader (Databento)")
 
     from trading_rl.data_fetchers import StockDataFetcher
 
     # Initialize fetcher
-    fetcher = StockDataFetcher(
-        output_dir="data/raw/stocks",
-        log_level="INFO"
-    )
+    fetcher = StockDataFetcher(output_dir=output_dir, log_level="INFO")
 
-    print("\nAvailable datasets:")
-    for dataset, desc in fetcher.list_available_datasets("databento").items():
-        print(f"  • {dataset:20s} - {desc}")
+    # Interactive mode
+    if interactive:
+        logger.info("Running in interactive mode")
+        logger.info("\nAvailable datasets:")
+        for ds, desc in fetcher.list_available_datasets("databento").items():
+            logger.info(f"  {ds:20s} - {desc}")
 
-    # Get user input
-    print("\n" + "-" * 80)
-    print("What would you like to download?")
-    print("-" * 80)
+        # Get user input
+        symbols = typer.prompt(
+            "Enter stock symbol(s) [comma-separated, e.g., AAPL or AAPL,MSFT]",
+            default="AAPL",
+        ).upper()
 
-    # Symbol(s)
-    symbol_input = input("Enter stock symbol(s) [comma-separated, e.g., AAPL or AAPL,MSFT]: ").strip().upper()
-    if not symbol_input:
-        symbol_input = "AAPL"
-        print(f"  Using default: {symbol_input}")
+        start_date = typer.prompt("Start date (YYYY-MM-DD)", default="2024-01-01")
+        end_date = typer.prompt("End date (YYYY-MM-DD)", default="2024-03-31")
+
+        # Dataset selection
+        typer.echo("\nSelect dataset:")
+        typer.echo("  1. XNAS.ITCH (NASDAQ)")
+        typer.echo("  2. XNYS.TRADES (NYSE)")
+        dataset_choice = typer.prompt("Choose [1-2, default: 1]", default="1")
+
+        dataset_map = {
+            "1": "XNAS.ITCH",
+            "2": "XNYS.TRADES",
+        }
+        dataset = dataset_map.get(dataset_choice, "XNAS.ITCH")
+
+        # Data format
+        typer.echo("\nSelect data format:")
+        typer.echo("  1. Aggregated OHLCV bars (for training)")
+        typer.echo("  2. Raw tick/order book data (for analysis)")
+        format_choice = typer.prompt("Choose [1-2, default: 1]", default="1")
+
+        if format_choice == "2":
+            aggregate = False
+            timeframe = None
+
+            typer.echo("\nSelect schema for raw data:")
+            typer.echo("  1. trades - Individual trades (tick data)")
+            typer.echo("  2. tbbo - Top of book (best bid/offer)")
+            typer.echo("  3. mbp-1 - Market by price level 1 (order book top)")
+            typer.echo("  4. mbp-10 - Market by price level 10 (order book depth)")
+            schema_choice = typer.prompt("Choose [1-4, default: 1]", default="1")
+
+            schema_map = {
+                "1": "trades",
+                "2": "tbbo",
+                "3": "mbp-1",
+                "4": "mbp-10",
+            }
+            schema = schema_map.get(schema_choice, "trades")
+        else:
+            aggregate = True
+            schema = "trades"
+
+            typer.echo("\nSelect timeframe for aggregation:")
+            typer.echo("  1. 1 hour")
+            typer.echo("  2. 1 day")
+            typer.echo("  3. 5 minutes")
+            timeframe_choice = typer.prompt("Choose [1-3, default: 1]", default="1")
+
+            timeframe_map = {
+                "1": "1h",
+                "2": "1d",
+                "3": "5m",
+            }
+            timeframe = timeframe_map.get(timeframe_choice, "1h")
 
     # Parse symbols
-    symbols_list = [s.strip() for s in symbol_input.split(",")]
-    if len(symbols_list) > 1:
-        print(f"  Will download {len(symbols_list)} symbols: {symbols_list}")
-        print(f"  Note: Each symbol will be saved to a separate file")
-
-    # Date range
-    start_date = input("Start date (YYYY-MM-DD) [default: 2024-01-01]: ").strip()
-    if not start_date:
-        start_date = "2024-01-01"
-        print(f"  Using default: {start_date}")
-
-    end_date = input("End date (YYYY-MM-DD) [default: 2024-03-31]: ").strip()
-    if not end_date:
-        end_date = "2024-03-31"
-        print(f"  Using default: {end_date}")
-
-    # Dataset
-    print("\nSelect dataset:")
-    print("  1. XNAS.ITCH (NASDAQ)")
-    print("  2. XNYS.TRADES (NYSE)")
-    dataset_choice = input("Choose [1-2, default: 1]: ").strip()
-
-    dataset_map = {
-        "1": "XNAS.ITCH",
-        "2": "XNYS.TRADES",
-        "": "XNAS.ITCH",
-    }
-    dataset = dataset_map.get(dataset_choice, "XNAS.ITCH")
-    print(f"  Selected: {dataset}")
-
-    # Data format
-    print("\nSelect data format:")
-    print("  1. Aggregated OHLCV bars (for training)")
-    print("  2. Raw tick/order book data (for analysis)")
-    format_choice = input("Choose [1-2, default: 1]: ").strip()
-
-    if format_choice == "2":
-        # Raw data
-        aggregate = False
-        timeframe = None
-
-        print("\nSelect schema for raw data:")
-        print("  1. trades - Individual trades (tick data)")
-        print("  2. tbbo - Top of book (best bid/offer)")
-        print("  3. mbp-1 - Market by price level 1 (order book top)")
-        print("  4. mbp-10 - Market by price level 10 (order book depth)")
-        schema_choice = input("Choose [1-4, default: 1]: ").strip()
-
-        schema_map = {
-            "1": "trades",
-            "2": "tbbo",
-            "3": "mbp-1",
-            "4": "mbp-10",
-            "": "trades",
-        }
-        schema = schema_map.get(schema_choice, "trades")
-        print(f"  Selected: {schema} (raw, no aggregation)")
-
-    else:
-        # Aggregated OHLCV
-        aggregate = True
-        schema = "trades"
-
-        print("\nSelect timeframe for aggregation:")
-        print("  1. 1 hour")
-        print("  2. 1 day")
-        print("  3. 5 minutes")
-        timeframe_choice = input("Choose [1-3, default: 1]: ").strip()
-
-        timeframe_map = {
-            "1": "1h",
-            "2": "1d",
-            "3": "5m",
-            "": "1h",
-        }
-        timeframe = timeframe_map.get(timeframe_choice, "1h")
-        print(f"  Selected: {timeframe} bars")
+    symbols_list = [s.strip() for s in symbols.split(",")]
+    logger.info(f"Symbols to download: {symbols_list}")
 
     # Download
-    print("\n" + "=" * 80)
-    print("Downloading...")
-    print("=" * 80)
-    print(f"Symbol(s): {symbols_list}")
-    print(f"Dates: {start_date} to {end_date}")
-    print(f"Dataset: {dataset}")
-    print(f"Schema: {schema}")
+    logger.info("Starting download...")
+    logger.info(f"Symbols: {symbols_list}")
+    logger.info(f"Dates: {start_date} to {end_date}")
+    logger.info(f"Dataset: {dataset}")
+    logger.info(f"Schema: {schema}")
     if aggregate:
-        print(f"Format: Aggregated OHLCV ({timeframe} bars)")
+        logger.info(f"Format: Aggregated OHLCV ({timeframe} bars)")
     else:
-        print(f"Format: Raw {schema} data (no aggregation)")
+        logger.info(f"Format: Raw {schema} data (no aggregation)")
+
     if len(symbols_list) > 1:
-        print(f"\nNote: Will save {len(symbols_list)} separate files (one per instrument)")
-    print()
+        logger.info(
+            f"Note: Will save {len(symbols_list)} separate files (one per instrument)"
+        )
 
     try:
         df = fetcher.fetch_stock_data(
@@ -161,17 +197,14 @@ def main():
             source="databento",
             dataset=dataset,
             schema=schema,
-            timeframe=timeframe,
+            timeframe=timeframe if aggregate else None,
             aggregate=aggregate,
             save_to_file=True,
-            # Let it auto-generate filenames for each symbol
         )
 
-        print("\n" + "=" * 80)
-        print("✓ SUCCESS!")
-        print("=" * 80)
-        print(f"Downloaded {len(df)} total rows")
-        print(f"Columns: {list(df.columns)}")
+        logger.info("Download completed successfully")
+        logger.info(f"Downloaded {len(df)} total rows")
+        logger.info(f"Columns: {list(df.columns)}")
 
         # Determine file suffix
         if aggregate and timeframe:
@@ -179,63 +212,80 @@ def main():
         else:
             file_suffix = f"raw_{schema}"
 
-        if len(symbols_list) > 1 and 'symbol' in df.columns:
-            print(f"\nData split into {len(symbols_list)} files:")
+        if len(symbols_list) > 1 and "symbol" in df.columns:
+            logger.info(f"\nData split into {len(symbols_list)} files:")
             for symbol in symbols_list:
-                symbol_rows = len(df[df['symbol'] == symbol]) if symbol in df['symbol'].values else 0
+                symbol_rows = (
+                    len(df[df["symbol"] == symbol])
+                    if symbol in df["symbol"].values
+                    else 0
+                )
                 filename = f"{symbol}_{start_date}_{end_date}_{file_suffix}.parquet"
-                print(f"  • {filename} ({symbol_rows} rows)")
+                logger.info(f"  {filename} ({symbol_rows} rows)")
         else:
-            print(f"\nFirst few rows:")
-            print(df.head())
+            logger.info(f"\nFirst few rows:")
+            typer.echo(df.head())
 
-        print(f"\nFiles saved to: data/raw/stocks/")
+        logger.info(f"\nFiles saved to: {output_dir}/")
 
         if not aggregate:
-            print(f"\nNote: Downloaded raw {schema} data")
-            print("This is tick-level/order book data, not aggregated OHLCV")
-            print("Useful for microstructure analysis, backtesting with exact fills, etc.")
+            logger.info(f"\nNote: Downloaded raw {schema} data")
+            logger.info("This is tick-level/order book data, not aggregated OHLCV")
+            logger.info(
+                "Useful for microstructure analysis, backtesting with exact fills, etc."
+            )
 
-        print("\n" + "=" * 80)
-        print("Next steps:")
-        print("=" * 80)
-
+        logger.info("\nNext steps:")
         example_symbol = symbols_list[0]
         if aggregate and timeframe:
             example_file = f"{example_symbol}_{start_date}_{end_date}_{timeframe}.parquet"
         else:
-            example_file = f"{example_symbol}_{start_date}_{end_date}_raw_{schema}.parquet"
+            example_file = (
+                f"{example_symbol}_{start_date}_{end_date}_raw_{schema}.parquet"
+            )
 
-        print("1. Inspect the data:")
-        print(f"   python -c \"import pandas as pd; df = pd.read_parquet('data/raw/stocks/{example_file}'); print(df.info()); print(df.head())\"")
+        typer.echo("\n1. Inspect the data:")
+        typer.echo(
+            f"   python -c \"import pandas as pd; df = pd.read_parquet('{output_dir}/{example_file}'); "
+            f"print(df.info()); print(df.head())\""
+        )
 
         if aggregate:
-            print("\n2. Use in training:")
-            print("   Update your scenario YAML config to use a specific instrument:")
-            print("   data:")
-            print(f"     data_path: './data/raw/stocks/{example_file}'")
+            typer.echo("\n2. Use in training:")
+            typer.echo("   Update your scenario YAML config:")
+            typer.echo("   data:")
+            typer.echo(f"     data_path: './{output_dir}/{example_file}'")
         else:
-            print("\n2. Analyze raw data:")
-            print("   Raw tick/order book data is useful for:")
-            print("   - Microstructure analysis")
-            print("   - Exact fill simulation")
-            print("   - Order book dynamics")
-            print("   - High-frequency trading research")
-            print(f"\n   You can aggregate it later if needed for RL training")
+            typer.echo("\n2. Analyze raw data:")
+            typer.echo("   Raw tick/order book data is useful for:")
+            typer.echo("   - Microstructure analysis")
+            typer.echo("   - Exact fill simulation")
+            typer.echo("   - Order book dynamics")
+            typer.echo("   - High-frequency trading research")
 
     except Exception as e:
-        print("\n" + "=" * 80)
-        print("❌ ERROR")
-        print("=" * 80)
-        print(f"Failed to download data: {e}")
-        print("\nTroubleshooting:")
-        print("1. Check your API key is correct")
-        print("2. Verify the symbol exists (e.g., AAPL, MSFT, GOOGL)")
-        print("3. Check date range is valid")
-        print("4. Make sure weles project is at ../weles")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Failed to download data: {e}", exc_info=True)
+        logger.info("\nTroubleshooting:")
+        logger.info("1. Check your API key is correct")
+        logger.info("2. Verify the symbol exists (e.g., AAPL, MSFT, GOOGL)")
+        logger.info("3. Check date range is valid")
+        logger.info("4. Make sure weles project is at ../weles")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def list_datasets():
+    """List available datasets from Databento."""
+    check_api_key()
+
+    from trading_rl.data_fetchers import StockDataFetcher
+
+    fetcher = StockDataFetcher(output_dir="data/raw/stocks", log_level="INFO")
+
+    typer.echo("Available Databento datasets:\n")
+    for dataset, desc in fetcher.list_available_datasets("databento").items():
+        typer.echo(f"  {dataset:20s} - {desc}")
 
 
 if __name__ == "__main__":
-    main()
+    app()
