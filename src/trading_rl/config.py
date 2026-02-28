@@ -36,6 +36,7 @@ class EnvConfig:
     """Trading environment configuration."""
 
     name: str = "BTCUSD"
+    mode: str = "mft"  # Feature regime mode: "mft" (medium-frequency) or "hft" (high-frequency)
     positions: list[int] = field(default_factory=lambda: [-1, 0, 1])
     trading_fees: float = 0.0  # 0.01% = 0.0001
     borrow_interest_rate: float = 0.0  # 0.0003% = 0.000003
@@ -260,6 +261,10 @@ class ExperimentConfig:
             )
         if not self.env.positions:
             errors.append("env.positions must not be empty")
+        if str(self.env.mode).lower() not in {"mft", "hft"}:
+            errors.append(
+                f"env.mode must be 'mft' or 'hft', got '{self.env.mode}'"
+            )
 
         # Reward configuration validation
         if self.env.reward_type not in ["log_return", "differential_sharpe"]:
@@ -470,6 +475,7 @@ class ExperimentConfig:
             },
             "environment": {
                 "name": self.env.name,
+                "mode": self.env.mode,
                 "positions": self.env.positions,
                 "trading_fees": self.env.trading_fees,
                 "borrow_interest_rate": self.env.borrow_interest_rate,

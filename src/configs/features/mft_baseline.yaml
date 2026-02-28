@@ -1,0 +1,69 @@
+# Medium-Frequency Trading (MFT) baseline feature set
+# ===================================================
+#
+# This baseline is intended for bar-based strategies (minute/hour/day bars).
+# All features are explicitly tagged as domain: "mft" so they are rejected
+# when env.mode is set to "hft".
+#
+# Required columns: close, volume
+
+features:
+  - name: "mft_log_return"
+    feature_type: "log_return"
+    normalize: true
+    domain: "mft"
+
+  - name: "mft_return_lag_1"
+    feature_type: "return_lag"
+    normalize: true
+    domain: "mft"
+    params:
+      column: "close"
+      lag: 1
+
+  - name: "mft_return_lag_24"
+    feature_type: "return_lag"
+    normalize: true
+    domain: "mft"
+    params:
+      column: "close"
+      lag: 24
+
+  - name: "mft_realized_volatility_20"
+    feature_type: "realized_volatility"
+    normalize: true
+    domain: "mft"
+    params:
+      window: 20
+
+  - name: "mft_volatility_ratio_5_60"
+    feature_type: "volatility_ratio"
+    normalize: true
+    domain: "mft"
+    params:
+      short_window: 5
+      long_window: 60
+
+  - name: "mft_volume_ma_ratio_20"
+    feature_type: "volume_ma_ratio"
+    normalize: true
+    domain: "mft"
+    params:
+      window: 20
+
+  - name: "mft_amihud_illiquidity"
+    feature_type: "amihud_illiquidity"
+    normalize: true
+    domain: "mft"
+    params:
+      window: 1
+
+  - name: "mft_hour_sin"
+    feature_type: "hour_sin"
+    normalize: false
+    domain: "mft"
+
+  - name: "mft_hour_cos"
+    feature_type: "hour_cos"
+    normalize: false
+    domain: "mft"

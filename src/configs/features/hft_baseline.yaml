@@ -1,0 +1,95 @@
+# High-Frequency Trading (HFT) baseline feature set
+# =================================================
+#
+# This baseline assumes level-2 style order-book columns are available.
+# All features are explicitly tagged as domain: "hft" so they are rejected
+# when env.mode is set to "mft".
+#
+# Required columns:
+#   bid_px_1..bid_px_3, ask_px_1..ask_px_3,
+#   bid_sz_1..bid_sz_3, ask_sz_1..ask_sz_3
+
+features:
+  - name: "hft_bid_px_1"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_1"
+
+  - name: "hft_ask_px_1"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_1"
+
+  - name: "hft_bid_sz_1"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_1"
+
+  - name: "hft_ask_sz_1"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_1"
+
+  - name: "hft_bid_px_2"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_2"
+
+  - name: "hft_ask_px_2"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_2"
+
+  - name: "hft_bid_sz_2"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_2"
+
+  - name: "hft_ask_sz_2"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_2"
+
+  - name: "hft_bid_px_3"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_3"
+
+  - name: "hft_ask_px_3"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_3"
+
+  - name: "hft_bid_sz_3"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_3"
+
+  - name: "hft_ask_sz_3"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_3"
