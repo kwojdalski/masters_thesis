@@ -1,0 +1,109 @@
+# TD3 Configuration for AAPL with HFT/LOB Features
+# ============================================================================
+# This scenario uses high-frequency trading features from Level-2 order book data.
+# Uses raw MBP-10 (Market by Price, 10 levels) data from Databento for AAPL.
+#
+# Data: Tick-level order book snapshots with bid/ask prices and sizes at 3 levels
+# Backend: TradingEnv (supports continuous actions)
+# Algorithm: TD3 (Twin Delayed Deep Deterministic Policy Gradient)
+# Features: 12 HFT features (bid/ask prices and sizes at levels 0-2)
+
+seed: 42
+
+# Data Configuration
+data:
+  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10.parquet"
+  feature_config: "src/configs/features/hft_baseline.yaml"
+  download_data: false
+  train_size: 2000000  # ~2M ticks for training (adjust based on available data)
+
+# Environment Configuration - TradingEnv Backend
+env:
+  name: "TRADINGENV_TD3_AAPL_HFT"
+  backend: "tradingenv"
+  mode: "hft"  # Enable HFT mode to accept HFT domain features
+
+  # Transaction costs (HFT typically has very low fees)
+  trading_fees: 0.0001  # 1 basis point
+
+  # Price column for environment pricing/PnL
+  # Using mid price from best bid/ask
+  price_columns: ["price"]  # or we could compute mid: (bid_px_00 + ask_px_00) / 2
+
+  # HFT/LOB engineered features (12 features)
+  feature_columns: [
+    "feature_hft_bid_px_00",
+    "feature_hft_ask_px_00",
+    "feature_hft_bid_sz_00",
+    "feature_hft_ask_sz_00",
+    "feature_hft_bid_px_01",
+    "feature_hft_ask_px_01",
+    "feature_hft_bid_sz_01",
+    "feature_hft_ask_sz_01",
+    "feature_hft_bid_px_02",
+    "feature_hft_ask_px_02",
+    "feature_hft_bid_sz_02",
+    "feature_hft_ask_sz_02",
+  ]
+
+  reward_type: "differential_sharpe"
+  reward_eta: 0.01
+
+# Network Architecture
+# Smaller networks for faster training on high-frequency data
+network:
+  actor_hidden_dims: [128, 64]
+  value_hidden_dims: [128, 64]
+
+# Training Parameters - TD3
+training:
+  algorithm: "TD3"
+  temp_eval_interval: 100000
+
+  # Learning rates
+  actor_lr: 0.0001
+  value_lr: 0.0001
+  value_weight_decay: 0.000002
+  actor_weight_decay: 0.000002
+
+  # Training loop
+  max_steps: 2000000  # 2M steps for HFT data
+  checkpoint_interval: 100000
+  init_rand_steps: 1000  # More random exploration initially
+  frames_per_batch: 200
+  optim_steps_per_batch: 5
+  sample_size: 128
+  buffer_size: 100000
+  save_buffer: true
+
+  # Discount factor
+  gamma: 0.99
+
+  # TD3-specific parameters
+  tau: 0.001  # Soft update rate
+  policy_noise: 0.2  # Noise added to target policy
+  noise_clip: 0.3  # Clipping range for policy noise
+  policy_delay: 2  # Delay actor/critic updates
+  delay_actor: true
+  delay_qvalue: true
+  exploration_noise_std: 0.2  # Exploration noise
+
+  # Loss function
+  loss_function: "smooth_l1"
+
+  # Evaluation
+  eval_steps: 720  # ~1 day of trading at 1min intervals
+  eval_interval: 1000
+  log_interval: 100
+
+# Logging Configuration
+logging:
+  log_level: "INFO"
+  save_plots: false
+
+# Explainability Configuration
+explainability:
+  enabled: true
+  n_steps: 500
+  methods: ["permutation", "integrated_gradients"]
+  temp_explainability_interval: 100000  # Run every 100k steps
