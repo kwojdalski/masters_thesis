@@ -24,7 +24,7 @@ env:
 
   trading_fees: 0.0007
 
-  price_columns: ["close"]
+  price_column: "close"
   feature_columns: [
     # Returns (3)
     "feature_log_return",

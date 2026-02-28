@@ -22,7 +22,7 @@ env:
   name: "TRADINGENV_DDPG_UPTREND"
   backend: "tradingenv"
   trading_fees: 0.001
-  price_columns: ["close"]
+  price_column: "close"
   feature_columns: ["feature_log_return", "feature_trend"]
 
   # Reward function configuration

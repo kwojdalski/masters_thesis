@@ -28,7 +28,7 @@ env:
   trading_fees: 0.001  # 0.1% proportional fee
 
   # Column specifications
-  price_columns: ["close"]
+  price_column: "close"
   # feature_log_return: z-scored returns (no trend signal due to normalization)
   # feature_trend: price relative to start, min-max scaled to [0,1] (preserves upward trend!)
   feature_columns: ["feature_trend"]

@@ -12,7 +12,8 @@ seed: 42
 
 # Data Configuration
 data:
-  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_small.parquet"
+  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
+  # data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_small.parquet"
   feature_config: "src/configs/features/hft_baseline.yaml"
   download_data: false
   train_size: 15000  # ~2M ticks for training (filtered to US market hours 9:30 AM - 4:00 PM EST)
@@ -28,7 +29,7 @@ env:
 
   # Price column for environment pricing/PnL
   # Using mid price from best bid/ask
-  price_columns: ["price"]  # or we could compute mid: (bid_px_00 + ask_px_00) / 2
+  price_column: "close"  # or we could compute mid: (bid_px_00 + ask_px_00) / 2
 
   # HFT/LOB engineered features (12 features)
   feature_columns: [

@@ -21,7 +21,7 @@ env:
   borrow_interest_rate: 0.0
   
   # Column specifications for TradingEnv
-  price_columns: ["close"]
+  price_column: "close"
   feature_columns: ["feature_log_return", "feature_high", "feature_low"]
 
   # Reward function configuration

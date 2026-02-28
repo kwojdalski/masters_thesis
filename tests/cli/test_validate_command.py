@@ -21,7 +21,7 @@ def _write_config(path: Path, data_path: str, feature_config: str | None = None)
         f"{feature_cfg_line}"
         "env:\n"
         '  backend: "tradingenv"\n'
-        '  price_columns: ["close"]\n'
+        '  price_column: "close"\n'
         '  feature_columns: ["feature_f1"]\n'
         "training:\n"
         '  algorithm: "PPO"\n'

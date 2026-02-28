@@ -22,7 +22,7 @@ env:
   trading_fees: 0.0000
 
   # Raw price for env pricing/PnL
-  price_columns: ["close"]
+  price_column: "close"
 
   # Non-redundant engineered feature subset (16 features)
   feature_columns: [

@@ -64,7 +64,7 @@ def test_valid_config_no_errors(tmp_path: Path):
     config.data.train_size = 10
     config.data.validation_size = 5
     config.data.feature_config = str(feat_cfg)
-    config.env.price_columns = ["close"]
+    config.env.price_column = "close"
     config.env.feature_columns = ["feature_f1"]
 
     report = validate_experiment_config(config)
@@ -224,8 +224,50 @@ def test_hft_mode_with_hft_lob_features_is_valid(tmp_path: Path):
     config.data.train_size = 10
     config.data.validation_size = 5
     config.env.mode = "hft"
-    config.env.price_columns = ["close"]
+    config.env.price_column = "close"
     config.env.feature_columns = ["feature_hft_bid_px_1"]
 
     report = validate_experiment_config(config)
     assert report.error_count == 0
+
+
+def test_hft_price_column_close_allowed_when_derivable_from_l1(tmp_path: Path):
+    rows = 20
+    idx = pd.date_range("2024-01-01", periods=rows, freq="h")
+    df = pd.DataFrame(
+        {
+            "open": range(rows),
+            "high": [x + 1 for x in range(rows)],
+            "low": [x - 1 for x in range(rows)],
+            "volume": [1000 + x for x in range(rows)],
+            "bid_px_00": [100 + x * 0.01 for x in range(rows)],
+            "ask_px_00": [100.02 + x * 0.01 for x in range(rows)],
+            "bid_px_1": [99.9 + x * 0.01 for x in range(rows)],
+            "ask_px_1": [100.1 + x * 0.01 for x in range(rows)],
+            "bid_sz_1": [200 + x for x in range(rows)],
+            "ask_sz_1": [210 + x for x in range(rows)],
+        },
+        index=idx,
+    )
+    data_path = tmp_path / "data_hft_no_close.parquet"
+    df.to_parquet(data_path)
+
+    feat_cfg = _write_feature_config(
+        tmp_path / "features_hft_column_value.yaml",
+        feature_type="column_value",
+        name="hft_bid_px_1",
+        domain="hft",
+        params={"column": "bid_px_1"},
+    )
+
+    config = ExperimentConfig()
+    config.data.data_path = str(data_path)
+    config.data.feature_config = str(feat_cfg)
+    config.data.train_size = 10
+    config.data.validation_size = 5
+    config.env.mode = "hft"
+    config.env.price_column = "close"
+    config.env.feature_columns = ["feature_hft_bid_px_1"]
+
+    report = validate_experiment_config(config)
+    assert not any(i.code == "PRICE_COLUMN_MISSING" for i in report.issues)

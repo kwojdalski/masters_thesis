@@ -198,9 +198,9 @@ class TD3Trainer(BaseTrainer):
 
         benchmark_price_column = "close"
         if config:
-            price_cols = getattr(config.env, "price_columns", None)
-            if isinstance(price_cols, (list, tuple)) and len(price_cols) > 0:
-                benchmark_price_column = str(price_cols[0])
+            configured_price_column = getattr(config.env, "price_column", None)
+            if isinstance(configured_price_column, str) and configured_price_column:
+                benchmark_price_column = configured_price_column
 
         if benchmark_price_column in df.columns:
             benchmark_series = df[benchmark_price_column]
@@ -213,7 +213,7 @@ class TD3Trainer(BaseTrainer):
             benchmark_price_column = "close"
         else:
             raise ValueError(
-                "Evaluation benchmarks require env.price_columns[0] or 'close' in dataframe."
+                "Evaluation benchmarks require env.price_column or 'close' in dataframe."
             )
 
         # Create actual returns plot with pre-extracted returns

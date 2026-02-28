@@ -403,14 +403,14 @@ def create_environment(
         factory = get_environment_factory(backend, config=config)
 
         # Extract column specifications from config if available
-        price_columns = getattr(config.env, "price_columns", None)
+        price_column = getattr(config.env, "price_column", None)
         feature_columns = getattr(config.env, "feature_columns", None)
 
         # Pass to factory with column specifications
         return factory.make(
             df=df,
             config=config,
-            price_columns=price_columns,
+            price_column=price_column,
             feature_columns=feature_columns,
             **kwargs,
         )

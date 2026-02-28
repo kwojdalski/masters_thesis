@@ -111,7 +111,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         df: pd.DataFrame,
         config: ExperimentConfig | None = None,
         feature_columns: list[str] | None = None,
-        price_columns: list[str] | None = None,
+        price_column: str | None = None,
         **kwargs: Any,
     ) -> TransformedEnv:
         """Create a TradingEnv environment wrapped for TorchRL.
@@ -120,7 +120,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             df: DataFrame with both features and prices
             config: Optional experiment configuration
             feature_columns: List of columns to use as features (observations)
-            price_columns: List of columns to use as asset prices
+            price_column: Column to use as asset price
             **kwargs: Additional arguments for TradingEnv
 
         Returns:
@@ -133,8 +133,33 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             feature_columns = [
                 col for col in df.columns.tolist() if str(col).startswith("feature_")
             ]
-        if price_columns is None:
-            price_columns = df.columns.tolist()
+        # Backward compatibility with legacy list-style parameter.
+        legacy_price_columns = kwargs.pop("price_columns", None)
+        if price_column is None and legacy_price_columns:
+            if isinstance(legacy_price_columns, list) and legacy_price_columns:
+                price_column = str(legacy_price_columns[0])
+            elif isinstance(legacy_price_columns, str):
+                price_column = legacy_price_columns
+
+        if price_column is None and config is not None and hasattr(config, "env"):
+            price_column = getattr(config.env, "price_column", None)
+
+        if price_column is None:
+            if "close" in df.columns:
+                price_column = "close"
+            elif "price" in df.columns:
+                price_column = "price"
+            else:
+                raise ValueError(
+                    "TradingEnv requires env.price_column (single string) or "
+                    "a dataframe containing 'close'/'price' for fallback."
+                )
+
+        if price_column not in df.columns:
+            raise ValueError(
+                f"Price column '{price_column}' not found in dataframe columns."
+            )
+        price_columns = [price_column]
 
         if not feature_columns:
             raise ValueError(
@@ -196,7 +221,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             extra={
                 "df_shape": df.shape,
                 "feature_columns": feature_columns,
-                "price_columns": price_columns,
+                "price_column": price_column,
                 "initial_cash": initial_cash,
                 "fee": fee,
                 "reward_type": reward_type,

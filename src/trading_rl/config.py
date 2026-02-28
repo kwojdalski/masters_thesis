@@ -44,8 +44,8 @@ class EnvConfig:
     backend: str = "gym_anytrading.forex"  # Backend type: gym_trading_env.discrete, gym_trading_env.continuous, gym_anytrading.forex, gym_anytrading.stocks, tradingenv
 
     # TradingEnv-specific configuration (optional)
-    price_columns: list[str] | None = (
-        None  # Columns to use as asset prices (for tradingenv backend)
+    price_column: str | None = (
+        None  # Column to use as asset price (for tradingenv backend)
     )
     feature_columns: list[str] | None = (
         None  # Columns to use as features/observations (for tradingenv backend)
@@ -265,6 +265,16 @@ class ExperimentConfig:
             errors.append(
                 f"env.mode must be 'mft' or 'hft', got '{self.env.mode}'"
             )
+        if (
+            self.env.price_column is not None
+            and (
+                not isinstance(self.env.price_column, str)
+                or not self.env.price_column.strip()
+            )
+        ):
+            errors.append(
+                "env.price_column must be a non-empty string when provided."
+            )
 
         # Reward configuration validation
         if self.env.reward_type not in ["log_return", "differential_sharpe"]:
@@ -397,6 +407,14 @@ class ExperimentConfig:
         if "environment" in config_dict or "env" in config_dict:
             env_dict = config_dict.get("environment", config_dict.get("env", {}))
             for key, value in env_dict.items():
+                if key == "price_columns":
+                    # Backward compatibility: accept legacy list-style key and
+                    # map to canonical single-column env.price_column.
+                    if isinstance(value, list) and value:
+                        config.env.price_column = str(value[0])
+                    elif isinstance(value, str):
+                        config.env.price_column = value
+                    continue
                 if hasattr(config.env, key):
                     setattr(config.env, key, value)
 
@@ -483,8 +501,8 @@ class ExperimentConfig:
                 "backend": self.env.backend,
                 # TradingEnv-specific fields (only include if set)
                 **(
-                    {"price_columns": self.env.price_columns}
-                    if self.env.price_columns is not None
+                    {"price_column": self.env.price_column}
+                    if self.env.price_column is not None
                     else {}
                 ),
                 **(

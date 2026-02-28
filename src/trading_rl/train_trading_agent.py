@@ -604,9 +604,16 @@ def build_training_context(
     if create_mlflow_callback:
         tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
         estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
-        # Use close from train_df if available, otherwise use train_df index length
-        if "close" in train_df.columns:
+        configured_price_column = getattr(config.env, "price_column", None)
+        if (
+            isinstance(configured_price_column, str)
+            and configured_price_column in train_df.columns
+        ):
+            price_series = train_df[configured_price_column]
+        elif "close" in train_df.columns:
             price_series = train_df["close"]
+        elif "price" in train_df.columns:
+            price_series = train_df["price"]
         else:
             # For feature-only data, create a dummy series
             price_series = pd.Series(range(len(train_df)), index=train_df.index)
@@ -832,7 +839,18 @@ def _create_resumption_callback(
     tracking_uri: str | None,
 ) -> MLflowTrainingCallback:
     """Create MLflow callback for resumed training with proper state."""
-    price_series = train_df["close"] if "close" in train_df.columns else None
+    configured_price_column = getattr(config.env, "price_column", None)
+    if (
+        isinstance(configured_price_column, str)
+        and configured_price_column in train_df.columns
+    ):
+        price_series = train_df[configured_price_column]
+    elif "close" in train_df.columns:
+        price_series = train_df["close"]
+    elif "price" in train_df.columns:
+        price_series = train_df["price"]
+    else:
+        price_series = None
     fallback_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
 
     mlflow_callback = MLflowTrainingCallback(

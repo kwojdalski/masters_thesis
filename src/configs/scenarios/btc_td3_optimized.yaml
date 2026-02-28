@@ -20,7 +20,7 @@ env:
   trading_fees: 0.0007  # 0.07% (Binance taker fee)
 
   # Optimized feature columns (18 features)
-  price_columns: ["close"]
+  price_column: "close"
   feature_columns: [
     # Momentum (5)
     "feature_return_lag_1",
