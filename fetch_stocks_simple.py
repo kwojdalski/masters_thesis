@@ -52,11 +52,17 @@ def main():
     print("What would you like to download?")
     print("-" * 80)
 
-    # Symbol
-    symbol_input = input("Enter stock symbol (e.g., AAPL): ").strip().upper()
+    # Symbol(s)
+    symbol_input = input("Enter stock symbol(s) [comma-separated, e.g., AAPL or AAPL,MSFT]: ").strip().upper()
     if not symbol_input:
         symbol_input = "AAPL"
         print(f"  Using default: {symbol_input}")
+
+    # Parse symbols
+    symbols_list = [s.strip() for s in symbol_input.split(",")]
+    if len(symbols_list) > 1:
+        print(f"  Will download {len(symbols_list)} symbols: {symbols_list}")
+        print(f"  Note: Each symbol will be saved to a separate file")
 
     # Date range
     start_date = input("Start date (YYYY-MM-DD) [default: 2024-01-01]: ").strip()
@@ -101,15 +107,17 @@ def main():
     print("\n" + "=" * 80)
     print("Downloading...")
     print("=" * 80)
-    print(f"Symbol: {symbol_input}")
+    print(f"Symbol(s): {symbols_list}")
     print(f"Dates: {start_date} to {end_date}")
     print(f"Dataset: {dataset}")
     print(f"Timeframe: {timeframe}")
+    if len(symbols_list) > 1:
+        print(f"\nNote: Will save {len(symbols_list)} separate files (one per instrument)")
     print()
 
     try:
         df = fetcher.fetch_stock_data(
-            symbols=[symbol_input],
+            symbols=symbols_list,
             start_date=start_date,
             end_date=end_date,
             source="databento",
@@ -117,27 +125,40 @@ def main():
             schema="trades",
             timeframe=timeframe,
             save_to_file=True,
-            output_filename=f"{symbol_input}_{start_date}_{end_date}_{timeframe}.parquet"
+            # Let it auto-generate filenames for each symbol
         )
 
         print("\n" + "=" * 80)
         print("✓ SUCCESS!")
         print("=" * 80)
-        print(f"Downloaded {len(df)} rows")
+        print(f"Downloaded {len(df)} total rows")
         print(f"Columns: {list(df.columns)}")
-        print(f"\nFirst few rows:")
-        print(df.head())
-        print(f"\nData saved to: data/raw/stocks/{symbol_input}_{start_date}_{end_date}_{timeframe}.parquet")
+
+        if len(symbols_list) > 1 and 'symbol' in df.columns:
+            print(f"\nData split into {len(symbols_list)} files:")
+            for symbol in symbols_list:
+                symbol_rows = len(df[df['symbol'] == symbol]) if symbol in df['symbol'].values else 0
+                filename = f"{symbol}_{start_date}_{end_date}_{timeframe}.parquet"
+                print(f"  • {filename} ({symbol_rows} rows)")
+        else:
+            print(f"\nFirst few rows:")
+            print(df.head())
+
+        print(f"\nFiles saved to: data/raw/stocks/")
 
         print("\n" + "=" * 80)
         print("Next steps:")
         print("=" * 80)
+
+        example_symbol = symbols_list[0]
+        example_file = f"{example_symbol}_{start_date}_{end_date}_{timeframe}.parquet"
+
         print("1. Inspect the data:")
-        print(f"   python -c \"import pandas as pd; df = pd.read_parquet('data/raw/stocks/{symbol_input}_{start_date}_{end_date}_{timeframe}.parquet'); print(df.describe())\"")
+        print(f"   python -c \"import pandas as pd; df = pd.read_parquet('data/raw/stocks/{example_file}'); print(df.describe())\"")
         print("\n2. Use in training:")
-        print("   Update your scenario YAML config:")
+        print("   Update your scenario YAML config to use a specific instrument:")
         print("   data:")
-        print(f"     data_path: './data/raw/stocks/{symbol_input}_{start_date}_{end_date}_{timeframe}.parquet'")
+        print(f"     data_path: './data/raw/stocks/{example_file}'")
 
     except Exception as e:
         print("\n" + "=" * 80)
