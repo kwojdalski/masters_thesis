@@ -166,18 +166,55 @@ class StockDataFetcher(BaseMarketDataFetcher):
             # Convert to OHLCV format if needed
             df = self._convert_to_ohlcv(df, schema, timeframe)
 
-            # Save to file if requested
+            # Save to file if requested - one file per instrument
             if save_to_file:
-                if output_filename is None:
-                    # Auto-generate filename
-                    symbol_str = "_".join(symbols[:3])  # Use first 3 symbols
-                    if len(symbols) > 3:
-                        symbol_str += f"_and_{len(symbols)-3}_more"
-                    output_filename = f"{symbol_str}_{start_date}_{end_date}_{timeframe}.parquet"
+                # Check if we have multiple symbols
+                if "symbol" in df.columns and len(df["symbol"].unique()) > 1:
+                    # Save each symbol separately
+                    self.logger.info(
+                        f"Splitting data into separate files for {len(df['symbol'].unique())} symbols"
+                    )
+                    saved_files = []
+                    for symbol in df["symbol"].unique():
+                        symbol_df = df[df["symbol"] == symbol].copy()
 
-                output_path = self.output_dir / output_filename
-                df.to_parquet(output_path)
-                self.logger.info(f"Saved data to {output_path}")
+                        # Generate filename for this symbol
+                        if output_filename is None:
+                            symbol_filename = (
+                                f"{symbol}_{start_date}_{end_date}_{timeframe}.parquet"
+                            )
+                        else:
+                            # Use provided filename as template, insert symbol
+                            base_name = output_filename.replace(".parquet", "")
+                            symbol_filename = f"{base_name}_{symbol}.parquet"
+
+                        output_path = self.output_dir / symbol_filename
+                        symbol_df.to_parquet(output_path)
+                        saved_files.append(output_path)
+                        self.logger.info(
+                            f"Saved {len(symbol_df)} rows for {symbol} to {output_path}"
+                        )
+
+                    self.logger.info(
+                        f"Saved {len(saved_files)} files: {[f.name for f in saved_files]}"
+                    )
+                else:
+                    # Single symbol or no symbol column - save as one file
+                    if output_filename is None:
+                        # Auto-generate filename
+                        if len(symbols) == 1:
+                            symbol_str = symbols[0]
+                        else:
+                            symbol_str = "_".join(symbols[:3])
+                            if len(symbols) > 3:
+                                symbol_str += f"_and_{len(symbols)-3}_more"
+                        output_filename = (
+                            f"{symbol_str}_{start_date}_{end_date}_{timeframe}.parquet"
+                        )
+
+                    output_path = self.output_dir / output_filename
+                    df.to_parquet(output_path)
+                    self.logger.info(f"Saved data to {output_path}")
 
             return df
 

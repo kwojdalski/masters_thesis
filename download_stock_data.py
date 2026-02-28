@@ -46,8 +46,9 @@ def main():
     print(f"  Date range: {df_aapl.index.min()} to {df_aapl.index.max()}")
     print(f"  Saved to: data/raw/stocks/AAPL_2024_1h.parquet")
 
-    # Example 2: Download multiple tech stocks
+    # Example 2: Download multiple tech stocks (saves one file per symbol)
     print("\n2. Downloading tech stocks (AAPL, MSFT, GOOGL)...")
+    print("   Note: Each symbol will be saved to a separate file")
     df_tech = fetcher.fetch_stock_data(
         symbols=["AAPL", "MSFT", "GOOGL"],
         start_date="2024-01-01",
@@ -56,11 +57,15 @@ def main():
         dataset="XNAS.ITCH",
         timeframe="1h",
         save_to_file=True,
-        output_filename="tech_stocks_q1_2024.parquet"
+        # No output_filename - will auto-generate one per symbol
     )
 
-    print(f"✓ Downloaded {len(df_tech)} rows")
-    print(f"  Symbols: {df_tech['symbol'].unique() if 'symbol' in df_tech.columns else 'N/A'}")
+    print(f"✓ Downloaded {len(df_tech)} total rows")
+    if 'symbol' in df_tech.columns:
+        print(f"  Symbols: {list(df_tech['symbol'].unique())}")
+        print(f"  Saved as separate files:")
+        for symbol in df_tech['symbol'].unique():
+            print(f"    - {symbol}_2024-01-01_2024-03-31_1h.parquet")
 
     # Example 3: Download using config file
     print("\n3. Downloading using config file...")
@@ -74,9 +79,11 @@ def main():
     print("All downloads complete!")
     print("=" * 80)
     print("\nFiles saved in: data/raw/stocks/")
+    print("  (One file per instrument for modularity)")
     print("\nNext steps:")
     print("1. Check the data: python -c \"import pandas as pd; print(pd.read_parquet('data/raw/stocks/AAPL_2024_1h.parquet').head())\"")
-    print("2. Use in training: Update your scenario config data_path to point to the downloaded file")
+    print("2. Use in training: Update your scenario config data_path to point to a specific instrument file")
+    print("   Example: data_path: './data/raw/stocks/AAPL_2024_1h.parquet'")
 
 
 if __name__ == "__main__":
