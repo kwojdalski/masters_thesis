@@ -6,8 +6,8 @@
 # when env.mode is set to "mft".
 #
 # Required columns:
-#   bid_px_00..bid_px_02, ask_px_00..ask_px_02,
-#   bid_sz_00..bid_sz_02, ask_sz_00..ask_sz_02
+#   bid_px_00..bid_px_09, ask_px_00..ask_px_09,
+#   bid_sz_00..bid_sz_09, ask_sz_00..ask_sz_09
 
 features:
   - name: "hft_bid_px_00"
@@ -93,3 +93,199 @@ features:
     domain: "hft"
     params:
       column: "ask_sz_02"
+
+  - name: "hft_bid_px_03"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_03"
+
+  - name: "hft_ask_px_03"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_03"
+
+  - name: "hft_bid_sz_03"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_03"
+
+  - name: "hft_ask_sz_03"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_03"
+
+  - name: "hft_bid_px_04"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_04"
+
+  - name: "hft_ask_px_04"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_04"
+
+  - name: "hft_bid_sz_04"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_04"
+
+  - name: "hft_ask_sz_04"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_04"
+
+  - name: "hft_bid_px_05"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_05"
+
+  - name: "hft_ask_px_05"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_05"
+
+  - name: "hft_bid_sz_05"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_05"
+
+  - name: "hft_ask_sz_05"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_05"
+
+  - name: "hft_bid_px_06"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_06"
+
+  - name: "hft_ask_px_06"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_06"
+
+  - name: "hft_bid_sz_06"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_06"
+
+  - name: "hft_ask_sz_06"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_06"
+
+  - name: "hft_bid_px_07"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_07"
+
+  - name: "hft_ask_px_07"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_07"
+
+  - name: "hft_bid_sz_07"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_07"
+
+  - name: "hft_ask_sz_07"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_07"
+
+  - name: "hft_bid_px_08"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_08"
+
+  - name: "hft_ask_px_08"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_08"
+
+  - name: "hft_bid_sz_08"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_08"
+
+  - name: "hft_ask_sz_08"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_08"
+
+  - name: "hft_bid_px_09"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_09"
+
+  - name: "hft_ask_px_09"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_09"
+
+  - name: "hft_bid_sz_09"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_09"
+
+  - name: "hft_ask_sz_09"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_09"
