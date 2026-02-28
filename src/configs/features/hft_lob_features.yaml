@@ -1,0 +1,223 @@
+# High-Frequency Trading (HFT) LOB Microstructure Features
+# ==========================================================
+#
+# This feature set includes order book microstructure features based on
+# market microstructure theory and HFT research:
+# - Book pressure (volume imbalances)
+# - Microprice (fair value estimation)
+# - Spread measures
+# - Depth ratios
+# - Order book slopes
+#
+# Required columns:
+#   bid_px_00..bid_px_09, ask_px_00..ask_px_09,
+#   bid_sz_00..bid_sz_09, ask_sz_00..ask_sz_09
+
+features:
+  # =============================================================================
+  # Book Pressure Features (Volume Imbalance at Each Level)
+  # =============================================================================
+  # Formula: bkp_i = (BidVol_i - AskVol_i) / (BidVol_i + AskVol_i)
+  # Measures liquidity imbalance at specific price levels
+
+  - name: "hft_book_pressure_l0"
+    feature_type: "book_pressure"
+    normalize: true
+    domain: "hft"
+    params:
+      level: 0
+
+  - name: "hft_book_pressure_l1"
+    feature_type: "book_pressure"
+    normalize: true
+    domain: "hft"
+    params:
+      level: 1
+
+  - name: "hft_book_pressure_l2"
+    feature_type: "book_pressure"
+    normalize: true
+    domain: "hft"
+    params:
+      level: 2
+
+  # =============================================================================
+  # Microprice and Fair Value Features
+  # =============================================================================
+  # Microprice: Volume-weighted fair value that predicts next price movement
+  # Formula: (AskVol * Bid + BidVol * Ask) / (BidVol + AskVol)
+
+  - name: "hft_microprice"
+    feature_type: "microprice"
+    normalize: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_microprice_divergence"
+    feature_type: "microprice_divergence"
+    normalize: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  # =============================================================================
+  # Spread and Cost Measures
+  # =============================================================================
+  # Spread in basis points: relative cost of trading
+  # Formula: (Ask - Bid) / MidPrice * 10000
+
+  - name: "hft_spread_bps"
+    feature_type: "spread_bps"
+    normalize: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+
+  # =============================================================================
+  # Order Book Depth and Liquidity Features
+  # =============================================================================
+
+  # Multi-level order book imbalance
+  # Aggregates pressure across multiple levels for more robust signal
+  - name: "hft_order_book_imbalance_3l"
+    feature_type: "order_book_imbalance"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 3
+
+  # Depth ratio: top-of-book vs deep liquidity
+  # High ratio = thin book (fragile), low ratio = deep book (stable)
+  - name: "hft_depth_ratio"
+    feature_type: "depth_ratio"
+    normalize: true
+    domain: "hft"
+    params:
+      levels_deep: 4
+
+  # Volume-weighted mid-price skew
+  # Measures if deep liquidity supports current mid-price
+  - name: "hft_vwmp_skew"
+    feature_type: "vwmp_skew"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 3
+
+  # =============================================================================
+  # Order Book Slope Features (Price Elasticity)
+  # =============================================================================
+  # Steeper slope = lower impact cost for large orders
+
+  - name: "hft_bid_slope"
+    feature_type: "bid_ask_slope"
+    normalize: true
+    domain: "hft"
+    params:
+      side: "bid"
+      levels: 5
+
+  - name: "hft_ask_slope"
+    feature_type: "bid_ask_slope"
+    normalize: true
+    domain: "hft"
+    params:
+      side: "ask"
+      levels: 5
+
+  # =============================================================================
+  # Raw Price and Size Features (Best 3 Levels)
+  # =============================================================================
+  # Include raw features for the agent to learn its own combinations
+
+  - name: "hft_bid_px_00"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_00"
+
+  - name: "hft_ask_px_00"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_00"
+
+  - name: "hft_bid_sz_00"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_00"
+
+  - name: "hft_ask_sz_00"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_00"
+
+  - name: "hft_bid_px_01"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_01"
+
+  - name: "hft_ask_px_01"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_01"
+
+  - name: "hft_bid_sz_01"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_01"
+
+  - name: "hft_ask_sz_01"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_01"
+
+  - name: "hft_bid_px_02"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_px_02"
+
+  - name: "hft_ask_px_02"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_px_02"
+
+  - name: "hft_bid_sz_02"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "bid_sz_02"
+
+  - name: "hft_ask_sz_02"
+    feature_type: "column_value"
+    normalize: true
+    domain: "hft"
+    params:
+      column: "ask_sz_02"
