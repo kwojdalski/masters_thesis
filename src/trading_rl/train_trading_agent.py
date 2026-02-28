@@ -303,6 +303,96 @@ def _ensure_close_column_for_hft(
     return updated["train"], updated["val"], updated["test"]
 
 
+def _ensure_unique_index_for_hft_tradingenv(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    config: ExperimentConfig,
+    logger: logging.Logger,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Ensure unique, monotonic timestamps for HFT data used with TradingEnv.
+
+    TradingEnv rejects duplicate indices. For event-level LOB feeds, multiple
+    updates can share the same timestamp. We preserve every row by applying the
+    minimal offsets needed to make the index strictly increasing with at least
+    1-second spacing, which is required by tradingenv latency partitioning.
+    """
+    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+    backend = str(getattr(config.env, "backend", "")).lower().strip()
+    if mode != "hft" or backend != "tradingenv":
+        return train_df, val_df, test_df
+
+    dataframes = {
+        "train": train_df,
+        "val": val_df,
+        "test": test_df,
+    }
+    updated: dict[str, pd.DataFrame] = {}
+    min_gap_ns = 1_000_000_000  # 1 second
+
+    for split_name, df in dataframes.items():
+        if not isinstance(df.index, pd.DatetimeIndex):
+            raise ValueError(
+                "HFT TradingEnv requires DatetimeIndex to enforce unique event ordering, "
+                f"but {split_name} split has index type {type(df.index).__name__}."
+            )
+
+        index = df.index
+        index_ns_raw = index.view("i8")
+        old_min_gap_ns = (
+            int(np.diff(index_ns_raw).min()) if len(index_ns_raw) > 1 else min_gap_ns
+        )
+        requires_adjustment = (
+            not index.is_unique
+            or not index.is_monotonic_increasing
+            or old_min_gap_ns < min_gap_ns
+            or index.tz is not None
+        )
+
+        if not requires_adjustment:
+            updated[split_name] = df
+            continue
+
+        # Keep chronological order while preserving source ordering for equal timestamps.
+        adjusted_df = df.sort_index(kind="stable").copy()
+        index = adjusted_df.index
+        index_ns = index.view("i8")
+        positions = np.arange(len(index_ns), dtype=np.int64) * min_gap_ns
+
+        # Recurrence in vectorized form:
+        # y[i] = max(index_ns[i], y[i-1] + min_gap_ns)
+        adjusted_ns = np.maximum.accumulate(index_ns - positions) + positions
+
+        # tradingenv mixes timezone-naive timestamps internally, so we
+        # normalize to tz-naive to avoid arithmetic errors.
+        adjusted_index = pd.to_datetime(adjusted_ns, utc=True).tz_localize(None)
+
+        adjusted_df.index = adjusted_index
+        if not adjusted_df.index.is_unique:
+            raise ValueError(
+                f"Failed to enforce unique index for {split_name} HFT split."
+            )
+
+        duplicate_count = int(index.duplicated().sum())
+        max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
+        new_min_gap_ns = (
+            int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
+        )
+        logger.info(
+            "Adjusted %s split index for HFT TradingEnv: resolved %d duplicate timestamps; "
+            "min gap %d -> %d ns; max shift: %d ns",
+            split_name,
+            duplicate_count,
+            old_min_gap_ns,
+            new_min_gap_ns,
+            max_shift_ns,
+        )
+
+        updated[split_name] = adjusted_df
+
+    return updated["train"], updated["val"], updated["test"]
+
+
 def _select_trainer_class(algorithm: str, backend: str):
     """Select appropriate trainer class based on algorithm and backend.
 
@@ -420,6 +510,9 @@ def build_training_context(
     )
 
     train_df, val_df, test_df = _ensure_close_column_for_hft(
+        train_df, val_df, test_df, config, logger
+    )
+    train_df, val_df, test_df = _ensure_unique_index_for_hft_tradingenv(
         train_df, val_df, test_df, config, logger
     )
 
