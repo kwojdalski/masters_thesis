@@ -154,19 +154,28 @@ def _validate_env_columns(
     available_columns: set[str],
     report: ValidationReport,
 ) -> None:
-    price_columns = getattr(config.env, "price_columns", None)
-    if price_columns:
-        missing_price = sorted(set(price_columns) - available_columns)
-        if missing_price:
-            report.add(
-                code="PRICE_COLUMNS_MISSING",
-                severity="error",
-                check="env_columns",
-                message=(
-                    "env.price_columns contains unknown columns: "
-                    f"{missing_price}. Available: {sorted(available_columns)}"
-                ),
-            )
+    price_column = getattr(config.env, "price_column", None)
+    if price_column and price_column not in available_columns:
+        mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+        can_derive_hft_close = (
+            mode == "hft"
+            and str(price_column) == "close"
+            and {"ask_px_00", "bid_px_00"}.issubset(available_columns)
+        )
+        if can_derive_hft_close:
+            # Align validation with training behavior where close is derived
+            # from top-of-book midpoint for HFT datasets.
+            return
+
+        report.add(
+            code="PRICE_COLUMN_MISSING",
+            severity="error",
+            check="env_columns",
+            message=(
+                "env.price_column contains unknown column: "
+                f"{price_column}. Available: {sorted(available_columns)}"
+            ),
+        )
 
     feature_columns = getattr(config.env, "feature_columns", None)
     if feature_columns:

@@ -14,7 +14,6 @@ from logger import get_logger
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.utils import _extract_tradingenv_returns
 
-
 logger = get_logger(__name__)
 
 
@@ -62,6 +61,11 @@ def build_evaluation_report_for_trainer(
 
     reward_type = getattr(getattr(config, "env", None), "reward_type", "log_return")
     backend = getattr(getattr(config, "env", None), "backend", None)
+    benchmark_price_column = getattr(
+        getattr(config, "env", None), "price_column", None
+    )
+    if not benchmark_price_column:
+        benchmark_price_column = "close"
 
     # Reward can be a shaped signal (e.g., differential Sharpe), so only interpret
     # rollout reward as log-return when reward_type explicitly says so.
@@ -104,8 +108,21 @@ def build_evaluation_report_for_trainer(
                 reward_type,
             )
 
+    if benchmark_price_column in df_prices.columns:
+        benchmark_series = df_prices[benchmark_price_column]
+    elif "close" in df_prices.columns:
+        benchmark_series = df_prices["close"]
+        logger.warning(
+            "Evaluation report price column '%s' missing; falling back to 'close'.",
+            benchmark_price_column,
+        )
+    else:
+        raise ValueError(
+            "Evaluation report requires env.price_column or 'close' in dataframe."
+        )
+
     benchmark_log_returns = (
-        np.log(df_prices["close"] / df_prices["close"].shift(1)).fillna(0).to_numpy()
+        np.log(benchmark_series / benchmark_series.shift(1)).fillna(0).to_numpy()
     )[:max_steps]
     benchmark_simple_returns = np.exp(benchmark_log_returns) - 1.0
 
