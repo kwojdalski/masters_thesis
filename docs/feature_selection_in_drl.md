@@ -195,6 +195,26 @@ Selection style:
 
 - Hybrid: initial feature set from domain knowledge, relevance learned by the model.
 
+### Majidi et al. (2022/2024): Algorithmic Trading Using Continuous Action Space DRL (TD3)
+
+Key variable-selection decisions:
+
+- Single-asset trading is modeled with a continuous action in `[-1, 1]` representing the position/allocation signal.
+- Define `x_t` as the close-price percentage change at time `t`.
+- Build the state as a fixed lookback window of close returns:
+  - `s_t = [x_t, x_{t-1}, ..., x_{t-w+1}]`
+- No explicit OHLCV tensor, technical-indicator set, fundamentals, sentiment, or order-book variables are included in the TD3 state definition.
+- Transaction costs are handled in reward/PnL computation, not passed as a standalone observed input feature.
+
+Why this matters:
+
+- This is a clear, minimalist example of state construction where the model relies on a return window rather than broad handcrafted feature inventories.
+- It cleanly separates action-space design (continuous position sizing) from feature design (state inputs), which is often conflated in trading papers.
+
+Selection style:
+
+- Domain-driven and compact: price-return-only state with fixed temporal context.
+
 ### Optimal execution literature (RL execution / microstructure)
 
 Key variable-selection decisions:
@@ -334,6 +354,7 @@ This framing is more accurate than claiming a purely statistical feature-selecti
 - Liang, Z., Chen, H., Zhu, J., Jiang, K., Li, Y., and Zhu, Y. (2018). Adversarial deep reinforcement learning in portfolio management.
 - FinRL (Liu et al., 2020+): framework papers and documentation for DRL-based portfolio trading.
 - Lei, K., Zhong, B., Yang, F., Dai, J., and Yang, B. (2020). Time-driven feature-aware jointly deep reinforcement learning for financial signal representation and algorithmic trading.
+- Majidi, E., et al. (2022/2024). Algorithmic trading using continuous action space deep reinforcement learning (TD3); arXiv:2210.03469; Expert Systems with Applications, 237, 121292.
 - RL optimal execution literature (e.g., market-state + agent-state decomposition in execution tasks).
 
 ## Notes for Future Expansion
