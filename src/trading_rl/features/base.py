@@ -18,6 +18,8 @@ class FeatureConfig:
         params: Additional parameters for feature creation
         normalize: Whether to apply z-score normalization
         output_name: Optional custom output column name
+        domain: Feature domain tag used for experiment-mode validation.
+            Supported values: "shared", "mft", "hft".
     """
 
     name: str
@@ -25,12 +27,20 @@ class FeatureConfig:
     params: dict[str, Any] | None = None
     normalize: bool = True
     output_name: str | None = None
+    domain: str = "shared"
 
     def __post_init__(self):
         if self.params is None:
             self.params = {}
         if self.output_name is None:
             self.output_name = f"feature_{self.name}"
+        self.domain = str(self.domain).lower().strip()
+        valid_domains = {"shared", "mft", "hft"}
+        if self.domain not in valid_domains:
+            raise ValueError(
+                f"Invalid feature domain '{self.domain}'. "
+                f"Supported values: {sorted(valid_domains)}"
+            )
 
 
 class Feature(ABC):

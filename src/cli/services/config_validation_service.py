@@ -10,6 +10,9 @@ from trading_rl import ExperimentConfig
 from trading_rl.data_utils import load_trading_data
 from trading_rl.features import FeaturePipeline, create_default_pipeline
 
+_VALID_ENV_MODES = {"mft", "hft"}
+_VALID_FEATURE_DOMAINS = {"shared", "mft", "hft"}
+
 
 @dataclass
 class ValidationIssue:
@@ -194,6 +197,119 @@ def _validate_env_columns(
             )
 
 
+def _feature_output_name(feature_cfg) -> str:
+    output_name = getattr(feature_cfg, "output_name", None)
+    if output_name:
+        return str(output_name)
+    name = getattr(feature_cfg, "name", "unnamed")
+    return f"feature_{name}"
+
+
+def _feature_domain(feature_cfg) -> str:
+    return str(getattr(feature_cfg, "domain", "shared")).lower().strip()
+
+
+def _validate_feature_domains(
+    config: ExperimentConfig,
+    pipeline: FeaturePipeline,
+    report: ValidationReport,
+) -> None:
+    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+    if mode not in _VALID_ENV_MODES:
+        report.add(
+            code="ENV_MODE_INVALID",
+            severity="error",
+            check="feature_mode",
+            message=(
+                f"env.mode must be one of {sorted(_VALID_ENV_MODES)}, got '{mode}'."
+            ),
+        )
+        return
+
+    hft_features: list[str] = []
+    mft_features: list[str] = []
+    invalid_domain_features: list[str] = []
+
+    for feature_cfg in pipeline.feature_configs:
+        domain = _feature_domain(feature_cfg)
+        output_name = _feature_output_name(feature_cfg)
+
+        if domain not in _VALID_FEATURE_DOMAINS:
+            invalid_domain_features.append(f"{output_name}({domain})")
+            continue
+        if domain == "hft":
+            hft_features.append(output_name)
+        elif domain == "mft":
+            mft_features.append(output_name)
+
+    if invalid_domain_features:
+        report.add(
+            code="FEATURE_DOMAIN_INVALID",
+            severity="error",
+            check="feature_mode",
+            message=(
+                "Feature config contains invalid domain values. "
+                "Use one of ['shared', 'mft', 'hft']. Invalid entries: "
+                f"{invalid_domain_features}"
+            ),
+        )
+
+    if mode == "mft" and hft_features:
+        report.add(
+            code="MFT_HAS_HFT_FEATURES",
+            severity="error",
+            check="feature_mode",
+            message=(
+                "env.mode='mft' cannot include features tagged as domain='hft'. "
+                f"Conflicting features: {hft_features}"
+            ),
+        )
+
+    if mode == "hft":
+        if not hft_features:
+            report.add(
+                code="HFT_FEATURES_MISSING",
+                severity="error",
+                check="feature_mode",
+                message=(
+                    "env.mode='hft' requires at least one feature tagged "
+                    "domain='hft'."
+                ),
+            )
+        if mft_features:
+            report.add(
+                code="HFT_HAS_MFT_FEATURES",
+                severity="error",
+                check="feature_mode",
+                message=(
+                    "env.mode='hft' cannot include features tagged as "
+                    f"domain='mft'. Conflicting features: {mft_features}"
+                ),
+            )
+
+
+def _validate_feature_input_columns(
+    pipeline: FeaturePipeline,
+    raw_columns: set[str],
+    report: ValidationReport,
+) -> None:
+    required_columns: set[str] = set()
+    for feature in pipeline.features:
+        required_columns.update(feature.required_columns())
+
+    missing_columns = sorted(required_columns - raw_columns)
+    if missing_columns:
+        report.add(
+            code="FEATURE_INPUT_COLUMNS_MISSING",
+            severity="error",
+            check="feature_columns",
+            message=(
+                "Feature pipeline requires input columns missing from dataset: "
+                f"{missing_columns}. Available columns: {sorted(raw_columns)}"
+            ),
+        )
+
+
 def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
     """Validate experiment config with filesystem and data-aware checks."""
     report = ValidationReport()
@@ -232,6 +348,8 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
 
     raw_columns = set(df.columns)
     if pipeline is not None:
+        _validate_feature_domains(config, pipeline, report)
+        _validate_feature_input_columns(pipeline, raw_columns, report)
         available_columns = raw_columns.union(set(pipeline.get_feature_names()))
     else:
         available_columns = raw_columns

@@ -10,6 +10,7 @@ data:
 
 env:
   name: "BTCUSD"
+  mode: "mft"  # Feature regime: "mft" (bar features) or "hft" (LOB features)
   positions: [-1, 0, 1]  # Short, hold, long
   trading_fees: 0.0
   borrow_interest_rate: 0.0
