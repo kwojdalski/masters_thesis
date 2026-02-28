@@ -203,6 +203,11 @@ class TD3Trainer(BaseTrainer):
             df_prices=df,
             env=None,  # Don't pass env, use pre-extracted returns
             actual_returns_list=[actual_returns_deterministic, actual_returns_random],
+            initial_capital=(
+                float(getattr(config.env, "initial_portfolio_value", 10000.0))
+                if config
+                else 10000.0
+            ),
         )
 
         # Add benchmarks based on reward type

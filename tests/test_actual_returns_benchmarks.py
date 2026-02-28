@@ -56,6 +56,7 @@ def test_actual_returns_plot_includes_benchmarks():
     for run_name in unique_runs:
         run_data = plot_data[plot_data["Run"] == run_name]
         assert len(run_data) == n_steps, f"{run_name} should have {n_steps} points"
+        assert "Portfolio_Value" in run_data.columns
 
 
 def test_actual_returns_plot_without_benchmarks():
@@ -124,16 +125,47 @@ def test_benchmark_calculations():
     buy_hold_data = plot_data[plot_data["Run"] == "Buy-and-Hold"]
     max_profit_data = plot_data[plot_data["Run"] == "Max Profit (Unleveraged)"]
 
-    # Buy-and-Hold should be cumulative log returns
-    # From 100 to 109 is log(109/100) ≈ 0.0862
-    final_buy_hold = buy_hold_data.iloc[-1]["Cumulative_Return"]
-    expected_buy_hold = np.log(109.0 / 100.0)
+    # Buy-and-Hold should reflect portfolio value from initial capital
+    # From 100 to 109 => +9%, so 10,000 -> 10,900
+    final_buy_hold = buy_hold_data.iloc[-1]["Portfolio_Value"]
+    expected_buy_hold = 10000.0 * (109.0 / 100.0)
     assert abs(final_buy_hold - expected_buy_hold) < 0.001
 
     # Max Profit should be positive and >= Buy-and-Hold
-    final_max_profit = max_profit_data.iloc[-1]["Cumulative_Return"]
-    assert final_max_profit > 0
+    final_max_profit = max_profit_data.iloc[-1]["Portfolio_Value"]
+    assert final_max_profit > 10000.0
     assert final_max_profit >= final_buy_hold
+
+
+def test_actual_returns_plot_uses_custom_initial_capital():
+    """Test that a custom initial capital scales the plotted values."""
+    n_steps = 5
+    initial_capital = 25000.0
+
+    rollouts = []
+    for _ in range(2):
+        rollout = TensorDict({
+            "action": torch.randn(n_steps, 1),
+            "next": TensorDict({
+                "reward": torch.zeros(n_steps),  # 0 log-return => flat equity
+            }, batch_size=[n_steps]),
+        }, batch_size=[n_steps])
+        rollouts.append(rollout)
+
+    plot = create_actual_returns_plot(
+        rollouts=rollouts,
+        n_obs=n_steps,
+        df_prices=None,
+        env=None,
+        actual_returns_list=None,
+        initial_capital=initial_capital,
+    )
+
+    plot_data = plot.data
+    deterministic_values = plot_data[plot_data["Run"] == "Deterministic"][
+        "Portfolio_Value"
+    ].to_numpy()
+    assert np.allclose(deterministic_values, initial_capital)
 
 
 if __name__ == "__main__":
