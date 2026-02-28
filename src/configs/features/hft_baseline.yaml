@@ -6,90 +6,90 @@
 # when env.mode is set to "mft".
 #
 # Required columns:
-#   bid_px_1..bid_px_3, ask_px_1..ask_px_3,
-#   bid_sz_1..bid_sz_3, ask_sz_1..ask_sz_3
+#   bid_px_00..bid_px_02, ask_px_00..ask_px_02,
+#   bid_sz_00..bid_sz_02, ask_sz_00..ask_sz_02
 
 features:
-  - name: "hft_bid_px_1"
+  - name: "hft_bid_px_00"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "bid_px_1"
+      column: "bid_px_00"
 
-  - name: "hft_ask_px_1"
+  - name: "hft_ask_px_00"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "ask_px_1"
+      column: "ask_px_00"
 
-  - name: "hft_bid_sz_1"
+  - name: "hft_bid_sz_00"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "bid_sz_1"
+      column: "bid_sz_00"
 
-  - name: "hft_ask_sz_1"
+  - name: "hft_ask_sz_00"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "ask_sz_1"
+      column: "ask_sz_00"
 
-  - name: "hft_bid_px_2"
+  - name: "hft_bid_px_01"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "bid_px_2"
+      column: "bid_px_01"
 
-  - name: "hft_ask_px_2"
+  - name: "hft_ask_px_01"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "ask_px_2"
+      column: "ask_px_01"
 
-  - name: "hft_bid_sz_2"
+  - name: "hft_bid_sz_01"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "bid_sz_2"
+      column: "bid_sz_01"
 
-  - name: "hft_ask_sz_2"
+  - name: "hft_ask_sz_01"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "ask_sz_2"
+      column: "ask_sz_01"
 
-  - name: "hft_bid_px_3"
+  - name: "hft_bid_px_02"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "bid_px_3"
+      column: "bid_px_02"
 
-  - name: "hft_ask_px_3"
+  - name: "hft_ask_px_02"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "ask_px_3"
+      column: "ask_px_02"
 
-  - name: "hft_bid_sz_3"
+  - name: "hft_bid_sz_02"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "bid_sz_3"
+      column: "bid_sz_02"
 
-  - name: "hft_ask_sz_3"
+  - name: "hft_ask_sz_02"
     feature_type: "column_value"
     normalize: true
     domain: "hft"
     params:
-      column: "ask_sz_3"
+      column: "ask_sz_02"

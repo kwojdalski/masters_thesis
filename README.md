@@ -59,6 +59,20 @@ Common commands (`python src/cli.py --help` for full details):
 | `python src/cli.py experiments` | List MLflow experiments |
 | `python src/cli.py artifacts --experiment <regex>` | List artifacts per run |
 
+## Data Download
+
+For downloading real market data, use the dedicated scripts:
+
+```bash
+# Download cryptocurrency data (BTC, ETH, etc.)
+python scripts/fetch_crypto.py download-crypto --symbols BTC/USDT --timeframe 1h
+
+# Download stock data (requires DATABENTO_API_KEY)
+python scripts/fetch_stocks.py download-stocks --symbols AAPL --start-date 2024-01-01
+```
+
+See `docs/data_guide.md` for detailed instructions on data download and generation.
+
 ## Configuration
 
 - Scenario YAML files live in `src/configs/scenarios`.
@@ -98,12 +112,13 @@ masters_thesis/
 
 ## Docs and References
 
-- `docs/experiment_workflow.md`
-- `docs/ppo_implementation_overview.md`
-- `docs/ddpg_implementation_overview.md`
-- `docs/td3_implementation_overview.md`
-- `src/trading_rl/README.md`
-- `src/logger/README.md`
+- `docs/data_guide.md` - Data download and generation guide
+- `docs/experiment_workflow.md` - End-to-end training workflow
+- `docs/ppo_implementation_overview.md` - PPO algorithm details
+- `docs/ddpg_implementation_overview.md` - DDPG algorithm details
+- `docs/td3_implementation_overview.md` - TD3 algorithm details
+- `src/trading_rl/README.md` - Core RL package overview
+- `src/logger/README.md` - Logging utilities
 
 ## Experiment Tracking
 
