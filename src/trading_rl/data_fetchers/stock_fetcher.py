@@ -71,7 +71,8 @@ class StockDataFetcher(BaseMarketDataFetcher):
         source: str = "databento",
         dataset: str | None = None,
         schema: str = "trades",
-        timeframe: str = "1h",
+        timeframe: str | None = "1h",
+        aggregate: bool = True,
         save_to_file: bool = True,
         output_filename: str | None = None,
         **kwargs,
@@ -93,9 +94,19 @@ class StockDataFetcher(BaseMarketDataFetcher):
             Dataset identifier (e.g., "XNAS.ITCH" for NASDAQ, "XNYS.TRADES" for NYSE)
             If None, uses default for the source
         schema : str
-            Data schema: "trades", "tbbo", "ohlcv-1h", etc.
-        timeframe : str
-            Timeframe for aggregation (e.g., "1h", "1d")
+            Data schema:
+            - "trades" - Individual trades (tick data)
+            - "tbbo" - Top of book (best bid/offer)
+            - "mbp-1" - Market by price level 1 (order book top)
+            - "mbp-10" - Market by price level 10 (order book depth)
+            - "ohlcv-1h" - Pre-aggregated OHLCV bars
+        timeframe : str | None
+            Timeframe for aggregation (e.g., "1h", "1d").
+            Only used if aggregate=True. If None and aggregate=True, defaults to "1h"
+        aggregate : bool
+            Whether to aggregate data to OHLCV format.
+            - True: Convert to OHLCV bars at specified timeframe
+            - False: Keep raw tick/order book data (no aggregation)
         save_to_file : bool
             Whether to save data to parquet file
         output_filename : str | None
@@ -106,15 +117,52 @@ class StockDataFetcher(BaseMarketDataFetcher):
         Returns
         -------
         pd.DataFrame
-            Stock market data with OHLCV format
+            Stock market data - OHLCV format if aggregate=True, raw format otherwise
 
-        Example:
-            df = fetcher.fetch_stock_data(
+        Examples:
+            # Aggregated OHLCV data
+            df = fetcher.fetch_market_data(
                 symbols=["AAPL"],
                 start_date="2024-01-01",
                 end_date="2024-01-31",
                 source="databento",
-                dataset="XNAS.ITCH"
+                dataset="XNAS.ITCH",
+                schema="trades",
+                timeframe="1h",
+                aggregate=True
+            )
+
+            # Raw tick-level trades
+            df = fetcher.fetch_market_data(
+                symbols=["AAPL"],
+                start_date="2024-01-01",
+                end_date="2024-01-01",
+                source="databento",
+                dataset="XNAS.ITCH",
+                schema="trades",
+                aggregate=False  # Keep raw trades
+            )
+
+            # Raw order book (top of book)
+            df = fetcher.fetch_market_data(
+                symbols=["AAPL"],
+                start_date="2024-01-01",
+                end_date="2024-01-01",
+                source="databento",
+                dataset="XNAS.ITCH",
+                schema="tbbo",  # Best bid/offer
+                aggregate=False  # Keep raw quotes
+            )
+
+            # Order book depth (10 levels)
+            df = fetcher.fetch_market_data(
+                symbols=["AAPL"],
+                start_date="2024-01-01",
+                end_date="2024-01-01",
+                source="databento",
+                dataset="XNAS.ITCH",
+                schema="mbp-10",  # 10 price levels
+                aggregate=False  # Keep raw order book
             )
         """
         self.logger.info(
@@ -163,11 +211,25 @@ class StockDataFetcher(BaseMarketDataFetcher):
 
             self.logger.info(f"Fetched {len(df)} rows from {source}")
 
-            # Convert to OHLCV format if needed
-            df = self._convert_to_ohlcv(df, schema, timeframe)
+            # Convert to OHLCV format if aggregation is requested
+            if aggregate:
+                if timeframe is None:
+                    timeframe = "1h"
+                    self.logger.info("No timeframe specified, defaulting to 1h")
+                df = self._convert_to_ohlcv(df, schema, timeframe)
+            else:
+                self.logger.info(
+                    f"Keeping raw {schema} data without aggregation ({len(df)} rows)"
+                )
 
             # Save to file if requested - one file per instrument
             if save_to_file:
+                # Determine file suffix based on aggregation
+                if aggregate and timeframe:
+                    file_suffix = timeframe
+                else:
+                    file_suffix = f"raw_{schema}"
+
                 # Check if we have multiple symbols
                 if "symbol" in df.columns and len(df["symbol"].unique()) > 1:
                     # Save each symbol separately
@@ -181,7 +243,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
                         # Generate filename for this symbol
                         if output_filename is None:
                             symbol_filename = (
-                                f"{symbol}_{start_date}_{end_date}_{timeframe}.parquet"
+                                f"{symbol}_{start_date}_{end_date}_{file_suffix}.parquet"
                             )
                         else:
                             # Use provided filename as template, insert symbol
@@ -209,7 +271,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
                             if len(symbols) > 3:
                                 symbol_str += f"_and_{len(symbols)-3}_more"
                         output_filename = (
-                            f"{symbol_str}_{start_date}_{end_date}_{timeframe}.parquet"
+                            f"{symbol_str}_{start_date}_{end_date}_{file_suffix}.parquet"
                         )
 
                     output_path = self.output_dir / output_filename
@@ -230,7 +292,8 @@ class StockDataFetcher(BaseMarketDataFetcher):
         source: str = "databento",
         dataset: str | None = None,
         schema: str = "trades",
-        timeframe: str = "1h",
+        timeframe: str | None = "1h",
+        aggregate: bool = True,
         save_to_file: bool = True,
         output_filename: str | None = None,
         **kwargs,
@@ -248,6 +311,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
             dataset=dataset,
             schema=schema,
             timeframe=timeframe,
+            aggregate=aggregate,
             save_to_file=save_to_file,
             output_filename=output_filename,
             **kwargs,

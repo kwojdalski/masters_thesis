@@ -89,19 +89,53 @@ def main():
     dataset = dataset_map.get(dataset_choice, "XNAS.ITCH")
     print(f"  Selected: {dataset}")
 
-    # Timeframe
-    print("\nSelect timeframe:")
-    print("  1. 1 hour")
-    print("  2. 1 day")
-    timeframe_choice = input("Choose [1-2, default: 1]: ").strip()
+    # Data format
+    print("\nSelect data format:")
+    print("  1. Aggregated OHLCV bars (for training)")
+    print("  2. Raw tick/order book data (for analysis)")
+    format_choice = input("Choose [1-2, default: 1]: ").strip()
 
-    timeframe_map = {
-        "1": "1h",
-        "2": "1d",
-        "": "1h",
-    }
-    timeframe = timeframe_map.get(timeframe_choice, "1h")
-    print(f"  Selected: {timeframe}")
+    if format_choice == "2":
+        # Raw data
+        aggregate = False
+        timeframe = None
+
+        print("\nSelect schema for raw data:")
+        print("  1. trades - Individual trades (tick data)")
+        print("  2. tbbo - Top of book (best bid/offer)")
+        print("  3. mbp-1 - Market by price level 1 (order book top)")
+        print("  4. mbp-10 - Market by price level 10 (order book depth)")
+        schema_choice = input("Choose [1-4, default: 1]: ").strip()
+
+        schema_map = {
+            "1": "trades",
+            "2": "tbbo",
+            "3": "mbp-1",
+            "4": "mbp-10",
+            "": "trades",
+        }
+        schema = schema_map.get(schema_choice, "trades")
+        print(f"  Selected: {schema} (raw, no aggregation)")
+
+    else:
+        # Aggregated OHLCV
+        aggregate = True
+        schema = "trades"
+
+        print("\nSelect timeframe for aggregation:")
+        print("  1. 1 hour")
+        print("  2. 1 day")
+        print("  3. 5 minutes")
+        timeframe_choice = input("Choose [1-3, default: 1]: ").strip()
+
+        timeframe_map = {
+            "1": "1h",
+            "2": "1d",
+            "3": "5m",
+            "": "1h",
+        }
+        timeframe = timeframe_map.get(timeframe_choice, "1h")
+        print(f"  Selected: {timeframe} bars")
 
     # Download
     print("\n" + "=" * 80)
@@ -110,7 +144,11 @@ def main():
     print(f"Symbol(s): {symbols_list}")
     print(f"Dates: {start_date} to {end_date}")
     print(f"Dataset: {dataset}")
-    print(f"Timeframe: {timeframe}")
+    print(f"Schema: {schema}")
+    if aggregate:
+        print(f"Format: Aggregated OHLCV ({timeframe} bars)")
+    else:
+        print(f"Format: Raw {schema} data (no aggregation)")
     if len(symbols_list) > 1:
         print(f"\nNote: Will save {len(symbols_list)} separate files (one per instrument)")
     print()
@@ -122,8 +160,9 @@ def main():
             end_date=end_date,
             source="databento",
             dataset=dataset,
-            schema="trades",
+            schema=schema,
             timeframe=timeframe,
+            aggregate=aggregate,
             save_to_file=True,
             # Let it auto-generate filenames for each symbol
         )
@@ -134,11 +173,17 @@ def main():
         print(f"Downloaded {len(df)} total rows")
         print(f"Columns: {list(df.columns)}")
 
+        # Determine file suffix
+        if aggregate and timeframe:
+            file_suffix = timeframe
+        else:
+            file_suffix = f"raw_{schema}"
+
         if len(symbols_list) > 1 and 'symbol' in df.columns:
             print(f"\nData split into {len(symbols_list)} files:")
             for symbol in symbols_list:
                 symbol_rows = len(df[df['symbol'] == symbol]) if symbol in df['symbol'].values else 0
-                filename = f"{symbol}_{start_date}_{end_date}_{timeframe}.parquet"
+                filename = f"{symbol}_{start_date}_{end_date}_{file_suffix}.parquet"
                 print(f"  • {filename} ({symbol_rows} rows)")
         else:
             print(f"\nFirst few rows:")
@@ -146,19 +191,37 @@ def main():
 
         print(f"\nFiles saved to: data/raw/stocks/")
 
+        if not aggregate:
+            print(f"\nNote: Downloaded raw {schema} data")
+            print("This is tick-level/order book data, not aggregated OHLCV")
+            print("Useful for microstructure analysis, backtesting with exact fills, etc.")
+
         print("\n" + "=" * 80)
         print("Next steps:")
         print("=" * 80)
 
         example_symbol = symbols_list[0]
-        example_file = f"{example_symbol}_{start_date}_{end_date}_{timeframe}.parquet"
+        if aggregate and timeframe:
+            example_file = f"{example_symbol}_{start_date}_{end_date}_{timeframe}.parquet"
+        else:
+            example_file = f"{example_symbol}_{start_date}_{end_date}_raw_{schema}.parquet"
 
         print("1. Inspect the data:")
-        print(f"   python -c \"import pandas as pd; df = pd.read_parquet('data/raw/stocks/{example_file}'); print(df.describe())\"")
-        print("\n2. Use in training:")
-        print("   Update your scenario YAML config to use a specific instrument:")
-        print("   data:")
-        print(f"     data_path: './data/raw/stocks/{example_file}'")
+        print(f"   python -c \"import pandas as pd; df = pd.read_parquet('data/raw/stocks/{example_file}'); print(df.info()); print(df.head())\"")
+
+        if aggregate:
+            print("\n2. Use in training:")
+            print("   Update your scenario YAML config to use a specific instrument:")
+            print("   data:")
+            print(f"     data_path: './data/raw/stocks/{example_file}'")
+        else:
+            print("\n2. Analyze raw data:")
+            print("   Raw tick/order book data is useful for:")
+            print("   - Microstructure analysis")
+            print("   - Exact fill simulation")
+            print("   - Order book dynamics")
+            print("   - High-frequency trading research")
+            print(f"\n   You can aggregate it later if needed for RL training")
 
     except Exception as e:
         print("\n" + "=" * 80)
