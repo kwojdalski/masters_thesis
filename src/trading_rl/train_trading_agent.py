@@ -42,6 +42,13 @@ from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 mp.set_sharing_strategy("file_system")
 # gym_trading_env sets warnings to errors; reset to defaults for TorchRL
 warnings.filterwarnings("default")
+# tradingenv TrackRecord converts pandas.Timestamp -> datetime (microseconds),
+# which emits this noisy warning when nanoseconds are present.
+warnings.filterwarnings(
+    "ignore",
+    message=r"Discarding nonzero nanoseconds in conversion\.",
+    category=UserWarning,
+)
 
 # Setup joblib memory for caching expensive operations
 memory = Memory(location=".cache/joblib", verbose=1)
