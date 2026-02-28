@@ -243,6 +243,66 @@ def _validate_data(
         )
 
 
+def _ensure_close_column_for_hft(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    config: ExperimentConfig,
+    logger: logging.Logger,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Ensure raw `close` exists in HFT mode by deriving mid-price from L1 book.
+
+    For HFT/LOB datasets we may not have OHLC `close`, but training validation
+    still expects a raw close column for environment pricing checks.
+    """
+    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+    if mode != "hft":
+        return train_df, val_df, test_df
+
+    required_cols = {"ask_px_00", "bid_px_00"}
+    dataframes = {
+        "train": train_df,
+        "val": val_df,
+        "test": test_df,
+    }
+    updated: dict[str, pd.DataFrame] = {}
+
+    for split_name, df in dataframes.items():
+        if "close" in df.columns:
+            updated[split_name] = df
+            continue
+
+        missing = sorted(required_cols - set(df.columns))
+        if missing:
+            raise ValueError(
+                "HFT mode requires a raw 'close' column or top-of-book columns "
+                f"ask_px_00/bid_px_00 to derive it. Missing columns in {split_name}: {missing}"
+            )
+
+        derived_df = df.copy()
+        mid_price = (derived_df["ask_px_00"] + derived_df["bid_px_00"]) / 2.0
+
+        # For sparse top-of-book rows, keep close usable by falling back to trade price.
+        if "price" in derived_df.columns:
+            mid_price = mid_price.fillna(derived_df["price"])
+
+        mid_price = mid_price.ffill().bfill()
+        derived_df["close"] = mid_price
+        updated[split_name] = derived_df
+
+        nan_ratio = float(derived_df["close"].isna().mean())
+        logger.info(
+            "Derived 'close' for %s split in HFT mode from (ask_px_00 + bid_px_00)/2%s (NaN ratio after fill: %.6f)",
+            split_name,
+            " with price fallback"
+            if "price" in derived_df.columns
+            else "",
+            nan_ratio,
+        )
+
+    return updated["train"], updated["val"], updated["test"]
+
+
 def _select_trainer_class(algorithm: str, backend: str):
     """Select appropriate trainer class based on algorithm and backend.
 
@@ -357,6 +417,10 @@ def build_training_context(
         data_dir=config.data.data_dir,
         since=config.data.download_since,
         feature_config_path=getattr(config.data, "feature_config", None),  # NEW
+    )
+
+    train_df, val_df, test_df = _ensure_close_column_for_hft(
+        train_df, val_df, test_df, config, logger
     )
 
     # Validate loaded data
