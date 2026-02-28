@@ -6,7 +6,7 @@ import pytest
 import torch
 from tensordict import TensorDict
 
-from trading_rl.utils import create_actual_returns_plot
+from trading_rl.utils import calculate_benchmark_dsr, create_actual_returns_plot
 
 
 def test_actual_returns_plot_includes_benchmarks():
@@ -166,6 +166,57 @@ def test_actual_returns_plot_uses_custom_initial_capital():
         "Portfolio_Value"
     ].to_numpy()
     assert np.allclose(deterministic_values, initial_capital)
+
+
+def test_actual_returns_plot_uses_requested_benchmark_price_column():
+    """Benchmarks should be computed from the configured price column."""
+    n_steps = 10
+    # close is flat, price trends up: benchmark must follow price when requested.
+    df_prices = pd.DataFrame({
+        "close": np.full(n_steps, 100.0),
+        "price": np.linspace(100.0, 110.0, n_steps),
+    })
+
+    rollouts = []
+    for _ in range(2):
+        rollout = TensorDict({
+            "action": torch.randn(n_steps, 1),
+            "next": TensorDict({
+                "reward": torch.zeros(n_steps),
+            }, batch_size=[n_steps]),
+        }, batch_size=[n_steps])
+        rollouts.append(rollout)
+
+    plot = create_actual_returns_plot(
+        rollouts=rollouts,
+        n_obs=n_steps,
+        df_prices=df_prices,
+        env=None,
+        actual_returns_list=None,
+        benchmark_price_column="price",
+    )
+
+    plot_data = plot.data
+    buy_hold_data = plot_data[plot_data["Run"] == "Buy-and-Hold"]
+    final_buy_hold = float(buy_hold_data.iloc[-1]["Portfolio_Value"])
+    assert abs(final_buy_hold - 11000.0) < 1e-6
+
+
+def test_calculate_benchmark_dsr_uses_requested_price_column():
+    """DSR benchmark helper should use the requested price column."""
+    n_steps = 20
+    df_prices = pd.DataFrame({
+        "close": np.full(n_steps, 100.0),
+        "price": np.linspace(100.0, 120.0, n_steps),
+    })
+
+    _cum_dsr, portfolio_values = calculate_benchmark_dsr(
+        df_prices,
+        strategy="buy_and_hold",
+        max_steps=n_steps - 1,
+        price_column="price",
+    )
+    assert portfolio_values[-1] > 10000.0
 
 
 if __name__ == "__main__":
