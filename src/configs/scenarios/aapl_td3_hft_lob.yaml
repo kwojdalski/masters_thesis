@@ -137,7 +137,6 @@ explainability:
 statistical_testing:
   enabled: true  # Enable statistical testing of equity curves
   log_to_research_artifacts: true  # Also log compact statistical summaries to MLflow research_artifacts
-  research_artifact_subdir: "research_artifacts/statistical_tests"
 
   # Comparison baselines
   compare_to_buy_and_hold: true  # Compare strategy to buy-and-hold benchmark
