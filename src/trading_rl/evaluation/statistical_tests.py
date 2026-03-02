@@ -28,6 +28,26 @@ def _sharpe_ratio(returns: np.ndarray, risk_free_rate: float = 0.0) -> float:
     return _safe_div(float(np.mean(excess_returns)), float(np.std(excess_returns, ddof=1)))
 
 
+def _sortino_ratio(returns: np.ndarray, risk_free_rate: float = 0.0) -> float:
+    """Compute Sortino ratio from returns (uses downside deviation only).
+
+    Better alternative to Sharpe ratio when returns are negative, as it only
+    penalizes downside volatility.
+    """
+    if len(returns) == 0:
+        return np.nan
+    excess_returns = returns - risk_free_rate
+    downside_returns = excess_returns[excess_returns < 0]
+
+    if len(downside_returns) == 0:
+        # No downside risk - use std of all returns as denominator
+        downside_dev = float(np.std(returns, ddof=1))
+    else:
+        downside_dev = float(np.std(downside_returns, ddof=1))
+
+    return _safe_div(float(np.mean(excess_returns)), downside_dev)
+
+
 def compute_buy_and_hold_returns(
     prices: pd.Series, max_steps: int
 ) -> np.ndarray:
@@ -219,8 +239,19 @@ def sharpe_ratio_bootstrap_test(
     Computes bootstrap confidence intervals for Sharpe ratios and tests
     if strategy Sharpe is significantly different from baseline.
 
+    NOTE: Sharpe ratio interpretation when negative:
+        - Negative Sharpe ratios are valid but problematic for comparison
+        - Higher volatility makes Sharpe "less negative" (closer to 0) even if worse
+        - Consider using Sortino ratio or Calmar ratio for negative return periods
+        - This test still provides valid p-values, but interpretation requires care
+
+    NOTE: Differential Sharpe Ratio (DSR) vs Sharpe Ratio:
+        - DSR is a shaped REWARD SIGNAL used during RL training
+        - This test uses ACTUAL RETURNS extracted from environment rollouts
+        - DSR is NOT used for evaluation or statistical testing
+
     Args:
-        strategy_returns: Strategy simple returns
+        strategy_returns: Strategy simple returns (actual returns, not DSR rewards)
         baseline_returns: Baseline simple returns
         n_bootstrap: Number of bootstrap samples
         confidence_level: Confidence level (e.g., 0.95)
@@ -236,6 +267,23 @@ def sharpe_ratio_bootstrap_test(
     strategy_sharpe = _sharpe_ratio(strategy_returns)
     baseline_sharpe = _sharpe_ratio(baseline_returns)
     observed_diff = strategy_sharpe - baseline_sharpe
+
+    # Warn if both Sharpe ratios are negative
+    if strategy_sharpe < 0 and baseline_sharpe < 0:
+        logger.warning(
+            "Both Sharpe ratios are negative (strategy=%.3f, baseline=%.3f). "
+            "Interpretation is problematic: higher volatility makes Sharpe less negative. "
+            "Consider using Sortino ratio or Calmar ratio for negative return periods.",
+            strategy_sharpe,
+            baseline_sharpe,
+        )
+    elif strategy_sharpe < 0:
+        logger.warning(
+            "Strategy Sharpe ratio is negative (%.3f). "
+            "This indicates mean returns below risk-free rate. "
+            "Consider alternative metrics like Sortino or Calmar ratio.",
+            strategy_sharpe,
+        )
 
     # Bootstrap distribution
     strategy_sharpes = []
@@ -284,7 +332,7 @@ def sharpe_ratio_bootstrap_test(
     # Significant if CI doesn't include 0
     significant = not (diff_ci_lower <= 0 <= diff_ci_upper)
 
-    return {
+    results = {
         "test_name": "sharpe_bootstrap",
         "strategy_sharpe": float(strategy_sharpe),
         "baseline_sharpe": float(baseline_sharpe),
@@ -300,6 +348,30 @@ def sharpe_ratio_bootstrap_test(
         "n_bootstrap": n_bootstrap,
         "significant": significant,
     }
+
+    # Flag negative Sharpe ratios and provide alternative metric
+    if strategy_sharpe < 0 or baseline_sharpe < 0:
+        results["warning"] = "negative_sharpe_ratio"
+        results["interpretation_note"] = (
+            "Negative Sharpe ratios detected. Interpretation is problematic. "
+            "Sortino ratio provided as alternative (uses downside deviation only)."
+        )
+
+        # Compute Sortino ratio as more interpretable alternative
+        strategy_sortino = _sortino_ratio(strategy_returns)
+        baseline_sortino = _sortino_ratio(baseline_returns)
+
+        results["strategy_sortino"] = float(strategy_sortino)
+        results["baseline_sortino"] = float(baseline_sortino)
+        results["sortino_difference"] = float(strategy_sortino - baseline_sortino)
+
+        logger.info(
+            "Alternative metric - Sortino ratio: strategy=%.3f, baseline=%.3f",
+            strategy_sortino,
+            baseline_sortino,
+        )
+
+    return results
 
 
 def run_statistical_tests(
