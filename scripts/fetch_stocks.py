@@ -2,15 +2,25 @@
 """
 Download stock data from Databento or Polygon.
 
-Interactive mode: python scripts/fetch_stocks.py --interactive
-CLI mode: python scripts/fetch_stocks.py --symbols AAPL --start-date 2024-01-01 --end-date 2024-03-31
+Modes:
+  1. Interactive: python scripts/fetch_stocks.py download-stocks --interactive
+  2. CLI: python scripts/fetch_stocks.py download-stocks --symbols AAPL --start-date 2024-01-01
+  3. Batch: python scripts/fetch_stocks.py batch --config src/configs/data/batch_download.yaml
+
+Features:
+  - Automatic rate limiting (skip re-downloads within 24h)
+  - Download tracking (remembers what was downloaded)
+  - Parallel downloads (multiple symbols at once)
+  - Batch processing from YAML config
 """
 
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import typer
+import yaml
 from typing_extensions import Annotated
 
 # Add src to path
@@ -35,6 +45,179 @@ def check_api_key() -> str:
     else:
         logger.info(f"API key found: {api_key[:10]}...")
         return api_key
+
+
+def download_single_symbol(
+    fetcher,
+    tracker,
+    symbol: str,
+    start_date: str,
+    end_date: str,
+    dataset: str,
+    schema: str,
+    timeframe: str | None,
+    aggregate: bool,
+    source: str,
+    force: bool = False,
+) -> dict:
+    """Download data for a single symbol with rate limiting.
+
+    Args:
+        fetcher: StockDataFetcher instance
+        tracker: DownloadTracker instance
+        symbol: Stock symbol
+        start_date: Start date
+        end_date: End date
+        dataset: Dataset identifier
+        schema: Data schema
+        timeframe: Timeframe for aggregation
+        aggregate: Whether to aggregate
+        source: Data source
+        force: Force download even if within rate limit
+
+    Returns:
+        Dict with download status and info
+    """
+    # Check if should download
+    should_download, reason = tracker.should_download(
+        symbols=[symbol],
+        start_date=start_date,
+        end_date=end_date,
+        source=source,
+        dataset=dataset,
+        schema=schema,
+        timeframe=timeframe,
+        aggregate=aggregate,
+    )
+
+    if not should_download and not force:
+        logger.info(f"[{symbol}] SKIPPED: {reason}")
+        return {
+            "symbol": symbol,
+            "status": "skipped",
+            "reason": reason,
+            "rows": 0,
+        }
+
+    # Download
+    try:
+        logger.info(f"[{symbol}] Downloading...")
+        df = fetcher.fetch_stock_data(
+            symbols=[symbol],
+            start_date=start_date,
+            end_date=end_date,
+            source=source,
+            dataset=dataset,
+            schema=schema,
+            timeframe=timeframe if aggregate else None,
+            aggregate=aggregate,
+            save_to_file=True,
+        )
+
+        # Determine output file
+        if aggregate and timeframe:
+            file_suffix = timeframe
+        else:
+            file_suffix = f"raw_{schema}"
+
+        output_file = f"{symbol}_{start_date}_{end_date}_{file_suffix}.parquet"
+        output_path = str(Path(fetcher.output_dir) / output_file)
+
+        # Record download
+        tracker.record_download(
+            symbols=[symbol],
+            start_date=start_date,
+            end_date=end_date,
+            source=source,
+            output_files=[output_path],
+            dataset=dataset,
+            schema=schema,
+            timeframe=timeframe,
+            aggregate=aggregate,
+            rows_downloaded=len(df),
+        )
+
+        logger.info(f"[{symbol}] SUCCESS: {len(df)} rows -> {output_file}")
+        return {
+            "symbol": symbol,
+            "status": "success",
+            "rows": len(df),
+            "file": output_file,
+        }
+
+    except Exception as e:
+        logger.error(f"[{symbol}] FAILED: {e}")
+        return {
+            "symbol": symbol,
+            "status": "failed",
+            "error": str(e),
+            "rows": 0,
+        }
+
+
+def download_symbols_parallel(
+    fetcher,
+    tracker,
+    symbols: list[str],
+    start_date: str,
+    end_date: str,
+    dataset: str,
+    schema: str,
+    timeframe: str | None,
+    aggregate: bool,
+    source: str,
+    max_workers: int = 4,
+    force: bool = False,
+) -> list[dict]:
+    """Download multiple symbols in parallel.
+
+    Args:
+        fetcher: StockDataFetcher instance
+        tracker: DownloadTracker instance
+        symbols: List of stock symbols
+        start_date: Start date
+        end_date: End date
+        dataset: Dataset identifier
+        schema: Data schema
+        timeframe: Timeframe for aggregation
+        aggregate: Whether to aggregate
+        source: Data source
+        max_workers: Number of parallel workers
+        force: Force download even if within rate limit
+
+    Returns:
+        List of download results
+    """
+    results = []
+
+    logger.info(f"Starting parallel download of {len(symbols)} symbols (workers={max_workers})")
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all downloads
+        future_to_symbol = {
+            executor.submit(
+                download_single_symbol,
+                fetcher,
+                tracker,
+                symbol,
+                start_date,
+                end_date,
+                dataset,
+                schema,
+                timeframe,
+                aggregate,
+                source,
+                force,
+            ): symbol
+            for symbol in symbols
+        }
+
+        # Collect results as they complete
+        for future in as_completed(future_to_symbol):
+            result = future.result()
+            results.append(result)
+
+    return results
 
 
 @app.command()
@@ -84,21 +267,35 @@ def download_stocks(
         str,
         typer.Option("--output-dir", "-o", help="Output directory"),
     ] = "data/raw/stocks",
+    parallel: Annotated[
+        bool,
+        typer.Option("--parallel/--sequential", help="Download symbols in parallel"),
+    ] = True,
+    max_workers: Annotated[
+        int,
+        typer.Option("--max-workers", help="Number of parallel workers"),
+    ] = 4,
+    force: Annotated[
+        bool,
+        typer.Option("--force", "-f", help="Force download even if within rate limit"),
+    ] = False,
     interactive: Annotated[
         bool,
         typer.Option("--interactive", "-i", help="Run in interactive mode"),
     ] = False,
 ):
-    """Download stock data from Databento."""
+    """Download stock data from Databento with rate limiting and parallel support."""
     # Check API key
     check_api_key()
 
     logger.info("Stock Data Downloader (Databento)")
 
     from trading_rl.data_fetchers import StockDataFetcher
+    from trading_rl.data_fetchers.download_tracker import DownloadTracker
 
-    # Initialize fetcher
+    # Initialize fetcher and tracker
     fetcher = StockDataFetcher(output_dir=output_dir, log_level="INFO")
+    tracker = DownloadTracker(cache_dir="data/.download_cache", rate_limit_hours=24)
 
     # Interactive mode
     if interactive:
@@ -170,7 +367,7 @@ def download_stocks(
             timeframe = timeframe_map.get(timeframe_choice, "1h")
 
     # Parse symbols
-    symbols_list = [s.strip() for s in symbols.split(",")]
+    symbols_list = [s.strip().upper() for s in symbols.split(",")]
     logger.info(f"Symbols to download: {symbols_list}")
 
     # Download
@@ -179,98 +376,290 @@ def download_stocks(
     logger.info(f"Dates: {start_date} to {end_date}")
     logger.info(f"Dataset: {dataset}")
     logger.info(f"Schema: {schema}")
+    logger.info(f"Parallel: {parallel} (workers={max_workers if parallel else 1})")
+    logger.info(f"Force: {force}")
     if aggregate:
         logger.info(f"Format: Aggregated OHLCV ({timeframe} bars)")
     else:
         logger.info(f"Format: Raw {schema} data (no aggregation)")
 
-    if len(symbols_list) > 1:
-        logger.info(
-            f"Note: Will save {len(symbols_list)} separate files (one per instrument)"
-        )
-
     try:
-        df = fetcher.fetch_stock_data(
-            symbols=symbols_list,
-            start_date=start_date,
-            end_date=end_date,
-            source="databento",
-            dataset=dataset,
-            schema=schema,
-            timeframe=timeframe if aggregate else None,
-            aggregate=aggregate,
-            save_to_file=True,
-        )
+        if parallel and len(symbols_list) > 1:
+            # Parallel download
+            results = download_symbols_parallel(
+                fetcher,
+                tracker,
+                symbols_list,
+                start_date,
+                end_date,
+                dataset,
+                schema,
+                timeframe,
+                aggregate,
+                "databento",
+                max_workers=max_workers,
+                force=force,
+            )
 
-        logger.info("Download completed successfully")
-        logger.info(f"Downloaded {len(df)} total rows")
-        logger.info(f"Columns: {list(df.columns)}")
+            # Summary
+            success_count = sum(1 for r in results if r["status"] == "success")
+            skip_count = sum(1 for r in results if r["status"] == "skipped")
+            fail_count = sum(1 for r in results if r["status"] == "failed")
+            total_rows = sum(r["rows"] for r in results)
 
-        # Determine file suffix
-        if aggregate and timeframe:
-            file_suffix = timeframe
+            logger.info("\n" + "="*60)
+            logger.info("DOWNLOAD SUMMARY")
+            logger.info("="*60)
+            logger.info(f"Total symbols: {len(symbols_list)}")
+            logger.info(f"Success: {success_count}")
+            logger.info(f"Skipped: {skip_count}")
+            logger.info(f"Failed: {fail_count}")
+            logger.info(f"Total rows: {total_rows}")
+
+            # List files
+            logger.info("\nDownloaded files:")
+            for result in results:
+                if result["status"] == "success":
+                    logger.info(f"  ✓ {result['file']} ({result['rows']} rows)")
+                elif result["status"] == "skipped":
+                    logger.info(f"  ⊘ {result['symbol']} - {result['reason']}")
+                else:
+                    logger.info(f"  ✗ {result['symbol']} - {result.get('error', 'Unknown error')}")
+
         else:
-            file_suffix = f"raw_{schema}"
-
-        if len(symbols_list) > 1 and "symbol" in df.columns:
-            logger.info(f"\nData split into {len(symbols_list)} files:")
+            # Sequential download
+            results = []
             for symbol in symbols_list:
-                symbol_rows = (
-                    len(df[df["symbol"] == symbol])
-                    if symbol in df["symbol"].values
-                    else 0
+                result = download_single_symbol(
+                    fetcher,
+                    tracker,
+                    symbol,
+                    start_date,
+                    end_date,
+                    dataset,
+                    schema,
+                    timeframe,
+                    aggregate,
+                    "databento",
+                    force=force,
                 )
-                filename = f"{symbol}_{start_date}_{end_date}_{file_suffix}.parquet"
-                logger.info(f"  {filename} ({symbol_rows} rows)")
-        else:
-            logger.info(f"\nFirst few rows:")
-            typer.echo(df.head())
+                results.append(result)
 
-        logger.info(f"\nFiles saved to: {output_dir}/")
+            # Summary for sequential
+            success_count = sum(1 for r in results if r["status"] == "success")
+            skip_count = sum(1 for r in results if r["status"] == "skipped")
+            total_rows = sum(r["rows"] for r in results)
 
-        if not aggregate:
-            logger.info(f"\nNote: Downloaded raw {schema} data")
-            logger.info("This is tick-level/order book data, not aggregated OHLCV")
-            logger.info(
-                "Useful for microstructure analysis, backtesting with exact fills, etc."
-            )
+            logger.info("\n" + "="*60)
+            logger.info(f"Downloaded {success_count}/{len(symbols_list)} symbols ({skip_count} skipped)")
+            logger.info(f"Total rows: {total_rows}")
 
+        # Next steps
         logger.info("\nNext steps:")
-        example_symbol = symbols_list[0]
-        if aggregate and timeframe:
-            example_file = f"{example_symbol}_{start_date}_{end_date}_{timeframe}.parquet"
-        else:
-            example_file = (
-                f"{example_symbol}_{start_date}_{end_date}_raw_{schema}.parquet"
-            )
-
-        typer.echo("\n1. Inspect the data:")
-        typer.echo(
-            f"   python -c \"import pandas as pd; df = pd.read_parquet('{output_dir}/{example_file}'); "
-            f"print(df.info()); print(df.head())\""
-        )
-
+        logger.info(f"1. Files saved to: {output_dir}/")
+        logger.info("2. View download history:")
+        logger.info("     python scripts/fetch_stocks.py download-history")
         if aggregate:
-            typer.echo("\n2. Use in training:")
-            typer.echo("   Update your scenario YAML config:")
-            typer.echo("   data:")
-            typer.echo(f"     data_path: './{output_dir}/{example_file}'")
-        else:
-            typer.echo("\n2. Analyze raw data:")
-            typer.echo("   Raw tick/order book data is useful for:")
-            typer.echo("   - Microstructure analysis")
-            typer.echo("   - Exact fill simulation")
-            typer.echo("   - Order book dynamics")
-            typer.echo("   - High-frequency trading research")
+            logger.info("3. Use in training config:")
+            logger.info(f"     data_path: '{output_dir}/SYMBOL_START_END_{timeframe}.parquet'")
 
     except Exception as e:
-        logger.error(f"Failed to download data: {e}", exc_info=True)
-        logger.info("\nTroubleshooting:")
-        logger.info("1. Check your API key is correct")
-        logger.info("2. Verify the symbol exists (e.g., AAPL, MSFT, GOOGL)")
-        logger.info("3. Check date range is valid")
-        logger.info("4. Make sure weles project is at ../weles")
+        logger.error(f"Failed to download: {e}")
         raise typer.Exit(code=1)
+
+
+@app.command()
+def batch(
+    config_file: Annotated[
+        str,
+        typer.Option("--config", "-c", help="Path to batch download YAML config"),
+    ],
+    force: Annotated[
+        bool,
+        typer.Option("--force", "-f", help="Force download even if within rate limit"),
+    ] = False,
+):
+    """Download multiple symbols/datasets from YAML config file.
+
+    Example config: src/configs/data/batch_download_example.yaml
+    """
+    check_api_key()
+
+    from trading_rl.data_fetchers import StockDataFetcher
+    from trading_rl.data_fetchers.download_tracker import DownloadTracker
+
+    logger.info(f"Loading batch config from: {config_file}")
+
+    # Load config
+    config_path = Path(config_file)
+    if not config_path.exists():
+        logger.error(f"Config file not found: {config_file}")
+        raise typer.Exit(code=1)
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    # Global settings
+    settings = config.get("settings", {})
+    output_dir = settings.get("output_dir", "data/raw/stocks")
+    source = settings.get("source", "databento")
+    rate_limit_hours = settings.get("rate_limit_hours", 24)
+    parallel_default = settings.get("parallel_downloads", True)
+    max_workers = settings.get("max_workers", 4)
+
+    # Initialize
+    fetcher = StockDataFetcher(output_dir=output_dir, log_level="INFO")
+    tracker = DownloadTracker(cache_dir="data/.download_cache", rate_limit_hours=rate_limit_hours)
+
+    # Get download jobs
+    downloads = config.get("downloads", [])
+    if not downloads:
+        logger.error("No download jobs found in config")
+        raise typer.Exit(code=1)
+
+    logger.info(f"\nFound {len(downloads)} download jobs")
+    logger.info(f"Output directory: {output_dir}")
+    logger.info(f"Rate limit: {rate_limit_hours}h")
+    logger.info(f"Parallel: {parallel_default} (workers={max_workers})")
+    logger.info("")
+
+    all_results = []
+
+    for i, job in enumerate(downloads, 1):
+        job_name = job.get("name", f"job_{i}")
+        symbols = job.get("symbols", [])
+        start_date = job.get("start_date")
+        end_date = job.get("end_date")
+        dataset = job.get("dataset", "XNAS.ITCH")
+        schema = job.get("schema", "trades")
+        timeframe = job.get("timeframe", "1h")
+        aggregate = job.get("aggregate", True)
+        job_parallel = job.get("parallel_downloads", parallel_default)
+
+        logger.info("="*60)
+        logger.info(f"Job {i}/{len(downloads)}: {job_name}")
+        logger.info(f"Symbols: {', '.join(symbols)}")
+        logger.info(f"Dates: {start_date} to {end_date}")
+        logger.info("="*60)
+
+        if job_parallel and len(symbols) > 1:
+            results = download_symbols_parallel(
+                fetcher,
+                tracker,
+                symbols,
+                start_date,
+                end_date,
+                dataset,
+                schema,
+                timeframe,
+                aggregate,
+                source,
+                max_workers=max_workers,
+                force=force,
+            )
+        else:
+            results = []
+            for symbol in symbols:
+                result = download_single_symbol(
+                    fetcher,
+                    tracker,
+                    symbol,
+                    start_date,
+                    end_date,
+                    dataset,
+                    schema,
+                    timeframe,
+                    aggregate,
+                    source,
+                    force=force,
+                )
+                results.append(result)
+
+        all_results.extend(results)
+
+        # Job summary
+        success = sum(1 for r in results if r["status"] == "success")
+        skipped = sum(1 for r in results if r["status"] == "skipped")
+        failed = sum(1 for r in results if r["status"] == "failed")
+
+        logger.info(f"\nJob complete: {success} success, {skipped} skipped, {failed} failed\n")
+
+    # Final summary
+    logger.info("\n" + "="*60)
+    logger.info("BATCH DOWNLOAD COMPLETE")
+    logger.info("="*60)
+    total_success = sum(1 for r in all_results if r["status"] == "success")
+    total_skipped = sum(1 for r in all_results if r["status"] == "skipped")
+    total_failed = sum(1 for r in all_results if r["status"] == "failed")
+    total_rows = sum(r["rows"] for r in all_results)
+
+    logger.info(f"Total downloads: {len(all_results)}")
+    logger.info(f"Success: {total_success}")
+    logger.info(f"Skipped: {total_skipped}")
+    logger.info(f"Failed: {total_failed}")
+    logger.info(f"Total rows: {total_rows}")
+
+
+@app.command()
+def download_history(
+    hours: Annotated[
+        int,
+        typer.Option("--hours", "-h", help="Show downloads from last N hours"),
+    ] = 24,
+):
+    """Show recent download history and cache statistics."""
+    from trading_rl.data_fetchers.download_tracker import DownloadTracker
+
+    tracker = DownloadTracker(cache_dir="data/.download_cache")
+
+    # Get stats
+    stats = tracker.get_stats()
+
+    logger.info("="*60)
+    logger.info("DOWNLOAD CACHE STATISTICS")
+    logger.info("="*60)
+    logger.info(f"Total downloads: {stats['total_downloads']}")
+    logger.info(f"Total symbols: {stats['total_symbols']}")
+    logger.info(f"Total files: {stats['total_files']}")
+    logger.info(f"Total size: {stats['total_size_mb']:.2f} MB")
+
+    if stats["oldest_download"]:
+        logger.info(f"Oldest download: {stats['oldest_download']}")
+    if stats["newest_download"]:
+        logger.info(f"Newest download: {stats['newest_download']}")
+
+    # Recent downloads
+    recent = tracker.get_recent_downloads(hours=hours)
+
+    if recent:
+        logger.info(f"\nRecent downloads (last {hours}h):")
+        logger.info("-"*60)
+
+        for download in recent:
+            symbols_str = ", ".join(download["symbols"])
+            logger.info(f"\n{symbols_str}")
+            logger.info(f"  Date range: {download['start_date']} to {download['end_date']}")
+            logger.info(f"  Source: {download['source']} / {download['dataset']}")
+            logger.info(f"  Downloaded: {download['hours_ago']:.1f}h ago")
+            logger.info(f"  Rows: {download['rows_downloaded']}")
+            logger.info(f"  Files: {len(download['output_files'])}")
+    else:
+        logger.info(f"\nNo downloads in the last {hours}h")
+
+
+@app.command()
+def clear_cache():
+    """Clear download cache (allows re-downloading everything)."""
+    from trading_rl.data_fetchers.download_tracker import DownloadTracker
+
+    tracker = DownloadTracker(cache_dir="data/.download_cache")
+
+    confirm = typer.confirm("Are you sure you want to clear the download cache?")
+    if confirm:
+        tracker.clear_cache()
+        logger.info("Download cache cleared")
+    else:
+        logger.info("Cancelled")
 
 
 @app.command()
