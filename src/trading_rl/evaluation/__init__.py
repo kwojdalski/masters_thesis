@@ -15,6 +15,7 @@ from trading_rl.evaluation.statistical_tests import (
     mann_whitney_test,
     permutation_test,
     sharpe_ratio_bootstrap_test,
+    sortino_ratio_bootstrap_test,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "mann_whitney_test",
     "permutation_test",
     "sharpe_ratio_bootstrap_test",
+    "sortino_ratio_bootstrap_test",
 ]
