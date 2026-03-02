@@ -162,6 +162,7 @@ class StatisticalTestingConfig:
     tests: list[str] = field(default_factory=lambda: [
         "t_test",  # T-test for mean returns
         "sharpe_bootstrap",  # Bootstrap test for Sharpe ratio
+        "sortino_bootstrap",  # Bootstrap test for Sortino ratio (downside risk only)
         "mann_whitney",  # Mann-Whitney U test (non-parametric)
         "permutation_test"  # Permutation test (distribution-free)
     ])

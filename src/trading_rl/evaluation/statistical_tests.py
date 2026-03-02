@@ -242,7 +242,7 @@ def sharpe_ratio_bootstrap_test(
     NOTE: Sharpe ratio interpretation when negative:
         - Negative Sharpe ratios are valid but problematic for comparison
         - Higher volatility makes Sharpe "less negative" (closer to 0) even if worse
-        - Consider using Sortino ratio or Calmar ratio for negative return periods
+        - Consider enabling 'sortino_bootstrap' test for more robust risk-adjusted comparison
         - This test still provides valid p-values, but interpretation requires care
 
     NOTE: Differential Sharpe Ratio (DSR) vs Sharpe Ratio:
@@ -273,7 +273,7 @@ def sharpe_ratio_bootstrap_test(
         logger.warning(
             "Both Sharpe ratios are negative (strategy=%.3f, baseline=%.3f). "
             "Interpretation is problematic: higher volatility makes Sharpe less negative. "
-            "Consider using Sortino ratio or Calmar ratio for negative return periods.",
+            "Enable 'sortino_bootstrap' test for more robust comparison with negative returns.",
             strategy_sharpe,
             baseline_sharpe,
         )
@@ -281,7 +281,7 @@ def sharpe_ratio_bootstrap_test(
         logger.warning(
             "Strategy Sharpe ratio is negative (%.3f). "
             "This indicates mean returns below risk-free rate. "
-            "Consider alternative metrics like Sortino or Calmar ratio.",
+            "Enable 'sortino_bootstrap' test for more interpretable risk-adjusted metric.",
             strategy_sharpe,
         )
 
@@ -332,7 +332,7 @@ def sharpe_ratio_bootstrap_test(
     # Significant if CI doesn't include 0
     significant = not (diff_ci_lower <= 0 <= diff_ci_upper)
 
-    results = {
+    return {
         "test_name": "sharpe_bootstrap",
         "strategy_sharpe": float(strategy_sharpe),
         "baseline_sharpe": float(baseline_sharpe),
@@ -349,29 +349,106 @@ def sharpe_ratio_bootstrap_test(
         "significant": significant,
     }
 
-    # Flag negative Sharpe ratios and provide alternative metric
-    if strategy_sharpe < 0 or baseline_sharpe < 0:
-        results["warning"] = "negative_sharpe_ratio"
-        results["interpretation_note"] = (
-            "Negative Sharpe ratios detected. Interpretation is problematic. "
-            "Sortino ratio provided as alternative (uses downside deviation only)."
-        )
 
-        # Compute Sortino ratio as more interpretable alternative
-        strategy_sortino = _sortino_ratio(strategy_returns)
-        baseline_sortino = _sortino_ratio(baseline_returns)
+def sortino_ratio_bootstrap_test(
+    strategy_returns: np.ndarray,
+    baseline_returns: np.ndarray,
+    n_bootstrap: int = 10000,
+    confidence_level: float = 0.95,
+    seed: int | None = None,
+) -> dict[str, float]:
+    """Bootstrap test for Sortino ratio significance.
 
-        results["strategy_sortino"] = float(strategy_sortino)
-        results["baseline_sortino"] = float(baseline_sortino)
-        results["sortino_difference"] = float(strategy_sortino - baseline_sortino)
+    Computes bootstrap confidence intervals for Sortino ratios and tests
+    if strategy Sortino is significantly different from baseline.
 
-        logger.info(
-            "Alternative metric - Sortino ratio: strategy=%.3f, baseline=%.3f",
-            strategy_sortino,
-            baseline_sortino,
-        )
+    Sortino ratio uses downside deviation (volatility of losses) instead of
+    total volatility, making it more interpretable for:
+    - Negative return periods (avoids Sharpe ratio's counterintuitive ranking)
+    - Asymmetric return distributions (common in trading)
+    - Strategies where upside volatility is desirable
 
-    return results
+    Args:
+        strategy_returns: Strategy simple returns
+        baseline_returns: Baseline simple returns
+        n_bootstrap: Number of bootstrap samples
+        confidence_level: Confidence level (e.g., 0.95)
+        seed: Random seed for reproducibility
+
+    Returns:
+        Dict with Sortino ratios, confidence intervals, and p_value
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Observed Sortino ratios
+    strategy_sortino = _sortino_ratio(strategy_returns)
+    baseline_sortino = _sortino_ratio(baseline_returns)
+    observed_diff = strategy_sortino - baseline_sortino
+
+    # Bootstrap distribution
+    strategy_sortinos = []
+    baseline_sortinos = []
+    diff_sortinos = []
+
+    n_strategy = len(strategy_returns)
+    n_baseline = len(baseline_returns)
+
+    for _ in range(n_bootstrap):
+        # Resample with replacement
+        strategy_sample = np.random.choice(strategy_returns, size=n_strategy, replace=True)
+        baseline_sample = np.random.choice(baseline_returns, size=n_baseline, replace=True)
+
+        s_sortino = _sortino_ratio(strategy_sample)
+        b_sortino = _sortino_ratio(baseline_sample)
+
+        strategy_sortinos.append(s_sortino)
+        baseline_sortinos.append(b_sortino)
+        diff_sortinos.append(s_sortino - b_sortino)
+
+    strategy_sortinos = np.array(strategy_sortinos)
+    baseline_sortinos = np.array(baseline_sortinos)
+    diff_sortinos = np.array(diff_sortinos)
+
+    # Remove NaN values
+    strategy_sortinos = strategy_sortinos[~np.isnan(strategy_sortinos)]
+    baseline_sortinos = baseline_sortinos[~np.isnan(baseline_sortinos)]
+    diff_sortinos = diff_sortinos[~np.isnan(diff_sortinos)]
+
+    # Confidence intervals
+    alpha = 1 - confidence_level
+    strategy_ci_lower = float(np.percentile(strategy_sortinos, 100 * alpha / 2))
+    strategy_ci_upper = float(np.percentile(strategy_sortinos, 100 * (1 - alpha / 2)))
+    baseline_ci_lower = float(np.percentile(baseline_sortinos, 100 * alpha / 2))
+    baseline_ci_upper = float(np.percentile(baseline_sortinos, 100 * (1 - alpha / 2)))
+    diff_ci_lower = float(np.percentile(diff_sortinos, 100 * alpha / 2))
+    diff_ci_upper = float(np.percentile(diff_sortinos, 100 * (1 - alpha / 2)))
+
+    # P-value: proportion of bootstrap diffs with opposite sign
+    if observed_diff > 0:
+        p_value = np.mean(diff_sortinos <= 0)
+    else:
+        p_value = np.mean(diff_sortinos >= 0)
+
+    # Significant if CI doesn't include 0
+    significant = not (diff_ci_lower <= 0 <= diff_ci_upper)
+
+    return {
+        "test_name": "sortino_bootstrap",
+        "strategy_sortino": float(strategy_sortino),
+        "baseline_sortino": float(baseline_sortino),
+        "sortino_difference": float(observed_diff),
+        "strategy_sortino_ci_lower": strategy_ci_lower,
+        "strategy_sortino_ci_upper": strategy_ci_upper,
+        "baseline_sortino_ci_lower": baseline_ci_lower,
+        "baseline_sortino_ci_upper": baseline_ci_upper,
+        "difference_ci_lower": diff_ci_lower,
+        "difference_ci_upper": diff_ci_upper,
+        "p_value": float(p_value),
+        "confidence_level": confidence_level,
+        "n_bootstrap": n_bootstrap,
+        "significant": significant,
+    }
 
 
 def run_statistical_tests(
@@ -413,6 +490,14 @@ def run_statistical_tests(
                 )
             elif test_name == "sharpe_bootstrap":
                 results["sharpe_bootstrap"] = sharpe_ratio_bootstrap_test(
+                    strategy_returns,
+                    benchmark_returns,
+                    n_bootstrap=config.n_bootstrap_samples,
+                    confidence_level=config.confidence_level,
+                    seed=config.random_seed,
+                )
+            elif test_name == "sortino_bootstrap":
+                results["sortino_bootstrap"] = sortino_ratio_bootstrap_test(
                     strategy_returns,
                     benchmark_returns,
                     n_bootstrap=config.n_bootstrap_samples,

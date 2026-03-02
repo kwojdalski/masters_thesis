@@ -145,11 +145,12 @@ statistical_testing:
   tests:
     - "t_test"  # Two-sample t-test for mean returns
     - "sharpe_bootstrap"  # Bootstrap test for Sharpe ratio significance
+    - "sortino_bootstrap"  # Bootstrap test for Sortino ratio (downside risk only, more robust)
     - "mann_whitney"  # Mann-Whitney U test (non-parametric)
     - "permutation_test"  # Permutation test (distribution-free)
 
   # Test parameters
-  n_bootstrap_samples: 10000  # Bootstrap iterations for Sharpe ratio test
+  n_bootstrap_samples: 10000  # Bootstrap iterations for ratio tests
   n_permutations: 10000  # Permutations for permutation test
   n_random_trials: 100  # Number of random baseline trials
   confidence_level: 0.95  # Confidence level (95% CI)
