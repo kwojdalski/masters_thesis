@@ -2,6 +2,8 @@
 
 The application of reinforcement learning to financial trading has evolved from theoretical proposals to practical implementations across diverse market segments. This section surveys the literature on RL-based trading systems, categorizing approaches by methodology, asset class, and performance characteristics.
 
+To keep conclusions methodologically defensible, this review distinguishes between: (i) proof-of-concept evidence from backtests under simplified assumptions, and (ii) stronger evidence that includes robust out-of-sample design, realistic cost modeling, and variance reporting across repeated runs.
+
 ### Early Applications and Proof-of-Concept
 
 **Recurrent Reinforcement Learning**
@@ -144,6 +146,17 @@ Their work demonstrated feasibility but highlighted that derivatives trading int
 * Traditional strategies offered better interpretability and regulatory acceptance
 * Hybrid approaches combining domain knowledge with RL often outperformed either alone
 
+### Structured Comparison of Representative Studies
+
+| Study | Market/Task | State Variables | Action Space | Reward / Objective | Validation Strength | Main Caveat |
+|---|---|---|---|---|---|---|
+| @Moody1998 | Futures trading | Price-derived signals + recurrent state | Continuous position-like control | Differential Sharpe Ratio | Moderate (early proof-of-concept) | Limited modern reproducibility standards |
+| @Jiang2017 | Crypto portfolio allocation | Price tensor + previous portfolio weights | Continuous portfolio weights | Commission-aware portfolio growth | Moderate | Backtest dependence on selected period/universe |
+| @Liang2018 | Stock portfolio management | Market features + macro variables | Continuous (DDPG) | Return with friction-aware setup | Moderate | Sensitivity to architecture and hyperparameters |
+| @Majidi2024 | Single-asset AMZN/BTC trading | Close-return sliding window (autoregressive) | Continuous in `[-1,1]` | Log-return with transaction cost | Moderate (repeated runs + significance tests in parts) | Mixed performance vs buy-and-hold across assets |
+| @Kabbani2022 | Multi-asset stock trading | Cash/holdings + close + indicators + sentiment | Continuous (TD3) | Portfolio return/Sharpe-oriented objective | Moderate-to-low (test-stage training continuation) | Sharpe likely optimistic under strict frozen-policy evaluation |
+| @Shen2021 | Cross-algorithm benchmarking | Task-dependent feature sets | Mixed (discrete + continuous) | Comparative return/risk metrics | Moderate (benchmarking emphasis) | Result portability depends on data and protocol harmonization |
+
 ### Challenges and Limitations
 
 The literature reveals persistent challenges in RL for trading:
@@ -158,7 +171,7 @@ The literature reveals persistent challenges in RL for trading:
 
 **Reward Specification**
 
-@Cong2020 argue that reward engineering is critical and often under-examined. Misspecified rewards can lead to:
+@Cong2020 argues that reward engineering is critical and often under-examined. Misspecified rewards can lead to:
 
 * Gaming the metric (optimizing Sharpe by avoiding trades)
 * Ignoring tail risks (maximizing expected return without drawdown constraints)
@@ -166,11 +179,11 @@ The literature reveals persistent challenges in RL for trading:
 
 **Computational Cost**
 
-@Silver2021 note that training deep RL trading policies requires substantial computational resources—often weeks on GPU clusters—limiting accessibility and iteration speed for academic researchers and smaller institutions.
+@Silver2021 notes that training deep RL trading policies requires substantial computational resources—often weeks on GPU clusters—limiting accessibility and iteration speed for academic researchers and smaller institutions.
 
 **Regulatory and Practical Constraints**
 
-@Halperin2019 discuss practical deployment challenges:
+@Halperin2019 discusses practical deployment challenges:
 
 * Regulatory scrutiny of algorithmic trading systems
 * Need for explainability and audit trails
@@ -181,10 +194,11 @@ The literature reveals persistent challenges in RL for trading:
 
 The literature collectively suggests that:
 
-1. **Continuous control methods** (DDPG, TD3, SAC) are preferable to discrete action approaches for portfolio allocation
-2. **Risk-adjusted rewards** (Sharpe-based) improve generalization compared to raw return maximization
+1. **Continuous control methods** (DDPG, TD3, SAC) are often advantageous for position sizing and allocation tasks, especially when partial exposure is required.
+2. **Risk-adjusted rewards** (e.g., Sharpe-based formulations) can improve training behavior, but must be paired with evaluation on realized returns and risk metrics.
 3. **Transaction cost modeling** is non-negotiable for realistic assessment
-4. **Conservative hyperparameters** (learning rates, exploration noise) enhance stability in noisy financial environments
-5. **Offline RL** or **historical data replay** addresses limited experimentation opportunities
+4. **Conservative hyperparameters** (learning rates, exploration noise) generally enhance stability in noisy financial environments.
+5. **Historical replay and robust temporal splits** are essential because online experimentation in live markets is constrained.
+6. **Inference quality depends on protocol rigor**: walk-forward design, strict train/validation/test separation, and multi-seed dispersion reporting are as important as algorithm choice.
 
 This thesis builds on these insights, employing TD3 for stable continuous control, Differential Sharpe Ratio for risk-aware optimization, explicit transaction cost modeling, and extensive out-of-sample validation. The methodology synthesizes best practices from the literature while addressing identified pitfalls through careful experimental design.
