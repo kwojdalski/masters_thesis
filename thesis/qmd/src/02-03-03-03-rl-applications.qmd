@@ -63,6 +63,8 @@ Their backtests on 12 cryptocurrencies demonstrated that RL policies could subst
 * Risk-adjusted rewards (Sharpe-based) improved out-of-sample generalization
 * Transaction cost modeling was critical for realistic performance assessment
 
+@Majidi2024 provided a focused TD3 study on single-asset trading for AMZN and BTC using daily data and a continuous action space in $[-1,1]$ to represent both direction and position size. A notable design choice was a minimal state representation based on lagged close-return windows rather than large technical-indicator sets. Their experiments reported improved Return and Sharpe ratio for TD3 versus discrete variants and several baseline strategies, especially in BTC. However, results were mixed relative to buy-and-hold across assets, and the feature design remained autoregressive and univariate. This study is therefore best interpreted as evidence that continuous action sizing can be beneficial under realistic frictions, not as definitive proof of robust alpha across market regimes.
+
 **Proximal Policy Optimization (PPO)**
 
 @Wang2019 employed PPO for cryptocurrency portfolio management, demonstrating superior sample efficiency and training stability compared to DDPG. PPO's clipped objective prevented destructive policy updates, particularly valuable in financial environments where catastrophic failures can occur.
@@ -112,11 +114,7 @@ Cryptocurrency markets have attracted substantial RL research due to:
 * Availability of rich data (order books, social sentiment)
 * Lower barriers to algorithmic trading
 
-@Kabbani2021 systematically compared RL algorithms (DQN, A3C, PPO, TD3, SAC) on bitcoin and ethereum, finding that:
-
-* TD3 and SAC exhibited best risk-adjusted returns
-* All algorithms struggled during prolonged downturns (bear markets)
-* Incorporating sentiment features improved performance
+@Kabbani2022 proposed a TD3-based trading framework with a partially observable state including account variables (cash and holdings), close prices, technical indicators, and optional FinBERT-derived news sentiment. Their experiments covered both a replication-style setup and a broader 10-stock portfolio test. In the reported results, richer state designs (technical indicators and sentiment) improved both Return and Sharpe ratio relative to a close-price-only baseline, and the final 10-stock evaluation reported a Sharpe ratio of 2.68. Methodologically, the paper supports the practical value of continuous-action actor-critic trading with feature enrichment, while also illustrating how performance claims depend strongly on evaluation protocol choices.
 
 **Derivatives**
 
