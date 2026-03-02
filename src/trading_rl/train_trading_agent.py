@@ -32,7 +32,7 @@ from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
-from trading_rl.evaluation import EvaluationContext, build_evaluation_report_for_trainer
+from trading_rl.evaluation import EvaluationContext, build_evaluation_report_for_trainer, run_all_statistical_tests
 from trading_rl.evaluation.explainability import RLInterpretabilityAnalyzer
 from trading_rl.plotting import visualize_training
 from trading_rl.trainers.ppo import PPOTrainerContinuous
@@ -1105,6 +1105,76 @@ def run_single_experiment(
         eval_env=eval_ctx.env,
     )
     MLflowTrainingCallback.log_evaluation_report(evaluation_report)
+
+    # Statistical Significance Testing (Optional)
+    if config.statistical_testing.enabled:
+        logger.info("Running statistical significance tests...")
+        try:
+            # Extract strategy returns for statistical testing
+            # We need to re-run the rollout to get returns (or extract from evaluation)
+            import torch
+            from torchrl.envs.utils import set_exploration_type
+            from tensordict.nn import InteractionType
+            from trading_rl.utils import _extract_tradingenv_returns
+
+            with torch.no_grad():
+                try:
+                    with set_exploration_type(InteractionType.MODE):
+                        rollout = eval_ctx.env.rollout(max_steps=eval_ctx.max_steps, policy=trainer.actor)
+                except RuntimeError:
+                    with set_exploration_type(InteractionType.DETERMINISTIC):
+                        rollout = eval_ctx.env.rollout(max_steps=eval_ctx.max_steps, policy=trainer.actor)
+
+            reward_type = config.env.reward_type
+            backend = config.env.backend
+
+            # Extract strategy returns (same logic as in build_evaluation_report_for_trainer)
+            if str(reward_type).lower() == "log_return":
+                strategy_log_returns = (
+                    rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:eval_ctx.max_steps]
+                )
+                strategy_simple_returns = np.exp(strategy_log_returns) - 1.0
+            else:
+                strategy_simple_returns = np.array([], dtype=float)
+
+                if str(backend).lower() == "tradingenv":
+                    cumulative_log_returns = _extract_tradingenv_returns(eval_ctx.env, eval_ctx.max_steps)
+                    if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
+                        cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
+                        step_log_returns = np.diff(cumulative_log_returns, prepend=0.0)
+                        strategy_simple_returns = np.exp(step_log_returns) - 1.0
+
+                if strategy_simple_returns.size == 0:
+                    proxy_log_returns = (
+                        rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:eval_ctx.max_steps]
+                    )
+                    strategy_simple_returns = np.exp(proxy_log_returns) - 1.0
+
+            # Get price series for buy-and-hold comparison
+            benchmark_price_column = config.env.price_column or "close"
+            if benchmark_price_column in eval_ctx.df.columns:
+                price_series = eval_ctx.df[benchmark_price_column]
+            elif "close" in eval_ctx.df.columns:
+                price_series = eval_ctx.df["close"]
+            else:
+                price_series = None
+                logger.warning("No price column found for buy-and-hold comparison")
+
+            # Run all configured statistical tests
+            statistical_test_results = run_all_statistical_tests(
+                strategy_returns=strategy_simple_returns,
+                prices=price_series,
+                env=eval_ctx.env,
+                max_steps=eval_ctx.max_steps,
+                config=config.statistical_testing,
+            )
+
+            # Log results to MLflow
+            MLflowTrainingCallback.log_statistical_tests(statistical_test_results)
+
+            logger.info("Statistical significance tests complete")
+        except Exception as e:
+            logger.error(f"Failed to run statistical tests: {e}")
 
     # Detect backend type for proper metric naming
     is_portfolio_backend = config.env.backend == "tradingenv"

@@ -149,6 +149,32 @@ class ExplainabilityConfig:
 
 
 @dataclass
+class StatisticalTestingConfig:
+    """Statistical significance testing configuration for equity curves."""
+
+    enabled: bool = False
+
+    # Comparison baselines (can enable multiple)
+    compare_to_buy_and_hold: bool = True  # Compare to buy-and-hold benchmark
+    compare_to_random: bool = True  # Compare to random action baseline
+
+    # Statistical tests to perform (can enable multiple)
+    tests: list[str] = field(default_factory=lambda: [
+        "t_test",  # T-test for mean returns
+        "sharpe_bootstrap",  # Bootstrap test for Sharpe ratio
+        "mann_whitney",  # Mann-Whitney U test (non-parametric)
+        "permutation_test"  # Permutation test (distribution-free)
+    ])
+
+    # Test parameters
+    n_bootstrap_samples: int = 10000  # Number of bootstrap samples
+    n_permutations: int = 10000  # Number of permutations for permutation test
+    n_random_trials: int = 100  # Number of random baseline trials
+    confidence_level: float = 0.95  # Confidence level (e.g., 0.95 for 95% CI)
+    random_seed: int | None = None  # Seed for reproducible random baseline
+
+
+@dataclass
 class ExperimentConfig:
     """Full experiment configuration."""
 
@@ -159,6 +185,7 @@ class ExperimentConfig:
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
     explainability: ExplainabilityConfig = field(default_factory=ExplainabilityConfig)
+    statistical_testing: StatisticalTestingConfig = field(default_factory=StatisticalTestingConfig)
 
     # Reproducibility
     seed: int | None = None
@@ -454,6 +481,12 @@ class ExperimentConfig:
                 if hasattr(config.explainability, key):
                     setattr(config.explainability, key, value)
 
+        if "statistical_testing" in config_dict:
+            stat_dict = config_dict["statistical_testing"]
+            for key, value in stat_dict.items():
+                if hasattr(config.statistical_testing, key):
+                    setattr(config.statistical_testing, key, value)
+
         return config
 
     def to_yaml(self, yaml_path: str | Path) -> None:
@@ -544,5 +577,16 @@ class ExperimentConfig:
                 "enabled": self.explainability.enabled,
                 "n_steps": self.explainability.n_steps,
                 "methods": self.explainability.methods,
+            },
+            "statistical_testing": {
+                "enabled": self.statistical_testing.enabled,
+                "compare_to_buy_and_hold": self.statistical_testing.compare_to_buy_and_hold,
+                "compare_to_random": self.statistical_testing.compare_to_random,
+                "tests": self.statistical_testing.tests,
+                "n_bootstrap_samples": self.statistical_testing.n_bootstrap_samples,
+                "n_permutations": self.statistical_testing.n_permutations,
+                "n_random_trials": self.statistical_testing.n_random_trials,
+                "confidence_level": self.statistical_testing.confidence_level,
+                "random_seed": self.statistical_testing.random_seed,
             },
         }

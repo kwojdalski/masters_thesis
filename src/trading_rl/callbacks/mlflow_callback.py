@@ -807,6 +807,73 @@ class MLflowTrainingCallback:
             os.unlink(handle.name)
 
     @staticmethod
+    def log_statistical_tests(test_results: dict[str, Any]) -> None:
+        """Log statistical significance test results to MLflow.
+
+        Args:
+            test_results: Dictionary with all statistical test results
+        """
+        logger = get_project_logger(__name__)
+        if not mlflow.active_run():
+            logger.warning("No active MLflow run - skipping statistical test logging")
+            return
+
+        if not test_results.get("enabled", False):
+            logger.debug("Statistical testing disabled - skipping logging")
+            return
+
+        # Log summary metrics
+        mlflow.log_param("stat_tests_enabled", True)
+        mlflow.log_param("stat_tests_configured", ",".join(test_results.get("tests_configured", [])))
+
+        # Log results for each baseline
+        for baseline_result in test_results.get("baselines", []):
+            baseline_name = baseline_result.get("baseline", "unknown")
+
+            # Skip if error occurred
+            if "error" in baseline_result:
+                logger.warning(f"Skipping {baseline_name} due to error: {baseline_result['error']}")
+                continue
+
+            # Log sample sizes
+            if "n_strategy_samples" in baseline_result:
+                mlflow.log_metric(f"stat_{baseline_name}_n_strategy", baseline_result["n_strategy_samples"])
+            if "n_baseline_samples" in baseline_result:
+                mlflow.log_metric(f"stat_{baseline_name}_n_baseline", baseline_result["n_baseline_samples"])
+
+            # Log individual test results
+            for test_name, test_data in baseline_result.items():
+                if not isinstance(test_data, dict):
+                    continue
+
+                prefix = f"stat_{baseline_name}_{test_name}"
+
+                # Log all numeric values from test results
+                for key, value in test_data.items():
+                    if key in ["test_name", "error"]:
+                        continue
+
+                    try:
+                        if isinstance(value, bool):
+                            mlflow.log_metric(f"{prefix}_{key}", float(value))
+                        elif isinstance(value, (int, float)):
+                            if np.isfinite(value):
+                                mlflow.log_metric(f"{prefix}_{key}", float(value))
+                    except (TypeError, ValueError):
+                        continue
+
+        # Save full results as JSON artifact
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as handle:
+            json.dump(test_results, handle, indent=2, sort_keys=True, default=str)
+            handle.flush()
+            mlflow.log_artifact(handle.name, "statistical_tests")
+            os.unlink(handle.name)
+
+        logger.info("Statistical test results logged to MLflow")
+
+    @staticmethod
     def log_explainability_results(
         importance_df: pd.DataFrame | None,
         importance_plot: Any,
