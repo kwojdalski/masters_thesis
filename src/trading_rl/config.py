@@ -153,6 +153,8 @@ class StatisticalTestingConfig:
     """Statistical significance testing configuration for equity curves."""
 
     enabled: bool = False
+    log_to_research_artifacts: bool = False  # Log compact research artifact bundle to MLflow
+    research_artifact_subdir: str = "research_artifacts/statistical_tests"
 
     # Comparison baselines (can enable multiple)
     compare_to_buy_and_hold: bool = True  # Compare to buy-and-hold benchmark
@@ -581,6 +583,8 @@ class ExperimentConfig:
             },
             "statistical_testing": {
                 "enabled": self.statistical_testing.enabled,
+                "log_to_research_artifacts": self.statistical_testing.log_to_research_artifacts,
+                "research_artifact_subdir": self.statistical_testing.research_artifact_subdir,
                 "compare_to_buy_and_hold": self.statistical_testing.compare_to_buy_and_hold,
                 "compare_to_random": self.statistical_testing.compare_to_random,
                 "tests": self.statistical_testing.tests,

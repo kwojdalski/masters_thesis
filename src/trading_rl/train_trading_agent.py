@@ -1170,7 +1170,11 @@ def run_single_experiment(
             )
 
             # Log results to MLflow
-            MLflowTrainingCallback.log_statistical_tests(statistical_test_results)
+            MLflowTrainingCallback.log_statistical_tests(
+                statistical_test_results,
+                log_to_research_artifacts=config.statistical_testing.log_to_research_artifacts,
+                research_artifact_subdir=config.statistical_testing.research_artifact_subdir,
+            )
 
             logger.info("Statistical significance tests complete")
         except Exception as e:
