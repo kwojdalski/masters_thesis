@@ -1,0 +1,60 @@
+# Batch Download Configuration for Stock Data
+#
+# This config allows you to download multiple symbols/datasets in one go
+# with automatic rate limiting and download tracking.
+#
+# Usage:
+#   python scripts/fetch_stocks.py batch --config src/configs/data/batch_download_example.yaml
+
+# Global settings (applied to all downloads)
+settings:
+  output_dir: "data/raw/stocks"
+  source: "databento"  # databento or polygon
+  rate_limit_hours: 24  # Skip re-downloads within this window
+  parallel_downloads: true  # Download symbols in parallel
+  max_workers: 4  # Number of parallel downloads
+
+# Download jobs
+downloads:
+  # Job 1: NASDAQ tech stocks - hourly data
+  - name: "nasdaq_tech_hourly"
+    symbols:
+      - AAPL
+      - MSFT
+      - GOOGL
+      - AMZN
+      - META
+      - NVDA
+      - TSLA
+    start_date: "2024-01-01"
+    end_date: "2024-03-31"
+    dataset: "XNAS.ITCH"
+    schema: "trades"
+    timeframe: "1h"
+    aggregate: true
+
+  # Job 2: NYSE financial stocks - daily data
+  - name: "nyse_financial_daily"
+    symbols:
+      - JPM
+      - BAC
+      - GS
+      - MS
+    start_date: "2024-01-01"
+    end_date: "2024-03-31"
+    dataset: "XNYS.TRADES"
+    schema: "trades"
+    timeframe: "1d"
+    aggregate: true
+
+  # Job 3: Raw order book data for AAPL (HFT research)
+  - name: "aapl_order_book_raw"
+    symbols:
+      - AAPL
+    start_date: "2024-03-01"
+    end_date: "2024-03-07"  # One week only (large data)
+    dataset: "XNAS.ITCH"
+    schema: "mbp-10"  # 10-level order book
+    aggregate: false  # Keep raw tick data
+    # Override global parallel setting for this job
+    parallel_downloads: false
