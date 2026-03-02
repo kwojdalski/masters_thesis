@@ -7,15 +7,33 @@ from trading_rl.evaluation.report import (
     periods_per_year_from_timeframe,
 )
 from trading_rl.evaluation.statistical_tests import (
-    run_all_statistical_tests,
-    run_statistical_tests,
-    compute_buy_and_hold_returns,
-    compute_random_baseline_returns,
+    # Core classes (for extensions)
+    StatisticalTest,
+    BootstrapTest,
+    PermutationTest,
+    # Concrete test classes
+    TTest,
+    MannWhitneyTest,
+    PermutationMeanTest,
+    SharpeBootstrapTest,
+    SortinoBootstrapTest,
+    # Factory and registry
+    get_test,
+    register_test,
+    list_available_tests,
+    TEST_REGISTRY,
+    # Individual test functions
     t_test_mean_returns,
     mann_whitney_test,
     permutation_test,
     sharpe_ratio_bootstrap_test,
     sortino_ratio_bootstrap_test,
+    # Baseline computation
+    compute_buy_and_hold_returns,
+    compute_random_baseline_returns,
+    # Orchestration
+    run_statistical_tests,
+    run_all_statistical_tests,
 )
 
 __all__ = [
@@ -23,13 +41,30 @@ __all__ = [
     "build_evaluation_report_for_trainer",
     "build_metric_report",
     "periods_per_year_from_timeframe",
-    "run_all_statistical_tests",
-    "run_statistical_tests",
-    "compute_buy_and_hold_returns",
-    "compute_random_baseline_returns",
+    # Statistical test classes (for extensions)
+    "StatisticalTest",
+    "BootstrapTest",
+    "PermutationTest",
+    "TTest",
+    "MannWhitneyTest",
+    "PermutationMeanTest",
+    "SharpeBootstrapTest",
+    "SortinoBootstrapTest",
+    # Factory and registry
+    "get_test",
+    "register_test",
+    "list_available_tests",
+    "TEST_REGISTRY",
+    # Individual test functions
     "t_test_mean_returns",
     "mann_whitney_test",
     "permutation_test",
     "sharpe_ratio_bootstrap_test",
     "sortino_ratio_bootstrap_test",
+    # Baseline computation
+    "compute_buy_and_hold_returns",
+    "compute_random_baseline_returns",
+    # Orchestration
+    "run_statistical_tests",
+    "run_all_statistical_tests",
 ]
