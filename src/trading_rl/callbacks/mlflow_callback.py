@@ -807,11 +807,20 @@ class MLflowTrainingCallback:
             os.unlink(handle.name)
 
     @staticmethod
-    def log_statistical_tests(test_results: dict[str, Any]) -> None:
+    def log_statistical_tests(
+        test_results: dict[str, Any],
+        *,
+        log_to_research_artifacts: bool = False,
+        research_artifact_subdir: str = "research_artifacts/statistical_tests",
+    ) -> None:
         """Log statistical significance test results to MLflow.
 
         Args:
             test_results: Dictionary with all statistical test results
+            log_to_research_artifacts: If True, also log a compact summary bundle
+                under a research artifacts path.
+            research_artifact_subdir: MLflow artifact subdirectory used when
+                `log_to_research_artifacts` is enabled.
         """
         logger = get_project_logger(__name__)
         if not mlflow.active_run():
@@ -870,6 +879,43 @@ class MLflowTrainingCallback:
             handle.flush()
             mlflow.log_artifact(handle.name, "statistical_tests")
             os.unlink(handle.name)
+
+        if log_to_research_artifacts:
+            significant_findings: list[dict[str, Any]] = []
+            for baseline_result in test_results.get("baselines", []):
+                baseline_name = baseline_result.get("baseline", "unknown")
+                if not isinstance(baseline_result, dict):
+                    continue
+                for test_name, test_data in baseline_result.items():
+                    if not isinstance(test_data, dict):
+                        continue
+                    if "p_value" not in test_data:
+                        continue
+                    finding = {
+                        "baseline": baseline_name,
+                        "test": test_name,
+                        "p_value": test_data.get("p_value"),
+                        "significant": bool(test_data.get("significant", False)),
+                    }
+                    if "effect_size" in test_data:
+                        finding["effect_size"] = test_data.get("effect_size")
+                    significant_findings.append(finding)
+
+            summary_payload = {
+                "generated_at_utc": datetime.now(UTC).isoformat(),
+                "tests_configured": test_results.get("tests_configured", []),
+                "n_baselines": len(test_results.get("baselines", [])),
+                "n_findings": len(significant_findings),
+                "findings": significant_findings,
+            }
+
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as summary_handle:
+                json.dump(summary_payload, summary_handle, indent=2, sort_keys=True, default=str)
+                summary_handle.flush()
+                mlflow.log_artifact(summary_handle.name, research_artifact_subdir)
+                os.unlink(summary_handle.name)
 
         logger.info("Statistical test results logged to MLflow")
 
