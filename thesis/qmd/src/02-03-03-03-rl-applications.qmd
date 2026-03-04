@@ -201,4 +201,3 @@ The literature collectively suggests that:
 5. **Historical replay and robust temporal splits** are essential because online experimentation in live markets is constrained.
 6. **Inference quality depends on protocol rigor**: walk-forward design, strict train/validation/test separation, and multi-seed dispersion reporting are as important as algorithm choice.
 
-This thesis builds on these insights, employing TD3 for stable continuous control, Differential Sharpe Ratio for risk-aware optimization, explicit transaction cost modeling, and extensive out-of-sample validation. The methodology synthesizes best practices from the literature while addressing identified pitfalls through careful experimental design.
