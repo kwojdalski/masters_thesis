@@ -31,6 +31,7 @@ logger = get_logger(__name__)
 # Utility functions
 # ============================================================================
 
+
 def _safe_div(numerator: float, denominator: float) -> float:
     """Safe division handling zero/nan denominators."""
     if denominator == 0 or np.isnan(denominator):
@@ -43,7 +44,9 @@ def _sharpe_ratio(returns: np.ndarray, risk_free_rate: float = 0.0) -> float:
     if len(returns) == 0:
         return np.nan
     excess_returns = returns - risk_free_rate
-    return _safe_div(float(np.mean(excess_returns)), float(np.std(excess_returns, ddof=1)))
+    return _safe_div(
+        float(np.mean(excess_returns)), float(np.std(excess_returns, ddof=1))
+    )
 
 
 def _sortino_ratio(returns: np.ndarray, risk_free_rate: float = 0.0) -> float:
@@ -65,6 +68,7 @@ def _sortino_ratio(returns: np.ndarray, risk_free_rate: float = 0.0) -> float:
 # Abstract base classes
 # ============================================================================
 
+
 class StatisticalTest(ABC):
     """Abstract base class for all statistical significance tests.
 
@@ -80,10 +84,7 @@ class StatisticalTest(ABC):
 
     @abstractmethod
     def run(
-        self,
-        strategy_returns: np.ndarray,
-        baseline_returns: np.ndarray,
-        **params
+        self, strategy_returns: np.ndarray, baseline_returns: np.ndarray, **params
     ) -> dict[str, Any]:
         """Run the statistical test.
 
@@ -127,7 +128,7 @@ class BootstrapTest(StatisticalTest, ABC):
         n_bootstrap: int = 10000,
         confidence_level: float = 0.95,
         seed: int | None = None,
-        **params
+        **params,
     ) -> dict[str, Any]:
         """Run bootstrap test with confidence intervals."""
         if seed is not None:
@@ -151,8 +152,12 @@ class BootstrapTest(StatisticalTest, ABC):
 
         for _ in range(n_bootstrap):
             # Resample with replacement
-            strategy_sample = np.random.choice(strategy_returns, size=n_strategy, replace=True)
-            baseline_sample = np.random.choice(baseline_returns, size=n_baseline, replace=True)
+            strategy_sample = np.random.choice(
+                strategy_returns, size=n_strategy, replace=True
+            )
+            baseline_sample = np.random.choice(
+                baseline_returns, size=n_baseline, replace=True
+            )
 
             s_metric = self.compute_metric(strategy_sample)
             b_metric = self.compute_metric(baseline_sample)
@@ -173,9 +178,13 @@ class BootstrapTest(StatisticalTest, ABC):
         # Confidence intervals
         alpha = 1 - confidence_level
         strategy_ci_lower = float(np.percentile(strategy_metrics, 100 * alpha / 2))
-        strategy_ci_upper = float(np.percentile(strategy_metrics, 100 * (1 - alpha / 2)))
+        strategy_ci_upper = float(
+            np.percentile(strategy_metrics, 100 * (1 - alpha / 2))
+        )
         baseline_ci_lower = float(np.percentile(baseline_metrics, 100 * alpha / 2))
-        baseline_ci_upper = float(np.percentile(baseline_metrics, 100 * (1 - alpha / 2)))
+        baseline_ci_upper = float(
+            np.percentile(baseline_metrics, 100 * (1 - alpha / 2))
+        )
         diff_ci_lower = float(np.percentile(diff_metrics, 100 * alpha / 2))
         diff_ci_upper = float(np.percentile(diff_metrics, 100 * (1 - alpha / 2)))
 
@@ -220,9 +229,7 @@ class PermutationTest(StatisticalTest, ABC):
 
     @abstractmethod
     def compute_test_statistic(
-        self,
-        strategy_returns: np.ndarray,
-        baseline_returns: np.ndarray
+        self, strategy_returns: np.ndarray, baseline_returns: np.ndarray
     ) -> float:
         """Compute test statistic (e.g., difference in means)."""
         pass
@@ -233,7 +240,7 @@ class PermutationTest(StatisticalTest, ABC):
         baseline_returns: np.ndarray,
         n_permutations: int = 10000,
         seed: int | None = None,
-        **params
+        **params,
     ) -> dict[str, Any]:
         """Run permutation test."""
         if seed is not None:
@@ -273,6 +280,7 @@ class PermutationTest(StatisticalTest, ABC):
 # Concrete test implementations
 # ============================================================================
 
+
 class TTest(StatisticalTest):
     """Two-sample t-test for comparing mean returns."""
 
@@ -281,10 +289,7 @@ class TTest(StatisticalTest):
         return "t_test"
 
     def run(
-        self,
-        strategy_returns: np.ndarray,
-        baseline_returns: np.ndarray,
-        **params
+        self, strategy_returns: np.ndarray, baseline_returns: np.ndarray, **params
     ) -> dict[str, Any]:
         """Run two-sample t-test."""
         t_stat, p_value = stats.ttest_ind(strategy_returns, baseline_returns)
@@ -307,10 +312,7 @@ class MannWhitneyTest(StatisticalTest):
         return "mann_whitney"
 
     def run(
-        self,
-        strategy_returns: np.ndarray,
-        baseline_returns: np.ndarray,
-        **params
+        self, strategy_returns: np.ndarray, baseline_returns: np.ndarray, **params
     ) -> dict[str, Any]:
         """Run Mann-Whitney U test."""
         u_stat, p_value = stats.mannwhitneyu(
@@ -335,9 +337,7 @@ class PermutationMeanTest(PermutationTest):
         return "permutation_test"
 
     def compute_test_statistic(
-        self,
-        strategy_returns: np.ndarray,
-        baseline_returns: np.ndarray
+        self, strategy_returns: np.ndarray, baseline_returns: np.ndarray
     ) -> float:
         """Compute difference in means."""
         return np.mean(strategy_returns) - np.mean(baseline_returns)
@@ -444,9 +444,8 @@ def list_available_tests() -> list[str]:
 # Baseline computation
 # ============================================================================
 
-def compute_buy_and_hold_returns(
-    prices: pd.Series, max_steps: int
-) -> np.ndarray:
+
+def compute_buy_and_hold_returns(prices: pd.Series, max_steps: int) -> np.ndarray:
     """Compute buy-and-hold returns from price series.
 
     Args:
@@ -503,7 +502,9 @@ def compute_random_baseline_returns(
 
         # Extract returns from rollout
         # For shaped rewards, we approximate returns from the reward signal
-        rewards = rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
+        rewards = (
+            rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
+        )
 
         # Treat rewards as log returns for approximation
         simple_returns = np.exp(rewards) - 1.0
@@ -515,6 +516,7 @@ def compute_random_baseline_returns(
 # ============================================================================
 # Test orchestration
 # ============================================================================
+
 
 def run_statistical_tests(
     strategy_returns: np.ndarray,
@@ -546,7 +548,9 @@ def run_statistical_tests(
         test = get_test(test_name)
 
         if test is None:
-            logger.warning(f"Unknown test: {test_name}. Available: {list(TEST_REGISTRY.keys())}")
+            logger.warning(
+                f"Unknown test: {test_name}. Available: {list(TEST_REGISTRY.keys())}"
+            )
             continue
 
         try:
@@ -561,7 +565,7 @@ def run_statistical_tests(
             test_result = test.run(
                 strategy_returns=strategy_returns,
                 baseline_returns=benchmark_returns,
-                **test_params
+                **test_params,
             )
             results[test_name] = test_result
 
@@ -608,7 +612,9 @@ def run_all_statistical_tests(
             logger.info("Computing buy-and-hold baseline...")
             bh_returns = compute_buy_and_hold_returns(prices, max_steps)
 
-            logger.info(f"Running tests against buy-and-hold (n={len(bh_returns)} samples)...")
+            logger.info(
+                f"Running tests against buy-and-hold (n={len(bh_returns)} samples)..."
+            )
             bh_results = run_statistical_tests(
                 strategy_returns, bh_returns, "buy_and_hold", config
             )
@@ -616,15 +622,16 @@ def run_all_statistical_tests(
             logger.info("Buy-and-hold tests complete")
         except Exception as e:
             logger.error(f"Failed to run buy-and-hold comparison: {e}")
-            all_results["baselines"].append({
-                "baseline": "buy_and_hold",
-                "error": str(e)
-            })
+            all_results["baselines"].append(
+                {"baseline": "buy_and_hold", "error": str(e)}
+            )
 
     # Test against random action baseline
     if config.compare_to_random:
         try:
-            logger.info(f"Computing random baseline ({config.n_random_trials} trials)...")
+            logger.info(
+                f"Computing random baseline ({config.n_random_trials} trials)..."
+            )
             random_trials = compute_random_baseline_returns(
                 env, max_steps, n_trials=config.n_random_trials, seed=config.random_seed
             )
@@ -632,27 +639,28 @@ def run_all_statistical_tests(
             # Aggregate random trials (use mean across trials)
             random_returns_mean = np.mean(random_trials, axis=0)
 
-            logger.info(f"Running tests against random baseline (n={len(random_returns_mean)} samples)...")
+            logger.info(
+                f"Running tests against random baseline (n={len(random_returns_mean)} samples)..."
+            )
             random_results = run_statistical_tests(
                 strategy_returns, random_returns_mean, "random_actions", config
             )
 
             # Also compute summary statistics across trials
-            random_results["random_trials_sharpe_mean"] = float(np.mean([
-                _sharpe_ratio(trial) for trial in random_trials
-            ]))
-            random_results["random_trials_sharpe_std"] = float(np.std([
-                _sharpe_ratio(trial) for trial in random_trials
-            ]))
+            random_results["random_trials_sharpe_mean"] = float(
+                np.mean([_sharpe_ratio(trial) for trial in random_trials])
+            )
+            random_results["random_trials_sharpe_std"] = float(
+                np.std([_sharpe_ratio(trial) for trial in random_trials])
+            )
 
             all_results["baselines"].append(random_results)
             logger.info("Random baseline tests complete")
         except Exception as e:
             logger.error(f"Failed to run random baseline comparison: {e}")
-            all_results["baselines"].append({
-                "baseline": "random_actions",
-                "error": str(e)
-            })
+            all_results["baselines"].append(
+                {"baseline": "random_actions", "error": str(e)}
+            )
 
     logger.info("Statistical significance testing complete")
     return all_results
@@ -661,6 +669,7 @@ def run_all_statistical_tests(
 # ============================================================================
 # Backward-compatible function wrappers
 # ============================================================================
+
 
 def t_test_mean_returns(
     strategy_returns: np.ndarray,
