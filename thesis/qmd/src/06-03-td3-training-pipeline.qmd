@@ -18,12 +18,10 @@ support), allowing variation in data sources, feature sets, reward functions,
 environment settings, and optimization hyperparameters without modifying source
 code.
 
-A typical experiment configuration specifies the dataset path, data split sizes, feature engineering configuration, environment settings (including transaction costs and reward type), model architecture, and TD3 training hyperparameters. It also includes logging and checkpointing settings to support experiment tracking and recovery. This approach is valuable in thesis research because it creates a transparent mapping between reported results and the conditions under which they were produced.
-
-An additional implementation benefit is compatibility with systematic
-pre-training validation. The validation stage can verify that referenced files
-exist, feature definitions are valid, required columns are available, and data
-splits are feasible before computationally expensive training begins.
+Configuration examples and parameter templates are provided in Appendix A.2.
+Implementation-level checks are performed before training starts (for example:
+path validity, feature definition validity, required columns, and split
+feasibility).
 
 ### Data Preparation and Leakage-Controlled Splitting
 
@@ -49,37 +47,13 @@ Once the environment and models are initialized, training proceeds through itera
 
 The replay buffer is central to off-policy learning and improves sample efficiency by enabling repeated reuse of transitions. Mini-batches sampled from this buffer are used to update the critics and actor. TD3 employs two critics and uses the minimum of their target estimates when constructing the Bellman target, reducing overestimation bias. In addition, target policy smoothing injects noise into the target action when computing target Q-values, which discourages the critics from exploiting sharp value peaks caused by function approximation artifacts.
 
-A defining feature of TD3 is delayed policy updates: the critics are updated more frequently than the actor. This allows the value estimates to stabilize before they are used to update the policy. Target networks for both actor and critics are updated gradually, typically through soft updates, further improving training stability.
+A defining feature of TD3 is delayed policy updates: the critics are updated
+more frequently than the actor. This allows the value estimates to stabilize
+before they are used to update the policy. Target networks for both actor and
+critics are updated gradually, typically through soft updates, further
+improving training stability.
 
-The following pseudo-code summarizes the workflow at a methodological level:
-
-```text
-Algorithm: TD3 Trading Experiment Workflow
-
-Input: experiment configuration (data, features, env, TD3 hyperparameters, logging)
-Output: trained policy, checkpoints, evaluation metrics, plots
-
-1. Load experiment configuration and apply optional overrides
-2. Validate configuration, paths, feature definitions, and split feasibility
-3. Load raw market dataset and sort chronologically
-4. Split data into train / validation / test subsets
-5. Fit feature transformations on training subset only
-6. Transform train, validation, and test subsets using fitted feature pipeline
-7. Build training environment from processed training data
-8. Initialize TD3 actor, twin critics, target networks, replay buffer, and optimizers
-9. For each training step until max_steps:
-   a. Select action from actor + exploration noise
-   b. Step environment and collect transition
-   c. Store transition in replay buffer
-   d. Sample mini-batch and update twin critics
-   e. Periodically update actor (delayed policy update)
-   f. Soft-update target networks
-   g. Periodically log metrics and save checkpoints
-10. Save final checkpoint (and interrupt checkpoint if training stops early)
-11. Build evaluation environment on validation or test data
-12. Run deterministic policy evaluation and baseline comparisons
-13. Compute quantitative finance performance metrics and export results
-```
+Detailed workflow pseudo-code is provided in Appendix A.4.
 
 ### Checkpointing, Resumption, and Reproducibility
 

@@ -70,7 +70,7 @@ features:
 ```
 
 These snippets illustrate the configuration-driven workflow described in
-Chapter 6.2; full experiment files are stored under `src/configs/`.
+Chapter 6.3; full experiment files are stored under `src/configs/`.
 
 ### A.3 Implementation Snippets
 
@@ -103,3 +103,33 @@ class DifferentialSharpeRatio:
 
 These examples are intentionally compact and serve as reference patterns rather
 than full source listings.
+
+### A.4 TD3 Workflow Pseudo-Code
+
+```text
+Algorithm: TD3 Trading Experiment Workflow
+
+Input: experiment configuration (data, features, env, TD3 hyperparameters, logging)
+Output: trained policy, checkpoints, evaluation metrics, plots
+
+1. Load experiment configuration and apply optional overrides
+2. Validate configuration, paths, feature definitions, and split feasibility
+3. Load raw market dataset and sort chronologically
+4. Split data into train / validation / test subsets
+5. Fit feature transformations on training subset only
+6. Transform train, validation, and test subsets using fitted feature pipeline
+7. Build training environment from processed training data
+8. Initialize TD3 actor, twin critics, target networks, replay buffer, and optimizers
+9. For each training step until max_steps:
+   a. Select action from actor + exploration noise
+   b. Step environment and collect transition
+   c. Store transition in replay buffer
+   d. Sample mini-batch and update twin critics
+   e. Periodically update actor (delayed policy update)
+   f. Soft-update target networks
+   g. Periodically log metrics and save checkpoints
+10. Save final checkpoint (and interrupt checkpoint if training stops early)
+11. Build evaluation environment on validation or test data
+12. Run deterministic policy evaluation and baseline comparisons
+13. Compute quantitative finance performance metrics and export results
+```
