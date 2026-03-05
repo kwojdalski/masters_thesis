@@ -12,11 +12,18 @@ Compared with discrete-action methods, continuous-action algorithms provide fine
 
 ### Configuration-Driven Experiment Design
 
-The training pipeline is organized as a configuration-driven workflow. Experimental scenarios are defined externally (for example, in YAML files with override support), allowing the researcher to vary data sources, feature sets, reward functions, environment settings, and optimization hyperparameters without modifying source code. This design supports repeatability and reduces the risk of undocumented manual changes between runs.
+As established in Chapter 1.3, experiments are configuration-driven. In the TD3
+pipeline, each run is defined externally (for example, via YAML with override
+support), allowing variation in data sources, feature sets, reward functions,
+environment settings, and optimization hyperparameters without modifying source
+code.
 
 A typical experiment configuration specifies the dataset path, data split sizes, feature engineering configuration, environment settings (including transaction costs and reward type), model architecture, and TD3 training hyperparameters. It also includes logging and checkpointing settings to support experiment tracking and recovery. This approach is valuable in thesis research because it creates a transparent mapping between reported results and the conditions under which they were produced.
 
-An additional benefit of configuration-driven experiments is compatibility with systematic validation prior to training. A validation stage can verify that referenced files exist, feature definitions are valid, required columns are available, and data splits are feasible before computationally expensive training begins.
+An additional implementation benefit is compatibility with systematic
+pre-training validation. The validation stage can verify that referenced files
+exist, feature definitions are valid, required columns are available, and data
+splits are feasible before computationally expensive training begins.
 
 ### Data Preparation and Leakage-Controlled Splitting
 

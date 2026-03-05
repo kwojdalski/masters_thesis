@@ -80,16 +80,16 @@ The implemented workflow treats split feasibility as a first-class validation
 concern. Invalid split settings, such as a training segment that consumes the
 entire dataset or leaves an empty evaluation segment, are handled before
 training begins. This fail-fast behavior is particularly important in
-configuration-driven experimentation, where many scenarios may be tested in
+experimental workflows where many predefined scenarios may be tested in
 sequence.
 
 ### Feature Engineering Pipeline
 
-Feature engineering is governed by an external, configuration-driven feature
-pipeline. Rather than hard-coding feature transformations inside the training
-logic, the workflow defines feature sets declaratively. This design supports
-rapid experimentation and improves reproducibility, because the exact state
-representation can be versioned and compared across scenarios.
+Feature engineering is governed by an external feature pipeline. Rather than
+hard-coding feature transformations inside the training logic, the workflow
+defines feature sets declaratively. The broader methodological rationale is
+introduced in Chapter 1.3; here, the focus is on implementation details relevant
+to data preparation.
 
 The feature pipeline supports multiple feature families derived from OHLCV data,
 including:
@@ -109,9 +109,9 @@ available separately for portfolio valuation and reward calculation. This
 feature-only observation design improves clarity and reduces the likelihood of
 mixing normalized learning inputs with financial pricing logic.
 
-The configuration-driven approach also enables feature ablation studies. For
-example, the research can compare a comprehensive feature set with a reduced,
-non-redundant subset while keeping the rest of the experimental setup unchanged.
+The same setup also enables feature ablation studies. For example, the research
+can compare a comprehensive feature set with a reduced, non-redundant subset
+while keeping the rest of the experimental setup unchanged.
 This is particularly useful in reinforcement learning, where redundant features
 can increase critic noise and hinder stable convergence.
 
