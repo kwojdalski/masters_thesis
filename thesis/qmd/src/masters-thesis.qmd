@@ -50,20 +50,21 @@ jupyter:
 
 \begin{abstract}
 
-This thesis examines the application of reinforcement learning techniques to
-high-frequency trading with order-book-derived market data. The investigation
-covers both the theoretical foundations and practical constraints of applying
-reinforcement learning in market microstructure settings, including benchmark
-evaluation and execution-related assumptions.
+This thesis studies whether deep reinforcement learning can produce robust,
+risk-adjusted trading performance in a realistic high-frequency setting. The
+work focuses on continuous portfolio exposure control from order-book-derived
+features and addresses practical constraints that often invalidate paper-trading
+results.
 
-The subsequent section establishes the theoretical foundation for the research,
-presenting a detailed exposition of relevant financial models and artificial
-intelligence methodologies that underpin the analytical framework.
+The empirical framework implements a TD3 agent on high-frequency AAPL data and
+evaluates it against benchmark strategies under explicit assumptions about
+transaction costs and execution. Performance is assessed with both financial
+metrics and statistical validation to separate genuine signal from noise and
+overfitting.
 
-The empirical component implements a TD3-based reinforcement learning approach
-for continuous exposure control on high-frequency AAPL order-book data, and
-evaluates performance relative to multiple benchmarks under explicitly stated
-simulation assumptions.
+The main contribution is an end-to-end, reproducible pipeline that links market
+feature engineering, reward design, agent training, and robustness testing in a
+single evaluation framework for algorithmic trading research.
 
 \end{abstract}
 
