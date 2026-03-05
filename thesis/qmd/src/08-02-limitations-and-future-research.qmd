@@ -20,6 +20,15 @@ available depth. Relaxing this assumption would likely lower net returns,
 increase drawdowns, and penalize high-turnover behavior through impact-driven
 slippage and adverse selection.
 
+The setup also assumes zero latency between observation and execution. This is
+acceptable for the present research objective because the thesis does not target
+latency-arbitrage deployment; however, real HFT environments are highly
+latency-sensitive. Some signals that appear profitable in simulation may decay
+before execution in live markets, making them effectively non-tradeable.
+Additionally, real venues can reject or partially reject orders due to
+insufficient margin, stale quotes, risk limits, or rapid order-book changes,
+which can further degrade realized performance relative to backtest results.
+
 The practical implication is that reported backtest performance is likely
 optimistic relative to deployable net performance. Strategies with high turnover
 are especially sensitive: even small per-trade execution costs can materially
