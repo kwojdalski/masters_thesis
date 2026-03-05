@@ -46,14 +46,15 @@ Activate the environment before running commands:
 source .venv/bin/activate
 ```
 
-Common commands (`python src/cli.py --help` for full details):
+Common commands:
 
 | Command | Purpose |
 | --- | --- |
 | `python src/cli.py scenarios` | List available scenario configs |
-| `python src/cli.py data generate --scenario sine_wave` | Generate synthetic data |
+| `python src/cli.py data generate --sine-wave --n-periods 8 --samples-per_period 250 --output-file data/raw/synthetic/sine_wave.parquet` | Generate synthetic sine-wave data |
 | `python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml` | Train a single agent |
 | `python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --trials 3` | Run multiple trials |
+| `python src/cli.py validate --scenario aapl_td3_hft_lob` | Validate scenario config and data dependencies |
 | `python src/cli.py dashboard` | Launch the MLflow UI |
 | `python src/cli.py checkpoints` | Inspect or clean checkpoints |
 | `python src/cli.py experiments` | List MLflow experiments |
@@ -112,7 +113,9 @@ masters_thesis/
 │   ├── cli/                 # CLI command implementations
 │   ├── cli.py               # CLI entrypoint
 │   ├── configs/
-│   │   └── scenarios/       # Scenario YAML configs
+│   │   ├── scenarios/       # Experiment scenario YAML configs
+│   │   ├── data/            # Data-source/data-generation configs
+│   │   └── features/        # Feature-set configs
 │   ├── data_generator.py    # Synthetic data generation
 │   ├── logger/              # Shared logging utilities
 │   └── trading_rl/          # Core RL package
