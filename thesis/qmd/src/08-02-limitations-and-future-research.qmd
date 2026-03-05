@@ -1,1 +1,22 @@
 ## Limitations and Future Research
+
+### Order-Book Execution Realism Constraint
+
+A central limitation of the current empirical setup is the use of a
+mid-price-like execution proxy for portfolio valuation and reward computation.
+This assumption is convenient for controlled RL training, but it is not fully
+realistic for live order-book trading.
+
+In production settings, a strategy that demands immediate execution typically
+crosses the spread, which introduces a mechanical cost on each trade. Realized
+results are also affected by maker/taker fees, queue priority, partial fills,
+and latency-dependent adverse selection. These frictions are only partially
+represented in the present setup.
+
+The practical implication is that reported backtest performance is likely
+optimistic relative to deployable net performance. Strategies with high turnover
+are especially sensitive: even small per-trade execution costs can materially
+reduce Sharpe ratio and cumulative return. Future research should therefore
+evaluate the same agents under explicit bid/ask execution rules, calibrated
+fee schedules, and slippage/impact models to quantify the robustness of the
+observed edge under realistic microstructure constraints.
