@@ -1,309 +1,82 @@
 ## Code
 
-The implementation consists of a modular Python codebase organized into logical components supporting data processing, environment creation, agent training, and evaluation. This section documents the code structure and key implementation details.
+The implementation is a modular Python research codebase organized around
+separable responsibilities: data processing, environment construction,
+algorithm training, and evaluation/reporting. This section keeps the main text
+at the design level; concrete code snippets and parameter-level configuration
+examples are moved to Appendix A.
 
 ### Code Structure
 
-The codebase is organized into the following directory structure under `src/trading_rl/`:
-
-```
-src/trading_rl/
-├── __init__.py                    # Package initialization
-├── config.py                      # Configuration dataclasses
-├── train_trading_agent.py         # Main training script
-├── models.py                      # Neural network architectures
-├── data_utils.py                  # Data loading and preprocessing
-├── plotting.py                    # Visualization utilities
-├── utils.py                       # General utilities
-│
-├── envs/                          # Trading environment implementations
-│   ├── builder.py                 # Environment factory and builder
-│   ├── trading_envs.py            # Base environment wrappers
-│   └── tradingenvxy_wrapper.py    # TradingEnv backend integration
-│
-├── trainers/                      # Algorithm-specific trainers
-│   ├── base.py                    # Abstract trainer interface
-│   ├── td3.py                     # TD3 implementation
-│   ├── ddpg.py                    # DDPG implementation
-│   └── ppo.py                     # PPO implementation
-│
-├── features/                      # Feature engineering pipeline
-│   ├── base.py                    # Abstract feature interface
-│   ├── pipeline.py                # Feature computation pipeline
-│   ├── registry.py                # Feature registry
-│   ├── price_features.py          # Price-based features
-│   ├── volume_features.py         # Volume indicators
-│   ├── volatility_features.py     # Volatility measures
-│   ├── temporal_features.py       # Time-based features
-│   └── talib_features.py          # Technical indicators (TA-Lib)
-│
-├── rewards/                       # Reward function implementations
-│   ├── differential_sharpe.py     # Differential Sharpe Ratio
-│   └── dsr_wrapper.py             # TradingEnv DSR integration
-│
-├── evaluation/                    # Performance evaluation
-│   ├── context.py                 # Evaluation context management
-│   ├── metrics.py                 # Performance metrics
-│   └── report.py                  # Evaluation reporting
-│
-└── callbacks/                     # Training callbacks
-    └── mlflow_callback.py         # MLflow experiment tracking
-```
-
-Additionally, configuration files reside in `src/configs/`:
-
-```
-src/configs/
-├── scenarios/                     # Experiment scenario configurations
-│   ├── btc_td3_tradingenv_all_features.yaml
-│   ├── btc_td3_tradingenv_reduced_features.yaml
-│   └── [other scenario configs]
-│
-└── features/                      # Feature specification files
-    └── btc_optimized_features.yaml
-```
-
-### Code Implementation
-
-#### Configuration System
-
-The configuration system uses Python dataclasses with YAML file support via OmegaConf, enabling declarative experiment specification.
-
-**Core Configuration Classes:**
-
-* **`DataConfig`**: Specifies data sources, symbols, timeframes, and train/validation splits
-* **`EnvConfig`**: Defines environment backend, trading fees, action spaces, and reward types
-* **`NetworkConfig`**: Parameterizes actor and critic neural network architectures
-* **`TrainingConfig`**: Controls algorithm-specific hyperparameters (learning rates, batch sizes, replay buffer)
-* **`LoggingConfig`**: Manages MLflow tracking, visualization, and checkpoint saving
-
-**YAML Configuration Example:**
-
-Scenario files (e.g., `btc_td3_tradingenv_reduced_features.yaml`) define complete experimental setups:
-
-```yaml
-seed: 42
-data:
-  data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
-  train_size: 7000
-env:
-  backend: "tradingenv"
-  trading_fees: 0.0
-  feature_columns: [...]
-  reward_type: "log_return"
-training:
-  algorithm: "TD3"
-  actor_lr: 0.0001
-  value_lr: 0.0001
-  gamma: 0.99
-```
-
-This design separates hyperparameters from code, facilitating systematic experimentation and reproducibility.
-
-#### Environment System
-
-**Environment Builder (`envs/builder.py`)**
-
-The `EnvironmentBuilder` class abstracts environment creation, supporting multiple backends:
-
-* **gym_anytrading**: Forex and stock environments with discrete actions
-* **gym_trading_env**: Continuous and discrete action environments
-* **tradingenv**: Custom TradingEnv backend with flexible action spaces
-
-The builder validates backend compatibility with selected algorithms (e.g., TD3 requires continuous actions), constructs TorchRL `GymWrapper` instances, and applies transforms such as `StepCounter`.
-
-**TradingEnv Integration (`envs/tradingenvxy_wrapper.py`)**
-
-For the `tradingenv` backend, custom wrappers integrate the TradingEnv library with TorchRL:
-
-* **State construction**: Converts configured feature columns into observation spaces
-* **Action space**: Creates `BoxPortfolio` for continuous allocations in $[-1, 1]$
-* **Reward shaping**: Supports log returns and Differential Sharpe Ratio
-* **Price handling**: Maps price columns to `Stock` contracts for portfolio simulation
-
-This integration enables direct RL optimization over portfolio weights without intermediate discretization.
-
-#### Feature Engineering
-
-**Feature Pipeline (`features/pipeline.py`)**
-
-The feature engineering system computes technical indicators and derived quantities from OHLCV data. Features are organized into categories:
-
-* **Price features** (`price_features.py`): Returns, log returns, autoregressive lags
-* **Volume features** (`volume_features.py`): Volume ratios, volume changes, Amihud illiquidity
-* **Volatility features** (`volatility_features.py`): Realized volatility, volatility ratios, EWMA
-* **Temporal features** (`temporal_features.py`): Hour/day sine-cosine encodings for cyclical time
-* **Technical indicators** (`talib_features.py`): RSI, MACD, Bollinger Bands, moving averages
-
-**Feature Registry (`features/registry.py`)**
-
-Features are registered by name, enabling declarative specification in YAML:
-
-```yaml
-features:
-  - feature_return_lag_1
-  - feature_realized_volatility_24
-  - feature_rsi_14
-```
-
-The registry resolves feature names to computation functions, computes dependencies, and validates configurations.
-
-**Implementation Pattern:**
-
-Features implement a standard interface:
-
-```python
-@register_feature("feature_return_lag_1")
-def compute_return_lag_1(df: pd.DataFrame) -> pd.Series:
-    """One-period lagged log return."""
-    returns = np.log(df["close"] / df["close"].shift(1))
-    return returns.shift(1)
-```
-
-This modular design facilitates feature ablation studies and rapid experimentation.
-
-#### Neural Network Models
-
-**Actor and Critic Architectures (`models.py`)**
-
-Neural networks for actor and critic are implemented using PyTorch and TorchRL modules:
-
-**Actor (Policy Network):**
-
-* Architecture: Multi-layer perceptron (MLP) with configurable hidden dimensions (e.g., [128, 64])
-* Activation: Tanh (bounded outputs suitable for continuous actions)
-* Output: Deterministic action in $[-1, 1]$ (for TD3) or Gaussian policy parameters (for PPO)
-* Implementation: TorchRL `TensorDictModule` for integration with TensorDict data structures
-
-**Critic (Q-Network):**
-
-* Architecture: MLP accepting concatenated state-action inputs
-* Twin critics: TD3 uses two independent Q-networks to reduce overestimation bias
-* Output: Scalar Q-value estimate
-* Target networks: Slowly updated via soft updates with parameter $\tau$
-
-**Network Factory Functions:**
-
-The codebase provides factory functions (`create_actor_network`, `create_value_network`) that instantiate networks from configuration specifications, initializing weights according to best practices (Xavier/He initialization).
-
-#### Training System
-
-**Trainer Abstraction (`trainers/base.py`)**
-
-An abstract `BaseTrainer` class defines the interface for RL algorithm implementations:
-
-* `build_models()`: Constructs actor and critic networks
-* `create_loss()`: Instantiates algorithm-specific loss functions (e.g., `DDPGLoss`, `TD3Loss`)
-* `create_optimizer()`: Configures Adam optimizers with learning rates and weight decay
-* `create_collector()`: Sets up data collection with replay buffer
-* `train()`: Executes training loop with logging and checkpointing
-
-**TD3 Trainer (`trainers/td3.py`)**
-
-The `TD3Trainer` specializes `BaseTrainer` for Twin Delayed DDPG:
-
-* **Twin critics**: Instantiates two Q-networks, taking minimum during target computation
-* **Delayed policy updates**: Updates actor every `policy_delay` steps (typically 2)
-* **Target policy smoothing**: Adds noise to target actions during critic updates
-* **Soft target updates**: Updates target networks with $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$
-
-**Training Loop:**
-
-The main training loop in `train_trading_agent.py`:
-
-1. Initializes environment, models, loss, and data collector
-2. Iterates for `max_steps` environment interactions:
-   - Collects batch of transitions via `SyncDataCollector`
-   - Samples minibatches from replay buffer
-   - Computes loss and performs gradient updates
-   - Logs metrics to MLflow
-   - Periodically evaluates policy and saves checkpoints
-3. Performs final evaluation on test set
-4. Generates visualizations and performance reports
-
-#### Reward Functions
-
-**Differential Sharpe Ratio (`rewards/differential_sharpe.py`)**
-
-Implements the online Differential Sharpe Ratio from @Moody1998:
-
-```python
-class DifferentialSharpeRatio:
-    def __init__(self, eta: float = 0.01):
-        self.eta = eta  # Learning rate for DSR
-        self.A = 0.0    # Exponential moving average of returns
-        self.B = 0.0    # Exponential moving average of squared returns
-
-    def update(self, return_t: float) -> float:
-        self.A = self.eta * return_t + (1 - self.eta) * self.A
-        self.B = self.eta * return_t**2 + (1 - self.eta) * self.B
-        variance = self.B - self.A**2
-        sharpe = self.A / (np.sqrt(variance) + 1e-8)
-        return sharpe
-```
-
-The DSR provides dense reward signals for risk-adjusted optimization, updated recursively at each time step.
-
-**Integration with TradingEnv:**
-
-The `DSRReward` wrapper in `rewards/dsr_wrapper.py` integrates DSR computation with TradingEnv, tracking portfolio returns and computing Sharpe-adjusted rewards for RL training.
-
-#### Evaluation and Logging
-
-**MLflow Integration (`callbacks/mlflow_callback.py`)**
-
-Training progress and artifacts are logged to MLflow:
-
-* **Metrics**: Training loss, Q-values, policy gradients, evaluation returns
-* **Parameters**: All hyperparameters from configuration
-* **Artifacts**: Trained model checkpoints, evaluation plots, configuration files
-* **Tags**: Algorithm name, environment backend, experiment scenario
-
-This integration enables systematic experiment tracking, comparison, and reproducibility.
-
-**Performance Metrics (`evaluation/metrics.py`)**
-
-Evaluation computes comprehensive performance metrics:
-
-* **Return-based**: Cumulative return, annualized return, maximum drawdown
-* **Risk-adjusted**: Sharpe ratio, Sortino ratio, Calmar ratio
-* **Trade-level**: Win rate, average profit/loss, profit factor
-* **Statistical**: Standard deviation, skewness, kurtosis of returns
-
-**Visualization (`plotting.py`)**
-
-The plotting module generates evaluation visualizations:
-
-* **Cumulative returns**: Comparing RL agent against buy-and-hold baseline
-* **Drawdown series**: Underwater equity curves
-* **Action trajectories**: Portfolio allocations over time
-* **Reward curves**: Training and evaluation reward evolution
-
-Visualizations are saved as artifacts and embedded in evaluation reports.
-
-#### Utilities and Supporting Code
-
-**Data Utilities (`data_utils.py`):**
-* Loading OHLCV data from Parquet, CSV, or exchange APIs
-* Chronological train/validation/test splitting to prevent data leakage
-* Feature standardization using training set statistics
-
-**Caching (`cache_utils.py`):**
-* Joblib-based caching for expensive data transformations
-* Accelerates repeated experiments on identical datasets
-
-**Logging Configuration:**
-* Structured logging via Python's logging module
-* Rich console output for interactive monitoring
+The project is organized around the following subsystems:
+
+* `config.py`: Dataclass-based experiment configuration
+* `train_trading_agent.py`: Main orchestration script
+* `envs/`: Environment builders and backend wrappers
+* `features/`: Feature engineering pipeline and registry
+* `trainers/`: Algorithm-specific training implementations
+* `rewards/`: Reward definitions, including Differential Sharpe variants
+* `evaluation/`: Metric computation and evaluation reporting
+* `callbacks/`: MLflow logging and artifact tracking
+
+Scenario and feature specifications are externalized in `src/configs/`, which
+supports reproducible experiments across multiple datasets and settings.
+
+### Configuration System
+
+The configuration layer uses declarative scenario files to separate experimental
+choices from source code. This includes data paths, environment settings,
+feature subsets, reward types, and optimization hyperparameters. The separation
+improves traceability, reduces manual edit risk, and supports controlled
+ablation studies.
+
+Representative YAML examples (scenario-level and feature-level) are provided in
+Appendix A.2.
+
+### Environment and Training Integration
+
+Environment construction is backend-aware and validates compatibility between
+selected algorithm classes and action-space definitions. In particular,
+continuous-control algorithms (such as TD3) are matched with continuous action
+specifications and portfolio-style state/action interfaces.
+
+Training follows a standard off-policy loop with replay-based updates,
+periodic evaluation, checkpointing, and experiment logging. Algorithm-specific
+stability mechanisms (for example, delayed actor updates and soft target
+updates) are implemented in trainer subclasses.
+
+### Feature Engineering and Reward Layer
+
+The feature pipeline is registry-driven: feature names resolve to computation
+functions, allowing scenario-level composition without editing training code.
+This design is central for systematic feature subset comparisons.
+
+Reward computation supports both direct return-based objectives and
+risk-adjusted objectives (including differential Sharpe-style signals).
+Implementation-level examples are documented in Appendix A.3.
+
+### Evaluation and Experiment Tracking
+
+Evaluation includes return, risk, and robustness-oriented diagnostics, with
+results persisted through MLflow. Logged artifacts include metrics, plots,
+config snapshots, and statistical test outputs, enabling auditability of
+reported thesis results.
 
 ### Design Principles
 
-The codebase adheres to several software engineering principles:
+The codebase follows five primary engineering principles:
 
-1. **Modularity**: Clear separation of concerns (data, environment, training, evaluation)
-2. **Extensibility**: Abstract interfaces facilitate adding new algorithms, features, or reward functions
-3. **Configuration-driven**: Declarative YAML specifications separate hyperparameters from code
-4. **Reproducibility**: Seeding, MLflow tracking, and configuration versioning ensure replicable experiments
-5. **Type safety**: Type hints throughout for improved IDE support and error detection
+1. **Modularity**: clear separation of concerns across data, environment,
+   learning, and evaluation.
+2. **Extensibility**: abstract trainer and feature interfaces support adding new
+   algorithms or state representations.
+3. **Configuration-driven experimentation**: declarative scenario definitions
+   preserve methodological reproducibility.
+4. **Reproducibility and traceability**: run metadata and artifacts are logged
+   systematically.
+5. **Operational clarity**: explicit interfaces and type-annotated components
+   reduce ambiguity in research workflows.
 
-This architecture supports the systematic experimentation required for academic research while maintaining code quality suitable for potential production deployment.
+Detailed implementation snippets and parameterized examples referenced by this
+section are consolidated in Appendix A to keep the main chapter focused on
+methodological choices rather than low-level code listings.

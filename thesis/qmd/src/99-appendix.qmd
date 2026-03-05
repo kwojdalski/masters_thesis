@@ -1,0 +1,105 @@
+## Appendix A: Technical and Implementation Details
+
+### A.1 Technical Indicator Formulas
+
+To keep the core methodology chapters concise, standard technical-indicator
+formulas are consolidated here.
+
+**Relative Strength Index (RSI, period $n$)**
+
+$$
+\mathrm{RSI}_t = 100 - \frac{100}{1 + RS_t}, \quad
+RS_t = \frac{\mathrm{AvgGain}_{t,n}}{\mathrm{AvgLoss}_{t,n}}
+$$
+
+where $\mathrm{AvgGain}_{t,n}$ and $\mathrm{AvgLoss}_{t,n}$ are rolling or
+smoothed average positive/negative returns over window $n$.
+
+**Moving Average Convergence Divergence (MACD)**
+
+$$
+\mathrm{MACD}_t = \mathrm{EMA}_{\text{fast}}(P_t) - \mathrm{EMA}_{\text{slow}}(P_t)
+$$
+
+$$
+\mathrm{Signal}_t = \mathrm{EMA}_{\text{signal}}(\mathrm{MACD}_t),
+\quad
+\mathrm{Histogram}_t = \mathrm{MACD}_t - \mathrm{Signal}_t
+$$
+
+**Bollinger Bands (window $n$, multiplier $k$)**
+
+$$
+\mathrm{Middle}_t = \mathrm{SMA}_n(P_t),
+\quad
+\mathrm{Upper}_t = \mathrm{Middle}_t + k\sigma_{t,n},
+\quad
+\mathrm{Lower}_t = \mathrm{Middle}_t - k\sigma_{t,n}
+$$
+
+where $\sigma_{t,n}$ is rolling standard deviation over $n$ periods.
+
+### A.2 Configuration and Parameter Examples
+
+Representative scenario configuration snippet:
+
+```yaml
+seed: 42
+data:
+  data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
+  train_size: 7000
+env:
+  backend: "tradingenv"
+  trading_fees: 0.0
+  feature_columns: [...]
+  reward_type: "log_return"
+training:
+  algorithm: "TD3"
+  actor_lr: 0.0001
+  value_lr: 0.0001
+  gamma: 0.99
+```
+
+Representative feature selection snippet:
+
+```yaml
+features:
+  - feature_return_lag_1
+  - feature_realized_volatility_24
+  - feature_rsi_14
+```
+
+These snippets illustrate the configuration-driven workflow described in
+Chapter 6.2; full experiment files are stored under `src/configs/`.
+
+### A.3 Implementation Snippets
+
+Representative feature registration pattern:
+
+```python
+@register_feature("feature_return_lag_1")
+def compute_return_lag_1(df: pd.DataFrame) -> pd.Series:
+    """One-period lagged log return."""
+    returns = np.log(df["close"] / df["close"].shift(1))
+    return returns.shift(1)
+```
+
+Representative Differential Sharpe implementation pattern:
+
+```python
+class DifferentialSharpeRatio:
+    def __init__(self, eta: float = 0.01):
+        self.eta = eta
+        self.A = 0.0
+        self.B = 0.0
+
+    def update(self, return_t: float) -> float:
+        self.A = self.eta * return_t + (1 - self.eta) * self.A
+        self.B = self.eta * return_t**2 + (1 - self.eta) * self.B
+        variance = self.B - self.A**2
+        sharpe = self.A / (np.sqrt(variance) + 1e-8)
+        return sharpe
+```
+
+These examples are intentionally compact and serve as reference patterns rather
+than full source listings.
