@@ -6,21 +6,22 @@ algorithmic simulation framework:
 (a) Execution is approximated at the observed mid-price proxy used by the
    environment pricing column. This avoids explicit bid/ask crossing and
    simplifies reward accounting during training and evaluation.
-(c) Position constraints limit holdings to x contract(s) at any given moment, with
-   transactions restricted to whole contract units.
-(d) A transaction fee of x% of the execution price is applied to all trades.
+(c) Position constraints use bounded continuous exposure in the interval
+   $[-1,1]$ (short to long), preventing unbounded leverage.
+(d) A transaction fee of 0.000 (scenario setting) is applied in the baseline
+   experimental runs.
 
 ## Design of the research
 
 The whole system can be divided into three main parts:
 
-* Data preprocessing - taking FX data from Bloomberg with use of the dedicated API, parsing the data and adjusting
- it for the further analysis. The system is dedicated for currency trading, however with little adjustments
- it could fit in other asset classes as well.
- * Variable extraction - not all preprocessed currency pairs are relevant and worth adding. For instance,
- if $USD/CNH$ is highly correlated with $USD/CNY$ it is senseless to add the latter to the portfolio.
- #TO DO
-* State-action space - the extracted variables, based on time series for currency pairs, are merged into state space
+* Data preprocessing - taking market data, parsing the data and adjusting
+ it for further analysis. In the current work, the dataset is high-frequency
+ AAPL MBP-10 order-book data rather than FX bars.
+ * Variable extraction - microstructure features are constructed from order-book
+ snapshots (depth, imbalance, spread, and related derived variables).
+* State-action space - extracted order-book features are merged into the state
+ space used by the TD3 agent.
 
 
 
@@ -29,7 +30,8 @@ The whole system can be divided into three main parts:
 
 In the work, the author has assumed that:
 
-* Zero slippage - the FX market is liquidity is good enough that there the execution price is equal to the price shown by the venue (Bloomberg)
+* Zero slippage proxy - execution is approximated without additional
+  slippage beyond the explicit simulation assumptions.
 * Zero market impact - agent trades are assumed not to move quoted prices or
   available depth during execution.
 * Zero latency - observations are assumed to be acted on immediately, i.e.,
@@ -97,14 +99,13 @@ The experimental methodology followed a structured sequence of operations:
    - Configuration of appropriate experimental parameters
 
 2. For the trading simulation phase:
-   - A selection of ten currency pairs was made according to specific criteria
-   - Three distinct reinforcement learning algorithms were implemented to
-     simulate trading activities
+   - A single-asset AAPL high-frequency order-book setup was used
+   - TD3 was implemented as the primary reinforcement learning algorithm
    - Price data and performance metrics were systematically collected and
      compared
 
 3. Comprehensive analysis was performed, incorporating:
-   - Examination of individual currency pair characteristics
+   - Examination of single-asset microstructure characteristics
    - Integration of findings from the algorithmic trading simulations
    - Identification of patterns across different market conditions
 
