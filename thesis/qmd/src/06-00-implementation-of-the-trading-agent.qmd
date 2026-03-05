@@ -30,7 +30,8 @@ The whole system can be divided into three main parts:
 In the work, the author has assumed that:
 
 * Zero slippage - the FX market is liquidity is good enough that there the execution price is equal to the price shown by the venue (Bloomberg)
-* Zero market impact - trades executed by the agent are not big enough that they can move the market and cause significant market impact
+* Zero market impact - agent trades are assumed not to move quoted prices or
+  available depth during execution.
 * Mid-price execution proxy - trades are effectively valued at a mid-price-like
   reference rather than at executable bid/ask quotes.
 
@@ -40,6 +41,13 @@ further affected by maker/taker fee schedules, queue position, partial fills,
 and latency. Consequently, backtest returns and risk-adjusted metrics reported
 under the mid-price assumption should be interpreted as an upper bound on
 execution quality rather than as deployable net performance.
+
+The zero-impact assumption is adopted to keep the current study focused on
+learning dynamics, feature relevance, and benchmark-relative behavior under a
+tractable simulation setup. This assumption is most defensible when trade sizes
+are small relative to available top-of-book and near-book depth. If position
+sizes become large relative to local liquidity, impact costs and adverse price
+drift would reduce realized returns and typically worsen risk-adjusted metrics.
 
 
 
