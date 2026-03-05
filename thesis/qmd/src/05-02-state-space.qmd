@@ -64,9 +64,13 @@ Volume-based indicators reveal market participation intensity and potential liqu
 
 Classical technical analysis tools encode price patterns and momentum:
 
-* `feature_rsi_14`: Relative Strength Index over 14 periods, bounded in $[0, 100]$, measuring overbought ($>70$) and oversold ($<30$) conditions
-* `feature_macd_signal`: Moving Average Convergence Divergence signal line difference, capturing momentum crossover signals
-* `feature_bbands_20`: Bollinger Bands position, measuring the current price relative to 20-period moving average plus/minus two standard deviations. Values near $\pm 1$ indicate boundary proximity, potentially signaling reversals.
+* `feature_rsi_14`: Relative Strength Index over 14 periods, capturing
+  overbought/oversold behavior.
+* `feature_macd_signal`: MACD signal-line-derived momentum feature.
+* `feature_bbands_20`: Bollinger-band position feature indicating proximity to
+  volatility-adjusted boundaries.
+
+Formal indicator formulas are provided in Appendix A.1.
 
 #### Temporal Context Features
 
