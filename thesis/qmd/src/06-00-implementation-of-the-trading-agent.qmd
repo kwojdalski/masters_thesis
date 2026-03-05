@@ -57,7 +57,7 @@ drift would reduce realized returns and typically worsen risk-adjusted metrics.
 
 Similarly, the zero-latency assumption simplifies the mapping between state and
 action, which is appropriate for the scope of this thesis (strategy-learning
-assessment rather than ultra-low-latency execution engineering). In production
+assessment rather than low-latency execution engineering). In production
 HFT systems, however, transport, queueing, and matching-engine latency can
 change fill quality and invalidate short-lived signals.
 

@@ -4,7 +4,7 @@
 
 The primary novelty of this thesis is the application of **TD3** to
 **high-frequency trading with order-book-derived data**. This differs from a
-large share of prior RL trading studies that focus on lower-frequency OHLCV
+large share of prior RL trading studies that focus on lower-frequency
 (often daily or bar-based) inputs and evaluate algorithms such as Q-learning,
 DQN, or PPO primarily in bar-level settings.
 
@@ -26,8 +26,8 @@ aligned with high-frequency market microstructure.
 The research is based on the following hypotheses:
 
 1. AI-driven algorithms can deliver superior value by exceeding benchmark performance metrics in terms of both risk management and return generation
-2. Enhanced performance is particularly evident in high-frequency trading scenarios as well as across extended time horizons
-3. These algorithms demonstrate the capability to implicitly learn market patterns that would be impossible for humans to identify and efficiently select securities. In consequence, they generate alpha
+2. Enhanced performance is particularly evident in high-frequency trading scenarios
+3. These algorithms demonstrate the capability to implicitly learn market patterns that would be impossible for humans to identify and efficiently select securities. In consequence, they generate alpha or at least desirable investment performance characteristics
 
 ### Objectives of the Research
 
@@ -36,30 +36,22 @@ algorithms for high-frequency single-asset trading using order-book-derived
 data. The research objectives are structured in three interconnected phases:
 
 1. **Design and Implementation**
-   - Develop both basic and extended Reinforcement Learning trading agents
-     for high-frequency order-book trading applications
-   - Construct robust testing frameworks to evaluate agent performance
-   - Create agents capable of processing financial time series data
+   - Develop Reinforcement Learning trading agents for high-frequency
+     order-book trading applications
+   - Construct a testing framework to evaluate agent performance
 
 2. **Testing and Evaluation**
    - Assess agent performance on out-of-sample data against established
-     benchmarks
-   - Measure performance using comprehensive risk-return metrics
+     benchmarks with use of established and novel risk-return metrics
    - Analyze robustness under varying market conditions
-   - Determine if agents can outperform conventional trading approaches
+   - Determine if agents can outperform conventional approaches
 
 3. **Analysis and Implications**
    - Examine agent learning evolution and pattern recognition capabilities
    - Investigate how agents integrate with microstructure-aware trading
      methodologies
-   - Assess transaction cost management effectiveness
-   - Determine if agents can identify non-trivial patterns more efficiently
-     than human traders
+   - Determine if agents can identify non-trivial patterns efficiently and
+     hence outperform naive strategies
    - Evaluate the feasibility of deployment in real-world trading
      environments
    - Identify promising directions for future research
-
-The underlying premise is that these algorithms can systematically outperform
-benchmarks by detecting and exploiting market patterns that would remain
-imperceptible to human traders, potentially generating alpha in both
-high-frequency trading environment.

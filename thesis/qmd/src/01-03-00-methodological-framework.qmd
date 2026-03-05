@@ -2,22 +2,19 @@
 
 ### Research Design
 
-This thesis adopts an empirical, computational research design for the study of
-reinforcement learning-based trading systems. The primary objective is not to
-prove a universal theoretical proposition about market efficiency, but to assess
-whether adaptive decision-making models can generate economically meaningful
-performance under controlled and transparent experimental conditions. The
-research therefore emphasizes methodological rigor in data handling, model
-training, evaluation design, and reproducibility.
+The primary objective is not to prove a universal theoretical proposition about
+market efficiency, but to assess whether adaptive decision-making models can
+generate economically meaningful performance under controlled and transparent
+experimental conditions. Hence, the research emphasises rigor in data handling,
+model training, evaluation design, and reproducibility.
 
 Reinforcement learning is positioned as the main adaptive modelling framework
-because the trading problem is inherently sequential. A trading decision affects
-future portfolio state, available capital, and subsequent decisions through a
-path-dependent process. This differs from static prediction tasks, where each
-observation can be evaluated independently. Consequently, the thesis evaluates
-learning agents in a simulation environment that explicitly represents the
-interaction between observations, actions, rewards, and portfolio evolution over
-time.
+because the trading problem is sequential. A trading decision affects future
+portfolio state, available capital, and subsequent decisions through a
+path-dependent process. This differs from static tasks, where each observation
+can be evaluated independently. Consequently, the thesis evaluates agents in an
+environment that explicitly represents the interaction between observations,
+actions, rewards, and portfolio evolution over time.
 
 The methodological framework is configuration-driven. Experimental scenarios are
 defined through structured parameter specifications rather than embedded directly
@@ -25,9 +22,7 @@ in program logic. This design supports controlled comparison across algorithms,
 reward definitions, feature sets, and market assumptions. It also improves
 repeatability by making the experimental conditions explicit and auditable.
 
-### Methodological Novelty Statement
-
-This thesis makes a targeted methodological contribution by combining:
+The methodological novelty of this thesis is the combined focus on:
 
 1. **TD3 as the primary learning algorithm** for continuous portfolio-exposure
    control.
@@ -45,26 +40,23 @@ defines the core novelty claim assessed in the empirical chapters.
 
 ### Data and Experimental Units
 
-The empirical experiments in this thesis are conducted on time-indexed market
-data represented as OHLCV bars (open, high, low, close, volume). The unit of
-analysis is a single time step (bar) within a sequential decision process. At
-each time step, the agent observes a state representation, selects a portfolio
-allocation action, and receives a reward derived from the simulated portfolio
-outcome.
+The empirical experiments are conducted on time-indexed, high-frequency market
+data with order-book-derived information as the primary state input. The unit
+of analysis is a single sequential time step. At each step, the agent observes
+the current state, selects a portfolio-exposure action, and receives a reward
+from simulated portfolio dynamics under explicit trading assumptions.
 
-The state representation is not limited to raw market fields. It includes
-engineered features constructed from historical OHLCV information, such as
-returns, volatility proxies, volume-related variables, technical indicators, and
-cyclical time encodings. These features are used to improve state
-informativeness while preserving chronological causality.
+The state is not limited to raw market fields. It includes engineered
+microstructure-oriented features, such as depth, imbalance, spread, and related
+signals, constructed to improve informativeness while preserving chronological
+causality.
 
-An important methodological distinction is maintained between price inputs used
-for portfolio valuation and reward computation, and feature inputs used for
-learning. Price series used in the trading simulation retain their financial
-interpretation and are not replaced by normalized feature values. By contrast,
-learning inputs are expressed as engineered feature variables. This separation
-reduces the risk of incorrect portfolio accounting and improves the clarity of
-the research design.
+A methodological distinction is maintained between price inputs used for
+portfolio valuation and reward computation, and feature inputs used for
+learning. Price series in the trading simulation retain their financial
+interpretation and are not replaced by normalized feature values. Learning
+inputs are represented as engineered features. This separation reduces
+portfolio-accounting errors and improves interpretability of empirical results.
 
 ### Experimental Pipeline
 
