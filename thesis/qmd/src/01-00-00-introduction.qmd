@@ -49,7 +49,7 @@ learning algorithms, many have demonstrated suboptimal performance due to severa
 factors, including:
 
 * Large drawdowns resulting in excessive performance volatility
-* High transaction costs rendering strategies impractical
+* High transaction costs making strategies impractical
 * High computational complexity, particularly problematic for high-frequency
   trading
 
