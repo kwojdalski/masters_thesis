@@ -5,7 +5,7 @@ opportunities to make profit. In the purest form, if an asset is priced
 differently at two different places and a trader has access to both then he would
 have an arbitrage opportunity. In practice financial markets are designed in such
 a way that any deterministic arbitrage opportunities vanish, i.e., are being
-exploited by market participants. Still there are patterns in the market which
+exploited by market participants. Still, there are patterns in the market which
 seem to be persistent. Strategies which use statistical techniques to extract
 highly reliable patterns and then carry out trades to exploit them are called
 statistical arbitrage strategies.

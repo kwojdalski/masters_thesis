@@ -1,27 +1,25 @@
 # Introduction
 
-The conventional representation of trading floors as chaotic environments
-characterized by vocal trader interactions was historically accurate in the 1980s.
-However, the financial industry has since undergone substantial
-structural transformation.
+Conventional representation of trading floors as chaotic environments
+characterized by vocal trader interactions was historically accurate until the 80s.
+Since then the financial industry has since undergone substantial transformation.
 
-The financial sector has consistently functioned as an early adopter of
+Financial markets have consistently functioned as an early adopter of
 computational innovations. This integration represents a strategic
 imperative—competitive advantage through technology frequently correlates with financial performance.
 Hence, the industry has systematically pioneered the deployment of
 state-of-the-art technologies,
-ranging from sophisticated Bloomberg terminal infrastructure in the 1990s to
-contemporary blockchain applications and ultra-low latency systems, all oriented
-toward maximizing operational efficiency.
+ranging from Bloomberg terminal infrastructure in the 1990s to
+contemporary blockchain applications and ultra-low latency systems, all oriented toward maximizing operational efficiency.
 
 [^1]: In empirical literature, the banking sector is identified  as a
 primary industry implementing blockchain technology.
 
 Trading entities, functioning as economic agents,
-aim to optimize market-derived profits. Multiple methodological approaches exist
-to achieve this objective. Various approaches exist across the investment
-spectrum: value investors like Benjamin Graham and Warren Buffett employ
-fundamental analysis with long-term horizons; quantitative firms such as
+aim to optimize market-derived profits. Multiple methodological approaches exist to achieve this objective. Various approaches exist across the 
+investment spectrum: value investors like Benjamin Graham and Warren 
+Buffett employ fundamental analysis with 
+long-term horizons; quantitative firms such as
 Two Sigma utilize computational methods for systematic trading; while
 high-frequency trading entities like Citadel Securities implement
 ultra-low latency strategies to capitalize on microscopic price discrepancies.
@@ -36,20 +34,17 @@ supersede human involvement in decision-making and execution processes @Turner20
 The progressive automation of trading activities will likely continue its
 direction, contradicting the stereotypical trading floor representation.
 
-Although machine learning's theoretical foundations date to the 1950s, its
-explicit implementation in trading contexts remains relatively limited. For
-example, in institutional foreign exchange trading, only entities with substantial
-capital resources and sophisticated quantitative infrastructure have developed
-effective machine learning trading systems @Mosic2017.
+Although machine learning's theoretical foundations date to the 1950s, for many years its
+explicit implementation in trading contexts has been relatively limited. 
+For example, in institutional FX trading, only entities with substantial
+capital resources and sophisticated quantitative infrastructure have developed effective machine learning trading systems @Mosic2017.
 
 This research investigates potential applications of machine learning—specifically
 reinforcement learning methodologies—in developing trading systems capable of
 generating statistically significant positive outcomes.
 
-Currently, most systems documented in academic literature aim to maximize either
-absolute trading profits or risk-adjusted performance metrics. Despite numerous
-methodological approaches to create consistently profitable systems utilizing
-variables derived from financial econometrics, fundamental analysis, or machine
+In the literature, many systems aim to maximize either
+absolute trading profits or risk-adjusted performance metrics. Despite numerous methodological approaches to create consistently profitable systems utilizing variables derived from financial econometrics, fundamental analysis, or machine
 learning algorithms, many have demonstrated suboptimal performance due to several
 factors, including:
 
@@ -60,5 +55,4 @@ factors, including:
 
 Even when empirical research demonstrates exceptional results, upon publication,
 any competitive advantage tends to diminish through market efficiency mechanisms.
-Strategies with persistent alpha-generating capabilities must remain proprietary
-to maintain their effectiveness.
+Strategies with persistent alpha-generating capabilities must remain proprietary to maintain their effectiveness.
