@@ -25,6 +25,24 @@ in program logic. This design supports controlled comparison across algorithms,
 reward definitions, feature sets, and market assumptions. It also improves
 repeatability by making the experimental conditions explicit and auditable.
 
+### Methodological Novelty Statement
+
+This thesis makes a targeted methodological contribution by combining:
+
+1. **TD3 as the primary learning algorithm** for continuous portfolio-exposure
+   control.
+2. **High-frequency order-book-derived inputs** as the main state information
+   source.
+3. **Microstructure-oriented feature design** (depth, imbalance, spread, and
+   related LOB signals) rather than relying only on standard bar-based
+   indicator sets.
+
+Relative to much of prior RL trading work that evaluates DQN/PPO-style
+approaches on daily or bar-level OHLCV data, the present design focuses on the
+algorithm-data-frequency combination that is still less represented in the
+literature: TD3 with high-frequency order-book structure. This distinction
+defines the core novelty claim assessed in the empirical chapters.
+
 ### Data and Experimental Units
 
 The empirical experiments in this thesis are conducted on time-indexed market
