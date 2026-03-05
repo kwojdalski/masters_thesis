@@ -3,49 +3,26 @@
 This thesis is structured to provide a comprehensive framework for
 understanding reinforcement learning algorithms applied to trading contexts.
 
-The first section provides a detailed examination of the intersection between
-artificial intelligence methodologies and financial markets, exploring the
-historical relationship between quantitative finance and computational science.
+Chapter 1 introduces the problem context, defines the research scope, and
+presents the methodological framework used throughout the thesis.
 
-The second chapter presents a systematic review of selected literature from
-quantitative finance, examining both classical equilibrium models such as CAPM
-(the established paradigm in equity research) and contemporary approaches. This
-section evaluates advantages and limitations of various financial
-models, with particular emphasis on algorithmic trading methodologies employed in
-comparable research contexts. The chapter establishes theoretical foundations
-for why reinforcement learning may be suitable for trading applications and
-reviews both seminal works and empirical applications in the literature.
+Chapter 2 reviews relevant financial and reinforcement learning literature,
+including classical asset-pricing models, empirical anomalies, and prior RL
+trading studies.
 
-The third section analyzes machine learning frameworks, providing a theoretical
-basis for why reinforcement learning may represent an optimal approach for
-trading applications. It presents a taxonomic comparison of major machine learning
-categories to elucidate their methodological distinctions, introduces key
-reinforcement learning concepts with illustrative examples, and addresses potential
-limitations and implementation challenges associated with these algorithms.
+Chapter 3 outlines machine learning foundations for trading applications and
+positions reinforcement learning relative to supervised and unsupervised
+approaches.
 
-The fourth part details the experimental methodology, including research
-objectives, data characteristics, experimental design parameters, and empirical
-results. The primary objective was to develop trading agents capable of
-statistically outperforming established benchmarks on risk-adjusted performance
-measures using high-frequency order book data—agents characterized by statistical
-robustness, adaptive learning capability, and consistent performance metrics. This
-chapter presents the mathematical formulations and procedural implementations
-leading to the empirical results, examining each component of the trading system.
+Chapters 4 and 5 present reinforcement learning foundations and the design of
+the trading agent, including action space, state representation, reward
+formulation, and policy/value components.
 
-The implemented algorithm utilizes the Twin Delayed Deep Deterministic Policy
-Gradient (TD3) approach, a continuous-control actor-critic method suited to
-position sizing decisions. The system incorporates order book features and
-market indicators to inform algorithmic decision-making processes. The
-methodology incorporates transaction cost models to simulate realistic trading
-conditions and explicitly acknowledges key assumptions including zero latency,
-mid-price execution, and zero market impact.
+Chapter 6 describes implementation details: data preparation, feature pipeline,
+environment assumptions, and the TD3 training workflow.
 
-The empirical analysis evaluates the reinforcement learning-based trading system
-against multiple benchmark methodologies including buy-and-hold strategies,
-time-weighted and volume-weighted average price execution approaches, and random
-trading baselines to establish statistical significance of results.
+Chapter 7 reports empirical evaluation, statistical validation, and robustness
+assessment.
 
-The concluding section presents a comparative analysis with similar research and
-proposes directions for future investigation, addressing research questions such
-as extension to other asset classes, performance across different market regimes,
-impact of data frequency choices, and relaxation of simplifying assumptions.
+Chapter 8 summarizes findings, discusses limitations and practical implications,
+and proposes directions for future research.
