@@ -13,6 +13,13 @@ results are also affected by maker/taker fees, queue priority, partial fills,
 and latency-dependent adverse selection. These frictions are only partially
 represented in the present setup.
 
+Relatedly, the current environment assumes zero market impact: agent trades do
+not shift prices or deplete liquidity in a way that changes subsequent
+execution conditions. This is reasonable only for small orders relative to
+available depth. Relaxing this assumption would likely lower net returns,
+increase drawdowns, and penalize high-turnover behavior through impact-driven
+slippage and adverse selection.
+
 The practical implication is that reported backtest performance is likely
 optimistic relative to deployable net performance. Strategies with high turnover
 are especially sensitive: even small per-trade execution costs can materially
