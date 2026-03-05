@@ -32,13 +32,12 @@ The research is based on the following hypotheses:
 ### Objectives of the Research
 
 The primary research goal is to evaluate Reinforcement Learning-based
-algorithms for multiasset trading, with particular focus on pair trading
-strategies. The research objectives are structured in three interconnected
-phases:
+algorithms for high-frequency single-asset trading using order-book-derived
+data. The research objectives are structured in three interconnected phases:
 
 1. **Design and Implementation**
    - Develop both basic and extended Reinforcement Learning trading agents
-     for pair trading applications
+     for high-frequency order-book trading applications
    - Construct robust testing frameworks to evaluate agent performance
    - Create agents capable of processing financial time series data
 
@@ -51,7 +50,7 @@ phases:
 
 3. **Analysis and Implications**
    - Examine agent learning evolution and pattern recognition capabilities
-   - Investigate how agents integrate with traditional pair trading
+   - Investigate how agents integrate with microstructure-aware trading
      methodologies
    - Assess transaction cost management effectiveness
    - Determine if agents can identify non-trivial patterns more efficiently

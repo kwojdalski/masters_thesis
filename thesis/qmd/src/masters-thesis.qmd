@@ -51,19 +51,19 @@ jupyter:
 \begin{abstract}
 
 This thesis examines the application of reinforcement learning techniques to
-foreign exchange market trading strategies. The investigation commences with a
-comprehensive analysis of the FX market structure, including its organizational
-framework, key participants, and recent evolutionary developments. The author
-provides a critical assessment of prevailing trends and potential future
-trajectories in this domain.
+high-frequency trading with order-book-derived market data. The investigation
+covers both the theoretical foundations and practical constraints of applying
+reinforcement learning in market microstructure settings, including benchmark
+evaluation and execution-related assumptions.
 
 The subsequent section establishes the theoretical foundation for the research,
 presenting a detailed exposition of relevant financial models and artificial
 intelligence methodologies that underpin the analytical framework.
 
-The empirical component in the third chapter implements a Q-learning based
-reinforcement learning approach, yielding inconclusive results that warrant
-further investigation.
+The empirical component implements a TD3-based reinforcement learning approach
+for continuous exposure control on high-frequency AAPL order-book data, and
+evaluates performance relative to multiple benchmarks under explicitly stated
+simulation assumptions.
 
 \end{abstract}
 
@@ -72,22 +72,22 @@ further investigation.
 
 {{< include ./01-00-00-introduction.qmd >}}
 
-{{< include ./01-01-00-statistical-arbitrage.qmd >}}
-{{< include ./01-01-01-statistical-arbitrage-vs-other-types.qmd >}}
-{{< include ./01-01-02-critical-parameter-selection.qmd >}}
+<!-- {{< include ./01-01-00-statistical-arbitrage.qmd >}} -->
+<!-- {{< include ./01-01-01-statistical-arbitrage-vs-other-types.qmd >}} -->
+<!-- {{< include ./01-01-02-critical-parameter-selection.qmd >}} -->
 {{< include ./01-02-00-scope-and-objectives.qmd >}}
 {{< include ./01-03-00-methodological-framework.qmd >}}
 {{< include ./01-04-00-thesis-organization-and-chapter-overview.qmd >}}
 
-{{< include ./02-01-01-01-classical-models.qmd >}}
-{{< include ./02-01-01-02-modern-portfolio-theory-and-capm.qmd >}}
-{{< include ./02-01-01-03-factor-models.qmd >}}
-{{< include ./02-01-02-00-modern-approaches.qmd >}}
-{{< include ./02-01-03-00-critical-analysis.qmd >}}
+<!-- {{< include ./02-01-01-01-classical-models.qmd >}} -->
+<!-- {{< include ./02-01-01-02-modern-portfolio-theory-and-capm.qmd >}} -->
+<!-- {{< include ./02-01-01-03-factor-models.qmd >}} -->
+<!-- {{< include ./02-01-02-00-modern-approaches.qmd >}} -->
+<!-- {{< include ./02-01-03-00-critical-analysis.qmd >}} -->
 {{< include ./02-02-00-relevant-financial-indicators.qmd >}}
 {{< include ./02-02-02-empirical-evidence.qmd >}}
-{{< include ./02-02-03-market-anomalies.qmd >}}
-{{< include ./02-03-03-01-key-concepts.qmd >}}
+<!-- {{< include ./02-02-03-market-anomalies.qmd >}} -->
+<!-- {{< include ./02-03-03-01-key-concepts.qmd >}} -->
 {{< include ./02-03-03-02-seminal-works.qmd >}}
 {{< include ./02-03-03-03-rl-applications.qmd >}}
 
