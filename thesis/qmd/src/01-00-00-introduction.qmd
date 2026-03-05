@@ -1,8 +1,8 @@
 # Introduction
 
 Conventional representation of trading floors as chaotic environments
-characterized by vocal trader interactions was historically accurate until the 80s.
-Since then the financial industry has since undergone substantial transformation.
+characterized by vocal trader interactions has been in decline since the 1980s.
+For the last 40 years, the financial industry has undergone substantial transformation.
 
 Financial markets have consistently functioned as an early adopter of
 computational innovations. This integration represents a strategic
@@ -10,7 +10,7 @@ imperative—competitive advantage through technology frequently correlates with
 Hence, the industry has systematically pioneered the deployment of
 state-of-the-art technologies,
 ranging from Bloomberg terminal infrastructure in the 1990s to
-contemporary blockchain applications and ultra-low latency systems, all oriented toward maximizing operational efficiency.
+contemporary blockchain applications and low latency systems, all oriented toward maximizing operational efficiency.
 
 [^1]: In empirical literature, the banking sector is identified  as a
 primary industry implementing blockchain technology.
@@ -22,11 +22,11 @@ Buffett employ fundamental analysis with
 long-term horizons; quantitative firms such as
 Two Sigma utilize computational methods for systematic trading; while
 high-frequency trading entities like Citadel Securities implement
-ultra-low latency strategies to capitalize on microscopic price discrepancies.
+low latency strategies to capitalize on microscopic price discrepancies.
 
 In recent years, methodologies predicated on artificial intelligence and machine
 learning algorithms have demonstrated increasing significance. This phenomenon
-correlates with computational processing capacity, decreasing
+correlates, to name a few reasons, with computational capacity, decreasing
 infrastructure expenditure requirements, and empirical recognition of cognitive
 biases in human decision-making processes. A growing consensus within
 the literature suggests that algorithmic systems should supplement or potentially
@@ -45,7 +45,7 @@ generating statistically significant positive outcomes.
 
 In the literature, many systems aim to maximize either
 absolute trading profits or risk-adjusted performance metrics. Despite numerous methodological approaches to create consistently profitable systems utilizing variables derived from financial econometrics, fundamental analysis, or machine
-learning algorithms, many have demonstrated suboptimal performance due to several
+learning algorithms, many have demonstrated mediocre performance due to several
 factors, including:
 
 * Large drawdowns resulting in excessive performance volatility
@@ -55,4 +55,4 @@ factors, including:
 
 Even when empirical research demonstrates exceptional results, upon publication,
 any competitive advantage tends to diminish through market efficiency mechanisms.
-Strategies with persistent alpha-generating capabilities must remain proprietary to maintain their effectiveness.
+Strategies with alpha-generating capabilities typically remain proprietary to maintain their effectiveness.

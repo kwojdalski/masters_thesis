@@ -104,10 +104,11 @@ advances in one domain have catalyzed progress in the other.
     - AI-driven algorithms can deliver superior value by exceeding benchmark
       performance metrics in terms of both risk management and return generation
     - Enhanced performance is particularly evident in high-frequency trading
-      scenarios as well as across extended time horizons
+      scenarios
     - These algorithms demonstrate the capability to implicitly learn market
       patterns that would be impossible for humans to identify and efficiently
-      select securities. In consequence, they generate alpha
+      select securities. In consequence, they generate alpha or at least
+      desirable investment performance characteristics
   - 1.2.2 Objectives of the Research
     - Design and implementation of a basic and an extended Reinforcement Learning
       trading agent for pair trading
