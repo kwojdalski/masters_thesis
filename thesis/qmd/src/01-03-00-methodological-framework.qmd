@@ -62,24 +62,11 @@ and the data structure is verified before further processing. Chronological data
 integrity is essential because any disturbance to temporal ordering invalidates
 the sequential learning assumptions.
 
-Fourth, the dataset is partitioned into training, validation, and test subsets
-using chronological splits. The training subset is used to fit model parameters
-and any fitted preprocessing transformations. The validation subset is used for
-intermediate assessment, debugging, and design iteration. The test subset is
-reserved for final out-of-sample evaluation and should remain isolated from
-model selection decisions.
-
-Fifth, feature engineering is applied after the split. Any transformation that
-requires fitted statistics, such as scaling or normalization, is estimated on
-the training subset only and then applied to the validation and test subsets
-using the parameters learned from training data. This ordering is a key
-protection against look-ahead bias and data leakage.
-
-Sixth, simulation environments are constructed from the prepared datasets. A
-training environment is used for optimization, while evaluation environments are
-built separately for the datasets on which results are reported. This prevents
-inconsistencies in which policy rollouts and benchmark comparisons are generated
-from different data segments.
+Fourth, chronological train/validation/test splits are enforced. Model fitting
+and any fitted transformations are based on training data only; final claims are
+reported out-of-sample, with evaluation performed on environments built from the
+corresponding evaluation split. The full operational split/leakage protocol is
+specified in Chapter 6.3.
 
 Seventh, the selected reinforcement learning algorithm is trained using the
 configured environment and hyperparameters. During training, model checkpoints
