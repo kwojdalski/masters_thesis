@@ -34,6 +34,8 @@ In the work, the author has assumed that:
   available depth during execution.
 * Zero latency - observations are assumed to be acted on immediately, i.e.,
   no delay between signal formation, order submission, and execution.
+* Sufficient liquidity depth - displayed order-book depth is assumed adequate
+  to absorb the agent's position updates without large execution shortfall.
 * Mid-price execution proxy - trades are effectively valued at a mid-price-like
   reference rather than at executable bid/ask quotes.
 
@@ -56,6 +58,22 @@ action, which is appropriate for the scope of this thesis (strategy-learning
 assessment rather than ultra-low-latency execution engineering). In production
 HFT systems, however, transport, queueing, and matching-engine latency can
 change fill quality and invalidate short-lived signals.
+
+The liquidity-depth assumption is supported by empirical depth in the AAPL
+MBP-10 dataset used in the HFT scenario (`2026-02-25` to `2026-02-27`,
+approximately 2.79 million snapshots). Typical displayed depth is substantial
+relative to the small notional adjustments used in this study, but the
+assumption is only credible while position sizes remain small versus local
+order-book depth.
+
+Table: Typical displayed order-book depth in the AAPL MBP-10 dataset
+
+| Metric | Median | 90th percentile |
+|---|---:|---:|
+| Top-of-book depth (shares, `bid_sz_00 + ask_sz_00`) | 170 | 410 |
+| Top-3-level depth (shares, `L0+L1+L2`) | 699 | 1,244 |
+| Top-of-book notional depth (USD, approx.) | 46,189 | 111,920 |
+| Top-3-level notional depth (USD, approx.) | 190,493 | 340,020 |
 
 
 
