@@ -158,6 +158,9 @@ class StatisticalTestingConfig:
 
     # Comparison baselines (can enable multiple)
     compare_to_buy_and_hold: bool = True  # Compare to buy-and-hold benchmark
+    compare_to_short_and_hold: bool = False  # Compare to short-and-hold benchmark
+    compare_to_twap: bool = False  # Compare to TWAP execution baseline
+    compare_to_vwap: bool = False  # Compare to VWAP execution baseline
     compare_to_random: bool = True  # Compare to random action baseline
 
     # Statistical tests to perform (can enable multiple)
@@ -586,6 +589,9 @@ class ExperimentConfig:
                 "log_to_research_artifacts": self.statistical_testing.log_to_research_artifacts,
                 "research_artifact_subdir": self.statistical_testing.research_artifact_subdir,
                 "compare_to_buy_and_hold": self.statistical_testing.compare_to_buy_and_hold,
+                "compare_to_short_and_hold": self.statistical_testing.compare_to_short_and_hold,
+                "compare_to_twap": self.statistical_testing.compare_to_twap,
+                "compare_to_vwap": self.statistical_testing.compare_to_vwap,
                 "compare_to_random": self.statistical_testing.compare_to_random,
                 "tests": self.statistical_testing.tests,
                 "n_bootstrap_samples": self.statistical_testing.n_bootstrap_samples,

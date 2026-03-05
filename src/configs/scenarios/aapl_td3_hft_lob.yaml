@@ -140,6 +140,9 @@ statistical_testing:
 
   # Comparison baselines
   compare_to_buy_and_hold: true  # Compare strategy to buy-and-hold benchmark
+  compare_to_short_and_hold: true  # Balanced inverse directional benchmark
+  compare_to_twap: true  # Time-weighted execution benchmark
+  compare_to_vwap: true  # Volume-weighted execution benchmark (uses volume or size proxy)
   compare_to_random: true  # Compare strategy to random action baseline
 
   # Statistical tests to perform

@@ -32,7 +32,12 @@ from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import prepare_data
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
-from trading_rl.evaluation import EvaluationContext, build_evaluation_report_for_trainer, run_all_statistical_tests
+from trading_rl.evaluation import (
+    EvaluationContext,
+    build_evaluation_report_for_trainer,
+    periods_per_year_from_timeframe,
+    run_all_statistical_tests,
+)
 from trading_rl.evaluation.explainability import RLInterpretabilityAnalyzer
 from trading_rl.plotting import visualize_training
 from trading_rl.trainers.ppo import PPOTrainerContinuous
@@ -1113,8 +1118,9 @@ def run_single_experiment(
             # Extract strategy returns for statistical testing
             # We need to re-run the rollout to get returns (or extract from evaluation)
             import torch
-            from torchrl.envs.utils import set_exploration_type
             from tensordict.nn import InteractionType
+            from torchrl.envs.utils import set_exploration_type
+
             from trading_rl.utils import _extract_tradingenv_returns
 
             with torch.no_grad():
@@ -1161,12 +1167,17 @@ def run_single_experiment(
                 logger.warning("No price column found for buy-and-hold comparison")
 
             # Run all configured statistical tests
+            periods_per_year = periods_per_year_from_timeframe(
+                getattr(config.data, "timeframe", "1d")
+            )
             statistical_test_results = run_all_statistical_tests(
                 strategy_returns=strategy_simple_returns,
                 prices=price_series,
                 env=eval_ctx.env,
                 max_steps=eval_ctx.max_steps,
                 config=config.statistical_testing,
+                market_data=eval_ctx.df,
+                periods_per_year=periods_per_year,
             )
 
             # Log results to MLflow
