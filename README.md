@@ -71,6 +71,23 @@ python scripts/fetch_crypto.py download-crypto --symbols BTC/USDT --timeframe 1h
 python scripts/fetch_stocks.py download-stocks --symbols AAPL --start-date 2024-01-01
 ```
 
+### Non-synthetic proprietary stock data (Google Drive)
+
+If you have access to the private shared dataset folder, download it into
+`data/raw/stocks` using:
+
+```bash
+source .venv/bin/activate
+pip install gdown
+export GDRIVE_STOCKS_URL="https://drive.google.com/drive/folders/<your-folder-id>"
+python scripts/download_stocks_from_gdrive.py
+```
+
+Notes:
+- The URL must be provided via `GDRIVE_STOCKS_URL` (or passed with `--url`).
+- Destination defaults to `data/raw/stocks` and is created automatically.
+- You need permission to access the shared Google Drive folder.
+
 See `docs/data_guide.md` for detailed instructions on data download and generation.
 
 ## Configuration
