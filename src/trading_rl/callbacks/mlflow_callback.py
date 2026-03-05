@@ -880,6 +880,20 @@ class MLflowTrainingCallback:
             mlflow.log_artifact(handle.name, "statistical_tests")
             os.unlink(handle.name)
 
+        vwap_volume_source = test_results.get("vwap_volume_source")
+        if isinstance(vwap_volume_source, str) and vwap_volume_source:
+            mlflow.log_param("stat_vwap_volume_source", vwap_volume_source)
+
+        benchmark_table = test_results.get("benchmark_comparison_table")
+        if isinstance(benchmark_table, list) and benchmark_table:
+            benchmark_df = pd.DataFrame(benchmark_table)
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".csv", delete=False
+            ) as handle:
+                benchmark_df.to_csv(handle.name, index=False)
+                mlflow.log_artifact(handle.name, "statistical_tests")
+                os.unlink(handle.name)
+
         if log_to_research_artifacts:
             significant_findings: list[dict[str, Any]] = []
             for baseline_result in test_results.get("baselines", []):

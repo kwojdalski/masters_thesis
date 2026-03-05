@@ -7,64 +7,72 @@ from trading_rl.evaluation.report import (
     periods_per_year_from_timeframe,
 )
 from trading_rl.evaluation.statistical_tests import (
-    # Core classes (for extensions)
-    StatisticalTest,
+    TEST_REGISTRY,
     BootstrapTest,
-    PermutationTest,
-    # Concrete test classes
-    TTest,
     MannWhitneyTest,
     PermutationMeanTest,
+    PermutationTest,
     SharpeBootstrapTest,
     SortinoBootstrapTest,
-    # Factory and registry
-    get_test,
-    register_test,
-    list_available_tests,
-    TEST_REGISTRY,
-    # Individual test functions
-    t_test_mean_returns,
-    mann_whitney_test,
-    permutation_test,
-    sharpe_ratio_bootstrap_test,
-    sortino_ratio_bootstrap_test,
+    # Core classes (for extensions)
+    StatisticalTest,
+    # Concrete test classes
+    TTest,
+    build_benchmark_comparison_table,
     # Baseline computation
     compute_buy_and_hold_returns,
     compute_random_baseline_returns,
+    compute_short_and_hold_returns,
+    compute_twap_returns,
+    compute_vwap_returns,
+    # Factory and registry
+    get_test,
+    list_available_tests,
+    mann_whitney_test,
+    permutation_test,
+    register_test,
+    run_all_statistical_tests,
     # Orchestration
     run_statistical_tests,
-    run_all_statistical_tests,
+    sharpe_ratio_bootstrap_test,
+    sortino_ratio_bootstrap_test,
+    # Individual test functions
+    t_test_mean_returns,
 )
 
 __all__ = [
-    "EvaluationContext",
-    "build_evaluation_report_for_trainer",
-    "build_metric_report",
-    "periods_per_year_from_timeframe",
-    # Statistical test classes (for extensions)
-    "StatisticalTest",
+    "TEST_REGISTRY",
     "BootstrapTest",
-    "PermutationTest",
-    "TTest",
+    "EvaluationContext",
     "MannWhitneyTest",
     "PermutationMeanTest",
+    "PermutationTest",
     "SharpeBootstrapTest",
     "SortinoBootstrapTest",
-    # Factory and registry
-    "get_test",
-    "register_test",
-    "list_available_tests",
-    "TEST_REGISTRY",
-    # Individual test functions
-    "t_test_mean_returns",
-    "mann_whitney_test",
-    "permutation_test",
-    "sharpe_ratio_bootstrap_test",
-    "sortino_ratio_bootstrap_test",
+    # Statistical test classes (for extensions)
+    "StatisticalTest",
+    "TTest",
+    "build_benchmark_comparison_table",
+    "build_evaluation_report_for_trainer",
+    "build_metric_report",
     # Baseline computation
     "compute_buy_and_hold_returns",
     "compute_random_baseline_returns",
+    "compute_short_and_hold_returns",
+    "compute_twap_returns",
+    "compute_vwap_returns",
+    # Factory and registry
+    "get_test",
+    "list_available_tests",
+    "mann_whitney_test",
+    "periods_per_year_from_timeframe",
+    "permutation_test",
+    "register_test",
+    "run_all_statistical_tests",
     # Orchestration
     "run_statistical_tests",
-    "run_all_statistical_tests",
+    "sharpe_ratio_bootstrap_test",
+    "sortino_ratio_bootstrap_test",
+    # Individual test functions
+    "t_test_mean_returns",
 ]
