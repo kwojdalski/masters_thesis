@@ -91,7 +91,10 @@ Experiment tracking with a system such as MLflow contributes to scientific trace
 
 ### Evaluation Protocol and Quantitative Performance Assessment
 
-The evaluation stage should be conceptually separated from training. In a rigorous workflow, the final reported performance should be obtained on a dedicated out-of-sample dataset (validation for model selection, test for final reporting), using an evaluation environment built from that dataset. This distinction is critical because evaluating on the same environment used for training can produce overly optimistic conclusions.
+The evaluation stage follows the split and leakage-control protocol defined
+above: final performance is reported on a dedicated out-of-sample dataset
+(validation for model selection, test for final reporting), using an evaluation
+environment built from that dataset.
 
 Evaluation typically includes both behavioral and financial outputs. Behavioral outputs include action trajectories (portfolio allocation weights over time), position-change frequency, and turnover-related statistics. These are important for understanding whether a strategy is practically plausible, especially under transaction costs.
 
@@ -101,7 +104,10 @@ To support quantitative finance interpretation, the pipeline can compute a set o
 
 ### Methodological Risks and Common Pipeline Pitfalls
 
-Even a well-structured RL trading workflow is vulnerable to methodological errors. A primary risk is train/evaluation leakage, which may occur if evaluation rollouts are inadvertently executed on the training environment while benchmark or plotting data are taken from validation or test data. This can create internally inconsistent results that are difficult to diagnose from summary metrics alone.
+Even a well-structured RL trading workflow is vulnerable to methodological
+errors. A primary implementation risk is internal inconsistency between rollout
+data and benchmark/plotting data, which can still occur if experiment wiring is
+misconfigured.
 
 A second risk concerns reward interpretation. If the training reward is a shaped or risk-adjusted signal rather than direct financial return, using it as though it were per-period return in evaluation metrics can invalidate reported Sharpe, drawdown, or CAGR estimates. The evaluation stage must distinguish between optimization reward and realized portfolio return.
 
