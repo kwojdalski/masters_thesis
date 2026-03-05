@@ -3,8 +3,9 @@ The following assumptions are established for the trading mechanisms and
 algorithmic simulation framework:
 (b) Zero latency exists between market data reception and trade execution when
    a favorable signal is present.
-(a) The absence of market competition enables execution at counterparty prices
-   (selling at bid price and purchasing at ask price).
+(a) Execution is approximated at the observed mid-price proxy used by the
+   environment pricing column. This avoids explicit bid/ask crossing and
+   simplifies reward accounting during training and evaluation.
 (c) Position constraints limit holdings to x contract(s) at any given moment, with
    transactions restricted to whole contract units.
 (d) A transaction fee of x% of the execution price is applied to all trades.
@@ -30,6 +31,15 @@ In the work, the author has assumed that:
 
 * Zero slippage - the FX market is liquidity is good enough that there the execution price is equal to the price shown by the venue (Bloomberg)
 * Zero market impact - trades executed by the agent are not big enough that they can move the market and cause significant market impact
+* Mid-price execution proxy - trades are effectively valued at a mid-price-like
+  reference rather than at executable bid/ask quotes.
+
+For order-book trading this is an optimistic approximation. Real implementations
+must cross the spread to execute marketable orders, and realized performance is
+further affected by maker/taker fee schedules, queue position, partial fills,
+and latency. Consequently, backtest returns and risk-adjusted metrics reported
+under the mid-price assumption should be interpreted as an upper bound on
+execution quality rather than as deployable net performance.
 
 
 
