@@ -100,7 +100,14 @@ Evaluation typically includes both behavioral and financial outputs. Behavioral 
 
 Financial outputs include cumulative reward curves and benchmark comparisons, such as buy-and-hold performance. However, benchmark alignment must be performed on the same price series as the evaluated rollout to avoid misleading visual comparisons.
 
-To support quantitative finance interpretation, the pipeline can compute a set of performance metrics including annualized return, annualized volatility, Sharpe ratio, Sortino ratio, maximum drawdown, win rate, profit factor, and downside risk measures such as Value at Risk (VaR) and Conditional Value at Risk (CVaR). These metrics provide complementary views of performance and are particularly valuable because raw reward alone may not capture risk concentration, tail losses, or trading aggressiveness.
+In implementation terms, the pipeline keeps optimization and financial outputs in
+separate streams. Training/evaluation reward is logged as an optimization
+diagnostic, while financial metrics are computed from the realized
+portfolio-value/return time series produced during rollout. To support
+quantitative finance interpretation, the pipeline computes annualized return,
+annualized volatility, Sharpe ratio, Sortino ratio, maximum drawdown, win rate,
+profit factor, and downside risk measures such as Value at Risk (VaR) and
+Conditional Value at Risk (CVaR).
 
 ### Methodological Risks and Common Pipeline Pitfalls
 
@@ -109,7 +116,9 @@ errors. A primary implementation risk is internal inconsistency between rollout
 data and benchmark/plotting data, which can still occur if experiment wiring is
 misconfigured.
 
-A second risk concerns reward interpretation. If the training reward is a shaped or risk-adjusted signal rather than direct financial return, using it as though it were per-period return in evaluation metrics can invalidate reported Sharpe, drawdown, or CAGR estimates. The evaluation stage must distinguish between optimization reward and realized portfolio return.
+A second risk concerns output-stream mix-ups in evaluation code or reporting
+scripts. Using the optimization-reward stream as if it were realized return can
+invalidate Sharpe, drawdown, or CAGR estimates.
 
 A third risk is overfitting through repeated validation exposure. Frequent inspection of validation plots and metrics can gradually turn the validation set into a tuning target. In a thesis context, this should be mitigated by preserving a final untouched test set and clearly documenting when and how validation feedback influenced design choices.
 
