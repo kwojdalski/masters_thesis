@@ -1001,6 +1001,21 @@ wheels = [
 ]
 
 [[package]]
+name = "gym-anytrading"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gymnasium" },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3a/64/b6198ed2c1a7b46934eb4b333c2ad2259f7722b0181b9c3e9f61f92a424c/gym_anytrading-2.0.0.tar.gz", hash = "sha256:f77e85fb10785e8e124d3f6e8b3f76827c11aaf0b16b36fdb7ef26aeb5e734a6", size = 174913, upload-time = "2023-08-27T12:09:25.301Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/97/1c92ae872371577fb4e732ec1365775fa12ce2865233909b5d10dc4f19df/gym_anytrading-2.0.0-py3-none-any.whl", hash = "sha256:29e88b9d38272ea338c8cfcebc6a0f0302c7a8c02048331ad6a4d22cdd825e54", size = 172245, upload-time = "2023-08-27T12:09:22.603Z" },
+]
+
+[[package]]
 name = "gym-trading-env"
 version = "0.3.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1637,6 +1652,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "black" },
+    { name = "gym-anytrading" },
     { name = "gym-trading-env" },
     { name = "gymnasium" },
     { name = "joblib" },
@@ -1677,6 +1693,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "black", specifier = ">=24.3.0" },
+    { name = "gym-anytrading", specifier = ">=2.0.0" },
     { name = "gym-trading-env", specifier = ">=0.0.0" },
     { name = "gymnasium", specifier = ">=0.29.1" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29.0" },
