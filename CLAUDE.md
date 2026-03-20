@@ -87,6 +87,6 @@ This is a master's thesis project focusing on trading strategies and reinforceme
 - Use .gitignore for notebooks checkpoints
 - Track experiment results separately
 
-# Source
+# Package Manager
 
-Always run source .venv/bin/activate to ensure that you are in the correct environment.
+This project uses uv. Run commands with `uv run <command>` (e.g., `uv run python src/cli.py ...`, `uv run pytest`). Do not activate the venv manually.

@@ -134,5 +134,3 @@ docstring-code-format = true
 # Disallow all relative imports.
 ban-relative-imports = "all"
 
-[tool.poetry]
-package-mode = false
