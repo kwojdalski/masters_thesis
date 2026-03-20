@@ -223,6 +223,44 @@ def main() -> int:
         print(f"[INFO] Download complete. Successful: {downloaded}/{len(selected)}")
         return 0 if downloaded == len(selected) else 1
 
+    # Use Drive API (authenticated) if credentials are available, otherwise fall
+    # back to gdown which requires the folder to be publicly shared.
+    has_credentials = bool(
+        os.getenv("GDRIVE_SERVICE_ACCOUNT_FILE") or os.getenv("GDRIVE_CLIENT_SECRET_FILE")
+    )
+
+    if has_credentials:
+        try:
+            folder_id = extract_folder_id(url)
+            service = get_drive_service()
+            remote_files = list_folder_files(service, folder_id)
+        except Exception as exc:
+            print(f"[ERROR] {exc}", file=sys.stderr)
+            return 2
+
+        if not remote_files:
+            print("[WARN] No files found in the Drive folder.")
+            return 1
+
+        print(f"[INFO] Downloading {len(remote_files)} file(s) into: {destination}")
+        downloaded = 0
+        for f in remote_files:
+            out_path = destination / f["name"]
+            print(f"[INFO] Downloading {f['name']}...")
+            result = gdown.download(
+                id=f["id"],
+                output=str(out_path),
+                quiet=args.quiet,
+            )
+            if result:
+                downloaded += 1
+                print(f"[OK] {f['name']}")
+            else:
+                print(f"[FAIL] {f['name']}", file=sys.stderr)
+
+        print(f"[INFO] Download complete. Successful: {downloaded}/{len(remote_files)}")
+        return 0 if downloaded == len(remote_files) else 1
+
     print(f"[INFO] Downloading Google Drive folder into: {destination}")
     print("[INFO] URL source: " + ("--url" if args.url else "GDRIVE_STOCKS_URL"))
 
