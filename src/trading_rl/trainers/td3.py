@@ -7,7 +7,7 @@ from typing import Any
 import torch
 from tensordict.nn import InteractionType, TensorDictSequential
 from torch.optim import Adam
-from torchrl.collectors.collectors import RandomPolicy
+from torchrl.envs.utils import RandomPolicy
 from torchrl.data import Bounded
 from torchrl.envs.utils import set_exploration_type
 from torchrl.modules import AdditiveGaussianModule
