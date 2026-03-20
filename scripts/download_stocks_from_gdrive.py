@@ -120,6 +120,18 @@ def get_drive_service():
     return build("drive", "v3", credentials=creds)
 
 
+def download_file_via_api(service, file_id: str, dest_path: Path) -> None:
+    from googleapiclient.http import MediaIoBaseDownload
+    import io
+
+    request = service.files().get_media(fileId=file_id)
+    with dest_path.open("wb") as fh:
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+
+
 def list_folder_files(service, folder_id: str) -> list[dict]:
     files = []
     page_token = None
@@ -180,12 +192,6 @@ def main() -> int:
         logger.error(exc)
         return 2
 
-    try:
-        import gdown
-    except ImportError:
-        logger.error("Missing dependency 'gdown'. Install with: uv add gdown")
-        return 3
-
     destination = args.dest.resolve()
     destination.mkdir(parents=True, exist_ok=True)
 
@@ -212,16 +218,12 @@ def main() -> int:
         for f in selected:
             out_path = destination / f["name"]
             logger.info("Downloading %s...", f["name"])
-            result = gdown.download(
-                id=f["id"],
-                output=str(out_path),
-                quiet=args.quiet,
-            )
-            if result:
+            try:
+                download_file_via_api(service, f["id"], out_path)
                 downloaded += 1
                 logger.info("OK: %s", f["name"])
-            else:
-                logger.error("FAIL: %s", f["name"])
+            except Exception as exc:
+                logger.error("FAIL: %s — %s", f["name"], exc)
 
         logger.info("Download complete. Successful: %d/%d", downloaded, len(selected))
         return 0 if downloaded == len(selected) else 1
@@ -250,19 +252,21 @@ def main() -> int:
         for f in remote_files:
             out_path = destination / f["name"]
             logger.info("Downloading %s...", f["name"])
-            result = gdown.download(
-                id=f["id"],
-                output=str(out_path),
-                quiet=args.quiet,
-            )
-            if result:
+            try:
+                download_file_via_api(service, f["id"], out_path)
                 downloaded += 1
                 logger.info("OK: %s", f["name"])
-            else:
-                logger.error("FAIL: %s", f["name"])
+            except Exception as exc:
+                logger.error("FAIL: %s — %s", f["name"], exc)
 
         logger.info("Download complete. Successful: %d/%d", downloaded, len(remote_files))
         return 0 if downloaded == len(remote_files) else 1
+
+    try:
+        import gdown
+    except ImportError:
+        logger.error("Missing dependency 'gdown'. Install with: uv add gdown")
+        return 3
 
     logger.info("Downloading Google Drive folder into: %s", destination)
     logger.info("URL source: %s", "--url" if args.url else "GDRIVE_STOCKS_URL")
