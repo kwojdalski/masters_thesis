@@ -139,3 +139,7 @@ thesis/qmd/results/
 papers/literature_review
 scripts/upload_selected_to_gdrive.py
 papers/
+
+# Google Drive OAuth tokens (contain refresh tokens — never commit)
+scripts/.gdrive_download_token.json
+scripts/.gdrive_upload_token.json
