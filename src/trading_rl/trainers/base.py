@@ -216,7 +216,8 @@ class BaseTrainer(ABC):
             )
             return
 
-        self.collector.policy = torchrl_collectors.RandomPolicy(action_spec)
+        from torchrl.envs.utils import RandomPolicy
+        self.collector.policy = RandomPolicy(action_spec)
         self.random_exploration_done = False
         logger.info(
             "%s using random policy for first %s steps",
