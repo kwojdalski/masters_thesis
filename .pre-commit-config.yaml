@@ -238,7 +238,7 @@ repos:
         language: system
         args:
           - -c
-          - 'PYTHONPATH=src poetry run pytest --cache-clear --tb=line tests/ || true'
+          - 'PYTHONPATH=src uv run pytest --cache-clear --tb=line tests/ || true'
         files: '^(src/.*\.py|tests/.*\.py)$'
         pass_filenames: false
   - repo: https://github.com/pre-commit/pre-commit-hooks

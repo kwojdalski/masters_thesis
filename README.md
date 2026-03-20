@@ -15,36 +15,16 @@ experiment tracking.
 ## Prerequisites
 
 - Python 3.12
-- pip or Poetry
+- [uv](https://docs.astral.sh/uv/)
 
 ## Installation
 
-### pip + venv (recommended)
-
 <!--pytest.mark.skip-->
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Poetry
-
-<!--pytest.mark.skip-->
-```bash
-poetry config virtualenvs.in-project true
-poetry install
-source .venv/bin/activate
+uv sync --extra dev
 ```
 
 ## Quick Start
-
-Activate the environment before running commands:
-
-<!--pytest.mark.skip-->
-```bash
-source .venv/bin/activate
-```
 
 Common commands:
 
@@ -78,10 +58,9 @@ If you have access to the private shared dataset folder, download it into
 `data/raw/stocks` using:
 
 ```bash
-source .venv/bin/activate
-pip install gdown
+uv add gdown
 export GDRIVE_STOCKS_URL="https://drive.google.com/drive/folders/<your-folder-id>"
-python scripts/download_stocks_from_gdrive.py
+uv run python scripts/download_stocks_from_gdrive.py
 ```
 
 Notes:
