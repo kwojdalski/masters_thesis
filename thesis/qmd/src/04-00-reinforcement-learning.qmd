@@ -137,7 +137,7 @@ $\epsilon$ values facilitate greater initial rewards but typically underperform
 compared to larger $\epsilon$ values as the number of steps increases.
 
 
-##### Optimistic initial values
+<!-- ##### Optimistic initial values
 
 One of the techniques to improve agent's choices is based on the idea of
 encouraging the agent to explore. Why is that? If the actual reward is smaller
@@ -172,13 +172,7 @@ much less frequently over time.
 UCB performs well, but it is harder to apply (generalize) for a broader amount
 of problems than $\epsilon$-greedy algorithm. Especially, when one is dealing
 with nonstationary problems. In such situations, algorithms more complex than
-those presented in this subsection should be selected.
-
-<!-- ![Average performance of UCB action selection on the 10-armed testbed](){width=400px; height=400px} -->
-<!-- . As shown, UCB generally -->
-<!-- performs better than "-greedy action selection, except in the first k steps, when it selects randomly among the -->
-<!-- as-yet-untried actions. -->
-<!-- In this part  -->
+those presented in this subsection should be selected. -->
 
 
 

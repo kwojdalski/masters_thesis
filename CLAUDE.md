@@ -82,6 +82,7 @@ This is a master's thesis project focusing on trading strategies and reinforceme
 
 ## Version Control
 
+- **After every change to any file, create a git commit immediately.** Do not batch multiple unrelated changes into one commit.
 - Commit frequently with clear messages, every single time you make any change, there should be a commit.
 - Don't commit large data files or model weights
 - Use .gitignore for notebooks checkpoints

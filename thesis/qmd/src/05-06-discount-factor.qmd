@@ -56,18 +56,21 @@ This value is standard in many reinforcement learning applications and reflects 
 The choice of $\gamma$ significantly influences the learned trading strategy:
 
 **High discount factors** ($\gamma \geq 0.995$):
+
 * Encourage strategic positioning for longer-term trends
 * May delay action in response to immediate opportunities
 * Increase Q-value variance, potentially destabilizing training
 * Suitable for low-frequency trading (daily or weekly rebalancing)
 
 **Moderate discount factors** ($0.95 \leq \gamma < 0.995$):
+
 * Balance short-term and medium-term objectives
 * Suitable for intraday to multi-day strategies
 * Maintain reasonable value estimation variance
 * Used in this implementation
 
 **Low discount factors** ($\gamma < 0.95$):
+
 * Induce highly reactive, short-sighted trading
 * Suitable for high-frequency trading with very short holding periods
 * May miss longer-term profitable trends

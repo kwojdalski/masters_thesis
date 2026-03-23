@@ -19,7 +19,7 @@ The framework adapts to changing markets while maintaining its structure.
 Parameter optimization enhances performance while preserving core logic,
 allowing systematic evolution through iterative refinement.
 
-#### Example: Cross-Venue Arbitrage Strategy
+<!-- #### Example: Cross-Venue Arbitrage Strategy
 
 Strategy exploits temporary price discrepancies of the
 same asset traded on different exchanges or venues.
@@ -66,4 +66,4 @@ $$\max_{\tau, \delta} \sum_{t=1}^{T} P_t(\tau, \delta) - TC_t$$
 where:
 - $P_t(\tau, \delta)$ represents the profit at time $t$ given thresholds
 $\tau$ and $\delta$
-- $TC_t$ represents the transaction costs
+- $TC_t$ represents the transaction costs -->

@@ -28,10 +28,10 @@ header-includes:
   - \nralbumu{310284}
   - \speciality{Economics}
   - \opiekun{dr Pawel Sakowski}  # Replace with your actual supervisor's name
-  - \keywords{Reinforcement Learning, FX Trading, Portfolio Optimization}
+  - \keywords{Reinforcement Learning, High-Frequency Trading, Order Book, Single-Asset Trading, TD3}
   - \dziedzina{14.3 Economics}
   - \klasyfikacja{G11, G17, C63}
-  - \tytulang{Reinforcement Learning Portfolio Optimization for FX Trading}
+  - \tytulang{Reinforcement Learning for High-Frequency Single-Asset Trading}
 post-render:
   - post-render-script.py
 editor_options:
@@ -85,7 +85,7 @@ single evaluation framework for algorithmic trading research.
 <!-- {{< include ./02-01-01-03-factor-models.qmd >}} -->
 <!-- {{< include ./02-01-02-00-modern-approaches.qmd >}} -->
 <!-- {{< include ./02-01-03-00-critical-analysis.qmd >}} -->
-{{< include ./02-02-00-relevant-financial-indicators.qmd >}}
+<!-- {{< include ./02-02-00-relevant-financial-indicators.qmd >}} -->
 {{< include ./02-02-02-empirical-evidence.qmd >}}
 <!-- {{< include ./02-02-03-market-anomalies.qmd >}} -->
 <!-- {{< include ./02-03-03-01-key-concepts.qmd >}} -->

@@ -68,7 +68,7 @@ In this thesis, data handlers primarily process OHLCV (Open, High, Low, Close, V
 This pipeline is implemented in the data preparation modules, ensuring leakage-free feature engineering and reproducible experimental conditions.
 
 
-#### Reference Data
+<!-- #### Reference Data
 
 Reference data encompasses static and semi-static information about financial instruments, counterparties, and market infrastructure. Unlike dynamic market data (prices, volumes), reference data changes infrequently but is essential for correct trade processing and risk management.
 
@@ -114,7 +114,7 @@ Reference data quality requires rigorous governance processes:
 * **Validation workflows**: Multi-stage approval for reference data updates
 * **Synchronization**: Ensuring consistency across trading, risk, and back-office systems
 
-In cryptocurrency markets, reference data is somewhat simpler due to the absence of complex corporate actions and standardized contract specifications. However, tracking exchange-specific trading fees, withdrawal limits, and API rate limits remains important for multi-venue strategies.
+In cryptocurrency markets, reference data is somewhat simpler due to the absence of complex corporate actions and standardized contract specifications. However, tracking exchange-specific trading fees, withdrawal limits, and API rate limits remains important for multi-venue strategies. -->
 
 
 #### Optimization
@@ -233,7 +233,7 @@ The simulated trading environment in this research abstracts execution details, 
 While simplified, this model captures essential transaction costs and provides a reasonable approximation for assessing RL agent performance.
 
 
-#### UI / UX
+<!-- #### UI / UX
 
 The user interface and user experience (UI/UX) component enables human operators to monitor system behavior, intervene when necessary, and analyze performance. Even fully automated systems require oversight interfaces for risk management and regulatory compliance.
 
@@ -307,4 +307,4 @@ In this thesis, the UI/UX component includes:
 * Configuration files (YAML) for declarative parameter specification
 * Command-line interfaces for launching training runs and evaluations
 
-While less sophisticated than production trading systems, these interfaces provide sufficient transparency and control for academic research purposes.
+While less sophisticated than production trading systems, these interfaces provide sufficient transparency and control for academic research purposes. -->

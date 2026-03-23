@@ -70,7 +70,7 @@ $$\theta_t = \theta_{t-1} - \alpha \left(\frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \ep
 
 The small magnitude of $\lambda$ ensures regularization is gentle, preventing underfitting while discouraging the memorization of training-specific noise patterns.
 
-### Learning Rate Scheduling
+<!-- ### Learning Rate Scheduling
 
 Unlike supervised learning tasks where learning rate decay schedules (e.g., exponential decay, cosine annealing) are common, reinforcement learning often employs constant learning rates throughout training. The rationale is that RL agents continuously encounter new data distributions as the policy evolves, making traditional notions of "convergence" less applicable.
 
@@ -82,7 +82,7 @@ However, advanced implementations may explore learning rate scheduling strategie
 * **Step decay**: Reduce $\alpha$ by a factor (e.g., 0.5) at predetermined milestones
 * **Performance-based adaptation**: Adjust $\alpha$ based on validation performance or TD error magnitude
 
-These strategies remain beyond the scope of the current implementation but represent promising directions for future research.
+These strategies remain beyond the scope of the current implementation but represent promising directions for future research. -->
 
 ### Delayed Policy Updates and Effective Learning Rates
 
@@ -108,7 +108,7 @@ Learning rate selection significantly impacts training outcomes. Empirical evide
 
 Systematic hyperparameter search methods such as grid search or Bayesian optimization can further refine these values, though computational constraints often limit such exploration in academic research settings.
 
-### Practical Considerations
+<!-- ### Practical Considerations
 
 Several practical considerations guide learning rate selection:
 
@@ -120,4 +120,4 @@ Several practical considerations guide learning rate selection:
 
 4. **Gradient clipping**: While not employed in the current implementation, gradient clipping (capping gradient norms at a threshold) can complement conservative learning rates in stabilizing training.
 
-The choice of $\alpha = 0.0001$ for both actor and critic represents a pragmatic compromise that prioritizes training stability and reproducibility over maximum sample efficiency, aligning with the methodological rigor required for academic research.
+The choice of $\alpha = 0.0001$ for both actor and critic represents a pragmatic compromise that prioritizes training stability and reproducibility over maximum sample efficiency, aligning with the methodological rigor required for academic research. -->
