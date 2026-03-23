@@ -180,39 +180,5 @@ influences price formation processes. However, most practical trading
 applications adopt a single-agent perspective, treating market dynamics as an
 exogenous environment rather than explicitly modeling other participants. -->
 
-#### Discrete vs Continuous
-
-Reinforcement learning methodologies can be categorized based on the nature of
-their state and action spaces:
-
-
-Discrete reinforcement learning encompasses systems with finite, enumerable
-state and action spaces. Such frameworks characterize the environment via a
-bounded set of distinct states, while the agent chooses from a limited
-repertoire of possible actions. This formulation permits tabular
-representations of value functions and policies, thus enabling precise
-solutions through dynamic programming when environmental dynamics are fully
-specified. Within financial contexts, discrete models may conceptualize market
-conditions as categorical regimes (e.g., bullish, bearish, consolidating) and
-actions as specific portfolio allocations (e.g., long position, short
-position, market neutrality).
-
-Continuous reinforcement learning pertains to systems with uncountable state
-and/or action spaces. Such methodologies facilitate the processing of
-real-valued observations and actions, thereby requiring function approximation
-techniques for the representation of value functions and policies. The
-mathematical framework can be expressed as:
-
-$$\pi_\theta: \mathcal{S} \rightarrow \mathcal{P}(\mathcal{A})$$
-
-where:
-
-  * $\mathcal{S} \subset \mathbb{R}^n$ represents a continuous state space,
-  * $\mathcal{A} \subset \mathbb{R}^m$ denotes a continuous action space.
-
-Financial markets inherently exhibit continuous characteristics in both state
-representations (e.g., prices, volatility measures, economic indicators) and
-potential actions (e.g., position sizing, risk parameters). Consequently,
-continuous reinforcement learning frameworks, particularly those employing
-neural network function approximators, have demonstrated superior efficacy in
-capturing the complex, non-linear relationships present in financial data.
+<!-- #### Discrete vs Continuous
+Covered in the context of this thesis in Section 5.1 (Action Space). -->
