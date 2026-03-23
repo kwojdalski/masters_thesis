@@ -1,7 +1,7 @@
 ## Policy
 
 
-## Monte Carlo Control
+<!-- ## Monte Carlo Control
 
 Monte Carlo Control is an RL algorithm that leverages
 complete episode experiences to estimate optimal policies. Unlike temporal
@@ -159,4 +159,4 @@ where:
 In the context of this research, PPO has been implemented as the foundational
 policy optimization algorithm, facilitating the development of an adaptive
 trading agent capable of extracting complex, non-linear relationships from
-market data while maintaining learning stability across diverse market regimes.
+market data while maintaining learning stability across diverse market regimes. -->
