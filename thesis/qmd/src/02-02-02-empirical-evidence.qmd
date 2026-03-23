@@ -2,7 +2,7 @@
 
 While the Efficient Market Hypothesis provides an elegant theoretical framework, decades of empirical research have documented systematic patterns and anomalies that challenge the notion of perfectly efficient markets. This section reviews key empirical findings that motivate algorithmic trading strategies, including reinforcement learning approaches.
 
-### Predictability of Returns
+<!-- ### Predictability of Returns
 
 The EMH in its semi-strong form implies that historical prices and public information cannot predict future returns. However, substantial evidence contradicts this proposition.
 
@@ -52,7 +52,7 @@ Trading volume provides additional evidence of market inefficiency through its r
 
 **Herding and Feedback Trading**
 
-@DeLong1990 model positive feedback trading—buying after price increases, selling after declines—showing how such behavior can sustain price trends and increase volatility. @Lakonishok1992 find empirical evidence of herding among institutional investors, particularly in smaller stocks, creating predictable patterns exploitable by contrarian strategies.
+@DeLong1990 model positive feedback trading—buying after price increases, selling after declines—showing how such behavior can sustain price trends and increase volatility. @Lakonishok1992 find empirical evidence of herding among institutional investors, particularly in smaller stocks, creating predictable patterns exploitable by contrarian strategies. -->
 
 ### Market Microstructure Evidence
 
@@ -70,7 +70,7 @@ High-frequency data reveals inefficiencies at short time scales.
 
 @Harris1991 shows that prices cluster at psychologically attractive round numbers (integers, half-dollars) rather than distributing uniformly. This price clustering creates predictable support and resistance levels exploited by technical traders, inconsistent with informationally efficient pricing.
 
-### Behavioral Finance Evidence
+<!-- ### Behavioral Finance Evidence
 
 @Shleifer2000 synthesize behavioral finance research showing systematic deviations from rational expectations:
 
@@ -112,7 +112,7 @@ Anomalies documented in U.S. markets persist internationally:
 
 **Calendar Anomalies Globally**
 
-@Agrawal1994 survey calendar effects across markets: the January effect (higher returns in January, especially for small stocks), weekend effect (lower Monday returns), and turn-of-the-month effect. While some calendar anomalies have weakened post-publication, international evidence at the time suggested widespread inefficiency.
+@Agrawal1994 survey calendar effects across markets: the January effect (higher returns in January, especially for small stocks), weekend effect (lower Monday returns), and turn-of-the-month effect. While some calendar anomalies have weakened post-publication, international evidence at the time suggested widespread inefficiency. -->
 
 ### Implications for Algorithmic Trading
 

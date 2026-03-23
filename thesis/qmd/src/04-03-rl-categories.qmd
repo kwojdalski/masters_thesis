@@ -31,7 +31,7 @@ optimization approach:
 
 
 
-* Value iteration - a model-based algorithm that computes the optimal state value
+<!-- * Value iteration - a model-based algorithm that computes the optimal state value
 function by improving the estimate of $V(s)$. It starts with initializing
 arbitrary values and then updates $Q(s, a)$ and $V(s)$ values until they
 converge. The pseudocode is as follows:
@@ -73,7 +73,7 @@ function of states. Below is the pseudocode:
   \EndFor
 \Until{$\pi=\pi^{'}$}
 \end{algorithmic}
-\end{algorithm}
+\end{algorithm} -->
 
 
 
@@ -155,7 +155,7 @@ its ability to learn optimal strategies while following exploratory or risk-
 averse policies, facilitating more efficient learning from historical market
 data without requiring direct market interaction during training.
 
-#### Single-Agent vs Multi-Agent
+<!-- #### Single-Agent vs Multi-Agent
 
 Reinforcement learning frameworks can be distinguished based on the number of
 decision-making entities within the environment:
@@ -178,7 +178,7 @@ The distinction becomes particularly relevant in market microstructure
 analysis, where the collective behavior of numerous market participants
 influences price formation processes. However, most practical trading
 applications adopt a single-agent perspective, treating market dynamics as an
-exogenous environment rather than explicitly modeling other participants.
+exogenous environment rather than explicitly modeling other participants. -->
 
 #### Discrete vs Continuous
 
