@@ -35,7 +35,7 @@ their role in financial research.
 <!-- ### RL for Trading: Key Works
 Covered in detail in the following section (RL Applications in Trading Systems). -->
 
-### Theoretical Advances Relevant to Finance
+<!-- ### Theoretical Advances Relevant to Finance
 
 **Distributional RL**
 
@@ -47,7 +47,7 @@ Covered in detail in the following section (RL Applications in Trading Systems).
 
 **Offline RL**
 
-@Levine2020 formalized offline (batch) reinforcement learning, learning policies exclusively from fixed datasets without environment interaction. Offline RL is especially relevant for finance where online experimentation is costly and risky. @Kumar2020 address distribution shift challenges in offline RL, proposing conservative Q-learning to prevent overestimation on out-of-distribution actions.
+@Levine2020 formalized offline (batch) reinforcement learning, learning policies exclusively from fixed datasets without environment interaction. Offline RL is especially relevant for finance where online experimentation is costly and risky. @Kumar2020 address distribution shift challenges in offline RL, proposing conservative Q-learning to prevent overestimation on out-of-distribution actions. -->
 
 ### Impact on Trading Systems and This Thesis
 
