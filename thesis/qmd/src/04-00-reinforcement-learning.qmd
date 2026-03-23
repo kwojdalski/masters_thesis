@@ -110,7 +110,7 @@ expected value of reward when an agent is in state $s$ and taking action $a$
 
 
 
-#### Exploration/exploitation
+<!-- #### Exploration/exploitation
 
 A fundamental challenge in reinforcement learning concerns the balance between
 exploration and exploitation. To optimize cumulative rewards, an agent must
@@ -134,7 +134,7 @@ $1-\epsilon$, approaching certainty. The limitation of this method lies in its
 minimal indication of practical efficacy. Asymptotic guarantees may require
 excessive time in authentic environments. Research demonstrates that small
 $\epsilon$ values facilitate greater initial rewards but typically underperform
-compared to larger $\epsilon$ values as the number of steps increases.
+compared to larger $\epsilon$ values as the number of steps increases. -->
 
 
 <!-- ##### Optimistic initial values

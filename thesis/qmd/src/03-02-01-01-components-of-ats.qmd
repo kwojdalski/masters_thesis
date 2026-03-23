@@ -44,7 +44,7 @@ Trading systems consume multiple data categories:
 * **Alternative data**: Sentiment indicators, macroeconomic releases, news feeds, social media signals
 * **Reference data**: Static instrument information (described in the next subsection)
 
-**Latency Considerations:**
+<!-- **Latency Considerations:**
 
 In high-frequency trading (HFT) and market-making strategies, data latency measured in microseconds can determine profitability. Low-latency data handlers employ:
 
@@ -53,7 +53,7 @@ In high-frequency trading (HFT) and market-making strategies, data latency measu
 * Hardware acceleration using FPGAs
 * Optimized network protocols minimizing serialization overhead
 
-For medium-frequency strategies (minutes to hours), latency requirements are relaxed, permitting the use of commercial data vendors and cloud-based infrastructure.
+For medium-frequency strategies (minutes to hours), latency requirements are relaxed, permitting the use of commercial data vendors and cloud-based infrastructure. -->
 
 **Implementation Examples:**
 
