@@ -92,13 +92,8 @@ Empirical studies in reinforcement learning demonstrate that optimal discount fa
 
 In this thesis, $\gamma = 0.99$ is held constant across experiments to isolate the effects of other design choices (state representation, reward function, algorithm selection). Future work could investigate adaptive discount factors that adjust based on detected market regimes.
 
-### Relationship to Target Network Updates
-
-In TD3, the discount factor appears not only in the return calculation but also in the Bellman target used for critic updates:
-
-$$y_t = r_t + \gamma \min_{i=1,2} Q_{\theta_i'}(s_{t+1}, \pi_{\phi'}(s_{t+1}))$$
-
-The target networks, updated via soft updates with parameter $\tau$, are conceptually distinct from the discount factor. While $\gamma$ controls temporal credit assignment, $\tau$ (typically 0.001-0.01) stabilizes the learning process by preventing rapid oscillations in the target values. Both parameters work in concert to ensure stable, convergent learning dynamics.
+<!-- ### Relationship to Target Network Updates
+Bellman target formula and soft update rule covered in Section 5.4 (Value Function). -->
 
 ### Alternative: Episodic vs Continuing Tasks
 

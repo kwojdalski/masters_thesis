@@ -32,19 +32,8 @@ such as PPO @Schulman2017. Chapter 4 provides the chronological timeline and
 algorithmic classification of these methods; the present subsection focuses on
 their role in financial research.
 
-### RL for Trading: Key Works
-
-**Risk-Sensitive RL**
-
-@Moody1998 pioneered reinforcement learning for trading, introducing the Differential Sharpe Ratio as a reward signal. Moody's work demonstrated that RL could optimize risk-adjusted returns rather than raw profits, aligning with institutional investment objectives. His recurrent reinforcement learning approach influenced subsequent trading system design.
-
-@Moody2001 extended this work to multi-asset portfolios, addressing computational challenges in high-dimensional action spaces. The recognition that risk-adjusted performance measures should guide RL optimization fundamentally shaped the field.
-
-**Deep RL for Finance**
-
-@Deng2016 applied deep RL to portfolio management, demonstrating that deep neural networks could extract predictive features from raw market data. Their work validated the feasibility of end-to-end learning for financial decision-making.
-
-@Jiang2017 introduced a policy gradient approach for portfolio management, incorporating price features and portfolio information directly into the policy network. Their empirical results on cryptocurrency portfolios demonstrated practical viability of deep RL in highly volatile markets.
+<!-- ### RL for Trading: Key Works
+Covered in detail in the following section (RL Applications in Trading Systems). -->
 
 ### Theoretical Advances Relevant to Finance
 

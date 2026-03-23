@@ -1,6 +1,6 @@
 ## Empirical Evidence Against Perfect Market Efficiency
 
-While the Efficient Market Hypothesis provides an elegant theoretical framework, decades of empirical research have documented systematic patterns and anomalies that challenge the notion of perfectly efficient markets. This section reviews key empirical findings that motivate algorithmic trading strategies, including reinforcement learning approaches.
+While the Efficient Market Hypothesis provides an elegant theoretical framework, high-frequency market data reveals systematic microstructure patterns that challenge the notion of perfectly efficient prices at short time scales. These inefficiencies are directly relevant to order-book-based trading strategies and motivate the reinforcement learning approach taken in this thesis.
 
 <!-- ### Predictability of Returns
 
