@@ -208,7 +208,7 @@ def create_actual_returns_plot(
     df_prices=None,
     env=None,
     actual_returns_list=None,
-    initial_capital: float = 10000.0,
+    initial_portfolio_value: float = 10000.0,
     benchmark_price_column: str = "close",
 ):
     """Create a plot showing actual portfolio returns (not training rewards).
@@ -225,16 +225,16 @@ def create_actual_returns_plot(
         df_prices: Optional DataFrame with price data (unused for now)
         env: Optional environment instance for accessing TradingEnv broker state
         actual_returns_list: Optional pre-extracted list of return arrays (one per rollout)
-        initial_capital: Starting portfolio value used to convert log returns
-            to dollar-equity values
+        initial_portfolio_value: Starting portfolio value used to convert log returns
+            to dollar-equity values (should match env.initial_portfolio_value)
         benchmark_price_column: Column used to compute buy-and-hold and
             max-profit benchmarks when df_prices is provided.
 
     Returns:
         plotnine.ggplot: Plot showing actual portfolio value
     """
-    if initial_capital <= 0:
-        raise ValueError(f"initial_capital must be > 0, got {initial_capital}")
+    if initial_portfolio_value <= 0:
+        raise ValueError(f"initial_portfolio_value must be > 0, got {initial_portfolio_value}")
 
     returns_data = []
 
@@ -260,7 +260,7 @@ def create_actual_returns_plot(
             cumulative_log_returns = np.cumsum(rewards)
             logger.debug(f"{run_name}: Using rollout rewards as fallback")
 
-        portfolio_values = initial_capital * np.exp(cumulative_log_returns)
+        portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
         returns_data.extend(
             [
                 {"Steps": step, "Portfolio_Value": val, "Run": run_name}
@@ -308,10 +308,10 @@ def create_actual_returns_plot(
             .cumsum()[:n_obs]
         )
 
-        buy_and_hold_values = initial_capital * np.exp(
+        buy_and_hold_values = initial_portfolio_value * np.exp(
             np.asarray(buy_and_hold, dtype=float)
         )
-        max_profit_values = initial_capital * np.exp(
+        max_profit_values = initial_portfolio_value * np.exp(
             np.asarray(max_profit, dtype=float)
         )
 
@@ -337,7 +337,7 @@ def create_actual_returns_plot(
         ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run"))
         + geom_line()
         + labs(
-            title=f"Actual Portfolio Value (Start ${initial_capital:,.0f})",
+            title=f"Actual Portfolio Value (Start ${initial_portfolio_value:,.0f})",
             x="Steps",
             y="Portfolio Value ($)",
         )
