@@ -20,6 +20,9 @@ import yaml
 from logger import get_logger as get_project_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 
+_POSITION_CHANGE_TOLERANCE = 0.1
+_POSITION_CHANGE_WINDOW = 100
+
 
 class MLflowTrainingCallback:
     """Callback for logging training progress to MLflow.
@@ -109,7 +112,7 @@ class MLflowTrainingCallback:
 
         # Log position changes if available
         if self.position_change_counts:
-            window = min(len(self.position_change_counts), 100)
+            window = min(len(self.position_change_counts), _POSITION_CHANGE_WINDOW)
             avg_position_changes = float(np.mean(self.position_change_counts[-window:]))
             mlflow.log_metric("avg_position_changes", avg_position_changes, step=step)
 
@@ -126,7 +129,7 @@ class MLflowTrainingCallback:
         self.training_stats["actions_taken"].extend(actions)
         self.training_stats["exploration_ratio"].append(exploration_ratio)
         # TODO: Make tolerance configurable
-        position_changes = self._count_position_changes(actions, tolerance=0.1)
+        position_changes = self._count_position_changes(actions, tolerance=_POSITION_CHANGE_TOLERANCE)
         self.position_change_counts.append(position_changes)
         self.training_stats["position_change_counts"].append(position_changes)
         episode_sum_position = float(np.sum(actions)) if actions else 0.0

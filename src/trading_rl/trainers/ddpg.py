@@ -14,7 +14,7 @@ from torchrl.objectives import DDPGLoss, SoftUpdate
 from logger import get_logger
 from trading_rl.config import TrainingConfig
 from trading_rl.models import create_ddpg_actor, create_value_network
-from trading_rl.trainers.base import BaseTrainer
+from trading_rl.trainers.base import BaseTrainer, _MIN_BATCH_SUCCESS_RATE
 
 logger = get_logger(__name__)
 
@@ -487,8 +487,7 @@ class DDPGTrainer(BaseTrainer):
                 f"batches successful ({success_rate:.1f}%), {self.skipped_batches} skipped due to tensor shape errors"
             )
 
-            # Use warning if success rate is below 70%, otherwise info
-            if success_rate < 70.0:
+            if success_rate < _MIN_BATCH_SUCCESS_RATE:
                 logger.warning(summary_msg)
             else:
                 logger.info(summary_msg)
