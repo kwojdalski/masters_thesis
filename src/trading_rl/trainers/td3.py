@@ -15,7 +15,7 @@ from torchrl.objectives import SoftUpdate
 from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
-from trading_rl.config import TrainingConfig
+from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
 from trading_rl.trainers.base import BaseTrainer
 
@@ -224,9 +224,9 @@ class TD3Trainer(BaseTrainer):
             env=None,  # Don't pass env, use pre-extracted returns
             actual_returns_list=[actual_returns_deterministic, actual_returns_random],
             initial_portfolio_value=(
-                float(getattr(config.env, "initial_portfolio_value", 10000.0))
+                float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
                 if config
-                else 10000.0
+                else DEFAULT_INITIAL_PORTFOLIO_VALUE
             ),
             benchmark_price_column=benchmark_price_column,
         )
@@ -251,7 +251,7 @@ class TD3Trainer(BaseTrainer):
                 eta=dsr_eta,
                 max_steps=max_steps,
                 price_column=benchmark_price_column,
-                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", 10000.0)),
+                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)),
             )
 
             # Calculate DSR for max profit
@@ -261,7 +261,7 @@ class TD3Trainer(BaseTrainer):
                 eta=dsr_eta,
                 max_steps=max_steps,
                 price_column=benchmark_price_column,
-                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", 10000.0)),
+                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)),
             )
 
             # Add to benchmark data

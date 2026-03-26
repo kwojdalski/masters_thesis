@@ -20,7 +20,7 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
-from trading_rl.config import TrainingConfig
+from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 
 
 class _LocalTrajectoryPool:
@@ -261,7 +261,7 @@ class BaseTrainer(ABC):
         """Log episode statistics to provided callback."""
         episode_reward = data["next", "reward"].sum().item()
         # Reset portfolio value to starting amount at the beginning of each episode
-        initial_val = getattr(callback, "initial_portfolio_value", 10000.0)
+        initial_val = getattr(callback, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)
         reward_type = getattr(callback, "reward_type", "log_return")
 
         # Determine actual portfolio valuation based on reward type
@@ -473,9 +473,9 @@ class BaseTrainer(ABC):
             env=None,  # Don't pass env, use pre-extracted returns
             actual_returns_list=[actual_returns_deterministic, actual_returns_random],
             initial_portfolio_value=(
-                float(getattr(config.env, "initial_portfolio_value", 10000.0))
+                float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
                 if config
-                else 10000.0
+                else DEFAULT_INITIAL_PORTFOLIO_VALUE
             ),
             benchmark_price_column=benchmark_price_column,
         )
@@ -500,7 +500,7 @@ class BaseTrainer(ABC):
                 eta=dsr_eta,
                 max_steps=max_steps,
                 price_column=benchmark_price_column,
-                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", 10000.0)),
+                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)),
             )
 
             # Calculate DSR for max profit
@@ -510,7 +510,7 @@ class BaseTrainer(ABC):
                 eta=dsr_eta,
                 max_steps=max_steps,
                 price_column=benchmark_price_column,
-                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", 10000.0)),
+                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)),
             )
 
             # Add to benchmark data

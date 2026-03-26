@@ -15,6 +15,7 @@ from plotnine import (
 from torch import allclose
 
 from logger import get_logger
+from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 
 logger = get_logger(__name__)
 
@@ -208,7 +209,7 @@ def create_actual_returns_plot(
     df_prices=None,
     env=None,
     actual_returns_list=None,
-    initial_portfolio_value: float = 10000.0,
+    initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     benchmark_price_column: str = "close",
 ):
     """Create a plot showing actual portfolio returns (not training rewards).
@@ -387,7 +388,7 @@ def calculate_benchmark_dsr(
     epsilon=1e-8,
     max_steps=None,
     price_column: str = "close",
-    initial_portfolio_value: float = 10000.0,
+    initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
 ):
     """Calculate Differential Sharpe Ratio for a benchmark trading strategy.
 
