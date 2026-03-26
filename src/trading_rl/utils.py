@@ -387,6 +387,7 @@ def calculate_benchmark_dsr(
     epsilon=1e-8,
     max_steps=None,
     price_column: str = "close",
+    initial_portfolio_value: float = 10000.0,
 ):
     """Calculate Differential Sharpe Ratio for a benchmark trading strategy.
 
@@ -400,6 +401,7 @@ def calculate_benchmark_dsr(
         epsilon: DSR stability constant (default: 1e-8)
         max_steps: Maximum number of steps to calculate (None = all available)
         price_column: Column used as price series for benchmark simulation
+        initial_portfolio_value: Starting portfolio value (should match env.initial_portfolio_value)
 
     Returns:
         tuple: (cumulative_dsr, portfolio_values)
@@ -425,8 +427,7 @@ def calculate_benchmark_dsr(
         max_steps = min(max_steps, len(prices) - 1)
 
     # Initialize portfolio
-    initial_value = 10000.0
-    portfolio_values = [initial_value]
+    portfolio_values = [initial_portfolio_value]
 
     # Calculate price returns
     price_returns = np.diff(prices[:max_steps + 1]) / prices[:max_steps]
