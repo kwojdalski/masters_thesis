@@ -1,70 +1,122 @@
-## Timeline of Reinforcement Learning Algorithms
+## From Tabular Methods to TD3: An Algorithmic Lineage
 
-Reinforcement learning has evolved significantly over the decades, progressing
-from theoretical foundations to sophisticated algorithms capable of algorithmic
-trading problems. This section presents an overview of key developments in
-RL, with particular attention to their applicability in
-algorithmic trading.
+The development of reinforcement learning algorithms is not a linear progression
+of incremental improvements but a series of conceptual breaks, each motivated by
+a limitation in the preceding framework. This section traces the specific
+lineage that leads to the Twin Delayed Deep Deterministic Policy Gradient (TD3)
+algorithm, which is employed in this thesis. The survey is not exhaustive; it
+focuses on the algorithmic properties that are directly relevant to the
+continuous-action, single-asset trading problem formulated in Chapter 5.
 
-It must be note
+### Value-Based Methods and Their Limitations in Continuous Control
 
-### 1950s–1980s: Theoretical Foundations
-* 1952-1954: Bellman established Temporal Difference (TD) methodology and
-  Markov Decision Process (MDP) formalism as mathematical foundations for RL.
-* 1979: Watkins conceptualized Q-learning principles, though formal
-  articulation came later.
-* Financial application: Primarily theoretical, establishing frameworks for
-  sequential investment decision-making.
+The foundational algorithms of the field — Q-learning [@Watkins1992] and its
+on-policy variant SARSA [@Rummery1994] — operate over tabular representations
+of state-action value functions. Both methods converge to the optimal policy
+under mild conditions, but only when the state-action space is small enough to
+enumerate explicitly. In a trading context with continuous price-derived
+features, the state space is effectively infinite, and a tabular representation
+is computationally infeasible.
 
-### 1989-1992: Fundamental Algorithms
-* 1989: Q-learning (Watkins)
-  - Off-policy, model-free algorithm for determining state-action value
-    functions.
-  - Financial relevance: Suitable for discrete trading decisions.
-  - Limitation: Poor scalability for extensive state/action spaces.
-* 1992: SARSA
-  - On-policy variant of Q-learning evaluating the implemented policy.
-  - Financial relevance: More robust in non-stationary financial environments.
+Deep Q-Networks (DQN) [@Mnih2015] resolved the scalability problem by replacing
+the lookup table with a deep neural network, enabling generalization across
+states. Two architectural innovations were critical: experience replay, which
+decorrelates training samples by storing and randomly resampling past
+transitions, and a periodically frozen target network, which stabilizes the
+Bellman update by preventing the target from shifting at every gradient step.
+DQN achieved human-level control across a wide range of tasks, but it inherits a
+structural constraint from Q-learning: it requires a discrete action space,
+because the max operator in the Bellman target presupposes that all actions can
+be enumerated. For a trading agent that outputs a continuous portfolio
+weight in $[-1, 1]$, this is not an acceptable constraint. Discretizing the
+action space into a finite grid resolves the representation issue formally, but
+it reintroduces the granularity problem: a coarse grid loses the benefits of
+continuous control, while a fine grid makes the maximization step computationally
+expensive and recovers the curse of dimensionality in higher-dimensional
+portfolio settings.
 
-### Mid-1990s: Approximation Methods
-* Implementation of function approximators for value function estimation.
-* Financial application: Enabled management of larger state spaces approaching
-  financial data complexity.
+### Policy Gradient Methods and the Actor-Critic Architecture
 
-### 2013–2015: Deep Reinforcement Learning
-* 2013 (DeepMind): Integration of Q-learning with deep neural networks.
-  - Experience replay and target networks enhanced learning stability.
-* 2015: DQN achieved human-comparable performance in Atari environments.
-  - Financial implementation: First significant market applications using
-    neural networks for feature extraction from financial data.
+A distinct class of algorithms avoids the maximization problem by
+parameterizing the policy directly and optimizing it through gradient ascent on
+expected cumulative reward. The foundational result, REINFORCE [@Williams1992],
+uses Monte Carlo estimates of the policy gradient:
 
-### 2015–2016: Policy Gradient Methodologies
-* REINFORCE (Williams, 1992): Initial stochastic policy gradient formulation.
-* Actor-Critic: Separated policy representation from value function estimation.
-  - Financial advantage: Direct return optimization and accommodation of
-    continuous action spaces for position sizing.
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t | s_t) \cdot G_t\right]$$
 
-### 2016–2018: Advanced Algorithmic Frameworks
-* A3C (2016): Asynchronous Advantage Actor-Critic
-  - Parallel learning across multiple agents for greater efficiency.
-* DDPG (2015): Deep Deterministic Policy Gradient
-  - Specialized for deterministic continuous policy learning.
-* PPO (2017): Proximal Policy Optimization
-  - Conservative policy updates with improved reliability.
-* SAC (2018): Soft Actor-Critic
-  - Off-policy approach with entropy maximization for exploration-exploitation
-    balance.
-* Financial applications: Execution optimization, portfolio construction, and
-  market-making strategies.
+where $G_t$ is the return from time $t$. While REINFORCE applies naturally to
+continuous action spaces through a parameterized distribution (for example, a
+Gaussian policy), it suffers from high variance in the gradient estimate because
+$G_t$ is computed from a full episode trajectory, making it sensitive to
+trajectory length and reward scale.
 
-### 2018–Present: Multi-Agent Systems and Meta-Learning
-* Multi-Agent RL: Models market participant interactions for realistic impact
-  simulation.
-* Meta-RL: Develops systems capable of rapid adaptation to new market regimes.
+The actor-critic architecture reduces this variance by replacing $G_t$ with a
+learned advantage estimate $A(s_t, a_t) = Q(s_t, a_t) - V(s_t)$, maintained by
+a separate critic network. The actor updates the policy in the direction of
+higher-valued actions, while the critic provides a lower-variance baseline.
+This separation is the architectural foundation of all subsequent
+continuous-action algorithms, including TD3.
 
-### 2020s Onwards: Practical Implementation
-* Hierarchical RL: Integrates strategic planning with tactical execution.
-* Safe RL: Implements safeguards against catastrophic market losses.
-* Explainable RL: Enhances decision transparency for regulatory compliance.
-* Current priorities: Sample efficiency, risk-sensitive objectives, and
-  regulatory constraint integration.
+### DDPG: Deterministic Policies for Continuous Control
+
+@Lillicrap2015 introduced Deep Deterministic Policy Gradient (DDPG), which
+extends the actor-critic framework to deterministic policies over continuous
+action spaces. Rather than sampling an action from a distribution, the actor
+outputs a single action $\mu_\theta(s)$ directly. The policy gradient simplifies
+to:
+
+$$\nabla_\theta J(\theta) = \mathbb{E}_s\left[\nabla_a Q_\phi(s, a)\big|_{a=\mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s)\right]$$
+
+DDPG inherits the experience replay and target network mechanisms from DQN,
+making it an off-policy algorithm and therefore sample-efficient. However,
+empirical studies consistently report two failure modes in DDPG. First, the
+critic tends to overestimate action values due to the maximization bias
+introduced when the target value is computed using the same network that is being
+updated. Overestimated Q-values propagate into the actor update, pushing the
+policy toward actions that exploit the critic's errors rather than the true
+reward signal. Second, the algorithm is sensitive to the relative frequency of
+actor and critic updates: updating the actor before the critic has converged
+amplifies the overestimation problem. In financial environments, where rewards
+are noisy and non-stationary, these instabilities are particularly damaging
+because the critic cannot distinguish between genuine market signal and
+approximation artifacts.
+
+### TD3: Addressing the Instability of Deterministic Actor-Critic Methods
+
+@Fujimoto2018 introduced TD3 as a direct response to DDPG's failure modes,
+proposing three targeted mechanisms.
+
+**Clipped double Q-learning.** Two independent critic networks $Q_{\phi_1}$ and
+$Q_{\phi_2}$ are maintained, and the Bellman target is constructed using the
+minimum of their estimates:
+
+$$y = r + \gamma \min_{i=1,2} Q_{\phi_i}(s', \tilde{a}')$$
+
+Taking the minimum provides a conservative estimate of target value and
+substantially reduces overestimation bias. This is analogous to the double
+Q-learning correction [@VanHasselt2016], adapted to the deterministic actor-
+critic setting.
+
+**Delayed policy updates.** The actor and target networks are updated less
+frequently than the critics — typically once for every two critic updates. This
+allows the value estimates to stabilize before they are used to compute the
+policy gradient, breaking the feedback loop between an unstable critic and an
+erroneous actor update.
+
+**Target policy smoothing.** When computing Bellman targets, noise is added to
+the target action $\tilde{a}' = \mu_{\theta'}(s') + \epsilon$, with $\epsilon$
+clipped to a small interval. This prevents the critics from fitting sharp value
+peaks caused by function approximation, acting as a regularizer on the value
+landscape.
+
+Together, these three modifications produce an algorithm that is substantially
+more stable than DDPG on standard continuous control benchmarks while
+retaining its off-policy sample efficiency. The combination of stability under
+noisy rewards, data efficiency through experience replay, and native support for
+continuous actions makes TD3 a natural fit for the continuous portfolio
+allocation problem studied in this thesis. Alternative algorithms such as SAC
+[@Haarnoja2018] incorporate maximum-entropy objectives and stochastic policies,
+which may improve exploration but introduce stochasticity into the policy at
+evaluation time — a less natural fit for a trading agent that is expected to
+produce consistent, interpretable allocation decisions given identical market
+conditions.
