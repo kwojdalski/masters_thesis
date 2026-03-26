@@ -1080,128 +1080,173 @@ def run_single_experiment(
         )
     trainer.save_checkpoint(str(final_checkpoint_path))
 
-    # Evaluate agent
-    logger.info("Evaluating agent...")
-    (
-        reward_plot,
-        action_plot,
-        action_probs_plot,
-        final_reward,
-        last_positions,
-        actual_returns_plot,
-        merged_plot,
-    ) = trainer.evaluate(
-        periodic_eval_ctx.df,
-        max_steps=periodic_eval_ctx.max_steps,
-        config=config,
-        algorithm=algorithm,
-        eval_env=periodic_eval_ctx.env,
-    )
+    # Evaluate agent on each split (train / val / test)
+    from tensordict.nn import InteractionType
+    from torchrl.envs.utils import set_exploration_type
 
-    # Save evaluation plots as MLflow artifacts
-    MLflowTrainingCallback.log_evaluation_plots(
-        reward_plot=reward_plot,
-        action_plot=action_plot,
-        action_probs_plot=action_probs_plot,
-        actual_returns_plot=actual_returns_plot,
-        logs=logs,
-        merged_plot=merged_plot,
-    )
-    evaluation_report = build_evaluation_report_for_trainer(
-        trainer=trainer,
-        df_prices=periodic_eval_ctx.df,
-        max_steps=periodic_eval_ctx.max_steps,
-        config=config,
-        eval_env=periodic_eval_ctx.env,
-    )
-    MLflowTrainingCallback.log_evaluation_report(evaluation_report)
+    from trading_rl.utils import _extract_tradingenv_returns
 
-    # Statistical Significance Testing (Optional)
-    if config.statistical_testing.enabled:
-        logger.info("Running statistical significance tests...")
-        try:
-            # Extract strategy returns for statistical testing
-            # We need to re-run the rollout to get returns (or extract from evaluation)
-            import torch
-            from tensordict.nn import InteractionType
-            from torchrl.envs.utils import set_exploration_type
+    split_results: dict[str, dict] = {}
+    for split, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+        if len(split_df) < 2:
+            logger.warning(
+                f"Skipping {split} split evaluation: insufficient data ({len(split_df)} rows)"
+            )
+            continue
 
-            from trading_rl.utils import _extract_tradingenv_returns
+        logger.info(f"Evaluating agent on {split} split ({len(split_df)} rows)...")
+        split_ctx = _build_evaluation_context_for_split(split=split, df=split_df, config=config)
 
-            with torch.no_grad():
-                try:
-                    with set_exploration_type(InteractionType.MODE):
-                        rollout = periodic_eval_ctx.env.rollout(max_steps=periodic_eval_ctx.max_steps, policy=trainer.actor)
-                except RuntimeError:
-                    with set_exploration_type(InteractionType.DETERMINISTIC):
-                        rollout = periodic_eval_ctx.env.rollout(max_steps=periodic_eval_ctx.max_steps, policy=trainer.actor)
+        (
+            reward_plot,
+            action_plot,
+            action_probs_plot,
+            split_final_reward,
+            split_last_positions,
+            actual_returns_plot,
+            merged_plot,
+        ) = trainer.evaluate(
+            split_ctx.df,
+            max_steps=split_ctx.max_steps,
+            config=config,
+            algorithm=algorithm,
+            eval_env=split_ctx.env,
+        )
 
-            reward_type = config.env.reward_type
-            backend = config.env.backend
+        MLflowTrainingCallback.log_evaluation_plots(
+            reward_plot=reward_plot,
+            action_plot=action_plot,
+            action_probs_plot=action_probs_plot,
+            actual_returns_plot=actual_returns_plot,
+            logs=logs,
+            merged_plot=merged_plot,
+            artifact_path_prefix=f"evaluation_plots/{split}",
+        )
 
-            # Extract strategy returns (same logic as in build_evaluation_report_for_trainer)
-            if str(reward_type).lower() == "log_return":
-                strategy_log_returns = (
-                    rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:periodic_eval_ctx.max_steps]
-                )
-                strategy_simple_returns = np.exp(strategy_log_returns) - 1.0
-            else:
-                strategy_simple_returns = np.array([], dtype=float)
+        split_evaluation_report = build_evaluation_report_for_trainer(
+            trainer=trainer,
+            df_prices=split_ctx.df,
+            max_steps=split_ctx.max_steps,
+            config=config,
+            eval_env=split_ctx.env,
+        )
+        MLflowTrainingCallback.log_evaluation_report(
+            split_evaluation_report,
+            split_prefix=split,
+        )
 
-                if str(backend).lower() == "tradingenv":
-                    cumulative_log_returns = _extract_tradingenv_returns(periodic_eval_ctx.env, periodic_eval_ctx.max_steps)
-                    if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
-                        cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
-                        step_log_returns = np.diff(cumulative_log_returns, prepend=0.0)
-                        strategy_simple_returns = np.exp(step_log_returns) - 1.0
+        # Statistical Significance Testing (Optional)
+        if config.statistical_testing.enabled:
+            logger.info(f"Running statistical significance tests for {split} split...")
+            try:
+                with torch.no_grad():
+                    try:
+                        with set_exploration_type(InteractionType.MODE):
+                            rollout = split_ctx.env.rollout(
+                                max_steps=split_ctx.max_steps, policy=trainer.actor
+                            )
+                    except RuntimeError:
+                        with set_exploration_type(InteractionType.DETERMINISTIC):
+                            rollout = split_ctx.env.rollout(
+                                max_steps=split_ctx.max_steps, policy=trainer.actor
+                            )
 
-                if strategy_simple_returns.size == 0:
-                    proxy_log_returns = (
-                        rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:periodic_eval_ctx.max_steps]
+                reward_type = config.env.reward_type
+                backend = config.env.backend
+
+                if str(reward_type).lower() == "log_return":
+                    strategy_log_returns = (
+                        rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:split_ctx.max_steps]
                     )
-                    strategy_simple_returns = np.exp(proxy_log_returns) - 1.0
+                    strategy_simple_returns = np.exp(strategy_log_returns) - 1.0
+                else:
+                    strategy_simple_returns = np.array([], dtype=float)
 
-            # Get price series for buy-and-hold comparison
-            benchmark_price_column = config.env.price_column or "close"
-            if benchmark_price_column in periodic_eval_ctx.df.columns:
-                price_series = periodic_eval_ctx.df[benchmark_price_column]
-            elif "close" in periodic_eval_ctx.df.columns:
-                price_series = periodic_eval_ctx.df["close"]
-            else:
-                price_series = None
-                logger.warning("No price column found for buy-and-hold comparison")
+                    if str(backend).lower() == "tradingenv":
+                        cumulative_log_returns = _extract_tradingenv_returns(
+                            split_ctx.env, split_ctx.max_steps
+                        )
+                        if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
+                            cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
+                            step_log_returns = np.diff(cumulative_log_returns, prepend=0.0)
+                            strategy_simple_returns = np.exp(step_log_returns) - 1.0
 
-            # Run all configured statistical tests
-            periods_per_year = periods_per_year_from_timeframe(
-                getattr(config.data, "timeframe", "1d")
-            )
-            statistical_test_results = run_all_statistical_tests(
-                strategy_returns=strategy_simple_returns,
-                prices=price_series,
-                env=periodic_eval_ctx.env,
-                max_steps=periodic_eval_ctx.max_steps,
-                config=config.statistical_testing,
-                market_data=periodic_eval_ctx.df,
-                periods_per_year=periods_per_year,
-            )
+                    if strategy_simple_returns.size == 0:
+                        proxy_log_returns = (
+                            rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:split_ctx.max_steps]
+                        )
+                        strategy_simple_returns = np.exp(proxy_log_returns) - 1.0
 
-            # Log results to MLflow
-            MLflowTrainingCallback.log_statistical_tests(
-                statistical_test_results,
-                log_to_research_artifacts=config.statistical_testing.log_to_research_artifacts,
-                research_artifact_subdir=config.statistical_testing.research_artifact_subdir,
-            )
+                benchmark_price_column = config.env.price_column or "close"
+                if benchmark_price_column in split_ctx.df.columns:
+                    price_series = split_ctx.df[benchmark_price_column]
+                elif "close" in split_ctx.df.columns:
+                    price_series = split_ctx.df["close"]
+                else:
+                    price_series = None
+                    logger.warning(f"No price column found for {split} buy-and-hold comparison")
 
-            logger.info("Statistical significance tests complete")
-        except Exception as e:
-            logger.error(f"Failed to run statistical tests: {e}")
+                periods_per_year = periods_per_year_from_timeframe(
+                    getattr(config.data, "timeframe", "1d")
+                )
+                statistical_test_results = run_all_statistical_tests(
+                    strategy_returns=strategy_simple_returns,
+                    prices=price_series,
+                    env=split_ctx.env,
+                    max_steps=split_ctx.max_steps,
+                    config=config.statistical_testing,
+                    market_data=split_ctx.df,
+                    periods_per_year=periods_per_year,
+                )
+
+                MLflowTrainingCallback.log_statistical_tests(
+                    statistical_test_results,
+                    split_prefix=split,
+                    log_to_research_artifacts=config.statistical_testing.log_to_research_artifacts,
+                    research_artifact_subdir=config.statistical_testing.research_artifact_subdir,
+                )
+
+                logger.info(f"Statistical significance tests complete for {split} split")
+            except Exception as e:
+                logger.error(f"Failed to run statistical tests for {split} split: {e}")
+
+        split_results[split] = {
+            "final_reward": split_final_reward,
+            "last_positions": split_last_positions,
+            "evaluation_report": split_evaluation_report,
+        }
+
+    # Resolve primary split for top-level metrics: test → val → train
+    primary_split = next(
+        (s for s in ("test", "val", "train") if s in split_results),
+        None,
+    )
+    final_reward = split_results[primary_split]["final_reward"] if primary_split else float("nan")
+    last_positions = split_results[primary_split]["last_positions"] if primary_split else []
+    evaluation_report = split_results[primary_split]["evaluation_report"] if primary_split else {}
+
+    # Explainability on the primary split (test → val → train) only
+    if primary_split and primary_split in split_results:
+        explainability_ctx = _build_evaluation_context_for_split(
+            split=primary_split,
+            df={"train": train_df, "val": val_df, "test": test_df}[primary_split],
+            config=config,
+        )
+        _run_explainability_analysis(
+            config=config,
+            trainer=trainer,
+            eval_ctx=explainability_ctx,
+            train_df=train_df,
+            logger=logger,
+            artifact_path_prefix=f"explainability/{primary_split}",
+        )
 
     # Detect backend type for proper metric naming
     is_portfolio_backend = config.env.backend == "tradingenv"
 
     # Prepare comprehensive metrics
     final_metrics = {
-        # Performance metrics
+        # Performance metrics (from primary split)
         "final_reward": final_reward,
         "training_steps": len(logs.get("loss_value", [])),
         "interrupted": interrupted,
@@ -1231,26 +1276,19 @@ def run_single_experiment(
         "n_actions": n_act,
         # Training configuration
         "experiment_name": effective_experiment_name,
-        "evaluation_split": periodic_eval_ctx.split,
+        "evaluation_split": primary_split or "none",
         "seed": config.seed,
         "actor_lr": config.training.actor_lr,
         "value_lr": config.training.value_lr,
         "buffer_size": config.training.buffer_size,
-        # Quantitative finance evaluation report (25 metrics)
+        # Quantitative finance evaluation report (primary split)
         "evaluation_report": evaluation_report,
+        # Per-split results accessible to callers
+        "split_results": split_results,
     }
 
     # Log final metrics to MLflow
     MLflowTrainingCallback.log_final_metrics(logs, final_metrics, mlflow_callback)
-
-    # Explainability (Optional)
-    _run_explainability_analysis(
-        config=config,
-        trainer=trainer,
-        eval_ctx=periodic_eval_ctx,
-        train_df=train_df,
-        logger=logger,
-    )
 
     if interrupted:
         logger.info("Training interrupted; final evaluation complete!")
@@ -1268,8 +1306,6 @@ def run_single_experiment(
             "loss": visualize_training(logs)
             if logs.get("loss_value") or logs.get("loss_actor")
             else None,
-            "reward": reward_plot,
-            "action": action_plot,
         },
     }
 
