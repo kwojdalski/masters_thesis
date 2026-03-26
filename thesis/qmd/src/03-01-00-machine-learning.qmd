@@ -1,59 +1,28 @@
-
-
 # Machine Learning
 
-In this chapter, the term **machine learning** and its subfields are explained.
-The discussion also encompasses potential applications for trading financial
-instruments.
+In trading research, machine learning is not a single method but a family of
+problem formulations. The distinction matters because the choice of learning
+paradigm determines what the model is asked to do. A model may be trained to
+forecast a return, classify a market condition, discover latent structure in
+the data, or choose actions that directly affect portfolio evolution.
 
-As the field evolves, numerous definitions of machine learning emerge from
-various sources. In this subchapter, the author has selected definitions that
-accurately capture the essence of the discipline.
+For this thesis, the role of the present chapter is not to review machine
+learning in general terms. Instead, it is to position reinforcement learning
+relative to other paradigms that are commonly used in quantitative trading.
+This comparison is necessary because trading can be formulated either as a
+prediction task or as a sequential control problem, and those formulations lead
+to materially different modeling choices.
 
-What is machine learning? The most widely accepted definitions are as follows:
+In the sections that follow, supervised learning is treated as the framework
+most naturally suited to forecasting labeled targets such as future returns or
+directional classes. Unsupervised learning is treated as a tool for extracting
+structure from market data when explicit labels are unavailable. Semi-supervised
+learning occupies an intermediate position in which a limited set of labeled
+examples is combined with a larger unlabeled sample.
 
-* "Field of study that gives computers the ability to learn without being
-explicitly programmed." - Arthur Samuel, a pioneer in machine learning and
-computer gaming @Samuel1959
-* "A computer program is said to learn from experience $E$ with respect to some
-class of tasks $T$ and performance measure $P$, if its performance at tasks in
-$T$, as measured by $P$, improves with experience $E$." - Tom Mitchell, a
-computer scientist and E. Fredkin University Professor at Carnegie Mellon
-University (CMU) @Mitchell1997
-
-The latter is particularly regarded as an elegant and modern definition. Less
-formal, but equally relevant observations come from textbook authors in the
-discipline:
-
-* "Pattern recognition has its origins in engineering, whereas machine learning
-grew out of computer science. However, these activities can be viewed as two
-facets of the same field…" - Christopher Bishop
-* "One of the most interesting features of machine learning is that it lies on
-the boundary of several different academic disciplines, principally computer
-science, statistics, mathematics, and engineering. …machine learning is usually
-studied as part of artificial intelligence, which puts it firmly into computer
-science …understanding why these algorithms work requires a certain amount of
-statistical and mathematical sophistication that is often missing from computer
-science undergraduates." - Stephen Marsland @Marsland2009
-
-![Data Science Graph](../../figures/data_science.png){width=400px; height=400px}
-
-Despite numerous concepts and perspectives on what machine learning entails, the
-general objective remains consistent: Machine learning involves building models
-that sufficiently resemble reality, are optimal with respect to a value function,
-and can subsequently be utilized for predictions on new data.
-
-## Why is machine learning important?
-
-Machine learning facilitates solving problems that are difficult or impossible to
-address deterministically @Jason2013. Variables may be missing or observed values
-may contain embedded errors. Traditional models are often susceptible to being
-under- or overdetermined. They may fail to generalize adequately or may be
-excessively general. An appropriate machine learning model should provide an
-approximate solution incorporating only relevant components.
-
-## Classification of machine learning algorithms
-
-In machine learning (ML), tasks are categorized based on how learning/feedback
-($P$) is received and/or the type of problem they address. The following
-categories can be distinguished:
+The present thesis focuses on reinforcement learning because the empirical task
+is not only to predict the market, but to determine a sequence of portfolio
+exposure decisions under uncertainty, transaction frictions, and delayed
+performance feedback. The following subsections therefore compare the main
+learning paradigms in trading contexts before the reinforcement-learning
+foundations are developed in the next chapter.
