@@ -45,6 +45,10 @@ from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 
 # Avoid torch_shm_manager requirement in restricted environments
 mp.set_sharing_strategy("file_system")
+
+# Minimum timestamp gap enforced when deduplicating HFT event feeds for tradingenv.
+# tradingenv's latency partitioning requires at least 1-second spacing between events.
+_HFT_MIN_TIMESTAMP_GAP_NS = 1_000_000_000
 # gym_trading_env sets warnings to errors; reset to defaults for TorchRL
 warnings.filterwarnings("default")
 # tradingenv TrackRecord converts pandas.Timestamp -> datetime (microseconds),
@@ -340,7 +344,7 @@ def _ensure_unique_index_for_hft_tradingenv(
         "test": test_df,
     }
     updated: dict[str, pd.DataFrame] = {}
-    min_gap_ns = 1_000_000_000  # 1 second
+    min_gap_ns = _HFT_MIN_TIMESTAMP_GAP_NS
 
     for split_name, df in dataframes.items():
         if not isinstance(df.index, pd.DatetimeIndex):

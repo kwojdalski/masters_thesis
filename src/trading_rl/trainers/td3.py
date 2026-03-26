@@ -17,7 +17,7 @@ from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
-from trading_rl.trainers.base import BaseTrainer
+from trading_rl.trainers.base import BaseTrainer, _MIN_BATCH_SUCCESS_RATE
 
 logger = get_logger(__name__)
 
@@ -597,8 +597,7 @@ class TD3Trainer(BaseTrainer):
                 f"batches successful ({success_rate:.1f}%), {self.skipped_batches} skipped due to tensor shape errors"
             )
 
-            # Use warning if success rate is below 70%, otherwise info
-            if success_rate < 70.0:
+            if success_rate < _MIN_BATCH_SUCCESS_RATE:
                 logger.warning(summary_msg)
             else:
                 logger.info(summary_msg)

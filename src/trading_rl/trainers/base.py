@@ -22,6 +22,8 @@ from torchrl.envs.utils import set_exploration_type
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 
+_MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
+
 
 class _LocalTrajectoryPool:
     """Minimal trajectory pool that avoids shared memory requirements."""
