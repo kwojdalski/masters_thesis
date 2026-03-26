@@ -31,6 +31,9 @@ class DataConfig:
     feature_config: str | None = None  # Path to feature config YAML
 
 
+DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
+
+
 @dataclass
 class EnvConfig:
     """Trading environment configuration."""
@@ -40,7 +43,7 @@ class EnvConfig:
     positions: list[int] = field(default_factory=lambda: [-1, 0, 1])
     trading_fees: float = 0.0  # 0.01% = 0.0001
     borrow_interest_rate: float = 0.0  # 0.0003% = 0.000003
-    initial_portfolio_value: float = 10000.0  # Starting portfolio value for logging
+    initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE  # Starting portfolio value for logging
     backend: str = "gym_anytrading.forex"  # Backend type: gym_trading_env.discrete, gym_trading_env.continuous, gym_anytrading.forex, gym_anytrading.stocks, tradingenv
 
     # TradingEnv-specific configuration (optional)

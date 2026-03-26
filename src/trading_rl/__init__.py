@@ -1,6 +1,7 @@
 """Trading RL package with modular components for DDPG, PPO, and TD3 trading."""
 
 from trading_rl.config import (
+    DEFAULT_INITIAL_PORTFOLIO_VALUE,
     DataConfig,
     EnvConfig,
     ExperimentConfig,
@@ -53,6 +54,7 @@ __all__ = [
     "PPOTrainer",
     "TD3Trainer",
     # Config
+    "DEFAULT_INITIAL_PORTFOLIO_VALUE",
     "DataConfig",
     "EnvConfig",
     "ExperimentConfig",

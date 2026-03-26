@@ -18,6 +18,7 @@ import torch
 import yaml
 
 from logger import get_logger as get_project_logger
+from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 
 
 class MLflowTrainingCallback:
@@ -38,7 +39,7 @@ class MLflowTrainingCallback:
         total_episodes: int | None = None,
         price_series=None,
         start_run: bool = True,
-        initial_portfolio_value: float = 10000.0,
+        initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
         reward_type: str = "log_return",
         config_for_run_name: Any | None = None,
     ):
@@ -397,7 +398,7 @@ class MLflowTrainingCallback:
                 "env_borrow_interest_rate", float(config.env.borrow_interest_rate)
             )
             mlflow.log_param(
-                "env_initial_portfolio_value", float(getattr(config.env, "initial_portfolio_value", 10000.0))
+                "env_initial_portfolio_value", float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
             )
 
             # Network parameters
