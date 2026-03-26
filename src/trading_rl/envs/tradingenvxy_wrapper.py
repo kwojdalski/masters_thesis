@@ -17,7 +17,7 @@ from tradingenv.rewards import LogReturn
 from tradingenv.spaces import BoxPortfolio
 
 from logger import get_logger
-from trading_rl.config import ExperimentConfig
+from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
 from trading_rl.envs.trading_envs import BaseTradingEnvironmentFactory
 from trading_rl.rewards import DifferentialSharpeRatio
 
@@ -185,14 +185,14 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             )
 
         # Extract environment parameters from config if available
-        initial_cash = 10000
+        initial_cash = DEFAULT_INITIAL_PORTFOLIO_VALUE
         fee = 0.0
         reward_type = "log_return"
         reward_eta = 0.01
         if config is not None:
             env_config = getattr(config, "env", None)
             if env_config is not None:
-                initial_cash = getattr(env_config, "cash", 10000)
+                initial_cash = getattr(env_config, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)
                 fee = getattr(env_config, "trading_fees", 0.0)
                 reward_type = getattr(env_config, "reward_type", "log_return")
                 reward_eta = getattr(env_config, "reward_eta", 0.01)
