@@ -500,6 +500,7 @@ class BaseTrainer(ABC):
                 eta=dsr_eta,
                 max_steps=max_steps,
                 price_column=benchmark_price_column,
+                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", 10000.0)),
             )
 
             # Calculate DSR for max profit
@@ -509,6 +510,7 @@ class BaseTrainer(ABC):
                 eta=dsr_eta,
                 max_steps=max_steps,
                 price_column=benchmark_price_column,
+                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", 10000.0)),
             )
 
             # Add to benchmark data
