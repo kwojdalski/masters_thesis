@@ -753,27 +753,29 @@ def _run_explainability_analysis(
         logger.error(f"Failed to run explainability analysis: {e}")
 
 
-def _build_final_evaluation_context(
+def _build_evaluation_context_for_split(
     *,
-    train_df: pd.DataFrame,
-    val_df: pd.DataFrame,
-    test_df: pd.DataFrame,
+    split: str,
+    df: pd.DataFrame,
     config: ExperimentConfig,
 ) -> EvaluationContext:
-    """Build final evaluation context.
+    """Build an evaluation context for a given data split.
 
-    Current default remains in-sample (`train`) for compatibility.
-    The context object keeps the dataframe and environment coupled so they
-    cannot silently diverge in later refactors.
+    The caller is responsible for selecting the correct DataFrame for the split.
+    This function only builds the environment and computes max_steps, keeping
+    the dataframe and environment coupled so they cannot silently diverge.
+
+    Args:
+        split: Split name ("train", "val", or "test") — stored on the context
+            for logging and artifact namespacing.
+        df: DataFrame for this split.
+        config: Experiment configuration.
     """
-    del val_df, test_df  # Reserved for future split selection
-    split = "train"
-    eval_df = train_df
-    eval_env = AlgorithmicEnvironmentBuilder().create(eval_df, config)
-    eval_max_steps = min(config.training.eval_steps, len(eval_df) - 1)
+    eval_env = AlgorithmicEnvironmentBuilder().create(df, config)
+    eval_max_steps = min(config.training.eval_steps, len(df) - 1)
     return EvaluationContext(
         split=split,
-        df=eval_df,
+        df=df,
         env=eval_env,
         max_steps=eval_max_steps,
     )
@@ -1016,28 +1018,28 @@ def run_single_experiment(
         mlflow_callback = result.mlflow_callback
         effective_experiment_name = result.effective_experiment_name
 
-    # Setup periodic evaluation (if enabled in config)
-    # Build evaluation context early so it's available during training
-    eval_ctx = _build_final_evaluation_context(
-        train_df=train_df,
-        val_df=val_df,
-        test_df=test_df,
+    # Build train-split context for periodic mid-training evaluation.
+    # This must always use train_df — using val/test here would leak
+    # out-of-sample signal into training decisions.
+    periodic_eval_ctx = _build_evaluation_context_for_split(
+        split="train",
+        df=train_df,
         config=config,
     )
     trainer.setup_periodic_evaluation(
-        df=eval_ctx.df,
-        max_steps=eval_ctx.max_steps,
+        df=periodic_eval_ctx.df,
+        max_steps=periodic_eval_ctx.max_steps,
         config=config,
         algorithm=algorithm,
-        eval_env=eval_ctx.env,
+        eval_env=periodic_eval_ctx.env,
     )
 
     # Setup periodic explainability (if enabled in config)
     trainer.setup_periodic_explainability(
-        df=eval_ctx.df,
+        df=periodic_eval_ctx.df,
         max_steps=config.explainability.n_steps,
         config=config,
-        eval_env=eval_ctx.env,
+        eval_env=periodic_eval_ctx.env,
     )
 
     # Train (Ctrl-C should still trigger final evaluation on the current model state)
@@ -1080,7 +1082,6 @@ def run_single_experiment(
 
     # Evaluate agent
     logger.info("Evaluating agent...")
-    # eval_ctx was already built before training for periodic evaluation
     (
         reward_plot,
         action_plot,
@@ -1090,11 +1091,11 @@ def run_single_experiment(
         actual_returns_plot,
         merged_plot,
     ) = trainer.evaluate(
-        eval_ctx.df,
-        max_steps=eval_ctx.max_steps,
+        periodic_eval_ctx.df,
+        max_steps=periodic_eval_ctx.max_steps,
         config=config,
         algorithm=algorithm,
-        eval_env=eval_ctx.env,
+        eval_env=periodic_eval_ctx.env,
     )
 
     # Save evaluation plots as MLflow artifacts
@@ -1108,10 +1109,10 @@ def run_single_experiment(
     )
     evaluation_report = build_evaluation_report_for_trainer(
         trainer=trainer,
-        df_prices=eval_ctx.df,
-        max_steps=eval_ctx.max_steps,
+        df_prices=periodic_eval_ctx.df,
+        max_steps=periodic_eval_ctx.max_steps,
         config=config,
-        eval_env=eval_ctx.env,
+        eval_env=periodic_eval_ctx.env,
     )
     MLflowTrainingCallback.log_evaluation_report(evaluation_report)
 
@@ -1130,10 +1131,10 @@ def run_single_experiment(
             with torch.no_grad():
                 try:
                     with set_exploration_type(InteractionType.MODE):
-                        rollout = eval_ctx.env.rollout(max_steps=eval_ctx.max_steps, policy=trainer.actor)
+                        rollout = periodic_eval_ctx.env.rollout(max_steps=periodic_eval_ctx.max_steps, policy=trainer.actor)
                 except RuntimeError:
                     with set_exploration_type(InteractionType.DETERMINISTIC):
-                        rollout = eval_ctx.env.rollout(max_steps=eval_ctx.max_steps, policy=trainer.actor)
+                        rollout = periodic_eval_ctx.env.rollout(max_steps=periodic_eval_ctx.max_steps, policy=trainer.actor)
 
             reward_type = config.env.reward_type
             backend = config.env.backend
@@ -1141,14 +1142,14 @@ def run_single_experiment(
             # Extract strategy returns (same logic as in build_evaluation_report_for_trainer)
             if str(reward_type).lower() == "log_return":
                 strategy_log_returns = (
-                    rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:eval_ctx.max_steps]
+                    rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:periodic_eval_ctx.max_steps]
                 )
                 strategy_simple_returns = np.exp(strategy_log_returns) - 1.0
             else:
                 strategy_simple_returns = np.array([], dtype=float)
 
                 if str(backend).lower() == "tradingenv":
-                    cumulative_log_returns = _extract_tradingenv_returns(eval_ctx.env, eval_ctx.max_steps)
+                    cumulative_log_returns = _extract_tradingenv_returns(periodic_eval_ctx.env, periodic_eval_ctx.max_steps)
                     if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
                         cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
                         step_log_returns = np.diff(cumulative_log_returns, prepend=0.0)
@@ -1156,16 +1157,16 @@ def run_single_experiment(
 
                 if strategy_simple_returns.size == 0:
                     proxy_log_returns = (
-                        rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:eval_ctx.max_steps]
+                        rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:periodic_eval_ctx.max_steps]
                     )
                     strategy_simple_returns = np.exp(proxy_log_returns) - 1.0
 
             # Get price series for buy-and-hold comparison
             benchmark_price_column = config.env.price_column or "close"
-            if benchmark_price_column in eval_ctx.df.columns:
-                price_series = eval_ctx.df[benchmark_price_column]
-            elif "close" in eval_ctx.df.columns:
-                price_series = eval_ctx.df["close"]
+            if benchmark_price_column in periodic_eval_ctx.df.columns:
+                price_series = periodic_eval_ctx.df[benchmark_price_column]
+            elif "close" in periodic_eval_ctx.df.columns:
+                price_series = periodic_eval_ctx.df["close"]
             else:
                 price_series = None
                 logger.warning("No price column found for buy-and-hold comparison")
@@ -1177,10 +1178,10 @@ def run_single_experiment(
             statistical_test_results = run_all_statistical_tests(
                 strategy_returns=strategy_simple_returns,
                 prices=price_series,
-                env=eval_ctx.env,
-                max_steps=eval_ctx.max_steps,
+                env=periodic_eval_ctx.env,
+                max_steps=periodic_eval_ctx.max_steps,
                 config=config.statistical_testing,
-                market_data=eval_ctx.df,
+                market_data=periodic_eval_ctx.df,
                 periods_per_year=periods_per_year,
             )
 
@@ -1230,7 +1231,7 @@ def run_single_experiment(
         "n_actions": n_act,
         # Training configuration
         "experiment_name": effective_experiment_name,
-        "evaluation_split": eval_ctx.split,
+        "evaluation_split": periodic_eval_ctx.split,
         "seed": config.seed,
         "actor_lr": config.training.actor_lr,
         "value_lr": config.training.value_lr,
@@ -1246,7 +1247,7 @@ def run_single_experiment(
     _run_explainability_analysis(
         config=config,
         trainer=trainer,
-        eval_ctx=eval_ctx,
+        eval_ctx=periodic_eval_ctx,
         train_df=train_df,
         logger=logger,
     )
