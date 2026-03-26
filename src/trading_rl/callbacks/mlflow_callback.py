@@ -781,12 +781,26 @@ class MLflowTrainingCallback:
                 )
 
     @staticmethod
-    def log_evaluation_report(report: dict[str, float]) -> None:
-        """Log evaluation report metrics and JSON artifact to MLflow."""
+    def log_evaluation_report(
+        report: dict[str, float],
+        split_prefix: str | None = None,
+    ) -> None:
+        """Log evaluation report metrics and JSON artifact to MLflow.
+
+        Args:
+            report: Dictionary of evaluation metrics.
+            split_prefix: Optional split name (e.g. "train", "val", "test").
+                When given, metric keys become ``eval_{split_prefix}_{key}``
+                and the artifact is placed under
+                ``evaluation_metrics/{split_prefix}``.
+        """
         logger = get_project_logger(__name__)
         if not mlflow.active_run():
             logger.warning("No active MLflow run - skipping evaluation report logging")
             return
+
+        metric_prefix = f"eval_{split_prefix}_" if split_prefix else "eval_"
+        artifact_dir = f"evaluation_metrics/{split_prefix}" if split_prefix else "evaluation_metrics"
 
         clean_report: dict[str, float] = {}
         for key, value in report.items():
@@ -796,7 +810,7 @@ class MLflowTrainingCallback:
                 continue
             if np.isfinite(metric_value):
                 clean_report[key] = metric_value
-                mlflow.log_metric(f"eval_{key}", metric_value)
+                mlflow.log_metric(f"{metric_prefix}{key}", metric_value)
 
         if not clean_report:
             logger.warning("No finite evaluation metrics to log")
@@ -807,13 +821,14 @@ class MLflowTrainingCallback:
         ) as handle:
             json.dump(clean_report, handle, indent=2, sort_keys=True)
             handle.flush()
-            mlflow.log_artifact(handle.name, "evaluation_metrics")
+            mlflow.log_artifact(handle.name, artifact_dir)
             os.unlink(handle.name)
 
     @staticmethod
     def log_statistical_tests(
         test_results: dict[str, Any],
         *,
+        split_prefix: str | None = None,
         log_to_research_artifacts: bool = False,
         research_artifact_subdir: str = "research_artifacts/statistical_tests",
     ) -> None:
@@ -821,8 +836,12 @@ class MLflowTrainingCallback:
 
         Args:
             test_results: Dictionary with all statistical test results
-            log_to_research_artifacts: If True, also log a compact summary bundle
-                under a research artifacts path.
+            split_prefix: Optional split name (e.g. "train", "val", "test").
+                When given, metric keys become
+                ``stat_{split_prefix}_{baseline}_{test}_{key}`` and the
+                artifact is placed under ``statistical_tests/{split_prefix}``.
+            log_to_research_artifacts: If True, also log a compact summary
+                bundle under a research artifacts path.
             research_artifact_subdir: MLflow artifact subdirectory used when
                 `log_to_research_artifacts` is enabled.
         """
@@ -835,7 +854,10 @@ class MLflowTrainingCallback:
             logger.debug("Statistical testing disabled - skipping logging")
             return
 
-        # Log summary metrics
+        stat_artifact_dir = f"statistical_tests/{split_prefix}" if split_prefix else "statistical_tests"
+        split_infix = f"{split_prefix}_" if split_prefix else ""
+
+        # Log summary metrics (idempotent — safe to call for each split)
         mlflow.log_param("stat_tests_enabled", True)
         mlflow.log_param("stat_tests_configured", ",".join(test_results.get("tests_configured", [])))
 
@@ -850,16 +872,16 @@ class MLflowTrainingCallback:
 
             # Log sample sizes
             if "n_strategy_samples" in baseline_result:
-                mlflow.log_metric(f"stat_{baseline_name}_n_strategy", baseline_result["n_strategy_samples"])
+                mlflow.log_metric(f"stat_{split_infix}{baseline_name}_n_strategy", baseline_result["n_strategy_samples"])
             if "n_baseline_samples" in baseline_result:
-                mlflow.log_metric(f"stat_{baseline_name}_n_baseline", baseline_result["n_baseline_samples"])
+                mlflow.log_metric(f"stat_{split_infix}{baseline_name}_n_baseline", baseline_result["n_baseline_samples"])
 
             # Log individual test results
             for test_name, test_data in baseline_result.items():
                 if not isinstance(test_data, dict):
                     continue
 
-                prefix = f"stat_{baseline_name}_{test_name}"
+                prefix = f"stat_{split_infix}{baseline_name}_{test_name}"
 
                 # Log all numeric values from test results
                 for key, value in test_data.items():
@@ -881,7 +903,7 @@ class MLflowTrainingCallback:
         ) as handle:
             json.dump(test_results, handle, indent=2, sort_keys=True, default=str)
             handle.flush()
-            mlflow.log_artifact(handle.name, "statistical_tests")
+            mlflow.log_artifact(handle.name, stat_artifact_dir)
             os.unlink(handle.name)
 
         vwap_volume_source = test_results.get("vwap_volume_source")
@@ -895,7 +917,7 @@ class MLflowTrainingCallback:
                 mode="w", suffix=".csv", delete=False
             ) as handle:
                 benchmark_df.to_csv(handle.name, index=False)
-                mlflow.log_artifact(handle.name, "statistical_tests")
+                mlflow.log_artifact(handle.name, stat_artifact_dir)
                 os.unlink(handle.name)
 
         if log_to_research_artifacts:
