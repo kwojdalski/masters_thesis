@@ -1,58 +1,63 @@
 # Introduction
 
-Conventional representation of trading floors as chaotic environments
-characterized by vocal trader interactions has been in decline since the 1980s.
-For the last 40 years, the financial industry has undergone substantial transformation.
+Financial markets have undergone a long transition from predominantly
+human-mediated trading toward electronic and increasingly automated execution.
+This transition has been especially pronounced in high-frequency settings, where
+decisions are made on very short horizons and depend on information contained in
+the limit order book rather than only in aggregated price bars.
 
-Financial markets have consistently functioned as an early adopter of
-computational innovations. This integration represents a strategic
-imperative—competitive advantage through technology frequently correlates with financial performance.
-Hence, the industry has systematically pioneered the deployment of
-state-of-the-art technologies,
-ranging from Bloomberg terminal infrastructure in the 1990s to
-contemporary blockchain applications and low latency systems, all oriented toward maximizing operational efficiency.
+This distinction is methodologically important. A large share of prior research
+on algorithmic trading and reinforcement learning evaluates models on
+lower-frequency data such as daily or intraday OHLCV bars. Such representations
+are useful for many forecasting and portfolio tasks, but they compress away much
+of the market microstructure information that governs high-frequency trading.
+At short horizons, the local state of liquidity, queue dynamics, spread
+variation, and the timing of order book updates may be as important as the
+direction of recent price movement.
 
-[^1]: In empirical literature, the banking sector is identified  as a
-primary industry implementing blockchain technology.
+For this reason, high-frequency trading should not be treated as a simple
+higher-speed version of bar-based trading. The state observed by the decision
+maker is structurally different. Best bid and ask quotes, depth imbalance,
+microprice deviations, spread regimes, order-flow-related signals, and
+event-time information provide a more direct description of short-horizon market
+conditions than coarse candlestick aggregates. A central premise of this thesis
+is that reinforcement learning agents should be evaluated in a state space that
+reflects these microstructure properties explicitly.
 
-Trading entities, functioning as economic agents,
-aim to optimize market-derived profits. Multiple methodological approaches exist to achieve this objective. Various approaches exist across the 
-investment spectrum: value investors like Benjamin Graham and Warren 
-Buffett employ fundamental analysis with 
-long-term horizons; quantitative firms such as
-Two Sigma utilize computational methods for systematic trading; while
-high-frequency trading entities like Citadel Securities implement
-low latency strategies to capitalize on microscopic price discrepancies.
+Recent progress in machine learning and reinforcement learning has increased the
+practical relevance of adaptive decision-making systems in financial domains.
+Trading is naturally sequential: each action affects future exposure, portfolio
+state, and the opportunities available at subsequent time steps. This makes
+reinforcement learning a plausible modelling framework, provided that the data
+representation, reward specification, and evaluation procedure are aligned with
+the economic structure of the trading problem.
 
-In recent years, methodologies predicated on artificial intelligence and machine
-learning algorithms have demonstrated increasing significance. This phenomenon
-correlates, to name a few reasons, with computational capacity, decreasing
-infrastructure expenditure requirements, and empirical recognition of cognitive
-biases in human decision-making processes. A growing consensus within
-the literature suggests that algorithmic systems should supplement or potentially
-supersede human involvement in decision-making and execution processes @Turner2015.
-The progressive automation of trading activities will likely continue its
-direction, contradicting the stereotypical trading floor representation.
+This thesis investigates the use of reinforcement learning, with particular
+focus on TD3, for high-frequency single-asset trading based on
+order-book-derived information. The research is motivated not by a claim that
+artificial intelligence can universally solve trading, but by a narrower and
+testable question: under controlled experimental conditions, can a continuous
+control agent using microstructure-aware features achieve economically
+meaningful out-of-sample performance relative to selected benchmarks?
 
-Although machine learning's theoretical foundations date to the 1950s, for many years its
-explicit implementation in trading contexts has been relatively limited. 
-For example, in institutional FX trading, only entities with substantial
-capital resources and sophisticated quantitative infrastructure have developed effective machine learning trading systems @Mosic2017.
+The problem is challenging for several reasons. Financial rewards are noisy and
+non-stationary, transaction costs can erase apparent profitability, and
+short-horizon strategies are sensitive to feature design, turnover, and market
+frictions. In addition, strong empirical claims are difficult because favorable
+in-sample results may reflect data leakage, overfitting, or unrealistic
+execution assumptions rather than genuine decision quality.
 
-This research investigates potential applications of machine learning—specifically
-reinforcement learning methodologies—in developing trading systems capable of
-generating statistically significant positive outcomes.
+Accordingly, the thesis emphasizes methodological discipline alongside model
+development. It treats feature engineering, chronological evaluation,
+reward-return separation, and robustness analysis as core parts of the research
+problem rather than secondary implementation details. In this setting, the
+question is not only whether an agent can learn, but whether the learning setup
+is sufficiently well specified to support credible empirical conclusions.
 
-In the literature, many systems aim to maximize either
-absolute trading profits or risk-adjusted performance metrics. Despite numerous methodological approaches to create consistently profitable systems utilizing variables derived from financial econometrics, fundamental analysis, or machine
-learning algorithms, many have demonstrated mediocre performance due to several
-factors, including:
-
-* Large drawdowns resulting in excessive performance volatility
-* High transaction costs making strategies impractical
-* High computational complexity, particularly problematic for high-frequency
-  trading
-
-Even when empirical research demonstrates exceptional results, upon publication,
-any competitive advantage tends to diminish through market efficiency mechanisms.
-Strategies with alpha-generating capabilities typically remain proprietary to maintain their effectiveness.
+At the same time, the work does not claim to reproduce the full operational
+complexity of live high-frequency trading. The empirical framework is based on a
+controlled simulation environment rather than a complete execution engine with
+queue-priority modelling, latency competition, exact fill uncertainty, and full
+market impact. The contribution of the thesis should therefore be understood as
+methodological and empirical: it evaluates reinforcement learning agents in a
+microstructure-aware setting while making the simplifying assumptions explicit.

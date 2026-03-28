@@ -28,9 +28,16 @@ defines the core novelty claim tested in the empirical chapters.
 
 The research is based on the following hypotheses:
 
-1. AI-driven algorithms can deliver superior value by exceeding benchmark performance metrics in terms of both risk management and return generation
-2. Enhanced performance is particularly evident in high-frequency trading scenarios
-3. These algorithms demonstrate the capability to implicitly learn market patterns that would be impossible for humans to identify and efficiently select securities. In consequence, they generate alpha or at least desirable investment performance characteristics
+1. A TD3-based trading agent using order-book-derived high-frequency features
+   can achieve stronger out-of-sample risk-adjusted performance than selected
+   benchmark strategies under the assumptions of the simulated environment.
+2. Microstructure-aware state representations provide more informative inputs
+   for sequential trading decisions than lower-information baseline
+   representations built from more aggregated market variables alone.
+3. The empirical performance of reinforcement learning trading agents is
+   materially sensitive to feature specification, reward design, and
+   transaction-cost assumptions, which makes robustness analysis necessary for
+   credible conclusions.
 
 ### Objectives of the Research
 
