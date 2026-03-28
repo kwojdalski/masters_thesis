@@ -1,11 +1,7 @@
 # HFT LOB Feature Formulas
 
-Feature set used in `src/configs/scenarios/aapl_td3_hft_lob.yaml`.
 Definitions in `src/configs/features/hft_lob_features.yaml`.
 Implementation in `src/trading_rl/features/lob_features.py`.
-
-Data source: Databento MBP-10 (Market by Price, 10 levels) tick snapshots,
-AAPL US equity, nanosecond resolution.
 
 **Column naming convention**
 
@@ -318,3 +314,52 @@ non-null for all trade rows.
 | 32 | `book_convexity` ask | `ask_px_00–02` | unbounded | yes |
 | 33 | `order_count_imbalance` L0 | `bid/ask_ct_00` | $[-1,1]$ | yes |
 | 34 | `signed_trade_flow` (W=100) | `action`, `side`, `size` | unbounded | yes |
+| 35 | `odd_lot_trade_ratio` (W=200) | `action`, `size` | $[0,1]$ | yes |
+| 36 | `odd_lot_imbalance` (W=200) | `action`, `side`, `size` | $[-1,1]$ | yes |
+
+---
+
+### 20. Odd Lot Trade Ratio
+
+**Feature type:** `odd_lot_trade_ratio` | Param: `window` (default 200), `round_lot` (default 100)
+
+An odd lot is a trade with `size < round_lot` (100 shares for US equities).
+In AAPL MBP-10 data, 81% of all trades are odd-lot sized (median 25 shares),
+reflecting the dominance of retail and algorithmic small-lot activity.
+
+$$\text{OddLotRatio}_{W,t} = \frac{\sum_{\tau=t-W+1}^{t} \mathbf{1}[\text{action}_\tau = T,\ \text{size}_\tau < L]}{\max\!\left(\sum_{\tau=t-W+1}^{t} \mathbf{1}[\text{action}_\tau = T],\ 1\right)}$$
+
+where $L$ = `round_lot`. Non-trade rows contribute 0 to both numerator and
+denominator.
+
+- **Range:** $[0, 1]$
+- High ratio: retail-dominated tape, lower adverse selection risk
+- Sudden drop: institutional participation increasing — higher adverse selection
+- Warms up over the first `window` ticks from the start of each split
+
+**Feasibility:** `action` and `size` confirmed non-null in dataset.
+
+---
+
+### 21. Odd Lot Imbalance
+
+**Feature type:** `odd_lot_imbalance` | Param: `window` (default 200), `round_lot` (default 100)
+
+Signed directional bias in odd-lot (retail) order flow, normalized by total
+odd-lot volume. Isolates retail pressure from institutional flow (which
+dominates round-lot and block trades).
+
+$$B_W = \sum_{\tau} \text{size}_\tau \cdot \mathbf{1}[\text{action}_\tau=T,\ \text{side}_\tau=B,\ \text{size}_\tau < L]$$
+
+$$S_W = \sum_{\tau} \text{size}_\tau \cdot \mathbf{1}[\text{action}_\tau=T,\ \text{side}_\tau=A,\ \text{size}_\tau < L]$$
+
+$$\text{OddLotImbalance}_{W,t} = \frac{B_W - S_W}{\max(B_W + S_W,\ 1)}$$
+
+- **Range:** $[-1, +1]$
+- $+1$: all odd-lot flow is buyer-initiated (retail buying pressure)
+- $-1$: all odd-lot flow is seller-initiated (retail selling pressure)
+- Complements `signed_trade_flow` (which includes all trade sizes) by isolating
+  the retail component
+
+**Feasibility:** `action`, `side`, and `size` confirmed non-null in dataset.
+Observed mean imbalance ~0.05 (slight retail buy bias over the sample period).
