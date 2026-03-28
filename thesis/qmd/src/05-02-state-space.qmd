@@ -179,3 +179,24 @@ In practice, after standardization, feature values concentrate in $[-3, 3]$ unde
 approximate Gaussian assumptions. The policy and value networks must generalize
 to out-of-distribution observations that arise during stress episodes or
 regime shifts not present in the training sample.
+
+### On the Exclusion of Raw LOB Columns
+
+Raw price and size columns — that is, the unprocessed bid and ask prices and
+sizes at each level — were deliberately excluded from the observation vector.
+Prior work in the deep learning tradition feeds the raw LOB matrix directly to
+the network [@Zhang2019], allowing convolutional or recurrent architectures to
+discover structure from data without hand-engineered intermediaries. This is a
+coherent approach when the model itself is the feature extractor.
+
+In the present setup, however, comprehensive microstructure features with
+established theoretical mechanisms are the primary input to the agent. Including
+raw columns alongside them introduces redundancy without adding an interpretable
+signal: normalized bid sizes at each level carry substantially the same
+information as the imbalance features derived from them, and normalized absolute
+prices at tick frequency are near-meaningless once the local market state is
+already encoded through microprice divergence, OFI, and spread measures. Mixing
+both paradigms would imply that the engineered features are insufficient, which
+is inconsistent with the selection rationale described above. The observation
+vector is therefore composed entirely of theoretically motivated derived
+features.
