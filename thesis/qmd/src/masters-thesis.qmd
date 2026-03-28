@@ -80,17 +80,21 @@ single evaluation framework for algorithmic trading research.
 {{< include ./01-03-00-methodological-framework.qmd >}}
 {{< include ./01-04-00-thesis-organization-and-chapter-overview.qmd >}}
 
+{{< include ./02-00-00-literature-review.qmd >}}
+{{< include ./02-02-02-empirical-evidence.qmd >}}
+{{< include ./02-02-04-microstructure-theory.qmd >}}
+{{< include ./02-03-03-02-seminal-works.qmd >}}
+{{< include ./02-03-03-01-key-concepts.qmd >}}
+{{< include ./02-03-03-03-rl-applications.qmd >}}
+
+<!-- commented out — financial theory sections not used in current thesis scope -->
 <!-- {{< include ./02-01-01-01-classical-models.qmd >}} -->
 <!-- {{< include ./02-01-01-02-modern-portfolio-theory-and-capm.qmd >}} -->
 <!-- {{< include ./02-01-01-03-factor-models.qmd >}} -->
 <!-- {{< include ./02-01-02-00-modern-approaches.qmd >}} -->
 <!-- {{< include ./02-01-03-00-critical-analysis.qmd >}} -->
 <!-- {{< include ./02-02-00-relevant-financial-indicators.qmd >}} -->
-{{< include ./02-02-02-empirical-evidence.qmd >}}
 <!-- {{< include ./02-02-03-market-anomalies.qmd >}} -->
-<!-- {{< include ./02-03-03-01-key-concepts.qmd >}} -->
-{{< include ./02-03-03-02-seminal-works.qmd >}}
-{{< include ./02-03-03-03-rl-applications.qmd >}}
 
 {{< include ./03-01-00-machine-learning.qmd >}}
 {{< include ./03-01-01-supervised-learning.qmd >}}

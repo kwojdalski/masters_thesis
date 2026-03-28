@@ -1,0 +1,11 @@
+# Literature Review
+
+This chapter surveys the academic foundations relevant to reinforcement learning
+for high-frequency trading. It is organized in three parts. The first part
+reviews market microstructure — the empirical evidence and theoretical
+mechanisms that govern short-horizon price formation in limit order book markets.
+This establishes the financial environment in which the agent operates and
+motivates the feature engineering choices made in Chapter 5. The second part
+positions reinforcement learning as the appropriate methodological framework for
+this problem and surveys its application in trading research. The third part
+synthesizes the literature to identify the gap this thesis addresses.
