@@ -1,0 +1,106 @@
+## Market Microstructure Theory
+
+The empirical regularities described in the preceding section are grounded in
+a theoretical literature that models the strategic interactions between informed
+traders, uninformed liquidity demanders, and market makers in a limit order book.
+This section reviews the theoretical frameworks that directly underpin the feature
+design choices made in Chapter 5.
+
+### Adverse Selection and the Spread Decomposition
+
+@GlostenMilgrom1985 established that the bid-ask spread reflects a market
+maker's protection against trading with informed counterparties. In their model,
+the market maker faces two types of order flow: uninformed liquidity traders,
+whose trades are uncorrelated with future price changes, and informed traders,
+who possess private information about fundamental value. Setting a positive
+spread allows the market maker to profit from uninformed flow and recoup losses
+on informed flow. The spread therefore decomposes into an adverse selection
+component — compensation for information risk — and an inventory or order
+processing component.
+
+This decomposition has a direct implication for trading signal design. A
+narrowing spread signals reduced adverse selection risk; a widening spread
+signals elevated informed activity. The spread features in Chapter 5 — spread
+in basis points and the spread ratio — are motivated by this theoretical
+framework. Their predictive content derives from what the spread reveals about
+the current composition of order flow, not merely from the mechanical cost of
+execution.
+
+@Kyle1985 formalized the price impact of informed trading through the lambda
+parameter, which measures the sensitivity of price changes to order flow. In
+Kyle's continuous-time model, the informed trader optimally splits their order
+to minimize price impact, and the market maker sets prices to break even against
+order flow. The resulting relationship between order imbalance and price change
+is linear, with slope $\lambda$ that depends on the ratio of informed to
+uninformed volume. The order flow features in Chapter 5 — OFI and signed trade
+flow — can be understood as empirical proxies for Kyle's order imbalance
+variable, with the bid-ask slope features measuring the depth analogue of
+$\lambda$ across levels of the order book.
+
+### Limit Order Book Mechanics
+
+@Glosten1994 developed the theory of the open limit order book as a competitive
+equilibrium, showing that a full LOB can sustain itself as a market mechanism
+under adverse selection. The key insight is that the price schedule embedded in
+the LOB — the sequence of bid and ask quotes at increasing depths — reflects the
+cumulative information content of orders at each quantity level. Deeper levels of
+the book attract less informed order flow but carry higher execution uncertainty
+for those posting limit orders.
+
+This theoretical result motivates the multi-level features used in Chapter 5.
+The book is not a single price but a price schedule, and the shape of that
+schedule — measured by depth ratios, slopes, and convexity features —
+encodes information about how informed the marginal liquidity provider expects
+the market to be at each quantity level.
+
+### Order Flow and Short-Term Price Prediction
+
+@Cont2014 provide the most direct empirical and theoretical treatment of the
+relationship between LOB events and short-term price changes. Their framework
+decomposes all LOB events into limit order arrivals, cancellations, and market
+orders, and defines order flow imbalance (OFI) as the net directional pressure
+these events exert on the best bid and ask queues. In a sample of NYSE stocks,
+they find a linear relationship between OFI and mid-price changes over intervals
+of one second to one minute, with OFI explaining 60–80% of short-term price
+variation. Importantly, the relationship is contemporaneous: OFI at time $t$
+predicts price changes at time $t$, not a lagged effect, which is consistent
+with the efficient incorporation of order book information into prices.
+
+The theoretical channel is straightforward: when buy-side pressure dominates
+(positive OFI), market makers raise quotes to attract sell-side flow and reduce
+inventory risk, mechanically pushing the mid-price upward. The OFI feature in
+this thesis operationalizes this mechanism directly.
+
+### Fair Value Estimation from the Order Book
+
+@Stoikov2018 derives the microprice as the theoretically optimal estimate of the
+next transaction price given the current state of the top-of-book queues. The
+key observation is that the mid-price — the arithmetic average of best bid and
+ask — is an inadequate fair value estimate when the queues are imbalanced,
+because the side with the thinner queue is more likely to be depleted first by
+incoming market orders, pulling the next transaction price toward the opposite
+side. The microprice corrects for this by volume-weighting the best quotes:
+
+$$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$
+
+When $V^{bid}_0 \gg V^{ask}_0$, the microprice is pulled toward the ask —
+the side more likely to move. The microprice divergence from mid captures this
+adjustment as a stationary signal and serves as the primary fair value feature
+in Chapter 5.
+
+### Synthesis
+
+Together these four theoretical frameworks establish the informational structure
+of the limit order book. The spread encodes adverse selection risk
+[@GlostenMilgrom1985]; price impact and order imbalance are related through
+Kyle's lambda [@Kyle1985]; the shape of the full book encodes the information
+content at each depth level [@Glosten1994]; and OFI is the dominant
+contemporaneous predictor of short-term price changes [@Cont2014]. The
+microprice [@Stoikov2018] provides a theoretically optimal fair value estimate
+that conditions on the current queue imbalance.
+
+These mechanisms are not independent: they all reflect the same underlying
+process of information aggregation through order flow. The feature set in
+Chapter 5 is designed to measure each mechanism from a distinct angle, providing
+the agent with a comprehensive description of the information environment it
+operates in.
