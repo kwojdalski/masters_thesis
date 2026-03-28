@@ -31,9 +31,10 @@ The research is based on the following hypotheses:
 1. A TD3-based trading agent using order-book-derived high-frequency features
    can achieve stronger out-of-sample risk-adjusted performance than selected
    benchmark strategies under the assumptions of the simulated environment.
-2. Microstructure-aware state representations provide more informative inputs
-   for sequential trading decisions than lower-information baseline
-   representations built from more aggregated market variables alone.
+2. Within the order-book-based trading framework studied in this thesis,
+   extending the state representation from basic snapshot features to a broader
+   microstructure-aware feature set leads to improved out-of-sample performance
+   under identical training and evaluation conditions.
 3. The empirical performance of reinforcement learning trading agents is
    materially sensitive to feature specification, reward design, and
    transaction-cost assumptions, which makes robustness analysis necessary for
@@ -58,11 +59,11 @@ data. The research objectives are structured in three interconnected phases:
      under the defined experimental assumptions
 
 3. **Analysis and Implications**
-   - Examine agent learning evolution and pattern recognition capabilities
-   - Investigate how agents integrate with microstructure-aware trading
-     methodologies
-   - Determine if agents can identify non-trivial patterns efficiently and
-     hence outperform naive strategies
+   - Compare alternative order-book-derived feature sets within a common
+     reinforcement learning training and evaluation framework
+   - Assess whether broader microstructure-aware feature sets improve
+     out-of-sample results relative to simpler snapshot-based state
+     representations
    - Assess the practical relevance and limitations of the approach under
      simplified execution assumptions
    - Identify promising directions for future research
