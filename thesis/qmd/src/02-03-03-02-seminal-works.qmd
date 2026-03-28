@@ -1,67 +1,37 @@
-## Seminal Works in RL
+## Why Reinforcement Learning for Trading
 
-This subsection reviews seminal reinforcement learning works from the perspective
-of their relevance to financial trading research. To avoid repeating the generic
-algorithm timeline and formal theory already covered in Chapter 4, the emphasis
-here is on which contributions matter for trading applications and why they are
-frequently cited in the finance RL literature.
+Before surveying applications, it is worth establishing why reinforcement
+learning is a natural fit for algorithmic trading rather than an arbitrary
+methodological choice. The argument rests on three structural properties of
+the trading problem.
 
-### General RL Milestones Relevant to Trading (Abridged Context)
+**Unknown market dynamics.** Model-based approaches require an explicit
+transition model — a specification of how the environment responds to actions.
+In financial markets, this model is unknown and non-stationary: price dynamics
+depend on the aggregate behavior of all participants, which changes continuously.
+Model-free RL methods learn directly from experience without requiring a
+transition model, making them the appropriate class for this setting
+[@Sutton2018].
 
-The broad theoretical foundations of reinforcement learning are rooted in
-dynamic programming and sequential decision-making theory, especially the work of
-@Bellman1957 and later syntheses such as @Bertsekas1996. For financial research,
-their primary importance is conceptual: they provide the language of long-horizon
-decision optimization and value-based reasoning that later RL trading systems
-inherit.
+**Off-policy learning from historical data.** Online experimentation in live
+markets is constrained by capital, risk, and regulatory requirements. The
+alternative is to learn from historical order book data — a fixed dataset of
+past transitions. Off-policy algorithms such as TD3 [@Fujimoto2018] can train
+on stored experience rather than requiring fresh environment interaction at
+every update, making them sample-efficient in the data-limited financial
+setting.
 
-The shift from model-based reasoning to learning from experience is driven by
-temporal-difference learning @Sutton1988, Q-learning @Watkins1989; @Watkins1992,
-and policy-gradient methods @Williams1992; @Sutton2000. These works are
-frequently referenced in finance because market transition dynamics are unknown,
-historical data is limited, and many trading problems require direct policy
-optimization rather than exact dynamic-programming solutions.
+**Continuous position sizing.** Trading decisions are naturally continuous:
+the agent should be able to express any degree of conviction through the size
+of its position, not just a binary buy/sell signal. Value-based methods such as
+DQN [@Mnih2015] require a discrete action space and cannot represent fractional
+positions without reintroducing a grid approximation. Deterministic actor-critic
+methods operate natively in continuous action spaces and are therefore more
+appropriate for position-sizing tasks.
 
-The deep RL era made RL materially more applicable to finance by combining
-function approximation with stabilizing mechanisms and scalable optimization.
-Commonly cited milestones in finance-oriented papers include DQN
-(@Mnih2013; @Mnih2015), continuous-control actor-critic methods such as DDPG
-@Lillicrap2015, stability improvements such as TD3 @Fujimoto2018, entropy-based
-methods such as SAC @Haarnoja2018, and practical policy-gradient refinements
-such as PPO @Schulman2017. Chapter 4 provides the chronological timeline and
-algorithmic classification of these methods; the present subsection focuses on
-their role in financial research.
-
-<!-- ### RL for Trading: Key Works
-Covered in detail in the following section (RL Applications in Trading Systems). -->
-
-<!-- ### Theoretical Advances Relevant to Finance
-
-**Distributional RL**
-
-@Bellemare2017 introduced distributional reinforcement learning, learning full return distributions rather than expected values. This approach provides richer information about risk and uncertainty—particularly relevant for finance where tail risks dominate institutional concerns.
-
-**Meta-Learning and Transfer**
-
-@Duan2016 and @Finn2017 developed meta-learning algorithms enabling rapid adaptation to new tasks. For trading systems, meta-learning offers potential to adapt policies across different market regimes or asset classes, addressing non-stationarity challenges.
-
-**Offline RL**
-
-@Levine2020 formalized offline (batch) reinforcement learning, learning policies exclusively from fixed datasets without environment interaction. Offline RL is especially relevant for finance where online experimentation is costly and risky. @Kumar2020 address distribution shift challenges in offline RL, proposing conservative Q-learning to prevent overestimation on out-of-distribution actions. -->
-
-### Impact on Trading Systems and This Thesis
-
-These seminal works collectively enable modern RL-based trading systems by providing:
-
-* **Theoretical guarantees**: Convergence and optimality conditions guiding algorithm selection
-* **Scalable algorithms**: Deep RL methods handling high-dimensional market data
-* **Risk-aware objectives**: Reward formulations aligning with financial risk management
-* **Stable learning**: Algorithmic innovations (target networks, twin critics) mitigating instability
-* **Sample efficiency**: Off-policy and offline methods learning from historical data
-
-In this thesis, these contributions primarily inform three design choices:
-(1) stable continuous-control learning (TD3), (2) risk-aware reward design
-(Differential Sharpe Ratio), and (3) cautious interpretation of results under
-limited and non-stationary financial data. The formal RL mechanics are presented
-in Chapter 4, while the trading-agent design and empirical implementation are
-detailed in Chapters 5-7.
+Together these three properties point toward a model-free, off-policy,
+continuous-action algorithm — which is the class to which TD3 belongs. The
+formal algorithmic properties of TD3 are derived in Chapter 4. The present
+section is concerned with how the broader RL literature has been applied to
+trading and what that literature implies for the design choices made in this
+thesis.
