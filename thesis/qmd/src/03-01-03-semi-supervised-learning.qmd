@@ -1,40 +1,15 @@
 ### Semi-Supervised Learning
 
-Semi-supervised learning represents a hybrid approach in machine learning where
-the dataset contains both labeled and unlabeled examples. Formally, the
-explanatory variables $X_i$ are available for all observations, but the labels
-$Y_i$ are only available for a subset of the data. Typically, the quantity of
-unlabeled examples significantly exceeds the number of labeled examples.
+Semi-supervised learning combines a small labeled set with a larger unlabeled
+set, propagating label information through structural similarity in the data.
+It is useful when labeling is expensive or subjective — medical annotation being
+the canonical application.
 
-The primary objective, similar to supervised learning, is to discover the
-relationship $Y = f(X)$. This is generally accomplished through a strategic
-combination of supervised and unsupervised learning techniques. The underlying
-principle involves labeled observations effectively "diffusing" their labels to
-unlabeled observations that exhibit high similarity according to specific
-criteria.
-
-The appeal of semi-supervised learning lies in its ability to leverage large
-amounts of unlabeled data, which is often more abundant and less costly to
-obtain than labeled data. By incorporating these unlabeled examples, the
-learning algorithm can potentially develop a more robust and generalizable model
-than would be possible using only the limited labeled examples.
-
-Several key techniques in semi-supervised learning include:
-
-- **Self-training**: An iterative process where a model trained on labeled data
-  makes predictions on unlabeled data, then adds high-confidence predictions to
-  the training set.
-
-- **Co-training**: Using multiple views or feature subsets to train separate
-  models that teach each other by labeling unlabeled examples for one another.
-
-- **Graph-based methods**: Constructing similarity graphs where nodes represent
-  data points and edges represent similarities, allowing label propagation
-  through the graph structure.
-
-- **Generative models**: Using techniques like Gaussian Mixture Models to model
-  the joint distribution of features and labels.
-
-- **Semi-supervised SVMs (S3VMs)**: Extensions of Support Vector Machines that
-  incorporate unlabeled data by seeking decision boundaries that avoid dense
-  regions of unlabeled points.
+In financial trading, the approach is rarely adopted because the main bottleneck
+is not label scarcity but the absence of a stable labeling criterion: what
+constitutes an optimal action at a given market state depends on subsequent
+price evolution, which is noisy and non-stationary. Constructing pseudo-labels
+for unlabeled market observations requires either a strong prior on optimal
+behavior or a separate forecasting model — at which point the problem has
+already been reformulated as supervised or reinforcement learning. For these
+reasons, semi-supervised learning is not used in this thesis.

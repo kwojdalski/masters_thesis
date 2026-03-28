@@ -1,69 +1,23 @@
 ### Rule-Based Trading Strategies
 
-A rule-based strategy uses explicit, human-defined rules for buying and
-trading. These are interpretable and do not rely on forecasting models or
-machine-generated predictions but rather employ conditional logic
-where trading decisions follow deterministic paths based on market conditions.
-Typically, such rules derive from established market heuristics or technical analysis
-principles with proven effectiveness.
+Rule-based strategies encode trading decisions as explicit conditional logic:
+position changes are triggered when observable market quantities cross
+pre-defined thresholds. Common examples include moving-average crossover
+systems, momentum breakout rules, and mean-reversion strategies based on
+Bollinger Bands or RSI. In high-frequency settings, rule-based approaches
+include market-making strategies that post limit orders at fixed offsets from
+the mid-price and cancel them when inventory limits are reached.
 
-The clear causal relationship between market conditions and trading actions
-provides transparency, allowing traders to understand exactly why positions
-change.
+The appeal of rule-based systems is transparency: the causal chain from
+market condition to action is explicit, auditable, and reproducible. They also
+impose no distributional assumptions on the data and can be deployed without
+a training phase.
 
-Rule-based systems apply consistently across all market conditions, eliminating
-psychological biases and ensuring reproducible trading decisions. This
-deterministic nature enables straightforward performance evaluation
-
-The framework adapts to changing markets while maintaining its structure.
-Parameter optimization enhances performance while preserving core logic,
-allowing systematic evolution through iterative refinement.
-
-<!-- #### Example: Cross-Venue Arbitrage Strategy
-
-Strategy exploits temporary price discrepancies of the
-same asset traded on different exchanges or venues.
-
-
-The arbitrage opportunity can be formalized through the price differential:
-
-$$D_t = P_{X,t} - P_{Y,t}$$
-
-where:
-- $P_X$ = price of asset on venue X
-- $P_Y$ = price of asset on venue Y
-
-In theoretically perfect market efficiency, this differential would
-approach zero after accounting for all transaction costs, as arbitrage
-opportunities would be immediately exploited by market participants.
-
-The trading signal generation follows this decision rule:
-
-$$\text{Signal} =
-\begin{cases}
-\text{BUY on Y, SELL on X}, & \text{if } D_t > \tau + c \\
-\text{BUY on X, SELL on Y}, & \text{if } D_t < -\tau - c \\
-\text{CLOSE POSITIONS}, & \text{if } |D_t| < \delta \\
-\text{HOLD}, & \text{otherwise}
-\end{cases}$$
-
-where:
-- $\tau$ represents the entry threshold
-- $\delta$ represents the exit threshold
-- $c$ accounts for transaction costs including fees and slippage
-
-For instance, with `MSFT` stock listed on two electronic venues:
-$$D_t = P_{\text{MSFT},\text{Venue1},t} - P_{\text{MSFT},\text{Venue2},t}$$
-
-If the price differential exceeds 3 pips plus transaction costs ($\tau = 0.0003$),
-the strategy signals to buy on the venue offering the lower price and
-simultaneously sell on the venue with the higher price.
-
-The optimization problem for this strategy can be expressed as:
-
-$$\max_{\tau, \delta} \sum_{t=1}^{T} P_t(\tau, \delta) - TC_t$$
-
-where:
-- $P_t(\tau, \delta)$ represents the profit at time $t$ given thresholds
-$\tau$ and $\delta$
-- $TC_t$ represents the transaction costs -->
+The limitation is inflexibility. Rules are defined over a fixed set of
+observable conditions and optimized for a particular market regime. When the
+regime changes — for example, when a previously mean-reverting asset enters a
+trending period — fixed rules either require manual recalibration or continue
+generating losses until the regime reverts. This brittleness under
+non-stationarity is the primary motivation for learning-based approaches,
+which can update their behavior from experience rather than requiring explicit
+rule revision.
