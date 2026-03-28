@@ -2,8 +2,8 @@
 
 These features are based on order book imbalance theory and high-frequency
 trading microstructure research. References:
-- Order Book Features documentation
-- Microprice theory (Stoikov, et al.)
+- Cont, Kukanov & Stoikov (2014) — Order Flow Imbalance
+- Stoikov (2018) — Microprice
 - Market microstructure analysis
 """
 
@@ -12,12 +12,60 @@ from __future__ import annotations
 import pandas as pd
 import numpy as np
 
-from trading_rl.features.base import Feature
+from trading_rl.features.base import Feature, FeatureConfig
 from trading_rl.features.registry import register_feature
 
 
+# ---------------------------------------------------------------------------
+# Shared utilities
+# ---------------------------------------------------------------------------
+
+def safe_divide(
+    numerator: pd.Series,
+    denominator: pd.Series,
+    fill: float = 0.0,
+) -> pd.Series:
+    """Divide two Series, returning `fill` wherever denominator is zero."""
+    result = pd.Series(fill, index=numerator.index, dtype=float)
+    mask = denominator != 0
+    result[mask] = numerator[mask] / denominator[mask]
+    return result
+
+
+class LOBFeature(Feature):
+    """Base class for LOB features with convenience helpers."""
+
+    def _p(self, key: str, default):
+        """Shorthand for self.config.params.get(key, default)."""
+        return self.config.params.get(key, default)
+
+    def _best_cols(self) -> dict[str, str]:
+        """Resolve the canonical 4-column best-level names from params."""
+        return {
+            "bid_px": self._p("bid_price_col", "bid_px_00"),
+            "ask_px": self._p("ask_price_col", "ask_px_00"),
+            "bid_sz": self._p("bid_size_col", "bid_sz_00"),
+            "ask_sz": self._p("ask_size_col", "ask_sz_00"),
+        }
+
+    def _trade_cols(self) -> tuple[str, str, str]:
+        """Resolve trade-tape column names (action, side, size) from params."""
+        return (
+            self._p("action_col", "action"),
+            self._p("side_col", "side"),
+            self._p("size_col", "size"),
+        )
+
+    def _mid(self, df: pd.DataFrame, bid_col: str, ask_col: str) -> pd.Series:
+        return (df[bid_col].astype(float) + df[ask_col].astype(float)) / 2.0
+
+
+# ---------------------------------------------------------------------------
+# Baseline LOB features
+# ---------------------------------------------------------------------------
+
 @register_feature("book_pressure")
-class BookPressureFeature(Feature):
+class BookPressureFeature(LOBFeature):
     """Book Pressure (Volume Imbalance) at a specific level.
 
     Formula: bkp_i = (BidVol_i - AskVol_i) / (BidVol_i + AskVol_i)
@@ -31,36 +79,25 @@ class BookPressureFeature(Feature):
         ask_size_col: Column name for ask size (default: "ask_sz_{level:02d}")
     """
 
-    def _get_level(self) -> int:
-        return int(self.config.params.get("level", 0))
-
-    def _get_bid_col(self) -> str:
-        level = self._get_level()
-        return self.config.params.get("bid_size_col", f"bid_sz_{level:02d}")
-
-    def _get_ask_col(self) -> str:
-        level = self._get_level()
-        return self.config.params.get("ask_size_col", f"ask_sz_{level:02d}")
+    def _sz_cols(self) -> tuple[str, str]:
+        lvl = int(self._p("level", 0))
+        return (
+            self._p("bid_size_col", f"bid_sz_{lvl:02d}"),
+            self._p("ask_size_col", f"ask_sz_{lvl:02d}"),
+        )
 
     def required_columns(self) -> list[str]:
-        return [self._get_bid_col(), self._get_ask_col()]
+        return list(self._sz_cols())
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        bid_vol = df[self._get_bid_col()]
-        ask_vol = df[self._get_ask_col()]
-
-        # Avoid division by zero
-        total_vol = bid_vol + ask_vol
-        pressure = pd.Series(0.0, index=df.index)
-
-        mask = total_vol > 0
-        pressure[mask] = (bid_vol[mask] - ask_vol[mask]) / total_vol[mask]
-
-        return pressure
+        bid_col, ask_col = self._sz_cols()
+        bid = df[bid_col].astype(float)
+        ask = df[ask_col].astype(float)
+        return safe_divide(bid - ask, bid + ask)
 
 
 @register_feature("spread_bps")
-class SpreadBpsFeature(Feature):
+class SpreadBpsFeature(LOBFeature):
     """Spread in Basis Points.
 
     Formula: Spread_bps = (Ask_0 - Bid_0) / MidPrice * 10000
@@ -72,30 +109,19 @@ class SpreadBpsFeature(Feature):
         ask_price_col: Column name for best ask (default: "ask_px_00")
     """
 
-    def _get_bid_col(self) -> str:
-        return self.config.params.get("bid_price_col", "bid_px_00")
-
-    def _get_ask_col(self) -> str:
-        return self.config.params.get("ask_price_col", "ask_px_00")
-
     def required_columns(self) -> list[str]:
-        return [self._get_bid_col(), self._get_ask_col()]
+        return [self._p("bid_price_col", "bid_px_00"),
+                self._p("ask_price_col", "ask_px_00")]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        bid = df[self._get_bid_col()]
-        ask = df[self._get_ask_col()]
-
-        mid_price = (bid + ask) / 2
-        spread_bps = pd.Series(0.0, index=df.index)
-
-        mask = mid_price > 0
-        spread_bps[mask] = ((ask[mask] - bid[mask]) / mid_price[mask]) * 10000
-
-        return spread_bps
+        bid = df[self._p("bid_price_col", "bid_px_00")].astype(float)
+        ask = df[self._p("ask_price_col", "ask_px_00")].astype(float)
+        mid = (bid + ask) / 2.0
+        return safe_divide((ask - bid) * 10_000.0, mid)
 
 
 @register_feature("microprice")
-class MicropriceFeature(Feature):
+class MicropriceFeature(LOBFeature):
     """Microprice (Volume-Weighted Fair Value).
 
     Formula: microprice = (AskVol * Bid + BidVol * Ask) / (BidVol + AskVol)
@@ -104,45 +130,31 @@ class MicropriceFeature(Feature):
     Better predictor of next price movement than simple mid-price.
 
     Params:
-        bid_price_col: Column name for best bid (default: "bid_px_00")
-        ask_price_col: Column name for best ask (default: "ask_px_00")
-        bid_size_col: Column name for bid size (default: "bid_sz_00")
-        ask_size_col: Column name for ask size (default: "ask_sz_00")
+        bid_price_col, ask_price_col, bid_size_col, ask_size_col:
+            defaults: bid_px_00, ask_px_00, bid_sz_00, ask_sz_00
     """
 
-    def _get_cols(self) -> dict[str, str]:
-        return {
-            "bid_px": self.config.params.get("bid_price_col", "bid_px_00"),
-            "ask_px": self.config.params.get("ask_price_col", "ask_px_00"),
-            "bid_sz": self.config.params.get("bid_size_col", "bid_sz_00"),
-            "ask_sz": self.config.params.get("ask_size_col", "ask_sz_00"),
-        }
-
     def required_columns(self) -> list[str]:
-        cols = self._get_cols()
-        return list(cols.values())
+        return list(self._best_cols().values())
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        cols = self._get_cols()
-        bid_px = df[cols["bid_px"]]
-        ask_px = df[cols["ask_px"]]
-        bid_sz = df[cols["bid_sz"]]
-        ask_sz = df[cols["ask_sz"]]
-
-        total_size = bid_sz + ask_sz
-        microprice = (bid_px + ask_px) / 2  # Fallback to mid-price
-
-        mask = total_size > 0
-        microprice[mask] = (
-            (ask_sz[mask] * bid_px[mask] + bid_sz[mask] * ask_px[mask])
-            / total_size[mask]
-        )
-
-        return microprice
+        c = self._best_cols()
+        bid_px = df[c["bid_px"]].astype(float)
+        ask_px = df[c["ask_px"]].astype(float)
+        bid_sz = df[c["bid_sz"]].astype(float)
+        ask_sz = df[c["ask_sz"]].astype(float)
+        total = bid_sz + ask_sz
+        # Fallback to mid-price when total size is zero
+        mid = (bid_px + ask_px) / 2.0
+        weighted = ask_sz * bid_px + bid_sz * ask_px
+        result = mid.copy()
+        mask = total > 0
+        result[mask] = weighted[mask] / total[mask]
+        return result
 
 
 @register_feature("microprice_divergence")
-class MicropriceDivergenceFeature(Feature):
+class MicropriceDivergenceFeature(LOBFeature):
     """Microprice Divergence from Mid Price.
 
     Formula: MicroDiv = MicroPrice - MidPrice
@@ -151,178 +163,118 @@ class MicropriceDivergenceFeature(Feature):
     more buying pressure, negative values indicate selling pressure.
 
     Params:
-        bid_price_col: Column name for best bid (default: "bid_px_00")
-        ask_price_col: Column name for best ask (default: "ask_px_00")
-        bid_size_col: Column name for bid size (default: "bid_sz_00")
-        ask_size_col: Column name for ask size (default: "ask_sz_00")
+        bid_price_col, ask_price_col, bid_size_col, ask_size_col:
+            defaults: bid_px_00, ask_px_00, bid_sz_00, ask_sz_00
     """
 
-    def _get_cols(self) -> dict[str, str]:
-        return {
-            "bid_px": self.config.params.get("bid_price_col", "bid_px_00"),
-            "ask_px": self.config.params.get("ask_price_col", "ask_px_00"),
-            "bid_sz": self.config.params.get("bid_size_col", "bid_sz_00"),
-            "ask_sz": self.config.params.get("ask_size_col", "ask_sz_00"),
-        }
-
     def required_columns(self) -> list[str]:
-        cols = self._get_cols()
-        return list(cols.values())
+        return list(self._best_cols().values())
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        cols = self._get_cols()
-        bid_px = df[cols["bid_px"]]
-        ask_px = df[cols["ask_px"]]
-        bid_sz = df[cols["bid_sz"]]
-        ask_sz = df[cols["ask_sz"]]
-
-        mid_price = (bid_px + ask_px) / 2
-
-        total_size = bid_sz + ask_sz
-        microprice = mid_price.copy()
-
-        mask = total_size > 0
-        microprice[mask] = (
-            (ask_sz[mask] * bid_px[mask] + bid_sz[mask] * ask_px[mask])
-            / total_size[mask]
-        )
-
-        return microprice - mid_price
+        c = self._best_cols()
+        bid_px = df[c["bid_px"]].astype(float)
+        ask_px = df[c["ask_px"]].astype(float)
+        bid_sz = df[c["bid_sz"]].astype(float)
+        ask_sz = df[c["ask_sz"]].astype(float)
+        mid = (bid_px + ask_px) / 2.0
+        total = bid_sz + ask_sz
+        microprice = mid.copy()
+        mask = total > 0
+        microprice[mask] = (ask_sz[mask] * bid_px[mask] + bid_sz[mask] * ask_px[mask]) / total[mask]
+        return microprice - mid
 
 
 @register_feature("depth_ratio")
-class DepthRatioFeature(Feature):
+class DepthRatioFeature(LOBFeature):
     """Depth Ratio (Top vs. Deep Book).
 
-    Formula: DepthRatio = Vol_L1 / sum(Vol_L2..L5)
+    Formula: DepthRatio = Vol_L0 / sum(Vol_L1..LN)
 
     High ratio indicates a "thin" book behind the best price (fragile liquidity).
     Low ratio indicates deep liquidity support.
 
     Params:
-        levels_deep: Number of deep levels to consider (default: 4, i.e., L2-L5)
+        levels_deep: Number of deep levels to consider (default: 4, i.e., L1-L4)
         bid_size_prefix: Prefix for bid size columns (default: "bid_sz_")
         ask_size_prefix: Prefix for ask size columns (default: "ask_sz_")
     """
 
-    def _get_params(self) -> dict:
-        return {
-            "levels_deep": int(self.config.params.get("levels_deep", 4)),
-            "bid_sz_prefix": self.config.params.get("bid_size_prefix", "bid_sz_"),
-            "ask_sz_prefix": self.config.params.get("ask_size_prefix", "ask_sz_"),
-        }
-
     def required_columns(self) -> list[str]:
-        params = self._get_params()
-        cols = []
-        # L1 (level 0)
-        cols.extend([f"{params['bid_sz_prefix']}00", f"{params['ask_sz_prefix']}00"])
-        # L2-L5 (levels 1-4)
-        for i in range(1, params["levels_deep"] + 1):
-            cols.extend([
-                f"{params['bid_sz_prefix']}{i:02d}",
-                f"{params['ask_sz_prefix']}{i:02d}"
-            ])
+        bp = self._p("bid_size_prefix", "bid_sz_")
+        ap = self._p("ask_size_prefix", "ask_sz_")
+        n = int(self._p("levels_deep", 4))
+        cols = [f"{bp}00", f"{ap}00"]
+        for i in range(1, n + 1):
+            cols += [f"{bp}{i:02d}", f"{ap}{i:02d}"]
         return cols
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        params = self._get_params()
-
-        # L1 total volume
-        l1_vol = (
-            df[f"{params['bid_sz_prefix']}00"] +
-            df[f"{params['ask_sz_prefix']}00"]
+        bp = self._p("bid_size_prefix", "bid_sz_")
+        ap = self._p("ask_size_prefix", "ask_sz_")
+        n = int(self._p("levels_deep", 4))
+        l0_vol = df[f"{bp}00"].astype(float) + df[f"{ap}00"].astype(float)
+        deep_vol = sum(
+            df[f"{bp}{i:02d}"].astype(float) + df[f"{ap}{i:02d}"].astype(float)
+            for i in range(1, n + 1)
         )
-
-        # L2-L5 total volume
-        deep_vol = pd.Series(0.0, index=df.index)
-        for i in range(1, params["levels_deep"] + 1):
-            deep_vol += (
-                df[f"{params['bid_sz_prefix']}{i:02d}"] +
-                df[f"{params['ask_sz_prefix']}{i:02d}"]
-            )
-
-        depth_ratio = pd.Series(0.0, index=df.index)
-        mask = deep_vol > 0
-        depth_ratio[mask] = l1_vol[mask] / deep_vol[mask]
-
-        return depth_ratio
+        return safe_divide(l0_vol, deep_vol)
 
 
 @register_feature("vwmp_skew")
-class VWMPSkewFeature(Feature):
+class VWMPSkewFeature(LOBFeature):
     """Volume-Weighted Mid Price (VWMP) Skew.
 
-    Formula: VWMP_Skew = (VWMP_L1..3 - MidPrice) / Spread
+    Formula: VWMP_Skew = (VWMP_L0..N - MidPrice) / Spread
 
     Measures if deep liquidity supports the current mid-price.
     Positive skew indicates deep bid support, negative indicates deep ask support.
 
     Params:
         levels: Number of levels to include (default: 3)
-        bid_price_prefix: Prefix for bid price columns (default: "bid_px_")
-        ask_price_prefix: Prefix for ask price columns (default: "ask_px_")
-        bid_size_prefix: Prefix for bid size columns (default: "bid_sz_")
-        ask_size_prefix: Prefix for ask size columns (default: "ask_sz_")
+        bid_price_prefix, ask_price_prefix: default "bid_px_", "ask_px_"
+        bid_size_prefix, ask_size_prefix: default "bid_sz_", "ask_sz_"
     """
 
-    def _get_params(self) -> dict:
-        return {
-            "levels": int(self.config.params.get("levels", 3)),
-            "bid_px_prefix": self.config.params.get("bid_price_prefix", "bid_px_"),
-            "ask_px_prefix": self.config.params.get("ask_price_prefix", "ask_px_"),
-            "bid_sz_prefix": self.config.params.get("bid_size_prefix", "bid_sz_"),
-            "ask_sz_prefix": self.config.params.get("ask_size_prefix", "ask_sz_"),
-        }
-
     def required_columns(self) -> list[str]:
-        params = self._get_params()
-        cols = []
-        for i in range(params["levels"]):
-            cols.extend([
-                f"{params['bid_px_prefix']}{i:02d}",
-                f"{params['ask_px_prefix']}{i:02d}",
-                f"{params['bid_sz_prefix']}{i:02d}",
-                f"{params['ask_sz_prefix']}{i:02d}",
-            ])
-        return cols
+        bpp = self._p("bid_price_prefix", "bid_px_")
+        app = self._p("ask_price_prefix", "ask_px_")
+        bsp = self._p("bid_size_prefix", "bid_sz_")
+        asp = self._p("ask_size_prefix", "ask_sz_")
+        n = int(self._p("levels", 3))
+        return [
+            col
+            for i in range(n)
+            for col in (f"{bpp}{i:02d}", f"{app}{i:02d}",
+                        f"{bsp}{i:02d}", f"{asp}{i:02d}")
+        ]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        params = self._get_params()
+        bpp = self._p("bid_price_prefix", "bid_px_")
+        app = self._p("ask_price_prefix", "ask_px_")
+        bsp = self._p("bid_size_prefix", "bid_sz_")
+        asp = self._p("ask_size_prefix", "ask_sz_")
+        n = int(self._p("levels", 3))
 
-        # Calculate VWMP across specified levels
         total_vol = pd.Series(0.0, index=df.index)
         weighted_price = pd.Series(0.0, index=df.index)
-
-        for i in range(params["levels"]):
-            bid_px = df[f"{params['bid_px_prefix']}{i:02d}"]
-            ask_px = df[f"{params['ask_px_prefix']}{i:02d}"]
-            bid_sz = df[f"{params['bid_sz_prefix']}{i:02d}"]
-            ask_sz = df[f"{params['ask_sz_prefix']}{i:02d}"]
-
+        for i in range(n):
+            bid_px = df[f"{bpp}{i:02d}"].astype(float)
+            ask_px = df[f"{app}{i:02d}"].astype(float)
+            bid_sz = df[f"{bsp}{i:02d}"].astype(float)
+            ask_sz = df[f"{asp}{i:02d}"].astype(float)
             total_vol += bid_sz + ask_sz
             weighted_price += bid_px * bid_sz + ask_px * ask_sz
 
-        vwmp = pd.Series(0.0, index=df.index)
-        mask = total_vol > 0
-        vwmp[mask] = weighted_price[mask] / total_vol[mask]
-
-        # Calculate mid-price and spread from L1
-        bid_0 = df[f"{params['bid_px_prefix']}00"]
-        ask_0 = df[f"{params['ask_px_prefix']}00"]
-        mid_price = (bid_0 + ask_0) / 2
+        vwmp = safe_divide(weighted_price, total_vol)
+        bid_0 = df[f"{bpp}00"].astype(float)
+        ask_0 = df[f"{app}00"].astype(float)
+        mid = (bid_0 + ask_0) / 2.0
         spread = ask_0 - bid_0
-
-        # Calculate skew
-        skew = pd.Series(0.0, index=df.index)
-        spread_mask = spread > 0
-        skew[spread_mask] = (vwmp[spread_mask] - mid_price[spread_mask]) / spread[spread_mask]
-
-        return skew
+        return safe_divide(vwmp - mid, spread)
 
 
 @register_feature("bid_ask_slope")
-class BidAskSlopeFeature(Feature):
+class BidAskSlopeFeature(LOBFeature):
     """Bid or Ask Slope (Elasticity).
 
     Formula (Bid): Slope_Bid = (BidPx_0 - BidPx_N) / sum(BidVol_0..N)
@@ -334,67 +286,34 @@ class BidAskSlopeFeature(Feature):
     Params:
         side: "bid" or "ask" (required)
         levels: Number of levels to include (default: 5, i.e., L0-L4)
-        price_prefix: Prefix for price columns (default: "bid_px_" or "ask_px_")
-        size_prefix: Prefix for size columns (default: "bid_sz_" or "ask_sz_")
+        price_prefix: default "bid_px_" or "ask_px_" based on side
+        size_prefix: default "bid_sz_" or "ask_sz_" based on side
     """
 
-    def _get_params(self) -> dict:
-        side = self.config.params.get("side", "").lower()
-        if side not in ["bid", "ask"]:
-            raise ValueError(
-                f"bid_ask_slope feature requires side='bid' or 'ask', got: {side}"
-            )
-
-        levels = int(self.config.params.get("levels", 5))
-        price_prefix = self.config.params.get(
-            "price_prefix", f"{side}_px_"
-        )
-        size_prefix = self.config.params.get(
-            "size_prefix", f"{side}_sz_"
-        )
-
-        return {
-            "side": side,
-            "levels": levels,
-            "price_prefix": price_prefix,
-            "size_prefix": size_prefix,
-        }
+    def _side_params(self) -> tuple[str, str, str, int]:
+        side = self._p("side", "").lower()
+        if side not in ("bid", "ask"):
+            raise ValueError(f"bid_ask_slope requires side='bid' or 'ask', got: {side!r}")
+        pp = self._p("price_prefix", f"{side}_px_")
+        sp = self._p("size_prefix", f"{side}_sz_")
+        n = int(self._p("levels", 5))
+        return side, pp, sp, n
 
     def required_columns(self) -> list[str]:
-        params = self._get_params()
-        cols = []
-        for i in range(params["levels"]):
-            cols.extend([
-                f"{params['price_prefix']}{i:02d}",
-                f"{params['size_prefix']}{i:02d}",
-            ])
-        return cols
+        _, pp, sp, n = self._side_params()
+        return [col for i in range(n) for col in (f"{pp}{i:02d}", f"{sp}{i:02d}")]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        params = self._get_params()
-
-        px_0 = df[f"{params['price_prefix']}00"]
-        px_n = df[f"{params['price_prefix']}{params['levels']-1:02d}"]
-
-        total_vol = pd.Series(0.0, index=df.index)
-        for i in range(params["levels"]):
-            total_vol += df[f"{params['size_prefix']}{i:02d}"]
-
-        slope = pd.Series(0.0, index=df.index)
-        mask = total_vol > 0
-
-        if params["side"] == "bid":
-            # Bid slope: higher is better (flatter price decay)
-            slope[mask] = (px_0[mask] - px_n[mask]) / total_vol[mask]
-        else:
-            # Ask slope: higher is better (flatter price increase)
-            slope[mask] = (px_n[mask] - px_0[mask]) / total_vol[mask]
-
-        return slope
+        side, pp, sp, n = self._side_params()
+        px_0 = df[f"{pp}00"].astype(float)
+        px_n = df[f"{pp}{n - 1:02d}"].astype(float)
+        total_vol = sum(df[f"{sp}{i:02d}"].astype(float) for i in range(n))
+        price_range = (px_0 - px_n) if side == "bid" else (px_n - px_0)
+        return safe_divide(price_range, total_vol)
 
 
 @register_feature("order_book_imbalance")
-class OrderBookImbalanceFeature(Feature):
+class OrderBookImbalanceFeature(LOBFeature):
     """Multi-Level Order Book Imbalance.
 
     Formula: OBI = sum(BidVol_i - AskVol_i) / sum(BidVol_i + AskVol_i)
@@ -407,49 +326,27 @@ class OrderBookImbalanceFeature(Feature):
         ask_size_prefix: Prefix for ask size columns (default: "ask_sz_")
     """
 
-    def _get_params(self) -> dict:
-        return {
-            "levels": int(self.config.params.get("levels", 3)),
-            "bid_sz_prefix": self.config.params.get("bid_size_prefix", "bid_sz_"),
-            "ask_sz_prefix": self.config.params.get("ask_size_prefix", "ask_sz_"),
-        }
-
     def required_columns(self) -> list[str]:
-        params = self._get_params()
-        cols = []
-        for i in range(params["levels"]):
-            cols.extend([
-                f"{params['bid_sz_prefix']}{i:02d}",
-                f"{params['ask_sz_prefix']}{i:02d}",
-            ])
-        return cols
+        bp = self._p("bid_size_prefix", "bid_sz_")
+        ap = self._p("ask_size_prefix", "ask_sz_")
+        n = int(self._p("levels", 3))
+        return [col for i in range(n) for col in (f"{bp}{i:02d}", f"{ap}{i:02d}")]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        params = self._get_params()
-
-        total_bid = pd.Series(0.0, index=df.index)
-        total_ask = pd.Series(0.0, index=df.index)
-
-        for i in range(params["levels"]):
-            total_bid += df[f"{params['bid_sz_prefix']}{i:02d}"]
-            total_ask += df[f"{params['ask_sz_prefix']}{i:02d}"]
-
-        total_vol = total_bid + total_ask
-        imbalance = pd.Series(0.0, index=df.index)
-
-        mask = total_vol > 0
-        imbalance[mask] = (total_bid[mask] - total_ask[mask]) / total_vol[mask]
-
-        return imbalance
+        bp = self._p("bid_size_prefix", "bid_sz_")
+        ap = self._p("ask_size_prefix", "ask_sz_")
+        n = int(self._p("levels", 3))
+        total_bid = sum(df[f"{bp}{i:02d}"].astype(float) for i in range(n))
+        total_ask = sum(df[f"{ap}{i:02d}"].astype(float) for i in range(n))
+        return safe_divide(total_bid - total_ask, total_bid + total_ask)
 
 
-# =============================================================================
+# ---------------------------------------------------------------------------
 # Alpha-oriented HFT features
-# =============================================================================
-
+# ---------------------------------------------------------------------------
 
 @register_feature("ofi")
-class OrderFlowImbalanceFeature(Feature):
+class OrderFlowImbalanceFeature(LOBFeature):
     """Order Flow Imbalance (OFI) — Cont, Kukanov & Stoikov (2014).
 
     Measures the net directional pressure from order book events at the best
@@ -468,43 +365,29 @@ class OrderFlowImbalanceFeature(Feature):
     First row is set to 0.
 
     Params:
-        bid_price_col: best bid price column (default: "bid_px_00")
-        ask_price_col: best ask price column (default: "ask_px_00")
-        bid_size_col:  best bid size column  (default: "bid_sz_00")
-        ask_size_col:  best ask size column  (default: "ask_sz_00")
+        bid_price_col, ask_price_col, bid_size_col, ask_size_col:
+            defaults: bid_px_00, ask_px_00, bid_sz_00, ask_sz_00
     """
 
-    def _get_cols(self) -> dict[str, str]:
-        return {
-            "bid_px": self.config.params.get("bid_price_col", "bid_px_00"),
-            "ask_px": self.config.params.get("ask_price_col", "ask_px_00"),
-            "bid_sz": self.config.params.get("bid_size_col", "bid_sz_00"),
-            "ask_sz": self.config.params.get("ask_size_col", "ask_sz_00"),
-        }
-
     def required_columns(self) -> list[str]:
-        return list(self._get_cols().values())
+        return list(self._best_cols().values())
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        cols = self._get_cols()
-        bid_px = df[cols["bid_px"]].astype(float)
-        ask_px = df[cols["ask_px"]].astype(float)
-        bid_sz = df[cols["bid_sz"]].astype(float)
-        ask_sz = df[cols["ask_sz"]].astype(float)
-
-        d_bid_sz = bid_sz.diff()
-        d_ask_sz = ask_sz.diff()
-
-        bid_px_up = (bid_px >= bid_px.shift(1)).astype(float)
-        ask_px_dn = (ask_px <= ask_px.shift(1)).astype(float)
-
-        ofi = d_bid_sz * bid_px_up - d_ask_sz * ask_px_dn
+        c = self._best_cols()
+        bid_px = df[c["bid_px"]].astype(float)
+        ask_px = df[c["ask_px"]].astype(float)
+        bid_sz = df[c["bid_sz"]].astype(float)
+        ask_sz = df[c["ask_sz"]].astype(float)
+        ofi = (
+            bid_sz.diff() * (bid_px >= bid_px.shift(1)).astype(float)
+            - ask_sz.diff() * (ask_px <= ask_px.shift(1)).astype(float)
+        ).fillna(0.0)
         ofi.iloc[0] = 0.0
-        return ofi.fillna(0.0)
+        return ofi
 
 
 @register_feature("ofi_rolling")
-class RollingOFIFeature(Feature):
+class RollingOFIFeature(LOBFeature):
     """Rolling signed order-flow imbalance over a fixed tick window.
 
     Sums OFI values over the last `window` rows to capture persistent
@@ -519,37 +402,25 @@ class RollingOFIFeature(Feature):
             same defaults as OFI feature
     """
 
-    def _get_cols(self) -> dict[str, str]:
-        return {
-            "bid_px": self.config.params.get("bid_price_col", "bid_px_00"),
-            "ask_px": self.config.params.get("ask_price_col", "ask_px_00"),
-            "bid_sz": self.config.params.get("bid_size_col", "bid_sz_00"),
-            "ask_sz": self.config.params.get("ask_size_col", "ask_sz_00"),
-        }
-
     def required_columns(self) -> list[str]:
-        return list(self._get_cols().values())
+        return list(self._best_cols().values())
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        cols = self._get_cols()
-        window = int(self.config.params.get("window", 50))
-
-        bid_px = df[cols["bid_px"]].astype(float)
-        ask_px = df[cols["ask_px"]].astype(float)
-        bid_sz = df[cols["bid_sz"]].astype(float)
-        ask_sz = df[cols["ask_sz"]].astype(float)
-
-        d_bid_sz = bid_sz.diff()
-        d_ask_sz = ask_sz.diff()
-        bid_px_up = (bid_px >= bid_px.shift(1)).astype(float)
-        ask_px_dn = (ask_px <= ask_px.shift(1)).astype(float)
-
-        ofi = (d_bid_sz * bid_px_up - d_ask_sz * ask_px_dn).fillna(0.0)
+        c = self._best_cols()
+        window = int(self._p("window", 50))
+        bid_px = df[c["bid_px"]].astype(float)
+        ask_px = df[c["ask_px"]].astype(float)
+        bid_sz = df[c["bid_sz"]].astype(float)
+        ask_sz = df[c["ask_sz"]].astype(float)
+        ofi = (
+            bid_sz.diff() * (bid_px >= bid_px.shift(1)).astype(float)
+            - ask_sz.diff() * (ask_px <= ask_px.shift(1)).astype(float)
+        ).fillna(0.0)
         return ofi.rolling(window=window, min_periods=1).sum()
 
 
 @register_feature("queue_depletion")
-class QueueDepletionFeature(Feature):
+class QueueDepletionFeature(LOBFeature):
     """Queue Depletion Rate at the best bid or ask.
 
     Measures how fast the top-of-book queue is being consumed relative to its
@@ -568,29 +439,21 @@ class QueueDepletionFeature(Feature):
         ask_size_col: ask size column (default: "ask_sz_00")
     """
 
-    def _get_col(self) -> str:
-        side = self.config.params.get("side", "bid").lower()
-        if side == "ask":
-            return self.config.params.get("ask_size_col", "ask_sz_00")
-        return self.config.params.get("bid_size_col", "bid_sz_00")
+    def _sz_col(self) -> str:
+        side = self._p("side", "bid").lower()
+        return self._p("ask_size_col", "ask_sz_00") if side == "ask" else self._p("bid_size_col", "bid_sz_00")
 
     def required_columns(self) -> list[str]:
-        return [self._get_col()]
+        return [self._sz_col()]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        sz = df[self._get_col()].astype(float)
-        prev_sz = sz.shift(1)
-
-        depletion = pd.Series(0.0, index=df.index)
-        mask = prev_sz > 0
-        depletion[mask] = np.clip(
-            (prev_sz[mask] - sz[mask]) / prev_sz[mask], 0.0, 1.0
-        )
-        return depletion
+        sz = df[self._sz_col()].astype(float)
+        prev = sz.shift(1)
+        return safe_divide(np.maximum(prev - sz, 0.0), prev).fillna(0.0)
 
 
 @register_feature("mid_price_acceleration")
-class MidPriceAccelerationFeature(Feature):
+class MidPriceAccelerationFeature(LOBFeature):
     """Mid-Price Acceleration (second finite difference).
 
     Captures whether the mid-price is accelerating or decelerating, which
@@ -609,21 +472,17 @@ class MidPriceAccelerationFeature(Feature):
     """
 
     def required_columns(self) -> list[str]:
-        return [
-            self.config.params.get("bid_price_col", "bid_px_00"),
-            self.config.params.get("ask_price_col", "ask_px_00"),
-        ]
+        return [self._p("bid_price_col", "bid_px_00"),
+                self._p("ask_price_col", "ask_px_00")]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        bid = df[self.config.params.get("bid_price_col", "bid_px_00")].astype(float)
-        ask = df[self.config.params.get("ask_price_col", "ask_px_00")].astype(float)
-        mid = (bid + ask) / 2.0
-        accel = mid - 2.0 * mid.shift(1) + mid.shift(2)
-        return accel.fillna(0.0)
+        mid = self._mid(df, self._p("bid_price_col", "bid_px_00"),
+                            self._p("ask_price_col", "ask_px_00"))
+        return (mid - 2.0 * mid.shift(1) + mid.shift(2)).fillna(0.0)
 
 
 @register_feature("inter_event_time")
-class InterEventTimeFeature(Feature):
+class InterEventTimeFeature(LOBFeature):
     """Log inter-event time between consecutive order book updates.
 
     Sparse updates (large gap) signal low market activity and lower adverse-
@@ -644,15 +503,15 @@ class InterEventTimeFeature(Feature):
         return []
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        ts_ns = pd.Series(
-            df.index.astype(np.int64), index=df.index, dtype=float
+        gap_ns = (
+            pd.Series(df.index.astype(np.int64), index=df.index, dtype=float)
+            .diff().fillna(0.0).clip(lower=0.0)
         )
-        gap_ns = ts_ns.diff().fillna(0.0).clip(lower=0.0)
         return np.log1p(gap_ns)
 
 
 @register_feature("spread_ratio")
-class SpreadRatioFeature(Feature):
+class SpreadRatioFeature(LOBFeature):
     """Spread-to-rolling-mean ratio — adverse selection / toxicity signal.
 
     A spread that is elevated relative to its recent average indicates a
@@ -660,11 +519,12 @@ class SpreadRatioFeature(Feature):
     perceived information asymmetry.
 
     Formula:
-        SpreadBps[t]  = (ask_px_00 - bid_px_00) / MidPrice * 10000
+        SpreadBps[t]   = (ask - bid) / MidPrice * 10000
         SpreadRatio[t] = SpreadBps[t] / RollingMean(SpreadBps, window)
 
-    Values > 1: spread is wider than recent average (higher toxicity risk).
+    Values > 1: spread wider than recent average (higher toxicity risk).
     Values < 1: tighter than average (lower cost environment).
+    Defaults to 1.0 during warm-up when rolling mean is zero.
 
     Params:
         window: rolling look-back in ticks (default: 100)
@@ -673,30 +533,21 @@ class SpreadRatioFeature(Feature):
     """
 
     def required_columns(self) -> list[str]:
-        return [
-            self.config.params.get("bid_price_col", "bid_px_00"),
-            self.config.params.get("ask_price_col", "ask_px_00"),
-        ]
+        return [self._p("bid_price_col", "bid_px_00"),
+                self._p("ask_price_col", "ask_px_00")]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        window = int(self.config.params.get("window", 100))
-        bid = df[self.config.params.get("bid_price_col", "bid_px_00")].astype(float)
-        ask = df[self.config.params.get("ask_price_col", "ask_px_00")].astype(float)
-
+        bid = df[self._p("bid_price_col", "bid_px_00")].astype(float)
+        ask = df[self._p("ask_price_col", "ask_px_00")].astype(float)
+        window = int(self._p("window", 100))
         mid = (bid + ask) / 2.0
-        spread_bps = pd.Series(0.0, index=df.index)
-        mask = mid > 0
-        spread_bps[mask] = ((ask[mask] - bid[mask]) / mid[mask]) * 10_000.0
-
+        spread_bps = safe_divide((ask - bid) * 10_000.0, mid)
         rolling_mean = spread_bps.rolling(window=window, min_periods=1).mean()
-        ratio = pd.Series(1.0, index=df.index)
-        nonzero = rolling_mean > 0
-        ratio[nonzero] = spread_bps[nonzero] / rolling_mean[nonzero]
-        return ratio
+        return safe_divide(spread_bps, rolling_mean, fill=1.0)
 
 
 @register_feature("book_convexity")
-class BookConvexityFeature(Feature):
+class BookConvexityFeature(LOBFeature):
     """Book Convexity — curvature of bid or ask price levels.
 
     Measures whether liquidity thins linearly or accelerates as you move away
@@ -719,36 +570,30 @@ class BookConvexityFeature(Feature):
         ask_price_prefix: prefix for ask price columns (default: "ask_px_")
     """
 
-    def _get_params(self) -> dict:
-        return {
-            "side": self.config.params.get("side", "bid").lower(),
-            "bid_px_prefix": self.config.params.get("bid_price_prefix", "bid_px_"),
-            "ask_px_prefix": self.config.params.get("ask_price_prefix", "ask_px_"),
-        }
+    def _px_prefix(self) -> str:
+        side = self._p("side", "bid").lower()
+        return self._p(
+            "ask_price_prefix" if side == "ask" else "bid_price_prefix",
+            f"{side}_px_",
+        )
 
     def required_columns(self) -> list[str]:
-        p = self._get_params()
-        prefix = p["bid_px_prefix"] if p["side"] == "bid" else p["ask_px_prefix"]
-        return [f"{prefix}00", f"{prefix}01", f"{prefix}02"]
+        px = self._px_prefix()
+        return [f"{px}00", f"{px}01", f"{px}02"]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        p = self._get_params()
-        if p["side"] == "bid":
-            px = p["bid_px_prefix"]
-            p0 = df[f"{px}00"].astype(float)
-            p1 = df[f"{px}01"].astype(float)
-            p2 = df[f"{px}02"].astype(float)
+        px = self._px_prefix()
+        side = self._p("side", "bid").lower()
+        p0 = df[f"{px}00"].astype(float)
+        p1 = df[f"{px}01"].astype(float)
+        p2 = df[f"{px}02"].astype(float)
+        if side == "bid":
             return (p0 - p1) - (p1 - p2)
-        else:
-            px = p["ask_px_prefix"]
-            p0 = df[f"{px}00"].astype(float)
-            p1 = df[f"{px}01"].astype(float)
-            p2 = df[f"{px}02"].astype(float)
-            return (p2 - p1) - (p1 - p0)
+        return (p2 - p1) - (p1 - p0)
 
 
 @register_feature("order_count_imbalance")
-class OrderCountImbalanceFeature(Feature):
+class OrderCountImbalanceFeature(LOBFeature):
     """Order Count Imbalance at a specific book level.
 
     Uses the bid_ct / ask_ct columns (number of resting orders, not volume)
@@ -768,29 +613,25 @@ class OrderCountImbalanceFeature(Feature):
         ask_count_prefix: column prefix for ask order counts (default: "ask_ct_")
     """
 
-    def _get_cols(self) -> tuple[str, str]:
-        level = int(self.config.params.get("level", 0))
-        bid_prefix = self.config.params.get("bid_count_prefix", "bid_ct_")
-        ask_prefix = self.config.params.get("ask_count_prefix", "ask_ct_")
-        return f"{bid_prefix}{level:02d}", f"{ask_prefix}{level:02d}"
+    def _ct_cols(self) -> tuple[str, str]:
+        lvl = int(self._p("level", 0))
+        return (
+            f"{self._p('bid_count_prefix', 'bid_ct_')}{lvl:02d}",
+            f"{self._p('ask_count_prefix', 'ask_ct_')}{lvl:02d}",
+        )
 
     def required_columns(self) -> list[str]:
-        return list(self._get_cols())
+        return list(self._ct_cols())
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        bid_col, ask_col = self._get_cols()
-        bid_ct = df[bid_col].astype(float)
-        ask_ct = df[ask_col].astype(float)
-
-        total = bid_ct + ask_ct
-        imbalance = pd.Series(0.0, index=df.index)
-        mask = total > 0
-        imbalance[mask] = (bid_ct[mask] - ask_ct[mask]) / total[mask]
-        return imbalance
+        bid_col, ask_col = self._ct_cols()
+        bid = df[bid_col].astype(float)
+        ask = df[ask_col].astype(float)
+        return safe_divide(bid - ask, bid + ask)
 
 
 @register_feature("signed_trade_flow")
-class SignedTradeFlowFeature(Feature):
+class SignedTradeFlowFeature(LOBFeature):
     """Rolling signed trade flow (cumulative delta) from the trade tape.
 
     Aggregates buyer- vs seller-initiated trade volume over a rolling tick
@@ -808,40 +649,30 @@ class SignedTradeFlowFeature(Feature):
     Positive: net buying over window; Negative: net selling.
 
     Params:
-        window:      rolling look-back in ticks (default: 100)
-        action_col:  column identifying event type (default: "action")
-        side_col:    column identifying aggressor side (default: "side")
-        size_col:    column with trade/order size (default: "size")
+        window:     rolling look-back in ticks (default: 100)
+        action_col: column identifying event type (default: "action")
+        side_col:   column identifying aggressor side (default: "side")
+        size_col:   column with trade/order size (default: "size")
     """
 
     def required_columns(self) -> list[str]:
-        return [
-            self.config.params.get("action_col", "action"),
-            self.config.params.get("side_col", "side"),
-            self.config.params.get("size_col", "size"),
-        ]
+        return list(self._trade_cols())
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        window = int(self.config.params.get("window", 100))
-        action_col = self.config.params.get("action_col", "action")
-        side_col = self.config.params.get("side_col", "side")
-        size_col = self.config.params.get("size_col", "size")
-
+        action_col, side_col, size_col = self._trade_cols()
+        window = int(self._p("window", 100))
         action = df[action_col].astype(str)
         side = df[side_col].astype(str)
         size = df[size_col].astype(float)
-
         is_trade = action == "T"
         sign = pd.Series(0.0, index=df.index)
         sign[is_trade & (side == "B")] = 1.0
         sign[is_trade & (side == "A")] = -1.0
-
-        signed_vol = size * sign
-        return signed_vol.rolling(window=window, min_periods=1).sum()
+        return (size * sign).rolling(window=window, min_periods=1).sum()
 
 
 @register_feature("odd_lot_trade_ratio")
-class OddLotTradeRatioFeature(Feature):
+class OddLotTradeRatioFeature(LOBFeature):
     """Rolling fraction of trades that are odd-lot sized.
 
     An odd lot is a trade with size strictly below the round-lot threshold
@@ -856,48 +687,36 @@ class OddLotTradeRatioFeature(Feature):
     events + trades) so the value evolves continuously.
 
     Formula:
-        is_odd[t]  = 1  if action[t] == 'T' and size[t] < round_lot  else 0
-        is_trade[t]= 1  if action[t] == 'T'                          else 0
-
-        OddLotRatio_W[t] = sum(is_odd[t-W+1..t]) / max(sum(is_trade[t-W+1..t]), 1)
+        is_odd[t]   = 1  if action[t]=='T' and size[t] < round_lot  else 0
+        is_trade[t] = 1  if action[t]=='T'                          else 0
+        OddLotRatio_W[t] = sum(is_odd) / max(sum(is_trade), 1)
 
     Range: [0, 1].
 
     Params:
-        window:        rolling look-back in ticks (default: 200)
-        round_lot:     round-lot threshold in shares (default: 100)
-        action_col:    column identifying event type (default: "action")
-        size_col:      column with trade size (default: "size")
+        window:     rolling look-back in ticks (default: 200)
+        round_lot:  round-lot threshold in shares (default: 100)
+        action_col: column identifying event type (default: "action")
+        size_col:   column with trade size (default: "size")
     """
 
     def required_columns(self) -> list[str]:
-        return [
-            self.config.params.get("action_col", "action"),
-            self.config.params.get("size_col", "size"),
-        ]
+        return [self._p("action_col", "action"), self._p("size_col", "size")]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        window = int(self.config.params.get("window", 200))
-        round_lot = float(self.config.params.get("round_lot", 100))
-        action_col = self.config.params.get("action_col", "action")
-        size_col = self.config.params.get("size_col", "size")
-
+        action_col = self._p("action_col", "action")
+        size_col = self._p("size_col", "size")
+        window = int(self._p("window", 200))
+        round_lot = float(self._p("round_lot", 100))
         is_trade = (df[action_col].astype(str) == "T").astype(float)
-        is_odd = (
-            is_trade * (df[size_col].astype(float) < round_lot).astype(float)
-        )
-
+        is_odd = is_trade * (df[size_col].astype(float) < round_lot).astype(float)
         rolling_odd = is_odd.rolling(window=window, min_periods=1).sum()
         rolling_trades = is_trade.rolling(window=window, min_periods=1).sum()
-
-        ratio = pd.Series(0.0, index=df.index)
-        mask = rolling_trades > 0
-        ratio[mask] = rolling_odd[mask] / rolling_trades[mask]
-        return ratio
+        return safe_divide(rolling_odd, rolling_trades)
 
 
 @register_feature("odd_lot_imbalance")
-class OddLotImbalanceFeature(Feature):
+class OddLotImbalanceFeature(LOBFeature):
     """Rolling signed odd-lot flow imbalance.
 
     Measures the directional bias in odd-lot (retail) order flow.
@@ -909,19 +728,12 @@ class OddLotImbalanceFeature(Feature):
     Only rows where action == 'T' and size < round_lot contribute.
 
     Formula:
-        odd_buy[t]  = size[t]  if action[t]=='T', side[t]=='B', size[t] < round_lot
-        odd_sell[t] = size[t]  if action[t]=='T', side[t]=='A', size[t] < round_lot
-        (0 otherwise)
-
-        RollingBuy_W  = sum(odd_buy[t-W+1..t])
-        RollingSell_W = sum(odd_sell[t-W+1..t])
-
-        OddLotImbalance_W = (RollingBuy_W - RollingSell_W)
-                          / max(RollingBuy_W + RollingSell_W, 1)
+        odd_buy[t]  = size[t]  if action=='T', side=='B', size < round_lot
+        odd_sell[t] = size[t]  if action=='T', side=='A', size < round_lot
+        OddLotImbalance_W = (sum(odd_buy) - sum(odd_sell))
+                          / max(sum(odd_buy) + sum(odd_sell), 1)
 
     Range: [-1, +1].
-    +1: all odd-lot flow is buyer-initiated (retail buying).
-    -1: all odd-lot flow is seller-initiated (retail selling).
 
     Params:
         window:     rolling look-back in ticks (default: 200)
@@ -932,35 +744,20 @@ class OddLotImbalanceFeature(Feature):
     """
 
     def required_columns(self) -> list[str]:
-        return [
-            self.config.params.get("action_col", "action"),
-            self.config.params.get("side_col", "side"),
-            self.config.params.get("size_col", "size"),
-        ]
+        return list(self._trade_cols())
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        window = int(self.config.params.get("window", 200))
-        round_lot = float(self.config.params.get("round_lot", 100))
-        action_col = self.config.params.get("action_col", "action")
-        side_col = self.config.params.get("side_col", "side")
-        size_col = self.config.params.get("size_col", "size")
-
+        action_col, side_col, size_col = self._trade_cols()
+        window = int(self._p("window", 200))
+        round_lot = float(self._p("round_lot", 100))
         action = df[action_col].astype(str)
         side = df[side_col].astype(str)
         size = df[size_col].astype(float)
-
-        is_odd_trade = (action == "T") & (size < round_lot)
-
+        is_odd = (action == "T") & (size < round_lot)
         odd_buy = pd.Series(0.0, index=df.index)
         odd_sell = pd.Series(0.0, index=df.index)
-        odd_buy[is_odd_trade & (side == "B")] = size[is_odd_trade & (side == "B")]
-        odd_sell[is_odd_trade & (side == "A")] = size[is_odd_trade & (side == "A")]
-
-        rolling_buy = odd_buy.rolling(window=window, min_periods=1).sum()
-        rolling_sell = odd_sell.rolling(window=window, min_periods=1).sum()
-        total = rolling_buy + rolling_sell
-
-        imbalance = pd.Series(0.0, index=df.index)
-        mask = total > 0
-        imbalance[mask] = (rolling_buy[mask] - rolling_sell[mask]) / total[mask]
-        return imbalance
+        odd_buy[is_odd & (side == "B")] = size[is_odd & (side == "B")]
+        odd_sell[is_odd & (side == "A")] = size[is_odd & (side == "A")]
+        rb = odd_buy.rolling(window=window, min_periods=1).sum()
+        rs = odd_sell.rolling(window=window, min_periods=1).sum()
+        return safe_divide(rb - rs, rb + rs)
