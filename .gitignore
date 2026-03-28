@@ -135,6 +135,11 @@ src/mlruns
 mlruns
 thesis/qmd/results/
 
+# Quarto build artifacts
+_site/
+_freeze/
+.quarto/
+
 # Local scratch files
 papers/literature_review
 scripts/upload_selected_to_gdrive.py
