@@ -838,3 +838,129 @@ class SignedTradeFlowFeature(Feature):
 
         signed_vol = size * sign
         return signed_vol.rolling(window=window, min_periods=1).sum()
+
+
+@register_feature("odd_lot_trade_ratio")
+class OddLotTradeRatioFeature(Feature):
+    """Rolling fraction of trades that are odd-lot sized.
+
+    An odd lot is a trade with size strictly below the round-lot threshold
+    (default 100 shares for US equities). Odd lot activity is predominantly
+    retail-initiated uninformed flow. A high ratio signals a retail-dominated
+    tape with lower adverse selection risk; a sudden drop may indicate
+    institutional participation.
+
+    Only rows where action == 'T' (trade events) contribute to the count.
+    Non-trade rows are treated as zero observations and do not advance the
+    numerator or denominator. The rolling window is over all ticks (book
+    events + trades) so the value evolves continuously.
+
+    Formula:
+        is_odd[t]  = 1  if action[t] == 'T' and size[t] < round_lot  else 0
+        is_trade[t]= 1  if action[t] == 'T'                          else 0
+
+        OddLotRatio_W[t] = sum(is_odd[t-W+1..t]) / max(sum(is_trade[t-W+1..t]), 1)
+
+    Range: [0, 1].
+
+    Params:
+        window:        rolling look-back in ticks (default: 200)
+        round_lot:     round-lot threshold in shares (default: 100)
+        action_col:    column identifying event type (default: "action")
+        size_col:      column with trade size (default: "size")
+    """
+
+    def required_columns(self) -> list[str]:
+        return [
+            self.config.params.get("action_col", "action"),
+            self.config.params.get("size_col", "size"),
+        ]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        window = int(self.config.params.get("window", 200))
+        round_lot = float(self.config.params.get("round_lot", 100))
+        action_col = self.config.params.get("action_col", "action")
+        size_col = self.config.params.get("size_col", "size")
+
+        is_trade = (df[action_col].astype(str) == "T").astype(float)
+        is_odd = (
+            is_trade * (df[size_col].astype(float) < round_lot).astype(float)
+        )
+
+        rolling_odd = is_odd.rolling(window=window, min_periods=1).sum()
+        rolling_trades = is_trade.rolling(window=window, min_periods=1).sum()
+
+        ratio = pd.Series(0.0, index=df.index)
+        mask = rolling_trades > 0
+        ratio[mask] = rolling_odd[mask] / rolling_trades[mask]
+        return ratio
+
+
+@register_feature("odd_lot_imbalance")
+class OddLotImbalanceFeature(Feature):
+    """Rolling signed odd-lot flow imbalance.
+
+    Measures the directional bias in odd-lot (retail) order flow.
+    Buyer-initiated odd-lot trades indicate retail buying pressure;
+    seller-initiated odd-lot trades indicate retail selling pressure.
+    The net imbalance normalized by total odd-lot volume reveals which
+    side retail is leaning toward.
+
+    Only rows where action == 'T' and size < round_lot contribute.
+
+    Formula:
+        odd_buy[t]  = size[t]  if action[t]=='T', side[t]=='B', size[t] < round_lot
+        odd_sell[t] = size[t]  if action[t]=='T', side[t]=='A', size[t] < round_lot
+        (0 otherwise)
+
+        RollingBuy_W  = sum(odd_buy[t-W+1..t])
+        RollingSell_W = sum(odd_sell[t-W+1..t])
+
+        OddLotImbalance_W = (RollingBuy_W - RollingSell_W)
+                          / max(RollingBuy_W + RollingSell_W, 1)
+
+    Range: [-1, +1].
+    +1: all odd-lot flow is buyer-initiated (retail buying).
+    -1: all odd-lot flow is seller-initiated (retail selling).
+
+    Params:
+        window:     rolling look-back in ticks (default: 200)
+        round_lot:  round-lot threshold in shares (default: 100)
+        action_col: column identifying event type (default: "action")
+        side_col:   column identifying aggressor side (default: "side")
+        size_col:   column with trade size (default: "size")
+    """
+
+    def required_columns(self) -> list[str]:
+        return [
+            self.config.params.get("action_col", "action"),
+            self.config.params.get("side_col", "side"),
+            self.config.params.get("size_col", "size"),
+        ]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        window = int(self.config.params.get("window", 200))
+        round_lot = float(self.config.params.get("round_lot", 100))
+        action_col = self.config.params.get("action_col", "action")
+        side_col = self.config.params.get("side_col", "side")
+        size_col = self.config.params.get("size_col", "size")
+
+        action = df[action_col].astype(str)
+        side = df[side_col].astype(str)
+        size = df[size_col].astype(float)
+
+        is_odd_trade = (action == "T") & (size < round_lot)
+
+        odd_buy = pd.Series(0.0, index=df.index)
+        odd_sell = pd.Series(0.0, index=df.index)
+        odd_buy[is_odd_trade & (side == "B")] = size[is_odd_trade & (side == "B")]
+        odd_sell[is_odd_trade & (side == "A")] = size[is_odd_trade & (side == "A")]
+
+        rolling_buy = odd_buy.rolling(window=window, min_periods=1).sum()
+        rolling_sell = odd_sell.rolling(window=window, min_periods=1).sum()
+        total = rolling_buy + rolling_sell
+
+        imbalance = pd.Series(0.0, index=df.index)
+        mask = total > 0
+        imbalance[mask] = (rolling_buy[mask] - rolling_sell[mask]) / total[mask]
+        return imbalance
