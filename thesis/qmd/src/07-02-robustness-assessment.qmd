@@ -20,7 +20,7 @@ import pandas as pd
 
 from thesis_mlflow_results import load_experiment_snapshot, runs_overview_table
 
-EXPERIMENT_NAME = "btc_td3_tradingenv_reduced_features"
+EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 runs_df = runs_overview_table(EXPERIMENT_NAME)

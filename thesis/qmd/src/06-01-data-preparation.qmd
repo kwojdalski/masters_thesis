@@ -2,38 +2,39 @@
 
 ### Data Collection and Input Format
 
-The data preparation layer in this research is designed for time-indexed OHLCV
-market data, where each row represents an aggregated market bar for a given
-timeframe. This representation is appropriate for the empirical scope of the
-implemented reinforcement learning workflow because it supports sequential
-decision-making while remaining computationally tractable for repeated
-experiments, hyperparameter tuning, and feature ablation studies.
+The data preparation layer in this research is designed for time-indexed
+high-frequency limit order book data. In the main empirical setup, each row
+represents an order book event or snapshot with best-quote and multi-level
+depth information rather than an aggregated OHLCV bar. This representation is
+appropriate for the thesis scope because the trading agent is intended to learn
+from local liquidity conditions, queue dynamics, and short-horizon order flow.
 
-The expected input format consists of a timestamp index and five core columns:
-open, high, low, close, and volume. These variables provide a compact but
-expressive summary of market behavior over each interval and support the
-construction of return, volatility, volume, and technical-indicator features.
-The timestamp index is required not only for chronological ordering, but also
-for temporal feature engineering (for example, cyclical encodings of hour-of-day
-or day-of-week effects).
+The expected input format therefore consists of a timestamp index together with
+multi-level bid and ask prices and sizes. In the Databento MBP-10 setting used
+here, the core columns follow a structured naming convention such as
+`bid_px_00`, `ask_px_00`, `bid_sz_00`, `ask_sz_00`, extended across multiple
+book levels. Additional columns such as order counts (`bid_ct_NN`, `ask_ct_NN`)
+and event/trade descriptors (`action`, `side`, `size`) support the construction
+of richer microstructure features including order count imbalance, signed trade
+flow, and event-driven order-flow proxies.
 
-In the implemented workflow, the timeframe is scenario-dependent (for example,
-hourly bars). Timeframe choice is methodologically important because it affects
-both the statistical structure of the data and the meaning of the features.
-Temporal features that are informative at one resolution may be constant or
-uninformative at another. For this reason, feature selection is treated as a
-data-preparation decision and not only as a model-level hyperparameter.
+Although the primary state representation is derived from LOB fields, the
+prepared dataset may also retain auxiliary pricing columns such as `close` and
+volume-like measures for valuation, benchmarking, or compatibility with shared
+environment interfaces. The timestamp index remains essential for chronological
+ordering and for temporal features such as intraday cyclical encodings and
+inter-event time.
 
-Table: Expected OHLCV input schema used in the empirical pipeline
+Table: Expected LOB-oriented input schema used in the empirical pipeline
 
-| Column | Description | Role in pipeline |
+| Column group | Description | Role in pipeline |
 |---|---|---|
-| `timestamp` | Chronological index of each market bar | Ordering, splitting, temporal features |
-| `open` | Opening price within the bar | Feature engineering input |
-| `high` | Highest price within the bar | Feature engineering input |
-| `low` | Lowest price within the bar | Feature engineering input |
-| `close` | Closing price within the bar | Pricing, rewards, and feature engineering |
-| `volume` | Traded volume within the bar | Volume and liquidity feature engineering |
+| `timestamp` | Chronological event index | Ordering, splitting, temporal features |
+| `bid_px_NN`, `ask_px_NN` | Bid/ask prices at book level `NN` | Spread, mid-price, convexity, slope, valuation context |
+| `bid_sz_NN`, `ask_sz_NN` | Bid/ask resting size at book level `NN` | Imbalance, depth, OFI, queue features |
+| `bid_ct_NN`, `ask_ct_NN` | Number of resting orders at level `NN` | Order count imbalance |
+| `action`, `side`, `size` | Event type, aggressor side, event size | Signed trade flow and trade-context features |
+| auxiliary price columns (for example `close`) | Pricing series retained for environment accounting | Reward and portfolio valuation |
 
 ### Data Quality Control and Preprocessing
 
@@ -44,12 +45,12 @@ research problem is sequential, any disorder in timestamps can introduce
 artificial transitions and invalidate the interpretation of rewards and actions.
 
 The preprocessing stage also checks for structural consistency, including the
-presence of required columns, valid numeric types, and a non-empty dataset.
-Price columns are expected to contain positive values in the context of the
-trading simulation, since negative or zero prices are incompatible with
-portfolio valuation and return calculations. Missing values and malformed rows
-are handled before feature generation so that the downstream feature pipeline
-operates on a coherent input structure.
+presence of required columns, valid numeric types, a non-empty dataset, and
+basic LOB sanity constraints. Price columns are expected to be positive and the
+best ask should not fall below the best bid after validation. Missing values,
+crossed books, malformed rows, or unchanged snapshots may be filtered before
+feature generation so that the downstream feature pipeline operates on a
+coherent input structure.
 
 This stage is intentionally conservative. Its purpose is not to perform
 aggressive statistical filtering that could distort the data-generating process,
@@ -91,16 +92,15 @@ defines feature sets declaratively. The broader methodological rationale is
 introduced in Chapter 1.3; here, the focus is on implementation details relevant
 to data preparation.
 
-The feature pipeline supports multiple feature families derived from OHLCV data,
-including:
+The feature pipeline supports multiple feature families derived from order-book
+data, including:
 
-- return and momentum features (for example, lagged returns or transformed
-  returns),
-- volatility-related features (for example, realized volatility or volatility
-  ratios),
-- volume and liquidity proxies,
-- technical indicators,
-- temporal and cyclical context features.
+- imbalance and depth features,
+- fair-value and spread-related features,
+- order-flow and queue-dynamics features,
+- temporal and regime-conditioning features,
+- selected auxiliary price- or volume-based features when needed for
+  compatibility or benchmark context.
 
 A key design choice in the implemented workflow is the use of feature-derived
 observation columns for learning. The state representation passed to the agent
@@ -128,10 +128,10 @@ changes could influence the representation seen during training, leading to
 optimistic and methodologically invalid results.
 
 Not all features require normalization. Temporal cyclical encodings such as sine
-and cosine representations of hour-of-day or day-of-week are already bounded and
-structured, and may be left unnormalized by design. This is consistent with the
-goal of preserving their geometric interpretation as phase encodings on a
-circular domain.
+and cosine representations of hour-of-day are already bounded and structured,
+and may be left unnormalized by design. This is consistent with the goal of
+preserving their geometric interpretation as phase encodings on a circular
+domain.
 
 Equally important, raw price columns used for portfolio accounting are not
 replaced by normalized values. The simulation environment requires financially
@@ -203,16 +203,17 @@ repeatability of the overall research process.
 ### Summary
 
 The data preparation layer in this thesis is designed to support reproducible
-and leakage-aware reinforcement learning experiments on OHLCV market data. Its
-core principles are chronological integrity, split-before-fit preprocessing,
-feature-pipeline modularity, and strict separation between pricing inputs and
-learning features. Together, these choices provide a sound methodological basis
-for the algorithm-specific training and evaluation procedures described in later
+and leakage-aware reinforcement learning experiments on high-frequency
+order-book data. Its core principles are chronological integrity,
+split-before-fit preprocessing, feature-pipeline modularity, LOB-specific data
+validation, and strict separation between pricing inputs and learning features.
+Together, these choices provide a sound methodological basis for the
+algorithm-specific training and evaluation procedures described in later
 chapters.
 
 ```mermaid
 flowchart TD
-    A[Raw OHLCV Data] --> B[Quality Checks]
+    A[Raw LOB Data] --> B[Quality Checks]
     B --> C[Chronological Split]
     C --> D[Train]
     C --> E[Validation]

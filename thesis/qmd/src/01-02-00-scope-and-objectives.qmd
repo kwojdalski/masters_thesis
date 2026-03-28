@@ -66,4 +66,7 @@ data. The research objectives are structured in three interconnected phases:
      representations
    - Assess the practical relevance and limitations of the approach under
      simplified execution assumptions
-   - Identify promising directions for future research
+   - Identify the binding constraints on out-of-sample performance —
+     whether they originate in execution modeling simplifications, feature
+     set coverage, or training data volume — to prioritize specific extensions
+     for future work
