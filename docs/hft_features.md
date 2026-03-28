@@ -27,6 +27,7 @@ training split only.
 ### 1. Book Pressure at level $i$
 
 **Feature type:** `book_pressure` | **Names:** `hft_book_pressure_l0/l1/l2`
+**Literature:** Cao, Chen & Fan (2004) *The information content of an open limit-order book*; Biais, Hillion & Spatt (1995) *An empirical analysis of the limit order book*
 
 $$\text{BookPressure}_i = \frac{V^{bid}_i - V^{ask}_i}{V^{bid}_i + V^{ask}_i}$$
 
@@ -38,6 +39,7 @@ $+1$: all volume on bid; $-1$: all volume on ask.
 ### 2. Microprice
 
 **Feature type:** `microprice` | **Name:** `hft_microprice`
+**Literature:** Stoikov (2018) *The micro-price: a high-frequency estimator of future prices*
 
 $$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$
 
@@ -50,6 +52,7 @@ more likely to move first.
 ### 3. Microprice Divergence
 
 **Feature type:** `microprice_divergence` | **Name:** `hft_microprice_divergence`
+**Literature:** Stoikov (2018) *The micro-price: a high-frequency estimator of future prices*
 
 $$\text{MicroDiv} = \text{Microprice} - \frac{P^{bid}_0 + P^{ask}_0}{2}$$
 
@@ -60,6 +63,7 @@ Isolates the imbalance signal from the absolute price level.
 ### 4. Spread in Basis Points
 
 **Feature type:** `spread_bps` | **Name:** `hft_spread_bps`
+**Literature:** Kyle (1985) *Continuous auctions and insider trading*; Glosten & Milgrom (1985) *Bid, ask and transaction prices in a specialist market*
 
 $$\text{SpreadBps} = \frac{P^{ask}_0 - P^{bid}_0}{\frac{P^{bid}_0 + P^{ask}_0}{2}} \times 10{,}000$$
 
@@ -70,6 +74,7 @@ Units: basis points. Regime indicator for liquidity cost.
 ### 5. Order Book Imbalance (multi-level)
 
 **Feature type:** `order_book_imbalance` | **Name:** `hft_order_book_imbalance_3l`
+**Literature:** Cont, Kukanov & Stoikov (2014) *The price impact of order book events*; Biais, Hillion & Spatt (1995)
 
 $$\text{OBI} = \frac{\sum_{i=0}^{N-1}(V^{bid}_i - V^{ask}_i)}{\sum_{i=0}^{N-1}(V^{bid}_i + V^{ask}_i)}$$
 
@@ -81,6 +86,7 @@ Range $[-1, +1]$.
 ### 6. Depth Ratio
 
 **Feature type:** `depth_ratio` | **Name:** `hft_depth_ratio`
+**Literature:** Biais, Hillion & Spatt (1995); no single canonical citation — derived from market depth concept in Glosten (1994) *Is the electronic open limit order book inevitable?*
 
 $$\text{DepthRatio} = \frac{V^{bid}_0 + V^{ask}_0}{\sum_{i=1}^{4}(V^{bid}_i + V^{ask}_i)}$$
 
@@ -92,6 +98,7 @@ Low ratio: deep liquidity support.
 ### 7. VWMP Skew
 
 **Feature type:** `vwmp_skew` | **Name:** `hft_vwmp_skew`
+**Literature:** Extension of Stoikov (2018) microprice framework to multi-level volume-weighted price; no single canonical citation.
 
 $$\text{VWMP} = \frac{\sum_{i=0}^{2}(P^{bid}_i \cdot V^{bid}_i + P^{ask}_i \cdot V^{ask}_i)}{\sum_{i=0}^{2}(V^{bid}_i + V^{ask}_i)}$$
 
@@ -105,6 +112,7 @@ Negative: ask-heavy deeper in the book.
 ### 8–9. Bid / Ask Slope
 
 **Feature type:** `bid_ask_slope` | **Names:** `hft_bid_slope`, `hft_ask_slope`
+**Literature:** Bouchaud, Mézard & Potters (2002) *Statistical properties of stock order books*; related to Kyle (1985) lambda (price impact per unit volume)
 
 $$\text{BidSlope} = \frac{P^{bid}_0 - P^{bid}_4}{\sum_{i=0}^{4} V^{bid}_i} \qquad
 \text{AskSlope} = \frac{P^{ask}_4 - P^{ask}_0}{\sum_{i=0}^{4} V^{ask}_i}$$
@@ -117,6 +125,7 @@ higher market impact per unit volume.
 ### 10. Raw Prices and Sizes (L0–L2)
 
 **Feature type:** `column_value` | 12 features: `hft_bid/ask_px/sz_00/01/02`
+**Literature:** No specific citation. Included to allow the agent to discover non-linear combinations not captured by the engineered features; standard practice in LOB-based deep RL (Nevmyvaka, Feng & Kearns, 2006 *Reinforcement learning for optimized trade execution*).
 
 Pass-through of raw LOB columns after normalization. Allows the agent to
 discover its own combinations without being constrained to the engineered
@@ -132,7 +141,8 @@ All validated against the AAPL MBP-10 dataset (2.8M rows, zero nulls).
 
 ### 11. Order Flow Imbalance (OFI)
 
-**Feature type:** `ofi` | Reference: Cont, Kukanov & Stoikov (2014)
+**Feature type:** `ofi`
+**Literature:** Cont, Kukanov & Stoikov (2014) *The price impact of order book events* — the primary empirical paper establishing OFI as the dominant short-term price predictor in LOB data.
 
 The most predictive short-term price signal from LOB data. Captures the net
 directional flow from order book events between consecutive snapshots —
@@ -156,6 +166,7 @@ First row is 0.
 ### 12. Rolling OFI
 
 **Feature type:** `ofi_rolling` | Param: `window` (default 50)
+**Literature:** Extension of Cont, Kukanov & Stoikov (2014); multi-horizon OFI used in Kolm, Turiel & Westray (2023) *Deep order flow imbalance*.
 
 $$\text{RollingOFI}_{W,t} = \sum_{\tau=t-W+1}^{t} \text{OFI}_\tau$$
 
@@ -170,6 +181,7 @@ agent short-, medium-, and longer-term flow signals simultaneously.
 ### 13. Queue Depletion Rate
 
 **Feature type:** `queue_depletion` | Param: `side` (`"bid"` or `"ask"`)
+**Literature:** Foucault, Kadan & Kandel (2005) *Limit order book as a market for liquidity*; practitioner usage described in Harris (2013) *Maker-taker pricing effects on market quotations*. No single canonical citation for the depletion ratio formulation.
 
 $$\text{Depletion}^{side}_t = \frac{\max\!\left(V^{side}_{0,t-1} - V^{side}_{0,t},\ 0\right)}{V^{side}_{0,t-1}}$$
 
@@ -185,6 +197,7 @@ Range $[0, 1]$.
 ### 14. Mid-Price Acceleration
 
 **Feature type:** `mid_price_acceleration`
+**Literature:** No single canonical citation. Second finite difference used as a regime indicator in Abergel et al. (2016) *Limit order books* (Cambridge); the acceleration concept is related to momentum factor research (Jegadeesh & Titman, 1993) applied at tick frequency.
 
 $$M_t = \frac{P^{bid}_{0,t} + P^{ask}_{0,t}}{2}$$
 
@@ -201,6 +214,7 @@ mean-reversion regimes at tick frequency. First two rows are 0.
 ### 15. Log Inter-Event Time
 
 **Feature type:** `inter_event_time`
+**Literature:** Engle (2000) *The econometrics of ultra-high-frequency data* (ACD model); Hasbrouck (1991) *Measuring the information content of stock trades*. Inter-event time as an adverse-selection proxy is standard in market microstructure.
 
 $$\text{Gap}_t = t_{\text{ns}} - t_{\text{ns},t-1} \quad \text{(nanoseconds)}$$
 
@@ -219,6 +233,7 @@ DatetimeIndex in the dataset.
 ### 16. Spread Ratio
 
 **Feature type:** `spread_ratio` | Param: `window` (default 100)
+**Literature:** Derived from Amihud & Mendelson (1986) *Asset pricing and the bid-ask spread*; relative spread used as a toxicity proxy in Easley, López de Prado & O'Hara (2012) *Flow toxicity and liquidity in a high-frequency world*.
 
 $$\text{SpreadRatio}_t = \frac{\text{SpreadBps}_t}{\overline{\text{SpreadBps}}_{W,t}}$$
 
@@ -235,6 +250,7 @@ Defaults to 1.0 during warm-up when rolling mean is zero.
 ### 17. Book Convexity
 
 **Feature type:** `book_convexity` | Param: `side` (`"bid"` or `"ask"`)
+**Literature:** Bouchaud, Mézard & Potters (2002) *Statistical properties of stock order books*; Potters & Bouchaud (2003) *More statistical properties of order books*. Price-level curvature used as a market impact measure.
 
 $$\text{Convexity}^{bid}_t = (P^{bid}_0 - P^{bid}_1) - (P^{bid}_1 - P^{bid}_2)$$
 
@@ -252,6 +268,7 @@ Relevant for position-sizing decisions under transaction costs.
 ### 18. Order Count Imbalance
 
 **Feature type:** `order_count_imbalance` | Param: `level` (default 0)
+**Literature:** Cao, Chen & Fan (2004) *The information content of an open limit-order book*; complements volume-based imbalance as in Glosten (1994). Count-vs-volume distinction discussed in Biais, Hillion & Spatt (1995).
 
 $$\text{OCI}_i = \frac{C^{bid}_i - C^{ask}_i}{C^{bid}_i + C^{ask}_i}$$
 
@@ -269,6 +286,7 @@ opposite from many small orders. Range $[-1, +1]$.
 ### 19. Signed Trade Flow (Cumulative Delta)
 
 **Feature type:** `signed_trade_flow` | Param: `window` (default 100)
+**Literature:** Lee & Ready (1991) *Inferring trade direction from intraday data* (tick rule for trade classification); cumulative delta widely used in practitioner literature (e.g. Jansen, 2020 *Machine learning for algorithmic trading*). Distinct from OFI — measures executed trade flow, not order book changes.
 
 Requires the Databento `action` and `side` columns.
 
@@ -322,6 +340,7 @@ non-null for all trade rows.
 ### 20. Odd Lot Trade Ratio
 
 **Feature type:** `odd_lot_trade_ratio` | Param: `window` (default 200), `round_lot` (default 100)
+**Literature:** Boehmer, Jones, Zhang & Zhang (2021) *Tracking retail investor activity*; Hu (2014) *Odd-lot trading and the markets*; Chordia, Goyal, Lehmann & Saar (2013) *High-frequency trading*.
 
 An odd lot is a trade with `size < round_lot` (100 shares for US equities).
 In AAPL MBP-10 data, 81% of all trades are odd-lot sized (median 25 shares),
@@ -344,6 +363,7 @@ denominator.
 ### 21. Odd Lot Imbalance
 
 **Feature type:** `odd_lot_imbalance` | Param: `window` (default 200), `round_lot` (default 100)
+**Literature:** Boehmer, Jones, Zhang & Zhang (2021); Kelley & Tetlock (2013) *How wise are crowds? Insights from retail orders and stock returns*. Directional decomposition of odd-lot flow into buy/sell imbalance.
 
 Signed directional bias in odd-lot (retail) order flow, normalized by total
 odd-lot volume. Isolates retail pressure from institutional flow (which
