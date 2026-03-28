@@ -1,131 +1,58 @@
-## Empirical Evidence Against Perfect Market Efficiency
-
-While the Efficient Market Hypothesis provides an elegant theoretical framework, high-frequency market data reveals systematic microstructure patterns that challenge the notion of perfectly efficient prices at short time scales. These inefficiencies are directly relevant to order-book-based trading strategies and motivate the reinforcement learning approach taken in this thesis.
-
-<!-- ### Predictability of Returns
-
-The EMH in its semi-strong form implies that historical prices and public information cannot predict future returns. However, substantial evidence contradicts this proposition.
-
-**Serial Correlation and Momentum**
-
-@Jegadeesh1993 documented momentum effects in stock returns: stocks that performed well over the past 3-12 months tend to continue outperforming in subsequent months. Their momentum strategy, buying past winners and selling past losers, generated significant risk-adjusted returns not explained by the Capital Asset Pricing Model or the Fama-French three-factor model.
-
-@Carhart1997 formalized momentum as a fourth factor in asset pricing models, recognizing that momentum represents a persistent anomaly rather than a transitory mispricing. The momentum premium has persisted across markets and time periods, surviving its publication—a pattern inconsistent with purely efficient markets where arbitrage should eliminate known patterns.
-
-**Mean Reversion**
-
-Conversely, @DeBondt1985 found evidence of long-term mean reversion: stocks that underperformed over 3-5 years subsequently outperformed, and vice versa. This overreaction hypothesis suggests that investors systematically overweight recent information, creating predictable reversals. While momentum dominates at intermediate horizons (3-12 months), mean reversion characterizes longer periods (3-5 years).
-
-**Short-Term Autocorrelation**
-
-@Lo1988 documented positive autocorrelation in weekly stock index returns, particularly for portfolios of smaller stocks. This autocorrelation implies that past returns contain information about future returns, violating weak-form efficiency. @Conrad1988 found similar patterns at daily and weekly frequencies, with economic significance diminishing at longer horizons.
-
-### Cross-Sectional Return Predictability
-
-Beyond time-series patterns, cross-sectional characteristics predict future returns—a violation of semi-strong efficiency.
-
-**Value Premium**
-
-@Fama1992 documented that stocks with high book-to-market ratios (value stocks) outperform low book-to-market stocks (growth stocks) by approximately 0.5% per month. This value premium persists across international markets @Fama1998 and cannot be fully explained by higher systematic risk.
-
-@Lakonishok1994 argue the value premium arises from behavioral biases: investors systematically overextrapolate past growth rates, overpricing growth stocks and underpricing value stocks. Subsequent mean reversion generates predictable excess returns for value strategies.
-
-**Size Effect**
-
-@Banz1981 discovered that small-capitalization stocks earn higher risk-adjusted returns than large-cap stocks, controlling for beta. @Fama1993 incorporated size as a factor in asset pricing models, though debate continues whether the size premium compensates for risk or represents market inefficiency.
-
-The size effect has weakened since its publication, suggesting that informed trading partially arbitraged the anomaly. However, @Asness2018 show the premium persists in international markets and among microcap stocks with higher transaction costs limiting arbitrage.
-
-**Volatility Anomaly**
-
-@Ang2006 documented that high-volatility stocks systematically underperform low-volatility stocks—contradicting the fundamental risk-return tradeoff in finance theory. This low-volatility anomaly is robust across markets and cannot be explained by standard factor models.
-
-@Baker2011 attribute this pattern to behavioral biases (preference for lottery-like stocks) and institutional constraints (benchmark-relative evaluation favoring volatile stocks). The persistence of the volatility anomaly suggests limits to arbitrage prevent correction of this inefficiency.
-
-### Trading Volume and Information
-
-Trading volume provides additional evidence of market inefficiency through its relationship with returns and volatility.
-
-**Volume-Return Relationship**
-
-@Karpoff1987 surveys evidence showing that trading volume is positively correlated with the magnitude (not sign) of price changes. This relationship suggests that trading conveys information not already reflected in prices, inconsistent with strong-form efficiency where prices fully reflect all information including private information.
-
-**Herding and Feedback Trading**
-
-@DeLong1990 model positive feedback trading—buying after price increases, selling after declines—showing how such behavior can sustain price trends and increase volatility. @Lakonishok1992 find empirical evidence of herding among institutional investors, particularly in smaller stocks, creating predictable patterns exploitable by contrarian strategies. -->
-
-### Market Microstructure Evidence
-
-High-frequency data reveals inefficiencies at short time scales.
-
-**Bid-Ask Bounce**
-
-@Roll1984 demonstrated that bid-ask spreads induce negative serial correlation at very short horizons as prices bounce between bid and ask quotes. While not exploitable for most traders due to transaction costs, this microstructure noise violates the martingale property of efficient prices.
-
-**Intraday Patterns**
-
-@Wood1985 and @Harris1986 documented systematic intraday patterns: U-shaped volatility (high at open and close, low mid-day) and predictable return reversals at day boundaries. These patterns reflect institutional trading practices and liquidity provision rather than information arrival, indicating inefficiencies in price formation.
-
-**Quote Clustering and Price Discreteness**
-
-@Harris1991 shows that prices cluster at psychologically attractive round numbers (integers, half-dollars) rather than distributing uniformly. This price clustering creates predictable support and resistance levels exploited by technical traders, inconsistent with informationally efficient pricing.
-
-<!-- ### Behavioral Finance Evidence
-
-@Shleifer2000 synthesize behavioral finance research showing systematic deviations from rational expectations:
-
-**Overconfidence**
-
-@Barber2001 document that individual investors trade excessively, generating negative net returns after transaction costs. This overtrading reflects overconfidence in private information or analytical skill, contradicting rational Bayesian updating assumed in EMH.
-
-**Disposition Effect**
-
-@Odean1998 find that investors systematically sell winning investments while holding losing investments—the opposite of tax-efficient behavior. This disposition effect, driven by prospect theory's prediction of risk-seeking in losses and risk-aversion in gains, creates predictable price patterns as selling pressure concentrates in winners.
-
-**Limits to Arbitrage**
-
-@Shleifer1997 formalize limits to arbitrage, showing that even when mispricings are recognized, institutional and risk constraints prevent full correction. Noise trader risk—the possibility that mispricings worsen before correcting—deters arbitrageurs with finite horizons. Capital constraints and agency problems further limit arbitrage capital, allowing inefficiencies to persist.
-
-### Event Studies and Market Reactions
-
-Event study methodologies reveal delayed and excessive market reactions to information.
-
-**Post-Earnings Announcement Drift**
-
-@Ball1968 first documented that stock prices continue drifting in the direction of earnings surprises for weeks after announcements, contradicting semi-strong efficiency. @Bernard1989 confirmed this drift persists and is economically significant, with hedge portfolios exploiting the drift earning substantial risk-adjusted returns.
-
-**Merger Announcements**
-
-@Asquith1983 find that target firm stock prices underreact to merger announcements, with continued positive abnormal returns post-announcement. This delayed incorporation of information suggests market inefficiency.
-
-### International Evidence
-
-Anomalies documented in U.S. markets persist internationally:
-
-**Global Momentum**
-
-@Rouwenhorst1998 find momentum effects in 12 European markets similar to U.S. patterns. @Griffin2003 extend this evidence to 40 countries, establishing momentum as a global phenomenon not explained by data mining or U.S.-specific factors.
-
-**Value Premium Worldwide**
-
-@Fama1998 document value premiums in 13 major markets, with high book-to-market stocks outperforming in 12 of 13 countries. International evidence strengthens the case that value effects reflect genuine inefficiency rather than chance.
-
-**Calendar Anomalies Globally**
-
-@Agrawal1994 survey calendar effects across markets: the January effect (higher returns in January, especially for small stocks), weekend effect (lower Monday returns), and turn-of-the-month effect. While some calendar anomalies have weakened post-publication, international evidence at the time suggested widespread inefficiency. -->
-
-### Implications for Algorithmic Trading
-
-This empirical evidence motivates algorithmic approaches, including reinforcement learning, for several reasons:
-
-1. **Exploitable patterns exist**: Documented anomalies provide trading signals potentially exploitable by algorithms unconstrained by behavioral biases.
-
-2. **Adaptive strategies needed**: Time-varying nature of anomalies (strengthening and weakening over time) favors adaptive learning algorithms over static rules.
-
-3. **Transaction costs matter**: Many inefficiencies are small after accounting for realistic trading costs, requiring algorithmic precision to profitably exploit them.
-
-4. **High-dimensional problem**: Integrating multiple anomalies and signals across assets requires sophisticated optimization methods like reinforcement learning.
-
-5. **Non-stationarity**: Evolving market structure and informed trading alter anomaly magnitudes, favoring continual learning approaches.
-
-The persistence of these empirical patterns, even after publication, suggests that market frictions, behavioral biases, and institutional constraints create enduring inefficiencies. Reinforcement learning offers a framework to systematically identify and exploit such patterns while adapting to changing market conditions.
+## Market Microstructure Evidence for LOB-Based Trading
+
+At intraday and tick-level timescales, financial markets exhibit systematic
+structural patterns that are distinct from the macro-level anomalies studied
+in the asset pricing literature. These patterns arise not from investor
+irrationality or information asymmetry in the fundamental sense, but from the
+mechanics of how orders interact in a limit order book: the strategic behavior
+of market makers, the clustering of institutional activity, and the discrete
+price grid imposed by exchange rules. Understanding these patterns is a
+prerequisite for designing an HFT trading agent, since they define the
+informational environment the agent operates in and directly motivate the
+feature set used in this thesis.
+
+### Bid-Ask Spread and Short-Horizon Serial Correlation
+
+@Roll1984 demonstrated that bid-ask spreads induce negative serial correlation
+in transaction prices at very short horizons, as prices bounce between bid and
+ask quotes. This microstructure noise distinguishes observed transaction prices
+from the latent efficient price and creates a predictable pattern exploitable
+only by agents that operate at tick frequency and account for spread costs
+explicitly. In this thesis, spread in basis points and the spread ratio feature
+directly encode the cost of crossing the spread, conditioning the agent's
+position-sizing decisions on the current liquidity environment.
+
+### Intraday Periodicity
+
+@Wood1985 and @Harris1986 documented systematic intraday patterns in volume,
+volatility, and returns: a pronounced U-shape in trading activity and spread
+width, with elevated liquidity demand at market open and close and a quiet
+midday period. These patterns reflect institutional trading schedules and
+liquidity provision dynamics rather than information arrival, and they are
+stable enough across days to serve as a conditioning signal for a trading agent.
+The hour-of-day sine and cosine encodings in the observation vector are
+motivated directly by this evidence — the agent needs to distinguish early-session
+conditions (wide spreads, high adverse selection) from midday conditions
+(tighter spreads, lower activity) when sizing positions.
+
+### Price Discreteness and Quote Clustering
+
+@Harris1991 showed that prices cluster at round numbers and psychologically
+attractive levels, creating discontinuities in the order book that affect
+optimal order placement and execution. In a 10-level LOB, price clustering
+manifests as uneven spacing between price levels — a pattern captured by the
+book convexity feature, which measures the curvature of the price ladder on
+each side. Awareness of price clustering is also relevant to the spread ratio
+feature, since clusters create temporary spread compression and expansion that
+deviates from the recent average.
+
+### Implications for This Thesis
+
+These three findings collectively establish that short-horizon price dynamics
+are structured, not random. The bid-ask bounce motivates spread-aware features
+and reward design; intraday periodicity motivates temporal context features;
+price discreteness motivates curvature features of the order book. Rather than
+treating the limit order book as a transparent window onto an efficient price,
+the empirical evidence supports modeling it as a strategic environment with
+predictable mechanical regularities — which is precisely the setting in which
+a reinforcement learning agent can learn to act systematically.
