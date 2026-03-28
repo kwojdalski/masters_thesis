@@ -54,7 +54,8 @@ data. The research objectives are structured in three interconnected phases:
    - Assess agent performance on out-of-sample data against established
      benchmarks with use of established and novel risk-return metrics
    - Analyze robustness under varying market conditions
-   - Determine if agents can outperform conventional approaches
+   - Determine whether agents can outperform selected benchmark strategies
+     under the defined experimental assumptions
 
 3. **Analysis and Implications**
    - Examine agent learning evolution and pattern recognition capabilities
@@ -62,6 +63,6 @@ data. The research objectives are structured in three interconnected phases:
      methodologies
    - Determine if agents can identify non-trivial patterns efficiently and
      hence outperform naive strategies
-   - Evaluate the feasibility of deployment in real-world trading
-     environments
+   - Assess the practical relevance and limitations of the approach under
+     simplified execution assumptions
    - Identify promising directions for future research
