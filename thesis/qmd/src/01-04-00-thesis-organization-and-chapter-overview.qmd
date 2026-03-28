@@ -1,28 +1,41 @@
 ## Thesis Organization and Chapter Overview
 
-This thesis is structured to provide a comprehensive framework for
-understanding reinforcement learning algorithms applied to trading contexts.
+This thesis is organized to move from problem formulation and literature
+motivation to agent design, implementation, and empirical evaluation in a
+microstructure-aware trading setting.
 
 Chapter 1 introduces the problem context, defines the research scope, and
 presents the methodological framework used throughout the thesis.
 
-Chapter 2 reviews relevant financial and reinforcement learning literature,
-including classical asset-pricing models, empirical anomalies, and prior RL
-trading studies.
+Chapter 2 reviews the literature most directly relevant to the present research
+question. It focuses on market microstructure evidence motivating
+order-book-derived features, the structural case for reinforcement learning in
+trading, and prior RL trading applications with attention to action-space
+design, transaction-cost modeling, and evaluation rigor.
 
-Chapter 3 outlines machine learning foundations for trading applications and
-positions reinforcement learning relative to supervised and unsupervised
-approaches.
+Chapter 3 places reinforcement learning within the broader landscape of machine
+learning and algorithmic trading system design. It contrasts supervised,
+unsupervised, and reinforcement learning approaches, then situates the trading
+agent within a larger trading-system architecture and alternative decision
+paradigms.
 
-Chapters 4 and 5 present reinforcement learning foundations and the design of
-the trading agent, including action space, state representation, reward
-formulation, and policy/value components.
+Chapter 4 develops the reinforcement learning foundations required for the
+thesis, with particular emphasis on the progression from earlier methods to TD3
+and on the distinctions that matter for continuous-control trading problems.
 
-Chapter 6 describes implementation details: data preparation, feature pipeline,
-environment assumptions, and the TD3 training workflow.
+Chapter 5 presents the design of the trading agent itself. It defines the
+continuous action space, the microstructure-aware state representation, the
+reward formulation, and the main policy and value-function design choices used
+in the empirical system.
 
-Chapter 7 reports empirical evaluation, statistical validation, and robustness
-assessment.
+Chapter 6 describes the implementation of the research pipeline, including data
+preparation, configuration-driven feature engineering, code structure, and the
+TD3-based training workflow used to produce reproducible experiments.
 
-Chapter 8 summarizes findings, discusses limitations and practical implications,
-and proposes directions for future research.
+Chapter 7 reports the empirical results. It combines experiment snapshots,
+performance evaluation, statistical validation, and robustness assessment to
+separate promising outcomes from noise, overfitting, or fragile conclusions.
+
+Chapter 8 synthesizes the findings, discusses the main limitations of the
+current framework, and draws implications for future research and practical
+trading-system development.
