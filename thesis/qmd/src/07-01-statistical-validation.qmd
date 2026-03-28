@@ -22,7 +22,7 @@ import pandas as pd
 
 from thesis_mlflow_results import runs_overview_table
 
-EXPERIMENT_NAME = "btc_td3_tradingenv_reduced_features"
+EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT"
 runs_df = runs_overview_table(EXPERIMENT_NAME)
 finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.empty else pd.DataFrame()
 ```

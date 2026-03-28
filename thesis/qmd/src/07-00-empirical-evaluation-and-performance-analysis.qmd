@@ -7,8 +7,8 @@ loaded from exported thesis result snapshots (JSON/Parquet/PNG artifacts)
 generated from the experiment tracking outputs. When no exported snapshot is
 available, the chapter can fall back to the local experiment tracking store.
 
-The current thesis draft is wired to the experiment configuration used for the
-reduced-feature TD3 TradingEnv setup. Two result views are distinguished:
+The current thesis draft is wired to the AAPL high-frequency TD3 experiment
+using order-book-derived features. Two result views are distinguished:
 
 - a current monitoring snapshot (latest active run, if one is in progress),
 - a completed evaluation snapshot (latest finished run with evaluation artifacts).
@@ -23,7 +23,7 @@ import pandas as pd
 
 from thesis_mlflow_results import load_experiment_snapshot, runs_overview_table
 
-EXPERIMENT_NAME = "btc_td3_tradingenv_reduced_features"
+EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 runs_df = runs_overview_table(EXPERIMENT_NAME)
 ```
