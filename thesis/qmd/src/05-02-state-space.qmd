@@ -1,119 +1,181 @@
 ## State Space
 
-The state space defines the informational representation available to the agent at each decision point. A well-designed state space captures relevant market dynamics while maintaining computational tractability and avoiding redundancy. The state vector $s_t \in \mathcal{S}$ at time $t$ encodes the agent's observation of the trading environment.
+The state space defines the informational representation available to the agent
+at each decision point. At each time step $t$, the agent receives an observation
+vector $s_t \in \mathcal{S}$ constructed from the current state of the limit
+order book (LOB). The design of this observation is the primary engineering
+decision in the empirical pipeline: the agent can only exploit structure that is
+present in its input.
 
-### State Representation Requirements
+### Design Requirements
 
-An effective state representation for trading must satisfy several criteria:
+An effective state representation for high-frequency trading must satisfy several
+criteria simultaneously.
 
-1. **Markov Property**: The state should contain sufficient information such that future states and rewards depend only on the current state and action, not on the entire history. While financial markets exhibit memory effects, a properly engineered feature set can approximate this property.
+**Approximation of the Markov property.** The TD3 algorithm assumes that $s_t$
+contains sufficient information such that the optimal action depends only on the
+current state, not on the full history. Raw price levels violate this assumption
+because their unconditional distribution is non-stationary; a price of 180 means
+something very different depending on recent trajectory. Engineered features —
+returns, imbalances, normalized spreads — are designed to be more stationary and
+to encode the local market state rather than the absolute price level.
 
-2. **Stationarity**: Features should ideally exhibit relatively stable statistical properties over time. Non-stationary raw prices are typically transformed into returns or normalized indicators to improve learning stability.
+**Informativeness about short-term price direction.** For the reward signal to
+be learnable, the observation must contain features that are predictive of
+near-term mid-price changes. The selection is therefore grounded in market
+microstructure theory, which identifies specific LOB quantities — imbalances,
+order flow, spread — as the empirically dominant predictors of short-term price
+movement.
 
-3. **Informational Relevance**: The state should contain predictive signals related to future price movements, volatility, or trading opportunities, while excluding noise or redundant correlations.
+**Dimensionality discipline.** Each additional observation dimension enlarges the
+input space that the policy and critic networks must generalize over. Features
+are included only when they carry a distinct theoretical mechanism not already
+captured by other features in the set.
 
-4. **Dimensionality**: The state space should balance expressiveness with computational efficiency. High-dimensional states increase network complexity and sample requirements, while overly sparse states may lack discriminative power.
+### Feature Groups and Selection Rationale
 
-### Feature Engineering Approach
+The state vector is composed of five groups of features, each targeting a
+distinct aspect of LOB microstructure.
 
-The state space in this implementation consists of engineered features rather than raw OHLCV (Open, High, Low, Close, Volume) data. Feature engineering serves multiple purposes:
+#### Imbalance Features
 
-* **Dimensionality reduction**: Transforming raw tick-level or high-frequency data into compact statistical summaries
-* **Stationarity induction**: Converting non-stationary prices into stationary returns, volatilities, and normalized indicators
-* **Signal extraction**: Emphasizing patterns relevant to trading decisions (momentum, mean reversion, volatility regimes)
-* **Noise reduction**: Aggregating information over multiple time scales to filter out random fluctuations
+Volume imbalance at a given price level $i$ is defined as:
 
-Two feature configurations are employed in the empirical analysis:
+$$\text{BookPressure}_i = \frac{V^{bid}_i - V^{ask}_i}{V^{bid}_i + V^{ask}_i}$$
 
-1. **Comprehensive feature set**: Includes extensive technical indicators, order book imbalances, volume metrics, and temporal patterns (approximately 30-40 features)
-2. **Reduced non-redundant feature set**: A minimal subset designed to avoid multicollinearity while preserving signal diversity (16 features)
+Imbalance signals the relative weight of resting liquidity on each side and
+has been shown to predict short-term price direction [@Cao2004; @Biais1995].
+The multi-level aggregate version averages this signal across the top $N$ levels:
 
-The reduced feature set is presented below as an illustrative example of the state space design.
+$$\text{OBI}_N = \frac{\sum_{i=0}^{N-1}(V^{bid}_i - V^{ask}_i)}{\sum_{i=0}^{N-1}(V^{bid}_i + V^{ask}_i)}$$
 
-### Reduced Feature Set Composition
+The multi-level formulation is more robust to noise at the best quote and captures
+the depth structure of the book. Both single-level (levels 0–2) and three-level
+aggregate variants are included.
 
-The minimal state vector consists of 16 features categorized into five groups:
+Order count imbalance complements the volume-based measures by counting the number
+of resting orders rather than their aggregate size, making it sensitive to
+fragmentation that a single large institutional order would mask:
 
-#### Autoregressive Return Features
+$$\text{OCI}_i = \frac{C^{bid}_i - C^{ask}_i}{C^{bid}_i + C^{ask}_i}$$
 
-Lagged returns capture short- to medium-term momentum and mean-reversion dynamics:
+#### Fair Value Features
 
-* `feature_return_lag_1`: One-period log return, $r_{t-1} = \log(P_{t-1}/P_{t-2})$
-* `feature_return_lag_6`: Six-period lagged return, capturing intra-day momentum patterns
-* `feature_return_lag_24`: Daily return lag (24 hourly periods), representing daily trend persistence
-* `feature_return_lag_168`: Weekly return lag (168 hourly periods), capturing longer-term directional bias
+The microprice [@Stoikov2018] is a volume-weighted estimate of where the next
+transaction price is likely to occur:
 
-These features provide a multi-scale view of recent price evolution without including redundant intermediate lags.
+$$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$
 
-#### Volatility Features
+When the ask side is thin relative to the bid side, the microprice is pulled
+toward the ask — the side more likely to move first. The microprice divergence
+from mid-price isolates the imbalance component of fair value as a stationary
+signal:
 
-Volatility measures quantify market uncertainty and regime changes:
+$$\text{MicroDiv} = \text{Microprice} - \frac{P^{bid}_0 + P^{ask}_0}{2}$$
 
-* `feature_realized_volatility_24`: Rolling standard deviation of returns over the past 24 periods, $\sigma_{t}^{24} = \sqrt{\frac{1}{24}\sum_{i=1}^{24}r_{t-i}^2}$
-* `feature_volatility_ratio_6_168`: Ratio of short-term (6-period) to long-term (168-period) volatility, indicating volatility regime transitions. A ratio greater than 1 signals increasing short-term uncertainty.
+The volume-weighted mid-price skew extends this concept across three levels,
+measuring whether deep liquidity is positioned asymmetrically relative to the
+current mid-price.
 
-#### Volume and Liquidity Features
+#### Spread and Cost Features
 
-Volume-based indicators reveal market participation intensity and potential liquidity shocks:
+The bid-ask spread, expressed in basis points, is the primary observable measure
+of adverse selection cost [@Kyle1985; @GlostenMilgrom1985]:
 
-* `feature_volume_ma_ratio_24`: Current volume relative to its 24-period moving average, $V_t / \overline{V}_{t}^{24}$, signaling abnormal trading activity
-* `feature_volume_change`: First-order difference in volume, $\Delta V_t = V_t - V_{t-1}$
-* `feature_amihud_illiquidity`: Amihud's illiquidity measure, defined as $|r_t| / V_t$, quantifying price impact per unit volume. Higher values indicate thinner liquidity and greater transaction costs.
+$$\text{SpreadBps} = \frac{P^{ask}_0 - P^{bid}_0}{\frac{P^{bid}_0 + P^{ask}_0}{2}} \times 10{,}000$$
 
-#### Technical Indicators
+A widening spread signals elevated information asymmetry or inventory risk among
+market makers. The spread ratio — current spread relative to its recent rolling
+mean — separates the level effect from the regime signal, flagging periods of
+abnormally elevated adverse selection risk [@Easley2012].
 
-Classical technical analysis tools encode price patterns and momentum:
+Bid and ask slopes measure the price elasticity of each side of the book across
+five levels [@Bouchaud2002], capturing market impact per unit of trading volume
+and serving as a proxy for Kyle's lambda [@Kyle1985]:
 
-* `feature_rsi_14`: Relative Strength Index over 14 periods, capturing
-  overbought/oversold behavior.
-* `feature_macd_signal`: MACD signal-line-derived momentum feature.
-* `feature_bbands_20`: Bollinger-band position feature indicating proximity to
-  volatility-adjusted boundaries.
+$$\text{BidSlope} = \frac{P^{bid}_0 - P^{bid}_4}{\sum_{i=0}^{4} V^{bid}_i}, \qquad
+\text{AskSlope} = \frac{P^{ask}_4 - P^{ask}_0}{\sum_{i=0}^{4} V^{ask}_i}$$
 
-Formal indicator formulas are provided in Appendix A.1.
+#### Order Flow Features
 
-#### Temporal Context Features
+Order flow imbalance (OFI) [@Cont2014] measures the net directional pressure from
+LOB events between consecutive snapshots, conditioning on whether each event
+represents genuine queue growth rather than a price improvement:
 
-Cyclical time encodings capture intraday and weekly seasonality without imposing ordinality:
+$$\text{OFI}_t =
+\Delta V^{bid}_t \cdot \mathbf{1}\!\left[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}\right]
+- \Delta V^{ask}_t \cdot \mathbf{1}\!\left[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}\right]$$
 
-* `feature_hour_sin`, `feature_hour_cos`: Sine and cosine transformations of the hour-of-day, $\sin(2\pi h/24)$ and $\cos(2\pi h/24)$, representing the 24-hour cycle
-* `feature_day_of_week_sin`, `feature_day_of_week_cos`: Sine and cosine transformations of the day-of-week, representing weekly periodicity (e.g., Monday effects, weekend sentiment)
+@Cont2014 establish OFI as the single strongest predictor of short-term price
+changes in LOB data. A rolling sum over 50 events captures persistent directional
+pressure over multiple tick horizons.
 
-These circular encodings ensure temporal continuity—for example, 23:00 and 00:00 are represented as neighbors rather than distant integers.
+Signed trade flow (cumulative delta) [@LeeReady1991] is constructed directly from
+the trade tape rather than from book changes, providing a complementary signal
+that measures executed volume rather than queue dynamics:
 
-### State Space Dimensionality
+$$\text{CumDelta}_{W,t} = \sum_{\tau=t-W+1}^{t} \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = B]
+- \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = A]$$
 
-The complete state vector is:
+Queue depletion measures how rapidly the best-bid or best-ask queue is being
+consumed across consecutive snapshots, identifying situations where the top-of-book
+queue is close to exhaustion and a price move is imminent.
 
-$$s_t = [r_{t-1}, r_{t-6}, r_{t-24}, r_{t-168}, \sigma_t^{24}, \text{vol\_ratio}_t, \ldots, \sin(h_t), \cos(h_t)] \in \mathbb{R}^{16}$$
+Odd-lot trade ratio and odd-lot imbalance [@Boehmer2021] decompose trade flow by
+order size. In the AAPL dataset used here, 81% of trades are odd-lot sized (below
+100 shares), primarily reflecting retail and algorithmic small-lot activity. A
+sudden drop in the odd-lot ratio signals increasing institutional participation
+and consequently higher adverse selection risk.
 
-This 16-dimensional representation provides a compact yet informative summary of market conditions. Higher-dimensional formulations (30-40 features) include additional technical indicators, order flow imbalances, and higher-order lags at the cost of increased network complexity and potential overfitting.
+#### Regime and Temporal Features
 
-### Feature Normalization and Preprocessing
+Two features condition the agent on the current market regime rather than
+providing directional signals.
 
-Raw features exhibit varying scales—returns are typically $O(10^{-3})$ to $O(10^{-2})$, while RSI is bounded in $[0, 100]$ and volume can span several orders of magnitude. To facilitate neural network training, features undergo standardization:
+Log inter-event time [@Engle2000] captures the activity rate of the market:
+
+$$\text{LogGap}_t = \log\!\left(1 + (t_{\text{ns}} - t_{\text{ns},t-1})\right)$$
+
+Dense update bursts indicate informed order flow or a large order working through
+the book; sparse updates signal low activity and reduced adverse selection risk.
+
+Mid-price acceleration is the second finite difference of the mid-price:
+
+$$\text{Accel}_t = M_t - 2M_{t-1} + M_{t-2}, \qquad M_t = \frac{P^{bid}_0 + P^{ask}_0}{2}$$
+
+It distinguishes momentum regimes (positive, accelerating) from mean-reversion
+regimes (negative, decelerating) at tick frequency.
+
+The sine and cosine encodings of the hour-of-day capture the well-documented
+U-shaped intraday pattern in volume and spread [@Wood1985]:
+
+$$\text{HourSin}_t = \sin\!\left(\frac{2\pi \cdot h_t}{24}\right), \qquad
+\text{HourCos}_t = \cos\!\left(\frac{2\pi \cdot h_t}{24}\right)$$
+
+The cyclical encoding ensures temporal continuity — 09:30 and 16:00 remain
+structurally distinct without imposing an arbitrary ordinal distance.
+
+### Observation Space and Normalization
+
+The complete observation vector $s_t \in \mathbb{R}^d$ is formed by concatenating
+all engineered features. The exact dimensionality $d$ is scenario-dependent and
+specified in the configuration files governing each experiment.
+
+All features except cyclical time encodings are standardized using training-set
+statistics:
 
 $$\tilde{x}_i = \frac{x_i - \mu_i^{\text{train}}}{\sigma_i^{\text{train}}}$$
 
-where $\mu_i^{\text{train}}$ and $\sigma_i^{\text{train}}$ are the mean and standard deviation computed exclusively on the training set. This transformation is applied consistently to validation and test sets using the same training statistics to prevent data leakage.
+The mean $\mu_i^{\text{train}}$ and standard deviation $\sigma_i^{\text{train}}$
+are computed exclusively on the training split and applied without modification
+to the validation and test splits, preventing any form of data leakage. Cyclical
+encodings are inherently bounded in $[-1, 1]$ and require no normalization.
 
-Temporal features (sine and cosine encodings) are inherently bounded in $[-1, 1]$ and do not require normalization. Missing values, if present, are forward-filled or interpolated to maintain temporal continuity.
+The formal observation space is:
 
-### Observation Space Specification
+$$\mathcal{S} = \mathbb{R}^d$$
 
-Formally, the observation space is defined as a continuous box:
-
-$$\mathcal{S} = [-\infty, \infty]^{16}$$
-
-In practice, after standardization, most feature values concentrate within $[-3, 3]$ under Gaussian assumptions, though extreme market events can produce outliers. The neural network policy and value functions must generalize to states outside the training distribution, particularly during stress periods or regime shifts.
-
-### Design Rationale and Trade-offs
-
-The reduced feature set prioritizes interpretability and robustness:
-
-* **Non-redundancy**: Avoids including multiple overlapping moving averages (e.g., 5, 10, 20, 50-period MAs) that convey similar information
-* **Multi-scale structure**: Captures dynamics at multiple time horizons (hourly, daily, weekly) without excessive granularity
-* **Signal diversity**: Combines momentum (returns, MACD), volatility (realized vol, volatility ratio), volume (liquidity, participation), and pattern recognition (RSI, Bollinger Bands)
-* **Temporal awareness**: Encodes seasonality patterns that may correlate with systematic trading activity (e.g., institutional flows at market open/close)
-
-The trade-off is that a compact state space may omit potentially informative signals present in the comprehensive feature set. Empirical evaluation compares performance across feature configurations to assess this balance.
+In practice, after standardization, feature values concentrate in $[-3, 3]$ under
+approximate Gaussian assumptions. The policy and value networks must generalize
+to out-of-distribution observations that arise during stress episodes or
+regime shifts not present in the training sample.
