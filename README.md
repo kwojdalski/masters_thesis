@@ -1,7 +1,7 @@
 # Trading RL Master's Thesis
 
 This codebase supports the research behind the thesis by implementing and
-comparing three deep reinforcement learning algorithms — PPO, DDPG, and TD3 —
+comparing three deep reinforcement learning algorithms — [PPO](docs/ppo_implementation_overview.md), [DDPG](docs/ddpg_implementation_overview.md), and [TD3](docs/td3_implementation_overview.md) —
 applied to algorithmic trading across synthetic and real market data (OHLCV and
 high-frequency limit order book). The goal is to evaluate whether modern RL
 agents can learn profitable, generalizable trading policies under realistic
@@ -16,7 +16,7 @@ are modular and independently testable.
 
 ## Highlights
 
-- PPO, DDPG, and TD3 trainers for discrete and continuous action spaces
+- [PPO](docs/ppo_implementation_overview.md), [DDPG](docs/ddpg_implementation_overview.md), and [TD3](docs/td3_implementation_overview.md) trainers for discrete and continuous action spaces
 - Scenario-driven YAML configs in `src/configs/scenarios`
 - Synthetic data generator (sine wave, upward drift, sampled OHLCV)
 - MLflow tracking plus CLI utilities for experiments, checkpoints, and artifacts
