@@ -97,6 +97,25 @@ explicitly penalizes drawdown would test the sensitivity of policy behavior to
 reward specification — a dimension the thesis identifies as important but does
 not empirically vary.
 
+### Alternative Model Architectures
+
+Two architectural directions appear promising for future work. First, replacing
+the MLP actor and critic with a Transformer-based sequence encoder would allow
+the agent to attend selectively over a window of past order-book states rather
+than acting on a single flattened snapshot. Transformer architectures have shown
+strong performance on sequential financial data [@Vaswani2017], and their
+attention mechanism is a natural fit for LOB inputs where the relative
+importance of recent events varies with market conditions.
+
+Second, a hybrid approach combining gradient-boosted trees with the RL framework
+is worth investigating. XGBoost [@Chen2016] or similar methods could replace or
+augment the critic network: the policy gradient would remain neural while the
+value estimation — which is effectively a regression problem on tabular
+microstructure features — is handled by a model class known to perform well on
+structured, low-noise financial data. This separation of concerns between policy
+and value estimation has not been widely explored in the RL-for-trading
+literature and could offer both accuracy and interpretability gains.
+
 ### Evaluation Robustness
 
 The current results are based on a fixed train/test split and a single random
