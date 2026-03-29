@@ -1,4 +1,4 @@
-## Trading based on Forecasts
+### Trading based on Forecasts
 
 Forecast-based trading systems employ supervised learning techniques to generate
 price predictions from a set of input variables. These systems optimize for
