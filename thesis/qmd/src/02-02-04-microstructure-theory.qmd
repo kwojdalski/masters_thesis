@@ -88,8 +88,6 @@ the side more likely to move. The microprice divergence from mid captures this
 adjustment as a stationary signal and serves as the primary fair value feature
 in Chapter 5.
 
-### Synthesis
-
 Together these four theoretical frameworks establish the informational structure
 of the limit order book. The spread encodes adverse selection risk
 [@GlostenMilgrom1985]; price impact and order imbalance are related through
