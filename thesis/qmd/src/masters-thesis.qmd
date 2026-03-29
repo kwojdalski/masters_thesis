@@ -31,8 +31,9 @@ format:
     embed-resources: true
   html:
     toc: true
-    toc-depth: 3
+    toc-depth: 2
     number-sections: true
+    number-depth: 2
     toc-location: right
 bibliography: ../../bibliography/library.bib
 post-render:
