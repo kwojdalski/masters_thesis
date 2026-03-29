@@ -3,41 +3,60 @@
 ## A: LOB Feature Inventory
 
 The table below is the complete specification of all features used in the
-state-space experiments. Feature names match the keys registered in the
-feature registry (`src/trading_rl/features/lob_features.py`). The active
-feature set for the main experiments is defined in
-`src/configs/features/hft_lob_features_state_space.yaml`.
+state-space experiments. Feature names match the keys in the feature registry
+(`src/trading_rl/features/lob_features.py`); the active set is defined in
+`src/configs/features/hft_lob_features_state_space.yaml`. Formulas are given
+in Chapter 5. All features except the hour encodings are z-score normalized
+on the training split only.
 
-| Feature name | Group | Formula (key inputs) | Param | Literature |
-|---|---|---|---|---|
-| `hft_book_pressure_l0` | Imbalance | $(V^{bid}_0 - V^{ask}_0)/(V^{bid}_0 + V^{ask}_0)$ | level 0 | Cao et al. (2004); Biais et al. (1995) |
-| `hft_book_pressure_l1` | Imbalance | same, level 1 | level 1 | Cao et al. (2004) |
-| `hft_book_pressure_l2` | Imbalance | same, level 2 | level 2 | Cao et al. (2004) |
-| `hft_order_book_imbalance_3l` | Imbalance | $\sum_{i=0}^{2}(V^{bid}_i - V^{ask}_i) / \sum_{i=0}^{2}(V^{bid}_i + V^{ask}_i)$ | $N=3$ | Cont et al. (2014) |
-| `hft_order_count_imbalance_l0` | Imbalance | $(C^{bid}_0 - C^{ask}_0)/(C^{bid}_0 + C^{ask}_0)$ | level 0 | Biais et al. (1995) |
-| `hft_microprice` | Fair value | $(V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0)/(V^{bid}_0+V^{ask}_0)$ | — | Stoikov (2018) |
-| `hft_microprice_divergence` | Fair value | Microprice $-$ MidPrice | — | Stoikov (2018) |
-| `hft_vwmp_skew` | Fair value | (VWMP $-$ MidPrice) / Spread; VWMP over 3 levels | $N=3$ | Stoikov (2018) |
-| `hft_spread_bps` | Spread/cost | $(P^{ask}_0 - P^{bid}_0)/\text{Mid} \times 10{,}000$ | — | Kyle (1985); Glosten & Milgrom (1985) |
-| `hft_spread_ratio_50` | Spread/cost | SpreadBps / rolling mean SpreadBps | $W=50$ | Easley et al. (2012) |
-| `hft_bid_slope` | Spread/cost | $(P^{bid}_0 - P^{bid}_4)/\sum_{i=0}^{4}V^{bid}_i$ | 5 levels | Bouchaud et al. (2002) |
-| `hft_ask_slope` | Spread/cost | $(P^{ask}_4 - P^{ask}_0)/\sum_{i=0}^{4}V^{ask}_i$ | 5 levels | Bouchaud et al. (2002) |
-| `hft_ofi` | Order flow | $\Delta V^{bid}_t \cdot \mathbf{1}[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t \cdot \mathbf{1}[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}]$ | — | Cont et al. (2014) |
-| `hft_ofi_rolling_50` | Order flow | Rolling sum of OFI | $W=50$ | Kolm et al. (2023) |
-| `hft_bid_queue_depletion` | Order flow | $\max(V^{bid}_{0,t-1} - V^{bid}_{0,t},\ 0) / V^{bid}_{0,t-1}$ | bid side | Foucault et al. (2005) |
-| `hft_ask_queue_depletion` | Order flow | same, ask side | ask side | Foucault et al. (2005) |
-| `hft_signed_trade_flow_50` | Order flow | Rolling sum of signed trade volume (buyer $+$, seller $-$) | $W=50$ | Lee & Ready (1991) |
-| `hft_odd_lot_trade_ratio_200` | Order flow | Fraction of trades with size $< 100$ shares over window | $W=200$ | Boehmer et al. (2021) |
-| `hft_odd_lot_imbalance_200` | Order flow | $(B_W - S_W)/(B_W+S_W)$ for odd-lot trades | $W=200$ | Boehmer et al. (2021) |
-| `hft_inter_event_time` | Regime/temporal | $\log(1 + \Delta t_{\text{ns}})$ | — | Engle (2000) |
-| `hft_mid_price_acceleration` | Regime/temporal | $M_t - 2M_{t-1} + M_{t-2}$ | — | Abergel et al. (2016) |
-| `hft_hour_sin` | Regime/temporal | $\sin(2\pi h_t / 24)$ | — | Wood et al. (1985) |
-| `hft_hour_cos` | Regime/temporal | $\cos(2\pi h_t / 24)$ | — | Wood et al. (1985) |
-
-All features except `hft_hour_sin` and `hft_hour_cos` are z-score normalized
-using training-split statistics only.
-
----
+```{=latex}
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{p{4.8cm}p{2.0cm}p{1.8cm}p{5.2cm}}
+\toprule
+\textbf{Feature name} & \textbf{Group} & \textbf{Param} & \textbf{Literature} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{c}{\textit{(continued from previous page)}} \\
+\toprule
+\textbf{Feature name} & \textbf{Group} & \textbf{Param} & \textbf{Literature} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\textit{(continued on next page)}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{hft\_book\_pressure\_l0}       & Imbalance      & level 0   & Cao et al.\ (2004); Biais et al.\ (1995) \\
+\texttt{hft\_book\_pressure\_l1}       & Imbalance      & level 1   & Cao et al.\ (2004) \\
+\texttt{hft\_book\_pressure\_l2}       & Imbalance      & level 2   & Cao et al.\ (2004) \\
+\texttt{hft\_order\_book\_imbalance\_3l} & Imbalance    & $N=3$     & Cont et al.\ (2014) \\
+\texttt{hft\_order\_count\_imbalance\_l0} & Imbalance   & level 0   & Biais et al.\ (1995) \\
+\texttt{hft\_microprice}               & Fair value     & ---       & Stoikov (2018) \\
+\texttt{hft\_microprice\_divergence}   & Fair value     & ---       & Stoikov (2018) \\
+\texttt{hft\_vwmp\_skew}               & Fair value     & $N=3$     & Stoikov (2018) \\
+\texttt{hft\_spread\_bps}              & Spread/cost    & ---       & Kyle (1985); Glosten \& Milgrom (1985) \\
+\texttt{hft\_spread\_ratio\_50}        & Spread/cost    & $W=50$    & Easley et al.\ (2012) \\
+\texttt{hft\_bid\_convexity}           & Spread/cost    & bid side  & Bouchaud et al.\ (2002) \\
+\texttt{hft\_ask\_convexity}           & Spread/cost    & ask side  & Bouchaud et al.\ (2002) \\
+\texttt{hft\_bid\_slope}               & Spread/cost    & 5 levels  & Bouchaud et al.\ (2002); Kyle (1985) \\
+\texttt{hft\_ask\_slope}               & Spread/cost    & 5 levels  & Bouchaud et al.\ (2002); Kyle (1985) \\
+\texttt{hft\_ofi}                      & Order flow     & ---       & Cont et al.\ (2014) \\
+\texttt{hft\_ofi\_rolling\_50}         & Order flow     & $W=50$    & Cont et al.\ (2014) \\
+\texttt{hft\_bid\_queue\_depletion}    & Order flow     & bid side  & Foucault et al.\ (2005) \\
+\texttt{hft\_ask\_queue\_depletion}    & Order flow     & ask side  & Foucault et al.\ (2005) \\
+\texttt{hft\_signed\_trade\_flow\_50}  & Order flow     & $W=50$    & Lee \& Ready (1991) \\
+\texttt{hft\_odd\_lot\_trade\_ratio\_200} & Order flow  & $W=200$   & Boehmer et al.\ (2021) \\
+\texttt{hft\_odd\_lot\_imbalance\_200} & Order flow     & $W=200$   & Boehmer et al.\ (2021) \\
+\texttt{hft\_inter\_event\_time}       & Regime/temp.   & ---       & Engle (2000) \\
+\texttt{hft\_mid\_price\_acceleration} & Regime/temp.   & ---       & Abergel et al.\ (2016) \\
+\texttt{hft\_hour\_sin}                & Regime/temp.   & ---       & Wood et al.\ (1985) \\
+\texttt{hft\_hour\_cos}                & Regime/temp.   & ---       & Wood et al.\ (1985) \\
+\end{longtable}
+\endgroup
+```
 
 ## B: TD3 Hyperparameters
 
@@ -121,43 +140,7 @@ training:
 
 ---
 
-## D: Implementation Snippets
-
-**Feature registration pattern:**
-
-```python
-@register_feature("ofi")
-class OFIFeature(LOBFeature):
-    def compute(self, df: pd.DataFrame) -> pd.Series:
-        bid_grew = df[self.bid_price_col] >= df[self.bid_price_col].shift(1)
-        ask_shrank = df[self.ask_price_col] <= df[self.ask_price_col].shift(1)
-        delta_bid = df[self.bid_size_col].diff()
-        delta_ask = df[self.ask_size_col].diff()
-        return (delta_bid * bid_grew - delta_ask * ask_shrank).fillna(0.0)
-```
-
-**Differential Sharpe reward:**
-
-```python
-class DifferentialSharpeRatio:
-    def __init__(self, eta: float = 0.01):
-        self.eta = eta
-        self.A = self.B = 0.0
-
-    def update(self, r: float) -> float:
-        delta_A = r - self.A
-        delta_B = r**2 - self.B
-        dsr = (self.B * delta_A - 0.5 * self.A * delta_B) / (
-            (self.B - self.A**2) ** 1.5 + 1e-8
-        )
-        self.A += self.eta * delta_A
-        self.B += self.eta * delta_B
-        return float(dsr)
-```
-
----
-
-## E: TD3 Training Pseudo-Code
+## D: TD3 Training Pseudo-Code
 
 ```text
 Input:  experiment configuration
