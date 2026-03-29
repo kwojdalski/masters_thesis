@@ -145,6 +145,7 @@ training:
 The diagram below summarizes the configuration-driven workflow described in
 Chapter 6.
 
+::: {style="text-align: center;"}
 ```{mermaid}
 %%{init: {
   'theme': 'base',
@@ -172,6 +173,7 @@ flowchart TD
     H --> I[Held-out evaluation]
     I --> J[Metrics + robustness outputs]
 ```
+:::
 
 ---
 
