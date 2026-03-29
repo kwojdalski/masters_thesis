@@ -6,8 +6,7 @@ traders, uninformed liquidity demanders, and market makers in a limit order book
 This section reviews the theoretical frameworks that directly underpin the feature
 design choices made in Chapter 5.
 
-### Adverse Selection and the Spread Decomposition
-
+**Adverse selection and the spread decomposition.**
 @GlostenMilgrom1985 established that the bid-ask spread reflects a market
 maker's protection against trading with informed counterparties. In their model,
 the market maker faces two types of order flow: uninformed liquidity traders,
@@ -37,8 +36,7 @@ flow — can be understood as empirical proxies for Kyle's order imbalance
 variable, with the bid-ask slope features measuring the depth analogue of
 $\lambda$ across levels of the order book.
 
-### Limit Order Book Mechanics
-
+**Limit order book mechanics.**
 @Glosten1994 developed the theory of the open limit order book as a competitive
 equilibrium, showing that a full LOB can sustain itself as a market mechanism
 under adverse selection. The key insight is that the price schedule embedded in
@@ -53,8 +51,7 @@ schedule — measured by depth ratios, slopes, and convexity features —
 encodes information about how informed the marginal liquidity provider expects
 the market to be at each quantity level.
 
-### Order Flow and Short-Term Price Prediction
-
+**Order flow and short-term price prediction.**
 @Cont2014 provide the most direct empirical and theoretical treatment of the
 relationship between LOB events and short-term price changes. Their framework
 decomposes all LOB events into limit order arrivals, cancellations, and market
@@ -71,8 +68,7 @@ The theoretical channel is straightforward: when buy-side pressure dominates
 inventory risk, mechanically pushing the mid-price upward. The OFI feature in
 this thesis operationalizes this mechanism directly.
 
-### Fair Value Estimation from the Order Book
-
+**Fair value estimation from the order book.**
 @Stoikov2018 derives the microprice as the theoretically optimal estimate of the
 next transaction price given the current state of the top-of-book queues. The
 key observation is that the mid-price — the arithmetic average of best bid and
