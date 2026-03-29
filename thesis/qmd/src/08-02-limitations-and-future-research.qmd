@@ -55,3 +55,53 @@ support risk-sensitive behavior during losing runs without requiring explicit
 rule-based overlays. These extensions leave the market observation unchanged
 and add only internal state, making them a low-disruption way to test whether
 richer self-awareness improves policy quality.
+
+### Cross-Asset and Multi-Asset Extensions
+
+The empirical design is restricted to a single asset — AAPL — under the
+assumption that the LOB microstructure of that instrument alone contains
+sufficient signal. A direct extension is to introduce synchronized cross-asset
+observations: intraday VIX futures as a regime-conditioning signal, sector ETF
+order flow as a proxy for institutional activity, or correlated large-cap LOB
+states that may lead AAPL price discovery. A more substantial extension is to
+move from single-asset exposure control to multi-asset portfolio optimization,
+where the agent simultaneously manages positions across several instruments and
+must account for correlation, capital constraints, and cross-asset execution
+costs.
+
+### Generalization Across Asset Classes and Market Regimes
+
+The present experiments are conducted on equity tick data from a three-day
+window. A key open question is whether the learned representations and policy
+behavior transfer across asset classes — foreign exchange, futures, and
+cryptocurrency markets each exhibit distinct microstructure: different spread
+regimes, tick sizes, liquidity profiles, and intraday seasonality. Testing the
+same feature design and training protocol across these settings would establish
+whether the approach is robust to structural differences in order-book
+dynamics, or whether asset-class-specific feature engineering and reward tuning
+are necessary. Extending the training window to cover multiple market regimes
+— including periods of elevated volatility, low liquidity, and structural
+breaks — would also strengthen the generalization claim beyond the narrow
+three-day sample used here.
+
+### Algorithm Comparison and Reward Ablation
+
+The empirical pipeline is structured around TD3 and the Differential Sharpe
+Ratio reward. Two natural ablation axes remain unexplored. First, replacing
+TD3 with SAC — which maximizes a maximum-entropy objective and tends to
+maintain broader exploration throughout training — or with PPO would test
+whether the deterministic actor-critic family is genuinely best suited to this
+problem. Second, replacing the DSR reward with alternatives such as a
+Sortino-based signal, a direct log-return objective, or a reward that
+explicitly penalizes drawdown would test the sensitivity of policy behavior to
+reward specification — a dimension the thesis identifies as important but does
+not empirically vary.
+
+### Evaluation Robustness
+
+The current results are based on a fixed train/test split and a single random
+seed. Walk-forward validation — expanding the training window and re-evaluating
+on successive out-of-sample periods — would provide a more rigorous assessment
+of temporal generalization. Multi-seed reporting with confidence intervals
+would separate genuine policy quality from favorable initialization, which is a
+known confound in RL research.
