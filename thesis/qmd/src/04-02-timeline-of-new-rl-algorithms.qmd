@@ -1,8 +1,8 @@
-## From Tabular Methods to TD3: An Algorithmic Lineage {#sec-td3-lineage}
+## Actor-Critic Methods for Continuous Control {#sec-td3-lineage}
 
-The development of reinforcement learning algorithms is not a linear progression
-of incremental improvements but a series of conceptual breaks, each motivated by
-a limitation in the preceding framework. This section traces the specific
+The development of reinforcement learning algorithms is a series of conceptual breaks
+, each motivated by a limitation in the preceding framework. 
+This section traces the specific
 lineage that leads to the Twin Delayed Deep Deterministic Policy Gradient (TD3)
 algorithm, which is employed in this thesis. The survey is not exhaustive; it
 focuses on the algorithmic properties that are directly relevant to the
