@@ -108,13 +108,13 @@ attention mechanism is a natural fit for LOB inputs where the relative
 importance of recent events varies with market conditions.
 
 Second, a hybrid approach combining gradient-boosted trees with the RL framework
-is worth investigating. XGBoost [@Chen2016] or similar methods could replace or
-augment the critic network: the policy gradient would remain neural while the
-value estimation — which is effectively a regression problem on tabular
-microstructure features — is handled by a model class known to perform well on
-structured, low-noise financial data. This separation of concerns between policy
-and value estimation has not been widely explored in the RL-for-trading
-literature and could offer both accuracy and interpretability gains.
+is worth investigating. The recently proposed GBRL framework [@Fuhrer2025]
+directly integrates gradient boosting into the actor-critic architecture,
+replacing neural network components with gradient-boosted trees. The value
+estimation step — effectively a regression on tabular microstructure features —
+is a natural fit for tree-based models known to perform well on structured
+financial data, while the interpretability of individual trees may provide
+additional insight into which features drive the learned value function.
 
 ### Evaluation Robustness
 
