@@ -1,4 +1,6 @@
 
+## Classifying RL Algorithms
+
 ### Model-free vs Model-based
 
 Reinforcement learning algorithms divide into two broad families depending on
