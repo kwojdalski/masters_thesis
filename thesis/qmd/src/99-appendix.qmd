@@ -171,6 +171,10 @@ training:
 The diagram below summarizes the configuration-driven workflow described in
 Chapter 6.
 
+```{=latex}
+\begin{center}
+```
+
 ```{mermaid}
 %%| fig-align: center
 %%{init: {
@@ -200,12 +204,20 @@ flowchart TD
     I --> J[Metrics + robustness outputs]
 ```
 
+```{=latex}
+\end{center}
+```
+
 ---
 
 ## E: TD3 Update Mechanics Diagram
 
 The diagram below summarizes the core TD3 update mechanics used in the thesis
 implementation, abstracting away from project-specific plumbing.
+
+```{=latex}
+\begin{center}
+```
 
 ```{mermaid}
 %%| fig-align: center
@@ -235,6 +247,10 @@ flowchart TD
     G --> H[Soft-update<br/>target networks]
     F -->|No| I[Next critic step]
     H --> I
+```
+
+```{=latex}
+\end{center}
 ```
 
 ---
