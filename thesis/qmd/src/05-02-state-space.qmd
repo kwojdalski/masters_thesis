@@ -49,6 +49,11 @@ state to single-asset LOB features is a deliberate experimental choice: the
 thesis tests whether microstructure-aware features alone are sufficient for a
 viable agent. Adding cross-asset signals would answer a different question and
 prevent clean attribution of any observed performance to LOB structure.
+A natural extension for future work would be to augment the LOB observation
+with synchronized regime indicators — intraday VIX futures at the minute
+level, sector ETF order flow, or options-derived skew — once the baseline
+LOB-only performance is established, allowing a controlled ablation of which
+additional signal sources materially improve out-of-sample results.
 
 ### Feature Groups and Selection Rationale
 
