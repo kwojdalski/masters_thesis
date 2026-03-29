@@ -15,10 +15,8 @@ transition dynamics are unknown and non-stationary, making a reliable model
 practically unattainable.
 
 Model-free methods learn directly from sampled transitions without building a
-transition model. They are less sample-efficient but make no assumptions about
-the environment's dynamics — a critical advantage in trading. TD3, used in
-this thesis, is model-free: the agent learns purely from experience collected
-in the simulated order-book environment.
+transition model. They are less sample-efficient but impose no assumptions on
+the environment's dynamics. TD3 belongs to this family.
 
 ### Value-Based, Policy-Based, and Actor-Critic
 
@@ -41,28 +39,8 @@ variance, requiring many samples to obtain a reliable gradient signal.
 
 **Actor-critic** methods combine both: an actor $\mu_\theta$ selects actions
 and a critic $Q_w(s,a)$ evaluates them, using the critic's lower-variance
-estimates to guide actor updates. The full actor-critic derivation and
-pseudocode are given in @sec-td3-lineage. TD3, the algorithm used in this thesis, is a deterministic actor-critic
-variant. The actor is a deterministic policy $\mu_\theta: \mathcal{S}
-\rightarrow \mathcal{A}$; the critic estimates the action-value function
-$Q_w(s,a)$. Although the real trading problem is only partially observable,
-the implemented agent operates on a structured, feature-engineered observation
-of market state designed to support stable continuous exposure control. In this
-setting, deterministic action selection is a natural choice, while exploration
-during training is introduced separately through externally added action noise.
-TD3's extensions (twin critics, delayed policy updates, target policy
-smoothing) address overestimation bias, a known failure mode of the
-deterministic actor-critic family.
-
-### Model-Free Learning
-
-Model-free learning is the relevant subcategory for this thesis. Because
-financial markets lack a tractable transition model and exhibit non-stationary
-dynamics, the agent must learn purely from sampled experience. The theoretical
-guarantee for model-free convergence requires that all state-action pairs be
-visited sufficiently often and that the agent's policy eventually becomes
-greedy with respect to learned values — conditions approximated in practice
-through replay buffers and decaying exploration noise.
+estimates to guide actor updates. The full actor-critic derivation and TD3's
+specific extensions are given in @sec-td3-lineage.
 
 ### On-Policy vs Off-Policy
 
@@ -82,8 +60,6 @@ $$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a
 
 regardless of how $a_{t+1}$ was actually selected. This separation allows
 experience from a replay buffer — collected under earlier or exploratory
-policies — to be reused many times. TD3 is off-policy: it trains on minibatches
-sampled from a replay buffer that stores transitions from all previous
-interactions. This is essential for data efficiency in HFT settings where
-simulating interactions is cheap but effective use of each transition matters
-for training stability.
+policies — to be reused many times. TD3 is off-policy and uses a replay buffer
+to reuse collected transitions; the implications for sample efficiency in
+financial settings are discussed in @sec-td3-lineage.
