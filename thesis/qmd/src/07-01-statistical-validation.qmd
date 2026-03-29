@@ -1,16 +1,15 @@
 ## Statistical Validation
 
-This section defines the statistical validation framework used to interpret the
-empirical results of the reinforcement learning trading experiments. Because the
-training process is stochastic and financial time series are noisy, single-run
-performance is not sufficient to support robust conclusions. Statistical
-validation is therefore used to quantify variability across repeated runs,
-separate signal from random variation, and establish whether observed
-differences are practically and methodologically meaningful.
+This section interprets the empirical results of the thesis experiment through
+the lens of training stochasticity. For the present AAPL high-frequency TD3
+setup, a single favorable run is not sufficient evidence: repeated runs can
+diverge because of random initialization, replay sampling, and exploration
+noise even when the dataset and configuration are fixed. Statistical validation
+is therefore used here to quantify run-to-run dispersion and to distinguish
+stable behavior from isolated favorable trajectories.
 
-The analysis below is designed to operate on exported thesis result snapshots.
-This preserves reproducibility at thesis-render time while retaining a direct
-link to experiment artifacts.
+The analysis operates on exported thesis result snapshots so that the rendered
+chapter stays tied to recorded experiment artifacts.
 
 ```{python}
 #| label: stat_validation_setup
@@ -29,13 +28,13 @@ finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.e
 
 ### Purpose and Scope of Statistical Validation
 
-In the context of reinforcement learning for algorithmic trading, statistical
-validation serves three related purposes. First, it quantifies the dispersion of
-results under repeated runs with controlled changes in random seeds. Second, it
-provides an empirical basis for comparing alternative modelling choices, such as
-feature subsets, reward functions, and algorithms. Third, it prevents
-overinterpretation of individual trajectories that may appear favourable due to
-stochastic training dynamics rather than a stable underlying edge.
+In the current work, statistical validation serves three narrower purposes.
+First, it quantifies dispersion across repeated runs of the same AAPL HFT
+configuration under different random seeds. Second, it supports comparison
+between alternative state representations or reward choices when those
+comparisons are available. Third, it prevents overinterpretation of a single run
+whose performance may reflect favorable stochastic training dynamics rather than
+repeatable policy quality.
 
 The present thesis distinguishes between two classes of quantities:
 
@@ -69,17 +68,12 @@ else:
 
 ### Descriptive Statistics and Uncertainty Estimates
 
-For repeated runs of the same experimental configuration, descriptive
-statistics provide a first assessment of stability. The minimum recommended
-reporting set includes the sample mean, standard deviation, and range for each
-target metric. When the number of runs is sufficient, confidence intervals can
-be reported for the mean to indicate estimation uncertainty.
-
-In this thesis, confidence intervals should be treated as descriptive summaries
-of variability under the experimental protocol rather than as universal claims
-about future market performance. Market non-stationarity and model
-misspecification remain important sources of uncertainty that are not
-eliminated by repeated backtests.
+For repeated runs of the same configuration, descriptive statistics provide the
+first indication of stability. In this thesis, quantities such as the sample
+mean, standard deviation, and range should be read as summaries of variability
+under the reported protocol, not as universal claims about future market
+performance. Repeated backtests quantify sensitivity to training randomness more
+than they resolve uncertainty about the underlying market process.
 
 ```{python}
 #| echo: false
@@ -135,14 +129,11 @@ else:
 
 ### Comparative Validation Strategy for Thesis-Grade Results
 
-To support claims about algorithmic differences or feature-set effects, the
-statistical validation protocol should compare matched experiment groups rather
-than isolated runs. A practical approach is to hold the data split, reward
-definition, and feature set fixed, then repeat the experiment across multiple
-seeds for each algorithm. Summary statistics can then be compared using paired
-or group-wise tests, depending on the design.
-
-For this thesis, the preferred interpretation hierarchy is as follows:
+When comparative experiments are reported, they should be interpreted under a
+matched design: the data split, cost assumptions, and evaluation procedure must
+remain fixed while only the feature set, reward specification, or other target
+variation is changed. Within that design, the preferred interpretation
+hierarchy is:
 
 1. effect size (difference in mean or median performance),
 2. dispersion (stability across runs),
@@ -150,23 +141,21 @@ For this thesis, the preferred interpretation hierarchy is as follows:
 4. economic plausibility (e.g., turnover, drawdown, net performance after
    costs).
 
-This ordering is intentional. In financial machine learning, statistically
-detectable differences can still be economically irrelevant if they are
-associated with high drawdowns, unstable turnover behavior, or performance that
-is not robust to transaction costs.
+This ordering matters because statistically detectable differences can still be
+economically unimportant if they coincide with unstable turnover, weak net
+returns after costs, or poor drawdown behavior.
 
 ### Statistical Risks and Interpretation Caveats
 
-Several risks must be considered when interpreting statistical summaries in this
-setting. First, repeated runs on the same historical period do not constitute
-independent samples from a stable data-generating process; they quantify
-training stochasticity more than market uncertainty. Second, heavy reuse of the
-validation split during tuning can bias subsequent statistical comparisons.
-Third, reward-based metrics may not align with financial objectives if the
-reward function is a shaped signal (for example, a risk-adjusted surrogate)
-rather than realized return.
+Several risks remain when interpreting these summaries. Repeated runs on the
+same historical period are not independent samples from a stable
+data-generating process; they quantify training stochasticity more than market
+uncertainty. In addition, repeated tuning on the same validation period can
+bias later comparisons, and reward-based metrics can diverge from financial
+objectives when the reward is a shaped training signal rather than realized
+return.
 
-Accordingly, statistical validation in this thesis is treated as a tool for
-comparing experimental configurations under a controlled protocol, not as proof
-of persistent real-world profitability. Final claims should therefore integrate
-statistical evidence with robustness assessment and economic interpretation.
+Accordingly, statistical validation in this thesis is treated as a method for
+ranking the credibility of observed results under a controlled protocol, not as
+proof of persistent real-world profitability. Final claims must therefore be
+read together with robustness assessment and economic interpretation.

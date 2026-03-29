@@ -1,10 +1,11 @@
 ## Performance Evaluation
 
-This section reports performance metrics and evaluation figures generated from
-the latest completed run of the selected experiment. The results are loaded
-from an exported thesis result snapshot (with a local tracking-store fallback)
-to maintain consistency with recorded evaluation artifacts while improving
-render-time reproducibility.
+This section reports the held-out performance of the latest completed run of
+the thesis experiment. The aim is not just to list metrics, but to judge
+whether the TD3 agent's behavior remains economically coherent once returns,
+turnover, and path-dependent risk measures are inspected together. Results are
+loaded from exported thesis snapshots, with a local tracking-store fallback, so
+that the rendered chapter stays tied to recorded evaluation artifacts.
 
 ```{python}
 #| label: perf_eval_setup
@@ -92,39 +93,26 @@ else:
             print(f"{title}: artifact not found")
 ```
 
-### Discussion: Feature Redundancy and State Representation Quality
+### Discussion: Reading Performance in the Context of State Design
 
-The empirical results should be interpreted with caution when comparing large and
-small feature sets, because reinforcement learning performance is highly
-sensitive to the quality of the state representation. In particular, increasing
-the number of input variables does not guarantee improved performance. A larger
-feature set can increase the dimensionality of the learning problem while adding
-little incremental information if many variables encode similar market behavior
-(for example, multiple indicators derived from closely related moving-average or
-momentum transformations).
+The key interpretive issue in this thesis is not whether the agent attains a
+single high metric, but whether the reported behavior is consistent with the
+microstructure-aware state design proposed in Chapter 5. Because the current
+work studies order-book-derived state representations, performance should be
+read jointly with turnover, drawdown, and action behavior rather than through
+return metrics alone.
 
-This issue is especially important in actor-critic methods. The critic must
-learn a stable mapping from state-action pairs to expected returns under noisy
-financial dynamics. When the state vector contains redundant or weakly
-informative features, the signal-to-noise ratio available to the critic may
-deteriorate. In practice, this can manifest as unstable policy updates, noisy
-training curves, and weak out-of-sample performance, even when the optimization
-loss appears well-behaved.
+This matters especially when comparing simpler snapshot-heavy feature sets with
+broader state representations that also encode flow, timing, and spread-regime
+information. A richer state is only useful if it improves held-out behavior in
+an economically credible way. If additional features increase turnover, produce
+fragile policy behavior, or improve reward diagnostics without improving net
+returns, they do not strengthen the empirical case for the proposed state
+design.
 
-From a methodological perspective, these observations support a hypothesis-driven
-approach to feature engineering rather than a purely additive one. In practical
-terms, this means that indiscriminately adding available variables to the model
-is unlikely to improve reinforcement learning performance and may instead reduce
-it. Features should be selected because they provide complementary information
-about market structure, volatility, liquidity, or temporal regime behavior, not
-merely because they are available. This is consistent with the role of feature
-ablation studies in the present workflow: reduced, non-redundant feature sets
-may yield more stable learning and more interpretable behavior than larger but
-highly overlapping representations.
-
-More broadly, this result highlights a key difference between statistical
-modelling convenience and reinforcement learning utility. In RL, the state
-representation affects not only prediction quality, but also credit assignment,
-exploration efficiency, and policy optimization stability. Consequently, feature
-selection should be treated as a central component of experimental design rather
-than a secondary preprocessing detail.
+For that reason, the performance tables in this section should be interpreted as
+evidence about the quality of the overall decision pipeline: state
+representation, reward specification, and policy learning together. The central
+question is whether the broader microstructure-aware feature design yields more
+stable and more interpretable out-of-sample behavior than simpler alternatives,
+not whether any single metric is maximized in isolation.
