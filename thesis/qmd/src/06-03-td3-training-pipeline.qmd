@@ -6,18 +6,9 @@ not only to train the TD3 agent, but to ensure that feature generation,
 environment construction, and final performance measurement remain auditable
 and reproducible across experimental variants.
 
-```{mermaid}
-flowchart TD
-    A[Scenario and feature configuration] --> B[Pre-run validation]
-    B --> C[Data loading and chronological split]
-    C --> D[Feature generation and train-only fitting]
-    D --> E[Training environment construction]
-    E --> F[TD3 training loop]
-    F --> G[Checkpointing and MLflow logging]
-    G --> H[Test environment construction]
-    H --> I[Held-out evaluation rollout]
-    I --> J[Financial metrics and robustness outputs]
-```
+A compact workflow diagram is provided in Appendix D so that the main chapter
+can focus on the logic of the pipeline without forcing a large figure into the
+body text.
 
 ### Configuration and Validation
 
