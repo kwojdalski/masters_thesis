@@ -180,6 +180,7 @@ flowchart TD
 The diagram below summarizes the core TD3 update mechanics used in the thesis
 implementation, abstracting away from project-specific plumbing.
 
+::: {style="text-align: center;"}
 ```{mermaid}
 %%{init: {
   'theme': 'base',
@@ -208,6 +209,7 @@ flowchart TD
     F -->|No| I[Next critic step]
     H --> I
 ```
+:::
 
 ---
 
