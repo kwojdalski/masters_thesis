@@ -353,7 +353,7 @@ parameters.
 ```{mermaid}
 %%| fig-align: center
 %%| fig-width: 3.5
-%%| fig-height: 5
+%%| fig-height: 6
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
 flowchart TD
     A[prepare_data inputs] --> B{Data file exists?}
