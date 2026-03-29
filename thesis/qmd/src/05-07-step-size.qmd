@@ -1,113 +1,31 @@
-## Step Size
+## Optimization Hyperparameters
 
-The step size, commonly referred to as the learning rate, controls the magnitude of parameter updates during gradient-based optimization. In reinforcement learning, the step size directly influences the trade-off between learning speed and stability. Too large a step size can lead to divergence or oscillation, while too small a step size results in prohibitively slow convergence.
+### Learning Rates
 
-### Dual Learning Rates in Actor-Critic Methods
+Both actor and critic use Adam [@Kingma2014] with a learning rate of
+$\alpha = 0.0001$. This is deliberately conservative relative to the
+$3 \times 10^{-4}$ default common in continuous-control benchmarks. Preliminary
+experiments with more aggressive rates produced Q-value explosions and policy
+collapse — failure modes consistent with the high noise-to-signal ratio of
+tick-frequency rewards and the sensitivity of bootstrapped TD targets to
+large gradient steps. Stability was prioritized over sample efficiency.
 
-Actor-critic algorithms such as TD3 employ separate neural networks for the policy (actor) and value function (critics), each with potentially distinct learning rates. This design flexibility allows independent tuning of optimization dynamics:
+Actor and critic use the same nominal rate, but TD3's policy delay (every
+$d=2$ critic updates) effectively halves the actor's update frequency,
+providing additional stability without a separate hyperparameter.
 
-* **Actor learning rate** ($\alpha_\pi$): Controls policy parameter updates
-* **Critic learning rate** ($\alpha_Q$): Controls Q-network parameter updates
+### Weight Decay
 
-In general, critics may benefit from higher learning rates than actors, as value function approximation is conceptually similar to supervised regression with bootstrapped targets. However, in practice, both networks often use comparable learning rates to maintain balanced optimization.
+L2 weight decay of $\lambda = 2 \times 10^{-6}$ is applied to both networks.
+The magnitude is intentionally small — sufficient to discourage memorization
+of training-period noise without restricting the network's capacity to represent
+nonlinear market dynamics. No further regularization (dropout, batch
+normalization) is used, keeping the architecture parsimonious.
 
-### Implementation Values
+### Scope
 
-In the TD3 implementation for this thesis, the following learning rates are employed:
-
-* **Actor learning rate**: $\alpha_\pi = 0.0001$ (1e-4)
-* **Critic learning rate**: $\alpha_Q = 0.0001$ (1e-4)
-
-These values are deliberately conservative, reduced from the more aggressive default of 0.0003 (3e-4) commonly used in RL benchmarks. The reduction addresses instability issues observed during preliminary experiments, particularly Q-value explosions and policy collapse in financial environments with noisy reward signals.
-
-### Rationale for Conservative Learning Rates
-
-The choice of learning rate in this thesis is motivated primarily by training
-stability rather than by any market-specific theoretical optimum. In TD3, both
-the critic targets and the policy updates depend on noisy sampled experience,
-so aggressive step sizes can destabilize value estimation and propagate that
-instability into the actor. This concern is especially relevant in the present
-setting, where rewards are transaction-cost-adjusted and the state is built
-from high-frequency market features whose short-horizon dynamics are noisy.
-
-For this reason, the implementation uses a relatively small learning rate of
-$\alpha = 0.0001$ for both actor and critic updates. The value should be
-understood as a pragmatic, stability-oriented hyperparameter choice consistent
-with preliminary experimentation, not as a parameter derived from financial
-theory.
-
-### Adam Optimizer
-
-Both actor and critic networks are optimized using Adam @Kingma2014. In the
-present thesis, Adam is treated as a standard optimizer choice for deep
-actor-critic training rather than as a separate object of methodological
-analysis. Its role is simply to provide stable parameter updates under noisy
-gradient estimates, with standard momentum settings used in the implementation.
-
-### Weight Decay and Regularization
-
-To prevent overfitting and promote generalization, L2 weight decay regularization is applied to both actor and critic networks:
-
-* **Actor weight decay**: $\lambda_\pi = 0.000002$ (2e-6)
-* **Critic weight decay**: $\lambda_Q = 0.000002$ (2e-6)
-
-Weight decay adds a penalty term to the loss function proportional to the squared magnitude of network parameters:
-
-$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{task}} + \lambda \|\theta\|_2^2$$
-
-This regularization encourages the network to find simpler, more generalizable solutions by penalizing excessively large weights. In the Adam optimizer, weight decay is implemented as:
-
-$$\theta_t = \theta_{t-1} - \alpha \left(\frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon} + \lambda \theta_{t-1}\right)$$
-
-The small magnitude of $\lambda$ ensures regularization is gentle, preventing underfitting while discouraging the memorization of training-specific noise patterns.
-
-<!-- ### Learning Rate Scheduling
-
-Unlike supervised learning tasks where learning rate decay schedules (e.g., exponential decay, cosine annealing) are common, reinforcement learning often employs constant learning rates throughout training. The rationale is that RL agents continuously encounter new data distributions as the policy evolves, making traditional notions of "convergence" less applicable.
-
-In this implementation, learning rates remain constant at $\alpha = 0.0001$ for the entire training duration (up to 5 million steps). This simplicity avoids introducing additional hyperparameters and reduces the risk of premature convergence to suboptimal policies.
-
-However, advanced implementations may explore learning rate scheduling strategies such as:
-
-* **Linear decay**: Gradually reduce $\alpha$ from an initial value to a final minimum
-* **Step decay**: Reduce $\alpha$ by a factor (e.g., 0.5) at predetermined milestones
-* **Performance-based adaptation**: Adjust $\alpha$ based on validation performance or TD error magnitude
-
-These strategies remain beyond the scope of the current implementation but represent promising directions for future research. -->
-
-### Delayed Policy Updates and Effective Learning Rates
-
-A distinctive feature of TD3 is delayed policy updates: the actor is updated less frequently than the critics, typically every 2 critic updates (controlled by the `policy_delay` parameter). This mechanism effectively reduces the actor's learning rate relative to the critics, even when their nominal learning rates are identical.
-
-The delayed update schedule serves two purposes:
-
-1. **Value function stabilization**: Allowing the critics to refine their estimates before updating the policy reduces the risk of the actor chasing moving targets, a phenomenon known as the "moving target problem."
-
-2. **Implicit learning rate modulation**: By updating the actor every $d$ steps, the effective actor learning rate becomes $\alpha_\pi / d$, providing additional control over optimization dynamics without explicit learning rate reduction.
-
-With `policy_delay = 2`, the actor receives gradient updates half as frequently as the critics, implicitly halving its effective learning rate. This asymmetry is crucial for TD3's stability advantages over DDPG.
-
-### Sensitivity Analysis and Hyperparameter Tuning
-
-Learning rate selection materially affects TD3 training behavior, but the
-current thesis does not present a standalone hyperparameter study devoted to
-this parameter. The value $\alpha = 0.0001$ should therefore be interpreted as
-the chosen configuration for the reported experiments, supported by preliminary
-stability checks rather than by an exhaustive search over candidate values.
-
-More systematic tuning procedures could be applied in future work, but they are
-outside the scope of the present empirical design.
-
-<!-- ### Practical Considerations
-
-Several practical considerations guide learning rate selection:
-
-1. **Batch size interaction**: Larger batch sizes (e.g., 256 vs 64) typically permit higher learning rates due to reduced gradient variance, following the linear scaling rule @Goyal2017.
-
-2. **Replay buffer size**: Larger replay buffers increase data diversity but may slow effective learning, as old, potentially suboptimal transitions persist longer. This can interact with learning rate tuning.
-
-3. **Environment reward scale**: If rewards are scaled by a constant factor (e.g., multiplying log returns by 100), learning rates may require corresponding adjustment to maintain gradient magnitudes.
-
-4. **Gradient clipping**: While not employed in the current implementation, gradient clipping (capping gradient norms at a threshold) can complement conservative learning rates in stabilizing training.
-
-The choice of $\alpha = 0.0001$ for both actor and critic represents a pragmatic compromise that prioritizes training stability and reproducibility over maximum sample efficiency, aligning with the methodological rigor required for academic research. -->
+Learning rate and weight decay values were selected through preliminary
+stability checks rather than systematic search. They should be interpreted
+as the configuration used for the reported experiments, not as globally
+optimal values. Sensitivity to these parameters is a natural direction for
+future work.
