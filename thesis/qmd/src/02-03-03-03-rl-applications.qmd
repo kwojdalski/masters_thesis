@@ -222,6 +222,3 @@ The literature collectively supports several design choices made in this thesis:
    most studies use OHLCV or candlestick features. The present thesis addresses
    this gap by constructing a microstructure-grounded observation vector from
    10-level order book data.
-5. **Evaluation rigor** — strict train/validation/test splits and multi-seed
-   dispersion reporting — is as important as algorithm choice, given the
-   evidence on overfitting in financial RL.
