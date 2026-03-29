@@ -6,36 +6,6 @@ avoid duplication with the dedicated theory chapter, formal definitions,
 equations, and algorithm taxonomies are presented in Chapter 4; here the focus
 is on conceptual relevance to trading problems and the corresponding literature.
 
-### Theoretical Foundation: Why RL Might Work for Trading
-
-The theoretical appeal of RL in trading starts from problem structure. Trading
-is not a one-shot prediction task; it is a sequential control problem in which
-each action affects future opportunity sets through inventory, capital, and
-risk exposure. This matches the RL objective of maximizing expected cumulative
-reward under delayed consequences @Bellman1957; @Sutton2018.
-
-From this perspective, RL is potentially useful in markets for five linked
-reasons. First, it optimizes *decisions* directly rather than only forecasting
-prices, which is important because profitable trading depends on action quality
-after costs and constraints, not only directional accuracy @Moody1998.
-Second, the MDP formalism provides a coherent language for state, action,
-transition, and reward design, making model assumptions explicit @Puterman1994.
-Third, TD and off-policy methods can learn from historical trajectories without
-requiring an explicit generative market model @Sutton1988; @Watkins1989.
-Fourth, policy-gradient and actor-critic methods naturally support continuous
-position sizing and allocation control, which are common in practice
-@Williams1992; @Sutton2000. Fifth, modern function approximation allows
-high-dimensional state encoding, making RL operational in realistic financial
-pipelines @Mnih2015; @Deng2016.
-
-This argument is conditional rather than universal. Markets are noisy,
-partially observable, and non-stationary, so standard RL guarantees transfer
-only approximately. Therefore, the relevant research question is not whether
-RL is theoretically perfect for trading, but whether RL offers a useful
-decision-theoretic framework that can be made robust under strict validation,
-realistic friction modeling, and conservative interpretation of out-of-sample
-results @Sutton2018; @Moody2001.
-
 ### Markov Decision Processes
 
 The Markov Decision Process (MDP) framework introduced by @Bellman1957 and
