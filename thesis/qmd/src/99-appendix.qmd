@@ -311,19 +311,22 @@ in the TD3 architecture used in this thesis.
 
 ```{mermaid}
 %%| fig-align: center
+%%| fig-width: 3.5
+%%| fig-height: 3.5
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '9px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 3, 'useMaxWidth': true}}}%%
 graph TD
-    S[State s] --> A1[Actor Network mu_theta]
-    A1 --> A2[Deterministic Action a]
+    S[State s] --> A1[Actor mu_theta]
+    A1 --> A2[Action a]
     A2 --> N1[+ Exploration Noise]
-    N1 --> A3[Noisy Action during training]
-    S --> C1[Critic Network Q_phi1]
-    S --> C2[Critic Network Q_phi2]
+    N1 --> A3[Noisy Action]
+    S --> C1[Critic Q_phi1]
+    S --> C2[Critic Q_phi2]
     A2 --> C1
     A2 --> C2
     C1 --> MIN[min]
     C2 --> MIN
-    MIN --> T1[Conservative Target Value]
-    RB[Replay Buffer\n100k transitions] --> C1
+    MIN --> T1[Target Value]
+    RB[Replay Buffer<br/>100k transitions] --> C1
     RB --> C2
     RB --> A1
 ```
