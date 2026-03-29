@@ -1,8 +1,18 @@
 # Trading RL Master's Thesis
 
-Research codebase for trading strategy experiments with TorchRL. It includes
-synthetic price generation, Gymnasium-compatible environments, and MLflow-based
-experiment tracking.
+This codebase supports the research behind the thesis by implementing and
+comparing three deep reinforcement learning algorithms — PPO, DDPG, and TD3 —
+applied to algorithmic trading across synthetic and real market data (OHLCV and
+high-frequency limit order book). The goal is to evaluate whether modern RL
+agents can learn profitable, generalizable trading policies under realistic
+constraints such as transaction costs, position limits, and non-stationary
+market regimes.
+
+The project is built around a scenario-driven experiment framework: each
+scenario pairs a dataset, a feature set, a reward function, and an algorithm
+config, making runs fully reproducible and comparable. MLflow tracks every
+experiment, and all components — environments, trainers, features, rewards —
+are modular and independently testable.
 
 ## Highlights
 
@@ -77,7 +87,7 @@ Notes:
 - Destination defaults to `data/raw/stocks` and is created automatically.
 - The folder does not need to be publicly shared — authenticated downloads use the Drive API directly.
 
-See `docs/data_guide.md` for detailed instructions on data download and generation.
+See [docs/data_guide.md](docs/data_guide.md) for detailed instructions on data download and generation.
 
 ## Configuration
 
@@ -120,10 +130,10 @@ masters_thesis/
 
 ## Docs and References
 
-- `docs/data_guide.md` - Data download and generation guide
-- `docs/experiment_workflow.md` - End-to-end training workflow
-- `docs/ppo_implementation_overview.md` - PPO algorithm details
-- `docs/ddpg_implementation_overview.md` - DDPG algorithm details
-- `docs/td3_implementation_overview.md` - TD3 algorithm details
-- `src/trading_rl/README.md` - Core RL package overview
-- `src/logger/README.md` - Logging utilities
+- [Data Download and Generation Guide](docs/data_guide.md)
+- [End-to-End Training Workflow](docs/experiment_workflow.md)
+- [PPO Implementation Overview](docs/ppo_implementation_overview.md)
+- [DDPG Implementation Overview](docs/ddpg_implementation_overview.md)
+- [TD3 Implementation Overview](docs/td3_implementation_overview.md)
+- [Core RL Package Overview](src/trading_rl/README.md)
+- [Logging Utilities](src/logger/README.md)
