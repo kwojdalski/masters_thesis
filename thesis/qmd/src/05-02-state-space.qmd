@@ -240,3 +240,31 @@ both paradigms would imply that the engineered features are insufficient, which
 is inconsistent with the selection rationale described above. The observation
 vector is therefore composed entirely of theoretically motivated derived
 features.
+
+### Feature Selection Process
+
+Feature selection in this thesis is theory-driven rather than data-driven. No
+automated procedure — forward selection, LASSO, mutual information screening, or
+similar — was used to rank or prune candidate features. Each of the 25 features
+in the final observation vector corresponds to a distinct theoretical mechanism
+identified in the microstructure literature: imbalance at multiple depth levels,
+fair value estimation, spread regime, book shape, order flow, and intraday
+temporal context. A feature was included if it measures a mechanism not already
+captured by other features in the set, and excluded otherwise. This criterion
+is conservative by design: the goal is interpretability and alignment with theory,
+not exhaustive coverage of all computable LOB statistics.
+
+The selection is operationalized through a registry-driven configuration pipeline.
+Feature names defined in the scenario YAML file resolve to computation functions
+in the feature registry at runtime; adding, removing, or reordering features
+requires only a change to the configuration file, not to source code. The active
+feature set for the main experiment is defined in
+`src/configs/features/hft_lob_features_state_space.yaml` and referenced by the
+scenario file `src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml`.
+
+The final state vector has dimensionality $d = 26$: 25 LOB-derived features
+across five groups (5 imbalance, 3 fair value, 6 spread and cost, 7 order flow,
+4 regime and temporal) plus the current portfolio exposure appended at runtime.
+All features except the cyclical hour encodings are normalized using training-split
+statistics as described in the preceding section. The complete feature
+specification with parameter values is listed in Appendix A.
