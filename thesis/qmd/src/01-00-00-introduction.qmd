@@ -61,6 +61,8 @@ At the same time, the thesis does not claim to reproduce the full operational
 complexity of live high-frequency trading. The empirical framework is based on a
 controlled simulation environment rather than a complete execution engine with
 queue-priority modelling, latency competition, exact fill uncertainty, and full
-market impact. The contribution of the thesis should therefore be understood as
-methodological and empirical: it evaluates reinforcement learning agents in a
-microstructure-aware setting while making the simplifying assumptions explicit.
+market impact. In particular, portfolio valuation relies on a mid-price-like
+execution proxy rather than fully executable bid/ask fills. The contribution of
+the thesis should therefore be understood as methodological and empirical: it
+evaluates reinforcement learning agents in a microstructure-aware setting while
+making the simplifying assumptions explicit.
