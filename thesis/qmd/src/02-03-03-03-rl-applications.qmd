@@ -96,8 +96,9 @@ weights provided partial interpretability — visualizing which indicators
 influenced trading decisions at each timestep — partially addressing the black
 box critique of deep RL systems.
 
-### Comparative Studies
+### Comparative Evidence and Limitations
 
+**Algorithm comparisons.**
 @Shen2021 benchmarked DQN, DDPG, PPO, TD3, and SAC across asset classes,
 finding that off-policy methods (DDPG, TD3, SAC) learned faster than on-policy
 alternatives, with TD3 and SAC exhibiting the lowest variance across random
@@ -109,6 +110,22 @@ reward noise and action space dimensionality.
 adaptability during regime changes while traditional strategies offered better
 interpretability. Hybrid approaches combining domain knowledge with RL often
 outperformed either in isolation.
+
+**Overfitting and generalization.**
+@Krauss2017 demonstrated that many published RL trading strategies fail to
+generalize out-of-sample, attributing this to high noise-to-signal ratios in
+financial data, limited training data relative to model complexity, and
+non-stationarity that invalidates training-period patterns. The implication is
+that evaluation methodology — strict temporal splits, multi-seed reporting,
+realistic cost assumptions — matters as much as algorithm choice.
+
+**Reward specification.**
+@Cong2020 argues that reward engineering is critical and often under-examined.
+Misspecified rewards can lead to metric gaming (optimizing Sharpe by avoiding
+trades), ignoring tail risks, and misalignment with actual investor preferences.
+The Differential Sharpe Ratio [@Moody1998] addresses some of these concerns by
+optimizing risk-adjusted return directly, but does not fully resolve the
+tension between reward simplicity and the richness of real trading objectives.
 
 ### Structured Comparison of Representative Studies
 
@@ -188,26 +205,6 @@ Result portability depends on data and protocol harmonization \\
 \end{longtable}
 \endgroup
 ```
-
-### Challenges and Limitations
-
-**Overfitting and Generalization**
-
-@Krauss2017 demonstrated that many published RL trading strategies fail to
-generalize out-of-sample, attributing this to high noise-to-signal ratios in
-financial data, limited training data relative to model complexity, and
-non-stationarity that invalidates training-period patterns. The implication is
-that evaluation methodology — strict temporal splits, multi-seed reporting,
-realistic cost assumptions — matters as much as algorithm choice.
-
-**Reward Specification**
-
-@Cong2020 argues that reward engineering is critical and often under-examined.
-Misspecified rewards can lead to metric gaming (optimizing Sharpe by avoiding
-trades), ignoring tail risks, and misalignment with actual investor preferences.
-The Differential Sharpe Ratio [@Moody1998] addresses some of these concerns by
-optimizing risk-adjusted return directly, but does not fully resolve the
-tension between reward simplicity and the richness of real trading objectives.
 
 ### Synthesis and Implications for This Thesis
 
