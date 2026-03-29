@@ -38,7 +38,7 @@ training and removed at evaluation time.
 \Ensure Trained policy $\mu_\theta$, evaluation metrics
 
 \State Load and validate configuration; check paths and split feasibility
-\State Load AAPL MBP-10 dataset; sort chronologically
+\State Load L3 order book dataset; sort chronologically
 \State Split data into train / validation / test subsets (chronological)
 \State Fit feature pipeline on training split only
 \State Transform all splits using fitted pipeline
