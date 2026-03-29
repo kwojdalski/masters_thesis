@@ -11,6 +11,13 @@ move quoted prices — is empirically defensible, and that the market microstruc
 features derived from the order book reflect genuine supply and demand rather
 than thin-market artifacts.
 
+The data were obtained from Nasdaq via the DataBento API, using the MBP-10
+(Market By Price, 10 levels) feed — a standardised L3 order book format that
+provides full depth-of-book snapshots at the event level, including resting
+quantities and order counts at each price level. This granularity is necessary
+for constructing the microstructure features described in Chapter 5 and listed
+in Appendix A.
+
 A further consideration is access symmetry. Because AAPL trades on a
 centralized, regulated exchange with public pre-trade transparency, all
 market participants observe the same order book. This contrasts with OTC
