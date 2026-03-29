@@ -32,6 +32,16 @@ input space that the policy and critic networks must generalize over. Features
 are included only when they carry a distinct theoretical mechanism not already
 captured by other features in the set.
 
+**Timescale consistency.** The observation is restricted to LOB-derived
+features. Bar-based signals such as OHLCV aggregates or technical indicators
+require a fixed aggregation window that imposes a coarser timescale than the
+tick-level decisions being made. At the resolution studied here, a one-second
+bar collapses dozens of individual order-book events into a single price
+summary, discarding the queue dynamics, imbalance shifts, and spread
+fluctuations that constitute the agent's primary decision-relevant information.
+Including such features would create a mismatch between the temporal resolution
+of the observation and the resolution at which the agent acts and is evaluated.
+
 ### Feature Groups and Selection Rationale
 
 The state vector is composed of five groups of features, each targeting a
