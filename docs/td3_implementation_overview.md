@@ -159,3 +159,11 @@ $$
 - Ensure the environment exposes continuous actions (or a discretized wrapper is provided).
 - Log both critics’ losses to monitor divergence; watch for action noise magnitude relative to spec bounds.
 - Run via CLI by setting `training.algorithm: TD3` in a config (YAML or overrides) and invoking the same entrypoint used for PPO/DDPG (e.g., `python -m trading_rl.train_trading_agent --config path/to/config.yaml`).
+
+## See Also
+
+- [Experiment Workflow](./experiment_workflow.md) - End-to-end training workflow
+- [PPO Implementation](./ppo_implementation_overview.md) - On-policy actor-critic
+- [DDPG Implementation](./ddpg_implementation_overview.md) - Off-policy deterministic actor-critic
+- [Data Guide](./data_guide.md) - Data download and generation
+- [Trading RL Package](../src/trading_rl/README.md) - Core RL package overview

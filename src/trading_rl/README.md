@@ -119,3 +119,11 @@ from trading_rl import ExperimentConfig, run_single_experiment
 config = ExperimentConfig()
 print(f"Training entrypoint ready: {run_single_experiment.__name__}, seed={config.seed}")
 ```
+
+## Related Documentation
+
+- [Experiment Workflow](../../docs/experiment_workflow.md) - End-to-end training workflow
+- [Data Download and Generation Guide](../../docs/data_guide.md) - How to obtain training data
+- [PPO Implementation Overview](../../docs/ppo_implementation_overview.md) - PPO algorithm details
+- [DDPG Implementation Overview](../../docs/ddpg_implementation_overview.md) - DDPG algorithm details
+- [TD3 Implementation Overview](../../docs/td3_implementation_overview.md) - TD3 algorithm details
