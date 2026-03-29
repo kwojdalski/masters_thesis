@@ -267,8 +267,8 @@ relative to other families of methods.
 
 ```{mermaid}
 %%| fig-align: center
-%%| fig-width: 4
-%%| fig-height: 5
+%%| fig-width: 5.6
+%%| fig-height: 7
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
 graph TD
     A[MDP] -->|Solution| B(Bellman Equation)
@@ -314,13 +314,13 @@ in the TD3 architecture used in this thesis.
 
 ```{mermaid}
 %%| fig-align: center
-%%| fig-width: 3.5
+%%| fig-width: 5
 %%| fig-height: 3.5
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '9px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 3, 'useMaxWidth': true}}}%%
 graph TD
     S[State s] --> A1[Actor mu_theta]
     A1 --> A2[Action a]
-    A2 --> N1[+ Exploration Noise]
+    A2 --> N1[Gaussian Noise added]
     N1 --> A3[Noisy Action]
     S --> C1[Critic Q_phi1]
     S --> C2[Critic Q_phi2]
@@ -352,28 +352,31 @@ parameters.
 
 ```{mermaid}
 %%| fig-align: center
+%%| fig-width: 3.5
+%%| fig-height: 5
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
 flowchart TD
     A[prepare_data inputs] --> B{Data file exists?}
     B -- No, download enabled --> C[download_trading_data]
-    B -- No, download disabled --> D[raise FileNotFoundError]
+    B -- No, download disabled --> D[FileNotFoundError]
     B -- Yes --> E[load_trading_data]
     C --> E
     E --> F[drop NaNs]
-    F --> G[split into train / validation / test\nchronological order]
+    F --> G[train / val / test split<br/>chronological order]
     G --> H{no_features?}
     H -- Yes --> I[return raw splits]
-    H -- No --> J{feature config\nprovided?}
+    H -- No --> J{feature config?}
     J -- Yes --> K[FeaturePipeline.from_yaml]
     J -- No --> L[create_default_pipeline]
     K --> M[pipeline.fit on train only]
     L --> M
     M --> N[transform train]
-    M --> O[transform validation]
+    M --> O[transform val]
     M --> P[transform test]
-    N --> Q[concat raw train + train features]
-    O --> R[concat raw val + val features]
-    P --> S[concat raw test + test features]
-    Q --> T[return train_df / val_df / test_df]
+    N --> Q[raw train + features]
+    O --> R[raw val + features]
+    P --> S[raw test + features]
+    Q --> T[return train / val / test df]
     R --> T
     S --> T
 ```
