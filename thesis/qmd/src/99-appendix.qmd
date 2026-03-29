@@ -255,6 +255,129 @@ flowchart TD
 
 ---
 
+## F: RL Algorithm Taxonomy
+
+The diagram below maps the reinforcement learning landscape from the Bellman
+equation through the key algorithmic relaxations, showing where TD3 sits
+relative to other families of methods.
+
+```{=latex}
+\begin{center}
+```
+
+```{mermaid}
+%%| fig-align: center
+graph TD
+    A[The Core Problem: MDP] -->|Mathematical Solution| B(Bellman Equation)
+    B --> C{Do we know the\nTransition Model?}
+    C -->|Yes| D[Dynamic Programming\nValue Iteration / Policy Iteration]
+    C -->|No| E[Reinforcement Learning\nLearn from Experience]
+    E --> F{How to estimate\nfuture value?}
+    F -->|Wait for end| G[Monte Carlo\nFirst-Visit / Every-Visit MC]
+    F -->|Bootstrap| H[Temporal Difference\nSARSA / Q-Learning / TD-lambda]
+    E --> I{State Space Size?}
+    I -->|Small / Discrete| J[Tabular Methods\nQ-Table]
+    I -->|Large / Continuous| K[Function Approximation\nDeep RL]
+    K --> L{Action Space?}
+    L -->|Discrete| M[Value-Based\nDQN / Double DQN / Rainbow]
+    L -->|Continuous| N[Policy-Based\nREINFORCE / TRPO / PPO]
+    L -->|Either| O[Actor-Critic\nA2C / DDPG / TD3 / SAC]
+    O --> O1{On-Policy or\nOff-Policy?}
+    O1 -->|On-Policy| O2[A2C / A3C / PPO]
+    O1 -->|Off-Policy| O3[DDPG / TD3 / SAC]
+    O3 --> O4{Deterministic\nor Stochastic?}
+    O4 -->|Deterministic| O5[DDPG]
+    O4 -->|Twin Critics +\nDelayed Updates| O6[TD3\nThis Thesis]
+    O4 -->|Max Entropy| O7[SAC]
+    E --> P{Sample Efficiency?}
+    P -->|Need Planning| Q[Model-Based RL\nDyna-Q / Dreamer / MuZero]
+    P -->|Model-Free OK| R[Model-Free RL]
+```
+
+```{=latex}
+\end{center}
+```
+
+---
+
+## G: TD3 Network Architecture
+
+The diagram below shows how the actor, twin critics, and replay buffer interact
+in the TD3 architecture used in this thesis.
+
+```{=latex}
+\begin{center}
+```
+
+```{mermaid}
+%%| fig-align: center
+graph TD
+    S[State s] --> A1[Actor Network mu_theta]
+    A1 --> A2[Deterministic Action a]
+    A2 --> N1[+ Exploration Noise]
+    N1 --> A3[Noisy Action during training]
+    S --> C1[Critic Network Q_phi1]
+    S --> C2[Critic Network Q_phi2]
+    A2 --> C1
+    A2 --> C2
+    C1 --> MIN[min]
+    C2 --> MIN
+    MIN --> T1[Conservative Target Value]
+    RB[Replay Buffer\n100k transitions] --> C1
+    RB --> C2
+    RB --> A1
+```
+
+```{=latex}
+\end{center}
+```
+
+---
+
+## H: Data Preparation Pipeline
+
+The diagram below shows the feature pipeline design that ensures no information
+from the validation or test splits leaks into the fitted normalization
+parameters.
+
+```{=latex}
+\begin{center}
+```
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A[prepare_data inputs] --> B{Data file exists?}
+    B -- No, download enabled --> C[download_trading_data]
+    B -- No, download disabled --> D[raise FileNotFoundError]
+    B -- Yes --> E[load_trading_data]
+    C --> E
+    E --> F[drop NaNs]
+    F --> G[split into train / validation / test\nchronological order]
+    G --> H{no_features?}
+    H -- Yes --> I[return raw splits]
+    H -- No --> J{feature config\nprovided?}
+    J -- Yes --> K[FeaturePipeline.from_yaml]
+    J -- No --> L[create_default_pipeline]
+    K --> M[pipeline.fit on train only]
+    L --> M
+    M --> N[transform train]
+    M --> O[transform validation]
+    M --> P[transform test]
+    N --> Q[concat raw train + train features]
+    O --> R[concat raw val + val features]
+    P --> S[concat raw test + test features]
+    Q --> T[return train_df / val_df / test_df]
+    R --> T
+    S --> T
+```
+
+```{=latex}
+\end{center}
+```
+
+---
+
 ## F: TD3 Training Pseudo-Code
 
 ```{=latex}
