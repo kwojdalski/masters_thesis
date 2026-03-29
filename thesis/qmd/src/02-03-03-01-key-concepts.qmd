@@ -6,8 +6,7 @@ avoid duplication with the dedicated theory chapter, formal definitions,
 equations, and algorithm taxonomies are presented in Chapter 4; here the focus
 is on conceptual relevance to trading problems and the corresponding literature.
 
-### Markov Decision Processes
-
+**Markov Decision Processes.**
 The Markov Decision Process (MDP) framework [@Bellman1957; @Puterman1994]
 provides the formal language for reinforcement learning. Portfolio decisions
 are sequential and path-dependent, which makes MDP-based reasoning the natural
@@ -46,17 +45,15 @@ and value functions are developed in Chapter 4.
 \end{tikzpicture}
 ```
 
-### The Bellman Equation and Dynamic Programming
-
+**The Bellman Equation and Dynamic Programming.**
 Bellman's principle of optimality remains central because it motivates value-based
 reasoning about long-run consequences of trading actions @Bellman1957.
 DP methods are typically not directly applicable in live trading
 settings because market transition dynamics are unknown and unstable, but the
-Bellman perspective is still relevant in the context of modern RL algorithms and 
+Bellman perspective is still relevant in the context of modern RL algorithms and
 how they estimate future reward and compare actions.
 
-### Temporal Difference Learning
-
+**Temporal Difference Learning.**
 Temporal difference learning @Sutton1988 is particularly relevant to finance
 because it supports incremental learning from experience without a full model of
 market dynamics. Q-learning @Watkins1989 is especially influential in the
@@ -64,8 +61,7 @@ literature because its off-policy nature aligns with a common financial setting:
 learning from historical trajectories while evaluating policies that were not
 necessarily executed in real time.
 
-### Policy Gradient Methods
-
+**Policy Gradient Methods.**
 Policy gradient methods became important for trading research because many
 portfolio problems are naturally formulated in continuous action spaces (e.g.,
 position sizing or allocation weights). Foundational contributions such as
@@ -73,25 +69,21 @@ REINFORCE @Williams1992 and the policy gradient theorem @Sutton2000 support
 actor-critic designs that are better suited than tabular methods to continuous
 control and high-dimensional observations.
 
-### Exploration-Exploitation Tradeoff
-
+**Exploration-Exploitation Tradeoff.**
 The exploration-exploitation tradeoff is especially costly in financial
-applications because exploratory actions can incur immediate costs, 
+applications because exploratory actions can incur immediate costs,
 while under-exploration can prevent discovery of profitable
 policies. As emphasized in @Sutton2018, this is a core RL problem; in trading,
 it often motivates conservative exploration schemes and risk-sensitive reward
 designs such as those discussed by @Moody1998.
-
 In market settings, this tradeoff is amplified by non-stationarity: strategies
 that exploit historical regularities can decay quickly after regime changes,
 yet excessive exploration can destroy performance through churn and slippage.
-The literature (and especially practicioners) therefore tends to favor 
-controlled exploration schedules, stability-oriented algorithms, 
-and evaluation protocols that separate genuine
+The literature therefore tends to favor controlled exploration schedules,
+stability-oriented algorithms, and evaluation protocols that separate genuine
 adaptation from overfitting.
 
-### Function Approximation and Deep RL
-
+**Function Approximation and Deep RL.**
 Financial state representations are typically high dimensional, making tabular
 methods impractical and motivating function approximation. The deep RL advances
 popularized by @Mnih2015 accelerated finance applications (e.g., @Deng2016), but
@@ -100,8 +92,7 @@ approximation analyzed by @Tsitsiklis1997. This is one reason the thesis adopts
 TD3 @Fujimoto2018, which was designed to improve stability in continuous-control
 settings.
 
-### Reward Shaping and Credit Assignment
-
+**Reward Shaping and Credit Assignment.**
 Reward specification is a central design decision in trading RL because it
 determines what the agent actually optimizes. The reward-shaping literature
 @Ng1999 is therefore directly relevant to finance, where practitioners often
@@ -110,16 +101,14 @@ metrics, drawdown penalties, and transaction-cost-aware rewards). Consistent wit
 this literature, the thesis uses log-return and Differential Sharpe Ratio-based
 signals to align optimization with risk-adjusted performance goals.
 
-### Sample Efficiency and Off-Policy Learning
-
+**Sample Efficiency and Off-Policy Learning.**
 Sample efficiency is unusually important in finance because historical data is
 finite and online experimentation is expensive. Off-policy methods, importance
 sampling ideas @Precup2000, and replay-based reuse of experience @Lin1992 are
 therefore more than implementation details: they are methodological enablers for
 learning from historical market data under limited experimentation budgets.
 
-### Non-Stationarity and Continuous Adaptation
-
+**Non-Stationarity and Continuous Adaptation.**
 Non-stationarity is the main reason why direct transfer of classical RL results
 to financial markets is difficult: market dynamics, volatility regimes, and
 participant behavior evolve over time. Work on continual adaptation and
