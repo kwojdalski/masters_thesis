@@ -1,30 +1,16 @@
-#### Training a Trading System on Labeled Data
+### Training a Trading System on Labeled Data
 
-This methodology employs direct integration between the Trading System and
-Input Series components. The system generates trading signals based on a
-corpus of labeled trades (training dataset), while execution occurs in
-response to market inputs (Input Series).
+A related approach trains a model to imitate a corpus of labeled trades directly,
+mapping observed market states to actions without an intermediate forecasting
+step. Formally, the model learns $f: X \rightarrow a$ by minimizing a loss over
+labeled state-action pairs $(X_i, a_i^*)$:
 
-Formally, the system can be represented as:
+$$\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$
 
-$$f: X \rightarrow a$$
-
-where:
-- $X \in \mathbb{R}^n$ represents the input feature space
-- $a \in A$ denotes the action space (buy, sell, hold)
-
-The optimization objective can be expressed as:
-
-$$\min_{\theta} \mathcal{L}(\theta) = \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$
-
-where:
-- $\theta$ represents the model parameters
-- $a_i^*$ denotes the labeled optimal action for input $X_i$
-- $\ell$ is a loss function measuring deviation from labeled actions
-
-The system's operational efficacy is contingent upon the Trading Module's
-capacity to extract and utilize information from both Input Series and
-Labeled Trades $\theta^{'}$. A fundamental limitation exists in this
-approach: since optimization targets the Trading System rather than the
-utility function $U(\theta, \theta^{'})$, the resultant solution typically
-exhibits sub-optimal characteristics in terms of financial performance.
+The limitation is the same as in forecast-based approaches, expressed
+differently: the optimization target is the labeled action, not the trading
+objective. Since labels are typically constructed from historical rules or
+expert behavior rather than from the actual utility function, minimizing
+imitation error does not guarantee maximizing risk-adjusted return. The
+labeling process itself introduces a prior about what constitutes optimal
+behavior — a prior that may be wrong or regime-dependent.
