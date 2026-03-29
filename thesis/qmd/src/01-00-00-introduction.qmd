@@ -23,9 +23,11 @@ Reinforcement learning is a plausible modelling framework for this problem
 because trading is sequential and path dependent. Each action affects future
 exposure, portfolio evolution, and the set of subsequent decisions available to
 the agent. In high-frequency settings, however, the usefulness of reinforcement
-learning depends strongly on disciplined feature design, explicit treatment of
-transaction costs, and evaluation procedures that avoid leakage and in-sample
-bias.
+learning depends on whether the derived state representation extracts genuine
+directional signal from raw order-book data, whether the reward formulation is
+robust to the extreme noise-to-signal ratio at tick frequency, and whether the
+evaluation window is sufficiently separated from training to test generalization
+across intraday regime variation.
 
 This thesis investigates the use of reinforcement learning, with particular
 focus on TD3, for high-frequency single-asset trading based on
