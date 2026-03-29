@@ -30,6 +30,43 @@ deterministic policy gradient. Target networks track the main networks through
 soft updates with coefficient $\tau$. Exploration noise is applied during
 training and removed at evaluation time.
 
+```{=latex}
+\begin{algorithm}
+\caption{TD3 Trading Experiment Workflow}
+\begin{algorithmic}[1]
+\Require Experiment configuration (data path, feature set, hyperparameters)
+\Ensure Trained policy $\mu_\theta$, evaluation metrics
+
+\State Load and validate configuration; check paths and split feasibility
+\State Load AAPL MBP-10 dataset; sort chronologically
+\State Split data into train / validation / test subsets (chronological)
+\State Fit feature pipeline on training split only
+\State Transform all splits using fitted pipeline
+\State Build training environment from processed training data
+\State Initialise actor $\mu_\theta$, twin critics $Q_{\phi_1}$, $Q_{\phi_2}$,
+       target networks $\mu_{\theta'}$, $Q_{\phi_1'}$, $Q_{\phi_2'}$,
+       replay buffer $\mathcal{D}$
+
+\For{each step $t = 1, \ldots, \texttt{max\_steps}$}
+    \State $a_t \leftarrow \mu_\theta(s_t) + \varepsilon$, \quad $\varepsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
+    \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
+    \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
+    \State Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\theta'}(s') + \text{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}),\, \pm c\right)$
+    \State Compute Bellman target: $y \leftarrow r + \gamma \cdot \min_{i=1,2} Q_{\phi_i'}(s',\, \tilde{a}')$
+    \State Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_{\phi_i}(s, a)\right)$
+    \If{$t \bmod \texttt{policy\_delay} = 0$}
+        \State Update actor: $\theta \leftarrow \theta + \alpha \nabla_\theta Q_{\phi_1}(s,\, \mu_\theta(s))$
+        \State Soft-update targets: $\phi_i' \leftarrow \tau\phi_i + (1-\tau)\phi_i'$; \; $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$
+    \EndIf
+    \State Checkpoint and log metrics at configured intervals
+\EndFor
+
+\State Evaluate deterministic policy $\mu_\theta$ on test split
+\State Compute financial performance metrics from realised return series
+\end{algorithmic}
+\end{algorithm}
+```
+
 ### Evaluation
 
 Final performance is reported on the held-out test split using a separate
