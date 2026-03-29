@@ -4,5 +4,5 @@ This chapter applies the reinforcement learning framework introduced in
 Chapter 4 to single-asset high-frequency trading. Each section addresses one
 component of the MDP formulation: the action space, state representation,
 reward function, value function, policy, discount factor, and step size. The
-choices made here are not arbitrary — each is motivated by the structure of
-the order book environment and the practical constraints of the trading problem.
+choices made here are motivated by the structure and constraints of
+the trading problem.

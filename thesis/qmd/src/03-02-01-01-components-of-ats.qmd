@@ -69,7 +69,7 @@ transaction costs, and portfolio updates are represented.
 
 The third component is the execution and accounting layer. In real trading
 systems this layer may contain order management, venue selection, smart order
-routing, execution scheduling, fill handling, and transaction-cost analysis.
+routing, execution scheduling, fill handling, and transaction-cost analysis (TCA).
 These components are important in production settings, but they are not modeled
 in full detail in this thesis because doing so would shift the work away from
 the main research question and toward execution engineering.
@@ -92,7 +92,7 @@ without further execution modeling.
 The thesis does not attempt to model the full infrastructure of an operational
 algorithmic trading platform. In particular, it does not study:
 
-* smart order routing across venues,
+* smart order routing (SOR) across venues,
 * partial fills and queue-position effects,
 * execution algorithms such as VWAP or TWAP,
 * detailed market-impact modeling,

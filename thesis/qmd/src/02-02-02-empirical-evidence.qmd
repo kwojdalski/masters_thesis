@@ -11,7 +11,6 @@ prerequisite for designing an HFT trading agent, since they define the
 informational environment the agent operates in and directly motivate the
 feature set used in this thesis.
 
-
 @Roll1984 demonstrated that bid-ask spreads induce negative serial correlation
 in transaction prices at very short horizons, as prices bounce between bid and
 ask quotes. This microstructure noise distinguishes observed transaction prices
@@ -31,7 +30,6 @@ The hour-of-day sine and cosine encodings in the observation vector are
 motivated directly by this evidence — the agent needs to distinguish early-session
 conditions (wide spreads, high adverse selection) from midday conditions
 (tighter spreads, lower activity) when sizing positions.
-
 
 @Harris1991 showed that prices cluster at round numbers and psychologically
 attractive levels, creating discontinuities in the order book that affect
