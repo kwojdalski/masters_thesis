@@ -4,18 +4,18 @@ Much of the existing reinforcement learning literature in trading relies on
 low-frequency market representations such as daily or intraday OHLCV bars.
 High-frequency trading, however, is governed by information embedded in the
 limit order book, where local liquidity, queue dynamics, spread changes, and
-event timing shape short-horizon opportunities and risks. This thesis examines
-whether a continuous-control reinforcement learning agent can use
-order-book-derived features to make economically meaningful trading decisions in
+event timing determine short-horizon opportunities and risks. This thesis examines
+whether a reinforcement learning agent can use
+order-book-derived features to make favourable trading decisions in
 a high-frequency single-asset setting.
 
-High-frequency trading should therefore not be treated as a simple faster
+High-frequency trading should therefore not be treated as a faster
 version of bar-based trading. The state observed by the agent is structurally
 different. At short horizons, aggregated price bars omit information that is
 central to execution-sensitive decision-making. Features derived from the order
 book, such as depth imbalance, spread variation, order-flow pressure, and
-inter-event timing, provide a more faithful description of local market
-conditions than coarse candlestick aggregates. A central concern of this thesis
+inter-event timing, provide a more detailed description of market
+conditions than candlestick aggregates. A central concern of this thesis
 is whether such microstructure-aware state representations improve the
 suitability of reinforcement learning for this domain.
 
@@ -28,7 +28,7 @@ order book data for optimal execution — minimizing implementation shortfall
 on large orders given a known trade schedule, where the LOB state informs
 fill probability and spread cost rather than price direction. Directional
 exposure control is a harder problem: the reward signal at tick frequency is
-dominated by microstructure noise rather than genuine price movement, the LOB
+dominated by noise rather than genuine price movement, the LOB
 state must be transformed into features that carry predictive signal rather
 than liquidity estimates, and the agent must generalize across intraday
 regimes whose statistical properties can differ substantially from the
