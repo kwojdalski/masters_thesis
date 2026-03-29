@@ -1,67 +1,41 @@
-## Code
+## Implementation and Training Pipeline
 
-The implementation is a modular Python research codebase organized around
-separable responsibilities: data processing, environment construction,
-algorithm training, and evaluation/reporting. This section keeps the main text
-at the design level; concrete code snippets and parameter-level configuration
-examples are moved to Appendix A.
+### Configuration-Driven Design
 
-### Code Structure
+Each experiment is fully specified by an external YAML scenario file covering
+data paths, feature subsets, reward type, environment settings, and
+optimization hyperparameters. No source-code changes are required to switch
+between experimental variants. A pre-training validation stage checks path
+availability, feature definitions, split feasibility, and column compatibility
+before any computation begins, preventing wasted runs from misconfigured
+experiments. A condensed example configuration is provided in Appendix C.
 
-The project is organized around the following subsystems:
+### Feature Pipeline
 
-* `config.py`: Dataclass-based experiment configuration
-* `train_trading_agent.py`: Main orchestration script
-* `envs/`: Environment builders and backend wrappers
-* `features/`: Feature engineering pipeline and registry
-* `trainers/`: Algorithm-specific training implementations
-* `rewards/`: Reward definitions, including Differential Sharpe variants
-* `evaluation/`: Metric computation and evaluation reporting
-* `callbacks/`: MLflow logging and artifact tracking
+Feature engineering is registry-driven: feature names in the scenario file
+resolve to computation functions, allowing scenario-level composition without
+editing training code. This design is central to systematic feature subset
+comparisons. Normalization parameters are estimated on the training split only
+and applied without re-fitting to the validation and test data, preserving
+causal integrity across the chronological split.
 
-Scenario and feature specifications are externalized in `src/configs/`, which
-supports reproducible experiments across multiple datasets and settings.
+### Training Loop
 
-### Configuration System
+The processed training split is used to construct the trading environment with
+a continuous action space $a_t \in [-1, 1]$ representing target portfolio
+exposure. Training follows the TD3 procedure described in Chapter 4: experience
+is collected into a replay buffer, twin critics are updated from sampled
+mini-batches, and the actor is updated every $d$ critic steps via the
+deterministic policy gradient. Target networks track the main networks through
+soft updates with coefficient $\tau$. Exploration noise is applied during
+training and removed at evaluation time.
 
-The configuration layer uses declarative scenario files to separate experimental
-choices from source code. This includes data paths, environment settings,
-feature subsets, reward types, and optimization hyperparameters. The separation
-improves traceability, reduces manual edit risk, and supports controlled
-ablation studies.
+### Evaluation
 
-Representative YAML examples (scenario-level and feature-level) are provided in
-Appendix A.2.
-
-### Environment and Training Integration
-
-Environment construction is backend-aware and validates compatibility between
-selected algorithm classes and action-space definitions. In particular,
-continuous-control algorithms (such as TD3) are matched with continuous action
-specifications and portfolio-style state/action interfaces.
-
-Training follows a standard off-policy loop with replay-based updates,
-periodic evaluation, checkpointing, and experiment logging. Algorithm-specific
-stability mechanisms (for example, delayed actor updates and soft target
-updates) are implemented in trainer subclasses.
-
-### Feature Engineering and Reward Layer
-
-The feature pipeline is registry-driven: feature names resolve to computation
-functions, allowing scenario-level composition without editing training code.
-This design is central for systematic feature subset comparisons.
-
-Reward computation supports both direct return-based objectives and
-risk-adjusted objectives (including differential Sharpe-style signals).
-Implementation-level examples are documented in Appendix A.3.
-
-### Evaluation and Experiment Tracking
-
-Evaluation includes return, risk, and robustness-oriented diagnostics, with
-results persisted through MLflow. Logged artifacts include metrics, plots,
-config snapshots, and statistical test outputs, enabling auditability of
-reported thesis results.
-
-Detailed implementation snippets and parameterized examples referenced by this
-section are consolidated in Appendix A to keep the main chapter focused on
-methodological choices rather than low-level code listings.
+Final performance is reported on the held-out test split using a separate
+evaluation environment. Two output streams are kept strictly separate: the
+training reward (an optimization diagnostic) and the realized portfolio return
+series from which financial metrics are computed. Conflating these — for
+example treating cumulative DSR as a Sharpe ratio estimate — would invalidate
+the empirical comparison. Metrics derived from the test rollout are described
+in Chapter 7.
