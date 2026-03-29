@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Krzysztof Wojdalski">
-<meta name="dcterms.date" content="2025-05-03">
+<meta name="dcterms.date" content="2026-03-29">
 
 <title>Microstructure-Aware Reinforcement Learning for High-Frequency Trading</title>
 <style>
@@ -96,21 +96,6 @@ div.csl-indent {
 <script src="masters-thesis_files/libs/quarto-diagram/mermaid.min.js"></script>
 <script src="masters-thesis_files/libs/quarto-diagram/mermaid-init.js"></script>
 <link href="masters-thesis_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
-</head><body class="quarto-light">\usepackage[utf8]{inputenc}
-\usepackage{amsthm}
-\usepackage{rotating}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
-\usepackage{amsmath}
-\usepackage{booktabs}
-\usepackage{longtable}
-\nralbumu{310284}
-\speciality{Economics}
-\opiekun{dr Pawel Sakowski}
-\keywords{Reinforcement Learning, High-Frequency Trading, Order Book, Single-Asset Trading, TD3}
-\dziedzina{14.3 Economics}
-\klasyfikacja{G11, G17, C63}
-\tytulang{Microstructure-Aware Reinforcement Learning for High-Frequency Trading}
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -142,9 +127,9 @@ window.Quarto = {
 };
 </script>
 
+</head>
 
-
-
+<body class="quarto-light">
 
 <div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -376,7 +361,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 3, 2025</p>
+      <p class="date">March 29, 2026</p>
     </div>
   </div>
   
@@ -390,9 +375,9 @@ window.Quarto = {
 
 <section id="introduction" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
-<p>Much of the existing reinforcement learning literature in trading relies on low-frequency market representations such as daily or intraday OHLCV bars. High-frequency trading, however, is governed by information embedded in the limit order book, where local liquidity, queue dynamics, spread changes, and event timing shape short-horizon opportunities and risks. This thesis examines whether a continuous-control reinforcement learning agent can use order-book-derived features to make economically meaningful trading decisions in a high-frequency single-asset setting.</p>
-<p>High-frequency trading should therefore not be treated as a simple faster version of bar-based trading. The state observed by the agent is structurally different. At short horizons, aggregated price bars omit information that is central to execution-sensitive decision-making. Features derived from the order book, such as depth imbalance, spread variation, order-flow pressure, and inter-event timing, provide a more faithful description of local market conditions than coarse candlestick aggregates. A central concern of this thesis is whether such microstructure-aware state representations improve the suitability of reinforcement learning for this domain.</p>
-<p>Reinforcement learning is a plausible modelling framework for this problem because trading is sequential and path dependent. Each action affects future exposure, portfolio evolution, and the set of subsequent decisions available to the agent. In high-frequency settings, this distinction matters. Industry deployments such as JPMorgan’s execution engine <span class="citation" data-cites="Mosic2017">(<a href="#ref-Mosic2017" role="doc-biblioref">Mosic 2017</a>)</span> have applied RL to limit order book data for optimal execution — minimizing implementation shortfall on large orders given a known trade schedule, where the LOB state informs fill probability and spread cost rather than price direction. Directional exposure control is a harder problem: the reward signal at tick frequency is dominated by microstructure noise rather than genuine price movement, the LOB state must be transformed into features that carry predictive signal rather than liquidity estimates, and the agent must generalize across intraday regimes whose statistical properties can differ substantially from the training window.</p>
+<p>Much of the existing reinforcement learning literature in trading relies on low-frequency market representations such as daily or intraday OHLCV bars. High-frequency trading, however, is governed by information embedded in the limit order book, where local liquidity, queue dynamics, spread changes, and event timing determine short-horizon opportunities and risks. This thesis examines whether a reinforcement learning agent can use order-book-derived features to make favourable trading decisions in a high-frequency single-asset setting.</p>
+<p>High-frequency trading should therefore not be treated as a faster version of bar-based trading. The state observed by the agent is structurally different. At short horizons, aggregated price bars omit information that is central to execution-sensitive decision-making. Features derived from the order book, such as depth imbalance, spread variation, order-flow pressure, and inter-event timing, provide a more detailed description of market conditions than candlestick aggregates. A central concern of this thesis is whether such microstructure-aware state representations improve the suitability of reinforcement learning for this domain.</p>
+<p>Reinforcement learning is a plausible modelling framework for this problem because trading is sequential and path dependent. Each action affects future exposure, portfolio evolution, and the set of subsequent decisions available to the agent. In high-frequency settings, this distinction matters. Industry deployments such as JPMorgan’s execution engine <span class="citation" data-cites="Mosic2017">(<a href="#ref-Mosic2017" role="doc-biblioref">Mosic 2017</a>)</span> have applied RL to limit order book data for optimal execution — minimizing implementation shortfall on large orders given a known trade schedule, where the LOB state informs fill probability and spread cost rather than price direction. Directional exposure control is a harder problem: the reward signal at tick frequency is dominated by noise rather than genuine price movement, the LOB state must be transformed into features that carry predictive signal rather than liquidity estimates, and the agent must generalize across intraday regimes whose statistical properties can differ substantially from the training window.</p>
 <p>This thesis investigates the use of reinforcement learning, with particular focus on TD3, for high-frequency single-asset trading based on order-book-derived information. The research is motivated not by a claim that artificial intelligence can universally solve trading, but by a narrower and testable question: under controlled experimental conditions, can a continuous control agent using microstructure-aware features achieve economically meaningful out-of-sample performance relative to selected benchmarks?</p>
 <p>The problem is challenging for several reasons. Financial reward signals are noisy and non-stationary, transaction costs can erase apparent profitability, and short-horizon strategies are highly sensitive to turnover, feature specification, and market frictions. In addition, strong empirical claims are difficult because favorable in-sample results may reflect data leakage, overfitting, or unrealistic execution assumptions rather than genuine decision quality.</p>
 <p>Accordingly, the thesis emphasizes methodological discipline alongside model development. It treats feature engineering, chronological evaluation, reward-return separation, and robustness analysis as core parts of the research problem rather than secondary implementation details. In this setting, the question is not only whether an agent can learn, but whether the learning setup is sufficiently well specified to support credible empirical conclusions.</p>
