@@ -8,19 +8,13 @@ is on conceptual relevance to trading problems and the corresponding literature.
 
 ### Markov Decision Processes
 
-The Markov Decision Process (MDP) framework introduced by @Bellman1957 and
-systematized in texts such as @Puterman1994 provides the canonical language for
-reinforcement learning: states, actions, transitions, and rewards. In trading,
-this framing is useful because portfolio decisions are sequential and path
-dependent. At the same time, market regime shifts, structural breaks, and
+The Markov Decision Process (MDP) framework [@Bellman1957; @Puterman1994]
+provides the formal language for reinforcement learning. Portfolio decisions
+are sequential and path-dependent, which makes MDP-based reasoning the natural
+starting point. At the same time, market regime shifts, structural breaks, and
 partial observability mean that financial environments only approximately satisfy
-standard MDP assumptions.
-
-In practical terms, the state may include recent returns, volatility, position,
-and cash; the action may represent trade direction and size; the transition
-captures market and portfolio evolution; and the reward combines return with
-trading frictions and risk penalties. This mapping is why MDP-based reasoning
-remains central even when true market dynamics are unknown.
+standard MDP assumptions. The formal definitions of states, actions, rewards,
+and value functions are developed in Chapter 4.
 
 ### The Bellman Equation and Dynamic Programming
 
