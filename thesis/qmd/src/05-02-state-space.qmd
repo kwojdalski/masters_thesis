@@ -178,6 +178,23 @@ $$\text{HourSin}_t = \sin\!\left(\frac{2\pi \cdot h_t}{24}\right), \qquad
 The cyclical encoding ensures temporal continuity — 09:30 and 16:00 remain
 structurally distinct without imposing an arbitrary ordinal distance.
 
+#### Position Feature
+
+The observation vector is optionally extended with the agent's own current
+portfolio exposure $a_{t-1} \in [-1, 1]$. Unlike the LOB-derived features,
+this quantity is not computed from market data but read from the simulated
+broker state at each step — it is a runtime feature appended after the static
+feature vector is constructed.
+
+Including the current position makes the state partially Markovian with respect
+to inventory: without it, the agent cannot distinguish between arriving at
+exposure $0$ from a long position versus arriving from a short position, even
+though the cost of the next action differs in both cases through the
+position-change fee. With it, the agent can condition its action on whether a
+change would incur a fee and can learn to penalize unnecessary turnover.
+The feature requires no normalization as it is already bounded in $[-1, 1]$
+by the action space definition.
+
 ### Observation Space and Normalization
 
 The complete observation vector $s_t \in \mathbb{R}^d$ is formed by concatenating
