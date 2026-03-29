@@ -17,8 +17,8 @@ standard MDP assumptions. The formal definitions of states, actions, rewards,
 and value functions are developed in Chapter 4.
 
 ```{tikz}
-%%| fig-align: center
-%%| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
+#| fig-align: center
+#| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
 \usetikzlibrary{arrows.meta}
 \begin{tikzpicture}[
   >=Latex,
