@@ -16,7 +16,7 @@ Table: Input schema used in the empirical pipeline
 | `bid_sz_NN`, `ask_sz_NN` | Resting size at level `NN` | Imbalance, depth, OFI, queue features |
 | `bid_ct_NN`, `ask_ct_NN` | Order count at level `NN` | Order count imbalance |
 | `action`, `side`, `size` | Event type, aggressor side, size | Signed trade flow features |
-| `close` (auxiliary) | Pricing series | Reward and portfolio valuation |
+| `close` (auxiliary) | Mid-price-like pricing series | Reward and portfolio valuation |
 
 ### Preprocessing and Splitting
 
@@ -52,3 +52,8 @@ The learning features are normalized and engineered; the pricing columns are
 economically interpretable and used only for reward and valuation computation.
 Mixing these two roles can produce invalid reward calculations or cause
 normalized prices to appear in financial metrics.
+
+In the current implementation, the auxiliary pricing series used for portfolio
+valuation plays the role of a mid-price proxy rather than an executable bid/ask
+quote. This simplifies reward accounting but makes the resulting backtest
+performance optimistic relative to realistic spread-crossing execution.
