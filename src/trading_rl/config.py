@@ -53,6 +53,9 @@ class EnvConfig:
     feature_columns: list[str] | None = (
         None  # Columns to use as features/observations (for tradingenv backend)
     )
+    include_position_feature: bool = (
+        False  # Append runtime feature_position from TradingEnv broker state
+    )
 
     # Reward function configuration (all backends)
     reward_type: str = "log_return"  # Reward type: "log_return" or "differential_sharpe"

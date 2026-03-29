@@ -23,6 +23,9 @@ from trading_rl.rewards import DifferentialSharpeRatio
 
 logger = get_logger(__name__)
 
+RUNTIME_POSITION_FEATURE = "feature_position"
+SUPPORTED_RUNTIME_FEATURES = {RUNTIME_POSITION_FEATURE}
+
 
 class GymnasiumTradingEnvWrapper(gym.Env):
     """Gymnasium-compatible wrapper for TradingEnv (old Gym API).
@@ -61,15 +64,23 @@ class GymnasiumTradingEnvWrapper(gym.Env):
 class CustomFeature(Feature):
     """Custom feature that extracts specific columns from the dataframe."""
 
-    def __init__(self, columns: list[str], data: pd.DataFrame):
+    def __init__(
+        self,
+        columns: list[str],
+        data: pd.DataFrame,
+        runtime_features: list[str] | None = None,
+        traded_contracts: list[Stock] | None = None,
+    ):
         import gymnasium as gym
         import numpy as np
 
         self.columns = columns
         self._data = data
+        self.runtime_features = runtime_features or []
+        self.traded_contracts = traded_contracts or []
 
         # Create space for the feature
-        n_features = len(columns)
+        n_features = len(columns) + len(self.runtime_features)
         space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(n_features,), dtype=np.float32
         )
@@ -86,8 +97,30 @@ class CustomFeature(Feature):
 
         now = self._now()
         if now is None or now not in self._data.index:
-            return np.zeros(len(self.columns), dtype=np.float32)
-        return self._data.loc[now, self.columns].values.astype(np.float32)
+            static_values = np.zeros(len(self.columns), dtype=np.float32)
+        else:
+            static_values = self._data.loc[now, self.columns].values.astype(np.float32)
+
+        if not self.runtime_features:
+            return static_values
+
+        runtime_values = [
+            self._parse_runtime_feature(feature_name)
+            for feature_name in self.runtime_features
+        ]
+        runtime_array = np.asarray(runtime_values, dtype=np.float32)
+        return np.concatenate([static_values, runtime_array]).astype(np.float32)
+
+    def _parse_runtime_feature(self, feature_name: str) -> float:
+        if feature_name != RUNTIME_POSITION_FEATURE:
+            raise ValueError(f"Unsupported runtime feature requested: {feature_name}")
+
+        if self.broker is None or not self.traded_contracts:
+            return 0.0
+
+        holdings = self.broker.holdings_weights()
+        contract = self.traded_contracts[0]
+        return float(holdings.get(contract, 0.0))
 
 
 class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
@@ -168,6 +201,17 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
                 "feature pipeline outputs in the dataframe."
             )
 
+        include_position_feature = False
+        if config is not None:
+            env_config = getattr(config, "env", None)
+            if env_config is not None:
+                include_position_feature = bool(
+                    getattr(env_config, "include_position_feature", False)
+                )
+
+        if include_position_feature and RUNTIME_POSITION_FEATURE not in feature_columns:
+            feature_columns = [*feature_columns, RUNTIME_POSITION_FEATURE]
+
         non_feature_columns = [
             col for col in feature_columns if not str(col).startswith("feature_")
         ]
@@ -177,7 +221,14 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
                 f"Found non-feature columns in env.feature_columns: {non_feature_columns}"
             )
 
-        missing_feature_columns = sorted(set(feature_columns) - set(df.columns))
+        runtime_feature_columns = [
+            col for col in feature_columns if col in SUPPORTED_RUNTIME_FEATURES
+        ]
+        static_feature_columns = [
+            col for col in feature_columns if col not in SUPPORTED_RUNTIME_FEATURES
+        ]
+
+        missing_feature_columns = sorted(set(static_feature_columns) - set(df.columns))
         if missing_feature_columns:
             raise ValueError(
                 "Observation feature columns missing from dataframe: "
@@ -221,6 +272,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             extra={
                 "df_shape": df.shape,
                 "feature_columns": feature_columns,
+                "runtime_feature_columns": runtime_feature_columns,
                 "price_column": price_column,
                 "initial_cash": initial_cash,
                 "fee": fee,
@@ -236,7 +288,14 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
 
         # Create custom features for observations
-        features = [CustomFeature(feature_columns, df[feature_columns])]
+        features = [
+            CustomFeature(
+                static_feature_columns,
+                df[static_feature_columns],
+                runtime_features=runtime_feature_columns,
+                traded_contracts=stocks,
+            )
+        ]
 
         # Prepare price DataFrame with Contract objects as columns
         prices = df[price_columns].copy()
