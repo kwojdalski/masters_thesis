@@ -243,16 +243,16 @@ features.
 
 ### Feature Selection Process
 
-Feature selection in this thesis is theory-driven rather than data-driven. No
-automated procedure — forward selection, LASSO, mutual information screening, or
-similar — was used to rank or prune candidate features. Each of the 25 features
-in the final observation vector corresponds to a distinct theoretical mechanism
-identified in the microstructure literature: imbalance at multiple depth levels,
-fair value estimation, spread regime, book shape, order flow, and intraday
-temporal context. A feature was included if it measures a mechanism not already
-captured by other features in the set, and excluded otherwise. This criterion
-is conservative by design: the goal is interpretability and alignment with theory,
-not exhaustive coverage of all computable LOB statistics.
+Feature selection in this thesis follows a theory-driven criterion. Each of the
+25 features in the final observation vector was included because it represents a
+distinct mechanism identified in the microstructure literature: imbalance at
+multiple depth levels, fair value estimation, spread regime, book shape, order
+flow, and intraday temporal context. A feature was retained if it contributed
+information not already captured by other variables in the set. This yields a
+conservative specification whose priority is interpretability and alignment with
+theory rather than exhaustive coverage of all computable LOB statistics.
+Automated ranking or pruning procedures — such as forward selection, LASSO, or
+mutual information screening — were therefore not part of the selection process.
 
 The selection is operationalized through a registry-driven configuration pipeline.
 Feature names defined in the scenario YAML file resolve to computation functions
