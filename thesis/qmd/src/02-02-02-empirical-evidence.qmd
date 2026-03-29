@@ -11,7 +11,6 @@ prerequisite for designing an HFT trading agent, since they define the
 informational environment the agent operates in and directly motivate the
 feature set used in this thesis.
 
-### Bid-Ask Spread and Short-Horizon Serial Correlation
 
 @Roll1984 demonstrated that bid-ask spreads induce negative serial correlation
 in transaction prices at very short horizons, as prices bounce between bid and
@@ -21,8 +20,6 @@ only by agents that operate at tick frequency and account for spread costs
 explicitly. In this thesis, spread in basis points and the spread ratio feature
 directly encode the cost of crossing the spread, conditioning the agent's
 position-sizing decisions on the current liquidity environment.
-
-### Intraday Periodicity
 
 @Wood1985 and @Harris1986 documented systematic intraday patterns in volume,
 volatility, and returns: a pronounced U-shape in trading activity and spread
@@ -35,7 +32,6 @@ motivated directly by this evidence — the agent needs to distinguish early-ses
 conditions (wide spreads, high adverse selection) from midday conditions
 (tighter spreads, lower activity) when sizing positions.
 
-### Price Discreteness and Quote Clustering
 
 @Harris1991 showed that prices cluster at round numbers and psychologically
 attractive levels, creating discontinuities in the order book that affect
@@ -45,8 +41,6 @@ book convexity feature, which measures the curvature of the price ladder on
 each side. Awareness of price clustering is also relevant to the spread ratio
 feature, since clusters create temporary spread compression and expansion that
 deviates from the recent average.
-
-### Implications for This Thesis
 
 These three findings collectively establish that short-horizon price dynamics
 are structured, not random. The bid-ask bounce motivates spread-aware features
