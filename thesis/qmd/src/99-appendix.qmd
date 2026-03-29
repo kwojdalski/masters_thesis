@@ -140,7 +140,42 @@ training:
 
 ---
 
-## D: TD3 Training Pseudo-Code
+## D: TD3 Training Workflow Diagram
+
+The diagram below summarizes the configuration-driven workflow described in
+Chapter 6.
+
+```{mermaid}
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'fontSize': '11px',
+    'primaryColor': '#f5f4ff',
+    'primaryBorderColor': '#a78bfa',
+    'lineColor': '#6b7280'
+  },
+  'flowchart': {
+    'nodeSpacing': 18,
+    'rankSpacing': 20,
+    'padding': 4,
+    'useMaxWidth': false
+  }
+}}%%
+flowchart TD
+    A[Scenario + feature config] --> B[Pre-run validation]
+    B --> C[Load data + chrono split]
+    C --> D[Generate features<br/>and fit on train only]
+    D --> E[Build training env]
+    E --> F[Train TD3]
+    F --> G[Checkpoint + MLflow log]
+    G --> H[Build test env]
+    H --> I[Held-out evaluation]
+    I --> J[Metrics + robustness outputs]
+```
+
+---
+
+## E: TD3 Training Pseudo-Code
 
 ```{=latex}
 \begin{algorithm}
