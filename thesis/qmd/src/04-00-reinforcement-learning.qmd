@@ -1,4 +1,4 @@
-### Selected aspects of reinforcement learning
+# Reinforcement Learning
 
 This section examines pertinent aspects and challenges within the reinforcement
 learning paradigm.
