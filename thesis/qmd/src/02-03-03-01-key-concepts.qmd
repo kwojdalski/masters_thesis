@@ -16,14 +16,44 @@ partial observability mean that financial environments only approximately satisf
 standard MDP assumptions. The formal definitions of states, actions, rewards,
 and value functions are developed in Chapter 4.
 
+```{tikz}
+%%| fig-align: center
+%%| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
+\usetikzlibrary{arrows.meta}
+\begin{tikzpicture}[
+  >=Latex,
+  thick,
+  box/.style={draw, rounded corners=5pt, minimum width=3.2cm, minimum height=1.1cm, font=\large}
+]
+
+\node[box] (agent) at (0, 3)  {Agent};
+\node[box] (env)   at (0, 0)  {Environment};
+
+% Right path (action)
+\draw[->] (agent.east) -- ++(2.8,0) -- ++(0,-3) -- (env.east);
+\node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$A_t$};
+
+% Left path (state + reward)
+\draw[->] (env.west) -- ++(-2.8,0) -- ++(0,3) -- (agent.west);
+\node[left,  align=right, font=\normalsize] at (-2.8, 3)   {state\\[2pt]$S_t$};
+\node[right, align=left,  font=\normalsize] at (-2.8, 1.5) {reward\\[2pt]$R_t$};
+
+% Dashed line with next-step labels
+\draw[dashed, thin] (-1.0, 0.55) -- (-1.0, -0.55);
+\node[right, font=\small] at (-1.0, 0.45) {$R_{t+1}$};
+\node[right, font=\small] at (-1.0, 0.15) {$S_{t+1}$};
+
+\end{tikzpicture}
+```
+
 ### The Bellman Equation and Dynamic Programming
 
 Bellman's principle of optimality remains central because it motivates value-based
 reasoning about long-run consequences of trading actions @Bellman1957.
-Dynamic-programming methods are typically not directly applicable in live trading
+DP methods are typically not directly applicable in live trading
 settings because market transition dynamics are unknown and unstable, but the
-Bellman perspective still underpins how modern RL algorithms estimate future
-reward and compare actions.
+Bellman perspective is still relevant in the context of modern RL algorithms and 
+how they estimate future reward and compare actions.
 
 ### Temporal Difference Learning
 
@@ -46,8 +76,8 @@ control and high-dimensional observations.
 ### Exploration-Exploitation Tradeoff
 
 The exploration-exploitation tradeoff is especially costly in financial
-applications because exploratory actions can incur immediate losses and
-transaction costs, while under-exploration can prevent discovery of profitable
+applications because exploratory actions can incur immediate costs, 
+while under-exploration can prevent discovery of profitable
 policies. As emphasized in @Sutton2018, this is a core RL problem; in trading,
 it often motivates conservative exploration schemes and risk-sensitive reward
 designs such as those discussed by @Moody1998.
@@ -55,8 +85,9 @@ designs such as those discussed by @Moody1998.
 In market settings, this tradeoff is amplified by non-stationarity: strategies
 that exploit historical regularities can decay quickly after regime changes,
 yet excessive exploration can destroy performance through churn and slippage.
-The literature therefore tends to favor controlled exploration schedules,
-stability-oriented algorithms, and evaluation protocols that separate genuine
+The literature (and especially practicioners) therefore tends to favor 
+controlled exploration schedules, stability-oriented algorithms, 
+and evaluation protocols that separate genuine
 adaptation from overfitting.
 
 ### Function Approximation and Deep RL
