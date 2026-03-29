@@ -353,7 +353,7 @@ parameters.
 ```{mermaid}
 %%| fig-align: center
 %%| fig-width: 3.5
-%%| fig-height: 6
+%%| fig-height: 6.8
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
 flowchart TD
     A[prepare_data inputs] --> B{Data file exists?}
@@ -363,22 +363,23 @@ flowchart TD
     C --> E
     E --> F[drop NaNs]
     F --> G[train / val / test split<br/>chronological order]
-    G --> H{no_features?}
-    H -- Yes --> I[return raw splits]
-    H -- No --> J{feature config?}
-    J -- Yes --> K[FeaturePipeline.from_yaml]
-    J -- No --> L[create_default_pipeline]
-    K --> M[pipeline.fit on train only]
-    L --> M
-    M --> N[transform train]
-    M --> O[transform val]
-    M --> P[transform test]
-    N --> Q[raw train + features]
-    O --> R[raw val + features]
-    P --> S[raw test + features]
-    Q --> T[return train / val / test df]
-    R --> T
-    S --> T
+    G --> H{feature config path?}
+    H -- Yes --> I[FeaturePipeline.from_yaml]
+    H -- No --> J[create_default_pipeline]
+    I --> K[pipeline.fit on train only]
+    J --> K
+    K --> L[transform train]
+    K --> M[transform val]
+    K --> N[transform test]
+    L --> O[concat raw + features<br/>train df]
+    M --> P[concat raw + features<br/>val df]
+    N --> Q[concat raw + features<br/>test df]
+    O --> R[ensure close column<br/>for HFT]
+    P --> R
+    Q --> R
+    R --> S[ensure unique index<br/>for TradingEnv HFT]
+    S --> T[validate train / val / test dfs]
+    T --> U[return prepared splits]
 ```
 
 ```{=latex}
