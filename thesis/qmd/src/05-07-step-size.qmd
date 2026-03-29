@@ -24,8 +24,9 @@ normalization) is used, keeping the architecture parsimonious.
 
 ### Scope
 
-Learning rate and weight decay values were selected through preliminary
-stability checks rather than systematic search. They should be interpreted
-as the configuration used for the reported experiments, not as globally
-optimal values. Sensitivity to these parameters is a natural direction for
-future work.
+The reported learning rate and weight decay define the experimental
+configuration used throughout this thesis. They were chosen to maintain stable
+critic targets and avoid policy collapse in preliminary runs, which makes them
+appropriate for the present high-frequency training setup. A broader
+hyperparameter study could refine these values further, but that analysis lies
+beyond the scope of the current empirical comparison.
