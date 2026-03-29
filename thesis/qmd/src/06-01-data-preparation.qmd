@@ -1,5 +1,24 @@
 ## Data Preparation
 
+### Asset Selection
+
+The experiments use AAPL equity data from the Nasdaq order book. The choice
+is deliberate: AAPL is one of the most liquid instruments in US equity markets,
+with tight spreads, deep displayed depth, and continuous two-sided quoting
+throughout the trading session. This liquidity profile ensures that the
+price-taking assumption embedded in the simulation — that agent trades do not
+move quoted prices — is empirically defensible, and that the market microstructure
+features derived from the order book reflect genuine supply and demand rather
+than thin-market artifacts.
+
+A further consideration is access symmetry. Because AAPL trades on a
+centralized, regulated exchange with public pre-trade transparency, all
+market participants observe the same order book. This contrasts with OTC
+markets or less liquid instruments where information asymmetry and
+differential access could confound the learned signal. The goal is to isolate
+the contribution of the learning algorithm and feature engineering, not to
+exploit a structural information advantage.
+
 ### Input Format
 
 The pipeline consumes time-indexed LOB snapshot data. Each row represents
