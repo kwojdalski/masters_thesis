@@ -1,115 +1,38 @@
 # Implementation of the Trading Agent
-The following assumptions are established for the trading mechanisms and
-algorithmic simulation framework:
-(b) Zero latency exists between market data reception and trade execution when
-   a favorable signal is present.
-(a) Execution is approximated at the observed mid-price proxy used by the
-   environment pricing column. This avoids explicit bid/ask crossing and
-   simplifies reward accounting during training and evaluation.
-(c) Position constraints use bounded continuous exposure in the interval
-   $[-1,1]$ (short to long), preventing unbounded leverage.
-(d) A transaction fee of 0.000 (scenario setting) is applied in the baseline
-   experimental runs.
 
-## Design of the research
+This chapter describes how the design choices from Chapter 5 are realized in
+the experimental pipeline. It covers data preparation, code organization, and
+the TD3 training workflow.
 
-The whole system can be divided into three main parts:
+## Simulation Assumptions
 
-* Data preprocessing - taking market data, parsing the data and adjusting
- it for further analysis. In the current work, the dataset is high-frequency
- AAPL MBP-10 order-book data rather than FX bars.
- * Variable extraction - microstructure features are constructed from order-book
- snapshots (depth, imbalance, spread, and related derived variables).
-* State-action space - extracted order-book features are merged into the state
- space used by the TD3 agent.
+The following assumptions govern the trading simulation throughout all
+experiments.
 
+**Zero market impact.** Agent trades are assumed not to move quoted prices or
+available depth. This is defensible while position sizes remain small relative
+to displayed order-book depth, which is the case for the AAPL MBP-10 dataset
+used here.
 
+**Mid-price execution.** Trades are valued at the mid-price rather than at
+executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
+reward accounting, but it implies that reported backtest returns are an upper
+bound on achievable net performance. Real execution must cross the spread, and
+realized returns are further reduced by maker/taker fees, queue position, and
+partial fills.
 
+**Zero latency.** Observations are assumed to be acted on immediately. This
+is appropriate for a study focused on strategy learning rather than
+low-latency execution engineering. In production HFT systems, transport and
+matching-engine latency can invalidate short-lived signals.
 
-### Assumption
+**Bounded continuous exposure.** Position constraints are enforced via the
+continuous action interval $[-1, 1]$, preventing unbounded leverage.
 
-In the work, the author has assumed that:
+**Transaction fee.** A configurable fee parameter is applied per position
+change. Baseline runs use a zero-fee setting; sensitivity experiments vary
+this parameter.
 
-* Zero slippage proxy - execution is approximated without additional
-  slippage beyond the explicit simulation assumptions.
-* Zero market impact - agent trades are assumed not to move quoted prices or
-  available depth during execution.
-* Zero latency - observations are assumed to be acted on immediately, i.e.,
-  no delay between signal formation, order submission, and execution.
-* Sufficient liquidity depth - displayed order-book depth is assumed adequate
-  to absorb the agent's position updates without large execution shortfall.
-* Mid-price execution proxy - trades are effectively valued at a mid-price-like
-  reference rather than at executable bid/ask quotes.
-
-For order-book trading this is an optimistic approximation. Real implementations
-must cross the spread to execute marketable orders, and realized performance is
-further affected by maker/taker fee schedules, queue position, partial fills,
-and latency. Consequently, backtest returns and risk-adjusted metrics reported
-under the mid-price assumption should be interpreted as an upper bound on
-execution quality rather than as deployable net performance.
-
-The zero-impact assumption is adopted to keep the current study focused on
-learning dynamics, feature relevance, and benchmark-relative behavior under a
-tractable simulation setup. This assumption is most defensible when trade sizes
-are small relative to available top-of-book and near-book depth. If position
-sizes become large relative to local liquidity, impact costs and adverse price
-drift would reduce realized returns and typically worsen risk-adjusted metrics.
-
-Similarly, the zero-latency assumption simplifies the mapping between state and
-action, which is appropriate for the scope of this thesis (strategy-learning
-assessment rather than low-latency execution engineering). In production
-HFT systems, however, transport, queueing, and matching-engine latency can
-change fill quality and invalidate short-lived signals.
-
-The liquidity-depth assumption is supported by empirical depth in the AAPL
-MBP-10 dataset used in the HFT scenario (`2026-02-25` to `2026-02-27`,
-approximately 2.79 million snapshots). Typical displayed depth is substantial
-relative to the small notional adjustments used in this study, but the
-assumption is only credible while position sizes remain small versus local
-order-book depth.
-
-Table: Typical displayed order-book depth in the AAPL MBP-10 dataset
-
-| Metric | Median | 90th percentile |
-|---|---:|---:|
-| Top-of-book depth (shares, `bid_sz_00 + ask_sz_00`) | 170 | 410 |
-| Top-3-level depth (shares, `L0+L1+L2`) | 699 | 1,244 |
-| Top-of-book notional depth (USD, approx.) | 46,189 | 111,920 |
-| Top-3-level notional depth (USD, approx.) | 190,493 | 340,020 |
-
-
-
-### Experimental Environment
-
-The experimental environment was implemented using Python 3.12 with the
-PyTorch deep learning framework. The system was developed and tested on
-a Linux-based computational environment with CUDA support for efficient
-neural network training.
-
-
-
-### Experimental Procedure
-
-The experimental methodology followed a structured sequence of operations:
-
-1. Data acquisition and preprocessing were conducted initially. This involved:
-   - Elimination of invalid or anomalous data points
-   - Partitioning of the dataset into training and testing segments using
-     a 4:6 ratio
-   - Configuration of appropriate experimental parameters
-
-2. For the trading simulation phase:
-   - A single-asset AAPL high-frequency order-book setup was used
-   - TD3 was implemented as the primary reinforcement learning algorithm
-   - Price data and performance metrics were systematically collected and
-     compared
-
-3. Comprehensive analysis was performed, incorporating:
-   - Examination of single-asset microstructure characteristics
-   - Integration of findings from the algorithmic trading simulations
-   - Identification of patterns across different market conditions
-
-4. The experimental results underwent rigorous evaluation, including:
-   - Statistical assessment of performance metrics
-   - Comparative analysis against benchmark strategies
-   - Critical discussion of implications for algorithmic trading applications
+These assumptions collectively make the simulation tractable and the results
+interpretable as learning-dynamics benchmarks rather than deployment-ready
+performance estimates.

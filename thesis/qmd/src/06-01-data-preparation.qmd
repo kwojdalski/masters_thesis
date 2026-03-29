@@ -1,230 +1,54 @@
 ## Data Preparation
 
-### Data Collection and Input Format
+### Input Format
 
-The data preparation layer in this research is designed for time-indexed
-high-frequency limit order book data. In the main empirical setup, each row
-represents an order book event or snapshot with best-quote and multi-level
-depth information rather than an aggregated OHLCV bar. This representation is
-appropriate for the thesis scope because the trading agent is intended to learn
-from local liquidity conditions, queue dynamics, and short-horizon order flow.
+The pipeline consumes time-indexed LOB snapshot data. Each row represents
+an order-book event with multi-level bid/ask prices, sizes, and order counts,
+plus trade descriptors used for order-flow features. The core column groups
+are summarized below.
 
-The expected input format therefore consists of a timestamp index together with
-multi-level bid and ask prices and sizes. In the Databento MBP-10 setting used
-here, the core columns follow a structured naming convention such as
-`bid_px_00`, `ask_px_00`, `bid_sz_00`, `ask_sz_00`, extended across multiple
-book levels. Additional columns such as order counts (`bid_ct_NN`, `ask_ct_NN`)
-and event/trade descriptors (`action`, `side`, `size`) support the construction
-of richer microstructure features including order count imbalance, signed trade
-flow, and event-driven order-flow proxies.
+Table: Input schema used in the empirical pipeline
 
-Although the primary state representation is derived from LOB fields, the
-prepared dataset may also retain auxiliary pricing columns such as `close` and
-volume-like measures for valuation, benchmarking, or compatibility with shared
-environment interfaces. The timestamp index remains essential for chronological
-ordering and for temporal features such as intraday cyclical encodings and
-inter-event time.
-
-Table: Expected LOB-oriented input schema used in the empirical pipeline
-
-| Column group | Description | Role in pipeline |
+| Column group | Description | Role |
 |---|---|---|
-| `timestamp` | Chronological event index | Ordering, splitting, temporal features |
-| `bid_px_NN`, `ask_px_NN` | Bid/ask prices at book level `NN` | Spread, mid-price, convexity, slope, valuation context |
-| `bid_sz_NN`, `ask_sz_NN` | Bid/ask resting size at book level `NN` | Imbalance, depth, OFI, queue features |
-| `bid_ct_NN`, `ask_ct_NN` | Number of resting orders at level `NN` | Order count imbalance |
-| `action`, `side`, `size` | Event type, aggressor side, event size | Signed trade flow and trade-context features |
-| auxiliary price columns (for example `close`) | Pricing series retained for environment accounting | Reward and portfolio valuation |
+| `timestamp` | Chronological event index | Ordering, temporal features |
+| `bid_px_NN`, `ask_px_NN` | Bid/ask prices at level `NN` | Spread, mid-price, slope, valuation |
+| `bid_sz_NN`, `ask_sz_NN` | Resting size at level `NN` | Imbalance, depth, OFI, queue features |
+| `bid_ct_NN`, `ask_ct_NN` | Order count at level `NN` | Order count imbalance |
+| `action`, `side`, `size` | Event type, aggressor side, size | Signed trade flow features |
+| `close` (auxiliary) | Pricing series | Reward and portfolio valuation |
 
-### Data Quality Control and Preprocessing
+### Preprocessing and Splitting
 
-Before any feature engineering or model training is performed, the dataset
-undergoes a preprocessing stage focused on chronological integrity and basic
-sanity checks. The first requirement is strict temporal ordering. Because the
-research problem is sequential, any disorder in timestamps can introduce
-artificial transitions and invalidate the interpretation of rewards and actions.
+Raw data is validated for chronological order, required column presence,
+non-negative prices, and non-crossed best quotes before any feature
+engineering. This stage is conservative: its purpose is correctness, not
+statistical filtering.
 
-The preprocessing stage also checks for structural consistency, including the
-presence of required columns, valid numeric types, a non-empty dataset, and
-basic LOB sanity constraints. Price columns are expected to be positive and the
-best ask should not fall below the best bid after validation. Missing values,
-crossed books, malformed rows, or unchanged snapshots may be filtered before
-feature generation so that the downstream feature pipeline operates on a
-coherent input structure.
-
-This stage is intentionally conservative. Its purpose is not to perform
-aggressive statistical filtering that could distort the data-generating process,
-but to ensure that the dataset is technically valid for subsequent
-transformations and simulation. More specialized cleaning rules may be added in
-future work, but they should remain explicitly documented because they can alter
-the empirical conclusions.
-
-### Chronological Splitting Strategy
-
-The dataset is split chronologically into training, validation, and test
-subsets. Chronological splitting is essential in financial research because
-shuffling would allow information from the future to influence earlier training
-samples, thereby violating causality and inflating apparent performance.
-
-The training split is used to fit model parameters and any preprocessing
-components that require estimated statistics. The validation split supports
-configuration comparison and development-time diagnostics, including feature-set
-selection and hyperparameter tuning. The test split is reserved for final
-out-of-sample reporting and should not influence model selection decisions.
-
-This division serves both statistical and methodological purposes. Statistically,
-it provides a more realistic estimate of generalization in a non-stationary
-setting. Methodologically, it enforces discipline in the experimental process by
-separating model development from final performance claims.
-
-The implemented workflow treats split feasibility as a first-class validation
-concern. Invalid split settings, such as a training segment that consumes the
-entire dataset or leaves an empty evaluation segment, are handled before
-training begins. This fail-fast behavior is particularly important in
-experimental workflows where many predefined scenarios may be tested in
-sequence.
-
-### Feature Engineering Pipeline
-
-Feature engineering is governed by an external feature pipeline. Rather than
-hard-coding feature transformations inside the training logic, the workflow
-defines feature sets declaratively. The broader methodological rationale is
-introduced in Chapter 1.3; here, the focus is on implementation details relevant
-to data preparation.
-
-The feature pipeline supports multiple feature families derived from order-book
-data, including:
-
-- imbalance and depth features,
-- fair-value and spread-related features,
-- order-flow and queue-dynamics features,
-- temporal and regime-conditioning features,
-- selected auxiliary price- or volume-based features when needed for
-  compatibility or benchmark context.
-
-A key design choice in the implemented workflow is the use of feature-derived
-observation columns for learning. The state representation passed to the agent
-is composed of engineered feature variables, while raw market prices remain
-available separately for portfolio valuation and reward calculation. This
-feature-only observation design improves clarity and reduces the likelihood of
-mixing normalized learning inputs with financial pricing logic.
-
-The same setup also enables feature ablation studies. For example, the research
-can compare a comprehensive feature set with a reduced, non-redundant subset
-while keeping the rest of the experimental setup unchanged.
-This is particularly useful in reinforcement learning, where redundant features
-can increase critic noise and hinder stable convergence.
+The dataset is then split chronologically into training, validation, and test
+subsets. Shuffling is not used because it would destroy temporal structure
+and introduce information from future periods into earlier training samples.
+The training split is used to fit model parameters; the validation split
+supports configuration comparison and development diagnostics; the test split
+is reserved for final out-of-sample reporting and does not influence any
+model selection decisions.
 
 ### Feature Normalization and Leakage Prevention
 
-Feature normalization is handled within the feature pipeline and follows a
-chronology-preserving protocol. Any normalization or scaling transformation that
-requires fitted parameters is estimated using the training split only. The same
-fitted transformation is then applied to the validation and test splits.
+Normalization statistics (mean and standard deviation for z-score scaling)
+are estimated on the training split only and applied unchanged to the
+validation and test splits. Fitting normalization on the full dataset would
+allow future volatility regimes to influence the training representation,
+inflating apparent performance. Cyclical time encodings (hour-of-day sine and
+cosine) are already bounded in $[-1, 1]$ and are not normalized. Raw price
+columns used for portfolio accounting are kept in their original units and are
+never replaced by normalized values.
 
-This ordering is a central anti-leakage mechanism. If normalization were fit on
-the full dataset, information from future volatility regimes or distributional
-changes could influence the representation seen during training, leading to
-optimistic and methodologically invalid results.
+### Feature and Price Column Separation
 
-Not all features require normalization. Temporal cyclical encodings such as sine
-and cosine representations of hour-of-day are already bounded and structured,
-and may be left unnormalized by design. This is consistent with the goal of
-preserving their geometric interpretation as phase encodings on a circular
-domain.
-
-Equally important, raw price columns used for portfolio accounting are not
-replaced by normalized values. The simulation environment requires financially
-meaningful prices to compute returns, portfolio valuation, and transaction cost
-effects. Normalization is therefore applied to learning features, not to the
-pricing inputs used by the trading mechanics.
-
-### Observation/Price Column Separation
-
-A methodological distinction is maintained between two categories of data used
-by the trading system:
-
-- price inputs used for portfolio valuation and reward simulation,
-- feature inputs used as the state representation for the learning algorithm.
-
-This separation is not merely an implementation preference; it is a correctness
-constraint. The trading simulation must operate on economically interpretable
-price data, while the learning algorithm benefits from transformed and
-normalized state variables. Combining these roles in a single set of columns can
-lead to errors in portfolio accounting, invalid reward calculations, or
-unintended use of normalized prices in financial metrics.
-
-By separating price and feature inputs, the workflow also improves
-interpretability. It becomes possible to reason about the state representation as
-a modelling choice (feature design), while retaining a clear definition of the
-market prices driving portfolio returns and benchmark comparisons.
-
-### Configuration-Driven Feature Selection
-
-Feature selection is implemented as a scenario-level research control. Different
-experimental scenarios can specify alternative feature subsets without changing
-the training code. This supports structured comparison across:
-
-- broad feature sets designed for coverage,
-- reduced feature sets designed to minimize redundancy,
-- specialized feature sets tailored to a specific market regime or hypothesis.
-
-This design is particularly useful in reinforcement learning because the quality
-of the state representation materially affects critic stability, policy learning,
-and sample efficiency. A larger feature set does not automatically imply better
-performance. Redundant indicators, especially those encoding similar market
-properties at similar horizons, may increase noise and impair generalization.
-
-Consequently, feature selection is treated as part of the empirical methodology
-rather than a purely technical preprocessing step. Scenario-based feature
-selection makes this dependency explicit and facilitates reproducible ablation
-experiments.
-
-### Data Validation Before Training
-
-Before training begins, the workflow performs a dedicated validation stage on
-the configuration and data setup. The purpose of this stage is to detect
-structural incompatibilities early and prevent wasted computation.
-
-The validation stage conceptually includes the following checks:
-
-- dataset path availability and readability,
-- feature-pipeline configuration validity,
-- split feasibility for the available dataset size,
-- existence of referenced observation features after feature generation,
-- compatibility between selected pricing columns, selected feature columns, and
-  the prepared dataset.
-
-When a structural issue is identified, the workflow adopts a fail-fast strategy
-for hard errors, especially where proceeding would invalidate the experiment or
-cause runtime failures later in training. This improves the reliability and
-repeatability of the overall research process.
-
-### Summary
-
-The data preparation layer in this thesis is designed to support reproducible
-and leakage-aware reinforcement learning experiments on high-frequency
-order-book data. Its core principles are chronological integrity,
-split-before-fit preprocessing, feature-pipeline modularity, LOB-specific data
-validation, and strict separation between pricing inputs and learning features.
-Together, these choices provide a sound methodological basis for the
-algorithm-specific training and evaluation procedures described in later
-chapters.
-
-```mermaid
-flowchart TD
-    A[Raw LOB Data] --> B[Quality Checks]
-    B --> C[Chronological Split]
-    C --> D[Train]
-    C --> E[Validation]
-    C --> F[Test]
-    D --> G[Fit Feature Pipeline]
-    G --> H[Transform Train]
-    G --> I[Transform Validation]
-    G --> J[Transform Test]
-    E --> I
-    F --> J
-    H --> K[Training Dataset]
-    I --> L[Evaluation Datasets]
-    J --> L
-```
+A strict separation is maintained between the observation features passed to
+the learning algorithm and the price inputs used by the portfolio simulation.
+The learning features are normalized and engineered; the pricing columns are
+economically interpretable and used only for reward and valuation computation.
+Mixing these two roles can produce invalid reward calculations or cause
+normalized prices to appear in financial metrics.
