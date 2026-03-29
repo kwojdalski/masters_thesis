@@ -10,7 +10,7 @@ experiment tracking.
 - Scenario-driven YAML configs in `src/configs/scenarios`
 - Synthetic data generator (sine wave, upward drift, sampled OHLCV)
 - MLflow tracking plus CLI utilities for experiments, checkpoints, and artifacts
-- Plotnine-based analytics and reusable logging utilities
+- Visualization analytics and reusable logging utilities
 
 ## Prerequisites
 
