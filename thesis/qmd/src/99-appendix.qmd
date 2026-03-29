@@ -354,7 +354,7 @@ parameters.
 
 ---
 
-## F: TD3 Training Pseudo-Code
+## I: TD3 Training Pseudo-Code
 
 ```{=latex}
 \begin{algorithm}
