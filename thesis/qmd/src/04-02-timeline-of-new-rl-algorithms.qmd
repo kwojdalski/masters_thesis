@@ -1,4 +1,4 @@
-## From Tabular Methods to TD3: An Algorithmic Lineage
+## From Tabular Methods to TD3: An Algorithmic Lineage {#sec-td3-lineage}
 
 The development of reinforcement learning algorithms is not a linear progression
 of incremental improvements but a series of conceptual breaks, each motivated by
