@@ -1,37 +1,65 @@
 ## Reward Function
+
+The reward function determines what the agent actually optimizes. In trading,
+two properties are essential: the signal should be risk-adjusted so the agent
+does not maximize returns by taking excessive volatility, and it should be
+computable recursively so that no look-ahead into future returns is required
+at each training step.
+
+### Why Raw Log-Return Is Insufficient
+
+The simplest reward is the single-step log-return:
+
+$$r_t = \log\frac{P_t}{P_{t-1}} \cdot a_{t-1}$$
+
+At tick frequency, this signal is dominated by microstructure noise. Individual
+price changes on an MBP-10 order book are a fraction of the spread; the
+agent cannot distinguish genuine directional movement from quote flickering in
+a single step. Training on raw log-return produces highly variable gradient
+estimates and tends to reward high-turnover behavior regardless of risk.
+
+A related alternative — the Sharpe ratio computed over a fixed rolling window
+— requires storing the full window of past returns at each step and introduces
+a sharp discontinuity when old returns drop out of the window. Neither property
+is desirable in an online RL setting.
+
 ### Differential Sharpe Ratio
 
+The Differential Sharpe Ratio [@Moody1998] resolves both issues. It is defined
+as the first-order approximation of how the current return $R_t$ changes the
+exponentially weighted Sharpe ratio:
 
-Differential Sharpe Ratio (DSR) is a dynamic extension of the Sharpe ratio.
-This measure captures the marginal impact of returns at time $t$ on the Sharpe
-Ratio. The calculation begins with the following formulations:
-$$
-A_n=\frac{1}{n}R_n+\frac{n-1}{n}A_{n-1}
-$$
-$$
-B_n=\frac{1}{n}R_n^2+\frac{n-1}{n}B_{n-1}
-$$
-At $t=0$, both values equal zero. These serve as the foundation for calculating
-the exponentially moving Sharpe ratio on an $\eta$ time scale:
-$$
-S_t=\frac{A_t}{K_\eta\sqrt{B_t-A_t^2}}
-$$
-where:
+$$D_t = \frac{B_{t-1}\,\Delta A_t - \frac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2\right)^{3/2}}$$
 
-* $A_t=\eta R_t+(1-\eta)A_{t_1}$
-* $B_t=\eta R_t^2+(1-\eta)B_{t_1}$
-* $K_\eta=(\frac{1-\frac{\eta}{2}}{1-\eta})$
+where $A_t$ and $B_t$ are exponentially weighted estimates of the first and
+second moments of returns:
 
-The differential Sharpe ratio offers several advantages in algorithmic systems
-(Moody & Wu, 1997):
+$$A_t = \eta R_t + (1-\eta)\,A_{t-1}, \qquad B_t = \eta R_t^2 + (1-\eta)\,B_{t-1}$$
 
-* Recursive updating - eliminating the need to recalculate mean and standard
-  deviation of returns each time. The formulations for $A_t$ and $B_t$ allow
-  simple calculation through updates for $R_t$ and $R_t^2$.
-* Efficient on-line optimization - the formula structure enables quick
-  computation through updates of the most recent values.
-* Interpretability - the measure is easily explained, as it quantifies how the
-  latest return affects the Sharpe ratio (risk and reward).
+and $\Delta A_t = A_t - A_{t-1}$, $\Delta B_t = B_t - B_{t-1}$. At $t=0$,
+$A_0 = B_0 = 0$.
 
+The smoothing parameter $\eta$ controls the effective memory of the estimator:
+larger $\eta$ makes the estimate more reactive to recent returns, smaller
+$\eta$ averages over a longer history. The effective window length is
+approximately $1/\eta$ steps. In the empirical experiments, $\eta = 0.01$,
+giving an effective memory of roughly 100 ticks — long enough to smooth
+microstructure noise while short enough to adapt to intraday regime shifts.
 
-### Other Reward Functions
+The DSR has two properties that make it well-suited to this setting. First, it
+penalizes return volatility intrinsically: a sequence of returns with the same
+mean but higher variance produces a lower DSR, which discourages the agent
+from achieving returns through high-variance position flipping. Second, it is
+recursively computable from $A_{t-1}$ and $B_{t-1}$ alone — no fixed window,
+no look-ahead, and no discontinuity as old observations expire.
+
+### Reward and Financial Return Are Not the Same
+
+A shaped reward such as DSR is used to stabilize learning; it is not
+equivalent to the financial performance metrics reported in Chapter 7. The
+Sharpe ratio, annualized return, and drawdown statistics reported in the
+evaluation chapter are computed from the realized log-return series of the
+deterministic policy rollout, not from the cumulative DSR accumulated during
+training. Conflating the two — for example, treating a high training DSR as
+evidence of a strong Sharpe ratio on the test set — would invalidate the
+empirical comparison.
