@@ -85,7 +85,7 @@ single evaluation framework for algorithmic trading research.
 <!-- {{< include ./01-01-01-statistical-arbitrage-vs-other-types.qmd >}} -->
 <!-- {{< include ./01-01-02-critical-parameter-selection.qmd >}} -->
 {{< include ./01-02-00-scope-and-objectives.qmd >}}
-{{< include ./01-03-00-methodological-framework.qmd >}}
+<!-- {{< include ./01-03-00-methodological-framework.qmd >}} -->
 {{< include ./01-04-00-thesis-organization-and-chapter-overview.qmd >}}
 
 {{< include ./02-00-00-literature-review.qmd >}}
