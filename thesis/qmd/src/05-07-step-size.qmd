@@ -100,15 +100,14 @@ With `policy_delay = 2`, the actor receives gradient updates half as frequently 
 
 ### Sensitivity Analysis and Hyperparameter Tuning
 
-Learning rate selection significantly impacts training outcomes. Empirical evidence from preliminary experiments reveals:
+Learning rate selection materially affects TD3 training behavior, but the
+current thesis does not present a standalone hyperparameter study devoted to
+this parameter. The value $\alpha = 0.0001$ should therefore be interpreted as
+the chosen configuration for the reported experiments, supported by preliminary
+stability checks rather than by an exhaustive search over candidate values.
 
-* **Higher learning rates** ($\alpha > 0.0003$): Faster initial learning but increased risk of Q-value divergence, particularly after 1-2 million training steps. Policies may exhibit erratic behavior and fail to converge.
-
-* **Lower learning rates** ($\alpha < 0.00005$): Very stable training but prohibitively slow convergence. Improvements plateau before reaching optimal performance within feasible training budgets.
-
-* **Optimal range**: Learning rates in the range $[0.0001, 0.0003]$ provide a favorable balance, with $\alpha = 0.0001$ emerging as robust across multiple experimental scenarios.
-
-Systematic hyperparameter search methods such as grid search or Bayesian optimization can further refine these values, though computational constraints often limit such exploration in academic research settings.
+More systematic tuning procedures could be applied in future work, but they are
+outside the scope of the present empirical design.
 
 <!-- ### Practical Considerations
 
