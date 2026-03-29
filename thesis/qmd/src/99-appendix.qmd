@@ -267,31 +267,34 @@ relative to other families of methods.
 
 ```{mermaid}
 %%| fig-align: center
+%%| fig-width: 4
+%%| fig-height: 5
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
 graph TD
-    A[The Core Problem: MDP] -->|Mathematical Solution| B(Bellman Equation)
-    B --> C{Do we know the\nTransition Model?}
-    C -->|Yes| D[Dynamic Programming\nValue Iteration / Policy Iteration]
-    C -->|No| E[Reinforcement Learning\nLearn from Experience]
-    E --> F{How to estimate\nfuture value?}
-    F -->|Wait for end| G[Monte Carlo\nFirst-Visit / Every-Visit MC]
-    F -->|Bootstrap| H[Temporal Difference\nSARSA / Q-Learning / TD-lambda]
-    E --> I{State Space Size?}
-    I -->|Small / Discrete| J[Tabular Methods\nQ-Table]
-    I -->|Large / Continuous| K[Function Approximation\nDeep RL]
-    K --> L{Action Space?}
-    L -->|Discrete| M[Value-Based\nDQN / Double DQN / Rainbow]
-    L -->|Continuous| N[Policy-Based\nREINFORCE / TRPO / PPO]
-    L -->|Either| O[Actor-Critic\nA2C / DDPG / TD3 / SAC]
-    O --> O1{On-Policy or\nOff-Policy?}
-    O1 -->|On-Policy| O2[A2C / A3C / PPO]
+    A[MDP] -->|Solution| B(Bellman Equation)
+    B --> C{Known model?}
+    C -->|Yes| D[Dynamic Programming]
+    C -->|No| E[Reinforcement Learning]
+    E --> F{Value estimation?}
+    F -->|Full episode| G[Monte Carlo]
+    F -->|Bootstrap| H[Temporal Difference<br/>SARSA / Q-Learning]
+    E --> I{State space?}
+    I -->|Small / Discrete| J[Tabular Methods]
+    I -->|Large / Continuous| K[Function Approximation<br/>Deep RL]
+    K --> L{Action space?}
+    L -->|Discrete| M[Value-Based<br/>DQN / Rainbow]
+    L -->|Continuous| N[Policy-Based<br/>REINFORCE / PPO]
+    L -->|Either| O[Actor-Critic]
+    O --> O1{On/Off-Policy?}
+    O1 -->|On-Policy| O2[A2C / PPO]
     O1 -->|Off-Policy| O3[DDPG / TD3 / SAC]
-    O3 --> O4{Deterministic\nor Stochastic?}
+    O3 --> O4{Policy type?}
     O4 -->|Deterministic| O5[DDPG]
-    O4 -->|Twin Critics +\nDelayed Updates| O6[TD3\nThis Thesis]
-    O4 -->|Max Entropy| O7[SAC]
-    E --> P{Sample Efficiency?}
-    P -->|Need Planning| Q[Model-Based RL\nDyna-Q / Dreamer / MuZero]
-    P -->|Model-Free OK| R[Model-Free RL]
+    O4 -->|Twin critics +<br/>delayed updates| O6[TD3 — This Thesis]
+    O4 -->|Max entropy| O7[SAC]
+    E --> P{Sample efficiency?}
+    P -->|Need planning| Q[Model-Based RL<br/>Dyna-Q / Dreamer]
+    P -->|Model-free OK| R[Model-Free RL]
 ```
 
 ```{=latex}
