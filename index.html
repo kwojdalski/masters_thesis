@@ -365,8 +365,8 @@ window.Quarto = {
 <section id="markov-decision-processes" class="level3">
 <h3 class="anchored" data-anchor-id="markov-decision-processes">Markov Decision Processes</h3>
 <p>The Markov Decision Process (MDP) framework <span class="citation" data-cites="Bellman1957 Puterman1994">(<a href="#ref-Bellman1957" role="doc-biblioref">Bellman 1957</a>; <a href="#ref-Puterman1994" role="doc-biblioref">Puterman 1994</a>)</span> provides the formal language for reinforcement learning. Portfolio decisions are sequential and path-dependent, which makes MDP-based reasoning the natural starting point. At the same time, market regime shifts, structural breaks, and partial observability mean that financial environments only approximately satisfy standard MDP assumptions. The formal definitions of states, actions, rewards, and value functions are developed in Chapter 4.</p>
-<pre class="{tikz}"><code>%%| fig-align: center
-%%| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
+<pre class="{tikz}"><code>#| fig-align: center
+#| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
 \usetikzlibrary{arrows.meta}
 \begin{tikzpicture}[
   &gt;=Latex,
@@ -1077,6 +1077,12 @@ market data while maintaining learning stability across diverse market regimes. 
 </section>
 <section id="data-preparation" class="level2" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="data-preparation"><span class="header-section-number">6.2</span> Data Preparation</h2>
+<section id="asset-selection" class="level3">
+<h3 class="anchored" data-anchor-id="asset-selection">Asset Selection</h3>
+<p>The experiments use AAPL equity data from the Nasdaq order book. The choice is deliberate: AAPL is one of the most liquid instruments in US equity markets, with tight spreads, deep displayed depth, and continuous two-sided quoting throughout the trading session. This liquidity profile ensures that the price-taking assumption embedded in the simulation — that agent trades do not move quoted prices — is empirically defensible, and that the market microstructure features derived from the order book reflect genuine supply and demand rather than thin-market artifacts.</p>
+<p>The data were obtained from Nasdaq via the DataBento API, using the MBP-10 (Market By Price, 10 levels) feed — a standardised L3 order book format that provides full depth-of-book snapshots at the event level, including resting quantities and order counts at each price level. This granularity is necessary for constructing the microstructure features described in Chapter 5 and listed in Appendix A.</p>
+<p>A further consideration is access symmetry. Because AAPL trades on a centralized, regulated exchange with public pre-trade transparency, all market participants observe the same order book. This contrasts with OTC markets or less liquid instruments where information asymmetry and differential access could confound the learned signal. The goal is to isolate the contribution of the learning algorithm and feature engineering, not to exploit a structural information advantage.</p>
+</section>
 <section id="input-format" class="level3">
 <h3 class="anchored" data-anchor-id="input-format">Input Format</h3>
 <p>The pipeline consumes time-indexed LOB snapshot data. Each row represents an order-book event with multi-level bid/ask prices, sizes, and order counts, plus trade descriptors used for order-flow features. The core column groups are summarized below.</p>
