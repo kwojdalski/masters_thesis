@@ -48,6 +48,8 @@ env:
     # Spread and cost features
     "feature_hft_spread_bps",
     "feature_hft_spread_ratio_50",
+    "feature_hft_bid_convexity",
+    "feature_hft_ask_convexity",
     "feature_hft_bid_slope",
     "feature_hft_ask_slope",
 

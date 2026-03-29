@@ -115,6 +115,20 @@ features:
       bid_price_col: "bid_px_00"
       ask_price_col: "ask_px_00"
 
+  - name: "hft_bid_convexity"
+    feature_type: "book_convexity"
+    normalize: true
+    domain: "hft"
+    params:
+      side: "bid"
+
+  - name: "hft_ask_convexity"
+    feature_type: "book_convexity"
+    normalize: true
+    domain: "hft"
+    params:
+      side: "ask"
+
   - name: "hft_bid_slope"
     feature_type: "bid_ask_slope"
     normalize: true
