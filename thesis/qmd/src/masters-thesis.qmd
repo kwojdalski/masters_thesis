@@ -43,10 +43,10 @@ jupyter:
     language: python
     name: python3
 thesis_runtime_config:
-  scenario: "src/configs/scenarios/aapl_td3_hft_lob.yaml"
+  scenario: "src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml"
   feature_config_primary: "src/configs/features/hft_lob_features_state_space.yaml"
   feature_config_baseline: "src/configs/features/hft_lob_features.yaml"
-  experiment_name: "TRADINGENV_TD3_AAPL_HFT"
+  experiment_name: "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
 ---
 
 \theoremstyle{definition}
