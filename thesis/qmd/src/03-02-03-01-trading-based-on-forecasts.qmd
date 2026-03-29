@@ -25,9 +25,4 @@ where:
 - $\hat{y} \in \mathbb{R}$ represents the scalar price prediction
 
 The dimensionality reduction from $\mathbb{R}^n$ to $\mathbb{R}$ results in
-significant information loss that may be crucial for optimal trading
-decisions.[^1]
-
-[^1]: The information loss can be quantified through mutual information:
-$I(X;\hat{y}) < I(X;X)$, indicating that the prediction $\hat{y}$ contains
-less information about market conditions than the original feature set $X$.
+significant information loss that may be crucial for optimal trading decisions.
