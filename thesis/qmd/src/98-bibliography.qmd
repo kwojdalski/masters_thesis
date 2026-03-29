@@ -1,6 +1,6 @@
 \listoffigures
 
-# Bibliography
+# Bibliography {.unnumbered}
 
 ::: {#refs}
 :::
