@@ -64,36 +64,62 @@ The table below lists all hyperparameters for the main AAPL state-space
 experiment. The full configuration file is
 `src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml`.
 
-| Parameter | Value | Notes |
-|---|---|---|
-| **Architecture** | | |
-| Actor hidden dims | [128, 64] | ReLU activations |
-| Critic hidden dims | [128, 64] | ReLU activations |
-| **Optimization** | | |
-| Actor learning rate | 0.0001 | Adam |
-| Critic learning rate | 0.0001 | Adam |
-| Actor weight decay | 0.000002 | L2 regularization |
-| Critic weight decay | 0.000002 | |
-| Loss function | Smooth L1 (Huber) | |
-| **TD3 mechanisms** | | |
-| Discount factor $\gamma$ | 0.99 | |
-| Target update $\tau$ | 0.001 | Soft update |
-| Policy delay | 2 | Critic updates per actor update |
-| Target policy noise $\sigma$ | 0.2 | Added to target action |
-| Noise clip | 0.3 | |
-| Exploration noise std | 0.2 | During training only |
-| **Training** | | |
-| Total steps | 2,000,000 | |
-| Initial random steps | 1,000 | Warm-up before learning |
-| Frames per batch | 200 | |
-| Optimisation steps per batch | 5 | |
-| Mini-batch size | 128 | |
-| Replay buffer size | 100,000 | |
-| **Data** | | |
-| Training rows | 15,000 | Chronological split |
-| Reward type | Differential Sharpe | $\eta = 0.01$ |
-| Transaction fee | 0.000 | Baseline setting |
-| Random seed | 42 | |
+```{=latex}
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{p{4.4cm}p{2.2cm}p{5.6cm}}
+\toprule
+\textbf{Parameter} & \textbf{Value} & \textbf{Notes} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{c}{\textit{(continued from previous page)}} \\
+\toprule
+\textbf{Parameter} & \textbf{Value} & \textbf{Notes} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\textit{(continued on next page)}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+
+\textbf{Architecture} & & \\
+Actor hidden dims & [128, 64] & ReLU activations \\
+Critic hidden dims & [128, 64] & ReLU activations \\
+
+\textbf{Optimization} & & \\
+Actor learning rate & 0.0001 & Adam \\
+Critic learning rate & 0.0001 & Adam \\
+Actor weight decay & 0.000002 & L2 regularization \\
+Critic weight decay & 0.000002 & \\
+Loss function & Smooth L1 (Huber) & \\
+
+\textbf{TD3 mechanisms} & & \\
+Discount factor $\gamma$ & 0.99 & \\
+Target update $\tau$ & 0.001 & Soft update \\
+Policy delay & 2 & Critic updates per actor update \\
+Target policy noise $\sigma$ & 0.2 & Added to target action \\
+Noise clip & 0.3 & \\
+Exploration noise std & 0.2 & During training only \\
+
+\textbf{Training} & & \\
+Total steps & 2,000,000 & \\
+Initial random steps & 1,000 & Warm-up before learning \\
+Frames per batch & 200 & \\
+Optimisation steps per batch & 5 & \\
+Mini-batch size & 128 & \\
+Replay buffer size & 100,000 & \\
+
+\textbf{Data} & & \\
+Training rows & 15,000 & Chronological split \\
+Reward type & Differential Sharpe & $\eta = 0.01$ \\
+Transaction fee & 0.000 & Baseline setting \\
+Random seed & 42 & \\
+\end{longtable}
+\endgroup
+```
 
 ---
 
