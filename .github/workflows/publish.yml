@@ -1,0 +1,34 @@
+name: Publish Thesis to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: false
+
+      - name: Render thesis to HTML
+        run: |
+          quarto render thesis/qmd/src/masters-thesis.qmd --to html --no-execute
+          mkdir -p _site
+          cp thesis/qmd/src/masters-thesis.html _site/index.html
+          cp -r thesis/qmd/src/masters-thesis_files _site/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _site
