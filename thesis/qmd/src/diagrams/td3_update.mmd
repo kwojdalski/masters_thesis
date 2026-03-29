@@ -1,11 +1,1 @@
-flowchart TD
-    A[Sample batch from replay buffer] --> B[Target action<br/>with smoothing noise]
-    B --> C[Target y from<br/>min of twin target critics]
-    C --> D[Update critic 1]
-    C --> E[Update critic 2]
-    D --> F{Policy delay reached?}
-    E --> F
-    F -->|Yes| G[Update actor<br/>via critic 1]
-    G --> H[Soft-update<br/>target networks]
-    F -->|No| I[Next critic step]
-    H --> I
+../../../../docs/diagrams/td3_update.mmd
