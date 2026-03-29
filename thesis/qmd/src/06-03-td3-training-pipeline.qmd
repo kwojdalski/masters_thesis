@@ -1,62 +1,59 @@
 ## TD3 Training Pipeline
 
-### Configuration-Driven Experiment Design
+The training workflow is organized as a configuration-driven sequence from
+scenario specification to held-out evaluation. The purpose of the pipeline is
+not only to train the TD3 agent, but to ensure that feature generation,
+environment construction, and final performance measurement remain auditable
+and reproducible across experimental variants.
 
-Each experiment is fully specified by an external configuration file (YAML
-with dotlist override support). Data paths, feature subsets, reward type,
-environment settings, and optimization hyperparameters are all externalized.
-No source-code changes are required to switch between experimental scenarios.
-A pre-training validation stage checks path availability, feature definition
-validity, split feasibility, and column compatibility before any computation
-begins, preventing wasted runs from misconfigured experiments.
+```{mermaid}
+flowchart TD
+    A[Scenario and feature configuration] --> B[Pre-run validation]
+    B --> C[Data loading and chronological split]
+    C --> D[Feature generation and train-only fitting]
+    D --> E[Training environment construction]
+    E --> F[TD3 training loop]
+    F --> G[Checkpointing and MLflow logging]
+    G --> H[Test environment construction]
+    H --> I[Held-out evaluation rollout]
+    I --> J[Financial metrics and robustness outputs]
+```
 
-### Environment Construction
+### Configuration and Validation
 
-After data preparation, the environment is constructed from the processed
-training dataset. It exposes a continuous action space $a_t \in [-1, 1]$
-representing target portfolio exposure and returns observations composed of
-the engineered feature vector defined in Chapter 5. Transaction fees and
-position-change costs are applied within the environment step function so
-that they are reflected in the reward signal during training.
+Experiments are specified through external scenario and feature configuration
+files. These files determine the dataset, feature subset, reward definition,
+environment settings, and optimization hyperparameters without requiring source
+code changes. Before training begins, the pipeline validates path availability,
+feature definitions, split feasibility, and column compatibility so that
+misconfigured experiments fail early rather than consuming training time.
 
-### Training Loop
+### Training Workflow
 
-Training follows the standard off-policy TD3 loop. At each step the agent
-observes state $s_t$, computes action $\mu_\theta(s_t)$, adds exploration
-noise $\epsilon \sim \mathcal{N}(0, \sigma)$, and executes the clipped
-result. The transition $(s_t, a_t, r_t, s_{t+1})$ is stored in a replay
-buffer. Mini-batches sampled from the buffer are used to update the twin
-critics against the minimum-target Bellman backup and then to update the
-actor via the deterministic policy gradient. The actor and target networks
-are updated every $d$ critic steps (delayed update), and target parameters
-track main parameters through soft updates with coefficient $\tau$.
+The processed training split is used to construct the trading environment with
+a continuous action space $a_t \in [-1, 1]$ representing target portfolio
+exposure. Observations are composed of the engineered feature vector defined in
+Chapter 5, while transaction costs and position changes are handled within the
+environment so that they enter the reward seen by the agent.
 
-Exploration noise is decayed over training to shift the agent from
-exploration toward exploitation as the policy matures.
+Training then follows the TD3 procedure described in Chapter 4: experience is
+collected into a replay buffer, critics are updated from sampled mini-batches,
+the actor is updated with delay relative to the critics, and target networks
+track the main networks through soft updates. Exploration is introduced through
+action noise during training and removed at evaluation time. Checkpoints and
+run metadata are persisted throughout the process to support interruption
+recovery and experiment comparison.
 
-### Checkpointing and Reproducibility
+### Evaluation and Logging
 
-Random seeds are applied consistently across NumPy, PyTorch, and the RL
-framework so that runs under identical configurations produce comparable
-training trajectories. Checkpoints save model parameters, optimizer states,
-and step counters at regular intervals, supporting both interruption recovery
-and continuation experiments. Run parameters, metrics, and artifacts are
-logged through MLflow, enabling auditable comparison across feature sets,
-reward functions, and hyperparameter settings.
+Final results are computed on a separate evaluation environment built from the
+held-out test split. Two output streams are kept distinct throughout: the
+training reward, which serves as an optimization diagnostic, and the realized
+portfolio return series, from which financial metrics are computed. This
+separation is necessary because reward shaping may include penalties or other
+terms that should not be interpreted as realized investment performance.
 
-### Evaluation Protocol
-
-Final performance is reported on the held-out test split using a separate
-evaluation environment built from test data. The evaluation rollout produces
-two output streams that are kept strictly separate: the optimization reward
-(used as a training diagnostic) and the realized portfolio return series
-(used for financial metrics). Conflating these streams — for example,
-computing Sharpe ratio from the reward signal rather than from log returns —
-invalidates risk-adjusted metrics.
-
-Financial performance metrics computed from the return series include
-annualized return, annualized volatility, Sharpe ratio, Sortino ratio,
-maximum drawdown, win rate, and profit factor. Behavioral outputs include
-action trajectories and turnover statistics. All financial metrics are
-computed on the same price series as the evaluation rollout to ensure
-benchmark comparisons are consistent.
+Metrics derived from the test rollout include return, volatility, Sharpe ratio,
+Sortino ratio, drawdown, turnover, and related behavioral diagnostics. These
+outputs, together with configuration snapshots and supporting artifacts, are
+logged through MLflow to preserve traceability across experiments.
