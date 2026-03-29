@@ -32,15 +32,23 @@ input space that the policy and critic networks must generalize over. Features
 are included only when they carry a distinct theoretical mechanism not already
 captured by other features in the set.
 
-**Timescale consistency.** The observation is restricted to LOB-derived
-features. Bar-based signals such as OHLCV aggregates or technical indicators
-require a fixed aggregation window that imposes a coarser timescale than the
-tick-level decisions being made. At the resolution studied here, a one-second
-bar collapses dozens of individual order-book events into a single price
-summary, discarding the queue dynamics, imbalance shifts, and spread
-fluctuations that constitute the agent's primary decision-relevant information.
-Including such features would create a mismatch between the temporal resolution
-of the observation and the resolution at which the agent acts and is evaluated.
+**Scope and timescale consistency.** The observation is restricted to
+LOB-derived features. Bar-based signals such as OHLCV aggregates or technical
+indicators require a fixed aggregation window that imposes a coarser timescale
+than the tick-level decisions being made: a one-second bar collapses dozens of
+individual order-book events into a single price summary, discarding the queue
+dynamics, imbalance shifts, and spread fluctuations that constitute the
+decision-relevant information at this resolution. Cross-asset signals such as
+VIX or index returns face a related problem: they update at frequencies far
+below the inter-event times of the AAPL tick stream, contributing no new
+information between consecutive book updates. Aligning multiple tick streams
+at sub-second precision also introduces synchronization risk — a VIX
+observation and an AAPL LOB snapshot sharing a timestamp to the second are not
+the same market moment. Beyond these practical constraints, restricting the
+state to single-asset LOB features is a deliberate experimental choice: the
+thesis tests whether microstructure-aware features alone are sufficient for a
+viable agent. Adding cross-asset signals would answer a different question and
+prevent clean attribution of any observed performance to LOB structure.
 
 ### Feature Groups and Selection Rationale
 
