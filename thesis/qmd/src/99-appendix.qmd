@@ -1,135 +1,187 @@
-## Appendix A: Technical and Implementation Details
+# Appendix
 
-### A.1 Technical Indicator Formulas
+## A: LOB Feature Inventory
 
-To keep the core methodology chapters concise, standard technical-indicator
-formulas are consolidated here.
+The table below is the complete specification of all features used in the
+state-space experiments. Feature names match the keys registered in the
+feature registry (`src/trading_rl/features/lob_features.py`). The active
+feature set for the main experiments is defined in
+`src/configs/features/hft_lob_features_state_space.yaml`.
 
-**Relative Strength Index (RSI, period $n$)**
+| Feature name | Group | Formula (key inputs) | Param | Literature |
+|---|---|---|---|---|
+| `hft_book_pressure_l0` | Imbalance | $(V^{bid}_0 - V^{ask}_0)/(V^{bid}_0 + V^{ask}_0)$ | level 0 | Cao et al. (2004); Biais et al. (1995) |
+| `hft_book_pressure_l1` | Imbalance | same, level 1 | level 1 | Cao et al. (2004) |
+| `hft_book_pressure_l2` | Imbalance | same, level 2 | level 2 | Cao et al. (2004) |
+| `hft_order_book_imbalance_3l` | Imbalance | $\sum_{i=0}^{2}(V^{bid}_i - V^{ask}_i) / \sum_{i=0}^{2}(V^{bid}_i + V^{ask}_i)$ | $N=3$ | Cont et al. (2014) |
+| `hft_order_count_imbalance_l0` | Imbalance | $(C^{bid}_0 - C^{ask}_0)/(C^{bid}_0 + C^{ask}_0)$ | level 0 | Biais et al. (1995) |
+| `hft_microprice` | Fair value | $(V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0)/(V^{bid}_0+V^{ask}_0)$ | — | Stoikov (2018) |
+| `hft_microprice_divergence` | Fair value | Microprice $-$ MidPrice | — | Stoikov (2018) |
+| `hft_vwmp_skew` | Fair value | (VWMP $-$ MidPrice) / Spread; VWMP over 3 levels | $N=3$ | Stoikov (2018) |
+| `hft_spread_bps` | Spread/cost | $(P^{ask}_0 - P^{bid}_0)/\text{Mid} \times 10{,}000$ | — | Kyle (1985); Glosten & Milgrom (1985) |
+| `hft_spread_ratio_50` | Spread/cost | SpreadBps / rolling mean SpreadBps | $W=50$ | Easley et al. (2012) |
+| `hft_bid_slope` | Spread/cost | $(P^{bid}_0 - P^{bid}_4)/\sum_{i=0}^{4}V^{bid}_i$ | 5 levels | Bouchaud et al. (2002) |
+| `hft_ask_slope` | Spread/cost | $(P^{ask}_4 - P^{ask}_0)/\sum_{i=0}^{4}V^{ask}_i$ | 5 levels | Bouchaud et al. (2002) |
+| `hft_ofi` | Order flow | $\Delta V^{bid}_t \cdot \mathbf{1}[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t \cdot \mathbf{1}[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}]$ | — | Cont et al. (2014) |
+| `hft_ofi_rolling_50` | Order flow | Rolling sum of OFI | $W=50$ | Kolm et al. (2023) |
+| `hft_bid_queue_depletion` | Order flow | $\max(V^{bid}_{0,t-1} - V^{bid}_{0,t},\ 0) / V^{bid}_{0,t-1}$ | bid side | Foucault et al. (2005) |
+| `hft_ask_queue_depletion` | Order flow | same, ask side | ask side | Foucault et al. (2005) |
+| `hft_signed_trade_flow_50` | Order flow | Rolling sum of signed trade volume (buyer $+$, seller $-$) | $W=50$ | Lee & Ready (1991) |
+| `hft_odd_lot_trade_ratio_200` | Order flow | Fraction of trades with size $< 100$ shares over window | $W=200$ | Boehmer et al. (2021) |
+| `hft_odd_lot_imbalance_200` | Order flow | $(B_W - S_W)/(B_W+S_W)$ for odd-lot trades | $W=200$ | Boehmer et al. (2021) |
+| `hft_inter_event_time` | Regime/temporal | $\log(1 + \Delta t_{\text{ns}})$ | — | Engle (2000) |
+| `hft_mid_price_acceleration` | Regime/temporal | $M_t - 2M_{t-1} + M_{t-2}$ | — | Abergel et al. (2016) |
+| `hft_hour_sin` | Regime/temporal | $\sin(2\pi h_t / 24)$ | — | Wood et al. (1985) |
+| `hft_hour_cos` | Regime/temporal | $\cos(2\pi h_t / 24)$ | — | Wood et al. (1985) |
 
-$$
-\mathrm{RSI}_t = 100 - \frac{100}{1 + RS_t}, \quad
-RS_t = \frac{\mathrm{AvgGain}_{t,n}}{\mathrm{AvgLoss}_{t,n}}
-$$
+All features except `hft_hour_sin` and `hft_hour_cos` are z-score normalized
+using training-split statistics only.
 
-where $\mathrm{AvgGain}_{t,n}$ and $\mathrm{AvgLoss}_{t,n}$ are rolling or
-smoothed average positive/negative returns over window $n$.
+---
 
-**Moving Average Convergence Divergence (MACD)**
+## B: TD3 Hyperparameters
 
-$$
-\mathrm{MACD}_t = \mathrm{EMA}_{\text{fast}}(P_t) - \mathrm{EMA}_{\text{slow}}(P_t)
-$$
+The table below lists all hyperparameters for the main AAPL state-space
+experiment. The full configuration file is
+`src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml`.
 
-$$
-\mathrm{Signal}_t = \mathrm{EMA}_{\text{signal}}(\mathrm{MACD}_t),
-\quad
-\mathrm{Histogram}_t = \mathrm{MACD}_t - \mathrm{Signal}_t
-$$
+| Parameter | Value | Notes |
+|---|---|---|
+| **Architecture** | | |
+| Actor hidden dims | [128, 64] | ReLU activations |
+| Critic hidden dims | [128, 64] | ReLU activations |
+| **Optimization** | | |
+| Actor learning rate | 0.0001 | Adam |
+| Critic learning rate | 0.0001 | Adam |
+| Actor weight decay | 0.000002 | L2 regularization |
+| Critic weight decay | 0.000002 | |
+| Loss function | Smooth L1 (Huber) | |
+| **TD3 mechanisms** | | |
+| Discount factor $\gamma$ | 0.99 | |
+| Target update $\tau$ | 0.001 | Soft update |
+| Policy delay | 2 | Critic updates per actor update |
+| Target policy noise $\sigma$ | 0.2 | Added to target action |
+| Noise clip | 0.3 | |
+| Exploration noise std | 0.2 | During training only |
+| **Training** | | |
+| Total steps | 2,000,000 | |
+| Initial random steps | 1,000 | Warm-up before learning |
+| Frames per batch | 200 | |
+| Optimisation steps per batch | 5 | |
+| Mini-batch size | 128 | |
+| Replay buffer size | 100,000 | |
+| **Data** | | |
+| Training rows | 15,000 | Chronological split |
+| Reward type | Differential Sharpe | $\eta = 0.01$ |
+| Transaction fee | 0.000 | Baseline setting |
+| Random seed | 42 | |
 
-**Bollinger Bands (window $n$, multiplier $k$)**
+---
 
-$$
-\mathrm{Middle}_t = \mathrm{SMA}_n(P_t),
-\quad
-\mathrm{Upper}_t = \mathrm{Middle}_t + k\sigma_{t,n},
-\quad
-\mathrm{Lower}_t = \mathrm{Middle}_t - k\sigma_{t,n}
-$$
+## C: Experiment Configuration Example
 
-where $\sigma_{t,n}$ is rolling standard deviation over $n$ periods.
-
-### A.2 Configuration and Parameter Examples
-
-Representative scenario configuration snippet:
+The YAML snippet below is a condensed version of the main experiment
+configuration, illustrating the configuration-driven workflow described in
+Chapter 6.
 
 ```yaml
 seed: 42
+
 data:
-  data_path: "./data/raw/synthetic/BTCUSDT_2023.parquet"
-  train_size: 7000
+  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
+  feature_config: "src/configs/features/hft_lob_features_state_space.yaml"
+  train_size: 15000
+
 env:
   backend: "tradingenv"
-  trading_fees: 0.0
-  feature_columns: [...]
-  reward_type: "log_return"
+  mode: "hft"
+  trading_fees: 0.000
+  price_column: "close"
+  reward_type: "differential_sharpe"
+  reward_eta: 0.01
+
+network:
+  actor_hidden_dims: [128, 64]
+  value_hidden_dims: [128, 64]
+
 training:
   algorithm: "TD3"
   actor_lr: 0.0001
   value_lr: 0.0001
   gamma: 0.99
+  tau: 0.001
+  policy_noise: 0.2
+  noise_clip: 0.3
+  policy_delay: 2
+  max_steps: 2000000
+  sample_size: 128
+  buffer_size: 100000
+  loss_function: "smooth_l1"
 ```
 
-Representative feature selection snippet:
+---
 
-```yaml
-features:
-  - feature_return_lag_1
-  - feature_realized_volatility_24
-  - feature_rsi_14
-```
+## D: Implementation Snippets
 
-These snippets illustrate the configuration-driven workflow described in
-Chapter 6.3; full experiment files are stored under `src/configs/`.
-
-### A.3 Implementation Snippets
-
-Representative feature registration pattern:
+**Feature registration pattern:**
 
 ```python
-@register_feature("feature_return_lag_1")
-def compute_return_lag_1(df: pd.DataFrame) -> pd.Series:
-    """One-period lagged log return."""
-    returns = np.log(df["close"] / df["close"].shift(1))
-    return returns.shift(1)
+@register_feature("ofi")
+class OFIFeature(LOBFeature):
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        bid_grew = df[self.bid_price_col] >= df[self.bid_price_col].shift(1)
+        ask_shrank = df[self.ask_price_col] <= df[self.ask_price_col].shift(1)
+        delta_bid = df[self.bid_size_col].diff()
+        delta_ask = df[self.ask_size_col].diff()
+        return (delta_bid * bid_grew - delta_ask * ask_shrank).fillna(0.0)
 ```
 
-Representative Differential Sharpe implementation pattern:
+**Differential Sharpe reward:**
 
 ```python
 class DifferentialSharpeRatio:
     def __init__(self, eta: float = 0.01):
         self.eta = eta
-        self.A = 0.0
-        self.B = 0.0
+        self.A = self.B = 0.0
 
-    def update(self, return_t: float) -> float:
-        self.A = self.eta * return_t + (1 - self.eta) * self.A
-        self.B = self.eta * return_t**2 + (1 - self.eta) * self.B
-        variance = self.B - self.A**2
-        sharpe = self.A / (np.sqrt(variance) + 1e-8)
-        return sharpe
+    def update(self, r: float) -> float:
+        delta_A = r - self.A
+        delta_B = r**2 - self.B
+        dsr = (self.B * delta_A - 0.5 * self.A * delta_B) / (
+            (self.B - self.A**2) ** 1.5 + 1e-8
+        )
+        self.A += self.eta * delta_A
+        self.B += self.eta * delta_B
+        return float(dsr)
 ```
 
-These examples are intentionally compact and serve as reference patterns rather
-than full source listings.
+---
 
-### A.4 TD3 Workflow Pseudo-Code
+## E: TD3 Training Pseudo-Code
 
 ```text
-Algorithm: TD3 Trading Experiment Workflow
+Input:  experiment configuration
+Output: trained policy, evaluation metrics
 
-Input: experiment configuration (data, features, env, TD3 hyperparameters, logging)
-Output: trained policy, checkpoints, evaluation metrics, plots
-
-1. Load experiment configuration and apply optional overrides
-2. Validate configuration, paths, feature definitions, and split feasibility
-3. Load raw market dataset and sort chronologically
-4. Split data into train / validation / test subsets
-5. Fit feature transformations on training subset only
-6. Transform train, validation, and test subsets using fitted feature pipeline
-7. Build training environment from processed training data
-8. Initialize TD3 actor, twin critics, target networks, replay buffer, and optimizers
-9. For each training step until max_steps:
-   a. Select action from actor + exploration noise
-   b. Step environment and collect transition
-   c. Store transition in replay buffer
-   d. Sample mini-batch and update twin critics
-   e. Periodically update actor (delayed policy update)
-   f. Soft-update target networks
-   g. Periodically log metrics and save checkpoints
-10. Save final checkpoint (and interrupt checkpoint if training stops early)
-11. Build evaluation environment on validation or test data
-12. Run deterministic policy evaluation and baseline comparisons
-13. Compute quantitative finance performance metrics and export results
+1.  Load and validate configuration
+2.  Load AAPL MBP-10 dataset; sort chronologically
+3.  Split into train / validation / test (chronological)
+4.  Fit feature pipeline on training split only
+5.  Transform all splits with fitted pipeline
+6.  Build training environment from processed training data
+7.  Initialise actor μ_θ, twin critics Q_φ1, Q_φ2,
+    target networks μ_θ', Q_φ1', Q_φ2', replay buffer D
+8.  For each step t = 1 … max_steps:
+    a.  a_t = μ_θ(s_t) + ε,  ε ~ N(0, σ_explore)
+    b.  Execute a_t; observe r_t, s_{t+1}; store in D
+    c.  Sample mini-batch from D
+    d.  Compute target: ã = μ_θ'(s') + clip(N(0,σ_noise), ±c)
+        y = r + γ · min_{i=1,2} Q_φi'(s', ã)
+    e.  Update both critics: minimise Smooth-L1(y - Q_φi(s,a))
+    f.  Every policy_delay steps:
+        Update actor: maximise Q_φ1(s, μ_θ(s))
+        Soft-update targets: θ' ← τθ + (1-τ)θ'
+    g.  Checkpoint and log at configured intervals
+9.  Evaluate deterministic policy on test split
+10. Compute financial metrics from realized return series
 ```
