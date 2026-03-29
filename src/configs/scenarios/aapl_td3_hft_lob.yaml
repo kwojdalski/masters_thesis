@@ -37,6 +37,7 @@ env:
   # Price column for environment pricing/PnL
   # Using mid price from best bid/ask
   price_column: "close"  # or we could compute mid: (bid_px_00 + ask_px_00) / 2
+  include_position_feature: true
 
   # HFT/LOB microstructure features (22 features)
   feature_columns: [
@@ -69,6 +70,7 @@ env:
     "feature_hft_ask_px_02",
     "feature_hft_bid_sz_02",
     "feature_hft_ask_sz_02",
+    "feature_position",
   ]
 
   reward_type: "differential_sharpe"

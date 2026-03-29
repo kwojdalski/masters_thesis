@@ -31,6 +31,7 @@ env:
 
   trading_fees: 0.000
   price_column: "close"
+  include_position_feature: true
 
   feature_columns: [
     # Imbalance features
@@ -67,6 +68,7 @@ env:
     "feature_hft_mid_price_acceleration",
     "feature_hft_hour_sin",
     "feature_hft_hour_cos",
+    "feature_position",
   ]
 
   reward_type: "differential_sharpe"
