@@ -22,17 +22,19 @@ These values are deliberately conservative, reduced from the more aggressive def
 
 ### Rationale for Conservative Learning Rates
 
-Financial time series data presents unique challenges compared to simulated control tasks such as robotic manipulation or Atari games:
+The choice of learning rate in this thesis is motivated primarily by training
+stability rather than by any market-specific theoretical optimum. In TD3, both
+the critic targets and the policy updates depend on noisy sampled experience,
+so aggressive step sizes can destabilize value estimation and propagate that
+instability into the actor. This concern is especially relevant in the present
+setting, where rewards are transaction-cost-adjusted and the state is built
+from high-frequency market features whose short-horizon dynamics are noisy.
 
-1. **Non-stationarity**: Market dynamics evolve over time, violating the stationarity assumption implicit in standard RL theory. Conservative learning rates allow the agent to adapt gradually without overreacting to transient market fluctuations.
-
-2. **Reward noise**: Returns are inherently stochastic, with signal-to-noise ratios often below 1.0 in high-frequency trading. Large step sizes amplify the impact of noisy gradients, destabilizing learning.
-
-3. **Out-of-distribution states**: Financial crises, regime shifts, and black swan events produce states far outside the training distribution. Smaller learning rates reduce the risk of catastrophic forgetting when encountering such anomalies.
-
-4. **Q-value scale sensitivity**: In environments where rewards accumulate over long horizons (high discount factors), Q-values can grow large in magnitude. Aggressive learning rates can cause explosive updates, leading to numerical instability.
-
-The choice of $\alpha = 0.0001$ balances these concerns while maintaining sufficient plasticity for the agent to improve over millions of training steps.
+For this reason, the implementation uses a relatively small learning rate of
+$\alpha = 0.0001$ for both actor and critic updates. The value should be
+understood as a pragmatic, stability-oriented hyperparameter choice consistent
+with preliminary experimentation, not as a parameter derived from financial
+theory.
 
 ### Adam Optimizer
 
