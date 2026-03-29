@@ -1,10 +1,5 @@
 \listoffigures
 
-\newpage
-\thispagestyle{empty}
-\mbox{}
-\newpage
-
 # Bibliography
 
 ::: {#refs}
