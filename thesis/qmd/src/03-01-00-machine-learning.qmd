@@ -1,17 +1,22 @@
 # Machine Learning
 
-In trading research, machine learning is not a single method but a family of
-problem formulations. The distinction matters because the choice of learning
-paradigm determines what the model is asked to do. A model may be trained to
-forecast a return, classify a market condition, discover latent structure in
-the data, or choose actions that directly affect portfolio evolution.
+In quantitative trading, the main methodological choice is not simply whether
+to use machine learning, but how to formulate the decision problem. The same
+market data can support very different tasks: forecasting future returns,
+classifying market conditions, extracting latent structure, or selecting
+actions that directly determine portfolio exposure. These formulations are not
+interchangeable. They imply different objectives, different forms of
+supervision, and different links between model output and realized trading
+performance.
 
-For this thesis, the role of the present chapter is not to review machine
-learning in general terms. Instead, it is to position reinforcement learning
-relative to other paradigms that are commonly used in quantitative trading.
-This comparison is necessary because trading can be formulated either as a
-prediction task or as a sequential control problem, and those formulations lead
-to materially different modeling choices.
+The purpose of the present chapter is therefore not to survey machine learning
+in generic terms, but to position reinforcement learning relative to other
+paradigms used in quantitative trading. This comparison matters because
+prediction-based approaches and sequential control approaches solve different
+problems. A forecasting model produces a signal that must later be translated
+into trades, whereas a reinforcement learning agent is trained to choose
+actions directly under transaction frictions, portfolio constraints, and
+delayed feedback.
 
 In the sections that follow, supervised learning is treated as the framework
 most naturally suited to forecasting labeled targets such as future returns or
