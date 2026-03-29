@@ -153,7 +153,5 @@ single evaluation framework for algorithmic trading research.
 {{< include ./08-04-recommendations-for-practitioners.qmd >}}
 {{< include ./08-05-conclusion.qmd >}}
 
-
-\newpage
 {{< include ./98-bibliography.qmd >}}
 {{< include ./99-appendix.qmd >}}
