@@ -12,9 +12,7 @@ Trading systems can be formulated with either discrete or continuous action spac
 * Two actions: $\{0, 1\}$ representing short and long positions only
 * Five actions: $\{-1, -0.5, 0, 0.5, 1\}$ for finer-grained position sizing
 
-While discrete actions simplify the learning problem and are compatible with algorithms such as Deep Q-Networks (DQN), they impose artificial constraints on portfolio management. Real-world traders continuously adjust position sizes based on conviction levels and risk tolerance.
-
-**Continuous action spaces** allow the agent to output any value within a specified range, enabling smooth portfolio allocation decisions. This formulation is more realistic for institutional trading where positions can be scaled incrementally.
+**Continuous action spaces** allow the agent to output any value within a specified range, enabling smooth portfolio allocation decisions.
 
 ### Implementation: Box Portfolio Action Space
 
@@ -41,17 +39,6 @@ Transaction costs are applied proportionally to position changes. If the agent t
 $$\text{fee}_t = \text{trading\_fees} \times |a_t - a_{t-1}| \times \text{notional value}$$
 
 This incentivizes the agent to minimize unnecessary portfolio rebalancing, as frequent adjustments erode returns. During training, the reinforcement learning algorithm must learn to balance the potential gains from reallocation against the friction costs incurred.
-
-### Algorithmic Compatibility
-
-The continuous action space requires policy gradient methods or actor-critic algorithms capable of handling continuous control. Suitable algorithms include:
-
-* **Deep Deterministic Policy Gradient (DDPG)**: Deterministic policy for continuous actions
-* **Twin Delayed Deep Deterministic Policy Gradient (TD3)**: Improved DDPG variant with twin critics and delayed updates
-* **Proximal Policy Optimization (PPO)**: Stochastic policy supporting continuous action distributions
-* **Soft Actor-Critic (SAC)**: Maximum entropy framework for continuous control
-
-In the empirical implementation, TD3 is employed due to its stability improvements over DDPG, particularly the use of twin Q-networks to reduce overestimation bias and delayed policy updates to stabilize training dynamics. These properties are valuable in financial environments characterized by noisy reward signals and non-stationary dynamics.
 
 ### Action Smoothing and Exploration Noise
 
