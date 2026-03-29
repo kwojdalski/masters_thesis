@@ -1,5 +1,5 @@
 ---
-title: Reinforcement Learning for Trading
+title: Microstructure-Aware Reinforcement Learning for High-Frequency Trading
 author: Krzysztof Wojdalski
 date: 2025-05-03
 format:
@@ -34,7 +34,7 @@ header-includes:
   - \keywords{Reinforcement Learning, High-Frequency Trading, Order Book, Single-Asset Trading, TD3}
   - \dziedzina{14.3 Economics}
   - \klasyfikacja{G11, G17, C63}
-  - \tytulang{Reinforcement Learning for High-Frequency Single-Asset Trading}
+  - \tytulang{Microstructure-Aware Reinforcement Learning for High-Frequency Trading}
 post-render:
   - post-render-script.py
 editor_options:
