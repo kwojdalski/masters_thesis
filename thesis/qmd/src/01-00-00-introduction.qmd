@@ -22,12 +22,17 @@ suitability of reinforcement learning for this domain.
 Reinforcement learning is a plausible modelling framework for this problem
 because trading is sequential and path dependent. Each action affects future
 exposure, portfolio evolution, and the set of subsequent decisions available to
-the agent. In high-frequency settings, however, the usefulness of reinforcement
-learning depends on whether the derived state representation extracts genuine
-directional signal from raw order-book data, whether the reward formulation is
-robust to the extreme noise-to-signal ratio at tick frequency, and whether the
-evaluation window is sufficiently separated from training to test generalization
-across intraday regime variation.
+the agent. In high-frequency settings, this distinction matters. Industry deployments
+such as JPMorgan's execution engine [@Mosic2017] have applied RL to limit
+order book data for optimal execution — minimizing implementation shortfall
+on large orders given a known trade schedule, where the LOB state informs
+fill probability and spread cost rather than price direction. Directional
+exposure control is a harder problem: the reward signal at tick frequency is
+dominated by microstructure noise rather than genuine price movement, the LOB
+state must be transformed into features that carry predictive signal rather
+than liquidity estimates, and the agent must generalize across intraday
+regimes whose statistical properties can differ substantially from the
+training window.
 
 This thesis investigates the use of reinforcement learning, with particular
 focus on TD3, for high-frequency single-asset trading based on
