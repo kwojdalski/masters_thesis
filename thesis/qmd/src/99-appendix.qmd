@@ -171,8 +171,8 @@ training:
 The diagram below summarizes the configuration-driven workflow described in
 Chapter 6.
 
-::: {style="text-align: center;"}
 ```{mermaid}
+%%| fig-align: center
 %%{init: {
   'theme': 'base',
   'themeVariables': {
@@ -199,7 +199,6 @@ flowchart TD
     H --> I[Held-out evaluation]
     I --> J[Metrics + robustness outputs]
 ```
-:::
 
 ---
 
@@ -208,8 +207,8 @@ flowchart TD
 The diagram below summarizes the core TD3 update mechanics used in the thesis
 implementation, abstracting away from project-specific plumbing.
 
-::: {style="text-align: center;"}
 ```{mermaid}
+%%| fig-align: center
 %%{init: {
   'theme': 'base',
   'themeVariables': {
@@ -237,7 +236,6 @@ flowchart TD
     F -->|No| I[Next critic step]
     H --> I
 ```
-:::
 
 ---
 
