@@ -38,22 +38,11 @@ theory.
 
 ### Adam Optimizer
 
-Both actor and critic networks are optimized using the Adam (Adaptive Moment Estimation) optimizer @Kingma2014, which combines momentum-based updates with adaptive per-parameter learning rates. The Adam update rule is:
-
-$$m_t = \beta_1 m_{t-1} + (1 - \beta_1) g_t$$
-$$v_t = \beta_2 v_{t-1} + (1 - \beta_2) g_t^2$$
-$$\hat{m}_t = \frac{m_t}{1 - \beta_1^t}, \quad \hat{v}_t = \frac{v_t}{1 - \beta_2^t}$$
-$$\theta_t = \theta_{t-1} - \alpha \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$$
-
-where:
-
-* $g_t$ is the gradient at step $t$
-* $m_t$ is the first moment (momentum) estimate
-* $v_t$ is the second moment (uncentered variance) estimate
-* $\beta_1 = 0.9$ and $\beta_2 = 0.999$ are decay rates (default values)
-* $\epsilon = 10^{-8}$ prevents division by zero
-
-Adam's adaptive learning rate mechanism automatically scales updates based on gradient statistics, providing robustness to parameter initialization and gradient magnitude variations across layers. This is particularly valuable in deep networks where gradients may differ by several orders of magnitude between early and late layers.
+Both actor and critic networks are optimized using Adam @Kingma2014. In the
+present thesis, Adam is treated as a standard optimizer choice for deep
+actor-critic training rather than as a separate object of methodological
+analysis. Its role is simply to provide stable parameter updates under noisy
+gradient estimates, with standard momentum settings used in the implementation.
 
 ### Weight Decay and Regularization
 
