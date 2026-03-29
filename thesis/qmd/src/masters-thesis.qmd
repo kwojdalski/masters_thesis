@@ -11,6 +11,22 @@ format:
     number-sections: true
     output-dir: ../../build
     linestretch: 1.5
+    header-includes:
+      - \usepackage[utf8]{inputenc}
+      - \usepackage{amsthm}
+      - \usepackage{rotating}
+      - \usepackage{algorithm}
+      - \usepackage{algpseudocode}
+      - \usepackage{amsmath}
+      - \usepackage{booktabs}
+      - \usepackage{longtable}
+      - \nralbumu{310284}
+      - \speciality{Economics}
+      - \opiekun{dr Pawel Sakowski}
+      - \keywords{Reinforcement Learning, High-Frequency Trading, Order Book, Single-Asset Trading, TD3}
+      - \dziedzina{14.3 Economics}
+      - \klasyfikacja{G11, G17, C63}
+      - \tytulang{Microstructure-Aware Reinforcement Learning for High-Frequency Trading}
   docx:
     embed-resources: true
   html:
@@ -19,22 +35,6 @@ format:
     number-sections: true
     toc-location: right
 bibliography: ../../bibliography/library.bib
-header-includes:
-  - \usepackage[utf8]{inputenc}
-  - \usepackage{amsthm}
-  - \usepackage{rotating}
-  - \usepackage{algorithm}
-  - \usepackage{algpseudocode}
-  - \usepackage{amsmath}
-  - \usepackage{booktabs}
-  - \usepackage{longtable}
-  - \nralbumu{310284}
-  - \speciality{Economics}
-  - \opiekun{dr Pawel Sakowski}  # Replace with your actual supervisor's name
-  - \keywords{Reinforcement Learning, High-Frequency Trading, Order Book, Single-Asset Trading, TD3}
-  - \dziedzina{14.3 Economics}
-  - \klasyfikacja{G11, G17, C63}
-  - \tytulang{Microstructure-Aware Reinforcement Learning for High-Frequency Trading}
 post-render:
   - post-render-script.py
 editor_options:
