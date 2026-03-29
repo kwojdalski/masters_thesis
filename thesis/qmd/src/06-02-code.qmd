@@ -67,6 +67,20 @@ training and removed at evaluation time.
 \end{algorithm}
 ```
 
+The notation follows the conventions established in Chapter 4.
+$\mu_\theta$ is the actor (deterministic policy) with parameters $\theta$;
+$Q_{\phi_i}$ are the two critic networks with parameters $\phi_i$;
+primed symbols ($\theta'$, $\phi_i'$) denote the corresponding slowly updated
+target networks.
+$\mathcal{D}$ is the replay buffer storing past transitions $(s, a, r, s')$.
+$\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})$ is the exploration
+noise added to actions during training only;
+$\sigma_{\text{noise}}$ and $c$ are the target policy smoothing standard
+deviation and clip bound respectively.
+$\gamma$ is the discount factor, $\tau$ the soft-update coefficient, $\alpha$
+the actor learning rate, and $d$ the policy delay (critic updates per actor
+update). Concrete values for all parameters are listed in Appendix B.
+
 ### Evaluation
 
 Final performance is reported on the held-out test split using a separate
