@@ -206,16 +206,26 @@ Result portability depends on data and protocol harmonization \\
 \endgroup
 ```
 
-### Synthesis and Implications for This Thesis
+The literature reviewed here converges on several conclusions relevant to the
+design choices in this thesis. Continuous-action actor-critic methods —
+particularly DDPG and TD3 — consistently outperform discrete-action
+alternatives for position-sizing tasks, a finding confirmed across independent
+studies with different assets and market regimes [@Liang2018; @Majidi2024;
+@Kabbani2022]. Risk-adjusted reward signals, especially Differential Sharpe
+Ratio formulations, tend to improve out-of-sample generalization relative to
+raw return objectives, though they must be paired with evaluation on realized
+financial metrics rather than the training signal itself to avoid conflating
+optimization proxy with economic performance. Explicit transaction cost modeling
+is a prerequisite for any realistic performance claim at the frequencies
+considered here.
 
-The literature collectively supports several design choices made in this thesis:
-
-1. **Continuous control methods** (TD3) are advantageous for position sizing,
-   confirmed across multiple studies [@Liang2018; @Majidi2024; @Kabbani2022].
-2. **Risk-adjusted rewards** improve generalization but must be paired with
-   evaluation on realized metrics, not just the training objective.
-3. **Transaction cost modeling** is non-negotiable for realistic assessment.
-4. **LOB-based state representations** are underexplored in the literature —
-   most studies use OHLCV or candlestick features. The present thesis addresses
-   this gap by constructing a microstructure-grounded observation vector from
-   10-level order book data.
+A consistent gap in the literature is the reliance on OHLCV or candlestick
+representations as the primary state input. Studies that operate at tick
+frequency and exploit the full depth of the limit order book remain scarce,
+despite the theoretical case — established in the microstructure literature —
+that the informational content relevant to short-horizon price prediction is
+concentrated precisely in the queue dynamics and imbalance structure that OHLCV
+aggregates discard. The present thesis addresses this gap directly by
+constructing the agent's observation vector entirely from 10-level order book
+data, using features grounded in the same theoretical frameworks reviewed in the
+preceding section.
