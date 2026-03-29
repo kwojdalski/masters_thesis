@@ -34,7 +34,24 @@ optimistic relative to deployable net performance. Strategies with high turnover
 are especially sensitive: at tick frequency, spread-crossing costs can be of
 similar magnitude to the short-horizon price moves the agent attempts to
 capture, meaning that a strategy appearing profitable at mid-price may generate
-neutral or negative returns under realistic bid/ask execution. Future research should therefore
-evaluate the same agents under explicit bid/ask execution rules, calibrated
-fee schedules, and slippage/impact models to quantify the robustness of the
-observed edge under realistic microstructure constraints.
+neutral or negative returns under realistic bid/ask execution. Future research
+should therefore evaluate the same agents under explicit bid/ask execution
+rules, calibrated fee schedules, and slippage/impact models to quantify the
+robustness of the observed edge under realistic microstructure constraints.
+
+### Agent-State Feature Extensions
+
+The current observation vector includes the agent's own portfolio exposure as
+the sole agent-specific feature. A natural extension is to enrich this with
+additional inventory-aware signals that describe the agent's situation within
+the episode rather than the external market state. Candidate features include
+unrealized P&L on the current position — which would allow the agent to
+distinguish a winning long from a losing long and potentially implement
+implicit stop-loss or profit-taking behavior — the number of steps the current
+position has been held, which enables time-based exit logic, and a rolling
+turnover count that makes the agent aware of its own recent transaction cost
+footprint. At a higher level, the agent's drawdown from its episode peak could
+support risk-sensitive behavior during losing runs without requiring explicit
+rule-based overlays. These extensions leave the market observation unchanged
+and add only internal state, making them a low-disruption way to test whether
+richer self-awareness improves policy quality.
