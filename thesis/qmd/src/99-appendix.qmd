@@ -1,6 +1,6 @@
-# Appendix
+\appendix
 
-## A: LOB Feature Inventory
+# LOB Feature Inventory
 
 The table below is the complete specification of all features used in the
 state-space experiments. Feature names match the keys in the feature registry
@@ -58,7 +58,7 @@ on the training split only.
 \endgroup
 ```
 
-## B: TD3 Hyperparameters
+# TD3 Hyperparameters
 
 The table below lists all hyperparameters for the main AAPL state-space
 experiment. The full configuration file is
@@ -123,7 +123,7 @@ Random seed & 42 & \\
 
 ---
 
-## C: Experiment Configuration Example
+# Experiment Configuration Example
 
 The YAML snippet below is a condensed version of the main experiment
 configuration, illustrating the configuration-driven workflow described in
@@ -166,7 +166,7 @@ training:
 
 ---
 
-## D: TD3 Training Workflow Diagram
+# TD3 Training Workflow Diagram
 
 The diagram below summarizes the configuration-driven workflow described in
 Chapter 6.
@@ -210,7 +210,7 @@ flowchart TD
 
 ---
 
-## E: TD3 Update Mechanics Diagram
+# TD3 Update Mechanics Diagram
 
 The diagram below summarizes the core TD3 update mechanics used in the thesis
 implementation, abstracting away from project-specific plumbing.
@@ -245,7 +245,7 @@ implementation, abstracting away from project-specific plumbing.
 
 ---
 
-## F: RL Algorithm Taxonomy
+# RL Algorithm Taxonomy
 
 The diagram below maps the reinforcement learning landscape from the Bellman
 equation through the key algorithmic relaxations, showing where TD3 sits
@@ -293,7 +293,7 @@ graph TD
 
 ---
 
-## G: TD3 Network Architecture
+# TD3 Network Architecture
 
 The diagram below shows how the actor, twin critics, and replay buffer interact
 in the TD3 architecture used in this thesis.
@@ -330,7 +330,7 @@ graph TD
 
 ---
 
-## H: Data Preparation Pipeline
+# Data Preparation Pipeline
 
 The diagram below shows the feature pipeline design that ensures no information
 from the validation or test splits leaks into the fitted normalization
@@ -354,7 +354,7 @@ parameters.
 
 ---
 
-## I: TD3 Training Pseudo-Code
+# TD3 Training Pseudo-Code
 
 ```{=latex}
 \begin{algorithm}
