@@ -249,7 +249,8 @@ implementation, abstracting away from project-specific plumbing.
 
 The diagram below maps the reinforcement learning landscape from the Bellman
 equation through the key algorithmic relaxations, showing where TD3 sits
-relative to other families of methods.
+relative to other families of methods. Source: author's own diagram, based on
+@Sutton2018.
 
 ```{=latex}
 \begin{center}
