@@ -62,21 +62,6 @@ results persisted through MLflow. Logged artifacts include metrics, plots,
 config snapshots, and statistical test outputs, enabling auditability of
 reported thesis results.
 
-### Design Principles
-
-The codebase follows five primary engineering principles:
-
-1. **Modularity**: clear separation of concerns across data, environment,
-   learning, and evaluation.
-2. **Extensibility**: abstract trainer and feature interfaces support adding new
-   algorithms or state representations.
-3. **Configuration-driven experimentation**: declarative scenario definitions
-   preserve methodological reproducibility.
-4. **Reproducibility and traceability**: run metadata and artifacts are logged
-   systematically.
-5. **Operational clarity**: explicit interfaces and type-annotated components
-   reduce ambiguity in research workflows.
-
 Detailed implementation snippets and parameterized examples referenced by this
 section are consolidated in Appendix A to keep the main chapter focused on
 methodological choices rather than low-level code listings.
