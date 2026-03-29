@@ -112,14 +112,82 @@ outperformed either in isolation.
 
 ### Structured Comparison of Representative Studies
 
-| Study | Market/Task | State Variables | Action Space | Reward / Objective | Validation Strength | Main Caveat |
-|---|---|---|---|---|---|---|
-| @Moody1998 | Futures trading | Price-derived signals + recurrent state | Continuous position-like control | Differential Sharpe Ratio | Moderate (early proof-of-concept) | Limited modern reproducibility standards |
-| @Jiang2017 | Crypto portfolio allocation | Price tensor + previous portfolio weights | Continuous portfolio weights | Commission-aware portfolio growth | Moderate | Backtest dependence on selected period/universe |
-| @Liang2018 | Stock portfolio management | Market features + macro variables | Continuous (DDPG) | Return with friction-aware setup | Moderate | Sensitivity to architecture and hyperparameters |
-| @Majidi2024 | Single-asset AMZN/BTC trading | Close-return sliding window (autoregressive) | Continuous in $[-1,1]$ | Log-return with transaction cost | Moderate (repeated runs + significance tests in parts) | Mixed performance vs buy-and-hold across assets |
-| @Kabbani2022 | Multi-asset stock trading | Cash/holdings + close + indicators + sentiment | Continuous (TD3) | Portfolio return/Sharpe-oriented objective | Moderate-to-low (test-stage training continuation) | Sharpe likely optimistic under strict frozen-policy evaluation |
-| @Shen2021 | Cross-algorithm benchmarking | Task-dependent feature sets | Mixed (discrete + continuous) | Comparative return/risk metrics | Moderate (benchmarking emphasis) | Result portability depends on data and protocol harmonization |
+```{=latex}
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{p{1.8cm}p{2.0cm}p{2.4cm}p{1.8cm}p{2.2cm}p{2.6cm}}
+\toprule
+\textbf{Study} &
+\textbf{Market / Task} &
+\textbf{State Variables} &
+\textbf{Action Space} &
+\textbf{Reward / Objective} &
+\textbf{Main Caveat} \\
+\midrule
+\endfirsthead
+\multicolumn{6}{c}{\textit{(continued from previous page)}} \\
+\toprule
+\textbf{Study} &
+\textbf{Market / Task} &
+\textbf{State Variables} &
+\textbf{Action Space} &
+\textbf{Reward / Objective} &
+\textbf{Main Caveat} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{6}{r}{\textit{(continued on next page)}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+
+Moody \& Saffell (1998) &
+Futures trading &
+Price-derived signals + recurrent state &
+Continuous position control &
+Differential Sharpe Ratio &
+Limited modern reproducibility standards \\
+
+Jiang et al.\ (2017) &
+Crypto portfolio allocation &
+Price tensor + previous portfolio weights &
+Continuous portfolio weights &
+Commission-aware portfolio growth &
+Backtest dependence on selected period and universe \\
+
+Liang et al.\ (2018) &
+Stock portfolio management &
+Market features + macro variables &
+Continuous (DDPG) &
+Return with friction-aware setup &
+Sensitivity to architecture and hyperparameters \\
+
+Majidi et al.\ (2024) &
+Single-asset AMZN/BTC &
+Close-return sliding window (autoregressive) &
+Continuous $[-1,1]$ &
+Log-return with transaction cost &
+Mixed performance vs.\ buy-and-hold across assets \\
+
+Kabbani \& Duman (2022) &
+Multi-asset stock trading &
+Cash + holdings + close + indicators + sentiment &
+Continuous (TD3) &
+Portfolio return / Sharpe-oriented &
+Sharpe likely optimistic under strict frozen-policy evaluation \\
+
+Shen et al.\ (2021) &
+Cross-algorithm benchmarking &
+Task-dependent feature sets &
+Mixed (discrete + continuous) &
+Comparative return / risk metrics &
+Result portability depends on data and protocol harmonization \\
+
+\end{longtable}
+\endgroup
+```
 
 ### Challenges and Limitations
 
