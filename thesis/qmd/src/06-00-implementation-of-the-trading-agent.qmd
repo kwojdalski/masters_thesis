@@ -9,10 +9,12 @@ the TD3 training workflow.
 The following assumptions govern the trading simulation throughout all
 experiments.
 
-**Zero market impact.** Agent trades are assumed not to move quoted prices or
-available depth. This is defensible while position sizes remain small relative
-to displayed order-book depth, which is the case for the AAPL MBP-10 dataset
-used here.
+**Zero market impact and no order-book interaction.** Agent trades are assumed
+not to move quoted prices, consume displayed depth, or alter subsequent order-book
+states. The environment therefore treats the agent as price-taking rather than
+market-shaping. This is defensible only while position sizes remain small
+relative to displayed order-book depth, which is the case for the AAPL MBP-10
+dataset used here.
 
 **Mid-price execution.** Trades are valued at the mid-price rather than at
 executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
@@ -21,10 +23,11 @@ bound on achievable net performance. Real execution must cross the spread, and
 realized returns are further reduced by maker/taker fees, queue position, and
 partial fills.
 
-**Zero latency.** Observations are assumed to be acted on immediately. This
-is appropriate for a study focused on strategy learning rather than
-low-latency execution engineering. In production HFT systems, transport and
-matching-engine latency can invalidate short-lived signals.
+**Zero latency.** Observations are assumed to be acted on immediately, with no
+transport, decision, or matching-engine delay between state observation and
+execution. This is appropriate for a study focused on strategy learning rather
+than low-latency execution engineering. In production HFT systems, such delays
+can invalidate short-lived signals.
 
 **Bounded continuous exposure.** Position constraints are enforced via the
 continuous action interval $[-1, 1]$, preventing unbounded leverage.
