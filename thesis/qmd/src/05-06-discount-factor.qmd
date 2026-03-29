@@ -1,106 +1,16 @@
 ## Discount Factor
 
-The discount factor, denoted $\gamma \in [0, 1]$, is a fundamental parameter in reinforcement learning that quantifies the relative importance of immediate versus future rewards. It directly shapes the agent's temporal preferences and planning horizon, making it a critical design choice in sequential decision-making problems.
+The discount factor $\gamma = 0.99$ is used throughout this thesis. The role
+of $\gamma$ in the value function is defined in Chapter 4; this section
+justifies the specific value chosen.
 
-### Mathematical Role in Value Functions
+With $\gamma = 0.99$ the effective planning horizon is approximately
+$1/(1-\gamma) = 100$ steps. On the HFT data used here — where each step
+corresponds to a short intraday interval — this horizon covers a meaningful
+window of market activity without extending so far that value estimates
+accumulate excessive variance from stochastic rewards.
 
-The discount factor appears in the definition of cumulative return, which forms the basis of value function estimation. The discounted return from time step $t$ is defined as:
-
-$$G_t = \sum_{k=0}^\infty \gamma^k r_{t+k+1} = r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \ldots$$
-
-where $r_t$ represents the reward at time $t$. The value function is then the expected discounted return:
-
-$$V^\pi(s) = \mathbb{E}_\pi[G_t \mid s_t = s]$$
-
-Similarly, the action-value function (Q-function) incorporates the discount factor:
-
-$$Q^\pi(s,a) = \mathbb{E}_\pi[G_t \mid s_t = s, a_t = a]$$
-
-The discount factor ensures that the infinite sum converges to a finite value, provided rewards are bounded. Without discounting ($\gamma = 1$), the return could diverge to infinity in continuing tasks, rendering value function estimation intractable.
-
-### Interpretation and Temporal Preference
-
-The discount factor can be interpreted in multiple ways:
-
-1. **Myopia parameter**: Smaller values of $\gamma$ induce myopic behavior, prioritizing immediate rewards over distant ones. A policy with $\gamma = 0$ is purely greedy, considering only the next reward.
-
-2. **Effective horizon**: The effective planning horizon can be approximated as $T_{\text{eff}} \approx 1/(1-\gamma)$. For example:
-   - $\gamma = 0.9 \implies T_{\text{eff}} \approx 10$ steps
-   - $\gamma = 0.99 \implies T_{\text{eff}} \approx 100$ steps
-   - $\gamma = 0.999 \implies T_{\text{eff}} \approx 1000$ steps
-
-3. **Geometric decay rate**: The weight assigned to a reward $k$ steps in the future is $\gamma^k$. For $\gamma = 0.99$, a reward 100 steps ahead receives approximately 37% ($e^{-1} \approx 0.368$) of the weight of an immediate reward.
-
-4. **Economic discount rate**: In financial contexts, $\gamma$ can be related to the time value of money. A discount factor of 0.99 per time step corresponds to an implicit interest rate of approximately 1% per period.
-
-### Implementation Value
-
-In this thesis, the discount factor is set to:
-
-$$\gamma = 0.99$$
-
-This value is standard in many reinforcement learning applications and reflects several considerations specific to the trading environment:
-
-#### Rationale for $\gamma = 0.99$
-
-1. **Medium-term planning horizon**: With hourly data, $\gamma = 0.99$ corresponds to an effective horizon of approximately 100 hours (roughly 4 days of continuous trading). This aligns with the goal of capturing intraday to multi-day trading opportunities without excessive emphasis on very distant outcomes.
-
-2. **Balance between exploitation and exploration**: A moderate discount factor encourages the agent to optimize cumulative returns over multiple trading days while remaining responsive to near-term market movements. This avoids both extreme myopia (which would ignore portfolio compounding effects) and excessive long-term focus (which would delay profitable actions).
-
-3. **Variance reduction**: Higher discount factors increase the variance of return estimates, as they accumulate more stochastic rewards over longer horizons. $\gamma = 0.99$ strikes a balance between planning depth and estimation stability.
-
-4. **Compatibility with episodic structure**: While financial markets operate continuously, the training environment may segment data into episodes (e.g., monthly or quarterly periods). A discount factor less than 1 ensures that terminal states have finite value even if episodes are artificially truncated.
-
-### Impact on Trading Strategy
-
-The choice of $\gamma$ significantly influences the learned trading strategy:
-
-**High discount factors** ($\gamma \geq 0.995$):
-
-* Encourage strategic positioning for longer-term trends
-* May delay action in response to immediate opportunities
-* Increase Q-value variance, potentially destabilizing training
-* Suitable for low-frequency trading (daily or weekly rebalancing)
-
-**Moderate discount factors** ($0.95 \leq \gamma < 0.995$):
-
-* Balance short-term and medium-term objectives
-* Suitable for intraday to multi-day strategies
-* Maintain reasonable value estimation variance
-* Used in this implementation
-
-**Low discount factors** ($\gamma < 0.95$):
-
-* Induce highly reactive, short-sighted trading
-* Suitable for high-frequency trading with very short holding periods
-* May miss longer-term profitable trends
-* Reduce value estimation variance but limit strategic depth
-
-### Discount Factor vs Reward Shaping
-
-It is important to distinguish the discount factor from reward shaping. The discount factor is a structural parameter that affects how future rewards are aggregated, whereas reward shaping modifies the reward signal itself to guide learning. Both mechanisms influence agent behavior but operate through different channels.
-
-For instance, using a risk-adjusted reward such as Differential Sharpe Ratio implicitly incorporates a preference for stable returns, complementing the temporal preference encoded by $\gamma$. The combination of $\gamma = 0.99$ and risk-adjusted rewards encourages the agent to pursue consistent, medium-term risk-adjusted performance.
-
-### Sensitivity to Discount Factor Selection
-
-Empirical studies in reinforcement learning demonstrate that optimal discount factors are task-dependent. In financial applications:
-
-* **Market microstructure**: High-frequency strategies may benefit from lower $\gamma$ (0.9-0.95) to capture tick-level dynamics.
-* **Asset class**: Equities, with higher volatility and lower autocorrelation, may require different $\gamma$ than foreign exchange markets, which exhibit stronger momentum.
-* **Market regime**: Bull markets with persistent trends favor higher $\gamma$, while choppy or mean-reverting markets favor lower values.
-
-In this thesis, $\gamma = 0.99$ is held constant across experiments to isolate the effects of other design choices (state representation, reward function, algorithm selection). Future work could investigate adaptive discount factors that adjust based on detected market regimes.
-
-<!-- ### Relationship to Target Network Updates
-Bellman target formula and soft update rule covered in Section 5.4 (Value Function). -->
-
-### Alternative: Episodic vs Continuing Tasks
-
-Reinforcement learning distinguishes between episodic tasks (with terminal states) and continuing tasks (infinite horizon). In episodic tasks, one could set $\gamma = 1$ and rely on episode termination to bound returns. However, financial trading is naturally a continuing task, as markets operate indefinitely without inherent terminal states.
-
-By using $\gamma = 0.99$, the formulation remains applicable to both episodic segmentation (e.g., monthly training episodes) and continuing deployment, providing methodological flexibility and ensuring theoretical soundness.
-
-### Conclusion
-
-The discount factor $\gamma = 0.99$ reflects a deliberate choice to optimize medium-term risk-adjusted returns in the trading environment. It balances the agent's responsiveness to immediate market conditions with strategic planning over multi-day horizons, aligning with the temporal structure of hourly cryptocurrency data and the goal of developing robust, adaptive trading policies.
+$\gamma = 0.99$ is held constant across all experiments to isolate the effect
+of other design choices (state representation, reward function). Sensitivity
+to $\gamma$ is a natural direction for future work, particularly whether lower
+values (0.9–0.95) improve performance in choppy, mean-reverting regimes.

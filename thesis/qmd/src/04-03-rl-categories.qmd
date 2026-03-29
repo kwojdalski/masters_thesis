@@ -41,24 +41,8 @@ variance, requiring many samples to obtain a reliable gradient signal.
 
 **Actor-critic** methods combine both: an actor $\mu_\theta$ selects actions
 and a critic $Q_w(s,a)$ evaluates them, using the critic's lower-variance
-estimates to guide actor updates. The general stochastic actor-critic
-pseudocode is:
-
-\begin{algorithm}
-\caption{Actor-Critic (general form)}
-\begin{algorithmic}[1]
-\State Initialize actor $\theta$ and critic $w$
-\Repeat
-  \State Observe state $s_t$; sample action $a_t \sim \pi_\theta(\cdot|s_t)$
-  \State Execute $a_t$; observe $r_t$, $s_{t+1}$
-  \State TD error: $\delta_t = r_t + \gamma V_w(s_{t+1}) - V_w(s_t)$
-  \State $w \leftarrow w + \alpha_w \delta_t \nabla_w V_w(s_t)$
-  \State $\theta \leftarrow \theta + \alpha_\theta \delta_t \nabla_\theta \ln\pi_\theta(a_t|s_t)$
-\Until{convergence}
-\end{algorithmic}
-\end{algorithm}
-
-TD3, the algorithm used in this thesis, is a deterministic actor-critic
+estimates to guide actor updates. The full actor-critic derivation and
+pseudocode are given in @sec-td3-lineage. TD3, the algorithm used in this thesis, is a deterministic actor-critic
 variant. The actor is a deterministic policy $\mu_\theta: \mathcal{S}
 \rightarrow \mathcal{A}$; the critic estimates the action-value function
 $Q_w(s,a)$. Determinism is appropriate here because the trading environment
