@@ -45,9 +45,11 @@ estimates to guide actor updates. The full actor-critic derivation and
 pseudocode are given in @sec-td3-lineage. TD3, the algorithm used in this thesis, is a deterministic actor-critic
 variant. The actor is a deterministic policy $\mu_\theta: \mathcal{S}
 \rightarrow \mathcal{A}$; the critic estimates the action-value function
-$Q_w(s,a)$. Determinism is appropriate here because the trading environment
-is fully observable and stochasticity in the policy is unnecessary — all
-exploration during training is handled by adding noise to actions externally.
+$Q_w(s,a)$. Although the real trading problem is only partially observable,
+the implemented agent operates on a structured, feature-engineered observation
+of market state designed to support stable continuous exposure control. In this
+setting, deterministic action selection is a natural choice, while exploration
+during training is introduced separately through externally added action noise.
 TD3's extensions (twin critics, delayed policy updates, target policy
 smoothing) address overestimation bias, a known failure mode of the
 deterministic actor-critic family.
