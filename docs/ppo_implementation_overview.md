@@ -153,3 +153,11 @@ $$
 - **Actor** uses `TanhNormal` to keep actions in bounds (e.g., `[-1, 1]`).
 - **Visualization**: discrete uses stacked action probabilities; continuous uses mean ± std ribbon.
 - **Deterministic eval** falls back to `tanh(loc)` for `TanhNormal`.
+
+## See Also
+
+- [Experiment Workflow](./experiment_workflow.md) - End-to-end training workflow
+- [DDPG Implementation](./ddpg_implementation_overview.md) - Off-policy deterministic actor-critic
+- [TD3 Implementation](./td3_implementation_overview.md) - TD3 with twin critics
+- [Data Guide](./data_guide.md) - Data download and generation
+- [Trading RL Package](../src/trading_rl/README.md) - Core RL package overview

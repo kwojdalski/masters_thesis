@@ -218,7 +218,7 @@ data:
   feature_config: "src/configs/features/btc_with_volume.yaml"
 ```
 
-Features are automatically computed and normalized. See `docs/prepare_data.md` for details.
+Features are automatically computed and normalized. See [docs/prepare_data.md](./prepare_data.md) for details.
 
 ### 3. Train/Val/Test Split
 
@@ -289,3 +289,12 @@ gen.generate_sine_wave_pattern(
 # Use in config:
 # data_path: "./data/raw/synthetic/test_pattern.parquet"
 ```
+
+## See Also
+
+- [Experiment Workflow](./experiment_workflow.md) - End-to-end training workflow
+- [Data Preparation Details](./prepare_data.md) - Feature engineering and normalization
+- [PPO Implementation](./ppo_implementation_overview.md) - PPO algorithm details
+- [DDPG Implementation](./ddpg_implementation_overview.md) - DDPG algorithm details
+- [TD3 Implementation](./td3_implementation_overview.md) - TD3 algorithm details
+- [Trading RL Package](../src/trading_rl/README.md) - Core RL package overview

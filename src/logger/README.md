@@ -458,6 +458,11 @@ market_logger.debug("Fetching market data")
 pyth_logger.info("Analyzing Pyth network data")
 ```
 
+## Related Documentation
+
+- [Experiment Workflow](../../docs/experiment_workflow.md) - End-to-end training workflow that uses this logger
+- [Trading RL Package](../trading_rl/README.md) - Core RL package that integrates with this logger
+
 ## Best Practices
 
 1. **Configure early**: Set up logging configuration at the start of your application
