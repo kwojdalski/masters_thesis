@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -107,6 +108,22 @@ def test_build_training_context_smoke(tmp_path: Path):
     assert context["n_obs"] == 2
     assert context["n_act"] >= 1
     assert context["trainer"] is not None
+
+    # --- Data integrity guardrails ---
+    train_df = context["train_df"]
+    val_df = context["val_df"]
+    test_df = context["test_df"]
+
+    # Splits must not overlap in time
+    assert train_df.index.max() < val_df.index.min(), "train and val splits overlap"
+    assert val_df.index.max() < test_df.index.min(), "val and test splits overlap"
+
+    # Feature columns must contain only finite values — NaN/inf here would silently
+    # corrupt observations fed to the neural network
+    feature_cols = ["feature_lag1", "feature_trend"]
+    for col in feature_cols:
+        bad_train = (~np.isfinite(train_df[col].to_numpy())).sum()
+        assert bad_train == 0, f"train_df['{col}'] has {bad_train} non-finite values"
 
 
 @pytest.mark.smoke
