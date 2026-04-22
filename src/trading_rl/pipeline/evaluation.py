@@ -1,16 +1,25 @@
-"""Evaluation helpers extracted from the main training entrypoint."""
+"""Evaluation helpers for the main RL training pipeline."""
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
+import torch
 
+from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
-from trading_rl.evaluation import EvaluationContext, periods_per_year_from_timeframe
+from trading_rl.evaluation import (
+    EvaluationContext,
+    build_evaluation_report_for_trainer,
+    periods_per_year_from_timeframe,
+    run_all_statistical_tests,
+)
+from trading_rl.envs import AlgorithmicEnvironmentBuilder
+from trading_rl.pipeline.explainability import run_explainability_analysis
 
 
 @dataclass(frozen=True)
@@ -27,9 +36,15 @@ def build_evaluation_context_for_split(
     split: str,
     df: pd.DataFrame,
     config: ExperimentConfig,
-    build_environment: Callable[[pd.DataFrame, ExperimentConfig], Any],
 ) -> EvaluationContext:
-    eval_env = build_environment(df, config)
+    """Build an evaluation context for a given data split.
+
+    Args:
+        split: Split name ("train", "val", or "test").
+        df: DataFrame for this split.
+        config: Experiment configuration.
+    """
+    eval_env = AlgorithmicEnvironmentBuilder().create(df, config)
     eval_max_steps = min(config.training.eval_steps, len(df) - 1)
     return EvaluationContext(
         split=split,
@@ -45,7 +60,7 @@ def compute_strategy_simple_returns_for_split(
     split_ctx: EvaluationContext,
     config: ExperimentConfig,
 ) -> np.ndarray:
-    from trading_rl.utils import _extract_tradingenv_returns
+    from trading_rl.evaluation.returns import extract_tradingenv_returns
 
     reward_type = config.env.reward_type
     backend = config.env.backend
@@ -60,7 +75,7 @@ def compute_strategy_simple_returns_for_split(
 
     strategy_simple_returns = np.array([], dtype=float)
     if str(backend).lower() == "tradingenv":
-        cumulative_log_returns = _extract_tradingenv_returns(
+        cumulative_log_returns = extract_tradingenv_returns(
             split_ctx.env,
             split_ctx.max_steps,
         )
@@ -98,22 +113,39 @@ def resolve_price_series_for_split(
     return None
 
 
+def _run_rollout(trainer: Any, split_ctx: EvaluationContext) -> Any:
+    """Execute a deterministic rollout, falling back from MODE to DETERMINISTIC."""
+    from tensordict.nn import InteractionType
+    from torchrl.envs.utils import set_exploration_type
+
+    with torch.no_grad():
+        try:
+            with set_exploration_type(InteractionType.MODE):
+                return split_ctx.env.rollout(
+                    max_steps=split_ctx.max_steps,
+                    policy=trainer.actor,
+                )
+        except RuntimeError:
+            with set_exploration_type(InteractionType.DETERMINISTIC):
+                return split_ctx.env.rollout(
+                    max_steps=split_ctx.max_steps,
+                    policy=trainer.actor,
+                )
+
+
 def run_statistical_tests_for_split(
     *,
     trainer: Any,
     split_ctx: EvaluationContext,
     config: ExperimentConfig,
     logger: logging.Logger,
-    run_rollout: Callable[[Any, EvaluationContext], Any],
-    run_all_statistical_tests_fn: Callable[..., Any],
-    log_statistical_tests_fn: Callable[..., None],
 ) -> None:
     logger.info(
         "Running statistical significance tests for %s split...",
         split_ctx.split,
     )
     try:
-        rollout = run_rollout(trainer, split_ctx)
+        rollout = _run_rollout(trainer, split_ctx)
         strategy_simple_returns = compute_strategy_simple_returns_for_split(
             rollout=rollout,
             split_ctx=split_ctx,
@@ -123,7 +155,7 @@ def run_statistical_tests_for_split(
         periods_per_year = periods_per_year_from_timeframe(
             getattr(config.data, "timeframe", "1d")
         )
-        statistical_test_results = run_all_statistical_tests_fn(
+        statistical_test_results = run_all_statistical_tests(
             strategy_returns=strategy_simple_returns,
             prices=price_series,
             env=split_ctx.env,
@@ -132,8 +164,7 @@ def run_statistical_tests_for_split(
             market_data=split_ctx.df,
             periods_per_year=periods_per_year,
         )
-
-        log_statistical_tests_fn(
+        MLflowTrainingCallback.log_statistical_tests(
             statistical_test_results,
             split_prefix=split_ctx.split,
             log_to_research_artifacts=config.statistical_testing.log_to_research_artifacts,
@@ -160,11 +191,6 @@ def evaluate_split(
     algorithm: str,
     logs: dict[str, Any],
     logger: logging.Logger,
-    build_evaluation_context_fn: Callable[..., EvaluationContext],
-    log_evaluation_plots_fn: Callable[..., None],
-    build_evaluation_report_for_trainer_fn: Callable[..., dict[str, float]],
-    log_evaluation_report_fn: Callable[..., None],
-    run_statistical_tests_for_split_fn: Callable[..., None],
 ) -> SplitEvaluationResult | None:
     if len(split_df) < 2:
         logger.warning(
@@ -175,7 +201,7 @@ def evaluate_split(
         return None
 
     logger.info("Evaluating agent on %s split (%d rows)...", split, len(split_df))
-    split_ctx = build_evaluation_context_fn(split=split, df=split_df, config=config)
+    split_ctx = build_evaluation_context_for_split(split=split, df=split_df, config=config)
 
     (
         reward_plot,
@@ -193,7 +219,7 @@ def evaluate_split(
         eval_env=split_ctx.env,
     )
 
-    log_evaluation_plots_fn(
+    MLflowTrainingCallback.log_evaluation_plots(
         reward_plot=reward_plot,
         action_plot=action_plot,
         action_probs_plot=action_probs_plot,
@@ -203,17 +229,17 @@ def evaluate_split(
         artifact_path_prefix=f"evaluation_plots/{split}",
     )
 
-    split_evaluation_report = build_evaluation_report_for_trainer_fn(
+    split_evaluation_report = build_evaluation_report_for_trainer(
         trainer=trainer,
         df_prices=split_ctx.df,
         max_steps=split_ctx.max_steps,
         config=config,
         eval_env=split_ctx.env,
     )
-    log_evaluation_report_fn(split_evaluation_report, split_prefix=split)
+    MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
 
     if config.statistical_testing.enabled:
-        run_statistical_tests_for_split_fn(
+        run_statistical_tests_for_split(
             trainer=trainer,
             split_ctx=split_ctx,
             config=config,
@@ -237,13 +263,12 @@ def evaluate_all_splits(
     algorithm: str,
     logs: dict[str, Any],
     logger: logging.Logger,
-    evaluate_split_fn: Callable[..., SplitEvaluationResult | None],
 ) -> dict[str, dict[str, Any]]:
     split_frames = {"train": train_df, "val": val_df, "test": test_df}
     split_results: dict[str, dict[str, Any]] = {}
 
     for split, split_df in split_frames.items():
-        result = evaluate_split_fn(
+        result = evaluate_split(
             split=split,
             split_df=split_df,
             trainer=trainer,
@@ -271,9 +296,7 @@ def resolve_primary_split_result(
         None,
     )
     final_reward = (
-        split_results[primary_split]["final_reward"]
-        if primary_split
-        else float("nan")
+        split_results[primary_split]["final_reward"] if primary_split else float("nan")
     )
     last_positions = (
         split_results[primary_split]["last_positions"] if primary_split else []
@@ -293,19 +316,19 @@ def run_primary_split_explainability(
     test_df: pd.DataFrame,
     config: ExperimentConfig,
     logger: logging.Logger,
-    build_evaluation_context_fn: Callable[..., EvaluationContext],
-    run_explainability_analysis_fn: Callable[..., None],
 ) -> None:
     if not primary_split:
         return
 
+    from trading_rl.pipeline.explainability import run_explainability_analysis
+
     split_frames = {"train": train_df, "val": val_df, "test": test_df}
-    explainability_ctx = build_evaluation_context_fn(
+    explainability_ctx = build_evaluation_context_for_split(
         split=primary_split,
         df=split_frames[primary_split],
         config=config,
     )
-    run_explainability_analysis_fn(
+    run_explainability_analysis(
         config=config,
         trainer=trainer,
         eval_ctx=explainability_ctx,

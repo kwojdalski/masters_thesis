@@ -178,9 +178,9 @@ class TD3Trainer(BaseTrainer):
             )
 
         # Extract actual returns immediately (before next rollout overwrites broker state)
-        from trading_rl.utils import _extract_tradingenv_returns
+        from trading_rl.evaluation.returns import extract_tradingenv_returns
 
-        actual_returns_deterministic = _extract_tradingenv_returns(env_to_use, max_steps)
+        actual_returns_deterministic = extract_tradingenv_returns(env_to_use, max_steps)
 
         logger.debug(f"Running random evaluation for {max_steps} steps")
         # Use explicit random policy to ensure a distinct trajectory
@@ -189,7 +189,7 @@ class TD3Trainer(BaseTrainer):
             rollout_random = env_to_use.rollout(max_steps=max_steps, policy=random_policy)
 
         # Extract actual returns immediately (for random rollout)
-        actual_returns_random = _extract_tradingenv_returns(env_to_use, max_steps)
+        actual_returns_random = extract_tradingenv_returns(env_to_use, max_steps)
 
         reward_plot, action_plot = compare_rollouts(
             [rollout_deterministic, rollout_random],
