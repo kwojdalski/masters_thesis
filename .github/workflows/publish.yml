@@ -50,11 +50,35 @@ jobs:
       - name: Render thesis to PDF
         timeout-minutes: 15
         run: |
-          quarto render thesis/qmd/src/masters-thesis.qmd --to pdf --no-execute
+          echo "Starting PDF render at $(date)"
+
+          # Check if Quarto can find the document
+          quarto check thesis/qmd/src/masters-thesis.qmd
+
+          # Set environment variables to prevent interactive prompts
+          export TEXINPUTS=".:/usr/share/texmf/tex/latex//:"
+          export OPENBLAS_NUM_THREADS=1
+
+          # Try rendering with more explicit flags and non-interactive mode
+          quarto render thesis/qmd/src/masters-thesis.qmd --to pdf --no-execute --log-level debug || {
+            echo "PDF render failed, checking for intermediate files..."
+            ls -la thesis/qmd/src/ || true
+            find thesis/qmd/src/ -name "*.pdf" -o -name "*.log" | head -20 || true
+            exit 1
+          }
+
+          echo "PDF render completed at $(date)"
+
+          # Verify PDF was created
+          if [ ! -f "thesis/qmd/src/masters-thesis.pdf" ]; then
+            echo "ERROR: PDF file was not created!"
+            exit 1
+          fi
+
+          echo "PDF file size: $(wc -c < thesis/qmd/src/masters-thesis.pdf) bytes"
           cp thesis/qmd/src/masters-thesis.pdf _site/masters-thesis.pdf
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
-          QUARTO_RENDER_OPTIONS: --quiet
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
