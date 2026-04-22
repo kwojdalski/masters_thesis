@@ -10,7 +10,6 @@ from trading_rl.config import (
     TrainingConfig,
 )
 from trading_rl.data_utils import (
-    create_features,
     download_trading_data,
     load_trading_data,
     prepare_data,
@@ -73,7 +72,6 @@ __all__ = [
     "create_td3_qvalue_network",
     # Data
     "create_environment",
-    "create_features",
     "download_trading_data",
     "load_trading_data",
     "prepare_data",

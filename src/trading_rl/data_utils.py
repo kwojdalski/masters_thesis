@@ -99,67 +99,6 @@ def load_trading_data(data_path: str, cache_bust: float | None = None) -> pd.Dat
     return df
 
 
-@memory.cache
-def create_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Create technical features from OHLCV data.
-
-    Features are normalized using z-score normalization.
-    All features must have 'feature' in their name for gym_trading_env.
-
-    Args:
-        df: DataFrame with OHLCV columns (open, high, low, close, volume)
-
-    Returns:
-        DataFrame with added feature columns
-    """
-    logger.info("Creating features")
-    df = df.copy()
-
-    # Log return feature
-    df["feature_log_return"] = np.log(df["close"] / df["close"].shift(1)).fillna(0)
-    df["feature_log_return"] = (df["feature_log_return"] - df["feature_log_return"].mean()) / df[
-        "feature_log_return"
-    ].std()
-
-    # High relative to close
-    df["feature_high"] = (df["high"] / df["close"] - 1).fillna(0)
-    df["feature_high"] = (df["feature_high"] - df["feature_high"].mean()) / df[
-        "feature_high"
-    ].std()
-
-    # Low relative to close
-    df["feature_low"] = (df["low"] / df["close"] - 1).fillna(0)
-    df["feature_low"] = (df["feature_low"] - df["feature_low"].mean()) / df[
-        "feature_low"
-    ].std()
-
-    # Log volume feature (log-normalized to handle skewness)
-    # Log transform handles the heavy right tail of volume distribution
-    df["feature_log_volume"] = np.log1p(df["volume"])  # log1p = log(1 + x) handles zero volumes
-    df["feature_log_volume"] = (df["feature_log_volume"] - df["feature_log_volume"].mean()) / df[
-        "feature_log_volume"
-    ].std()
-
-    # Trend feature: price relative to initial price (NOT z-scored to preserve trend)
-    # This feature captures the cumulative price movement
-    # For upward drift: will increase from 1.0 to ~2.1 (110% gain)
-    # Scaled to [0, 1] range for stability
-    df["feature_trend"] = df["close"] / df["close"].iloc[0]
-    # Min-max normalization to [0, 1] instead of z-score
-    feature_trend_min = df["feature_trend"].min()
-    feature_trend_max = df["feature_trend"].max()
-    df["feature_trend"] = (df["feature_trend"] - feature_trend_min) / (
-        feature_trend_max - feature_trend_min + 1e-8
-    )
-
-    # Drop any rows with NaN values
-    df = df.dropna()
-
-    logger.info(f"Created {len([c for c in df.columns if 'feature' in c])} features")
-    logger.info(f"Dataset has {len(df)} rows after dropping NaNs")
-
-    return df
-
 
 def reward_function(history: dict) -> float:
     """Calculate reward based on portfolio valuation changes.
