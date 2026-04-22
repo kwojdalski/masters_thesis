@@ -16,8 +16,8 @@ import yaml
 from sklearn.feature_selection import mutual_info_regression
 
 from logger import get_logger
-from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import load_trading_data
+from trading_rl.feature_research.config import FeatureResearchConfig
 from trading_rl.features import FeaturePipeline
 
 logger = get_logger(__name__)
@@ -209,10 +209,7 @@ def _write_selected_feature_config(
 def _write_summary(
     summary_path: Path,
     *,
-    config: ExperimentConfig,
-    horizon: int,
-    top_k: int,
-    corr_threshold: float,
+    config: FeatureResearchConfig,
     selected_features: list[str],
     scores: pd.DataFrame,
 ) -> None:
@@ -223,9 +220,9 @@ def _write_summary(
         "",
         f"- Experiment: `{config.experiment_name}`",
         f"- Feature config: `{config.data.feature_config}`",
-        f"- Proxy target horizon: `{horizon}`",
-        f"- Requested top_k: `{top_k}`",
-        f"- Correlation threshold: `{corr_threshold}`",
+        f"- Proxy target horizon: `{config.research.horizon}`",
+        f"- Requested top_k: `{config.research.top_k}`",
+        f"- Correlation threshold: `{config.research.corr_threshold}`",
         "",
         "## Selected Features",
         "",
@@ -250,26 +247,12 @@ def _write_summary(
 
 def run_feature_research(
     *,
-    config: ExperimentConfig,
-    output_dir: str | Path,
-    horizon: int = 1,
-    top_k: int = 10,
-    corr_threshold: float = 0.85,
+    config: FeatureResearchConfig,
 ) -> FeatureResearchArtifacts:
     """Run offline feature scoring and redundancy-aware selection."""
-    if not config.data.feature_config:
-        raise ValueError(
-            "Offline feature research requires data.feature_config to be set."
-        )
-    if horizon <= 0:
-        raise ValueError(f"horizon must be > 0, got {horizon}")
-    if top_k <= 0:
-        raise ValueError(f"top_k must be > 0, got {top_k}")
-    if not 0 < corr_threshold <= 1:
-        raise ValueError(
-            f"corr_threshold must be in (0, 1], got {corr_threshold}"
-        )
-
+    output_dir = config.research.output_dir or (
+        Path("logs") / config.experiment_name / "feature_research"
+    )
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -301,7 +284,7 @@ def run_feature_research(
         train_df,
         val_df,
         config.data.feature_config,
-        horizon,
+        config.research.horizon,
     )
     scores = _build_score_table(train_frame, val_frame)
 
@@ -310,8 +293,8 @@ def run_feature_research(
     selected_features = _select_features(
         scores,
         correlation_matrix,
-        top_k=top_k,
-        corr_threshold=corr_threshold,
+        top_k=config.research.top_k,
+        corr_threshold=config.research.corr_threshold,
     )
 
     scores_csv = output_path / "feature_scores.csv"
@@ -325,9 +308,6 @@ def run_feature_research(
     _write_summary(
         summary_md,
         config=config,
-        horizon=horizon,
-        top_k=top_k,
-        corr_threshold=corr_threshold,
         selected_features=selected_features,
         scores=scores,
     )

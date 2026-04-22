@@ -47,7 +47,12 @@ def _write_feature_config(path: Path) -> Path:
     return path
 
 
-def _write_config(path: Path, data_path: Path, feature_config: Path) -> Path:
+def _write_config(
+    path: Path,
+    data_path: Path,
+    feature_config: Path,
+    output_dir: Path,
+) -> Path:
     path.write_text(
         "experiment_name: offline_feature_research_test\n"
         "data:\n"
@@ -55,8 +60,11 @@ def _write_config(path: Path, data_path: Path, feature_config: Path) -> Path:
         "  train_size: 40\n"
         "  validation_size: 20\n"
         f'  feature_config: "{feature_config}"\n'
-        "logging:\n"
-        f'  log_dir: "{path.parent / "logs"}"\n',
+        "research:\n"
+        "  horizon: 1\n"
+        "  top_k: 2\n"
+        "  corr_threshold: 0.95\n"
+        f'  output_dir: "{output_dir}"\n',
         encoding="utf-8",
     )
     return path
@@ -65,17 +73,18 @@ def _write_config(path: Path, data_path: Path, feature_config: Path) -> Path:
 def test_feature_research_command_creates_outputs(tmp_path: Path):
     data_path = _write_dataset(tmp_path / "data.parquet")
     feature_config = _write_feature_config(tmp_path / "features.yaml")
-    config_path = _write_config(tmp_path / "config.yaml", data_path, feature_config)
     output_dir = tmp_path / "research_outputs"
+    config_path = _write_config(
+        tmp_path / "research_config.yaml",
+        data_path,
+        feature_config,
+        output_dir,
+    )
 
     cmd = FeatureResearchCommand(Console(record=True, force_terminal=False))
     cmd.execute(
         FeatureResearchParams(
             config_file=config_path,
-            output_dir=output_dir,
-            horizon=1,
-            top_k=2,
-            corr_threshold=0.95,
         )
     )
 
