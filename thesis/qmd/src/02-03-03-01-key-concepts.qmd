@@ -41,45 +41,51 @@ is on why each concept is specifically consequential for trading problems.
 ![The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment.](diagrams/rl-loop.svg){fig-align="center"}
 :::
 
-Portfolio decisions are sequential and path-dependent, which makes the MDP
+Portfolio decisions are sequential and path-dependent. This makes the MDP
 framework [@Bellman1957; @Puterman1994] the natural formal language for trading
-agents — though market regime shifts, structural breaks, and partial observability
-mean that financial environments only approximately satisfy standard MDP
-assumptions. Bellman's principle of optimality motivates value-based reasoning
-about long-run consequences of trading actions, but direct dynamic programming is
-inapplicable because market transition dynamics are unknown and non-stationary,
-which motivates model-free learning that estimates value directly from sampled
-experience [@Sutton1988]. Temporal difference methods — Q-learning in particular
-[@Watkins1989] — are especially relevant in finance because their off-policy
-nature permits learning from historical trajectories rather than requiring live
-interaction with the market. Portfolio problems are naturally continuous, making
-tabular and discrete-action value methods structurally inadequate; policy gradient
-methods [@Williams1992; @Sutton2000] and the actor-critic architectures they
+agents. However, financial environments only approximately satisfy standard MDP
+assumptions. Market regime shifts, structural breaks, and partial observability
+all contribute to this approximation.
+
+Bellman's principle of optimality motivates value-based reasoning
+about long-run consequences of trading actions. But direct dynamic programming is
+inapplicable because market transition dynamics are unknown and non-stationary.
+This motivates model-free learning that estimates value directly from sampled
+experience [@Sutton1988]. Temporal difference methods are especially relevant in finance. Q-learning in particular
+[@Watkins1989] has an off-policy nature. This permits learning from historical trajectories
+rather than requiring live interaction with the market.
+
+Portfolio problems are naturally continuous. This makes tabular and discrete-action
+value methods structurally inadequate. Policy gradient methods
+[@Williams1992; @Sutton2000] and the actor-critic architectures they
 support are the appropriate class for continuous position sizing. The
 high-dimensionality of financial state representations makes function
-approximation necessary: deep RL methods [@Mnih2015] provide the required
-generalization capacity, at the cost of stability issues in off-policy settings
-[@Tsitsiklis1997] — a fragility that motivated the specific stabilization
-mechanisms in TD3 [@Fujimoto2018] and that recurs throughout the applied trading
-literature.
+approximation necessary. Deep RL methods [@Mnih2015] provide the required
+generalization capacity. However, this comes at the cost of stability issues
+in off-policy settings [@Tsitsiklis1997].
+
+This fragility motivated the specific stabilization mechanisms in TD3 [@Fujimoto2018].
+It also recurs throughout the applied trading literature.
 
 Four practical complications distinguish financial RL from standard control
 benchmarks. The exploration-exploitation tradeoff is more costly in trading than
-in most settings because exploratory actions incur immediate transaction costs,
-while under-exploration prevents discovery of profitable policies; this tension is
-amplified by non-stationarity, since strategies that exploit historical
-regularities can decay abruptly after regime changes, yet excessive exploration
+in most settings. Exploratory actions incur immediate transaction costs,
+while under-exploration prevents discovery of profitable policies.
+
+This tension is amplified by non-stationarity. Strategies that exploit historical
+regularities can decay abruptly after regime changes. Yet excessive exploration
 destroys performance through churn and slippage [@Sutton2018; @Moody1998]. Reward
 specification is a central design decision because it determines what the agent
-actually optimizes: the reward-shaping literature [@Ng1999] is directly relevant
-to finance, where misspecified rewards lead to metric gaming or tail-risk neglect,
-and Sharpe-style risk-adjusted objectives such as the Differential Sharpe Ratio
-[@Moody1998] align optimization with economically meaningful return rather than
-with noisy single-step price changes. Sample efficiency is unusually important
-because historical market data is finite and live experimentation is constrained
-by capital and risk limits; off-policy replay-based methods [@Lin1992] are
-therefore methodological enablers rather than engineering conveniences, and they
-underpin the algorithm selection in this thesis. Non-stationarity is the dominant
+actually optimizes. The reward-shaping literature [@Ng1999] is directly relevant
+to finance. Misspecified rewards lead to metric gaming or tail-risk neglect.
+
+Sharpe-style risk-adjusted objectives provide an alternative. The Differential
+Sharpe Ratio [@Moody1998] aligns optimization with economically meaningful return
+rather than with noisy single-step price changes. Sample efficiency is unusually important
+because historical market data is finite. Live experimentation is also constrained
+by capital and risk limits. Off-policy replay-based methods [@Lin1992] are
+therefore methodological enablers rather than engineering conveniences.
+They underpin the algorithm selection in this thesis. Non-stationarity is the dominant
 reason why classical RL guarantees do not transfer cleanly to financial markets:
 market dynamics, volatility regimes, and participant behavior evolve continuously,
 which motivates the emphasis throughout this thesis on robust feature engineering,
