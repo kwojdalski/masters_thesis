@@ -13,18 +13,27 @@ import pandas as pd
 
 from trading_rl.data_fetchers.base import BaseMarketDataFetcher
 
-# Add weles to path if needed
+# Add weles to path if needed.
+# weles is a sibling repo that provides market_data_fetcher.  The preferred
+# long-term solution is to install it as an editable dependency:
+#   uv add --editable ../weles
+# Until then, we locate it relative to this file at import time.
 WELES_PATH = Path(__file__).parent.parent.parent.parent.parent / "weles" / "src"
-if WELES_PATH.exists() and str(WELES_PATH) not in sys.path:
+if not WELES_PATH.exists():
+    raise ImportError(
+        f"weles sibling repo not found at expected path: {WELES_PATH}. "
+        "Clone the weles repo next to this project, or install it as an "
+        "editable dependency with: uv add --editable ../weles"
+    )
+if str(WELES_PATH) not in sys.path:
     sys.path.insert(0, str(WELES_PATH))
 
 try:
     from market_data_fetcher import DataSource, get_market_data
 except ImportError as e:
     raise ImportError(
-        f"Could not import market_data_fetcher from weles project. "
-        f"Expected path: {WELES_PATH}. "
-        f"Error: {e}"
+        f"weles directory exists at {WELES_PATH} but market_data_fetcher "
+        f"could not be imported. Error: {e}"
     ) from e
 
 
