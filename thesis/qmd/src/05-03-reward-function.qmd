@@ -74,7 +74,7 @@ no look-ahead, and no discontinuity as old observations expire.
 ### Reward and Financial Return Are Not the Same
 
 A shaped reward such as DSR is used to stabilize learning; it is not
-equivalent to the financial performance metrics reported in Chapter 7. The
+equivalent to the financial performance metrics reported in Chapter 6. The
 Sharpe ratio, annualized return, and drawdown statistics reported in the
 evaluation chapter are computed from the realized log-return series of the
 deterministic policy rollout, not from the cumulative DSR accumulated during

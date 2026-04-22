@@ -6,7 +6,7 @@ The table below is the complete specification of all features used in the
 state-space experiments. Feature names match the keys in the feature registry
 (`src/trading_rl/features/lob_features.py`); the active set is defined in
 `src/configs/features/hft_lob_features_state_space.yaml`. Formulas are given
-in Chapter 5. All features except the hour encodings are z-score normalized
+in Chapter 4. All features except the hour encodings are z-score normalized
 on the training split only.
 
 ```{=latex}
@@ -127,7 +127,7 @@ Random seed & 42 & \\
 
 The YAML snippet below is a condensed version of the main experiment
 configuration, illustrating the configuration-driven workflow described in
-Chapter 6.
+Chapter 5.
 
 ```yaml
 seed: 42
@@ -169,7 +169,7 @@ training:
 # TD3 Training Workflow Diagram
 
 The diagram below summarizes the configuration-driven workflow described in
-Chapter 6.
+Chapter 5.
 
 ```{=latex}
 \begin{center}

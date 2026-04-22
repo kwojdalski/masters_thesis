@@ -37,7 +37,7 @@ from the limit order book: imbalance measures, spread, order flow signals, and
 temporal encodings. States can be terminal, ending an episode, or
 non-terminal, continuing the interaction sequence. The Markov property requires
 that the optimal action depend only on $s_t$ and not on the full history; the
-feature engineering in Chapter 5 is designed to approximate this property.
+feature engineering in Chapter 4 is designed to approximate this property.
 
 ### Action
 
@@ -65,7 +65,7 @@ to the agent — there are no labels, no supervisor. The reward function is
 therefore a critical design choice: it determines what the agent actually
 optimizes. In trading, rewards are typically derived from portfolio returns,
 possibly adjusted for risk and transaction costs. The specific reward formulation
-used in this thesis is developed in Chapter 5.
+used in this thesis is developed in Chapter 4.
 
 ### Value Function
 

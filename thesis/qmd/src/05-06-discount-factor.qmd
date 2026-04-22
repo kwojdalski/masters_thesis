@@ -1,7 +1,7 @@
 ## Discount Factor
 
 The discount factor $\gamma = 0.99$ is used throughout this thesis. The role
-of $\gamma$ in the value function is defined in Chapter 4; this section
+of $\gamma$ in the value function is defined in Chapter 3; this section
 justifies the specific value chosen.
 
 With $\gamma = 0.99$ the effective planning horizon is approximately
