@@ -7,15 +7,15 @@ limit order book, where local liquidity, queue dynamics, spread changes, and
 event timing determine short-horizon opportunities and risks. This thesis examines
 whether a reinforcement learning agent can use
 order-book-derived features to make favourable trading decisions in
-a high-frequency single-asset setting.
+a HFT setting.
 
 High-frequency trading should therefore not be treated as a faster
-version of bar-based trading. The state observed by the agent is structurally
+version of MFT. The state observed by the agent is structurally
 different. At short horizons, aggregated price bars omit information that is
-central to execution-sensitive decision-making. Features derived from the order
+central to decision-making. Features derived from the order
 book, such as depth imbalance, spread variation, order-flow pressure, and
 inter-event timing, provide a more detailed description of market
-conditions than candlestick aggregates. A central concern of this thesis
+conditions than candlesticks. A central concern of this thesis
 is whether such microstructure-aware state representations improve the
 suitability of reinforcement learning for this domain.
 
