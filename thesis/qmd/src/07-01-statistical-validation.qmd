@@ -90,6 +90,13 @@ The following table summarizes the results of five statistical tests comparing t
 ```{python}
 #| echo: false
 
+# Load latest finished run for statistical test artifacts
+from thesis_mlflow_results import load_experiment_snapshot
+
+EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
+snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
+finished = snapshot.latest_finished
+
 # Try real data first
 stat_summary_df = None
 if finished is not None:
