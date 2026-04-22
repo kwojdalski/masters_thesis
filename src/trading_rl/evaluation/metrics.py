@@ -15,6 +15,16 @@ def _equity_curve(simple_returns: np.ndarray) -> np.ndarray:
     return np.cumprod(1.0 + simple_returns)
 
 
+def _annualized_return_from_equity(equity_final: float, years: float) -> float:
+    """Compute CAGR without overflowing on short horizons or extreme returns."""
+    if not np.isfinite(equity_final) or equity_final <= 0:
+        return np.nan
+
+    exponent = np.log(equity_final) / max(years, 1e-12)
+    max_exponent = np.log(np.finfo(float).max)
+    return float(np.expm1(np.clip(exponent, a_min=None, a_max=max_exponent)))
+
+
 def _drawdown_series(equity: np.ndarray) -> np.ndarray:
     running_max = np.maximum.accumulate(equity)
     return equity / running_max - 1.0
@@ -105,7 +115,7 @@ def build_metric_report(
     equity = _equity_curve(r)
     total_return = float(equity[-1] - 1.0)
     years = max(r.size / periods_per_year, 1e-12)
-    cagr = float(equity[-1] ** (1.0 / years) - 1.0)
+    cagr = _annualized_return_from_equity(float(equity[-1]), years)
     drawdowns = _drawdown_series(equity)
     max_dd, avg_dd, max_dd_duration, recovery_time = _drawdown_stats(drawdowns)
     calmar = _safe_div(cagr, abs(max_dd))
