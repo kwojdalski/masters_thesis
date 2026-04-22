@@ -6,11 +6,8 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
-from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
-import mlflow
 import numpy as np
 import torch
 import torch.multiprocessing as mp
@@ -22,6 +19,8 @@ from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
+from trading_rl.trainers.checkpointing import CheckpointManager
+from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 
 _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
 
@@ -93,7 +92,6 @@ class BaseTrainer(ABC):
         self.callback = None
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_prefix = checkpoint_prefix
-        self._last_checkpoint_step = 0
 
         # Replay buffer and data collector shared by both algorithms
         self.replay_buffer = ReplayBuffer(storage=LazyTensorStorage(config.buffer_size))
@@ -107,23 +105,8 @@ class BaseTrainer(ABC):
         self.total_count = 0
         self.total_episodes = 0
         self.logs = defaultdict(list)
-
-        # Periodic evaluation parameters (set via setup_periodic_evaluation)
-        self._periodic_eval_enabled = False
-        self._periodic_eval_df = None
-        self._periodic_eval_max_steps = None
-        self._periodic_eval_config = None
-        self._periodic_eval_algorithm = None
-        self._periodic_eval_env = None
-        self._last_eval_step = 0
-
-        # Periodic explainability parameters (set via setup_periodic_explainability)
-        self._periodic_explainability_enabled = False
-        self._periodic_explainability_df = None
-        self._periodic_explainability_max_steps = None
-        self._periodic_explainability_config = None
-        self._periodic_explainability_env = None
-        self._last_explainability_step = 0
+        self.checkpoint_manager = CheckpointManager(self)
+        self.runtime_hooks = TrainerRuntimeHooks(self)
 
         # On-policy vs off-policy handling
         # Off-policy algorithms (TD3, DDPG) accumulate experiences in replay buffer
@@ -135,41 +118,11 @@ class BaseTrainer(ABC):
             set_composite_lp_aggregate(True).set()
 
     def _maybe_save_checkpoint(self) -> None:
-        interval = getattr(self.config, "checkpoint_interval", 0)
-        if interval <= 0:
-            return
-        if not self.checkpoint_dir or not self.checkpoint_prefix:
-            return
-        if self.total_count - self._last_checkpoint_step < interval:
-            return
-
-        Path(self.checkpoint_dir).mkdir(parents=True, exist_ok=True)
-        path = (
-            Path(self.checkpoint_dir)
-            / f"{self.checkpoint_prefix}_checkpoint_step_{self.total_count}.pt"
-        )
-        self.save_checkpoint(str(path))
-        self._last_checkpoint_step = self.total_count
+        self.checkpoint_manager.maybe_save_checkpoint()
 
     def _save_interrupt_checkpoint(self) -> str | None:
         """Persist an emergency checkpoint when training is interrupted."""
-        if not self.checkpoint_dir or not self.checkpoint_prefix:
-            logger.warning(
-                "Interrupted, but checkpoint_dir/checkpoint_prefix is not configured."
-            )
-            return None
-
-        Path(self.checkpoint_dir).mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-        path = (
-            Path(self.checkpoint_dir)
-            / (
-                f"{self.checkpoint_prefix}_checkpoint_interrupt_"
-                f"step_{self.total_count}_{timestamp}.pt"
-            )
-        )
-        self.save_checkpoint(str(path))
-        return str(path)
+        return self.checkpoint_manager.save_interrupt_checkpoint()
 
     def _global_optimization_step(
         self, batch_idx: int, inner_idx: int, steps_per_batch: int
@@ -662,101 +615,13 @@ class BaseTrainer(ABC):
             algorithm: Algorithm name
             eval_env: Optional dedicated evaluation environment
         """
-        eval_interval = getattr(config.training, "temp_eval_interval", None)
-        if eval_interval is None or eval_interval <= 0:
-            logger.info("Periodic evaluation disabled (temp_eval_interval not set)")
-            self._periodic_eval_enabled = False
-            return
-
-        self._periodic_eval_enabled = True
-        self._periodic_eval_df = df
-        self._periodic_eval_max_steps = max_steps
-        self._periodic_eval_config = config
-        self._periodic_eval_algorithm = algorithm
-        self._periodic_eval_env = eval_env
-        self._last_eval_step = 0
-
-        logger.info(
-            f"Periodic evaluation enabled: will evaluate every {eval_interval} training steps"
+        self.runtime_hooks.configure_periodic_evaluation(
+            df=df,
+            max_steps=max_steps,
+            config=config,
+            algorithm=algorithm,
+            eval_env=eval_env,
         )
-
-    def _run_temporary_evaluation(
-        self,
-        step_number: int,
-        df: Any,
-        max_steps: int,
-        config: Any,
-        algorithm: str,
-        eval_env: Any = None,
-    ) -> None:
-        """Run temporary evaluation during training and log plots to MLflow.
-
-        This leverages the existing evaluate() method but logs plots to a
-        temporary directory structure: evaluation_plots_temp/step_{step_number:08d}/
-
-        Args:
-            step_number: Current training step for folder naming (zero-padded to 8 digits)
-            df: DataFrame with evaluation data
-            max_steps: Maximum steps for evaluation rollout
-            config: Experiment configuration
-            algorithm: Algorithm name (for logging)
-            eval_env: Optional dedicated evaluation environment
-        """
-        logger = get_logger(__name__)
-        logger.info(f"Running temporary evaluation at step {step_number}...")
-
-        try:
-            # Run evaluation using existing framework
-            (
-                reward_plot,
-                action_plot,
-                action_probs_plot,
-                final_reward,
-                _last_positions,
-                actual_returns_plot,
-                merged_plot,
-            ) = self.evaluate(
-                df=df,
-                max_steps=max_steps,
-                config=config,
-                algorithm=algorithm,
-                eval_env=eval_env,
-            )
-
-            # Log plots to temporary directory structure
-            if mlflow.active_run():
-                from trading_rl.callbacks import MLflowTrainingCallback
-
-                # Zero-pad step number for correct alphanumeric sorting
-                artifact_prefix = f"evaluation_plots_temp/step_{step_number:08d}"
-
-                MLflowTrainingCallback.log_evaluation_plots(
-                    reward_plot=reward_plot,
-                    action_plot=action_plot,
-                    action_probs_plot=action_probs_plot,
-                    actual_returns_plot=actual_returns_plot,
-                    logs=None,  # Don't log training loss plots for temp evals
-                    merged_plot=merged_plot,
-                    artifact_path_prefix=artifact_prefix,
-                )
-
-                # Log summary metric for this step
-                mlflow.log_metric(
-                    "temp_eval_reward",
-                    final_reward,
-                    step=step_number,
-                )
-
-                logger.info(
-                    f"Temporary evaluation complete: reward={final_reward:.4f}, "
-                    f"plots saved to {artifact_prefix}"
-                )
-            else:
-                logger.warning("No active MLflow run - skipping temp evaluation logging")
-
-        except Exception as e:
-            logger.error(f"Temporary evaluation failed at step {step_number}: {e}")
-            # Don't crash training on eval failure - just log and continue
 
     def setup_periodic_explainability(
         self,
@@ -775,83 +640,12 @@ class BaseTrainer(ABC):
             config: Experiment configuration (must have explainability.temp_explainability_interval set)
             eval_env: Optional dedicated evaluation environment
         """
-        explainability_interval = getattr(config.explainability, "temp_explainability_interval", None)
-        if explainability_interval is None or explainability_interval <= 0:
-            logger.info("Periodic explainability disabled (temp_explainability_interval not set)")
-            self._periodic_explainability_enabled = False
-            return
-
-        if not config.explainability.enabled:
-            logger.info("Periodic explainability disabled (explainability.enabled is False)")
-            self._periodic_explainability_enabled = False
-            return
-
-        self._periodic_explainability_enabled = True
-        self._periodic_explainability_df = df
-        self._periodic_explainability_max_steps = max_steps
-        self._periodic_explainability_config = config
-        self._periodic_explainability_env = eval_env
-        self._last_explainability_step = 0
-
-        logger.info(
-            f"Periodic explainability enabled: will analyze every {explainability_interval} training steps"
+        self.runtime_hooks.configure_periodic_explainability(
+            df=df,
+            max_steps=max_steps,
+            config=config,
+            eval_env=eval_env,
         )
-
-    def _run_temporary_explainability(
-        self,
-        step_number: int,
-        df: Any,
-        max_steps: int,
-        config: Any,
-        eval_env: Any = None,
-    ) -> None:
-        """Run temporary explainability analysis during training and log plots to MLflow.
-
-        This runs feature importance analysis and logs to a temporary directory structure:
-        explainability_temp/step_{step_number:08d}/
-
-        Args:
-            step_number: Current training step for folder naming (zero-padded to 8 digits)
-            df: DataFrame with evaluation data
-            max_steps: Maximum steps for explainability rollout
-            config: Experiment configuration
-            eval_env: Optional dedicated evaluation environment
-        """
-        logger = get_logger(__name__)
-        logger.info(f"Running temporary explainability analysis at step {step_number}...")
-
-        try:
-            from trading_rl.evaluation import EvaluationContext
-            from trading_rl.train_trading_agent import _run_explainability_analysis
-
-            # Create evaluation context
-            eval_ctx = EvaluationContext(
-                split="temp",
-                df=df,
-                env=eval_env if eval_env else self.env,
-                max_steps=max_steps,
-            )
-
-            # Zero-pad step number for correct alphanumeric sorting
-            artifact_prefix = f"explainability_temp/step_{step_number:08d}"
-
-            # Run explainability analysis
-            _run_explainability_analysis(
-                config=config,
-                trainer=self,
-                eval_ctx=eval_ctx,
-                train_df=df,
-                logger=logger,
-                artifact_path_prefix=artifact_prefix,
-            )
-
-            logger.info(
-                f"Temporary explainability complete: plots saved to {artifact_prefix}"
-            )
-
-        except Exception as e:
-            logger.error(f"Temporary explainability failed at step {step_number}: {e}")
-            # Don't crash training on explainability failure - just log and continue
 
     def _run_training_loop(
         self,
@@ -901,37 +695,7 @@ class BaseTrainer(ABC):
                     self._optimization_step(i, max_length, buffer_len)
                 self.total_episodes += data["next", "done"].sum()
                 self._maybe_save_checkpoint()
-
-                # Check for periodic evaluation
-                if self._periodic_eval_enabled:
-                    eval_interval = self._periodic_eval_config.training.temp_eval_interval
-                    steps_since_last_eval = self.total_count - self._last_eval_step
-
-                    if steps_since_last_eval >= eval_interval:
-                        self._run_temporary_evaluation(
-                            step_number=self.total_count,
-                            df=self._periodic_eval_df,
-                            max_steps=self._periodic_eval_max_steps,
-                            config=self._periodic_eval_config,
-                            algorithm=self._periodic_eval_algorithm,
-                            eval_env=self._periodic_eval_env,
-                        )
-                        self._last_eval_step = self.total_count
-
-                # Check for periodic explainability
-                if self._periodic_explainability_enabled:
-                    explainability_interval = self._periodic_explainability_config.explainability.temp_explainability_interval
-                    steps_since_last_explainability = self.total_count - self._last_explainability_step
-
-                    if steps_since_last_explainability >= explainability_interval:
-                        self._run_temporary_explainability(
-                            step_number=self.total_count,
-                            df=self._periodic_explainability_df,
-                            max_steps=self._periodic_explainability_max_steps,
-                            config=self._periodic_explainability_config,
-                            eval_env=self._periodic_explainability_env,
-                        )
-                        self._last_explainability_step = self.total_count
+                self.runtime_hooks.maybe_run(self.total_count)
 
                 if self.callback and hasattr(self.callback, "log_episode_stats"):
                     self._log_episode_stats(data, self.callback)
