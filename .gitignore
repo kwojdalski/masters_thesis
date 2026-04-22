@@ -128,12 +128,13 @@ thesis/qmd/src/*files
 thesis/qmd/src/*.pdf
 render_logs/*
 *.pkl
-**/*.parquet
 logs/*
 *.db
 src/mlruns
 mlruns
-thesis/qmd/results/
+# Parquet files are excluded globally except for committed thesis result snapshots
+**/*.parquet
+!thesis/qmd/results/**/*.parquet
 
 # Quarto build artifacts
 _site/

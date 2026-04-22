@@ -1,0 +1,42 @@
+[
+  {
+    "run_name":"jade-grove-charlie",
+    "status":"RUNNING",
+    "start_time":"2026-02-23 15:18:06.000",
+    "end_time":"NaT",
+    "final_reward":null,
+    "training_steps":null,
+    "episode_reward":0.0763572678,
+    "value_loss":0.0000855691
+  },
+  {
+    "run_name":"jade-grove-charlie",
+    "status":"FINISHED",
+    "start_time":"2026-02-23 14:32:51.661",
+    "end_time":"2026-02-23 15:17:54.911",
+    "final_reward":-0.220487684,
+    "training_steps":59361.0,
+    "episode_reward":0.0937150419,
+    "value_loss":0.0000233859
+  },
+  {
+    "run_name":"ivory-lagoon-bravo",
+    "status":"FINISHED",
+    "start_time":"2026-02-23 14:17:22.575",
+    "end_time":"2026-02-23 14:32:43.699",
+    "final_reward":null,
+    "training_steps":null,
+    "episode_reward":-0.03220829,
+    "value_loss":0.0003405935
+  },
+  {
+    "run_name":"frozen-nebula-hotel",
+    "status":"FINISHED",
+    "start_time":"2026-02-23 14:08:58.316",
+    "end_time":"2026-02-23 14:16:16.249",
+    "final_reward":-0.2939639688,
+    "training_steps":6991.0,
+    "episode_reward":-0.0934552848,
+    "value_loss":0.0003101222
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "experiment_name": "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE",
+  "exported_at_utc": "2026-04-22T17:46:52.705832+00:00",
+  "source": {
+    "type": "mlflow",
+    "mlflow_db_path": "/Users/krzysztofwojdalski/github_projects/masters_thesis/mlflow.db"
+  },
+  "files": {
+    "runs_overview_parquet": "runs_overview.parquet",
+    "runs_overview_json": "runs_overview.json"
+  },
+  "runs": {
+    "latest_running": null,
+    "latest_finished": null
+  }
+}

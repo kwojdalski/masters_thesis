@@ -1,0 +1,21 @@
+{
+  "run_id": "39b9994f14a54674b5834cbf26fab3b5",
+  "run_name": "jade-grove-charlie",
+  "status": "RUNNING",
+  "start_time": "2026-02-23T15:18:06",
+  "end_time": "NaT",
+  "artifact_uri": "/Users/krzysztofwojdalski/github_projects/masters_thesis/mlruns/14/39b9994f14a54674b5834cbf26fab3b5/artifacts",
+  "experiment_name": "btc_td3_tradingenv_reduced_features",
+  "experiment_id": 14,
+  "files": {
+    "params": "params.json",
+    "latest_metrics": "latest_metrics.json",
+    "evaluation_report": null
+  },
+  "evaluation_plots": {
+    "merged_comparison": "plots/merged_comparison.png",
+    "rewards": "plots/rewards.png",
+    "positions": "plots/positions.png",
+    "actual_returns": "plots/actual_returns.png"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "experiment_name": "btc_td3_tradingenv_reduced_features",
+  "exported_at_utc": "2026-02-23T15:32:27.593443+00:00",
+  "source": {
+    "type": "mlflow",
+    "mlflow_db_path": "/Users/krzysztofwojdalski/github_projects/masters_thesis/mlflow.db"
+  },
+  "files": {
+    "runs_overview_parquet": "runs_overview.parquet",
+    "runs_overview_json": "runs_overview.json"
+  },
+  "runs": {
+    "latest_running": "latest_running/run.json",
+    "latest_finished": "latest_finished/run.json"
+  }
+}
