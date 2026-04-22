@@ -9,7 +9,7 @@ from cli.commands import FeatureResearchCommand, FeatureResearchParams
 def _write_dataset(path: Path) -> Path:
     periods = 80
     idx = pd.date_range("2024-01-01", periods=periods, freq="h")
-    close = pd.Series(range(periods), dtype=float) + 100.0
+    close = pd.Series(range(periods), index=idx, dtype=float) + 100.0
     df = pd.DataFrame(
         {
             "open": close - 0.1,
