@@ -22,7 +22,7 @@ _NUMBER_PATTERN = re.compile(
 
 def _colorize_numbers(text: str) -> str:
     """Wrap standalone numbers in light blue ANSI color."""
-    LIGHT_BLUE = "\033[94m"
+    LIGHT_BLUE = "\033[38;5;117m"
     RESET = "\033[0m"
     return _NUMBER_PATTERN.sub(lambda m: f"{LIGHT_BLUE}{m.group()}{RESET}", text)
 
