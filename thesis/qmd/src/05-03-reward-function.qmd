@@ -31,14 +31,19 @@ The simplest reward is the single-step log-return:
 $$r_t = \log\frac{P_t}{P_{t-1}} \cdot a_{t-1}$$
 
 At tick frequency, this signal is dominated by microstructure noise. Individual
-price changes on an MBP-10 order book are a fraction of the spread; the
+price changes on an MBP-10 order book are a fraction of the spread. The
 agent cannot distinguish genuine directional movement from quote flickering in
-a single step. Training on raw log-return produces highly variable gradient
-estimates and tends to reward high-turnover behavior regardless of risk.
+a single step.
 
-A related alternative — the Sharpe ratio computed over a fixed rolling window
-— requires storing the full window of past returns at each step and introduces
-a sharp discontinuity when old returns drop out of the window. Neither property
+Training on raw log-return produces highly variable gradient
+estimates. It also tends to reward high-turnover behavior regardless of risk.
+
+A related alternative is the Sharpe ratio computed over a fixed rolling window.
+This approach requires storing the full window of past returns at each step.
+It also introduces
+a sharp discontinuity when old returns drop out of the window.
+
+Neither property
 is desirable in an online RL setting.
 
 ### Differential Sharpe Ratio
@@ -65,19 +70,25 @@ giving an effective memory of roughly 100 ticks — long enough to smooth
 microstructure noise while short enough to adapt to intraday regime shifts.
 
 The DSR has two properties that make it well-suited to this setting. First, it
-penalizes return volatility intrinsically: a sequence of returns with the same
-mean but higher variance produces a lower DSR, which discourages the agent
-from achieving returns through high-variance position flipping. Second, it is
-recursively computable from $A_{t-1}$ and $B_{t-1}$ alone — no fixed window,
+penalizes return volatility intrinsically. A sequence of returns with the same
+mean but higher variance produces a lower DSR. This discourages the agent
+from achieving returns through high-variance position flipping.
+
+Second, the DSR is
+recursively computable from $A_{t-1}$ and $B_{t-1}$ alone. This means no fixed window,
 no look-ahead, and no discontinuity as old observations expire.
 
 ### Reward and Financial Return Are Not the Same
 
-A shaped reward such as DSR is used to stabilize learning; it is not
-equivalent to the financial performance metrics reported in Chapter 6. The
+A shaped reward such as DSR is used to stabilize learning. However, it is not
+equivalent to the financial performance metrics reported in Chapter 6.
+
+The
 Sharpe ratio, annualized return, and drawdown statistics reported in the
-evaluation chapter are computed from the realized log-return series of the
-deterministic policy rollout, not from the cumulative DSR accumulated during
-training. Conflating the two — for example, treating a high training DSR as
-evidence of a strong Sharpe ratio on the test set — would invalidate the
-empirical comparison.
+evaluation chapter are computed from the realized log-return series. These come from the
+deterministic policy rollout. They are not computed from the cumulative DSR accumulated during
+training.
+
+Conflating the two would invalidate the
+empirical comparison. For example, treating a high training DSR as
+evidence of a strong Sharpe ratio on the test set would be incorrect.
