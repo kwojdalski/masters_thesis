@@ -39,7 +39,7 @@ drawdown behavior.
 ### Current Evaluation Context
 
 The following snapshot provides the current experiment context used in the
-automated Chapter 7 result wiring. It is included to make the robustness
+automated Chapter 6 result wiring. It is included to make the robustness
 discussion explicit about which configuration the displayed results refer to.
 
 ```{python}
@@ -126,7 +126,7 @@ stable improvement.
 
 ### Methodological Limits of the Current Robustness Snapshot
 
-The current snapshot-based Chapter 7 integration supports reproducible loading
+The current snapshot-based Chapter 6 integration supports reproducible loading
 of run summaries and evaluation artifacts, but robustness conclusions remain
 conditional on the set of experiments already executed and exported. A single
 finished run can illustrate workflow behavior, but it cannot support strong
