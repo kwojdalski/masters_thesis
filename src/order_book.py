@@ -311,11 +311,21 @@ if __name__ == "__main__":
     )
 
     # First, create a historical client
-    client = db.Historical(os.getenv("DATABENTO_API_KEY"))
+    _api_key = os.getenv("DATABENTO_API_KEY")
+    if not _api_key:
+        raise RuntimeError(
+            "DATABENTO_API_KEY environment variable is not set. "
+            "Export it before running this script."
+        )
+    client = db.Historical(_api_key)
 
     # Next, we will request MBO data starting from the beginning of pre-market trading hours
     # or load the file if we've already downloaded it.
-    data_path = "../data/raw/databento/20250501/glbx-mdp3-20250501.mbo.dbn"
+    _script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.getenv(
+        "ORDER_BOOK_DATA_PATH",
+        os.path.join(_script_dir, "..", "data", "raw", "databento", "20250501", "glbx-mdp3-20250501.mbo.dbn"),
+    )
     if os.path.exists(data_path):
         logger.info("Loading MBO data from %s", data_path)
         data = db.DBNStore.from_file(data_path)
