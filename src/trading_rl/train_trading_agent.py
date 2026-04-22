@@ -101,6 +101,16 @@ class SplitEvaluationResult:
     evaluation_report: dict[str, float]
 
 
+@dataclass(frozen=True)
+class ExperimentRuntime:
+    """Top-level runtime bundle for one experiment execution."""
+
+    logger: logging.Logger
+    effective_experiment_name: str
+    prepared_dataset: PreparedDataset
+    training_bundle: TrainingBundle
+
+
 def _format_head_value(value: Any) -> str:
     """Format dataframe values for compact console table display."""
     if isinstance(value, float):
@@ -486,13 +496,13 @@ def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> Non
     logger.debug("=" * 60)
 
 
-def build_training_context(
+def build_experiment_runtime(
     config: ExperimentConfig,
     experiment_name: str | None = None,
     progress_bar: Any = None,
     create_mlflow_callback: bool = True,
-) -> dict[str, Any]:
-    """Build common training context used by fresh and resumed runs."""
+) -> ExperimentRuntime:
+    """Build typed runtime state used by fresh and resumed runs."""
     effective_experiment_name = experiment_name or config.experiment_name
 
     logger = setup_logging(config)
@@ -550,12 +560,35 @@ def build_training_context(
         MLflowTrainingCallback.log_config_artifact(config)
         MLflowTrainingCallback.log_data_overview(train_df, config)
 
+    return ExperimentRuntime(
+        logger=logger,
+        effective_experiment_name=effective_experiment_name,
+        prepared_dataset=prepared_dataset,
+        training_bundle=training_bundle,
+    )
+
+
+def build_training_context(
+    config: ExperimentConfig,
+    experiment_name: str | None = None,
+    progress_bar: Any = None,
+    create_mlflow_callback: bool = True,
+) -> dict[str, Any]:
+    """Build backward-compatible dict context used by older callers/tests."""
+    runtime = build_experiment_runtime(
+        config=config,
+        experiment_name=experiment_name,
+        progress_bar=progress_bar,
+        create_mlflow_callback=create_mlflow_callback,
+    )
+    prepared_dataset = runtime.prepared_dataset
+    training_bundle = runtime.training_bundle
     return {
-        "logger": logger,
+        "logger": runtime.logger,
         "prepared_dataset": prepared_dataset,
-        "train_df": train_df,
-        "val_df": val_df,
-        "test_df": test_df,
+        "train_df": prepared_dataset.train_df,
+        "val_df": prepared_dataset.val_df,
+        "test_df": prepared_dataset.test_df,
         "env": training_bundle.train_env,
         "training_bundle": training_bundle,
         "trainer": training_bundle.trainer,
@@ -563,7 +596,7 @@ def build_training_context(
         "algorithm": training_bundle.algorithm,
         "n_obs": training_bundle.n_obs,
         "n_act": training_bundle.n_act,
-        "effective_experiment_name": effective_experiment_name,
+        "effective_experiment_name": runtime.effective_experiment_name,
     }
 
 
@@ -1236,22 +1269,24 @@ def run_single_experiment(
     # (we'll create it after loading checkpoint metadata)
     create_callback = not checkpoint_path
 
-    context = build_training_context(
+    runtime = build_experiment_runtime(
         config=config,
         experiment_name=experiment_name,
         progress_bar=progress_bar,
         create_mlflow_callback=create_callback,
     )
-    logger = context["logger"]
-    train_df = context["train_df"]
-    val_df = context["val_df"]
-    test_df = context["test_df"]
-    trainer = context["trainer"]
-    mlflow_callback = context.get("mlflow_callback")  # May be None for resume
-    algorithm = context["algorithm"]
-    n_obs = context["n_obs"]
-    n_act = context["n_act"]
-    effective_experiment_name = context["effective_experiment_name"]
+    logger = runtime.logger
+    prepared_dataset = runtime.prepared_dataset
+    train_df = prepared_dataset.train_df
+    val_df = prepared_dataset.val_df
+    test_df = prepared_dataset.test_df
+    training_bundle = runtime.training_bundle
+    trainer = training_bundle.trainer
+    mlflow_callback = training_bundle.mlflow_callback  # May be None for resume
+    algorithm = training_bundle.algorithm
+    n_obs = training_bundle.n_obs
+    n_act = training_bundle.n_act
+    effective_experiment_name = runtime.effective_experiment_name
 
     # Handle checkpoint resumption
     if checkpoint_path:

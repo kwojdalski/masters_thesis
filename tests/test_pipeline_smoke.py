@@ -7,7 +7,11 @@ import pytest
 
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import PreparedDataset
-from trading_rl.train_trading_agent import build_training_context, run_single_experiment
+from trading_rl.train_trading_agent import (
+    build_experiment_runtime,
+    build_training_context,
+    run_single_experiment,
+)
 
 
 def _write_dataset(path: Path, periods: int = 72) -> Path:
@@ -110,11 +114,11 @@ def test_run_single_experiment_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     import trading_rl.train_trading_agent as training_module
 
     config = _make_config(tmp_path)
-    real_build_training_context = training_module.build_training_context
+    real_build_experiment_runtime = training_module.build_experiment_runtime
 
-    def patched_build_training_context(*args, **kwargs):
-        context = real_build_training_context(*args, **kwargs)
-        trainer = context["trainer"]
+    def patched_build_experiment_runtime(*args, **kwargs):
+        runtime = real_build_experiment_runtime(*args, **kwargs)
+        trainer = runtime.training_bundle.trainer
         trainer.logs = {"loss_value": [1.0], "loss_actor": [0.5]}
         trainer.total_count = 1
         trainer.setup_periodic_evaluation = lambda **_kwargs: None
@@ -132,12 +136,12 @@ def test_run_single_experiment_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: 
         trainer.save_checkpoint = (
             lambda path: Path(path).write_text("stub checkpoint", encoding="utf-8")
         )
-        return context
+        return runtime
 
     monkeypatch.setattr(
         training_module,
-        "build_training_context",
-        patched_build_training_context,
+        "build_experiment_runtime",
+        patched_build_experiment_runtime,
     )
     monkeypatch.setattr(
         training_module,
