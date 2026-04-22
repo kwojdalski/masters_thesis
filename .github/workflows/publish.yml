@@ -32,14 +32,20 @@ jobs:
       - name: Install pdf2svg
         run: sudo apt-get install -y pdf2svg
 
+      - name: Install Python dependencies for code execution
+        run: |
+          pip install pandas numpy matplotlib pillow ipython jupyter
+
       - name: Render thesis to HTML
         run: |
-          quarto render thesis/qmd/src/masters-thesis.qmd --to html --no-execute
+          quarto render thesis/qmd/src/masters-thesis.qmd --to html
           mkdir -p _site
           cp thesis/qmd/src/masters-thesis.html _site/index.html
           cp -r thesis/qmd/src/masters-thesis_files _site/
           mkdir -p _site/diagrams
           cp thesis/qmd/src/diagrams/*.svg _site/diagrams/
+        env:
+          PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
