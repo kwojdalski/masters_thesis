@@ -24,6 +24,7 @@ from joblib import Memory
 from logger import trace_calls
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
+from trading_rl.constants import ExplainabilityMethod
 from trading_rl.data_utils import (
     PreparedDataset,
     build_prepared_dataset,
@@ -252,37 +253,37 @@ def _run_explainability_analysis(
 
         # Run each requested method
         for method in config.explainability.methods:
-            if method == "permutation":
+            if method == ExplainabilityMethod.PERMUTATION:
                 logger.info("Computing permutation importance...")
                 df = analyzer.compute_global_importance(obs_batch)
                 plot = analyzer.plot_importance(df, title="Global Feature Importance (Permutation)", color="steelblue")
                 metrics = analyzer.quantify_interpretability(df)
                 MLflowTrainingCallback.log_explainability_results(
-                    df, plot, method="permutation", metrics=metrics, artifact_path_prefix=artifact_path_prefix
+                    df, plot, method=ExplainabilityMethod.PERMUTATION, metrics=metrics, artifact_path_prefix=artifact_path_prefix
                 )
-                results["permutation"] = df
+                results[ExplainabilityMethod.PERMUTATION] = df
                 logger.info("Permutation importance analysis complete.")
 
-            elif method == "integrated_gradients":
+            elif method == ExplainabilityMethod.INTEGRATED_GRADIENTS:
                 logger.info("Computing integrated gradients importance...")
                 df = analyzer.compute_global_ig(obs_batch)
                 plot = analyzer.plot_importance(df, title="Global Feature Importance (Integrated Gradients)", color="coral")
                 metrics = analyzer.quantify_interpretability(df)
                 MLflowTrainingCallback.log_explainability_results(
-                    df, plot, method="integrated_gradients", metrics=metrics, artifact_path_prefix=artifact_path_prefix
+                    df, plot, method=ExplainabilityMethod.INTEGRATED_GRADIENTS, metrics=metrics, artifact_path_prefix=artifact_path_prefix
                 )
-                results["integrated_gradients"] = df
+                results[ExplainabilityMethod.INTEGRATED_GRADIENTS] = df
                 logger.info("Integrated gradients importance analysis complete.")
 
         # Create merged plot if both methods were run
-        if "permutation" in results and "integrated_gradients" in results:
+        if ExplainabilityMethod.PERMUTATION in results and ExplainabilityMethod.INTEGRATED_GRADIENTS in results:
             logger.info("Creating merged explainability plot...")
             merged_plot = analyzer.plot_importance_merged(
-                results["permutation"],
-                results["integrated_gradients"]
+                results[ExplainabilityMethod.PERMUTATION],
+                results[ExplainabilityMethod.INTEGRATED_GRADIENTS]
             )
             MLflowTrainingCallback.log_explainability_results(
-                None, merged_plot, method="merged", metrics=None, artifact_path_prefix=artifact_path_prefix
+                None, merged_plot, method=ExplainabilityMethod.MERGED, metrics=None, artifact_path_prefix=artifact_path_prefix
             )
             logger.info("Merged explainability plot saved.")
 

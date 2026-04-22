@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, EnvMode, RewardType
+from trading_rl.constants import Algorithm, EnvMode, ExplainabilityMethod, RewardType, StatisticalTest
 
 
 @dataclass
@@ -152,7 +152,7 @@ class ExplainabilityConfig:
 
     enabled: bool = False
     n_steps: int = 500
-    methods: list[str] = field(default_factory=lambda: ["permutation", "integrated_gradients"])
+    methods: list[str] = field(default_factory=lambda: [ExplainabilityMethod.PERMUTATION, ExplainabilityMethod.INTEGRATED_GRADIENTS])
     temp_explainability_interval: int | None = None  # Run temporary explainability every N steps (None = disabled)
 
 
@@ -173,11 +173,11 @@ class StatisticalTestingConfig:
 
     # Statistical tests to perform (can enable multiple)
     tests: list[str] = field(default_factory=lambda: [
-        "t_test",  # T-test for mean returns
-        "sharpe_bootstrap",  # Bootstrap test for Sharpe ratio
-        "sortino_bootstrap",  # Bootstrap test for Sortino ratio (downside risk only)
-        "mann_whitney",  # Mann-Whitney U test (non-parametric)
-        "permutation_test"  # Permutation test (distribution-free)
+        StatisticalTest.T_TEST,
+        StatisticalTest.SHARPE_BOOTSTRAP,
+        StatisticalTest.SORTINO_BOOTSTRAP,
+        StatisticalTest.MANN_WHITNEY,
+        StatisticalTest.PERMUTATION_TEST,
     ])
 
     # Test parameters
