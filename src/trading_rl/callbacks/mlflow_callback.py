@@ -297,19 +297,10 @@ class MLflowTrainingCallback:
     @staticmethod
     def log_config_artifact(config) -> None:
         """Log YAML config file as an MLflow artifact."""
-        # Try to find an existing config file by experiment name
+        # Try to find an existing config file by experiment name (search recursively)
         config_dir = Path("src/configs/scenarios")
-        possible_configs = [
-            config_dir / f"{config.experiment_name}.yaml",
-            config_dir / f"{config.experiment_name}_ppo.yaml",
-            config_dir / f"{config.experiment_name}_ddpg.yaml",
-        ]
-
-        config_file = None
-        for path in possible_configs:
-            if path.exists():
-                config_file = path
-                break
+        matches = list(config_dir.rglob(f"{config.experiment_name}.yaml"))
+        config_file = matches[0] if matches else None
 
         if config_file and config_file.exists():
             mlflow.log_artifact(str(config_file), "config")
