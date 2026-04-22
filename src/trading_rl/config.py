@@ -392,7 +392,16 @@ class ExperimentConfig:
                 f"Expected top-level config mapping in {yaml_path}, got {type(config_dict).__name__}"
             )
 
-        derived_name = yaml_path.stem
+        # Build a unique name that includes the group subfolder when present.
+        # e.g. src/configs/scenarios/sine_wave/ppo_no_trend.yaml -> sine_wave_ppo_no_trend
+        parts = yaml_path.parts
+        try:
+            scenarios_idx = list(parts).index("scenarios")
+            rel_parts = parts[scenarios_idx + 1:]
+            derived_name = "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else yaml_path.stem
+        except ValueError:
+            derived_name = yaml_path.stem
+
         if "experiment_name" not in config_dict:
             config_dict["experiment_name"] = derived_name
 
