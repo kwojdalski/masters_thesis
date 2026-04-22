@@ -1,7 +1,8 @@
 ---
 title: Microstructure-Aware Reinforcement Learning for High-Frequency Trading
 author: Krzysztof Wojdalski
-date: today
+date: now
+date-format: "MMMM D, YYYY HH:mm [UTC]"
 format:
   pdf:
     documentclass: pracamgrwne
