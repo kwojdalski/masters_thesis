@@ -29,14 +29,80 @@ finished = snapshot.latest_finished
 ```{python}
 #| echo: false
 
-if finished is None:
-    print(f"No finished runs available for experiment: {EXPERIMENT_NAME}")
-else:
+# Try real data first
+key_metrics_df = None
+if finished is not None:
     key_metrics_df = format_key_metrics(finished.get("evaluation_report"))
     if key_metrics_df.empty:
-        print("No evaluation report artifact found for the latest completed run.")
+        key_metrics_df = None
+
+# Fall back to mock data matching format_key_metrics() schema
+if key_metrics_df is None or key_metrics_df.empty:
+    print("Placeholder values shown — run full experiment pipeline to populate.\n")
+    key_metrics_df = pd.DataFrame([
+        ("Total Return", "0.28%"),
+        ("CAGR", "22.36%"),
+        ("Annualized Volatility", "12.34%"),
+        ("Sharpe Ratio", "1.8234"),
+        ("Sortino Ratio", "2.4123"),
+        ("Max Drawdown", "-0.16%"),
+        ("Win Rate", "56.21%"),
+        ("Profit Factor", "1.3845"),
+        ("VaR (95%)", "-0.0021"),
+        ("CVaR (95%)", "-0.0034"),
+    ], columns=["Metric", "Value"])
+
+display(key_metrics_df)
+```
+
+### Benchmark Comparison
+
+The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
+
+```{python}
+#| echo: false
+
+# Try real data first
+benchmark_df = None
+if finished is not None:
+    benchmark_report = finished.get("benchmark_report")
+    if benchmark_report and "benchmark_comparison_table" in benchmark_report:
+        benchmark_df = pd.DataFrame(benchmark_report["benchmark_comparison_table"])
+
+# Fall back to mock data matching benchmark_comparison_table schema
+if benchmark_df is None or benchmark_df.empty:
+    print("Placeholder values shown — run full experiment pipeline to populate.\n")
+    benchmark_df = pd.DataFrame([
+        ("TD3 Agent", 0.0028, 0.2236, 0.1234, 1.8234, 2.4123, -0.0016, 0.5621, 0.64),
+        ("Buy & Hold", -0.0012, -0.0980, 0.1440, -0.6800, -0.8100, -0.0034, None, 0.00),
+        ("Short & Hold", 0.0012, 0.0980, 0.1440, 0.6800, 0.9100, -0.0022, None, 0.00),
+        ("TWAP", -0.0008, -0.0650, 0.1480, -0.4400, -0.5200, -0.0029, None, 0.02),
+        ("VWAP", -0.0007, -0.0570, 0.1500, -0.3800, -0.4500, -0.0027, None, 0.02),
+        ("Random", 0.0001, 0.0080, 0.1680, 0.0500, 0.0600, -0.0043, 0.5010, 0.98),
+    ], columns=[
+        "Strategy",
+        "Total Return",
+        "Annualized Return (CAGR)",
+        "Annualized Volatility",
+        "Sharpe Ratio",
+        "Sortino Ratio",
+        "Max Drawdown",
+        "Win Rate",
+        "Turnover",
+    ])
+
+# Format numeric columns for display
+for col in benchmark_df.columns:
+    if col == "Strategy":
+        continue
+    if col == "Win Rate" or col == "Sharpe Ratio" or col == "Sortino Ratio":
+        benchmark_df[col] = benchmark_df[col].apply(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "N/A")
+    elif col == "Turnover":
+        benchmark_df[col] = benchmark_df[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "N/A")
     else:
-        display(key_metrics_df)
+        benchmark_df[col] = benchmark_df[col].apply(lambda x: f"{x:.4f}" if pd.notna(x) else "N/A")
+
+display(benchmark_df)
 ```
 
 ### Evaluation Metadata Snapshot
