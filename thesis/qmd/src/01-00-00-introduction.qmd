@@ -1,19 +1,18 @@
 # Introduction
 
-Much of the existing reinforcement learning literature in trading relies on
+Much of the reinforcement learning literature in trading relies on
 low-frequency market representations such as daily or intraday OHLCV bars.
 High-frequency trading, however, is governed by information embedded in the
 limit order book, where local liquidity, queue dynamics, spread changes, and
-event timing determine short-horizon opportunities and risks. This thesis examines
+event timing determine short-horizon risks. This thesis examines
 whether a reinforcement learning agent can use
 order-book-derived features to make favourable trading decisions in
 a HFT setting.
 
 High-frequency trading should therefore not be treated as a faster
-version of MFT. The state observed by the agent is structurally
-different. At short horizons, aggregated price bars omit information that is
+version of MFT. The state observed by the agent is different. At short horizons, aggregated price bars omit information that is
 central to decision-making. Features derived from the order
-book provide a more detailed description of market conditions than candlesticks.
+book provide a detailed description of market conditions than candlesticks.
 These include depth imbalance, spread variation, order-flow pressure, and
 inter-event timing. A central concern of this thesis
 is whether such microstructure-aware state representations improve the
@@ -31,9 +30,9 @@ In this setting, the LOB state informs fill probability and spread cost rather
 than price direction.
 
 Directional exposure control is a harder problem for several reasons.
-First, the reward signal at tick frequency is dominated by noise rather than genuine
+First, the reward signal at tick frequency is dominated by noise rather than
 price movement. Second, the LOB state must be transformed into features that carry
-predictive signal rather than liquidity estimates. Third, the agent must generalize
+signal rather than liquidity estimates. Third, the agent must generalize
 across intraday regimes whose statistical properties can differ substantially from the
 training window.
 
@@ -58,7 +57,7 @@ development. It treats feature engineering, chronological evaluation,
 reward-return separation, and robustness analysis as core parts of the research
 problem rather than secondary implementation details. In this setting, the
 question is not only whether an agent can learn, but whether the learning setup
-is sufficiently well specified to support credible empirical conclusions.
+is sufficiently properly specified to support credible empirical conclusions.
 
 At the same time, the thesis does not claim to reproduce the full operational
 complexity of live high-frequency trading. The empirical framework is based on a

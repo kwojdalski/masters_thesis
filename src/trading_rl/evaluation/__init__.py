@@ -1,6 +1,16 @@
 """Evaluation utilities for quantitative finance metrics."""
 
 from trading_rl.evaluation.context import EvaluationContext
+from trading_rl.evaluation.benchmarks import calculate_benchmark_dsr
+from trading_rl.evaluation.plots import (
+    compare_rollouts,
+    create_actual_returns_plot,
+    create_merged_comparison_plot,
+)
+from trading_rl.evaluation.returns import (
+    calculate_actual_returns,
+    extract_tradingenv_returns,
+)
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.report import (
     build_evaluation_report_for_trainer,
@@ -43,7 +53,13 @@ from trading_rl.evaluation.statistical_tests import (
 __all__ = [
     "TEST_REGISTRY",
     "BootstrapTest",
+    "calculate_actual_returns",
+    "calculate_benchmark_dsr",
+    "compare_rollouts",
+    "create_actual_returns_plot",
+    "create_merged_comparison_plot",
     "EvaluationContext",
+    "extract_tradingenv_returns",
     "MannWhitneyTest",
     "PermutationMeanTest",
     "PermutationTest",

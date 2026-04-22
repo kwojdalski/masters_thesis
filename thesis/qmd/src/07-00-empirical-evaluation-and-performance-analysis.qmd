@@ -11,7 +11,7 @@ transaction costs, turnover, and run-to-run variability are taken seriously.
 
 Performance is assessed relative to five benchmark strategies. These
 benchmarks span passive exposure, execution-style references, and a
-stochastic baseline, together providing a meaningful comparison surface for
+stochastic baseline, together providing a comparison surface for
 the directional TD3 agent.
 
 **Buy-and-hold** maintains a constant fully long position ($a_t = 1.0$)

@@ -5,9 +5,9 @@ import pandas as pd
 import pytest
 
 from trading_rl import ExperimentConfig
-from trading_rl.train_trading_agent import (
-    _ensure_close_column_for_hft,
-    _ensure_unique_index_for_hft_tradingenv,
+from trading_rl.data_utils import (
+    ensure_close_column_for_hft as _ensure_close_column_for_hft,
+    ensure_unique_index_for_hft_tradingenv as _ensure_unique_index_for_hft_tradingenv,
 )
 
 

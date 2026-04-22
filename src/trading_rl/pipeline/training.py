@@ -309,6 +309,26 @@ def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> Non
     logger.debug("=" * 60)
 
 
+def setup_mlflow_experiment(
+    config: ExperimentConfig, experiment_name: str | None = None
+) -> str:
+    """Setup MLflow experiment for tracking.
+
+    Args:
+        config: Experiment configuration.
+        experiment_name: Optional override for the MLflow experiment name.
+
+    Returns:
+        The effective experiment name that was set.
+    """
+    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+    exp_name = experiment_name or config.experiment_name
+    mlflow.set_experiment(exp_name)
+    return exp_name
+
+
 def build_experiment_runtime(
     config: ExperimentConfig,
     experiment_name: str | None = None,
