@@ -382,33 +382,12 @@ window.Quarto = {
 <section id="key-concepts-from-reinforcement-learning" class="level2" data-number="2.5">
 <h2 data-number="2.5" class="anchored" data-anchor-id="key-concepts-from-reinforcement-learning"><span class="header-section-number">2.5</span> Key Concepts from Reinforcement Learning</h2>
 <p>This section identifies the reinforcement learning concepts most important for interpreting the finance literature reviewed in this chapter. Formal definitions, equations, and algorithm taxonomies are presented in Chapter 3; the focus here is on why each concept is specifically consequential for trading problems.</p>
-<pre class="{tikz}"><code>#| fig-align: center
-#| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
-\usetikzlibrary{arrows.meta}
-\begin{tikzpicture}[
-  &gt;=Latex,
-  thick,
-  box/.style={draw, rounded corners=5pt, minimum width=3.2cm, minimum height=1.1cm, font=\large}
-]
-
-\node[box] (agent) at (0, 3)  {Agent};
-\node[box] (env)   at (0, 0)  {Environment};
-
-% Right path (action)
-\draw[-&gt;] (agent.east) -- ++(2.8,0) -- ++(0,-3) -- (env.east);
-\node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$A_t$};
-
-% Left path (state + reward)
-\draw[-&gt;] (env.west) -- ++(-2.8,0) -- ++(0,3) -- (agent.west);
-\node[left,  align=right, font=\normalsize] at (-2.8, 3)   {state\\[2pt]$S_t$};
-\node[right, align=left,  font=\normalsize] at (-2.8, 1.5) {reward\\[2pt]$R_t$};
-
-% Dashed line with next-step labels
-\draw[dashed, thin] (-1.0, 0.55) -- (-1.0, -0.55);
-\node[right, font=\small] at (-1.0, 0.45) {$R_{t+1}$};
-\node[right, font=\small] at (-1.0, 0.15) {$S_{t+1}$};
-
-\end{tikzpicture}</code></pre>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="diagrams/rl-loop.svg" class="img-fluid figure-img"></p>
+<figcaption>The agent-environment interaction loop in reinforcement learning. At each step the agent observes state <span class="math inline">\(S_t\)</span> and reward <span class="math inline">\(R_t\)</span>, selects action <span class="math inline">\(A_t\)</span>, and receives the next state <span class="math inline">\(S_{t+1}\)</span> and reward <span class="math inline">\(R_{t+1}\)</span> from the environment.</figcaption>
+</figure>
+</div>
 <p>Portfolio decisions are sequential and path-dependent, which makes the MDP framework <span class="citation" data-cites="Bellman1957 Puterman1994">(<a href="#ref-Bellman1957" role="doc-biblioref">Bellman 1957</a>; <a href="#ref-Puterman1994" role="doc-biblioref">Puterman 1994</a>)</span> the natural formal language for trading agents — though market regime shifts, structural breaks, and partial observability mean that financial environments only approximately satisfy standard MDP assumptions. Bellman’s principle of optimality motivates value-based reasoning about long-run consequences of trading actions, but direct dynamic programming is inapplicable because market transition dynamics are unknown and non-stationary, which motivates model-free learning that estimates value directly from sampled experience <span class="citation" data-cites="Sutton1988">(<a href="#ref-Sutton1988" role="doc-biblioref">Sutton 1988</a>)</span>. Temporal difference methods — Q-learning in particular <span class="citation" data-cites="Watkins1989">(<a href="#ref-Watkins1989" role="doc-biblioref">Watkins 1989</a>)</span> — are especially relevant in finance because their off-policy nature permits learning from historical trajectories rather than requiring live interaction with the market. Portfolio problems are naturally continuous, making tabular and discrete-action value methods structurally inadequate; policy gradient methods <span class="citation" data-cites="Williams1992 Sutton2000">(<a href="#ref-Williams1992" role="doc-biblioref">Williams 1992</a>; <a href="#ref-Sutton2000" role="doc-biblioref">Sutton et al. 2000</a>)</span> and the actor-critic architectures they support are the appropriate class for continuous position sizing. The high-dimensionality of financial state representations makes function approximation necessary: deep RL methods <span class="citation" data-cites="Mnih2015">(<a href="#ref-Mnih2015" role="doc-biblioref">Mnih et al. 2015</a>)</span> provide the required generalization capacity, at the cost of stability issues in off-policy settings <span class="citation" data-cites="Tsitsiklis1997">(<a href="#ref-Tsitsiklis1997" role="doc-biblioref">Tsitsiklis and Van Roy 1997</a>)</span> — a fragility that motivated the specific stabilization mechanisms in TD3 <span class="citation" data-cites="Fujimoto2018">(<a href="#ref-Fujimoto2018" role="doc-biblioref">Fujimoto et al. 2018</a>)</span> and that recurs throughout the applied trading literature.</p>
 <p>Four practical complications distinguish financial RL from standard control benchmarks. The exploration-exploitation tradeoff is more costly in trading than in most settings because exploratory actions incur immediate transaction costs, while under-exploration prevents discovery of profitable policies; this tension is amplified by non-stationarity, since strategies that exploit historical regularities can decay abruptly after regime changes, yet excessive exploration destroys performance through churn and slippage <span class="citation" data-cites="Sutton2018 Moody1998">(<a href="#ref-Sutton2018" role="doc-biblioref">Sutton and Barto 2018</a>; <a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span>. Reward specification is a central design decision because it determines what the agent actually optimizes: the reward-shaping literature <span class="citation" data-cites="Ng1999">(<a href="#ref-Ng1999" role="doc-biblioref">Ng et al. 1999</a>)</span> is directly relevant to finance, where misspecified rewards lead to metric gaming or tail-risk neglect, and Sharpe-style risk-adjusted objectives such as the Differential Sharpe Ratio <span class="citation" data-cites="Moody1998">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span> align optimization with economically meaningful return rather than with noisy single-step price changes. Sample efficiency is unusually important because historical market data is finite and live experimentation is constrained by capital and risk limits; off-policy replay-based methods <span class="citation" data-cites="Lin1992">(<a href="#ref-Lin1992" role="doc-biblioref">Lin 1992</a>)</span> are therefore methodological enablers rather than engineering conveniences, and they underpin the algorithm selection in this thesis. Non-stationarity is the dominant reason why classical RL guarantees do not transfer cleanly to financial markets: market dynamics, volatility regimes, and participant behavior evolve continuously, which motivates the emphasis throughout this thesis on robust feature engineering, conservative optimization, and strict temporal validation over rolling out-of-sample periods <span class="citation" data-cites="Deng2016">(<a href="#ref-Deng2016" role="doc-biblioref">Deng et al. 2017</a>)</span>.</p>
 <p>Accordingly, claims that RL “works” in trading should be interpreted as context-dependent: RL methods can produce useful policies when the learning objective, state representation, and validation design are aligned with market frictions and regime uncertainty.</p>
@@ -569,12 +548,7 @@ window.Quarto = {
 <section id="continuous-vs-discrete-actions" class="level3">
 <h3 class="anchored" data-anchor-id="continuous-vs-discrete-actions">Continuous vs Discrete Actions</h3>
 <p>Trading systems can be formulated with either discrete or continuous action spaces:</p>
-<p><strong>Discrete action spaces</strong> restrict the agent to a finite set of categorical decisions. Common formulations include:</p>
-<ul>
-<li>Three actions: <span class="math inline">\(\{-1, 0, 1\}\)</span> representing short, neutral, and long positions</li>
-<li>Two actions: <span class="math inline">\(\{0, 1\}\)</span> representing short and long positions only</li>
-<li>Five actions: <span class="math inline">\(\{-1, -0.5, 0, 0.5, 1\}\)</span> for finer-grained position sizing</li>
-</ul>
+<p><strong>Discrete action spaces</strong> restrict the agent to a finite set of categorical decisions. The two most common formulations are the three-action set <span class="math inline">\(\{-1, 0, 1\}\)</span> representing short, neutral, and long positions, and the two-action set <span class="math inline">\(\{0, 1\}\)</span> representing only short and long positions without a neutral option.</p>
 <p><strong>Continuous action spaces</strong> allow the agent to output any value within a specified range, enabling smooth portfolio allocation decisions.</p>
 </section>
 <section id="implementation-box-portfolio-action-space" class="level3">
@@ -1448,38 +1422,38 @@ Zhang, Zihao, Stefan Zohren, and Stephen Roberts. 2019. <span>“<span>DeepLOB</
 <section id="experiment-configuration-example" class="level1" data-number="10">
 <h1 data-number="10"><span class="header-section-number">10</span> Experiment Configuration Example</h1>
 <p>The YAML snippet below is a condensed version of the main experiment configuration, illustrating the configuration-driven workflow described in Chapter 5.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">seed</span><span class="kw">:</span><span class="at"> </span><span class="dv">42</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span><span class="kw">:</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">data_path</span><span class="kw">:</span><span class="at"> </span><span class="st">"./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">feature_config</span><span class="kw">:</span><span class="at"> </span><span class="st">"src/configs/features/hft_lob_features_state_space.yaml"</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">train_size</span><span class="kw">:</span><span class="at"> </span><span class="dv">15000</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">env</span><span class="kw">:</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">backend</span><span class="kw">:</span><span class="at"> </span><span class="st">"tradingenv"</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">mode</span><span class="kw">:</span><span class="at"> </span><span class="st">"hft"</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">trading_fees</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.000</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">price_column</span><span class="kw">:</span><span class="at"> </span><span class="st">"close"</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reward_type</span><span class="kw">:</span><span class="at"> </span><span class="st">"differential_sharpe"</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reward_eta</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.01</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="fu">network</span><span class="kw">:</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">actor_hidden_dims</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="dv">128</span><span class="kw">,</span><span class="at"> </span><span class="dv">64</span><span class="kw">]</span></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">value_hidden_dims</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="dv">128</span><span class="kw">,</span><span class="at"> </span><span class="dv">64</span><span class="kw">]</span></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="fu">training</span><span class="kw">:</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">algorithm</span><span class="kw">:</span><span class="at"> </span><span class="st">"TD3"</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">actor_lr</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.0001</span></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">value_lr</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.0001</span></span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">gamma</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.99</span></span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">tau</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.001</span></span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">policy_noise</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.2</span></span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">noise_clip</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.3</span></span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">policy_delay</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">max_steps</span><span class="kw">:</span><span class="at"> </span><span class="dv">2000000</span></span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">sample_size</span><span class="kw">:</span><span class="at"> </span><span class="dv">128</span></span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">buffer_size</span><span class="kw">:</span><span class="at"> </span><span class="dv">100000</span></span>
-<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">loss_function</span><span class="kw">:</span><span class="at"> </span><span class="st">"smooth_l1"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">seed</span><span class="kw">:</span><span class="at"> </span><span class="dv">42</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span><span class="kw">:</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">data_path</span><span class="kw">:</span><span class="at"> </span><span class="st">"./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">feature_config</span><span class="kw">:</span><span class="at"> </span><span class="st">"src/configs/features/hft_lob_features_state_space.yaml"</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">train_size</span><span class="kw">:</span><span class="at"> </span><span class="dv">15000</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">env</span><span class="kw">:</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">backend</span><span class="kw">:</span><span class="at"> </span><span class="st">"tradingenv"</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">mode</span><span class="kw">:</span><span class="at"> </span><span class="st">"hft"</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">trading_fees</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.000</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">price_column</span><span class="kw">:</span><span class="at"> </span><span class="st">"close"</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reward_type</span><span class="kw">:</span><span class="at"> </span><span class="st">"differential_sharpe"</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reward_eta</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.01</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="fu">network</span><span class="kw">:</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">actor_hidden_dims</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="dv">128</span><span class="kw">,</span><span class="at"> </span><span class="dv">64</span><span class="kw">]</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">value_hidden_dims</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="dv">128</span><span class="kw">,</span><span class="at"> </span><span class="dv">64</span><span class="kw">]</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">training</span><span class="kw">:</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">algorithm</span><span class="kw">:</span><span class="at"> </span><span class="st">"TD3"</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">actor_lr</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.0001</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">value_lr</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.0001</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">gamma</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.99</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">tau</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.001</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">policy_noise</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.2</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">noise_clip</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.3</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">policy_delay</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">max_steps</span><span class="kw">:</span><span class="at"> </span><span class="dv">2000000</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">sample_size</span><span class="kw">:</span><span class="at"> </span><span class="dv">128</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">buffer_size</span><span class="kw">:</span><span class="at"> </span><span class="dv">100000</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">loss_function</span><span class="kw">:</span><span class="at"> </span><span class="st">"smooth_l1"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <hr>
 </section>
 <section id="td3-training-workflow-diagram" class="level1" data-number="11">
