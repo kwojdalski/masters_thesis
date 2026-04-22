@@ -114,17 +114,42 @@ def _latest_file(paths: list[Path]) -> Path | None:
     return max(paths, key=lambda p: p.stat().st_mtime)
 
 
-def load_latest_evaluation_report(artifact_uri: str | None) -> dict[str, Any] | None:
+def _load_latest_json_artifact(
+    artifact_uri: str | None,
+    artifact_subdir: str,
+    *,
+    preferred_splits: tuple[str, ...] = ("test", "val", "train"),
+) -> dict[str, Any] | None:
     artifact_dir = _artifact_dir_from_uri(artifact_uri)
     if artifact_dir is None:
         return None
-    candidates = sorted((artifact_dir / "evaluation_metrics").glob("*.json"))
-    if not candidates:
+
+    root = artifact_dir / artifact_subdir
+    if not root.exists():
         return None
-    path = _latest_file(candidates)
+
+    candidate_paths: list[Path] = []
+    for split in preferred_splits:
+        split_dir = root / split
+        if split_dir.exists():
+            candidate_paths.extend(split_dir.glob("*.json"))
+    if not candidate_paths:
+        candidate_paths.extend(root.glob("*.json"))
+    if not candidate_paths:
+        candidate_paths.extend(root.glob("*/*.json"))
+
+    path = _latest_file(sorted(candidate_paths))
     if path is None:
         return None
     return json.loads(path.read_text())
+
+
+def load_latest_evaluation_report(artifact_uri: str | None) -> dict[str, Any] | None:
+    return _load_latest_json_artifact(artifact_uri, "evaluation_metrics")
+
+
+def load_latest_statistical_tests(artifact_uri: str | None) -> dict[str, Any] | None:
+    return _load_latest_json_artifact(artifact_uri, "statistical_tests")
 
 
 def find_evaluation_plots(artifact_uri: str | None) -> dict[str, Path]:
@@ -186,6 +211,7 @@ def latest_run_for_experiment(experiment_name: str, status: str | None = None) -
     row["latest_metrics"] = get_latest_metrics(row["run_id"])
     row["params"] = get_params(row["run_id"])
     row["evaluation_report"] = load_latest_evaluation_report(row["artifact_uri"])
+    row["statistical_tests"] = load_latest_statistical_tests(row["artifact_uri"])
     row["evaluation_plots"] = find_evaluation_plots(row["artifact_uri"])
     return row
 
@@ -246,6 +272,108 @@ def format_key_metrics(report: dict[str, Any] | None) -> pd.DataFrame:
         else:
             rows.append((label, str(val)))
     return pd.DataFrame(rows, columns=["Metric", "Value"])
+
+
+def format_benchmark_comparison_table(
+    statistical_tests: dict[str, Any] | None,
+) -> pd.DataFrame:
+    if not statistical_tests:
+        return pd.DataFrame()
+
+    benchmark_table = statistical_tests.get("benchmark_comparison_table")
+    if not isinstance(benchmark_table, list) or not benchmark_table:
+        return pd.DataFrame()
+
+    frame = pd.DataFrame(benchmark_table)
+    display_frame = frame.copy()
+    pct_columns = {
+        "total_return",
+        "annualized_return_cagr",
+        "annualized_volatility",
+        "max_drawdown",
+        "win_rate",
+    }
+    ratio_columns = {"sharpe_ratio", "sortino_ratio", "turnover"}
+    ordered_columns = [
+        "strategy",
+        "total_return",
+        "annualized_return_cagr",
+        "annualized_volatility",
+        "sharpe_ratio",
+        "sortino_ratio",
+        "max_drawdown",
+        "win_rate",
+        "turnover",
+    ]
+    labels = {
+        "strategy": "Strategy",
+        "total_return": "Total Return",
+        "annualized_return_cagr": "Annualized Return (CAGR)",
+        "annualized_volatility": "Annualized Volatility",
+        "sharpe_ratio": "Sharpe Ratio",
+        "sortino_ratio": "Sortino Ratio",
+        "max_drawdown": "Max Drawdown",
+        "win_rate": "Win Rate",
+        "turnover": "Turnover",
+    }
+
+    display_frame = display_frame[[c for c in ordered_columns if c in display_frame.columns]]
+    for column in display_frame.columns:
+        if column == "strategy":
+            continue
+        if column in pct_columns:
+            display_frame[column] = display_frame[column].apply(
+                lambda x: f"{float(x) * 100:.2f}%" if pd.notna(x) else "N/A"
+            )
+        elif column in ratio_columns:
+            display_frame[column] = display_frame[column].apply(
+                lambda x: f"{float(x):.4f}" if pd.notna(x) else "N/A"
+            )
+        else:
+            display_frame[column] = display_frame[column].apply(
+                lambda x: f"{float(x):.4f}" if pd.notna(x) else "N/A"
+            )
+
+    return display_frame.rename(columns=labels)
+
+
+def format_statistical_significance_summary(
+    statistical_tests: dict[str, Any] | None,
+) -> pd.DataFrame:
+    if not statistical_tests:
+        return pd.DataFrame()
+
+    rows: list[dict[str, Any]] = []
+    baselines = statistical_tests.get("baselines", [])
+    for baseline_result in baselines:
+        if not isinstance(baseline_result, dict) or "error" in baseline_result:
+            continue
+        baseline_name = str(baseline_result.get("baseline", "unknown"))
+        for test_name, test_result in baseline_result.items():
+            if not isinstance(test_result, dict):
+                continue
+            p_value = test_result.get("p_value")
+            significant = test_result.get("significant")
+            if p_value is None:
+                continue
+            rows.append(
+                {
+                    "Test": str(test_name).replace("_", " ").title(),
+                    "Benchmark": baseline_name.replace("_", " ").title(),
+                    "p-value": float(p_value),
+                    "Significant (p < 0.05)": (
+                        "Yes" if bool(significant) else "No"
+                    ),
+                }
+            )
+
+    if not rows:
+        return pd.DataFrame()
+
+    frame = pd.DataFrame(rows)
+    frame = frame.sort_values(["Benchmark", "Test"], ignore_index=True)
+    frame["p-value"] = frame["p-value"].map(lambda x: f"{x:.4f}")
+    return frame
 
 
 @dataclass
@@ -335,6 +463,12 @@ def _serialize_run_payload_for_export(run: dict[str, Any], destination_dir: Path
         evaluation_report_file = "evaluation_report.json"
         _write_json(destination_dir / evaluation_report_file, evaluation_report)
 
+    statistical_tests_file: str | None = None
+    statistical_tests = run.get("statistical_tests")
+    if isinstance(statistical_tests, dict):
+        statistical_tests_file = "statistical_tests.json"
+        _write_json(destination_dir / statistical_tests_file, statistical_tests)
+
     plots = run.get("evaluation_plots", {}) or {}
     plot_relpaths = _copy_plots_to_snapshot(plots, destination_dir) if plots else {}
 
@@ -351,6 +485,7 @@ def _serialize_run_payload_for_export(run: dict[str, Any], destination_dir: Path
             "params": "params.json",
             "latest_metrics": "latest_metrics.json",
             "evaluation_report": evaluation_report_file,
+            "statistical_tests": statistical_tests_file,
         },
         "evaluation_plots": plot_relpaths,
     }
@@ -426,6 +561,7 @@ def _load_run_from_export(run_json_path: Path) -> dict[str, Any] | None:
     params_file = raw.get("files", {}).get("params")
     latest_metrics_file = raw.get("files", {}).get("latest_metrics")
     evaluation_report_file = raw.get("files", {}).get("evaluation_report")
+    statistical_tests_file = raw.get("files", {}).get("statistical_tests")
 
     params = {}
     if params_file:
@@ -446,6 +582,14 @@ def _load_run_from_export(run_json_path: Path) -> dict[str, Any] | None:
         if p.exists():
             evaluation_report = json.loads(p.read_text())
 
+    statistical_tests = None
+    if statistical_tests_file:
+        p = base_dir / statistical_tests_file
+        if p.exists():
+            statistical_tests = json.loads(p.read_text())
+    if statistical_tests is None:
+        statistical_tests = load_latest_statistical_tests(raw.get("artifact_uri"))
+
     evaluation_plots = {
         key: (base_dir / rel_path)
         for key, rel_path in (raw.get("evaluation_plots") or {}).items()
@@ -457,6 +601,7 @@ def _load_run_from_export(run_json_path: Path) -> dict[str, Any] | None:
     loaded["params"] = params
     loaded["latest_metrics"] = latest_metrics
     loaded["evaluation_report"] = evaluation_report
+    loaded["statistical_tests"] = statistical_tests
     loaded["evaluation_plots"] = evaluation_plots
     return loaded
 
