@@ -4,12 +4,32 @@ from __future__ import annotations
 import os
 from collections import defaultdict
 from dataclasses import dataclass, field
+from enum import StrEnum
 from itertools import takewhile
 
 import databento as db
 from sortedcontainers import SortedDict
 
 from logger import configure_logging, get_logger
+
+
+class MBOSide(StrEnum):
+    """Order book side, as used in Databento MBO records."""
+
+    ASK = "A"
+    BID = "B"
+
+
+class MBOAction(StrEnum):
+    """Order book action type, as used in Databento MBO records."""
+
+    ADD = "A"
+    CANCEL = "C"
+    MODIFY = "M"
+    CLEAR = "R"
+    TRADE = "T"
+    FILL = "F"
+    NONE = "N"
 
 
 def _env_flag(name: str, default: bool = False) -> bool:
@@ -72,13 +92,13 @@ class Book:
 
     def get_bid_level_by_px(self, px: int) -> PriceLevel | None:
         try:
-            return self._get_level(px, "B").level
+            return self._get_level(px, MBOSide.BID).level
         except KeyError:
             return None
 
     def get_ask_level_by_px(self, px: int) -> PriceLevel | None:
         try:
-            return self._get_level(px, "A").level
+            return self._get_level(px, MBOSide.ASK).level
         except KeyError:
             return None
 
@@ -113,26 +133,26 @@ class Book:
 
     def apply(self, mbo: db.MBOMsg) -> None:
         # Trade, Fill, or None: no change
-        if mbo.action in ("T", "F", "N"):
+        if mbo.action in (MBOAction.TRADE, MBOAction.FILL, MBOAction.NONE):
             return
         # Clear book: remove all resting orders
-        if mbo.action == "R":
+        if mbo.action == MBOAction.CLEAR:
             self._clear()
             return
         # side=N is only valid with Trade, Fill, and Clear actions
-        assert mbo.side in ("A", "B")
+        assert mbo.side in (MBOSide.ASK, MBOSide.BID)
         # UNDEF_PRICE indicates the book level should be removed
         if mbo.price == db.UNDEF_PRICE and mbo.flags & db.RecordFlags.F_TOB:
             self._side_levels(mbo.side).clear()
             return
         # Add: insert a new order
-        if mbo.action == "A":
+        if mbo.action == MBOAction.ADD:
             self._add(mbo)
         # Cancel: partially or fully cancel some size from a resting order
-        elif mbo.action == "C":
+        elif mbo.action == MBOAction.CANCEL:
             self._cancel(mbo)
         # Modify: change the price and/or size of a resting order
-        elif mbo.action == "M":
+        elif mbo.action == MBOAction.MODIFY:
             self._modify(mbo)
         else:
             raise ValueError(f"Unknown action={mbo.action}")
@@ -194,9 +214,9 @@ class Book:
         self.orders_by_id[mbo.order_id] = mbo
 
     def _side_levels(self, side: str) -> SortedDict:
-        if side == "A":
+        if side == MBOSide.ASK:
             return self.offers
-        if side == "B":
+        if side == MBOSide.BID:
             return self.bids
         raise ValueError(f"Invalid {side =}")
 

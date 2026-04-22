@@ -13,6 +13,7 @@ import pandas as pd
 import yaml
 
 from logger import get_logger
+from trading_rl.constants import DataFormat
 
 
 class BaseDataSource(ABC):
@@ -141,7 +142,7 @@ class BaseDataSource(ABC):
         self,
         df: pd.DataFrame,
         filename: str,
-        format: str = "parquet",
+        format: DataFormat = DataFormat.PARQUET,
     ) -> Path:
         """
         Save DataFrame to file.
@@ -152,8 +153,8 @@ class BaseDataSource(ABC):
             Data to save
         filename : str
             Output filename (without path)
-        format : str
-            File format: "parquet", "csv", or "pickle"
+        format : DataFormat
+            File format: DataFormat.PARQUET, DataFormat.CSV, or DataFormat.PICKLE
 
         Returns
         -------
@@ -162,11 +163,11 @@ class BaseDataSource(ABC):
         """
         output_path = self.output_dir / filename
 
-        if format == "parquet":
+        if format == DataFormat.PARQUET:
             df.to_parquet(output_path)
-        elif format == "csv":
+        elif format == DataFormat.CSV:
             df.to_csv(output_path)
-        elif format == "pickle":
+        elif format == DataFormat.PICKLE:
             df.to_pickle(output_path)
         else:
             raise ValueError(f"Unsupported format: {format}")

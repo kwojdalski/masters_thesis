@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
 
 from trading_rl import ExperimentConfig
-from trading_rl.constants import EnvMode
+from trading_rl.constants import EnvMode, Severity
 from trading_rl.data_utils import load_trading_data
 from trading_rl.features import FeaturePipeline, create_default_pipeline
 from trading_rl.features.base import FeatureDomain
@@ -18,7 +17,7 @@ class ValidationIssue:
     """Single validation finding."""
 
     code: str
-    severity: Literal["error", "warning"]
+    severity: Severity
     check: str
     message: str
 
@@ -31,25 +30,25 @@ class ValidationReport:
 
     @property
     def has_errors(self) -> bool:
-        return any(issue.severity == "error" for issue in self.issues)
+        return any(issue.severity == Severity.ERROR for issue in self.issues)
 
     @property
     def has_warnings(self) -> bool:
-        return any(issue.severity == "warning" for issue in self.issues)
+        return any(issue.severity == Severity.WARNING for issue in self.issues)
 
     @property
     def error_count(self) -> int:
-        return sum(1 for issue in self.issues if issue.severity == "error")
+        return sum(1 for issue in self.issues if issue.severity == Severity.ERROR)
 
     @property
     def warning_count(self) -> int:
-        return sum(1 for issue in self.issues if issue.severity == "warning")
+        return sum(1 for issue in self.issues if issue.severity == Severity.WARNING)
 
     def add(
         self,
         *,
         code: str,
-        severity: Literal["error", "warning"],
+        severity: Severity,
         check: str,
         message: str,
     ) -> None:
@@ -64,7 +63,7 @@ def _validate_base_config(config: ExperimentConfig, report: ValidationReport) ->
     except Exception as exc:  # pragma: no cover - defensive
         report.add(
             code="CONFIG_SCHEMA_INVALID",
-            severity="error",
+            severity=Severity.ERROR,
             check="base_config",
             message=str(exc),
         )
@@ -75,7 +74,7 @@ def _validate_paths(config: ExperimentConfig, report: ValidationReport) -> None:
     if not data_path.exists():
         report.add(
             code="DATA_PATH_MISSING",
-            severity="warning",
+            severity=Severity.WARNING,
             check="paths",
             message=f"Dataset file does not exist: {data_path}",
         )
@@ -86,7 +85,7 @@ def _validate_paths(config: ExperimentConfig, report: ValidationReport) -> None:
         if not feature_path.exists():
             report.add(
                 code="FEATURE_CONFIG_MISSING",
-                severity="error",
+                severity=Severity.ERROR,
                 check="paths",
                 message=f"Feature config file does not exist: {feature_path}",
             )
@@ -101,7 +100,7 @@ def _build_feature_pipeline(config: ExperimentConfig, report: ValidationReport):
     except Exception as exc:
         report.add(
             code="FEATURE_PIPELINE_INVALID",
-            severity="error",
+            severity=Severity.ERROR,
             check="feature_pipeline",
             message=str(exc),
         )
@@ -115,7 +114,7 @@ def _validate_split_feasibility(
     if train_size >= dataset_len:
         report.add(
             code="TRAIN_SPLIT_INVALID",
-            severity="error",
+            severity=Severity.ERROR,
             check="split",
             message=(
                 f"train_size ({train_size}) must be smaller than dataset length "
@@ -131,7 +130,7 @@ def _validate_split_feasibility(
     if validation_size < 0:
         report.add(
             code="VALIDATION_SPLIT_NEGATIVE",
-            severity="error",
+            severity=Severity.ERROR,
             check="split",
             message=f"validation_size must be >= 0, got {validation_size}",
         )
@@ -139,7 +138,7 @@ def _validate_split_feasibility(
     if validation_size >= remaining:
         report.add(
             code="VALIDATION_SPLIT_INVALID",
-            severity="error",
+            severity=Severity.ERROR,
             check="split",
             message=(
                 f"validation_size ({validation_size}) must be smaller than "
@@ -168,7 +167,7 @@ def _validate_env_columns(
 
         report.add(
             code="PRICE_COLUMN_MISSING",
-            severity="error",
+            severity=Severity.ERROR,
             check="env_columns",
             message=(
                 "env.price_column contains unknown column: "
@@ -182,7 +181,7 @@ def _validate_env_columns(
         if missing_feat:
             report.add(
                 code="FEATURE_COLUMNS_MISSING",
-                severity="error",
+                severity=Severity.ERROR,
                 check="env_columns",
                 message=(
                     "env.feature_columns contains unknown columns: "
@@ -195,7 +194,7 @@ def _validate_env_columns(
         if non_feature_prefixed:
             report.add(
                 code="FEATURE_COLUMNS_NOT_FEATURE_PREFIXED",
-                severity="error",
+                severity=Severity.ERROR,
                 check="env_columns",
                 message=(
                     "env.feature_columns must contain only feature pipeline outputs "
@@ -226,7 +225,7 @@ def _validate_feature_domains(
     if mode not in set(EnvMode):
         report.add(
             code="ENV_MODE_INVALID",
-            severity="error",
+            severity=Severity.ERROR,
             check="feature_mode",
             message=(
                 f"env.mode must be one of {sorted(EnvMode)}, got '{mode}'."
@@ -253,7 +252,7 @@ def _validate_feature_domains(
     if invalid_domain_features:
         report.add(
             code="FEATURE_DOMAIN_INVALID",
-            severity="error",
+            severity=Severity.ERROR,
             check="feature_mode",
             message=(
                 "Feature config contains invalid domain values. "
@@ -265,7 +264,7 @@ def _validate_feature_domains(
     if mode == "mft" and hft_features:
         report.add(
             code="MFT_HAS_HFT_FEATURES",
-            severity="error",
+            severity=Severity.ERROR,
             check="feature_mode",
             message=(
                 "env.mode='mft' cannot include features tagged as domain='hft'. "
@@ -277,7 +276,7 @@ def _validate_feature_domains(
         if not hft_features:
             report.add(
                 code="HFT_FEATURES_MISSING",
-                severity="error",
+                severity=Severity.ERROR,
                 check="feature_mode",
                 message=(
                     "env.mode='hft' requires at least one feature tagged "
@@ -287,7 +286,7 @@ def _validate_feature_domains(
         if mft_features:
             report.add(
                 code="HFT_HAS_MFT_FEATURES",
-                severity="error",
+                severity=Severity.ERROR,
                 check="feature_mode",
                 message=(
                     "env.mode='hft' cannot include features tagged as "
@@ -309,7 +308,7 @@ def _validate_feature_input_columns(
     if missing_columns:
         report.add(
             code="FEATURE_INPUT_COLUMNS_MISSING",
-            severity="error",
+            severity=Severity.ERROR,
             check="feature_columns",
             message=(
                 "Feature pipeline requires input columns missing from dataset: "
@@ -336,7 +335,7 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
     except Exception as exc:
         report.add(
             code="DATA_LOAD_FAILED",
-            severity="error",
+            severity=Severity.ERROR,
             check="dataset_load",
             message=f"Failed to load dataset: {exc}",
         )
@@ -346,7 +345,7 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
     if dataset_len == 0:
         report.add(
             code="DATASET_EMPTY",
-            severity="error",
+            severity=Severity.ERROR,
             check="dataset_load",
             message="Dataset is empty after dropping NaN rows.",
         )
