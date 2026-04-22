@@ -134,6 +134,7 @@ class TestPipelineSmoke:
             assert bad_train == 0, f"train_df['{col}'] has {bad_train} non-finite values"
 
     def test_run_single_experiment(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        import trading_rl.pipeline.evaluation as evaluation_module
         import trading_rl.train_trading_agent as training_module
 
         config = _make_config(tmp_path)
@@ -167,13 +168,13 @@ class TestPipelineSmoke:
             patched_build_experiment_runtime,
         )
         monkeypatch.setattr(
-            training_module,
+            evaluation_module,
             "build_evaluation_report_for_trainer",
             lambda *args, **kwargs: {"total_return": 0.0, "sharpe_ratio": 0.0},
         )
         monkeypatch.setattr(
-            training_module,
-            "_run_explainability_analysis",
+            evaluation_module,
+            "run_explainability_analysis",
             lambda **kwargs: None,
         )
         monkeypatch.setattr(
