@@ -117,8 +117,8 @@ single evaluation framework for algorithmic trading research.
 
 \newpage
 {{< include ./04-00-reinforcement-learning.qmd >}}
-{{< include ./04-02-timeline-of-new-rl-algorithms.qmd >}}
 {{< include ./04-03-rl-categories.qmd >}}
+{{< include ./04-02-timeline-of-new-rl-algorithms.qmd >}}
 
 \newpage
 {{< include ./05-00-design-of-the-trading-agent.qmd >}}

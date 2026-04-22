@@ -4,11 +4,11 @@ This chapter develops the reinforcement learning foundations required for the
 trading agent implemented in this thesis. It is organized in three parts. The
 first part introduces the core components of a reinforcement learning system —
 the formal vocabulary of states, actions, rewards, policies, and value functions
-that all subsequent algorithms inherit. The second part traces the algorithmic
-lineage from early value-based methods to TD3, the algorithm used in the
-empirical work. The third part classifies RL algorithms along the dimensions
-that matter most for the trading problem: model-free vs. model-based, and
-on-policy vs. off-policy.
+that all subsequent algorithms inherit. The second part classifies RL algorithms
+along the dimensions that matter most for the trading problem: model-free vs.
+model-based, and on-policy vs. off-policy. The third part traces the algorithmic
+lineage from early value-based methods to TD3, showing how these properties
+converge on TD3 as the appropriate algorithm for continuous-control trading.
 
 ## Components of a Reinforcement Learning System
 
@@ -80,14 +80,3 @@ a necessary capability in trading, where the cost of a position change today
 affects future returns through transaction costs and portfolio path dependence.
 The action-value function $Q^\pi(s, a)$ extends this to state-action pairs and
 forms the basis of the critic networks in actor-critic algorithms.
-
-### Applicability to Trading
-
-Financial markets present three challenges for standard RL theory. First,
-transition dynamics are unknown and non-stationary — there is no closed-form
-model of how order book state evolves. Second, the state space is
-high-dimensional and continuous, making tabular methods impractical. Third,
-rewards are noisy and regime-dependent, making credit assignment difficult.
-These challenges motivate the use of model-free, off-policy, deep RL methods,
-and they inform the algorithm selection and evaluation design throughout this
-thesis.
