@@ -20,6 +20,8 @@ SMOKE_SCENARIOS = (
     Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv.yaml"),
 )
 
+_CORE_REPORT_KEYS = ("total_return", "sharpe_ratio", "max_drawdown")
+
 
 def _load_yaml(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as handle:
@@ -99,12 +101,8 @@ def _make_smoke_config(tmp_path: Path, scenario_path: Path, data_path: Path) -> 
     )
 
 
-_CORE_REPORT_KEYS = ("total_return", "sharpe_ratio", "max_drawdown")
-
-
 def _assert_split_result_sane(split: str, split_result: dict) -> None:
     """Assert that a single split result is structurally valid and numerically sane."""
-    # Required keys must be present
     for key in ("final_reward", "last_positions", "evaluation_report"):
         assert key in split_result, f"split '{split}' missing key '{key}'"
 
@@ -137,58 +135,69 @@ def _assert_split_result_sane(split: str, split_result: dict) -> None:
     assert not bad, f"split '{split}' last_positions contains non-finite values: {bad[:5]}"
 
 
-@pytest.mark.smoke
-@pytest.mark.parametrize("scenario_path", SMOKE_SCENARIOS, ids=lambda path: path.stem)
-def test_generated_data_scenario_smoke(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    scenario_path: Path,
-):
-    mlflow.end_run()
-    monkeypatch.setattr(
-        training_module.MLflowTrainingCallback,
-        "log_evaluation_plots",
-        staticmethod(lambda **_kwargs: None),
-    )
-    monkeypatch.setattr(
-        training_module.MLflowTrainingCallback,
-        "log_evaluation_report",
-        staticmethod(lambda *_args, **_kwargs: None),
-    )
-    monkeypatch.setattr(
-        training_module.MLflowTrainingCallback,
-        "log_final_metrics",
-        staticmethod(lambda *_args, **_kwargs: None),
-    )
+class TestGeneratedDataScenarioSmoke:
+    """Smoke tests for full experiment runs on synthetic generated data.
 
-    data_path = _generate_dataset_for_scenario(tmp_path, scenario_path)
-    config = _make_smoke_config(tmp_path, scenario_path, data_path)
+    Each scenario generates a small in-memory dataset from a known pattern
+    (sine wave, upward drift) and runs the full training + evaluation pipeline
+    with minimal steps. Tests verify that the pipeline completes and that
+    evaluation outputs are numerically sane for the given market pattern.
+    MLflow artifact I/O is stubbed out.
+    """
 
-    result = run_single_experiment(custom_config=config)
+    pytestmark = pytest.mark.smoke
 
-    assert result["interrupted"] is False
-    assert result["final_metrics"]["experiment_name"] == scenario_path.stem
-    assert result["final_metrics"]["evaluation_split"] == "test"
-    assert result["final_metrics"]["data_size_total"] == 160
-    assert result["final_metrics"]["train_size"] == 96
-    assert result["final_metrics"]["validation_size"] == 32
-    assert result["final_metrics"]["test_size"] == 32
-    assert result["final_metrics"]["n_observations"] >= 1
-    assert result["final_metrics"]["n_actions"] >= 1
-    assert set(result["final_metrics"]["split_results"]) == {"train", "val", "test"}
-    assert list((tmp_path / "logs").glob("*_checkpoint*.pt"))
-
-    # --- Behavioral guardrails ---
-    split_results = result["final_metrics"]["split_results"]
-    for split in ("train", "val", "test"):
-        _assert_split_result_sane(split, split_results[split])
-
-    # Upward-drift data has a guaranteed rising price series. Even a random agent
-    # should not lose more than 50% on it — a deeper loss signals inverted action
-    # semantics, sign-flipped rewards, or broken portfolio accounting.
-    if "upward_trend" in scenario_path.stem:
-        test_report = split_results["test"]["evaluation_report"]
-        assert test_report["total_return"] > -0.5, (
-            f"Total return {test_report['total_return']:.3f} is suspiciously low "
-            "for a monotonically rising market"
+    @pytest.mark.parametrize("scenario_path", SMOKE_SCENARIOS, ids=lambda path: path.stem)
+    def test_scenario(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+        scenario_path: Path,
+    ) -> None:
+        mlflow.end_run()
+        monkeypatch.setattr(
+            training_module.MLflowTrainingCallback,
+            "log_evaluation_plots",
+            staticmethod(lambda **_kwargs: None),
         )
+        monkeypatch.setattr(
+            training_module.MLflowTrainingCallback,
+            "log_evaluation_report",
+            staticmethod(lambda *_args, **_kwargs: None),
+        )
+        monkeypatch.setattr(
+            training_module.MLflowTrainingCallback,
+            "log_final_metrics",
+            staticmethod(lambda *_args, **_kwargs: None),
+        )
+
+        data_path = _generate_dataset_for_scenario(tmp_path, scenario_path)
+        config = _make_smoke_config(tmp_path, scenario_path, data_path)
+
+        result = run_single_experiment(custom_config=config)
+
+        assert result["interrupted"] is False
+        assert result["final_metrics"]["experiment_name"] == config.experiment_name
+        assert result["final_metrics"]["evaluation_split"] == "test"
+        assert result["final_metrics"]["data_size_total"] == 160
+        assert result["final_metrics"]["train_size"] == 96
+        assert result["final_metrics"]["validation_size"] == 32
+        assert result["final_metrics"]["test_size"] == 32
+        assert result["final_metrics"]["n_observations"] >= 1
+        assert result["final_metrics"]["n_actions"] >= 1
+        assert set(result["final_metrics"]["split_results"]) == {"train", "val", "test"}
+        assert list((tmp_path / "logs").glob("*_checkpoint*.pt"))
+
+        split_results = result["final_metrics"]["split_results"]
+        for split in ("train", "val", "test"):
+            _assert_split_result_sane(split, split_results[split])
+
+        # Upward-drift data has a guaranteed rising price series. Even a random agent
+        # should not lose more than 50% on it — a deeper loss signals inverted action
+        # semantics, sign-flipped rewards, or broken portfolio accounting.
+        if "upward_trend" in config.experiment_name:
+            test_report = split_results["test"]["evaluation_report"]
+            assert test_report["total_return"] > -0.5, (
+                f"Total return {test_report['total_return']:.3f} is suspiciously low "
+                "for a monotonically rising market"
+            )
