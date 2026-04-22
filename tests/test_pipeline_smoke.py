@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from trading_rl.config import ExperimentConfig
+from trading_rl.data_utils import PreparedDataset
 from trading_rl.train_trading_agent import build_training_context, run_single_experiment
 
 
@@ -93,6 +94,8 @@ def test_build_training_context_smoke(tmp_path: Path):
     assert not context["train_df"].empty
     assert not context["val_df"].empty
     assert not context["test_df"].empty
+    assert isinstance(context["prepared_dataset"], PreparedDataset)
+    assert context["prepared_dataset"].price_column == "close"
     assert "feature_lag1" in context["train_df"].columns
     assert "feature_trend" in context["train_df"].columns
     assert context["n_obs"] == 2
