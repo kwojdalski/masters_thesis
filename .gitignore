@@ -129,6 +129,7 @@ thesis/build/*
 thesis/qmd/src/*.html
 thesis/qmd/src/*files
 thesis/qmd/src/*.pdf
+!thesis/qmd/src/masters-thesis.pdf
 render_logs/*
 *.pkl
 logs/*
