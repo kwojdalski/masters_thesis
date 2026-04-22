@@ -29,6 +29,20 @@ jobs:
         with:
           tinytex: true
 
+      - name: Install xelatex and LaTeX packages
+        run: |
+          # Install xelatex and required LaTeX packages
+          sudo apt-get update
+          sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-latex-extra texlive-science
+
+      - name: Verify LaTeX installation
+        run: |
+          # Check if xelatex is available
+          which xelatex
+          xelatex --version
+          # Check if pdflatex is available as fallback
+          which pdflatex || echo "pdflatex not found"
+
       - name: Disable Chrome for PDF generation
         run: |
           # Disable Chrome/Chromium to prevent headless issues in CI
@@ -65,14 +79,22 @@ jobs:
             exit 1
           fi
 
-          # Set environment variables to prevent interactive prompts and force LaTeX
+          # Set environment variables to prevent interactive prompts
           export TEXINPUTS=".:/usr/share/texmf/tex/latex//:"
           export OPENBLAS_NUM_THREADS=1
-          export QUARTO_PANDOC_ARGS=--pdf-engine=xelatex
           export QUARTO_NO_CHROME=1
 
-          # Verify xelatex is available
-          which xelatex || (echo "xelatex not found!" && exit 1)
+          # Determine which LaTeX engine to use
+          if command -v xelatex &> /dev/null; then
+            echo "Using xelatex for PDF generation"
+            export QUARTO_PANDOC_ARGS=--pdf-engine=xelatex
+          elif command -v pdflatex &> /dev/null; then
+            echo "Using pdflatex as fallback for PDF generation"
+            export QUARTO_PANDOC_ARGS=--pdf-engine=pdflatex
+          else
+            echo "ERROR: No LaTeX engine found (tried xelatex and pdflatex)"
+            exit 1
+          fi
 
           # Try rendering with more explicit flags and non-interactive mode
           quarto render thesis/qmd/src/masters-thesis.qmd --to pdf --no-execute --log-level debug || {
