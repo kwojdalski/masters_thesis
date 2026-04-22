@@ -13,25 +13,28 @@ High-frequency trading should therefore not be treated as a faster
 version of MFT. The state observed by the agent is structurally
 different. At short horizons, aggregated price bars omit information that is
 central to decision-making. Features derived from the order
-book, such as depth imbalance, spread variation, order-flow pressure, and
-inter-event timing, provide a more detailed description of market
-conditions than candlesticks. A central concern of this thesis
+book provide a more detailed description of market conditions than candlesticks.
+These include depth imbalance, spread variation, order-flow pressure, and
+inter-event timing. A central concern of this thesis
 is whether such microstructure-aware state representations improve the
 suitability of reinforcement learning for this domain.
 
 Reinforcement learning is a plausible modelling framework for this problem
 because trading is sequential and path dependent. Each action affects future
 exposure, portfolio evolution, and the set of subsequent decisions available to
-the agent. In high-frequency settings, this distinction matters. Industry deployments
-such as JPMorgan's execution engine [@Mosic2017] have applied RL to limit
-order book data for optimal execution — minimizing implementation shortfall
-on large orders given a known trade schedule, where the LOB state informs
-fill probability and spread cost rather than price direction. Directional
-exposure control is a harder problem: the reward signal at tick frequency is
-dominated by noise rather than genuine price movement, the LOB
-state must be transformed into features that carry predictive signal rather
-than liquidity estimates, and the agent must generalize across intraday
-regimes whose statistical properties can differ substantially from the
+the agent. In high-frequency settings, this distinction matters.
+
+Industry deployments have applied RL to limit order book data for optimal execution.
+For example, JPMorgan's execution engine [@Mosic2017] focuses on minimizing
+implementation shortfall on large orders. This approach uses a known trade schedule.
+In this setting, the LOB state informs fill probability and spread cost rather
+than price direction.
+
+Directional exposure control is a harder problem for several reasons.
+First, the reward signal at tick frequency is dominated by noise rather than genuine
+price movement. Second, the LOB state must be transformed into features that carry
+predictive signal rather than liquidity estimates. Third, the agent must generalize
+across intraday regimes whose statistical properties can differ substantially from the
 training window.
 
 This thesis investigates the use of reinforcement learning, with particular
@@ -43,10 +46,10 @@ control agent using microstructure-aware features achieve economically
 meaningful out-of-sample performance relative to selected benchmarks?
 
 The problem is challenging for several reasons. Financial reward signals are
-noisy and non-stationary, transaction costs can erase apparent profitability,
-and short-horizon strategies are highly sensitive to turnover, feature
-specification, and market frictions. In addition, strong empirical claims are
-difficult because favorable in-sample results may reflect data leakage,
+noisy and non-stationary. Transaction costs can erase apparent profitability.
+Additionally, short-horizon strategies are highly sensitive to turnover, feature
+specification, and market frictions. Strong empirical claims are
+difficult for another reason. Favorable in-sample results may reflect data leakage,
 overfitting, or unrealistic execution assumptions rather than genuine decision
 quality.
 
