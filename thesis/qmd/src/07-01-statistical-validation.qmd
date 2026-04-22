@@ -26,6 +26,42 @@ runs_df = runs_overview_table(EXPERIMENT_NAME)
 finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.empty else pd.DataFrame()
 ```
 
+### Statistical Test Design
+
+For each benchmark strategy defined in the preceding section, the evaluation
+pipeline runs five statistical tests on the held-out return series to assess
+whether the observed performance difference is consistent with a null hypothesis
+of equal means or equal distributions.
+
+**Student's t-test** tests whether the mean step-level return of the agent's
+policy differs significantly from the benchmark mean. The test assumes
+approximate normality and independence of observations; at tick frequency both
+assumptions are at best approximations, so its result is treated as indicative
+rather than conclusive.
+
+**Sharpe ratio bootstrap** and **Sortino ratio bootstrap** construct confidence
+intervals on the difference in risk-adjusted return between the agent and each
+benchmark using 10,000 bootstrap resamplings of the return series. Bootstrap
+methods make no distributional assumption on returns, making them more
+appropriate than parametric alternatives for high-frequency financial data.
+
+**Mann-Whitney U test** is a non-parametric rank test that evaluates whether
+the agent's return distribution stochastically dominates the benchmark
+distribution, without assuming normality or equal variances.
+
+**Permutation test** randomly permutes the agent's return series 10,000 times
+to build an empirical null distribution and assess whether the observed test
+statistic is extreme relative to what would occur by chance under the null of
+no systematic relationship between observations and returns.
+
+All tests use a 95% confidence level. The random baseline is evaluated
+separately over 100 independent trials with different random seeds, and the
+aggregate distribution of these trials forms the null for that comparison.
+Test results are logged as MLflow artifacts and should be read jointly: no
+single test is treated as definitive, but consistent evidence across multiple
+tests — especially the non-parametric ones — provides stronger support for
+the performance claim.
+
 ### Purpose and Scope of Statistical Validation
 
 In the current work, statistical validation serves three narrower purposes.
