@@ -435,6 +435,88 @@ $V^{S}_\tau$ = trade size if `action=T, side=A` else 0.
 
 ---
 
+### 26. Trade Arrival Rate
+
+**Feature type:** `trade_arrival_rate` | Param: `window` (default 100), `action_col` (default "action")
+**Literature:** Engle (2000) *The econometrics of ultra-high-frequency data* (ACD model); Hasbrouck (1991) *Measuring the information content of stock trades*. Trade arrival rate as an information flow proxy is standard in market microstructure; see also O'Hara (2015) *High frequency market microstructure*.
+
+Counts the number of trades (`action == 'T'`) per rolling tick window. More
+trades per window indicate higher information arrival intensity and greater
+adverse selection risk. Complements `inter_event_time` which measures timing
+between *all* events, not just trades.
+
+Distinguishes two regimes that `inter_event_time` cannot:
+- Sparse book updates with many trades (active execution, high information)
+- Dense book updates with few trades (posting/cancelling, low information)
+
+$$\text{TradeRate}_{W,t} = \sum_{\tau=t-W+1}^{t} \mathbf{1}[\text{action}_\tau = T]$$
+
+- **Range:** $[0, W]$ (non-negative integer values)
+- High rate: intense execution activity, likely informed flow
+- Low rate: dormant market, low adverse selection
+- Distinct from `inter_event_time`: measures *count* of trades, not *timing*
+  of events; a burst of 50 trades in 100 ticks vs. 50 book-only events with
+  one trade produce different values
+
+**Feasibility:** `action` column confirmed non-null in dataset.
+
+---
+
+### 27. Large Trade Ratio
+
+**Feature type:** `large_trade_ratio` | Param: `window` (default 200), `threshold` (default 500), `action_col`, `size_col`
+**Literature:** Complement to Boehmer, Jones, Zhang & Zhang (2021) *Tracking retail investor activity*. While `odd_lot_trade_ratio` captures retail flow (small trades), large trade detection captures institutional flow. Large trade clustering as an informed trading proxy in Chordia, Roll & Subrahmanyam (2011) *Liquidity and market efficiency*.
+
+Rolling fraction of trades whose size exceeds a configurable threshold.
+Complements `odd_lot_trade_ratio` (which captures retail flow): large trades
+are predominantly institutional. Sudden spikes signal informed participants
+are active.
+
+Only rows where `action == 'T'` contribute. Non-trade rows are excluded.
+
+$$\text{LargeTradeRatio}_{W,t} = \frac{\sum_{\tau=t-W+1}^{t} \mathbf{1}[\text{action}_\tau = T,\ \text{size}_\tau \geq L]}{\max\!\left(\sum_{\tau=t-W+1}^{t} \mathbf{1}[\text{action}_\tau = T],\ 1\right)}$$
+
+where $L$ = `threshold` (default 500 shares).
+
+- **Range:** $[0, 1]$
+- High ratio: institutional-dominated tape, higher adverse selection
+- Low ratio: retail / small-lot dominated tape
+- Together with `odd_lot_trade_ratio`, gives a complete picture of the
+  trade size distribution: `odd_lot_ratio + large_trade_ratio + mid_lot_ratio = 1`
+
+**Feasibility:** `action` and `size` columns confirmed non-null in dataset.
+
+---
+
+### 28. OFI Autocorrelation
+
+**Feature type:** `ofi_autocorrelation` | Param: `window` (default 50), `bid_price_col`, `ask_price_col`, `bid_size_col`, `ask_size_col`
+**Literature:** Cont, Kukanov & Stoikov (2014) note that OFI exhibits significant serial correlation; Hasbrouck (1991) uses autocorrelation structure to decompose information shares. The sign and magnitude of OFI autocorrelation as a regime indicator is discussed in Cartea, Jaimungal & Penalva (2015) *Algorithmic and high-frequency trading* (Cambridge).
+
+Rolling lag-1 autocorrelation of best-level Order Flow Imbalance. Captures
+whether order flow is persistent or mean-reverting:
+
+- **Positive autocorrelation** ($> 0$): persistent directional flow — a whale
+  working a large order over multiple ticks (momentum regime)
+- **Negative autocorrelation** ($< 0$): mean-reverting flow — alternating
+  buy/sell pressure, balanced book (mean-reversion regime)
+- **Near-zero**: random, uncorrelated flow (low predictability)
+
+$$\text{OFI-AC}_{W,t} = \text{corr}\!\left(\text{OFI}_{t-W+1..t},\ \text{OFI}_{t-W..t-1}\right)$$
+
+where OFI is computed using the same best-level formula as the `ofi` feature.
+
+- **Range:** $[-1, 1]$
+- Sign is the key signal: positive = momentum, negative = mean-reversion
+- Requires `min_periods=2` (at least 2 observations for correlation)
+- Window should be chosen to balance responsiveness vs. estimation noise
+  (shorter = noisier, longer = smoother but slower to detect regime changes)
+
+**Feasibility:** fully computable from `bid_px_00`, `ask_px_00`,
+`bid_sz_00`, `ask_sz_00`.
+
+---
+
 ## Summary table
 
 | # | Feature type | Key inputs | Range | Normalized |
@@ -465,6 +547,9 @@ $V^{S}_\tau$ = trade size if `action=T, side=A` else 0.
 | 38 | `cancel_to_trade_ratio` (W=200) | `action` | $[0,\infty)$ | yes |
 | 39 | `ofi_multilevel` (3L/5L) | `bid/ask_px/sz_00–04` | unbounded | yes |
 | 40 | `vpin` (W=100) | `action`, `side`, `size` | $[0,1]$ | yes |
+| 41 | `trade_arrival_rate` (W=100) | `action` | $[0,W]$ | yes |
+| 42 | `large_trade_ratio` (W=200) | `action`, `size` | $[0,1]$ | yes |
+| 43 | `ofi_autocorrelation` (W=50) | `bid/ask_px/sz_00` | $[-1,1]$ | yes |
 
 ---
 
