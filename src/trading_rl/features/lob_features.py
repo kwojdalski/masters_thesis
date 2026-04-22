@@ -1065,3 +1065,128 @@ class VPINFeature(LOBFeature):
         rb = buy_vol.rolling(window=window, min_periods=1).sum()
         rs = sell_vol.rolling(window=window, min_periods=1).sum()
         return safe_divide((rb - rs).abs(), rb + rs)
+
+
+# ---------------------------------------------------------------------------
+# Trade intensity and flow persistence features
+# ---------------------------------------------------------------------------
+
+@register_feature("trade_arrival_rate")
+class TradeArrivalRateFeature(LOBFeature):
+    """Rolling trade arrival rate — information flow intensity.
+
+    Counts the number of trades (action == 'T') per rolling tick window.
+    More trades per window indicate higher information arrival intensity
+    and greater adverse selection risk. Complements `inter_event_time`
+    which measures timing between *all* events, not just trades.
+
+    Distinguishes two regimes that `inter_event_time` cannot:
+      - Sparse book updates with many trades  (active execution, high info)
+      - Dense book updates with few trades      (posting/cancelling, low info)
+
+    Formula:
+        TradeRate_W[t] = count(action == 'T')  over window W
+
+    Range: [0, W]. Non-negative integer values.
+
+    Params:
+        window:     rolling look-back in ticks (default: 100)
+        action_col: column identifying event type (default: "action")
+    """
+
+    def required_columns(self) -> list[str]:
+        return [self._p("action_col", "action")]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        action_col = self._p("action_col", "action")
+        window = int(self._p("window", 100))
+        trades = (df[action_col].astype(str) == "T").astype(float)
+        return trades.rolling(window=window, min_periods=1).sum()
+
+
+@register_feature("large_trade_ratio")
+class LargeTradeRatioFeature(LOBFeature):
+    """Rolling fraction of large trades — institutional flow proxy.
+
+    Complements `odd_lot_trade_ratio` (which captures retail flow). A trade
+    is "large" if its size exceeds a configurable threshold (default: 90th
+    percentile of trade sizes, or an absolute share threshold). Large trades
+    are predominantly institutional — sudden spikes in the large-trade ratio
+    signal informed participants are active.
+
+    Only rows where action == 'T' (trade events) contribute.
+    Non-trade rows are treated as zero observations.
+
+    Formula:
+        is_large[t]   = 1  if action[t]=='T' and size[t] >= threshold  else 0
+        is_trade[t]   = 1  if action[t]=='T'                              else 0
+        LargeTradeRatio_W[t] = sum(is_large) / max(sum(is_trade), 1)
+
+    Range: [0, 1].
+
+    Params:
+        window:     rolling look-back in ticks (default: 200)
+        threshold:  trade size threshold in shares (default: 500)
+        action_col: column identifying event type (default: "action")
+        size_col:   column with trade size (default: "size")
+    """
+
+    def required_columns(self) -> list[str]:
+        return [self._p("action_col", "action"), self._p("size_col", "size")]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        action_col = self._p("action_col", "action")
+        size_col = self._p("size_col", "size")
+        window = int(self._p("window", 200))
+        threshold = float(self._p("threshold", 500))
+        action = df[action_col].astype(str)
+        size = df[size_col].astype(float)
+        is_trade = (action == "T").astype(float)
+        is_large = is_trade * (size >= threshold).astype(float)
+        rolling_large = is_large.rolling(window=window, min_periods=1).sum()
+        rolling_trades = is_trade.rolling(window=window, min_periods=1).sum()
+        return safe_divide(rolling_large, rolling_trades)
+
+
+@register_feature("ofi_autocorrelation")
+class OFIAutocorrelationFeature(LOBFeature):
+    """Rolling autocorrelation of Order Flow Imbalance — flow persistence.
+
+    Measures the lag-1 autocorrelation of best-level OFI over a rolling
+    window. Positive autocorrelation indicates persistent directional flow
+    (a whale working a large order over multiple ticks). Negative
+    autocorrelation indicates mean-reverting flow (balanced book with
+    alternating buy/sell pressure). Near-zero indicates random flow.
+
+    Formula:
+        OFI[t] = best-level order flow imbalance (same as `ofi` feature)
+        AC_W[t] = corr(OFI[t], OFI[t-1])  over window W
+
+    Range: [-1, 1]. First `window` rows use min_periods=2 to ensure
+    at least two observations for correlation.
+
+    Params:
+        window:     rolling look-back in ticks (default: 50)
+        bid_price_col, ask_price_col, bid_size_col, ask_size_col:
+            defaults: bid_px_00, ask_px_00, bid_sz_00, ask_sz_00
+    """
+
+    def required_columns(self) -> list[str]:
+        return list(self._best_cols().values())
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        c = self._best_cols()
+        window = int(self._p("window", 50))
+        bid_px = df[c["bid_px"]].astype(float)
+        ask_px = df[c["ask_px"]].astype(float)
+        bid_sz = df[c["bid_sz"]].astype(float)
+        ask_sz = df[c["ask_sz"]].astype(float)
+        ofi = (
+            bid_sz.diff() * (bid_px >= bid_px.shift(1)).astype(float)
+            - ask_sz.diff() * (ask_px <= ask_px.shift(1)).astype(float)
+        ).fillna(0.0)
+        ofi.iloc[0] = 0.0
+        return ofi.rolling(window=window, min_periods=2).apply(
+            lambda x: x.autocorr(lag=1) if len(x) >= 2 else 0.0,
+            raw=False,
+        ).fillna(0.0)

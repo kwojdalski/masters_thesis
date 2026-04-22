@@ -332,6 +332,57 @@ features:
       window: 1000
       action_col: "action"
 
+  # Trade arrival rate — information flow intensity
+  - name: "hft_trade_arrival_rate_100"
+    feature_type: "trade_arrival_rate"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 100
+      action_col: "action"
+
+  - name: "hft_trade_arrival_rate_500"
+    feature_type: "trade_arrival_rate"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 500
+      action_col: "action"
+
+  # Large trade ratio — institutional flow proxy
+  - name: "hft_large_trade_ratio_200"
+    feature_type: "large_trade_ratio"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 200
+      threshold: 500
+      action_col: "action"
+      size_col: "size"
+
+  # OFI autocorrelation — flow persistence vs mean-reversion
+  - name: "hft_ofi_autocorr_50"
+    feature_type: "ofi_autocorrelation"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 50
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_ofi_autocorr_200"
+    feature_type: "ofi_autocorrelation"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 200
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
   # =============================================================================
   # Event-Time and Order Count Features
   # =============================================================================
