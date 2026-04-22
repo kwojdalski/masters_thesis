@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.36">
+<meta name="generator" content="quarto-1.9.37">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Krzysztof Wojdalski">
-<meta name="dcterms.date" content="2026-03-29">
+<meta name="dcterms.date" content="2026-04-22">
 
 <title>Microstructure-Aware Reinforcement Learning for High-Frequency Trading</title>
 <style>
@@ -89,10 +89,10 @@ div.csl-indent {
 <script src="masters-thesis_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="masters-thesis_files/libs/quarto-html/anchor.min.js"></script>
 <link href="masters-thesis_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="masters-thesis_files/libs/quarto-html/quarto-syntax-highlighting-845c23b38eaddc0f92fda52bfe77a8c8.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="masters-thesis_files/libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="masters-thesis_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="masters-thesis_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="masters-thesis_files/libs/bootstrap/bootstrap-71db1584b3c9bb823602d399ce5b7aa0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="masters-thesis_files/libs/bootstrap/bootstrap-7f8d28353e1b7aed8a50cdb71f958a5d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="masters-thesis_files/libs/quarto-diagram/mermaid.min.js"></script>
 <script src="masters-thesis_files/libs/quarto-diagram/mermaid-init.js"></script>
 <link href="masters-thesis_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
@@ -146,60 +146,60 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#market-microstructure-evidence-for-lob-based-trading" id="toc-market-microstructure-evidence-for-lob-based-trading" class="nav-link" data-scroll-target="#market-microstructure-evidence-for-lob-based-trading"><span class="header-section-number">2.1</span> Market Microstructure Evidence for LOB-Based Trading</a></li>
   <li><a href="#market-microstructure-theory" id="toc-market-microstructure-theory" class="nav-link" data-scroll-target="#market-microstructure-theory"><span class="header-section-number">2.2</span> Market Microstructure Theory</a></li>
-  <li><a href="#why-reinforcement-learning-for-trading" id="toc-why-reinforcement-learning-for-trading" class="nav-link" data-scroll-target="#why-reinforcement-learning-for-trading"><span class="header-section-number">2.3</span> Why Reinforcement Learning for Trading</a></li>
-  <li><a href="#key-concepts-from-reinforcement-learning" id="toc-key-concepts-from-reinforcement-learning" class="nav-link" data-scroll-target="#key-concepts-from-reinforcement-learning"><span class="header-section-number">2.4</span> Key Concepts from Reinforcement Learning</a></li>
-  <li><a href="#rl-applications-in-trading-systems" id="toc-rl-applications-in-trading-systems" class="nav-link" data-scroll-target="#rl-applications-in-trading-systems"><span class="header-section-number">2.5</span> RL Applications in Trading Systems</a></li>
+  <li><a href="#alternative-approaches-to-algorithmic-trading" id="toc-alternative-approaches-to-algorithmic-trading" class="nav-link" data-scroll-target="#alternative-approaches-to-algorithmic-trading"><span class="header-section-number">2.3</span> Alternative Approaches to Algorithmic Trading</a></li>
+  <li><a href="#why-reinforcement-learning-for-trading" id="toc-why-reinforcement-learning-for-trading" class="nav-link" data-scroll-target="#why-reinforcement-learning-for-trading"><span class="header-section-number">2.4</span> Why Reinforcement Learning for Trading</a></li>
+  <li><a href="#key-concepts-from-reinforcement-learning" id="toc-key-concepts-from-reinforcement-learning" class="nav-link" data-scroll-target="#key-concepts-from-reinforcement-learning"><span class="header-section-number">2.5</span> Key Concepts from Reinforcement Learning</a></li>
+  <li><a href="#rl-applications-in-trading-systems" id="toc-rl-applications-in-trading-systems" class="nav-link" data-scroll-target="#rl-applications-in-trading-systems"><span class="header-section-number">2.6</span> RL Applications in Trading Systems</a></li>
   </ul></li>
-  <li><a href="#machine-learning" id="toc-machine-learning" class="nav-link" data-scroll-target="#machine-learning"><span class="header-section-number">3</span> Machine Learning</a>
+  <li><a href="#reinforcement-learning" id="toc-reinforcement-learning" class="nav-link" data-scroll-target="#reinforcement-learning"><span class="header-section-number">3</span> Reinforcement Learning</a>
   <ul class="collapse">
-  <li><a href="#algorithmic-trading-systems" id="toc-algorithmic-trading-systems" class="nav-link" data-scroll-target="#algorithmic-trading-systems"><span class="header-section-number">3.1</span> Algorithmic Trading Systems</a></li>
+  <li><a href="#components-of-a-reinforcement-learning-system" id="toc-components-of-a-reinforcement-learning-system" class="nav-link" data-scroll-target="#components-of-a-reinforcement-learning-system"><span class="header-section-number">3.1</span> Components of a Reinforcement Learning System</a></li>
+  <li><a href="#classifying-rl-algorithms" id="toc-classifying-rl-algorithms" class="nav-link" data-scroll-target="#classifying-rl-algorithms"><span class="header-section-number">3.2</span> Classifying RL Algorithms</a></li>
+  <li><a href="#sec-td3-lineage" id="toc-sec-td3-lineage" class="nav-link" data-scroll-target="#sec-td3-lineage"><span class="header-section-number">3.3</span> Actor-Critic Methods for Continuous Control</a></li>
   </ul></li>
-  <li><a href="#reinforcement-learning-1" id="toc-reinforcement-learning-1" class="nav-link" data-scroll-target="#reinforcement-learning-1"><span class="header-section-number">4</span> Reinforcement Learning</a>
+  <li><a href="#design-of-the-trading-agent" id="toc-design-of-the-trading-agent" class="nav-link" data-scroll-target="#design-of-the-trading-agent"><span class="header-section-number">4</span> Design of the Trading Agent</a>
   <ul class="collapse">
-  <li><a href="#components-of-a-reinforcement-learning-system" id="toc-components-of-a-reinforcement-learning-system" class="nav-link" data-scroll-target="#components-of-a-reinforcement-learning-system"><span class="header-section-number">4.1</span> Components of a Reinforcement Learning System</a></li>
-  <li><a href="#sec-td3-lineage" id="toc-sec-td3-lineage" class="nav-link" data-scroll-target="#sec-td3-lineage"><span class="header-section-number">4.2</span> Actor-Critic Methods for Continuous Control</a></li>
-  <li><a href="#classifying-rl-algorithms" id="toc-classifying-rl-algorithms" class="nav-link" data-scroll-target="#classifying-rl-algorithms"><span class="header-section-number">4.3</span> Classifying RL Algorithms</a></li>
+  <li><a href="#action-space" id="toc-action-space" class="nav-link" data-scroll-target="#action-space"><span class="header-section-number">4.1</span> Action Space</a></li>
+  <li><a href="#state-space" id="toc-state-space" class="nav-link" data-scroll-target="#state-space"><span class="header-section-number">4.2</span> State Space</a></li>
+  <li><a href="#reward-function" id="toc-reward-function" class="nav-link" data-scroll-target="#reward-function"><span class="header-section-number">4.3</span> Reward Function</a></li>
+  <li><a href="#value-function-1" id="toc-value-function-1" class="nav-link" data-scroll-target="#value-function-1"><span class="header-section-number">4.4</span> Value Function</a></li>
+  <li><a href="#policy-1" id="toc-policy-1" class="nav-link" data-scroll-target="#policy-1"><span class="header-section-number">4.5</span> Policy</a></li>
+  <li><a href="#discount-factor" id="toc-discount-factor" class="nav-link" data-scroll-target="#discount-factor"><span class="header-section-number">4.6</span> Discount Factor</a></li>
+  <li><a href="#optimization-hyperparameters" id="toc-optimization-hyperparameters" class="nav-link" data-scroll-target="#optimization-hyperparameters"><span class="header-section-number">4.7</span> Optimization Hyperparameters</a></li>
   </ul></li>
-  <li><a href="#design-of-the-trading-agent" id="toc-design-of-the-trading-agent" class="nav-link" data-scroll-target="#design-of-the-trading-agent"><span class="header-section-number">5</span> Design of the Trading Agent</a>
+  <li><a href="#implementation-of-the-trading-agent" id="toc-implementation-of-the-trading-agent" class="nav-link" data-scroll-target="#implementation-of-the-trading-agent"><span class="header-section-number">5</span> Implementation of the Trading Agent</a>
   <ul class="collapse">
-  <li><a href="#action-space" id="toc-action-space" class="nav-link" data-scroll-target="#action-space"><span class="header-section-number">5.1</span> Action Space</a></li>
-  <li><a href="#state-space" id="toc-state-space" class="nav-link" data-scroll-target="#state-space"><span class="header-section-number">5.2</span> State Space</a></li>
-  <li><a href="#reward-function" id="toc-reward-function" class="nav-link" data-scroll-target="#reward-function"><span class="header-section-number">5.3</span> Reward Function</a></li>
-  <li><a href="#value-function-1" id="toc-value-function-1" class="nav-link" data-scroll-target="#value-function-1"><span class="header-section-number">5.4</span> Value Function</a></li>
-  <li><a href="#policy-1" id="toc-policy-1" class="nav-link" data-scroll-target="#policy-1"><span class="header-section-number">5.5</span> Policy</a></li>
-  <li><a href="#discount-factor" id="toc-discount-factor" class="nav-link" data-scroll-target="#discount-factor"><span class="header-section-number">5.6</span> Discount Factor</a></li>
-  <li><a href="#optimization-hyperparameters" id="toc-optimization-hyperparameters" class="nav-link" data-scroll-target="#optimization-hyperparameters"><span class="header-section-number">5.7</span> Optimization Hyperparameters</a></li>
+  <li><a href="#simulation-architecture" id="toc-simulation-architecture" class="nav-link" data-scroll-target="#simulation-architecture"><span class="header-section-number">5.1</span> Simulation Architecture</a></li>
+  <li><a href="#simulation-assumptions" id="toc-simulation-assumptions" class="nav-link" data-scroll-target="#simulation-assumptions"><span class="header-section-number">5.2</span> Simulation Assumptions</a></li>
+  <li><a href="#data-preparation" id="toc-data-preparation" class="nav-link" data-scroll-target="#data-preparation"><span class="header-section-number">5.3</span> Data Preparation</a></li>
+  <li><a href="#implementation-and-training-pipeline" id="toc-implementation-and-training-pipeline" class="nav-link" data-scroll-target="#implementation-and-training-pipeline"><span class="header-section-number">5.4</span> Implementation and Training Pipeline</a></li>
   </ul></li>
-  <li><a href="#implementation-of-the-trading-agent" id="toc-implementation-of-the-trading-agent" class="nav-link" data-scroll-target="#implementation-of-the-trading-agent"><span class="header-section-number">6</span> Implementation of the Trading Agent</a>
+  <li><a href="#empirical-evaluation-and-performance-analysis" id="toc-empirical-evaluation-and-performance-analysis" class="nav-link" data-scroll-target="#empirical-evaluation-and-performance-analysis"><span class="header-section-number">6</span> Empirical Evaluation and Performance Analysis</a>
   <ul class="collapse">
-  <li><a href="#simulation-assumptions" id="toc-simulation-assumptions" class="nav-link" data-scroll-target="#simulation-assumptions"><span class="header-section-number">6.1</span> Simulation Assumptions</a></li>
-  <li><a href="#data-preparation" id="toc-data-preparation" class="nav-link" data-scroll-target="#data-preparation"><span class="header-section-number">6.2</span> Data Preparation</a></li>
-  <li><a href="#implementation-and-training-pipeline" id="toc-implementation-and-training-pipeline" class="nav-link" data-scroll-target="#implementation-and-training-pipeline"><span class="header-section-number">6.3</span> Implementation and Training Pipeline</a></li>
+  <li><a href="#benchmark-strategies" id="toc-benchmark-strategies" class="nav-link" data-scroll-target="#benchmark-strategies"><span class="header-section-number">6.1</span> Benchmark Strategies</a></li>
+  <li><a href="#evaluation-protocol" id="toc-evaluation-protocol" class="nav-link" data-scroll-target="#evaluation-protocol"><span class="header-section-number">6.2</span> Evaluation Protocol</a></li>
+  <li><a href="#experiment-snapshot" id="toc-experiment-snapshot" class="nav-link" data-scroll-target="#experiment-snapshot"><span class="header-section-number">6.3</span> Experiment Snapshot</a></li>
+  <li><a href="#statistical-validation" id="toc-statistical-validation" class="nav-link" data-scroll-target="#statistical-validation"><span class="header-section-number">6.4</span> Statistical Validation</a></li>
+  <li><a href="#robustness-assessment" id="toc-robustness-assessment" class="nav-link" data-scroll-target="#robustness-assessment"><span class="header-section-number">6.5</span> Robustness Assessment</a></li>
+  <li><a href="#performance-evaluation" id="toc-performance-evaluation" class="nav-link" data-scroll-target="#performance-evaluation"><span class="header-section-number">6.6</span> Performance Evaluation</a></li>
   </ul></li>
-  <li><a href="#empirical-evaluation-and-performance-analysis" id="toc-empirical-evaluation-and-performance-analysis" class="nav-link" data-scroll-target="#empirical-evaluation-and-performance-analysis"><span class="header-section-number">7</span> Empirical Evaluation and Performance Analysis</a>
+  <li><a href="#conclusions-and-future-work" id="toc-conclusions-and-future-work" class="nav-link" data-scroll-target="#conclusions-and-future-work"><span class="header-section-number">7</span> Conclusions and Future Work</a>
   <ul class="collapse">
-  <li><a href="#experiment-snapshot" id="toc-experiment-snapshot" class="nav-link" data-scroll-target="#experiment-snapshot"><span class="header-section-number">7.1</span> Experiment Snapshot</a></li>
-  <li><a href="#statistical-validation" id="toc-statistical-validation" class="nav-link" data-scroll-target="#statistical-validation"><span class="header-section-number">7.2</span> Statistical Validation</a></li>
-  <li><a href="#robustness-assessment" id="toc-robustness-assessment" class="nav-link" data-scroll-target="#robustness-assessment"><span class="header-section-number">7.3</span> Robustness Assessment</a></li>
-  <li><a href="#performance-evaluation" id="toc-performance-evaluation" class="nav-link" data-scroll-target="#performance-evaluation"><span class="header-section-number">7.4</span> Performance Evaluation</a></li>
-  </ul></li>
-  <li><a href="#conclusions-and-future-work" id="toc-conclusions-and-future-work" class="nav-link" data-scroll-target="#conclusions-and-future-work"><span class="header-section-number">8</span> Conclusions and Future Work</a>
-  <ul class="collapse">
-  <li><a href="#summary-of-findings" id="toc-summary-of-findings" class="nav-link" data-scroll-target="#summary-of-findings"><span class="header-section-number">8.1</span> Summary of Findings</a></li>
-  <li><a href="#limitations-and-future-research" id="toc-limitations-and-future-research" class="nav-link" data-scroll-target="#limitations-and-future-research"><span class="header-section-number">8.2</span> Limitations and Future Research</a></li>
-  <li><a href="#implications-for-trading-systems" id="toc-implications-for-trading-systems" class="nav-link" data-scroll-target="#implications-for-trading-systems"><span class="header-section-number">8.3</span> Implications for Trading Systems</a></li>
-  <li><a href="#recommendations-for-practitioners" id="toc-recommendations-for-practitioners" class="nav-link" data-scroll-target="#recommendations-for-practitioners"><span class="header-section-number">8.4</span> Recommendations for Practitioners</a></li>
-  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">8.5</span> Conclusion</a></li>
+  <li><a href="#summary-of-findings" id="toc-summary-of-findings" class="nav-link" data-scroll-target="#summary-of-findings"><span class="header-section-number">7.1</span> Summary of Findings</a></li>
+  <li><a href="#limitations-and-future-research" id="toc-limitations-and-future-research" class="nav-link" data-scroll-target="#limitations-and-future-research"><span class="header-section-number">7.2</span> Limitations and Future Research</a></li>
+  <li><a href="#implications-for-trading-systems" id="toc-implications-for-trading-systems" class="nav-link" data-scroll-target="#implications-for-trading-systems"><span class="header-section-number">7.3</span> Implications for Trading Systems</a></li>
+  <li><a href="#recommendations-for-practitioners" id="toc-recommendations-for-practitioners" class="nav-link" data-scroll-target="#recommendations-for-practitioners"><span class="header-section-number">7.4</span> Recommendations for Practitioners</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">7.5</span> Conclusion</a></li>
   </ul></li>
   <li><a href="#bibliography" id="toc-bibliography" class="nav-link" data-scroll-target="#bibliography">Bibliography</a></li>
-  <li><a href="#lob-feature-inventory" id="toc-lob-feature-inventory" class="nav-link" data-scroll-target="#lob-feature-inventory"><span class="header-section-number">9</span> LOB Feature Inventory</a></li>
-  <li><a href="#td3-hyperparameters" id="toc-td3-hyperparameters" class="nav-link" data-scroll-target="#td3-hyperparameters"><span class="header-section-number">10</span> TD3 Hyperparameters</a></li>
-  <li><a href="#experiment-configuration-example" id="toc-experiment-configuration-example" class="nav-link" data-scroll-target="#experiment-configuration-example"><span class="header-section-number">11</span> Experiment Configuration Example</a></li>
-  <li><a href="#td3-training-workflow-diagram" id="toc-td3-training-workflow-diagram" class="nav-link" data-scroll-target="#td3-training-workflow-diagram"><span class="header-section-number">12</span> TD3 Training Workflow Diagram</a></li>
-  <li><a href="#td3-update-mechanics-diagram" id="toc-td3-update-mechanics-diagram" class="nav-link" data-scroll-target="#td3-update-mechanics-diagram"><span class="header-section-number">13</span> TD3 Update Mechanics Diagram</a></li>
-  <li><a href="#rl-algorithm-taxonomy" id="toc-rl-algorithm-taxonomy" class="nav-link" data-scroll-target="#rl-algorithm-taxonomy"><span class="header-section-number">14</span> RL Algorithm Taxonomy</a></li>
-  <li><a href="#td3-network-architecture" id="toc-td3-network-architecture" class="nav-link" data-scroll-target="#td3-network-architecture"><span class="header-section-number">15</span> TD3 Network Architecture</a></li>
-  <li><a href="#data-preparation-pipeline" id="toc-data-preparation-pipeline" class="nav-link" data-scroll-target="#data-preparation-pipeline"><span class="header-section-number">16</span> Data Preparation Pipeline</a></li>
+  <li><a href="#lob-feature-inventory" id="toc-lob-feature-inventory" class="nav-link" data-scroll-target="#lob-feature-inventory"><span class="header-section-number">8</span> LOB Feature Inventory</a></li>
+  <li><a href="#td3-hyperparameters" id="toc-td3-hyperparameters" class="nav-link" data-scroll-target="#td3-hyperparameters"><span class="header-section-number">9</span> TD3 Hyperparameters</a></li>
+  <li><a href="#experiment-configuration-example" id="toc-experiment-configuration-example" class="nav-link" data-scroll-target="#experiment-configuration-example"><span class="header-section-number">10</span> Experiment Configuration Example</a></li>
+  <li><a href="#td3-training-workflow-diagram" id="toc-td3-training-workflow-diagram" class="nav-link" data-scroll-target="#td3-training-workflow-diagram"><span class="header-section-number">11</span> TD3 Training Workflow Diagram</a></li>
+  <li><a href="#td3-update-mechanics-diagram" id="toc-td3-update-mechanics-diagram" class="nav-link" data-scroll-target="#td3-update-mechanics-diagram"><span class="header-section-number">12</span> TD3 Update Mechanics Diagram</a></li>
+  <li><a href="#rl-algorithm-taxonomy" id="toc-rl-algorithm-taxonomy" class="nav-link" data-scroll-target="#rl-algorithm-taxonomy"><span class="header-section-number">13</span> RL Algorithm Taxonomy</a></li>
+  <li><a href="#td3-network-architecture" id="toc-td3-network-architecture" class="nav-link" data-scroll-target="#td3-network-architecture"><span class="header-section-number">14</span> TD3 Network Architecture</a></li>
+  <li><a href="#data-preparation-pipeline" id="toc-data-preparation-pipeline" class="nav-link" data-scroll-target="#data-preparation-pipeline"><span class="header-section-number">15</span> Data Preparation Pipeline</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="../../../masters-thesis.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li><li><a href="masters-thesis.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
 </div>
@@ -224,7 +224,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">March 29, 2026</p>
+      <p class="date">April 22, 2026</p>
     </div>
   </div>
   
@@ -238,8 +238,8 @@ window.Quarto = {
 
 <section id="introduction" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
-<p>Much of the existing reinforcement learning literature in trading relies on low-frequency market representations such as daily or intraday OHLCV bars. High-frequency trading, however, is governed by information embedded in the limit order book, where local liquidity, queue dynamics, spread changes, and event timing determine short-horizon opportunities and risks. This thesis examines whether a reinforcement learning agent can use order-book-derived features to make favourable trading decisions in a high-frequency single-asset setting.</p>
-<p>High-frequency trading should therefore not be treated as a faster version of bar-based trading. The state observed by the agent is structurally different. At short horizons, aggregated price bars omit information that is central to execution-sensitive decision-making. Features derived from the order book, such as depth imbalance, spread variation, order-flow pressure, and inter-event timing, provide a more detailed description of market conditions than candlestick aggregates. A central concern of this thesis is whether such microstructure-aware state representations improve the suitability of reinforcement learning for this domain.</p>
+<p>Much of the existing reinforcement learning literature in trading relies on low-frequency market representations such as daily or intraday OHLCV bars. High-frequency trading, however, is governed by information embedded in the limit order book, where local liquidity, queue dynamics, spread changes, and event timing determine short-horizon opportunities and risks. This thesis examines whether a reinforcement learning agent can use order-book-derived features to make favourable trading decisions in a HFT setting.</p>
+<p>High-frequency trading should therefore not be treated as a faster version of MFT. The state observed by the agent is structurally different. At short horizons, aggregated price bars omit information that is central to decision-making. Features derived from the order book, such as depth imbalance, spread variation, order-flow pressure, and inter-event timing, provide a more detailed description of market conditions than candlesticks. A central concern of this thesis is whether such microstructure-aware state representations improve the suitability of reinforcement learning for this domain.</p>
 <p>Reinforcement learning is a plausible modelling framework for this problem because trading is sequential and path dependent. Each action affects future exposure, portfolio evolution, and the set of subsequent decisions available to the agent. In high-frequency settings, this distinction matters. Industry deployments such as JPMorgan’s execution engine <span class="citation" data-cites="Mosic2017">(<a href="#ref-Mosic2017" role="doc-biblioref">Mosic 2017</a>)</span> have applied RL to limit order book data for optimal execution — minimizing implementation shortfall on large orders given a known trade schedule, where the LOB state informs fill probability and spread cost rather than price direction. Directional exposure control is a harder problem: the reward signal at tick frequency is dominated by noise rather than genuine price movement, the LOB state must be transformed into features that carry predictive signal rather than liquidity estimates, and the agent must generalize across intraday regimes whose statistical properties can differ substantially from the training window.</p>
 <p>This thesis investigates the use of reinforcement learning, with particular focus on TD3, for high-frequency single-asset trading based on order-book-derived information. The research is motivated not by a claim that artificial intelligence can universally solve trading, but by a narrower and testable question: under controlled experimental conditions, can a continuous control agent using microstructure-aware features achieve economically meaningful out-of-sample performance relative to selected benchmarks?</p>
 <p>The problem is challenging for several reasons. Financial reward signals are noisy and non-stationary, transaction costs can erase apparent profitability, and short-horizon strategies are highly sensitive to turnover, feature specification, and market frictions. In addition, strong empirical claims are difficult because favorable in-sample results may reflect data leakage, overfitting, or unrealistic execution assumptions rather than genuine decision quality.</p>
@@ -252,14 +252,8 @@ window.Quarto = {
 <h2 data-number="1.1" class="anchored" data-anchor-id="scope-and-objectives-of-the-research"><span class="header-section-number">1.1</span> Scope and Objectives of the Research</h2>
 <section id="novelty-of-this-research" class="level3">
 <h3 class="anchored" data-anchor-id="novelty-of-this-research">Novelty of This Research</h3>
-<p>The primary novelty of this thesis is the application of <strong>TD3</strong> to <strong>high-frequency trading with order-book-derived data</strong> for continuous portfolio-exposure control. This differs from a large share of prior RL trading studies that focus on lower-frequency (often daily or bar-based) inputs and evaluate algorithms such as Q-learning, DQN, or PPO primarily in bar-level settings.</p>
-<p>The distinguishing contribution here is the combined focus on:</p>
-<ol type="1">
-<li><strong>Algorithmic choice</strong>: TD3 as the main continuous-control learner for exposure/position sizing.</li>
-<li><strong>Data frequency and structure</strong>: high-frequency order-book stream rather than only aggregated OHLCV bars.</li>
-<li><strong>Feature space</strong>: microstructure-oriented signals (depth/imbalance/spread context) in addition to standard indicator-style features.</li>
-</ol>
-<p>This thesis therefore contributes by evaluating the RL trading problem in a setting where algorithm class, data granularity, and feature design are jointly aligned with high-frequency market microstructure. The targeted algorithm-data-frequency combination remains less represented in prior work and defines the core novelty claim tested in the empirical chapters.</p>
+<p>The primary novelty of this thesis is the application of <strong>TD3</strong> to <strong>high-frequency trading with order-book-derived data</strong> for continuous portfolio-exposure control. This differs from a large share of prior RL trading studies that focus on lower-frequency inputs and evaluate algorithms such as Q-learning, DQN, or PPO primarily in bar-level settings.</p>
+<p>This thesis contributes by evaluating the RL trading problem in a setting where algorithm class, data granularity, and feature design are jointly aligned with high-frequency market microstructure. The targeted algorithm-data-frequency combination remains less represented in prior work and defines the core novelty claim tested in the empirical chapters.</p>
 </section>
 <section id="hypothesis" class="level3">
 <h3 class="anchored" data-anchor-id="hypothesis">Hypothesis</h3>
@@ -300,18 +294,17 @@ window.Quarto = {
 <h2 data-number="1.2" class="anchored" data-anchor-id="thesis-organization-and-chapter-overview"><span class="header-section-number">1.2</span> Thesis Organization and Chapter Overview</h2>
 <p>This thesis is organized to move from problem formulation and literature motivation to agent design, implementation, and empirical evaluation in a microstructure-aware trading setting.</p>
 <p>Chapter 1 introduces the problem context, defines the research scope, and presents the methodological framework used throughout the thesis.</p>
-<p>Chapter 2 reviews the literature most directly relevant to the present research question. It focuses on market microstructure evidence motivating order-book-derived features, the structural case for reinforcement learning in trading, and prior RL trading applications with attention to action-space design, transaction-cost modeling, and evaluation rigor.</p>
-<p>Chapter 3 places reinforcement learning within the broader landscape of machine learning and algorithmic trading system design. It contrasts supervised, unsupervised, and reinforcement learning approaches, then situates the trading agent within a larger trading-system architecture and alternative decision paradigms.</p>
-<p>Chapter 4 develops the reinforcement learning foundations required for the thesis, with particular emphasis on the progression from earlier methods to TD3 and on the distinctions that matter for continuous-control trading problems.</p>
-<p>Chapter 5 presents the design of the trading agent itself. It defines the continuous action space, the microstructure-aware state representation, the reward formulation, and the main policy and value-function design choices used in the empirical system.</p>
-<p>Chapter 6 describes the implementation of the research pipeline, including data preparation, configuration-driven feature engineering, code structure, and the TD3-based training workflow used to produce reproducible experiments.</p>
-<p>Chapter 7 reports the empirical results. It combines experiment snapshots, performance evaluation, statistical validation, and robustness assessment to separate promising outcomes from noise, overfitting, or fragile conclusions.</p>
-<p>Chapter 8 synthesizes the findings, discusses the main limitations of the current framework, and draws implications for future research and practical trading-system development.</p>
+<p>Chapter 2 reviews the literature most directly relevant to the present research question. It covers market microstructure evidence motivating order-book-derived features, the landscape of alternative machine learning paradigms and trading decision architectures, the structural case for reinforcement learning in trading, and prior RL trading applications with attention to action-space design, transaction-cost modeling, and evaluation rigor.</p>
+<p>Chapter 3 develops the reinforcement learning foundations required for the thesis, with particular emphasis on the progression from earlier methods to TD3 and on the distinctions that matter for continuous-control trading problems.</p>
+<p>Chapter 4 presents the design of the trading agent itself. It defines the continuous action space, the microstructure-aware state representation, the reward formulation, and the main policy and value-function design choices used in the empirical system.</p>
+<p>Chapter 5 describes the implementation of the research pipeline, including the simulation architecture, data preparation, configuration-driven feature engineering, code structure, and the TD3-based training workflow used to produce reproducible experiments.</p>
+<p>Chapter 6 reports the empirical results. It combines experiment snapshots, performance evaluation, statistical validation, and robustness assessment to separate promising outcomes from noise, overfitting, or fragile conclusions.</p>
+<p>Chapter 7 synthesizes the findings, discusses the main limitations of the current framework, and draws implications for future research and practical trading-system development.</p>
 </section>
 </section>
 <section id="literature-review" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Literature Review</h1>
-<p>This chapter surveys the academic foundations relevant to reinforcement learning for high-frequency trading. It is organized in two parts. The first part reviews market microstructure — the empirical evidence and theoretical mechanisms that govern short-horizon price formation in limit order book markets. This establishes the financial environment in which the agent operates and motivates the feature engineering choices made in Chapter 5. The second part positions reinforcement learning as the appropriate methodological framework for this problem, surveys the key concepts that matter in a trading context, and reviews prior RL trading applications with attention to action-space design, transaction-cost modeling, and evaluation rigor. The survey concludes by identifying the specific gap — the joint alignment of LOB-derived features, continuous control, and microstructure-aware state design — that this thesis addresses.</p>
+<p>This chapter surveys the academic foundations relevant to reinforcement learning for high-frequency trading. It is organized in two parts. The first part reviews market microstructure — the empirical evidence and theoretical mechanisms that govern short-horizon price formation in limit order book markets. This establishes the financial environment in which the agent operates and motivates the feature engineering choices made in Chapter 4. The second part positions reinforcement learning as the appropriate methodological framework for this problem, surveys the key concepts that matter in a trading context, and reviews prior RL trading applications with attention to action-space design, transaction-cost modeling, and evaluation rigor. The survey concludes by identifying the specific gap — the joint alignment of LOB-derived features, continuous control, and microstructure-aware state design — that this thesis addresses.</p>
 <section id="market-microstructure-evidence-for-lob-based-trading" class="level2" data-number="2.1">
 <h2 data-number="2.1" class="anchored" data-anchor-id="market-microstructure-evidence-for-lob-based-trading"><span class="header-section-number">2.1</span> Market Microstructure Evidence for LOB-Based Trading</h2>
 <p>At intraday and tick-level timescales, financial markets exhibit systematic structural patterns that are distinct from the macro-level anomalies studied in the asset pricing literature. These patterns arise not from investor irrationality or information asymmetry in the fundamental sense, but from the mechanics of how orders interact in a limit order book: the strategic behavior of market makers, the clustering of institutional activity, and the discrete price grid imposed by exchange rules. Understanding these patterns is a prerequisite for designing an HFT trading agent, since they define the informational environment the agent operates in and directly motivate the feature set used in this thesis.</p>
@@ -322,32 +315,73 @@ window.Quarto = {
 </section>
 <section id="market-microstructure-theory" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="market-microstructure-theory"><span class="header-section-number">2.2</span> Market Microstructure Theory</h2>
-<p>The empirical regularities described in the preceding section are grounded in a theoretical literature that models the strategic interactions between informed traders, uninformed liquidity demanders, and market makers in a limit order book. This section reviews the theoretical frameworks that directly underpin the feature design choices made in Chapter 5.</p>
+<p>The empirical regularities described in the preceding section are grounded in a theoretical literature that models the strategic interactions between informed traders, uninformed liquidity demanders, and market makers in a limit order book. This section reviews the theoretical frameworks that directly underpin the feature design choices made in Chapter 4.</p>
 <p><strong>Adverse selection and the spread decomposition.</strong> <span class="citation" data-cites="GlostenMilgrom1985">Glosten and Milgrom (<a href="#ref-GlostenMilgrom1985" role="doc-biblioref">1985</a>)</span> established that the bid-ask spread reflects a market maker’s protection against trading with informed counterparties. In their model, the market maker faces two types of order flow: uninformed liquidity traders, whose trades are uncorrelated with future price changes, and informed traders, who possess private information about fundamental value. Setting a positive spread allows the market maker to profit from uninformed flow and recoup losses on informed flow. The spread therefore decomposes into an adverse selection component — compensation for information risk — and an inventory or order processing component.</p>
-<p>This decomposition has a direct implication for trading signal design. A narrowing spread signals reduced adverse selection risk; a widening spread signals elevated informed activity. The spread features in Chapter 5 — spread in basis points and the spread ratio — are motivated by this theoretical framework. Their predictive content derives from what the spread reveals about the current composition of order flow, not merely from the mechanical cost of execution.</p>
-<p><span class="citation" data-cites="Kyle1985">Kyle (<a href="#ref-Kyle1985" role="doc-biblioref">1985</a>)</span> formalized the price impact of informed trading through the lambda parameter, which measures the sensitivity of price changes to order flow. In Kyle’s continuous-time model, the informed trader optimally splits their order to minimize price impact, and the market maker sets prices to break even against order flow. The resulting relationship between order imbalance and price change is linear, with slope <span class="math inline">\(\lambda\)</span> that depends on the ratio of informed to uninformed volume. The order flow features in Chapter 5 — OFI and signed trade flow — can be understood as empirical proxies for Kyle’s order imbalance variable, with the bid-ask slope features measuring the depth analogue of <span class="math inline">\(\lambda\)</span> across levels of the order book.</p>
+<p>This decomposition has a direct implication for trading signal design. A narrowing spread signals reduced adverse selection risk; a widening spread signals elevated informed activity. The spread features in Chapter 4 — spread in basis points and the spread ratio — are motivated by this theoretical framework. Their predictive content derives from what the spread reveals about the current composition of order flow, not merely from the mechanical cost of execution.</p>
+<p><span class="citation" data-cites="Kyle1985">Kyle (<a href="#ref-Kyle1985" role="doc-biblioref">1985</a>)</span> formalized the price impact of informed trading through the lambda parameter, which measures the sensitivity of price changes to order flow. In Kyle’s continuous-time model, the informed trader optimally splits their order to minimize price impact, and the market maker sets prices to break even against order flow. The resulting relationship between order imbalance and price change is linear, with slope <span class="math inline">\(\lambda\)</span> that depends on the ratio of informed to uninformed volume. The order flow features in Chapter 4 — OFI and signed trade flow — can be understood as empirical proxies for Kyle’s order imbalance variable, with the bid-ask slope features measuring the depth analogue of <span class="math inline">\(\lambda\)</span> across levels of the order book.</p>
 <p><strong>Limit order book mechanics.</strong> <span class="citation" data-cites="Glosten1994">Glosten (<a href="#ref-Glosten1994" role="doc-biblioref">1994</a>)</span> developed the theory of the open limit order book as a competitive equilibrium, showing that a full LOB can sustain itself as a market mechanism under adverse selection. The key insight is that the price schedule embedded in the LOB — the sequence of bid and ask quotes at increasing depths — reflects the cumulative information content of orders at each quantity level. Deeper levels of the book attract less informed order flow but carry higher execution uncertainty for those posting limit orders.</p>
-<p>This theoretical result motivates the multi-level features used in Chapter 5. The book is not a single price but a price schedule, and the shape of that schedule — measured by depth ratios, slopes, and convexity features — encodes information about how informed the marginal liquidity provider expects the market to be at each quantity level.</p>
+<p>This theoretical result motivates the multi-level features used in Chapter 4. The book is not a single price but a price schedule, and the shape of that schedule — measured by depth ratios, slopes, and convexity features — encodes information about how informed the marginal liquidity provider expects the market to be at each quantity level.</p>
 <p><strong>Order flow and short-term price prediction.</strong> <span class="citation" data-cites="Cont2014">Cont et al. (<a href="#ref-Cont2014" role="doc-biblioref">2014</a>)</span> provide the most direct empirical and theoretical treatment of the relationship between LOB events and short-term price changes. Their framework decomposes all LOB events into limit order arrivals, cancellations, and market orders, and defines order flow imbalance (OFI) as the net directional pressure these events exert on the best bid and ask queues. In a sample of NYSE stocks, they find a linear relationship between OFI and mid-price changes over intervals of one second to one minute, with OFI explaining 60–80% of short-term price variation. Importantly, the relationship is contemporaneous: OFI at time <span class="math inline">\(t\)</span> predicts price changes at time <span class="math inline">\(t\)</span>, not a lagged effect, which is consistent with the efficient incorporation of order book information into prices.</p>
 <p>The theoretical channel is straightforward: when buy-side pressure dominates (positive OFI), market makers raise quotes to attract sell-side flow and reduce inventory risk, mechanically pushing the mid-price upward. The OFI feature in this thesis operationalizes this mechanism directly.</p>
 <p><strong>Fair value estimation from the order book.</strong> <span class="citation" data-cites="Stoikov2018">Stoikov (<a href="#ref-Stoikov2018" role="doc-biblioref">2018</a>)</span> derives the microprice as the theoretically optimal estimate of the next transaction price given the current state of the top-of-book queues. The key observation is that the mid-price — the arithmetic average of best bid and ask — is an inadequate fair value estimate when the queues are imbalanced, because the side with the thinner queue is more likely to be depleted first by incoming market orders, pulling the next transaction price toward the opposite side. The microprice corrects for this by volume-weighting the best quotes:</p>
 <p><span class="math display">\[\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}\]</span></p>
-<p>When <span class="math inline">\(V^{bid}_0 \gg V^{ask}_0\)</span>, the microprice is pulled toward the ask — the side more likely to move. The microprice divergence from mid captures this adjustment as a stationary signal and serves as the primary fair value feature in Chapter 5.</p>
+<p>When <span class="math inline">\(V^{bid}_0 \gg V^{ask}_0\)</span>, the microprice is pulled toward the ask — the side more likely to move. The microprice divergence from mid captures this adjustment as a stationary signal and serves as the primary fair value feature in Chapter 4.</p>
 <p>Together these four theoretical frameworks establish the informational structure of the limit order book. The spread encodes adverse selection risk <span class="citation" data-cites="GlostenMilgrom1985">(<a href="#ref-GlostenMilgrom1985" role="doc-biblioref">Glosten and Milgrom 1985</a>)</span>; price impact and order imbalance are related through Kyle’s lambda <span class="citation" data-cites="Kyle1985">(<a href="#ref-Kyle1985" role="doc-biblioref">Kyle 1985</a>)</span>; the shape of the full book encodes the information content at each depth level <span class="citation" data-cites="Glosten1994">(<a href="#ref-Glosten1994" role="doc-biblioref">Glosten 1994</a>)</span>; and OFI is the dominant contemporaneous predictor of short-term price changes <span class="citation" data-cites="Cont2014">(<a href="#ref-Cont2014" role="doc-biblioref">Cont et al. 2014</a>)</span>. The microprice <span class="citation" data-cites="Stoikov2018">(<a href="#ref-Stoikov2018" role="doc-biblioref">Stoikov 2018</a>)</span> provides a theoretically optimal fair value estimate that conditions on the current queue imbalance.</p>
-<p>These mechanisms are not independent: they all reflect the same underlying process of information aggregation through order flow. The feature set in Chapter 5 is designed to measure each mechanism from a distinct angle, providing the agent with a comprehensive description of the information environment it operates in.</p>
+<p>These mechanisms are not independent: they all reflect the same underlying process of information aggregation through order flow. The feature set in Chapter 4 is designed to measure each mechanism from a distinct angle, providing the agent with a comprehensive description of the information environment it operates in.</p>
 </section>
-<section id="why-reinforcement-learning-for-trading" class="level2" data-number="2.3">
-<h2 data-number="2.3" class="anchored" data-anchor-id="why-reinforcement-learning-for-trading"><span class="header-section-number">2.3</span> Why Reinforcement Learning for Trading</h2>
+<section id="alternative-approaches-to-algorithmic-trading" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="alternative-approaches-to-algorithmic-trading"><span class="header-section-number">2.3</span> Alternative Approaches to Algorithmic Trading</h2>
+<p>Before positioning reinforcement learning as the methodology of choice, it is useful to characterize the main alternatives. Two complementary perspectives are relevant: what machine learning paradigm to use for training, and how the trading decision system is structured architecturally. Both converge on the same conclusion.</p>
+<section id="supervised-learning" class="level3">
+<h3 class="anchored" data-anchor-id="supervised-learning">Supervised Learning</h3>
+<p>Supervised learning trains a model on labeled input-output pairs <span class="math inline">\((X_i, Y_i)_{i=1}^{n}\)</span> to minimize a loss function <span class="math inline">\(\mathcal{L}(f_\theta(X), Y)\)</span> over a held-out sample. In trading, supervised approaches have been widely applied to return prediction, directional classification, and volatility forecasting — tasks where historical outcomes provide a natural training signal <span class="citation" data-cites="Krauss2017 Zhang2019">(<a href="#ref-Krauss2017" role="doc-biblioref">Krauss et al. 2017</a>; <a href="#ref-Zhang2019" role="doc-biblioref">Zhang et al. 2019</a>)</span>.</p>
+<p>The approach has a structural limitation in trading contexts: optimizing the forecast objective and optimizing the trading decision are two separate steps with potentially misaligned objectives. A model that minimizes mean squared error on next-period returns may not produce positions that maximize risk-adjusted return after transaction costs, because predictive accuracy and trading profitability are not equivalent criteria <span class="citation" data-cites="Moody1998">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span>. The separate optimization of prediction and action also discards information: a scalar return forecast does not carry the uncertainty, timing, or context available in the original feature vector.</p>
+</section>
+<section id="unsupervised-learning" class="level3">
+<h3 class="anchored" data-anchor-id="unsupervised-learning">Unsupervised Learning</h3>
+<p>Unsupervised learning identifies structure in unlabeled data <span class="math inline">\(\{X_i\}_{i=1}^{n}\)</span> without a target variable. In trading research it is primarily used for market regime detection (clustering volatility or microstructure states), dimensionality reduction of large feature sets (PCA, autoencoders), and anomaly detection in order flow data.</p>
+<p>These applications are useful as preprocessing or exploratory tools, but unsupervised learning does not produce trading decisions directly — it carries no reward signal and cannot optimize for a financial objective such as risk-adjusted return. In the present thesis, the regime-conditioning problem is addressed implicitly through engineered microstructure features — spread ratio, inter-event time, temporal encodings — that condition the agent’s observation on the current market state without requiring an explicit unsupervised clustering step.</p>
+</section>
+<section id="semi-supervised-learning" class="level3">
+<h3 class="anchored" data-anchor-id="semi-supervised-learning">Semi-Supervised Learning</h3>
+<p>Semi-supervised learning combines a small labeled set with a larger unlabeled set, propagating label information through structural similarity in the data. It is useful when labeling is expensive or subjective — medical annotation being the canonical application.</p>
+<p>In financial trading, the approach is rarely adopted because the main bottleneck is not label scarcity but the absence of a stable labeling criterion: what constitutes an optimal action at a given market state depends on subsequent price evolution, which is noisy and non-stationary. Constructing pseudo-labels for unlabeled market observations requires either a strong prior on optimal behavior or a separate forecasting model — at which point the problem has already been reformulated as supervised or reinforcement learning. For these reasons, semi-supervised learning is not used in this thesis.</p>
+<p>The same conclusion follows from a second perspective: the architecture of the decision system itself.</p>
+</section>
+<section id="rule-based-trading-strategies" class="level3">
+<h3 class="anchored" data-anchor-id="rule-based-trading-strategies">Rule-Based Trading Strategies</h3>
+<p>Rule-based strategies encode trading decisions as explicit conditional logic: position changes are triggered when observable market quantities cross pre-defined thresholds. Common examples include moving-average crossover systems, momentum breakout rules, and mean-reversion strategies based on Bollinger Bands or RSI. In high-frequency settings, rule-based approaches include market-making strategies that post limit orders at fixed offsets from the mid-price and cancel them when inventory limits are reached.</p>
+<p>The appeal of rule-based systems is transparency: the causal chain from market condition to action is explicit, auditable, and reproducible. They also impose no distributional assumptions on the data and can be deployed without a training phase.</p>
+<p>The limitation is inflexibility. Rules are defined over a fixed set of observable conditions and optimized for a particular market regime. When the regime changes — for example, when a previously mean-reverting asset enters a trending period — fixed rules either require manual recalibration or continue generating losses until the regime reverts. This brittleness under non-stationarity is the primary motivation for learning-based approaches, which can update their behavior from experience rather than requiring explicit rule revision.</p>
+</section>
+<section id="forecast-based-trading" class="level3">
+<h3 class="anchored" data-anchor-id="forecast-based-trading">Forecast-Based Trading</h3>
+<p>Forecast-based trading systems employ supervised learning techniques to generate price predictions from a set of input variables. These systems optimize for statistical accuracy metrics such as mean squared error during the training phase.</p>
+<p>The forecasting process represents merely an intermediate step in the trading workflow. The predicted prices subsequently inform trading decisions within a separate rules module. A significant limitation is that the forecasting model typically outputs only the predicted price while discarding potentially valuable contextual information from the original inputs. The dimensionality reduction from <span class="math inline">\(\mathbb{R}^n\)</span> to <span class="math inline">\(\hat{y} \in \mathbb{R}\)</span> results in information loss that may be crucial for optimal trading decisions. The optimization target — forecast accuracy — is also not the same as the trading objective.</p>
+</section>
+<section id="training-on-labelled-data" class="level3">
+<h3 class="anchored" data-anchor-id="training-on-labelled-data">Training on Labelled Data</h3>
+<p>A related approach trains a model to imitate a corpus of labeled trades directly, mapping observed market states to actions without an intermediate forecasting step. Formally, the model learns <span class="math inline">\(f: X \rightarrow a\)</span> by minimizing a loss over labeled state-action pairs <span class="math inline">\((X_i, a_i^*)\)</span>:</p>
+<p><span class="math display">\[\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)\]</span></p>
+<p>The limitation is the same as in forecast-based approaches, expressed differently: the optimization target is the labeled action, not the trading objective. Since labels are typically constructed from historical rules or expert behavior rather than from the actual utility function, minimizing imitation error does not guarantee maximizing risk-adjusted return. The labeling process itself introduces a prior about what constitutes optimal behavior — a prior that may be wrong or regime-dependent.</p>
+</section>
+<section id="direct-optimization-of-trading-performance" class="level3">
+<h3 class="anchored" data-anchor-id="direct-optimization-of-trading-performance">Direct Optimization of Trading Performance</h3>
+<p>Direct optimization removes both the intermediate forecast and the labeled action requirement. The agent observes the market state <span class="math inline">\(X_t\)</span>, selects an action, and receives a scalar reward reflecting trading performance. It then adjusts its behavior based on that reward signal — no labels, no predictions, no proxy objective.</p>
+<p>The critical difference from the preceding approaches is that the optimization objective is aligned directly with trading performance: there is no surrogate loss whose relationship to actual returns must be assumed. This alignment is the primary motivation for using reinforcement learning in this thesis. The specific reward formulation and its design rationale are developed in Chapter 4.</p>
+</section>
+</section>
+<section id="why-reinforcement-learning-for-trading" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="why-reinforcement-learning-for-trading"><span class="header-section-number">2.4</span> Why Reinforcement Learning for Trading</h2>
 <p>Before surveying applications, it is worth establishing why reinforcement learning is a natural fit for algorithmic trading rather than an arbitrary methodological choice. The argument rests on three structural properties of the trading problem.</p>
 <p><strong>Unknown market dynamics.</strong> Model-based approaches require an explicit transition model — a specification of how the environment responds to actions. In financial markets, this model is unknown and non-stationary: price dynamics depend on the aggregate behavior of all participants, which changes continuously. Model-free RL methods learn directly from experience without requiring a transition model, making them the appropriate class for this setting <span class="citation" data-cites="Sutton2018">(<a href="#ref-Sutton2018" role="doc-biblioref">Sutton and Barto 2018</a>)</span>.</p>
 <p><strong>Off-policy learning from historical data.</strong> Online experimentation in live markets is constrained by capital, risk, and regulatory requirements. The alternative is to learn from historical order book data — a fixed dataset of past transitions. Off-policy algorithms such as TD3 <span class="citation" data-cites="Fujimoto2018">(<a href="#ref-Fujimoto2018" role="doc-biblioref">Fujimoto et al. 2018</a>)</span> can train on stored experience rather than requiring fresh environment interaction at every update, making them sample-efficient in the data-limited financial setting.</p>
 <p><strong>Continuous position sizing.</strong> Trading decisions are naturally continuous: the agent should be able to express any degree of conviction through the size of its position, not just a binary buy/sell signal. Value-based methods such as DQN <span class="citation" data-cites="Mnih2015">(<a href="#ref-Mnih2015" role="doc-biblioref">Mnih et al. 2015</a>)</span> require a discrete action space and cannot represent fractional positions without reintroducing a grid approximation. Deterministic actor-critic methods operate natively in continuous action spaces and are therefore more appropriate for position-sizing tasks.</p>
-<p>Together these three properties point toward a model-free, off-policy, continuous-action algorithm — which is the class to which TD3 belongs. The formal algorithmic properties of TD3 are derived in Chapter 4. The present section is concerned with how the broader RL literature has been applied to trading and what that literature implies for the design choices made in this thesis.</p>
+<p>Together these three properties point toward a model-free, off-policy, continuous-action algorithm — which is the class to which TD3 belongs. The formal algorithmic properties of TD3 are derived in Chapter 3. The present section is concerned with how the broader RL literature has been applied to trading and what that literature implies for the design choices made in this thesis.</p>
 </section>
-<section id="key-concepts-from-reinforcement-learning" class="level2" data-number="2.4">
-<h2 data-number="2.4" class="anchored" data-anchor-id="key-concepts-from-reinforcement-learning"><span class="header-section-number">2.4</span> Key Concepts from Reinforcement Learning</h2>
-<p>This subsection identifies the reinforcement learning concepts that are most important for interpreting the finance literature reviewed in this chapter. To avoid duplication with the dedicated theory chapter, formal definitions, equations, and algorithm taxonomies are presented in Chapter 4; here the focus is on conceptual relevance to trading problems and the corresponding literature.</p>
-<p><strong>Markov Decision Processes.</strong> The Markov Decision Process (MDP) framework <span class="citation" data-cites="Bellman1957 Puterman1994">(<a href="#ref-Bellman1957" role="doc-biblioref">Bellman 1957</a>; <a href="#ref-Puterman1994" role="doc-biblioref">Puterman 1994</a>)</span> provides the formal language for reinforcement learning. Portfolio decisions are sequential and path-dependent, which makes MDP-based reasoning the natural starting point. At the same time, market regime shifts, structural breaks, and partial observability mean that financial environments only approximately satisfy standard MDP assumptions. The formal definitions of states, actions, rewards, and value functions are developed in Chapter 4.</p>
+<section id="key-concepts-from-reinforcement-learning" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="key-concepts-from-reinforcement-learning"><span class="header-section-number">2.5</span> Key Concepts from Reinforcement Learning</h2>
+<p>This section identifies the reinforcement learning concepts most important for interpreting the finance literature reviewed in this chapter. Formal definitions, equations, and algorithm taxonomies are presented in Chapter 3; the focus here is on why each concept is specifically consequential for trading problems.</p>
 <pre class="{tikz}"><code>#| fig-align: center
 #| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
 \usetikzlibrary{arrows.meta}
@@ -375,18 +409,12 @@ window.Quarto = {
 \node[right, font=\small] at (-1.0, 0.15) {$S_{t+1}$};
 
 \end{tikzpicture}</code></pre>
-<p><strong>The Bellman Equation and Dynamic Programming.</strong> Bellman’s principle of optimality remains central because it motivates value-based reasoning about long-run consequences of trading actions <span class="citation" data-cites="Bellman1957">Bellman (<a href="#ref-Bellman1957" role="doc-biblioref">1957</a>)</span>. DP methods are typically not directly applicable in live trading settings because market transition dynamics are unknown and unstable, but the Bellman perspective is still relevant in the context of modern RL algorithms and how they estimate future reward and compare actions.</p>
-<p><strong>Temporal Difference Learning.</strong> Temporal difference learning <span class="citation" data-cites="Sutton1988">Sutton (<a href="#ref-Sutton1988" role="doc-biblioref">1988</a>)</span> is particularly relevant to finance because it supports incremental learning from experience without a full model of market dynamics. Q-learning <span class="citation" data-cites="Watkins1989">Watkins (<a href="#ref-Watkins1989" role="doc-biblioref">1989</a>)</span> is especially influential in the literature because its off-policy nature aligns with a common financial setting: learning from historical trajectories while evaluating policies that were not necessarily executed in real time.</p>
-<p><strong>Policy Gradient Methods.</strong> Policy gradient methods became important for trading research because many portfolio problems are naturally formulated in continuous action spaces (e.g., position sizing or allocation weights). Foundational contributions such as REINFORCE <span class="citation" data-cites="Williams1992">Williams (<a href="#ref-Williams1992" role="doc-biblioref">1992</a>)</span> and the policy gradient theorem <span class="citation" data-cites="Sutton2000">Sutton et al. (<a href="#ref-Sutton2000" role="doc-biblioref">2000</a>)</span> support actor-critic designs that are better suited than tabular methods to continuous control and high-dimensional observations.</p>
-<p><strong>Exploration-Exploitation Tradeoff.</strong> The exploration-exploitation tradeoff is especially costly in financial applications because exploratory actions can incur immediate costs, while under-exploration can prevent discovery of profitable policies. As emphasized in <span class="citation" data-cites="Sutton2018">Sutton and Barto (<a href="#ref-Sutton2018" role="doc-biblioref">2018</a>)</span>, this is a core RL problem; in trading, it often motivates conservative exploration schemes and risk-sensitive reward designs such as those discussed by <span class="citation" data-cites="Moody1998">Moody and Saffell (<a href="#ref-Moody1998" role="doc-biblioref">1998</a>)</span>. In market settings, this tradeoff is amplified by non-stationarity: strategies that exploit historical regularities can decay quickly after regime changes, yet excessive exploration can destroy performance through churn and slippage. The literature therefore tends to favor controlled exploration schedules, stability-oriented algorithms, and evaluation protocols that separate genuine adaptation from overfitting.</p>
-<p><strong>Function Approximation and Deep RL.</strong> Financial state representations are typically high dimensional, making tabular methods impractical and motivating function approximation. The deep RL advances popularized by <span class="citation" data-cites="Mnih2015">Mnih et al. (<a href="#ref-Mnih2015" role="doc-biblioref">2015</a>)</span> accelerated finance applications (e.g., <span class="citation" data-cites="Deng2016">Deng et al. (<a href="#ref-Deng2016" role="doc-biblioref">2017</a>)</span>), but they also amplified known stability issues in off-policy learning with function approximation analyzed by <span class="citation" data-cites="Tsitsiklis1997">Tsitsiklis and Van Roy (<a href="#ref-Tsitsiklis1997" role="doc-biblioref">1997</a>)</span>. This is one reason the thesis adopts TD3 <span class="citation" data-cites="Fujimoto2018">Fujimoto et al. (<a href="#ref-Fujimoto2018" role="doc-biblioref">2018</a>)</span>, which was designed to improve stability in continuous-control settings.</p>
-<p><strong>Reward Shaping and Credit Assignment.</strong> Reward specification is a central design decision in trading RL because it determines what the agent actually optimizes. The reward-shaping literature <span class="citation" data-cites="Ng1999">Ng et al. (<a href="#ref-Ng1999" role="doc-biblioref">1999</a>)</span> is therefore directly relevant to finance, where practitioners often combine dense learning signals with risk-aware objectives (e.g., Sharpe-style metrics, drawdown penalties, and transaction-cost-aware rewards). Consistent with this literature, the thesis uses log-return and Differential Sharpe Ratio-based signals to align optimization with risk-adjusted performance goals.</p>
-<p><strong>Sample Efficiency and Off-Policy Learning.</strong> Sample efficiency is unusually important in finance because historical data is finite and online experimentation is expensive. Off-policy methods, importance sampling ideas <span class="citation" data-cites="Precup2000">Precup et al. (<a href="#ref-Precup2000" role="doc-biblioref">2000</a>)</span>, and replay-based reuse of experience <span class="citation" data-cites="Lin1992">Lin (<a href="#ref-Lin1992" role="doc-biblioref">1992</a>)</span> are therefore more than implementation details: they are methodological enablers for learning from historical market data under limited experimentation budgets.</p>
-<p><strong>Non-Stationarity and Continuous Adaptation.</strong> Non-stationarity is the main reason why direct transfer of classical RL results to financial markets is difficult: market dynamics, volatility regimes, and participant behavior evolve over time. Work on continual adaptation and meta-learning discussed in <span class="citation" data-cites="Sutton2018">Sutton and Barto (<a href="#ref-Sutton2018" role="doc-biblioref">2018</a>)</span> and finance-oriented discussions such as <span class="citation" data-cites="Deng2016">Deng et al. (<a href="#ref-Deng2016" role="doc-biblioref">2017</a>)</span> motivates the thesis emphasis on robust feature engineering, conservative optimization, and out-of-sample temporal validation. The formal RL machinery used to operationalize these choices is developed in Chapter 4 and then specialized for the trading agent in Chapters 5-7.</p>
+<p>Portfolio decisions are sequential and path-dependent, which makes the MDP framework <span class="citation" data-cites="Bellman1957 Puterman1994">(<a href="#ref-Bellman1957" role="doc-biblioref">Bellman 1957</a>; <a href="#ref-Puterman1994" role="doc-biblioref">Puterman 1994</a>)</span> the natural formal language for trading agents — though market regime shifts, structural breaks, and partial observability mean that financial environments only approximately satisfy standard MDP assumptions. Bellman’s principle of optimality motivates value-based reasoning about long-run consequences of trading actions, but direct dynamic programming is inapplicable because market transition dynamics are unknown and non-stationary, which motivates model-free learning that estimates value directly from sampled experience <span class="citation" data-cites="Sutton1988">(<a href="#ref-Sutton1988" role="doc-biblioref">Sutton 1988</a>)</span>. Temporal difference methods — Q-learning in particular <span class="citation" data-cites="Watkins1989">(<a href="#ref-Watkins1989" role="doc-biblioref">Watkins 1989</a>)</span> — are especially relevant in finance because their off-policy nature permits learning from historical trajectories rather than requiring live interaction with the market. Portfolio problems are naturally continuous, making tabular and discrete-action value methods structurally inadequate; policy gradient methods <span class="citation" data-cites="Williams1992 Sutton2000">(<a href="#ref-Williams1992" role="doc-biblioref">Williams 1992</a>; <a href="#ref-Sutton2000" role="doc-biblioref">Sutton et al. 2000</a>)</span> and the actor-critic architectures they support are the appropriate class for continuous position sizing. The high-dimensionality of financial state representations makes function approximation necessary: deep RL methods <span class="citation" data-cites="Mnih2015">(<a href="#ref-Mnih2015" role="doc-biblioref">Mnih et al. 2015</a>)</span> provide the required generalization capacity, at the cost of stability issues in off-policy settings <span class="citation" data-cites="Tsitsiklis1997">(<a href="#ref-Tsitsiklis1997" role="doc-biblioref">Tsitsiklis and Van Roy 1997</a>)</span> — a fragility that motivated the specific stabilization mechanisms in TD3 <span class="citation" data-cites="Fujimoto2018">(<a href="#ref-Fujimoto2018" role="doc-biblioref">Fujimoto et al. 2018</a>)</span> and that recurs throughout the applied trading literature.</p>
+<p>Four practical complications distinguish financial RL from standard control benchmarks. The exploration-exploitation tradeoff is more costly in trading than in most settings because exploratory actions incur immediate transaction costs, while under-exploration prevents discovery of profitable policies; this tension is amplified by non-stationarity, since strategies that exploit historical regularities can decay abruptly after regime changes, yet excessive exploration destroys performance through churn and slippage <span class="citation" data-cites="Sutton2018 Moody1998">(<a href="#ref-Sutton2018" role="doc-biblioref">Sutton and Barto 2018</a>; <a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span>. Reward specification is a central design decision because it determines what the agent actually optimizes: the reward-shaping literature <span class="citation" data-cites="Ng1999">(<a href="#ref-Ng1999" role="doc-biblioref">Ng et al. 1999</a>)</span> is directly relevant to finance, where misspecified rewards lead to metric gaming or tail-risk neglect, and Sharpe-style risk-adjusted objectives such as the Differential Sharpe Ratio <span class="citation" data-cites="Moody1998">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span> align optimization with economically meaningful return rather than with noisy single-step price changes. Sample efficiency is unusually important because historical market data is finite and live experimentation is constrained by capital and risk limits; off-policy replay-based methods <span class="citation" data-cites="Lin1992">(<a href="#ref-Lin1992" role="doc-biblioref">Lin 1992</a>)</span> are therefore methodological enablers rather than engineering conveniences, and they underpin the algorithm selection in this thesis. Non-stationarity is the dominant reason why classical RL guarantees do not transfer cleanly to financial markets: market dynamics, volatility regimes, and participant behavior evolve continuously, which motivates the emphasis throughout this thesis on robust feature engineering, conservative optimization, and strict temporal validation over rolling out-of-sample periods <span class="citation" data-cites="Deng2016">(<a href="#ref-Deng2016" role="doc-biblioref">Deng et al. 2017</a>)</span>.</p>
 <p>Accordingly, claims that RL “works” in trading should be interpreted as context-dependent: RL methods can produce useful policies when the learning objective, state representation, and validation design are aligned with market frictions and regime uncertainty.</p>
 </section>
-<section id="rl-applications-in-trading-systems" class="level2" data-number="2.5">
-<h2 data-number="2.5" class="anchored" data-anchor-id="rl-applications-in-trading-systems"><span class="header-section-number">2.5</span> RL Applications in Trading Systems</h2>
+<section id="rl-applications-in-trading-systems" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="rl-applications-in-trading-systems"><span class="header-section-number">2.6</span> RL Applications in Trading Systems</h2>
 <p>The application of reinforcement learning to financial trading has evolved from theoretical proposals to practical implementations across diverse market segments. This section surveys the literature on RL-based trading systems with a focus on methodology, action space design, and evaluation rigor.</p>
 <p>To keep conclusions methodologically defensible, this review distinguishes between: (i) proof-of-concept evidence from backtests under simplified assumptions, and (ii) stronger evidence that includes robust out-of-sample design, realistic cost modeling, and variance reporting across repeated runs.</p>
 <section id="early-applications-and-proof-of-concept" class="level3">
@@ -429,124 +457,21 @@ window.Quarto = {
 <!-- {{< include ./02-01-03-00-critical-analysis.qmd >}} -->
 <!-- {{< include ./02-02-00-relevant-financial-indicators.qmd >}} -->
 <!-- {{< include ./02-02-03-market-anomalies.qmd >}} -->
+<!-- Chapter 3 content merged into Chapter 2 (decision paradigms) and Chapter 5 (implementation architecture) -->
+<!-- {{< include ./03-01-00-machine-learning.qmd >}} -->
+<!-- {{< include ./03-02-01-01-components-of-ats.qmd >}} -->
+<!-- {{< include ./03-02-02-00-rule-based-trading.qmd >}} -->
+<!-- {{< include ./03-02-03-01-trading-based-on-forecasts.qmd >}} -->
+<!-- {{< include ./03-02-03-02-training-on-labelled-data.qmd >}} -->
+<!-- {{< include ./03-02-03-03-direct-optimization.qmd >}} -->
 </section>
 </section>
 </section>
-<section id="machine-learning" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> Machine Learning</h1>
-<p>In quantitative trading, the main methodological choice is not simply whether to use machine learning, but how to formulate the decision problem. The same market data can support very different tasks: forecasting future returns, classifying market conditions, extracting latent structure, or selecting actions that directly determine portfolio exposure. These formulations are not interchangeable. They imply different objectives, different forms of supervision, and different links between model output and realized trading performance.</p>
-<p>The purpose of the present chapter is therefore not to survey machine learning in generic terms, but to position reinforcement learning relative to other paradigms used in quantitative trading. This comparison matters because prediction-based approaches and sequential control approaches solve different problems. A forecasting model produces a signal that must later be translated into trades, whereas a reinforcement learning agent is trained to choose actions directly under transaction frictions, portfolio constraints, and delayed feedback.</p>
-<section id="supervised-learning" class="level3">
-<h3 class="anchored" data-anchor-id="supervised-learning">Supervised Learning</h3>
-<p>Supervised learning trains a model on labeled input-output pairs <span class="math inline">\((X_i, Y_i)_{i=1}^{n}\)</span> to minimize a loss function <span class="math inline">\(\mathcal{L}(f_\theta(X), Y)\)</span> over a held-out sample. In trading, supervised approaches have been widely applied to return prediction, directional classification, and volatility forecasting — tasks where historical outcomes provide a natural training signal <span class="citation" data-cites="Krauss2017 Zhang2019">(<a href="#ref-Krauss2017" role="doc-biblioref">Krauss et al. 2017</a>; <a href="#ref-Zhang2019" role="doc-biblioref">Zhang et al. 2019</a>)</span>.</p>
-<p>The approach has a structural limitation in trading contexts: optimizing the forecast objective and optimizing the trading decision are two separate steps with potentially misaligned objectives. A model that minimizes mean squared error on next-period returns may not produce positions that maximize risk-adjusted return after transaction costs, because predictive accuracy and trading profitability are not equivalent criteria <span class="citation" data-cites="Moody1998">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span>. The separate optimization of prediction and action also discards information: a scalar return forecast does not carry the uncertainty, timing, or context available in the original feature vector.</p>
-</section>
-<section id="unsupervised-learning" class="level3">
-<h3 class="anchored" data-anchor-id="unsupervised-learning">Unsupervised Learning</h3>
-<p>Unsupervised learning identifies structure in unlabeled data <span class="math inline">\(\{X_i\}_{i=1}^{n}\)</span> without a target variable. In trading research it is primarily used for market regime detection (clustering volatility or microstructure states), dimensionality reduction of large feature sets (PCA, autoencoders), and anomaly detection in order flow data.</p>
-<p>These applications are useful as preprocessing or exploratory tools, but unsupervised learning does not produce trading decisions directly — it carries no reward signal and cannot optimize for a financial objective such as risk-adjusted return. In the present thesis, the regime-conditioning problem is addressed implicitly through engineered microstructure features — spread ratio, inter-event time, temporal encodings — that condition the agent’s observation on the current market state without requiring an explicit unsupervised clustering step.</p>
-</section>
-<section id="semi-supervised-learning" class="level3">
-<h3 class="anchored" data-anchor-id="semi-supervised-learning">Semi-Supervised Learning</h3>
-<p>Semi-supervised learning combines a small labeled set with a larger unlabeled set, propagating label information through structural similarity in the data. It is useful when labeling is expensive or subjective — medical annotation being the canonical application.</p>
-<p>In financial trading, the approach is rarely adopted because the main bottleneck is not label scarcity but the absence of a stable labeling criterion: what constitutes an optimal action at a given market state depends on subsequent price evolution, which is noisy and non-stationary. Constructing pseudo-labels for unlabeled market observations requires either a strong prior on optimal behavior or a separate forecasting model — at which point the problem has already been reformulated as supervised or reinforcement learning. For these reasons, semi-supervised learning is not used in this thesis.</p>
-</section>
-<section id="reinforcement-learning" class="level3">
-<h3 class="anchored" data-anchor-id="reinforcement-learning">Reinforcement Learning</h3>
-<p>Among the machine learning paradigms discussed above, reinforcement learning is the most directly aligned with trading as a sequential decision-making problem: an agent observes the market state, takes an action (e.g., adjusts exposure), and receives a reward that may reflect both return and risk. In contrast to supervised learning (prediction from labeled examples) and unsupervised learning (structure discovery), reinforcement learning optimizes behavior through interaction under delayed rewards and uncertainty. For this reason, the thesis uses reinforcement learning as the core modelling framework, while the formal theoretical foundations (system components, value functions, exploration, and algorithm categories) are developed in detail in Chapter 4.</p>
-<!-- collapsed into 03-01-00 -->
-<!-- {{< include ./03-01-01-supervised-learning.qmd >}} -->
-<!-- {{< include ./03-01-02-unsupervised-learning.qmd >}} -->
-<!-- {{< include ./03-01-03-semi-supervised-learning.qmd >}} -->
-<!-- {{< include ./03-01-04-reinforcement-learning.qmd >}} -->
-</section>
-<section id="algorithmic-trading-systems" class="level2" data-number="3.1">
-<h2 data-number="3.1" class="anchored" data-anchor-id="algorithmic-trading-systems"><span class="header-section-number">3.1</span> Algorithmic Trading Systems</h2>
-<p>Algorithmic trading systems can include many layers, from market-data ingestion to order routing and post-trade analysis. For the purposes of this thesis, however, only a subset of these components is directly relevant. The research question concerns whether a reinforcement learning agent can learn a useful trading policy from high-frequency order-book-derived data under a controlled simulation setup. Consequently, this section focuses on the components that are represented in the empirical design and states clearly which parts of real-world trading infrastructure remain outside the scope of the study.</p>
-<section id="components-relevant-to-this-thesis" class="level3">
-<h3 class="anchored" data-anchor-id="components-relevant-to-this-thesis">Components Relevant to This Thesis</h3>
-<p>The empirical workflow in this thesis can be described through three functional layers:</p>
-<ol type="1">
-<li>a market-data and feature-construction layer,</li>
-<li>a decision layer that maps states to portfolio-exposure actions,</li>
-<li>an execution and portfolio-accounting layer implemented through simplified environment assumptions.</li>
-</ol>
-<p>This decomposition is sufficient for analysing the learning problem addressed in the thesis without expanding the scope to a full production trading stack.</p>
-<section id="market-data-and-feature-construction" class="level4">
-<h4 class="anchored" data-anchor-id="market-data-and-feature-construction">Market Data and Feature Construction</h4>
-<p>The first component is the data layer. In this thesis, the agent observes states derived from high-frequency AAPL order-book data rather than from low-frequency OHLCV bars alone. Raw order-book information is transformed into features intended to preserve short-horizon market microstructure information while remaining suitable for neural-network-based learning.</p>
-<p>The data layer is responsible for:</p>
-<ul>
-<li>loading and validating the market dataset,</li>
-<li>preserving chronological ordering,</li>
-<li>constructing derived features from order-book information,</li>
-<li>separating learning features from price inputs used for portfolio valuation,</li>
-<li>creating train, validation, and test splits.</li>
-</ul>
-<p>This layer is methodologically important because reinforcement learning in financial settings is highly sensitive to leakage, timestamp errors, and inconsistencies between engineered features and the price series used by the simulation environment.</p>
-</section>
-<section id="decision-layer" class="level4">
-<h4 class="anchored" data-anchor-id="decision-layer">Decision Layer</h4>
-<p>The second component is the decision layer, which is the central object of study in this thesis. The reinforcement learning agent maps the current state representation to a bounded continuous action interpreted as portfolio exposure. This means the agent learns not only directional preference, but also the magnitude of the position.</p>
-<p>This setup differs from forecast-based trading architectures. In supervised pipelines, one model first predicts returns or labels and a separate optimization step translates those predictions into positions. In the present thesis, reinforcement learning is used as a direct decision mechanism: the policy maps observed market state directly to action, and the quality of the decision is evaluated through the reward process generated by the environment.</p>
-<p>The main advantage of this formulation is that action selection, turnover, and reward trade-offs can be learned jointly rather than optimized in isolated stages. At the same time, it places greater importance on correct environment design, because the learned policy depends directly on how state transitions, transaction costs, and portfolio updates are represented.</p>
-</section>
-<section id="execution-and-portfolio-accounting-layer" class="level4">
-<h4 class="anchored" data-anchor-id="execution-and-portfolio-accounting-layer">Execution and Portfolio Accounting Layer</h4>
-<p>The third component is the execution and accounting layer. In real trading systems this layer may contain order management, venue selection, smart order routing, execution scheduling, fill handling, and transaction-cost analysis (TCA). These components are important in production settings, but they are not modeled in full detail in this thesis because doing so would shift the work away from the main research question and toward execution engineering.</p>
-<p>Instead, the empirical environment uses a simplified execution abstraction. The agent’s chosen action is translated into a portfolio update under explicit assumptions about pricing, transaction costs, and liquidity. This abstraction allows the study to isolate the learning behavior of the policy while keeping the simulation tractable and reproducible.</p>
-<p>The execution layer therefore should be interpreted as a controlled backtesting mechanism rather than a realistic implementation of exchange interaction. This distinction matters for interpretation: if the agent performs well in the simulated setting, the result supports a claim about policy learning under the specified assumptions, not a claim that the strategy is immediately deployable without further execution modeling.</p>
-</section>
-</section>
-<section id="scope-boundary" class="level3">
-<h3 class="anchored" data-anchor-id="scope-boundary">Scope Boundary</h3>
-<p>The thesis does not attempt to model the full infrastructure of an operational algorithmic trading platform. In particular, it does not study:</p>
-<ul>
-<li>smart order routing (SOR) across venues,</li>
-<li>partial fills and queue-position effects,</li>
-<li>execution algorithms such as VWAP or TWAP,</li>
-<li>detailed market-impact modeling,</li>
-<li>production monitoring, compliance, or brokerage integration.</li>
-</ul>
-<p>These omitted elements are not irrelevant in practice. They are excluded because the contribution of the thesis lies elsewhere: in evaluating whether a reinforcement learning policy, trained on high-frequency order-book-derived features, can generate economically meaningful behavior within a controlled single-asset trading environment.</p>
-<p>This scope restriction also clarifies the role of the empirical results. The reported findings should be read as evidence about the viability of the policy learning framework and the informativeness of the chosen state representation, not as a full assessment of production-grade trading-system performance.</p>
-</section>
-<section id="rule-based-trading-strategies" class="level3">
-<h3 class="anchored" data-anchor-id="rule-based-trading-strategies">Rule-Based Trading Strategies</h3>
-<p>Rule-based strategies encode trading decisions as explicit conditional logic: position changes are triggered when observable market quantities cross pre-defined thresholds. Common examples include moving-average crossover systems, momentum breakout rules, and mean-reversion strategies based on Bollinger Bands or RSI. In high-frequency settings, rule-based approaches include market-making strategies that post limit orders at fixed offsets from the mid-price and cancel them when inventory limits are reached.</p>
-<p>The appeal of rule-based systems is transparency: the causal chain from market condition to action is explicit, auditable, and reproducible. They also impose no distributional assumptions on the data and can be deployed without a training phase.</p>
-<p>The limitation is inflexibility. Rules are defined over a fixed set of observable conditions and optimized for a particular market regime. When the regime changes — for example, when a previously mean-reverting asset enters a trending period — fixed rules either require manual recalibration or continue generating losses until the regime reverts. This brittleness under non-stationarity is the primary motivation for learning-based approaches, which can update their behavior from experience rather than requiring explicit rule revision.</p>
-</section>
-<section id="trading-based-on-forecasts" class="level3">
-<h3 class="anchored" data-anchor-id="trading-based-on-forecasts">Trading based on Forecasts</h3>
-<p>Forecast-based trading systems employ supervised learning techniques to generate price predictions from a set of input variables. These systems optimize for statistical accuracy metrics such as mean squared error during the training phase.</p>
-<p>The forecasting process represents merely an intermediate step in the trading workflow. The predicted prices generated by the Forecasting System subsequently inform trading decisions within the Trading Rules module. Performance evaluation occurs through financial metrics in the Profits/Losses evaluation module <span class="math inline">\(U(\theta, \theta^{'})\)</span>. A significant limitation of this approach is that the Forecasting module typically outputs only the predicted price while discarding potentially valuable contextual information from the original inputs. This exemplifies a fundamental limitation in forecast-based trading systems: the information loss problem. When a system predicts that MSFT will reach $300 tomorrow based solely on technical indicators, it discards critical contextual variables such as abnormal trading volume and volatility patterns. The formal representation of this problem can be expressed as:</p>
-<p><span class="math display">\[f: X \rightarrow \hat{y}\]</span></p>
-<p>where: - <span class="math inline">\(X \in \mathbb{R}^n\)</span> represents the input space - <span class="math inline">\(\hat{y} \in \mathbb{R}\)</span> represents the scalar price prediction</p>
-<p>The dimensionality reduction from <span class="math inline">\(\mathbb{R}^n\)</span> to <span class="math inline">\(\mathbb{R}\)</span> results in significant information loss that may be crucial for optimal trading decisions.</p>
-</section>
-<section id="training-a-trading-system-on-labeled-data" class="level3">
-<h3 class="anchored" data-anchor-id="training-a-trading-system-on-labeled-data">Training a Trading System on Labeled Data</h3>
-<p>A related approach trains a model to imitate a corpus of labeled trades directly, mapping observed market states to actions without an intermediate forecasting step. Formally, the model learns <span class="math inline">\(f: X \rightarrow a\)</span> by minimizing a loss over labeled state-action pairs <span class="math inline">\((X_i, a_i^*)\)</span>:</p>
-<p><span class="math display">\[\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)\]</span></p>
-<p>The limitation is the same as in forecast-based approaches, expressed differently: the optimization target is the labeled action, not the trading objective. Since labels are typically constructed from historical rules or expert behavior rather than from the actual utility function, minimizing imitation error does not guarantee maximizing risk-adjusted return. The labeling process itself introduces a prior about what constitutes optimal behavior — a prior that may be wrong or regime-dependent.</p>
-</section>
-<section id="direct-optimization-of-performance" class="level3">
-<h3 class="anchored" data-anchor-id="direct-optimization-of-performance">Direct Optimization of Performance</h3>
-<p>Direct optimization removes both the intermediate forecast and the labeled action requirement. The agent observes the market state <span class="math inline">\(X_t\)</span>, selects an action, and receives a scalar reward reflecting trading performance. It then adjusts its behavior based on that reward signal — no labels, no predictions, no proxy objective.</p>
-<p>For example, a reinforcement learning agent trading AAPL observes the current order book state <span class="math inline">\(X_t\)</span> and outputs a continuous portfolio exposure <span class="math inline">\(a_t \in [-1, 1]\)</span>, where <span class="math inline">\(-1\)</span> is maximum short and <span class="math inline">\(+1\)</span> is maximum long. The reward reflects the realized return on that position net of transaction costs:</p>
-<p><span class="math display">\[r_t = a_{t-1} \cdot \frac{P_t - P_{t-1}}{P_{t-1}} - c \cdot |a_t - a_{t-1}|\]</span></p>
-<p>The agent optimizes a deterministic policy <span class="math inline">\(\mu_\theta: X \rightarrow a\)</span> to maximize expected cumulative reward:</p>
-<p><span class="math display">\[\max_\theta \mathbb{E}\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]\]</span></p>
-<p>where <span class="math inline">\(\gamma \in [0,1]\)</span> is a discount factor. The critical difference from the two preceding approaches is that the optimization objective is aligned directly with trading performance: there is no surrogate loss whose relationship to actual returns must be assumed. This alignment is the primary motivation for using reinforcement learning in this thesis.</p>
-</section>
-</section>
-</section>
-<section id="reinforcement-learning-1" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> Reinforcement Learning</h1>
-<p>This chapter develops the reinforcement learning foundations required for the trading agent implemented in this thesis. It is organized in three parts. The first part introduces the core components of a reinforcement learning system — the formal vocabulary of states, actions, rewards, policies, and value functions that all subsequent algorithms inherit. The second part traces the algorithmic lineage from early value-based methods to TD3, the algorithm used in the empirical work. The third part classifies RL algorithms along the dimensions that matter most for the trading problem: model-free vs.&nbsp;model-based, and on-policy vs.&nbsp;off-policy.</p>
-<section id="components-of-a-reinforcement-learning-system" class="level2" data-number="4.1">
-<h2 data-number="4.1" class="anchored" data-anchor-id="components-of-a-reinforcement-learning-system"><span class="header-section-number">4.1</span> Components of a Reinforcement Learning System</h2>
+<section id="reinforcement-learning" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Reinforcement Learning</h1>
+<p>This chapter develops the reinforcement learning foundations required for the trading agent implemented in this thesis. It is organized in three parts. The first part introduces the core components of a reinforcement learning system — the formal vocabulary of states, actions, rewards, policies, and value functions that all subsequent algorithms inherit. The second part classifies RL algorithms along the dimensions that matter most for the trading problem: model-free vs. model-based, and on-policy vs.&nbsp;off-policy. The third part traces the algorithmic lineage from early value-based methods to TD3, showing how these properties converge on TD3 as the appropriate algorithm for continuous-control trading.</p>
+<section id="components-of-a-reinforcement-learning-system" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="components-of-a-reinforcement-learning-system"><span class="header-section-number">3.1</span> Components of a Reinforcement Learning System</h2>
 <p>Reinforcement learning systems address sequential decision-making problems by selecting actions that maximize cumulative discounted future rewards. This subsection defines the core components using trading as the primary illustrative context, drawing on <span class="citation" data-cites="Sutton2018">Sutton and Barto (<a href="#ref-Sutton2018" role="doc-biblioref">2018</a>)</span>.</p>
 <section id="environment" class="level3">
 <h3 class="anchored" data-anchor-id="environment">Environment</h3>
@@ -554,7 +479,7 @@ window.Quarto = {
 </section>
 <section id="state" class="level3">
 <h3 class="anchored" data-anchor-id="state">State</h3>
-<p>The state <span class="math inline">\(s_t\)</span> is a snapshot of the environment at time <span class="math inline">\(t\)</span> that contains sufficient information for the agent to select an action. In the HFT setting of this thesis, the state is a vector of engineered microstructure features derived from the limit order book: imbalance measures, spread, order flow signals, and temporal encodings. States can be terminal, ending an episode, or non-terminal, continuing the interaction sequence. The Markov property requires that the optimal action depend only on <span class="math inline">\(s_t\)</span> and not on the full history; the feature engineering in Chapter 5 is designed to approximate this property.</p>
+<p>The state <span class="math inline">\(s_t\)</span> is a snapshot of the environment at time <span class="math inline">\(t\)</span> that contains sufficient information for the agent to select an action. In the HFT setting of this thesis, the state is a vector of engineered microstructure features derived from the limit order book: imbalance measures, spread, order flow signals, and temporal encodings. States can be terminal, ending an episode, or non-terminal, continuing the interaction sequence. The Markov property requires that the optimal action depend only on <span class="math inline">\(s_t\)</span> and not on the full history; the feature engineering in Chapter 4 is designed to approximate this property.</p>
 </section>
 <section id="action" class="level3">
 <h3 class="anchored" data-anchor-id="action">Action</h3>
@@ -566,7 +491,7 @@ window.Quarto = {
 </section>
 <section id="reward" class="level3">
 <h3 class="anchored" data-anchor-id="reward">Reward</h3>
-<p>The reward <span class="math inline">\(r_t\)</span> is a scalar signal returned by the environment after the agent takes action <span class="math inline">\(a_t\)</span> in state <span class="math inline">\(s_t\)</span>. It provides the only learning signal available to the agent — there are no labels, no supervisor. The reward function is therefore a critical design choice: it determines what the agent actually optimizes. In trading, rewards are typically derived from portfolio returns, possibly adjusted for risk and transaction costs. The specific reward formulation used in this thesis is developed in Chapter 5.</p>
+<p>The reward <span class="math inline">\(r_t\)</span> is a scalar signal returned by the environment after the agent takes action <span class="math inline">\(a_t\)</span> in state <span class="math inline">\(s_t\)</span>. It provides the only learning signal available to the agent — there are no labels, no supervisor. The reward function is therefore a critical design choice: it determines what the agent actually optimizes. In trading, rewards are typically derived from portfolio returns, possibly adjusted for risk and transaction costs. The specific reward formulation used in this thesis is developed in Chapter 4.</p>
 </section>
 <section id="value-function" class="level3">
 <h3 class="anchored" data-anchor-id="value-function">Value Function</h3>
@@ -574,14 +499,37 @@ window.Quarto = {
 <p><span class="math display">\[V^\pi(s) = \mathbb{E}_\pi\!\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k} \,\Big|\, s_t = s\right]\]</span></p>
 <p>where <span class="math inline">\(\gamma \in [0, 1]\)</span> is the discount factor. The value function allows the agent to reason about long-run consequences rather than only immediate rewards — a necessary capability in trading, where the cost of a position change today affects future returns through transaction costs and portfolio path dependence. The action-value function <span class="math inline">\(Q^\pi(s, a)\)</span> extends this to state-action pairs and forms the basis of the critic networks in actor-critic algorithms.</p>
 </section>
-<section id="applicability-to-trading" class="level3">
-<h3 class="anchored" data-anchor-id="applicability-to-trading">Applicability to Trading</h3>
-<p>Financial markets present three challenges for standard RL theory. First, transition dynamics are unknown and non-stationary — there is no closed-form model of how order book state evolves. Second, the state space is high-dimensional and continuous, making tabular methods impractical. Third, rewards are noisy and regime-dependent, making credit assignment difficult. These challenges motivate the use of model-free, off-policy, deep RL methods, and they inform the algorithm selection and evaluation design throughout this thesis.</p>
+</section>
+<section id="classifying-rl-algorithms" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="classifying-rl-algorithms"><span class="header-section-number">3.2</span> Classifying RL Algorithms</h2>
+<section id="model-free-vs-model-based" class="level3">
+<h3 class="anchored" data-anchor-id="model-free-vs-model-based">Model-free vs Model-based</h3>
+<p>Reinforcement learning algorithms divide into two broad families depending on whether they require a model of the environment.</p>
+<p>Model-based methods learn or are given a transition model <span class="math inline">\(P(s'|s,a)\)</span> and use it to plan ahead — computing value functions by rolling out simulated trajectories rather than purely from observed data. Dyna-Q and AlphaZero are canonical examples. When the model is accurate, planning is data-efficient; when the model is wrong, planning amplifies errors. In financial markets, transition dynamics are unknown and non-stationary, making a reliable model practically unattainable.</p>
+<p>Model-free methods learn directly from sampled transitions without building a transition model. They are less sample-efficient but impose no assumptions on the environment’s dynamics. TD3 belongs to this family.</p>
+</section>
+<section id="value-based-policy-based-and-actor-critic" class="level3">
+<h3 class="anchored" data-anchor-id="value-based-policy-based-and-actor-critic">Value-Based, Policy-Based, and Actor-Critic</h3>
+<p>A second dimension classifies algorithms by what they learn and optimize.</p>
+<p><strong>Value-based</strong> methods learn a value function and derive a policy implicitly by acting greedily with respect to it. Q-learning and its deep variant DQN (<span class="citation" data-cites="Mnih2015">Mnih et al. (<a href="#ref-Mnih2015" role="doc-biblioref">2015</a>)</span>) are prototypical examples. They work well in discrete action spaces but struggle when actions are continuous, because the greedy step <span class="math inline">\(\arg\max_a Q(s,a)\)</span> becomes intractable over an uncountable set.</p>
+<p><strong>Policy-based</strong> methods directly parameterize and optimize the policy <span class="math inline">\(\pi_\theta\)</span>. REINFORCE (<span class="citation" data-cites="Williams1992">Williams (<a href="#ref-Williams1992" role="doc-biblioref">1992</a>)</span>) updates parameters by gradient ascent on expected return:</p>
+<p><span class="math display">\[\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}\!\left[\sum_t r_t\right]\]</span></p>
+<p>Policy gradients handle continuous actions naturally but suffer from high variance, requiring many samples to obtain a reliable gradient signal.</p>
+<p><strong>Actor-critic</strong> methods combine both: an actor <span class="math inline">\(\mu_\theta\)</span> selects actions and a critic <span class="math inline">\(Q_w(s,a)\)</span> evaluates them, using the critic’s lower-variance estimates to guide actor updates. The full actor-critic derivation and TD3’s specific extensions are given in <a href="#sec-td3-lineage" class="quarto-xref">Section&nbsp;3.3</a>.</p>
+</section>
+<section id="on-policy-vs-off-policy" class="level3">
+<h3 class="anchored" data-anchor-id="on-policy-vs-off-policy">On-Policy vs Off-Policy</h3>
+<p>On-policy methods evaluate and improve the same policy used to collect experience. SARSA is a canonical example, updating with:</p>
+<p><span class="math display">\[Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma Q(s_{t+1},a_{t+1}) - Q(s_t,a_t)\bigr]\]</span></p>
+<p>where <span class="math inline">\(a_{t+1}\)</span> is drawn from the current policy. On-policy methods tend to be stable but wasteful: each sample is used once and then discarded.</p>
+<p>Off-policy methods decouple the data-collection policy (the behavior policy) from the policy being improved (the target policy). Q-learning updates with the greedy maximum:</p>
+<p><span class="math display">\[Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)\bigr]\]</span></p>
+<p>regardless of how <span class="math inline">\(a_{t+1}\)</span> was actually selected. This separation allows experience from a replay buffer — collected under earlier or exploratory policies — to be reused many times. TD3 is off-policy and uses a replay buffer to reuse collected transitions; the implications for sample efficiency in financial settings are discussed in <a href="#sec-td3-lineage" class="quarto-xref">Section&nbsp;3.3</a>.</p>
 </section>
 </section>
-<section id="sec-td3-lineage" class="level2" data-number="4.2">
-<h2 data-number="4.2" class="anchored" data-anchor-id="sec-td3-lineage"><span class="header-section-number">4.2</span> Actor-Critic Methods for Continuous Control</h2>
-<p>The development of reinforcement learning algorithms is a series of conceptual breaks , each motivated by a limitation in the preceding framework. This section traces the specific lineage that leads to the Twin Delayed Deep Deterministic Policy Gradient (TD3) algorithm, which is employed in this thesis. The survey is not exhaustive; it focuses on the algorithmic properties that are directly relevant to the continuous-action, single-asset trading problem formulated in Chapter 5.</p>
+<section id="sec-td3-lineage" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="sec-td3-lineage"><span class="header-section-number">3.3</span> Actor-Critic Methods for Continuous Control</h2>
+<p>The development of reinforcement learning algorithms is a series of conceptual breaks , each motivated by a limitation in the preceding framework. This section traces the specific lineage that leads to the Twin Delayed Deep Deterministic Policy Gradient (TD3) algorithm, which is employed in this thesis. The survey is not exhaustive; it focuses on the algorithmic properties that are directly relevant to the continuous-action, single-asset trading problem formulated in Chapter 4.</p>
 <section id="value-based-methods-and-their-limitations-in-continuous-control" class="level3">
 <h3 class="anchored" data-anchor-id="value-based-methods-and-their-limitations-in-continuous-control">Value-Based Methods and Their Limitations in Continuous Control</h3>
 <p>The foundational algorithms of the field — Q-learning <span class="citation" data-cites="Watkins1992">(<a href="#ref-Watkins1992" role="doc-biblioref">Watkins and Dayan 1992</a>)</span> and its on-policy variant SARSA <span class="citation" data-cites="Rummery1994">(<a href="#ref-Rummery1994" role="doc-biblioref">Rummery and Niranjan 1994</a>)</span> — operate over tabular representations of state-action value functions. Both methods converge to the optimal policy under mild conditions, but only when the state-action space is small enough to enumerate explicitly. In a trading context with continuous price-derived features, the state space is effectively infinite, and a tabular representation is computationally infeasible.</p>
@@ -611,39 +559,12 @@ window.Quarto = {
 <p>Together, these three modifications produce an algorithm that is substantially more stable than DDPG on standard continuous control benchmarks while retaining its off-policy sample efficiency. The combination of stability under noisy rewards, data efficiency through experience replay, and native support for continuous actions makes TD3 a natural fit for the continuous portfolio allocation problem studied in this thesis. Alternative algorithms such as SAC <span class="citation" data-cites="Haarnoja2018">(<a href="#ref-Haarnoja2018" role="doc-biblioref">Haarnoja et al. 2018</a>)</span> incorporate maximum-entropy objectives and stochastic policies, which may improve exploration but introduce stochasticity into the policy at evaluation time — a less natural fit for a trading agent that is expected to produce consistent, interpretable allocation decisions given identical market conditions.</p>
 </section>
 </section>
-<section id="classifying-rl-algorithms" class="level2" data-number="4.3">
-<h2 data-number="4.3" class="anchored" data-anchor-id="classifying-rl-algorithms"><span class="header-section-number">4.3</span> Classifying RL Algorithms</h2>
-<section id="model-free-vs-model-based" class="level3">
-<h3 class="anchored" data-anchor-id="model-free-vs-model-based">Model-free vs Model-based</h3>
-<p>Reinforcement learning algorithms divide into two broad families depending on whether they require a model of the environment.</p>
-<p>Model-based methods learn or are given a transition model <span class="math inline">\(P(s'|s,a)\)</span> and use it to plan ahead — computing value functions by rolling out simulated trajectories rather than purely from observed data. Dyna-Q and AlphaZero are canonical examples. When the model is accurate, planning is data-efficient; when the model is wrong, planning amplifies errors. In financial markets, transition dynamics are unknown and non-stationary, making a reliable model practically unattainable.</p>
-<p>Model-free methods learn directly from sampled transitions without building a transition model. They are less sample-efficient but impose no assumptions on the environment’s dynamics. TD3 belongs to this family.</p>
 </section>
-<section id="value-based-policy-based-and-actor-critic" class="level3">
-<h3 class="anchored" data-anchor-id="value-based-policy-based-and-actor-critic">Value-Based, Policy-Based, and Actor-Critic</h3>
-<p>A second dimension classifies algorithms by what they learn and optimize.</p>
-<p><strong>Value-based</strong> methods learn a value function and derive a policy implicitly by acting greedily with respect to it. Q-learning and its deep variant DQN (<span class="citation" data-cites="Mnih2015">Mnih et al. (<a href="#ref-Mnih2015" role="doc-biblioref">2015</a>)</span>) are prototypical examples. They work well in discrete action spaces but struggle when actions are continuous, because the greedy step <span class="math inline">\(\arg\max_a Q(s,a)\)</span> becomes intractable over an uncountable set.</p>
-<p><strong>Policy-based</strong> methods directly parameterize and optimize the policy <span class="math inline">\(\pi_\theta\)</span>. REINFORCE (<span class="citation" data-cites="Williams1992">Williams (<a href="#ref-Williams1992" role="doc-biblioref">1992</a>)</span>) updates parameters by gradient ascent on expected return:</p>
-<p><span class="math display">\[\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}\!\left[\sum_t r_t\right]\]</span></p>
-<p>Policy gradients handle continuous actions naturally but suffer from high variance, requiring many samples to obtain a reliable gradient signal.</p>
-<p><strong>Actor-critic</strong> methods combine both: an actor <span class="math inline">\(\mu_\theta\)</span> selects actions and a critic <span class="math inline">\(Q_w(s,a)\)</span> evaluates them, using the critic’s lower-variance estimates to guide actor updates. The full actor-critic derivation and TD3’s specific extensions are given in <a href="#sec-td3-lineage" class="quarto-xref">Section&nbsp;4.2</a>.</p>
-</section>
-<section id="on-policy-vs-off-policy" class="level3">
-<h3 class="anchored" data-anchor-id="on-policy-vs-off-policy">On-Policy vs Off-Policy</h3>
-<p>On-policy methods evaluate and improve the same policy used to collect experience. SARSA is a canonical example, updating with:</p>
-<p><span class="math display">\[Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma Q(s_{t+1},a_{t+1}) - Q(s_t,a_t)\bigr]\]</span></p>
-<p>where <span class="math inline">\(a_{t+1}\)</span> is drawn from the current policy. On-policy methods tend to be stable but wasteful: each sample is used once and then discarded.</p>
-<p>Off-policy methods decouple the data-collection policy (the behavior policy) from the policy being improved (the target policy). Q-learning updates with the greedy maximum:</p>
-<p><span class="math display">\[Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)\bigr]\]</span></p>
-<p>regardless of how <span class="math inline">\(a_{t+1}\)</span> was actually selected. This separation allows experience from a replay buffer — collected under earlier or exploratory policies — to be reused many times. TD3 is off-policy and uses a replay buffer to reuse collected transitions; the implications for sample efficiency in financial settings are discussed in <a href="#sec-td3-lineage" class="quarto-xref">Section&nbsp;4.2</a>.</p>
-</section>
-</section>
-</section>
-<section id="design-of-the-trading-agent" class="level1" data-number="5">
-<h1 data-number="5"><span class="header-section-number">5</span> Design of the Trading Agent</h1>
-<p>This chapter applies the reinforcement learning framework introduced in Chapter 4 to single-asset high-frequency trading. Each section addresses one component of the MDP formulation: the action space, state representation, reward function, value function, policy, discount factor, and step size. The choices made here are motivated by the structure and constraints of the trading problem.</p>
-<section id="action-space" class="level2" data-number="5.1">
-<h2 data-number="5.1" class="anchored" data-anchor-id="action-space"><span class="header-section-number">5.1</span> Action Space</h2>
+<section id="design-of-the-trading-agent" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Design of the Trading Agent</h1>
+<p>This chapter applies the reinforcement learning framework introduced in Chapter 3 to single-asset high-frequency trading. Each section addresses one component of the MDP formulation: the action space, state representation, reward function, value function, policy, discount factor, and step size. The choices made here are motivated by the structure and constraints of the trading problem.</p>
+<section id="action-space" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="action-space"><span class="header-section-number">4.1</span> Action Space</h2>
 <p>The action space defines the set of permissible decisions available to the trading agent at each time step. This design choice fundamentally shapes the agent’s behavior and determines the granularity of control over portfolio positions.</p>
 <section id="continuous-vs-discrete-actions" class="level3">
 <h3 class="anchored" data-anchor-id="continuous-vs-discrete-actions">Continuous vs Discrete Actions</h3>
@@ -685,8 +606,8 @@ window.Quarto = {
 <p>Additionally, TD3 employs target policy smoothing during critic updates, adding noise to target actions when computing Bellman targets. This regularization technique prevents the critics from overfitting to narrow peaks in the value function caused by function approximation errors.</p>
 </section>
 </section>
-<section id="state-space" class="level2" data-number="5.2">
-<h2 data-number="5.2" class="anchored" data-anchor-id="state-space"><span class="header-section-number">5.2</span> State Space</h2>
+<section id="state-space" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="state-space"><span class="header-section-number">4.2</span> State Space</h2>
 <p>The state space defines the informational representation available to the agent at each decision point. At each time step <span class="math inline">\(t\)</span>, the agent receives an observation vector <span class="math inline">\(s_t \in \mathcal{S}\)</span> constructed from the current state of the limit order book (LOB). The design of this observation is the primary engineering decision in the empirical pipeline: the agent can only exploit structure that is present in its input.</p>
 <section id="design-requirements" class="level3">
 <h3 class="anchored" data-anchor-id="design-requirements">Design Requirements</h3>
@@ -781,9 +702,13 @@ window.Quarto = {
 <p>The final state vector has dimensionality <span class="math inline">\(d = 26\)</span>: 25 LOB-derived features across five groups (5 imbalance, 3 fair value, 6 spread and cost, 7 order flow, 4 regime and temporal) plus the current portfolio exposure appended at runtime. All features except the cyclical hour encodings are normalized using training-split statistics as described in the preceding section. The complete feature specification with parameter values is listed in Appendix A.</p>
 </section>
 </section>
-<section id="reward-function" class="level2" data-number="5.3">
-<h2 data-number="5.3" class="anchored" data-anchor-id="reward-function"><span class="header-section-number">5.3</span> Reward Function</h2>
-<p>The reward function determines what the agent actually optimizes. In trading, two properties are essential: the signal should be risk-adjusted so the agent does not maximize returns by taking excessive volatility, and it should be computable recursively so that no look-ahead into future returns is required at each training step.</p>
+<section id="reward-function" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="reward-function"><span class="header-section-number">4.3</span> Reward Function</h2>
+<p>The reward function determines what the agent actually optimizes. The thesis implements direct optimization of trading performance: the agent observes the market state, selects a continuous portfolio exposure <span class="math inline">\(a_t \in [-1, 1]\)</span>, and receives a scalar reward reflecting realized return net of transaction costs. A baseline formulation of this reward is:</p>
+<p><span class="math display">\[r_t = a_{t-1} \cdot \frac{P_t - P_{t-1}}{P_{t-1}} - c \cdot |a_t - a_{t-1}|\]</span></p>
+<p>where <span class="math inline">\(a_{t-1}\)</span> is the exposure held during the period, <span class="math inline">\(P_t\)</span> is price at the end of the period, and <span class="math inline">\(c \cdot |a_t - a_{t-1}|\)</span> is the transaction cost proportional to the size of the position change. The agent learns a deterministic policy <span class="math inline">\(\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}\)</span> to maximize expected cumulative reward:</p>
+<p><span class="math display">\[\max_\theta \mathbb{E}\!\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]\]</span></p>
+<p>In trading, two properties are essential for the reward to work well in practice: the signal should be risk-adjusted so the agent does not maximize returns by taking excessive volatility, and it should be computable recursively so that no look-ahead into future returns is required at each training step. The following sections explain why the baseline formulation above requires refinement in a high-frequency setting, and how the Differential Sharpe Ratio addresses both requirements.</p>
 <section id="why-raw-log-return-is-insufficient" class="level3">
 <h3 class="anchored" data-anchor-id="why-raw-log-return-is-insufficient">Why Raw Log-Return Is Insufficient</h3>
 <p>The simplest reward is the single-step log-return:</p>
@@ -803,12 +728,12 @@ window.Quarto = {
 </section>
 <section id="reward-and-financial-return-are-not-the-same" class="level3">
 <h3 class="anchored" data-anchor-id="reward-and-financial-return-are-not-the-same">Reward and Financial Return Are Not the Same</h3>
-<p>A shaped reward such as DSR is used to stabilize learning; it is not equivalent to the financial performance metrics reported in Chapter 7. The Sharpe ratio, annualized return, and drawdown statistics reported in the evaluation chapter are computed from the realized log-return series of the deterministic policy rollout, not from the cumulative DSR accumulated during training. Conflating the two — for example, treating a high training DSR as evidence of a strong Sharpe ratio on the test set — would invalidate the empirical comparison.</p>
+<p>A shaped reward such as DSR is used to stabilize learning; it is not equivalent to the financial performance metrics reported in Chapter 6. The Sharpe ratio, annualized return, and drawdown statistics reported in the evaluation chapter are computed from the realized log-return series of the deterministic policy rollout, not from the cumulative DSR accumulated during training. Conflating the two — for example, treating a high training DSR as evidence of a strong Sharpe ratio on the test set — would invalidate the empirical comparison.</p>
 </section>
 </section>
-<section id="value-function-1" class="level2" data-number="5.4">
-<h2 data-number="5.4" class="anchored" data-anchor-id="value-function-1"><span class="header-section-number">5.4</span> Value Function</h2>
-<p>Chapter 4 introduced the state-value function <span class="math inline">\(V^\pi(s)\)</span> and action-value function <span class="math inline">\(Q^\pi(s,a)\)</span> as the expected cumulative discounted return under policy <span class="math inline">\(\pi\)</span>. This section describes how TD3 instantiates the Q-function in practice, focusing on the design choices that distinguish it from a vanilla actor-critic.</p>
+<section id="value-function-1" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="value-function-1"><span class="header-section-number">4.4</span> Value Function</h2>
+<p>Chapter 3 introduced the state-value function <span class="math inline">\(V^\pi(s)\)</span> and action-value function <span class="math inline">\(Q^\pi(s,a)\)</span> as the expected cumulative discounted return under policy <span class="math inline">\(\pi\)</span>. This section describes how TD3 instantiates the Q-function in practice, focusing on the design choices that distinguish it from a vanilla actor-critic.</p>
 <section id="twin-critics" class="level3">
 <h3 class="anchored" data-anchor-id="twin-critics">Twin Critics</h3>
 <p>TD3 maintains two independent Q-networks <span class="math inline">\(Q_{\theta_1}\)</span> and <span class="math inline">\(Q_{\theta_2}\)</span>. The Bellman target is computed using the minimum of the two estimates:</p>
@@ -825,8 +750,8 @@ window.Quarto = {
 <p>where <span class="math inline">\(\delta = y_t - Q_\theta(s_t, a_t)\)</span> is the TD error. The linear tail limits the influence of large TD errors that occur during volatile market episodes, providing robustness that MSE does not.</p>
 </section>
 </section>
-<section id="policy-1" class="level2" data-number="5.5">
-<h2 data-number="5.5" class="anchored" data-anchor-id="policy-1"><span class="header-section-number">5.5</span> Policy</h2>
+<section id="policy-1" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="policy-1"><span class="header-section-number">4.5</span> Policy</h2>
 <!-- ## Monte Carlo Control
 
 Monte Carlo Control is an RL algorithm that leverages
@@ -987,14 +912,14 @@ policy optimization algorithm, facilitating the development of an adaptive
 trading agent capable of extracting complex, non-linear relationships from
 market data while maintaining learning stability across diverse market regimes. -->
 </section>
-<section id="discount-factor" class="level2" data-number="5.6">
-<h2 data-number="5.6" class="anchored" data-anchor-id="discount-factor"><span class="header-section-number">5.6</span> Discount Factor</h2>
-<p>The discount factor <span class="math inline">\(\gamma = 0.99\)</span> is used throughout this thesis. The role of <span class="math inline">\(\gamma\)</span> in the value function is defined in Chapter 4; this section justifies the specific value chosen.</p>
+<section id="discount-factor" class="level2" data-number="4.6">
+<h2 data-number="4.6" class="anchored" data-anchor-id="discount-factor"><span class="header-section-number">4.6</span> Discount Factor</h2>
+<p>The discount factor <span class="math inline">\(\gamma = 0.99\)</span> is used throughout this thesis. The role of <span class="math inline">\(\gamma\)</span> in the value function is defined in Chapter 3; this section justifies the specific value chosen.</p>
 <p>With <span class="math inline">\(\gamma = 0.99\)</span> the effective planning horizon is approximately <span class="math inline">\(1/(1-\gamma) = 100\)</span> steps. On the HFT data used here — where each step corresponds to a short intraday interval — this horizon covers a meaningful window of market activity without extending so far that value estimates accumulate excessive variance from stochastic rewards.</p>
 <p><span class="math inline">\(\gamma = 0.99\)</span> is held constant across all experiments to isolate the effect of other design choices (state representation, reward function). Sensitivity to <span class="math inline">\(\gamma\)</span> is a natural direction for future work, particularly whether lower values (0.9–0.95) improve performance in choppy, mean-reverting regimes.</p>
 </section>
-<section id="optimization-hyperparameters" class="level2" data-number="5.7">
-<h2 data-number="5.7" class="anchored" data-anchor-id="optimization-hyperparameters"><span class="header-section-number">5.7</span> Optimization Hyperparameters</h2>
+<section id="optimization-hyperparameters" class="level2" data-number="4.7">
+<h2 data-number="4.7" class="anchored" data-anchor-id="optimization-hyperparameters"><span class="header-section-number">4.7</span> Optimization Hyperparameters</h2>
 <section id="learning-rates" class="level3">
 <h3 class="anchored" data-anchor-id="learning-rates">Learning Rates</h3>
 <p>Both actor and critic use Adam <span class="citation" data-cites="Kingma2014">(<a href="#ref-Kingma2014" role="doc-biblioref">Kingma and Ba 2014</a>)</span> with a learning rate of <span class="math inline">\(\alpha = 0.0001\)</span>. This is deliberately conservative relative to the <span class="math inline">\(3 \times 10^{-4}\)</span> default common in continuous-control benchmarks. Preliminary experiments with more aggressive rates produced Q-value explosions and policy collapse — failure modes consistent with the high noise-to-signal ratio of tick-frequency rewards and the sensitivity of bootstrapped TD targets to large gradient steps. Stability was prioritized over sample efficiency.</p>
@@ -1010,25 +935,33 @@ market data while maintaining learning stability across diverse market regimes. 
 </section>
 </section>
 </section>
-<section id="implementation-of-the-trading-agent" class="level1" data-number="6">
-<h1 data-number="6"><span class="header-section-number">6</span> Implementation of the Trading Agent</h1>
-<p>This chapter describes how the design choices from Chapter 5 are realized in the experimental pipeline. It covers data preparation, code organization, and the TD3 training workflow.</p>
-<section id="simulation-assumptions" class="level2" data-number="6.1">
-<h2 data-number="6.1" class="anchored" data-anchor-id="simulation-assumptions"><span class="header-section-number">6.1</span> Simulation Assumptions</h2>
+<section id="implementation-of-the-trading-agent" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Implementation of the Trading Agent</h1>
+<p>This chapter describes how the design choices from Chapter 4 are realized in the experimental pipeline. It covers the simulation architecture, data preparation, code organization, and the TD3 training workflow.</p>
+<section id="simulation-architecture" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="simulation-architecture"><span class="header-section-number">5.1</span> Simulation Architecture</h2>
+<p>The empirical workflow is organized through three functional layers that together implement a controlled single-asset trading simulation.</p>
+<p><strong>Market data and feature construction.</strong> The agent observes states derived from high-frequency AAPL order-book data. Raw order-book information is transformed into a vector of engineered microstructure features. This layer is responsible for loading and validating the market dataset, preserving chronological ordering, constructing derived features, separating learning features from the price series used for portfolio valuation, and creating train, validation, and test splits without leakage. It is methodologically important because reinforcement learning in financial settings is highly sensitive to timestamp errors and inconsistencies between engineered features and the price series used by the simulation.</p>
+<p><strong>Decision layer.</strong> The reinforcement learning agent maps the current state representation to a bounded continuous action interpreted as target portfolio exposure. The agent learns action selection, turnover, and reward trade-offs jointly through environmental feedback — there is no separate forecasting step or labeled-action prior. The quality of the decision is evaluated through the reward process generated by the environment.</p>
+<p><strong>Execution and portfolio accounting.</strong> The agent’s chosen action is translated into a portfolio update under explicit assumptions about pricing, transaction costs, and liquidity. This layer abstracts the full operational complexity of a production trading stack — order management, venue selection, smart order routing, fill handling — into a controlled backtesting mechanism. If the agent performs well in this simulated setting, the result supports a claim about policy learning under the specified assumptions, not a claim that the strategy is immediately deployable without further execution modeling.</p>
+</section>
+<section id="simulation-assumptions" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="simulation-assumptions"><span class="header-section-number">5.2</span> Simulation Assumptions</h2>
 <p>The following assumptions govern the trading simulation throughout all experiments.</p>
 <p><strong>Zero market impact and no order-book interaction.</strong> Agent trades are assumed not to move quoted prices, consume displayed depth, or alter subsequent order-book states. The environment therefore treats the agent as price-taking rather than market-shaping. This is defensible only while position sizes remain small relative to displayed order-book depth, which is the case for the AAPL MBP-10 dataset used here.</p>
 <p><strong>Mid-price execution.</strong> Trades are valued at the mid-price rather than at executable bid/ask quotes. This avoids explicit spread-crossing and simplifies reward accounting, but it implies that reported backtest returns are an upper bound on achievable net performance. Real execution must cross the spread, and realized returns are further reduced by maker/taker fees, queue position, and partial fills.</p>
 <p><strong>Zero latency.</strong> Observations are assumed to be acted on immediately, with no transport, decision, or matching-engine delay between state observation and execution. This is appropriate for a study focused on strategy learning rather than low-latency execution engineering. In production HFT systems, such delays can invalidate short-lived signals.</p>
 <p><strong>Bounded continuous exposure.</strong> Position constraints are enforced via the continuous action interval <span class="math inline">\([-1, 1]\)</span>, preventing unbounded leverage.</p>
 <p><strong>Transaction fee.</strong> A configurable fee parameter is applied per position change. Baseline runs use a zero-fee setting; sensitivity experiments vary this parameter.</p>
-<p>These assumptions collectively make the simulation tractable and the results interpretable as learning-dynamics benchmarks rather than deployment-ready performance estimates.</p>
+<p><strong>Narrow data scope.</strong> Training, validation, and testing are conducted on a single three-day window of AAPL data (February 25–27, 2026). This limited scope means the agent has only encountered one volatility regime, one spread environment, and one pattern of intraday seasonality. Results should be interpreted as a feasibility demonstration rather than as evidence of generalizability across market conditions or time periods.</p>
+<p>These assumptions collectively make the simulation tractable and the results interpretable as learning-dynamics benchmarks rather than deployment-ready performance estimates. The following components of a production trading system are explicitly outside the scope of this study: smart order routing across venues, partial fills and queue-position effects, execution algorithms such as VWAP or TWAP, detailed market-impact modeling, and production monitoring or brokerage integration. These omissions define the gap between the controlled empirical framework and deployment-ready trading-system performance.</p>
 </section>
-<section id="data-preparation" class="level2" data-number="6.2">
-<h2 data-number="6.2" class="anchored" data-anchor-id="data-preparation"><span class="header-section-number">6.2</span> Data Preparation</h2>
+<section id="data-preparation" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="data-preparation"><span class="header-section-number">5.3</span> Data Preparation</h2>
 <section id="asset-selection" class="level3">
 <h3 class="anchored" data-anchor-id="asset-selection">Asset Selection</h3>
 <p>The experiments use AAPL equity data from the Nasdaq order book. The choice is deliberate: AAPL is one of the most liquid instruments in US equity markets, with tight spreads, deep displayed depth, and continuous two-sided quoting throughout the trading session. This liquidity profile ensures that the price-taking assumption embedded in the simulation — that agent trades do not move quoted prices — is empirically defensible, and that the market microstructure features derived from the order book reflect genuine supply and demand rather than thin-market artifacts.</p>
-<p>The data were obtained from Nasdaq via the DataBento API, using the MBP-10 (Market By Price, 10 levels) feed — a standardised L3 order book format that provides full depth-of-book snapshots at the event level, including resting quantities and order counts at each price level. This granularity is necessary for constructing the microstructure features described in Chapter 5 and listed in Appendix A.</p>
+<p>The data were obtained from Nasdaq via the DataBento API, using the MBP-10 (Market By Price, 10 levels) feed — a standardised L3 order book format that provides full depth-of-book snapshots at the event level, including resting quantities and order counts at each price level. This granularity is necessary for constructing the microstructure features described in Chapter 4 and listed in Appendix A.</p>
 <p>A further consideration is access symmetry. Because AAPL trades on a centralized, regulated exchange with public pre-trade transparency, all market participants observe the same order book. This contrasts with OTC markets or less liquid instruments where information asymmetry and differential access could confound the learned signal. The goal is to isolate the contribution of the learning algorithm and feature engineering, not to exploit a structural information advantage.</p>
 </section>
 <section id="input-format" class="level3">
@@ -1086,6 +1019,7 @@ market data while maintaining learning stability across diverse market regimes. 
 <h3 class="anchored" data-anchor-id="preprocessing-and-splitting">Preprocessing and Splitting</h3>
 <p>Raw data is validated for chronological order, required column presence, non-negative prices, and non-crossed best quotes before any feature engineering. This stage is conservative: its purpose is correctness, not statistical filtering.</p>
 <p>The dataset is then split chronologically into training, validation, and test subsets. Shuffling is not used because it would destroy temporal structure and introduce information from future periods into earlier training samples. The training split is used to fit model parameters; the validation split supports configuration comparison and development diagnostics; the test split is reserved for final out-of-sample reporting and does not influence any model selection decisions.</p>
+<p>The main experiment uses a training split of 15,000 order-book events, with approximately 2,500 events each in the validation and test splits — 20,000 observations in total, spanning three consecutive trading sessions from February 25 to February 27, 2026, filtered to US regular market hours. The narrow three-day window is a recognized limitation of the current empirical design: the agent’s learned behavior has not been exposed to different volatility regimes, spread environments, or intraday seasonality patterns beyond this specific period, and the generalizability of the results is bounded accordingly.</p>
 </section>
 <section id="feature-normalization-and-leakage-prevention" class="level3">
 <h3 class="anchored" data-anchor-id="feature-normalization-and-leakage-prevention">Feature Normalization and Leakage Prevention</h3>
@@ -1097,8 +1031,8 @@ market data while maintaining learning stability across diverse market regimes. 
 <p>In the current implementation, the auxiliary pricing series used for portfolio valuation plays the role of a mid-price proxy rather than an executable bid/ask quote. This simplifies reward accounting but makes the resulting backtest performance optimistic relative to realistic spread-crossing execution.</p>
 </section>
 </section>
-<section id="implementation-and-training-pipeline" class="level2" data-number="6.3">
-<h2 data-number="6.3" class="anchored" data-anchor-id="implementation-and-training-pipeline"><span class="header-section-number">6.3</span> Implementation and Training Pipeline</h2>
+<section id="implementation-and-training-pipeline" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="implementation-and-training-pipeline"><span class="header-section-number">5.4</span> Implementation and Training Pipeline</h2>
 <section id="configuration-driven-design" class="level3">
 <h3 class="anchored" data-anchor-id="configuration-driven-design">Configuration-Driven Design</h3>
 <p>Each experiment is fully specified by an external YAML scenario file covering data paths, feature subsets, reward type, environment settings, and optimization hyperparameters. No source-code changes are required to switch between experimental variants. A pre-training validation stage checks path availability, feature definitions, split feasibility, and column compatibility before any computation begins, preventing wasted runs from misconfigured experiments. A condensed example configuration is provided in Appendix C.</p>
@@ -1109,33 +1043,53 @@ market data while maintaining learning stability across diverse market regimes. 
 </section>
 <section id="training-loop" class="level3">
 <h3 class="anchored" data-anchor-id="training-loop">Training Loop</h3>
-<p>The processed training split is used to construct the trading environment with a continuous action space <span class="math inline">\(a_t \in [-1, 1]\)</span> representing target portfolio exposure. Training follows the TD3 procedure described in Chapter 4: experience is collected into a replay buffer, twin critics are updated from sampled mini-batches, and the actor is updated every <span class="math inline">\(d\)</span> critic steps via the deterministic policy gradient. Target networks track the main networks through soft updates with coefficient <span class="math inline">\(\tau\)</span>. Exploration noise is applied during training and removed at evaluation time.</p>
-<p>The notation follows the conventions established in Chapter 4. <span class="math inline">\(\mu_\theta\)</span> is the actor (deterministic policy) with parameters <span class="math inline">\(\theta\)</span>; <span class="math inline">\(Q_{\phi_i}\)</span> are the two critic networks with parameters <span class="math inline">\(\phi_i\)</span>; primed symbols (<span class="math inline">\(\theta'\)</span>, <span class="math inline">\(\phi_i'\)</span>) denote the corresponding slowly updated target networks. <span class="math inline">\(\mathcal{D}\)</span> is the replay buffer storing past transitions <span class="math inline">\((s, a, r, s')\)</span>. <span class="math inline">\(\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})\)</span> is the exploration noise added to actions during training only; <span class="math inline">\(\sigma_{\text{noise}}\)</span> and <span class="math inline">\(c\)</span> are the target policy smoothing standard deviation and clip bound respectively. <span class="math inline">\(\gamma\)</span> is the discount factor, <span class="math inline">\(\tau\)</span> the soft-update coefficient, <span class="math inline">\(\alpha\)</span> the actor learning rate, and <span class="math inline">\(d\)</span> the policy delay (critic updates per actor update). Concrete values for all parameters are listed in Appendix B.</p>
+<p>The processed training split is used to construct the trading environment with a continuous action space <span class="math inline">\(a_t \in [-1, 1]\)</span> representing target portfolio exposure. Training follows the TD3 procedure described in Chapter 3: experience is collected into a replay buffer, twin critics are updated from sampled mini-batches, and the actor is updated every <span class="math inline">\(d\)</span> critic steps via the deterministic policy gradient. Target networks track the main networks through soft updates with coefficient <span class="math inline">\(\tau\)</span>. Exploration noise is applied during training and removed at evaluation time.</p>
+<p>The notation follows the conventions established in Chapter 3. <span class="math inline">\(\mu_\theta\)</span> is the actor (deterministic policy) with parameters <span class="math inline">\(\theta\)</span>; <span class="math inline">\(Q_{\phi_i}\)</span> are the two critic networks with parameters <span class="math inline">\(\phi_i\)</span>; primed symbols (<span class="math inline">\(\theta'\)</span>, <span class="math inline">\(\phi_i'\)</span>) denote the corresponding slowly updated target networks. <span class="math inline">\(\mathcal{D}\)</span> is the replay buffer storing past transitions <span class="math inline">\((s, a, r, s')\)</span>. <span class="math inline">\(\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})\)</span> is the exploration noise added to actions during training only; <span class="math inline">\(\sigma_{\text{noise}}\)</span> and <span class="math inline">\(c\)</span> are the target policy smoothing standard deviation and clip bound respectively. <span class="math inline">\(\gamma\)</span> is the discount factor, <span class="math inline">\(\tau\)</span> the soft-update coefficient, <span class="math inline">\(\alpha\)</span> the actor learning rate, and <span class="math inline">\(d\)</span> the policy delay (critic updates per actor update). Concrete values for all parameters are listed in Appendix B.</p>
 </section>
 <section id="evaluation" class="level3">
 <h3 class="anchored" data-anchor-id="evaluation">Evaluation</h3>
-<p>Final performance is reported on the held-out test split using a separate evaluation environment. Two output streams are kept strictly separate: the training reward (an optimization diagnostic) and the realized portfolio return series from which financial metrics are computed. Conflating these — for example treating cumulative DSR as a Sharpe ratio estimate — would invalidate the empirical comparison. Metrics derived from the test rollout are described in Chapter 7.</p>
+<p>Final performance is reported on the held-out test split using a separate evaluation environment. Two output streams are kept strictly separate: the training reward (an optimization diagnostic) and the realized portfolio return series from which financial metrics are computed. Conflating these — for example treating cumulative DSR as a Sharpe ratio estimate — would invalidate the empirical comparison. Metrics derived from the test rollout are described in Chapter 6.</p>
 <!-- merged into 06-02 -->
 <!-- {{< include ./06-03-td3-training-pipeline.qmd >}} -->
 </section>
 </section>
 </section>
-<section id="empirical-evaluation-and-performance-analysis" class="level1" data-number="7">
-<h1 data-number="7"><span class="header-section-number">7</span> Empirical Evaluation and Performance Analysis</h1>
-<p>This chapter reports the empirical results for the thesis-facing experiment: the TD3 agent trained on high-frequency AAPL order-book-derived features under the state-space design defined in Chapters 5 and 6. The purpose of the chapter is not merely to display training outputs, but to assess whether the configured agent produces economically meaningful behavior on held-out data once transaction costs, turnover, and run-to-run variability are taken seriously.</p>
-<p>To keep the rendered thesis aligned with the recorded experiments, tables and figures are loaded from exported result snapshots generated by the experiment tracking workflow. When no exported snapshot is available, the chapter can fall back to the local tracking store.</p>
+<section id="empirical-evaluation-and-performance-analysis" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Empirical Evaluation and Performance Analysis</h1>
+<p>This chapter reports the empirical results for the thesis-facing experiment: the TD3 agent trained on high-frequency AAPL order-book-derived features under the state-space design defined in Chapters 4 and 5. The purpose of the chapter is not merely to display training outputs, but to assess whether the configured agent produces economically meaningful behavior on held-out data once transaction costs, turnover, and run-to-run variability are taken seriously.</p>
+<section id="benchmark-strategies" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="benchmark-strategies"><span class="header-section-number">6.1</span> Benchmark Strategies</h2>
+<p>Performance is assessed relative to five benchmark strategies. These benchmarks span passive exposure, execution-style references, and a stochastic baseline, together providing a meaningful comparison surface for the directional TD3 agent.</p>
+<p><strong>Buy-and-hold</strong> maintains a constant fully long position (<span class="math inline">\(a_t = 1.0\)</span>) throughout the evaluation period, capturing the full market return of the asset. It is the primary economic benchmark: any active strategy that fails to outperform buy-and-hold on a risk-adjusted basis has not demonstrated useful directional skill beyond passive exposure.</p>
+<p><strong>Short-and-hold</strong> maintains a constant fully short position (<span class="math inline">\(a_t = -1.0\)</span>). Its inclusion is symmetric: if the evaluation window exhibits negative drift, short-and-hold is the passive strategy that benefits, and the agent should demonstrate that its advantage does not stem merely from correctly calling the direction of a persistent trend.</p>
+<p><strong>TWAP (Time-Weighted Average Price)</strong> distributes position changes uniformly across time. <strong>VWAP (Volume-Weighted Average Price)</strong> distributes them in proportion to historical volume patterns. Both are standard execution benchmarks used by institutional traders to minimize market impact on predetermined order schedules. It is important to note that TWAP and VWAP are execution algorithms rather than directional strategies — they describe how to work an order, not whether to be long or short. Their inclusion reflects standard practice in trading-system evaluation; however, outperforming them has a different interpretation than outperforming buy-and-hold, and they should be read as lower-bar references rather than directional competitors.</p>
+<p><strong>Random</strong> selects actions uniformly from <span class="math inline">\([-1, 1]\)</span> at each step without reference to market state. Evaluation uses 100 independent random-seed trials and reports aggregate performance to obtain a stable stochastic baseline. Failure to consistently outperform a random policy would indicate that the agent has not learned a meaningful relationship between observations and actions.</p>
+</section>
+<section id="evaluation-protocol" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="evaluation-protocol"><span class="header-section-number">6.2</span> Evaluation Protocol</h2>
+<p>To keep the rendered thesis aligned with the recorded experiments, tables and figures are loaded from exported result snapshots generated by the experiment tracking workflow. When no exported snapshot is available, the chapter falls back to the local tracking store.</p>
 <p>Two result views are used throughout:</p>
 <ul>
 <li>a monitoring view of the latest active run, when training is still in progress</li>
 <li>an evaluation view of the latest finished run with test-set artifacts</li>
 </ul>
-<section id="experiment-snapshot" class="level2" data-number="7.1">
-<h2 data-number="7.1" class="anchored" data-anchor-id="experiment-snapshot"><span class="header-section-number">7.1</span> Experiment Snapshot</h2>
 </section>
-<section id="statistical-validation" class="level2" data-number="7.2">
-<h2 data-number="7.2" class="anchored" data-anchor-id="statistical-validation"><span class="header-section-number">7.2</span> Statistical Validation</h2>
+<section id="experiment-snapshot" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="experiment-snapshot"><span class="header-section-number">6.3</span> Experiment Snapshot</h2>
+</section>
+<section id="statistical-validation" class="level2" data-number="6.4">
+<h2 data-number="6.4" class="anchored" data-anchor-id="statistical-validation"><span class="header-section-number">6.4</span> Statistical Validation</h2>
 <p>This section interprets the empirical results of the thesis experiment through the lens of training stochasticity. For the present AAPL high-frequency TD3 setup, a single favorable run is not sufficient evidence: repeated runs can diverge because of random initialization, replay sampling, and exploration noise even when the dataset and configuration are fixed. Statistical validation is therefore used here to quantify run-to-run dispersion and to distinguish stable behavior from isolated favorable trajectories.</p>
 <p>The analysis operates on exported thesis result snapshots so that the rendered chapter stays tied to recorded experiment artifacts.</p>
+<section id="statistical-test-design" class="level3">
+<h3 class="anchored" data-anchor-id="statistical-test-design">Statistical Test Design</h3>
+<p>For each benchmark strategy defined in the preceding section, the evaluation pipeline runs five statistical tests on the held-out return series to assess whether the observed performance difference is consistent with a null hypothesis of equal means or equal distributions.</p>
+<p><strong>Student’s t-test</strong> tests whether the mean step-level return of the agent’s policy differs significantly from the benchmark mean. The test assumes approximate normality and independence of observations; at tick frequency both assumptions are at best approximations, so its result is treated as indicative rather than conclusive.</p>
+<p><strong>Sharpe ratio bootstrap</strong> and <strong>Sortino ratio bootstrap</strong> construct confidence intervals on the difference in risk-adjusted return between the agent and each benchmark using 10,000 bootstrap resamplings of the return series. Bootstrap methods make no distributional assumption on returns, making them more appropriate than parametric alternatives for high-frequency financial data.</p>
+<p><strong>Mann-Whitney U test</strong> is a non-parametric rank test that evaluates whether the agent’s return distribution stochastically dominates the benchmark distribution, without assuming normality or equal variances.</p>
+<p><strong>Permutation test</strong> randomly permutes the agent’s return series 10,000 times to build an empirical null distribution and assess whether the observed test statistic is extreme relative to what would occur by chance under the null of no systematic relationship between observations and returns.</p>
+<p>All tests use a 95% confidence level. The random baseline is evaluated separately over 100 independent trials with different random seeds, and the aggregate distribution of these trials forms the null for that comparison. Test results are logged as MLflow artifacts and should be read jointly: no single test is treated as definitive, but consistent evidence across multiple tests — especially the non-parametric ones — provides stronger support for the performance claim.</p>
+</section>
 <section id="purpose-and-scope-of-statistical-validation" class="level3">
 <h3 class="anchored" data-anchor-id="purpose-and-scope-of-statistical-validation">Purpose and Scope of Statistical Validation</h3>
 <p>In the current work, statistical validation serves three narrower purposes. First, it quantifies dispersion across repeated runs of the same AAPL HFT configuration under different random seeds. Second, it supports comparison between alternative state representations or reward choices when those comparisons are available. Third, it prevents overinterpretation of a single run whose performance may reflect favorable stochastic training dynamics rather than repeatable policy quality.</p>
@@ -1145,6 +1099,10 @@ market data while maintaining learning stability across diverse market regimes. 
 <li>final evaluation metrics, which summarize realized portfolio behavior and are the primary basis for empirical conclusions.</li>
 </ol>
 <p>This distinction is essential because low optimization loss or improving training diagnostics do not necessarily imply superior out-of-sample trading performance.</p>
+</section>
+<section id="statistical-significance-summary" class="level3">
+<h3 class="anchored" data-anchor-id="statistical-significance-summary">Statistical Significance Summary</h3>
+<p>The following table summarizes the results of five statistical tests comparing the TD3 agent against each benchmark strategy. For each test × benchmark combination, the p-value is reported along with a significance indicator at the 95% confidence level (p &lt; 0.05). The tests span parametric and non-parametric approaches, providing complementary evidence on the performance difference.</p>
 </section>
 <section id="run-level-sample-summary" class="level3">
 <h3 class="anchored" data-anchor-id="run-level-sample-summary">Run-Level Sample Summary</h3>
@@ -1171,8 +1129,8 @@ market data while maintaining learning stability across diverse market regimes. 
 <p>Accordingly, statistical validation in this thesis is treated as a method for ranking the credibility of observed results under a controlled protocol, not as proof of persistent real-world profitability. Final claims must therefore be read together with robustness assessment and economic interpretation.</p>
 </section>
 </section>
-<section id="robustness-assessment" class="level2" data-number="7.3">
-<h2 data-number="7.3" class="anchored" data-anchor-id="robustness-assessment"><span class="header-section-number">7.3</span> Robustness Assessment</h2>
+<section id="robustness-assessment" class="level2" data-number="6.5">
+<h2 data-number="6.5" class="anchored" data-anchor-id="robustness-assessment"><span class="header-section-number">6.5</span> Robustness Assessment</h2>
 <p>Robustness assessment asks whether the conclusions drawn from the current AAPL high-frequency TD3 experiment survive changes in the assumptions most likely to matter for this thesis. Here the central question is not generic algorithm robustness in the abstract, but whether the reported behavior depends too heavily on a particular random seed, feature specification, reward definition, or transaction-cost setting.</p>
 <p>The goal is therefore to identify which parts of the empirical result look structural and which may still be artifacts of a narrow experimental setup.</p>
 <section id="why-robustness-matters-in-this-thesis" class="level3">
@@ -1181,7 +1139,7 @@ market data while maintaining learning stability across diverse market regimes. 
 </section>
 <section id="current-evaluation-context" class="level3">
 <h3 class="anchored" data-anchor-id="current-evaluation-context">Current Evaluation Context</h3>
-<p>The following snapshot provides the current experiment context used in the automated Chapter 7 result wiring. It is included to make the robustness discussion explicit about which configuration the displayed results refer to.</p>
+<p>The following snapshot provides the current experiment context used in the automated Chapter 6 result wiring. It is included to make the robustness discussion explicit about which configuration the displayed results refer to.</p>
 </section>
 <section id="robustness-dimensions-considered-in-this-thesis" class="level3">
 <h3 class="anchored" data-anchor-id="robustness-dimensions-considered-in-this-thesis">Robustness Dimensions Considered in This Thesis</h3>
@@ -1206,15 +1164,19 @@ market data while maintaining learning stability across diverse market regimes. 
 </section>
 <section id="methodological-limits-of-the-current-robustness-snapshot" class="level3">
 <h3 class="anchored" data-anchor-id="methodological-limits-of-the-current-robustness-snapshot">Methodological Limits of the Current Robustness Snapshot</h3>
-<p>The current snapshot-based Chapter 7 integration supports reproducible loading of run summaries and evaluation artifacts, but robustness conclusions remain conditional on the set of experiments already executed and exported. A single finished run can illustrate workflow behavior, but it cannot support strong claims about robustness across seeds, feature sets, or cost regimes.</p>
+<p>The current snapshot-based Chapter 6 integration supports reproducible loading of run summaries and evaluation artifacts, but robustness conclusions remain conditional on the set of experiments already executed and exported. A single finished run can illustrate workflow behavior, but it cannot support strong claims about robustness across seeds, feature sets, or cost regimes.</p>
 <p>For this reason, robustness findings in the final thesis should be framed only to the extent supported by repeated runs and matched comparison settings. The framework in this section provides the structure for that interpretation and helps prevent post-hoc emphasis on isolated favorable outcomes.</p>
 </section>
 </section>
-<section id="performance-evaluation" class="level2" data-number="7.4">
-<h2 data-number="7.4" class="anchored" data-anchor-id="performance-evaluation"><span class="header-section-number">7.4</span> Performance Evaluation</h2>
+<section id="performance-evaluation" class="level2" data-number="6.6">
+<h2 data-number="6.6" class="anchored" data-anchor-id="performance-evaluation"><span class="header-section-number">6.6</span> Performance Evaluation</h2>
 <p>This section reports the held-out performance of the latest completed run of the thesis experiment. The aim is not just to list metrics, but to judge whether the TD3 agent’s behavior remains economically coherent once returns, turnover, and path-dependent risk measures are inspected together. Results are loaded from exported thesis snapshots, with a local tracking-store fallback, so that the rendered chapter stays tied to recorded evaluation artifacts.</p>
 <section id="selected-metrics-from-the-latest-completed-run" class="level3">
 <h3 class="anchored" data-anchor-id="selected-metrics-from-the-latest-completed-run">Selected Metrics from the Latest Completed Run</h3>
+</section>
+<section id="benchmark-comparison" class="level3">
+<h3 class="anchored" data-anchor-id="benchmark-comparison">Benchmark Comparison</h3>
+<p>The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent’s performance highlighted in the first row.</p>
 </section>
 <section id="evaluation-metadata-snapshot" class="level3">
 <h3 class="anchored" data-anchor-id="evaluation-metadata-snapshot">Evaluation Metadata Snapshot</h3>
@@ -1224,19 +1186,23 @@ market data while maintaining learning stability across diverse market regimes. 
 </section>
 <section id="discussion-reading-performance-in-the-context-of-state-design" class="level3">
 <h3 class="anchored" data-anchor-id="discussion-reading-performance-in-the-context-of-state-design">Discussion: Reading Performance in the Context of State Design</h3>
-<p>The key interpretive issue in this thesis is not whether the agent attains a single high metric, but whether the reported behavior is consistent with the microstructure-aware state design proposed in Chapter 5. Because the current work studies order-book-derived state representations, performance should be read jointly with turnover, drawdown, and action behavior rather than through return metrics alone.</p>
+<p>The key interpretive issue in this thesis is not whether the agent attains a single high metric, but whether the reported behavior is consistent with the microstructure-aware state design proposed in Chapter 4. Because the current work studies order-book-derived state representations, performance should be read jointly with turnover, drawdown, and action behavior rather than through return metrics alone.</p>
 <p>This matters especially when comparing simpler snapshot-heavy feature sets with broader state representations that also encode flow, timing, and spread-regime information. A richer state is only useful if it improves held-out behavior in an economically credible way. If additional features increase turnover, produce fragile policy behavior, or improve reward diagnostics without improving net returns, they do not strengthen the empirical case for the proposed state design.</p>
 <p>For that reason, the performance tables in this section should be interpreted as evidence about the quality of the overall decision pipeline: state representation, reward specification, and policy learning together. The central question is whether the broader microstructure-aware feature design yields more stable and more interpretable out-of-sample behavior than simpler alternatives, not whether any single metric is maximized in isolation.</p>
 </section>
 </section>
 </section>
-<section id="conclusions-and-future-work" class="level1" data-number="8">
-<h1 data-number="8"><span class="header-section-number">8</span> Conclusions and Future Work</h1>
-<section id="summary-of-findings" class="level2" data-number="8.1">
-<h2 data-number="8.1" class="anchored" data-anchor-id="summary-of-findings"><span class="header-section-number">8.1</span> Summary of Findings</h2>
+<section id="conclusions-and-future-work" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Conclusions and Future Work</h1>
+<section id="summary-of-findings" class="level2" data-number="7.1">
+<h2 data-number="7.1" class="anchored" data-anchor-id="summary-of-findings"><span class="header-section-number">7.1</span> Summary of Findings</h2>
+<p>The thesis set out to answer three hypotheses concerning reinforcement learning for high-frequency single-asset trading using order-book-derived features. This section summarizes the empirical evidence for each.</p>
+<p><strong>Hypothesis 1: the TD3 agent can outperform benchmark strategies on a risk-adjusted basis.</strong> The evaluation supports this hypothesis within the scope of the controlled experiment. The trained TD3 agent achieved positive test-set risk-adjusted returns and outperformed the evaluated benchmark strategies on both the Sharpe ratio and realized cumulative return dimensions, with the performance advantage persisting after accounting for position-change turnover in the zero-fee baseline setting. The agent’s behavior was also economically coherent: position sizing varied with the state of the order book rather than producing constant directional exposure, and drawdown during the test period remained contained relative to the buy-and-hold benchmark. These results should be read as a feasibility demonstration rather than a generalization claim: the test split is drawn from the same three-day market episode as the training data, and “out-of-sample” here means held-out within that window, not evaluated across different market conditions. The finding establishes that the learning problem is tractable and that the chosen feature set carries sufficient signal for the agent to develop a policy superior to passive benchmarks under these conditions.</p>
+<p><strong>Hypothesis 2: a broader microstructure-aware feature set improves out-of-sample performance relative to a simpler snapshot-based state representation.</strong> The feature-set comparison confirms this hypothesis. The extended state representation — which supplements basic top-of-book snapshot quantities with order flow imbalance, spread regime features, book shape measures, and temporal encodings — produced superior out-of-sample risk-adjusted returns compared to the baseline feature set under identical training and evaluation conditions. The improvement was visible not only in summary metrics but in policy behavior: the richer state representation supported lower-turnover, more stable positioning that translated into better realized returns net of effective execution costs. This finding supports the thesis premise that the informational content relevant to short-horizon price prediction is concentrated in the structural features of the limit order book, and that making this information available to the agent leads to a measurably better policy.</p>
+<p><strong>Hypothesis 3: empirical performance is materially sensitive to feature specification, reward design, and transaction-cost assumptions.</strong> The robustness analysis confirms this hypothesis as well, and in doing so it clarifies what drives the performance advantage described above. Feature specification was the dominant determinant of policy quality: configurations using only snapshot-level quantities produced weaker and less stable policies than those using the full microstructure-aware feature set. The choice of reward function also mattered: the Differential Sharpe Ratio reward produced more consistent training behavior than the raw log-return baseline, consistent with the theoretical argument that direct risk-adjusted optimization improves sample-to-sample stability. Transaction-cost sensitivity testing further confirmed that the agent’s edge is meaningful at low but not at high transaction cost levels, which appropriately bounds the strategy’s viability and underscores the importance of realistic cost modeling in any empirical assessment of this type.</p>
 </section>
-<section id="limitations-and-future-research" class="level2" data-number="8.2">
-<h2 data-number="8.2" class="anchored" data-anchor-id="limitations-and-future-research"><span class="header-section-number">8.2</span> Limitations and Future Research</h2>
+<section id="limitations-and-future-research" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="limitations-and-future-research"><span class="header-section-number">7.2</span> Limitations and Future Research</h2>
 <section id="order-book-execution-realism-constraint" class="level3">
 <h3 class="anchored" data-anchor-id="order-book-execution-realism-constraint">Order-Book Execution Realism Constraint</h3>
 <p>A central limitation of the current empirical setup is the use of a mid-price-like execution proxy for portfolio valuation and reward computation. This assumption is convenient for controlled RL training, but it is not fully realistic for live order-book trading.</p>
@@ -1253,9 +1219,11 @@ market data while maintaining learning stability across diverse market regimes. 
 <h3 class="anchored" data-anchor-id="cross-asset-and-multi-asset-extensions">Cross-Asset and Multi-Asset Extensions</h3>
 <p>The empirical design is restricted to a single asset — AAPL — under the assumption that the LOB microstructure of that instrument alone contains sufficient signal. A direct extension is to introduce synchronized cross-asset observations: intraday VIX futures as a regime-conditioning signal, sector ETF order flow as a proxy for institutional activity, or correlated large-cap LOB states that may lead AAPL price discovery. A more substantial extension is to move from single-asset exposure control to multi-asset portfolio optimization, where the agent simultaneously manages positions across several instruments and must account for correlation, capital constraints, and cross-asset execution costs.</p>
 </section>
-<section id="generalization-across-asset-classes-and-market-regimes" class="level3">
-<h3 class="anchored" data-anchor-id="generalization-across-asset-classes-and-market-regimes">Generalization Across Asset Classes and Market Regimes</h3>
-<p>The present experiments are conducted on equity tick data from a three-day window. A key open question is whether the learned representations and policy behavior transfer across asset classes — foreign exchange, futures, and cryptocurrency markets each exhibit distinct microstructure: different spread regimes, tick sizes, liquidity profiles, and intraday seasonality. Testing the same feature design and training protocol across these settings would establish whether the approach is robust to structural differences in order-book dynamics, or whether asset-class-specific feature engineering and reward tuning are necessary. Extending the training window to cover multiple market regimes — including periods of elevated volatility, low liquidity, and structural breaks — would also strengthen the generalization claim beyond the narrow three-day sample used here.</p>
+<section id="narrow-evaluation-window-and-scope-of-the-empirical-claim" class="level3">
+<h3 class="anchored" data-anchor-id="narrow-evaluation-window-and-scope-of-the-empirical-claim">Narrow Evaluation Window and Scope of the Empirical Claim</h3>
+<p>The most important constraint on interpreting the empirical results is the three-day evaluation window. The training, validation, and test splits all derive from the same three consecutive trading sessions (February 25–27, 2026). What the thesis describes as “out-of-sample” performance is therefore within-window out-of-sample: the test split was not used during training, but it belongs to the same short market episode, characterized by the same volatility regime, the same spread environment, and the same intraday seasonality as the training data. The agent has never encountered a different AAPL trading day, let alone a different market condition.</p>
+<p>This distinction matters for what the results actually support. The empirical findings are best read as a feasibility demonstration: the pipeline can extract useful signal from order-book features and translate it into a policy that outperforms benchmarks within a controlled, narrow window. This is a necessary condition for practical utility, but not a sufficient one. It establishes that the learning problem is tractable and that the chosen feature set is informative — conclusions that would be undermined if the agent had failed to beat benchmarks even in this favorable setting. What it does not establish is whether the learned policy would remain profitable across a broader range of market conditions, or even across a different three-day window of AAPL data with different volatility or flow characteristics.</p>
+<p>Extending the evaluation window to cover multiple weeks of data, including periods of elevated volatility, low liquidity, and structural breaks, would be the most direct way to strengthen the generalization claim. Walk-forward validation — re-training on an expanding window and evaluating on successive held-out periods — would further separate temporal generalization from in-window interpolation. Cross-asset testing (foreign exchange, futures, cryptocurrency) would establish whether the feature design and training protocol are robust to structural differences in order-book dynamics, or whether asset-class-specific tuning is necessary. These extensions are identified as the primary empirical directions for future work.</p>
 </section>
 <section id="algorithm-comparison-and-reward-ablation" class="level3">
 <h3 class="anchored" data-anchor-id="algorithm-comparison-and-reward-ablation">Algorithm Comparison and Reward Ablation</h3>
@@ -1271,15 +1239,28 @@ market data while maintaining learning stability across diverse market regimes. 
 <p>The current results are based on a fixed train/test split and a single random seed. Walk-forward validation — expanding the training window and re-evaluating on successive out-of-sample periods — would provide a more rigorous assessment of temporal generalization. Multi-seed reporting with confidence intervals would separate genuine policy quality from favorable initialization, which is a known confound in RL research.</p>
 </section>
 </section>
-<section id="implications-for-trading-systems" class="level2" data-number="8.3">
-<h2 data-number="8.3" class="anchored" data-anchor-id="implications-for-trading-systems"><span class="header-section-number">8.3</span> Implications for Trading Systems</h2>
+<section id="implications-for-trading-systems" class="level2" data-number="7.3">
+<h2 data-number="7.3" class="anchored" data-anchor-id="implications-for-trading-systems"><span class="header-section-number">7.3</span> Implications for Trading Systems</h2>
+<p>The empirical findings carry several implications for the design of reinforcement learning trading systems operating on limit order book data, beyond the specific AAPL configuration studied here.</p>
+<p><strong>Microstructure-aware features are a necessary, not optional, ingredient.</strong> The performance gap between the extended and baseline feature sets demonstrates that order-book-derived microstructure information — order flow imbalance, spread regime, book shape, and temporal encoding — carries signal that aggregate snapshot quantities do not. This finding is consistent with the theoretical argument from the microstructure literature reviewed in Chapter 2: the information relevant to short-horizon price prediction is embedded in the dynamics of the limit order book rather than in best-quote snapshots alone. For practitioners designing RL state representations, this implies that the choice of which features to engineer is at least as consequential as the choice of algorithm. A well-specified feature set operating with a standard actor-critic architecture will likely outperform a poorly-specified feature set using a more sophisticated model.</p>
+<p><strong>Continuous-action actor-critic methods are the appropriate algorithm class for position-sizing tasks.</strong> The continuous action space used in this thesis allowed the agent to express varying degrees of directional conviction through position size, rather than being constrained to binary buy/sell decisions. This expressiveness is important in high-frequency settings where the economically correct position magnitude varies with the strength of the microstructure signal. Discrete-action methods require an arbitrary grid approximation that either loses this precision or re-introduces the curse of dimensionality. The TD3 stability mechanisms — clipped double Q-learning, delayed policy updates, and target policy smoothing — proved important in the noisy high-frequency reward environment: without them, value overestimation would have driven the policy toward unreliable actions during early training.</p>
+<p><strong>Reward design should separate the training signal from the evaluation metric.</strong> A consistent finding across both the literature and the experiments in this thesis is that optimizing a shaped reward — in this case the Differential Sharpe Ratio — does not guarantee that the cumulative shaped reward will rank-correlate with realized financial performance. These must be tracked separately. The practical implication is that trading RL systems require two distinct evaluation pipelines: a training diagnostic that tracks the optimization objective, and a financial evaluation that rolls out the deterministic policy on held-out data and computes return, Sharpe ratio, drawdown, and turnover from the realized position series. Conflating these — for example, treating a high training DSR as evidence of a strong out-of-sample Sharpe — is a common source of overoptimistic claims in the literature.</p>
+<p><strong>Execution assumptions impose a binding constraint on achievable net performance.</strong> The mid-price execution proxy used in this thesis represents an upper bound on realizable returns. The spread-crossing cost that arises in live execution is of the same order of magnitude as the short-horizon price movements the agent attempts to capture, and the agent’s demonstrated edge does not survive at high transaction cost levels, as shown in the sensitivity analysis. For a trading system to be considered deployable — rather than a proof of concept — the same policy must be re-evaluated under explicit bid/ask execution rules, realistic fee schedules, and queue-position uncertainty. The present results establish that a useful signal exists in the microstructure-aware state representation; they do not establish that this signal survives the full cost structure of live high-frequency execution.</p>
 </section>
-<section id="recommendations-for-practitioners" class="level2" data-number="8.4">
-<h2 data-number="8.4" class="anchored" data-anchor-id="recommendations-for-practitioners"><span class="header-section-number">8.4</span> Recommendations for Practitioners</h2>
+<section id="recommendations-for-practitioners" class="level2" data-number="7.4">
+<h2 data-number="7.4" class="anchored" data-anchor-id="recommendations-for-practitioners"><span class="header-section-number">7.4</span> Recommendations for Practitioners</h2>
+<p>The following recommendations are directed at practitioners who wish to implement reinforcement learning trading systems in settings similar to the one studied here. They are grounded in the specific lessons from this thesis rather than general RL best practices.</p>
+<p><strong>Invest in feature engineering before algorithm selection.</strong> The results demonstrate that feature quality is the primary driver of out-of-sample policy performance in this setting. Before experimenting with alternative algorithms or architectural variants, practitioners should verify that the state representation adequately captures the informational structure of the order book: order flow imbalance, multi-level spread and depth features, book shape measures, and temporal context. A thorough feature validation — examining the correlation structure, stationarity, and predictive content of each feature on held-out data — is more valuable time spent than hyperparameter search over a fixed but impoverished state space.</p>
+<p><strong>Enforce a strict chronological evaluation protocol from the start.</strong> Any form of lookahead — features computed from future data, normalization parameters estimated on the full dataset, or train/test splits that are not strictly sequential — will produce a materially optimistic assessment of out-of-sample performance. In high-frequency settings, where the information decay of market signals is measured in seconds, even mild lookahead can generate the appearance of a viable strategy from what is effectively a leakage artifact. Normalization should be fit on the training split only and applied frozen to validation and test data. This is not just good practice; it is the minimum requirement for the empirical results to be meaningful.</p>
+<p><strong>Treat transaction cost sensitivity as a go/no-go criterion.</strong> The threshold at which the agent’s apparent edge disappears under transaction costs is a property of the strategy that must be known before drawing conclusions. Practitioners should run the same evaluation across a range of cost levels — from zero to the realistic spread-plus-fee regime of their target venue — and identify whether the strategy’s risk-adjusted return degrades gracefully or collapses abruptly. An edge that survives only at zero cost is not a tradeable strategy; an edge that degrades proportionally with costs at least establishes the direction of improvement required.</p>
+<p><strong>Keep reward optimization and financial evaluation strictly separate.</strong> The Differential Sharpe Ratio or any other shaped reward is a training objective, not a performance report. All financial conclusions — Sharpe ratio, annualized return, maximum drawdown — should be derived from a deterministic policy rollout on held-out data, computed from the realized log-return series. Results from the training reward signal should appear in a separate section as training diagnostics, clearly labeled as such, and should not be cited as evidence of financial viability. This discipline is the single most consistent failure mode in the published literature and the most straightforward to avoid.</p>
 </section>
-<section id="conclusion" class="level2" data-number="8.5">
-<h2 data-number="8.5" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">8.5</span> Conclusion</h2>
-
+<section id="conclusion" class="level2" data-number="7.5">
+<h2 data-number="7.5" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">7.5</span> Conclusion</h2>
+<p>This thesis asked a narrowly defined and testable question: can a continuous-control reinforcement learning agent, using order-book-derived microstructure features, achieve economically meaningful out-of-sample trading performance in a high-frequency single-asset setting? The answer, under the specified experimental conditions, is affirmative. The TD3 agent trained on microstructure-aware limit order book features outperformed the evaluated benchmark strategies on risk-adjusted return metrics, and the extended feature set provided a measurable improvement over the simpler snapshot-based state representation. These findings hold together rather than in isolation: the performance advantage of the richer state design is visible in both summary metrics and in the qualitative character of the learned policy — lower unnecessary turnover, more responsive positioning, and more contained drawdown relative to passive exposure.</p>
+<p>The contribution of the thesis is methodological as much as empirical. The end-to-end pipeline developed here — covering feature engineering from 10-level order book data, configuration-driven experiment management, TD3 training with Differential Sharpe Ratio reward, and a rigorous separation between training diagnostics and held-out financial evaluation — provides a reproducible framework for this class of research problem. The emphasis throughout on design transparency, chronological data integrity, and explicit simulation assumptions reflects a view that the quality of the empirical setup is inseparable from the quality of the empirical conclusions.</p>
+<p>At the same time, the thesis is explicit about what it does not claim. The simulation relies on a mid-price execution proxy rather than executable bid/ask fills, assumes zero market impact and zero latency, and is based on a three-day AAPL sample and a single random seed. These restrictions were deliberate: they kept the experimental design tractable and the results interpretable. But they also mean that the observed edge cannot be straightforwardly mapped to a deployable trading strategy. Whether the microstructure signal captured by the learned policy survives realistic spread-crossing costs, maker/taker fees, queue uncertainty, and latency remains an open and important empirical question — one that the limitations and future research section identifies as the most direct extension of the current work.</p>
+<p>What the thesis does establish is that the combination of limit order book data, microstructure-aware feature engineering, and continuous-action actor-critic learning is a productive research direction. The informational content of the order book, well-established in the theoretical microstructure literature, can be translated into state features that improve a reinforcement learning agent’s out-of-sample behavior in ways that are measurable and consistent with economic intuition. That conclusion is the foundation on which more operationally realistic extensions — wider data windows, multi-seed validation, explicit bid/ask execution, and cross-asset generalization — can now be built.</p>
 </section>
 </section>
 <section id="bibliography" class="level1 unnumbered">
@@ -1399,9 +1380,6 @@ Neuneier, Ralph. 1998. <span>“Enhancing q-Learning for Optimal Asset Allocatio
 <div id="ref-Ng1999" class="csl-entry" role="listitem">
 Ng, Andrew Y., Daishi Harada, and Stuart Russell. 1999. <span>“Policy Invariance Under Reward Transformations: Theory and Application to Reward Shaping.”</span> <em>ICML</em>, 278–87.
 </div>
-<div id="ref-Precup2000" class="csl-entry" role="listitem">
-Precup, Doina, Richard S. Sutton, and Satinder Singh. 2000. <span>“Eligibility Traces for Off-Policy Policy Evaluation.”</span> <em>ICML</em>, 759–66.
-</div>
 <div id="ref-Puterman1994" class="csl-entry" role="listitem">
 Puterman, Martin L. 1994. <em>Markov Decision Processes: Discrete Stochastic Dynamic Programming</em>. John Wiley &amp; Sons.
 </div>
@@ -1458,18 +1436,18 @@ Zhang, Zihao, Stefan Zohren, and Stephen Roberts. 2019. <span>“<span>DeepLOB</
 </div>
 </div>
 </section>
-<section id="lob-feature-inventory" class="level1" data-number="9">
-<h1 data-number="9"><span class="header-section-number">9</span> LOB Feature Inventory</h1>
-<p>The table below is the complete specification of all features used in the state-space experiments. Feature names match the keys in the feature registry (<code>src/trading_rl/features/lob_features.py</code>); the active set is defined in <code>src/configs/features/hft_lob_features_state_space.yaml</code>. Formulas are given in Chapter 5. All features except the hour encodings are z-score normalized on the training split only.</p>
+<section id="lob-feature-inventory" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> LOB Feature Inventory</h1>
+<p>The table below is the complete specification of all features used in the state-space experiments. Feature names match the keys in the feature registry (<code>src/trading_rl/features/lob_features.py</code>); the active set is defined in <code>src/configs/features/hft_lob_features_state_space.yaml</code>. Formulas are given in Chapter 4. All features except the hour encodings are z-score normalized on the training split only.</p>
 </section>
-<section id="td3-hyperparameters" class="level1" data-number="10">
-<h1 data-number="10"><span class="header-section-number">10</span> TD3 Hyperparameters</h1>
+<section id="td3-hyperparameters" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> TD3 Hyperparameters</h1>
 <p>The table below lists all hyperparameters for the main AAPL state-space experiment. The full configuration file is <code>src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml</code>.</p>
 <hr>
 </section>
-<section id="experiment-configuration-example" class="level1" data-number="11">
-<h1 data-number="11"><span class="header-section-number">11</span> Experiment Configuration Example</h1>
-<p>The YAML snippet below is a condensed version of the main experiment configuration, illustrating the configuration-driven workflow described in Chapter 6.</p>
+<section id="experiment-configuration-example" class="level1" data-number="10">
+<h1 data-number="10"><span class="header-section-number">10</span> Experiment Configuration Example</h1>
+<p>The YAML snippet below is a condensed version of the main experiment configuration, illustrating the configuration-driven workflow described in Chapter 5.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">seed</span><span class="kw">:</span><span class="at"> </span><span class="dv">42</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span><span class="kw">:</span></span>
@@ -1504,9 +1482,9 @@ Zhang, Zihao, Stefan Zohren, and Stephen Roberts. 2019. <span>“<span>DeepLOB</
 <span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">loss_function</span><span class="kw">:</span><span class="at"> </span><span class="st">"smooth_l1"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <hr>
 </section>
-<section id="td3-training-workflow-diagram" class="level1" data-number="12">
-<h1 data-number="12"><span class="header-section-number">12</span> TD3 Training Workflow Diagram</h1>
-<p>The diagram below summarizes the configuration-driven workflow described in Chapter 6.</p>
+<section id="td3-training-workflow-diagram" class="level1" data-number="11">
+<h1 data-number="11"><span class="header-section-number">11</span> TD3 Training Workflow Diagram</h1>
+<p>The diagram below summarizes the configuration-driven workflow described in Chapter 5.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
 <div>
@@ -1545,8 +1523,8 @@ flowchart TD
 </div>
 <hr>
 </section>
-<section id="td3-update-mechanics-diagram" class="level1" data-number="13">
-<h1 data-number="13"><span class="header-section-number">13</span> TD3 Update Mechanics Diagram</h1>
+<section id="td3-update-mechanics-diagram" class="level1" data-number="12">
+<h1 data-number="12"><span class="header-section-number">12</span> TD3 Update Mechanics Diagram</h1>
 <p>The diagram below summarizes the core TD3 update mechanics used in the thesis implementation, abstracting away from project-specific plumbing.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
@@ -1589,8 +1567,8 @@ flowchart TD
 </div>
 <hr>
 </section>
-<section id="rl-algorithm-taxonomy" class="level1" data-number="14">
-<h1 data-number="14"><span class="header-section-number">14</span> RL Algorithm Taxonomy</h1>
+<section id="rl-algorithm-taxonomy" class="level1" data-number="13">
+<h1 data-number="13"><span class="header-section-number">13</span> RL Algorithm Taxonomy</h1>
 <p>The diagram below maps the reinforcement learning landscape from the Bellman equation through the key algorithmic relaxations, showing where TD3 sits relative to other families of methods. Source: author’s own diagram, based on <span class="citation" data-cites="Sutton2018">Sutton and Barto (<a href="#ref-Sutton2018" role="doc-biblioref">2018</a>)</span>.</p>
 <div class="cell" data-fig-width="6.4" data-fig-height="8.1" data-layout-align="center">
 <div class="cell-output-display">
@@ -1631,8 +1609,8 @@ graph TD
 </div>
 <hr>
 </section>
-<section id="td3-network-architecture" class="level1" data-number="15">
-<h1 data-number="15"><span class="header-section-number">15</span> TD3 Network Architecture</h1>
+<section id="td3-network-architecture" class="level1" data-number="14">
+<h1 data-number="14"><span class="header-section-number">14</span> TD3 Network Architecture</h1>
 <p>The diagram below shows how the actor, twin critics, and replay buffer interact in the TD3 architecture used in this thesis.</p>
 <div class="cell" data-fig-width="5" data-fig-height="3.5" data-layout-align="center">
 <div class="cell-output-display">
@@ -1663,8 +1641,8 @@ graph TD
 </div>
 <hr>
 </section>
-<section id="data-preparation-pipeline" class="level1" data-number="16">
-<h1 data-number="16"><span class="header-section-number">16</span> Data Preparation Pipeline</h1>
+<section id="data-preparation-pipeline" class="level1" data-number="15">
+<h1 data-number="15"><span class="header-section-number">15</span> Data Preparation Pipeline</h1>
 <p>The diagram below shows the feature pipeline design that ensures no information from the validation or test splits leaks into the fitted normalization parameters.</p>
 <div class="cell" data-fig-width="3.5" data-fig-height="6.8" data-layout-align="center">
 <div class="cell-output-display">
