@@ -1,0 +1,133 @@
+## Alternative Approaches to Algorithmic Trading
+
+Before positioning reinforcement learning as the methodology of choice, it is
+useful to characterize the main alternatives. Two complementary perspectives
+are relevant: what machine learning paradigm to use for training, and how the
+trading decision system is structured architecturally. Both converge on the same
+conclusion.
+
+### Supervised Learning
+
+Supervised learning trains a model on labeled input-output pairs
+$(X_i, Y_i)_{i=1}^{n}$ to minimize a loss function $\mathcal{L}(f_\theta(X), Y)$
+over a held-out sample. In trading, supervised approaches have been widely
+applied to return prediction, directional classification, and volatility
+forecasting — tasks where historical outcomes provide a natural training signal
+[@Krauss2017; @Zhang2019].
+
+The approach has a structural limitation in trading contexts: optimizing the
+forecast objective and optimizing the trading decision are two separate steps
+with potentially misaligned objectives. A model that minimizes mean squared
+error on next-period returns may not produce positions that maximize risk-adjusted
+return after transaction costs, because predictive accuracy and trading
+profitability are not equivalent criteria [@Moody1998]. The separate
+optimization of prediction and action also discards information: a scalar return
+forecast does not carry the uncertainty, timing, or context available in the
+original feature vector.
+
+### Unsupervised Learning
+
+Unsupervised learning identifies structure in unlabeled data
+$\{X_i\}_{i=1}^{n}$ without a target variable. In trading research it is
+primarily used for market regime detection (clustering volatility or
+microstructure states), dimensionality reduction of large feature sets
+(PCA, autoencoders), and anomaly detection in order flow data.
+
+These applications are useful as preprocessing or exploratory tools, but
+unsupervised learning does not produce trading decisions directly — it carries
+no reward signal and cannot optimize for a financial objective such as
+risk-adjusted return. In the present thesis, the regime-conditioning problem
+is addressed implicitly through engineered microstructure features — spread
+ratio, inter-event time, temporal encodings — that condition the agent's
+observation on the current market state without requiring an explicit
+unsupervised clustering step.
+
+### Semi-Supervised Learning
+
+Semi-supervised learning combines a small labeled set with a larger unlabeled
+set, propagating label information through structural similarity in the data.
+It is useful when labeling is expensive or subjective — medical annotation being
+the canonical application.
+
+In financial trading, the approach is rarely adopted because the main bottleneck
+is not label scarcity but the absence of a stable labeling criterion: what
+constitutes an optimal action at a given market state depends on subsequent
+price evolution, which is noisy and non-stationary. Constructing pseudo-labels
+for unlabeled market observations requires either a strong prior on optimal
+behavior or a separate forecasting model — at which point the problem has
+already been reformulated as supervised or reinforcement learning. For these
+reasons, semi-supervised learning is not used in this thesis.
+
+The same conclusion follows from a second perspective: the architecture of the
+decision system itself.
+
+### Rule-Based Trading Strategies
+
+Rule-based strategies encode trading decisions as explicit conditional logic:
+position changes are triggered when observable market quantities cross
+pre-defined thresholds. Common examples include moving-average crossover
+systems, momentum breakout rules, and mean-reversion strategies based on
+Bollinger Bands or RSI. In high-frequency settings, rule-based approaches
+include market-making strategies that post limit orders at fixed offsets from
+the mid-price and cancel them when inventory limits are reached.
+
+The appeal of rule-based systems is transparency: the causal chain from
+market condition to action is explicit, auditable, and reproducible. They also
+impose no distributional assumptions on the data and can be deployed without
+a training phase.
+
+The limitation is inflexibility. Rules are defined over a fixed set of
+observable conditions and optimized for a particular market regime. When the
+regime changes — for example, when a previously mean-reverting asset enters a
+trending period — fixed rules either require manual recalibration or continue
+generating losses until the regime reverts. This brittleness under
+non-stationarity is the primary motivation for learning-based approaches,
+which can update their behavior from experience rather than requiring explicit
+rule revision.
+
+### Forecast-Based Trading
+
+Forecast-based trading systems employ supervised learning techniques to generate
+price predictions from a set of input variables. These systems optimize for
+statistical accuracy metrics such as mean squared error during the training
+phase.
+
+The forecasting process represents merely an intermediate step in the trading
+workflow. The predicted prices subsequently inform trading decisions within a
+separate rules module. A significant limitation is that the forecasting model
+typically outputs only the predicted price while discarding potentially valuable
+contextual information from the original inputs. The dimensionality reduction
+from $\mathbb{R}^n$ to $\hat{y} \in \mathbb{R}$ results in information loss
+that may be crucial for optimal trading decisions. The optimization target —
+forecast accuracy — is also not the same as the trading objective.
+
+### Training on Labelled Data
+
+A related approach trains a model to imitate a corpus of labeled trades directly,
+mapping observed market states to actions without an intermediate forecasting
+step. Formally, the model learns $f: X \rightarrow a$ by minimizing a loss over
+labeled state-action pairs $(X_i, a_i^*)$:
+
+$$\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$
+
+The limitation is the same as in forecast-based approaches, expressed
+differently: the optimization target is the labeled action, not the trading
+objective. Since labels are typically constructed from historical rules or
+expert behavior rather than from the actual utility function, minimizing
+imitation error does not guarantee maximizing risk-adjusted return. The
+labeling process itself introduces a prior about what constitutes optimal
+behavior — a prior that may be wrong or regime-dependent.
+
+### Direct Optimization of Trading Performance
+
+Direct optimization removes both the intermediate forecast and the labeled
+action requirement. The agent observes the market state $X_t$, selects an
+action, and receives a scalar reward reflecting trading performance. It then
+adjusts its behavior based on that reward signal — no labels, no predictions,
+no proxy objective.
+
+The critical difference from the preceding approaches is that the optimization
+objective is aligned directly with trading performance: there is no surrogate
+loss whose relationship to actual returns must be assumed. This alignment is
+the primary motivation for using reinforcement learning in this thesis. The
+specific reward formulation and its design rationale are developed in Chapter 4.
