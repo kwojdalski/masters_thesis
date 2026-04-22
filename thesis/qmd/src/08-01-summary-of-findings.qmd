@@ -1,1 +1,50 @@
 ## Summary of Findings
+
+The thesis set out to answer three hypotheses concerning reinforcement learning
+for high-frequency single-asset trading using order-book-derived features. This
+section summarizes the empirical evidence for each.
+
+**Hypothesis 1: the TD3 agent can outperform benchmark strategies on a
+risk-adjusted basis.** The out-of-sample evaluation supports this hypothesis
+under the specified simulation assumptions. The trained TD3 agent achieved
+positive test-set risk-adjusted returns and outperformed the evaluated benchmark
+strategies on both the Sharpe ratio and realized cumulative return dimensions.
+The performance advantage persisted after accounting for position-change turnover
+in the zero-fee baseline setting. The agent's behavior was also economically
+coherent: position sizing varied with the state of the order book rather than
+producing constant directional exposure, and drawdown during the test period
+remained contained relative to the buy-and-hold benchmark, which experienced
+the full downside of passive exposure. These results establish that a TD3
+agent using order-book-derived microstructure features can generate economically
+meaningful out-of-sample behavior within the controlled simulation framework.
+
+**Hypothesis 2: a broader microstructure-aware feature set improves out-of-sample
+performance relative to a simpler snapshot-based state representation.** The
+feature-set comparison confirms this hypothesis. The extended state
+representation — which supplements basic top-of-book snapshot quantities with
+order flow imbalance, spread regime features, book shape measures, and temporal
+encodings — produced superior out-of-sample risk-adjusted returns compared to
+the baseline feature set under identical training and evaluation conditions. The
+improvement was visible not only in summary metrics but in policy behavior: the
+richer state representation supported lower-turnover, more stable positioning
+that translated into better realized returns net of effective execution costs.
+This finding supports the thesis premise that the informational content relevant
+to short-horizon price prediction is concentrated in the structural features of
+the limit order book, and that making this information available to the agent
+leads to a measurably better policy.
+
+**Hypothesis 3: empirical performance is materially sensitive to feature
+specification, reward design, and transaction-cost assumptions.** The
+robustness analysis confirms this hypothesis as well, and in doing so it
+clarifies what drives the performance advantage described above. Feature
+specification was the dominant determinant of policy quality: configurations
+using only snapshot-level quantities produced weaker and less stable policies
+than those using the full microstructure-aware feature set. The choice of reward
+function also mattered: the Differential Sharpe Ratio reward produced more
+consistent training behavior than the raw log-return baseline, consistent with
+the theoretical argument that direct risk-adjusted optimization improves
+sample-to-sample stability. Transaction-cost sensitivity testing further
+confirmed that the agent's edge is meaningful at low but not at high transaction
+cost levels, which appropriately bounds the strategy's viability and underscores
+the importance of realistic cost modeling in any empirical assessment of
+this type.
