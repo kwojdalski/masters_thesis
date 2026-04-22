@@ -38,7 +38,8 @@ jobs:
           mkdir -p _site
           cp thesis/qmd/src/masters-thesis.html _site/index.html
           cp -r thesis/qmd/src/masters-thesis_files _site/
-          cp -r thesis/qmd/src/diagrams _site/diagrams
+          mkdir -p _site/diagrams
+          cp thesis/qmd/src/diagrams/*.svg _site/diagrams/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
