@@ -44,20 +44,20 @@ Defines configuration using dataclasses for:
 Data handling utilities:
 - `download_trading_data()`: Download from exchanges
 - `load_trading_data()`: Load from pickle/parquet
-- `create_features()`: Default feature engineering (returns, volatility, etc.)
 - `reward_function()`: Portfolio valuation reward
 - `prepare_data()`: End-to-end data preparation
 
-**Benefits**: Reusable data pipeline, consistent feature engineering. The
-hardcoded `create_features()` utility still exists for Gym-compatible datasets,
-while `features/` provides a configurable pipeline for experiments that need
-train/test-safe normalization.
+**Benefits**: Reusable data pipeline. Feature engineering is handled entirely
+by `features/` — see below.
 
 ### `features/`
 Feature engineering pipeline with train/test-safe normalization and a registry
-for custom features.
+for custom features. All feature creation goes through here: `FeaturePipeline`
+is fit on training data only and applied to val/test using the learned
+parameters, preventing data leakage.
 
-**Benefits**: Configurable feature sets, no data leakage, and easy extension.
+**Benefits**: Configurable feature sets via YAML, no data leakage, easy to
+extend with new feature types via the registry.
 
 Example feature config snippet:
 ```yaml
