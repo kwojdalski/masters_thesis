@@ -194,14 +194,16 @@ Chapter 5.
 }}%%
 flowchart TD
     A[Scenario + feature config] --> B[Pre-run validation]
-    B --> C[Load data + chrono split]
-    C --> D[Generate features<br/>and fit on train only]
-    D --> E[Build training env]
-    E --> F[Train TD3]
-    F --> G[Checkpoint + MLflow log]
-    G --> H[Build test env]
-    H --> I[Held-out evaluation]
-    I --> J[Metrics + robustness outputs]
+    B --> C[build_prepared_dataset]
+    C --> D[PreparedDataset<br/>train / val / test + metadata]
+    D --> E[build_training_bundle]
+    E --> F[TrainingBundle<br/>train env + trainer + callback]
+    F --> G[Train TD3]
+    G --> H[Checkpoint + MLflow log]
+    H --> I[evaluate_all_splits]
+    I --> J[Resolve primary split<br/>test -> val -> train]
+    J --> K[Primary-split explainability]
+    K --> L[Metrics + robustness outputs]
 ```
 
 ```{=latex}
@@ -352,4 +354,3 @@ parameters.
 ```{=latex}
 \end{center}
 ```
-

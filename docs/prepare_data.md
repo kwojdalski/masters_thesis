@@ -1,26 +1,28 @@
 ```mermaid
 flowchart TD
-    A["prepare_data inputs"] --> B{"Data file exists?"}
-    B -- "No and download enabled" --> C["download_trading_data"]
-    B -- "No and download disabled" --> D["raise FileNotFoundError"]
-    B -- "Yes" --> E["load_trading_data"]
-    C --> E
-    E --> F["drop NaNs"]
-    F --> G["split raw data into train, validation, and test"]
-    G --> H{"no_features is true?"}
-    H -- "Yes" --> I["return raw train, raw validation, and raw test"]
-    H -- "No" --> J{"feature config path provided?"}
-    J -- "Yes" --> K["FeaturePipeline.from_yaml"]
-    J -- "No" --> L["create_default_pipeline"]
-    K --> M["pipeline.fit on train raw only"]
-    L --> M
-    M --> N["transform train raw"]
-    M --> O["transform validation raw"]
-    M --> P["transform test raw"]
-    N --> Q["concat raw train with train features"]
-    O --> R["concat raw validation with validation features"]
-    P --> S["concat raw test with test features"]
-    Q --> T["return train_df, val_df, and test_df"]
-    R --> T
-    S --> T
+    A["build_prepared_dataset"] --> B["prepare_data"]
+    B --> C{"Data file exists?"}
+    C -- "No and download enabled" --> D["download_trading_data"]
+    C -- "No and download disabled" --> E["raise FileNotFoundError"]
+    C -- "Yes" --> F["load_trading_data"]
+    D --> F
+    F --> G["drop NaNs"]
+    G --> H["split raw data into train, validation, and test"]
+    H --> I{"feature config path provided?"}
+    I -- "Yes" --> J["FeaturePipeline.from_yaml"]
+    I -- "No" --> K["create_default_pipeline"]
+    J --> L["pipeline.fit on train raw only"]
+    K --> L
+    L --> M["transform train raw"]
+    L --> N["transform validation raw"]
+    L --> O["transform test raw"]
+    M --> P["concat raw train with train features"]
+    N --> Q["concat raw validation with validation features"]
+    O --> R["concat raw test with test features"]
+    P --> S["ensure_close_column_for_hft"]
+    Q --> S
+    R --> S
+    S --> T["ensure_unique_index_for_hft_tradingenv"]
+    T --> U["validate_prepared_data"]
+    U --> V["return PreparedDataset"]
 ```
