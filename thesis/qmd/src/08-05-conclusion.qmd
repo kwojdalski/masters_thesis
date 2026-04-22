@@ -1,1 +1,46 @@
 ## Conclusion
+
+This thesis asked a narrowly defined and testable question: can a continuous-control
+reinforcement learning agent, using order-book-derived microstructure features,
+achieve economically meaningful out-of-sample trading performance in a
+high-frequency single-asset setting? The answer, under the specified experimental
+conditions, is affirmative. The TD3 agent trained on microstructure-aware
+limit order book features outperformed the evaluated benchmark strategies on
+risk-adjusted return metrics, and the extended feature set provided a measurable
+improvement over the simpler snapshot-based state representation. These findings
+hold together rather than in isolation: the performance advantage of the richer
+state design is visible in both summary metrics and in the qualitative character
+of the learned policy — lower unnecessary turnover, more responsive positioning,
+and more contained drawdown relative to passive exposure.
+
+The contribution of the thesis is methodological as much as empirical. The
+end-to-end pipeline developed here — covering feature engineering from 10-level
+order book data, configuration-driven experiment management, TD3 training with
+Differential Sharpe Ratio reward, and a rigorous separation between training
+diagnostics and held-out financial evaluation — provides a reproducible framework
+for this class of research problem. The emphasis throughout on design
+transparency, chronological data integrity, and explicit simulation assumptions
+reflects a view that the quality of the empirical setup is inseparable from the
+quality of the empirical conclusions.
+
+At the same time, the thesis is explicit about what it does not claim. The
+simulation relies on a mid-price execution proxy rather than executable bid/ask
+fills, assumes zero market impact and zero latency, and is based on a three-day
+AAPL sample and a single random seed. These restrictions were deliberate: they
+kept the experimental design tractable and the results interpretable. But they
+also mean that the observed edge cannot be straightforwardly mapped to a
+deployable trading strategy. Whether the microstructure signal captured by the
+learned policy survives realistic spread-crossing costs, maker/taker fees, queue
+uncertainty, and latency remains an open and important empirical question — one
+that the limitations and future research section identifies as the most direct
+extension of the current work.
+
+What the thesis does establish is that the combination of limit order book data,
+microstructure-aware feature engineering, and continuous-action actor-critic
+learning is a productive research direction. The informational content of the
+order book, well-established in the theoretical microstructure literature, can
+be translated into state features that improve a reinforcement learning agent's
+out-of-sample behavior in ways that are measurable and consistent with economic
+intuition. That conclusion is the foundation on which more operationally realistic
+extensions — wider data windows, multi-seed validation, explicit bid/ask execution,
+and cross-asset generalization — can now be built.
