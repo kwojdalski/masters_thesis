@@ -1,10 +1,28 @@
 ## Reward Function
 
-The reward function determines what the agent actually optimizes. In trading,
-two properties are essential: the signal should be risk-adjusted so the agent
-does not maximize returns by taking excessive volatility, and it should be
-computable recursively so that no look-ahead into future returns is required
-at each training step.
+The reward function determines what the agent actually optimizes. The thesis
+implements direct optimization of trading performance: the agent observes the
+market state, selects a continuous portfolio exposure $a_t \in [-1, 1]$, and
+receives a scalar reward reflecting realized return net of transaction costs.
+A baseline formulation of this reward is:
+
+$$r_t = a_{t-1} \cdot \frac{P_t - P_{t-1}}{P_{t-1}} - c \cdot |a_t - a_{t-1}|$$
+
+where $a_{t-1}$ is the exposure held during the period, $P_t$ is price at
+the end of the period, and $c \cdot |a_t - a_{t-1}|$ is the transaction cost
+proportional to the size of the position change. The agent learns a deterministic
+policy $\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}$ to maximize expected
+cumulative reward:
+
+$$\max_\theta \mathbb{E}\!\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]$$
+
+In trading, two properties are essential for the reward to work well in
+practice: the signal should be risk-adjusted so the agent does not maximize
+returns by taking excessive volatility, and it should be computable recursively
+so that no look-ahead into future returns is required at each training step.
+The following sections explain why the baseline formulation above requires
+refinement in a high-frequency setting, and how the Differential Sharpe Ratio
+addresses both requirements.
 
 ### Why Raw Log-Return Is Insufficient
 
