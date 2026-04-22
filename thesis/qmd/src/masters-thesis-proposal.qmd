@@ -306,7 +306,7 @@ transaction costs, financing costs (if applicable), and slippage effects.
   - 6.2.1 Code Structure
   - 6.2.2 Code Implementation
 
-## 7. Empirical Evaluation and Performance Analysis
+## 7. Results
 
 Benchmarks:
 
