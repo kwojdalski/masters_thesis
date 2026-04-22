@@ -59,21 +59,28 @@ thesis_runtime_config:
 
 \begin{abstract}
 
-This thesis studies whether deep reinforcement learning can produce robust,
-risk-adjusted trading performance in a realistic high-frequency setting. The
-work focuses on continuous portfolio exposure control from order-book-derived
-features and addresses practical constraints that often invalidate paper-trading
-results.
+This thesis studies whether a deep reinforcement learning agent using
+order-book-derived microstructure features can produce robust, risk-adjusted
+trading performance in a high-frequency single-asset setting. The work focuses
+on continuous portfolio exposure control and addresses the practical constraints
+— execution modeling, transaction cost sensitivity, and evaluation discipline —
+that most often invalidate paper-trading results.
 
-The empirical framework implements a TD3 agent on high-frequency AAPL data and
-evaluates it against benchmark strategies under explicit assumptions about
-transaction costs and execution. Performance is assessed with both financial
-metrics and statistical validation to separate genuine signal from noise and
-overfitting.
+A TD3 agent is trained on high-frequency AAPL limit order book data and
+evaluated against benchmark strategies under explicit simulation assumptions.
+The agent achieves positive out-of-sample risk-adjusted returns that exceed the
+evaluated benchmarks, and a microstructure-aware state representation
+constructed from order flow, spread regime, and book shape features demonstrates
+measurable performance improvement over a simpler snapshot-based baseline.
+Statistical validation and transaction-cost sensitivity analysis are used to
+separate genuine policy quality from favorable training stochasticity and to
+bound the conditions under which the observed edge persists.
 
-The main contribution is an end-to-end, reproducible pipeline that links market
-feature engineering, reward design, agent training, and robustness testing in a
-single evaluation framework for algorithmic trading research.
+The main contribution is an end-to-end, reproducible pipeline linking LOB
+feature engineering, Differential Sharpe Ratio reward design, TD3 training, and
+rigorous out-of-sample evaluation — together with an explicit account of the
+simulation assumptions that separate these findings from deployable performance
+claims.
 
 \end{abstract}
 
