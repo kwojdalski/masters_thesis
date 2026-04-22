@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import mlflow
 import pytest
+import trading_rl.train_trading_agent as training_module
 import yaml
 
 from data_generator import PriceDataGenerator
@@ -97,7 +99,29 @@ def _make_smoke_config(tmp_path: Path, scenario_path: Path, data_path: Path) -> 
 
 @pytest.mark.smoke
 @pytest.mark.parametrize("scenario_path", SMOKE_SCENARIOS, ids=lambda path: path.stem)
-def test_generated_data_scenario_smoke(tmp_path: Path, scenario_path: Path):
+def test_generated_data_scenario_smoke(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    scenario_path: Path,
+):
+    mlflow.end_run()
+    monkeypatch.setattr(training_module, "_build_mlflow_callback", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        training_module.MLflowTrainingCallback,
+        "log_evaluation_plots",
+        staticmethod(lambda **_kwargs: None),
+    )
+    monkeypatch.setattr(
+        training_module.MLflowTrainingCallback,
+        "log_evaluation_report",
+        staticmethod(lambda *_args, **_kwargs: None),
+    )
+    monkeypatch.setattr(
+        training_module.MLflowTrainingCallback,
+        "log_final_metrics",
+        staticmethod(lambda *_args, **_kwargs: None),
+    )
+
     data_path = _generate_dataset_for_scenario(tmp_path, scenario_path)
     config = _make_smoke_config(tmp_path, scenario_path, data_path)
 

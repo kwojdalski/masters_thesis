@@ -331,6 +331,7 @@ class PPOTrainer(BaseTrainer):
             final_reward,
             last_positions,
             actual_returns_plot,
+            merged_plot,
         ) = super().evaluate(
             df,
             max_steps,
@@ -348,6 +349,7 @@ class PPOTrainer(BaseTrainer):
             final_reward,
             last_positions,
             actual_returns_plot,
+            merged_plot,
         )
 
     @staticmethod
