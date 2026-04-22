@@ -11,6 +11,8 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
+from trading_rl.constants import Algorithm, EnvMode, RewardType
+
 
 @dataclass
 class DataConfig:
@@ -39,7 +41,7 @@ class EnvConfig:
     """Trading environment configuration."""
 
     name: str = "BTCUSD"
-    mode: str = "mft"  # Feature regime mode: "mft" (medium-frequency) or "hft" (high-frequency)
+    mode: str = EnvMode.MFT  # Feature regime mode: "mft" (medium-frequency) or "hft" (high-frequency)
     positions: list[int] = field(default_factory=lambda: [-1, 0, 1])
     trading_fees: float = 0.0  # 0.01% = 0.0001
     borrow_interest_rate: float = 0.0  # 0.0003% = 0.000003
@@ -58,7 +60,7 @@ class EnvConfig:
     )
 
     # Reward function configuration (all backends)
-    reward_type: str = "log_return"  # Reward type: "log_return" or "differential_sharpe"
+    reward_type: str = RewardType.LOG_RETURN  # Reward type: "log_return" or "differential_sharpe"
     reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")
 
 
@@ -78,7 +80,7 @@ class TrainingConfig:
     """Training hyperparameters configuration."""
 
     # Algorithm selection
-    algorithm: str = "PPO"  # "PPO", "DDPG", or "TD3"
+    algorithm: str = Algorithm.PPO  # "PPO", "DDPG", or "TD3"
 
     # Optimization
     actor_lr: float = 1e-4
@@ -250,7 +252,7 @@ class ExperimentConfig:
             )
 
         # PPO-specific validation
-        if self.training.algorithm.upper() == "PPO":
+        if self.training.algorithm.upper() == Algorithm.PPO:
             if not (0 < self.training.clip_epsilon < 1):
                 errors.append(
                     f"training.clip_epsilon must be in (0, 1), got {self.training.clip_epsilon}"
@@ -265,7 +267,7 @@ class ExperimentConfig:
                 )
 
         # DDPG/TD3-specific validation
-        if self.training.algorithm.upper() in ["DDPG", "TD3"]:
+        if self.training.algorithm.upper() in {Algorithm.DDPG, Algorithm.TD3}:
             if not (0 < self.training.tau <= 1):
                 errors.append(
                     f"training.tau must be in (0, 1], got {self.training.tau}"
@@ -300,9 +302,9 @@ class ExperimentConfig:
             )
         if not self.env.positions:
             errors.append("env.positions must not be empty")
-        if str(self.env.mode).lower() not in {"mft", "hft"}:
+        if str(self.env.mode).lower() not in set(EnvMode):
             errors.append(
-                f"env.mode must be 'mft' or 'hft', got '{self.env.mode}'"
+                f"env.mode must be one of {list(EnvMode)}, got '{self.env.mode}'"
             )
         if (
             self.env.price_column is not None
@@ -316,12 +318,12 @@ class ExperimentConfig:
             )
 
         # Reward configuration validation
-        if self.env.reward_type not in ["log_return", "differential_sharpe"]:
+        if self.env.reward_type not in set(RewardType):
             errors.append(
-                f"env.reward_type must be 'log_return' or 'differential_sharpe', "
+                f"env.reward_type must be one of {list(RewardType)}, "
                 f"got '{self.env.reward_type}'"
             )
-        if self.env.reward_type == "differential_sharpe" and self.env.reward_eta <= 0:
+        if self.env.reward_type == RewardType.DIFFERENTIAL_SHARPE and self.env.reward_eta <= 0:
             errors.append(
                 f"env.reward_eta must be > 0 when using differential_sharpe, "
                 f"got {self.env.reward_eta}"
@@ -338,10 +340,9 @@ class ExperimentConfig:
             errors.append("network.value_hidden_dims must contain only positive integers")
 
         # Algorithm validation
-        valid_algorithms = ["PPO", "DDPG", "TD3"]
-        if self.training.algorithm.upper() not in valid_algorithms:
+        if self.training.algorithm.upper() not in set(Algorithm):
             errors.append(
-                f"training.algorithm must be one of {valid_algorithms}, "
+                f"training.algorithm must be one of {list(Algorithm)}, "
                 f"got '{self.training.algorithm}'"
             )
 

@@ -1,7 +1,7 @@
 """Environment creation helpers for trading experiments."""
 
 import warnings
-from typing import Literal
+from enum import StrEnum
 
 import gym_anytrading  # noqa: F401  # registers envs if available
 import gym_trading_env  # noqa: F401
@@ -17,23 +17,20 @@ from trading_rl.data_utils import reward_function
 
 logger = get_logger(__name__)
 
-# Type for backend selection
-Backend = Literal[
-    "gym_trading_env.discrete",
-    "gym_trading_env.continuous",
-    "gym_anytrading.forex",
-    "gym_anytrading.stocks",
-    "tradingenv",
-]
 
-# Supported backend values for validation
-SUPPORTED_BACKENDS = [
-    "gym_trading_env.discrete",
-    "gym_trading_env.continuous",
-    "gym_anytrading.forex",
-    "gym_anytrading.stocks",
-    "tradingenv",
-]
+class EnvBackend(StrEnum):
+    """Supported trading environment backends."""
+
+    GYM_TRADING_DISCRETE = "gym_trading_env.discrete"
+    GYM_TRADING_CONTINUOUS = "gym_trading_env.continuous"
+    GYM_ANYTRADING_FOREX = "gym_anytrading.forex"
+    GYM_ANYTRADING_STOCKS = "gym_anytrading.stocks"
+    TRADINGENV = "tradingenv"
+
+
+# Keep for external callers that imported these names directly.
+Backend = EnvBackend
+SUPPORTED_BACKENDS = list(EnvBackend)
 
 
 def validate_backend(backend: str, log_backend: bool = False) -> None:
@@ -62,7 +59,7 @@ def validate_actions(backend: Backend, positions: list[int] | None) -> None:
     if positions is None:
         return
 
-    if backend in {"gym_anytrading.forex", "gym_anytrading.stocks"}:
+    if backend in {EnvBackend.GYM_ANYTRADING_FOREX, EnvBackend.GYM_ANYTRADING_STOCKS}:
         allowed = [0, 1]
         if positions != allowed:
             raise ValueError(
@@ -189,10 +186,10 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
                 "Config must be provided either in constructor or method call"
             )
 
-        backend = backend or getattr(config.env, "backend", "gym_trading_env.discrete")
+        backend = backend or getattr(config.env, "backend", EnvBackend.GYM_TRADING_DISCRETE)
         validate_backend(backend, log_backend=False)
 
-        continuous = backend == "gym_trading_env.continuous"
+        continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
         logger.info(
             "Creating trading environment",
             extra={"backend": backend, "continuous": continuous},
@@ -321,13 +318,13 @@ def get_environment_factory(
 
     config = kwargs.get("config")
 
-    if backend in ["gym_trading_env.discrete", "gym_trading_env.continuous"]:
+    if backend in {EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS}:
         return CustomTradingEnvironmentFactory(config)
-    elif backend == "gym_anytrading.forex":
+    elif backend == EnvBackend.GYM_ANYTRADING_FOREX:
         return ForexEnvironmentFactory(config)
-    elif backend == "gym_anytrading.stocks":
+    elif backend == EnvBackend.GYM_ANYTRADING_STOCKS:
         return StocksEnvironmentFactory(config)
-    elif backend == "tradingenv":
+    elif backend == EnvBackend.TRADINGENV:
         # Import here to avoid circular dependency and keep it optional
         from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory
 
@@ -345,7 +342,7 @@ def create_continuous_trading_environment(
     df: pd.DataFrame, config: ExperimentConfig
 ) -> TransformedEnv:
     """Create a continuous-action trading environment (TD3/DDPG)."""
-    return create_environment(df, config=config, backend="gym_trading_env.continuous")
+    return create_environment(df, config=config, backend=EnvBackend.GYM_TRADING_CONTINUOUS)
 
 
 def create_environment(
@@ -368,7 +365,7 @@ def create_environment(
             backend = config.env.backend
             logger.warning(f"Backend determined from config: {backend}")
         else:
-            backend = "gym_trading_env.discrete"
+            backend = EnvBackend.GYM_TRADING_DISCRETE
             logger.warning(f"Using default backend: {backend}")
     else:
         logger.warning(f"Backend explicitly specified: {backend}")
@@ -386,17 +383,12 @@ def create_environment(
         extra={"backend": backend, "positions": positions},
     )
 
-    if backend in ["gym_trading_env.discrete", "gym_trading_env.continuous"]:
+    if backend in {EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS}:
         if config is None:
             raise ValueError("config is required when using gym_trading_env backends")
         factory = get_environment_factory(backend, config=config)
-
-        # Handle discrete vs continuous logic
-        if backend == "gym_trading_env.continuous":
-            return factory.make(df, config, backend=backend)
-        else:
-            return factory.make(df, config, backend=backend)
-    elif backend == "tradingenv":
+        return factory.make(df, config, backend=backend)
+    elif backend == EnvBackend.TRADINGENV:
         # TradingEnv backend - supports continuous portfolio allocation
         if config is None:
             raise ValueError("config is required when using tradingenv backend")
