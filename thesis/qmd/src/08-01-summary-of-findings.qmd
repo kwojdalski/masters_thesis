@@ -5,18 +5,22 @@ for high-frequency single-asset trading using order-book-derived features. This
 section summarizes the empirical evidence for each.
 
 **Hypothesis 1: the TD3 agent can outperform benchmark strategies on a
-risk-adjusted basis.** The out-of-sample evaluation supports this hypothesis
-under the specified simulation assumptions. The trained TD3 agent achieved
-positive test-set risk-adjusted returns and outperformed the evaluated benchmark
-strategies on both the Sharpe ratio and realized cumulative return dimensions.
-The performance advantage persisted after accounting for position-change turnover
-in the zero-fee baseline setting. The agent's behavior was also economically
-coherent: position sizing varied with the state of the order book rather than
-producing constant directional exposure, and drawdown during the test period
-remained contained relative to the buy-and-hold benchmark, which experienced
-the full downside of passive exposure. These results establish that a TD3
-agent using order-book-derived microstructure features can generate economically
-meaningful out-of-sample behavior within the controlled simulation framework.
+risk-adjusted basis.** The evaluation supports this hypothesis within the
+scope of the controlled experiment. The trained TD3 agent achieved positive
+test-set risk-adjusted returns and outperformed the evaluated benchmark
+strategies on both the Sharpe ratio and realized cumulative return dimensions,
+with the performance advantage persisting after accounting for position-change
+turnover in the zero-fee baseline setting. The agent's behavior was also
+economically coherent: position sizing varied with the state of the order book
+rather than producing constant directional exposure, and drawdown during the
+test period remained contained relative to the buy-and-hold benchmark. These
+results should be read as a feasibility demonstration rather than a
+generalization claim: the test split is drawn from the same three-day market
+episode as the training data, and "out-of-sample" here means held-out within
+that window, not evaluated across different market conditions. The finding
+establishes that the learning problem is tractable and that the chosen feature
+set carries sufficient signal for the agent to develop a policy superior to
+passive benchmarks under these conditions.
 
 **Hypothesis 2: a broader microstructure-aware feature set improves out-of-sample
 performance relative to a simpler snapshot-based state representation.** The

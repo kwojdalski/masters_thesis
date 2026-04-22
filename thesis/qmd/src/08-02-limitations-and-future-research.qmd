@@ -69,20 +69,40 @@ where the agent simultaneously manages positions across several instruments and
 must account for correlation, capital constraints, and cross-asset execution
 costs.
 
-### Generalization Across Asset Classes and Market Regimes
+### Narrow Evaluation Window and Scope of the Empirical Claim
 
-The present experiments are conducted on equity tick data from a three-day
-window. A key open question is whether the learned representations and policy
-behavior transfer across asset classes — foreign exchange, futures, and
-cryptocurrency markets each exhibit distinct microstructure: different spread
-regimes, tick sizes, liquidity profiles, and intraday seasonality. Testing the
-same feature design and training protocol across these settings would establish
-whether the approach is robust to structural differences in order-book
-dynamics, or whether asset-class-specific feature engineering and reward tuning
-are necessary. Extending the training window to cover multiple market regimes
-— including periods of elevated volatility, low liquidity, and structural
-breaks — would also strengthen the generalization claim beyond the narrow
-three-day sample used here.
+The most important constraint on interpreting the empirical results is the
+three-day evaluation window. The training, validation, and test splits all
+derive from the same three consecutive trading sessions (February 25–27,
+2026). What the thesis describes as "out-of-sample" performance is therefore
+within-window out-of-sample: the test split was not used during training, but
+it belongs to the same short market episode, characterized by the same
+volatility regime, the same spread environment, and the same intraday
+seasonality as the training data. The agent has never encountered a different
+AAPL trading day, let alone a different market condition.
+
+This distinction matters for what the results actually support. The empirical
+findings are best read as a feasibility demonstration: the pipeline can extract
+useful signal from order-book features and translate it into a policy that
+outperforms benchmarks within a controlled, narrow window. This is a necessary
+condition for practical utility, but not a sufficient one. It establishes that
+the learning problem is tractable and that the chosen feature set is
+informative — conclusions that would be undermined if the agent had failed to
+beat benchmarks even in this favorable setting. What it does not establish is
+whether the learned policy would remain profitable across a broader range of
+market conditions, or even across a different three-day window of AAPL data
+with different volatility or flow characteristics.
+
+Extending the evaluation window to cover multiple weeks of data, including
+periods of elevated volatility, low liquidity, and structural breaks, would
+be the most direct way to strengthen the generalization claim. Walk-forward
+validation — re-training on an expanding window and evaluating on successive
+held-out periods — would further separate temporal generalization from
+in-window interpolation. Cross-asset testing (foreign exchange, futures,
+cryptocurrency) would establish whether the feature design and training
+protocol are robust to structural differences in order-book dynamics, or
+whether asset-class-specific tuning is necessary. These extensions are
+identified as the primary empirical directions for future work.
 
 ### Algorithm Comparison and Reward Ablation
 
