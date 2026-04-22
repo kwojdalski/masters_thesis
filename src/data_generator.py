@@ -24,6 +24,12 @@ class PatternType(StrEnum):
     TRENDING = "trending"
 
 
+# Default start date for synthetic time indices.  The value is a label only —
+# synthetic prices are generated independently of wall-clock time — so this
+# never needs to track "today".  One constant means one place to update.
+DEFAULT_SYNTHETIC_START_DATE = "2024-01-01"
+
+
 def _parse_log_level(level: int | str | None) -> int:
     """Convert log level provided as string or int into numeric constant."""
     level_map = {
@@ -241,7 +247,7 @@ class PriceDataGenerator:
         amplitude: float = 30.0,
         trend_slope: float = 0,
         volatility: float = 0.0,
-        start_date: str = "2024-01-01",
+        start_date: str = DEFAULT_SYNTHETIC_START_DATE,
     ) -> pd.DataFrame:
         """
         Generate synthetic OHLCV data with sine wave pattern and upward trend.
@@ -451,7 +457,7 @@ class PriceDataGenerator:
                 drift_rate=data_gen_config.get("drift_rate", 0.015),
                 volatility=data_gen_config.get("volatility", 0.0005),
                 pullback_floor=data_gen_config.get("pullback_floor", 0.995),
-                start_date=data_gen_config.get("start_date", "2024-01-01"),
+                start_date=data_gen_config.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
             )
         elif pattern_type == PatternType.SINE_WAVE:
             return self.generate_sine_wave_pattern(
@@ -462,7 +468,7 @@ class PriceDataGenerator:
                 amplitude=data_gen_config.get("amplitude", 30.0),
                 trend_slope=data_gen_config.get("trend_slope", 0),
                 volatility=data_gen_config.get("volatility", 0.0),
-                start_date=data_gen_config.get("start_date", "2024-01-01"),
+                start_date=data_gen_config.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
             )
         elif pattern_type == PatternType.MEAN_REVERSION:
             return self.generate_mean_reversion_pattern(
@@ -473,7 +479,7 @@ class PriceDataGenerator:
                 volatility=data_gen_config.get("volatility", 0.05),
                 shock_probability=data_gen_config.get("shock_probability", 0.02),
                 shock_magnitude=data_gen_config.get("shock_magnitude", 0.15),
-                start_date=data_gen_config.get("start_date", "2024-01-01"),
+                start_date=data_gen_config.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
             )
         elif pattern_type == PatternType.TRENDING:
             return self.generate_trending_pattern(
@@ -488,7 +494,7 @@ class PriceDataGenerator:
                 ),
                 volatility=data_gen_config.get("volatility", 0.03),
                 consolidation_prob=data_gen_config.get("consolidation_prob", 0.2),
-                start_date=data_gen_config.get("start_date", "2024-01-01"),
+                start_date=data_gen_config.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
             )
 
     def generate_upward_drift_pattern(
@@ -499,7 +505,7 @@ class PriceDataGenerator:
         drift_rate: float = 0.015,
         volatility: float = 0.0005,
         pullback_floor: float = 0.995,
-        start_date: str = "2024-01-01",
+        start_date: str = DEFAULT_SYNTHETIC_START_DATE,
     ) -> pd.DataFrame:
         """
         Generate synthetic OHLCV data with strong upward drift and minimal volatility.
@@ -628,7 +634,7 @@ class PriceDataGenerator:
         volatility: float = 0.05,
         shock_probability: float = 0.02,
         shock_magnitude: float = 0.15,
-        start_date: str = "2024-01-01",
+        start_date: str = DEFAULT_SYNTHETIC_START_DATE,
     ) -> pd.DataFrame:
         """
         Generate synthetic OHLCV data with mean reversion pattern.
@@ -782,7 +788,7 @@ class PriceDataGenerator:
         trend_strength_range: tuple[float, float] = (0.5, 2.0),
         volatility: float = 0.03,
         consolidation_prob: float = 0.2,
-        start_date: str = "2024-01-01",
+        start_date: str = DEFAULT_SYNTHETIC_START_DATE,
     ) -> pd.DataFrame:
         """
         Generate synthetic OHLCV data with trending market patterns.
