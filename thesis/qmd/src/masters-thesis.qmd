@@ -36,6 +36,11 @@ format:
     number-sections: true
     number-depth: 2
     toc-location: right
+    format-links: false
+    other-links:
+      - text: PDF
+        href: /masters_thesis/masters-thesis.pdf
+        icon: file-pdf
 bibliography: ../../bibliography/library.bib
 editor_options:
   chunk_output_type: console
