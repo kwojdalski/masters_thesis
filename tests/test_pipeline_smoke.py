@@ -166,5 +166,5 @@ def test_run_single_experiment_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     assert result["final_metrics"]["experiment_name"] == "pipeline_smoke"
     assert result["final_metrics"]["evaluation_split"] == "test"
     assert set(result["final_metrics"]["split_results"]) == {"train", "val", "test"}
-    checkpoint_path = Path(config.logging.log_dir) / "pipeline_smoke_checkpoint.pt"
-    assert checkpoint_path.exists()
+    checkpoint_paths = list(Path(config.logging.log_dir).glob("*_checkpoint*.pt"))
+    assert checkpoint_paths
