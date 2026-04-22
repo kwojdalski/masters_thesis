@@ -17,7 +17,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from thesis_mlflow_results import load_experiment_snapshot, format_key_metrics
+from thesis_mlflow_results import (
+    format_benchmark_comparison_table,
+    format_key_metrics,
+    load_experiment_snapshot,
+)
 
 EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
@@ -65,20 +69,20 @@ The TD3 agent is evaluated against five benchmark strategies spanning passive ex
 # Try real data first
 benchmark_df = None
 if finished is not None:
-    benchmark_report = finished.get("benchmark_report")
-    if benchmark_report and "benchmark_comparison_table" in benchmark_report:
-        benchmark_df = pd.DataFrame(benchmark_report["benchmark_comparison_table"])
+    benchmark_df = format_benchmark_comparison_table(finished.get("statistical_tests"))
+    if benchmark_df.empty:
+        benchmark_df = None
 
 # Fall back to mock data matching benchmark_comparison_table schema
 if benchmark_df is None or benchmark_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
     benchmark_df = pd.DataFrame([
-        ("TD3 Agent", 0.0028, 0.2236, 0.1234, 1.8234, 2.4123, -0.0016, 0.5621, 0.64),
-        ("Buy & Hold", -0.0012, -0.0980, 0.1440, -0.6800, -0.8100, -0.0034, None, 0.00),
-        ("Short & Hold", 0.0012, 0.0980, 0.1440, 0.6800, 0.9100, -0.0022, None, 0.00),
-        ("TWAP", -0.0008, -0.0650, 0.1480, -0.4400, -0.5200, -0.0029, None, 0.02),
-        ("VWAP", -0.0007, -0.0570, 0.1500, -0.3800, -0.4500, -0.0027, None, 0.02),
-        ("Random", 0.0001, 0.0080, 0.1680, 0.0500, 0.0600, -0.0043, 0.5010, 0.98),
+        ("TD3 Agent", "0.28%", "22.36%", "12.34%", "1.8234", "2.4123", "-0.16%", "56.21%", "0.6400"),
+        ("Buy & Hold", "-0.12%", "-9.80%", "14.40%", "-0.6800", "-0.8100", "-0.34%", "N/A", "0.0000"),
+        ("Short & Hold", "0.12%", "9.80%", "14.40%", "0.6800", "0.9100", "-0.22%", "N/A", "0.0000"),
+        ("TWAP", "-0.08%", "-6.50%", "14.80%", "-0.4400", "-0.5200", "-0.29%", "N/A", "0.0200"),
+        ("VWAP", "-0.07%", "-5.70%", "15.00%", "-0.3800", "-0.4500", "-0.27%", "N/A", "0.0200"),
+        ("Random", "0.01%", "0.80%", "16.80%", "0.0500", "0.0600", "-0.43%", "50.10%", "0.9800"),
     ], columns=[
         "Strategy",
         "Total Return",
@@ -90,17 +94,6 @@ if benchmark_df is None or benchmark_df.empty:
         "Win Rate",
         "Turnover",
     ])
-
-# Format numeric columns for display
-for col in benchmark_df.columns:
-    if col == "Strategy":
-        continue
-    if col == "Win Rate" or col == "Sharpe Ratio" or col == "Sortino Ratio":
-        benchmark_df[col] = benchmark_df[col].apply(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "N/A")
-    elif col == "Turnover":
-        benchmark_df[col] = benchmark_df[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "N/A")
-    else:
-        benchmark_df[col] = benchmark_df[col].apply(lambda x: f"{x:.4f}" if pd.notna(x) else "N/A")
 
 display(benchmark_df)
 ```

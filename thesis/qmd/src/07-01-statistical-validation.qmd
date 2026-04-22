@@ -19,7 +19,11 @@ chapter stays tied to recorded experiment artifacts.
 import numpy as np
 import pandas as pd
 
-from thesis_mlflow_results import runs_overview_table
+from thesis_mlflow_results import (
+    load_experiment_snapshot,
+    format_statistical_significance_summary,
+    runs_overview_table,
+)
 
 EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
 runs_df = runs_overview_table(EXPERIMENT_NAME)
@@ -91,20 +95,17 @@ The following table summarizes the results of five statistical tests comparing t
 #| echo: false
 
 # Load latest finished run for statistical test artifacts
-from thesis_mlflow_results import load_experiment_snapshot
-
-EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 
 # Try real data first
 stat_summary_df = None
 if finished is not None:
-    stat_report = finished.get("statistical_tests")
-    if stat_report:
-        # Extract test results from the report structure
-        # This would parse the actual statistical test artifacts
-        pass
+    stat_summary_df = format_statistical_significance_summary(
+        finished.get("statistical_tests")
+    )
+    if stat_summary_df.empty:
+        stat_summary_df = None
 
 # Fall back to mock data matching statistical test result keys
 if stat_summary_df is None or stat_summary_df.empty:
