@@ -196,7 +196,7 @@ def create_value_network(
             out_features=1,
             num_cells=hidden_dims,
         ),
-        in_keys=["observation", "probs"],
+        in_keys=["observation", "action"],
         out_keys=["state_action_value"],
     )
 
