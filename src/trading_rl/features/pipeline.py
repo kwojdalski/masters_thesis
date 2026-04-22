@@ -244,10 +244,7 @@ class FeaturePipeline:
 
 
 def create_default_pipeline() -> FeaturePipeline:
-    """Create default feature pipeline matching legacy create_features() behavior.
-
-    This factory creates a pipeline with the same features as the old create_features()
-    function, maintaining backward compatibility.
+    """Create a feature pipeline with the standard default features.
 
     Returns:
         FeaturePipeline with default features:
@@ -263,7 +260,7 @@ def create_default_pipeline() -> FeaturePipeline:
         train_features = pipeline.transform(train_df)
         test_features = pipeline.transform(test_df)
     """
-    logger.info("Creating default feature pipeline (legacy create_features behavior)")
+    logger.info("Creating default feature pipeline")
 
     configs = [
         FeatureConfig(
