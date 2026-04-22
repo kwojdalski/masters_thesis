@@ -34,25 +34,36 @@ captured by other features in the set.
 
 **Scope and timescale consistency.** The observation is restricted to
 LOB-derived features. Bar-based signals such as OHLCV aggregates or technical
-indicators require a fixed aggregation window that imposes a coarser timescale
-than the tick-level decisions being made: a one-second bar collapses dozens of
-individual order-book events into a single price summary, discarding the queue
+indicators require a fixed aggregation window. This imposes a coarser timescale
+than the tick-level decisions being made.
+
+For example, a one-second bar collapses dozens of
+individual order-book events into a single price summary. This discards the queue
 dynamics, imbalance shifts, and spread fluctuations that constitute the
-decision-relevant information at this resolution. Cross-asset signals such as
-VIX or index returns face a related problem: they update at frequencies far
-below the inter-event times of the AAPL tick stream, contributing no new
-information between consecutive book updates. Aligning multiple tick streams
-at sub-second precision also introduces synchronization risk — a VIX
+decision-relevant information at this resolution.
+
+Cross-asset signals such as
+VIX or index returns face a related problem. They update at frequencies far
+below the inter-event times of the AAPL tick stream. This contributes no new
+information between consecutive book updates.
+
+Aligning multiple tick streams
+at sub-second precision also introduces synchronization risk. A VIX
 observation and an AAPL LOB snapshot sharing a timestamp to the second are not
-the same market moment. Beyond these practical constraints, restricting the
-state to single-asset LOB features is a deliberate experimental choice: the
+the same market moment.
+
+Beyond these practical constraints, restricting the
+state to single-asset LOB features is a deliberate experimental choice. The
 thesis tests whether microstructure-aware features alone are sufficient for a
 viable agent. Adding cross-asset signals would answer a different question and
 prevent clean attribution of any observed performance to LOB structure.
+
 A natural extension for future work would be to augment the LOB observation
-with synchronized regime indicators — intraday VIX futures at the minute
-level, sector ETF order flow, or options-derived skew — once the baseline
-LOB-only performance is established, allowing a controlled ablation of which
+with synchronized regime indicators. These could include intraday VIX futures at the minute
+level, sector ETF order flow, or options-derived skew.
+
+This would be done once the baseline
+LOB-only performance is established. It would allow a controlled ablation of which
 additional signal sources materially improve out-of-sample results.
 
 ### Feature Groups and Selection Rationale
@@ -146,9 +157,11 @@ queue is close to exhaustion and a price move is imminent.
 
 Odd-lot trade ratio and odd-lot imbalance [@Boehmer2021] decompose trade flow by
 order size. In the AAPL dataset used here, 81% of trades are odd-lot sized (below
-100 shares), primarily reflecting retail and algorithmic small-lot activity. A
-sudden drop in the odd-lot ratio signals increasing institutional participation
-and consequently higher adverse selection risk.
+100 shares). This primarily reflects retail and algorithmic small-lot activity.
+
+A
+sudden drop in the odd-lot ratio signals increasing institutional participation.
+This indicates consequently higher adverse selection risk.
 
 #### Regime and Temporal Features
 
@@ -187,11 +200,12 @@ broker state at each step — it is a runtime feature appended after the static
 feature vector is constructed.
 
 Including the current position makes the state partially Markovian with respect
-to inventory: without it, the agent cannot distinguish between arriving at
-exposure $0$ from a long position versus arriving from a short position, even
-though the cost of the next action differs in both cases through the
-position-change fee. With it, the agent can condition its action on whether a
-change would incur a fee and can learn to penalize unnecessary turnover.
+to inventory. Without it, the agent cannot distinguish between arriving at
+exposure $0$ from a long position versus arriving from a short position.
+
+This distinction matters because the cost of the next action differs in both cases through the
+position-change fee. With the position feature, the agent can condition its action on whether a
+change would incur a fee. It can also learn to penalize unnecessary turnover.
 The feature requires no normalization as it is already bounded in $[-1, 1]$
 by the action space definition.
 

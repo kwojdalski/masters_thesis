@@ -31,9 +31,11 @@ which can further degrade realized performance relative to backtest results.
 
 The practical implication is that reported backtest performance is likely
 optimistic relative to deployable net performance. Strategies with high turnover
-are especially sensitive: at tick frequency, spread-crossing costs can be of
+are especially sensitive.
+
+At tick frequency, spread-crossing costs can be of
 similar magnitude to the short-horizon price moves the agent attempts to
-capture, meaning that a strategy appearing profitable at mid-price may generate
+capture. This means that a strategy appearing profitable at mid-price may generate
 neutral or negative returns under realistic bid/ask execution. Future research
 should therefore evaluate the same agents under explicit bid/ask execution
 rules, calibrated fee schedules, and slippage/impact models to quantify the
@@ -45,11 +47,13 @@ The current observation vector includes the agent's own portfolio exposure as
 the sole agent-specific feature. A natural extension is to enrich this with
 additional inventory-aware signals that describe the agent's situation within
 the episode rather than the external market state. Candidate features include
-unrealized P&L on the current position — which would allow the agent to
-distinguish a winning long from a losing long and potentially implement
-implicit stop-loss or profit-taking behavior — the number of steps the current
-position has been held, which enables time-based exit logic, and a rolling
-turnover count that makes the agent aware of its own recent transaction cost
+unrealized P&L on the current position. This would allow the agent to
+distinguish a winning long from a losing long. It could also potentially implement
+implicit stop-loss or profit-taking behavior.
+
+Other candidates include the number of steps the current
+position has been held, which enables time-based exit logic. A rolling
+turnover count would make the agent aware of its own recent transaction cost
 footprint. At a higher level, the agent's drawdown from its episode peak could
 support risk-sensitive behavior during losing runs without requiring explicit
 rule-based overlays. These extensions leave the market observation unchanged
@@ -82,12 +86,12 @@ seasonality as the training data. The agent has never encountered a different
 AAPL trading day, let alone a different market condition.
 
 This distinction matters for what the results actually support. The empirical
-findings are best read as a feasibility demonstration: the pipeline can extract
-useful signal from order-book features and translate it into a policy that
+findings are best read as a feasibility demonstration. The pipeline can extract
+useful signal from order-book features. It can translate this into a policy that
 outperforms benchmarks within a controlled, narrow window. This is a necessary
 condition for practical utility, but not a sufficient one. It establishes that
-the learning problem is tractable and that the chosen feature set is
-informative — conclusions that would be undermined if the agent had failed to
+the learning problem is tractable. It also shows that the chosen feature set is
+informative. These conclusions would be undermined if the agent had failed to
 beat benchmarks even in this favorable setting. What it does not establish is
 whether the learned policy would remain profitable across a broader range of
 market conditions, or even across a different three-day window of AAPL data
@@ -98,9 +102,9 @@ periods of elevated volatility, low liquidity, and structural breaks, would
 be the most direct way to strengthen the generalization claim. Walk-forward
 validation — re-training on an expanding window and evaluating on successive
 held-out periods — would further separate temporal generalization from
-in-window interpolation. Cross-asset testing (foreign exchange, futures,
-cryptocurrency) would establish whether the feature design and training
-protocol are robust to structural differences in order-book dynamics, or
+in-window interpolation. Cross-asset testing would include foreign exchange, futures,
+and cryptocurrency. This would establish whether the feature design and training
+protocol are robust to structural differences in order-book dynamics. It would also determine
 whether asset-class-specific tuning is necessary. These extensions are
 identified as the primary empirical directions for future work.
 
@@ -131,9 +135,9 @@ Second, a hybrid approach combining gradient-boosted trees with the RL framework
 is worth investigating. The recently proposed GBRL framework [@Fuhrer2025]
 directly integrates gradient boosting into the actor-critic architecture,
 replacing neural network components with gradient-boosted trees. The value
-estimation step — effectively a regression on tabular microstructure features —
-is a natural fit for tree-based models known to perform well on structured
-financial data, while the interpretability of individual trees may provide
+estimation step is effectively a regression on tabular microstructure features.
+This is a natural fit for tree-based models known to perform well on structured
+financial data. Additionally, the interpretability of individual trees may provide
 additional insight into which features drive the learned value function.
 
 ### Evaluation Robustness
