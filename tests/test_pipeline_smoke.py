@@ -87,110 +87,116 @@ def _make_config(tmp_path: Path) -> ExperimentConfig:
     )
 
 
-@pytest.mark.smoke
-def test_build_training_context_smoke(tmp_path: Path):
-    config = _make_config(tmp_path)
+class TestPipelineSmoke:
+    """Smoke tests for the training pipeline.
 
-    context = build_training_context(
-        config=config,
-        create_mlflow_callback=False,
-    )
+    Verify that data loading, feature engineering, and experiment execution
+    complete without error and produce structurally correct outputs.
+    These tests use minimal training steps and stub out MLflow I/O.
+    """
 
-    assert not context["train_df"].empty
-    assert not context["val_df"].empty
-    assert not context["test_df"].empty
-    assert isinstance(context["prepared_dataset"], PreparedDataset)
-    assert context["training_bundle"].trainer is context["trainer"]
-    assert context["training_bundle"].train_env is context["env"]
-    assert context["prepared_dataset"].price_column == "close"
-    assert "feature_lag1" in context["train_df"].columns
-    assert "feature_trend" in context["train_df"].columns
-    assert context["n_obs"] == 2
-    assert context["n_act"] >= 1
-    assert context["trainer"] is not None
+    pytestmark = pytest.mark.smoke
 
-    # --- Data integrity guardrails ---
-    train_df = context["train_df"]
-    val_df = context["val_df"]
-    test_df = context["test_df"]
+    def test_build_training_context(self, tmp_path: Path) -> None:
+        config = _make_config(tmp_path)
 
-    # Splits must not overlap in time
-    assert train_df.index.max() < val_df.index.min(), "train and val splits overlap"
-    assert val_df.index.max() < test_df.index.min(), "val and test splits overlap"
-
-    # Feature columns must contain only finite values — NaN/inf here would silently
-    # corrupt observations fed to the neural network
-    feature_cols = ["feature_lag1", "feature_trend"]
-    for col in feature_cols:
-        bad_train = (~np.isfinite(train_df[col].to_numpy())).sum()
-        assert bad_train == 0, f"train_df['{col}'] has {bad_train} non-finite values"
-
-
-@pytest.mark.smoke
-def test_run_single_experiment_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    import trading_rl.train_trading_agent as training_module
-
-    config = _make_config(tmp_path)
-    real_build_experiment_runtime = training_module.build_experiment_runtime
-
-    def patched_build_experiment_runtime(*args, **kwargs):
-        runtime = real_build_experiment_runtime(*args, **kwargs)
-        trainer = runtime.training_bundle.trainer
-        trainer.logs = {"loss_value": [1.0], "loss_actor": [0.5]}
-        trainer.total_count = 1
-        trainer.setup_periodic_evaluation = lambda **_kwargs: None
-        trainer.setup_periodic_explainability = lambda **_kwargs: None
-        trainer.train = lambda callback=None: dict(trainer.logs)
-        trainer.evaluate = lambda df, max_steps, config, algorithm, eval_env: (
-            None,
-            None,
-            None,
-            0.1,
-            [0.0],
-            None,
-            None,
+        context = build_training_context(
+            config=config,
+            create_mlflow_callback=False,
         )
-        trainer.save_checkpoint = (
-            lambda path: Path(path).write_text("stub checkpoint", encoding="utf-8")
+
+        assert not context["train_df"].empty
+        assert not context["val_df"].empty
+        assert not context["test_df"].empty
+        assert isinstance(context["prepared_dataset"], PreparedDataset)
+        assert context["training_bundle"].trainer is context["trainer"]
+        assert context["training_bundle"].train_env is context["env"]
+        assert context["prepared_dataset"].price_column == "close"
+        assert "feature_lag1" in context["train_df"].columns
+        assert "feature_trend" in context["train_df"].columns
+        assert context["n_obs"] == 2
+        assert context["n_act"] >= 1
+        assert context["trainer"] is not None
+
+        train_df = context["train_df"]
+        val_df = context["val_df"]
+        test_df = context["test_df"]
+
+        # Splits must not overlap in time
+        assert train_df.index.max() < val_df.index.min(), "train and val splits overlap"
+        assert val_df.index.max() < test_df.index.min(), "val and test splits overlap"
+
+        # Feature columns must contain only finite values — NaN/inf here would silently
+        # corrupt observations fed to the neural network
+        feature_cols = ["feature_lag1", "feature_trend"]
+        for col in feature_cols:
+            bad_train = (~np.isfinite(train_df[col].to_numpy())).sum()
+            assert bad_train == 0, f"train_df['{col}'] has {bad_train} non-finite values"
+
+    def test_run_single_experiment(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        import trading_rl.train_trading_agent as training_module
+
+        config = _make_config(tmp_path)
+        real_build_experiment_runtime = training_module.build_experiment_runtime
+
+        def patched_build_experiment_runtime(*args, **kwargs):
+            runtime = real_build_experiment_runtime(*args, **kwargs)
+            trainer = runtime.training_bundle.trainer
+            trainer.logs = {"loss_value": [1.0], "loss_actor": [0.5]}
+            trainer.total_count = 1
+            trainer.setup_periodic_evaluation = lambda **_kwargs: None
+            trainer.setup_periodic_explainability = lambda **_kwargs: None
+            trainer.train = lambda callback=None: dict(trainer.logs)
+            trainer.evaluate = lambda df, max_steps, config, algorithm, eval_env: (
+                None,
+                None,
+                None,
+                0.1,
+                [0.0],
+                None,
+                None,
+            )
+            trainer.save_checkpoint = (
+                lambda path: Path(path).write_text("stub checkpoint", encoding="utf-8")
+            )
+            return runtime
+
+        monkeypatch.setattr(
+            training_module,
+            "build_experiment_runtime",
+            patched_build_experiment_runtime,
         )
-        return runtime
+        monkeypatch.setattr(
+            training_module,
+            "build_evaluation_report_for_trainer",
+            lambda *args, **kwargs: {"total_return": 0.0, "sharpe_ratio": 0.0},
+        )
+        monkeypatch.setattr(
+            training_module,
+            "_run_explainability_analysis",
+            lambda **kwargs: None,
+        )
+        monkeypatch.setattr(
+            training_module.MLflowTrainingCallback,
+            "log_evaluation_plots",
+            staticmethod(lambda **kwargs: None),
+        )
+        monkeypatch.setattr(
+            training_module.MLflowTrainingCallback,
+            "log_evaluation_report",
+            staticmethod(lambda *args, **kwargs: None),
+        )
+        monkeypatch.setattr(
+            training_module.MLflowTrainingCallback,
+            "log_final_metrics",
+            staticmethod(lambda *args, **kwargs: None),
+        )
 
-    monkeypatch.setattr(
-        training_module,
-        "build_experiment_runtime",
-        patched_build_experiment_runtime,
-    )
-    monkeypatch.setattr(
-        training_module,
-        "build_evaluation_report_for_trainer",
-        lambda *args, **kwargs: {"total_return": 0.0, "sharpe_ratio": 0.0},
-    )
-    monkeypatch.setattr(
-        training_module,
-        "_run_explainability_analysis",
-        lambda **kwargs: None,
-    )
-    monkeypatch.setattr(
-        training_module.MLflowTrainingCallback,
-        "log_evaluation_plots",
-        staticmethod(lambda **kwargs: None),
-    )
-    monkeypatch.setattr(
-        training_module.MLflowTrainingCallback,
-        "log_evaluation_report",
-        staticmethod(lambda *args, **kwargs: None),
-    )
-    monkeypatch.setattr(
-        training_module.MLflowTrainingCallback,
-        "log_final_metrics",
-        staticmethod(lambda *args, **kwargs: None),
-    )
+        result = run_single_experiment(custom_config=config)
 
-    result = run_single_experiment(custom_config=config)
-
-    assert result["interrupted"] is False
-    assert result["final_metrics"]["experiment_name"] == "pipeline_smoke"
-    assert result["final_metrics"]["evaluation_split"] == "test"
-    assert set(result["final_metrics"]["split_results"]) == {"train", "val", "test"}
-    checkpoint_paths = list(Path(config.logging.log_dir).glob("*_checkpoint*.pt"))
-    assert checkpoint_paths
+        assert result["interrupted"] is False
+        assert result["final_metrics"]["experiment_name"] == "pipeline_smoke"
+        assert result["final_metrics"]["evaluation_split"] == "test"
+        assert set(result["final_metrics"]["split_results"]) == {"train", "val", "test"}
+        checkpoint_paths = list(Path(config.logging.log_dir).glob("*_checkpoint*.pt"))
+        assert checkpoint_paths
