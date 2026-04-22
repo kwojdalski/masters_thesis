@@ -1,4 +1,4 @@
-# Empirical Evaluation and Performance Analysis
+# Results
 
 This chapter reports the empirical results for the thesis-facing experiment:
 the TD3 agent trained on high-frequency AAPL order-book-derived features under
