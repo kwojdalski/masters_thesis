@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import mlflow
+import numpy as np
 import pytest
 import trading_rl.train_trading_agent as training_module
 import yaml
@@ -13,9 +15,9 @@ from trading_rl.train_trading_agent import run_single_experiment
 
 
 SMOKE_SCENARIOS = (
-    Path("src/configs/scenarios/sine_wave_ppo_no_trend.yaml"),
-    Path("src/configs/scenarios/upward_trend_td3_tradingenv.yaml"),
-    Path("src/configs/scenarios/upward_trend_ddpg_tradingenv.yaml"),
+    Path("src/configs/scenarios/sine_wave/ppo_no_trend.yaml"),
+    Path("src/configs/scenarios/synthetic/upward_trend_td3_tradingenv.yaml"),
+    Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv.yaml"),
 )
 
 
@@ -97,6 +99,44 @@ def _make_smoke_config(tmp_path: Path, scenario_path: Path, data_path: Path) -> 
     )
 
 
+_CORE_REPORT_KEYS = ("total_return", "sharpe_ratio", "max_drawdown")
+
+
+def _assert_split_result_sane(split: str, split_result: dict) -> None:
+    """Assert that a single split result is structurally valid and numerically sane."""
+    # Required keys must be present
+    for key in ("final_reward", "last_positions", "evaluation_report"):
+        assert key in split_result, f"split '{split}' missing key '{key}'"
+
+    # final_reward must be a finite number
+    final_reward = split_result["final_reward"]
+    assert math.isfinite(float(final_reward)), (
+        f"split '{split}' final_reward is not finite: {final_reward}"
+    )
+
+    # Core evaluation metrics must be present and finite (some optional metrics like
+    # alpha/recovery_time may legitimately be NaN when data is insufficient)
+    report = split_result["evaluation_report"]
+    for key in _CORE_REPORT_KEYS:
+        assert key in report, f"split '{split}' evaluation_report missing '{key}'"
+        assert math.isfinite(float(report[key])), (
+            f"split '{split}' {key} is not finite: {report[key]}"
+        )
+
+    # max_drawdown is bounded below by -100% — a worse value indicates a
+    # portfolio accounting bug (e.g. short positions losing more than 1x capital)
+    assert report["max_drawdown"] >= -1.0, (
+        f"split '{split}' max_drawdown {report['max_drawdown']:.4f} < -1.0"
+    )
+
+    # last_positions must be non-empty and contain only finite values.
+    # NaN or inf here means the policy network produced garbage outputs.
+    positions = split_result["last_positions"]
+    assert len(positions) > 0, f"split '{split}' last_positions is empty"
+    bad = [p for p in positions if not math.isfinite(float(p))]
+    assert not bad, f"split '{split}' last_positions contains non-finite values: {bad[:5]}"
+
+
 @pytest.mark.smoke
 @pytest.mark.parametrize("scenario_path", SMOKE_SCENARIOS, ids=lambda path: path.stem)
 def test_generated_data_scenario_smoke(
@@ -105,7 +145,6 @@ def test_generated_data_scenario_smoke(
     scenario_path: Path,
 ):
     mlflow.end_run()
-    monkeypatch.setattr(training_module, "_build_mlflow_callback", lambda **_kwargs: None)
     monkeypatch.setattr(
         training_module.MLflowTrainingCallback,
         "log_evaluation_plots",
@@ -138,3 +177,18 @@ def test_generated_data_scenario_smoke(
     assert result["final_metrics"]["n_actions"] >= 1
     assert set(result["final_metrics"]["split_results"]) == {"train", "val", "test"}
     assert list((tmp_path / "logs").glob("*_checkpoint*.pt"))
+
+    # --- Behavioral guardrails ---
+    split_results = result["final_metrics"]["split_results"]
+    for split in ("train", "val", "test"):
+        _assert_split_result_sane(split, split_results[split])
+
+    # Upward-drift data has a guaranteed rising price series. Even a random agent
+    # should not lose more than 50% on it — a deeper loss signals inverted action
+    # semantics, sign-flipped rewards, or broken portfolio accounting.
+    if "upward_trend" in scenario_path.stem:
+        test_report = split_results["test"]["evaluation_report"]
+        assert test_report["total_return"] > -0.5, (
+            f"Total return {test_report['total_return']:.3f} is suspiciously low "
+            "for a monotonically rising market"
+        )
