@@ -37,8 +37,6 @@ format:
     number-depth: 2
     toc-location: right
 bibliography: ../../bibliography/library.bib
-post-render:
-  - post-render-script.py
 editor_options:
   chunk_output_type: console
   latex_engine: xelatex
