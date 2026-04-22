@@ -1,0 +1,13 @@
+experiment_name: aapl_hft_lob_state_space_feature_research
+
+data:
+  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
+  train_size: 15000
+  validation_size: 2500
+  feature_config: "src/configs/features/hft_lob_features_state_space.yaml"
+
+research:
+  horizon: 1
+  top_k: 12
+  corr_threshold: 0.85
+  output_dir: "logs/aapl_hft_lob_state_space/feature_research"
