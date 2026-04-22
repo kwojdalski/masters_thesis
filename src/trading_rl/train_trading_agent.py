@@ -30,7 +30,13 @@ from logger import setup_logging as configure_root_logging
 from logger import trace_calls
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
-from trading_rl.data_utils import prepare_data
+from trading_rl.data_utils import (
+    PreparedDataset,
+    build_prepared_dataset,
+    ensure_close_column_for_hft,
+    ensure_unique_index_for_hft_tradingenv,
+    validate_prepared_data,
+)
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import (
     EvaluationContext,
@@ -46,9 +52,6 @@ from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 # Avoid torch_shm_manager requirement in restricted environments
 mp.set_sharing_strategy("file_system")
 
-# Minimum timestamp gap enforced when deduplicating HFT event feeds for tradingenv.
-# tradingenv's latency partitioning requires at least 1-second spacing between events.
-_HFT_MIN_TIMESTAMP_GAP_NS = 1_000_000_000
 # gym_trading_env sets warnings to errors; reset to defaults for TorchRL
 warnings.filterwarnings("default")
 # tradingenv TrackRecord converts pandas.Timestamp -> datetime (microseconds),
@@ -215,48 +218,7 @@ def _validate_data(
     Raises:
         ValueError: If data is invalid (empty, missing columns, NaN values)
     """
-    # Check for empty dataframes
-    if train_df.empty:
-        raise ValueError(
-            "Training data is empty. Check data_path or download settings."
-        )
-    if val_df.empty:
-        raise ValueError("Validation data is empty. Check train/validation sizes.")
-    if test_df.empty:
-        raise ValueError("Test data is empty. Check train/validation size settings.")
-
-    # Check for required columns (close price is critical for most environments)
-    if "close" not in train_df.columns:
-        raise ValueError(
-            f"Data must contain raw 'close' column for environment pricing. "
-            f"Found columns: {list(train_df.columns)}"
-        )
-
-    feature_cols = [col for col in train_df.columns if str(col).startswith("feature_")]
-    if not feature_cols:
-        raise ValueError(
-            "No feature_* columns found in prepared data. "
-            "Define features in data.feature_config."
-        )
-
-    env_feature_cols = getattr(config.env, "feature_columns", None)
-    if env_feature_cols:
-        non_feature_cols = [
-            col for col in env_feature_cols if not str(col).startswith("feature_")
-        ]
-        if non_feature_cols:
-            raise ValueError(
-                "env.feature_columns must contain only feature_* columns. "
-                f"Found: {non_feature_cols}"
-            )
-
-    # Check for NaN/Inf values
-    if train_df.isnull().any().any():
-        nan_cols = train_df.columns[train_df.isnull().any()].tolist()
-        raise ValueError(
-            f"Training data contains NaN values in columns: {nan_cols}. "
-            f"Clean the data before training."
-        )
+    validate_prepared_data(train_df, val_df, test_df, config)
 
 
 def _ensure_close_column_for_hft(
@@ -271,52 +233,7 @@ def _ensure_close_column_for_hft(
     For HFT/LOB datasets we may not have OHLC `close`, but training validation
     still expects a raw close column for environment pricing checks.
     """
-    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
-    if mode != "hft":
-        return train_df, val_df, test_df
-
-    required_cols = {"ask_px_00", "bid_px_00"}
-    dataframes = {
-        "train": train_df,
-        "val": val_df,
-        "test": test_df,
-    }
-    updated: dict[str, pd.DataFrame] = {}
-
-    for split_name, df in dataframes.items():
-        if "close" in df.columns:
-            updated[split_name] = df
-            continue
-
-        missing = sorted(required_cols - set(df.columns))
-        if missing:
-            raise ValueError(
-                "HFT mode requires a raw 'close' column or top-of-book columns "
-                f"ask_px_00/bid_px_00 to derive it. Missing columns in {split_name}: {missing}"
-            )
-
-        derived_df = df.copy()
-        mid_price = (derived_df["ask_px_00"] + derived_df["bid_px_00"]) / 2.0
-
-        # For sparse top-of-book rows, keep close usable by falling back to trade price.
-        if "price" in derived_df.columns:
-            mid_price = mid_price.fillna(derived_df["price"])
-
-        mid_price = mid_price.ffill().bfill()
-        derived_df["close"] = mid_price
-        updated[split_name] = derived_df
-
-        nan_ratio = float(derived_df["close"].isna().mean())
-        logger.info(
-            "Derived 'close' for %s split in HFT mode from (ask_px_00 + bid_px_00)/2%s (NaN ratio after fill: %.6f)",
-            split_name,
-            " with price fallback"
-            if "price" in derived_df.columns
-            else "",
-            nan_ratio,
-        )
-
-    return updated["train"], updated["val"], updated["test"]
+    return ensure_close_column_for_hft(train_df, val_df, test_df, config, logger)
 
 
 def _ensure_unique_index_for_hft_tradingenv(
@@ -333,80 +250,9 @@ def _ensure_unique_index_for_hft_tradingenv(
     minimal offsets needed to make the index strictly increasing with at least
     1-second spacing, which is required by tradingenv latency partitioning.
     """
-    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
-    backend = str(getattr(config.env, "backend", "")).lower().strip()
-    if mode != "hft" or backend != "tradingenv":
-        return train_df, val_df, test_df
-
-    dataframes = {
-        "train": train_df,
-        "val": val_df,
-        "test": test_df,
-    }
-    updated: dict[str, pd.DataFrame] = {}
-    min_gap_ns = _HFT_MIN_TIMESTAMP_GAP_NS
-
-    for split_name, df in dataframes.items():
-        if not isinstance(df.index, pd.DatetimeIndex):
-            raise ValueError(
-                "HFT TradingEnv requires DatetimeIndex to enforce unique event ordering, "
-                f"but {split_name} split has index type {type(df.index).__name__}."
-            )
-
-        index = df.index
-        index_ns_raw = index.view("i8")
-        old_min_gap_ns = (
-            int(np.diff(index_ns_raw).min()) if len(index_ns_raw) > 1 else min_gap_ns
-        )
-        requires_adjustment = (
-            not index.is_unique
-            or not index.is_monotonic_increasing
-            or old_min_gap_ns < min_gap_ns
-            or index.tz is not None
-        )
-
-        if not requires_adjustment:
-            updated[split_name] = df
-            continue
-
-        # Keep chronological order while preserving source ordering for equal timestamps.
-        adjusted_df = df.sort_index(kind="stable").copy()
-        index = adjusted_df.index
-        index_ns = index.view("i8")
-        positions = np.arange(len(index_ns), dtype=np.int64) * min_gap_ns
-
-        # Recurrence in vectorized form:
-        # y[i] = max(index_ns[i], y[i-1] + min_gap_ns)
-        adjusted_ns = np.maximum.accumulate(index_ns - positions) + positions
-
-        # tradingenv mixes timezone-naive timestamps internally, so we
-        # normalize to tz-naive to avoid arithmetic errors.
-        adjusted_index = pd.to_datetime(adjusted_ns, utc=True).tz_localize(None)
-
-        adjusted_df.index = adjusted_index
-        if not adjusted_df.index.is_unique:
-            raise ValueError(
-                f"Failed to enforce unique index for {split_name} HFT split."
-            )
-
-        duplicate_count = int(index.duplicated().sum())
-        max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
-        new_min_gap_ns = (
-            int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
-        )
-        logger.info(
-            "Adjusted %s split index for HFT TradingEnv: resolved %d duplicate timestamps; "
-            "min gap %d -> %d ns; max shift: %d ns",
-            split_name,
-            duplicate_count,
-            old_min_gap_ns,
-            new_min_gap_ns,
-            max_shift_ns,
-        )
-
-        updated[split_name] = adjusted_df
-
-    return updated["train"], updated["val"], updated["test"]
+    return ensure_unique_index_for_hft_tradingenv(
+        train_df, val_df, test_df, config, logger
+    )
 
 
 def _select_trainer_class(algorithm: str, backend: str):
@@ -512,28 +358,10 @@ def build_training_context(
     logger.debug(f"  Train size: {config.data.train_size}")
     logger.debug(f"  Feature config: {getattr(config.data, 'feature_config', None)}")
 
-    train_df, val_df, test_df = prepare_data(
-        data_path=config.data.data_path,
-        train_size=config.data.train_size,
-        validation_size=getattr(config.data, "validation_size", None),
-        download_if_missing=config.data.download_data,
-        exchange_names=config.data.exchange_names,
-        symbols=config.data.symbols,
-        timeframe=config.data.timeframe,
-        data_dir=config.data.data_dir,
-        since=config.data.download_since,
-        feature_config_path=getattr(config.data, "feature_config", None),  # NEW
-    )
-
-    train_df, val_df, test_df = _ensure_close_column_for_hft(
-        train_df, val_df, test_df, config, logger
-    )
-    train_df, val_df, test_df = _ensure_unique_index_for_hft_tradingenv(
-        train_df, val_df, test_df, config, logger
-    )
-
-    # Validate loaded data
-    _validate_data(train_df, val_df, test_df, config)
+    prepared_dataset = build_prepared_dataset(config, logger)
+    train_df = prepared_dataset.train_df
+    val_df = prepared_dataset.val_df
+    test_df = prepared_dataset.test_df
 
     if logger.isEnabledFor(logging.INFO):
         _print_training_data_head_table(train_df)
@@ -646,6 +474,7 @@ def build_training_context(
 
     return {
         "logger": logger,
+        "prepared_dataset": prepared_dataset,
         "train_df": train_df,
         "val_df": val_df,
         "test_df": test_df,
