@@ -44,12 +44,15 @@ from trading_rl.features.temporal_features import (
 from trading_rl.features.lob_features import (
     BidAskSlopeFeature,
     BookPressureFeature,
+    CancelToTradeRatioFeature,
     DepthRatioFeature,
     MicropriceDivergenceFeature,
     MicropriceFeature,
+    MultiLevelOFIFeature,
     OrderBookImbalanceFeature,
     PriceVampFeature,
     SpreadBpsFeature,
+    VPINFeature,
     VWMPSkewFeature,
 )
 
@@ -111,12 +114,15 @@ __all__ = [
     # LOB Features
     "BidAskSlopeFeature",
     "BookPressureFeature",
+    "CancelToTradeRatioFeature",
     "DepthRatioFeature",
     "MicropriceDivergenceFeature",
     "MicropriceFeature",
+    "MultiLevelOFIFeature",
     "OrderBookImbalanceFeature",
     "PriceVampFeature",
     "SpreadBpsFeature",
+    "VPINFeature",
     "VWMPSkewFeature",
 ]
 

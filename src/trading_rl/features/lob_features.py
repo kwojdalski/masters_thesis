@@ -877,3 +877,191 @@ class OddLotImbalanceFeature(LOBFeature):
         rb = odd_buy.rolling(window=window, min_periods=1).sum()
         rs = odd_sell.rolling(window=window, min_periods=1).sum()
         return safe_divide(rb - rs, rb + rs)
+
+
+# ---------------------------------------------------------------------------
+# Flow and adverse selection features
+# ---------------------------------------------------------------------------
+
+@register_feature("cancel_to_trade_ratio")
+class CancelToTradeRatioFeature(LOBFeature):
+    """Rolling cancel-to-trade ratio — spoofing / adverse selection proxy.
+
+    Measures the fraction of order book events that are cancellations relative
+    to actual trades. A high ratio indicates that liquidity providers are
+    repeatedly posting and cancelling orders without commitment (layering or
+    spoofing), or that market makers are rapidly adapting to perceived
+    information asymmetry.
+
+    Only rows where action == 'C' (cancel) or action == 'T' (trade) contribute.
+    Add and other events are excluded from both numerator and denominator.
+
+    Formula:
+        cancels[t]  = count(action == 'C')  over window
+        trades[t]   = count(action == 'T')  over window
+        C2T[t]     = cancels[t] / max(trades[t], 1)
+
+    Range: [0, inf). Typical values for liquid US equities: 1–5.
+    Values >> 5 indicate highly ephemeral liquidity.
+
+    Params:
+        window:     rolling look-back in ticks (default: 200)
+        action_col: column identifying event type (default: "action")
+    """
+
+    def required_columns(self) -> list[str]:
+        return [self._p("action_col", "action")]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        action_col = self._p("action_col", "action")
+        window = int(self._p("window", 200))
+        action = df[action_col].astype(str)
+        cancels = (action == "C").astype(float)
+        trades = (action == "T").astype(float)
+        rolling_cancels = cancels.rolling(window=window, min_periods=1).sum()
+        rolling_trades = trades.rolling(window=window, min_periods=1).sum()
+        return safe_divide(rolling_cancels, rolling_trades)
+
+
+@register_feature("ofi_multilevel")
+class MultiLevelOFIFeature(LOBFeature):
+    """Multi-level Order Flow Imbalance — Cont, Kukanov & Stoikov (2014).
+
+    Extends the best-level OFI to multiple book levels, handling the three
+    cases for each level as defined in the original paper:
+      - Price improvement (bid up / ask down): all volume at new level is new flow
+      - Price unchanged: only the queue size change contributes
+      - Price deterioration (bid down / ask up): all volume at old level is
+        withdrawn flow (negative contribution)
+
+    Aggregates across N levels to produce a single OFI signal that captures
+    order flow pressure deeper in the book.
+
+    Formula (per level i, bid side):
+        bid_event =  V^bid_i[t]                    if P^bid_i[t] > P^bid_i[t-1]
+                     V^bid_i[t] - V^bid_i[t-1]     if P^bid_i[t] == P^bid_i[t-1]
+                    -V^bid_i[t-1]                   if P^bid_i[t] < P^bid_i[t-1]
+
+    Formula (per level i, ask side, analogous with sign flipped):
+        ask_event =  V^ask_i[t]                    if P^ask_i[t] < P^ask_i[t-1]
+                     V^ask_i[t] - V^ask_i[t-1]     if P^ask_i[t] == P^ask_i[t-1]
+                    -V^ask_i[t-1]                   if P^ask_i[t] > P^ask_i[t-1]
+
+    MultiLevelOFI = sum_i (bid_event_i - ask_event_i)
+
+    Positive: net buying pressure across levels. Negative: net selling.
+    First row is 0.
+
+    Params:
+        levels:     number of book levels to aggregate (default: 3)
+        bid_price_prefix: default "bid_px_"
+        ask_price_prefix: default "ask_px_"
+        bid_size_prefix:  default "bid_sz_"
+        ask_size_prefix:  default "ask_sz_"
+    """
+
+    def required_columns(self) -> list[str]:
+        n = int(self._p("levels", 3))
+        bpp = self._p("bid_price_prefix", "bid_px_")
+        app = self._p("ask_price_prefix", "ask_px_")
+        bsp = self._p("bid_size_prefix", "bid_sz_")
+        asp = self._p("ask_size_prefix", "ask_sz_")
+        return [
+            col
+            for i in range(n)
+            for col in (f"{bpp}{i:02d}", f"{app}{i:02d}",
+                        f"{bsp}{i:02d}", f"{asp}{i:02d}")
+        ]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        n = int(self._p("levels", 3))
+        bpp = self._p("bid_price_prefix", "bid_px_")
+        app = self._p("ask_price_prefix", "ask_px_")
+        bsp = self._p("bid_size_prefix", "bid_sz_")
+        asp = self._p("ask_size_prefix", "ask_sz_")
+
+        ofi_total = pd.Series(0.0, index=df.index)
+
+        for i in range(n):
+            bid_px = df[f"{bpp}{i:02d}"].astype(float)
+            ask_px = df[f"{app}{i:02d}"].astype(float)
+            bid_sz = df[f"{bsp}{i:02d}"].astype(float)
+            ask_sz = df[f"{asp}{i:02d}"].astype(float)
+
+            prev_bid_px = bid_px.shift(1)
+            prev_ask_px = ask_px.shift(1)
+            prev_bid_sz = bid_sz.shift(1)
+            prev_ask_sz = ask_sz.shift(1)
+
+            # Bid side: three cases from Cont et al. (2014)
+            bid_up = bid_px > prev_bid_px
+            bid_same = bid_px == prev_bid_px
+            bid_down = bid_px < prev_bid_px
+
+            bid_event = pd.Series(0.0, index=df.index)
+            bid_event[bid_up] = bid_sz[bid_up]
+            bid_event[bid_same] = (bid_sz - prev_bid_sz)[bid_same]
+            bid_event[bid_down] = -prev_bid_sz[bid_down]
+
+            # Ask side: three cases (mirrored)
+            ask_down = ask_px < prev_ask_px
+            ask_same = ask_px == prev_ask_px
+            ask_up = ask_px > prev_ask_px
+
+            ask_event = pd.Series(0.0, index=df.index)
+            ask_event[ask_down] = ask_sz[ask_down]
+            ask_event[ask_same] = (ask_sz - prev_ask_sz)[ask_same]
+            ask_event[ask_up] = -prev_ask_sz[ask_up]
+
+            ofi_total += bid_event - ask_event
+
+        ofi_total.iloc[0] = 0.0
+        return ofi_total
+
+
+@register_feature("vpin")
+class VPINFeature(LOBFeature):
+    """Volume-synchronized Probability of Informed Trading (tick approximation).
+
+    Tick-based approximation of VPIN (Easley, Lopez de Prado & O'Hara, 2012).
+    The original VPIN uses volume-clock bucketing and bulk volume classification;
+    this implementation uses a rolling tick window with actual trade side
+    classification from the data, which is more accurate when side labels are
+    available.
+
+    Measures the imbalance between buyer- and seller-initiated trade volume
+    normalized by total trade volume. High VPIN indicates toxic order flow
+    (informed trading) and signals market makers to widen quotes.
+
+    Formula:
+        buy_vol[t]  = size[t]  if action[t]=='T' and side[t]=='B'  else 0
+        sell_vol[t] = size[t]  if action[t]=='T' and side[t]=='A'  else 0
+        VPIN_W[t]   = |sum(buy_vol) - sum(sell_vol)| / max(sum(buy_vol + sell_vol), 1)
+
+    Range: [0, 1]. Values near 1 indicate one-directional informed flow.
+    Values near 0 indicate balanced, uninformed flow.
+
+    Params:
+        window:     rolling look-back in ticks (default: 100)
+        action_col: column identifying event type (default: "action")
+        side_col:   column identifying aggressor side (default: "side")
+        size_col:   column with trade size (default: "size")
+    """
+
+    def required_columns(self) -> list[str]:
+        return list(self._trade_cols())
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        action_col, side_col, size_col = self._trade_cols()
+        window = int(self._p("window", 100))
+        action = df[action_col].astype(str)
+        side = df[side_col].astype(str)
+        size = df[size_col].astype(float)
+        is_trade = action == "T"
+        buy_vol = pd.Series(0.0, index=df.index)
+        sell_vol = pd.Series(0.0, index=df.index)
+        buy_vol[is_trade & (side == "B")] = size[is_trade & (side == "B")]
+        sell_vol[is_trade & (side == "A")] = size[is_trade & (side == "A")]
+        rb = buy_vol.rolling(window=window, min_periods=1).sum()
+        rs = sell_vol.rolling(window=window, min_periods=1).sum()
+        return safe_divide((rb - rs).abs(), rb + rs)

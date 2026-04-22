@@ -352,6 +352,89 @@ stops early when the notional is fully consumed.
 
 ---
 
+### 23. Cancel-to-Trade Ratio
+
+**Feature type:** `cancel_to_trade_ratio` | Param: `window` (default 200), `action_col` (default "action")
+**Literature:** Hasbrouck & Saar (2009) *Technology and liquidity provision: The blurring of the definition of liquidity*; Menkveld (2013) *High frequency trading and the new market makers*. Cancel-to-trade ratio used as a spoofing detection signal in SEC/CFTC enforcement guidelines.
+
+Measures the fraction of order book events that are cancellations relative to
+actual trades. A high ratio indicates that liquidity providers are repeatedly
+posting and cancelling orders without commitment — either as spoofing/layering
+or as rapid adaptation to perceived information asymmetry.
+
+$$\text{CancelToTrade}_{W,t} = \frac{\sum_{\tau=t-W+1}^{t} \mathbf{1}[\text{action}_\tau = C]}{\max\!\left(\sum_{\tau=t-W+1}^{t} \mathbf{1}[\text{action}_\tau = T],\ 1\right)}$$
+
+- **Range:** $[0, \infty)$. Typical values for liquid US equities: 1–5.
+- Values much greater than 5 indicate highly ephemeral liquidity.
+- Complements `inter_event_time` (which measures timing, not cancellation intensity).
+- Only `action == 'C'` and `action == 'T'` events contribute; add events are excluded.
+
+**Feasibility:** `action` column confirmed non-null in dataset.
+
+---
+
+### 24. Multi-level Order Flow Imbalance
+
+**Feature type:** `ofi_multilevel` | Param: `levels` (default 3)
+**Literature:** Cont, Kukanov & Stoikov (2014) *The price impact of order book events* — the original paper defines OFI at each level with cross-price effects. Multi-level aggregation improves predictive power over best-level OFI alone.
+
+Extends the best-level OFI to multiple book levels, handling the three cases
+for each level as defined in the original paper:
+
+For level $i$, bid side:
+$$e^{B}_{i,t} = \begin{cases}
+V^{B}_{i,t}                      & \text{if } P^{B}_{i,t} > P^{B}_{i,t-1} \quad \text{(price improved)} \\
+V^{B}_{i,t} - V^{B}_{i,t-1}      & \text{if } P^{B}_{i,t} = P^{B}_{i,t-1} \quad \text{(queue changed)} \\
+-V^{B}_{i,t-1}                   & \text{if } P^{B}_{i,t} < P^{B}_{i,t-1} \quad \text{(price deteriorated)}
+\end{cases}$$
+
+For level $i$, ask side (mirrored):
+$$e^{A}_{i,t} = \begin{cases}
+V^{A}_{i,t}                      & \text{if } P^{A}_{i,t} < P^{A}_{i,t-1} \quad \text{(price improved)} \\
+V^{A}_{i,t} - V^{A}_{i,t-1}      & \text{if } P^{A}_{i,t} = P^{A}_{i,t-1} \quad \text{(queue changed)} \\
+-V^{A}_{i,t-1}                   & \text{if } P^{A}_{i,t} > P^{A}_{i,t-1} \quad \text{(price deteriorated)}
+\end{cases}$$
+
+$$\text{MultiLevelOFI} = \sum_{i=0}^{N-1} (e^{B}_{i,t} - e^{A}_{i,t})$$
+
+- **Range:** unbounded. Positive: net buying pressure across levels.
+- Handles the key edge case: when a price level appears/disappears, the full
+  volume at that level counts as flow, not just the queue size change.
+- First row is 0 (no prior snapshot for comparison).
+- Default `levels=3` covers the best 3 bid/ask levels. Use `levels=5` for deeper
+  book coverage.
+
+**Feasibility:** fully computable from `bid_px_00..02`, `ask_px_00..02`,
+`bid_sz_00..02`, `ask_sz_00..02` (with default `levels=3`).
+
+---
+
+### 25. VPIN (Volume-synchronized Probability of Informed Trading)
+
+**Feature type:** `vpin` | Param: `window` (default 100), `action_col`, `side_col`, `size_col`
+**Literature:** Easley, Lopez de Prado & O'Hara (2012) *Flow toxicity and liquidity in a high-frequency world*; the original VPIN uses volume-clock bucketing with bulk volume classification. This implementation uses a rolling tick window with actual trade-side classification, which is more accurate when side labels are available.
+
+Tick-based approximation of VPIN that measures the imbalance between buyer-
+and seller-initiated trade volume normalized by total trade volume. High VPIN
+indicates toxic order flow (informed trading) and signals market makers to
+widen quotes.
+
+$$\text{VPIN}_{W,t} = \frac{\left|\sum_{\tau=t-W+1}^{t} V^{B}_\tau - \sum_{\tau=t-W+1}^{t} V^{S}_\tau\right|}{\max\!\left(\sum_{\tau=t-W+1}^{t} (V^{B}_\tau + V^{S}_\tau),\ 1\right)}$$
+
+where $V^{B}_\tau$ = trade size if `action=T, side=B` else 0, and
+$V^{S}_\tau$ = trade size if `action=T, side=A` else 0.
+
+- **Range:** $[0, 1]$. Values near 1: one-directional informed flow (toxic).
+- Values near 0: balanced, uninformed flow.
+- Distinct from `odd_lot_imbalance` which filters to small trades only.
+- Distinct from `signed_trade_flow` which is unnormalized and cumulative.
+- The original VPIN uses volume-clock bucketing; this tick-window approximation
+  is compatible with the DataFrame-based feature pipeline.
+
+**Feasibility:** `action`, `side`, `size` columns confirmed non-null in dataset.
+
+---
+
 ## Summary table
 
 | # | Feature type | Key inputs | Range | Normalized |
@@ -379,6 +462,9 @@ stops early when the notional is fully consumed.
 | 35 | `odd_lot_trade_ratio` (W=200) | `action`, `size` | $[0,1]$ | yes |
 | 36 | `odd_lot_imbalance` (W=200) | `action`, `side`, `size` | $[-1,1]$ | yes |
 | 37 | `price_vamp` | `bid/ask_px/sz_00–04` | price scale | yes |
+| 38 | `cancel_to_trade_ratio` (W=200) | `action` | $[0,\infty)$ | yes |
+| 39 | `ofi_multilevel` (3L/5L) | `bid/ask_px/sz_00–04` | unbounded | yes |
+| 40 | `vpin` (W=100) | `action`, `side`, `size` | $[0,1]$ | yes |
 
 ---
 
