@@ -246,10 +246,10 @@ class BaseTrainer(ABC):
             portfolio_valuation = initial_val * np.exp(episode_reward)
         elif reward_type == "differential_sharpe":
             # For DSR, extract actual dollar returns from environment broker
-            from trading_rl.utils import _extract_tradingenv_returns
+            from trading_rl.evaluation.returns import extract_tradingenv_returns
 
             # Extract cumulative returns from broker (ignores the DSR RL reward)
-            actual_returns = _extract_tradingenv_returns(self.env, data.numel())
+            actual_returns = extract_tradingenv_returns(self.env, data.numel())
             if actual_returns is not None and len(actual_returns) > 0:
                 portfolio_valuation = initial_val * np.exp(actual_returns[-1])
             else:
@@ -400,9 +400,9 @@ class BaseTrainer(ABC):
                 )
 
         # Extract actual returns immediately (before next rollout overwrites broker state)
-        from trading_rl.utils import _extract_tradingenv_returns
+        from trading_rl.evaluation.returns import extract_tradingenv_returns
 
-        actual_returns_deterministic = _extract_tradingenv_returns(env_to_use, max_steps)
+        actual_returns_deterministic = extract_tradingenv_returns(env_to_use, max_steps)
 
         # Random rollout (can be overridden in subclasses)
         logger.debug(f"Running random evaluation for {max_steps} steps")
@@ -410,7 +410,7 @@ class BaseTrainer(ABC):
             rollout_random = env_to_use.rollout(max_steps=max_steps, policy=self.actor)
 
         # Extract actual returns immediately (for random rollout)
-        actual_returns_random = _extract_tradingenv_returns(env_to_use, max_steps)
+        actual_returns_random = extract_tradingenv_returns(env_to_use, max_steps)
 
         # Detect backend type for proper plot labeling
         is_portfolio = self._is_portfolio_backend(config)

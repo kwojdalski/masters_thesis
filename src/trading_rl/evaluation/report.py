@@ -12,7 +12,7 @@ from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
 from trading_rl.evaluation.metrics import build_metric_report
-from trading_rl.utils import _extract_tradingenv_returns
+from trading_rl.evaluation.returns import extract_tradingenv_returns
 
 logger = get_logger(__name__)
 
@@ -79,7 +79,7 @@ def build_evaluation_report_for_trainer(
 
         # TradingEnv backend can expose true NLV path via broker.track_record.
         if str(backend).lower() == "tradingenv":
-            cumulative_log_returns = _extract_tradingenv_returns(env_to_use, max_steps)
+            cumulative_log_returns = extract_tradingenv_returns(env_to_use, max_steps)
             if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
                 cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
                 step_log_returns = np.diff(cumulative_log_returns, prepend=0.0)
