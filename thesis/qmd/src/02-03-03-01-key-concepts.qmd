@@ -5,6 +5,7 @@ interpreting the finance literature reviewed in this chapter. Formal definitions
 equations, and algorithm taxonomies are presented in Chapter 3; the focus here
 is on why each concept is specifically consequential for trading problems.
 
+::: {.content-visible when-format="pdf"}
 ```{tikz}
 #| fig-align: center
 #| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
@@ -34,6 +35,11 @@ is on why each concept is specifically consequential for trading problems.
 
 \end{tikzpicture}
 ```
+:::
+
+::: {.content-visible when-format="html"}
+![The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment.](diagrams/rl-loop.svg){fig-align="center"}
+:::
 
 Portfolio decisions are sequential and path-dependent, which makes the MDP
 framework [@Bellman1957; @Puterman1994] the natural formal language for trading
