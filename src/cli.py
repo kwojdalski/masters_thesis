@@ -19,6 +19,8 @@ from cli.commands import (
     DataGeneratorCommand,
     ExperimentCommand,
     ExperimentParams,
+    FeatureResearchCommand,
+    FeatureResearchParams,
     SineWaveParams,
     TrainingCommand,
     TrainingParams,
@@ -93,6 +95,7 @@ training_cmd = TrainingCommand(console)
 experiment_cmd = ExperimentCommand(console)
 dashboard_cmd = DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db")
 validation_cmd = ValidationCommand(console)
+feature_research_cmd = FeatureResearchCommand(console)
 
 
 def _parse_checkpoint_step(filename: str) -> int | None:
@@ -467,6 +470,65 @@ def validate(
         config_overrides=config_override,
     )
     validation_cmd.execute(params)
+
+
+@app.command(name="feature-research")
+def feature_research(
+    config_file: Path | None = typer.Option(
+        None,
+        "--config",
+        help="Path to experiment config YAML",
+        show_default=False,
+    ),
+    scenario: str | None = typer.Option(
+        None,
+        "--scenario",
+        help="Scenario config name or path under src/configs/scenarios",
+        show_default=False,
+    ),
+    config_override: list[str] | None = typer.Option(
+        None,
+        "--config-override",
+        help="OmegaConf override in dotlist format (repeatable)",
+        show_default=False,
+    ),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        help="Directory for offline feature research outputs",
+        show_default=False,
+    ),
+    horizon: int = typer.Option(
+        1,
+        "--horizon",
+        min=1,
+        help="Forward return horizon for proxy target",
+    ),
+    top_k: int = typer.Option(
+        10,
+        "--top-k",
+        min=1,
+        help="Maximum number of selected features after redundancy pruning",
+    ),
+    corr_threshold: float = typer.Option(
+        0.85,
+        "--corr-threshold",
+        min=0.01,
+        max=1.0,
+        help="Maximum absolute train correlation allowed between selected features",
+    ),
+):
+    """Run offline feature scoring and shortlist generation."""
+    params = FeatureResearchParams(
+        config_file=config_file,
+        scenario=scenario,
+        config_overrides=config_override,
+        output_dir=output_dir,
+        horizon=horizon,
+        top_k=top_k,
+        corr_threshold=corr_threshold,
+    )
+    feature_research_cmd.execute(params)
 
 
 @app.command()
