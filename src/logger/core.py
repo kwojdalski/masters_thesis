@@ -15,6 +15,18 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 
+_NUMBER_PATTERN = re.compile(
+    r'(?<![.\d\w])(\$?[+-]?\d[\d,]*(?:\.\d+)?%?)(?![.\d])'
+)
+
+
+def _colorize_numbers(text: str) -> str:
+    """Wrap standalone numbers in light blue ANSI color."""
+    LIGHT_BLUE = "\033[94m"
+    RESET = "\033[0m"
+    return _NUMBER_PATTERN.sub(lambda m: f"{LIGHT_BLUE}{m.group()}{RESET}", text)
+
+
 def _supports_color() -> bool:
     """Check if the current environment supports colored output."""
     # Check for explicit environment variables
@@ -43,7 +55,15 @@ def _supports_color() -> bool:
     return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
-class ColoredFormatter(logging.Formatter):
+class DotMillisFormatter(logging.Formatter):
+    """Formatter that uses '.' instead of ',' to separate milliseconds in timestamps."""
+
+    def formatTime(self, record, datefmt=None):
+        result = super().formatTime(record, datefmt)
+        return result.replace(',', '.', 1)
+
+
+class ColoredFormatter(DotMillisFormatter):
     """Colored log formatter for enhanced console readability."""
 
     COLORS: ClassVar[dict[str, str]] = {
@@ -60,24 +80,36 @@ class ColoredFormatter(logging.Formatter):
     def format(self, record):
         if not _supports_color():
             return super().format(record)
-            
+
         log_color = self.COLORS.get(record.levelname, self.COLORS["RESET"])
-        
+
         # Color the level name with bold
         colored_levelname = (
             f"{self.COLORS['BOLD']}{log_color}{record.levelname}{self.COLORS['RESET']}"
         )
-        
+
+        # Colorize numbers in the message portion only
+        original_msg = record.msg
+        original_args = record.args
+        try:
+            colorized_msg = _colorize_numbers(record.getMessage())
+            record.msg = colorized_msg
+            record.args = None
+        except Exception:
+            pass
+
         # Store original levelname and replace temporarily
         original_levelname = record.levelname
         record.levelname = colored_levelname
-        
+
         # Format the message
         formatted = super().format(record)
-        
-        # Restore original levelname
+
+        # Restore original values
         record.levelname = original_levelname
-        
+        record.msg = original_msg
+        record.args = original_args
+
         return formatted
 
 
@@ -180,7 +212,7 @@ def setup_logging(
         elif colored_output and _supports_color():
             console_formatter = ColoredFormatter(format_string)
         else:
-            console_formatter = logging.Formatter(format_string)
+            console_formatter = DotMillisFormatter(format_string)
 
         console_handler.setFormatter(console_formatter)
         if regex_filter is not None:
@@ -200,7 +232,7 @@ def setup_logging(
         if structured_logging:
             file_formatter = StructuredFormatter()
         else:
-            file_formatter = logging.Formatter(format_string)
+            file_formatter = DotMillisFormatter(format_string)
 
         file_handler.setFormatter(file_formatter)
         root_logger.addHandler(file_handler)
@@ -323,7 +355,7 @@ def setup_component_logger(
             f"%(asctime)s - {component_name} - %(levelname)s - %(message)s"
         )
     else:
-        console_formatter = logging.Formatter(
+        console_formatter = DotMillisFormatter(
             f"%(asctime)s - {component_name} - %(levelname)s - %(message)s"
         )
 
@@ -341,7 +373,7 @@ def setup_component_logger(
             backupCount=5,
         )
         file_handler.setLevel(numeric_level)
-        file_formatter = logging.Formatter(
+        file_formatter = DotMillisFormatter(
             f"%(asctime)s - {component_name} - %(name)s "
             + "- %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
         )
