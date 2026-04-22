@@ -20,8 +20,10 @@ from logger import get_logger as get_project_logger
 from logger import setup_logging as configure_root_logging
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
+from trading_rl.constants import Algorithm
 from trading_rl.data_utils import PreparedDataset, build_prepared_dataset
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
+from trading_rl.envs.trading_envs import EnvBackend
 from trading_rl.trainers.ppo import PPOTrainerContinuous
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 
@@ -130,16 +132,14 @@ def set_seed(seed: int | None) -> int:
 
 
 def _select_trainer_class(algorithm: str, backend: str):
-    is_continuous_env = (
-        backend == "tradingenv" or backend == "gym_trading_env.continuous"
-    )
+    is_continuous_env = backend in {EnvBackend.TRADINGENV, EnvBackend.GYM_TRADING_CONTINUOUS}
     algorithm_upper = algorithm.upper()
 
-    if algorithm_upper == "PPO":
+    if algorithm_upper == Algorithm.PPO:
         return PPOTrainerContinuous if is_continuous_env else PPOTrainer
-    if algorithm_upper == "TD3":
+    if algorithm_upper == Algorithm.TD3:
         return TD3Trainer
-    if algorithm_upper == "DDPG":
+    if algorithm_upper == Algorithm.DDPG:
         return DDPGTrainer
     raise ValueError(f"Unsupported algorithm: {algorithm}")
 
@@ -184,7 +184,7 @@ def _build_trainer(
     else:
         logger.info("Selected %s", trainer_cls.__name__)
 
-    if algorithm == "TD3":
+    if algorithm == Algorithm.TD3:
         actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
         trainer = trainer_cls(
             actor=actor,

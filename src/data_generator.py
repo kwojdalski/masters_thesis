@@ -4,6 +4,7 @@ Simple price data generator that loads existing parquet files and dumps them to 
 
 import os
 import shutil
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,15 @@ import pandas as pd
 import yaml
 
 from logger import get_logger
+
+
+class PatternType(StrEnum):
+    """Supported synthetic price data generation patterns."""
+
+    SINE_WAVE = "sine_wave"
+    UPWARD_DRIFT = "upward_drift"
+    MEAN_REVERSION = "mean_reversion"
+    TRENDING = "trending"
 
 
 def _parse_log_level(level: int | str | None) -> int:
@@ -424,14 +434,16 @@ class PriceDataGenerator:
         config = self.load_config(config_path)
         data_gen_config = config.get("data_generator", {})
 
-        pattern_type = data_gen_config.get("pattern_type", "upward_drift")
+        pattern_type = PatternType(
+            data_gen_config.get("pattern_type", PatternType.UPWARD_DRIFT)
+        )
 
         if output_file is None:
             output_file = f"{pattern_type}_validation.parquet"
 
         self.logger.info(f"Generating {pattern_type} pattern from config {config_path}")
 
-        if pattern_type == "upward_drift":
+        if pattern_type == PatternType.UPWARD_DRIFT:
             return self.generate_upward_drift_pattern(
                 output_file=output_file,
                 n_samples=data_gen_config.get("n_samples", 500),
@@ -441,7 +453,7 @@ class PriceDataGenerator:
                 pullback_floor=data_gen_config.get("pullback_floor", 0.995),
                 start_date=data_gen_config.get("start_date", "2024-01-01"),
             )
-        elif pattern_type == "sine_wave":
+        elif pattern_type == PatternType.SINE_WAVE:
             return self.generate_sine_wave_pattern(
                 output_file=output_file,
                 n_periods=data_gen_config.get("n_periods", 5),
@@ -452,7 +464,7 @@ class PriceDataGenerator:
                 volatility=data_gen_config.get("volatility", 0.0),
                 start_date=data_gen_config.get("start_date", "2024-01-01"),
             )
-        elif pattern_type == "mean_reversion":
+        elif pattern_type == PatternType.MEAN_REVERSION:
             return self.generate_mean_reversion_pattern(
                 output_file=output_file,
                 n_samples=data_gen_config.get("n_samples", 500),
@@ -463,7 +475,7 @@ class PriceDataGenerator:
                 shock_magnitude=data_gen_config.get("shock_magnitude", 0.15),
                 start_date=data_gen_config.get("start_date", "2024-01-01"),
             )
-        elif pattern_type == "trending":
+        elif pattern_type == PatternType.TRENDING:
             return self.generate_trending_pattern(
                 output_file=output_file,
                 n_samples=data_gen_config.get("n_samples", 500),
@@ -478,8 +490,6 @@ class PriceDataGenerator:
                 consolidation_prob=data_gen_config.get("consolidation_prob", 0.2),
                 start_date=data_gen_config.get("start_date", "2024-01-01"),
             )
-        else:
-            raise ValueError(f"Unknown pattern_type: {pattern_type}")
 
     def generate_upward_drift_pattern(
         self,

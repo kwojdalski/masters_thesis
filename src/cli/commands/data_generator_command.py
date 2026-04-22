@@ -6,6 +6,8 @@ from typing import Any
 
 import typer
 
+from data_generator import PatternType
+
 from .base_command import BaseCommand
 
 
@@ -153,14 +155,14 @@ class DataGeneratorCommand(BaseCommand):
         sine_wave = explicit_sine
         upward_drift = explicit_drift
 
-        if pattern_type == "sine_wave":
+        if pattern_type == PatternType.SINE_WAVE:
             if upward_drift and not sine_wave:
                 raise typer.BadParameter(
                     "Scenario requires sine wave generation but --upward-drift was provided."
                 )
             sine_wave = True
             upward_drift = False
-        elif pattern_type == "upward_drift":
+        elif pattern_type == PatternType.UPWARD_DRIFT:
             if sine_wave and not upward_drift:
                 raise typer.BadParameter(
                     "Scenario requires upward drift generation but --sine-wave was provided."

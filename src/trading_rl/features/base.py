@@ -2,10 +2,19 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+
+
+class FeatureDomain(StrEnum):
+    """Domain tag controlling which experiment modes a feature is eligible for."""
+
+    SHARED = "shared"
+    MFT = "mft"
+    HFT = "hft"
 
 
 @dataclass
@@ -27,7 +36,7 @@ class FeatureConfig:
     params: dict[str, Any] | None = None
     normalize: bool = True
     output_name: str | None = None
-    domain: str = "shared"
+    domain: str = FeatureDomain.SHARED
 
     def __post_init__(self):
         if self.params is None:
@@ -35,11 +44,10 @@ class FeatureConfig:
         if self.output_name is None:
             self.output_name = f"feature_{self.name}"
         self.domain = str(self.domain).lower().strip()
-        valid_domains = {"shared", "mft", "hft"}
-        if self.domain not in valid_domains:
+        if self.domain not in set(FeatureDomain):
             raise ValueError(
                 f"Invalid feature domain '{self.domain}'. "
-                f"Supported values: {sorted(valid_domains)}"
+                f"Supported values: {sorted(FeatureDomain)}"
             )
 
 

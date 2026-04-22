@@ -7,11 +7,10 @@ from pathlib import Path
 from typing import Literal
 
 from trading_rl import ExperimentConfig
+from trading_rl.constants import EnvMode
 from trading_rl.data_utils import load_trading_data
 from trading_rl.features import FeaturePipeline, create_default_pipeline
-
-_VALID_ENV_MODES = {"mft", "hft"}
-_VALID_FEATURE_DOMAINS = {"shared", "mft", "hft"}
+from trading_rl.features.base import FeatureDomain
 
 
 @dataclass
@@ -224,13 +223,13 @@ def _validate_feature_domains(
     report: ValidationReport,
 ) -> None:
     mode = str(getattr(config.env, "mode", "mft")).lower().strip()
-    if mode not in _VALID_ENV_MODES:
+    if mode not in set(EnvMode):
         report.add(
             code="ENV_MODE_INVALID",
             severity="error",
             check="feature_mode",
             message=(
-                f"env.mode must be one of {sorted(_VALID_ENV_MODES)}, got '{mode}'."
+                f"env.mode must be one of {sorted(EnvMode)}, got '{mode}'."
             ),
         )
         return
@@ -243,7 +242,7 @@ def _validate_feature_domains(
         domain = _feature_domain(feature_cfg)
         output_name = _feature_output_name(feature_cfg)
 
-        if domain not in _VALID_FEATURE_DOMAINS:
+        if domain not in set(FeatureDomain):
             invalid_domain_features.append(f"{output_name}({domain})")
             continue
         if domain == "hft":
