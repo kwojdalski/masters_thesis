@@ -1,7 +1,7 @@
 # Design of the Trading Agent
 
 This chapter applies the reinforcement learning framework introduced in
-Chapter 4 to single-asset high-frequency trading. Each section addresses one
+Chapter 3 to single-asset high-frequency trading. Each section addresses one
 component of the MDP formulation: the action space, state representation,
 reward function, value function, policy, discount factor, and step size. The
 choices made here are motivated by the structure and constraints of

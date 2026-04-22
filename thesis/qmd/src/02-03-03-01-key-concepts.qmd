@@ -3,7 +3,7 @@
 This subsection identifies the reinforcement learning concepts that are most
 important for interpreting the finance literature reviewed in this chapter. To
 avoid duplication with the dedicated theory chapter, formal definitions,
-equations, and algorithm taxonomies are presented in Chapter 4; here the focus
+equations, and algorithm taxonomies are presented in Chapter 3; here the focus
 is on conceptual relevance to trading problems and the corresponding literature.
 
 **Markov Decision Processes.**
@@ -13,7 +13,7 @@ are sequential and path-dependent, which makes MDP-based reasoning the natural
 starting point. At the same time, market regime shifts, structural breaks, and
 partial observability mean that financial environments only approximately satisfy
 standard MDP assumptions. The formal definitions of states, actions, rewards,
-and value functions are developed in Chapter 4.
+and value functions are developed in Chapter 3.
 
 ```{tikz}
 #| fig-align: center
@@ -115,8 +115,8 @@ participant behavior evolve over time. Work on continual adaptation and
 meta-learning discussed in @Sutton2018 and finance-oriented discussions such as
 @Deng2016 motivates the thesis emphasis on robust feature engineering,
 conservative optimization, and out-of-sample temporal validation. The formal RL
-machinery used to operationalize these choices is developed in Chapter 4 and then
-specialized for the trading agent in Chapters 5-7.
+machinery used to operationalize these choices is developed in Chapter 3 and then
+specialized for the trading agent in Chapters 4-6.
 
 Accordingly, claims that RL "works" in trading should be interpreted as
 context-dependent: RL methods can produce useful policies when the learning

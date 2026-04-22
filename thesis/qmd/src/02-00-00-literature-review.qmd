@@ -5,7 +5,7 @@ for high-frequency trading. It is organized in two parts. The first part reviews
 market microstructure — the empirical evidence and theoretical mechanisms that
 govern short-horizon price formation in limit order book markets. This
 establishes the financial environment in which the agent operates and motivates
-the feature engineering choices made in Chapter 5. The second part positions
+the feature engineering choices made in Chapter 4. The second part positions
 reinforcement learning as the appropriate methodological framework for this
 problem, surveys the key concepts that matter in a trading context, and reviews
 prior RL trading applications with attention to action-space design,

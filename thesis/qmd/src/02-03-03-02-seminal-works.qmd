@@ -31,7 +31,7 @@ appropriate for position-sizing tasks.
 
 Together these three properties point toward a model-free, off-policy,
 continuous-action algorithm — which is the class to which TD3 belongs. The
-formal algorithmic properties of TD3 are derived in Chapter 4. The present
+formal algorithmic properties of TD3 are derived in Chapter 3. The present
 section is concerned with how the broader RL literature has been applied to
 trading and what that literature implies for the design choices made in this
 thesis.

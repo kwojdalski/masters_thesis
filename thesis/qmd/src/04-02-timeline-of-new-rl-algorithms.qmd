@@ -6,7 +6,7 @@ This section traces the specific
 lineage that leads to the Twin Delayed Deep Deterministic Policy Gradient (TD3)
 algorithm, which is employed in this thesis. The survey is not exhaustive; it
 focuses on the algorithmic properties that are directly relevant to the
-continuous-action, single-asset trading problem formulated in Chapter 5.
+continuous-action, single-asset trading problem formulated in Chapter 4.
 
 ### Value-Based Methods and Their Limitations in Continuous Control
 
