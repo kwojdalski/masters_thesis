@@ -308,6 +308,50 @@ non-null for all trade rows.
 
 ---
 
+### 22. Volume Adjusted Mid Price (VAMP)
+
+**Feature type:** `price_vamp` | Params: `levels` (default 5), `notional` (default 1000), `bid_notional`, `ask_notional`
+**Literature:** SSRN: 4351947 — short-term crypto price prediction; implementation adapted from `quantpylib.hft.cfeatures.vamp`.
+
+Computes a volume-weighted mid price that accounts for order book depth and
+imbalance, as opposed to the simple mid price which only considers the best
+bid and best ask.
+
+The algorithm walks into the book from both sides up to a notional amount:
+
+1. **impact_price(asks, bid_notional):** Walk up the ask book, consuming volume
+   until `bid_notional` dollars are spent. Returns the volume-weighted average
+   ask price $P_1$.
+2. **impact_price(bids, ask_notional):** Walk down the bid book, consuming
+   volume until `ask_notional` dollars are spent. Returns the volume-weighted
+   average bid price $P_2$.
+3. $\text{VAMP} = \frac{P_1 + P_2}{2}$
+
+For each level $i$ with price $p_i$ and size $v_i$:
+
+$$\text{impact\_price} = \frac{\sum_{i} p_i \cdot \min\!\left(v_i,\ \frac{N_{\text{remaining}}}{p_i}\right)}{\sum_{i} \min\!\left(v_i,\ \frac{N_{\text{remaining}}}{p_i}\right)}$$
+
+where $N_{\text{remaining}}$ is the notional still to be filled. The walk
+stops early when the notional is fully consumed.
+
+- **Small notional** (e.g., 1000): VAMP close to simple mid-price (only BBA
+  involved); captures best-level imbalance similar to microprice.
+- **Large notional** (e.g., 5000+): VAMP deviates from mid-price toward the
+  side with more depth; captures deeper structural imbalance.
+- The `notional` should be calibrated to the instrument — for high-priced
+  assets like BTC, a larger notional is needed to walk past the best level.
+
+**Params:**
+- `levels`: Number of book levels to walk (default: 5, i.e., L0–L4)
+- `notional`: Dollar amount to walk into the book on each side (default: 1000)
+- `bid_notional`: Separate notional for the bid side (falls back to `notional` if 0)
+- `ask_notional`: Separate notional for the ask side (falls back to `notional` if 0)
+
+**Feasibility:** fully computable from `bid_px_00..04`, `ask_px_00..04`,
+`bid_sz_00..04`, `ask_sz_00..04` (with default `levels=5`).
+
+---
+
 ## Summary table
 
 | # | Feature type | Key inputs | Range | Normalized |
@@ -334,6 +378,7 @@ non-null for all trade rows.
 | 34 | `signed_trade_flow` (W=100) | `action`, `side`, `size` | unbounded | yes |
 | 35 | `odd_lot_trade_ratio` (W=200) | `action`, `size` | $[0,1]$ | yes |
 | 36 | `odd_lot_imbalance` (W=200) | `action`, `side`, `size` | $[-1,1]$ | yes |
+| 37 | `price_vamp` | `bid/ask_px/sz_00–04` | price scale | yes |
 
 ---
 

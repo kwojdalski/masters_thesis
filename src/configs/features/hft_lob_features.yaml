@@ -112,6 +112,15 @@ features:
     params:
       levels: 3
 
+  # Volume Adjusted Mid Price — volume-weighted fair value (SSRN: 4351947)
+  - name: "hft_price_vamp_1k"
+    feature_type: "price_vamp"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 5
+      notional: 1000
+
   # =============================================================================
   # Order Book Slope Features (Price Elasticity)
   # =============================================================================
