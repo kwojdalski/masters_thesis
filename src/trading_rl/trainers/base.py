@@ -2,6 +2,7 @@
 
 import contextlib
 import time
+import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
@@ -50,6 +51,27 @@ torchrl_collectors._TrajectoryPool = _LocalTrajectoryPool
 logger = get_logger(__name__)
 
 
+def _build_sync_data_collector(
+    *,
+    env: Any,
+    actor: Any,
+    config: TrainingConfig,
+) -> SyncDataCollector:
+    """Construct TorchRL's collector while suppressing its current deprecation noise."""
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="SyncDataCollector has been deprecated.*",
+            category=DeprecationWarning,
+        )
+        return SyncDataCollector(
+            create_env_fn=lambda: env,
+            policy=actor,
+            frames_per_batch=config.frames_per_batch,
+            total_frames=config.max_steps,
+        )
+
+
 class BaseTrainer(ABC):
     """Common utilities shared by RL trainers."""
 
@@ -75,11 +97,10 @@ class BaseTrainer(ABC):
 
         # Replay buffer and data collector shared by both algorithms
         self.replay_buffer = ReplayBuffer(storage=LazyTensorStorage(config.buffer_size))
-        self.collector = SyncDataCollector(
-            create_env_fn=lambda: env,
-            policy=actor,
-            frames_per_batch=config.frames_per_batch,
-            total_frames=config.max_steps,
+        self.collector = _build_sync_data_collector(
+            env=env,
+            actor=actor,
+            config=config,
         )
 
         # Training state
