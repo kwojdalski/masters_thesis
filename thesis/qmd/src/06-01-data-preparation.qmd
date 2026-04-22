@@ -59,6 +59,16 @@ supports configuration comparison and development diagnostics; the test split
 is reserved for final out-of-sample reporting and does not influence any
 model selection decisions.
 
+The main experiment uses a training split of 15,000 order-book events,
+with approximately 2,500 events each in the validation and test splits —
+20,000 observations in total, spanning three consecutive trading sessions
+from February 25 to February 27, 2026, filtered to US regular market hours.
+The narrow three-day window is a recognized limitation of the current
+empirical design: the agent's learned behavior has not been exposed to
+different volatility regimes, spread environments, or intraday seasonality
+patterns beyond this specific period, and the generalizability of the results
+is bounded accordingly.
+
 ### Feature Normalization and Leakage Prevention
 
 Normalization statistics (mean and standard deviation for z-score scaling)
