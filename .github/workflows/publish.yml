@@ -68,55 +68,16 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
 
-      - name: Render thesis to PDF
-        timeout-minutes: 15
+      - name: Publish committed thesis PDF
         run: |
-          echo "Starting PDF render at $(date)"
-
-          # Check if the document exists
-          if [ ! -f "thesis/qmd/src/masters-thesis.qmd" ]; then
-            echo "ERROR: Thesis file not found!"
+          if [ ! -f "thesis/build/masters-thesis.pdf" ]; then
+            echo "ERROR: committed PDF not found at thesis/build/masters-thesis.pdf"
             exit 1
           fi
 
-          # Set environment variables to prevent interactive prompts
-          export TEXINPUTS=".:/usr/share/texmf/tex/latex//:"
-          export OPENBLAS_NUM_THREADS=1
-          export QUARTO_NO_CHROME=1
-
-          # Determine which LaTeX engine to use
-          if command -v xelatex &> /dev/null; then
-            echo "Using xelatex for PDF generation"
-            export QUARTO_PANDOC_ARGS=--pdf-engine=xelatex
-          elif command -v pdflatex &> /dev/null; then
-            echo "Using pdflatex as fallback for PDF generation"
-            export QUARTO_PANDOC_ARGS=--pdf-engine=pdflatex
-          else
-            echo "ERROR: No LaTeX engine found (tried xelatex and pdflatex)"
-            exit 1
-          fi
-
-          # Try rendering with more explicit flags and non-interactive mode
-          quarto render thesis/qmd/src/masters-thesis.qmd --to pdf --no-execute --log-level debug || {
-            echo "PDF render failed, checking for intermediate files..."
-            ls -la thesis/qmd/src/ || true
-            find thesis/qmd/src/ -name "*.pdf" -o -name "*.log" | head -20 || true
-            exit 1
-          }
-
-          echo "PDF render completed at $(date)"
-
-          # Verify PDF was created
-          if [ ! -f "thesis/qmd/src/masters-thesis.pdf" ]; then
-            echo "ERROR: PDF file was not created!"
-            exit 1
-          fi
-
-          echo "PDF file size: $(wc -c < thesis/qmd/src/masters-thesis.pdf) bytes"
-          cp thesis/qmd/src/masters-thesis.pdf _site/masters-thesis.pdf
-        env:
-          PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
-          QUARTO_NO_CHROME: 1
+          echo "Using committed PDF artifact"
+          echo "PDF file size: $(wc -c < thesis/build/masters-thesis.pdf) bytes"
+          cp thesis/build/masters-thesis.pdf _site/masters-thesis.pdf
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

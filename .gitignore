@@ -122,6 +122,9 @@ notebooks/*/libs/clipboard/
 notebooks/*/libs/quarto-html/
 .DS_Store
 thesis/build
+!thesis/build/
+thesis/build/*
+!thesis/build/masters-thesis.pdf
 .cursor
 thesis/qmd/src/*.html
 thesis/qmd/src/*files
