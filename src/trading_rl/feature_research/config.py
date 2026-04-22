@@ -110,23 +110,30 @@ class FeatureResearchConfig:
     @classmethod
     def from_dict(cls, config_dict: dict) -> "FeatureResearchConfig":
         """Create feature research config from a dictionary."""
-        config = cls()
+        data_defaults = FeatureResearchDataConfig()
+        research_defaults = FeatureResearchRunConfig()
 
-        if "experiment_name" in config_dict:
-            config.experiment_name = config_dict["experiment_name"]
+        data_dict = {
+            field_name: getattr(data_defaults, field_name)
+            for field_name in data_defaults.__dataclass_fields__
+        }
+        for key, value in config_dict.get("data", {}).items():
+            if key in data_dict:
+                data_dict[key] = value
 
-        if "data" in config_dict:
-            for key, value in config_dict["data"].items():
-                if hasattr(config.data, key):
-                    setattr(config.data, key, value)
+        research_dict = {
+            field_name: getattr(research_defaults, field_name)
+            for field_name in research_defaults.__dataclass_fields__
+        }
+        for key, value in config_dict.get("research", {}).items():
+            if key in research_dict:
+                research_dict[key] = value
 
-        if "research" in config_dict:
-            for key, value in config_dict["research"].items():
-                if hasattr(config.research, key):
-                    setattr(config.research, key, value)
-
-        config.__post_init__()
-        return config
+        return cls(
+            experiment_name=config_dict.get("experiment_name", "feature_research"),
+            data=FeatureResearchDataConfig(**data_dict),
+            research=FeatureResearchRunConfig(**research_dict),
+        )
 
     @classmethod
     def from_experiment_config(
