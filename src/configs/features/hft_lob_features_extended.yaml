@@ -145,6 +145,23 @@ features:
     params:
       levels: 3
 
+  # Volume Adjusted Mid Price — volume-weighted fair value (SSRN: 4351947)
+  - name: "hft_price_vamp_1k"
+    feature_type: "price_vamp"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 5
+      notional: 1000
+
+  - name: "hft_price_vamp_5k"
+    feature_type: "price_vamp"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 5
+      notional: 5000
+
   - name: "hft_bid_convexity"
     feature_type: "book_convexity"
     normalize: true

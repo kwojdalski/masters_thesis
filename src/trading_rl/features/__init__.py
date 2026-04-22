@@ -48,6 +48,7 @@ from trading_rl.features.lob_features import (
     MicropriceDivergenceFeature,
     MicropriceFeature,
     OrderBookImbalanceFeature,
+    PriceVampFeature,
     SpreadBpsFeature,
     VWMPSkewFeature,
 )
@@ -114,6 +115,7 @@ __all__ = [
     "MicropriceDivergenceFeature",
     "MicropriceFeature",
     "OrderBookImbalanceFeature",
+    "PriceVampFeature",
     "SpreadBpsFeature",
     "VWMPSkewFeature",
 ]

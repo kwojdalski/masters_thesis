@@ -715,6 +715,122 @@ class OddLotTradeRatioFeature(LOBFeature):
         return safe_divide(rolling_odd, rolling_trades)
 
 
+def _impact_price_side(
+    px_cols: list[str],
+    sz_cols: list[str],
+    df: pd.DataFrame,
+    notional: pd.Series,
+) -> pd.Series:
+    """Walk one side of the order book for each row, consuming up to `notional`.
+
+    Args:
+        px_cols: Column names for price levels (best first).
+        sz_cols: Column names for size levels (best first).
+        df: Source DataFrame.
+        notional: Per-row notional amount to consume.
+
+    Returns:
+        Series with volume-weighted average price for each row.
+    """
+    n_levels = len(px_cols)
+    remaining = notional.copy()
+    wsum = pd.Series(0.0, index=df.index, dtype=float)
+    cumvol = pd.Series(0.0, index=df.index, dtype=float)
+
+    for i in range(n_levels):
+        px = df[px_cols[i]].astype(float)
+        sz = df[sz_cols[i]].astype(float)
+        notl = px * sz
+
+        # Only take as much volume as needed
+        mask = remaining < notl
+        clipped_sz = sz.copy()
+        clipped_sz[mask] = remaining[mask] / px[mask]
+
+        wsum += px * clipped_sz
+        cumvol += clipped_sz
+        remaining -= px * clipped_sz
+
+        if (remaining <= 1e-12).all():
+            break
+
+    return safe_divide(wsum, cumvol)
+
+
+@register_feature("price_vamp")
+class PriceVampFeature(LOBFeature):
+    """Volume Adjusted Mid Price (VAMP).
+
+    Computes a volume-weighted mid price that accounts for order book depth and
+    imbalance, as opposed to the simple mid price which only considers the best
+    bid and best ask. Originates from short-term crypto price prediction research
+    (SSRN: 4351947).
+
+    The algorithm walks into the book from both sides:
+        1. impact_price(asks, bid_notional) -> volume-weighted ask price
+        2. impact_price(bids, ask_notional) -> volume-weighted bid price
+        3. VAMP = (P1 + P2) / 2
+
+    A small notional produces VAMP close to the simple mid price (only BBA
+    involved); larger notionals capture deeper structural imbalance.
+
+    Params:
+        levels: Number of book levels to walk (default: 5, i.e., L0-L4)
+        notional: Dollar amount to walk into the book on each side (default: 1000)
+        bid_notional: Separate notional for the bid side (falls back to notional if 0)
+        ask_notional: Separate notional for the ask side (falls back to notional if 0)
+        bid_price_prefix: Column prefix for bid prices (default: "bid_px_")
+        ask_price_prefix: Column prefix for ask prices (default: "ask_px_")
+        bid_size_prefix: Column prefix for bid sizes (default: "bid_sz_")
+        ask_size_prefix: Column prefix for ask sizes (default: "ask_sz_")
+    """
+
+    def required_columns(self) -> list[str]:
+        n = int(self._p("levels", 5))
+        bpp = self._p("bid_price_prefix", "bid_px_")
+        app = self._p("ask_price_prefix", "ask_px_")
+        bsp = self._p("bid_size_prefix", "bid_sz_")
+        asp = self._p("ask_size_prefix", "ask_sz_")
+        return [
+            col
+            for i in range(n)
+            for col in (
+                f"{bpp}{i:02d}", f"{app}{i:02d}",
+                f"{bsp}{i:02d}", f"{asp}{i:02d}",
+            )
+        ]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        n = int(self._p("levels", 5))
+        notional = float(self._p("notional", 1000))
+        bid_notional = float(self._p("bid_notional", 0))
+        ask_notional = float(self._p("ask_notional", 0))
+
+        # Fall back to `notional` if side-specific notionals are not set
+        bid_notional = bid_notional if bid_notional > 0 else notional
+        ask_notional = ask_notional if ask_notional > 0 else notional
+
+        bpp = self._p("bid_price_prefix", "bid_px_")
+        app = self._p("ask_price_prefix", "ask_px_")
+        bsp = self._p("bid_size_prefix", "bid_sz_")
+        asp = self._p("ask_size_prefix", "ask_sz_")
+
+        bid_px_cols = [f"{bpp}{i:02d}" for i in range(n)]
+        ask_px_cols = [f"{app}{i:02d}" for i in range(n)]
+        bid_sz_cols = [f"{bsp}{i:02d}" for i in range(n)]
+        ask_sz_cols = [f"{asp}{i:02d}" for i in range(n)]
+
+        bid_not = pd.Series(bid_notional, index=df.index, dtype=float)
+        ask_not = pd.Series(ask_notional, index=df.index, dtype=float)
+
+        # P1: walk asks with bid-side notional (a buyer walks up the ask book)
+        p1 = _impact_price_side(ask_px_cols, ask_sz_cols, df, bid_not)
+        # P2: walk bids with ask-side notional (a seller walks down the bid book)
+        p2 = _impact_price_side(bid_px_cols, bid_sz_cols, df, ask_not)
+
+        return (p1 + p2) / 2.0
+
+
 @register_feature("odd_lot_imbalance")
 class OddLotImbalanceFeature(LOBFeature):
     """Rolling signed odd-lot flow imbalance.
