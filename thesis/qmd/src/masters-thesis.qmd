@@ -93,6 +93,7 @@ single evaluation framework for algorithmic trading research.
 {{< include ./02-00-00-literature-review.qmd >}}
 {{< include ./02-02-02-empirical-evidence.qmd >}}
 {{< include ./02-02-04-microstructure-theory.qmd >}}
+{{< include ./02-03-00-decision-paradigms.qmd >}}
 {{< include ./02-03-03-02-seminal-works.qmd >}}
 {{< include ./02-03-03-01-key-concepts.qmd >}}
 {{< include ./02-03-03-03-rl-applications.qmd >}}
@@ -106,18 +107,13 @@ single evaluation framework for algorithmic trading research.
 <!-- {{< include ./02-02-00-relevant-financial-indicators.qmd >}} -->
 <!-- {{< include ./02-02-03-market-anomalies.qmd >}} -->
 
-\newpage
-{{< include ./03-01-00-machine-learning.qmd >}}
-<!-- collapsed into 03-01-00 -->
-<!-- {{< include ./03-01-01-supervised-learning.qmd >}} -->
-<!-- {{< include ./03-01-02-unsupervised-learning.qmd >}} -->
-<!-- {{< include ./03-01-03-semi-supervised-learning.qmd >}} -->
-<!-- {{< include ./03-01-04-reinforcement-learning.qmd >}} -->
-{{< include ./03-02-01-01-components-of-ats.qmd >}}
-{{< include ./03-02-02-00-rule-based-trading.qmd >}}
-{{< include ./03-02-03-01-trading-based-on-forecasts.qmd >}}
-{{< include ./03-02-03-02-training-on-labelled-data.qmd >}}
-{{< include ./03-02-03-03-direct-optimization.qmd >}}
+<!-- Chapter 3 content merged into Chapter 2 (decision paradigms) and Chapter 5 (implementation architecture) -->
+<!-- {{< include ./03-01-00-machine-learning.qmd >}} -->
+<!-- {{< include ./03-02-01-01-components-of-ats.qmd >}} -->
+<!-- {{< include ./03-02-02-00-rule-based-trading.qmd >}} -->
+<!-- {{< include ./03-02-03-01-trading-based-on-forecasts.qmd >}} -->
+<!-- {{< include ./03-02-03-02-training-on-labelled-data.qmd >}} -->
+<!-- {{< include ./03-02-03-03-direct-optimization.qmd >}} -->
 
 \newpage
 {{< include ./04-00-reinforcement-learning.qmd >}}
