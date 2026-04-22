@@ -13,7 +13,7 @@ def test_sine_wave_ppo_training_debug():
     """
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \
-      --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml \
+      --config src/configs/scenarios/sine_wave/ppo_no_trend.yaml \
       # Edit config for max_steps/actor_lr as needed
     """
     # 1. Configure Logging (equivalent to LOG_LEVEL=DEBUG)
@@ -23,7 +23,7 @@ def test_sine_wave_ppo_training_debug():
 
     # 2. Setup Parameters (equivalent to CLI args)
     # Note: paths should be relative to project root where pytest is run
-    config_path = Path("src/configs/scenarios/sine_wave_ppo_no_trend.yaml")
+    config_path = Path("src/configs/scenarios/sine_wave/ppo_no_trend.yaml")
 
     params = TrainingParams(
         config_file=config_path,
@@ -50,7 +50,7 @@ def test_upward_trend_td3_training_debug():
     """
     Reproduces the CLI command (shortened for test):
     LOG_LEVEL=DEBUG python src/cli.py train \
-      --config src/configs/scenarios/upward_trend_td3_tradingenv.yaml \
+      --config src/configs/scenarios/synthetic/upward_trend_td3_tradingenv.yaml \
       # Edit config for max_steps/actor_lr/init_rand_steps as needed
 
     In test form we lower max_steps to keep runtime reasonable.
@@ -58,7 +58,7 @@ def test_upward_trend_td3_training_debug():
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_repro", level="DEBUG")
 
-    config_path = Path("src/configs/scenarios/upward_trend_td3_tradingenv.yaml")
+    config_path = Path("src/configs/scenarios/synthetic/upward_trend_td3_tradingenv.yaml")
 
     params = TrainingParams(
         config_file=config_path,
@@ -79,13 +79,13 @@ def test_upward_trend_ddpg_training_debug():
     Quick DDPG tradingenv uptrend repro (shortened for test runtime).
     Mirrors:
     LOG_LEVEL=DEBUG python src/cli.py train \
-      --config src/configs/scenarios/upward_trend_ddpg_tradingenv.yaml \
+      --config src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv.yaml \
       # Edit config for max_steps/init_rand_steps as needed
     """
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_repro", level="DEBUG")
 
-    config_path = Path("src/configs/scenarios/upward_trend_ddpg_tradingenv.yaml")
+    config_path = Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv.yaml")
 
     params = TrainingParams(
         config_file=config_path,
