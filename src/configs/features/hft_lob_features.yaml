@@ -121,6 +121,14 @@ features:
       levels: 5
       notional: 1000
 
+  # Multi-level OFI — Cont, Kukanov & Stoikov (2014)
+  - name: "hft_ofi_multilevel_3l"
+    feature_type: "ofi_multilevel"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 3
+
   # =============================================================================
   # Order Book Slope Features (Price Elasticity)
   # =============================================================================

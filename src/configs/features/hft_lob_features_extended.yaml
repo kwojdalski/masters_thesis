@@ -243,6 +243,21 @@ features:
       bid_size_col: "bid_sz_00"
       ask_size_col: "ask_sz_00"
 
+  # Multi-level OFI — Cont, Kukanov & Stoikov (2014)
+  - name: "hft_ofi_multilevel_3l"
+    feature_type: "ofi_multilevel"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 3
+
+  - name: "hft_ofi_multilevel_5l"
+    feature_type: "ofi_multilevel"
+    normalize: true
+    domain: "hft"
+    params:
+      levels: 5
+
   - name: "hft_bid_queue_depletion"
     feature_type: "queue_depletion"
     normalize: true
@@ -278,6 +293,44 @@ features:
       action_col: "action"
       side_col: "side"
       size_col: "size"
+
+  # VPIN — Volume-synchronized Probability of Informed Trading (tick approximation)
+  - name: "hft_vpin_100"
+    feature_type: "vpin"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 100
+      action_col: "action"
+      side_col: "side"
+      size_col: "size"
+
+  - name: "hft_vpin_500"
+    feature_type: "vpin"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 500
+      action_col: "action"
+      side_col: "side"
+      size_col: "size"
+
+  # Cancel-to-Trade Ratio — spoofing / adverse selection proxy
+  - name: "hft_cancel_to_trade_200"
+    feature_type: "cancel_to_trade_ratio"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 200
+      action_col: "action"
+
+  - name: "hft_cancel_to_trade_1000"
+    feature_type: "cancel_to_trade_ratio"
+    normalize: true
+    domain: "hft"
+    params:
+      window: 1000
+      action_col: "action"
 
   # =============================================================================
   # Event-Time and Order Count Features
