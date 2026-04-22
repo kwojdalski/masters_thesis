@@ -24,51 +24,43 @@ flowchart TD
     I --> J{For each trial}
     J --> K[run_single_experiment]
     K --> L[Setup Logging & Seed]
-    L --> M[Prepare Data]
-    M --> N[Create Environment]
-    N --> O{Algorithm type?}
-    O -->|PPO| P[Trainer.build_models -> PPO Actor-Critic]
-    O -->|DDPG| Q[Trainer.build_models -> Actor & Value Networks]
-    O -->|TD3| Q2[Trainer.build_models -> TD3 Actor & Twin Q-Nets]
-    P --> R[Setup PPO Loss & Optimizer]
-    Q --> S[Setup DDPG Loss & Optimizer]
-    Q2 --> S2[Setup TD3 Loss & Optimizers]
-    R --> T[Create Data Collector]
-    S --> T
-    S2 --> T
-    T --> U[Initialize Replay Buffer]
-    U --> V[Start MLflow Run]
+    L --> M[build_prepared_dataset]
+    M --> N[PreparedDataset]
+    N --> O[build_training_bundle]
+    O --> P[TrainingBundle<br/>train_env + trainer + callback]
+    P --> Q[Start MLflow Run]
     
-    V --> W[Training Loop]
+    Q --> W[Training Loop]
     W --> X{Training Steps < Max?}
     X -->|Yes| Y[Collect Data]
     Y --> Z[Update Replay Buffer]
     Z --> AA[Optimize Networks]
     AA --> BB[Log Metrics]
     BB --> CC{Evaluation Interval?}
-    CC -->|Yes| DD[Evaluate Agent]
+    CC -->|Yes| DD[Periodic train-split evaluation]
     DD --> EE[Log Episode Metrics]
-EE --> X
-CC -->|No| X
+    EE --> X
+    CC -->|No| X
     
-    X -->|No| FF[Final Evaluation]
-    FF --> GG[Generate Plots]
-    GG --> HH[Save Checkpoint]
-    HH --> II[Log Artifacts]
-    II --> JJ[End MLflow Run]
+    X -->|No| FF[Save Checkpoint]
+    FF --> GG[evaluate_all_splits]
+    GG --> HH[Resolve primary split<br/>test -> val -> train]
+    HH --> II[Primary split explainability]
+    II --> JJ[Build final metrics + log artifacts]
+    JJ --> KK[End MLflow Run]
     
-    JJ --> KK{More Trials?}
-    KK -->|Yes| J
-    KK -->|No| LL{--dashboard?}
-    LL -->|Yes| MM[Launch MLflow UI]
-    LL -->|No| NN[End]
-    MM --> NN
+    KK --> LL{More Trials?}
+    LL -->|Yes| J
+    LL -->|No| MM{--dashboard?}
+    MM -->|Yes| NN[Launch MLflow UI]
+    MM -->|No| OO[End]
+    NN --> OO
     
     style A fill:#e1f5fe,color:black
     style B fill:#f3e5f5,color:black
     style W fill:#fff3e0,color:black
-    style FF fill:#e8f5e8,color:black
-    style NN fill:#ffebee,color:black
+    style GG fill:#e8f5e8,color:black
+    style OO fill:#ffebee,color:black
     style H fill:#ffe0b2,color:black
 ```
 
@@ -82,13 +74,14 @@ CC -->|No| X
 
 ### 2. Data Preparation
 
--   **Function**: `prepare_data()`
+-   **Functions**: `prepare_data()` and `build_prepared_dataset()`
 -   **Location**: `src/trading_rl/data_utils.py`
 -   **Steps**:
     -   Load raw data from parquet files
-    -   Create technical features (if not using `--no-features`)
-    -   Apply normalization and preprocessing
-    -   Split into train/validation sets
+    -   Split chronologically before fitting features
+    -   Fit the feature pipeline on train only and transform all splits
+    -   Apply HFT-specific close/index repairs when required
+    -   Return a `PreparedDataset` bundle with split frames and metadata
 
 ### 3. Environment Creation
 
@@ -109,7 +102,7 @@ CC -->|No| X
 -   **Actor Network**: Policy network for action selection
 -   **Value Network**: Critic network for value estimation (twin critics for TD3)
 -   **Configurable**: Hidden dimensions, activation functions
--   **Construction**: Each trainer exposes `build_models(...)` and delegates to `trading_rl.models` factories
+-   **Construction**: `build_training_bundle()` creates the train env, selects the trainer class, builds models, and wires the callback
 
 ### 5. Training Loop
 
@@ -169,10 +162,10 @@ Configuration dataclass containing all experiment parameters: - **DataConfig**: 
 ### Data Flow
 
 1.  **Raw Data** → `load_trading_data()`
-2.  **Feature Engineering** → `create_features()`
-3.  **Environment** → TorchRL trading environment
+2.  **Prepared Dataset** → `build_prepared_dataset()`
+3.  **Training Bundle** → `build_training_bundle()`
 4.  **Agent Training** → PPO / DDPG / TD3 trainers
-5.  **Evaluation** → Performance metrics and plots (reward/actions plus PPO action probabilities)
+5.  **Evaluation** → `evaluate_all_splits()` plus final metrics and plots
 
 ### Evaluation Process
 
@@ -211,7 +204,6 @@ python src/cli.py experiment \
 
 ### Configuration Options
 
--   `--no-features`: Skip feature engineering, use raw OHLCV data
 -   `--dashboard`: Launch MLflow UI after completion
 -   `--clear-cache`: Clear data processing cache
 -   `--seed`: Set random seed for reproducibility

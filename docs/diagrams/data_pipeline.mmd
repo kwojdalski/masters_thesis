@@ -1,25 +1,26 @@
 flowchart TD
-    A[prepare_data inputs] --> B{Data file exists?}
-    B -- No, download enabled --> C[download_trading_data]
-    B -- No, download disabled --> D[FileNotFoundError]
-    B -- Yes --> E[load_trading_data]
-    C --> E
-    E --> F[drop NaNs]
-    F --> G[train / val / test split<br/>chronological order]
-    G --> H{feature config path?}
-    H -- Yes --> I[FeaturePipeline.from_yaml]
-    H -- No --> J[create_default_pipeline]
-    I --> K[pipeline.fit on train only]
-    J --> K
-    K --> L[transform train]
-    K --> M[transform val]
-    K --> N[transform test]
-    L --> O[concat raw + features<br/>train df]
-    M --> P[concat raw + features<br/>val df]
-    N --> Q[concat raw + features<br/>test df]
-    O --> R[ensure close column<br/>for HFT]
-    P --> R
-    Q --> R
-    R --> S[ensure unique index<br/>for TradingEnv HFT]
-    S --> T[validate train / val / test dfs]
-    T --> U[return prepared splits]
+    A[build_prepared_dataset config] --> B[prepare_data]
+    B --> C{Data file exists?}
+    C -- No, download enabled --> D[download_trading_data]
+    C -- No, download disabled --> E[FileNotFoundError]
+    C -- Yes --> F[load_trading_data]
+    D --> F
+    F --> G[drop NaNs]
+    G --> H[train / val / test split<br/>chronological order]
+    H --> I{feature config path?}
+    I -- Yes --> J[FeaturePipeline.from_yaml]
+    I -- No --> K[create_default_pipeline]
+    J --> L[pipeline.fit on train only]
+    K --> L
+    L --> M[transform train]
+    L --> N[transform val]
+    L --> O[transform test]
+    M --> P[concat raw + features<br/>train df]
+    N --> Q[concat raw + features<br/>val df]
+    O --> R[concat raw + features<br/>test df]
+    P --> S[ensure_close_column_for_hft]
+    Q --> S
+    R --> S
+    S --> T[ensure_unique_index_for_hft_tradingenv]
+    T --> U[validate_prepared_data]
+    U --> V[PreparedDataset<br/>train_df / val_df / test_df<br/>feature_columns / price_column]
