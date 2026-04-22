@@ -95,6 +95,8 @@ def test_build_training_context_smoke(tmp_path: Path):
     assert not context["val_df"].empty
     assert not context["test_df"].empty
     assert isinstance(context["prepared_dataset"], PreparedDataset)
+    assert context["training_bundle"].trainer is context["trainer"]
+    assert context["training_bundle"].train_env is context["env"]
     assert context["prepared_dataset"].price_column == "close"
     assert "feature_lag1" in context["train_df"].columns
     assert "feature_trend" in context["train_df"].columns

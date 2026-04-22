@@ -80,6 +80,18 @@ class CheckpointResumptionResult:
     original_steps: int
 
 
+@dataclass(frozen=True)
+class TrainingBundle:
+    """Constructed training runtime objects derived from config and dataset."""
+
+    train_env: Any
+    trainer: Any
+    mlflow_callback: MLflowTrainingCallback | None
+    algorithm: str
+    n_obs: int
+    n_act: int
+
+
 def _format_head_value(value: Any) -> str:
     """Format dataframe values for compact console table display."""
     if isinstance(value, float):
@@ -287,6 +299,132 @@ def _select_trainer_class(algorithm: str, backend: str):
         raise ValueError(f"Unsupported algorithm: {algorithm}")
 
 
+def _build_train_env(
+    dataset: PreparedDataset,
+    config: ExperimentConfig,
+    logger: logging.Logger,
+) -> Any:
+    """Build the training environment from the prepared training split."""
+    logger.info("Creating environment...")
+    env_builder = AlgorithmicEnvironmentBuilder()
+    env = env_builder.create(dataset.train_df, config)
+    logger.debug("Environment specs:")
+    logger.debug(f"  Observation spec: {env.observation_spec}")
+    logger.debug(f"  Action spec: {env.action_spec}")
+    logger.debug(f"  Reward spec: {env.reward_spec}")
+    return env
+
+
+def _build_trainer(
+    env: Any,
+    config: ExperimentConfig,
+    algorithm: str,
+    effective_experiment_name: str,
+    logger: logging.Logger,
+) -> tuple[Any, int, int]:
+    """Build trainer and return it with inferred observation/action dimensions."""
+    n_obs = env.observation_spec["observation"].shape[-1]
+    n_act = env.action_spec.shape[-1]
+    logger.info(f"Environment: {n_obs} observations, {n_act} actions")
+
+    backend = getattr(config.env, "backend", "")
+    logger.info(f"Creating models for {algorithm} algorithm (Backend: {backend})...")
+    trainer_cls = _select_trainer_class(algorithm, backend)
+
+    if trainer_cls == PPOTrainerContinuous:
+        logger.info("Selected PPOTrainerContinuous for continuous environment")
+    elif trainer_cls == PPOTrainer:
+        logger.info("Selected PPOTrainer for discrete environment")
+    else:
+        logger.info(f"Selected {trainer_cls.__name__}")
+
+    if algorithm == "TD3":
+        actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
+        trainer = trainer_cls(
+            actor=actor,
+            qvalue_net=qvalue_net,
+            env=env,
+            config=config.training,
+            checkpoint_dir=config.logging.log_dir,
+            checkpoint_prefix=effective_experiment_name,
+        )
+    else:
+        actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
+        trainer = trainer_cls(
+            actor=actor,
+            value_net=value_net,
+            env=env,
+            config=config.training,
+            checkpoint_dir=config.logging.log_dir,
+            checkpoint_prefix=effective_experiment_name,
+        )
+
+    return trainer, n_obs, n_act
+
+
+def _build_mlflow_callback(
+    *,
+    config: ExperimentConfig,
+    dataset: PreparedDataset,
+    effective_experiment_name: str,
+    progress_bar: Any,
+) -> MLflowTrainingCallback:
+    """Build MLflow callback for a fresh training run."""
+    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
+    estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
+    price_series = dataset.train_df[dataset.price_column]
+
+    return MLflowTrainingCallback(
+        effective_experiment_name,
+        tracking_uri=tracking_uri,
+        progress_bar=progress_bar,
+        total_episodes=estimated_episodes if progress_bar else None,
+        price_series=price_series,
+        initial_portfolio_value=config.env.initial_portfolio_value,
+        reward_type=config.env.reward_type,
+        config_for_run_name=config,
+    )
+
+
+def _build_training_bundle(
+    *,
+    config: ExperimentConfig,
+    dataset: PreparedDataset,
+    effective_experiment_name: str,
+    logger: logging.Logger,
+    progress_bar: Any,
+    create_mlflow_callback: bool,
+) -> TrainingBundle:
+    """Build env, trainer, and optional MLflow callback for training."""
+    algorithm = getattr(config.training, "algorithm", "PPO").upper()
+    train_env = _build_train_env(dataset, config, logger)
+    trainer, n_obs, n_act = _build_trainer(
+        train_env,
+        config,
+        algorithm,
+        effective_experiment_name,
+        logger,
+    )
+
+    mlflow_callback = None
+    if create_mlflow_callback:
+        mlflow_callback = _build_mlflow_callback(
+            config=config,
+            dataset=dataset,
+            effective_experiment_name=effective_experiment_name,
+            progress_bar=progress_bar,
+        )
+
+    return TrainingBundle(
+        train_env=train_env,
+        trainer=trainer,
+        mlflow_callback=mlflow_callback,
+        algorithm=algorithm,
+        n_obs=n_obs,
+        n_act=n_act,
+    )
+
+
 def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> None:
     """Print configuration values in debug mode using automatic traversal."""
     import datetime
@@ -388,83 +526,14 @@ def build_training_context(
             logger.debug(f"  Features found: {feature_cols}")
         else:
             logger.debug("  No feature_* columns found in prepared data")
-
-    logger.info("Creating environment...")
-    env_builder = AlgorithmicEnvironmentBuilder()
-    env = env_builder.create(train_df, config)
-
-    n_obs = env.observation_spec["observation"].shape[-1]
-    n_act = env.action_spec.shape[-1]
-    logger.info(f"Environment: {n_obs} observations, {n_act} actions")
-
-    logger.debug("Environment specs:")
-    logger.debug(f"  Observation spec: {env.observation_spec}")
-    logger.debug(f"  Action spec: {env.action_spec}")
-    logger.debug(f"  Reward spec: {env.reward_spec}")
-
-    backend = getattr(config.env, "backend", "")
-    algorithm = getattr(config.training, "algorithm", "PPO").upper()
-
-    logger.info(f"Creating models for {algorithm} algorithm (Backend: {backend})...")
-    trainer_cls = _select_trainer_class(algorithm, backend)
-
-    # Log trainer selection
-    if trainer_cls == PPOTrainerContinuous:
-        logger.info("Selected PPOTrainerContinuous for continuous environment")
-    elif trainer_cls == PPOTrainer:
-        logger.info("Selected PPOTrainer for discrete environment")
-    else:
-        logger.info(f"Selected {trainer_cls.__name__}")
-
-    if algorithm == "TD3":
-        actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
-        trainer = trainer_cls(
-            actor=actor,
-            qvalue_net=qvalue_net,
-            env=env,
-            config=config.training,
-            checkpoint_dir=config.logging.log_dir,
-            checkpoint_prefix=effective_experiment_name,
-        )
-    else:
-        actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
-        trainer = trainer_cls(
-            actor=actor,
-            value_net=value_net,
-            env=env,
-            config=config.training,
-            checkpoint_dir=config.logging.log_dir,
-            checkpoint_prefix=effective_experiment_name,
-        )
-
-    mlflow_callback = None
-    if create_mlflow_callback:
-        tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
-        estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
-        configured_price_column = getattr(config.env, "price_column", None)
-        if (
-            isinstance(configured_price_column, str)
-            and configured_price_column in train_df.columns
-        ):
-            price_series = train_df[configured_price_column]
-        elif "close" in train_df.columns:
-            price_series = train_df["close"]
-        elif "price" in train_df.columns:
-            price_series = train_df["price"]
-        else:
-            # For feature-only data, create a dummy series
-            price_series = pd.Series(range(len(train_df)), index=train_df.index)
-
-        mlflow_callback = MLflowTrainingCallback(
-            effective_experiment_name,
-            tracking_uri=tracking_uri,
-            progress_bar=progress_bar,
-            total_episodes=estimated_episodes if progress_bar else None,
-            price_series=price_series,
-            initial_portfolio_value=config.env.initial_portfolio_value,
-            reward_type=config.env.reward_type,
-            config_for_run_name=config,
-        )
+    training_bundle = _build_training_bundle(
+        config=config,
+        dataset=prepared_dataset,
+        effective_experiment_name=effective_experiment_name,
+        logger=logger,
+        progress_bar=progress_bar,
+        create_mlflow_callback=create_mlflow_callback,
+    )
 
     if mlflow.active_run():
         MLflowTrainingCallback.log_parameter_faq_artifact()
@@ -478,12 +547,13 @@ def build_training_context(
         "train_df": train_df,
         "val_df": val_df,
         "test_df": test_df,
-        "env": env,
-        "trainer": trainer,
-        "mlflow_callback": mlflow_callback,
-        "algorithm": algorithm,
-        "n_obs": n_obs,
-        "n_act": n_act,
+        "env": training_bundle.train_env,
+        "training_bundle": training_bundle,
+        "trainer": training_bundle.trainer,
+        "mlflow_callback": training_bundle.mlflow_callback,
+        "algorithm": training_bundle.algorithm,
+        "n_obs": training_bundle.n_obs,
+        "n_act": training_bundle.n_act,
         "effective_experiment_name": effective_experiment_name,
     }
 
