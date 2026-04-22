@@ -70,14 +70,14 @@ jobs:
 
       - name: Publish committed thesis PDF
         run: |
-          if [ ! -f "thesis/build/masters-thesis.pdf" ]; then
-            echo "ERROR: committed PDF not found at thesis/build/masters-thesis.pdf"
+          if [ ! -f "thesis/qmd/src/masters-thesis.pdf" ]; then
+            echo "ERROR: committed PDF not found at thesis/qmd/src/masters-thesis.pdf"
             exit 1
           fi
 
           echo "Using committed PDF artifact"
-          echo "PDF file size: $(wc -c < thesis/build/masters-thesis.pdf) bytes"
-          cp thesis/build/masters-thesis.pdf _site/masters-thesis.pdf
+          echo "PDF file size: $(wc -c < thesis/qmd/src/masters-thesis.pdf) bytes"
+          cp thesis/qmd/src/masters-thesis.pdf _site/masters-thesis.pdf
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
