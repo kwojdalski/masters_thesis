@@ -1,0 +1,15 @@
+{
+  "episode_reward": 0.07635726779699326,
+  "episode_portfolio_valuation": 10793.481216069344,
+  "episode_position_changes": 128.0,
+  "episode_position_change_ratio": 0.64,
+  "episode_sum_position": 1.6683899518102407,
+  "episode_exploration_ratio": 0.2,
+  "actor_loss": 0.10802873969078064,
+  "value_loss": 8.55691178003326e-05,
+  "actor_param_abs_sum": 755.0186441913247,
+  "critic_param_abs_sum": 1047.648774832487,
+  "critic_qvalue_params_max_diff": 0.47572797536849976,
+  "avg_position_changes": 138.53,
+  "temp_eval_reward": -0.05128169432282448
+}
