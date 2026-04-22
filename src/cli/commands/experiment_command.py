@@ -73,10 +73,15 @@ class ExperimentCommand(BaseCommand):
         
         # Create config and override with CLI parameters
         if params.config_file:
-            config = ExperimentConfig.from_yaml(
-                params.config_file, overrides=params.config_overrides
+            config_path = (
+                params.config_file
+                if params.config_file.exists()
+                else self._resolve_scenario_config_path(str(params.config_file))
             )
-            self.console.print(f"[blue]Loaded config from file: {params.config_file}[/blue]")
+            config = ExperimentConfig.from_yaml(
+                config_path, overrides=params.config_overrides
+            )
+            self.console.print(f"[blue]Loaded config from file: {config_path}[/blue]")
         elif params.scenario:
             # Resolve scenario to config file
             config_file = self._resolve_scenario_config_path(params.scenario)

@@ -69,8 +69,13 @@ class FeatureResearchCommand(BaseCommand):
                 overrides=params.config_overrides,
             )
         if params.experiment_config_file:
+            exp_path = (
+                params.experiment_config_file
+                if params.experiment_config_file.exists()
+                else self._resolve_scenario_config_path(str(params.experiment_config_file))
+            )
             experiment_config = ExperimentConfig.from_yaml(
-                params.experiment_config_file,
+                exp_path,
                 overrides=params.config_overrides,
             )
             return FeatureResearchConfig.from_experiment_config(experiment_config)
