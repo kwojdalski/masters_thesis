@@ -62,7 +62,7 @@ def _generate_dataset_for_scenario(tmp_path: Path, scenario_path: Path) -> Path:
 
 
 def _make_smoke_config(tmp_path: Path, scenario_path: Path, data_path: Path) -> ExperimentConfig:
-    tracking_dir = tmp_path / "mlruns"
+    tracking_db = tmp_path / "mlflow.db"
     log_dir = tmp_path / "logs"
 
     return ExperimentConfig.from_yaml(
@@ -88,7 +88,7 @@ def _make_smoke_config(tmp_path: Path, scenario_path: Path, data_path: Path) -> 
             f"logging.log_dir={log_dir}",
             "logging.log_level=WARNING",
             "logging.save_plots=false",
-            f"tracking.tracking_uri=file://{tracking_dir}",
+            f"tracking.tracking_uri=sqlite:///{tracking_db}",
             "explainability.enabled=false",
             "statistical_testing.enabled=false",
         ],
