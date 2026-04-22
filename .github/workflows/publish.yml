@@ -52,8 +52,11 @@ jobs:
         run: |
           echo "Starting PDF render at $(date)"
 
-          # Check if Quarto can find the document
-          quarto check thesis/qmd/src/masters-thesis.qmd
+          # Check if the document exists
+          if [ ! -f "thesis/qmd/src/masters-thesis.qmd" ]; then
+            echo "ERROR: Thesis file not found!"
+            exit 1
+          fi
 
           # Set environment variables to prevent interactive prompts
           export TEXINPUTS=".:/usr/share/texmf/tex/latex//:"
