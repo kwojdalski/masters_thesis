@@ -395,20 +395,21 @@ def train(
         # Basic training
         python src/cli.py train
 
-        # With custom config
-        python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml
+        # With custom config (full path or group/name shorthand)
+        python src/cli.py train --config src/configs/scenarios/sine_wave/ppo_no_trend.yaml
+        python src/cli.py train --config sine_wave/ppo_no_trend
 
         # Override config parameters
-        python src/cli.py train -c src/configs/scenarios/sine_wave_ppo_no_trend.yaml -o training.max_steps=10000
+        python src/cli.py train -c sine_wave/ppo_no_trend -o training.max_steps=10000
 
         # Custom experiment name
-        python src/cli.py train -c src/configs/scenarios/sine_wave_ppo_no_trend.yaml --name my_experiment
+        python src/cli.py train -c sine_wave/ppo_no_trend --name my_experiment
 
         # Multiple trials
-        python src/cli.py train -c src/configs/scenarios/sine_wave_ppo_no_trend.yaml --trials 5
+        python src/cli.py train -c sine_wave/ppo_no_trend --trials 5
 
         # Resume from last checkpoint
-        python src/cli.py train -c src/configs/scenarios/sine_wave_ppo_no_trend.yaml --from-last-checkpoint --additional-steps 5000
+        python src/cli.py train -c sine_wave/ppo_no_trend --from-last-checkpoint --additional-steps 5000
 
         # Resume from specific checkpoint
         python src/cli.py train --from-checkpoint logs/my_exp/my_exp_checkpoint_step_1000.pt --additional-steps 10000
@@ -592,8 +593,8 @@ def scenarios(
         console.print("[red]Config directory not found: src/configs/scenarios[/red]")
         return
 
-    # Find all YAML config files
-    config_files = sorted(config_dir.glob("*.yaml"))
+    # Find all YAML config files (recursive to support group subfolders)
+    config_files = sorted(config_dir.glob("**/*.yaml"))
 
     if not config_files:
         console.print("[yellow]No configuration files found[/yellow]")
