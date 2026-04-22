@@ -42,7 +42,7 @@ is on why each concept is specifically consequential for trading problems.
 :::
 
 Portfolio decisions are sequential and path-dependent. This makes the MDP
-framework [@Bellman1957; @Puterman1994] the natural formal language for trading
+framework [@Bellman1957; @Puterman1994] the formal language for trading
 agents. However, financial environments only approximately satisfy standard MDP
 assumptions. Market regime shifts, structural breaks, and partial observability
 all contribute to this approximation.
@@ -58,13 +58,13 @@ rather than requiring live interaction with the market.
 Portfolio problems are naturally continuous. This makes tabular and discrete-action
 value methods structurally inadequate. Policy gradient methods
 [@Williams1992; @Sutton2000] and the actor-critic architectures they
-support are the appropriate class for continuous position sizing. The
+support are the class for continuous position sizing. The
 high-dimensionality of financial state representations makes function
 approximation necessary. Deep RL methods [@Mnih2015] provide the required
 generalization capacity. However, this comes at the cost of stability issues
 in off-policy settings [@Tsitsiklis1997].
 
-This fragility motivated the specific stabilization mechanisms in TD3 [@Fujimoto2018].
+This fragility motivated the stabilization mechanisms in TD3 [@Fujimoto2018].
 It also recurs throughout the applied trading literature.
 
 Four practical complications distinguish financial RL from standard control

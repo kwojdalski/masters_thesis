@@ -1,10 +1,8 @@
-"""MLflow callback and utilities for training logging."""
+"""MLflow callback for training progress logging."""
+
+from __future__ import annotations
 
 import json
-import logging
-import os
-import shutil
-import tempfile
 from dataclasses import asdict, is_dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -13,12 +11,21 @@ from typing import Any
 
 import mlflow
 import numpy as np
-import pandas as pd
 import torch
-import yaml
 
-from logger import get_logger as get_project_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+
+from trading_rl.callbacks.artifacts import (
+    log_config_artifact,
+    log_data_overview,
+    log_evaluation_plots,
+    log_evaluation_report,
+    log_explainability_results,
+    log_final_metrics,
+    log_parameter_faq_artifact,
+    log_statistical_tests,
+    log_training_parameters,
+)
 
 _POSITION_CHANGE_TOLERANCE = 0.1
 _POSITION_CHANGE_WINDOW = 100
@@ -27,12 +34,28 @@ _POSITION_CHANGE_WINDOW = 100
 class MLflowTrainingCallback:
     """Callback for logging training progress to MLflow.
 
-    Logs multiple metrics simultaneously:
+    Logs multiple metrics per step and episode:
     - Actor and value losses
     - Position changes and trading activity
     - Portfolio values and rewards
-    - Custom plots and artifacts
+
+    Artifact and metric logging helpers (config, data overview, evaluation
+    reports, statistical tests, explainability, plots) live in
+    ``trading_rl.callbacks.artifacts`` and are re-exported here as class
+    attributes for backward compatibility.
     """
+
+    # Re-export artifact helpers so callers using
+    # ``MLflowTrainingCallback.log_*(…)`` continue to work unchanged.
+    log_config_artifact = staticmethod(log_config_artifact)
+    log_data_overview = staticmethod(log_data_overview)
+    log_evaluation_plots = staticmethod(log_evaluation_plots)
+    log_evaluation_report = staticmethod(log_evaluation_report)
+    log_explainability_results = staticmethod(log_explainability_results)
+    log_final_metrics = staticmethod(log_final_metrics)
+    log_parameter_faq_artifact = staticmethod(log_parameter_faq_artifact)
+    log_statistical_tests = staticmethod(log_statistical_tests)
+    log_training_parameters = staticmethod(log_training_parameters)
 
     def __init__(
         self,
@@ -63,7 +86,6 @@ class MLflowTrainingCallback:
         }
         self.price_series = price_series
 
-        # Progress bar tracking
         self.progress_bar = progress_bar
         self.progress_task = None
         self.total_episodes = total_episodes
@@ -72,7 +94,6 @@ class MLflowTrainingCallback:
             mlflow.set_tracking_uri(tracking_uri)
         mlflow.set_experiment(experiment_name)
 
-        # Start run if not already active
         if start_run and not mlflow.active_run():
             mlflow.start_run(
                 run_name=self._default_run_name(
@@ -81,7 +102,6 @@ class MLflowTrainingCallback:
                 )
             )
 
-        # Initialize progress bar task if provided
         if self.progress_bar and self.total_episodes:
             self.progress_task = self.progress_bar.add_task(
                 "[cyan]Training Episodes", total=self.total_episodes
@@ -94,15 +114,11 @@ class MLflowTrainingCallback:
         value_loss: float,
         extra_metrics: dict[str, float] | None = None,
     ):
-        """Log losses from a training step to MLflow.
-
-        Logs multiple metrics simultaneously for rich tracking.
-        """
+        """Log losses from a training step to MLflow."""
         self.intermediate_losses["actor"].append(actor_loss)
         self.intermediate_losses["value"].append(value_loss)
         self.step_count = step
 
-        # Log losses to MLflow every step
         mlflow.log_metric("actor_loss", actor_loss, step=step)
         mlflow.log_metric("value_loss", value_loss, step=step)
 
@@ -110,7 +126,6 @@ class MLflowTrainingCallback:
             for key, val in extra_metrics.items():
                 mlflow.log_metric(key, val, step=step)
 
-        # Log position changes if available
         if self.position_change_counts:
             window = min(len(self.position_change_counts), _POSITION_CHANGE_WINDOW)
             avg_position_changes = float(np.mean(self.position_change_counts[-window:]))
@@ -135,40 +150,29 @@ class MLflowTrainingCallback:
         episode_sum_position = float(np.sum(actions)) if actions else 0.0
         self.training_stats["sum_positions"].append(episode_sum_position)
 
-        # Calculate position change ratio (position changes / episode length)
         episode_length = len(actions)
-        position_change_ratio = (
-            position_changes / episode_length if episode_length > 0 else 0.0
-        )
+        position_change_ratio = position_changes / episode_length if episode_length > 0 else 0.0
 
-        # Log episode metrics to MLflow
         episode_base = self._episode_count
         if isinstance(episode_base, torch.Tensor):
             episode_base = int(episode_base.item())
         episode_num = int(episode_base) + len(self.training_stats["episode_rewards"])
-        mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
-        mlflow.log_metric(
-            "episode_portfolio_valuation", portfolio_valuation, step=episode_num
-        )
-        mlflow.log_metric(
-            "episode_position_changes", position_changes, step=episode_num
-        )
-        mlflow.log_metric(
-            "episode_position_change_ratio", position_change_ratio, step=episode_num
-        )
-        mlflow.log_metric(
-            "episode_sum_position", episode_sum_position, step=episode_num
-        )
-        mlflow.log_metric(
-            "episode_exploration_ratio", exploration_ratio, step=episode_num
-        )
 
-        # Update progress bar if available
+        mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
+        mlflow.log_metric("episode_portfolio_valuation", portfolio_valuation, step=episode_num)
+        mlflow.log_metric("episode_position_changes", position_changes, step=episode_num)
+        mlflow.log_metric("episode_position_change_ratio", position_change_ratio, step=episode_num)
+        mlflow.log_metric("episode_sum_position", episode_sum_position, step=episode_num)
+        mlflow.log_metric("episode_exploration_ratio", exploration_ratio, step=episode_num)
+
         if self.progress_bar and self.progress_task is not None:
             self.progress_bar.update(
                 self.progress_task,
                 advance=1,
-                description=f"[cyan]Episode {episode_num} | Reward: {episode_reward:.4f} | Portfolio: ${portfolio_valuation:,.0f}",
+                description=(
+                    f"[cyan]Episode {episode_num} | Reward: {episode_reward:.4f} "
+                    f"| Portfolio: ${portfolio_valuation:,.0f}"
+                ),
             )
 
     def get_training_curves(self) -> dict:
@@ -183,12 +187,15 @@ class MLflowTrainingCallback:
             "sum_positions": self.training_stats["sum_positions"],
         }
 
+    # ------------------------------------------------------------------
+    # Private helpers used only by instance methods above
+    # ------------------------------------------------------------------
+
     @staticmethod
     def _count_position_changes(actions: list, tolerance: float = 1e-6) -> int:
         """Count how often the agent changes positions within an episode."""
         if len(actions) < 2:
             return 0
-
         changes = 0
         prev_action = actions[0]
         for action in actions[1:]:
@@ -203,8 +210,7 @@ class MLflowTrainingCallback:
         safe_experiment = experiment_name.replace("/", "_").replace(" ", "_")
         if config is None:
             return safe_experiment
-        signature = MLflowTrainingCallback._config_signature(config)
-        return signature
+        return MLflowTrainingCallback._config_signature(config)
 
     @staticmethod
     def _normalize_for_hash(value: Any) -> Any:
@@ -228,58 +234,19 @@ class MLflowTrainingCallback:
     def _config_signature(config: Any) -> str:
         """Encode config into a stable 3-word signature."""
         adjectives = (
-            "amber",
-            "brisk",
-            "calm",
-            "daring",
-            "eager",
-            "frozen",
-            "golden",
-            "hidden",
-            "ivory",
-            "jade",
-            "keen",
-            "lunar",
-            "mellow",
-            "noble",
-            "opal",
-            "proud",
+            "amber", "brisk", "calm", "daring", "eager", "frozen",
+            "golden", "hidden", "ivory", "jade", "keen", "lunar",
+            "mellow", "noble", "opal", "proud",
         )
         nouns = (
-            "atlas",
-            "beacon",
-            "cipher",
-            "delta",
-            "ember",
-            "falcon",
-            "grove",
-            "harbor",
-            "island",
-            "jungle",
-            "kernel",
-            "lagoon",
-            "matrix",
-            "nebula",
-            "orbit",
-            "pulse",
+            "atlas", "beacon", "cipher", "delta", "ember", "falcon",
+            "grove", "harbor", "island", "jungle", "kernel", "lagoon",
+            "matrix", "nebula", "orbit", "pulse",
         )
         suffixes = (
-            "alpha",
-            "bravo",
-            "charlie",
-            "delta",
-            "echo",
-            "foxtrot",
-            "golf",
-            "hotel",
-            "india",
-            "juliet",
-            "kilo",
-            "lima",
-            "mike",
-            "november",
-            "oscar",
-            "papa",
+            "alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
+            "golf", "hotel", "india", "juliet", "kilo", "lima",
+            "mike", "november", "oscar", "papa",
         )
 
         normalized = MLflowTrainingCallback._normalize_for_hash(config)
@@ -288,997 +255,4 @@ class MLflowTrainingCallback:
         b0 = int(digest[0:2], 16)
         b1 = int(digest[2:4], 16)
         b2 = int(digest[4:6], 16)
-
-        w1 = adjectives[b0 % len(adjectives)]
-        w2 = nouns[b1 % len(nouns)]
-        w3 = suffixes[b2 % len(suffixes)]
-        return f"{w1}-{w2}-{w3}"
-
-    @staticmethod
-    def log_config_artifact(config) -> None:
-        """Log YAML config file as an MLflow artifact."""
-        # Try to find an existing config file by experiment name (search recursively).
-        # Reconstruct the group-prefixed name for each candidate using the same
-        # logic as config.py (joining path parts after "scenarios/" with "_").
-        config_dir = Path("src/configs/scenarios")
-        config_file = None
-        for candidate in config_dir.rglob("*.yaml"):
-            cparts = candidate.parts
-            try:
-                idx = list(cparts).index("scenarios")
-                rel_parts = cparts[idx + 1:]
-                candidate_name = "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else candidate.stem
-            except ValueError:
-                candidate_name = candidate.stem
-            if candidate_name == config.experiment_name:
-                config_file = candidate
-                break
-
-        if config_file and config_file.exists():
-            mlflow.log_artifact(str(config_file), "config")
-            return
-
-        # Otherwise, serialize the in-memory config
-        config_dict = {
-            "experiment_name": config.experiment_name,
-            "seed": config.seed,
-            "data": {
-                "data_path": config.data.data_path,
-                "download_data": config.data.download_data,
-                "exchange_names": config.data.exchange_names,
-                "symbols": config.data.symbols,
-                "timeframe": config.data.timeframe,
-                "data_dir": config.data.data_dir,
-                "download_since": config.data.download_since,
-                "train_size": config.data.train_size,
-            },
-            "env": {
-                "name": config.env.name,
-                "positions": config.env.positions,
-                "trading_fees": config.env.trading_fees,
-                "borrow_interest_rate": config.env.borrow_interest_rate,
-            },
-            "network": {
-                "actor_hidden_dims": config.network.actor_hidden_dims,
-                "value_hidden_dims": config.network.value_hidden_dims,
-            },
-            "training": {
-                "algorithm": config.training.algorithm,
-                "actor_lr": config.training.actor_lr,
-                "value_lr": config.training.value_lr,
-                "value_weight_decay": config.training.value_weight_decay,
-                "max_steps": config.training.max_steps,
-                "init_rand_steps": config.training.init_rand_steps,
-                "frames_per_batch": config.training.frames_per_batch,
-                "optim_steps_per_batch": config.training.optim_steps_per_batch,
-                "sample_size": config.training.sample_size,
-                "buffer_size": config.training.buffer_size,
-                "loss_function": config.training.loss_function,
-                "eval_steps": config.training.eval_steps,
-                "eval_interval": config.training.eval_interval,
-                "log_interval": config.training.log_interval,
-            },
-            "logging": {
-                "log_dir": config.logging.log_dir,
-                "log_level": config.logging.log_level,
-            },
-        }
-
-        # Add algorithm-specific parameters
-        if hasattr(config.training, "tau"):
-            config_dict["training"]["tau"] = config.training.tau
-        if hasattr(config.training, "clip_epsilon"):
-            config_dict["training"]["clip_epsilon"] = config.training.clip_epsilon
-        if hasattr(config.training, "entropy_bonus"):
-            config_dict["training"]["entropy_bonus"] = config.training.entropy_bonus
-        if hasattr(config.training, "vf_coef"):
-            config_dict["training"]["vf_coef"] = config.training.vf_coef
-        if hasattr(config.training, "ppo_epochs"):
-            config_dict["training"]["ppo_epochs"] = config.training.ppo_epochs
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
-            mlflow.log_artifact(f.name, "config")
-            os.unlink(f.name)
-
-    @staticmethod
-    def log_training_parameters(config) -> None:
-        """Log core training parameters to MLflow."""
-        try:
-            mlflow.log_param("experiment_name", str(config.experiment_name))
-            mlflow.log_param("seed", int(config.seed))
-
-            # Data parameters
-            mlflow.log_param("data_train_size", int(config.data.train_size))
-            mlflow.log_param("data_timeframe", str(config.data.timeframe))
-            mlflow.log_param(
-                "data_exchange_names", json.dumps(config.data.exchange_names)
-            )
-            mlflow.log_param("data_symbols", json.dumps(config.data.symbols))
-            mlflow.log_param("data_download_data", bool(config.data.download_data))
-            # Environment parameters
-            mlflow.log_param("env_name", str(config.env.name))
-            mlflow.log_param("env_positions", json.dumps(config.env.positions))
-            mlflow.log_param("env_trading_fees", float(config.env.trading_fees))
-            mlflow.log_param(
-                "env_borrow_interest_rate", float(config.env.borrow_interest_rate)
-            )
-            mlflow.log_param(
-                "env_initial_portfolio_value", float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
-            )
-
-            # Network parameters
-            mlflow.log_param(
-                "network_actor_hidden_dims",
-                json.dumps(config.network.actor_hidden_dims),
-            )
-            mlflow.log_param(
-                "network_value_hidden_dims",
-                json.dumps(config.network.value_hidden_dims),
-            )
-
-            # Training parameters
-            mlflow.log_param("training_algorithm", str(config.training.algorithm))
-            mlflow.log_param("training_actor_lr", float(config.training.actor_lr))
-            mlflow.log_param("training_value_lr", float(config.training.value_lr))
-            mlflow.log_param(
-                "training_value_weight_decay", float(config.training.value_weight_decay)
-            )
-            mlflow.log_param("training_max_steps", int(config.training.max_steps))
-            mlflow.log_param(
-                "training_init_rand_steps", int(config.training.init_rand_steps)
-            )
-            mlflow.log_param(
-                "training_frames_per_batch", int(config.training.frames_per_batch)
-            )
-            mlflow.log_param(
-                "training_optim_steps_per_batch",
-                int(config.training.optim_steps_per_batch),
-            )
-            mlflow.log_param("training_sample_size", int(config.training.sample_size))
-            mlflow.log_param("training_buffer_size", int(config.training.buffer_size))
-            mlflow.log_param(
-                "training_checkpoint_interval",
-                int(getattr(config.training, "checkpoint_interval", 0)),
-            )
-            mlflow.log_param(
-                "training_loss_function", str(config.training.loss_function)
-            )
-            mlflow.log_param("training_eval_steps", int(config.training.eval_steps))
-            mlflow.log_param(
-                "training_eval_interval", int(config.training.eval_interval)
-            )
-            mlflow.log_param("training_log_interval", int(config.training.log_interval))
-
-            if hasattr(config.training, "tau"):
-                mlflow.log_param("training_tau", float(config.training.tau))
-            if hasattr(config.training, "clip_epsilon"):
-                mlflow.log_param(
-                    "training_clip_epsilon", float(config.training.clip_epsilon)
-                )
-            if hasattr(config.training, "entropy_bonus"):
-                mlflow.log_param(
-                    "training_entropy_bonus", float(config.training.entropy_bonus)
-                )
-            if hasattr(config.training, "vf_coef"):
-                mlflow.log_param("training_vf_coef", float(config.training.vf_coef))
-            if hasattr(config.training, "ppo_epochs"):
-                mlflow.log_param("training_ppo_epochs", int(config.training.ppo_epochs))
-
-            # Logging parameters
-            mlflow.log_param("logging_log_dir", str(config.logging.log_dir))
-            mlflow.log_param("logging_log_level", str(config.logging.log_level))
-
-        except Exception as e:  # pragma: no cover - defensive
-            get_project_logger(__name__).warning(
-                f"Failed to log some training parameters: {e}"
-            )
-
-    @staticmethod
-    def log_parameter_faq_artifact() -> None:
-        """Log parameter FAQ as both markdown and HTML artifacts."""
-        logger = get_project_logger(__name__)
-
-        try:
-            # Check MLflow run status
-            active_run = mlflow.active_run()
-            if not active_run:
-                logger.warning("No active MLflow run - skipping FAQ artifacts")
-                return
-
-            faq_path = (
-                Path(__file__).resolve().parent.parent / "docs" / "parameter_faq.md"
-            )
-            if not faq_path.exists():
-                logger.warning(f"FAQ file not found: {faq_path}")
-                return
-
-            # Log original markdown
-            try:
-                mlflow.log_artifact(str(faq_path), "documentation")
-                logger.info("Successfully logged FAQ markdown artifact")
-            except Exception as md_error:
-                logger.error(f"Failed to log markdown FAQ: {md_error}")
-                return
-
-            # Convert to HTML and log
-            try:
-                import markdown
-
-                with open(faq_path, encoding="utf-8") as f:
-                    md_content = f.read()
-
-                try:
-                    html_content = markdown.markdown(
-                        md_content, extensions=["tables", "fenced_code", "toc"]
-                    )
-                except Exception as ext_error:
-                    logger.warning(
-                        f"Failed with extensions, trying basic conversion: {ext_error}"
-                    )
-                    html_content = markdown.markdown(md_content)
-
-                styled_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Parameter FAQ - Trading RL Experiments</title>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }}
-        h1, h2, h3 {{ color: #333; }}
-        h1 {{ border-bottom: 2px solid #eee; padding-bottom: 10px; }}
-        h2 {{ border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; }}
-        code {{ background: #f5f5f5; padding: 2px 4px; border-radius: 3px; font-family: 'Monaco', 'Consolas', monospace; }}
-        pre {{ background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }}
-        ul, ol {{ padding-left: 20px; }}
-        li {{ margin: 5px 0; }}
-        strong {{ color: #2c3e50; }}
-        blockquote {{ border-left: 4px solid #ddd; margin-left: 0; padding-left: 20px; color: #666; }}
-        table {{ border-collapse: collapse; width: 100%; margin: 10px 0; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #f5f5f5; }}
-    </style>
-</head>
-<body>
-{html_content}
-</body>
-</html>"""
-
-                temp_dir = tempfile.gettempdir()
-                html_temp_path = os.path.join(temp_dir, "parameter_faq.html")
-
-                logger.info(f"Creating HTML file at: {html_temp_path}")
-                logger.info(f"HTML content length: {len(styled_html)} characters")
-
-                with open(html_temp_path, "w", encoding="utf-8") as f:
-                    f.write(styled_html)
-
-                if os.path.exists(html_temp_path):
-                    mlflow.log_artifact(html_temp_path, "documentation")
-                    logger.info("Successfully logged FAQ HTML artifact")
-                    os.unlink(html_temp_path)
-                else:
-                    logger.error("HTML file was not created!")
-
-            except ImportError:
-                logger.warning(
-                    "Markdown library not available - skipping HTML conversion"
-                )
-            except Exception as html_error:
-                logger.error(f"Failed to create/log HTML FAQ: {html_error}")
-
-        except Exception as e:
-            logger.error(f"Error in FAQ artifact logging: {e}")
-
-    @staticmethod
-    def log_data_overview(df, config) -> None:
-        """Log dataset overview, sample, and quick visuals to MLflow."""
-        logger = get_project_logger(__name__)
-
-        if not mlflow.active_run():
-            logger.warning("No active MLflow run - skipping data overview logging")
-            return
-
-        try:
-            import tempfile
-
-            import pandas as pd
-            from plotnine import aes, element_text, geom_step, ggplot, labs, theme
-
-            # Log dataset metadata
-            mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
-            mlflow.log_param("dataset_columns", list(df.columns))
-            mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
-            mlflow.log_param("data_source", config.data.data_path)
-
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".csv", delete=False
-            ) as f:
-                sample_df = df.head(50)
-                sample_df.to_csv(f.name)
-                mlflow.log_artifact(f.name, "data_overview")
-                os.unlink(f.name)
-
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".txt", delete=False
-            ) as f:
-                f.write("Dataset Overview\n")
-                f.write("================\n\n")
-                f.write(f"Shape: {df.shape}\n")
-                f.write(f"Columns: {list(df.columns)}\n")
-                f.write(f"Date Range: {df.index.min()} to {df.index.max()}\n\n")
-                f.write("Data Types:\n")
-                f.write(str(df.dtypes))
-                f.write("\n\nStatistical Summary:\n")
-                f.write(str(df.describe()))
-                f.flush()
-                mlflow.log_artifact(f.name, "data_overview")
-                os.unlink(f.name)
-
-            plot_df = df.head(200).reset_index()
-            plot_df["time_index"] = range(len(plot_df))
-
-            ohlcv_columns = ["open", "high", "low", "close", "volume"]
-            available_columns = [col for col in ohlcv_columns if col in plot_df.columns]
-            feature_columns = [
-                col
-                for col in plot_df.columns
-                if col not in [*ohlcv_columns, plot_df.columns[0], "time_index"]
-            ]
-            all_plot_columns = available_columns + feature_columns[:5]
-
-            for column in all_plot_columns:
-                try:
-                    p = (
-                        ggplot(plot_df, aes(x="time_index", y=column))
-                        + geom_step(color="steelblue", size=0.8)
-                        + labs(
-                            title=f"{column.title()} Over Time",
-                            x="Time Index",
-                            y=column.title(),
-                        )
-                        + theme(plot_title=element_text(size=14, face="bold"))
-                    )
-
-                    # Use variable name as filename
-                    filename = f"{column}.png"
-                    temp_path = os.path.join(tempfile.gettempdir(), filename)
-                    p.save(temp_path, width=16, height=10, dpi=150)
-                    mlflow.log_artifact(temp_path, "data_overview/plots")
-                    os.unlink(temp_path)
-
-                except Exception as plot_error:  # pragma: no cover - logging only
-                    logger.warning(f"Failed to create plot for {column}: {plot_error}")
-
-            if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
-                try:
-                    ohlc_subset = plot_df[
-                        ["time_index", "open", "high", "low", "close"]
-                    ].copy()
-                    ohlc_subset = ohlc_subset.dropna()
-
-                    ohlc_melted = pd.melt(
-                        ohlc_subset,
-                        id_vars=["time_index"],
-                        value_vars=["open", "high", "low", "close"],
-                        var_name="price_type",
-                        value_name="price",
-                    )
-
-                    p_combined = (
-                        ggplot(
-                            ohlc_melted,
-                            aes(x="time_index", y="price", color="price_type"),
-                        )
-                        + geom_step(size=0.8)
-                        + labs(
-                            title="OHLC Prices Over Time",
-                            x="Time Index",
-                            y="Price",
-                            color="Price Type",
-                        )
-                        + theme(plot_title=element_text(size=14, face="bold"))
-                    )
-
-                    # Use descriptive filename for combined OHLC plot
-                    filename = "ohlc_combined.png"
-                    temp_path = os.path.join(tempfile.gettempdir(), filename)
-                    p_combined.save(temp_path, width=20, height=10, dpi=150)
-                    mlflow.log_artifact(temp_path, "data_overview/plots")
-                    os.unlink(temp_path)
-
-                except Exception as combined_error:  # pragma: no cover - logging only
-                    logger.warning(
-                        f"Failed to create combined OHLC plot: {combined_error}"
-                    )
-
-        except Exception as e:  # pragma: no cover - logging only
-            logger.warning(f"Failed to log data overview: {e}")
-
-    @staticmethod
-    def log_final_metrics(
-        logs: dict,
-        final_metrics: dict,
-        training_callback: "MLflowTrainingCallback | None" = None,
-    ) -> None:
-        """Log final training metrics to MLflow."""
-        logger = get_project_logger(__name__)
-        mlflow.log_metric("final_reward", final_metrics["final_reward"])
-        mlflow.log_metric("training_steps", final_metrics["training_steps"])
-
-        # Handle both discrete positions and portfolio weights
-        if "last_position_per_episode" in final_metrics:
-            positions = final_metrics["last_position_per_episode"]
-            if positions:
-                mlflow.log_metric("last_position_sequence_length", len(positions))
-                position_str = json.dumps(positions[:100])
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".json", delete=False
-                ) as f:
-                    f.write(position_str)
-                    f.flush()
-                    mlflow.log_artifact(f.name, "position_data")
-                    os.unlink(f.name)
-        elif "portfolio_weights" in final_metrics:
-            weights = final_metrics["portfolio_weights"]
-            if weights:
-                weights_str = json.dumps(weights[:100])
-                # Use ISO 8601 datetime format for filename
-                timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
-                filename = f"{timestamp}_weights.json"
-                temp_path = os.path.join(tempfile.gettempdir(), filename)
-                with open(temp_path, "w") as f:
-                    f.write(weights_str)
-                mlflow.log_artifact(temp_path, "portfolio_weights_data")
-                os.unlink(temp_path)
-
-        if logs.get("loss_actor"):
-            mlflow.log_metric("avg_actor_loss", np.mean(logs["loss_actor"]))
-        else:
-            logger.warning(
-                "No actor loss data available for logging - training may have been skipped due to tensor shape issues"
-            )
-
-        if training_callback:
-            training_curves = training_callback.get_training_curves()
-
-            if training_curves["episode_rewards"]:
-                mlflow.log_metric(
-                    "episode_avg_reward", np.mean(training_curves["episode_rewards"])
-                )
-
-            if training_curves["portfolio_valuations"]:
-                mlflow.log_metric(
-                    "episode_portfolio_valuation",
-                    training_curves["portfolio_valuations"][-1],
-                )
-
-            if training_curves["position_change_counts"]:
-                position_changes = training_curves["position_change_counts"]
-                mlflow.log_metric(
-                    "episode_avg_position_change", float(np.mean(position_changes))
-                )
-                mlflow.log_metric(
-                    "total_position_changes", int(np.sum(position_changes))
-                )
-
-                total_episodes = len(training_curves["episode_rewards"])
-                total_actions = (
-                    len(training_callback.training_stats["actions_taken"])
-                    if training_callback
-                    else 0
-                )
-                avg_episode_length = (
-                    total_actions / total_episodes
-                    if total_episodes > 0 and total_actions > 0
-                    else 1.0
-                )
-
-                if avg_episode_length > 0:
-                    avg_position_change_ratio = (
-                        np.mean(position_changes) / avg_episode_length
-                    )
-                mlflow.log_metric(
-                    "episode_avg_position_change_ratio",
-                    avg_position_change_ratio,
-                )
-
-    @staticmethod
-    def log_evaluation_report(
-        report: dict[str, float],
-        split_prefix: str | None = None,
-    ) -> None:
-        """Log evaluation report metrics and JSON artifact to MLflow.
-
-        Args:
-            report: Dictionary of evaluation metrics.
-            split_prefix: Optional split name (e.g. "train", "val", "test").
-                When given, metric keys become ``eval_{split_prefix}_{key}``
-                and the artifact is placed under
-                ``evaluation_metrics/{split_prefix}``.
-        """
-        logger = get_project_logger(__name__)
-        if not mlflow.active_run():
-            logger.warning("No active MLflow run - skipping evaluation report logging")
-            return
-
-        metric_prefix = f"eval_{split_prefix}_" if split_prefix else "eval_"
-        artifact_dir = f"evaluation_metrics/{split_prefix}" if split_prefix else "evaluation_metrics"
-
-        clean_report: dict[str, float] = {}
-        for key, value in report.items():
-            try:
-                metric_value = float(value)
-            except (TypeError, ValueError):
-                continue
-            if np.isfinite(metric_value):
-                clean_report[key] = metric_value
-                mlflow.log_metric(f"{metric_prefix}{key}", metric_value)
-
-        if not clean_report:
-            logger.warning("No finite evaluation metrics to log")
-            return
-
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as handle:
-            json.dump(clean_report, handle, indent=2, sort_keys=True)
-            handle.flush()
-            mlflow.log_artifact(handle.name, artifact_dir)
-            os.unlink(handle.name)
-
-    @staticmethod
-    def log_statistical_tests(
-        test_results: dict[str, Any],
-        *,
-        split_prefix: str | None = None,
-        log_to_research_artifacts: bool = False,
-        research_artifact_subdir: str = "research_artifacts/statistical_tests",
-    ) -> None:
-        """Log statistical significance test results to MLflow.
-
-        Args:
-            test_results: Dictionary with all statistical test results
-            split_prefix: Optional split name (e.g. "train", "val", "test").
-                When given, metric keys become
-                ``stat_{split_prefix}_{baseline}_{test}_{key}`` and the
-                artifact is placed under ``statistical_tests/{split_prefix}``.
-            log_to_research_artifacts: If True, also log a compact summary
-                bundle under a research artifacts path.
-            research_artifact_subdir: MLflow artifact subdirectory used when
-                `log_to_research_artifacts` is enabled.
-        """
-        logger = get_project_logger(__name__)
-        if not mlflow.active_run():
-            logger.warning("No active MLflow run - skipping statistical test logging")
-            return
-
-        if not test_results.get("enabled", False):
-            logger.debug("Statistical testing disabled - skipping logging")
-            return
-
-        stat_artifact_dir = f"statistical_tests/{split_prefix}" if split_prefix else "statistical_tests"
-        split_infix = f"{split_prefix}_" if split_prefix else ""
-
-        # Log summary metrics (idempotent — safe to call for each split)
-        mlflow.log_param("stat_tests_enabled", True)
-        mlflow.log_param("stat_tests_configured", ",".join(test_results.get("tests_configured", [])))
-
-        # Log results for each baseline
-        for baseline_result in test_results.get("baselines", []):
-            baseline_name = baseline_result.get("baseline", "unknown")
-
-            # Skip if error occurred
-            if "error" in baseline_result:
-                logger.warning(f"Skipping {baseline_name} due to error: {baseline_result['error']}")
-                continue
-
-            # Log sample sizes
-            if "n_strategy_samples" in baseline_result:
-                mlflow.log_metric(f"stat_{split_infix}{baseline_name}_n_strategy", baseline_result["n_strategy_samples"])
-            if "n_baseline_samples" in baseline_result:
-                mlflow.log_metric(f"stat_{split_infix}{baseline_name}_n_baseline", baseline_result["n_baseline_samples"])
-
-            # Log individual test results
-            for test_name, test_data in baseline_result.items():
-                if not isinstance(test_data, dict):
-                    continue
-
-                prefix = f"stat_{split_infix}{baseline_name}_{test_name}"
-
-                # Log all numeric values from test results
-                for key, value in test_data.items():
-                    if key in ["test_name", "error"]:
-                        continue
-
-                    try:
-                        if isinstance(value, bool):
-                            mlflow.log_metric(f"{prefix}_{key}", float(value))
-                        elif isinstance(value, (int, float)):
-                            if np.isfinite(value):
-                                mlflow.log_metric(f"{prefix}_{key}", float(value))
-                    except (TypeError, ValueError):
-                        continue
-
-        # Save full results as JSON artifact
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as handle:
-            json.dump(test_results, handle, indent=2, sort_keys=True, default=str)
-            handle.flush()
-            mlflow.log_artifact(handle.name, stat_artifact_dir)
-            os.unlink(handle.name)
-
-        vwap_volume_source = test_results.get("vwap_volume_source")
-        if isinstance(vwap_volume_source, str) and vwap_volume_source:
-            mlflow.log_param("stat_vwap_volume_source", vwap_volume_source)
-
-        benchmark_table = test_results.get("benchmark_comparison_table")
-        if isinstance(benchmark_table, list) and benchmark_table:
-            benchmark_df = pd.DataFrame(benchmark_table)
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".csv", delete=False
-            ) as handle:
-                benchmark_df.to_csv(handle.name, index=False)
-                mlflow.log_artifact(handle.name, stat_artifact_dir)
-                os.unlink(handle.name)
-
-        if log_to_research_artifacts:
-            significant_findings: list[dict[str, Any]] = []
-            for baseline_result in test_results.get("baselines", []):
-                baseline_name = baseline_result.get("baseline", "unknown")
-                if not isinstance(baseline_result, dict):
-                    continue
-                for test_name, test_data in baseline_result.items():
-                    if not isinstance(test_data, dict):
-                        continue
-                    if "p_value" not in test_data:
-                        continue
-                    finding = {
-                        "baseline": baseline_name,
-                        "test": test_name,
-                        "p_value": test_data.get("p_value"),
-                        "significant": bool(test_data.get("significant", False)),
-                    }
-                    if "effect_size" in test_data:
-                        finding["effect_size"] = test_data.get("effect_size")
-                    significant_findings.append(finding)
-
-            summary_payload = {
-                "generated_at_utc": datetime.now(UTC).isoformat(),
-                "tests_configured": test_results.get("tests_configured", []),
-                "n_baselines": len(test_results.get("baselines", [])),
-                "n_findings": len(significant_findings),
-                "findings": significant_findings,
-            }
-
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as summary_handle:
-                json.dump(summary_payload, summary_handle, indent=2, sort_keys=True, default=str)
-                summary_handle.flush()
-                mlflow.log_artifact(summary_handle.name, research_artifact_subdir)
-                os.unlink(summary_handle.name)
-
-        logger.info("Statistical test results logged to MLflow")
-
-    @staticmethod
-    def log_explainability_results(
-        importance_df: pd.DataFrame | None,
-        importance_plot: Any,
-        method: str = "permutation",
-        metrics: dict[str, float] | None = None,
-        artifact_path_prefix: str | None = None
-    ):
-        """Log explainability plots and importance data to MLflow.
-
-        Args:
-            importance_df: DataFrame with importance scores (None for merged plots)
-            importance_plot: Plot object to save
-            method: Method name for artifact naming
-            metrics: Optional metrics dictionary to log
-            artifact_path_prefix: Optional path prefix for MLflow artifacts
-                (default: "explainability", for temp: "explainability_temp/step_00005000")
-        """
-        if not mlflow.active_run():
-            return
-
-        # Use custom artifact path if provided, otherwise default to "explainability"
-        artifact_dir = artifact_path_prefix if artifact_path_prefix else "explainability"
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = Path(tmp_dir)
-
-            # Save plot
-            plot_path = tmp_path / f"explainability_{method}.png"
-            importance_plot.save(str(plot_path))
-            mlflow.log_artifact(str(plot_path), artifact_dir)
-
-            # Save CSV (only if dataframe is provided)
-            if importance_df is not None:
-                csv_path = tmp_path / f"importance_{method}.csv"
-                importance_df.to_csv(csv_path, index=False)
-                mlflow.log_artifact(str(csv_path), artifact_dir)
-
-            # Log metrics if provided
-            if metrics:
-                prefixed_metrics = {f"{method}_{k}": v for k, v in metrics.items()}
-                mlflow.log_metrics(prefixed_metrics)
-
-    @staticmethod
-    def log_evaluation_plots(
-        reward_plot,
-        action_plot,
-        action_probs_plot=None,
-        actual_returns_plot=None,
-        logs=None,
-        merged_plot=None,
-        artifact_path_prefix=None,
-    ) -> None:
-        """Save evaluation/training plots as MLflow artifacts.
-
-        Args:
-            reward_plot: Cumulative rewards comparison plot
-            action_plot: Actions/portfolio weights plot
-            action_probs_plot: Optional action probabilities plot
-            actual_returns_plot: Actual portfolio returns plot
-            logs: Optional training logs for loss plots
-            merged_plot: Optional merged comparison plot (rewards + actions)
-            artifact_path_prefix: Optional path prefix for MLflow artifacts
-                (default: "evaluation_plots", for temp evals: "evaluation_plots_temp/step_00005000")
-        """
-        logger = get_project_logger(__name__)
-
-        if not mlflow.active_run():
-            logger.warning("No active MLflow run - skipping plot artifact logging")
-            return
-
-        import contextlib
-        import io
-        import warnings
-
-        from plotnine.exceptions import PlotnineWarning
-
-        # Context manager to suppress all plotnine output
-        @contextlib.contextmanager
-        def suppress_plotnine_output():
-            with (
-                contextlib.redirect_stdout(io.StringIO()),
-                contextlib.redirect_stderr(io.StringIO()),
-            ):
-                yield
-
-        saved_paths: dict[str, str] = {}
-        batch_temp_dir = tempfile.mkdtemp()
-        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
-
-        # Use custom artifact path if provided, otherwise default to "evaluation_plots"
-        artifact_dir = artifact_path_prefix if artifact_path_prefix else "evaluation_plots"
-
-        try:
-
-            def _save_plot_as_artifact(
-                plot_obj,
-                filename,
-                key,
-                artifact_dir,
-                logger,
-                width: float = 8,
-                height: float = 5,
-            ):
-                """Helper to save plot to temp file and log as MLflow artifact."""
-                tmp_path = os.path.join(batch_temp_dir, filename)
-                try:
-                    with warnings.catch_warnings(), suppress_plotnine_output():
-                        warnings.simplefilter("ignore", PlotnineWarning)
-                        # Handle plotnine plots ("save") and matplotlib figures ("savefig")
-                        if hasattr(plot_obj, "save"):
-                            plot_obj.save(tmp_path, width=width, height=height, dpi=150)
-                        elif hasattr(plot_obj, "savefig"):
-                            plot_obj.savefig(tmp_path, dpi=150)
-                        else:
-                            raise RuntimeError("Unsupported plot object for saving")
-                    # Temporarily silence noisy third-party loggers during save
-
-                    pil_logger = logging.getLogger("PIL.PngImagePlugin")
-                    previous_level = pil_logger.level
-                    pil_logger.setLevel(logging.INFO)
-                    try:
-                        mlflow.log_artifact(tmp_path, artifact_dir)
-                    finally:
-                        pil_logger.setLevel(previous_level)
-                    if key:
-                        saved_paths[key] = tmp_path
-                except Exception:
-                    logger.exception(f"Failed to save {filename} plot")
-                # cleanup deferred for optional combination
-
-            # Save reward plot using plotnine (larger size for file export)
-            _save_plot_as_artifact(
-                reward_plot,
-                f"{timestamp}_rewards.png",
-                "rewards",
-                artifact_dir,
-                logger,
-                width=16,  # Larger for saved files (vs 13 for MLflow display)
-                height=10,  # Larger for saved files (vs 7.8 for MLflow display)
-            )
-
-            # Save action/position plot using plotnine (larger size for file export)
-            _save_plot_as_artifact(
-                action_plot,
-                f"{timestamp}_positions.png",
-                "positions",
-                artifact_dir,
-                logger,
-                width=16,  # Larger for saved files
-                height=10,  # Larger for saved files
-            )
-
-            # Save action probabilities plot (if present)
-            if action_probs_plot is not None:
-                _save_plot_as_artifact(
-                    action_probs_plot,
-                    f"{timestamp}_action_probabilities.png",
-                    "action_probabilities",
-                    artifact_dir,
-                    logger,
-                    width=16,  # Larger for saved files
-                    height=10,  # Larger for saved files
-                )
-            else:
-                logger.info("Action probability plot missing; skipping that artifact")
-
-            # Save actual returns plot (always present, shows true dollar returns)
-            if actual_returns_plot is not None:
-                _save_plot_as_artifact(
-                    actual_returns_plot,
-                    f"{timestamp}_actual_returns.png",
-                    "actual_returns",
-                    artifact_dir,
-                    logger,
-                    width=16,  # Larger for saved files
-                    height=10,  # Larger for saved files
-                )
-            else:
-                logger.warning("Actual returns plot missing; skipping that artifact")
-
-            # Save merged comparison plot (rewards + actions stacked vertically)
-            if merged_plot is not None:
-                _save_plot_as_artifact(
-                    merged_plot,
-                    f"{timestamp}_merged_comparison.png",
-                    "merged_comparison",
-                    artifact_dir,
-                    logger,
-                    width=16,  # Larger for saved files
-                    height=16,  # Taller for 2 stacked plots
-                )
-            else:
-                logger.info("Merged comparison plot missing; skipping that artifact")
-
-            # Create and save training loss plots
-            if logs and (logs.get("loss_value") or logs.get("loss_actor")):
-                import pandas as pd
-                from plotnine import aes, facet_wrap, geom_line, ggplot, labs
-
-                loss_data = []
-                if logs.get("loss_value"):
-                    loss_data.extend(
-                        [
-                            {"step": i, "loss": loss, "type": "Value Loss"}
-                            for i, loss in enumerate(logs["loss_value"])
-                        ]
-                    )
-                if logs.get("loss_actor"):
-                    loss_data.extend(
-                        [
-                            {"step": i, "loss": loss, "type": "Actor Loss"}
-                            for i, loss in enumerate(logs["loss_actor"])
-                        ]
-                    )
-
-                if loss_data:
-                    loss_df = pd.DataFrame(loss_data)
-
-                    loss_plot = (
-                        ggplot(loss_df, aes(x="step", y="loss", color="type"))
-                        + geom_line(size=1.2)
-                        + facet_wrap("type", ncol=1, scales="free")
-                        + labs(
-                            title="Training Losses",
-                            x="Training Step",
-                            y="Loss Value",
-                            color="Loss Type",
-                        )
-                    )
-
-                    _save_plot_as_artifact(
-                        loss_plot,
-                        f"{timestamp}_training_losses.png",
-                        None,
-                        "training_plots",
-                        logger,
-                        width=16,  # Larger for saved files
-                        height=10,  # Larger for saved files
-                    )
-
-            # Combine existing evaluation plots using plotnine patchwork when available
-            try:
-                import importlib.util
-
-                if importlib.util.find_spec("plotnine.patchwork") is None:
-                    raise ImportError("plotnine.patchwork is unavailable")
-
-                combined_plot = None
-                if reward_plot is not None and action_plot is not None:
-                    combined_plot = reward_plot | action_plot
-                    if action_probs_plot is not None:
-                        combined_plot = combined_plot / action_probs_plot
-                elif reward_plot is not None:
-                    combined_plot = reward_plot
-                elif action_plot is not None:
-                    combined_plot = action_plot
-                elif action_probs_plot is not None:
-                    combined_plot = action_probs_plot
-
-                if combined_plot is not None:
-                    _save_plot_as_artifact(
-                        combined_plot,
-                        f"{timestamp}_combined_evaluation.png",
-                        None,
-                        artifact_dir,
-                        logger,
-                        width=20,  # Larger for combined plots
-                        height=12,  # Larger for combined plots
-                    )
-            except ImportError:
-                # Fallback: combine PNGs with Pillow in a (p1 | p2) / p3 layout
-                if {
-                    "rewards",
-                    "positions",
-                    "action_probabilities",
-                } <= set(saved_paths.keys()):
-                    try:
-                        from PIL import Image
-
-                        reward_img = Image.open(saved_paths["rewards"])
-                        action_img = Image.open(saved_paths["positions"])
-                        probs_img = Image.open(saved_paths["action_probabilities"])
-
-                        top_width = reward_img.width + action_img.width
-                        top_height = max(reward_img.height, action_img.height)
-                        bottom_width = probs_img.width
-                        bottom_height = probs_img.height
-
-                        combined_width = max(top_width, bottom_width)
-                        combined_height = top_height + bottom_height
-
-                        combined = Image.new(
-                            "RGB", (combined_width, combined_height), "white"
-                        )
-                        combined.paste(reward_img, (0, 0))
-                        combined.paste(action_img, (reward_img.width, 0))
-                        combined.paste(probs_img, (0, top_height))
-
-                        combined_filename = f"{timestamp}_combined_evaluation.png"
-                        tmp_combined_path = os.path.join(
-                            batch_temp_dir, combined_filename
-                        )
-
-                        combined.save(tmp_combined_path, format="PNG")
-                        mlflow.log_artifact(tmp_combined_path, artifact_dir)
-                    except (
-                        Exception
-                    ) as combine_error:  # pragma: no cover - logging only
-                        logger.warning(
-                            f"Failed to create combined evaluation plot: {combine_error}"
-                        )
-
-            logger.info("Saved evaluation and training plots as MLflow artifacts")
-        except Exception as e:  # pragma: no cover - defensive logging only
-            logger.warning(f"Failed to save plots as artifacts: {e}")
-        finally:
-            # Clean up temporary directory
-            if os.path.exists(batch_temp_dir):
-                shutil.rmtree(batch_temp_dir)
+        return f"{adjectives[b0 % len(adjectives)]}-{nouns[b1 % len(nouns)]}-{suffixes[b2 % len(suffixes)]}"
