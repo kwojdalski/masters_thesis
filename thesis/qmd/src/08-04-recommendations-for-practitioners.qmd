@@ -1,1 +1,48 @@
 ## Recommendations for Practitioners
+
+The following recommendations are directed at practitioners who wish to implement
+reinforcement learning trading systems in settings similar to the one studied
+here. They are grounded in the specific lessons from this thesis rather than
+general RL best practices.
+
+**Invest in feature engineering before algorithm selection.** The results
+demonstrate that feature quality is the primary driver of out-of-sample policy
+performance in this setting. Before experimenting with alternative algorithms or
+architectural variants, practitioners should verify that the state representation
+adequately captures the informational structure of the order book: order flow
+imbalance, multi-level spread and depth features, book shape measures, and
+temporal context. A thorough feature validation — examining the correlation
+structure, stationarity, and predictive content of each feature on held-out data
+— is more valuable time spent than hyperparameter search over a fixed but
+impoverished state space.
+
+**Enforce a strict chronological evaluation protocol from the start.** Any form
+of lookahead — features computed from future data, normalization parameters
+estimated on the full dataset, or train/test splits that are not strictly
+sequential — will produce a materially optimistic assessment of out-of-sample
+performance. In high-frequency settings, where the information decay of market
+signals is measured in seconds, even mild lookahead can generate the appearance
+of a viable strategy from what is effectively a leakage artifact. Normalization
+should be fit on the training split only and applied frozen to validation and
+test data. This is not just good practice; it is the minimum requirement for the
+empirical results to be meaningful.
+
+**Treat transaction cost sensitivity as a go/no-go criterion.** The threshold at
+which the agent's apparent edge disappears under transaction costs is a property
+of the strategy that must be known before drawing conclusions. Practitioners
+should run the same evaluation across a range of cost levels — from zero to the
+realistic spread-plus-fee regime of their target venue — and identify whether
+the strategy's risk-adjusted return degrades gracefully or collapses abruptly.
+An edge that survives only at zero cost is not a tradeable strategy; an edge
+that degrades proportionally with costs at least establishes the direction of
+improvement required.
+
+**Keep reward optimization and financial evaluation strictly separate.** The
+Differential Sharpe Ratio or any other shaped reward is a training objective,
+not a performance report. All financial conclusions — Sharpe ratio, annualized
+return, maximum drawdown — should be derived from a deterministic policy rollout
+on held-out data, computed from the realized log-return series. Results from the
+training reward signal should appear in a separate section as training diagnostics,
+clearly labeled as such, and should not be cited as evidence of financial viability.
+This discipline is the single most consistent failure mode in the published
+literature and the most straightforward to avoid.
