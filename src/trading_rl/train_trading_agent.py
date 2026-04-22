@@ -8,7 +8,6 @@ separated into reusable modules.
 # %%
 import contextlib
 import logging
-import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,12 +20,7 @@ import pandas as pd
 import torch
 import torch.multiprocessing as mp
 from joblib import Memory
-from rich.console import Console
-from rich.table import Table
 
-# No matplotlib configuration needed since we use plotnine exclusively
-from logger import get_logger as get_project_logger
-from logger import setup_logging as configure_root_logging
 from logger import trace_calls
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
@@ -41,13 +35,27 @@ from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import (
     EvaluationContext,
     build_evaluation_report_for_trainer,
-    periods_per_year_from_timeframe,
     run_all_statistical_tests,
 )
 from trading_rl.evaluation.explainability import RLInterpretabilityAnalyzer
+from trading_rl.pipeline.evaluation import (
+    SplitEvaluationResult,
+    build_evaluation_context_for_split as _build_evaluation_context_for_split_impl,
+    build_final_metrics as _build_final_metrics_impl,
+    compute_strategy_simple_returns_for_split as _compute_strategy_simple_returns_for_split_impl,
+    evaluate_all_splits as _evaluate_all_splits_impl,
+    evaluate_split as _evaluate_split_impl,
+    resolve_primary_split_result as _resolve_primary_split_result_impl,
+    resolve_price_series_for_split as _resolve_price_series_for_split_impl,
+    run_primary_split_explainability as _run_primary_split_explainability_impl,
+    run_statistical_tests_for_split as _run_statistical_tests_for_split_impl,
+)
+from trading_rl.pipeline.training import (
+    ExperimentRuntime,
+    TrainingBundle,
+    build_experiment_runtime,
+)
 from trading_rl.plotting import visualize_training
-from trading_rl.trainers.ppo import PPOTrainerContinuous
-from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 
 # Avoid torch_shm_manager requirement in restricted environments
 mp.set_sharing_strategy("file_system")
@@ -80,138 +88,6 @@ class CheckpointResumptionResult:
     original_steps: int
 
 
-@dataclass(frozen=True)
-class TrainingBundle:
-    """Constructed training runtime objects derived from config and dataset."""
-
-    train_env: Any
-    trainer: Any
-    mlflow_callback: MLflowTrainingCallback | None
-    algorithm: str
-    n_obs: int
-    n_act: int
-
-
-@dataclass(frozen=True)
-class SplitEvaluationResult:
-    """Evaluation outputs for one data split."""
-
-    final_reward: float
-    last_positions: list[Any]
-    evaluation_report: dict[str, float]
-
-
-@dataclass(frozen=True)
-class ExperimentRuntime:
-    """Top-level runtime bundle for one experiment execution."""
-
-    logger: logging.Logger
-    effective_experiment_name: str
-    prepared_dataset: PreparedDataset
-    training_bundle: TrainingBundle
-
-
-def _format_head_value(value: Any) -> str:
-    """Format dataframe values for compact console table display."""
-    if isinstance(value, float):
-        abs_value = abs(value)
-        if (abs_value >= 1e5) or (0 < abs_value < 1e-3):
-            return f"{value:.4e}"
-        return f"{value:.6f}"
-    if isinstance(value, (int, np.integer)):
-        return str(value)
-    return str(value)
-
-
-def _print_training_data_head_table(
-    train_df: pd.DataFrame, n_rows: int = 5, max_columns: int = 12
-) -> None:
-    """Print a nicely formatted training data head table using Rich."""
-    if train_df.empty:
-        return
-
-    head_df = train_df.head(n_rows)
-    visible_columns = list(head_df.columns[:max_columns])
-    hidden_count = max(0, len(head_df.columns) - len(visible_columns))
-
-    table = Table(title="Training Data Head")
-    table.add_column("index", style="cyan")
-    for col in visible_columns:
-        table.add_column(str(col), justify="right")
-
-    for idx, row in head_df.iterrows():
-        row_cells = [str(idx)]
-        row_cells.extend(_format_head_value(row[col]) for col in visible_columns)
-        table.add_row(*row_cells)
-
-    console = Console()
-    console.print(table)
-    if hidden_count > 0:
-        console.print(
-            f"[dim]Showing {len(visible_columns)} of {len(head_df.columns)} columns "
-            f"({hidden_count} hidden).[/dim]"
-        )
-
-
-# %%
-def setup_logging(config: ExperimentConfig) -> logging.Logger:
-    """Setup logging configuration."""
-    # No matplotlib logging to disable since we use plotnine exclusively
-
-    log_file_path = Path(config.logging.log_dir) / config.logging.log_file
-
-    # Check for LOG_LEVEL environment variable override
-    log_level = os.getenv("LOG_LEVEL") or config.logging.log_level
-
-    configure_root_logging(
-        level=log_level,
-        log_file=str(log_file_path),
-        console_output=True,
-        # sys.stdout.isatty(),
-        colored_output=True,
-    )
-    # Suppress noisy external library loggers
-    import logging
-    import warnings
-
-    from plotnine.exceptions import PlotnineWarning
-
-    logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
-
-    # Suppress plotnine save warnings (verbose image size/filename info)
-    warnings.filterwarnings("ignore", category=PlotnineWarning)
-
-    logger = get_project_logger(__name__)
-    logger.info(f"Starting experiment: {config.experiment_name}")
-    return logger
-
-
-# %%
-def set_seed(seed: int | None) -> int:
-    """Set random seeds for reproducibility.
-
-    Args:
-        seed: Random seed value (None generates a random seed)
-    """
-    import logging
-    import random
-
-    if seed is None:
-        seed = random.randint(1, 100000)  # noqa: S311
-        logging.getLogger(__name__).info("Generated random seed: %s", seed)
-
-    # Seed all random number generators
-    random.seed(seed)  # Python's built-in random module
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-    return seed
-
-
-# %%
-# %%
 @trace_calls(show_return=True)
 def setup_mlflow_experiment(
     config: ExperimentConfig, experiment_name: str | None = None
@@ -283,288 +159,6 @@ def _ensure_unique_index_for_hft_tradingenv(
     """
     return ensure_unique_index_for_hft_tradingenv(
         train_df, val_df, test_df, config, logger
-    )
-
-
-def _select_trainer_class(algorithm: str, backend: str):
-    """Select appropriate trainer class based on algorithm and backend.
-
-    Args:
-        algorithm: Algorithm name (PPO, DDPG, TD3)
-        backend: Environment backend type
-
-    Returns:
-        Trainer class for the specified algorithm
-
-    Raises:
-        ValueError: If algorithm is unsupported
-    """
-    is_continuous_env = (
-        backend == "tradingenv" or backend == "gym_trading_env.continuous"
-    )
-
-    algorithm_upper = algorithm.upper()
-
-    if algorithm_upper == "PPO":
-        if is_continuous_env:
-            return PPOTrainerContinuous
-        else:
-            return PPOTrainer
-    elif algorithm_upper == "TD3":
-        return TD3Trainer
-    elif algorithm_upper == "DDPG":
-        return DDPGTrainer
-    else:
-        raise ValueError(f"Unsupported algorithm: {algorithm}")
-
-
-def _build_train_env(
-    dataset: PreparedDataset,
-    config: ExperimentConfig,
-    logger: logging.Logger,
-) -> Any:
-    """Build the training environment from the prepared training split."""
-    logger.info("Creating environment...")
-    env_builder = AlgorithmicEnvironmentBuilder()
-    env = env_builder.create(dataset.train_df, config)
-    logger.debug("Environment specs:")
-    logger.debug(f"  Observation spec: {env.observation_spec}")
-    logger.debug(f"  Action spec: {env.action_spec}")
-    logger.debug(f"  Reward spec: {env.reward_spec}")
-    return env
-
-
-def _build_trainer(
-    env: Any,
-    config: ExperimentConfig,
-    algorithm: str,
-    effective_experiment_name: str,
-    logger: logging.Logger,
-) -> tuple[Any, int, int]:
-    """Build trainer and return it with inferred observation/action dimensions."""
-    n_obs = env.observation_spec["observation"].shape[-1]
-    n_act = env.action_spec.shape[-1]
-    logger.info(f"Environment: {n_obs} observations, {n_act} actions")
-
-    backend = getattr(config.env, "backend", "")
-    logger.info(f"Creating models for {algorithm} algorithm (Backend: {backend})...")
-    trainer_cls = _select_trainer_class(algorithm, backend)
-
-    if trainer_cls == PPOTrainerContinuous:
-        logger.info("Selected PPOTrainerContinuous for continuous environment")
-    elif trainer_cls == PPOTrainer:
-        logger.info("Selected PPOTrainer for discrete environment")
-    else:
-        logger.info(f"Selected {trainer_cls.__name__}")
-
-    if algorithm == "TD3":
-        actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
-        trainer = trainer_cls(
-            actor=actor,
-            qvalue_net=qvalue_net,
-            env=env,
-            config=config.training,
-            checkpoint_dir=config.logging.log_dir,
-            checkpoint_prefix=effective_experiment_name,
-        )
-    else:
-        actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
-        trainer = trainer_cls(
-            actor=actor,
-            value_net=value_net,
-            env=env,
-            config=config.training,
-            checkpoint_dir=config.logging.log_dir,
-            checkpoint_prefix=effective_experiment_name,
-        )
-
-    return trainer, n_obs, n_act
-
-
-def _build_mlflow_callback(
-    *,
-    config: ExperimentConfig,
-    dataset: PreparedDataset,
-    effective_experiment_name: str,
-    progress_bar: Any,
-) -> MLflowTrainingCallback:
-    """Build MLflow callback for a fresh training run."""
-    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
-    estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
-    price_series = dataset.train_df[dataset.price_column]
-
-    return MLflowTrainingCallback(
-        effective_experiment_name,
-        tracking_uri=tracking_uri,
-        progress_bar=progress_bar,
-        total_episodes=estimated_episodes if progress_bar else None,
-        price_series=price_series,
-        initial_portfolio_value=config.env.initial_portfolio_value,
-        reward_type=config.env.reward_type,
-        config_for_run_name=config,
-    )
-
-
-def _build_training_bundle(
-    *,
-    config: ExperimentConfig,
-    dataset: PreparedDataset,
-    effective_experiment_name: str,
-    logger: logging.Logger,
-    progress_bar: Any,
-    create_mlflow_callback: bool,
-) -> TrainingBundle:
-    """Build env, trainer, and optional MLflow callback for training."""
-    algorithm = getattr(config.training, "algorithm", "PPO").upper()
-    train_env = _build_train_env(dataset, config, logger)
-    trainer, n_obs, n_act = _build_trainer(
-        train_env,
-        config,
-        algorithm,
-        effective_experiment_name,
-        logger,
-    )
-
-    mlflow_callback = None
-    if create_mlflow_callback:
-        mlflow_callback = _build_mlflow_callback(
-            config=config,
-            dataset=dataset,
-            effective_experiment_name=effective_experiment_name,
-            progress_bar=progress_bar,
-        )
-
-    return TrainingBundle(
-        train_env=train_env,
-        trainer=trainer,
-        mlflow_callback=mlflow_callback,
-        algorithm=algorithm,
-        n_obs=n_obs,
-        n_act=n_act,
-    )
-
-
-def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> None:
-    """Print configuration values in debug mode using automatic traversal."""
-    import datetime
-    from dataclasses import fields, is_dataclass
-
-    if not logger.isEnabledFor(logging.DEBUG):
-        return
-
-    def format_key(key: str) -> str:
-        """Format key: remove underscores and title case."""
-        return key.replace("_", " ").title()
-
-    def format_value(value) -> str:
-        """Format value for display."""
-        if isinstance(value, datetime.datetime):
-            return value.isoformat()
-        elif isinstance(value, list):
-            return str(value)
-        else:
-            return str(value)
-
-    def print_dataclass(obj, indent: int = 0, logger=logger):
-        """Recursively print dataclass fields."""
-        if not is_dataclass(obj):
-            return
-
-        prefix = "  " * indent
-        for field in fields(obj):
-            key = field.name
-            value = getattr(obj, key)
-            formatted_key = format_key(key)
-
-            if is_dataclass(value):
-                # Print section header for nested dataclass with yellow highlighting
-                if indent == 0:
-                    # Top-level sections get yellow highlighting
-                    logger.debug(f"{prefix}\033[93m{formatted_key}:\033[0m")
-                else:
-                    logger.debug(f"{prefix}{formatted_key}:")
-                print_dataclass(value, indent + 1, logger)
-            else:
-                # Print key-value pair
-                formatted_value = format_value(value)
-                logger.debug(f"{prefix}{formatted_key}: {formatted_value}")
-
-    logger.debug("=" * 60)
-    logger.debug("CONFIGURATION VALUES")
-    logger.debug("=" * 60)
-    print_dataclass(config)
-    logger.debug("=" * 60)
-
-
-def build_experiment_runtime(
-    config: ExperimentConfig,
-    experiment_name: str | None = None,
-    progress_bar: Any = None,
-    create_mlflow_callback: bool = True,
-) -> ExperimentRuntime:
-    """Build typed runtime state used by fresh and resumed runs."""
-    effective_experiment_name = experiment_name or config.experiment_name
-
-    logger = setup_logging(config)
-    config.seed = set_seed(config.seed)
-
-    _print_config_debug(config, logger)
-
-    logger.info("Preparing data...")
-    logger.debug(f"  Data path: {config.data.data_path}")
-    logger.debug(f"  Train size: {config.data.train_size}")
-    logger.debug(f"  Feature config: {getattr(config.data, 'feature_config', None)}")
-
-    prepared_dataset = build_prepared_dataset(config, logger)
-    train_df = prepared_dataset.train_df
-    val_df = prepared_dataset.val_df
-    test_df = prepared_dataset.test_df
-
-    if logger.isEnabledFor(logging.INFO):
-        _print_training_data_head_table(train_df)
-
-    logger.debug(
-        f"Data loaded - train: {train_df.shape}, val: {val_df.shape}, test: {test_df.shape}, "
-        f"columns: {list(train_df.columns)}"
-    )
-
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug("Training data statistics:")
-        # Check if we have raw OHLCV or features
-        if "close" in train_df.columns:
-            logger.debug(
-                "  Close price - min: %.2f, max: %.2f, mean: %.2f",
-                train_df["close"].min(),
-                train_df["close"].max(),
-                train_df["close"].mean(),
-            )
-            logger.debug(f"  Close price std: {train_df['close'].std():.2f}")
-
-        feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
-        if feature_cols:
-            logger.debug(f"  Features found: {feature_cols}")
-        else:
-            logger.debug("  No feature_* columns found in prepared data")
-    training_bundle = _build_training_bundle(
-        config=config,
-        dataset=prepared_dataset,
-        effective_experiment_name=effective_experiment_name,
-        logger=logger,
-        progress_bar=progress_bar,
-        create_mlflow_callback=create_mlflow_callback,
-    )
-
-    if mlflow.active_run():
-        MLflowTrainingCallback.log_parameter_faq_artifact()
-        MLflowTrainingCallback.log_training_parameters(config)
-        MLflowTrainingCallback.log_config_artifact(config)
-        MLflowTrainingCallback.log_data_overview(train_df, config)
-
-    return ExperimentRuntime(
-        logger=logger,
-        effective_experiment_name=effective_experiment_name,
-        prepared_dataset=prepared_dataset,
-        training_bundle=training_bundle,
     )
 
 
@@ -712,13 +306,13 @@ def _build_evaluation_context_for_split(
         df: DataFrame for this split.
         config: Experiment configuration.
     """
-    eval_env = AlgorithmicEnvironmentBuilder().create(df, config)
-    eval_max_steps = min(config.training.eval_steps, len(df) - 1)
-    return EvaluationContext(
+    return _build_evaluation_context_for_split_impl(
         split=split,
         df=df,
-        env=eval_env,
-        max_steps=eval_max_steps,
+        config=config,
+        build_environment=lambda split_df, split_config: AlgorithmicEnvironmentBuilder().create(
+            split_df, split_config
+        ),
     )
 
 
@@ -903,35 +497,11 @@ def _compute_strategy_simple_returns_for_split(
     config: ExperimentConfig,
 ) -> np.ndarray:
     """Compute simple returns for statistical testing from a rollout."""
-    from trading_rl.utils import _extract_tradingenv_returns
-
-    reward_type = config.env.reward_type
-    backend = config.env.backend
-
-    if str(reward_type).lower() == "log_return":
-        strategy_log_returns = (
-            rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[: split_ctx.max_steps]
-        )
-        return np.exp(strategy_log_returns) - 1.0
-
-    strategy_simple_returns = np.array([], dtype=float)
-    if str(backend).lower() == "tradingenv":
-        cumulative_log_returns = _extract_tradingenv_returns(
-            split_ctx.env,
-            split_ctx.max_steps,
-        )
-        if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
-            cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
-            step_log_returns = np.diff(cumulative_log_returns, prepend=0.0)
-            strategy_simple_returns = np.exp(step_log_returns) - 1.0
-
-    if strategy_simple_returns.size == 0:
-        proxy_log_returns = (
-            rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[: split_ctx.max_steps]
-        )
-        strategy_simple_returns = np.exp(proxy_log_returns) - 1.0
-
-    return strategy_simple_returns
+    return _compute_strategy_simple_returns_for_split_impl(
+        rollout=rollout,
+        split_ctx=split_ctx,
+        config=config,
+    )
 
 
 def _resolve_price_series_for_split(
@@ -940,17 +510,11 @@ def _resolve_price_series_for_split(
     logger: logging.Logger,
 ) -> pd.Series | None:
     """Resolve benchmark price series for one split."""
-    benchmark_price_column = config.env.price_column or "close"
-    if benchmark_price_column in split_ctx.df.columns:
-        return split_ctx.df[benchmark_price_column]
-    if "close" in split_ctx.df.columns:
-        return split_ctx.df["close"]
-
-    logger.warning(
-        "No price column found for %s buy-and-hold comparison",
-        split_ctx.split,
+    return _resolve_price_series_for_split_impl(
+        split_ctx=split_ctx,
+        config=config,
+        logger=logger,
     )
-    return None
 
 
 def _run_statistical_tests_for_split(
@@ -961,63 +525,33 @@ def _run_statistical_tests_for_split(
     logger: logging.Logger,
 ) -> None:
     """Run and log statistical significance tests for one split."""
-    from tensordict.nn import InteractionType
-    from torchrl.envs.utils import set_exploration_type
+    def _run_rollout(rollout_trainer: Any, rollout_split_ctx: EvaluationContext) -> Any:
+        from tensordict.nn import InteractionType
+        from torchrl.envs.utils import set_exploration_type
 
-    logger.info(
-        "Running statistical significance tests for %s split...",
-        split_ctx.split,
-    )
-    try:
         with torch.no_grad():
             try:
                 with set_exploration_type(InteractionType.MODE):
-                    rollout = split_ctx.env.rollout(
-                        max_steps=split_ctx.max_steps,
-                        policy=trainer.actor,
+                    return rollout_split_ctx.env.rollout(
+                        max_steps=rollout_split_ctx.max_steps,
+                        policy=rollout_trainer.actor,
                     )
             except RuntimeError:
                 with set_exploration_type(InteractionType.DETERMINISTIC):
-                    rollout = split_ctx.env.rollout(
-                        max_steps=split_ctx.max_steps,
-                        policy=trainer.actor,
+                    return rollout_split_ctx.env.rollout(
+                        max_steps=rollout_split_ctx.max_steps,
+                        policy=rollout_trainer.actor,
                     )
 
-        strategy_simple_returns = _compute_strategy_simple_returns_for_split(
-            rollout=rollout,
-            split_ctx=split_ctx,
-            config=config,
-        )
-        price_series = _resolve_price_series_for_split(split_ctx, config, logger)
-        periods_per_year = periods_per_year_from_timeframe(
-            getattr(config.data, "timeframe", "1d")
-        )
-        statistical_test_results = run_all_statistical_tests(
-            strategy_returns=strategy_simple_returns,
-            prices=price_series,
-            env=split_ctx.env,
-            max_steps=split_ctx.max_steps,
-            config=config.statistical_testing,
-            market_data=split_ctx.df,
-            periods_per_year=periods_per_year,
-        )
-
-        MLflowTrainingCallback.log_statistical_tests(
-            statistical_test_results,
-            split_prefix=split_ctx.split,
-            log_to_research_artifacts=config.statistical_testing.log_to_research_artifacts,
-            research_artifact_subdir=config.statistical_testing.research_artifact_subdir,
-        )
-        logger.info(
-            "Statistical significance tests complete for %s split",
-            split_ctx.split,
-        )
-    except Exception as error:
-        logger.error(
-            "Failed to run statistical tests for %s split: %s",
-            split_ctx.split,
-            error,
-        )
+    _run_statistical_tests_for_split_impl(
+        trainer=trainer,
+        split_ctx=split_ctx,
+        config=config,
+        logger=logger,
+        run_rollout=_run_rollout,
+        run_all_statistical_tests_fn=run_all_statistical_tests,
+        log_statistical_tests_fn=MLflowTrainingCallback.log_statistical_tests,
+    )
 
 
 def _evaluate_split(
@@ -1031,67 +565,19 @@ def _evaluate_split(
     logger: logging.Logger,
 ) -> SplitEvaluationResult | None:
     """Evaluate one split and log associated artifacts."""
-    if len(split_df) < 2:
-        logger.warning(
-            "Skipping %s split evaluation: insufficient data (%d rows)",
-            split,
-            len(split_df),
-        )
-        return None
-
-    logger.info("Evaluating agent on %s split (%d rows)...", split, len(split_df))
-    split_ctx = _build_evaluation_context_for_split(split=split, df=split_df, config=config)
-
-    (
-        reward_plot,
-        action_plot,
-        action_probs_plot,
-        split_final_reward,
-        split_last_positions,
-        actual_returns_plot,
-        merged_plot,
-    ) = trainer.evaluate(
-        split_ctx.df,
-        max_steps=split_ctx.max_steps,
+    return _evaluate_split_impl(
+        split=split,
+        split_df=split_df,
+        trainer=trainer,
         config=config,
         algorithm=algorithm,
-        eval_env=split_ctx.env,
-    )
-
-    MLflowTrainingCallback.log_evaluation_plots(
-        reward_plot=reward_plot,
-        action_plot=action_plot,
-        action_probs_plot=action_probs_plot,
-        actual_returns_plot=actual_returns_plot,
         logs=logs,
-        merged_plot=merged_plot,
-        artifact_path_prefix=f"evaluation_plots/{split}",
-    )
-
-    split_evaluation_report = build_evaluation_report_for_trainer(
-        trainer=trainer,
-        df_prices=split_ctx.df,
-        max_steps=split_ctx.max_steps,
-        config=config,
-        eval_env=split_ctx.env,
-    )
-    MLflowTrainingCallback.log_evaluation_report(
-        split_evaluation_report,
-        split_prefix=split,
-    )
-
-    if config.statistical_testing.enabled:
-        _run_statistical_tests_for_split(
-            trainer=trainer,
-            split_ctx=split_ctx,
-            config=config,
-            logger=logger,
-        )
-
-    return SplitEvaluationResult(
-        final_reward=split_final_reward,
-        last_positions=split_last_positions,
-        evaluation_report=split_evaluation_report,
+        logger=logger,
+        build_evaluation_context_fn=_build_evaluation_context_for_split,
+        log_evaluation_plots_fn=MLflowTrainingCallback.log_evaluation_plots,
+        build_evaluation_report_for_trainer_fn=build_evaluation_report_for_trainer,
+        log_evaluation_report_fn=MLflowTrainingCallback.log_evaluation_report,
+        run_statistical_tests_for_split_fn=_run_statistical_tests_for_split,
     )
 
 
@@ -1107,50 +593,24 @@ def _evaluate_all_splits(
     logger: logging.Logger,
 ) -> dict[str, dict[str, Any]]:
     """Evaluate train/val/test splits and return serializable results."""
-    split_frames = {"train": train_df, "val": val_df, "test": test_df}
-    split_results: dict[str, dict[str, Any]] = {}
-
-    for split, split_df in split_frames.items():
-        result = _evaluate_split(
-            split=split,
-            split_df=split_df,
-            trainer=trainer,
-            config=config,
-            algorithm=algorithm,
-            logs=logs,
-            logger=logger,
-        )
-        if result is None:
-            continue
-        split_results[split] = {
-            "final_reward": result.final_reward,
-            "last_positions": result.last_positions,
-            "evaluation_report": result.evaluation_report,
-        }
-
-    return split_results
+    return _evaluate_all_splits_impl(
+        trainer=trainer,
+        train_df=train_df,
+        val_df=val_df,
+        test_df=test_df,
+        config=config,
+        algorithm=algorithm,
+        logs=logs,
+        logger=logger,
+        evaluate_split_fn=_evaluate_split,
+    )
 
 
 def _resolve_primary_split_result(
     split_results: dict[str, dict[str, Any]],
 ) -> tuple[str | None, float, list[Any], dict[str, float]]:
     """Resolve primary split result using preference test -> val -> train."""
-    primary_split = next(
-        (split for split in ("test", "val", "train") if split in split_results),
-        None,
-    )
-    final_reward = (
-        split_results[primary_split]["final_reward"]
-        if primary_split
-        else float("nan")
-    )
-    last_positions = (
-        split_results[primary_split]["last_positions"] if primary_split else []
-    )
-    evaluation_report = (
-        split_results[primary_split]["evaluation_report"] if primary_split else {}
-    )
-    return primary_split, final_reward, last_positions, evaluation_report
+    return _resolve_primary_split_result_impl(split_results)
 
 
 def _run_primary_split_explainability(
@@ -1164,22 +624,16 @@ def _run_primary_split_explainability(
     logger: logging.Logger,
 ) -> None:
     """Run explainability only on the selected primary split."""
-    if not primary_split:
-        return
-
-    split_frames = {"train": train_df, "val": val_df, "test": test_df}
-    explainability_ctx = _build_evaluation_context_for_split(
-        split=primary_split,
-        df=split_frames[primary_split],
-        config=config,
-    )
-    _run_explainability_analysis(
-        config=config,
+    _run_primary_split_explainability_impl(
+        primary_split=primary_split,
         trainer=trainer,
-        eval_ctx=explainability_ctx,
         train_df=train_df,
+        val_df=val_df,
+        test_df=test_df,
+        config=config,
         logger=logger,
-        artifact_path_prefix=f"explainability/{primary_split}",
+        build_evaluation_context_fn=_build_evaluation_context_for_split,
+        run_explainability_analysis_fn=_run_explainability_analysis,
     )
 
 
@@ -1201,40 +655,22 @@ def _build_final_metrics(
     split_results: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     """Build final experiment metrics payload."""
-    is_portfolio_backend = config.env.backend == "tradingenv"
-    return {
-        "final_reward": final_reward,
-        "training_steps": len(logs.get("loss_value", [])),
-        "interrupted": interrupted,
-        (
-            "portfolio_weights" if is_portfolio_backend else "last_position_per_episode"
-        ): last_positions,
-        "data_start_date": str(train_df.index[0]) if not train_df.empty else "unknown",
-        "data_end_date": (
-            str(test_df.index[-1])
-            if not test_df.empty
-            else (str(train_df.index[-1]) if not train_df.empty else "unknown")
-        ),
-        "data_size_total": len(train_df) + len(val_df) + len(test_df),
-        "train_size": len(train_df),
-        "validation_size": len(val_df),
-        "test_size": len(test_df),
-        "trading_fees": config.env.trading_fees,
-        "borrow_interest_rate": config.env.borrow_interest_rate,
-        "positions": str(config.env.positions),
-        "actor_hidden_dims": config.network.actor_hidden_dims,
-        "value_hidden_dims": config.network.value_hidden_dims,
-        "n_observations": n_obs,
-        "n_actions": n_act,
-        "experiment_name": effective_experiment_name,
-        "evaluation_split": primary_split or "none",
-        "seed": config.seed,
-        "actor_lr": config.training.actor_lr,
-        "value_lr": config.training.value_lr,
-        "buffer_size": config.training.buffer_size,
-        "evaluation_report": evaluation_report,
-        "split_results": split_results,
-    }
+    return _build_final_metrics_impl(
+        config=config,
+        effective_experiment_name=effective_experiment_name,
+        interrupted=interrupted,
+        logs=logs,
+        train_df=train_df,
+        val_df=val_df,
+        test_df=test_df,
+        n_obs=n_obs,
+        n_act=n_act,
+        primary_split=primary_split,
+        final_reward=final_reward,
+        last_positions=last_positions,
+        evaluation_report=evaluation_report,
+        split_results=split_results,
+    )
 
 
 @trace_calls(show_return=False)
