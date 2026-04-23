@@ -22,7 +22,7 @@ The research is based on the following hypotheses:
 1. A TD3-based trading agent using order-book-derived high-frequency features
    can achieve stronger out-of-sample risk-adjusted performance than selected
    benchmark strategies under the assumptions of the simulated environment.
-2. Within the order-book-based trading framework studied in this thesis,
+2. Within the order-book-based trading framework studied here,
    extending the state representation from basic snapshot features to a broader
    microstructure-aware feature set leads to improved out-of-sample performance
    under identical training and evaluation conditions.

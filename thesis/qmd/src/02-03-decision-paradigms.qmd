@@ -56,7 +56,7 @@ price evolution, which is noisy and non-stationary. Constructing pseudo-labels
 for unlabeled market observations requires either a strong prior on optimal
 behavior or a separate forecasting model — at which point the problem has
 already been reformulated as supervised or reinforcement learning. For these
-reasons, semi-supervised learning is not used in this thesis.
+reasons, semi-supervised learning is not used here.
 
 The same conclusion follows from a second perspective: the architecture of the
 decision system itself.

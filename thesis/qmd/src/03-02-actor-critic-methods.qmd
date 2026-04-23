@@ -4,7 +4,7 @@ The development of reinforcement learning algorithms is a series of conceptual b
 , each motivated by a limitation in the preceding framework. 
 This section traces the specific
 lineage that leads to the Twin Delayed Deep Deterministic Policy Gradient (TD3)
-algorithm, which is employed in this thesis. The survey is not exhaustive; it
+algorithm, which is employed here. The survey is not exhaustive; it
 focuses on the algorithmic properties that are directly relevant to the
 continuous-action, single-asset trading problem formulated in Chapter 4.
 
@@ -114,7 +114,7 @@ more stable than DDPG on standard continuous control benchmarks while
 retaining its off-policy sample efficiency. The combination of stability under
 noisy rewards, data efficiency through experience replay, and native support for
 continuous actions makes TD3 well suited to the continuous portfolio
-allocation problem studied in this thesis. Alternative algorithms such as SAC
+allocation problem studied here. Alternative algorithms such as SAC
 [@Haarnoja2018] incorporate maximum-entropy objectives and stochastic policies,
 which may improve exploration but introduce stochasticity into the policy at
 evaluation time — a less natural fit for a trading agent that is expected to

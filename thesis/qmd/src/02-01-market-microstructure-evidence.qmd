@@ -9,7 +9,7 @@ of market makers, the clustering of institutional activity, and the discrete
 price grid imposed by exchange rules. Understanding these patterns is a
 prerequisite for designing an HFT trading agent, since they define the
 informational environment the agent operates in and directly motivate the
-feature set used in this thesis.
+feature set used here.
 
 @Roll1984 demonstrated that bid-ask spreads induce negative serial correlation
 in transaction prices at very short horizons, as prices bounce between bid and

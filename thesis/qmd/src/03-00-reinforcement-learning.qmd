@@ -1,7 +1,7 @@
 # Reinforcement Learning
 
 This chapter develops the reinforcement learning foundations required for the
-trading agent implemented in this thesis. It is organized in three parts. The
+trading agent implemented here. It is organized in three parts. The
 first part introduces the core components of a reinforcement learning system —
 the formal vocabulary of states, actions, rewards, policies, and value functions
 that all subsequent algorithms inherit. The second part classifies RL algorithms
@@ -20,7 +20,7 @@ context, drawing on @Sutton2018.
 ### Environment
 
 The environment defines the space of possible states and the rules governing
-transitions between them. In the trading setting studied in this thesis, the
+transitions between them. In the trading setting studied here, the
 environment is the simulated order-book market: it receives a portfolio-exposure
 action from the agent at each time step, updates the portfolio value according
 to price changes and transaction costs, and returns the new state and reward.
@@ -65,7 +65,7 @@ to the agent — there are no labels, no supervisor. The reward function is
 therefore a critical design choice: it determines what the agent actually
 optimizes. In trading, rewards are typically derived from portfolio returns,
 possibly adjusted for risk and transaction costs. The specific reward formulation
-used in this thesis is developed in Chapter 4.
+used here is developed in Chapter 4.
 
 ### Value Function
 
