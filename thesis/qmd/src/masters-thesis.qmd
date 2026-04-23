@@ -91,53 +91,53 @@ claims.
 \pagebreak
 
 
-{{< include ./01-00-00-introduction.qmd >}}
+{{< include ./01-00-introduction.qmd >}}
 
-{{< include ./01-02-00-scope-and-objectives.qmd >}}
-{{< include ./01-04-00-thesis-organization-and-chapter-overview.qmd >}}
-
-\newpage
-{{< include ./02-00-00-literature-review.qmd >}}
-{{< include ./02-02-02-empirical-evidence.qmd >}}
-{{< include ./02-02-04-microstructure-theory.qmd >}}
-{{< include ./02-03-00-decision-paradigms.qmd >}}
-{{< include ./02-03-03-02-seminal-works.qmd >}}
-{{< include ./02-03-03-01-key-concepts.qmd >}}
-{{< include ./02-03-03-03-rl-applications.qmd >}}
+{{< include ./01-01-scope-and-objectives.qmd >}}
+{{< include ./01-02-thesis-organization.qmd >}}
 
 \newpage
-{{< include ./04-00-reinforcement-learning.qmd >}}
-{{< include ./04-03-rl-categories.qmd >}}
-{{< include ./04-02-timeline-of-new-rl-algorithms.qmd >}}
+{{< include ./02-00-literature-review.qmd >}}
+{{< include ./02-01-market-microstructure-evidence.qmd >}}
+{{< include ./02-02-market-microstructure-theory.qmd >}}
+{{< include ./02-03-decision-paradigms.qmd >}}
+{{< include ./02-04-why-rl-for-trading.qmd >}}
+{{< include ./02-05-rl-key-concepts.qmd >}}
+{{< include ./02-06-rl-applications.qmd >}}
 
 \newpage
-{{< include ./05-00-design-of-the-trading-agent.qmd >}}
-{{< include ./05-01-action-space.qmd >}}
-{{< include ./05-02-state-space.qmd >}}
-{{< include ./05-03-reward-function.qmd >}}
-{{< include ./05-04-value-function.qmd >}}
-{{< include ./05-05-policy.qmd >}}
-{{< include ./05-06-discount-factor.qmd >}}
-{{< include ./05-07-step-size.qmd >}}
+{{< include ./03-00-reinforcement-learning.qmd >}}
+{{< include ./03-01-rl-categories.qmd >}}
+{{< include ./03-02-actor-critic-methods.qmd >}}
 
 \newpage
-{{< include ./06-00-implementation-of-the-trading-agent.qmd >}}
-{{< include ./06-01-data-preparation.qmd >}}
-{{< include ./06-02-code.qmd >}}
+{{< include ./04-00-design-of-the-trading-agent.qmd >}}
+{{< include ./04-01-action-space.qmd >}}
+{{< include ./04-02-state-space.qmd >}}
+{{< include ./04-03-reward-function.qmd >}}
+{{< include ./04-04-value-function.qmd >}}
+{{< include ./04-05-policy.qmd >}}
+{{< include ./04-06-discount-factor.qmd >}}
+{{< include ./04-07-optimization-hyperparameters.qmd >}}
 
 \newpage
-{{< include ./07-00-empirical-evaluation-and-performance-analysis.qmd >}}
-{{< include ./07-01-statistical-validation.qmd >}}
-{{< include ./07-02-robustness-assessment.qmd >}}
-{{< include ./07-03-performance-evaluation.qmd >}}
+{{< include ./05-00-implementation.qmd >}}
+{{< include ./05-01-data-preparation.qmd >}}
+{{< include ./05-02-code.qmd >}}
 
 \newpage
-{{< include ./08-00-conclusions-and-future-work.qmd >}}
-{{< include ./08-01-summary-of-findings.qmd >}}
-{{< include ./08-02-limitations-and-future-research.qmd >}}
-{{< include ./08-03-implications-for-trading-systems.qmd >}}
-{{< include ./08-04-recommendations-for-practitioners.qmd >}}
-{{< include ./08-05-conclusion.qmd >}}
+{{< include ./06-00-results.qmd >}}
+{{< include ./06-01-statistical-validation.qmd >}}
+{{< include ./06-02-robustness-assessment.qmd >}}
+{{< include ./06-03-performance-evaluation.qmd >}}
+
+\newpage
+{{< include ./07-00-conclusions.qmd >}}
+{{< include ./07-01-summary-of-findings.qmd >}}
+{{< include ./07-02-limitations-and-future-research.qmd >}}
+{{< include ./07-03-implications-for-trading-systems.qmd >}}
+{{< include ./07-04-recommendations-for-practitioners.qmd >}}
+{{< include ./07-05-conclusion.qmd >}}
 
 {{< include ./98-bibliography.qmd >}}
 {{< include ./99-appendix.qmd >}}
