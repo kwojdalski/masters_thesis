@@ -35,16 +35,14 @@ finished = snapshot.latest_finished
 ```{python}
 #| echo: false
 
-# Try real data first [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
+# Try real data first
 key_metrics_df = None
 if finished is not None:
     key_metrics_df = format_key_metrics(finished.get("evaluation_report"))
     if key_metrics_df.empty:
         key_metrics_df = None
 
-# Fall back to mock data matching format_key_metrics() schema [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
+# Fall back to mock data matching format_key_metrics() schema
 if key_metrics_df is None or key_metrics_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
     key_metrics_df = pd.DataFrame([
@@ -71,16 +69,14 @@ The TD3 agent is evaluated against five benchmark strategies spanning passive ex
 ```{python}
 #| echo: false
 
-# Try real data first [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
+# Try real data first
 benchmark_df = None
 if finished is not None:
     benchmark_df = format_benchmark_comparison_table(finished.get("statistical_tests"))
     if benchmark_df.empty:
         benchmark_df = None
 
-# Fall back to mock data matching benchmark_comparison_table schema [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
+# Fall back to mock data matching benchmark_comparison_table schema
 if benchmark_df is None or benchmark_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
     benchmark_df = pd.DataFrame([
