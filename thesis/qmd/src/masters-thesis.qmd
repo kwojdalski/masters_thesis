@@ -100,8 +100,8 @@ claims.
 
 \newpage
 {{< include ./02-00-literature-review.qmd >}}
-{{< include ./02-01-market-microstructure-evidence.qmd >}}
 {{< include ./02-02-market-microstructure-theory.qmd >}}
+{{< include ./02-01-market-microstructure-evidence.qmd >}}
 {{< include ./02-03-decision-paradigms.qmd >}}
 {{< include ./02-04-why-rl-for-trading.qmd >}}
 {{< include ./02-05-rl-key-concepts.qmd >}}

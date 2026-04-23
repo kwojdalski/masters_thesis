@@ -1,7 +1,7 @@
 ## Market Microstructure Theory
 
-The empirical regularities described in the preceding section are grounded in
-a theoretical literature that models the strategic interactions between informed
+Market microstructure is grounded in a theoretical literature that models the
+strategic interactions between informed
 traders, uninformed liquidity demanders, and market makers in a limit order book.
 This section reviews the theoretical frameworks that directly underpin the feature
 design choices made in Chapter 4.
