@@ -1,8 +1,6 @@
 ## Thesis Organization and Chapter Overview
 
-This thesis is organized to move from problem formulation and literature
-motivation to agent design, implementation, and empirical evaluation in a
-microstructure-aware trading setting.
+The thesis is structured as a progression from problem formulation and motivating literature through agent design and implementation to empirical evaluation.
 
 Chapter 1 introduces the problem context, defines the research scope, and
 presents the methodological framework used throughout the thesis.
