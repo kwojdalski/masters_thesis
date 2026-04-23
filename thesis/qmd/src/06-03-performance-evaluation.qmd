@@ -1,4 +1,5 @@
 ## Performance Evaluation [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 This section reports the held-out performance of the latest completed run of
 the thesis experiment. The aim is not just to list metrics, but to judge
@@ -29,11 +30,13 @@ finished = snapshot.latest_finished
 ```
 
 ### Selected Metrics from the Latest Completed Run [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 ```{python}
 #| echo: false
 
 # Try real data first [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 key_metrics_df = None
 if finished is not None:
     key_metrics_df = format_key_metrics(finished.get("evaluation_report"))
@@ -41,6 +44,7 @@ if finished is not None:
         key_metrics_df = None
 
 # Fall back to mock data matching format_key_metrics() schema [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 if key_metrics_df is None or key_metrics_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
     key_metrics_df = pd.DataFrame([
@@ -60,6 +64,7 @@ display(key_metrics_df)
 ```
 
 ### Benchmark Comparison [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
 
@@ -67,6 +72,7 @@ The TD3 agent is evaluated against five benchmark strategies spanning passive ex
 #| echo: false
 
 # Try real data first [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 benchmark_df = None
 if finished is not None:
     benchmark_df = format_benchmark_comparison_table(finished.get("statistical_tests"))
@@ -74,6 +80,7 @@ if finished is not None:
         benchmark_df = None
 
 # Fall back to mock data matching benchmark_comparison_table schema [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 if benchmark_df is None or benchmark_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
     benchmark_df = pd.DataFrame([
@@ -99,6 +106,7 @@ display(benchmark_df)
 ```
 
 ### Evaluation Metadata Snapshot [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 ```{python}
 #| echo: false
@@ -123,6 +131,7 @@ if finished is not None:
 ```
 
 ### Evaluation Plots [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 ```{python}
 #| echo: false
@@ -153,6 +162,7 @@ else:
 ```
 
 ### Discussion: Reading Performance in the Context of State Design [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The key interpretive issue in this thesis is not whether the agent attains a
 single high metric, but whether the reported behavior is consistent with the
