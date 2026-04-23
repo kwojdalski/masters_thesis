@@ -17,7 +17,7 @@ at least as consequential as the choice of algorithm. A well-specified feature
 set operating with a standard actor-critic architecture will likely outperform a
 poorly-specified feature set using a more sophisticated model.
 
-**Continuous-action actor-critic methods are best suited to position-sizing tasks.** The continuous action space used in this thesis allowed
+**Continuous-action actor-critic methods are best suited to position-sizing tasks.** The continuous action space used here allowed
 the agent to express varying degrees of directional conviction through position
 size, rather than being constrained to binary buy/sell decisions. This expressiveness
 is important in high-frequency settings where the economically correct position
@@ -43,7 +43,7 @@ of a strong out-of-sample Sharpe — is a common source of overoptimistic claims
 in the literature.
 
 **Execution assumptions impose a binding constraint on achievable net
-performance.** The mid-price execution proxy used in this thesis represents an
+performance.** The mid-price execution proxy used here represents an
 upper bound on realizable returns. The spread-crossing cost that arises in live
 execution is of the same order of magnitude as the short-horizon price movements
 the agent attempts to capture, and the agent's demonstrated edge does not

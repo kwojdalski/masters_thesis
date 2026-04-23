@@ -299,7 +299,7 @@ graph TD
 # TD3 Network Architecture
 
 The diagram below shows how the actor, twin critics, and replay buffer interact
-in the TD3 architecture used in this thesis.
+in the TD3 architecture used here.
 
 ```{=latex}
 \begin{center}
