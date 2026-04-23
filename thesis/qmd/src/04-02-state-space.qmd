@@ -206,8 +206,18 @@ exposure $0$ from a long position versus arriving from a short position.
 This distinction matters because the cost of the next action differs in both cases through the
 position-change fee. With the position feature, the agent can condition its action on whether a
 change would incur a fee. It can also learn to penalize unnecessary turnover.
-The feature requires no normalization as it is already bounded in $[-1, 1]$
-by the action space definition.
+The feature is not z-score normalized. Because the position is bounded in
+$[-1, 1]$ by the action space and is drawn from a bimodal distribution that
+concentrates near the extremes (fully long or fully short), standardization
+would distort this natural structure: a z-score transform on a bimodal
+distribution produces a U-shaped output with negative variance contributions
+between the modes, which is worse than the raw signal for a neural-network
+input.^[This is a practical consideration rather than a theoretical
+constraint. If the position distribution were approximately Gaussian,
+z-score normalization would reduce the scale mismatch with the other features.
+However, TD3 policies with continuous action spaces in $[-1, 1]$ tend to
+produce positions that cluster near the boundaries, making the raw
+representation both simpler and better matched to the actual distribution.]
 
 ### Observation Space and Normalization
 
@@ -215,8 +225,8 @@ The complete observation vector $s_t \in \mathbb{R}^d$ is formed by concatenatin
 all engineered features. The exact dimensionality $d$ is scenario-dependent and
 specified in the configuration files governing each experiment.
 
-All features except cyclical time encodings are standardized using training-set
-statistics:
+All features except cyclical time encodings and the position feature are
+standardized using training-set statistics:
 
 $$\tilde{x}_i = \frac{x_i - \mu_i^{\text{train}}}{\sigma_i^{\text{train}}}$$
 
@@ -224,6 +234,9 @@ The mean $\mu_i^{\text{train}}$ and standard deviation $\sigma_i^{\text{train}}$
 are computed exclusively on the training split and applied without modification
 to the validation and test splits, preventing any form of data leakage. Cyclical
 encodings are inherently bounded in $[-1, 1]$ and require no normalization.
+The position feature is likewise not standardized; as discussed in the preceding
+section, it is already bounded in $[-1, 1]$ and its bimodal distribution makes
+z-score normalization counterproductive.
 
 The formal observation space is:
 
