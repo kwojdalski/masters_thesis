@@ -96,7 +96,7 @@ training:
   buffer_size: 100000
   save_buffer: true
 
-  gamma: 0.99
+  gamma: 0.995
 
   tau: 0.001
   policy_noise: 0.2
@@ -104,7 +104,7 @@ training:
   policy_delay: 2
   delay_actor: true
   delay_qvalue: true
-  exploration_noise_std: 0.2
+  exploration_noise_std: 0.1
 
   loss_function: "smooth_l1"
 
