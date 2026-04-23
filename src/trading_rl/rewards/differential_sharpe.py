@@ -108,7 +108,10 @@ class DifferentialSharpeRatio(AbstractReward):
         # Calculate DSR using old EMA values
         # D_t = (B_{t-1} * ΔA_t - A_{t-1} * ΔB_t / 2) / (B_{t-1} - A_{t-1}^2)^(3/2)
         variance = self.B_t - self.A_t ** 2  # Var = B_{t-1} - A_{t-1}^2
-        denominator = variance ** 1.5 + self.epsilon
+        # Clamp variance to non-negative: mathematically E[X^2] >= (E[X])^2, but
+        # floating-point drift can produce a slightly negative value, which would
+        # crash on fractional exponentiation (Python: ValueError on negative ** 1.5).
+        denominator = max(variance, 0.0) ** 1.5 + self.epsilon
         dsr = (self.B_t * delta_A - self.A_t * delta_B / 2) / denominator
 
         # NOW update EMAs for next step
