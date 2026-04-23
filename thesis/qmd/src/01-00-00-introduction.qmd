@@ -45,7 +45,7 @@ control agent using microstructure-aware features achieve economically
 meaningful out-of-sample performance relative to selected benchmarks?
 
 The problem is challenging for several reasons. Financial reward signals are
-noisy and non-stationary. Transaction costs can erase apparent profitability.
+noisy and often non-stationary. Transaction costs can erase apparent profitability.
 Additionally, short-horizon strategies are highly sensitive to turnover, feature
 specification, and market frictions. Strong empirical claims are
 difficult for another reason. Favorable in-sample results may reflect data leakage,
