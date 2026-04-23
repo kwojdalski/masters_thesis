@@ -29,7 +29,7 @@ implementation shortfall on large orders. This approach uses a known trade sched
 In this setting, the LOB state informs fill probability and spread cost rather
 than price direction.
 
-Directional exposure control is a harder problem for several reasons.
+Directional trading is a harder problem for several reasons.
 First, the reward signal at tick frequency is dominated by noise rather than
 price movement. Second, the LOB state must be transformed into features that carry
 signal rather than liquidity estimates. Third, the agent must generalize
