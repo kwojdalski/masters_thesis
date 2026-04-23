@@ -1,7 +1,7 @@
 ## Recommendations for Practitioners
 
 The following recommendations are directed at practitioners who wish to implement
-reinforcement learning trading systems in settings similar to the one studied
+deep RL trading systems in settings similar to the one studied
 here. They are grounded in the specific lessons from this thesis rather than
 general RL best practices.
 
