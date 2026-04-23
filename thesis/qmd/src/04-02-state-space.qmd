@@ -157,7 +157,7 @@ queue is close to exhaustion and a price move is imminent.
 
 Odd-lot trade ratio and odd-lot imbalance [@Boehmer2021] decompose trade flow by
 order size. In the AAPL dataset used here, 81% of trades are odd-lot sized (below
-100 shares). This primarily reflects retail and algorithmic small-lot activity.
+100 shares).^[This figure is computed from the February 25–27, 2026 AAPL MBP-10 dataset used in the main experiment and should not be interpreted as a long-run population statistic. The share of odd-lot trades in AAPL has increased substantially since the SEC's 2023 amendments to odd-lot reporting rules and may vary across periods.] This primarily reflects retail and algorithmic small-lot activity.
 
 A
 sudden drop in the odd-lot ratio signals increasing institutional participation.
