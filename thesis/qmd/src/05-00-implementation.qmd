@@ -71,7 +71,7 @@ this parameter.
 **Narrow data scope.** Training, validation, and testing are conducted on a
 single three-day window of AAPL data (February 25–27, 2026). This scope means the agent has only encountered one volatility regime, one spread
 environment, and one pattern of intraday seasonality. Results should be
-interpreted as a feasibility demonstration rather than as evidence of
+interpreted as a proof of concept rather than as evidence of
 generalizability across market conditions or time periods.
 
 These assumptions collectively make the simulation tractable and the results
