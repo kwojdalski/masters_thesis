@@ -46,8 +46,8 @@ stronger claims about generalization require broader temporal and cross-market
 evaluation, including longer windows, walk-forward validation, multiple random
 seeds, and eventually cross-asset testing.
 
-The most direct directions for future work therefore follow from the current
-limitations. The same agents should be re-evaluated under explicit bid/ask
+The most direct directions for future work therefore follow from these
+constraints. The same agents should be re-evaluated under explicit bid/ask
 execution rules, calibrated fee schedules, and slippage or market-impact
 models. The empirical scope should be extended to longer and more diverse market
 periods, including different volatility and liquidity regimes, with multi-seed
@@ -66,4 +66,5 @@ tractable and that the chosen representation carries enough signal to produce a
 measurably superior policy in a controlled setting. That is a narrower claim
 than a production-performance claim, but it is also the correct one. It
 provides a defensible foundation for subsequent work that aims to close the gap
-between research-grade feasibility and operational trading realism.
+between research-grade feasibility and operational trading realism under more
+realistic assumptions.
