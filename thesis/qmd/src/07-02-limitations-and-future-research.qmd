@@ -123,7 +123,7 @@ not empirically vary.
 
 ### Alternative Model Architectures
 
-Two architectural directions appear promising for future work. First, replacing
+Two architectural directions appear promising. First, replacing
 the MLP actor and critic with a Transformer-based sequence encoder would allow
 the agent to attend selectively over a window of past order-book states rather
 than acting on a single flattened snapshot. Transformer architectures have shown
