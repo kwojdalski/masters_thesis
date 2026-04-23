@@ -1,73 +1,19 @@
 # Introduction
 
-Much of the reinforcement learning literature in trading relies on
-low-frequency market representations such as daily or intraday OHLCV bars.
-High-frequency trading, however, is governed by information embedded in the
-limit order book, where local liquidity, queue dynamics, spread changes, and
-event timing determine short-horizon risks. This thesis examines
-whether a reinforcement learning agent can use
-order-book-derived features to make favourable trading decisions in
-a HFT setting.
+Much of the reinforcement learning literature in trading relies on low-frequency market representations such as daily or intraday OHLCV bars. High-frequency trading, however, is governed by information embedded in the limit order book, where local liquidity, queue dynamics, spread changes, and event timing determine short-horizon risks. This thesis examines whether a reinforcement learning agent can use order-book-derived features to make favourable trading decisions in a HFT setting.
 
-High-frequency trading should therefore not be treated as a faster
-version of MFT. The state observed by the agent is different. At short horizons, aggregated price bars omit information that is
-central to decision-making. Features derived from the order
-book provide a more detailed description of market conditions than candlesticks.
-These include depth imbalance, spread variation, order-flow pressure, and
-inter-event timing. A primary concern of this thesis
-is whether such microstructure-aware state representations improve the
-suitability of reinforcement learning for this domain.
+High-frequency trading should therefore not be treated as a faster version of MFT. The state observed by the agent is different. At short horizons, aggregated price bars omit information that is central to decision-making. Features derived from the order book provide a more detailed description of market conditions than candlesticks. These include depth imbalance, spread variation, order-flow pressure, and inter-event timing. A primary concern of this thesis is whether such microstructure-aware state representations improve the suitability of reinforcement learning for this domain.
 
-Reinforcement learning is a plausible modelling framework for this problem
-because trading is sequential and path dependent. Each action affects future
-exposure, portfolio evolution, and the set of subsequent decisions available to
-the agent. In high-frequency settings, this distinction matters.
+Reinforcement learning is a plausible modelling framework for this problem because trading is sequential and path dependent. Each action affects future exposure, portfolio evolution, and the set of subsequent decisions available to the agent. In high-frequency settings, this distinction matters.
 
-Reinforcement learning has already been deployed in industry settings on limit
-order book data, but these applications typically address narrower problems
-such as optimal execution. For example, JPMorgan's execution engine
-[@Mosic2017] is designed to minimize execution costs for a known trade
-schedule, so the limit order book is used to estimate fill probability and
-spread cost rather than short-horizon price direction.
+Reinforcement learning has already been deployed in industry settings on limit order book data, but these applications typically address narrower problems such as optimal execution. For example, JPMorgan's execution engine [@Mosic2017] is designed to minimize execution costs for a known trade schedule, so the limit order book is used to estimate fill probability and spread cost rather than short-horizon price direction.
 
-Directional trading is a harder problem for several reasons.
-First, the reward signal at tick frequency is dominated by noise rather than
-price movement. Second, the LOB state must be transformed into features that carry
-signal rather than liquidity estimates. Third, the agent must generalize
-across intraday regimes whose statistical properties can differ substantially from the
-training window.
+Directional trading is a harder problem for several reasons. First, the reward signal at tick frequency is dominated by noise rather than price movement. Second, the LOB state must be transformed into features that carry signal rather than liquidity estimates. Third, the agent must generalize across intraday regimes whose statistical properties can differ substantially from the training window.
 
-This thesis investigates the use of reinforcement learning, with particular
-focus on TD3, for high-frequency single-asset trading based on
-order-book-derived information. The research is motivated not by a claim that
-artificial intelligence can universally solve trading, but by a narrower and
-testable question: under controlled experimental conditions, can a continuous
-control agent using microstructure-aware features achieve economically
-meaningful out-of-sample performance relative to selected benchmarks?
+This thesis investigates the use of reinforcement learning, with particular focus on TD3, for high-frequency single-asset trading based on order-book-derived information. The research is motivated not by a claim that artificial intelligence can universally solve trading, but by a narrower and testable question: under controlled experimental conditions, can a continuous control agent using microstructure-aware features achieve superior out-of-sample performance relative to selected benchmarks?
 
-The problem is challenging for several reasons. Financial reward signals are
-noisy and often non-stationary. Transaction costs can erase apparent profitability.
-Additionally, short-horizon strategies are highly sensitive to turnover, feature
-specification, and market frictions. Strong empirical claims are
-difficult for another reason. Favorable in-sample results may reflect data leakage,
-overfitting, or unrealistic execution assumptions rather than genuine decision
-quality.
+The problem is challenging for several reasons. Financial reward signals are noisy and often non-stationary. Transaction costs can erase apparent profitability. Additionally, short-horizon strategies are highly sensitive to turnover, feature specification, and market frictions. Strong empirical claims are difficult for another reason. Favorable in-sample results may reflect data leakage, overfitting, or unrealistic execution assumptions rather than genuine decision quality.
 
-Accordingly, the thesis emphasizes methodological discipline alongside model
-development. It treats feature engineering, chronological evaluation,
-reward-return separation, and robustness analysis as core parts of the research
-problem rather than secondary implementation details. In this setting, the
-question is not only whether an agent can learn, but whether the learning setup
-is sufficiently properly specified to support credible empirical conclusions.
+Accordingly, the thesis focuses on both methodological discipline and model development. It treats feature engineering, chronological evaluation, reward-return separation, and robustness analysis as core parts of the research problem. In this setting, the question is not only whether an agent can learn, but whether the learning setup is properly specified to support credible conclusions.
 
-At the same time, the thesis does not claim to reproduce the full operational
-complexity of live high-frequency trading. The empirical framework is based on a
-controlled simulation environment rather than a complete execution engine with
-queue-priority modelling, latency competition, exact fill uncertainty, and full
-market impact. In particular, portfolio valuation relies on a mid-price-like
-execution proxy rather than fully executable bid/ask fills, and the agent is
-treated as price-taking rather than as a participant that alters the state of
-the order book. The contribution of the thesis should therefore be understood
-as methodological and empirical: it evaluates reinforcement learning agents in
-a microstructure-aware setting while making the simplifying assumptions
-explicit.
+At the same time, the thesis does not claim to reproduce the full complexity of live high-frequency trading. The framework is based on a controlled simulation environment rather than a complete execution engine with queue-priority modelling, latency competition, or full market impact. For instance, portfolio valuation relies on a mid-price-like execution proxy, and the agent is treated as a price-taking participant that does not alter the state of the order book. The contribution of the thesis should therefore be methodological and empirical: it evaluates reinforcement learning agents in a microstructure-aware setting while making the simplifying assumptions explicit.
