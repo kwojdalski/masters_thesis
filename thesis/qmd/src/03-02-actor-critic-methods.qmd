@@ -113,7 +113,7 @@ Together, these three modifications produce an algorithm that is substantially
 more stable than DDPG on standard continuous control benchmarks while
 retaining its off-policy sample efficiency. The combination of stability under
 noisy rewards, data efficiency through experience replay, and native support for
-continuous actions makes TD3 a natural fit for the continuous portfolio
+continuous actions makes TD3 well suited to the continuous portfolio
 allocation problem studied in this thesis. Alternative algorithms such as SAC
 [@Haarnoja2018] incorporate maximum-entropy objectives and stochastic policies,
 which may improve exploration but introduce stochasticity into the policy at

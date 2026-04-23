@@ -128,7 +128,7 @@ the MLP actor and critic with a Transformer-based sequence encoder would allow
 the agent to attend selectively over a window of past order-book states rather
 than acting on a single flattened snapshot. Transformer architectures have shown
 strong performance on sequential financial data [@Vaswani2017], and their
-attention mechanism is a natural fit for LOB inputs where the relative
+attention mechanism aligns well with LOB inputs where the relative
 importance of recent events varies with market conditions.
 
 Second, a hybrid approach combining gradient-boosted trees with the RL framework
