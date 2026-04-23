@@ -120,12 +120,7 @@ class CustomFeature(Feature):
 
         holdings = self.broker.holdings_weights()
         contract = self.traded_contracts[0]
-        # Scale from [-1, 1] to approximately [-3, 3] to match the z-scored
-        # static features, which are standardized to ~N(0,1) and typically
-        # fall in [-3, 3]. Without this scaling the position feature is ~3x
-        # smaller in magnitude, slowing convergence as the network must
-        # learn to compensate for the mismatched scales.
-        return float(holdings.get(contract, 0.0)) * 3.0
+        return float(holdings.get(contract, 0.0))
 
 
 class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
