@@ -1,12 +1,12 @@
 ## Statistical Validation
 
-This section interprets the empirical results of the thesis experiment through
-the lens of training stochasticity. For the present AAPL high-frequency TD3
-setup, a single favorable run is not sufficient evidence: repeated runs can
-diverge because of random initialization, replay sampling, and exploration
-noise even when the dataset and configuration are fixed. Statistical validation
-is therefore used here to quantify run-to-run dispersion and to distinguish
-stable behavior from isolated favorable trajectories.
+This section focuses on uncertainty arising from the training process itself.
+For the present AAPL high-frequency TD3 setup, repeated runs can diverge
+because of random initialization, replay sampling, and exploration noise even
+when the dataset and configuration are fixed. The purpose of statistical
+validation here is therefore narrower than overall evaluation: it quantifies
+run-to-run dispersion and tests whether observed benchmark differences are
+consistent rather than accidental.
 
 The analysis operates on exported thesis result snapshots so that the rendered
 chapter stays tied to recorded experiment artifacts.

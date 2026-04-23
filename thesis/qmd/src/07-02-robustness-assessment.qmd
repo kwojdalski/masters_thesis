@@ -1,14 +1,13 @@
 ## Robustness Assessment
 
-Robustness assessment asks whether the conclusions drawn from the current AAPL
-high-frequency TD3 experiment survive changes in the assumptions most likely to
-matter for this thesis. Here the central question is not generic algorithm
-robustness in the abstract, but whether the reported behavior depends too
-heavily on a particular random seed, feature specification, reward definition,
-or transaction-cost setting.
+This section shifts from stochastic variation across repeated runs to
+sensitivity with respect to modeling choices. The question is whether the
+empirical conclusions for the current AAPL high-frequency TD3 setup would
+change materially under nearby alternatives in feature specification, reward
+definition, transaction-cost assumptions, or split design.
 
-The goal is therefore to identify which parts of the empirical result look
-structural and which may still be artifacts of a narrow experimental setup.
+The goal is to separate results that appear structural from results that may
+depend too heavily on one narrow experimental configuration.
 
 ```{python}
 #| label: robustness_setup
