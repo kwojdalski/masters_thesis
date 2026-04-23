@@ -35,7 +35,7 @@ execution algorithms rather than directional strategies — they describe how to
 work an order, not whether to be long or short. Their inclusion reflects
 standard practice in trading-system evaluation; however, outperforming them
 has a different interpretation than outperforming buy-and-hold, and they
-should be read as lower-bar references rather than directional competitors.
+serve as lower-bar references rather than directional competitors.
 
 **Random** selects actions uniformly from $[-1, 1]$ at each step without
 reference to market state. Evaluation uses 100 independent random-seed trials

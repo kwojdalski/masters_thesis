@@ -169,8 +169,7 @@ fragile policy behavior, or improve reward diagnostics without improving net
 returns, they do not strengthen the empirical case for the proposed state
 design.
 
-For that reason, the performance tables in this section should be interpreted as
-evidence about the quality of the overall decision pipeline: state
+For that reason, the performance tables in this section reflect the quality of the overall decision pipeline: state
 representation, reward specification, and policy learning together. The central
 question is whether the broader microstructure-aware feature design yields more
 stable and more interpretable out-of-sample behavior than simpler alternatives,
