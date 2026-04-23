@@ -3,10 +3,11 @@
 Before positioning reinforcement learning as the methodology of choice, it is
 useful to characterize the main alternatives. Two complementary perspectives
 are relevant: what machine learning paradigm to use for training, and how the
-trading decision system is structured architecturally. Both converge on the same
-conclusion.
+trading decision system is structured architecturally.
 
-### Supervised Learning
+### Learning Paradigms
+
+#### Supervised Learning
 
 Supervised learning trains a model on labeled input-output pairs
 $(X_i, Y_i)_{i=1}^{n}$ to minimize a loss function $\mathcal{L}(f_\theta(X), Y)$
@@ -25,7 +26,7 @@ optimization of prediction and action also discards information: a scalar return
 forecast does not carry the uncertainty, timing, or context available in the
 original feature vector.
 
-### Unsupervised Learning
+#### Unsupervised Learning
 
 Unsupervised learning identifies structure in unlabeled data
 $\{X_i\}_{i=1}^{n}$ without a target variable. In trading research it is
@@ -42,7 +43,7 @@ ratio, inter-event time, temporal encodings — that condition the agent's
 observation on the current market state without requiring an explicit
 unsupervised clustering step.
 
-### Semi-Supervised Learning
+#### Semi-Supervised Learning
 
 Semi-supervised learning combines a small labeled set with a larger unlabeled
 set, propagating label information through structural similarity in the data.
@@ -55,13 +56,14 @@ constitutes an optimal action at a given market state depends on subsequent
 price evolution, which is noisy and non-stationary. Constructing pseudo-labels
 for unlabeled market observations requires either a strong prior on optimal
 behavior or a separate forecasting model — at which point the problem has
-already been reformulated as supervised or reinforcement learning. For these
-reasons, semi-supervised learning is not used here.
+already been reformulated as supervised or reinforcement learning.
 
 The same conclusion follows from a second perspective: the architecture of the
 decision system itself.
 
-### Rule-Based Trading Strategies
+### Decision-System Architectures
+
+#### Rule-Based Trading Strategies
 
 Rule-based strategies encode trading decisions as explicit conditional logic:
 position changes are triggered when observable market quantities cross
@@ -85,40 +87,28 @@ non-stationarity is the primary motivation for learning-based approaches,
 which can update their behavior from experience rather than requiring explicit
 rule revision.
 
-### Forecast-Based Trading
+#### Indirect Optimization via Forecasts or Labels
 
-Forecast-based trading systems employ supervised learning techniques to generate
-price predictions from a set of input variables. These systems optimize for
-statistical accuracy metrics such as mean squared error during the training
-phase.
-
-The forecasting process represents merely an intermediate step in the trading
-workflow. The predicted prices subsequently inform trading decisions within a
-separate rules module. A significant limitation is that the forecasting model
-typically outputs only the predicted price while discarding potentially valuable
-contextual information from the original inputs. The dimensionality reduction
-from $\mathbb{R}^n$ to $\hat{y} \in \mathbb{R}$ results in information loss
-that may be crucial for optimal trading decisions. The optimization target —
-forecast accuracy — is also not the same as the trading objective.
-
-### Training on Labelled Data
-
-A related approach trains a model to imitate a corpus of labeled trades directly,
-mapping observed market states to actions without an intermediate forecasting
-step. Formally, the model learns $f: X \rightarrow a$ by minimizing a loss over
-labeled state-action pairs $(X_i, a_i^*)$:
+An intermediate class of trading systems learns a surrogate target rather than
+optimizing trading performance directly. One variant employs supervised learning
+to generate price forecasts from market inputs and then feeds those forecasts
+into a separate decision rule. Another variant trains directly on labeled
+state-action pairs, imitating historical or hand-crafted trades without an
+explicit forecasting stage. In the latter case, the model learns
+$f: X \rightarrow a$ by minimizing a loss over labeled examples $(X_i, a_i^*)$:
 
 $$\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$
 
-The limitation is the same as in forecast-based approaches, expressed
-differently: the optimization target is the labeled action, not the trading
-objective. Since labels are typically constructed from historical rules or
-expert behavior rather than from the actual utility function, minimizing
-imitation error does not guarantee maximizing risk-adjusted return. The
-labeling process itself introduces a prior about what constitutes optimal
-behavior — a prior that may be wrong or regime-dependent.
+The limitation is the same in both cases: the optimization target is a
+surrogate rather than the trading objective itself. Forecast-based systems
+optimize statistical accuracy and then translate predictions into actions
+through a separate rules layer, discarding much of the contextual information
+present in the original state. Label-based systems optimize imitation error
+against actions derived from historical rules or expert behavior, which embeds
+a prior about what constitutes optimal behavior and does not guarantee
+maximizing risk-adjusted return.
 
-### Direct Optimization of Trading Performance
+#### Direct Optimization of Trading Performance
 
 Direct optimization removes both the intermediate forecast and the labeled
 action requirement. The agent observes the market state $X_t$, selects an
