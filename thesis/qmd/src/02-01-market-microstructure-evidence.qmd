@@ -1,7 +1,7 @@
 ## Market Microstructure Evidence for LOB-Based Trading
 
-At intraday and tick-level timescales, financial markets exhibit systematic
-structural patterns that are distinct from the macro-level anomalies studied
+At intraday and tick-level timescales, financial markets exhibit structural
+patterns that are distinct from the macro-level anomalies studied
 in the asset pricing literature. These patterns arise not from investor
 irrationality or information asymmetry in the fundamental sense, but from the
 mechanics of how orders interact in a limit order book: the strategic behavior
