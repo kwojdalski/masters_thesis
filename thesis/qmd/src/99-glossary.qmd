@@ -1,0 +1,70 @@
+## Glossary of Abbreviations and Key Terms {.unnumbered}
+
+This glossary defines abbreviations and domain-specific terms used throughout
+the thesis. Terms are grouped by domain and listed alphabetically within each
+group.
+
+### Market Microstructure and Trading
+
+| Term | Definition |
+|------|------------|
+| **Adverse selection** | The risk that a counterparty in a trade possesses superior private information, causing uninformed participants (e.g., market makers) to trade at a disadvantage. |
+| **Ask slope** | Price elasticity of the ask side of the order book across multiple depth levels; a proxy for market impact per unit of sell-side volume. |
+| **Basis points (bps)** | One hundredth of a percentage point (0.01%). Used to express spreads and returns at fine granularity. |
+| **Bid-ask spread** | The difference between the lowest ask price and the highest bid price in the order book; the primary observable measure of transaction cost and adverse selection risk. |
+| **Bid slope** | Price elasticity of the bid side of the order book across multiple depth levels; a proxy for market impact per unit of buy-side volume. |
+| **Book convexity** | A measure of curvature in the price schedule of the order book, capturing non-linear spacing between price levels on each side. |
+| **CumDelta (Cumulative Delta)** | Signed trade flow aggregated over a rolling window; the net difference between buyer-initiated and seller-initiated executed volume. |
+| **Depth imbalance** | Asymmetry in resting volume between the bid and ask sides of the order book at one or more price levels. |
+| **ETF** | Exchange-Traded Fund. A publicly traded fund that tracks an index, sector, or asset class. |
+| **HFT** | High-Frequency Trading. Algorithmic trading operating at tick or sub-second timescales, relying on order-book data and microstructure signals rather than price bars. |
+| **Inter-event time** | The elapsed time between consecutive limit order book updates; a proxy for market activity intensity. |
+| **Kyle's lambda ($\lambda$)** | A measure of price impact introduced by @Kyle1985: the sensitivity of price changes to net order flow. Higher $\lambda$ implies lower market liquidity. |
+| **LOB** | Limit Order Book. The electronic record of all outstanding buy (bid) and sell (ask) limit orders at each price level, maintained by an exchange. |
+| **Market maker** | A liquidity provider that continuously posts limit orders on both sides of the book, profiting from the bid-ask spread while bearing inventory and adverse selection risk. |
+| **MFT** | Medium-Frequency Trading. Trading strategies operating at intraday bar (minute to hour) timescales, as distinct from high-frequency tick-level strategies. |
+| **Microprice** | A volume-weighted estimate of the next transaction price, derived from top-of-book bid and ask quantities [@Stoikov2018]. Adjusts the mid-price for queue imbalance. |
+| **MicroDiv (Microprice Divergence)** | The difference between the microprice and the mid-price; a stationary signal capturing the directional imbalance embedded in the top-of-book queues. |
+| **Mid-price** | The arithmetic average of the best bid and best ask prices; commonly used as a reference fair value when the spread is symmetric. |
+| **OBI (Order Book Imbalance)** | Normalized difference in resting volume between bid and ask sides, aggregated across multiple depth levels. |
+| **OCI (Order Count Imbalance)** | Normalized difference in the number of resting orders between bid and ask sides at a given price level; sensitive to order fragmentation masked by volume-based measures. |
+| **OFI (Order Flow Imbalance)** | Net directional pressure exerted on the best bid and ask queues by limit order arrivals, cancellations, and executions [@Cont2014]. The empirically dominant contemporaneous predictor of short-term price changes. |
+| **OHLCV** | Open, High, Low, Close, Volume. The standard aggregated price bar representation used in low- and medium-frequency trading; does not capture intra-bar queue dynamics. |
+| **Odd-lot** | A trade smaller than the standard round lot size (typically below 100 shares). Predominantly reflects retail and algorithmic small-lot activity. |
+| **Queue depletion** | The rate at which the best-bid or best-ask queue is consumed by incoming market orders across consecutive snapshots; a leading indicator of imminent price movement. |
+| **RSI** | Relative Strength Index. A momentum oscillator measuring the speed and magnitude of price changes; used in rule-based and technical trading strategies. |
+| **Spread ratio** | The current bid-ask spread divided by its recent rolling mean; a regime signal separating absolute spread level from elevated adverse selection conditions. |
+| **VIX** | CBOE Volatility Index. A measure of expected 30-day S&P 500 volatility derived from options prices; a common proxy for broad market fear or uncertainty. |
+| **VWAP** | Volume-Weighted Average Price. The average price of an asset weighted by traded volume over a period; a common execution benchmark. |
+
+### Reinforcement Learning and Machine Learning
+
+| Term | Definition |
+|------|------------|
+| **Actor-critic** | A class of reinforcement learning architectures combining a policy network (actor) that selects actions with a value network (critic) that evaluates them. Reduces gradient variance relative to pure policy gradient methods. |
+| **DDPG** | Deep Deterministic Policy Gradient [@Lillicrap2015]. An off-policy actor-critic algorithm for continuous action spaces using deterministic policies and experience replay. Predecessor to TD3. |
+| **DQN** | Deep Q-Network [@Mnih2015]. A value-based deep RL algorithm combining Q-learning with a deep neural network, experience replay, and a frozen target network. Restricted to discrete action spaces. |
+| **DSR** | Differential Sharpe Ratio [@Moody1998]. A reward formulation that approximates the gradient of the Sharpe Ratio with respect to returns, aligning the optimization objective with risk-adjusted performance. |
+| **Exploration-exploitation tradeoff** | The tension in reinforcement learning between taking actions that yield known rewards (exploitation) and trying new actions to discover potentially better outcomes (exploration). Particularly costly in trading due to transaction costs. |
+| **MDP** | Markov Decision Process. The formal framework for sequential decision-making under uncertainty, consisting of states, actions, a transition function, and a reward function. Assumes that future states depend only on the current state and action, not on history. |
+| **Off-policy** | A class of RL algorithms that learn a target policy from data collected by a different behavior policy. Enables experience replay and reuse of historical data. TD3 is off-policy. |
+| **On-policy** | A class of RL algorithms that must learn from data collected by the same policy being improved. More stable but less sample-efficient than off-policy methods. |
+| **PCA** | Principal Component Analysis. A dimensionality reduction technique that projects data onto orthogonal axes of maximum variance. |
+| **Policy gradient** | A family of RL algorithms that directly optimize the policy parameters through gradient ascent on expected cumulative reward. Handles continuous action spaces naturally. |
+| **PPO** | Proximal Policy Optimization. An on-policy actor-critic algorithm that constrains policy updates to a trust region to improve stability. |
+| **Q-learning** | A model-free, off-policy value-based RL algorithm that learns the action-value function $Q(s,a)$ through temporal difference updates [@Watkins1992]. |
+| **Replay buffer** | A data structure storing past environment transitions $(s_t, a_t, r_t, s_{t+1})$ for reuse in off-policy training. Decorrelates training samples and improves sample efficiency. |
+| **REINFORCE** | A Monte Carlo policy gradient algorithm [@Williams1992] that updates policy parameters using full-episode return estimates. High variance; foundational to modern policy gradient methods. |
+| **RL** | Reinforcement Learning. A machine learning paradigm in which an agent learns to make sequential decisions by interacting with an environment and maximizing cumulative reward. |
+| **SAC** | Soft Actor-Critic [@Haarnoja2018]. An off-policy actor-critic algorithm incorporating a maximum-entropy objective to encourage exploration through stochastic policies. |
+| **SARSA** | State-Action-Reward-State-Action. An on-policy temporal difference algorithm that updates $Q(s,a)$ using the action actually taken by the current policy. |
+| **TD3** | Twin Delayed Deep Deterministic Policy Gradient [@Fujimoto2018]. An off-policy actor-critic algorithm for continuous control that extends DDPG with clipped double Q-learning, delayed policy updates, and target policy smoothing to reduce overestimation bias. The primary algorithm used in this thesis. |
+| **Temporal difference (TD) learning** | A class of RL methods that update value estimates based on the difference between successive predictions, without requiring full episode trajectories. |
+| **Value function** | A function estimating the expected cumulative discounted reward from a given state (or state-action pair) under a given policy. The critic network in actor-critic algorithms approximates this function. |
+
+### Other
+
+| Term | Definition |
+|------|------------|
+| **AAPL** | The NASDAQ ticker symbol for Apple Inc. The equity used as the single-asset trading instrument throughout this thesis. |
+| **Sharpe ratio** | A risk-adjusted performance measure defined as the ratio of mean excess return to return volatility. Higher values indicate better return per unit of risk. |
