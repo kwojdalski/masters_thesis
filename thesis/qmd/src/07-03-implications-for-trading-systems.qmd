@@ -1,7 +1,7 @@
 ## Implications for Trading Systems
 
-The empirical findings carry several implications for the design of reinforcement
-learning trading systems operating on limit order book data, beyond the specific
+The empirical findings carry several implications for the design of deep RL
+trading systems operating on limit order book data, beyond the specific
 AAPL configuration studied here.
 
 **Microstructure-aware features are a necessary, not optional, ingredient.**
@@ -34,7 +34,7 @@ A consistent finding across both the literature and the experiments in this
 thesis is that optimizing a shaped reward — in this case the Differential Sharpe
 Ratio — does not guarantee that the cumulative shaped reward will rank-correlate
 with realized financial performance. These must be tracked separately. The
-practical implication is that trading RL systems require two distinct evaluation
+practical implication is that deep RL trading systems require two distinct evaluation
 pipelines: a training diagnostic that tracks the optimization objective, and a
 financial evaluation that rolls out the deterministic policy on held-out data and
 computes return, Sharpe ratio, drawdown, and turnover from the realized position

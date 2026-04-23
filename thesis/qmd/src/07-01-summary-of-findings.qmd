@@ -1,6 +1,6 @@
 ## Summary of Findings
 
-The thesis set out to answer three hypotheses concerning reinforcement learning
+The thesis set out to answer three hypotheses concerning deep reinforcement learning
 for high-frequency single-asset trading using order-book-derived features. This
 section summarizes the empirical evidence for each.
 
