@@ -2,14 +2,43 @@
 
 ### Asset Selection
 
-The experiments use AAPL equity data from the Nasdaq order book. The choice
-is deliberate: AAPL is one of the most liquid instruments in US equity markets,
-with tight spreads, deep displayed depth, and continuous two-sided quoting
-throughout the trading session. This liquidity profile ensures that the
-price-taking assumption embedded in the simulation — that agent trades do not
-move quoted prices — is empirically defensible, and that the market microstructure
-features derived from the order book reflect genuine supply and demand rather
-than thin-market artifacts.
+The experiments use equity data from four Nasdaq-listed blue-chip instruments:
+AAPL (Apple Inc.), MSFT (Microsoft Corp.), TSLA (Tesla Inc.), and NVDA
+(NVIDIA Corp.). All four are
+among the most liquid equities in US markets, with tight spreads, deep displayed
+depth, and continuous two-sided quoting throughout the trading session. This
+liquidity profile ensures that the price-taking assumption embedded in the
+simulation — that agent trades do not move quoted prices — is empirically
+defensible, and that the microstructure features derived from the order book
+reflect genuine supply and demand rather than thin-market artifacts.
+
+The choice to train a single pooled model across multiple instruments, rather
+than a separate model per instrument, is a deliberate design decision.
+Securities within the same asset class that trade on the same exchange, under
+the same tick-size regime, and with comparable order-flow dynamics share a
+common microstructure regime. The residual cross-sectional variation —
+differences in volatility level, beta, or sector exposure — is dominated by
+this shared structure. Within such a homogeneous class, LOB feature distributions
+are comparable after standard normalization, making it feasible for a single
+policy network to learn market-wide order-book dynamics rather than
+instrument-specific quirks. Pooling across $N$ securities multiplies the
+effective training sample by a factor of $N$, reducing the risk of overfitting
+to idiosyncratic patterns in any single stock's order-flow sequence. It also
+encourages the model to capture universal microstructure signals — spread
+dynamics, order-flow imbalance, and depth asymmetries — that transfer across
+equities within the same class. The feature pipeline supports this directly:
+all inputs are z-score normalized per security, and the microstructure features
+in the state space — order-flow imbalance, relative spread, depth slope, queue
+imbalance — are inherently relative measures that carry the same semantic meaning
+regardless of the underlying price level or absolute volume.
+
+A further consideration is access symmetry. Because all four instruments trade
+on a centralized, regulated exchange with public pre-trade transparency, all
+market participants observe the same order book. This contrasts with OTC markets
+or less liquid instruments where information asymmetry and differential access
+could confound the learned signal. The goal is to isolate the contribution of
+the learning algorithm and feature engineering, not to exploit a structural
+information advantage.
 
 The data were obtained from Nasdaq via the DataBento API, using the MBP-10
 (Market By Price, 10 levels) feed — a standardised L3 order book format that
@@ -17,14 +46,6 @@ provides full depth-of-book snapshots at the event level, including resting
 quantities and order counts at each price level. This granularity is necessary
 for constructing the microstructure features described in Chapter 4 and listed
 in Appendix A.
-
-A further consideration is access symmetry. Because AAPL trades on a
-centralized, regulated exchange with public pre-trade transparency, all
-market participants observe the same order book. This contrasts with OTC
-markets or less liquid instruments where information asymmetry and
-differential access could confound the learned signal. The goal is to isolate
-the contribution of the learning algorithm and feature engineering, not to
-exploit a structural information advantage.
 
 ### Input Format
 
