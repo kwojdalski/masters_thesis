@@ -8,7 +8,7 @@ that all subsequent algorithms inherit. The second part classifies RL algorithms
 along the dimensions that matter most for the trading problem: model-free vs.
 model-based, and on-policy vs. off-policy. The third part traces the algorithmic
 lineage from early value-based methods to TD3, showing how these properties
-converge on TD3 as the appropriate algorithm for continuous-control trading.
+converge on TD3 as the algorithm of choice for continuous-control trading.
 
 ## Components of a Reinforcement Learning System
 
