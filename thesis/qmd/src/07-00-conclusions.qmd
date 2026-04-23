@@ -15,13 +15,11 @@ The empirical contribution is accompanied by a methodological one. The thesis
 developed an end-to-end and reproducible pipeline covering feature engineering
 from 10-level order book data, configuration-driven experiment management, TD3
 training with a Differential Sharpe Ratio reward, and a strict separation
-between training diagnostics and held-out financial evaluation. The results also
-show that feature design matters at least as much as algorithm selection in
-this setting. The extended feature set yielded more stable positioning, lower
-unnecessary turnover, and stronger realized performance than the simpler state
-representation, which implies that practitioners and researchers should treat
-microstructure-aware feature engineering as a primary design decision rather
-than as a secondary refinement.
+between training diagnostics and held-out financial evaluation. This
+methodological contribution matters alongside the empirical one: it provides a
+reproducible framework for studying reinforcement learning on limit order book
+data under explicit simulation assumptions and chronological evaluation
+discipline.
 
 At the same time, the conclusions must be interpreted within the limits of the
 experimental setup. The simulation uses a mid-price execution proxy rather than
@@ -60,11 +58,9 @@ conditions.
 
 In sum, the thesis shows that combining limit order book data, microstructure-aware
 feature engineering, and continuous-action actor-critic learning is a productive
-research direction for high-frequency trading. The main result is not that the
-deployment problem has been solved, but that the underlying learning problem is
-tractable and that the chosen representation carries enough signal to produce a
-measurably superior policy in a controlled setting. That is a narrower claim
-than a production-performance claim, but it is also the correct one. It
-provides a defensible foundation for subsequent work that aims to close the gap
-between research-grade feasibility and operational trading realism under more
-realistic assumptions.
+research direction for high-frequency trading. The defensible conclusion is a
+narrow one: under the conditions studied here, the learning problem is
+tractable and the chosen representation carries enough signal to produce a
+measurably superior policy in a controlled setting. That result provides a
+foundation for subsequent work aimed at testing whether the same approach
+survives under more realistic assumptions.
