@@ -1,1 +1,69 @@
 # Conclusions and Future Work
+
+This thesis examined whether a continuous-control reinforcement learning agent
+using order-book-derived microstructure features can achieve economically
+meaningful out-of-sample performance in a high-frequency single-asset setting.
+Within the controlled experimental design, the answer is affirmative. The TD3
+agent outperformed the evaluated benchmark strategies on risk-adjusted return
+metrics, and the richer microstructure-aware state representation produced a
+clear improvement over the simpler snapshot-based baseline. These findings
+support the central claim of the thesis: the informational content of the limit
+order book can be translated into state features that materially improve the
+behavior of a reinforcement learning trading agent.
+
+The empirical contribution is accompanied by a methodological one. The thesis
+developed an end-to-end and reproducible pipeline covering feature engineering
+from 10-level order book data, configuration-driven experiment management, TD3
+training with a Differential Sharpe Ratio reward, and a strict separation
+between training diagnostics and held-out financial evaluation. The results also
+show that feature design matters at least as much as algorithm selection in
+this setting. The extended feature set yielded more stable positioning, lower
+unnecessary turnover, and stronger realized performance than the simpler state
+representation, which implies that practitioners and researchers should treat
+microstructure-aware feature engineering as a primary design decision rather
+than as a secondary refinement.
+
+At the same time, the conclusions must be interpreted within the limits of the
+experimental setup. The simulation uses a mid-price execution proxy rather than
+executable bid/ask fills, assumes zero market impact and zero latency, and is
+evaluated on a narrow three-day AAPL window with a single random seed. These
+choices were deliberate because they kept the empirical design tractable and
+made it possible to isolate whether the learning problem itself is feasible.
+They also place a clear boundary on the claim being made. The thesis
+demonstrates feasibility, not deployability. The observed edge cannot yet be
+treated as evidence of a production-ready trading strategy, because realistic
+execution frictions may materially reduce or eliminate it.
+
+These limitations point directly to the most important implications for future
+research and for practical system design. First, transaction-cost sensitivity
+must be treated as a binding constraint rather than as a minor robustness check:
+any apparent edge that disappears once spread-crossing costs, fees, queue
+uncertainty, or latency are introduced should not be interpreted as economically
+meaningful. Second, feature engineering deserves priority over marginal changes
+in model architecture, because the results suggest that policy quality is driven
+primarily by the informational content of the state representation. Third,
+stronger claims about generalization require broader temporal and cross-market
+evaluation, including longer windows, walk-forward validation, multiple random
+seeds, and eventually cross-asset testing.
+
+The most direct directions for future work therefore follow from the current
+limitations. The same agents should be re-evaluated under explicit bid/ask
+execution rules, calibrated fee schedules, and slippage or market-impact
+models. The empirical scope should be extended to longer and more diverse market
+periods, including different volatility and liquidity regimes, with multi-seed
+reporting to separate genuine policy quality from favorable initialization.
+Natural model extensions include richer agent-state variables, broader
+cross-asset information, and comparisons with alternative actor-critic or
+sequence-model architectures. Taken together, these extensions would test
+whether the feasibility result established here survives under more realistic
+conditions.
+
+In sum, the thesis shows that combining limit order book data, microstructure-aware
+feature engineering, and continuous-action actor-critic learning is a productive
+research direction for high-frequency trading. The main result is not that the
+deployment problem has been solved, but that the underlying learning problem is
+tractable and that the chosen representation carries enough signal to produce a
+measurably superior policy in a controlled setting. That is a narrower claim
+than a production-performance claim, but it is also the correct one. It
+provides a defensible foundation for subsequent work that aims to close the gap
+between research-grade feasibility and operational trading realism.
