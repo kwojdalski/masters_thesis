@@ -80,8 +80,8 @@ directly connected to the current empirical design:
 5. **Data-split sensitivity**: whether results remain similar under reasonable
    changes in the chronological split or training-window length.
 
-These dimensions are sufficient to test whether the present thesis conclusions
-are specific to one narrow configuration or remain credible under nearby
+These dimensions are sufficient to test whether the conclusions here are
+specific to one narrow configuration or remain credible under nearby
 variations.
 
 ### Robustness Matrix for Experimental Reporting
@@ -117,9 +117,8 @@ evaluation outcomes across repeated runs and whether qualitative behavior, such
 as persistent overtrading or directional bias, changes systematically when the
 feature set, reward, or cost assumptions are varied.
 
-This is particularly relevant for the present thesis because one of the central
-comparisons concerns simpler versus broader order-book-derived state
-representations. If the richer feature set improves returns but materially
+This matters in the current work because one of the central comparisons
+concerns simpler versus broader order-book-derived state representations. If the richer feature set improves returns but materially
 increases instability or turnover, the result is weaker than a modest but more
 stable improvement.
 
