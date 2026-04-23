@@ -40,8 +40,7 @@ estimates. It also tends to reward high-turnover behavior regardless of risk.
 
 A related alternative is the Sharpe ratio computed over a fixed rolling window.
 This approach requires storing the full window of past returns at each step.
-It also introduces
-a sharp discontinuity when old returns drop out of the window.
+It also introduces a sharp discontinuity when old returns drop out of the window.^[When the oldest return in a fixed window is unusually large or small, its removal produces an abrupt shift in the estimated mean and variance — and therefore in the Sharpe ratio — that is unrelated to the current action. The agent cannot distinguish this accounting artifact from a genuine change in performance, introducing spurious gradient variance. Exponential weighting in the DSR avoids this because old returns decay continuously rather than dropping off a cliff.]
 
 Neither property
 is desirable in an online RL setting.

@@ -60,8 +60,8 @@ these events exert on the best bid and ask queues. In a sample of NYSE stocks,
 they find a linear relationship between OFI and mid-price changes over intervals
 of one second to one minute, with OFI explaining 60–80% of short-term price
 variation. Importantly, the relationship is contemporaneous: OFI at time $t$
-predicts price changes at time $t$, not a lagged effect, which is consistent
-with the efficient incorporation of order book information into prices.
+is correlated with price changes at time $t$, not a lagged effect, which is consistent
+with the efficient incorporation of order book information into prices.^[The contemporaneous nature of the relationship means OFI does not provide a predictive edge in the strict sense — it reflects information already embedded in prices at the same instant. Its value as a state feature is that it summarises the queue-pressure signal the agent observes at decision time. In practice, the rolling OFI sum in the state vector captures a lagged window of past order-flow pressure, which does carry predictive properties at sub-second horizons.]
 
 The theoretical channel is straightforward: when buy-side pressure dominates
 (positive OFI), market makers raise quotes to attract sell-side flow and reduce
