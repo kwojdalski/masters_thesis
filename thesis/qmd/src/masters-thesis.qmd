@@ -93,11 +93,7 @@ claims.
 
 {{< include ./01-00-00-introduction.qmd >}}
 
-<!-- {{< include ./01-01-00-statistical-arbitrage.qmd >}} -->
-<!-- {{< include ./01-01-01-statistical-arbitrage-vs-other-types.qmd >}} -->
-<!-- {{< include ./01-01-02-critical-parameter-selection.qmd >}} -->
 {{< include ./01-02-00-scope-and-objectives.qmd >}}
-<!-- {{< include ./01-03-00-methodological-framework.qmd >}} -->
 {{< include ./01-04-00-thesis-organization-and-chapter-overview.qmd >}}
 
 \newpage
@@ -108,23 +104,6 @@ claims.
 {{< include ./02-03-03-02-seminal-works.qmd >}}
 {{< include ./02-03-03-01-key-concepts.qmd >}}
 {{< include ./02-03-03-03-rl-applications.qmd >}}
-
-<!-- commented out — financial theory sections not used in current thesis scope -->
-<!-- {{< include ./02-01-01-01-classical-models.qmd >}} -->
-<!-- {{< include ./02-01-01-02-modern-portfolio-theory-and-capm.qmd >}} -->
-<!-- {{< include ./02-01-01-03-factor-models.qmd >}} -->
-<!-- {{< include ./02-01-02-00-modern-approaches.qmd >}} -->
-<!-- {{< include ./02-01-03-00-critical-analysis.qmd >}} -->
-<!-- {{< include ./02-02-00-relevant-financial-indicators.qmd >}} -->
-<!-- {{< include ./02-02-03-market-anomalies.qmd >}} -->
-
-<!-- Chapter 3 content merged into Chapter 2 (decision paradigms) and Chapter 5 (implementation architecture) -->
-<!-- {{< include ./03-01-00-machine-learning.qmd >}} -->
-<!-- {{< include ./03-02-01-01-components-of-ats.qmd >}} -->
-<!-- {{< include ./03-02-02-00-rule-based-trading.qmd >}} -->
-<!-- {{< include ./03-02-03-01-trading-based-on-forecasts.qmd >}} -->
-<!-- {{< include ./03-02-03-02-training-on-labelled-data.qmd >}} -->
-<!-- {{< include ./03-02-03-03-direct-optimization.qmd >}} -->
 
 \newpage
 {{< include ./04-00-reinforcement-learning.qmd >}}
@@ -145,8 +124,6 @@ claims.
 {{< include ./06-00-implementation-of-the-trading-agent.qmd >}}
 {{< include ./06-01-data-preparation.qmd >}}
 {{< include ./06-02-code.qmd >}}
-<!-- merged into 06-02 -->
-<!-- {{< include ./06-03-td3-training-pipeline.qmd >}} -->
 
 \newpage
 {{< include ./07-00-empirical-evaluation-and-performance-analysis.qmd >}}
