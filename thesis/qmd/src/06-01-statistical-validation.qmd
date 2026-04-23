@@ -98,13 +98,11 @@ The following table summarizes the results of five statistical tests comparing t
 ```{python}
 #| echo: false
 
-# Load latest finished run for statistical test artifacts [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
+# Load latest finished run for statistical test artifacts
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 
-# Try real data first [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
+# Try real data first
 stat_summary_df = None
 if finished is not None:
     stat_summary_df = format_statistical_significance_summary(
@@ -113,8 +111,7 @@ if finished is not None:
     if stat_summary_df.empty:
         stat_summary_df = None
 
-# Fall back to mock data matching statistical test result keys [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
+# Fall back to mock data matching statistical test result keys
 if stat_summary_df is None or stat_summary_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
 
@@ -156,8 +153,7 @@ if stat_summary_df is None or stat_summary_df.empty:
 
     stat_summary_df = pd.DataFrame(rows)
 
-# Format for display [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
+# Format for display
 stat_summary_df["p-value"] = stat_summary_df["p-value"].apply(lambda x: f"{x:.4f}")
 
 display(stat_summary_df)
