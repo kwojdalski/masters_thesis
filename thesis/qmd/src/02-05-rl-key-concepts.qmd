@@ -92,7 +92,6 @@ which motivates the emphasis throughout this thesis on robust feature engineerin
 conservative optimization, and strict temporal validation over rolling
 out-of-sample periods [@Deng2016].
 
-Accordingly, claims that RL "works" in trading should be interpreted as
-context-dependent: RL methods can produce useful policies when the learning
+Accordingly, claims that RL "works" in trading are inherently context-dependent: RL methods can produce useful policies when the learning
 objective, state representation, and validation design are aligned with market
 frictions and regime uncertainty.

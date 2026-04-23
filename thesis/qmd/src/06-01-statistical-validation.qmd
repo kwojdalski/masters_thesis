@@ -61,7 +61,7 @@ no systematic relationship between observations and returns.
 All tests use a 95% confidence level. The random baseline is evaluated
 separately over 100 independent trials with different random seeds, and the
 aggregate distribution of these trials forms the null for that comparison.
-Test results are logged as MLflow artifacts and should be read jointly: no
+Test results are logged as MLflow artifacts and are most informative when considered jointly: no
 single test is treated as definitive, but consistent evidence across multiple
 tests — especially the non-parametric ones — provides stronger support for
 the performance claim.
@@ -178,7 +178,7 @@ else:
 
 For repeated runs of the same configuration, descriptive statistics provide the
 first indication of stability. In this thesis, quantities such as the sample
-mean, standard deviation, and range should be read as summaries of variability
+mean, standard deviation, and range are summaries of variability
 under the reported protocol, not as universal claims about future market
 performance. Repeated backtests quantify sensitivity to training randomness more
 than they resolve uncertainty about the underlying market process.
