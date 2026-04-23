@@ -23,11 +23,12 @@ because trading is sequential and path dependent. Each action affects future
 exposure, portfolio evolution, and the set of subsequent decisions available to
 the agent. In high-frequency settings, this distinction matters.
 
-Industry deployments have applied RL to limit order book data for optimal execution.
-For example, JPMorgan's execution engine [@Mosic2017] focuses on minimizing
-implementation shortfall on large orders. This approach uses a known trade schedule.
-In this setting, the LOB state informs fill probability and spread cost rather
-than price direction.
+Reinforcement learning has already been deployed in industry settings on limit
+order book data, but these applications typically address narrower problems
+such as optimal execution. For example, JPMorgan's execution engine
+[@Mosic2017] is designed to minimize execution costs for a known trade
+schedule, so the limit order book is used to estimate fill probability and
+spread cost rather than short-horizon price direction.
 
 Directional trading is a harder problem for several reasons.
 First, the reward signal at tick frequency is dominated by noise rather than
