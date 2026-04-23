@@ -1,4 +1,4 @@
-## Recommendations for Practitioners
+## Recommendations for Practitioners [PLACEHOLDER]
 
 The following recommendations are directed at practitioners who wish to implement
 deep RL trading systems in settings similar to the one studied

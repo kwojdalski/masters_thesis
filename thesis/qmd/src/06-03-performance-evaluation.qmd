@@ -1,4 +1,4 @@
-## Performance Evaluation
+## Performance Evaluation [PLACEHOLDER]
 
 This section reports the held-out performance of the latest completed run of
 the thesis experiment. The aim is not just to list metrics, but to judge
@@ -28,19 +28,19 @@ snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 ```
 
-### Selected Metrics from the Latest Completed Run
+### Selected Metrics from the Latest Completed Run [PLACEHOLDER]
 
 ```{python}
 #| echo: false
 
-# Try real data first
+# Try real data first [PLACEHOLDER]
 key_metrics_df = None
 if finished is not None:
     key_metrics_df = format_key_metrics(finished.get("evaluation_report"))
     if key_metrics_df.empty:
         key_metrics_df = None
 
-# Fall back to mock data matching format_key_metrics() schema
+# Fall back to mock data matching format_key_metrics() schema [PLACEHOLDER]
 if key_metrics_df is None or key_metrics_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
     key_metrics_df = pd.DataFrame([
@@ -59,21 +59,21 @@ if key_metrics_df is None or key_metrics_df.empty:
 display(key_metrics_df)
 ```
 
-### Benchmark Comparison
+### Benchmark Comparison [PLACEHOLDER]
 
 The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
 
 ```{python}
 #| echo: false
 
-# Try real data first
+# Try real data first [PLACEHOLDER]
 benchmark_df = None
 if finished is not None:
     benchmark_df = format_benchmark_comparison_table(finished.get("statistical_tests"))
     if benchmark_df.empty:
         benchmark_df = None
 
-# Fall back to mock data matching benchmark_comparison_table schema
+# Fall back to mock data matching benchmark_comparison_table schema [PLACEHOLDER]
 if benchmark_df is None or benchmark_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
     benchmark_df = pd.DataFrame([
@@ -98,7 +98,7 @@ if benchmark_df is None or benchmark_df.empty:
 display(benchmark_df)
 ```
 
-### Evaluation Metadata Snapshot
+### Evaluation Metadata Snapshot [PLACEHOLDER]
 
 ```{python}
 #| echo: false
@@ -122,7 +122,7 @@ if finished is not None:
     display(meta_df)
 ```
 
-### Evaluation Plots
+### Evaluation Plots [PLACEHOLDER]
 
 ```{python}
 #| echo: false
@@ -152,7 +152,7 @@ else:
             print(f"{title}: artifact not found")
 ```
 
-### Discussion: Reading Performance in the Context of State Design
+### Discussion: Reading Performance in the Context of State Design [PLACEHOLDER]
 
 The key interpretive issue in this thesis is not whether the agent attains a
 single high metric, but whether the reported behavior is consistent with the

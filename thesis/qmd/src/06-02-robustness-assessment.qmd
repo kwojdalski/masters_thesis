@@ -1,4 +1,4 @@
-## Robustness Assessment
+## Robustness Assessment [PLACEHOLDER]
 
 This section shifts from training stochasticity to
 sensitivity with respect to modeling choices. The question is whether the
@@ -24,7 +24,7 @@ finished = snapshot.latest_finished
 runs_df = runs_overview_table(EXPERIMENT_NAME)
 ```
 
-### Why Robustness Matters in This Thesis
+### Why Robustness Matters in This Thesis [PLACEHOLDER]
 
 In this work, robustness matters because the agent is trained on a noisy
 microstructure-driven reward stream and evaluated in a simplified execution
@@ -35,7 +35,7 @@ consistent under reasonable changes in seed, state representation, reward
 specification, and cost assumptions, while preserving interpretable turnover and
 drawdown behavior.
 
-### Current Evaluation Context
+### Current Evaluation Context [PLACEHOLDER]
 
 The following snapshot provides the current experiment context used in the
 automated Chapter 6 result wiring. It is included to make the robustness
@@ -63,7 +63,7 @@ else:
     display(pd.DataFrame(rows, columns=["Field", "Value"]))
 ```
 
-### Robustness Dimensions Considered in This Thesis
+### Robustness Dimensions Considered in This Thesis [PLACEHOLDER]
 
 The robustness framework in this thesis is centered on five dimensions most
 directly connected to the current empirical design:
@@ -84,7 +84,7 @@ These dimensions are sufficient to test whether the conclusions here are
 specific to one narrow configuration or remain credible under nearby
 variations.
 
-### Robustness Matrix for Experimental Reporting
+### Robustness Matrix for Experimental Reporting [PLACEHOLDER]
 
 The table below defines a practical robustness matrix for the empirical part of
 the thesis. It can be used as a reporting checklist when final results are
@@ -108,7 +108,7 @@ robustness_df = pd.DataFrame(
 display(robustness_df)
 ```
 
-### Interpreting Noisy Training Curves in Robustness Terms
+### Interpreting Noisy Training Curves in Robustness Terms [PLACEHOLDER]
 
 Noisy training curves are common in actor-critic methods and should not be
 treated as the primary robustness criterion. In the present workflow, the more
@@ -122,7 +122,7 @@ concerns simpler versus broader order-book-derived state representations. If the
 increases instability or turnover, the result is weaker than a modest but more
 stable improvement.
 
-### Methodological Limits of the Current Robustness Snapshot
+### Methodological Limits of the Current Robustness Snapshot [PLACEHOLDER]
 
 The current snapshot-based Chapter 6 integration supports reproducible loading
 of run summaries and evaluation artifacts, but robustness conclusions remain

@@ -1,6 +1,6 @@
-## Scope and Objectives of the Research
+## Scope and Objectives of the Research [VERIFIED]
 
-### Novelty of This Research
+### Novelty of This Research [VERIFIED]
 
 The primary novelty of this thesis is the application of **TD3** to
 **high-frequency trading with order-book-derived data** for continuous
@@ -15,7 +15,7 @@ aligned with high-frequency market microstructure. The targeted
 algorithm-data-frequency combination remains less represented in prior work and
 defines the core novelty claim tested in the empirical chapters.
 
-### Hypothesis
+### Hypothesis [VERIFIED]
 
 The research is based on the following hypotheses:
 
@@ -31,7 +31,7 @@ The research is based on the following hypotheses:
    transaction-cost assumptions, which makes robustness analysis necessary for
    credible conclusions.
 
-### Objectives of the Research
+### Objectives of the Research [VERIFIED]
 
 The primary research goal is to evaluate RL-based
 algorithms for high-frequency single-asset trading using order-book-derived
