@@ -12,9 +12,9 @@ a HFT setting.
 High-frequency trading should therefore not be treated as a faster
 version of MFT. The state observed by the agent is different. At short horizons, aggregated price bars omit information that is
 central to decision-making. Features derived from the order
-book provide a detailed description of market conditions than candlesticks.
+book provide a more detailed description of market conditions than candlesticks.
 These include depth imbalance, spread variation, order-flow pressure, and
-inter-event timing. A central concern of this thesis
+inter-event timing. A primary concern of this thesis
 is whether such microstructure-aware state representations improve the
 suitability of reinforcement learning for this domain.
 
