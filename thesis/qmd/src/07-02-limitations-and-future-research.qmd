@@ -1,6 +1,8 @@
 ## Limitations and Future Research [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 ### Order-Book Execution Realism Constraint [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 A central limitation of the current empirical setup is the use of a
 mid-price-like execution proxy for portfolio valuation and reward computation.
@@ -42,6 +44,7 @@ rules, calibrated fee schedules, and slippage/impact models to quantify the
 robustness of the observed edge under realistic microstructure constraints.
 
 ### Agent-State Feature Extensions [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The current observation vector includes the agent's own portfolio exposure as
 the sole agent-specific feature. A natural extension is to enrich this with
@@ -61,6 +64,7 @@ and add only internal state, making them a low-disruption way to test whether
 richer self-awareness improves policy quality.
 
 ### Cross-Asset and Multi-Asset Extensions [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The empirical design is restricted to a single asset — AAPL — under the
 assumption that the LOB microstructure of that instrument alone contains
@@ -74,6 +78,7 @@ must account for correlation, capital constraints, and cross-asset execution
 costs.
 
 ### Narrow Evaluation Window and Scope of the Empirical Claim [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The most important constraint on interpreting the empirical results is the
 three-day evaluation window. The training, validation, and test splits all
@@ -109,6 +114,7 @@ whether asset-class-specific tuning is necessary. These extensions are
 identified as the primary empirical directions for future work.
 
 ### Algorithm Comparison and Reward Ablation [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The empirical pipeline is structured around TD3 and the Differential Sharpe
 Ratio reward. Two natural ablation axes remain unexplored. First, replacing
@@ -122,6 +128,7 @@ reward specification — a dimension the thesis identifies as important but does
 not empirically vary.
 
 ### Alternative Model Architectures [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 Two architectural directions appear promising. First, replacing
 the MLP actor and critic with a Transformer-based sequence encoder would allow
@@ -141,6 +148,7 @@ financial data. Additionally, the interpretability of individual trees may provi
 additional insight into which features drive the learned value function.
 
 ### Evaluation Robustness [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The current results are based on a fixed train/test split and a single random
 seed. Walk-forward validation — expanding the training window and re-evaluating

@@ -1,4 +1,5 @@
 ## Implications for Trading Systems [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The empirical findings carry several implications for the design of deep RL
 trading systems operating on limit order book data, beyond the specific

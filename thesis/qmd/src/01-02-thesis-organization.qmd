@@ -1,4 +1,5 @@
 ## Thesis Organization and Chapter Overview [VERIFIED]
+<!-- [VERIFIED] -->
 
 The thesis is structured as a progression from problem formulation and motivating literature through agent design and implementation to empirical evaluation.
 

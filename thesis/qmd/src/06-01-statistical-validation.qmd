@@ -1,4 +1,5 @@
 ## Statistical Validation [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 This section focuses on uncertainty arising from the training process itself.
 For the present AAPL high-frequency TD3 setup, repeated runs can diverge
@@ -31,6 +32,7 @@ finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.e
 ```
 
 ### Statistical Test Design [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 For each benchmark strategy defined in the preceding section, the evaluation
 pipeline runs five statistical tests on the held-out return series to assess
@@ -67,6 +69,7 @@ tests — especially the non-parametric ones — provides stronger support for
 the performance claim.
 
 ### Purpose and Scope of Statistical Validation [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 In the current work, statistical validation serves three narrower purposes.
 First, it quantifies dispersion across repeated runs of the same AAPL HFT
@@ -88,6 +91,7 @@ training diagnostics do not necessarily imply superior out-of-sample trading
 performance.
 
 ### Statistical Significance Summary [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The following table summarizes the results of five statistical tests comparing the TD3 agent against each benchmark strategy. For each test × benchmark combination, the p-value is reported along with a significance indicator at the 95% confidence level (p < 0.05). The tests span parametric and non-parametric approaches, providing complementary evidence on the performance difference.
 
@@ -95,10 +99,12 @@ The following table summarizes the results of five statistical tests comparing t
 #| echo: false
 
 # Load latest finished run for statistical test artifacts [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 
 # Try real data first [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 stat_summary_df = None
 if finished is not None:
     stat_summary_df = format_statistical_significance_summary(
@@ -108,6 +114,7 @@ if finished is not None:
         stat_summary_df = None
 
 # Fall back to mock data matching statistical test result keys [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 if stat_summary_df is None or stat_summary_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.\n")
 
@@ -150,12 +157,14 @@ if stat_summary_df is None or stat_summary_df.empty:
     stat_summary_df = pd.DataFrame(rows)
 
 # Format for display [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 stat_summary_df["p-value"] = stat_summary_df["p-value"].apply(lambda x: f"{x:.4f}")
 
 display(stat_summary_df)
 ```
 
 ### Run-Level Sample Summary [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 The following table summarizes currently available finished runs for the
 selected experiment. These values should be interpreted as a sample of outcomes
@@ -175,6 +184,7 @@ else:
 ```
 
 ### Descriptive Statistics and Uncertainty Estimates [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 For repeated runs of the same configuration, descriptive statistics provide the
 first indication of stability. In this thesis, quantities such as the sample
@@ -236,6 +246,7 @@ else:
 ```
 
 ### Comparative Validation Strategy for Thesis-Grade Results [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 When comparative experiments are reported, they should be interpreted under a
 matched design: the data split, cost assumptions, and evaluation procedure must
@@ -254,6 +265,7 @@ economically unimportant if they coincide with unstable turnover, weak net
 returns after costs, or poor drawdown behavior.
 
 ### Statistical Risks and Interpretation Caveats [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
 
 Several risks remain when interpreting these summaries. Repeated runs on the
 same historical period are not independent samples from a stable
