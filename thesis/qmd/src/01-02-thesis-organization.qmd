@@ -1,7 +1,7 @@
 ## Thesis Organization and Chapter Overview [VERIFIED]
 <!-- [VERIFIED] -->
 
-The thesis is structured as a progression from problem formulation and motivating literature through agent design and implementation to empirical evaluation.
+The thesis proceeds from problem formulation and motivating literature to agent design and implementation, and finally to empirical evaluation.
 
 Chapter 1 introduces the problem context, defines the research scope, and
 presents the methodological framework used throughout the thesis.
