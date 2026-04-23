@@ -34,7 +34,7 @@ Transaction costs are applied proportionally to position changes. If the agent t
 
 $$\text{fee}_t = \text{trading\_fees} \times |a_t - a_{t-1}| \times \text{notional value}$$
 
-This incentivizes the agent to minimize unnecessary portfolio rebalancing, as frequent adjustments erode returns. During training, the reinforcement learning algorithm must learn to balance the potential gains from reallocation against the friction costs incurred.
+This incentivizes the agent to minimize unnecessary portfolio rebalancing, as frequent adjustments erode returns. During training, the RL algorithm must learn to balance the potential gains from reallocation against the friction costs incurred.
 
 ### Action Smoothing and Exploration Noise
 

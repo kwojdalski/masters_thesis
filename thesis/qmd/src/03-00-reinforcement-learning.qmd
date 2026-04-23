@@ -2,7 +2,7 @@
 
 This chapter develops the reinforcement learning foundations required for the
 trading agent implemented here. It is organized in three parts. The
-first part introduces the core components of a reinforcement learning system —
+first part introduces the core components of an RL system —
 the formal vocabulary of states, actions, rewards, policies, and value functions
 that all subsequent algorithms inherit. The second part classifies RL algorithms
 along the dimensions that matter most for the trading problem: model-free vs.
