@@ -1,11 +1,11 @@
 # Results
 
-This chapter reports the empirical results for the thesis-facing experiment:
+This chapter reports the empirical evidence for the thesis-facing experiment:
 the TD3 agent trained on high-frequency AAPL order-book-derived features under
-the state-space design defined in Chapters 4 and 5. The purpose of the chapter
-is not merely to display training outputs, but to assess whether the configured
-agent produces economically meaningful behavior on held-out data once
-transaction costs, turnover, and run-to-run variability are taken seriously.
+the state-space design defined in Chapters 4 and 5. It is organized in three
+parts: statistical validation of repeated-run variability, robustness
+assessment under nearby design changes, and final performance evaluation on the
+held-out split.
 
 ## Benchmark Strategies
 
