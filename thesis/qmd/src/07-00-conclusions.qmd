@@ -1,6 +1,6 @@
 # Conclusions and Future Work
 
-This thesis examined whether a continuous-control reinforcement learning agent
+This thesis examined whether a continuous-control deep RL agent
 using order-book-derived microstructure features can achieve economically
 meaningful out-of-sample performance in a high-frequency single-asset setting.
 Within the controlled experimental design, the answer is affirmative. The TD3
@@ -9,7 +9,7 @@ metrics, and the richer microstructure-aware state representation produced a
 clear improvement over the simpler snapshot-based baseline. These findings
 support the central claim of the thesis: the informational content of the limit
 order book can be translated into state features that materially improve the
-behavior of a reinforcement learning trading agent.
+behavior of an RL trading agent.
 
 The empirical contribution is accompanied by a methodological one. The thesis
 developed an end-to-end and reproducible pipeline covering feature engineering
@@ -17,7 +17,7 @@ from 10-level order book data, configuration-driven experiment management, TD3
 training with a Differential Sharpe Ratio reward, and a strict separation
 between training diagnostics and held-out financial evaluation. This
 methodological contribution matters alongside the empirical one: it provides a
-reproducible framework for studying reinforcement learning on limit order book
+reproducible framework for studying RL on limit order book
 data under explicit simulation assumptions and chronological evaluation
 discipline.
 

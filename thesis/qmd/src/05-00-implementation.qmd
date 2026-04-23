@@ -20,7 +20,7 @@ because reinforcement learning in financial settings is highly
 sensitive to timestamp errors and inconsistencies between engineered features
 and the price series used by the simulation.
 
-**Decision layer.** The reinforcement learning agent maps the current state
+**Decision layer.** The RL agent maps the current state
 representation to a bounded continuous action interpreted as target portfolio
 exposure. The agent learns action selection, turnover, and reward trade-offs
 jointly through environmental feedback — there is no separate forecasting step

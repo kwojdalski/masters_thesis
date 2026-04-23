@@ -33,12 +33,12 @@ The research is based on the following hypotheses:
 
 ### Objectives of the Research
 
-The primary research goal is to evaluate Reinforcement Learning-based
+The primary research goal is to evaluate RL-based
 algorithms for high-frequency single-asset trading using order-book-derived
 data. The research objectives are structured in three interconnected phases:
 
 1. **Design and Implementation**
-   - Develop Reinforcement Learning trading agents for high-frequency
+   - Develop RL trading agents for high-frequency
      order-book trading applications
    - Construct a testing framework to evaluate agent performance
 
