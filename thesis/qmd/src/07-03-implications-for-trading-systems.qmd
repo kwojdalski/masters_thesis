@@ -17,8 +17,7 @@ at least as consequential as the choice of algorithm. A well-specified feature
 set operating with a standard actor-critic architecture will likely outperform a
 poorly-specified feature set using a more sophisticated model.
 
-**Continuous-action actor-critic methods are the appropriate algorithm class for
-position-sizing tasks.** The continuous action space used in this thesis allowed
+**Continuous-action actor-critic methods are best suited to position-sizing tasks.** The continuous action space used in this thesis allowed
 the agent to express varying degrees of directional conviction through position
 size, rather than being constrained to binary buy/sell decisions. This expressiveness
 is important in high-frequency settings where the economically correct position
