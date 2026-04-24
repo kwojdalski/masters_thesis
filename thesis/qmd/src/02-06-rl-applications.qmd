@@ -93,7 +93,7 @@ LOB data, requiring extensive hyperparameter tuning.
 @Zhang2020 integrated attention mechanisms with deep RL for stock trading,
 enabling the agent to focus on relevant features dynamically. The attention
 weights provided partial interpretability — visualizing which indicators
-influenced trading decisions at each timestep — partially addressing the black
+influenced trading decisions at each timestep — thereby addressing the black
 box critique of deep RL systems.
 
 ### Comparative Evidence and Limitations

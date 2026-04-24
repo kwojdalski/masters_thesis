@@ -33,10 +33,9 @@ the baseline feature set under identical training and evaluation conditions. The
 improvement was visible not only in summary metrics but in policy behavior: the
 richer state representation supported lower-turnover, more stable positioning
 that translated into better realized returns net of effective execution costs.
-This finding supports the thesis premise that the predictive signal relevant
-to short-horizon price prediction is concentrated in the structural features of
-the limit order book, and that making this information available to the agent
-leads to a measurably better policy.
+This confirms that short-horizon price movement signal is concentrated in LOB
+structure, and that making it available to the agent yields a measurably better
+policy.
 
 **Hypothesis 3: empirical performance is materially sensitive to feature
 specification, reward design, and transaction-cost assumptions.** The
