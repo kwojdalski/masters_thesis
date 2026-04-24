@@ -9,7 +9,9 @@ This module provides a flexible, configurable feature engineering system that:
 
 from trading_rl.features.base import Feature, FeatureConfig
 from trading_rl.features.column_features import ColumnValueFeature
+from trading_rl.features.groups import FeatureGroupResolver
 from trading_rl.features.pipeline import FeaturePipeline, create_default_pipeline
+from trading_rl.features.selector import FeatureSelector, FeatureSelectorConfig, FeatureSelectionResult
 
 # Import concrete features to register them
 from trading_rl.features.price_features import (
@@ -91,7 +93,11 @@ except ImportError:
 __all__ = [
     "Feature",
     "FeatureConfig",
+    "FeatureGroupResolver",
     "FeaturePipeline",
+    "FeatureSelectionResult",
+    "FeatureSelector",
+    "FeatureSelectorConfig",
     "FeatureRegistry",
     "ColumnValueFeature",
     "DayOfWeekCosFeature",
@@ -113,6 +119,10 @@ __all__ = [
     "VolumeChangeFeature",
     "VolumeMAFeature",
     "create_default_pipeline",
+    "FeatureGroupResolver",
+    "FeatureSelector",
+    "FeatureSelectorConfig",
+    "FeatureSelectionResult",
     "register_feature",
     # LOB Features
     "BidAskSlopeFeature",

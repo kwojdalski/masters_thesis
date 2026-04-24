@@ -296,18 +296,93 @@ def ensure_unique_index_for_hft_tradingenv(
 
 def build_prepared_dataset(config: Any, logger: logging.Logger) -> PreparedDataset:
     """Build a prepared dataset bundle for RL training and evaluation."""
-    train_df, val_df, test_df = prepare_data(
-        data_path=config.data.data_path,
-        train_size=config.data.train_size,
-        validation_size=getattr(config.data, "validation_size", None),
-        download_if_missing=config.data.download_data,
-        exchange_names=config.data.exchange_names,
-        symbols=config.data.symbols,
-        timeframe=config.data.timeframe,
-        data_dir=config.data.data_dir,
-        since=config.data.download_since,
-        feature_config_path=getattr(config.data, "feature_config", None),
-    )
+    # Determine feature pipeline source: groups + selection, plain config, or default
+    feature_groups = getattr(config.data, "feature_groups", None)
+    feature_selection = getattr(config.data, "feature_config", None) or getattr(config.data, "feature_selection", None)
+    feature_config_path = getattr(config.data, "feature_config", None)
+
+    if feature_groups:
+        # Group-based pipeline construction
+        from trading_rl.features.groups import FeatureGroupResolver
+        from trading_rl.features.pipeline import FeaturePipeline
+
+        selection_cfg = getattr(config.data, "feature_selection", None) or {}
+        group_names = selection_cfg.get("groups", []) if isinstance(selection_cfg, dict) else []
+        exclude = selection_cfg.get("exclude", None) if isinstance(selection_cfg, dict) else None
+
+        resolver = FeatureGroupResolver.from_yaml(feature_groups)
+        if not group_names:
+            group_names = resolver.list_groups()
+            logger.info("No groups specified, using all %d groups", len(group_names))
+
+        feature_configs = resolver.resolve(group_names, exclude=exclude)
+
+        # Optionally apply research-based feature selection
+        strategy = selection_cfg.get("strategy", "all") if isinstance(selection_cfg, dict) else "all"
+        if strategy == "research":
+            from trading_rl.features.selector import FeatureSelector, FeatureSelectorConfig
+
+            selector_cfg = FeatureSelectorConfig(
+                top_k=selection_cfg.get("top_k", 12) if isinstance(selection_cfg, dict) else 12,
+                corr_threshold=selection_cfg.get("corr_threshold", 0.85) if isinstance(selection_cfg, dict) else 0.85,
+                horizon=selection_cfg.get("horizon", 1) if isinstance(selection_cfg, dict) else 1,
+            )
+            selector = FeatureSelector(selector_cfg)
+
+            # Need raw data for selection — load and split
+            file_signature = Path(config.data.data_path).stat().st_mtime_ns
+            raw_df = load_trading_data(config.data.data_path, cache_bust=file_signature).dropna()
+
+            train_size = config.data.train_size
+            remaining = len(raw_df) - train_size
+            validation_size = config.data.validation_size or remaining // 2
+            val_end = train_size + validation_size
+
+            train_raw_for_sel = raw_df.iloc[:train_size].copy()
+            val_raw_for_sel = raw_df.iloc[train_size:val_end].copy()
+
+            result = selector.select(feature_configs, train_raw_for_sel, val_raw_for_sel)
+            feature_configs = result.selected_configs
+            logger.info(
+                "Feature selection (research): %d of %d candidates selected",
+                len(result.selected_configs),
+                len(resolver.resolve(group_names)),
+            )
+
+        pipeline = FeaturePipeline(feature_configs)
+        logger.info(
+            "Built pipeline from groups: %d features from %d groups",
+            len(pipeline.features),
+            len(group_names),
+        )
+
+        # Use group-based pipeline path
+        train_df, val_df, test_df = prepare_data(
+            data_path=config.data.data_path,
+            train_size=config.data.train_size,
+            validation_size=getattr(config.data, "validation_size", None),
+            download_if_missing=config.data.download_data,
+            exchange_names=config.data.exchange_names,
+            symbols=config.data.symbols,
+            timeframe=config.data.timeframe,
+            data_dir=config.data.data_dir,
+            since=config.data.download_since,
+            feature_pipeline=pipeline,
+        )
+    else:
+        # Legacy path: YAML config or default pipeline
+        train_df, val_df, test_df = prepare_data(
+            data_path=config.data.data_path,
+            train_size=config.data.train_size,
+            validation_size=getattr(config.data, "validation_size", None),
+            download_if_missing=config.data.download_data,
+            exchange_names=config.data.exchange_names,
+            symbols=config.data.symbols,
+            timeframe=config.data.timeframe,
+            data_dir=config.data.data_dir,
+            since=config.data.download_since,
+            feature_config_path=getattr(config.data, "feature_config", None),
+        )
     train_df, val_df, test_df = ensure_close_column_for_hft(
         train_df, val_df, test_df, config, logger
     )
@@ -347,6 +422,7 @@ def prepare_data(
     data_dir: str = "data",
     since: Any | None = None,
     feature_config_path: str | None = None,
+    feature_pipeline: Any | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Prepare trading data for RL training with proper train/val/test split.
 
@@ -365,6 +441,8 @@ def prepare_data(
         data_dir: Directory for downloaded data
         since: Start date for download
         feature_config_path: Path to YAML config for features. If None, uses default pipeline.
+        feature_pipeline: Pre-built FeaturePipeline instance. If provided, takes priority
+            over feature_config_path.
 
     Returns:
         Tuple of (train_df, val_df, test_df) with raw OHLCV plus engineered features.
@@ -424,7 +502,10 @@ def prepare_data(
     # Create feature pipeline
     from trading_rl.features import FeaturePipeline, create_default_pipeline
 
-    if feature_config_path:
+    if feature_pipeline is not None:
+        logger.info("Using pre-built feature pipeline with %d features", len(feature_pipeline.features))
+        pipeline = feature_pipeline
+    elif feature_config_path:
         logger.info(
             f"Loading feature pipeline from: \033[96m{feature_config_path}\033[0m"
         )
