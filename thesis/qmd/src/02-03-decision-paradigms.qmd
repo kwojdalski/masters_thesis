@@ -30,6 +30,19 @@ optimization of prediction and action also discards information: a scalar return
 forecast does not carry the uncertainty, timing, or context available in the
 original feature vector.
 
+This misalignment is most consequential at high frequencies, where turnover costs
+consume a large fraction of gross returns. At lower frequencies — daily or weekly
+rebalancing — the cost of turning over a position is small relative to the
+forecast signal, and well-specified supervised models remain competitive. Factor-based
+strategies in the Fama-French tradition, momentum screens, and several recent
+deep-learning forecasting papers achieve meaningful net alpha precisely because the
+prediction horizon is long enough for transaction costs to be a second-order
+concern. The advantage of direct optimization narrows as the cost-to-signal ratio
+decreases. At tick frequency, where the present thesis operates, this ratio is
+unfavorable for a predict-then-trade pipeline: the cost of crossing the spread on
+each position change can exceed the directional signal per step, making the
+alignment between reward and realized return a first-order design requirement.
+
 #### Unsupervised Learning
 
 Unsupervised learning identifies structure in unlabeled data
@@ -99,7 +112,7 @@ to generate price forecasts from market inputs and then feeds those forecasts
 into a separate decision rule. Another variant trains directly on labeled
 state-action pairs, imitating historical or hand-crafted trades without an
 explicit forecasting stage. In the latter case, the model learns
-$f: X \rightarrow a$ by minimizing a loss over labeled examples $(X_i, a_i^*)$:
+$f: X \rightarrow a$ by minimizing a loss over these examples $(X_i, a_i^*)$:
 
 $$\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$
 

@@ -10,7 +10,7 @@ risk-adjusted basis.** The evaluation supports this hypothesis within the
 scope of the controlled experiment. The trained TD3 agent achieved positive
 test-set risk-adjusted returns and outperformed the evaluated benchmark
 strategies on both the Sharpe ratio and realized cumulative return dimensions,
-with the performance advantage persisting after accounting for position-change
+with this edge persisting after accounting for position-change
 turnover in the zero-fee baseline setting. The agent's behavior was also
 economically coherent: position sizing varied with the state of the order book
 rather than producing constant directional exposure, and drawdown during the

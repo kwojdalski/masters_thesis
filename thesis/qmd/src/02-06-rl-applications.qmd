@@ -79,10 +79,19 @@ alpha across market regimes.
 and holdings), price features, technical indicators, and optional FinBERT-derived
 news sentiment. Richer state designs improved both return and Sharpe ratio
 relative to a close-price-only baseline, with a final 10-stock evaluation
-reporting a Sharpe ratio of 2.68. Methodologically the paper supports the
+reporting a Sharpe ratio of 2.68. This figure warrants scrutiny: annualized Sharpe
+ratios above 2 are rare in live trading and typically indicate either
+insufficient out-of-sample discipline, favorable selection among multiple
+configurations, or evaluation periods that coincide with a strong directional
+trend. The study does not report results across multiple random seeds or under
+realistic spread-crossing costs with a frozen policy, making it difficult to
+determine whether the reported performance reflects genuine signal or
+overfitting to the evaluation window. Methodologically the paper supports the
 practical value of feature enrichment in continuous-action actor-critic trading,
-while also illustrating how performance claims depend strongly on evaluation
-protocol choices.
+but it also illustrates a broader pattern in the RL trading literature: without
+standardized evaluation protocols — multi-seed reporting, held-out test periods
+not used for configuration selection, and explicit cost assumptions — performance
+claims are difficult to assess on their own terms.
 
 @Wang2019 and @Yang2020 demonstrated PPO in cryptocurrency and high-frequency
 trading settings respectively, noting superior training stability relative to
@@ -193,7 +202,7 @@ Multi-asset stock trading &
 Cash + holdings + close + indicators + sentiment &
 Continuous (TD3) &
 Portfolio return / Sharpe-oriented &
-Sharpe likely optimistic under strict frozen-policy evaluation \\
+Sharpe 2.68 likely optimistic; no multi-seed or frozen-policy evaluation \\
 
 Shen et al.\ (2021) &
 Cross-algorithm benchmarking &
