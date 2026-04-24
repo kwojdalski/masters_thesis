@@ -270,16 +270,44 @@ features.
 
 ### Feature Selection Process
 
-Feature selection in this thesis follows a theory-driven criterion. Each of the
-25 features in the final observation vector was included because it represents a
-distinct mechanism identified in the microstructure literature: imbalance at
-multiple depth levels, fair value estimation, spread regime, book shape, order
-flow, and intraday temporal context. A feature was retained if it contributed
-information not already captured by other variables in the set. This yields a
-conservative specification whose priority is interpretability and alignment with
-theory rather than exhaustive coverage of all computable LOB statistics.
-Automated ranking or pruning procedures — such as forward selection, LASSO, or
-mutual information screening — were therefore not part of the selection process.
+Feature selection follows a two-stage procedure that combines theoretical
+constraints with empirical ranking.
+
+**Stage 1: Theory-constrained candidate pool.** The LOB feature registry
+contains over forty computable statistics. The candidate pool is restricted to
+features that represent a distinct mechanism identified in the market
+microstructure literature. Each of the five groups — imbalance, fair value,
+spread, order flow, and regime — corresponds to a specific theoretical construct:
+queue pressure [@Cao2004; @Biais1995], fair value estimation [@Stoikov2018],
+adverse selection cost [@Kyle1985; @GlostenMilgrom1985], directional flow
+[@Cont2014; @LeeReady1991], and intraday regime context [@Engle2000; @Wood1985].
+Features not grounded in this literature — raw price and size columns, or purely
+data-driven aggregates without a microstructure interpretation — are excluded
+from consideration regardless of their statistical properties. This stage
+prevents data-mining by ensuring that every candidate has a prior economic
+justification before any data is examined.
+
+**Stage 2: IC/ICIR ranking within the theory-constrained pool.** Within each
+group, multiple implementations of the same theoretical concept exist: OFI at
+different rolling horizons, spread ratios at different windows, imbalance at
+different depth levels. Theory cannot resolve which implementations are
+informative or which combinations are redundant; this is an empirical question.
+Each candidate is scored by its Information Coefficient Information Ratio (ICIR)
+— the mean IC divided by the standard deviation of IC over rolling windows of the
+validation split, where IC is the Spearman rank correlation between the feature
+and the forward log-return proxy. Redundancy within the selected set is controlled
+via a conditional IC filter: after each feature is selected, its linear signal is
+regressed out of remaining candidates, and ICIR is recomputed on the residuals.
+A candidate is included only if it retains incremental predictive content beyond
+what the already-selected features collectively capture. The full procedure is
+described in Appendix F.
+
+The result is a state space whose composition is jointly justified: every feature
+is grounded in theory (Stage 1) and empirically non-redundant within the
+theory-constrained pool (Stage 2). The two stages address different questions.
+Theory answers: which mechanisms belong in the state space? IC/ICIR answers:
+among the available implementations of those mechanisms, which combinations
+contribute distinct signal?
 
 The selection is operationalized through a registry-driven configuration pipeline.
 Feature names defined in the scenario YAML file resolve to computation functions
