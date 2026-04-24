@@ -62,6 +62,11 @@ $$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a
 
 regardless of how $a_{t+1}$ was actually selected. This separation allows
 experience from a replay buffer — collected under earlier or exploratory
-policies — to be reused many times. TD3 is off-policy and uses a replay buffer
-to reuse collected transitions; the implications for sample efficiency in
-financial settings are discussed in @sec-td3-lineage.
+policies — to be reused many times. In a financial simulator, however, replay
+does not create counterfactual observations of how the market would have evolved
+under actions not actually taken. It is valid only under the maintained
+simulation assumption that the agent is price-taking and that its exposure
+choice affects portfolio wealth but not the subsequent order-book path. TD3 is
+off-policy and uses a replay buffer to reuse collected transitions under this
+simulator design; the implications for sample efficiency and execution
+assumptions in financial settings are discussed in @sec-td3-lineage.
