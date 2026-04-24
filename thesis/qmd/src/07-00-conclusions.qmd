@@ -4,7 +4,7 @@
 This thesis examined if a continuous-control deep RL agent
 using order-book-derived microstructure features can achieve economically
 meaningful held-out performance in a high-frequency single-asset setting.
-Within the controlled experimental design, the answer is affirmative. The TD3
+Within the specified experimental design, the answer is affirmative. The TD3
 agent outperformed the evaluated benchmark strategies on risk-adjusted return
 metrics, and the richer microstructure-aware state representation produced a
 clear improvement over the simpler snapshot-based baseline. These findings
