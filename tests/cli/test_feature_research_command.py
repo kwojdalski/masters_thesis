@@ -63,7 +63,7 @@ def _write_config(
         "research:\n"
         "  horizon: 1\n"
         "  top_k: 2\n"
-        "  corr_threshold: 0.95\n"
+        "  icir_threshold: 0.0\n"
         f'  output_dir: "{output_dir}"\n',
         encoding="utf-8",
     )

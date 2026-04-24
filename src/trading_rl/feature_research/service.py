@@ -1,8 +1,8 @@
 """Offline feature research workflow.
 
 This module is intentionally separate from the main RL training pipeline.
-It scores engineered features against cheap proxy targets and emits a reduced
-feature configuration that can be used for later RL experiments.
+It scores engineered features against cheap proxy targets using the IC/ICIR
+framework and emits a reduced feature configuration for later RL experiments.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from sklearn.feature_selection import mutual_info_regression
+from sklearn.linear_model import LinearRegression
 
 from logger import get_logger
 from trading_rl.data_utils import load_trading_data
@@ -85,103 +85,116 @@ def _align_feature_frames(
     )
 
 
-def _safe_corr(series: pd.Series, target: pd.Series, method: str) -> float:
-    """Compute a correlation safely for low-variance inputs."""
-    if series.nunique(dropna=True) <= 1 or target.nunique(dropna=True) <= 1:
-        return 0.0
-    corr = series.corr(target, method=method)
-    return float(corr) if pd.notna(corr) else 0.0
+def _compute_ic_series(
+    feature: pd.Series,
+    target: pd.Series,
+    window_size: int | None = None,
+) -> pd.Series:
+    """Compute rolling IC (Spearman rank correlation) between feature and target."""
+    aligned = pd.concat([feature, target], axis=1).dropna()
+    if len(aligned) < 10:
+        return pd.Series([0.0], index=aligned.index[:1] if len(aligned) > 0 else [0])
 
+    if window_size is None or window_size <= 1:
+        ic = aligned.iloc[:, 0].corr(aligned.iloc[:, 1], method="spearman")
+        return pd.Series([float(ic) if pd.notna(ic) else 0.0], index=[aligned.index[0]])
 
-def _safe_mutual_information(frame: pd.DataFrame, target: pd.Series) -> np.ndarray:
-    """Compute mutual information with stable fallbacks."""
-    if frame.empty:
-        return np.zeros(0, dtype=float)
-    valid_frame = frame.replace([np.inf, -np.inf], np.nan).dropna()
-    valid_target = target.loc[valid_frame.index]
-    if valid_frame.empty or valid_target.nunique(dropna=True) <= 1:
-        return np.zeros(frame.shape[1], dtype=float)
-    mi = mutual_info_regression(
-        valid_frame.to_numpy(),
-        valid_target.to_numpy(),
-        random_state=0,
+    rolling_ic = aligned.iloc[:, 0].rolling(window_size).corr(
+        aligned.iloc[:, 1], method="spearman"
     )
-    return np.asarray(mi, dtype=float)
+    return rolling_ic.dropna()
 
 
 def _build_score_table(
     train_frame: pd.DataFrame,
     val_frame: pd.DataFrame,
+    window_size: int | None = None,
 ) -> pd.DataFrame:
-    """Build per-feature offline screening metrics."""
-    target_col = next(col for col in train_frame.columns if col.startswith("target_"))
-    feature_cols = [col for col in train_frame.columns if col != target_col]
+    """Build per-feature IC/ICIR scoring table."""
+    target_col = next(col for col in val_frame.columns if col.startswith("target_"))
+    feature_cols = [col for col in val_frame.columns if col != target_col]
 
-    train_target = train_frame[target_col]
     val_target = val_frame[target_col]
-
-    mi_values = _safe_mutual_information(train_frame[feature_cols], train_target)
-    mi_series = pd.Series(mi_values, index=feature_cols, dtype=float)
+    train_target = train_frame[target_col]
 
     rows: list[dict[str, float | str]] = []
-    for feature in feature_cols:
-        train_series = train_frame[feature]
-        val_series = val_frame[feature]
+    for feat in feature_cols:
+        val_series = val_frame[feat]
+        train_series = train_frame[feat]
 
-        pearson_train = _safe_corr(train_series, train_target, "pearson")
-        pearson_val = _safe_corr(val_series, val_target, "pearson")
-        spearman_train = _safe_corr(train_series, train_target, "spearman")
-        spearman_val = _safe_corr(val_series, val_target, "spearman")
-        stability_gap = abs(spearman_train - spearman_val)
-        score = (
-            abs(spearman_val) * 0.45
-            + abs(pearson_val) * 0.35
-            + float(mi_series.get(feature, 0.0)) * 0.20
-            - stability_gap * 0.20
-        )
+        ic_series = _compute_ic_series(val_series, val_target, window_size)
+
+        if len(ic_series) == 0 or ic_series.std() == 0:
+            mean_ic, ic_std, icir, ic_tstat, ic_positive_ratio = 0.0, 1e-10, 0.0, 0.0, 0.0
+        else:
+            mean_ic = float(ic_series.mean())
+            ic_std = float(ic_series.std())
+            icir = mean_ic / ic_std if ic_std > 1e-10 else 0.0
+            n = len(ic_series)
+            ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
+            ic_positive_ratio = float((ic_series > 0).mean())
+
+        train_ic = _compute_ic_series(train_series, train_target, window_size)
+        train_mean_ic = float(train_ic.mean()) if len(train_ic) > 0 else 0.0
 
         rows.append(
             {
-                "feature": feature,
-                "train_std": float(train_series.std(ddof=1) or 0.0),
-                "val_std": float(val_series.std(ddof=1) or 0.0),
-                "train_pearson": pearson_train,
-                "val_pearson": pearson_val,
-                "train_spearman": spearman_train,
-                "val_spearman": spearman_val,
-                "mutual_information": float(mi_series.get(feature, 0.0)),
-                "stability_gap": stability_gap,
-                "score": float(score),
+                "feature": feat,
+                "mean_ic": mean_ic,
+                "ic_std": float(ic_std),
+                "icir": float(icir),
+                "ic_tstat": float(ic_tstat),
+                "ic_positive_ratio": ic_positive_ratio,
+                "train_mean_ic": train_mean_ic,
+                "ic_stability": abs(mean_ic - train_mean_ic),
             }
         )
 
     return (
         pd.DataFrame(rows)
-        .sort_values("score", ascending=False)
+        .sort_values("icir", ascending=False)
         .reset_index(drop=True)
     )
 
 
 def _select_features(
     scores: pd.DataFrame,
-    correlation_matrix: pd.DataFrame,
+    feature_data: pd.DataFrame,
+    target: pd.Series,
     top_k: int,
-    corr_threshold: float,
+    icir_threshold: float = 0.02,
 ) -> list[str]:
-    """Greedy redundancy-aware selection from ranked features."""
+    """Greedy selection using conditional IC for redundancy filtering."""
     selected: list[str] = []
+    remaining_features = list(scores["feature"])
+    residual_data = feature_data.copy()
 
-    for feature in scores["feature"]:
+    for candidate in scores["feature"]:
         if len(selected) >= top_k:
             break
-        if not selected:
-            selected.append(feature)
+        if candidate not in remaining_features:
             continue
 
-        correlations = correlation_matrix.loc[feature, selected].abs()
-        if bool((correlations >= corr_threshold).any()):
+        row = scores[scores["feature"] == candidate].iloc[0]
+        if abs(float(row["icir"])) < icir_threshold:
             continue
-        selected.append(feature)
+
+        selected.append(candidate)
+
+        if len(selected) < top_k and len(remaining_features) > len(selected):
+            selected_matrix = residual_data[selected].values
+            regressor = LinearRegression(fit_intercept=False)
+            regressor.fit(selected_matrix, residual_data[remaining_features].values)
+
+            predicted = regressor.predict(selected_matrix)
+            remaining_idx = [
+                i for i, f in enumerate(remaining_features) if f not in selected
+            ]
+            if remaining_idx:
+                remaining_names = [remaining_features[i] for i in remaining_idx]
+                residual_data[remaining_names] = (
+                    residual_data[remaining_names].values - predicted[:, remaining_idx]
+                )
 
     return selected
 
@@ -222,7 +235,7 @@ def _write_summary(
         f"- Feature config: `{config.data.feature_config}`",
         f"- Proxy target horizon: `{config.research.horizon}`",
         f"- Requested top_k: `{config.research.top_k}`",
-        f"- Correlation threshold: `{config.research.corr_threshold}`",
+        f"- ICIR threshold: `{config.research.icir_threshold}`",
         "",
         "## Selected Features",
         "",
@@ -231,16 +244,16 @@ def _write_summary(
     lines.extend(
         [
             "",
-            "## Top Ranked Features",
+            "## Top Ranked Features (by ICIR)",
             "",
-            "| feature | score | val_spearman | val_pearson | mutual_information |",
+            "| feature | icir | mean_ic | ic_tstat | ic_positive_ratio |",
             "| --- | ---: | ---: | ---: | ---: |",
         ]
     )
     for row in top_preview.itertuples(index=False):
         lines.append(
-            f"| `{row.feature}` | {row.score:.6f} | {row.val_spearman:.6f} | "
-            f"{row.val_pearson:.6f} | {row.mutual_information:.6f} |"
+            f"| `{row.feature}` | {row.icir:.4f} | {row.mean_ic:.6f} | "
+            f"{row.ic_tstat:.2f} | {row.ic_positive_ratio:.3f} |"
         )
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -249,7 +262,7 @@ def run_feature_research(
     *,
     config: FeatureResearchConfig,
 ) -> FeatureResearchArtifacts:
-    """Run offline feature scoring and redundancy-aware selection."""
+    """Run offline IC/ICIR feature scoring and conditional IC selection."""
     output_dir = config.research.output_dir or (
         Path("logs") / config.experiment_name / "feature_research"
     )
@@ -286,16 +299,21 @@ def run_feature_research(
         config.data.feature_config,
         config.research.horizon,
     )
-    scores = _build_score_table(train_frame, val_frame)
+    scores = _build_score_table(train_frame, val_frame, window_size=config.research.window_size)
 
+    val_target_col = next(col for col in val_frame.columns if col.startswith("target_"))
     feature_cols = scores["feature"].tolist()
-    correlation_matrix = train_frame[feature_cols].corr().fillna(0.0)
+    val_aligned = pd.concat([val_frame[feature_cols], val_frame[val_target_col]], axis=1).dropna()
+
     selected_features = _select_features(
         scores,
-        correlation_matrix,
+        val_aligned[feature_cols],
+        val_aligned[val_target_col],
         top_k=config.research.top_k,
-        corr_threshold=config.research.corr_threshold,
+        icir_threshold=config.research.icir_threshold,
     )
+
+    correlation_matrix = val_frame[feature_cols].corr().fillna(0.0)
 
     scores_csv = output_path / "feature_scores.csv"
     correlation_csv = output_path / "feature_correlations.csv"
