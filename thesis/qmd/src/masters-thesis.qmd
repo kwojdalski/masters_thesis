@@ -100,7 +100,7 @@ claims.
 
 \newpage
 {{< include ./02-00-literature-review.qmd >}}
-{{< include ./02-01-what-tick-level-trading-requires.qmd >}}
+{{< include ./02-01-tick-level-order-book-trading.qmd >}}
 {{< include ./02-02-market-microstructure-mechanisms.qmd >}}
 {{< include ./02-03-from-signals-to-decisions.qmd >}}
 {{< include ./02-04-competing-modeling-approaches.qmd >}}
