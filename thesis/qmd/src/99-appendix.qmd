@@ -1,11 +1,13 @@
+```{=latex}
 \appendix
+```
 
 # Feature Inventory
 
 The tables below catalogue every feature type implemented in the feature
-registry (`src/trading_rl/features/`). The active subset used in the main
-state-space experiment is marked with a bullet (\textbullet) in the
-**Active** column; this subset is defined in
+registry (`src/trading_rl/features/`). The subset used in the main
+state-space experiment is marked with [x] in the
+**In model** column; this subset is defined in
 `src/configs/features/hft_lob_features_state_space.yaml`.
 Feature names match the keys produced by the feature pipeline at runtime.
 Formulas for the active LOB features are given in Chapter 4.
@@ -18,73 +20,54 @@ is already bounded in $[-1, 1]$ by the action space definition.
 
 ## LOB Microstructure Features
 
-```{=latex}
-\begingroup
-\footnotesize
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.15}
-\begin{longtable}{p{4.6cm}p{2.0cm}p{1.4cm}p{1.1cm}p{4.4cm}}
-\toprule
-\textbf{Feature name} & \textbf{Group} & \textbf{Param} & \textbf{Active} & \textbf{Literature} \\
-\midrule
-\endfirsthead
-\multicolumn{5}{c}{\textit{(continued from previous page)}} \\
-\toprule
-\textbf{Feature name} & \textbf{Group} & \textbf{Param} & \textbf{Active} & \textbf{Literature} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{5}{r}{\textit{(continued on next page)}} \\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{hft\_book\_pressure\_l0}       & Imbalance      & level 0   & \textbullet & Cao et al.\ (2004); Biais et al.\ (1995) \\
-\texttt{hft\_book\_pressure\_l1}       & Imbalance      & level 1   & \textbullet & Cao et al.\ (2004) \\
-\texttt{hft\_book\_pressure\_l2}       & Imbalance      & level 2   & \textbullet & Cao et al.\ (2004) \\
-\texttt{hft\_order\_book\_imbalance\_3l} & Imbalance    & $N=3$     & \textbullet & Cont et al.\ (2014) \\
-\texttt{hft\_order\_count\_imbalance\_l0} & Imbalance   & level 0   & \textbullet & Biais et al.\ (1995) \\
-\texttt{hft\_order\_count\_imbalance\_l1} & Imbalance   & level 1   &            & Biais et al.\ (1995) \\
-\texttt{hft\_microprice}               & Fair value     & ---       & \textbullet & Stoikov (2018) \\
-\texttt{hft\_microprice\_divergence}   & Fair value     & ---       & \textbullet & Stoikov (2018) \\
-\texttt{hft\_vwmp\_skew}               & Fair value     & $N=3$     & \textbullet & Stoikov (2018) \\
-\texttt{hft\_price\_vamp\_1k}          & Fair value     & \$1k      &            & Volume-adjusted mid price \\
-\texttt{hft\_price\_vamp\_5k}          & Fair value     & \$5k      &            & Volume-adjusted mid price \\
-\texttt{hft\_depth\_ratio}             & Depth          & $N=4$     &            & Bouchaud et al.\ (2002) \\
-\texttt{hft\_spread\_bps}              & Spread/cost    & ---       & \textbullet & Kyle (1985); Glosten \& Milgrom (1985) \\
-\texttt{hft\_spread\_ratio\_50}        & Spread/cost    & $W=50$    & \textbullet & Easley et al.\ (2012) \\
-\texttt{hft\_spread\_ratio\_200}       & Spread/cost    & $W=200$   &            & Easley et al.\ (2012) \\
-\texttt{hft\_bid\_convexity}           & Spread/cost    & bid side  & \textbullet & Bouchaud et al.\ (2002) \\
-\texttt{hft\_ask\_convexity}           & Spread/cost    & ask side  & \textbullet & Bouchaud et al.\ (2002) \\
-\texttt{hft\_bid\_slope}               & Spread/cost    & 5 levels  & \textbullet & Bouchaud et al.\ (2002); Kyle (1985) \\
-\texttt{hft\_ask\_slope}               & Spread/cost    & 5 levels  & \textbullet & Bouchaud et al.\ (2002); Kyle (1985) \\
-\texttt{hft\_ofi}                      & Order flow     & ---       & \textbullet & Cont et al.\ (2014) \\
-\texttt{hft\_ofi\_rolling\_10}         & Order flow     & $W=10$    &            & Cont et al.\ (2014) \\
-\texttt{hft\_ofi\_rolling\_50}         & Order flow     & $W=50$    & \textbullet & Cont et al.\ (2014) \\
-\texttt{hft\_ofi\_rolling\_200}        & Order flow     & $W=200$   &            & Cont et al.\ (2014) \\
-\texttt{hft\_ofi\_multilevel\_3l}      & Order flow     & $N=3$     &            & Cont et al.\ (2014) \\
-\texttt{hft\_ofi\_multilevel\_5l}      & Order flow     & $N=5$     &            & Cont et al.\ (2014) \\
-\texttt{hft\_bid\_queue\_depletion}    & Order flow     & bid side  & \textbullet & Foucault et al.\ (2005) \\
-\texttt{hft\_ask\_queue\_depletion}    & Order flow     & ask side  & \textbullet & Foucault et al.\ (2005) \\
-\texttt{hft\_signed\_trade\_flow\_50}  & Order flow     & $W=50$    & \textbullet & Lee \& Ready (1991) \\
-\texttt{hft\_signed\_trade\_flow\_200} & Order flow     & $W=200$   &            & Lee \& Ready (1991) \\
-\texttt{hft\_odd\_lot\_trade\_ratio\_200} & Order flow  & $W=200$   & \textbullet & Boehmer et al.\ (2021) \\
-\texttt{hft\_odd\_lot\_imbalance\_200} & Order flow     & $W=200$   & \textbullet & Boehmer et al.\ (2021) \\
-\texttt{hft\_vpin\_100}                & Order flow     & $W=100$   &            & Easley et al.\ (2012) \\
-\texttt{hft\_vpin\_500}                & Order flow     & $W=500$   &            & Easley et al.\ (2012) \\
-\texttt{hft\_cancel\_to\_trade\_200}   & Order flow     & $W=200$   &            & Foucault et al.\ (2005) \\
-\texttt{hft\_cancel\_to\_trade\_1000}  & Order flow     & $W=1000$  &            & Foucault et al.\ (2005) \\
-\texttt{hft\_trade\_arrival\_rate\_100} & Order flow    & $W=100$   &            & Engle (2000) \\
-\texttt{hft\_trade\_arrival\_rate\_500} & Order flow    & $W=500$   &            & Engle (2000) \\
-\texttt{hft\_large\_trade\_ratio\_200} & Order flow     & $W=200$   &            & Institutional flow proxy \\
-\texttt{hft\_ofi\_autocorr\_50}        & Order flow     & $W=50$    &            & Cont et al.\ (2014) \\
-\texttt{hft\_ofi\_autocorr\_200}       & Order flow     & $W=200$   &            & Cont et al.\ (2014) \\
-\texttt{hft\_inter\_event\_time}       & Regime/temp.   & ---       & \textbullet & Engle (2000) \\
-\texttt{hft\_mid\_price\_acceleration} & Regime/temp.   & ---       & \textbullet & Abergel et al.\ (2016) \\
-\texttt{hft\_hour\_sin}                & Regime/temp.   & ---       & \textbullet & Wood et al.\ (1985) \\
-\texttt{hft\_hour\_cos}                & Regime/temp.   & ---       & \textbullet & Wood et al.\ (1985) \\
-\end{longtable}
-\endgroup
-```
+| Feature name | Group | Param | In model | Literature |
+|---|---|---|:---:|---|
+| `hft_book_pressure_l0` | Imbalance | level 0 | [x] | Cao et al. (2004); Biais et al. (1995) |
+| `hft_book_pressure_l1` | Imbalance | level 1 | [x] | Cao et al. (2004) |
+| `hft_book_pressure_l2` | Imbalance | level 2 | [x] | Cao et al. (2004) |
+| `hft_order_book_imbalance_3l` | Imbalance | $N=3$ | [x] | Cont et al. (2014) |
+| `hft_order_count_imbalance_l0` | Imbalance | level 0 | [x] | Biais et al. (1995) |
+| `hft_order_count_imbalance_l1` | Imbalance | level 1 | | Biais et al. (1995) |
+| `hft_microprice` | Fair value | --- | [x] | Stoikov (2018) |
+| `hft_microprice_divergence` | Fair value | --- | [x] | Stoikov (2018) |
+| `hft_vwmp_skew` | Fair value | $N=3$ | [x] | Stoikov (2018) |
+| `hft_price_vamp_1k` | Fair value | \$1k | | Volume-adjusted mid price |
+| `hft_price_vamp_5k` | Fair value | \$5k | | Volume-adjusted mid price |
+| `hft_depth_ratio` | Depth | $N=4$ | | Bouchaud et al. (2002) |
+| `hft_spread_bps` | Spread/cost | --- | [x] | Kyle (1985); Glosten & Milgrom (1985) |
+| `hft_spread_ratio_50` | Spread/cost | $W=50$ | [x] | Easley et al. (2012) |
+| `hft_spread_ratio_200` | Spread/cost | $W=200$ | | Easley et al. (2012) |
+| `hft_bid_convexity` | Spread/cost | bid side | [x] | Bouchaud et al. (2002) |
+| `hft_ask_convexity` | Spread/cost | ask side | [x] | Bouchaud et al. (2002) |
+| `hft_bid_slope` | Spread/cost | 5 levels | [x] | Bouchaud et al. (2002); Kyle (1985) |
+| `hft_ask_slope` | Spread/cost | 5 levels | [x] | Bouchaud et al. (2002); Kyle (1985) |
+| `hft_ofi` | Order flow | --- | [x] | Cont et al. (2014) |
+| `hft_ofi_rolling_10` | Order flow | $W=10$ | | Cont et al. (2014) |
+| `hft_ofi_rolling_50` | Order flow | $W=50$ | [x] | Cont et al. (2014) |
+| `hft_ofi_rolling_200` | Order flow | $W=200$ | | Cont et al. (2014) |
+| `hft_ofi_multilevel_3l` | Order flow | $N=3$ | | Cont et al. (2014) |
+| `hft_ofi_multilevel_5l` | Order flow | $N=5$ | | Cont et al. (2014) |
+| `hft_bid_queue_depletion` | Order flow | bid side | [x] | Foucault et al. (2005) |
+| `hft_ask_queue_depletion` | Order flow | ask side | [x] | Foucault et al. (2005) |
+| `hft_signed_trade_flow_50` | Order flow | $W=50$ | [x] | Lee & Ready (1991) |
+| `hft_signed_trade_flow_200` | Order flow | $W=200$ | | Lee & Ready (1991) |
+| `hft_odd_lot_trade_ratio_200` | Order flow | $W=200$ | [x] | Boehmer et al. (2021) |
+| `hft_odd_lot_imbalance_200` | Order flow | $W=200$ | [x] | Boehmer et al. (2021) |
+| `hft_vpin_100` | Order flow | $W=100$ | | Easley et al. (2012) |
+| `hft_vpin_500` | Order flow | $W=500$ | | Easley et al. (2012) |
+| `hft_cancel_to_trade_200` | Order flow | $W=200$ | | Foucault et al. (2005) |
+| `hft_cancel_to_trade_1000` | Order flow | $W=1000$ | | Foucault et al. (2005) |
+| `hft_trade_arrival_rate_100` | Order flow | $W=100$ | | Engle (2000) |
+| `hft_trade_arrival_rate_500` | Order flow | $W=500$ | | Engle (2000) |
+| `hft_large_trade_ratio_200` | Order flow | $W=200$ | | Institutional flow proxy |
+| `hft_ofi_autocorr_50` | Order flow | $W=50$ | | Cont et al. (2014) |
+| `hft_ofi_autocorr_200` | Order flow | $W=200$ | | Cont et al. (2014) |
+| `hft_inter_event_time` | Regime/temp. | --- | [x] | Engle (2000) |
+| `hft_mid_price_acceleration` | Regime/temp. | --- | [x] | Abergel et al. (2016) |
+| `hft_hour_sin` | Regime/temp. | --- | [x] | Wood et al. (1985) |
+| `hft_hour_cos` | Regime/temp. | --- | [x] | Wood et al. (1985) |
+
+: LOB microstructure features implemented in the feature registry. The In model column marks features used in the main state-space experiment. {#tbl-lob-features longtable=true tbl-colwidths="[34,15,10,9,32]"}
 
 ## Bar-Level and Technical Features
 
@@ -92,71 +75,52 @@ The features below operate on OHLCV bar data and are not used in the main
 HFT experiment but are available in the feature registry for medium-frequency
 trading (MFT) scenarios and ablation studies.
 
-```{=latex}
-\begingroup
-\footnotesize
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.15}
-\begin{longtable}{p{4.0cm}p{2.4cm}p{2.0cm}p{4.0cm}}
-\toprule
-\textbf{Feature name} & \textbf{Group} & \textbf{Param} & \textbf{Notes} \\
-\midrule
-\endfirsthead
-\multicolumn{4}{c}{\textit{(continued from previous page)}} \\
-\toprule
-\textbf{Feature name} & \textbf{Group} & \textbf{Param} & \textbf{Notes} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{4}{r}{\textit{(continued on next page)}} \\
-\endfoot
-\bottomrule
-\endlastfoot
-\texttt{log\_return}          & Price      & ---             & Log return of close \\
-\texttt{high}                & Price      & ---             & High / close ratio \\
-\texttt{low}                 & Price      & ---             & Low / close ratio \\
-\texttt{simple\_return}      & Price      & ---             & Simple return \\
-\texttt{trend}               & Price      & ---             & Not normalized \\
-\texttt{rsi}                 & Price      & $P=14$          & Relative strength index \\
-\texttt{return\_lag\_1}      & Price      & lag 1           & Lagged close return \\
-\texttt{log\_volume}         & Volume     & ---             & Log of volume \\
-\texttt{volume\_change}      & Volume     & ---             & Volume change rate \\
-\texttt{volume\_ma\_ratio\_20} & Volume   & $W=20$          & Volume / MA ratio \\
-\texttt{amihud\_illiquidity} & Volume     & $W=1$           & Amihud (2002) \\
-\texttt{relative\_volume}   & Volume     & ---             & Relative volume ratio \\
-\texttt{realized\_volatility\_20} & Volatility & $W=20$     & Realized vol \\
-\texttt{volatility\_ratio\_5\_60} & Volatility & $S{=}5, L{=}60$ & Short / long vol ratio \\
-\texttt{hour\_sin}           & Temporal   & ---             & Not normalized$^a$ \\
-\texttt{hour\_cos}           & Temporal   & ---             & Not normalized$^a$ \\
-\texttt{day\_of\_week\_sin}  & Temporal   & ---             & Not normalized$^a$ \\
-\texttt{day\_of\_week\_cos}  & Temporal   & ---             & Not normalized$^a$ \\
-\texttt{minute\_of\_hour\_sin} & Temporal & ---             & Not normalized$^a$ \\
-\texttt{minute\_of\_hour\_cos} & Temporal & ---             & Not normalized$^a$ \\
-\texttt{sma\_20}             & TA-Lib trend     & $P=20$    & Simple moving average \\
-\texttt{ema\_20}             & TA-Lib trend     & $P=20$    & Exponential moving average \\
-\texttt{wma\_20}             & TA-Lib trend     & $P=20$    & Weighted moving average \\
-\texttt{dema\_20}            & TA-Lib trend     & $P=20$    & Double EMA \\
-\texttt{tema\_20}            & TA-Lib trend     & $P=20$    & Triple EMA \\
-\texttt{talib\_rsi\_14}      & TA-Lib momentum  & $P=14$    & RSI (TA-Lib) \\
-\texttt{macd\_12\_26\_9}     & TA-Lib momentum  & $f{=}12, s{=}26, g{=}9$ & MACD \\
-\texttt{mom\_10}             & TA-Lib momentum  & $P=10$    & Momentum \\
-\texttt{roc\_10}             & TA-Lib momentum  & $P=10$    & Rate of change \\
-\texttt{cmo\_14}             & TA-Lib momentum  & $P=14$    & Chande momentum oscillator \\
-\texttt{willr\_14}           & TA-Lib momentum  & $P=14$    & Williams \%R \\
-\texttt{cci\_14}             & TA-Lib momentum  & $P=14$    & Commodity channel index \\
-\texttt{atr\_14}             & TA-Lib volatility & $P=14$   & Average true range \\
-\texttt{natr\_14}            & TA-Lib volatility & $P=14$   & Normalized ATR \\
-\texttt{bbands\_20}          & TA-Lib volatility & $P=20$   & Bollinger bands \\
-\texttt{obv}                 & TA-Lib volume    & ---       & On-balance volume \\
-\texttt{ad}                  & TA-Lib volume    & ---       & Accumulation / distribution \\
-\texttt{adosc\_3\_10}        & TA-Lib volume    & $f{=}3, s{=}10$ & AD oscillator \\
-\texttt{adx\_14}             & TA-Lib trend str.& $P=14$    & Average directional index \\
-\texttt{aroon\_14}           & TA-Lib trend str.& $P=14$    & Aroon oscillator \\
-\end{longtable}
-\endgroup
-```
+| Feature name | Group | Param | Notes |
+|---|---|---|---|
+| `log_return` | Price | --- | Log return of close |
+| `high` | Price | --- | High / close ratio |
+| `low` | Price | --- | Low / close ratio |
+| `simple_return` | Price | --- | Simple return |
+| `trend` | Price | --- | Not normalized |
+| `rsi` | Price | $P=14$ | Relative strength index |
+| `return_lag_1` | Price | lag 1 | Lagged close return |
+| `log_volume` | Volume | --- | Log of volume |
+| `volume_change` | Volume | --- | Volume change rate |
+| `volume_ma_ratio_20` | Volume | $W=20$ | Volume / MA ratio |
+| `amihud_illiquidity` | Volume | $W=1$ | Amihud (2002) |
+| `relative_volume` | Volume | --- | Relative volume ratio |
+| `realized_volatility_20` | Volatility | $W=20$ | Realized vol |
+| `volatility_ratio_5_60` | Volatility | $S=5, L=60$ | Short / long vol ratio |
+| `hour_sin` | Temporal | --- | Not normalized^a^ |
+| `hour_cos` | Temporal | --- | Not normalized^a^ |
+| `day_of_week_sin` | Temporal | --- | Not normalized^a^ |
+| `day_of_week_cos` | Temporal | --- | Not normalized^a^ |
+| `minute_of_hour_sin` | Temporal | --- | Not normalized^a^ |
+| `minute_of_hour_cos` | Temporal | --- | Not normalized^a^ |
+| `sma_20` | TA-Lib trend | $P=20$ | Simple moving average |
+| `ema_20` | TA-Lib trend | $P=20$ | Exponential moving average |
+| `wma_20` | TA-Lib trend | $P=20$ | Weighted moving average |
+| `dema_20` | TA-Lib trend | $P=20$ | Double EMA |
+| `tema_20` | TA-Lib trend | $P=20$ | Triple EMA |
+| `talib_rsi_14` | TA-Lib momentum | $P=14$ | RSI (TA-Lib) |
+| `macd_12_26_9` | TA-Lib momentum | $f=12, s=26, g=9$ | MACD |
+| `mom_10` | TA-Lib momentum | $P=10$ | Momentum |
+| `roc_10` | TA-Lib momentum | $P=10$ | Rate of change |
+| `cmo_14` | TA-Lib momentum | $P=14$ | Chande momentum oscillator |
+| `willr_14` | TA-Lib momentum | $P=14$ | Williams %R |
+| `cci_14` | TA-Lib momentum | $P=14$ | Commodity channel index |
+| `atr_14` | TA-Lib volatility | $P=14$ | Average true range |
+| `natr_14` | TA-Lib volatility | $P=14$ | Normalized ATR |
+| `bbands_20` | TA-Lib volatility | $P=20$ | Bollinger bands |
+| `obv` | TA-Lib volume | --- | On-balance volume |
+| `ad` | TA-Lib volume | --- | Accumulation / distribution |
+| `adosc_3_10` | TA-Lib volume | $f=3, s=10$ | AD oscillator |
+| `adx_14` | TA-Lib trend str. | $P=14$ | Average directional index |
+| `aroon_14` | TA-Lib trend str. | $P=14$ | Aroon oscillator |
 
-$^a$ Cyclical time encodings are inherently bounded in $[-1, 1]$ and
+: Bar-level and technical features available in the feature registry (not used in the main HFT experiment). {#tbl-bar-features longtable=true tbl-colwidths="[28,22,17,33]"}
+
+^a^ Cyclical time encodings are inherently bounded in $[-1, 1]$ and
 require no normalization. The runtime position feature
 (`feature_position` $\in [-1, 1]$) is likewise not normalized; it is
 already bounded by the action space definition. All other features are
@@ -170,62 +134,38 @@ The table below lists all hyperparameters for the main AAPL state-space
 experiment. The full configuration file is
 `src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml`.
 
-```{=latex}
-\begingroup
-\footnotesize
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.2}
-\begin{longtable}{p{4.4cm}p{2.2cm}p{5.6cm}}
-\toprule
-\textbf{Parameter} & \textbf{Value} & \textbf{Notes} \\
-\midrule
-\endfirsthead
-\multicolumn{3}{c}{\textit{(continued from previous page)}} \\
-\toprule
-\textbf{Parameter} & \textbf{Value} & \textbf{Notes} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{\textit{(continued on next page)}} \\
-\endfoot
-\bottomrule
-\endlastfoot
+| Parameter | Value | Notes |
+|---|---|---|
+| **Architecture** | | |
+| Actor hidden dims | [128, 64] | ReLU activations |
+| Critic hidden dims | [128, 64] | ReLU activations |
+| **Optimization** | | |
+| Actor learning rate | 0.0001 | Adam |
+| Critic learning rate | 0.0001 | Adam |
+| Actor weight decay | 0.000002 | L2 regularization |
+| Critic weight decay | 0.000002 | |
+| Loss function | Smooth L1 (Huber) | |
+| **TD3 mechanisms** | | |
+| Discount factor $\gamma$ | 0.995 | |
+| Target update $\tau$ | 0.001 | Soft update |
+| Policy delay | 2 | Critic updates per actor update |
+| Target policy noise $\sigma$ | 0.2 | Added to target action |
+| Noise clip | 0.3 | |
+| Exploration noise std | 0.1 | During training only |
+| **Training** | | |
+| Total steps | 2,000,000 | |
+| Initial random steps | 1,000 | Warm-up before learning |
+| Frames per batch | 200 | |
+| Optimisation steps per batch | 5 | |
+| Mini-batch size | 128 | |
+| Replay buffer size | 100,000 | |
+| **Data** | | |
+| Training rows | 15,000 | Chronological split |
+| Reward type | Differential Sharpe | $\eta = 0.01$ |
+| Transaction fee | 0.000 | Baseline setting |
+| Random seed | 42 | |
 
-\textbf{Architecture} & & \\
-Actor hidden dims & [128, 64] & ReLU activations \\
-Critic hidden dims & [128, 64] & ReLU activations \\
-
-\textbf{Optimization} & & \\
-Actor learning rate & 0.0001 & Adam \\
-Critic learning rate & 0.0001 & Adam \\
-Actor weight decay & 0.000002 & L2 regularization \\
-Critic weight decay & 0.000002 & \\
-Loss function & Smooth L1 (Huber) & \\
-
-\textbf{TD3 mechanisms} & & \\
-Discount factor $\gamma$ & 0.995 & \\
-Target update $\tau$ & 0.001 & Soft update \\
-Policy delay & 2 & Critic updates per actor update \\
-Target policy noise $\sigma$ & 0.2 & Added to target action \\
-Noise clip & 0.3 & \\
-Exploration noise std & 0.1 & During training only \\
-
-\textbf{Training} & & \\
-Total steps & 2,000,000 & \\
-Initial random steps & 1,000 & Warm-up before learning \\
-Frames per batch & 200 & \\
-Optimisation steps per batch & 5 & \\
-Mini-batch size & 128 & \\
-Replay buffer size & 100,000 & \\
-
-\textbf{Data} & & \\
-Training rows & 15,000 & Chronological split \\
-Reward type & Differential Sharpe & $\eta = 0.01$ \\
-Transaction fee & 0.000 & Baseline setting \\
-Random seed & 42 & \\
-\end{longtable}
-\endgroup
-```
+: TD3 hyperparameters for the main AAPL state-space experiment. Full configuration: `src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml`. {#tbl-td3-hyperparams longtable=true tbl-colwidths="[36,18,46]"}
 
 ---
 
