@@ -1,4 +1,4 @@
-## Why Reinforcement Learning for Trading
+## Reinforcement Learning for Trading
 
 Before surveying applications, it is worth establishing why reinforcement
 learning is a natural fit for algorithmic trading rather than an arbitrary
@@ -13,13 +13,16 @@ Model-free RL methods learn directly from experience without requiring a
 transition model, making them a reasonable candidate for this setting
 [@Sutton2018].
 
-**Off-policy learning from historical data.** Online experimentation in live
+**Off-policy learning and historical replay.** Online experimentation in live
 markets is constrained by capital, risk, and regulatory requirements. The
 alternative is to learn from historical order book data — a fixed dataset of
 past transitions. Off-policy algorithms such as TD3 [@Fujimoto2018] can train
 on stored experience rather than requiring fresh environment interaction at
 every update, making them sample-efficient in the data-limited financial
-setting.
+setting. This should not be confused with a full offline-RL guarantee. Training
+from historical replay still raises distribution-shift and extrapolation risks
+when the learned policy selects actions that are poorly represented in the
+historical data.
 
 **Continuous position sizing.** Trading decisions are naturally continuous:
 the agent should be able to express any degree of conviction through the size
@@ -30,8 +33,10 @@ methods operate natively in continuous action spaces and are therefore more
 appropriate for position-sizing tasks.
 
 Together these three properties point toward a model-free, off-policy,
-continuous-action algorithm — which is the class to which TD3 belongs. The
-formal algorithmic properties of TD3 are derived in Chapter 3. The present
-section is concerned with how the broader RL literature has been applied to
-trading and what that literature implies for the design choices made in this
-thesis.
+continuous-action algorithm — which is the class to which TD3 belongs. This is a
+reasoned design choice, not a claim that TD3 is universally superior for trading.
+The MDP formulation remains approximate because market states are partially
+observable and non-stationary. The formal algorithmic properties of TD3 are
+derived in Chapter 3. The present section is concerned with how the broader RL
+literature has been applied to trading and what that literature implies for the
+design choices made in this thesis.
