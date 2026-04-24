@@ -14,7 +14,7 @@ prerequisite for designing an HFT trading agent, since they define the
 environment in which the agent operates and motivate the feature set used here.
 
 @Roll1984 demonstrated that bid-ask spreads induce negative serial correlation
-in transaction prices at very short horizons, as prices bounce between bid and
+in transaction prices at very short horizons, as they bounce between bid and
 ask quotes. This microstructure noise distinguishes observed transaction prices
 from the latent efficient price and creates a predictable pattern exploitable
 only by agents that operate at tick frequency and account for spread costs
