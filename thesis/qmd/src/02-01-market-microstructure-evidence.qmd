@@ -19,7 +19,7 @@ ask quotes. This microstructure noise distinguishes observed transaction prices
 from the latent efficient price and creates a predictable pattern exploitable
 only by agents that operate at tick frequency and account for spread costs
 explicitly. In this thesis, spread in basis points and the spread ratio feature
-directly encode the cost of crossing the spread, conditioning the agent's
+directly encode the cost of crossing the bid-ask, conditioning the agent's
 position-sizing decisions on the current liquidity environment.
 
 @Wood1985 and @Harris1986 documented intraday patterns in volume,

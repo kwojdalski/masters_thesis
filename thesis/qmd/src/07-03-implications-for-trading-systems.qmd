@@ -40,7 +40,7 @@ pipelines: a training diagnostic that tracks the optimization objective, and a
 financial evaluation that rolls out the deterministic policy on held-out data and
 computes return, Sharpe ratio, drawdown, and turnover from the realized position
 series. Conflating these — for example, treating a high training DSR as evidence
-of a strong out-of-sample Sharpe — is a common source of overoptimistic claims
+of a strong held-out Sharpe — is a common source of overoptimistic claims
 in the literature.
 
 **Execution assumptions impose a binding constraint on achievable net
