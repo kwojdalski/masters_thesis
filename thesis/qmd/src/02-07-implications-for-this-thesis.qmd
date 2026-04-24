@@ -1,0 +1,36 @@
+## Implications for This Thesis
+
+The literature reviewed in this chapter motivates the empirical design of the
+thesis along five dimensions. First, market microstructure theory and evidence
+support the use of LOB-derived state variables rather than relying only on
+bar-level price summaries. Spread, imbalance, order-flow, fair-value, and
+intraday-regime features each correspond to a distinct mechanism discussed in
+the microstructure literature.
+
+Second, the reviewed evidence also limits the interpretation of these features.
+They are candidate state variables, not guaranteed trading signals. Their value
+depends on whether they provide information available before the agent acts and
+whether any resulting policy remains useful after transaction costs and
+out-of-sample evaluation.
+
+Third, the comparison with supervised and rule-based approaches motivates direct
+optimization of trading decisions. Forecasting models can be informative, but a
+separate rule is still required to translate predictions into exposure. In this
+thesis, the agent instead chooses a continuous portfolio position directly,
+making the action space part of the optimization problem.
+
+Fourth, the applied RL literature motivates the use of continuous-control
+actor-critic methods and risk-aware reward design, while also requiring caution
+about reported performance. Prior studies show that RL trading results are
+sensitive to transaction costs, benchmark choice, random seeds, and validation
+protocol. For that reason, the later empirical chapters separate training reward
+from financial evaluation metrics and assess the learned policy on held-out
+data.
+
+Finally, the contribution of the thesis follows from the combination of these
+design choices: a microstructure-aware state representation, continuous exposure
+control, transaction-cost-aware evaluation, and explicit robustness assessment
+within a controlled single-asset HFT simulation. The objective is not to claim a
+deployable trading system, but to test whether this particular design
+combination can produce credible out-of-sample evidence under the stated
+simulation assumptions.

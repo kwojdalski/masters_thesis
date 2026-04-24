@@ -106,6 +106,7 @@ claims.
 {{< include ./02-04-why-rl-for-trading.qmd >}}
 {{< include ./02-05-rl-key-concepts.qmd >}}
 {{< include ./02-06-rl-applications.qmd >}}
+{{< include ./02-07-implications-for-this-thesis.qmd >}}
 
 \newpage
 {{< include ./03-00-reinforcement-learning.qmd >}}
