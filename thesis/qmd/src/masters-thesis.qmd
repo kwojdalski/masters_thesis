@@ -100,13 +100,14 @@ claims.
 
 \newpage
 {{< include ./02-00-literature-review.qmd >}}
-{{< include ./02-01-market-microstructure-theory.qmd >}}
-{{< include ./02-02-market-microstructure-evidence.qmd >}}
-{{< include ./02-03-decision-paradigms.qmd >}}
-{{< include ./02-04-why-rl-for-trading.qmd >}}
-{{< include ./02-05-rl-key-concepts.qmd >}}
-{{< include ./02-06-rl-applications.qmd >}}
-{{< include ./02-07-implications-for-this-thesis.qmd >}}
+{{< include ./02-01-what-tick-level-trading-requires.qmd >}}
+{{< include ./02-02-market-microstructure-mechanisms.qmd >}}
+{{< include ./02-03-from-signals-to-decisions.qmd >}}
+{{< include ./02-04-competing-modeling-approaches.qmd >}}
+{{< include ./02-05-reinforcement-learning-for-trading.qmd >}}
+{{< include ./02-06-rl-concepts-relevant-to-trading.qmd >}}
+{{< include ./02-07-applied-rl-trading-evidence.qmd >}}
+{{< include ./02-08-implications-for-this-thesis.qmd >}}
 
 \newpage
 {{< include ./03-00-reinforcement-learning.qmd >}}
