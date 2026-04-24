@@ -36,7 +36,7 @@ transaction costs — a stringent test of practical viability.
 ### From Discrete to Continuous Action Spaces
 
 Early value-based approaches applied Q-learning with discrete buy/sell/hold
-actions to equity and futures markets [@Neuneier1998; @Lee2001]. These studies
+actions to equity and futures markets [@Neuneier1998; @Lee2007]. These studies
 established that RL could learn profitable patterns from historical data, but
 also identified persistent problems: sparse rewards, delayed credit assignment,
 and out-of-sample performance degradation. More fundamentally, discrete action
@@ -44,11 +44,13 @@ spaces force an artificial granularity on position sizing — a coarse grid
 loses control precision while a fine grid reintroduces the curse of
 dimensionality.
 
-@Gold2003 and @Dempster2006 demonstrated that policy gradient methods with
-continuous action spaces addressed this limitation directly. Continuous
-portfolio weights proved more natural for allocation tasks and policy gradient
-methods achieved better risk-adjusted returns with fewer training episodes,
-establishing the case for actor-critic approaches in trading.
+@Gold2003 and @Dempster2006 extended the direct and recurrent reinforcement
+learning tradition to foreign-exchange trading systems. Their relevance is that
+the trading policy maps market state directly into positions rather than into an
+intermediate price forecast. The evidence is also cautionary: performance varied
+substantially across currency pairs and depended on the choice of model and
+system parameters, making early direct-RL results better interpreted as
+feasibility evidence than as a robust trading edge.
 
 ### Deep Reinforcement Learning Era
 
@@ -66,6 +68,13 @@ policy gradients with recurrent networks for cryptocurrency portfolio management
 Their fully differentiable end-to-end design incorporated current holdings into
 the state and penalized transaction costs explicitly, outperforming
 Markowitz mean-variance allocation in backtests across 12 cryptocurrencies.
+
+An earlier cryptocurrency portfolio study by @JiangLiang2017Crypto used a
+convolutional network to map historical prices directly into continuous
+portfolio weights under a deterministic policy-gradient-style objective. Its
+30-minute Poloniex backtests are relevant because they treat trading as direct
+portfolio-action optimization, but the assumptions of immediate execution and no
+market impact remain far from tick-level order-book trading.
 
 @Liang2018 applied DDPG to stock trading and conducted ablation studies showing
 that: (i) DDPG outperformed DQN for continuous position sizing, (ii) Sharpe-based
@@ -99,26 +108,36 @@ standardized evaluation protocols — multi-seed reporting, held-out test period
 not used for configuration selection, and explicit cost assumptions — performance
 claims are difficult to assess on their own terms.
 
-@Wang2019 and @Yang2020 demonstrated PPO in cryptocurrency and high-frequency
-trading settings respectively, noting superior training stability relative to
-DDPG at the cost of lower sample efficiency. @Yang2020 in particular highlighted
-the scalability challenges of training stable policies on millisecond-resolution
-LOB data, requiring extensive hyperparameter tuning.
+@Yang2020 evaluated an ensemble stock-trading strategy built from PPO, A2C, and
+DDPG on Dow Jones constituents. The study is relevant as an actor-critic
+comparison in a liquid equity universe, but it is not evidence about
+millisecond-level LOB trading; its state representation, trading frequency, and
+execution assumptions differ from the setting studied in this thesis.
 
-@Zhang2020 integrated attention mechanisms with deep RL for stock trading,
-enabling the agent to focus on relevant features dynamically. The attention
-weights provided partial interpretability — visualizing which indicators
-influenced trading decisions at each timestep — thereby addressing the black
-box critique of deep RL systems.
+@Wang2019AlphaStock proposed AlphaStock, which combines a Sharpe-oriented RL
+objective with history-state and cross-asset attention networks. Its contribution
+is mainly about representation and interpretability in stock selection: the
+attention mechanism gives a partial account of which asset characteristics drive
+portfolio construction. This supports the broader claim that state representation
+matters materially in RL trading, but it does not address order-book-driven
+single-asset exposure control.
+
+@Zhang2020 provide a broader review of deep RL trading systems, emphasizing that
+algorithm choice cannot be separated from state representation, action design,
+reward definition, transaction costs, and evaluation protocol. The review is
+useful here as a synthesis of design dimensions rather than as evidence for the
+superiority of any single algorithm.
 
 ### Comparative Evidence and Limitations
 
-**Algorithm comparisons.**
-@Shen2021 benchmarked DQN, DDPG, PPO, TD3, and SAC across asset classes,
-finding that off-policy methods (DDPG, TD3, SAC) learned faster than on-policy
-alternatives, with TD3 and SAC exhibiting the lowest variance across random
-seeds. No algorithm dominated across all markets; best choice depended on
-reward noise and action space dimensionality.
+**Algorithm comparisons and reproducibility.**
+@FinRL2020 illustrates a later move toward reproducible DRL trading pipelines by
+implementing several standard algorithms, including DQN, DDPG, PPO, SAC, A2C,
+and TD3, within common market environments and backtesting workflows. Its
+relevance is infrastructural rather than evidentiary: it shows that applied
+trading studies increasingly require standardized environments, comparable
+baselines, and explicit market-friction assumptions before algorithm rankings
+can be interpreted.
 
 @Lopez2018 compared deep RL against traditional quantitative strategies
 (momentum, mean reversion, pairs trading), noting that RL exhibited superior
@@ -135,12 +154,12 @@ that evaluation methodology — strict temporal splits, multi-seed reporting,
 realistic cost assumptions — matters as much as algorithm choice.
 
 **Reward specification.**
-@Cong2020 argues that reward engineering is critical and often under-examined.
-Misspecified rewards can lead to metric gaming (optimizing Sharpe by avoiding
-trades), ignoring tail risks, and misalignment with actual investor preferences.
+@Millea2021 emphasizes that reward shaping is one of the central design choices
+in DRL trading. Misspecified rewards can lead to metric gaming, excessive
+turnover, ignoring tail risks, or misalignment with actual investor preferences.
 The Differential Sharpe Ratio [@Moody1998] addresses some of these concerns by
-targeting risk-adjusted return directly, but does not fully resolve the
-tension between reward simplicity and the richness of real trading objectives.
+targeting risk-adjusted return directly, but does not fully resolve the tension
+between reward simplicity and the richness of real trading objectives.
 
 ### Structured Comparison of Representative Studies
 
@@ -210,12 +229,12 @@ Continuous (TD3) &
 Portfolio return / Sharpe-oriented &
 Sharpe 2.68 likely optimistic; no multi-seed or frozen-policy evaluation \\
 
-Shen et al.\ (2021) &
-Cross-algorithm benchmarking &
-Task-dependent feature sets &
-Mixed (discrete + continuous) &
-Comparative return / risk metrics &
-Result portability depends on data and protocol harmonization \\
+Yang et al.\ (2020) &
+Dow Jones stock trading &
+Prices + technical indicators + account state &
+Mixed actor-critic ensemble &
+Portfolio value / risk-adjusted comparison &
+Equity portfolio setting, not tick-level LOB trading \\
 
 \end{longtable}
 \endgroup
