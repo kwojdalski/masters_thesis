@@ -31,7 +31,8 @@ class FeatureResearchRunConfig:
 
     horizon: int = 1
     top_k: int = 10
-    corr_threshold: float = 0.85
+    icir_threshold: float = 0.02
+    window_size: int | None = None
     output_dir: str | None = None
 
 
@@ -61,10 +62,10 @@ class FeatureResearchConfig:
             )
         if self.research.top_k <= 0:
             errors.append(f"research.top_k must be > 0, got {self.research.top_k}")
-        if not 0 < self.research.corr_threshold <= 1:
+        if self.research.icir_threshold < 0:
             errors.append(
-                "research.corr_threshold must be in (0, 1], "
-                f"got {self.research.corr_threshold}"
+                "research.icir_threshold must be >= 0, "
+                f"got {self.research.icir_threshold}"
             )
         if errors:
             raise ValueError(

@@ -455,22 +455,30 @@ This proxy is a cheap, model-free measure of directional predictability; it is
 not the reward function used during training, but it provides a consistent
 benchmark for comparing feature informativeness.
 
-**Step 3: Scoring.** Each feature receives a composite score:
-$$s_i = 0.45 \, |\rho^{\text{val}}_{\text{Sp}}(f_i, y)| + 0.35 \, |\rho^{\text{val}}_{\text{Pe}}(f_i, y)| + 0.20 \, \text{MI}(f_i, y) - 0.20 \, \Delta_i$$
-where $\rho^{\text{val}}_{\text{Sp}}$ and $\rho^{\text{val}}_{\text{Pe}}$ are the
-Spearman and Pearson correlations computed on the validation split, MI is the
-mutual information estimate (via $k$-nearest-neighbor regression), and
-$\Delta_i = |\rho^{\text{train}}_{\text{Sp}}(f_i, y) - \rho^{\text{val}}_{\text{Sp}}(f_i, y)|$
-is the stability gap between train and validation correlations. Features with
-large stability gaps are penalized to discourage overfitting to training-set
-idiosyncrasies.
+**Step 3: Scoring.** Each feature is evaluated using the Information Coefficient
+(IC) framework standard in quantitative factor research. The IC of feature $f_i$
+at time $t$ is its Spearman rank correlation with the forward return target:
+$$\text{IC}_i(t) = \rho_{\text{Sp}}\!\left(f_i(t),\, y(t)\right)$$
+computed over rolling windows on the validation split. The primary ranking
+criterion is the Information Coefficient Information Ratio (ICIR):
+$$\text{ICIR}_i = \frac{\overline{\text{IC}}_i}{\sigma(\text{IC}_i)}$$
+where $\overline{\text{IC}}_i$ is the mean IC and $\sigma(\text{IC}_i)$ is its
+standard deviation. ICIR captures both signal strength (the numerator) and
+signal consistency across time (the denominator); a feature with a high mean IC
+but erratic sign is penalized relative to one with a modest but stable IC.
+Features with $|\text{ICIR}_i| < 0.02$ are removed before the redundancy step.
+The t-statistic $t_i = \overline{\text{IC}}_i / (\sigma(\text{IC}_i) / \sqrt{n})$
+is reported alongside ICIR as a measure of statistical significance.
 
-**Step 4: Redundancy filter.** Features are ranked by composite score. Starting
-from the highest-ranked, each feature is added to the selected set only if its
-absolute correlation with every already-selected feature is below a threshold
-$\theta$ (default $\theta = 0.85$). This greedy procedure ensures that the
-selected set contains no pair of features with near-duplicate information
-content.
+**Step 4: Redundancy filter.** Features are ranked by ICIR. Starting from the
+highest-ranked, each candidate's residual signal is evaluated: the linear
+component attributable to already-selected features is regressed out of the
+candidate, and its ICIR is recomputed on the residuals. A candidate is included
+in the selected set only if it retains meaningful incremental predictability
+after conditioning on the features already chosen. This conditional IC approach
+is a principled alternative to pairwise correlation thresholding: two features
+can be highly correlated yet both informative if each predicts a distinct
+component of the forward return.
 
 **Step 5: Output.** The selected feature specifications are written to a YAML
 file that can be referenced directly by the training scenario configuration
@@ -497,9 +505,9 @@ flowchart TD
 
     POOL --> FIT["Fit Pipeline<br/>on Training Split"]
     FIT --> TRANS["Transform<br/>Train + Validation"]
-    TRANS --> SCORE["Score Features<br/>s_i = 0.45 |rho_Sp| + 0.35 |rho_Pe| + 0.20 MI - 0.20 delta"]
-    SCORE --> RANK["Rank by Composite Score"]
-    RANK --> FILTER["Greedy Redundancy Filter<br/>|corr| < 0.85"]
+    TRANS --> SCORE["Score Features<br/>ICIR_i = mean(IC_i) / std(IC_i)"]
+    SCORE --> RANK["Rank by ICIR<br/>drop if |ICIR| < 0.02"]
+    RANK --> FILTER["Conditional IC Filter<br/>residualize on selected set"]
     FILTER --> SEL["Selected Features<br/>(top_k = 12)"]
     SEL --> YAML["selected_features.yaml"]
     YAML --> TRAIN["Training Pipeline<br/>data.feature_config"]
