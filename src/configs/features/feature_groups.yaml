@@ -1,0 +1,263 @@
+# Feature Groups for HFT LOB State-Space Design
+# ===================================================
+#
+# Named feature groups aligned with the thesis state-space design
+# (Chapter 4, Section 4.2). Each group contains the feature configs
+# for one semantic category of microstructure signals.
+#
+# Groups can be composed and selected via the FeatureGroupResolver
+# and FeatureSelector to build candidate pools for offline screening
+# and RL training.
+#
+# Required columns (common across all groups):
+#   bid_px_00..bid_px_09, ask_px_00..ask_px_09,
+#   bid_sz_00..bid_sz_09, ask_sz_00..ask_sz_09
+#
+# Additional columns (flow group):
+#   bid_ct_00..bid_ct_09, ask_ct_00..ask_ct_09,
+#   action, side, size
+#
+# Index requirement:
+#   DatetimeIndex (nanosecond precision preferred)
+
+groups:
+  # =============================================================================
+  # Imbalance Features
+  # Order book pressure and imbalance at multiple levels
+  # =============================================================================
+
+  imbalance:
+    description: "Order book imbalance signals"
+    features:
+      - name: "hft_book_pressure_l0"
+        feature_type: "book_pressure"
+        normalize: true
+        domain: "hft"
+        params:
+          level: 0
+
+      - name: "hft_book_pressure_l1"
+        feature_type: "book_pressure"
+        normalize: true
+        domain: "hft"
+        params:
+          level: 1
+
+      - name: "hft_book_pressure_l2"
+        feature_type: "book_pressure"
+        normalize: true
+        domain: "hft"
+        params:
+          level: 2
+
+      - name: "hft_order_book_imbalance_3l"
+        feature_type: "order_book_imbalance"
+        normalize: true
+        domain: "hft"
+        params:
+          levels: 3
+
+      - name: "hft_order_count_imbalance_l0"
+        feature_type: "order_count_imbalance"
+        normalize: true
+        domain: "hft"
+        params:
+          level: 0
+
+  # =============================================================================
+  # Fair Value Features
+  # Microprice, divergence, and volume-weighted mid-price skew
+  # =============================================================================
+
+  fair_value:
+    description: "Fair value and microprice estimates"
+    features:
+      - name: "hft_microprice"
+        feature_type: "microprice"
+        normalize: true
+        domain: "hft"
+        params:
+          bid_price_col: "bid_px_00"
+          ask_price_col: "ask_px_00"
+          bid_size_col: "bid_sz_00"
+          ask_size_col: "ask_sz_00"
+
+      - name: "hft_microprice_divergence"
+        feature_type: "microprice_divergence"
+        normalize: true
+        domain: "hft"
+        params:
+          bid_price_col: "bid_px_00"
+          ask_price_col: "ask_px_00"
+          bid_size_col: "bid_sz_00"
+          ask_size_col: "ask_sz_00"
+
+      - name: "hft_vwmp_skew"
+        feature_type: "vwmp_skew"
+        normalize: true
+        domain: "hft"
+        params:
+          levels: 3
+
+  # =============================================================================
+  # Spread and Cost Features
+  # Effective spread, spread dynamics, book convexity, and depth slope
+  # =============================================================================
+
+  spread:
+    description: "Spread and cost features"
+    features:
+      - name: "hft_spread_bps"
+        feature_type: "spread_bps"
+        normalize: true
+        domain: "hft"
+        params:
+          bid_price_col: "bid_px_00"
+          ask_price_col: "ask_px_00"
+
+      - name: "hft_spread_ratio_50"
+        feature_type: "spread_ratio"
+        normalize: true
+        domain: "hft"
+        params:
+          window: 50
+          bid_price_col: "bid_px_00"
+          ask_price_col: "ask_px_00"
+
+      - name: "hft_bid_convexity"
+        feature_type: "book_convexity"
+        normalize: true
+        domain: "hft"
+        params:
+          side: "bid"
+
+      - name: "hft_ask_convexity"
+        feature_type: "book_convexity"
+        normalize: true
+        domain: "hft"
+        params:
+          side: "ask"
+
+      - name: "hft_bid_slope"
+        feature_type: "bid_ask_slope"
+        normalize: true
+        domain: "hft"
+        params:
+          side: "bid"
+          levels: 5
+
+      - name: "hft_ask_slope"
+        feature_type: "bid_ask_slope"
+        normalize: true
+        domain: "hft"
+        params:
+          side: "ask"
+          levels: 5
+
+  # =============================================================================
+  # Order Flow Features
+  # Order flow imbalance, rolling OFI, queue depletion, signed trade flow,
+  # and odd-lot analytics
+  # =============================================================================
+
+  flow:
+    description: "Order flow and trade flow features"
+    features:
+      - name: "hft_ofi"
+        feature_type: "ofi"
+        normalize: true
+        domain: "hft"
+        params:
+          bid_price_col: "bid_px_00"
+          ask_price_col: "ask_px_00"
+          bid_size_col: "bid_sz_00"
+          ask_size_col: "ask_sz_00"
+
+      - name: "hft_ofi_rolling_50"
+        feature_type: "ofi_rolling"
+        normalize: true
+        domain: "hft"
+        params:
+          window: 50
+          bid_price_col: "bid_px_00"
+          ask_price_col: "ask_px_00"
+          bid_size_col: "bid_sz_00"
+          ask_size_col: "ask_sz_00"
+
+      - name: "hft_bid_queue_depletion"
+        feature_type: "queue_depletion"
+        normalize: true
+        domain: "hft"
+        params:
+          side: "bid"
+          bid_size_col: "bid_sz_00"
+
+      - name: "hft_ask_queue_depletion"
+        feature_type: "queue_depletion"
+        normalize: true
+        domain: "hft"
+        params:
+          side: "ask"
+          ask_size_col: "ask_sz_00"
+
+      - name: "hft_signed_trade_flow_50"
+        feature_type: "signed_trade_flow"
+        normalize: true
+        domain: "hft"
+        params:
+          window: 50
+          action_col: "action"
+          side_col: "side"
+          size_col: "size"
+
+      - name: "hft_odd_lot_trade_ratio_200"
+        feature_type: "odd_lot_trade_ratio"
+        normalize: true
+        domain: "hft"
+        params:
+          window: 200
+          round_lot: 100
+          action_col: "action"
+          size_col: "size"
+
+      - name: "hft_odd_lot_imbalance_200"
+        feature_type: "odd_lot_imbalance"
+        normalize: true
+        domain: "hft"
+        params:
+          window: 200
+          round_lot: 100
+          action_col: "action"
+          side_col: "side"
+          size_col: "size"
+
+  # =============================================================================
+  # Regime and Temporal Features
+  # Inter-event time, mid-price acceleration, hour-of-day cyclical encodings
+  # =============================================================================
+
+  regime:
+    description: "Regime and temporal features"
+    features:
+      - name: "hft_inter_event_time"
+        feature_type: "inter_event_time"
+        normalize: true
+        domain: "hft"
+
+      - name: "hft_mid_price_acceleration"
+        feature_type: "mid_price_acceleration"
+        normalize: true
+        domain: "hft"
+        params:
+          bid_price_col: "bid_px_00"
+          ask_price_col: "ask_px_00"
+
+      - name: "hft_hour_sin"
+        feature_type: "hour_sin"
+        normalize: false
+        domain: "hft"
+
+      - name: "hft_hour_cos"
+        feature_type: "hour_cos"
+        normalize: false
+        domain: "hft"
