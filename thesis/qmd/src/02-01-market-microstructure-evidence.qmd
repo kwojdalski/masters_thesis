@@ -30,7 +30,7 @@ liquidity provision dynamics rather than information arrival, and they are
 stable enough across days to serve as a signal for a trading agent.
 The hour-of-day sine and cosine encodings in the observation vector are
 motivated directly by this evidence — the agent needs to distinguish early-session
-conditions (wide spreads, high adverse selection) from midday conditions
+conditions (wide spreads, high adverse selection) from midday periods
 (tighter spreads, lower activity) when sizing positions.
 
 @Harris1991 showed that prices cluster at round numbers and psychologically

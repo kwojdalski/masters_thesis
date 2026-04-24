@@ -46,7 +46,7 @@ specification was the dominant determinant of policy quality: configurations
 using only snapshot-level quantities produced weaker and less stable policies
 than those using the full microstructure-aware feature set. The choice of reward
 function also mattered: the Differential Sharpe Ratio reward produced more
-consistent training behavior than the raw log-return baseline, consistent with
+stable training behavior than the raw log-return baseline, consistent with
 the theoretical argument that direct risk-adjusted optimization improves
 sample-to-sample stability. Transaction-cost sensitivity testing further
 confirmed that the agent's edge is meaningful at low but not at high transaction
