@@ -24,20 +24,34 @@ This includes modern LOB prediction models, which use deep architectures to map
 order book snapshots or event sequences into short-horizon price-movement
 labels. Such models are a serious benchmark class for extracting information
 from high-dimensional market data, especially when the objective is directional
-classification. Their limitation for the present thesis is not that they are
-unimportant, but that they usually separate prediction from position sizing:
-the model forecasts a price move, while a downstream rule must still decide how
-large a position to hold and how much turnover is justified after costs.
+classification [@Zhang2019]. A strong supervised trading benchmark would not
+stop at an unconstrained return forecast. It would translate predicted returns
+or class probabilities into positions through a cost-aware rule, such as trading
+only when the expected move exceeds the spread and fee threshold, scaling
+exposure by forecast confidence, or optimizing classification thresholds on a
+validation set for net return rather than raw accuracy. A second supervised
+variant would learn the action directly from labels constructed ex post: for
+example, the position that would have maximized next-horizon net return after
+costs, or a discretized buy/sell/hold target with an explicit no-trade region.
 
-The approach has a structural limitation in trading contexts: optimizing the
-forecast objective and the trading decision are two separate steps
-with potentially misaligned objectives. A model that minimizes mean squared
-error on next-period returns may not produce positions that maximize risk-adjusted
-return after transaction costs, because predictive accuracy and trading
-profitability are not equivalent criteria [@Moody1998]. The separate
-optimization of prediction and action also discards information: a scalar return
-forecast does not carry the uncertainty, timing, or context available in the
-original feature vector.
+These alternatives are important because they close part of the gap between
+prediction and trading. They allow the supervised model to account for
+transaction costs, avoid low-conviction trades, and produce a policy-like
+mapping from market state to position. The limitation is therefore not that
+supervised learning is an inherently weak baseline. It is that the financial
+objective enters the pipeline indirectly: either through hand-designed
+thresholds and sizing rules applied after prediction, or through labels whose
+definition already embeds a particular holding horizon, cost model, and
+notion of ex post optimality.
+
+This creates two sources of possible misalignment. First, a model that minimizes
+mean squared error, cross-entropy, or another statistical loss may not maximize
+risk-adjusted return after transaction costs, because predictive accuracy and
+trading profitability are not equivalent criteria [@Moody1998]. Second, direct
+action labels are only as credible as the rule used to construct them. In a
+noisy and path-dependent environment, the ex post best one-step action need not
+be the action that maximizes longer-horizon portfolio utility once turnover,
+inventory persistence, and risk are considered.
 
 This misalignment is most consequential at high frequencies, where turnover costs
 consume a large fraction of gross returns. At lower frequencies — daily or weekly
@@ -51,6 +65,11 @@ decreases. At tick frequency, where the present thesis operates, this ratio is
 unfavorable for a predict-then-trade pipeline: the cost of crossing the spread on
 each position change can exceed the directional signal per step, making the
 alignment between reward and realized return a first-order design requirement.
+The motivation for reinforcement learning in this thesis should therefore be
+understood narrowly. TD3 is not adopted because supervised LOB prediction is
+irrelevant, but because the empirical question studied here concerns continuous
+exposure control under a reward function that includes the consequences of
+position changes directly.
 
 #### Unsupervised Learning
 
