@@ -105,7 +105,7 @@ claims.
 {{< include ./02-03-from-signals-to-decisions.qmd >}}
 {{< include ./02-04-competing-modeling-approaches.qmd >}}
 {{< include ./02-05-reinforcement-learning-for-trading.qmd >}}
-{{< include ./02-06-decision-framework-and-design-dimensions.qmd >}}
+{{< include ./02-06-trading-problem-formulation.qmd >}}
 {{< include ./02-07-applied-rl-trading-evidence.qmd >}}
 {{< include ./02-08-implications-for-this-thesis.qmd >}}
 
