@@ -70,16 +70,16 @@ $$\nabla_\theta J(\theta) = \mathbb{E}_s\left[\nabla_a Q_\phi(s, a)\big|_{a=\mu_
 DDPG inherits the experience replay and target network mechanisms from DQN,
 making it an off-policy algorithm and therefore sample-efficient. However,
 empirical studies consistently report two failure modes in DDPG. First, the
-critic tends to overestimate action values due to the maximization bias
-introduced when the target value is computed using the same network that is being
-updated. Overestimated Q-values propagate into the actor update, pushing the
-policy toward actions that exploit the critic's errors rather than the true
-reward signal. Second, the algorithm is sensitive to the relative frequency of
-actor and critic updates: updating the actor before the critic has converged
-amplifies the overestimation problem. In financial environments, where rewards
-are noisy and non-stationary, these instabilities are particularly damaging
-because the critic cannot distinguish between genuine market signal and
-approximation artifacts.
+critic tends to overestimate action values because actor optimization can exploit
+positive approximation errors in the critic, and bootstrapped targets can
+propagate those overestimated values through subsequent updates. Overestimated
+Q-values then push the policy toward actions that exploit the critic's errors
+rather than the true reward signal. Second, the algorithm is sensitive to the
+relative frequency of actor and critic updates: updating the actor before the
+critic has converged amplifies the overestimation problem. In financial
+environments, where rewards are noisy and non-stationary, these instabilities
+are particularly damaging because the critic cannot distinguish between genuine
+market signal and approximation artifacts.
 
 ### TD3: Addressing the Instability of Deterministic Actor-Critic Methods
 
@@ -90,7 +90,7 @@ proposing three targeted mechanisms.
 $Q_{\phi_2}$ are maintained, and the Bellman target is constructed using the
 minimum of their estimates:
 
-$$y = r + \gamma \min_{i=1,2} Q_{\phi_i}(s', \tilde{a}')$$
+$$y = r + \gamma \min_{i=1,2} Q_{\phi_i'}(s', \tilde{a}')$$
 
 Taking the minimum provides a conservative estimate of target value and
 substantially reduces overestimation bias. This is analogous to the double
@@ -116,10 +116,10 @@ noisy rewards, data efficiency through experience replay, and native support for
 continuous actions makes TD3 well suited to the portfolio
 allocation problem studied here. Alternative algorithms such as SAC
 [@Haarnoja2018] incorporate maximum-entropy objectives and stochastic policies,
-which may improve exploration but introduce stochasticity into the policy at
-evaluation time — a less natural fit for a trading agent that is expected to
-produce consistent, interpretable allocation decisions given identical market
-conditions.
+which may improve exploration but add an entropy-regularized objective that is
+not part of the design evaluated in this thesis. TD3 is used because it directly
+optimizes a deterministic continuous exposure policy, matching the policy
+parameterization and evaluation protocol adopted here.
 
 The choice of TD3 should be read together with the trading constraints discussed
 in Chapter 2. Those sections motivate continuous exposure control, off-policy
