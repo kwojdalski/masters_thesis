@@ -20,6 +20,15 @@ applied to return prediction, directional classification, and volatility
 forecasting — tasks where historical outcomes provide a natural training signal
 [@Krauss2017; @Zhang2019].
 
+This includes modern LOB prediction models, which use deep architectures to map
+order book snapshots or event sequences into short-horizon price-movement
+labels. Such models are a serious benchmark class for extracting information
+from high-dimensional market data, especially when the objective is directional
+classification. Their limitation for the present thesis is not that they are
+unimportant, but that they usually separate prediction from position sizing:
+the model forecasts a price move, while a downstream rule must still decide how
+large a position to hold and how much turnover is justified after costs.
+
 The approach has a structural limitation in trading contexts: optimizing the
 forecast objective and the trading decision are two separate steps
 with potentially misaligned objectives. A model that minimizes mean squared
