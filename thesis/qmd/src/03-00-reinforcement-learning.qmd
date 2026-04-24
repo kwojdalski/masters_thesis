@@ -37,8 +37,8 @@ environment is the simulated order-book market: it receives a portfolio-exposure
 action from the agent at each time step, updates the portfolio value according
 to price changes and transaction costs, and returns the new state and reward.
 The environment encapsulates everything outside the agent's direct control —
-price dynamics, spread, and market impact — under a set of explicit simulation
-assumptions.
+price dynamics, spread, and execution frictions represented by the simulator —
+under a set of explicit simulation assumptions.
 
 ### State
 

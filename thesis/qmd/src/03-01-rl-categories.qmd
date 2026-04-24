@@ -15,8 +15,10 @@ transition dynamics are unknown and non-stationary, making a reliable model
 practically unattainable.
 
 Model-free methods learn directly from sampled transitions without building a
-transition model. They are less sample-efficient but impose no assumptions on
-the environment's dynamics. TD3 belongs to this family.
+transition model. They are less sample-efficient, and they still rely on the
+sampled experience being informative for the target environment and on the
+function approximator generalizing usefully across states and actions. TD3
+belongs to this family.
 
 ### Value-Based, Policy-Based, and Actor-Critic
 
