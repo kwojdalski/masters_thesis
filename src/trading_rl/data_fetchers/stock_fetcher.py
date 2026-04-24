@@ -224,11 +224,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
         supported = {
             "stype_out",
             "limit",
-            "encoding",
-            "compression",
-            "pretty_px",
-            "pretty_ts",
-            "map_symbols",
+            "path",
         }
         ignored = {"cache_enabled", "cache_ttl_hours", "normalize", "merge_all"}
         unknown = set(kwargs) - supported - ignored
