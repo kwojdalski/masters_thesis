@@ -1,7 +1,7 @@
 ## Conclusion [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-The central question of this thesis was: can a microstructure-aware deep RL agent achieve meaningful out-of-sample trading performance in a high-frequency setting? The answer, under the specified experimental
+The central question of this thesis was: can a LOB-informed deep RL agent achieve meaningful out-of-sample trading performance in a high-frequency setting? The answer, under the specified experimental
 conditions, is affirmative. The TD3 agent trained on microstructure-aware
 limit order book features outperformed the evaluated benchmark strategies on
 risk-adjusted return metrics, and the extended feature set provided a measurable
@@ -34,7 +34,7 @@ that the limitations and future research section identifies as the most direct
 extension of the current work.
 
 What the thesis does establish is that the combination of limit order book data,
-microstructure-aware feature engineering, and continuous-action actor-critic
+LOB-informed feature engineering, and continuous-action actor-critic
 learning is a productive research direction. The informational content of the
 order book, well-established in the theoretical microstructure literature, can
 be translated into state features that improve a reinforcement learning agent's

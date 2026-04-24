@@ -19,8 +19,7 @@ processing component.
 
 This decomposition has a direct implication for trading signal design. A
 narrowing spread signals reduced adverse selection risk; a widening spread
-signals elevated informed activity. The spread features in Chapter 4 — spread
-in basis points and the spread ratio — are motivated by this theoretical
+signals elevated informed activity. These measures, operationalized in Chapter 4 as spread in basis points and the spread ratio, are motivated by this theoretical
 framework. Their predictive content derives from what the spread reveals about
 the current composition of order flow, not merely from the mechanical cost of
 execution.
