@@ -38,7 +38,7 @@ microstructure-aware feature engineering, and continuous-action actor-critic
 learning is a productive research direction. The informational content of the
 order book, well-established in the theoretical microstructure literature, can
 be translated into state features that improve a reinforcement learning agent's
-out-of-sample behavior in ways that are measurable and consistent with economic
+held-out behavior in ways that are measurable and consistent with economic
 intuition. That conclusion is the foundation on which more operationally realistic
 extensions — wider data windows, multi-seed validation, explicit bid/ask execution,
 and cross-asset generalization — can now be built.

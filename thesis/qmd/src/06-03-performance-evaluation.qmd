@@ -178,5 +178,5 @@ design.
 For that reason, the performance tables in this section reflect the quality of the overall decision pipeline: state
 representation, reward specification, and policy learning together. The central
 question is whether the broader microstructure-aware feature design yields more
-stable and more interpretable out-of-sample behavior than simpler alternatives,
+stable and more interpretable held-out behavior than simpler alternatives,
 not whether any single metric is maximized in isolation.
