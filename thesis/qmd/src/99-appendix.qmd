@@ -402,3 +402,122 @@ parameters.
 ```{=latex}
 \end{center}
 ```
+
+---
+
+# Offline Feature Selection Pipeline
+
+The theory-driven feature selection described in Section 4.2 produces the
+baseline state space used throughout the experiments. A complementary offline
+pipeline automates the evaluation and pruning of candidate feature sets, enabling
+systematic exploration of alternative specifications without modifying source
+code. This appendix describes the pipeline architecture and the selection
+procedure.
+
+## Feature Group Registry
+
+Features are organized into named groups that mirror the state-space design in
+Section 4.2. Each group corresponds to a distinct microstructure mechanism:
+
+| Group | Description | Features |
+|---|---|:---:|
+| `imbalance` | Order book imbalance signals | 5 |
+| `fair_value` | Fair value and microprice estimates | 3 |
+| `spread` | Spread and cost features | 6 |
+| `flow` | Order flow and trade flow features | 7 |
+| `regime` | Regime and temporal features | 4 |
+
+: Feature groups defined in the group registry (`src/configs/features/feature_groups.yaml`). The imbalance, fair value, spread, and flow groups correspond to the four signal categories in Section 4.2; the regime group provides temporal context. {#tbl-feature-groups}
+
+The group registry is a YAML configuration that lists the full specification
+(name, type, parameters, normalization flag, domain tag) for each feature within
+each group. Groups can be composed by name, and individual features can be
+excluded, without editing the feature source code.
+
+## Selection Procedure
+
+The offline selection procedure takes a candidate pool of features, scores
+each one against a proxy target, and applies a greedy redundancy filter to
+produce a reduced set. The procedure is run once before training; the resulting
+feature list is written to a YAML file that the training pipeline loads
+directly. This ensures that feature selection is not repeated on every training
+run and that the reduced specification is reproducible.
+
+**Step 1: Candidate pool construction.** The user specifies which feature groups
+to include. The `FeatureGroupResolver` expands group names into a flat list of
+`FeatureConfig` instances. Exclusions can be applied at this stage to remove
+individual features from the expanded pool.
+
+**Step 2: Proxy target.** Each feature is scored against a forward log-return
+target at horizon $h$:
+$$y_t = \log \frac{p_{t+h}}{p_t}$$
+This proxy is a cheap, model-free measure of directional predictability; it is
+not the reward function used during training, but it provides a consistent
+benchmark for comparing feature informativeness.
+
+**Step 3: Scoring.** Each feature receives a composite score:
+$$s_i = 0.45 \, |\rho^{\text{val}}_{\text{Sp}}(f_i, y)| + 0.35 \, |\rho^{\text{val}}_{\text{Pe}}(f_i, y)| + 0.20 \, \text{MI}(f_i, y) - 0.20 \, \Delta_i$$
+where $\rho^{\text{val}}_{\text{Sp}}$ and $\rho^{\text{val}}_{\text{Pe}}$ are the
+Spearman and Pearson correlations computed on the validation split, MI is the
+mutual information estimate (via $k$-nearest-neighbor regression), and
+$\Delta_i = |\rho^{\text{train}}_{\text{Sp}}(f_i, y) - \rho^{\text{val}}_{\text{Sp}}(f_i, y)|$
+is the stability gap between train and validation correlations. Features with
+large stability gaps are penalized to discourage overfitting to training-set
+idiosyncrasies.
+
+**Step 4: Redundancy filter.** Features are ranked by composite score. Starting
+from the highest-ranked, each feature is added to the selected set only if its
+absolute correlation with every already-selected feature is below a threshold
+$\theta$ (default $\theta = 0.85$). This greedy procedure ensures that the
+selected set contains no pair of features with near-duplicate information
+content.
+
+**Step 5: Output.** The selected feature specifications are written to a YAML
+file that can be referenced directly by the training scenario configuration
+via `data.feature_config`. The training pipeline reads this file at runtime;
+no selection logic runs during training.
+
+The diagram below summarizes the offline feature selection pipeline.
+
+```{=latex}
+\begin{center}
+```
+
+```{mermaid}
+%%| fig-align: center
+%%| fig-width: 5.5
+%%| fig-height: 7.5
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 4, 'useMaxWidth': true}}}%%
+flowchart TD
+    GRP["feature_groups.yaml<br/>(5 named groups)"]
+    RES["FeatureGroupResolver<br/>expand group names"]
+    POOL["Candidate Pool<br/>(25 features)"]
+
+    GRP --> RES --> POOL
+
+    POOL --> FIT["Fit Pipeline<br/>on Training Split"]
+    FIT --> TRANS["Transform<br/>Train + Validation"]
+    TRANS --> SCORE["Score Features<br/>s_i = 0.45 |rho_Sp| + 0.35 |rho_Pe| + 0.20 MI - 0.20 delta"]
+    SCORE --> RANK["Rank by Composite Score"]
+    RANK --> FILTER["Greedy Redundancy Filter<br/>|corr| < 0.85"]
+    FILTER --> SEL["Selected Features<br/>(top_k = 12)"]
+    SEL --> YAML["selected_features.yaml"]
+    YAML --> TRAIN["Training Pipeline<br/>data.feature_config"]
+
+    style GRP fill:#e1f5fe
+    style SEL fill:#e8f5e9
+    style YAML fill:#e8f5e9
+    style TRAIN fill:#fff3e0
+    style SCORE fill:#fff3e0
+    style FILTER fill:#fce4ec
+```
+
+```{=latex}
+\end{center}
+```
+
+The offline nature of this pipeline is deliberate: the proxy target and scoring
+metrics are not the reward function that the agent optimizes during training.
+Running selection as a separate step ensures that the agent's training loop
+remains uncontaminated by any pre-training statistical analysis that could
+introduce look-ahead bias or circular reasoning.
