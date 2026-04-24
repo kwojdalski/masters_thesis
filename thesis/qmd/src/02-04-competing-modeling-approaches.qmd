@@ -1,4 +1,4 @@
-## Alternative Approaches to Algorithmic Trading
+## Competing Modeling Approaches
 
 Before positioning reinforcement learning as the methodology of choice, it is
 useful to characterize the main alternatives. Two complementary perspectives
