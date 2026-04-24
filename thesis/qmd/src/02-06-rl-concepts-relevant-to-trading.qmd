@@ -1,4 +1,4 @@
-## Key Concepts from Reinforcement Learning
+## RL Concepts Relevant to Trading
 
 This section identifies the reinforcement learning concepts most important for
 interpreting the finance literature reviewed in this chapter. Formal definitions,
