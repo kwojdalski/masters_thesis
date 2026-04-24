@@ -19,10 +19,11 @@ processing component.
 
 This decomposition has a direct implication for trading signal design. A
 narrowing spread signals reduced adverse selection risk; a widening spread
-signals elevated informed activity. These measures, operationalized in Chapter 4 as spread in basis points and the spread ratio, are motivated by this theoretical
-framework. Their predictive content derives from what the spread reveals about
-the current composition of order flow, not merely from the mechanical cost of
-execution.
+signals elevated informed activity. These measures, operationalized in Chapter 4
+as spread in basis points and the spread ratio, are therefore motivated as
+candidate state variables by this theoretical framework. Their relevance in the
+present thesis remains an empirical question, to be assessed later under the
+specific data and environment assumptions adopted here.
 
 @Kyle1985 formalized the price impact of informed trading through the lambda
 parameter, which measures the sensitivity of price changes to order flow. In
@@ -47,8 +48,10 @@ for those posting limit orders.
 This theoretical result motivates the multi-level features used in Chapter 4.
 The book is not a single price but a price schedule, and the shape of that
 profile — measured by depth ratios, slopes, and convexity features —
-encodes information about how informed the marginal liquidity provider expects
-the market to be at each quantity level.
+may encode information about how informed the marginal liquidity provider
+expects the market to be at each quantity level. In this sense, the theory
+motivates examining multi-level book-shape features; it does not by itself
+establish which specification is most informative for the present application.
 
 **Order flow and short-term price prediction.**
 @Cont2014 provide the most direct empirical and theoretical treatment of the
@@ -83,8 +86,9 @@ the side more likely to move. The microprice divergence from mid captures this
 adjustment as a stationary signal and serves as the primary fair value feature
 in Chapter 4.
 
-Together these four theoretical frameworks establish the informational structure
-of the limit order book. The spread encodes adverse selection risk
+Taken together, these four theoretical frameworks identify several mechanisms
+that may be relevant for state design in limit-order-book markets. The spread
+encodes adverse selection risk
 [@GlostenMilgrom1985]; price impact and order imbalance are related through
 Kyle's lambda [@Kyle1985]; the shape of the full book encodes the information
 content at each depth level [@Glosten1994]; and OFI is the dominant
@@ -92,8 +96,10 @@ contemporaneous predictor of short-term price changes [@Cont2014]. The
 microprice [@Stoikov2018] provides a theoretically optimal fair value estimate
 that conditions on the current queue imbalance.
 
-These mechanisms are not independent: they all reflect the same underlying
-process of information aggregation through order flow. The feature set in
-Chapter 4 is designed to measure each mechanism from a distinct angle, providing
-the agent with a comprehensive description of the information environment it
-operates in.
+These mechanisms are not independent: they all reflect aspects of information
+aggregation through order flow. They therefore motivate the candidate feature
+families introduced in Chapter 4, including spread-based, order-flow,
+depth-shape, and fair-value signals. Whether that feature set captures the most
+informative aspects of the environment is not something the literature alone can
+settle; within this thesis, that question is addressed only through the later
+design and empirical evaluation chapters.

@@ -215,26 +215,24 @@ Result portability depends on data and protocol harmonization \\
 \endgroup
 ```
 
-The literature reviewed here converges on several conclusions relevant to the
-design choices in this thesis. Continuous-action actor-critic methods —
-particularly DDPG and TD3 — consistently outperform discrete-action
-alternatives for position-sizing tasks, a finding confirmed across independent
-studies with different assets and market regimes [@Liang2018; @Majidi2024;
-@Kabbani2022]. Risk-adjusted reward signals, especially Differential Sharpe
-Ratio formulations, tend to improve out-of-sample generalization relative to
-raw return objectives, though they must be paired with evaluation on realized
-financial metrics rather than the training signal itself to avoid conflating
-optimization proxy with economic performance. Explicit transaction cost modeling
-is a prerequisite for any realistic performance claim at the frequencies
-considered here.
+The literature reviewed here points to several patterns relevant to the design
+choices in this thesis. Across the representative studies discussed above,
+continuous-action actor-critic methods are frequently preferred over
+discrete-action alternatives for position-sizing tasks
+[@Liang2018; @Majidi2024; @Kabbani2022]. Risk-adjusted reward signals,
+especially Differential Sharpe Ratio formulations, also appear promising for
+out-of-sample generalization relative to raw return objectives, though such
+claims remain highly sensitive to the evaluation protocol and cost assumptions.
+Explicit transaction cost modeling is a prerequisite for any realistic
+performance claim at the frequencies considered here.
 
-A consistent gap in the literature is the reliance on OHLCV or candlestick
-representations as the primary state input. Studies that operate at tick
-frequency and exploit the full depth of the limit order book remain scarce,
-despite the theoretical case — established in the microstructure literature —
-that the informational content relevant to short-horizon price prediction is
-concentrated precisely in the queue dynamics and imbalance structure that OHLCV
-aggregates discard. The present thesis addresses this gap directly by
-constructing the agent's observation vector entirely from 10-level order book
-data, using features grounded in the same theoretical frameworks reviewed in the
-preceding section.
+Within the representative literature reviewed here, a comparatively
+underexplored design combination is the joint use of order-book-derived state
+variables, continuous-control RL, and an explicit microstructure-oriented state
+design. Much of the applied literature relies primarily on OHLCV or other
+aggregated price representations, while studies using deeper limit-order-book
+information remain fewer and methodologically heterogeneous. The present thesis
+is positioned within that less represented part of the literature by
+constructing the agent's observation vector from 10-level order book data and
+by evaluating a continuous-control agent under the modeling assumptions stated
+in later chapters.

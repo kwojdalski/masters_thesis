@@ -10,5 +10,5 @@ reinforcement learning as the appropriate framework for this problem. It then
 surveys the key concepts that matter in a trading context and reviews prior RL
 trading applications, with attention to action-space design, transaction-cost
 modeling, and evaluation rigor. The survey concludes by identifying the
-specific gap — the joint alignment of LOB-derived features,
-continuous control, and state design — that this thesis addresses.
+comparatively underexplored combination of LOB-derived features, continuous
+control, and microstructure-aware state design that this thesis studies.
