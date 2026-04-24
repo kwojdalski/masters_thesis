@@ -83,7 +83,7 @@ update). Concrete values for all parameters are listed in Appendix B.
 
 ### Evaluation
 
-Final performance is reported on the held-out test split using a separate
+Final performance is reported on the held-out test split using a dedicated
 evaluation environment. Two output streams are kept strictly separate. First is the
 training reward, which serves as an optimization diagnostic. Second is the realized portfolio return
 series from which financial metrics are computed.
