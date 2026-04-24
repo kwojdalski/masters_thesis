@@ -336,13 +336,12 @@ class StockDataFetcher(BaseMarketDataFetcher):
 
     @staticmethod
     def _resample_ohlcv(df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
-        volume_source = "volume" if "volume" in df.columns else "price"
-        aggregation = {
-            "price": ["first", "max", "min", "last"],
-            volume_source: "sum" if volume_source == "volume" else "count",
-        }
-        ohlcv = df.resample(timeframe).agg(aggregation)
-        ohlcv.columns = ["open", "high", "low", "close", "volume"]
+        price_bars = df["price"].resample(timeframe).ohlc()
+        if "volume" in df.columns:
+            volume = df["volume"].resample(timeframe).sum()
+        else:
+            volume = df["price"].resample(timeframe).count()
+        ohlcv = price_bars.assign(volume=volume)
         return ohlcv.ffill().dropna()
 
     def _save_stock_data(
