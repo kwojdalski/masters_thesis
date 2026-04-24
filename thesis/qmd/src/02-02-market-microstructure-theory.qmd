@@ -46,7 +46,7 @@ for those posting limit orders.
 
 This theoretical result motivates the multi-level features used in Chapter 4.
 The book is not a single price but a price schedule, and the shape of that
-schedule — measured by depth ratios, slopes, and convexity features —
+profile — measured by depth ratios, slopes, and convexity features —
 encodes information about how informed the marginal liquidity provider expects
 the market to be at each quantity level.
 
