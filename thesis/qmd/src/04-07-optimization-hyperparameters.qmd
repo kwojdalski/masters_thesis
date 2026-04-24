@@ -25,7 +25,7 @@ normalization) is used, keeping the architecture parsimonious.
 ### Scope
 
 The reported learning rate and weight decay define the experimental
-configuration used throughout this thesis. They were chosen to maintain stable
+configuration used throughout the experiments. They were chosen to maintain stable
 critic targets and avoid policy collapse in preliminary runs, which makes them
 appropriate for the present high-frequency training setup. A broader
 hyperparameter study could refine these values further, but that analysis lies

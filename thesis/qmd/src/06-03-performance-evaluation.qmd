@@ -160,7 +160,7 @@ else:
 ### Discussion: Reading Performance in the Context of State Design [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-The key interpretive issue in this thesis is not whether the agent attains a
+The key interpretive issue is not whether the agent attains a
 single high metric, but whether the reported behavior is consistent with the
 microstructure-aware state design proposed in Chapter 4. Because the current
 work studies order-book-derived state representations, performance should be

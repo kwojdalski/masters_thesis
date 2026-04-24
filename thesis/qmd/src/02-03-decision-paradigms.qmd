@@ -123,5 +123,5 @@ no proxy objective.
 The critical difference from the preceding approaches is that the optimization
 objective is aligned directly with trading performance: there is no surrogate
 loss whose relationship to actual returns must be assumed. This alignment is
-the primary motivation for using deep RL in this thesis. The
+the primary motivation for using deep RL. The
 specific reward formulation and its design rationale are developed in Chapter 4.
