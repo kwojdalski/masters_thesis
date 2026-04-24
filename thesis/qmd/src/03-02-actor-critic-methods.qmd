@@ -120,3 +120,12 @@ which may improve exploration but introduce stochasticity into the policy at
 evaluation time — a less natural fit for a trading agent that is expected to
 produce consistent, interpretable allocation decisions given identical market
 conditions.
+
+The choice of TD3 should be read together with the trading constraints discussed
+in Chapter 2. Those sections motivate continuous exposure control, off-policy
+learning from historical data, and caution about transaction costs,
+non-stationarity, and partial observability. TD3 matches the first two
+requirements through deterministic continuous actions and replay-based learning.
+It does not solve the remaining market-design problems. For that reason, it is
+used here as a suitable continuous-control algorithm under the stated simulation
+assumptions, not as a generally superior trading method.
