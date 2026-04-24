@@ -14,7 +14,7 @@ the microstructure literature reviewed in Chapter 2: the information relevant to
 short-horizon price prediction is embedded in the dynamics of the limit order book
 rather than in best-quote snapshots alone. For practitioners designing RL state
 representations, this implies that the choice of which features to engineer is
-at least as consequential as the choice of algorithm. A well-specified feature
+at least as consequential as the selection of algorithm. A well-specified feature
 set operating with a standard actor-critic architecture will likely outperform a
 poorly-specified feature set using a more sophisticated model.
 

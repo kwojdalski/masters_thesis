@@ -83,8 +83,8 @@ impose no distributional assumptions on the data and can be deployed without
 a training phase.
 
 The limitation is inflexibility. Rules are defined over a fixed set of
-observable conditions and optimized for a particular market regime. When the
-regime changes — for example, when a previously mean-reverting asset enters a
+observable conditions and optimized for a particular market regime. When it
+changes — for example, when a previously mean-reverting asset enters a
 trending period — fixed rules either require manual recalibration or continue
 generating losses until the regime reverts. This brittleness under
 non-stationarity is the primary motivation for learning-based approaches,
