@@ -70,6 +70,17 @@ def _validate_base_config(config: ExperimentConfig, report: ValidationReport) ->
 
 
 def _validate_paths(config: ExperimentConfig, report: ValidationReport) -> None:
+    data_paths = getattr(config.data, "data_paths", None)
+    if data_paths:
+        for p in data_paths:
+            if not Path(p).exists():
+                report.add(
+                    code="DATA_PATH_MISSING",
+                    severity=Severity.WARNING,
+                    check="paths",
+                    message=f"Dataset file does not exist: {p}",
+                )
+        return
     data_path = Path(config.data.data_path)
     if not data_path.exists():
         report.add(
@@ -325,7 +336,9 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
 
     pipeline = _build_feature_pipeline(config, report)
 
-    data_path = Path(config.data.data_path)
+    # For multi-symbol configs use the first path for schema/split validation
+    data_paths = getattr(config.data, "data_paths", None)
+    data_path = Path(data_paths[0]) if data_paths else Path(config.data.data_path)
     if not data_path.exists():
         return report
 
