@@ -21,16 +21,12 @@ transparency, chronological data integrity, and explicit simulation assumptions
 reflects a view that the quality of the experimental setup is inseparable from the
 soundness of its conclusions.
 
-At the same time, the thesis is explicit about what it does not claim. The
-simulation relies on a mid-price execution proxy rather than executable bid/ask
-fills, assumes zero market impact and zero latency, and is based on a three-day
-AAPL sample and a single random seed. These restrictions were deliberate: they
-kept the experimental design tractable and the results interpretable. But they
-also mean that the observed edge cannot be straightforwardly mapped to a
-deployable trading strategy. Whether the microstructure signal captured by the
+At the same time, the thesis is explicit about what it does not claim.
+Within the constraints of the controlled setup, the observed edge cannot be
+straightforwardly mapped to a deployable trading strategy. Whether the microstructure signal captured by the
 learned policy survives realistic spread-crossing costs, maker/taker fees, queue
 uncertainty, and latency remains an open and important empirical question — one
-that the limitations and future research section identifies as the most direct
+that the limitations and future research section identifies as the immediate
 extension of the current work.
 
 What the thesis does establish is that the combination of limit order book data,

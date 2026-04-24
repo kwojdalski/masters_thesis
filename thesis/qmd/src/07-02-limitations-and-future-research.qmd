@@ -92,11 +92,9 @@ AAPL trading day, let alone a different market condition.
 
 This distinction matters for what the results actually support. The empirical
 findings are best read as a viability test. The pipeline can extract
-useful signal from order-book features. It can translate this into a policy that
+useful signal from order-book features and translate this into a policy that
 outperforms benchmarks within a controlled, narrow window. This is a necessary
-condition for practical utility, but not a sufficient one. It establishes that
-the learning problem is tractable. It also shows that the chosen feature set is
-informative. These conclusions would be undermined if the agent had failed to
+condition for practical utility, but not a sufficient one. These conclusions would be undermined if the agent had failed to
 beat benchmarks even in this favorable setting. What it does not establish is
 whether the learned policy would remain profitable across a broader range of
 market conditions, or even across a separate three-day window of AAPL data

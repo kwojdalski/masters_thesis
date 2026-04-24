@@ -44,7 +44,7 @@ of a strong held-out Sharpe — is a common source of overoptimistic claims
 in the literature.
 
 **Execution assumptions impose a binding constraint on achievable net
-performance.** The mid-price execution proxy used here represents an
+performance.** This execution assumption represents an
 upper bound on realizable returns. The spread-crossing cost that arises in live
 execution is of the same order of magnitude as the short-horizon price movements
 the agent attempts to capture, and the agent's demonstrated edge does not
