@@ -1,4 +1,4 @@
-## RL Concepts Relevant to Trading
+## Decision Framework and Design Dimensions
 
 This section identifies the reinforcement learning concepts most important for
 interpreting the finance literature reviewed in this chapter. Formal definitions,
