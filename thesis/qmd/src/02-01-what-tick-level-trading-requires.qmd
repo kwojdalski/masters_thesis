@@ -1,7 +1,30 @@
-## Market Microstructure Evidence for LOB-Based Trading
+## What Tick-Level Trading Requires
 
-The theoretical mechanisms discussed in the preceding section manifest in
-observable empirical regularities at intraday and tick-level timescales.
+Tick-level trading differs from bar-based trading because the decision unit is an
+order book event rather than a fixed calendar interval. A daily or minute-level
+strategy can often treat execution as a secondary implementation detail after the
+signal is estimated. At tick frequency, execution conditions are part of the
+signal environment itself: the spread, queue sizes, recent order-flow pressure,
+and time since the last event all affect whether a position change is worth
+making.
+
+This matters because expected price changes over short horizons are small
+relative to trading frictions. Crossing the spread, paying transaction costs,
+or changing exposure during a transient liquidity shock can dominate the gross
+directional signal. A tick-level agent must therefore condition not only on
+where the price may move, but also on whether the current liquidity state makes
+acting economically sensible.
+
+The present thesis studies this problem in a controlled simulation, not in a
+live high-frequency trading environment. The simulator uses historical
+limit-order-book data and explicit cost assumptions to evaluate continuous
+position control. It does not model exchange latency, queue priority, partial
+fills, strategic order cancellation, or the market impact of the agent's own
+orders. The literature reviewed below is therefore used to motivate state
+variables and evaluation discipline, not to claim full live-HFT realism.
+
+The microstructure mechanisms discussed in this chapter manifest in observable
+empirical regularities at intraday and tick-level timescales.
 
 At these timescales, financial markets exhibit structural
 patterns that are distinct from the macro-level anomalies studied
@@ -10,7 +33,7 @@ irrationality or information asymmetry in the fundamental sense, but from the
 mechanics of how orders interact in a limit order book: the strategic behavior
 of market makers, the clustering of institutional activity, and the discrete
 price grid imposed by exchange rules. Understanding these patterns is a
-prerequisite for designing an HFT trading agent, since they define the
+prerequisite for designing a tick-level trading agent, since they define the
 environment in which the agent operates and motivate the feature set used here.
 
 @Roll1984 demonstrated that bid-ask spreads induce negative serial correlation
