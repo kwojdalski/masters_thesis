@@ -47,51 +47,57 @@ agents. However, financial environments only approximately satisfy standard MDP
 assumptions. Market regime shifts, structural breaks, and partial observability
 all contribute to this approximation.
 
-Bellman's principle of optimality motivates value-based reasoning
-about long-run consequences of trading actions. But direct dynamic programming is
-inapplicable because market transition dynamics are unknown and non-stationary.
-This points toward model-free learning that estimates value directly from sampled
-experience [@Sutton1988]. Temporal difference methods are especially relevant in finance. Q-learning in particular
-[@Watkins1989] has an off-policy nature. This permits learning from historical trajectories
-rather than requiring live interaction with the market.
+For the purposes of the present literature review, the most useful RL concepts
+are not the full formal machinery developed in Chapter 3, but the dimensions
+along which applied trading papers differ. These dimensions determine whether
+results from one study are comparable to another and whether they are relevant
+to the problem addressed in this thesis.
 
-Portfolio problems are naturally continuous. This makes tabular and discrete-action
-value methods structurally inadequate. Policy gradient methods
-[@Williams1992; @Sutton2000] and the actor-critic architectures they
-support are the class for continuous position sizing. The
-high-dimensionality of financial state representations makes function
-approximation necessary. Deep RL methods [@Mnih2015] provide the required
-generalization capacity. However, this comes at the cost of stability issues
-in off-policy settings [@Tsitsiklis1997].
+The first dimension is the formulation of the trading problem itself: what is
+treated as the state, what counts as an action, and what scalar reward is used
+to evaluate behavior. In trading applications, these choices vary materially
+across studies. Some papers define the state using bar-level prices and
+technical indicators, while others incorporate current holdings, order-book
+information, or broader market context. Likewise, actions may represent a
+discrete buy/sell/hold decision or a continuous exposure level. Reward
+definitions also differ: some studies optimize raw return, others net return
+after transaction costs, and others risk-adjusted criteria such as
+Sharpe-oriented objectives [@Moody1998; @Ng1999]. These modeling choices are
+not cosmetic. They change the economic meaning of the task the algorithm is
+solving.
 
-This fragility motivated the stabilization mechanisms in TD3 [@Fujimoto2018].
-It also recurs throughout the applied trading literature.
+The second dimension is action-space structure. Discrete-action methods such as
+Q-learning and its deep variants are naturally aligned with buy/sell/hold
+formulations [@Watkins1989; @Mnih2015]. Continuous-control methods, by
+contrast, are designed for problems in which the agent chooses a portfolio
+weight or exposure level on a continuum. This distinction is central in the
+trading literature because it separates papers that treat trading as a
+classification-like decision problem from papers that treat it as a
+position-sizing problem. For the latter class, policy-gradient and actor-critic
+methods are usually the relevant algorithmic family [@Williams1992;
+@Sutton2000].
 
-Four practical complications distinguish financial RL from standard control
-benchmarks. The exploration-exploitation tradeoff is more costly in trading than
-in most settings. Exploratory actions incur immediate transaction costs,
-while under-exploration prevents discovery of profitable policies.
+The third dimension is the training regime, especially the distinction between
+on-policy and off-policy learning. In financial applications this matters not
+only for sample efficiency but also for the practicality of learning from
+historical data. Off-policy methods can in principle reuse stored experience
+through replay-based updates [@Lin1992], which is one reason they appear
+frequently in trading research where live experimentation is expensive or
+constrained. At the same time, the literature makes clear that training on
+historical market data does not eliminate instability, because financial
+environments remain noisy, non-stationary, and only approximately Markov
+[@Tsitsiklis1997; @Deng2016]. Algorithm choice therefore cannot be separated
+from the validation protocol under which performance is assessed.
 
-This tension is amplified by non-stationarity. Strategies that exploit historical
-regularities can decay abruptly after regime changes. Yet excessive exploration
-destroys performance through churn and slippage [@Sutton2018; @Moody1998]. Reward
-specification is a central design decision because it determines what the agent
-actually optimizes. The reward-shaping literature [@Ng1999] is directly relevant
-to finance. Misspecified rewards lead to metric gaming or tail-risk neglect.
+The fourth dimension is reward design. Financial RL studies differ not only in
+which algorithm they use, but in what behavior they incentivize. Rewards based
+on raw price changes can encourage excessive turnover or sensitivity to noise,
+whereas cost-aware or risk-adjusted rewards aim to align optimization more
+closely with economically meaningful outcomes. The Differential Sharpe Ratio is
+one influential example [@Moody1998], but the broader point is that reported
+performance is difficult to interpret without understanding the objective under
+which the policy was trained.
 
-Sharpe-style risk-adjusted objectives provide an alternative. The Differential
-Sharpe Ratio [@Moody1998] aligns optimization with economically meaningful return
-rather than with noisy single-step price changes. Sample efficiency is unusually important
-because historical market data is finite. Live experimentation is also constrained
-by capital and risk limits. Off-policy replay-based methods [@Lin1992] are
-therefore methodological enablers rather than engineering conveniences.
-They underpin the algorithm selection in this thesis. Non-stationarity is the dominant
-reason why classical RL guarantees do not transfer cleanly to financial markets:
-market dynamics, volatility regimes, and participant behavior evolve continuously,
-which motivates the emphasis on robust feature engineering,
-conservative optimization, and strict temporal validation over rolling
-out-of-sample periods [@Deng2016].
-
-Accordingly, claims that RL "works" in trading are inherently context-dependent: RL methods can produce useful policies when the learning
-objective, state representation, and validation design are aligned with market
-frictions and regime uncertainty.
+These distinctions provide the lens for reading the applied RL studies reviewed
+in the next section. Chapter 3 develops the formal reinforcement learning
+framework and the algorithmic lineage leading to TD3.
