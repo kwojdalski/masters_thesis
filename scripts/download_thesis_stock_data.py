@@ -54,6 +54,33 @@ THESIS_DOWNLOADS = [
         aggregate=False,
         filter_us_hours=True,
     ),
+    ThesisStockDownload(
+        symbol="MSFT",
+        start_date="2026-02-25",
+        end_date="2026-02-27",
+        dataset="XNAS.ITCH",
+        schema="mbp-10",
+        aggregate=False,
+        filter_us_hours=True,
+    ),
+    ThesisStockDownload(
+        symbol="TSLA",
+        start_date="2026-02-25",
+        end_date="2026-02-27",
+        dataset="XNAS.ITCH",
+        schema="mbp-10",
+        aggregate=False,
+        filter_us_hours=True,
+    ),
+    ThesisStockDownload(
+        symbol="NVDA",
+        start_date="2026-02-25",
+        end_date="2026-02-27",
+        dataset="XNAS.ITCH",
+        schema="mbp-10",
+        aggregate=False,
+        filter_us_hours=True,
+    ),
 ]
 
 
