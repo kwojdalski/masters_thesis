@@ -1,7 +1,7 @@
 ## Conclusion [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-This thesis asked a narrowly defined and testable question: can a continuous-control
+The central question of this thesis was: can a continuous-control
 deep RL agent, using order-book-derived microstructure features,
 achieve economically meaningful out-of-sample trading performance in a
 high-frequency single-asset setting? The answer, under the specified experimental
