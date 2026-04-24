@@ -233,6 +233,44 @@ class FeaturePipeline:
                 f"Available columns: {sorted(df.columns)}"
             )
 
+    @classmethod
+    def from_groups(
+        cls,
+        groups_yaml_path: str,
+        group_names: list[str],
+        exclude: list[str] | None = None,
+    ) -> "FeaturePipeline":
+        """Create a pipeline from feature group definitions.
+
+        Loads named feature groups from a YAML file and resolves them
+        into a flat list of FeatureConfig instances, then constructs
+        a FeaturePipeline.
+
+        Args:
+            groups_yaml_path: Path to the feature groups YAML file.
+            group_names: List of group names to include.
+            exclude: Optional list of feature output names to exclude.
+
+        Returns:
+            FeaturePipeline with features from the resolved groups.
+
+        Example:
+            pipeline = FeaturePipeline.from_groups(
+                "src/configs/features/feature_groups.yaml",
+                group_names=["imbalance", "fair_value", "flow"],
+            )
+        """
+        from trading_rl.features.groups import FeatureGroupResolver
+
+        resolver = FeatureGroupResolver.from_yaml(groups_yaml_path)
+        configs = resolver.resolve(group_names, exclude=exclude)
+        logger.info(
+            "Built pipeline from groups %s: %d features",
+            group_names,
+            len(configs),
+        )
+        return cls(configs)
+
     def __repr__(self) -> str:
         """String representation of pipeline."""
         feature_names = self.get_feature_names()
