@@ -1,10 +1,7 @@
 ## Conclusion [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-The central question of this thesis was: can a continuous-control
-deep RL agent, using order-book-derived microstructure features,
-achieve economically meaningful out-of-sample trading performance in a
-high-frequency single-asset setting? The answer, under the specified experimental
+The central question of this thesis was: can a microstructure-aware deep RL agent achieve meaningful out-of-sample trading performance in a high-frequency setting? The answer, under the specified experimental
 conditions, is affirmative. The TD3 agent trained on microstructure-aware
 limit order book features outperformed the evaluated benchmark strategies on
 risk-adjusted return metrics, and the extended feature set provided a measurable
