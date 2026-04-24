@@ -43,7 +43,7 @@ Differential Sharpe Ratio or any other shaped reward is a training objective,
 not a performance report. All financial conclusions — Sharpe ratio, annualized
 return, maximum drawdown — should be derived from a deterministic policy rollout
 on held-out data, computed from the realized log-return series. Results from the
-training reward signal should appear in a separate section as training diagnostics,
+training reward signal should appear in a dedicated section as training diagnostics,
 clearly labeled as such, and should not be cited as evidence of financial viability.
 This discipline is the single most consistent failure mode in the published
 literature and the most straightforward to avoid.

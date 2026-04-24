@@ -50,7 +50,7 @@ all contribute to this approximation.
 Bellman's principle of optimality motivates value-based reasoning
 about long-run consequences of trading actions. But direct dynamic programming is
 inapplicable because market transition dynamics are unknown and non-stationary.
-This motivates model-free learning that estimates value directly from sampled
+This points toward model-free learning that estimates value directly from sampled
 experience [@Sutton1988]. Temporal difference methods are especially relevant in finance. Q-learning in particular
 [@Watkins1989] has an off-policy nature. This permits learning from historical trajectories
 rather than requiring live interaction with the market.

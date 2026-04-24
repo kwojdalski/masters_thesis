@@ -201,7 +201,7 @@ feature vector is constructed.
 
 Including the current position makes the state partially Markovian with respect
 to inventory. Without it, the agent cannot distinguish between arriving at
-exposure $0$ from a long position versus arriving from a short position.
+exposure $0$ from a long position versus coming from a short position.
 
 This distinction matters because the cost of the next action differs in both cases through the
 position-change fee. With the position feature, the agent can condition its action on whether a

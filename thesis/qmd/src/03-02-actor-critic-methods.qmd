@@ -28,7 +28,7 @@ DQN achieved human-level control across a wide range of tasks, but it inherits a
 structural constraint from Q-learning: it requires a discrete action space,
 because the max operator in the Bellman target presupposes that all actions can
 be enumerated. For a trading agent that outputs a continuous portfolio
-weight in $[-1, 1]$, this is not an acceptable constraint. Discretizing the
+weight in $[-1, 1]$, this is not an acceptable limitation. Discretizing the
 action space into a finite grid resolves the representation issue formally, but
 it reintroduces the granularity problem: a coarse grid loses the benefits of
 continuous control, while a fine grid makes the maximization step computationally
@@ -110,10 +110,10 @@ peaks caused by function approximation, acting as a regularizer on the value
 landscape.
 
 Together, these three modifications produce an algorithm that is substantially
-more stable than DDPG on standard continuous control benchmarks while
+more reliable than DDPG on standard continuous control benchmarks while
 retaining its off-policy sample efficiency. The combination of stability under
 noisy rewards, data efficiency through experience replay, and native support for
-continuous actions makes TD3 well suited to the continuous portfolio
+continuous actions makes TD3 well suited to the portfolio
 allocation problem studied here. Alternative algorithms such as SAC
 [@Haarnoja2018] incorporate maximum-entropy objectives and stochastic policies,
 which may improve exploration but introduce stochasticity into the policy at
