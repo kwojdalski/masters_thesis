@@ -1,7 +1,7 @@
 # Results [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-This chapter reports the empirical evidence for the thesis-facing experiment:
+This chapter reports the evidence for the thesis-facing experiment:
 the TD3 agent trained on high-frequency AAPL order-book-derived features under
 the state-space design defined in Chapters 4 and 5. It is organized in three
 parts: statistical validation of repeated-run variability, robustness

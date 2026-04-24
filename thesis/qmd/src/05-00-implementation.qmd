@@ -81,4 +81,4 @@ are explicitly outside the scope of this study: smart order routing across
 venues, partial fills and queue-position effects, execution algorithms such as
 VWAP or TWAP, detailed market-impact modeling, and production monitoring or
 brokerage integration. These omissions define the gap between the controlled
-empirical framework and deployment-ready trading-system performance.
+experimental framework and deployment-ready trading-system performance.
