@@ -98,6 +98,10 @@ Features are ranked by score. Each candidate is added only if its absolute corre
 
 ### Usage
 
+Feature selection is an **offline** step. Run it once to produce a reduced feature YAML, then point the training config at that file.
+
+**Step 1: Run selection offline**
+
 ```python
 from trading_rl.features import FeatureGroupResolver, FeatureSelector, FeatureSelectorConfig
 
@@ -107,16 +111,23 @@ candidates = resolver.resolve(resolver.list_groups())
 selector = FeatureSelector(FeatureSelectorConfig(top_k=12, corr_threshold=0.85))
 result = selector.select(candidates, train_df, val_df)
 
-print(f"Selected: {result.selected_names}")
-print(result.scores.head(15))
+# Write selected features to a YAML for training
+FeatureSelector.write_selected_yaml(
+    result,
+    "src/configs/features/selected_aapl_hft.yaml",
+)
+```
 
-# Build pipeline from selected features
-pipeline = FeaturePipeline(result.selected_configs)
+**Step 2: Train with the selected features**
+
+```yaml
+data:
+  feature_config: "src/configs/features/selected_aapl_hft.yaml"
 ```
 
 ### In Scenario Config
 
-Feature groups can be used directly in experiment YAML:
+Feature groups can be used directly in experiment YAML for **manual composition** (no selection, just pick groups):
 
 ```yaml
 data:
@@ -126,13 +137,10 @@ data:
   feature_groups: "src/configs/features/feature_groups.yaml"
   feature_selection:
     groups: ["imbalance", "fair_value", "spread", "flow", "regime"]
-    strategy: "research"
-    top_k: 12
-    corr_threshold: 0.85
-    horizon: 1
+    exclude: ["feature_hft_book_pressure_l2"]
 ```
 
-When `feature_groups` is set, the pipeline is built from groups (with optional selection). When absent, the existing `feature_config` path is used (backward compatible).
+For **research-based selection**, run the offline step to produce a reduced YAML, then use `feature_config` for training.
 
 ## Data Flow
 

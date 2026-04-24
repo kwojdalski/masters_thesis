@@ -13,6 +13,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import yaml
 from sklearn.feature_selection import mutual_info_regression
 
 from logger import get_logger
@@ -310,3 +311,46 @@ class FeatureSelector:
             top_k=cfg.top_k,
             corr_threshold=cfg.corr_threshold,
         )
+
+    @staticmethod
+    def write_selected_yaml(
+        result: FeatureSelectionResult,
+        output_path: str | Path,
+    ) -> Path:
+        """Write selected feature configs to a YAML file suitable for training.
+
+        This is the offline step: run feature selection once, write the result
+        to a YAML file, then point the training config at that file via
+        ``data.feature_config``.
+
+        Args:
+            result: FeatureSelectionResult from a select() call.
+            output_path: Path for the output YAML file.
+
+        Returns:
+            Path to the written file.
+        """
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        features = []
+        for cfg in result.selected_configs:
+            entry: dict[str, Any] = {
+                "name": cfg.name,
+                "feature_type": cfg.feature_type,
+                "normalize": cfg.normalize,
+                "domain": cfg.domain,
+            }
+            if cfg.params:
+                entry["params"] = cfg.params
+            if cfg.output_name and cfg.output_name != f"feature_{cfg.name}":
+                entry["output_name"] = cfg.output_name
+            features.append(entry)
+
+        payload = {"features": features}
+        output_path.write_text(
+            yaml.dump(payload, default_flow_style=False, sort_keys=False),
+            encoding="utf-8",
+        )
+        logger.info("Wrote %d selected features to %s", len(features), output_path)
+        return output_path

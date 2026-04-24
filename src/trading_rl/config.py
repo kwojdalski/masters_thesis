@@ -32,7 +32,6 @@ class DataConfig:
     validation_size: int | None = None
     feature_config: str | None = None  # Path to feature config YAML
     feature_groups: str | None = None  # Path to feature groups YAML
-    feature_selection: dict | None = None  # Feature selection config (groups, strategy, top_k, etc.)
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
@@ -549,7 +548,6 @@ class ExperimentConfig:
                 "validation_size": self.data.validation_size,
                 "feature_config": self.data.feature_config,
                 "feature_groups": self.data.feature_groups,
-                "feature_selection": self.data.feature_selection,
             },
             "environment": {
                 "name": self.env.name,

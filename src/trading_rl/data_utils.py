@@ -305,16 +305,11 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> PreparedDatas
         from trading_rl.features.groups import FeatureGroupResolver
         from trading_rl.features.pipeline import FeaturePipeline
 
-        selection_cfg = getattr(config.data, "feature_selection", None) or {}
-        group_names = selection_cfg.get("groups", []) if isinstance(selection_cfg, dict) else []
-        exclude = selection_cfg.get("exclude", None) if isinstance(selection_cfg, dict) else None
-
         resolver = FeatureGroupResolver.from_yaml(feature_groups)
-        if not group_names:
-            group_names = resolver.list_groups()
-            logger.info("No groups specified, using all %d groups", len(group_names))
+        group_names = resolver.list_groups()
+        logger.info("Using all %d feature groups from %s", len(group_names), feature_groups)
 
-        feature_configs = resolver.resolve(group_names, exclude=exclude)
+        feature_configs = resolver.resolve(group_names)
 
         pipeline = FeaturePipeline(feature_configs)
         logger.info(
