@@ -17,6 +17,18 @@ selecting actions that maximize cumulative discounted future rewards. This
 subsection defines the core components using trading as the primary illustrative
 context, drawing on @Sutton2018.
 
+Formally, the trading problem can be described as an approximate Markov decision
+process $(\mathcal{S}, \mathcal{A}, P, R, \gamma)$, where $\mathcal{S}$ is the
+state space, $\mathcal{A}$ is the action space, $P(s' \mid s,a)$ is the
+transition kernel, $R(s,a,s')$ is the reward function, and $\gamma$ is the
+discount factor. In financial markets, this formulation is necessarily an
+approximation. The agent observes engineered order-book features rather than the
+full market state, and the transition process is affected by non-stationarity,
+intraday seasonality, hidden liquidity, and other unobserved participants. The
+state representation used in this thesis should therefore be understood as an
+attempt to approximate a Markov state, not as proof that the market itself is
+fully Markovian.
+
 ### Environment
 
 The environment defines the space of possible states and the rules governing
