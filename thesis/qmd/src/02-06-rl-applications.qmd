@@ -133,7 +133,7 @@ realistic cost assumptions — matters as much as algorithm choice.
 Misspecified rewards can lead to metric gaming (optimizing Sharpe by avoiding
 trades), ignoring tail risks, and misalignment with actual investor preferences.
 The Differential Sharpe Ratio [@Moody1998] addresses some of these concerns by
-optimizing risk-adjusted return directly, but does not fully resolve the
+targeting risk-adjusted return directly, but does not fully resolve the
 tension between reward simplicity and the richness of real trading objectives.
 
 ### Structured Comparison of Representative Studies

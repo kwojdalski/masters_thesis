@@ -47,7 +47,7 @@ data. The research objectives are structured in three interconnected phases:
    - Construct a testing framework to evaluate agent performance
 
 2. **Testing and Evaluation**
-   - Assess agent performance on out-of-sample data against established
+   - Assess agent performance on out-of-sample data against selected
      benchmarks with use of established and novel risk-return metrics
    - Analyze robustness under varying market conditions
    - Determine whether agents can outperform selected benchmark strategies

@@ -3,7 +3,7 @@
 This section identifies the reinforcement learning concepts most important for
 interpreting the finance literature reviewed in this chapter. Formal definitions,
 equations, and algorithm taxonomies are presented in Chapter 3; the focus here
-is on why each concept is specifically consequential for trading problems.
+is on why each one is specifically consequential for trading problems.
 
 ::: {.content-visible when-format="pdf"}
 ```{tikz}
