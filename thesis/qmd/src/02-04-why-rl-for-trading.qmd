@@ -10,7 +10,7 @@ transition model — a specification of how the environment responds to actions.
 In financial markets, this model is unknown and non-stationary: price dynamics
 depend on the aggregate behavior of all participants, which changes continuously.
 Model-free RL methods learn directly from experience without requiring a
-transition model, making them the natural choice for this setting
+transition model, making them a reasonable candidate for this setting
 [@Sutton2018].
 
 **Off-policy learning from historical data.** Online experimentation in live

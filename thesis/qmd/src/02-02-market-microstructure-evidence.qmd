@@ -50,3 +50,11 @@ treating the limit order book as a transparent window onto an efficient price,
 the empirical evidence supports modeling it as a strategic environment with
 predictable mechanical regularities — which is precisely the setting in which
 a reinforcement learning agent can learn to act systematically.
+
+This does not mean that every microstructure regularity is directly tradable.
+Some variables describe the current liquidity environment more than they
+forecast the next price change, and any useful signal must survive transaction
+costs, action timing, and out-of-sample evaluation. The role of the literature
+review is therefore to justify the candidate state variables; whether those
+variables support profitable decisions is an empirical question addressed by
+the later experimental chapters.
