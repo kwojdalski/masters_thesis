@@ -1,14 +1,20 @@
-## RL Applications in Trading Systems
+## Applied RL Trading Evidence
 
 The application of reinforcement learning to financial trading has evolved from
 theoretical proposals to practical implementations across diverse market
-segments. This section surveys the literature on RL-based trading systems with
-a focus on methodology, action space design, and evaluation rigor.
+segments. This section surveys the literature on RL-based trading systems through
+the design dimensions most relevant to the present thesis: state representation,
+action-space structure, reward definition, transaction-cost modeling, and
+validation protocol.
 
 To keep conclusions methodologically defensible, this review distinguishes
 between: (i) proof-of-concept evidence from backtests under simplified
 assumptions, and (ii) stronger evidence that includes robust out-of-sample
 design, realistic cost modeling, and variance reporting across repeated runs.
+The chronology below is therefore secondary to the methodological comparison:
+reported performance is interpreted skeptically unless the study specifies what
+information the agent observes, how actions map to trades, whether costs are
+charged, and how out-of-sample performance is selected and reported.
 
 ### Early Applications and Proof-of-Concept
 
@@ -225,6 +231,15 @@ out-of-sample generalization relative to raw return objectives, though such
 claims remain highly sensitive to the evaluation protocol and cost assumptions.
 Explicit transaction cost modeling is a prerequisite for any realistic
 performance claim at the frequencies considered here.
+
+Viewed by design dimension, the strongest lessons are narrower than the headline
+returns reported in many papers. State representations must include the
+information needed for the action being optimized; action spaces should match
+the economic decision, especially when the task is exposure sizing; rewards must
+penalize costs and avoid encouraging excessive turnover; and validation must use
+held-out periods, frozen policies, and repeated runs where stochastic training is
+material. Without these elements, a positive backtest is best interpreted as a
+proof of concept rather than evidence of a robust trading edge.
 
 Within the representative literature reviewed here, a comparatively
 underexplored design combination is the joint use of order-book-derived state
