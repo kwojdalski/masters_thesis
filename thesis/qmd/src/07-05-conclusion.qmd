@@ -19,7 +19,7 @@ diagnostics and held-out financial evaluation — provides a replicable framewor
 for this class of research problem. The emphasis throughout on design
 transparency, chronological data integrity, and explicit simulation assumptions
 reflects a view that the quality of the experimental setup is inseparable from the
-quality of the experimental conclusions.
+soundness of its conclusions.
 
 At the same time, the thesis is explicit about what it does not claim. The
 simulation relies on a mid-price execution proxy rather than executable bid/ask

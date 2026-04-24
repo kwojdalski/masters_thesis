@@ -3,7 +3,7 @@
 The theoretical mechanisms discussed in the preceding section manifest in
 observable empirical regularities at intraday and tick-level timescales.
 
-At intraday and tick-level timescales, financial markets exhibit structural
+At these timescales, financial markets exhibit structural
 patterns that are distinct from the macro-level anomalies studied
 in the asset pricing literature. These patterns arise not from investor
 irrationality or information asymmetry in the fundamental sense, but from the
