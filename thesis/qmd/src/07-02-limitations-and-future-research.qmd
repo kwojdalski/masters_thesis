@@ -111,7 +111,7 @@ in-window interpolation. Cross-asset testing would include foreign exchange, fut
 and cryptocurrency. This would establish whether the feature design and training
 protocol are robust to structural differences in order-book dynamics. It would also determine
 whether asset-class-specific tuning is necessary. These extensions are
-identified as the primary empirical directions for future work.
+identified as the primary experimental directions for future work.
 
 ### Algorithm Comparison and Reward Ablation [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->

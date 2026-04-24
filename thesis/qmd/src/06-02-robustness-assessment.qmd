@@ -3,7 +3,7 @@
 
 This section shifts from training stochasticity to
 sensitivity with respect to modeling choices. The question is whether the
-empirical conclusions for the current AAPL high-frequency TD3 setup would
+conclusions for the current AAPL high-frequency TD3 setup would
 change materially under nearby alternatives in feature specification, reward
 definition, transaction-cost assumptions, or split design.
 
@@ -91,7 +91,7 @@ variations.
 ### Robustness Matrix for Experimental Reporting [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-The table below defines a practical robustness matrix for the empirical part of
+The table below defines a practical robustness matrix for the evaluation part of
 the thesis. It can be used as a reporting checklist when final results are
 compiled.
 
