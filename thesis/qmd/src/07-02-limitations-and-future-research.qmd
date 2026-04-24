@@ -99,7 +99,7 @@ the learning problem is tractable. It also shows that the chosen feature set is
 informative. These conclusions would be undermined if the agent had failed to
 beat benchmarks even in this favorable setting. What it does not establish is
 whether the learned policy would remain profitable across a broader range of
-market conditions, or even across a different three-day window of AAPL data
+market conditions, or even across a separate three-day window of AAPL data
 with different volatility or flow characteristics.
 
 Extending the evaluation window to cover multiple weeks of data, including
