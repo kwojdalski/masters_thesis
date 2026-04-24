@@ -183,7 +183,7 @@ else:
 <!-- [PLACEHOLDER] -->
 
 For repeated runs of the same configuration, descriptive statistics provide the
-first indication of stability. In this thesis, quantities such as the sample
+first indication of stability. Here, quantities such as the sample
 mean, standard deviation, and range are summaries of variability
 under the reported protocol, not as universal claims about future market
 performance. Repeated backtests quantify sensitivity to training randomness more
@@ -271,7 +271,7 @@ bias later comparisons, and reward-based metrics can diverge from financial
 objectives when the reward is a shaped training signal rather than realized
 return.
 
-Accordingly, statistical validation in this thesis is treated as a method for
+Accordingly, statistical validation is treated here as a method for
 ranking the credibility of observed results under a controlled protocol, not as
 proof of persistent real-world profitability. Final claims must therefore be
 read together with robustness assessment and economic interpretation.

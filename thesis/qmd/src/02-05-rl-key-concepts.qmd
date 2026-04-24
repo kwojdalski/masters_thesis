@@ -88,7 +88,7 @@ therefore methodological enablers rather than engineering conveniences.
 They underpin the algorithm selection in this thesis. Non-stationarity is the dominant
 reason why classical RL guarantees do not transfer cleanly to financial markets:
 market dynamics, volatility regimes, and participant behavior evolve continuously,
-which motivates the emphasis throughout this thesis on robust feature engineering,
+which motivates the emphasis on robust feature engineering,
 conservative optimization, and strict temporal validation over rolling
 out-of-sample periods [@Deng2016].
 

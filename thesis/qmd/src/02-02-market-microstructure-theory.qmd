@@ -66,7 +66,7 @@ with the efficient incorporation of order book information into prices.^[The con
 The theoretical channel is straightforward: when buy-side pressure dominates
 (positive OFI), market makers raise quotes to attract sell-side flow and reduce
 inventory risk, mechanically pushing the mid-price upward. The OFI feature in
-this thesis operationalizes this mechanism directly.
+the feature design operationalizes this mechanism directly.
 
 **Fair value estimation from the order book.**
 @Stoikov2018 derives the microprice as the theoretically optimal estimate of the

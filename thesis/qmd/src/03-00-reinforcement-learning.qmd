@@ -32,7 +32,7 @@ assumptions.
 
 The state $s_t$ is a snapshot of the environment at time $t$ that contains
 sufficient information for the agent to select an action. In the HFT setting of
-this thesis, the state is a vector of engineered microstructure features derived
+the state is a vector of engineered microstructure features derived
 from the limit order book: imbalance measures, spread, order flow signals, and
 temporal encodings. States can be terminal, ending an episode, or
 non-terminal, continuing the interaction sequence. The Markov property requires
@@ -51,7 +51,7 @@ buy/sell decision.
 ### Policy
 
 The policy $\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}$ maps states to
-actions. In this thesis a deterministic policy is used — given the same state,
+actions. A deterministic policy is used — given the same state,
 the policy always produces the same action. This is appropriate for a trading
 agent expected to behave consistently under identical market conditions. During
 training, exploration noise is added to the policy output to encourage discovery

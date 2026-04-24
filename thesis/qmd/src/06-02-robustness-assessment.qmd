@@ -69,7 +69,7 @@ else:
 ### Robustness Dimensions Considered in This Thesis [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-The robustness framework in this thesis is centered on five dimensions most
+The robustness framework is centered on five dimensions most
 directly connected to the current empirical design:
 
 1. **Random-seed sensitivity**: whether performance is stable across repeated
