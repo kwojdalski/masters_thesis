@@ -21,7 +21,7 @@ forecasting — tasks where historical outcomes provide a natural training signa
 [@Krauss2017; @Zhang2019].
 
 The approach has a structural limitation in trading contexts: optimizing the
-forecast objective and optimizing the trading decision are two separate steps
+forecast objective and the trading decision are two separate steps
 with potentially misaligned objectives. A model that minimizes mean squared
 error on next-period returns may not produce positions that maximize risk-adjusted
 return after transaction costs, because predictive accuracy and trading

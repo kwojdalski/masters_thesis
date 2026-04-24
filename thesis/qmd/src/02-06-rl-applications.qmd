@@ -20,8 +20,8 @@ architecture for temporal state encoding, direct policy optimization rather
 than a predict-then-trade pipeline, and explicit transaction cost modeling.
 Moody demonstrated that RL could outperform supervised learning baselines on
 S&P 500 futures, establishing feasibility of the approach and showing that
-optimizing risk-adjusted return directly was often superior to optimizing
-intermediate predictions.
+optimizing risk-adjusted return directly was often superior to predicting
+intermediate outcomes.
 
 @Moody2001 extended this framework to multi-asset portfolios, validating that
 RL-optimized policies could generate positive risk-adjusted returns after

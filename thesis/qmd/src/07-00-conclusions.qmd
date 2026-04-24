@@ -40,7 +40,7 @@ any apparent edge that disappears once spread-crossing costs, fees, queue
 uncertainty, or latency are introduced should not be interpreted as economically
 meaningful. Second, feature engineering deserves priority over marginal changes
 in model architecture, because the results suggest that policy quality is driven
-primarily by the informational content of the state representation. Third,
+primarily by the predictive content of the state representation. Third,
 stronger claims about generalization require broader temporal and cross-market
 evaluation, including longer windows, walk-forward validation, multiple random
 seeds, and eventually cross-asset testing.
