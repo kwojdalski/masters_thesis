@@ -1,8 +1,19 @@
-"""Feature selector for research-based pre-selection.
+"""Feature selector using IC/ICIR framework for offline pre-selection.
 
-Wraps the offline feature scoring and redundancy-aware selection
-logic into a reusable component that operates on FeatureConfig lists
-directly, without requiring a separate YAML config file.
+Implements an Information Coefficient (IC) based feature scoring pipeline
+that aligns with standard factor research practice in quantitative finance:
+
+- IC: rank correlation between each feature and forward returns, computed
+  rolling over time windows.
+- ICIR (Information Coefficient Information Ratio): mean IC divided by IC
+  standard deviation — a single principled score that captures both signal
+  strength and consistency.
+- Conditional IC: after selecting a feature, regress its signal out of
+  remaining candidates and score the residuals. This replaces pairwise
+  correlation as the redundancy criterion.
+
+The selection procedure is offline: it runs once, produces a reduced feature
+YAML, and the training pipeline loads that file directly.
 """
 
 from __future__ import annotations
@@ -14,7 +25,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import yaml
-from sklearn.feature_selection import mutual_info_regression
 
 from logger import get_logger
 from trading_rl.features.base import FeatureConfig
@@ -29,40 +39,42 @@ class FeatureSelectionResult:
 
     selected_configs: list[FeatureConfig]
     scores: pd.DataFrame
+    ic_series: dict[str, pd.Series]
     correlation_matrix: pd.DataFrame
     selected_names: list[str]
     top_k: int
-    corr_threshold: float
+    icir_threshold: float
 
 
 @dataclass
 class FeatureSelectorConfig:
-    """Configuration for feature selection.
+    """Configuration for IC/ICIR-based feature selection.
 
     Attributes:
         top_k: Maximum number of features to select.
-        corr_threshold: Maximum absolute correlation between selected features.
-            Features correlated above this threshold with any already-selected
-            feature are skipped during greedy selection.
         horizon: Forward return horizon for the proxy target.
-        score_weights: Weights for the composite score components.
-            Keys: spearman_val, pearson_val, mutual_information, stability_gap.
+        icir_threshold: Minimum absolute ICIR for a feature to be considered.
+            Features below this threshold are excluded before redundancy
+            filtering. Default 0.02 aligns with common factor research
+            practice.
+        corr_threshold: Maximum absolute correlation threshold for the
+            conditional IC redundancy filter. Not used in the new IC-based
+            pipeline; retained for backward compatibility.
+        window_size: Rolling window size for IC computation. If None, IC
+            is computed on the full validation split (no rolling).
+        ic_decay_horizons: List of horizons at which to compute IC decay.
+            If non-empty, IC is computed at each horizon and the decay
+            curve is reported in the scores table.
         train_size: Number of rows for the training split.
         validation_size: Number of rows for the validation split.
-            If None, uses the remainder after train_size split in half.
     """
 
     top_k: int = 12
-    corr_threshold: float = 0.85
     horizon: int = 1
-    score_weights: dict[str, float] = field(
-        default_factory=lambda: {
-            "spearman_val": 0.45,
-            "pearson_val": 0.35,
-            "mutual_information": 0.20,
-            "stability_gap": -0.20,
-        }
-    )
+    icir_threshold: float = 0.02
+    corr_threshold: float = 0.85
+    window_size: int | None = None
+    ic_decay_horizons: list[int] = field(default_factory=lambda: [1, 5, 10, 20])
     train_size: int = 15000
     validation_size: int | None = None
 
@@ -86,119 +98,234 @@ def _build_proxy_target(df: pd.DataFrame, horizon: int) -> pd.Series:
     return target.rename(f"target_log_return_h{horizon}")
 
 
-def _safe_corr(series: pd.Series, target: pd.Series, method: str) -> float:
-    """Compute a correlation safely for low-variance inputs."""
-    if series.nunique(dropna=True) <= 1 or target.nunique(dropna=True) <= 1:
-        return 0.0
-    corr = series.corr(target, method=method)
-    return float(corr) if pd.notna(corr) else 0.0
+def _compute_ic_series(
+    feature: pd.Series,
+    target: pd.Series,
+    window_size: int | None = None,
+) -> pd.Series:
+    """Compute rolling IC (Spearman rank correlation) between feature and target.
 
+    Args:
+        feature: Feature values, indexed by time.
+        target: Forward return values, aligned with feature index.
+        window_size: Rolling window size. If None, compute a single IC
+            value over the full series.
 
-def _safe_mutual_information(
-    frame: pd.DataFrame, target: pd.Series
-) -> np.ndarray:
-    """Compute mutual information with stable fallbacks."""
-    if frame.empty:
-        return np.zeros(0, dtype=float)
-    valid_frame = frame.replace([np.inf, -np.inf], np.nan).dropna()
-    valid_target = target.loc[valid_frame.index]
-    if valid_frame.empty or valid_target.nunique(dropna=True) <= 1:
-        return np.zeros(frame.shape[1], dtype=float)
-    mi = mutual_info_regression(
-        valid_frame.to_numpy(),
-        valid_target.to_numpy(),
-        random_state=0,
+    Returns:
+        Series of IC values. If window_size is None, returns a single-element
+        series. If window_size is set, returns a rolling series.
+    """
+    aligned = pd.concat([feature, target], axis=1).dropna()
+    if len(aligned) < 10:
+        return pd.Series([0.0], index=aligned.index[:1])
+
+    if window_size is None or window_size <= 1:
+        ic = aligned.iloc[:, 0].corr(aligned.iloc[:, 1], method="spearman")
+        return pd.Series([float(ic) if pd.notna(ic) else 0.0], index=[aligned.index[0]])
+
+    rolling_ic = aligned.iloc[:, 0].rolling(window_size).corr(
+        aligned.iloc[:, 1], method="spearman"
     )
-    return np.asarray(mi, dtype=float)
+    rolling_ic = rolling_ic.dropna()
+    return rolling_ic
 
 
-def _build_score_table(
+def _build_icir_score_table(
     train_frame: pd.DataFrame,
     val_frame: pd.DataFrame,
-    weights: dict[str, float],
-) -> pd.DataFrame:
-    """Build per-feature offline screening metrics."""
-    target_col = next(
-        col for col in train_frame.columns if col.startswith("target_")
-    )
-    feature_cols = [col for col in train_frame.columns if col != target_col]
+    window_size: int | None = None,
+) -> tuple[pd.DataFrame, dict[str, pd.Series]]:
+    """Build per-feature IC/ICIR scoring table.
 
-    train_target = train_frame[target_col]
+    For each feature, computes:
+    - mean_ic: mean of rolling IC values on the validation split
+    - ic_std: standard deviation of rolling IC values
+    - icir: mean_ic / ic_std (Information Coefficient Information Ratio)
+    - ic_tstat: approximate t-statistic (mean_ic / (ic_std / sqrt(n)))
+    - ic_positive_ratio: fraction of rolling windows with IC > 0
+    - ic_decay: IC at multiple horizons (if available)
+
+    Args:
+        train_frame: Training DataFrame with feature and target columns.
+        val_frame: Validation DataFrame with feature and target columns.
+        window_size: Rolling window size for IC computation.
+
+    Returns:
+        Tuple of (scores DataFrame sorted by ICIR descending, IC series dict).
+    """
+    target_col = next(
+        col for col in val_frame.columns if col.startswith("target_")
+    )
+    feature_cols = [col for col in val_frame.columns if col != target_col]
     val_target = val_frame[target_col]
 
-    mi_values = _safe_mutual_information(train_frame[feature_cols], train_target)
-    mi_series = pd.Series(mi_values, index=feature_cols, dtype=float)
-
+    ic_series_dict: dict[str, pd.Series] = {}
     rows: list[dict[str, float | str]] = []
+
     for feat in feature_cols:
-        train_series = train_frame[feat]
         val_series = val_frame[feat]
 
-        pearson_val = _safe_corr(val_series, val_target, "pearson")
-        spearman_val = _safe_corr(val_series, val_target, "spearman")
-        spearman_train = _safe_corr(train_series, train_target, "spearman")
-        stability_gap = abs(spearman_train - spearman_val)
-        mi_val = float(mi_series.get(feat, 0.0))
+        # Compute IC series on validation split
+        ic_series = _compute_ic_series(val_series, val_target, window_size)
+        ic_series_dict[feat] = ic_series
 
-        score = (
-            abs(spearman_val) * weights.get("spearman_val", 0.45)
-            + abs(pearson_val) * weights.get("pearson_val", 0.35)
-            + mi_val * weights.get("mutual_information", 0.20)
-            - stability_gap * abs(weights.get("stability_gap", -0.20))
-        )
+        if len(ic_series) == 0 or ic_series.std() == 0:
+            mean_ic = 0.0
+            ic_std = 1e-10  # avoid division by zero
+            icir = 0.0
+            ic_tstat = 0.0
+            ic_positive_ratio = 0.0
+        else:
+            mean_ic = float(ic_series.mean())
+            ic_std = float(ic_series.std())
+            icir = mean_ic / ic_std if ic_std > 1e-10 else 0.0
+            n = len(ic_series)
+            ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
+            ic_positive_ratio = float((ic_series > 0).mean())
+
+        # Also compute training IC for stability assessment
+        train_target = train_frame[target_col]
+        train_ic = _compute_ic_series(train_frame[feat], train_target, window_size)
+        train_mean_ic = float(train_ic.mean()) if len(train_ic) > 0 else 0.0
 
         rows.append(
             {
                 "feature": feat,
-                "train_std": float(train_series.std(ddof=1) or 0.0),
-                "val_std": float(val_series.std(ddof=1) or 0.0),
-                "train_pearson": _safe_corr(train_series, train_target, "pearson"),
-                "val_pearson": pearson_val,
-                "train_spearman": spearman_train,
-                "val_spearman": spearman_val,
-                "mutual_information": mi_val,
-                "stability_gap": stability_gap,
-                "score": float(score),
+                "mean_ic": mean_ic,
+                "ic_std": float(ic_std),
+                "icir": float(icir),
+                "ic_tstat": float(ic_tstat),
+                "ic_positive_ratio": ic_positive_ratio,
+                "train_mean_ic": train_mean_ic,
+                "ic_stability": abs(mean_ic - train_mean_ic),
             }
         )
 
-    return (
+    scores = (
         pd.DataFrame(rows)
-        .sort_values("score", ascending=False)
+        .sort_values("icir", ascending=False)
         .reset_index(drop=True)
     )
 
+    return scores, ic_series_dict
 
-def _select_features(
+
+def _compute_ic_decay(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    feature_configs: list[FeatureConfig],
+    horizons: list[int],
+) -> pd.DataFrame:
+    """Compute IC at multiple forward return horizons for IC decay analysis.
+
+    Args:
+        train_df: Raw training DataFrame.
+        val_df: Raw validation DataFrame.
+        feature_configs: Feature configurations to evaluate.
+        horizons: List of forward return horizons.
+
+    Returns:
+        DataFrame with columns: feature, horizon, ic.
+    """
+    pipeline = FeaturePipeline(feature_configs)
+    pipeline.fit(train_df)
+
+    train_features = pipeline.transform(train_df)
+    val_features = pipeline.transform(val_df)
+
+    results: list[dict] = []
+
+    for h in horizons:
+        val_target = _build_proxy_target(val_df, h)
+        val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
+
+        if val_aligned.empty:
+            continue
+
+        target_col = val_aligned.columns[-1]
+        feature_cols = [c for c in val_aligned.columns if c != target_col]
+
+        for feat in feature_cols:
+            ic = _compute_ic_series(val_aligned[feat], val_aligned[target_col])
+            mean_ic = float(ic.mean()) if len(ic) > 0 else 0.0
+            results.append(
+                {"feature": feat, "horizon": h, "ic": mean_ic}
+            )
+
+    return pd.DataFrame(results)
+
+
+def _select_features_conditional_ic(
     scores: pd.DataFrame,
-    correlation_matrix: pd.DataFrame,
+    feature_data: pd.DataFrame,
+    target: pd.Series,
     top_k: int,
-    corr_threshold: float,
+    icir_threshold: float = 0.02,
 ) -> list[str]:
-    """Greedy redundancy-aware selection from ranked features."""
-    selected: list[str] = []
+    """Greedy selection using conditional IC for redundancy filtering.
 
-    for feature in scores["feature"]:
+    After selecting a feature, its linear signal is regressed out of all
+    remaining candidates, and IC/ICIR is recomputed on the residuals. This
+    ensures that features are selected for their incremental alpha contribution,
+    not just their pairwise correlation with already-selected features.
+
+    Args:
+        scores: DataFrame sorted by ICIR descending.
+        feature_data: Validation feature DataFrame (aligned with target).
+        target: Forward return target series.
+        top_k: Maximum number of features to select.
+        icir_threshold: Minimum absolute ICIR to be considered.
+
+    Returns:
+        List of selected feature names, in selection order.
+    """
+    from sklearn.linear_model import LinearRegression
+
+    selected: list[str] = []
+    remaining_features = list(scores["feature"])
+    # Work on a copy of the feature matrix to avoid mutation
+    residual_data = feature_data.copy()
+
+    for candidate in scores["feature"]:
         if len(selected) >= top_k:
             break
-        if not selected:
-            selected.append(feature)
+        if candidate not in remaining_features:
             continue
 
-        correlations = correlation_matrix.loc[feature, selected].abs()
-        if bool((correlations >= corr_threshold).any()):
+        # Check ICIR threshold
+        row = scores[scores["feature"] == candidate].iloc[0]
+        if abs(float(row["icir"])) < icir_threshold:
             continue
-        selected.append(feature)
+
+        selected.append(candidate)
+
+        # Regress out the selected feature's signal from remaining candidates
+        if len(selected) < top_k and len(remaining_features) > len(selected):
+            selected_matrix = residual_data[selected].values
+            regressor = LinearRegression(fit_intercept=False)
+            regressor.fit(selected_matrix, residual_data[remaining_features].values)
+
+            # Residualize remaining features
+            predicted = regressor.predict(selected_matrix)
+            remaining_idx = [
+                i for i, f in enumerate(remaining_features) if f not in selected
+            ]
+            if remaining_idx:
+                remaining_names = [remaining_features[i] for i in remaining_idx]
+                residual_data[remaining_names] = (
+                    residual_data[remaining_names].values - predicted[:, remaining_idx]
+                )
 
     return selected
 
 
 class FeatureSelector:
-    """Select features using research-based scoring and redundancy filtering.
+    """Select features using IC/ICIR scoring and conditional IC redundancy filtering.
 
-    Operates directly on a list of FeatureConfig instances and a DataFrame,
-    without requiring a YAML config file. This makes it composable with
-    FeatureGroupResolver for group-based candidate pool construction.
+    Implements the Information Coefficient framework standard in quantitative
+    factor research. Each feature is scored by its ICIR (mean IC / IC std) against
+    forward returns, and redundancy is handled via conditional IC rather than
+    pairwise correlation.
 
     Usage::
 
@@ -206,13 +333,13 @@ class FeatureSelector:
         from trading_rl.features.selector import FeatureSelector, FeatureSelectorConfig
 
         resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
-        candidates = resolver.resolve(["imbalance", "fair_value", "spread", "flow", "regime"])
+        candidates = resolver.resolve(resolver.list_groups())
 
         selector = FeatureSelector(FeatureSelectorConfig(top_k=12))
         result = selector.select(candidates, train_df, val_df)
 
-        # Use selected configs to build a pipeline
-        pipeline = FeaturePipeline(result.selected_configs)
+        # Write to YAML for training
+        FeatureSelector.write_selected_yaml(result, "src/configs/features/selected.yaml")
     """
 
     def __init__(self, config: FeatureSelectorConfig | None = None) -> None:
@@ -224,7 +351,7 @@ class FeatureSelector:
         train_df: pd.DataFrame,
         val_df: pd.DataFrame,
     ) -> FeatureSelectionResult:
-        """Run feature selection on candidate features.
+        """Run IC/ICIR feature selection on candidate features.
 
         Args:
             feature_configs: Candidate feature configurations.
@@ -232,15 +359,15 @@ class FeatureSelector:
             val_df: Validation DataFrame with raw columns.
 
         Returns:
-            FeatureSelectionResult with selected configs and scoring details.
+            FeatureSelectionResult with selected configs, IC scores, and IC series.
         """
         cfg = self.config
         logger.info(
-            "Starting feature selection: %d candidates, top_k=%d, "
-            "corr_threshold=%.2f, horizon=%d",
+            "Starting IC/ICIR feature selection: %d candidates, top_k=%d, "
+            "icir_threshold=%.3f, horizon=%d",
             len(feature_configs),
             cfg.top_k,
-            cfg.corr_threshold,
+            cfg.icir_threshold,
             cfg.horizon,
         )
 
@@ -271,19 +398,32 @@ class FeatureSelector:
             len(val_aligned),
         )
 
-        # Score features
-        scores = _build_score_table(train_aligned, val_aligned, cfg.score_weights)
+        # Score features using IC/ICIR
+        scores, ic_series = _build_icir_score_table(
+            train_aligned, val_aligned, window_size=cfg.window_size,
+        )
 
-        # Compute inter-feature correlation on training data
+        logger.info("IC/ICIR scoring complete, top 5 features:")
+        for _, row in scores.head(5).iterrows():
+            logger.info(
+                "  %s: ICIR=%.4f, mean_IC=%.6f, t=%.2f",
+                row["feature"], row["icir"], row["mean_ic"], row["ic_tstat"],
+            )
+
+        # Compute inter-feature correlation on validation data for reporting
         feature_cols = scores["feature"].tolist()
-        correlation_matrix = train_aligned[feature_cols].corr().fillna(0.0)
+        correlation_matrix = val_aligned[feature_cols].corr().fillna(0.0)
 
-        # Select features with redundancy filter
-        selected_names = _select_features(
+        # Select features using conditional IC redundancy filter
+        val_target_col = next(
+            col for col in val_aligned.columns if col.startswith("target_")
+        )
+        selected_names = _select_features_conditional_ic(
             scores,
-            correlation_matrix,
+            val_aligned[feature_cols],
+            val_aligned[val_target_col],
             top_k=cfg.top_k,
-            corr_threshold=cfg.corr_threshold,
+            icir_threshold=cfg.icir_threshold,
         )
 
         # Map selected names back to FeatureConfig instances
@@ -306,10 +446,11 @@ class FeatureSelector:
         return FeatureSelectionResult(
             selected_configs=selected_configs,
             scores=scores,
+            ic_series=ic_series,
             correlation_matrix=correlation_matrix,
             selected_names=selected_names,
             top_k=cfg.top_k,
-            corr_threshold=cfg.corr_threshold,
+            icir_threshold=cfg.icir_threshold,
         )
 
     @staticmethod
