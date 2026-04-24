@@ -162,7 +162,7 @@ else:
 
 The key interpretive issue is not whether the agent attains a
 single high metric, but whether the reported behavior is consistent with the
-microstructure-aware state design proposed in Chapter 4. Because the current
+order-book-informed state design proposed in Chapter 4. Because the current
 work studies order-book-derived state representations, performance should be
 read jointly with turnover, drawdown, and action behavior rather than through
 return metrics alone.

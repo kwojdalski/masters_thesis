@@ -57,7 +57,7 @@ sequence-model architectures. Taken together, these extensions would test
 whether the feasibility result established here survives under more realistic
 conditions.
 
-In sum, the thesis shows that combining limit order book data, microstructure-aware
+In sum, the thesis shows that combining limit order book data, LOB-informed
 feature engineering, and continuous-action actor-critic learning is a productive
 research direction for high-frequency trading. The defensible conclusion is a
 narrow one: under the conditions studied here, the learning problem is
