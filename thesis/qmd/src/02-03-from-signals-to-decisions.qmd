@@ -1,0 +1,24 @@
+## From Microstructure Signals to Tradable Decisions
+
+The preceding sections motivate the use of LOB-derived variables as state
+descriptors, but they do not imply that those variables are automatically
+profitable trading signals. A spread, imbalance, microprice divergence, or
+intraday-time feature may describe the current liquidity environment without
+forecasting the next price change strongly enough to justify trading.
+
+This distinction is especially important for order-flow variables. Empirical
+microstructure studies often document contemporaneous relationships between book
+events and price changes. Such relationships show that order-book information is
+incorporated into prices, but they do not by themselves establish lagged
+predictability at the decision horizon available to a trading agent. For the
+present thesis, OFI and related features are therefore treated as compact
+summaries of current queue pressure. Whether lagged or rolling versions of those
+features help a policy choose profitable exposure is an empirical question.
+
+The same discipline applies to all candidate features. A variable is useful for
+the trading agent only if it contains information available before the action,
+survives transaction costs and spread effects, and improves performance on
+held-out data under a fixed evaluation protocol. The role of the literature is
+to justify which mechanisms are worth representing in the state; the later
+empirical chapters test whether those representations support tradable decisions
+under the simulation assumptions of this thesis.
