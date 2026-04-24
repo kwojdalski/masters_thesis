@@ -62,13 +62,22 @@ these events exert on the best bid and ask queues. In a sample of NYSE stocks,
 they find a linear relationship between OFI and mid-price changes over intervals
 of one second to one minute, with OFI explaining 60–80% of short-term price
 variation. Importantly, the relationship is contemporaneous: OFI at time $t$
-is correlated with price changes at time $t$, not a lagged effect, which is consistent
-with the efficient incorporation of order book information into prices.^[The contemporaneous nature of the relationship means OFI does not provide a predictive edge in the strict sense — it reflects information already embedded in prices at the same instant. Its value as a state feature is that it summarises the queue-pressure signal the agent observes at decision time. In practice, the rolling OFI sum in the state vector captures a lagged window of past order-flow pressure, which does carry predictive properties at sub-second horizons.]
+is correlated with price changes at time $t$, not a lagged effect, which is
+consistent with the efficient incorporation of order book information into
+prices.^[This contemporaneous result does not by itself establish OFI as a
+predictive signal in the strict forecasting sense. Its relevance for the
+present thesis is narrower: OFI serves as a compact state descriptor of current
+queue pressure at the time the agent acts. If lagged or windowed OFI measures
+prove useful in the present setting, that is an empirical result of the later
+design and evaluation chapters rather than something established by the cited
+evidence alone.]
 
 The theoretical channel is straightforward: when buy-side pressure dominates
 (positive OFI), market makers raise quotes to attract sell-side flow and reduce
 inventory risk, mechanically pushing the mid-price upward. The OFI feature in
-the feature design operationalizes this mechanism directly.
+the feature design is included primarily as a state variable summarizing current
+order-flow pressure, not because the literature alone proves standalone
+predictive power at the forecast horizon relevant to this thesis.
 
 **Fair value estimation from the order book.**
 @Stoikov2018 derives the microprice as the theoretically optimal estimate of the
