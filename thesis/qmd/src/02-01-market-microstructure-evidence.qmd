@@ -5,7 +5,7 @@ observable empirical regularities at intraday and tick-level timescales.
 
 At these timescales, financial markets exhibit structural
 patterns that are distinct from the macro-level anomalies studied
-in the asset pricing literature. These patterns arise not from investor
+in the asset pricing literature. They arise not from investor
 irrationality or information asymmetry in the fundamental sense, but from the
 mechanics of how orders interact in a limit order book: the strategic behavior
 of market makers, the clustering of institutional activity, and the discrete
