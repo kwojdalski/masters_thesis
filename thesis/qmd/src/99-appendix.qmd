@@ -407,12 +407,14 @@ parameters.
 
 # Offline Feature Selection Pipeline
 
-The theory-driven feature selection described in Section 4.2 produces the
-baseline state space used throughout the experiments. A complementary offline
-pipeline automates the evaluation and pruning of candidate feature sets, enabling
-systematic exploration of alternative specifications without modifying source
-code. This appendix describes the pipeline architecture and the selection
-procedure.
+The feature selection procedure described in Section 4.2 operates in two stages:
+theory constrains the candidate pool to mechanisms grounded in market
+microstructure literature; IC/ICIR ranking selects among the available
+implementations of those mechanisms and removes redundancy via a conditional IC
+filter. This appendix describes the operational pipeline that implements Stage 2
+of that procedure. It takes a theory-defined candidate pool as input, scores each
+feature against a forward return proxy, and writes the selected feature
+specification to a YAML file that the training pipeline loads directly.
 
 ## Feature Group Registry
 
@@ -443,10 +445,14 @@ feature list is written to a YAML file that the training pipeline loads
 directly. This ensures that feature selection is not repeated on every training
 run and that the reduced specification is reproducible.
 
-**Step 1: Candidate pool construction.** The user specifies which feature groups
-to include. The `FeatureGroupResolver` expands group names into a flat list of
-`FeatureConfig` instances. Exclusions can be applied at this stage to remove
-individual features from the expanded pool.
+**Step 1: Theory-constrained candidate pool construction.** The user specifies
+which feature groups to include. Each group in `feature_groups.yaml` corresponds
+to a distinct microstructure mechanism (see Section 4.2); only groups with a
+theoretical prior are eligible for inclusion. The `FeatureGroupResolver` expands
+group names into a flat list of `FeatureConfig` instances. Individual features
+can be excluded at this stage, but no feature from outside the theory-defined
+groups can be added. This constraint is enforced by the group registry structure,
+not by post-hoc filtering.
 
 **Step 2: Proxy target.** Each feature is scored against a forward log-return
 target at horizon $h$:
