@@ -1,10 +1,12 @@
-## Market Microstructure Theory
+## Market Microstructure Mechanisms
 
 Market microstructure is grounded in a theoretical literature that models the
 strategic interactions between informed
 traders, uninformed liquidity demanders, and market makers in a limit order book.
 This section reviews the theoretical frameworks that directly underpin the feature
-design choices made in Chapter 4.
+design choices made in Chapter 4. The organizing logic is mechanism, observable
+feature, and limitation: each framework motivates a candidate state variable,
+but none establishes by itself that the variable is profitable after costs.
 
 **Adverse selection and the spread decomposition.**
 @GlostenMilgrom1985 established that the bid-ask spread reflects a market
@@ -34,7 +36,9 @@ is linear, with slope $\lambda$ that depends on the ratio of informed to
 uninformed volume. The order flow features in Chapter 4 — OFI and signed trade
 flow — can be understood as empirical proxies for Kyle's order imbalance
 variable, with the bid-ask slope features measuring the depth analogue of
-$\lambda$ across levels of the order book.
+$\lambda$ across levels of the order book. The limitation is that these proxies
+summarize observable pressure and depth, not the latent information set of the
+informed trader in Kyle's model.
 
 **Limit order book mechanics.**
 @Glosten1994 developed the theory of the open limit order book as a competitive
@@ -93,7 +97,9 @@ $$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_
 When $V^{bid}_0 \gg V^{ask}_0$, the microprice is pulled toward the ask —
 the side more likely to move. The microprice divergence from mid captures this
 adjustment as a stationary signal and serves as the primary fair value feature
-in Chapter 4.
+in Chapter 4. Its limitation is that it is a top-of-book fair-value proxy; it
+does not incorporate deeper queue dynamics, hidden liquidity, or the agent's own
+execution priority.
 
 Taken together, these four theoretical frameworks identify several mechanisms
 that may be relevant for state design in limit-order-book markets. The spread
