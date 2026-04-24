@@ -23,11 +23,14 @@ state space, $\mathcal{A}$ is the action space, $P(s' \mid s,a)$ is the
 transition kernel, $R(s,a,s')$ is the reward function, and $\gamma$ is the
 discount factor. In financial markets, this formulation is necessarily an
 approximation. The agent observes engineered order-book features rather than the
-full market state, and the transition process is affected by non-stationarity,
-intraday seasonality, hidden liquidity, and other unobserved participants. The
-state representation used in this thesis should therefore be understood as an
-attempt to approximate a Markov state, not as proof that the market itself is
-fully Markovian.
+full market state, so the empirical problem is better understood as a partially
+observed decision problem represented through an approximate MDP. Relevant
+information may be omitted because of hidden liquidity, unobserved order-flow
+history, latent intraday regimes, queue priority, and other market participants'
+private decisions. The transition process is also affected by non-stationarity
+and intraday seasonality. The state representation used in this thesis should
+therefore be understood as an attempt to construct a useful decision state under
+partial observability, not as proof that the market itself is fully Markovian.
 
 ### Environment
 
