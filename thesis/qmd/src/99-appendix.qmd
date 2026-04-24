@@ -69,6 +69,8 @@ is already bounded in $[-1, 1]$ by the action space definition.
 
 : LOB microstructure features implemented in the feature registry. The In model column marks features used in the main state-space experiment. {#tbl-lob-features longtable=true tbl-colwidths="[34,15,10,9,32]"}
 
+Literature: the cited work that motivates or introduces the feature; not a claim that the exact implementation follows the cited paper's specification.
+
 ## Bar-Level and Technical Features
 
 The features below operate on OHLCV bar data and are not used in the main
