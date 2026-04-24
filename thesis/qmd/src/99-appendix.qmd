@@ -60,8 +60,7 @@ is already bounded in $[-1, 1]$ by the action space definition.
 | `hft_trade_arrival_rate_100` | Order flow | $W=100$ | | Engle (2000) |
 | `hft_trade_arrival_rate_500` | Order flow | $W=500$ | | Engle (2000) |
 | `hft_large_trade_ratio_200` | Order flow | $W=200$ | | Institutional flow proxy |
-| `hft_ofi_autocorr_50` | Order flow | $W=50$ | | Cont et al. (2014) |
-| `hft_ofi_autocorr_200` | Order flow | $W=200$ | | Cont et al. (2014) |
+| `hft_ofi_autocorr_{50,200}` | Order flow | $W \in \{50, 200\}$ | | Cont et al. (2014) |
 | `hft_inter_event_time` | Regime/temp. | --- | [x] | Engle (2000) |
 | `hft_mid_price_acceleration` | Regime/temp. | --- | [x] | Abergel et al. (2016) |
 | `hft_hour_sin` | Regime/temp. | --- | [x] | Wood et al. (1985) |
