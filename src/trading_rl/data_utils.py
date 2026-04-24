@@ -294,8 +294,76 @@ def ensure_unique_index_for_hft_tradingenv(
     return updated["train"], updated["val"], updated["test"]
 
 
-def build_prepared_dataset(config: Any, logger: logging.Logger) -> PreparedDataset:
+def _build_pooled_dataset(
+    config: Any, logger: logging.Logger, data_paths: list[str]
+) -> "PreparedDataset":
+    """Build a pooled dataset by processing each file independently then concatenating.
+
+    Each file is normalized using its own training split statistics (per-symbol
+    z-score normalization), then the splits are concatenated across symbols.
+    """
+    logger.info("Pooled training: processing %d data files independently", len(data_paths))
+
+    all_train: list[pd.DataFrame] = []
+    all_val: list[pd.DataFrame] = []
+    all_test: list[pd.DataFrame] = []
+
+    for data_path in data_paths:
+        logger.info("Processing %s", data_path)
+        train_df_i, val_df_i, test_df_i = prepare_data(
+            data_path=data_path,
+            train_size=config.data.train_size,
+            validation_size=getattr(config.data, "validation_size", None),
+            download_if_missing=config.data.download_data,
+            feature_config_path=getattr(config.data, "feature_config", None),
+        )
+        all_train.append(train_df_i)
+        all_val.append(val_df_i)
+        all_test.append(test_df_i)
+
+    train_df = pd.concat(all_train, ignore_index=True)
+    val_df = pd.concat(all_val, ignore_index=True)
+    test_df = pd.concat(all_test, ignore_index=True)
+
+    logger.info(
+        "Pooled splits: train=%d, val=%d, test=%d rows",
+        len(train_df),
+        len(val_df),
+        len(test_df),
+    )
+
+    train_df, val_df, test_df = ensure_close_column_for_hft(
+        train_df, val_df, test_df, config, logger
+    )
+    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(
+        train_df, val_df, test_df, config, logger
+    )
+    validate_prepared_data(train_df, val_df, test_df, config)
+
+    feature_columns = [col for col in train_df.columns if str(col).startswith("feature_")]
+    configured_price_column = getattr(config.env, "price_column", None)
+    price_column = (
+        configured_price_column
+        if isinstance(configured_price_column, str) and configured_price_column in train_df.columns
+        else "close"
+    )
+
+    return PreparedDataset(
+        train_df=train_df,
+        val_df=val_df,
+        test_df=test_df,
+        feature_columns=feature_columns,
+        price_column=price_column,
+        raw_columns=list(train_df.columns),
+    )
+
+
+def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedDataset":
     """Build a prepared dataset bundle for RL training and evaluation."""
+    data_paths = getattr(config.data, "data_paths", None)
+    if data_paths:
+        return _build_pooled_dataset(config, logger, data_paths)
+
     # Determine feature pipeline source: groups, plain config, or default
     feature_groups = getattr(config.data, "feature_groups", None)
     feature_config_path = getattr(config.data, "feature_config", None)

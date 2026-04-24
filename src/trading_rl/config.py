@@ -32,6 +32,9 @@ class DataConfig:
     validation_size: int | None = None
     feature_config: str | None = None  # Path to feature config YAML
     feature_groups: str | None = None  # Path to feature groups YAML
+    # Multi-symbol pooled training: list of parquet paths processed independently
+    # (per-symbol normalization) then concatenated. When set, data_path is ignored.
+    data_paths: list[str] | None = None
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
