@@ -39,22 +39,26 @@ environment in which the agent operates and motivate the feature set used here.
 @Roll1984 demonstrated that bid-ask spreads induce negative serial correlation
 in transaction prices at very short horizons, as they bounce between bid and
 ask quotes. This microstructure noise distinguishes observed transaction prices
-from the latent efficient price and creates a predictable pattern exploitable
-only by agents that operate at tick frequency and account for spread costs
-explicitly. In this thesis, spread in basis points and the spread ratio feature
-directly encode the cost of crossing the bid-ask, conditioning the agent's
-position-sizing decisions on the current liquidity environment.
+from the latent efficient price and creates a mechanical pattern that matters
+for any tick-level decision rule. It is not, by itself, a tradable opportunity:
+any attempt to exploit bid-ask bounce must overcome spread costs, latency, and
+the timing constraints of the execution model. In this thesis, spread in basis
+points and the spread ratio feature directly encode the cost of crossing the
+bid-ask, conditioning the agent's position-sizing decisions on the current
+liquidity environment. Whether this information supports profitable decisions is
+left to the later out-of-sample evaluation.
 
 @Wood1985 and @Harris1986 documented intraday patterns in volume,
 volatility, and returns: a pronounced U-shape in trading activity and spread
 width, with elevated liquidity demand at market open and close and a quiet
 midday period. These patterns reflect institutional trading schedules and
-liquidity provision dynamics rather than information arrival, and they are
-stable enough across days to serve as a signal for a trading agent.
-The hour-of-day sine and cosine encodings in the observation vector are
-motivated directly by this evidence — the agent needs to distinguish early-session
-conditions (wide spreads, high adverse selection) from midday periods
-(tighter spreads, lower activity) when sizing positions.
+liquidity provision dynamics rather than information arrival. They motivate
+time-of-day context variables, but they do not establish a standalone trading
+signal without horizon-specific validation and transaction-cost assessment. The
+hour-of-day sine and cosine encodings in the observation vector are motivated by
+this evidence because the agent should distinguish early-session conditions
+(wide spreads, high adverse selection) from midday periods (tighter spreads,
+lower activity) when sizing positions.
 
 @Harris1991 showed that prices cluster at round numbers and psychologically
 attractive levels, creating discontinuities in the order book that affect
