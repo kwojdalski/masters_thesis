@@ -15,7 +15,7 @@ turnover in the zero-fee baseline setting. The agent's behavior was also
 economically coherent: position sizing varied with the state of the order book
 rather than producing constant directional exposure, and drawdown during the
 test period remained contained relative to the buy-and-hold benchmark. These
-results should be read as a feasibility demonstration rather than a
+results should be read as a proof of concept rather than a
 generalization claim: the test split is drawn from the same three-day market
 episode as the training data, and "out-of-sample" here means held-out within
 that window, not evaluated across different market conditions. The finding

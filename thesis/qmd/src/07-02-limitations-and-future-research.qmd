@@ -91,7 +91,7 @@ seasonality as the training data. The agent has never encountered a different
 AAPL trading day, let alone a different market condition.
 
 This distinction matters for what the results actually support. The empirical
-findings are best read as a feasibility demonstration. The pipeline can extract
+findings are best read as a viability test. The pipeline can extract
 useful signal from order-book features. It can translate this into a policy that
 outperforms benchmarks within a controlled, narrow window. This is a necessary
 condition for practical utility, but not a sufficient one. It establishes that
