@@ -21,6 +21,8 @@ format:
       - \usepackage{amsmath}
       - \usepackage{booktabs}
       - \usepackage{longtable}
+      - \listoffigures
+      - \listoftables
       - \nralbumu{310284}
       - \speciality{Economics}
       - \opiekun{dr Pawel Sakowski}
@@ -28,9 +30,6 @@ format:
       - \dziedzina{14.3 Economics}
       - \klasyfikacja{G11, G17, C63}
       - \tytulang{Microstructure-Aware Reinforcement Learning for High-Frequency Trading}
-    include-before-body:
-      - \listoffigures
-      - \listoftables
   docx:
     embed-resources: true
   html:
