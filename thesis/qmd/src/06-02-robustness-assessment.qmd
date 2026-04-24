@@ -74,7 +74,7 @@ directly connected to the current empirical design:
 
 1. **Random-seed sensitivity**: whether performance is stable across repeated
    runs of the same configuration.
-2. **Feature-set sensitivity**: whether the richer state-space design improves
+2. **Feature-set sensitivity**: if the richer state-space design improves
    results relative to simpler snapshot-heavy alternatives without introducing
    unstable behavior.
 3. **Reward-function sensitivity**: whether conclusions depend on the specific
@@ -84,7 +84,7 @@ directly connected to the current empirical design:
 5. **Data-split sensitivity**: whether results remain similar under reasonable
    changes in the chronological split or training-window length.
 
-These dimensions are sufficient to test whether the conclusions here are
+These dimensions are sufficient to test if the conclusions here are
 specific to one narrow configuration or remain credible under nearby
 variations.
 

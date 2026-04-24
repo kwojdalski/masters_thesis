@@ -1,7 +1,7 @@
 # Conclusions and Future Work [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-This thesis examined whether a continuous-control deep RL agent
+This thesis examined if a continuous-control deep RL agent
 using order-book-derived microstructure features can achieve economically
 meaningful out-of-sample performance in a high-frequency single-asset setting.
 Within the controlled experimental design, the answer is affirmative. The TD3
@@ -27,7 +27,7 @@ experimental setup. The simulation uses a mid-price execution proxy rather than
 executable bid/ask fills, assumes zero market impact and zero latency, and is
 evaluated on a narrow three-day AAPL window with a single random seed. These
 choices were deliberate because they kept the experimental design tractable and
-made it possible to isolate whether the learning problem itself is feasible.
+made it possible to determine if the learning problem itself is feasible.
 They also place a clear boundary on the claim being made. The thesis
 demonstrates feasibility, not deployability. The observed edge cannot yet be
 treated as evidence of a production-ready trading strategy, because realistic
