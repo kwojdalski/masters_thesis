@@ -1,14 +1,16 @@
 # Literature Review
 
 This chapter surveys the academic foundations relevant to reinforcement learning
-for high-frequency trading. It is organized in two parts. The first part reviews
-market microstructure — the theoretical mechanisms and empirical evidence that
-govern short-horizon price formation in limit order book markets. This
-establishes the financial environment in which the agent operates and motivates
-the feature engineering choices made in Chapter 4. The second part positions
-reinforcement learning as the appropriate framework for this problem. It then
-surveys the key concepts that matter in a trading context and reviews prior RL
-trading applications, with attention to action-space design, transaction-cost
-modeling, and evaluation rigor. The survey concludes by identifying the
-comparatively underexplored combination of LOB-derived features, continuous
-control, and microstructure-aware state design that this thesis studies.
+for tick-level order-book trading. It first distinguishes the controlled
+simulation setting studied here from live high-frequency trading, then reviews
+the microstructure mechanisms that motivate the candidate state variables used in
+Chapter 4. The chapter then separates descriptive microstructure variables from
+tradable signals: a feature is useful only if it contains information available
+before the action, survives costs, and improves out-of-sample performance. The
+second half compares competing modeling approaches, introduces the reinforcement
+learning concepts most relevant to trading, and reviews prior RL trading
+applications through state representation, action-space design, reward
+definition, transaction-cost modeling, and validation rigor. The survey concludes
+by identifying the comparatively underexplored combination of LOB-derived
+features, continuous control, and microstructure-aware state design that this
+thesis studies.
