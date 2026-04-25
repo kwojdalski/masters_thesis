@@ -25,12 +25,22 @@ causal integrity across both time and the chronological split.
 
 The processed training split is used to construct the trading environment with
 a continuous action space $a_t \in [-1, 1]$ representing target portfolio
-exposure. Training follows the TD3 procedure described in Chapter 3: experience
-is collected into a replay buffer, twin critics are updated from sampled
-mini-batches, and the actor is updated every $d$ critic steps via the
-deterministic policy gradient. Target networks track the main networks through
-soft updates with coefficient $\tau$. Exploration noise is applied during
-training and removed at evaluation time.
+exposure. Training follows the TD3 procedure described in Chapter 3, with
+comparable implementations for DDPG and PPO for experimental comparison.
+All three algorithms share a common training infrastructure: experience
+collection, network updates, and evaluation. The primary differences are in the
+update rules (deterministic policy gradient for DDPG/TD3, clipped surrogate for
+PPO) and replay buffer usage (off-policy for DDPG/TD3, on-policy for PPO).
+
+For TD3 and DDPG, experience is collected into a replay buffer, twin critics are
+updated from sampled mini-batches, and the actor is updated every $d$ critic
+steps via the deterministic policy gradient. Target networks track the main
+networks through soft updates with coefficient $\tau$. Exploration noise is
+applied during training and removed at evaluation time. For PPO, training follows
+the on-policy paradigm: batches are collected using the current policy, multiple
+epochs of updates are performed on each batch, and the clipped surrogate objective
+constrains policy changes. The stochastic policy handles exploration through
+entropy bonuses rather than explicit noise injection.
 
 ```{=latex}
 \begin{algorithm}
