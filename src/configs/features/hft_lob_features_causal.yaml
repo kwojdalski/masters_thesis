@@ -1,0 +1,297 @@
+# HFT LOB Features with Causal (Look-Ahead-Free) Normalization
+# ==============================================================
+#
+# This configuration uses causal normalization to eliminate all look-ahead bias,
+# making the approach scientifically defensible for sequential RL.
+#
+# Normalization method:
+#   - "running": Cumulative running mean/std (Welford's algorithm)
+#   - use_time_weights: False (event-based, matches standard RL libraries)
+#   - reset_on_session_break: True (reset stats at overnight/weekend gaps)
+#
+# This is the recommended configuration for the thesis experiments.
+#
+# Required columns:
+#   bid_px_00..bid_px_09, ask_px_00..ask_px_09,
+#   bid_sz_00..bid_sz_09, ask_sz_00..ask_sz_09
+#
+# Additional columns:
+#   bid_ct_00..bid_ct_09, ask_ct_00..ask_ct_09,
+#   action, side, size
+#
+# Index requirement:
+#   DatetimeIndex (nanosecond precision preferred)
+
+# Global normalization settings
+normalization_method: "running"  # Causal cumulative normalization
+use_time_weights: false  # Event-based (standard RL approach)
+reset_on_session_break: true  # Reset at overnight/weekend gaps
+session_break_threshold_hours: 1.0  # 1 hour gap = session break
+
+features:
+  # =============================================================================
+  # Imbalance Features
+  # =============================================================================
+
+  - name: "hft_book_pressure_l0"
+    feature_type: "book_pressure"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      level: 0
+
+  - name: "hft_book_pressure_l1"
+    feature_type: "book_pressure"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      level: 1
+
+  - name: "hft_book_pressure_l2"
+    feature_type: "book_pressure"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      level: 2
+
+  - name: "hft_order_book_imbalance_3l"
+    feature_type: "order_book_imbalance"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      levels: 3
+
+  - name: "hft_order_count_imbalance_l0"
+    feature_type: "order_count_imbalance"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      level: 0
+
+  # =============================================================================
+  # Fair Value Features
+  # =============================================================================
+
+  - name: "hft_microprice"
+    feature_type: "microprice"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_microprice_divergence"
+    feature_type: "microprice_divergence"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_vwmp_skew"
+    feature_type: "vwmp_skew"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      levels: 3
+
+  # =============================================================================
+  # Spread and Cost Features
+  # =============================================================================
+
+  - name: "hft_spread_bps"
+    feature_type: "spread_bps"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+
+  - name: "hft_spread_ratio_50"
+    feature_type: "spread_ratio"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 50
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+
+  - name: "hft_bid_convexity"
+    feature_type: "book_convexity"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "bid"
+
+  - name: "hft_ask_convexity"
+    feature_type: "book_convexity"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "ask"
+
+  - name: "hft_bid_slope"
+    feature_type: "bid_ask_slope"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "bid"
+      levels: 5
+
+  - name: "hft_ask_slope"
+    feature_type: "bid_ask_slope"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "ask"
+      levels: 5
+
+  # =============================================================================
+  # Order Flow Features
+  # =============================================================================
+
+  - name: "hft_ofi"
+    feature_type: "ofi"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_ofi_rolling_50"
+    feature_type: "ofi_rolling"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 50
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_bid_queue_depletion"
+    feature_type: "queue_depletion"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "bid"
+      bid_size_col: "bid_sz_00"
+
+  - name: "hft_ask_queue_depletion"
+    feature_type: "queue_depletion"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "ask"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_signed_trade_flow_50"
+    feature_type: "signed_trade_flow"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 50
+      action_col: "action"
+      side_col: "side"
+      size_col: "size"
+
+  - name: "hft_odd_lot_trade_ratio_200"
+    feature_type: "odd_lot_trade_ratio"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 200
+      round_lot: 100
+      action_col: "action"
+      size_col: "size"
+
+  - name: "hft_odd_lot_imbalance_200"
+    feature_type: "odd_lot_imbalance"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 200
+      round_lot: 100
+      action_col: "action"
+      side_col: "side"
+      size_col: "size"
+
+  # =============================================================================
+  # Regime and Temporal Features
+  # =============================================================================
+
+  - name: "hft_inter_event_time"
+    feature_type: "inter_event_time"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+
+  - name: "hft_mid_price_acceleration"
+    feature_type: "mid_price_acceleration"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+
+  # Cyclical features are already normalized to [-1, 1], no additional normalization needed
+  - name: "hft_hour_sin"
+    feature_type: "hour_sin"
+    normalize: false
+    domain: "hft"
+
+  - name: "hft_hour_cos"
+    feature_type: "hour_cos"
+    normalize: false
+    domain: "hft"
