@@ -56,29 +56,22 @@ class LowFeature(Feature):
 class TrendFeature(Feature):
     """Cumulative price trend: close / initial_close.
 
-    Captures long-term trend, normalized to [0, 1] range.
-    Note: Uses min-max normalization instead of z-score to preserve trend direction.
-    """
+    Captures long-term trend direction as price relative to episode start.
+    Raw value is 1.0 at episode start, >1.0 for uptrend, <1.0 for downtrend.
 
-    def __init__(self, config):
-        # Trend uses min-max normalization, not z-score
-        config.normalize = False
-        super().__init__(config)
+    Normalization is controlled by FeatureConfig.normalization_method:
+    - "none": raw ratio (e.g. 1.05 = +5% from start) — no look-ahead bias
+    - "running": causal z-score via Welford's algorithm — no look-ahead bias
+    - "rolling": causal rolling window z-score — no look-ahead bias
+    - "global": StandardScaler fit on training data — mild look-ahead (train set only)
+    """
 
     def required_columns(self) -> list[str]:
         return ["close"]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        """Compute cumulative trend with min-max normalization."""
-        # Price relative to initial price
-        trend = df["close"] / df["close"].iloc[0]
-
-        # Min-max normalization to [0, 1] instead of z-score
-        trend_min = trend.min()
-        trend_max = trend.max()
-        normalized = (trend - trend_min) / (trend_max - trend_min + 1e-8)
-
-        return normalized
+        """Compute cumulative trend as price ratio relative to episode start."""
+        return df["close"] / df["close"].iloc[0]
 
 
 @register_feature("simple_return")
