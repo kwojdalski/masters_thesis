@@ -250,6 +250,194 @@ class RunningMeanStd:
         self._fitted = self.count > 0
 
 
+class TimeWeightedRunningMeanStd:
+    """Time-weighted running mean and standard deviation.
+
+    Statistics are weighted by time deltas between observations, not by event count.
+    This is more appropriate for HFT where events cluster during high activity periods.
+
+    For each observation x_i with time weight w_i (seconds since previous event):
+        mean = sum(w_i * x_i) / sum(w_i)
+        var  = sum(w_i * (x_i - mean)^2) / sum(w_i)
+
+    This gives more importance to periods with longer duration, preventing
+    clustered events from dominating the statistics.
+    """
+
+    def __init__(self, epsilon: float = 1e-4):
+        """Initialize time-weighted running statistics.
+
+        Args:
+            epsilon: Small constant to prevent division by zero.
+        """
+        self.mean = 0.0
+        self.var = 1.0
+        self.total_weight = 0.0  # Sum of all time weights (not event count)
+        self.epsilon = epsilon
+        self._fitted = False
+
+    def reset(self) -> "TimeWeightedRunningMeanStd":
+        """Reset running statistics to initial state."""
+        self.mean = 0.0
+        self.var = 1.0
+        self.total_weight = 0.0
+        self._fitted = False
+        return self
+
+    def update(self, x: np.ndarray, time_weights: np.ndarray | None = None) -> "TimeWeightedRunningMeanStd":
+        """Update running statistics with new data batch.
+
+        Args:
+            x: New data batch (1D array or scalar).
+            time_weights: Time weights for each observation (in seconds). If None,
+                uses unit weights (degrades to event-based).
+
+        Returns:
+            self for chaining.
+        """
+        if len(x) == 0:
+            return self
+
+        if time_weights is None:
+            # Degrade to event-based if no weights provided
+            time_weights = np.ones_like(x)
+
+        # Ensure time_weights is same length as x
+        if len(time_weights) != len(x):
+            raise ValueError(
+                f"Length mismatch: data ({len(x)}) and time_weights ({len(time_weights)})"
+            )
+
+        batch_mean = np.average(x, weights=time_weights)
+        batch_weight = np.sum(time_weights)
+        batch_var = np.average((x - batch_mean) ** 2, weights=time_weights)
+
+        if batch_weight == 0:
+            return self
+
+        delta = batch_mean - self.mean
+        total_weight_new = self.total_weight + batch_weight
+
+        # Update weighted mean
+        new_mean = self.mean + delta * batch_weight / total_weight_new
+
+        # Update weighted variance using weighted parallel algorithm
+        m_a = self.var * self.total_weight
+        m_b = batch_var * batch_weight
+        M2 = m_a + m_b + delta**2 * self.total_weight * batch_weight / total_weight_new
+
+        new_var = M2 / total_weight_new if total_weight_new > 0 else self.var
+
+        self.mean = float(new_mean)
+        self.var = float(new_var)
+        self.total_weight = total_weight_new
+        self._fitted = True
+
+        return self
+
+    def fit(
+        self,
+        data: np.ndarray | pd.Series,
+        time_weights: np.ndarray | None = None,
+    ) -> "TimeWeightedRunningMeanStd":
+        """Fit on data by updating running statistics incrementally.
+
+        Args:
+            data: Input data to fit on.
+            time_weights: Time weights for each observation. If None, computes from
+                DatetimeIndex if available, otherwise uses unit weights.
+
+        Returns:
+            self for chaining.
+        """
+        if isinstance(data, pd.Series):
+            # Compute time weights from DatetimeIndex if not provided
+            if time_weights is None and isinstance(data.index, pd.DatetimeIndex):
+                time_weights = data.index.to_series().diff().dt.total_seconds().fillna(1.0)
+                time_weights = time_weights.values
+            data = data.values
+
+        self.update(data, time_weights)
+        return self
+
+    def transform(
+        self,
+        data: np.ndarray | pd.Series,
+        time_weights: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Transform using current running statistics.
+
+        Args:
+            data: Input data to normalize.
+            time_weights: Time weights for fitting if not yet fitted. Ignored during
+                transform (uses fitted stats).
+
+        Returns:
+            Normalized data with same shape as input.
+        """
+        if not self._fitted:
+            # First time: use raw data as-is, then update stats
+            if isinstance(data, pd.Series):
+                self.fit(data, time_weights)
+                return data
+            else:
+                self.fit(data, time_weights)
+                return data.copy()
+
+        if isinstance(data, pd.Series):
+            s = data
+        else:
+            s = pd.Series(data)
+
+        # Normalize: (x - running_mean) / sqrt(running_var + epsilon)
+        normalized = (s - self.mean) / np.sqrt(self.var + self.epsilon)
+
+        # Handle NaNs
+        normalized = normalized.fillna(0.0)
+        normalized = normalized.replace([np.inf, -np.inf], 0.0)
+
+        return normalized.values if not isinstance(data, pd.Series) else normalized
+
+    def fit_transform(
+        self,
+        data: np.ndarray | pd.Series,
+        time_weights: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Fit and transform in one step.
+
+        Args:
+            data: Input data.
+            time_weights: Time weights for each observation.
+
+        Returns:
+            Normalized data.
+        """
+        return self.fit(data, time_weights).transform(data, time_weights)
+
+    def state_dict(self) -> dict:
+        """Get current state (for checkpointing).
+
+        Returns:
+            Dictionary with mean, var, total_weight.
+        """
+        return {
+            "mean": self.mean,
+            "var": self.var,
+            "total_weight": self.total_weight,
+        }
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        """Load state from dictionary.
+
+        Args:
+            state_dict: Dictionary with mean, var, total_weight.
+        """
+        self.mean = state_dict["mean"]
+        self.var = state_dict["var"]
+        self.total_weight = state_dict["total_weight"]
+        self._fitted = self.total_weight > 0
+
+
 @dataclass
 class FeatureConfig:
     """Configuration for a single feature.
@@ -269,6 +457,9 @@ class FeatureConfig:
             (e.g., overnight/weekend gaps) to prevent cross-session contamination.
         session_break_threshold_hours: Minimum time gap (in hours) to consider a session break.
             Default: 1.0 hour (accounts for lunch gaps vs overnight gaps).
+        use_time_weights: If True, weight observations by time delta between events
+            (continuous-time normalization). If False, weight by event count (event-time).
+            Only applies to "running" normalization. Default: False.
         output_name: Optional custom output column name
         domain: Feature domain tag used for experiment-mode validation.
             Supported values: "shared", "mft", "hft".
@@ -282,6 +473,7 @@ class FeatureConfig:
     rolling_window: int = 1000
     reset_on_session_break: bool = True  # Reset stats at overnight/weekend gaps
     session_break_threshold_hours: float = 1.0  # 1 hour gap = session break
+    use_time_weights: bool = False  # Default: event-based
     output_name: str | None = None
     domain: str = FeatureDomain.SHARED
 
@@ -316,13 +508,18 @@ class Feature(ABC):
 
     def __init__(self, config: FeatureConfig):
         self.config = config
-        self.scaler: StandardScaler | RollingWindowScaler | RunningMeanStd | None = None
+        self.scaler: (
+            StandardScaler | RollingWindowScaler | RunningMeanStd | TimeWeightedRunningMeanStd | None
+        ) = None
         if config.normalize and config.normalization_method == NormalizationMethod.GLOBAL:
             self.scaler = StandardScaler()
         elif config.normalize and config.normalization_method == NormalizationMethod.ROLLING:
             self.scaler = RollingWindowScaler(window=config.rolling_window)
         elif config.normalize and config.normalization_method == NormalizationMethod.RUNNING:
-            self.scaler = RunningMeanStd()
+            if config.use_time_weights:
+                self.scaler = TimeWeightedRunningMeanStd()
+            else:
+                self.scaler = RunningMeanStd()
 
     @abstractmethod
     def compute(self, df: pd.DataFrame) -> pd.Series:
@@ -361,8 +558,8 @@ class Feature(ABC):
                 valid_values = raw_values.dropna().values.reshape(-1, 1)
                 if len(valid_values) > 0:
                     self.scaler.fit(valid_values)
-            elif isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd)):
-                # RollingWindowScaler and RunningMeanStd: fit updates stats
+            elif isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd, TimeWeightedRunningMeanStd)):
+                # RollingWindowScaler, RunningMeanStd, TimeWeightedRunningMeanStd: fit updates stats
                 self.scaler.fit(raw_values)
         return self
 
@@ -378,7 +575,14 @@ class Feature(ABC):
         raw_values = self.compute(df)
 
         if self.scaler is not None:
-            if isinstance(self.scaler, RunningMeanStd) and self.config.reset_on_session_break:
+            if isinstance(self.scaler, TimeWeightedRunningMeanStd):
+                # Time-weighted: transform with time-aware handling
+                if self.config.reset_on_session_break:
+                    return self._transform_session_aware_time_weighted(raw_values)
+                else:
+                    normalized = self.scaler.transform(raw_values)
+                    return pd.Series(normalized, index=raw_values.index, dtype=float)
+            elif isinstance(self.scaler, RunningMeanStd) and self.config.reset_on_session_break:
                 # Session-aware running normalization: reset at overnight/weekend gaps
                 return self._transform_session_aware(raw_values)
             elif isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd)):
@@ -443,6 +647,60 @@ class Feature(ABC):
             self.scaler.reset()
 
             # Normalize this session
+            normalized_session = self.scaler.transform(session_data)
+            all_normalized.append(normalized_session)
+
+        # Concatenate all sessions
+        if all_normalized:
+            result = pd.concat(all_normalized)
+            return result
+        else:
+            # Fallback: no sessions detected
+            normalized = self.scaler.transform(raw_values)
+            return pd.Series(normalized, index=raw_values.index, dtype=float)
+
+    def _transform_session_aware_time_weighted(self, raw_values: pd.Series) -> pd.Series:
+        """Transform with session resets for time-weighted running normalization.
+
+        Similar to _transform_session_aware but uses time-weighted statistics.
+
+        Args:
+            raw_values: Raw feature values with DatetimeIndex
+
+        Returns:
+            Normalized series with same index as input
+        """
+        if not isinstance(raw_values.index, pd.DatetimeIndex):
+            # Fallback: no session detection for non-datetime index
+            normalized = self.scaler.transform(raw_values)
+            return pd.Series(normalized, index=raw_values.index, dtype=float)
+
+        # Detect session breaks by time gaps
+        threshold = pd.Timedelta(hours=self.config.session_break_threshold_hours)
+        time_gaps = raw_values.index.to_series().diff() > threshold
+
+        # Find session boundaries
+        session_starts = [0]  # First session always starts at index 0
+        for i, is_break in enumerate(time_gaps):
+            if is_break and i > 0:
+                session_starts.append(i)
+
+        # Normalize each session independently
+        all_normalized = []
+
+        for i in range(len(session_starts)):
+            start_idx = session_starts[i]
+            end_idx = session_starts[i + 1] if i + 1 < len(session_starts) else len(raw_values)
+
+            if start_idx >= len(raw_values):
+                break
+
+            session_data = raw_values.iloc[start_idx:end_idx]
+
+            # Reset running stats for new session
+            self.scaler.reset()
+
+            # Normalize this session (time weights computed from DatetimeIndex)
             normalized_session = self.scaler.transform(session_data)
             all_normalized.append(normalized_session)
 
