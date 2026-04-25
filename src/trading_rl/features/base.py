@@ -23,6 +23,7 @@ class NormalizationMethod(StrEnum):
 
     GLOBAL = "global"  # StandardScaler on full dataset (fast, potential lookahead bias)
     ROLLING = "rolling"  # Rolling window z-score (causal, slower)
+    RUNNING = "running"  # Running mean/std (Welford's algorithm, causal, stable)
     NONE = "none"  # No normalization (let network handle it)
 
 
@@ -87,6 +88,152 @@ class RollingWindowScaler:
         return self.fit(data).transform(data)
 
 
+class RunningMeanStd:
+    """Running mean and standard deviation using Welford's algorithm.
+
+    This maintains cumulative statistics incrementally, using O(1) updates.
+    All observations contribute equally to the final statistics — no forgetting
+    of past data. This provides stable normalization with no look-ahead bias.
+
+    This is the approach used in:
+    - Stable Baselines3 (VecNormalize)
+    - Ray RLLib (RunningMeanStd)
+    - DeepMind's RL frameworks
+    """
+
+    def __init__(self, epsilon: float = 1e-4):
+        """Initialize running statistics.
+
+        Args:
+            epsilon: Small constant to prevent division by zero.
+        """
+        self.mean = 0.0
+        self.var = 1.0
+        self.count = 0
+        self.epsilon = epsilon
+        self._fitted = False
+
+    def update(self, x: np.ndarray) -> "RunningMeanStd":
+        """Update running statistics with new data batch.
+
+        Uses Welford's online algorithm for numerically stable computation.
+
+        Args:
+            x: New data batch (1D array or scalar).
+
+        Returns:
+            self for chaining.
+        """
+        batch_mean = np.mean(x)
+        batch_var = np.var(x)
+        batch_count = len(x)
+
+        if batch_count == 0:
+            return self
+
+        delta = batch_mean - self.mean
+        total_count = self.count + batch_count
+
+        # Update mean
+        new_mean = self.mean + delta * batch_count / total_count
+
+        # Update variance using parallel algorithm
+        m_a = self.var * self.count
+        m_b = batch_var * batch_count
+        M2 = m_a + m_b + delta**2 * self.count * batch_count / total_count
+
+        new_var = M2 / total_count if total_count > 0 else self.var
+
+        self.mean = float(new_mean)
+        self.var = float(new_var)
+        self.count = total_count
+        self._fitted = True
+
+        return self
+
+    def fit(self, data: np.ndarray | pd.Series) -> "RunningMeanStd":
+        """Fit on data by updating running statistics incrementally.
+
+        Args:
+            data: Input data to fit on.
+
+        Returns:
+            self for chaining.
+        """
+        if isinstance(data, pd.Series):
+            data = data.values
+        self.update(data)
+        return self
+
+    def transform(self, data: np.ndarray | pd.Series) -> np.ndarray:
+        """Transform using current running statistics.
+
+        Args:
+            data: Input data to normalize.
+
+        Returns:
+            Normalized data with same shape as input.
+        """
+        if not self._fitted:
+            # First time: use raw data as-is, then update stats
+            if isinstance(data, pd.Series):
+                self.fit(data)
+                return data
+            else:
+                self.fit(data)
+                return data.copy()
+
+        if isinstance(data, pd.Series):
+            s = data
+        else:
+            s = pd.Series(data)
+
+        # Normalize: (x - running_mean) / sqrt(running_var + epsilon)
+        normalized = (s - self.mean) / np.sqrt(self.var + self.epsilon)
+
+        # Handle NaNs (shouldn't happen with proper data)
+        normalized = normalized.fillna(0.0)
+
+        # Replace inf with 0
+        normalized = normalized.replace([np.inf, -np.inf], 0.0)
+
+        return normalized.values if not isinstance(data, pd.Series) else normalized
+
+    def fit_transform(self, data: np.ndarray | pd.Series) -> np.ndarray:
+        """Fit and transform in one step.
+
+        Args:
+            data: Input data.
+
+        Returns:
+            Normalized data.
+        """
+        return self.fit(data).transform(data)
+
+    def state_dict(self) -> dict:
+        """Get current state (for checkpointing).
+
+        Returns:
+            Dictionary with mean, var, count.
+        """
+        return {
+            "mean": self.mean,
+            "var": self.var,
+            "count": self.count,
+        }
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        """Load state from dictionary.
+
+        Args:
+            state_dict: Dictionary with mean, var, count.
+        """
+        self.mean = state_dict["mean"]
+        self.var = state_dict["var"]
+        self.count = state_dict["count"]
+        self._fitted = self.count > 0
+
+
 @dataclass
 class FeatureConfig:
     """Configuration for a single feature.
@@ -96,7 +243,11 @@ class FeatureConfig:
         feature_type: Type identifier for the feature class (e.g., "log_return")
         params: Additional parameters for feature creation
         normalize: Whether to apply z-score normalization
-        normalization_method: How to normalize: "global" (StandardScaler), "rolling", or "none"
+        normalization_method: How to normalize:
+            - "global": StandardScaler on full dataset (fast, potential lookahead bias)
+            - "rolling": Rolling window z-score (causal, slower, adapts to regimes)
+            - "running": Running mean/std (Welford's algorithm, causal, stable, used in Stable Baselines/RLLib)
+            - "none": No normalization (let network handle it)
         rolling_window: Window size for rolling normalization (only used when method="rolling")
         output_name: Optional custom output column name
         domain: Feature domain tag used for experiment-mode validation.
@@ -107,7 +258,7 @@ class FeatureConfig:
     feature_type: str
     params: dict[str, Any] | None = None
     normalize: bool = True
-    normalization_method: str = NormalizationMethod.GLOBAL
+    normalization_method: str = NormalizationMethod.RUNNING  # Default to running (causal)
     rolling_window: int = 1000
     output_name: str | None = None
     domain: str = FeatureDomain.SHARED
@@ -143,11 +294,13 @@ class Feature(ABC):
 
     def __init__(self, config: FeatureConfig):
         self.config = config
-        self.scaler: StandardScaler | RollingWindowScaler | None = None
+        self.scaler: StandardScaler | RollingWindowScaler | RunningMeanStd | None = None
         if config.normalize and config.normalization_method == NormalizationMethod.GLOBAL:
             self.scaler = StandardScaler()
         elif config.normalize and config.normalization_method == NormalizationMethod.ROLLING:
             self.scaler = RollingWindowScaler(window=config.rolling_window)
+        elif config.normalize and config.normalization_method == NormalizationMethod.RUNNING:
+            self.scaler = RunningMeanStd()
 
     @abstractmethod
     def compute(self, df: pd.DataFrame) -> pd.Series:
@@ -186,8 +339,8 @@ class Feature(ABC):
                 valid_values = raw_values.dropna().values.reshape(-1, 1)
                 if len(valid_values) > 0:
                     self.scaler.fit(valid_values)
-            elif isinstance(self.scaler, RollingWindowScaler):
-                # RollingWindowScaler: fit is a no-op (stats computed during transform)
+            elif isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd)):
+                # RollingWindowScaler and RunningMeanStd: fit updates stats
                 self.scaler.fit(raw_values)
         return self
 
@@ -203,8 +356,8 @@ class Feature(ABC):
         raw_values = self.compute(df)
 
         if self.scaler is not None:
-            if isinstance(self.scaler, RollingWindowScaler):
-                # RollingWindowScaler handles NaNs internally and preserves index
+            if isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd)):
+                # RollingWindowScaler and RunningMeanStd handle NaNs internally
                 normalized = self.scaler.transform(raw_values)
                 return pd.Series(normalized, index=raw_values.index, dtype=float)
             else:
