@@ -1,82 +1,146 @@
 ## Policy
 
-The policy $\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}$ is a deterministic function that
-maps the current state vector to a single continuous action $a_t \in [-1, 1]$. Given the
-same state, the policy always produces the same action. This is appropriate for a deployed
-trading system expected to behave consistently under identical market conditions and for
-an evaluation protocol that reports a single equity curve rather than an expectation over
-sampled trajectories.
+The policy maps the current state to an action. The three algorithms compared in
+this thesis — TD3, DDPG, and PPO — differ in a fundamental property of this mapping:
+TD3 and DDPG produce a single deterministic action for each state, while PPO maintains
+a probability distribution over actions and samples from it. This distinction has direct
+consequences for how each algorithm explores during training, how it behaves at
+evaluation time, and what the policy gradient looks like. The subsections below describe
+each architecture, followed by a table that makes the design choices explicit.
 
-### Actor Network Architecture
+### Deterministic Policy: TD3 and DDPG {#sec-policy-deterministic}
 
-The policy is implemented as a multi-layer perceptron (MLP). The input is the
-$d = 26$-dimensional state vector described in @sec-state-space. The network passes this
-through two hidden layers before producing a scalar action:
+Both TD3 and DDPG implement a deterministic policy:
 
-$$s_t \in \mathbb{R}^{26} \xrightarrow{\text{Linear}} \mathbb{R}^{128} \xrightarrow{\text{ReLU}} \mathbb{R}^{64} \xrightarrow{\text{ReLU}} \mathbb{R}^{1} \xrightarrow{\text{Tanh}} [-1, 1]$$
+$$\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}, \qquad a_t = \mu_\theta(s_t)$$
 
-The hidden layers use ReLU activations. ReLU avoids the vanishing-gradient problem that
-arises with saturating activations such as Tanh in deep hidden layers, and it has
-consistently outperformed alternatives on continuous-control benchmarks
-[@Mnih2015; @Fujimoto2018]. The output layer applies no activation before the Tanh, which
-squashes the pre-activation output to $(-1, 1)$. The Tanh output is preferred over a
-hard clip because it is differentiable everywhere: the policy gradient passes through the
-output non-linearity without discontinuity, and the smooth saturation near the action
-boundaries provides an implicit regularizer against extreme position changes.
+The policy is a multi-layer perceptron. The input is the $d = 26$-dimensional state
+vector. The network passes this through two hidden layers and produces a scalar action:
 
-The network contains approximately 11,800 trainable parameters:
+$$s_t \in \mathbb{R}^{26}
+  \xrightarrow{\text{Linear}} \mathbb{R}^{128}
+  \xrightarrow{\text{ReLU}} \mathbb{R}^{64}
+  \xrightarrow{\text{ReLU}} \mathbb{R}^{1}
+  \xrightarrow{\text{Tanh}} [-1,\,1]$$
 
-| Layer | Input | Output | Parameters |
-|-------|-------|--------|------------|
+Hidden layers use ReLU activations, which avoid the vanishing-gradient problem that
+arises with saturating activations in deep hidden layers [@Mnih2015]. The output layer
+applies no activation before the Tanh squashing, which maps the pre-activation scalar
+to $(-1, 1)$. Tanh is preferred over a hard clip because it is differentiable
+everywhere: the policy gradient passes through the output non-linearity without
+discontinuity, and the smooth saturation near the action boundaries provides an
+implicit regularizer against extreme position changes.
+
+The actor network contains approximately 11,800 trainable parameters:
+
+| Layer | Input dim | Output dim | Parameters |
+|-------|-----------|------------|------------|
 | Linear + ReLU | 26 | 128 | 3,456 |
 | Linear + ReLU | 128 | 64 | 8,256 |
 | Linear + Tanh | 64 | 1 | 65 |
 | **Total** | | | **11,777** |
 
-The critic networks share the same hidden-layer dimensions $[128, 64]$ but take the
-concatenated state-action pair $(s_t, a_t) \in \mathbb{R}^{27}$ as input and output a
-scalar Q-value estimate. Each critic contains approximately 11,900 parameters; the twin
-critics together account for roughly 23,800 parameters. The full set of online and target
-network parameters stored during training totals approximately 71,000 scalar values.
+**Exploration.** Because the policy is deterministic, it does not generate action
+diversity on its own. During data collection, additive Gaussian noise is injected:
 
-### Target Actor Network
+$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
+\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$
 
-TD3 maintains a slowly updated copy of the actor, $\mu_{\theta'}$, used exclusively when
-computing Bellman targets during critic updates. The target parameters are updated by
-Polyak averaging after each actor update:
+The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
 
-$$\theta' \leftarrow \tau \theta + (1 - \tau)\theta'$$
+TD3 adds a separate, independent noise term during critic updates for target policy
+smoothing ($\sigma_{\text{smooth}} = 0.2$, clipped to $[-0.3, 0.3]$). This is not
+exploration noise — it is a regularizer that prevents the critics from fitting sharp
+value peaks in the action space (Section 4.4). DDPG does not apply this smoothing;
+this is one of the three mechanisms that TD3 adds over DDPG.
 
-with $\tau = 0.001$. This rate is deliberately slow: small $\tau$ means the target policy
-changes gradually, providing stable bootstrap targets even while the online actor is
-updated more aggressively. The target actor is never used to generate actions during
+**Target actor.** Both algorithms maintain a slowly updated copy of the actor,
+$\mu_{\theta'}$, used only when computing Bellman targets:
+
+$$\theta' \leftarrow \tau\,\theta + (1 - \tau)\,\theta', \qquad \tau = 0.001$$
+
+The slow rate ensures the bootstrap target shifts gradually, even while the online
+actor receives more aggressive gradient updates. The target actor is never used for
 data collection or evaluation.
 
-### Training Policy vs Evaluation Policy
+**Architectural difference between TD3 and DDPG.** The actor networks for TD3 and DDPG
+are identical. The differences between the two algorithms lie entirely in the critic and
+training procedure: TD3 maintains twin critics and uses their minimum for conservative
+value targets, and delays actor updates to one per every two critic updates. DDPG uses
+a single critic and updates actor and critic at the same frequency. This makes DDPG the
+natural ablation for TD3: it isolates the effect of TD3's stability mechanisms while
+holding the policy architecture constant.
 
-Two distinct policies are used at different stages.
+### Stochastic Policy: PPO {#sec-policy-stochastic}
 
-During data collection, exploration noise is added to the deterministic action:
+PPO maintains a stochastic policy that outputs a probability distribution over actions
+at each state:
 
-$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right), \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2)$$
+$$\pi_\theta(\cdot \mid s_t) = \text{TanhNormal}\!\left(\mu_\theta(s_t),\,
+\sigma_\theta(s_t)\right)$$
 
-with $\sigma = 0.1$.^[An earlier draft of Section 4.1 cited $\sigma = 0.2$; the main
-experiment configuration uses $\sigma = 0.1$. The scenario file
-`src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml` is authoritative.] The noise
-encourages the agent to explore actions away from the current greedy choice, particularly
-during early training when the policy has not yet converged. The additive structure keeps
-exploration symmetric around the current policy output and does not require a separate
-exploration network.
+The actor network shares the same hidden-layer structure as the deterministic actors
+— two layers of width [128, 64] — but its output head differs. The final linear
+layer produces $2n_{\text{act}} = 2$ values, which are split into a mean $\mu$ and a
+raw scale parameter $\log \sigma$ by a parameter extractor. The scale is transformed
+to a positive standard deviation via a softplus non-linearity, and a TanhNormal
+distribution is constructed:
 
-A second, independent noise term is used for target policy smoothing during critic
-updates (Section 4.4). That noise has standard deviation $\sigma_{\text{smooth}} = 0.2$
-and is clipped to $[-0.3, 0.3]$, preventing the critics from fitting sharp value peaks in
-the action space. These two noise mechanisms serve different purposes and are applied
-at different points in the training loop; they are not interchangeable.
+$$s_t \in \mathbb{R}^{26}
+  \xrightarrow{\text{Linear}} \mathbb{R}^{128}
+  \xrightarrow{\text{Tanh}} \mathbb{R}^{64}
+  \xrightarrow{\text{Tanh}} \mathbb{R}^{2}
+  \xrightarrow{\text{split}} (\mu,\, \log\sigma)
+  \longrightarrow \text{TanhNormal}(\mu, \sigma)$$
 
-During evaluation, the noise is removed entirely:
+The PPO actor uses Tanh activations in the hidden layers, following standard practice
+for actors with stochastic output heads where bounded hidden representations improve
+numerical stability of the log-probability computation. The actor contains approximately
+11,800 parameters (the output dimension doubles the final layer relative to the
+deterministic actors, adding 64 parameters).
 
-$$a_t^{\text{eval}} = \mu_\theta(s_t)$$
+**Exploration.** Exploration is handled naturally through the entropy of the action
+distribution. An entropy bonus $c_1 = 0.01$ is added to the PPO objective to encourage
+the policy to maintain action diversity during training. No explicit noise injection is
+required.
 
-The evaluation policy is fully deterministic. Performance metrics reported in Chapter 6
-are computed from this noiseless rollout.
+**Evaluation.** At evaluation time, stochastic sampling is replaced by the mode of the
+TanhNormal distribution, which is $\tanh(\mu_\theta(s_t))$. This yields a deterministic
+action for each state, directly comparable to the TD3 and DDPG evaluation policies.
+
+**Value network.** Unlike TD3 and DDPG, whose critics estimate $Q(s, a)$, PPO's critic
+estimates the state value $V(s)$. The input is therefore the state vector alone (26
+dimensions), not the state-action concatenation. The critic architecture is otherwise
+identical: two hidden layers of width [128, 64] with Tanh activations, followed by a
+linear output layer producing a scalar value estimate.
+
+### Controlled Comparison Design
+
+All three algorithms are trained with the same state representation, reward function,
+data split, random seed, learning rates, and weight decay. The network capacity is
+equalized: both actor and value networks use hidden dimensions [128, 64] across all
+three algorithms. This ensures that differences in empirical performance in Chapter 6
+are attributable to the algorithmic properties — policy type, update rule, and
+stability mechanisms — and not to differences in model capacity or input features.
+
+The three scenario configuration files are:
+
+- `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`
+- `src/configs/scenarios/aapl/ddpg_hft_lob_state_space.yaml`
+- `src/configs/scenarios/aapl/ppo_hft_lob_state_space.yaml`
+
+The table below summarizes the policy-level design choices for each algorithm.
+
+| Property | DDPG | TD3 | PPO |
+|---|---|---|---|
+| Policy type | Deterministic | Deterministic | Stochastic |
+| Actor output | $\mu_\theta(s) \in [-1,1]$ | $\mu_\theta(s) \in [-1,1]$ | TanhNormal$(\mu, \sigma)$ |
+| Hidden dims | [128, 64] | [128, 64] | [128, 64] |
+| Hidden activation | ReLU | ReLU | Tanh |
+| Output activation | Tanh | Tanh | — (distribution) |
+| Exploration | Additive noise $\sigma=0.1$ | Additive noise $\sigma=0.1$ | Entropy bonus $c_1=0.01$ |
+| Target smoothing | None | $\sigma=0.2$, clip $\pm0.3$ | None |
+| Evaluation action | $\mu_\theta(s_t)$ | $\mu_\theta(s_t)$ | $\tanh(\mu_\theta(s_t))$ |
+| Critic input | $(s, a)$ | $(s, a)$ | $s$ only |
+| Number of critics | 1 | 2 (twin) | 1 |
+| Actor update freq. | Every step | Every 2 critic steps | Every epoch |
