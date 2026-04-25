@@ -90,16 +90,55 @@ different volatility regimes, spread environments, or intraday seasonality
 patterns beyond this specific period, and the generalizability of the results
 is bounded accordingly.
 
-### Feature Normalization and Leakage Prevention
+### Feature Normalization and Causality Preservation
 
-Normalization statistics (mean and standard deviation for z-score scaling)
-are estimated on the training split only and applied unchanged to the
-validation and test splits. Fitting normalization on the full dataset would
-allow future volatility regimes to influence the training representation,
-inflating apparent performance. Cyclical time encodings (hour-of-day sine and
-cosine) are already bounded in $[-1, 1]$ and are not normalized. Raw price
-columns used for portfolio accounting are kept in their original units and are
-never replaced by normalized values.
+Normalization of microstructure features presents a methodological challenge for sequential learning: the conventional approach of fitting a standard scaler on the full training dataset and applying it globally introduces look-ahead bias. Each observation's normalized value would incorporate statistical information from future timesteps, violating the causal structure that a trading agent must respect in deployment. An agent at step $t$ can only condition on information available at time $t$; allowing its inputs to be scaled using the mean and variance of the entire training set (including steps $t+1, t+2, \dots$) would, in effect, provide the agent with knowledge it cannot access.
+
+To preserve causality, this study employs a **cumulative running normalization** scheme based on Welford's online algorithm for computing sample mean and variance incrementally [@Welford1962]. For each feature $x$ observed at sequential timesteps $1, 2, \dots, T$, the running statistics are updated as:
+
+$$
+\bar{x}_t = \bar{x}_{t-1} + \frac{1}{t}(x_t - \bar{x}_{t-1})
+$$
+
+$$
+s^2_t = s^2_{t-1} + \frac{1}{t}\bigl[(x_t - \bar{x}_{t-1})^2 - s^2_{t-1}\bigr]
+$$
+
+where $\bar{x}_t$ and $s^2_t$ are the mean and variance after processing $t$ observations. The normalized value at timestep $t$ is then computed as:
+
+$$
+\tilde{x}_t = \frac{x_t - \bar{x}_{t-1}}{\sqrt{s^2_{t-1} + \epsilon}}
+$$
+
+This ensures that the scaling statistics used to normalize $\tilde{x}_t$ incorporate only observations $1, \dots, t-1$—strictly historical information from the agent's perspective. The computational cost of this approach is $O(1)$ per update, making it efficient even for large datasets.
+
+#### Session-Aware Normalization
+
+The continuous-time nature of equity markets introduces regime discontinuities at session boundaries. Overnight and weekend price gaps, changes in order-flow patterns between the opening auction and continuous trading, and differences in liquidity across intraday periods all represent shifts in the underlying data-generating process. A naive cumulative normalization that spans these boundaries would allow statistics from the previous session to contaminate the current session's representation. For example, a $5\%$ overnight price decline would make the opening trade appear as an extreme outlier when normalized against statistics that include the previous day's stable prices, even though such gaps are expected in continuous-time markets.
+
+To address this, running statistics are **reset at session boundaries**. A session break is defined as a time gap exceeding one hour, which distinguishes short intraday interruptions (e.g., lunch recess) from genuine overnight or weekend closures. At each boundary, $\bar{x}$ and $s^2$ are reinitialized to their default values ($\bar{x}=0, s^2=1$), and the accumulation process begins anew for the next session. This prevents the overnight gap from distorting the morning's normalization statistics and ensures that each trading session's features are scaled relative to that session's own empirical distribution.
+
+#### Event-Time vs. Continuous-Time Weighting
+
+An additional design choice concerns whether to weight observations by event count or by elapsed time. In high-frequency trading, events cluster during periods of high market activity: a burst of order-book updates over one second may contain 100 events, while a quiet 10-second interval may contain only one. An event-based normalization (the default in many standard RL libraries) would assign equal weight to each of the 100 clustered events and the one sparse event, effectively over-representing the high-activity period in the statistical summary. Continuous-time markets, however, are not sensitive to the number of events per se but to the duration over which each price or quote persists.
+
+This implementation supports an optional **time-weighted normalization** mode, where each observation $x_t$ is weighted by the elapsed time since the previous event, $\Delta t_t = t - t_{t-1}$. The weighted mean and variance are computed as:
+
+$$
+\bar{x}^{\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot x_i}{\sum_{i=1}^t \Delta t_i}
+$$
+
+$$
+s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{time}}_t)^2}{\sum_{i=1}^t \Delta t_i}
+$$
+
+When the time weights sum to the total elapsed time, the normalized value reflects the feature's deviation relative to its time-averaged trajectory rather than its average across discrete events. For the main experiments, event-based weighting is used as the default, matching the standard approach in the RL literature (e.g., Stable Baselines3, Ray RLLib). Sensitivity analysis with time-weighted normalization could be conducted as a direction for future work.
+
+#### Split-Specific Statistics and Leakage Prevention
+
+Normalization statistics are fitted **independently per security** and **only on the training split**. The validation and test splits are transformed using the mean and variance estimated from the training data of that same security. This separation serves two purposes. First, it prevents information leakage across the chronological split: statistics from the test period (which may reflect different market conditions) cannot influence the agent's training representation. Second, it respects the per-symbol pooling design: each security's features are normalized to zero mean and unit variance based on that security's own training distribution, ensuring that the agent learns relative microstructure signals (e.g., order-flow imbalance as a proportion of the book's depth) rather than absolute magnitudes that differ across price levels or liquidity profiles.
+
+Cyclical temporal encodings (hour-of-day sine and cosine) are already bounded in $[-1, 1]$ and are not subject to z-score normalization. Raw price columns used for portfolio accounting are kept in their original units and are never replaced by normalized values. This separation ensures that the observation features passed to the learning algorithm are statistically well-behaved, while the pricing inputs used for reward and valuation computation retain economic interpretability and correct accounting semantics.
 
 ### Feature and Price Column Separation
 
