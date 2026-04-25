@@ -81,6 +81,49 @@ environments, where rewards are noisy and non-stationary, these instabilities
 are particularly damaging because the critic cannot distinguish between genuine
 market signal and approximation artifacts.
 
+### PPO: On-Policy Actor-Critic with Clipped Objectives
+
+@Schulman2017 introduced Proximal Policy Optimization (PPO), which balances
+the sample efficiency of off-policy methods with the stability of on-policy
+updates. PPO optimizes a clipped surrogate objective:
+
+$$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(r_t(\theta)\hat{A}_t,
+\text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$
+
+where $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ is the
+probability ratio between the new and old policies, $\epsilon$ is a clipping
+hyperparameter (typically 0.2), and $\hat{A}_t$ is the advantage estimate.
+
+The clipping mechanism prevents excessively large policy updates that would
+collapse performance, making PPO more robust to hyperparameter choices than
+earlier policy gradient methods such as Vanilla Policy Gradient [@Sutton2000]
+and Trust Region Policy Optimization (TRPO) [@Schulman2015]. Unlike TD3 and
+DDPG, PPO is on-policy: it optimizes against the most recent policy and does
+not use a replay buffer. This trades sample efficiency for stability, which can
+be advantageous in environments where the value function is difficult to
+approximate.
+
+PPO also maintains a stochastic policy rather than the deterministic policies
+used by DDPG and TD3. At each state, the policy outputs a distribution over
+actions (typically Gaussian), and actions are sampled from this distribution.
+Exploration is handled naturally through the entropy of the action distribution,
+which can be explicitly encouraged through an entropy bonus term in the objective:
+
+$$L^{CLIP+ENT}(\theta) = L^{CLIP}(\theta) - c_1 \mathcal{H}(\pi_\theta)$$
+
+where $\mathcal{H}(\pi_\theta)$ is the policy entropy and $c_1$ is a coefficient
+controlling the strength of the exploration bonus.
+
+For trading applications, PPO's stochastic policy provides built-in exploration
+without requiring explicit noise injection during training, and its clipped
+objective helps avoid catastrophic performance drops that can occur in
+high-variance financial environments. However, its on-policy nature means each
+transition is used only once before being discarded, which is computationally
+expensive when training on limited historical data. This is a particularly
+relevant consideration for high-frequency trading, where the available
+order-book sample may be limited relative to the complexity of the value
+function approximation.
+
 ### TD3: Addressing the Instability of Deterministic Actor-Critic Methods
 
 @Fujimoto2018 introduced TD3 as a direct response to DDPG's failure modes,
@@ -153,3 +196,77 @@ It does not solve the remaining market-design problems. For that reason, the
 empirical chapters must still evaluate performance under explicit transaction
 costs, chronological validation, and the simulation assumptions stated in later
 sections.
+
+### Algorithm Comparison: TD3, PPO, and DDPG for Trading
+
+The three algorithms considered here differ along three dimensions that are
+particularly relevant to the continuous-action trading problem: learning paradigm,
+policy type, and stability mechanisms. Understanding these differences is
+essential for interpreting empirical comparisons and for justifying algorithm
+selection.
+
+**On-policy vs. off-policy learning.** TD3 and DDPG are off-policy algorithms
+that use experience replay, allowing each transition to be reused many times
+across multiple gradient updates. This is valuable when training data is limited,
+as is typical with high-frequency historical order-book data. Replay buffers
+also decorrelate consecutive transitions, reducing the variance of gradient
+estimates. PPO is on-policy and uses each transition only once before discarding
+it, requiring more training iterations for comparable sample efficiency. However,
+on-policy learning can be more stable when the environment distribution shifts
+rapidly, as financial markets do.
+
+**Deterministic vs. stochastic policies.** TD3 and DDPG output deterministic
+actions $a = \mu_\theta(s)$, matching the evaluation objective of a single
+exposure decision per state. During training, exploration is handled by adding
+noise to the deterministic action: $a = \mu_\theta(s) + \epsilon$, with
+$\epsilon \sim \mathcal{N}(0, \sigma^2)$. At evaluation time, the noise is removed,
+yielding a consistent, interpretable policy. PPO maintains a stochastic policy
+that outputs a distribution over actions (typically Gaussian), with actions
+sampled from this distribution. Exploration is handled naturally through the
+entropy of the action distribution rather than explicit noise injection.
+Deterministic policies are preferable when the final deployed system must be
+consistent and interpretable, while stochastic policies can provide more
+flexible exploration during training.
+
+**Stability mechanisms.** Each algorithm addresses stability challenges
+through different mechanisms. DDPG suffers from Q-value overestimation because
+the actor can exploit positive approximation errors in the critic, and these
+overestimates propagate through bootstrapped Bellman updates. TD3 addresses this
+through clipped double Q-learning (taking the minimum of two critic estimates)
+and delayed policy updates (updating the actor less frequently than the critics).
+PPO prevents large policy changes through its clipped surrogate objective, which
+limits how much the policy can change in a single update. Both TD3 and PPO are
+substantially more stable than vanilla DDPG, but through different mechanisms:
+TD3 targets value estimation errors, while PPO constrains policy changes directly.
+
+**Sample efficiency vs. stability trade-off.** The practical implication of
+these differences is a trade-off between sample efficiency and training stability.
+TD3 and DDPG can make efficient use of limited training data through replay, but
+DDPG's instability can make it difficult to train reliably. PPO is typically more
+stable but requires more data to achieve comparable performance due to its
+on-policy nature. For high-frequency trading applications, where training data
+may be limited but stability is critical for avoiding catastrophic losses, TD3's
+combination of off-policy efficiency and stability mechanisms makes it a strong
+candidate.
+
+**Table: Algorithm Properties for Trading Applications**
+
+| Property | DDPG | TD3 | PPO |
+|----------|------|-----|-----|
+| **Policy Type** | Deterministic | Deterministic | Stochastic |
+| **Learning Paradigm** | Off-policy (replay) | Off-policy (replay) | On-policy |
+| **Exploration Mechanism** | Action noise | Action noise + smoothing | Entropy bonus |
+| **Stability Mechanism** | Prone to overestimation | Double Q + delayed updates | Clipped objective |
+| **Sample Efficiency** | High | High | Moderate |
+| **Training Stability** | Low | High | High |
+| **Hyperparameter Sensitivity** | High | Moderate | Low |
+| **Suitability for Limited Data** | High | High | Lower |
+| **Interpretability** | High (deterministic) | High (deterministic) | Lower (stochastic) |
+
+This comparison framework guides the experimental design in Chapter 6, where
+TD3, PPO, and DDPG are evaluated on identical trading tasks to empirically
+assess how these algorithmic differences translate to trading performance.
+The results help determine whether TD3's theoretical advantages (reduced
+overestimation, deterministic policy) translate to practical benefits in the
+noisy, non-stationary trading environment, and whether PPO's on-policy stability
+can compensate for its lower sample efficiency.

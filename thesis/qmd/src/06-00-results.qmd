@@ -46,6 +46,89 @@ Failure to consistently outperform a random policy would indicate that the
 agent has not learned a meaningful relationship between observations and
 actions.
 
+## Algorithm Comparison Results [PLACEHOLDER]
+<!-- [PLACEHOLDER] -->
+
+Beyond the benchmark strategies, a key empirical question is how the different
+algorithmic choices discussed in Chapter 3 translate to trading performance.
+This section compares TD3, PPO, and DDPG on identical data, features, and
+evaluation protocols to assess the practical implications of their theoretical
+differences.
+
+### Comparison Methodology
+
+All three algorithms are trained on the same training split with identical
+hyperparameter tuning procedures, evaluated on the same held-out test split, and
+assessed using the same financial metrics. Multiple random seeds are used for
+each algorithm to account for training variability, and statistical significance
+tests are performed to determine whether observed differences are meaningful.
+
+### Performance Comparison
+
+[Insert actual experimental results here comparing TD3, PPO, and DDPG on the
+same dataset and evaluation protocol. Include metrics such as:
+- Sharpe ratio and Sortino ratio
+- Maximum drawdown and drawdown duration
+- Return volatility and tail risk measures
+- Training stability (variance across seeds)
+- Sample efficiency (performance vs. training steps)
+- Computational efficiency (training time, memory usage)]
+
+```{python}
+#| label: algo_comparison_setup
+#| echo: false
+#| warning: false
+
+# TODO: Load algorithm comparison results
+# This section will be populated with actual experimental results
+# comparing TD3, PPO, and DDPG performance
+
+print("Algorithm comparison results will be added here after experiments are run.")
+```
+
+### Key Empirical Questions
+
+The comparison addresses three empirical questions motivated by the theoretical
+analysis in Chapter 3:
+
+**1. Does TD3's overestimation correction translate to improved trading
+performance relative to DDPG?** Overestimated Q-values can lead the policy to
+exploit function approximation errors rather than genuine market signals. In
+financial environments where rewards are noisy and value functions are difficult
+to approximate accurately, reducing overestimation bias could improve both
+training stability and final performance. However, the practical benefit depends
+on whether overestimation is actually a significant problem in the specific
+trading task.
+
+**2. How does PPO's on-policy stability compare to TD3's off-policy efficiency?**
+PPO may achieve more stable convergence due to its clipped objective and lack of
+replay buffer, but its on-policy nature requires more data to achieve comparable
+performance. In high-frequency trading applications where data is limited, this
+trade-off is particularly relevant. The empirical results will show whether
+PPO's stability advantages outweigh its sample efficiency disadvantages in this
+domain.
+
+**3. Which algorithm best balances risk-adjusted return, training stability,
+and computational efficiency under the evaluation constraints?** Different
+applications may prioritize different aspects of algorithm performance. A
+production trading system might value stability and deterministic execution,
+while a research setting might prioritize sample efficiency for rapid
+experimentation. The results will inform algorithm selection for specific use
+cases within the broader trading system design.
+
+### Discussion of Algorithmic Trade-offs
+
+[Insert discussion of the empirical findings, addressing:
+- Which algorithm achieved the best risk-adjusted performance and by what margin
+- Whether theoretical advantages (TD3's double Q-learning, PPO's stability) translated to practical benefits
+- Training dynamics: convergence speed, stability, sensitivity to hyperparameters
+- Computational trade-offs: training time, memory requirements, scalability
+- Robustness across different market conditions (if multiple test periods are evaluated)]
+
+This comparison provides empirical grounding for the algorithmic choices made
+in this thesis and offers guidance for algorithm selection in similar
+continuous-action trading applications.
+
 ## Evaluation Protocol [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
