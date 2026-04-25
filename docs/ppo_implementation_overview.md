@@ -137,22 +137,41 @@ $$
 L(\theta,\phi) = L^{\text{CLIP}}(\theta) - c_1 L^{V}(\phi) + c_2 L^{H}(\theta)
 $$
 
+## Role in the Thesis Comparison
+
+PPO is the **algorithm-class baseline**: it tests whether on-policy stability compensates for lower sample efficiency on limited HFT data. The AAPL scenario file is `src/configs/scenarios/aapl/ppo_hft_lob_state_space.yaml`.
+
+Network capacity is equalized with TD3 and DDPG for a controlled comparison:
+
+| Parameter | Value |
+|-----------|-------|
+| Actor hidden dims | [128, 64] |
+| Critic hidden dims | [128, 64] |
+| Actor hidden activation | Tanh |
+| Distribution | TanhNormal(μ, σ) |
+| Evaluation action | tanh(μ) — mode of TanhNormal |
+| clip_epsilon | 0.2 |
+| entropy_bonus | 0.01 |
+| vf_coef | 0.5 |
+| ppo_epochs | 4 |
+| Actor lr / Critic lr | 1e-4 / 1e-4 |
+
 ## Components
 - **CLI + configs**: `ExperimentCommand` loads YAML configs and optionally triggers data generation.
-- **Trainer selection**: `PPOTrainer` for discrete envs, `PPOTrainerContinuous` for continuous envs.
+- **Trainer selection**: `PPOTrainer` for discrete envs, `PPOTrainerContinuous` for continuous envs (triggered automatically when `backend: tradingenv`).
 - **Loss**: `ClipPPOLoss` with shared Adam optimizer for actor/critic.
-- **Collector/buffer**: `SyncDataCollector` + replay buffer for minibatch sampling.
+- **Collector/buffer**: `SyncDataCollector`; on-policy so replay buffer is not used for accumulation.
 
 ## Training Loop
-- Collect batch → extend replay buffer → sample minibatches.
+- Collect fresh rollout → compute advantages → sample minibatches for `ppo_epochs`.
 - Compute clipped PPO loss (objective + critic + entropy).
 - Backprop and step optimizer; log per-step metrics.
-- Periodic buffer stats and evaluation rollouts.
+- Periodic evaluation rollouts.
 
 ## Continuous Action Notes
-- **Actor** uses `TanhNormal` to keep actions in bounds (e.g., `[-1, 1]`).
-- **Visualization**: discrete uses stacked action probabilities; continuous uses mean ± std ribbon.
-- **Deterministic eval** falls back to `tanh(loc)` for `TanhNormal`.
+- **Actor** (`create_continuous_ppo_actor`) outputs `(loc, scale)` for a `TanhNormal` distribution; actions are sampled during training.
+- **Evaluation** uses the mode `tanh(loc)` — deterministic, directly comparable to TD3/DDPG evaluation.
+- **Visualization**: continuous uses mean ± std ribbon rather than discrete probability bars.
 
 ## See Also
 

@@ -288,25 +288,36 @@ TD3 doesn't use advantages because:
 
 ## Technical Comparison
 
+All three algorithms are evaluated in the main AAPL experiment with equalized network
+capacity — actor and critic hidden dims `[128, 64]` for all — so that performance
+differences reflect algorithm properties, not model size. See the scenario files under
+`src/configs/scenarios/aapl/`.
+
 | Aspect | DDPG | TD3 | PPO |
 |--------|------|-----|-----|
-| **Policy Type** | Deterministic | Deterministic | Stochastic |
-| **Action Space** | Continuous | Continuous | Both |
-| **Critic Networks** | 1 Q-network | 2 Q-networks (twin) | 1 Value network |
-| **Update Strategy** | Simultaneous actor-critic | Delayed policy updates | Clipped policy updates |
-| **Exploration** | Noise injection | Target policy smoothing + noise | Built-in stochasticity |
-| **Stability** | Prone to overestimation | More stable than DDPG | Very stable |
-| **Sample Efficiency** | High | High | Lower |
+| **Policy type** | Deterministic | Deterministic | Stochastic (TanhNormal) |
+| **Actor output** | tanh(MLP) ∈ [-1,1] | tanh(MLP) ∈ [-1,1] | sample from TanhNormal(μ,σ) |
+| **Actor hidden dims** | [128, 64] | [128, 64] | [128, 64] |
+| **Hidden activation** | ReLU | ReLU | Tanh |
+| **Critic type** | 1 Q-network Q(s,a) | 2 Q-networks (twin) | 1 V-network V(s) |
+| **Critic hidden dims** | [128, 64] | [128, 64] | [128, 64] |
+| **Update strategy** | Simultaneous actor-critic | Delayed actor (every 2 critic steps) | Clipped policy updates |
+| **Exploration** | Additive Gaussian σ=0.1 | Additive Gaussian σ=0.1 + target smoothing σ=0.2 | Entropy bonus c=0.01 |
+| **Evaluation action** | μ_θ(s) | μ_θ(s) | tanh(μ_θ(s)) (mode) |
+| **Replay buffer** | Yes | Yes | No (on-policy) |
+| **Stability** | Prone to Q-overestimation | Conservative Q-targets via min | Clipped objective |
+| **Sample efficiency** | High | High | Lower |
 
-## When to Use Each
+## Role in the Experiment
 
-- **TD3**: Best for continuous control tasks where sample efficiency matters and you need deterministic policies
-- **DDPG**: Use TD3 instead (TD3 is strictly better)
-- **PPO**: Best for discrete actions, when stability is crucial, or when you have abundant computational resources
+- **TD3**: Primary algorithm. Chosen for continuous-action, deterministic-policy, replay-based HFT simulation.
+- **DDPG**: Ablation baseline for TD3. Identical actor architecture; removes twin critics, delayed updates, and target smoothing. Isolates the effect of TD3's stability mechanisms.
+- **PPO**: Algorithm-class baseline. Tests whether on-policy stability compensates for lower sample efficiency on limited HFT data.
 
+## Scenario Files for the Main Comparison
 
-## Trading Strategy Applications
-
-- **TD3**: Ideal for continuous trading actions (position sizing, order quantities)
-- **PPO**: Good for discrete trading decisions (buy/sell/hold) or when training stability is paramount
-- **DDPG**: Generally replaced by TD3 for better performance
+```
+src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml
+src/configs/scenarios/aapl/ddpg_hft_lob_state_space.yaml
+src/configs/scenarios/aapl/ppo_hft_lob_state_space.yaml
+```
