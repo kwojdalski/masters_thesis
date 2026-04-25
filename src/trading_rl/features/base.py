@@ -50,6 +50,10 @@ class RollingWindowScaler:
         self._fitted = True
         return self
 
+    def reset(self) -> "RollingWindowScaler":
+        """Reset scaler (no-op for rolling window, kept for API compatibility)."""
+        return self
+
     def transform(self, data: np.ndarray | pd.Series) -> np.ndarray:
         """Transform using rolling window statistics.
 
@@ -112,6 +116,18 @@ class RunningMeanStd:
         self.count = 0
         self.epsilon = epsilon
         self._fitted = False
+
+    def reset(self) -> "RunningMeanStd":
+        """Reset running statistics to initial state.
+
+        Use this at session boundaries (e.g., market open after overnight gap)
+        to prevent cross-session contamination of normalization stats.
+        """
+        self.mean = 0.0
+        self.var = 1.0
+        self.count = 0
+        self._fitted = False
+        return self
 
     def update(self, x: np.ndarray) -> "RunningMeanStd":
         """Update running statistics with new data batch.
@@ -249,6 +265,10 @@ class FeatureConfig:
             - "running": Running mean/std (Welford's algorithm, causal, stable, used in Stable Baselines/RLLib)
             - "none": No normalization (let network handle it)
         rolling_window: Window size for rolling normalization (only used when method="rolling")
+        reset_on_session_break: For running/rolling normalization, reset stats at session boundaries
+            (e.g., overnight/weekend gaps) to prevent cross-session contamination.
+        session_break_threshold_hours: Minimum time gap (in hours) to consider a session break.
+            Default: 1.0 hour (accounts for lunch gaps vs overnight gaps).
         output_name: Optional custom output column name
         domain: Feature domain tag used for experiment-mode validation.
             Supported values: "shared", "mft", "hft".
@@ -260,6 +280,8 @@ class FeatureConfig:
     normalize: bool = True
     normalization_method: str = NormalizationMethod.RUNNING  # Default to running (causal)
     rolling_window: int = 1000
+    reset_on_session_break: bool = True  # Reset stats at overnight/weekend gaps
+    session_break_threshold_hours: float = 1.0  # 1 hour gap = session break
     output_name: str | None = None
     domain: str = FeatureDomain.SHARED
 
@@ -356,8 +378,11 @@ class Feature(ABC):
         raw_values = self.compute(df)
 
         if self.scaler is not None:
-            if isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd)):
-                # RollingWindowScaler and RunningMeanStd handle NaNs internally
+            if isinstance(self.scaler, RunningMeanStd) and self.config.reset_on_session_break:
+                # Session-aware running normalization: reset at overnight/weekend gaps
+                return self._transform_session_aware(raw_values)
+            elif isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd)):
+                # RollingWindowScaler and non-session-aware RunningMeanStd handle NaNs internally
                 normalized = self.scaler.transform(raw_values)
                 return pd.Series(normalized, index=raw_values.index, dtype=float)
             else:
@@ -373,6 +398,62 @@ class Feature(ABC):
                 return result
         else:
             return raw_values
+
+    def _transform_session_aware(self, raw_values: pd.Series) -> pd.Series:
+        """Transform with session resets for running normalization.
+
+        Detects session breaks (overnight/weekend gaps) and resets running stats
+        at each boundary. This prevents overnight gap prices from distorting
+        morning normalization statistics.
+
+        Args:
+            raw_values: Raw feature values with DatetimeIndex
+
+        Returns:
+            Normalized series with same index as input
+        """
+        if not isinstance(raw_values.index, pd.DatetimeIndex):
+            # Fallback: no session detection for non-datetime index
+            normalized = self.scaler.transform(raw_values)
+            return pd.Series(normalized, index=raw_values.index, dtype=float)
+
+        # Detect session breaks by time gaps
+        threshold = pd.Timedelta(hours=self.config.session_break_threshold_hours)
+        time_gaps = raw_values.index.to_series().diff() > threshold
+
+        # Find session boundaries
+        session_starts = [0]  # First session always starts at index 0
+        for i, is_break in enumerate(time_gaps):
+            if is_break and i > 0:
+                session_starts.append(i)
+
+        # Normalize each session independently
+        all_normalized = []
+
+        for i in range(len(session_starts)):
+            start_idx = session_starts[i]
+            end_idx = session_starts[i + 1] if i + 1 < len(session_starts) else len(raw_values)
+
+            if start_idx >= len(raw_values):
+                break
+
+            session_data = raw_values.iloc[start_idx:end_idx]
+
+            # Reset running stats for new session
+            self.scaler.reset()
+
+            # Normalize this session
+            normalized_session = self.scaler.transform(session_data)
+            all_normalized.append(normalized_session)
+
+        # Concatenate all sessions
+        if all_normalized:
+            result = pd.concat(all_normalized)
+            return result
+        else:
+            # Fallback: no sessions detected
+            normalized = self.scaler.transform(raw_values)
+            return pd.Series(normalized, index=raw_values.index, dtype=float)
 
     def fit_transform(self, df: pd.DataFrame) -> pd.Series:
         """Fit and transform in one step.
