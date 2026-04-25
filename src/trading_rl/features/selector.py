@@ -455,6 +455,8 @@ def _build_time_series_cv_splits(
 def _build_multi_horizon_score_table(
     train_frame: pd.DataFrame,
     val_frame: pd.DataFrame,
+    feature_pipeline: FeaturePipeline | None = None,
+    feature_configs: list[FeatureConfig] | None = None,
     window_size: int | None = None,
     horizons: list[int] | None = None,
     horizon_weights: list[float] | None = None,
@@ -467,6 +469,8 @@ def _build_multi_horizon_score_table(
     Args:
         train_frame: Training DataFrame with raw feature columns and price data.
         val_frame: Validation DataFrame with raw feature columns and price data.
+        feature_pipeline: Optional pre-built feature pipeline.
+        feature_configs: Optional feature configurations to build pipeline.
         window_size: Rolling window size for IC computation.
         horizons: List of forward return horizons to evaluate.
         horizon_weights: Weights for each horizon in composite score.
@@ -476,8 +480,32 @@ def _build_multi_horizon_score_table(
                  IC series dict for primary horizon).
     """
     if horizons is None or len(horizons) == 0:
-        # Fallback to single horizon
-        return _build_icir_score_table(train_frame, val_frame, window_size)
+        # Fallback to single horizon - use standard function
+        if feature_pipeline is None and feature_configs is not None:
+            feature_pipeline = FeaturePipeline(feature_configs)
+            feature_pipeline.fit(train_frame)
+            train_features = feature_pipeline.transform(train_frame)
+            val_features = feature_pipeline.transform(val_frame)
+            primary_horizon = 1
+            train_target = _build_proxy_target(train_frame, primary_horizon)
+            val_target = _build_proxy_target(val_frame, primary_horizon)
+            train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
+            val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
+            return _build_icir_score_table(train_aligned, val_aligned, window_size)
+        else:
+            # If pipeline is provided, use it to transform
+            if feature_pipeline is not None:
+                train_features = feature_pipeline.transform(train_frame)
+                val_features = feature_pipeline.transform(val_frame)
+                primary_horizon = 1
+                train_target = _build_proxy_target(train_frame, primary_horizon)
+                val_target = _build_proxy_target(val_frame, primary_horizon)
+                train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
+                val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
+                return _build_icir_score_table(train_aligned, val_aligned, window_size)
+            else:
+                # Assume already transformed data (with targets)
+                return _build_icir_score_table(train_frame, val_frame, window_size)
 
     if horizon_weights is None:
         horizon_weights = [1.0 / len(horizons)] * len(horizons)
@@ -487,8 +515,22 @@ def _build_multi_horizon_score_table(
         horizons, horizon_weights
     )
 
-    # Build feature pipeline and transform data
-    feature_cols = [col for col in val_frame.columns if not col.startswith("target_")]
+    # Build feature pipeline if not provided
+    if feature_pipeline is None:
+        if feature_configs is None:
+            raise ValueError(
+                "Either feature_pipeline or feature_configs must be provided"
+            )
+        feature_pipeline = FeaturePipeline(feature_configs)
+        feature_pipeline.fit(train_frame)
+        train_features = feature_pipeline.transform(train_frame)
+        val_features = feature_pipeline.transform(val_frame)
+    else:
+        train_features = feature_pipeline.transform(train_frame)
+        val_features = feature_pipeline.transform(val_frame)
+
+    # Get feature columns
+    feature_cols = val_features.columns.tolist()
 
     # Store IC results for each horizon
     horizon_results: dict[int, dict[str, dict]] = {}
@@ -498,9 +540,9 @@ def _build_multi_horizon_score_table(
         train_target = _build_proxy_target(train_frame, h)
         val_target = _build_proxy_target(val_frame, h)
 
-        # Align features and target
-        train_aligned = pd.concat([train_frame[feature_cols], train_target], axis=1).dropna()
-        val_aligned = pd.concat([val_frame[feature_cols], val_target], axis=1).dropna()
+        # Align features and target - use transformed features
+        train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
+        val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
 
         if train_aligned.empty or val_aligned.empty:
             logger.warning(
@@ -509,6 +551,7 @@ def _build_multi_horizon_score_table(
             continue
 
         target_col = train_aligned.columns[-1]
+        train_target_series = train_aligned[target_col]
         val_target_series = val_aligned[target_col]
 
         horizon_results[h] = {}
@@ -616,8 +659,8 @@ def _build_multi_horizon_score_table(
     ic_series_dict = {}
     train_target = _build_proxy_target(train_frame, primary_horizon)
     val_target = _build_proxy_target(val_frame, primary_horizon)
-    train_aligned = pd.concat([train_frame[feature_cols], train_target], axis=1).dropna()
-    val_aligned = pd.concat([val_frame[feature_cols], val_target], axis=1).dropna()
+    train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
+    val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
 
     target_col = val_aligned.columns[-1]
     for feat in feature_cols:
@@ -874,6 +917,8 @@ class FeatureSelector:
             scores, ic_series = _build_multi_horizon_score_table(
                 train_df,  # Pass raw DF for multi-horizon target building
                 val_df,
+                feature_pipeline=pipeline,
+                feature_configs=None,  # Not needed since we pass pipeline
                 window_size=cfg.window_size,
                 horizons=cfg.ic_decay_horizons,
                 horizon_weights=cfg.horizon_weights,
@@ -914,8 +959,9 @@ class FeatureSelector:
             val_target = _build_proxy_target(val_df, cfg.horizon)
             val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
 
-        feature_cols = scores["feature"].tolist()
-        correlation_matrix = val_aligned[feature_cols].corr().fillna(0.0)
+        # Get feature columns from val_aligned (exclude target columns)
+        feature_cols_from_val = [col for col in val_aligned.columns if not col.startswith("target_")]
+        correlation_matrix = val_aligned[feature_cols_from_val].corr().fillna(0.0)
 
         # Select features using conditional IC redundancy filter
         val_target_col = next(
@@ -923,7 +969,7 @@ class FeatureSelector:
         )
         selected_names = _select_features_conditional_ic(
             scores,
-            val_aligned[feature_cols],
+            val_aligned[feature_cols_from_val],
             val_aligned[val_target_col],
             top_k=cfg.top_k,
             icir_threshold=cfg.icir_threshold,
@@ -1029,6 +1075,8 @@ class FeatureSelector:
         # Create composite scores by averaging across splits
         feature_scores: dict[str, dict] = {}
         for scores_df in split_scores:
+            if scores_df.empty:
+                continue
             for _, row in scores_df.iterrows():
                 feat = row["feature"]
                 if feat not in feature_scores:
@@ -1044,20 +1092,53 @@ class FeatureSelector:
         # Build composite score DataFrame
         rows: list[dict] = []
         for feat in ensemble_selected:
-            if feat in feature_scores:
+            if feat in feature_scores and feature_scores[feat]["icir_values"]:
                 scores = feature_scores[feat]
                 rows.append({
                     "feature": feat,
                     "mean_ic": np.mean(scores["mean_ic_values"]),
-                    "ic_std": np.std(scores["mean_ic_values"]),
+                    "ic_std": np.std(scores["mean_ic_values"]) if len(scores["mean_ic_values"]) > 1 else 0.0,
                     "icir": np.mean(scores["icir_values"]),
-                    "ic_tstat": np.mean(scores["ic_tstat_values"]),
+                    "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
                     "ic_positive_ratio": len([v for v in split_selections if feat in v]) / len(split_selections),
                     "train_mean_ic": np.mean(scores["mean_ic_values"]),  # Use val as proxy
-                    "ic_stability": np.std(scores["icir_values"]),
+                    "ic_stability": np.std(scores["icir_values"]) if len(scores["icir_values"]) > 1 else 0.0,
                 })
 
-        composite_scores = pd.DataFrame(rows).sort_values("icir", ascending=False)
+        # If no features with valid scores, use all features that appear in any split scores
+        if not rows:
+            logger.warning(
+                "No ensemble features have valid scores. Using features from split scores directly."
+            )
+            # Get all features from any split scores
+            all_scored_features = set()
+            for scores_df in split_scores:
+                if not scores_df.empty:
+                    all_scored_features.update(scores_df["feature"].tolist())
+
+            # Build scores for all features with data
+            for feat in all_scored_features:
+                if feat in feature_scores and feature_scores[feat]["icir_values"]:
+                    scores = feature_scores[feat]
+                    rows.append({
+                        "feature": feat,
+                        "mean_ic": np.mean(scores["mean_ic_values"]),
+                        "ic_std": np.std(scores["mean_ic_values"]) if len(scores["mean_ic_values"]) > 1 else 0.0,
+                        "icir": np.mean(scores["icir_values"]),
+                        "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
+                        "ic_positive_ratio": len([v for v in split_selections if feat in v]) / len(split_selections),
+                        "train_mean_ic": np.mean(scores["mean_ic_values"]),
+                        "ic_stability": np.std(scores["icir_values"]) if len(scores["icir_values"]) > 1 else 0.0,
+                    })
+
+        if not rows:
+            logger.warning("No features with valid scores found in ensemble selection")
+            composite_scores = pd.DataFrame(columns=[
+                "feature", "mean_ic", "ic_std", "icir", "ic_tstat",
+                "ic_positive_ratio", "train_mean_ic", "ic_stability"
+            ])
+        else:
+            composite_scores = pd.DataFrame(rows).sort_values("icir", ascending=False)
 
         # Map selected names back to FeatureConfig instances
         output_name_map = {
@@ -1146,7 +1227,7 @@ class FeatureSelector:
 
                 # Score this configuration
                 # Use mean ICIR of selected features as the objective
-                if len(result.scores) > 0:
+                if len(result.scores) > 0 and "icir" in result.scores.columns:
                     config_score = result.scores["icir"].mean()
 
                     logger.info(
@@ -1161,6 +1242,11 @@ class FeatureSelector:
                             "New best config: %s (score=%.4f)",
                             param_dict, best_score
                         )
+                else:
+                    logger.warning(
+                        "Config %s produced empty or invalid scores, skipping",
+                        param_dict
+                    )
 
             except Exception as e:
                 logger.warning(
