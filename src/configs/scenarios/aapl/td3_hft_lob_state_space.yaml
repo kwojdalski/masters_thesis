@@ -20,8 +20,8 @@ seed: 42
 
 data:
   data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
-  # Use causal rolling window normalization to avoid look-ahead bias
-  feature_config: "src/configs/features/hft_lob_features_state_space_rolling.yaml"
+  # Use causal normalization (running Welford's algorithm with session resets)
+  feature_config: "src/configs/features/hft_lob_features_causal.yaml"
   download_data: false
   train_size: 15000
 
