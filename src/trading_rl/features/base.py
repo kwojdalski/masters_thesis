@@ -621,15 +621,13 @@ class Feature(ABC):
             normalized = self.scaler.transform(raw_values)
             return pd.Series(normalized, index=raw_values.index, dtype=float)
 
-        # Detect session breaks by time gaps
-        threshold = pd.Timedelta(hours=self.config.session_break_threshold_hours)
-        time_gaps = raw_values.index.to_series().diff() > threshold
+        from trading_rl.features.utils import detect_session_breaks
 
-        # Find session boundaries
-        session_starts = [0]  # First session always starts at index 0
-        for i, is_break in enumerate(time_gaps):
-            if is_break and i > 0:
-                session_starts.append(i)
+        # Detect session breaks
+        session_starts = detect_session_breaks(
+            raw_values.index,
+            threshold_hours=self.config.session_break_threshold_hours,
+        )
 
         # Normalize each session independently
         all_normalized = []
@@ -646,8 +644,8 @@ class Feature(ABC):
             # Reset running stats for new session
             self.scaler.reset()
 
-            # Normalize this session
-            normalized_session = self.scaler.transform(session_data)
+            # Normalize each row from session-local stats observed so far.
+            normalized_session = self._transform_running_session_online(session_data)
             all_normalized.append(normalized_session)
 
         # Concatenate all sessions
@@ -675,15 +673,13 @@ class Feature(ABC):
             normalized = self.scaler.transform(raw_values)
             return pd.Series(normalized, index=raw_values.index, dtype=float)
 
-        # Detect session breaks by time gaps
-        threshold = pd.Timedelta(hours=self.config.session_break_threshold_hours)
-        time_gaps = raw_values.index.to_series().diff() > threshold
+        from trading_rl.features.utils import detect_session_breaks
 
-        # Find session boundaries
-        session_starts = [0]  # First session always starts at index 0
-        for i, is_break in enumerate(time_gaps):
-            if is_break and i > 0:
-                session_starts.append(i)
+        # Detect session breaks
+        session_starts = detect_session_breaks(
+            raw_values.index,
+            threshold_hours=self.config.session_break_threshold_hours,
+        )
 
         # Normalize each session independently
         all_normalized = []
@@ -700,8 +696,10 @@ class Feature(ABC):
             # Reset running stats for new session
             self.scaler.reset()
 
-            # Normalize this session (time weights computed from DatetimeIndex)
-            normalized_session = self.scaler.transform(session_data)
+            # Normalize each row from session-local stats observed so far.
+            normalized_session = self._transform_time_weighted_session_online(
+                session_data
+            )
             all_normalized.append(normalized_session)
 
         # Concatenate all sessions
@@ -712,6 +710,66 @@ class Feature(ABC):
             # Fallback: no sessions detected
             normalized = self.scaler.transform(raw_values)
             return pd.Series(normalized, index=raw_values.index, dtype=float)
+
+    def _transform_running_session_online(self, session_data: pd.Series) -> pd.Series:
+        """Normalize one session using cumulative stats within that session."""
+        normalized_values: list[float] = []
+
+        for value in session_data.astype(float):
+            if pd.isna(value):
+                normalized_values.append(0.0)
+                continue
+
+            self.scaler.update(np.asarray([value], dtype=float))
+            count = getattr(self.scaler, "count", 0)
+            if count < 2:
+                normalized = 0.0
+            else:
+                normalized = (value - self.scaler.mean) / np.sqrt(
+                    self.scaler.var + self.scaler.epsilon
+                )
+                if not np.isfinite(normalized):
+                    normalized = 0.0
+
+            normalized_values.append(float(normalized))
+
+        return pd.Series(normalized_values, index=session_data.index, dtype=float)
+
+    def _transform_time_weighted_session_online(
+        self, session_data: pd.Series
+    ) -> pd.Series:
+        """Normalize one session using cumulative time-weighted stats."""
+        normalized_values: list[float] = []
+        values = session_data.astype(float)
+
+        if isinstance(values.index, pd.DatetimeIndex):
+            weights = values.index.to_series().diff().dt.total_seconds().fillna(1.0)
+            weights = weights.clip(lower=0.0).to_numpy(dtype=float)
+        else:
+            weights = np.ones(len(values), dtype=float)
+
+        for value, weight in zip(values, weights):
+            if pd.isna(value):
+                normalized_values.append(0.0)
+                continue
+
+            self.scaler.update(
+                np.asarray([value], dtype=float),
+                np.asarray([weight], dtype=float),
+            )
+            total_weight = getattr(self.scaler, "total_weight", 0.0)
+            if total_weight <= weight:
+                normalized = 0.0
+            else:
+                normalized = (value - self.scaler.mean) / np.sqrt(
+                    self.scaler.var + self.scaler.epsilon
+                )
+                if not np.isfinite(normalized):
+                    normalized = 0.0
+
+            normalized_values.append(float(normalized))
+
+        return pd.Series(normalized_values, index=session_data.index, dtype=float)
 
     def fit_transform(self, df: pd.DataFrame) -> pd.Series:
         """Fit and transform in one step.
