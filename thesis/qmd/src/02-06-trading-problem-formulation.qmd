@@ -3,7 +3,7 @@
 This section identifies the reinforcement learning concepts most important for
 interpreting the finance literature reviewed in this chapter. Formal definitions,
 equations, and algorithm taxonomies are presented in Chapter 3; the focus here
-is on why each one is specifically consequential for trading problems.
+is on why each one is consequential for trading problems.
 
 ::: {.content-visible when-format="pdf"}
 ```{tikz}
@@ -47,9 +47,8 @@ agents. However, financial environments only approximately satisfy standard MDP
 assumptions. Market regime shifts, structural breaks, and partial observability
 all contribute to this approximation.
 
-For the purposes of the present literature review, the most useful RL concepts
-are not the full formal machinery developed in Chapter 3, but the dimensions
-along which applied trading papers differ. These dimensions determine whether
+For this review, the most useful RL concepts are not the formal machinery of
+Chapter 3, but the dimensions along which applied trading papers differ. These dimensions determine whether
 results from one study are comparable to another and whether they are relevant
 to the problem addressed in this thesis.
 
