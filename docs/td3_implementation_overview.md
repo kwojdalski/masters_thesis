@@ -142,23 +142,39 @@ $$
 \bar\theta \leftarrow \tau \theta + (1-\tau)\bar\theta
 $$
 
+## Main Experiment Configuration
+
+The primary AAPL scenario is `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`.
+Key hyperparameters used in the thesis comparison:
+
+| Parameter | Value |
+|-----------|-------|
+| Actor hidden dims | [128, 64] |
+| Critic hidden dims | [128, 64] |
+| Actor hidden activation | ReLU |
+| Output activation | Tanh |
+| Actor lr / Critic lr | 1e-4 / 1e-4 |
+| Weight decay (both) | 2e-6 |
+| Exploration noise σ | 0.1 |
+| Target smoothing σ | 0.2 (clipped ±0.3) |
+| Policy delay | 2 |
+| Soft update τ | 0.001 |
+| Replay buffer size | 100,000 |
+| Batch size | 128 |
+| γ | 0.995 |
+| Loss function | Smooth L1 (Huber) |
+
 ## Components
 - **CLI + configs**: `training.algorithm: TD3` selects TD3 trainer and models.
-- **Models**: deterministic actor + critic; TD3Loss expands critic params to two critics.
+- **Models**: deterministic actor (`create_td3_actor`) + twin critic via `TD3Loss(num_qvalue_nets=2)`.
 - **Loss/optimizers**: separate Adam optimizers for actor and critic.
 - **Collector/buffer**: `SyncDataCollector` + replay buffer with initial random exploration.
 
 ## Training Loop
 - Collect batch → replay buffer → sample minibatches.
-- Critic update every step; actor update delayed by `policy_delay`.
-- Target policy smoothing via `policy_noise` and `noise_clip`.
-- Soft-update target params with `tau`.
-
-## Integration Notes
-- The existing `BaseTrainer` in `src/trading_rl/training.py` handles collection, replay, and logging; a `TD3Trainer` can reuse it similarly to `DDPGTrainer`/`PPOTrainer`.
-- Ensure the environment exposes continuous actions (or a discretized wrapper is provided).
-- Log both critics’ losses to monitor divergence; watch for action noise magnitude relative to spec bounds.
-- Run via CLI by setting `training.algorithm: TD3` in a config (YAML or overrides) and invoking the same entrypoint used for PPO/DDPG (e.g., `python -m trading_rl.train_trading_agent --config path/to/config.yaml`).
+- Critic update every step; actor update delayed by `policy_delay=2`.
+- Target policy smoothing via `policy_noise=0.2` and `noise_clip=0.3`.
+- Soft-update target params with `tau=0.001`.
 
 ## See Also
 
