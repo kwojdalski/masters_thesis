@@ -15,10 +15,9 @@ transformed into a vector of microstructure features. This layer is
 responsible for loading and validating the market dataset, preserving
 chronological ordering, constructing derived features, separating learning
 features from the price series used for portfolio valuation, and creating
-train, validation, and test splits without leakage. It is important
-because reinforcement learning in financial settings is highly
-sensitive to timestamp errors and inconsistencies between engineered features
-and the price series used by the simulation.
+train, validation, and test splits without leakage. Reinforcement learning in financial settings is highly sensitive to timestamp
+errors and inconsistencies between engineered features and the price series
+used by the simulation.
 
 **Decision layer.** The RL agent maps the current state
 representation to a bounded continuous action interpreted as target portfolio

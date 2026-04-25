@@ -1,9 +1,7 @@
 ## Competing Modeling Approaches
 
-Before positioning reinforcement learning as the methodology of choice, it is
-useful to characterize the main alternatives. Two complementary perspectives
-are relevant: what machine learning paradigm to use for training, and how the
-trading decision system is structured architecturally.
+The alternatives to reinforcement learning fall into two complementary
+perspectives: learning paradigm and decision-system architecture.
 From the learning-paradigm perspective, the relevant categories are
 supervised, unsupervised, semi-supervised, and reinforcement learning; the
 present section discusses the first three explicitly and then motivates

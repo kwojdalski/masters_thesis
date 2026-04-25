@@ -1,9 +1,8 @@
 ## Reinforcement Learning for Trading
 
-Before surveying applications, it is worth establishing why reinforcement
-learning is a natural fit for algorithmic trading rather than an arbitrary
-methodological choice. The argument rests on three structural properties of
-the trading problem.
+Reinforcement learning is a reasoned choice for algorithmic trading, not an
+arbitrary methodological one. The argument rests on three structural properties
+of the trading problem.
 
 **Unknown market dynamics.** Model-based approaches require an explicit
 transition model — a specification of how the environment responds to actions.

@@ -201,9 +201,8 @@ sections.
 
 The three algorithms considered here differ along three dimensions that are
 particularly relevant to the continuous-action trading problem: learning paradigm,
-policy type, and stability mechanisms. Understanding these differences is
-essential for interpreting empirical comparisons and for justifying algorithm
-selection.
+policy type, and stability mechanisms. These differences determine how to
+interpret empirical comparisons and why TD3 is selected over the alternatives.
 
 **On-policy vs. off-policy learning.** TD3 and DDPG are off-policy algorithms
 that use experience replay, allowing each transition to be reused many times
