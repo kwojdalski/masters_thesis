@@ -230,7 +230,7 @@ class MidPriceAccelerationFeature(LOBFeature):
 
 @register_feature("spread_ratio")
 class SpreadRatioFeature(LOBFeature):
-    """Spread-to-rolling-mean ratio."""
+    """Spread-to-rolling-mean ratio with session boundary handling."""
 
     def required_columns(self) -> list[str]:
         return [
@@ -238,13 +238,61 @@ class SpreadRatioFeature(LOBFeature):
             self._p("ask_price_col", "ask_px_00"),
         ]
 
+    def _session_aware_rolling_mean(self, series: pd.Series, window: int) -> pd.Series:
+        """Compute rolling mean with session resets.
+
+        Detects session breaks (overnight/weekend gaps) and resets the rolling
+        window at each boundary to prevent cross-session contamination.
+
+        Args:
+            series: Input series with DatetimeIndex
+            window: Rolling window size
+
+        Returns:
+            Rolling mean series with same index as input
+        """
+        if not isinstance(series.index, pd.DatetimeIndex):
+            # Fallback: no session detection for non-datetime index
+            return series.rolling(window=window, min_periods=1).mean()
+
+        # Detect session breaks by time gaps (1 hour threshold for session break)
+        threshold = pd.Timedelta(hours=self._p("session_break_threshold_hours", 1.0))
+        time_gaps = series.index.to_series().diff() > threshold
+
+        # Find session boundaries
+        session_starts = [0]
+        for i, is_break in enumerate(time_gaps):
+            if is_break and i > 0:
+                session_starts.append(i)
+
+        # Compute rolling mean for each session independently
+        all_rolling = []
+
+        for i in range(len(session_starts)):
+            start_idx = session_starts[i]
+            end_idx = session_starts[i + 1] if i + 1 < len(session_starts) else len(series)
+
+            if start_idx >= len(series):
+                break
+
+            session_data = series.iloc[start_idx:end_idx]
+            rolling_mean = session_data.rolling(window=window, min_periods=1).mean()
+            all_rolling.append(rolling_mean)
+
+        # Concatenate all sessions
+        if all_rolling:
+            return pd.concat(all_rolling)
+        else:
+            # Fallback: no sessions detected
+            return series.rolling(window=window, min_periods=1).mean()
+
     def compute(self, df: pd.DataFrame) -> pd.Series:
         bid = df[self._p("bid_price_col", "bid_px_00")].astype(float)
         ask = df[self._p("ask_price_col", "ask_px_00")].astype(float)
         window = int(self._p("window", 100))
         mid = (bid + ask) / 2.0
         spread_bps = safe_divide((ask - bid) * 10_000.0, mid)
-        rolling_mean = spread_bps.rolling(window=window, min_periods=1).mean()
+        rolling_mean = self._session_aware_rolling_mean(spread_bps, window)
         return safe_divide(spread_bps, rolling_mean, fill=1.0)
 
 
