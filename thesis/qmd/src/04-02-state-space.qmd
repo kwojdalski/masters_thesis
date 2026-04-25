@@ -226,17 +226,19 @@ all engineered features. The exact dimensionality $d$ is scenario-dependent and
 specified in the configuration files governing each experiment.
 
 All features except cyclical time encodings and the position feature are
-standardized using training-set statistics:
+standardized with causal running statistics:
 
-$$\tilde{x}_i = \frac{x_i - \mu_i^{\text{train}}}{\sigma_i^{\text{train}}}$$
+$$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sigma_{i,t} + \epsilon}$$
 
-The mean $\mu_i^{\text{train}}$ and standard deviation $\sigma_i^{\text{train}}$
-are computed exclusively on the training split and applied without modification
-to the validation and test splits, preventing any form of data leakage. Cyclical
-encodings are inherently bounded in $[-1, 1]$ and require no normalization.
-The position feature is likewise not standardized; as discussed in the preceding
-section, it is already bounded in $[-1, 1]$ and its bimodal distribution makes
-z-score normalization counterproductive.
+The mean $\mu_{i,t}$ and standard deviation $\sigma_{i,t}$ are updated online
+from observations available up to timestep $t$ within the current chronological
+split and trading session. The running statistics are reset at detected session
+boundaries, preventing previous-day market conditions from contaminating the
+opening representation of the next session. Cyclical encodings are inherently
+bounded in $[-1, 1]$ and require no normalization. The position feature is
+likewise not standardized; as discussed in the preceding section, it is already
+bounded in $[-1, 1]$ and its bimodal distribution makes z-score normalization
+counterproductive.
 
 The formal observation space is:
 
@@ -314,12 +316,12 @@ Feature names defined in the scenario YAML file resolve to computation functions
 in the feature registry at runtime; adding, removing, or reordering features
 requires only a change to the configuration file, not to source code. The active
 feature set for the main experiment is defined in
-`src/configs/features/hft_lob_features_state_space.yaml` and referenced by the
-scenario file `src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml`.
+`src/configs/features/hft_lob_features_causal.yaml` and referenced by the
+scenario file `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`.
 
 The final state vector has dimensionality $d = 26$: 25 LOB-derived features
 across five groups (5 imbalance, 3 fair value, 6 spread and cost, 7 order flow,
 4 regime and temporal) plus the current portfolio exposure appended at runtime.
-All features except the cyclical hour encodings are normalized using training-split
-statistics as described in the preceding section. The complete feature
+All features except the cyclical hour encodings are normalized using causal
+session-aware running statistics as described in the preceding section. The complete feature
 specification with parameter values is listed in Appendix A.
