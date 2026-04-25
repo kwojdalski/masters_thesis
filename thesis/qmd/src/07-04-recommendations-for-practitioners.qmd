@@ -24,9 +24,11 @@ sequential — will produce a materially optimistic assessment of out-of-sample
 performance. In high-frequency settings, where the information decay of market
 signals is measured in seconds, even mild lookahead can generate the appearance
 of a viable strategy from what is effectively a leakage artifact. Normalization
-should be fit on the training split only and applied frozen to validation and
-test data. This is not just good practice; it is the minimum requirement for the
-empirical results to be meaningful.
+should either be fit on the training split only and applied frozen to validation
+and test data, or implemented as a strictly causal online transformation that
+uses no future observations and resets at natural session boundaries. This is
+not just good practice; it is the minimum requirement for the empirical results
+to be meaningful.
 
 **Treat transaction cost sensitivity as a go/no-go criterion.** The threshold at
 which the agent's apparent edge disappears under transaction costs is a property

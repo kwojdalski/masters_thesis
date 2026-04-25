@@ -8,15 +8,16 @@ The tables below catalogue every feature type implemented in the feature
 registry (`src/trading_rl/features/`). The subset used in the main
 state-space experiment is marked with [x] in the
 **In model** column; this subset is defined in
-`src/configs/features/hft_lob_features_state_space.yaml`.
+`src/configs/features/hft_lob_features_causal.yaml`.
 Feature names match the keys produced by the feature pipeline at runtime.
 Formulas for the active LOB features are given in Chapter 4.
 
-All features used in the work are z-score normalized using training-split
-statistics ($\tilde{x}_i = (x_i - \mu_i^{\text{train}}) / \sigma_i^{\text{train}}$)
-with two exceptions noted below the tables: the cyclical time encodings, which
-are inherently bounded in $[-1, 1]$, and the runtime position feature, which
-is already bounded in $[-1, 1]$ by the action space definition.
+All features used in the main HFT experiment are z-score normalized with causal
+running statistics that are updated chronologically and reset at detected
+session boundaries, with two exceptions noted below the tables: the cyclical
+time encodings, which are inherently bounded in $[-1, 1]$, and the runtime
+position feature, which is already bounded in $[-1, 1]$ by the action space
+definition.
 
 ## LOB Microstructure Features
 
@@ -125,7 +126,7 @@ trading (MFT) scenarios and ablation studies.
 require no normalization. The runtime position feature
 (`feature_position` $\in [-1, 1]$) is likewise not normalized; it is
 already bounded by the action space definition. All other features are
-z-score normalized on the training split only.
+z-score normalized with the causal running scheme described in Chapter 5.
 
 ---
 
@@ -133,7 +134,7 @@ z-score normalized on the training split only.
 
 The table below lists all hyperparameters for the main AAPL state-space
 experiment. The full configuration file is
-`src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml`.
+`src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`.
 
 | Parameter | Value | Notes |
 |---|---|---|
@@ -166,7 +167,7 @@ experiment. The full configuration file is
 | Transaction fee | 0.000 | Baseline setting |
 | Random seed | 42 | |
 
-: TD3 hyperparameters for the main AAPL state-space experiment. Full configuration: `src/configs/scenarios/aapl_td3_hft_lob_state_space.yaml`. {#tbl-td3-hyperparams longtable=true tbl-colwidths="[36,18,46]"}
+: TD3 hyperparameters for the main AAPL state-space experiment. Full configuration: `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`. {#tbl-td3-hyperparams longtable=true tbl-colwidths="[36,18,46]"}
 
 ---
 
@@ -181,7 +182,7 @@ seed: 42
 
 data:
   data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
-  feature_config: "src/configs/features/hft_lob_features_state_space.yaml"
+  feature_config: "src/configs/features/hft_lob_features_causal.yaml"
   train_size: 15000
 
 env:

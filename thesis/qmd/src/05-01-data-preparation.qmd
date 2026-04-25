@@ -104,13 +104,13 @@ $$
 s^2_t = s^2_{t-1} + \frac{1}{t}\bigl[(x_t - \bar{x}_{t-1})^2 - s^2_{t-1}\bigr]
 $$
 
-where $\bar{x}_t$ and $s^2_t$ are the mean and variance after processing $t$ observations. The normalized value at timestep $t$ is then computed as:
+where $\bar{x}_t$ and $s^2_t$ are the mean and variance after processing $t$ observations. The normalized value at timestep $t$ is then computed from the cumulative statistics available after observing the current feature value:
 
 $$
-\tilde{x}_t = \frac{x_t - \bar{x}_{t-1}}{\sqrt{s^2_{t-1} + \epsilon}}
+\tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{s^2_t + \epsilon}}
 $$
 
-This ensures that the scaling statistics used to normalize $\tilde{x}_t$ incorporate only observations $1, \dots, t-1$—strictly historical information from the agent's perspective. The computational cost of this approach is $O(1)$ per update, making it efficient even for large datasets.
+This ensures that the scaling statistics used to normalize $\tilde{x}_t$ incorporate only observations $1, \dots, t$ and no future values. Since $x_t$ is part of the observation available before the action at time $t$ is chosen, this transformation preserves the causal information structure while avoiding the instability that would arise from normalizing early-session observations with an almost empty denominator. The computational cost of this approach is $O(1)$ per update, making it efficient even for large datasets.
 
 #### Session-Aware Normalization
 
@@ -136,7 +136,7 @@ When the time weights sum to the total elapsed time, the normalized value reflec
 
 #### Split-Specific Statistics and Leakage Prevention
 
-Normalization statistics are fitted **independently per security** and **only on the training split**. The validation and test splits are transformed using the mean and variance estimated from the training data of that same security. This separation serves two purposes. First, it prevents information leakage across the chronological split: statistics from the test period (which may reflect different market conditions) cannot influence the agent's training representation. Second, it respects the per-symbol pooling design: each security's features are normalized to zero mean and unit variance based on that security's own training distribution, ensuring that the agent learns relative microstructure signals (e.g., order-flow imbalance as a proportion of the book's depth) rather than absolute magnitudes that differ across price levels or liquidity profiles.
+For causal running normalization, statistics are maintained **independently per security**, **per chronological split**, and **within each detected trading session**. The training, validation, and test subsets are transformed in chronological order, and at every timestep the scaler has access only to observations already encountered within that split and session. This separation serves two purposes. First, it prevents information leakage across the chronological split: statistics from the test period cannot influence the agent's training representation, and later validation or test observations cannot influence earlier ones. Second, it respects the per-symbol pooling design: each security's features are normalized relative to that security's own empirical microstructure rather than absolute magnitudes that differ across price levels or liquidity profiles.
 
 Cyclical temporal encodings (hour-of-day sine and cosine) are already bounded in $[-1, 1]$ and are not subject to z-score normalization. Raw price columns used for portfolio accounting are kept in their original units and are never replaced by normalized values. This separation ensures that the observation features passed to the learning algorithm are statistically well-behaved, while the pricing inputs used for reward and valuation computation retain economic interpretability and correct accounting semantics.
 

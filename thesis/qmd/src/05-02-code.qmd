@@ -16,8 +16,10 @@ Feature engineering is registry-driven: feature names in the scenario file
 resolve to computation functions, allowing scenario-level composition without
 editing training code. This design is central to systematic feature subset
 comparisons. Normalization parameters are estimated on the training split only
-and applied without re-fitting to the validation and test data, preserving
-causal integrity across the chronological split.
+for non-causal scalers. For the main HFT experiment, features use causal
+running normalization: each split is transformed chronologically, and the
+normalization state is reset at detected session boundaries. This preserves
+causal integrity across both time and the chronological split.
 
 ### Training Loop
 
@@ -40,8 +42,8 @@ training and removed at evaluation time.
 \State Load and validate configuration; check paths and split feasibility
 \State Load L3 order book dataset; sort chronologically
 \State Split data into train / validation / test subsets (chronological)
-\State Fit feature pipeline on training split only
-\State Transform all splits using fitted pipeline
+\State Initialise and validate feature pipeline on training split
+\State Transform each split chronologically with causal session-aware normalization
 \State Build training environment from processed training data
 \State Initialise actor $\mu_\theta$, twin critics $Q_{\phi_1}$, $Q_{\phi_2}$,
        target networks $\mu_{\theta'}$, $Q_{\phi_1'}$, $Q_{\phi_2'}$,
