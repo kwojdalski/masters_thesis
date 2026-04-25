@@ -12,6 +12,8 @@ format:
     number-sections: true
     output-dir: ../../build
     linestretch: 1.5
+    lof: true
+    lot: true
     header-includes:
       - \usepackage[utf8]{inputenc}
       - \usepackage{amsthm}
@@ -21,8 +23,6 @@ format:
       - \usepackage{amsmath}
       - \usepackage{booktabs}
       - \usepackage{longtable}
-      - \listoffigures
-      - \listoftables
       - \nralbumu{310284}
       - \speciality{Economics}
       - \opiekun{dr Pawel Sakowski}
