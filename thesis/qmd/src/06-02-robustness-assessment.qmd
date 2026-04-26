@@ -3,7 +3,7 @@
 
 This section shifts from training stochasticity to
 sensitivity to modeling choices. The question is whether the
-conclusions for the current AAPL high-frequency TD3 setup would
+conclusions for the current high-frequency TD3 setup would
 change materially under nearby alternatives in feature specification, reward
 definition, transaction-cost assumptions, or split design.
 

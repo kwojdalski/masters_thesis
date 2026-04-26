@@ -63,7 +63,7 @@ Literature: the cited work that motivates or introduces the feature; not a claim
 
 # TD3 Hyperparameters
 
-The table below lists all hyperparameters for the main AAPL state-space
+The table below lists all hyperparameters for the main state-space
 experiment.
 
 | Parameter | Value | Notes |
@@ -97,19 +97,19 @@ experiment.
 | Transaction fee | 0.000 | Baseline setting |
 | Random seed | 42 | |
 
-: TD3 hyperparameters for the main AAPL state-space experiment. {#tbl-td3-hyperparams longtable=true tbl-colwidths="[36,18,46]"}
+: TD3 hyperparameters for the main state-space experiment. {#tbl-td3-hyperparams longtable=true tbl-colwidths="[36,18,46]"}
 
 ---
 
 # Main Experiment Specification
 
-The table below condenses the main AAPL experiment into a self-contained
+The table below condenses the main experiment into a self-contained
 research specification. It records the empirical choices needed to reproduce
 the experiment without exposing implementation-specific file names.
 
 | Component | Specification |
 |---|---|
-| Asset and data | AAPL, ten-level limit order book observations during regular U.S. trading hours |
+| Asset and data | AAPL, MSFT, TSLA, and NVDA; ten-level limit order book observations during regular U.S. trading hours |
 | Training size | 15,000 chronologically ordered observations |
 | Feature set | Causal LOB microstructure feature set: imbalance, fair-value, spread and cost, order-flow, and regime features |
 | Environment backend | Continuous single-asset trading environment |
@@ -130,7 +130,7 @@ the experiment without exposing implementation-specific file names.
 | Loss function | Smooth L1 (Huber) |
 | Random seed | 42 |
 
-: Main AAPL TD3 experiment specification. {#tbl-main-experiment-spec longtable=true tbl-colwidths="[28,72]"}
+: Main TD3 experiment specification. {#tbl-main-experiment-spec longtable=true tbl-colwidths="[28,72]"}
 
 ---
 

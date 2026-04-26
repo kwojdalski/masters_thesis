@@ -44,12 +44,12 @@ decision-relevant information at this resolution.
 
 Cross-asset signals such as
 VIX or index returns face a related problem. They update at frequencies far
-below the inter-event times of the AAPL tick stream. This contributes no new
+below the inter-event times of the constituent tick streams. This contributes no new
 information between consecutive book updates.
 
 Aligning multiple tick streams
 at sub-second precision also introduces synchronization risk. A VIX
-observation and an AAPL LOB snapshot sharing a timestamp to the second are not
+observation and a LOB snapshot sharing a timestamp to the second are not
 the same market moment.
 
 Beyond these practical constraints, restricting the
@@ -156,8 +156,8 @@ consumed across consecutive snapshots, identifying situations where the top-of-b
 queue is close to exhaustion and a price move is imminent.
 
 Odd-lot trade ratio and odd-lot imbalance [@Boehmer2021] decompose trade flow by
-order size. In the AAPL dataset used here, 81% of trades are odd-lot sized (below
-100 shares).^[This figure is computed from the February 25–27, 2026 AAPL MBP-10 dataset used in the main experiment and should not be interpreted as a long-run population statistic. The share of odd-lot trades in AAPL has increased substantially since the SEC's 2023 amendments to odd-lot reporting rules and may vary across periods.] This primarily reflects retail and algorithmic small-lot activity.
+order size. In the pooled dataset used here, the large majority of trades are odd-lot sized (below
+100 shares).^[This figure is computed from the February 25–27, 2026 MBP-10 dataset across the four instruments (AAPL, MSFT, TSLA, and NVDA) used in the main experiment and should not be interpreted as a long-run population statistic. The share of odd-lot trades in large-cap Nasdaq equities has increased substantially since the SEC's 2023 amendments to odd-lot reporting rules and may vary across periods and instruments.] This primarily reflects retail and algorithmic small-lot activity.
 
 A
 sudden drop in the odd-lot ratio signals increasing institutional participation.
