@@ -23,6 +23,7 @@ format:
       - \usepackage{amsmath}
       - \usepackage{booktabs}
       - \usepackage{longtable}
+      - \usepackage{pdflscape}
       - \usepackage{tikz}
       - \usetikzlibrary{arrows.meta}
       - \nralbumu{310284}
