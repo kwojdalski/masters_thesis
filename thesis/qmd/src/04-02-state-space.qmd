@@ -68,156 +68,60 @@ additional signal sources materially improve out-of-sample results.
 
 ### Feature Groups and Selection Rationale
 
-The state vector is composed of five groups of features, each targeting a
-distinct aspect of LOB microstructure.
+The state vector organises twenty-five LOB-derived features into five groups,
+each targeting a distinct microstructure mechanism. **Imbalance features** measure
+the relative weight of resting liquidity on each side of the book — at individual
+levels (levels 0–2) and in a three-level volume-weighted aggregate — together with
+order count imbalance, which is sensitive to fragmentation that a single large
+institutional order would mask [@Cao2004; @Biais1995]. **Fair value features**
+estimate where the next transaction is likely to occur relative to the mid-price:
+the microprice [@Stoikov2018] is the central construct, complemented by its
+divergence from mid-price and a volume-weighted mid-price skew across three levels.
+**Spread and cost features** capture adverse selection risk through the bid-ask
+spread in basis points, its ratio to a 50-event rolling mean, book convexity on
+each side, and depth slopes that proxy market impact per unit of volume
+[@Kyle1985; @GlostenMilgrom1985; @Bouchaud2002]. **Order flow features** measure
+net directional pressure from LOB events between consecutive snapshots via order
+flow imbalance [@Cont2014] and a 50-event rolling sum, queue depletion on each
+side, signed trade flow from the tape [@LeeReady1991], and odd-lot trade ratio and
+imbalance, which separate retail and algorithmic small-lot activity from
+institutional flow and thereby signal changes in adverse selection risk
+[@Boehmer2021].^[Odd-lot share is computed from the February 25–27, 2026 MBP-10
+dataset across AAPL, MSFT, TSLA, and NVDA and should not be interpreted as a
+long-run population statistic. The share of odd-lot trades in large-cap Nasdaq
+equities has increased substantially since the SEC's 2023 amendments to odd-lot
+reporting rules.] **Regime and temporal features** condition the agent on activity
+rate via log inter-event time [@Engle2000], on price momentum via mid-price
+acceleration, and on the intraday seasonal pattern via cyclical sine and cosine
+hour encodings [@Wood1985]. The observation vector is additionally extended at
+runtime with the agent's current portfolio exposure $a_{t-1} \in [-1, 1]$, making
+the state partially Markovian with respect to inventory and allowing the agent to
+condition position changes on the transaction cost they would incur; this feature
+is excluded from z-score normalization because its bimodal distribution —
+concentrating near $\pm 1$ under the continuous action space — makes
+standardization counterproductive relative to the raw bounded signal.
 
-#### Imbalance Features
+The candidate pool from which these groups were drawn contained over forty
+computable statistics. Features eliminated by the IC/ICIR filter or excluded on
+redundancy grounds include: VPIN [@Easley2012], which proved collinear with rolling
+OFI after conditional screening; cancel-to-trade ratio and trade arrival rate,
+which carried insufficient incremental ICIR beyond order count imbalance; OFI
+autocorrelation, whose predictive content was subsumed by the rolling OFI window;
+large trade ratio, which was redundant with the odd-lot decomposition; and depth
+ratio and price vamp, which did not survive the theory-constrained Stage 1 screen.
+The formulas for the conceptually central features are given in @tbl-features;
+the complete specification including all parameter values is in Appendix A.
 
-Volume imbalance at a given price level $i$ is defined as:
+| Feature | Group | Formula | Citation |
+|:--------|:------|:--------|:---------|
+| Order book imbalance | Imbalance | $\text{OBI}_N = \dfrac{\sum_{i=0}^{N-1}(V^{bid}_i - V^{ask}_i)}{\sum_{i=0}^{N-1}(V^{bid}_i + V^{ask}_i)}$ | @Cao2004 |
+| Microprice | Fair value | $\dfrac{V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$ | @Stoikov2018 |
+| Spread (bps) | Spread | $\dfrac{P^{ask}_0 - P^{bid}_0}{\tfrac{1}{2}(P^{bid}_0 + P^{ask}_0)} \times 10{,}000$ | @Kyle1985 |
+| Bid/ask slope | Spread | $\dfrac{P^{bid}_0 - P^{bid}_4}{\sum_{i=0}^{4} V^{bid}_i}$ | @Bouchaud2002 |
+| Order flow imbalance | Order flow | $\Delta V^{bid}_t \cdot \mathbf{1}[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t \cdot \mathbf{1}[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}]$ | @Cont2014 |
+| Signed trade flow | Order flow | $\sum_{\tau=t-W+1}^{t} \mathrm{size}_\tau \cdot (\mathbf{1}[\mathrm{side}_\tau = B] - \mathbf{1}[\mathrm{side}_\tau = A])$ | @LeeReady1991 |
 
-$$\text{BookPressure}_i = \frac{V^{bid}_i - V^{ask}_i}{V^{bid}_i + V^{ask}_i}$$ {#eq-book-pressure}
-
-Imbalance signals the relative weight of resting liquidity on each side and
-has been shown to predict short-term price direction [@Cao2004; @Biais1995].
-The multi-level aggregate version averages this signal across the top $N$ levels:
-
-$$\text{OBI}_N = \frac{\sum_{i=0}^{N-1}(V^{bid}_i - V^{ask}_i)}{\sum_{i=0}^{N-1}(V^{bid}_i + V^{ask}_i)}$$ {#eq-obi}
-
-The multi-level formulation is more robust to noise at the best quote and captures
-the depth structure of the book. Both single-level (levels 0–2) and three-level
-aggregate variants are included.
-
-Order count imbalance complements the volume-based measures by counting the number
-of resting orders rather than their aggregate size, making it sensitive to
-fragmentation that a single large institutional order would mask:
-
-$$\text{OCI}_i = \frac{C^{bid}_i - C^{ask}_i}{C^{bid}_i + C^{ask}_i}$$ {#eq-oci}
-
-#### Fair Value Features
-
-The microprice [@Stoikov2018] is a volume-weighted estimate of where the next
-transaction price is likely to occur:
-
-$$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$ {#eq-microprice}
-
-When the ask side is thin relative to the bid side, the microprice is pulled
-toward the ask — the side more likely to move first. The microprice divergence
-from mid-price isolates the imbalance component of fair value as a stationary
-signal:
-
-$$\text{MicroDiv} = \text{Microprice} - \frac{P^{bid}_0 + P^{ask}_0}{2}$$ {#eq-microdiv}
-
-The volume-weighted mid-price skew extends this concept across three levels,
-measuring whether deep liquidity is positioned asymmetrically relative to the
-current mid-price.
-
-#### Spread and Cost Features
-
-The bid-ask spread, expressed in basis points, is the primary observable measure
-of adverse selection cost [@Kyle1985; @GlostenMilgrom1985]:
-
-$$\text{SpreadBps} = \frac{P^{ask}_0 - P^{bid}_0}{\frac{P^{bid}_0 + P^{ask}_0}{2}} \times 10{,}000$$ {#eq-spread-bps}
-
-A widening spread signals elevated information asymmetry or inventory risk among
-market makers. The spread ratio — current bid-ask relative to its recent rolling
-mean — separates the level effect from the regime signal, flagging periods of
-abnormally elevated adverse selection risk [@Easley2012].
-
-Bid and ask slopes measure the price elasticity of each side of the book across
-five levels [@Bouchaud2002], capturing market impact per unit of trading volume
-and serving as a proxy for Kyle's lambda [@Kyle1985]:
-
-$$\text{BidSlope} = \frac{P^{bid}_0 - P^{bid}_4}{\sum_{i=0}^{4} V^{bid}_i}, \qquad
-\text{AskSlope} = \frac{P^{ask}_4 - P^{ask}_0}{\sum_{i=0}^{4} V^{ask}_i}$$ {#eq-slope}
-
-#### Order Flow Features
-
-Order flow imbalance (OFI) [@Cont2014] measures the net directional pressure from
-LOB events between consecutive snapshots, conditioning on whether each event
-represents genuine queue growth rather than a price improvement:
-
-$$\text{OFI}_t =
-\Delta V^{bid}_t \cdot \mathbf{1}\!\left[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}\right]
-- \Delta V^{ask}_t \cdot \mathbf{1}\!\left[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}\right]$$ {#eq-ofi}
-
-@Cont2014 establish OFI as the single strongest predictor of short-term price
-changes in LOB data. A rolling sum over 50 events captures persistent directional
-pressure over multiple tick horizons.
-
-Signed trade flow (cumulative delta) [@LeeReady1991] is constructed directly from
-the trade tape rather than from book changes, providing a complementary signal
-that measures executed volume rather than queue dynamics:
-
-$$\text{CumDelta}_{W,t} = \sum_{\tau=t-W+1}^{t} \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = B]
-- \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = A]$$ {#eq-cum-delta}
-
-Queue depletion measures how rapidly the best-bid or best-ask queue is being
-consumed across consecutive snapshots, identifying situations where the top-of-book
-queue is close to exhaustion and a price move is imminent.
-
-Odd-lot trade ratio and odd-lot imbalance [@Boehmer2021] decompose trade flow by
-order size. In the pooled dataset used here, the large majority of trades are odd-lot sized (below
-100 shares).^[This figure is computed from the February 25–27, 2026 MBP-10 dataset across the four instruments (AAPL, MSFT, TSLA, and NVDA) used in the main experiment and should not be interpreted as a long-run population statistic. The share of odd-lot trades in large-cap Nasdaq equities has increased substantially since the SEC's 2023 amendments to odd-lot reporting rules and may vary across periods and instruments.] This primarily reflects retail and algorithmic small-lot activity.
-
-A
-sudden drop in the odd-lot ratio signals increasing institutional participation.
-This indicates consequently higher adverse selection risk.
-
-#### Regime and Temporal Features
-
-Two features condition the agent on the current market regime rather than
-providing directional signals.
-
-Log inter-event time [@Engle2000] captures the activity rate of the market:
-
-$$\text{LogGap}_t = \log\!\left(1 + (t_{\text{ns}} - t_{\text{ns},t-1})\right)$$ {#eq-log-gap}
-
-Dense update bursts indicate informed order flow or a large order working through
-the book; sparse updates signal low activity and reduced adverse selection risk.
-
-Mid-price acceleration is the second finite difference of the mid-price:
-
-$$\text{Accel}_t = M_t - 2M_{t-1} + M_{t-2}, \qquad M_t = \frac{P^{bid}_0 + P^{ask}_0}{2}$$ {#eq-accel}
-
-It distinguishes momentum regimes (positive, accelerating) from mean-reversion
-regimes (negative, decelerating) at tick frequency.
-
-The sine and cosine encodings of the hour-of-day capture the well-documented
-U-shaped intraday pattern in volume and spread [@Wood1985]:
-
-$$\text{HourSin}_t = \sin\!\left(\frac{2\pi \cdot h_t}{24}\right), \qquad
-\text{HourCos}_t = \cos\!\left(\frac{2\pi \cdot h_t}{24}\right)$$ {#eq-hour-encoding}
-
-The cyclical encoding ensures temporal continuity — 09:30 and 16:00 remain
-structurally distinct without imposing an arbitrary ordinal distance.
-
-#### Position Feature
-
-The observation vector is optionally extended with the agent's own current
-portfolio exposure $a_{t-1} \in [-1, 1]$. Unlike the LOB-derived features,
-this quantity is not computed from market data but read from the simulated
-broker state at each step — it is a runtime feature appended after the static
-feature vector is constructed.
-
-Including the current position makes the state partially Markovian with respect
-to inventory. Without it, the agent cannot distinguish between arriving at
-exposure $0$ from a long position versus coming from a short position.
-
-This distinction matters because the cost of the next action differs in both cases through the
-position-change fee. With the position feature, the agent can condition its action on whether a
-change would incur a fee. It can also learn to penalize unnecessary turnover.
-The feature is not z-score normalized. Because the position is bounded in
-$[-1, 1]$ by the action space and is drawn from a bimodal distribution that
-concentrates near the extremes (fully long or fully short), standardization
-would distort this natural structure: a z-score transform on a bimodal
-distribution produces a U-shaped output with negative variance contributions
-between the modes, which is worse than the raw signal for a neural-network
-input.^[This is a practical consideration rather than a theoretical
-constraint. If the position distribution were approximately Gaussian,
-z-score normalization would reduce the scale mismatch with the other features.
-However, TD3 policies with continuous action spaces in $[-1, 1]$ tend to
-produce positions that cluster near the boundaries, making the raw
-representation both simpler and better matched to the actual distribution.]
+: Key feature definitions. Full specification in Appendix A. {#tbl-features}
 
 ### Observation Space and Normalization
 
@@ -236,9 +140,8 @@ split and trading session. The running statistics are reset at detected session
 boundaries, preventing previous-day market conditions from contaminating the
 opening representation of the next session. Cyclical encodings are inherently
 bounded in $[-1, 1]$ and require no normalization. The position feature is
-likewise not standardized; as discussed in the preceding section, it is already
-bounded in $[-1, 1]$ and its bimodal distribution makes z-score normalization
-counterproductive.
+likewise not standardized; it is already bounded in $[-1, 1]$ and its bimodal
+distribution makes z-score normalization counterproductive.
 
 The formal observation space is:
 
