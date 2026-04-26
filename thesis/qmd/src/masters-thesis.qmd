@@ -10,7 +10,7 @@ format:
     toc: true
     toc-depth: 3
     number-sections: true
-    output-dir: ../../build
+    output-file: masters_thesis.pdf
     linestretch: 1.5
     lof: true
     lot: true
@@ -41,7 +41,7 @@ format:
     format-links: false
     other-links:
       - text: PDF
-        href: /masters_thesis/masters-thesis.pdf
+        href: /masters_thesis/masters_thesis.pdf
         icon: file-pdf
 bibliography: ../../bibliography/library.bib
 editor_options:
