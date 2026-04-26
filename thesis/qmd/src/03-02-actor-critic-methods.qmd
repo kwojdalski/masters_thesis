@@ -201,18 +201,18 @@ historical period and live data collection is outside the scope of the thesis.
 Off-policy algorithms that reuse transitions through a replay buffer extract more
 signal from each simulated step than on-policy methods that discard transitions
 after a single gradient update. This constraint disadvantages PPO relative to
-TD3 and DDPG, though it does not determine the choice between them.
+DDPG and TD3, though it does not determine the choice between them.
 
-Given these two constraints, the viable candidates are TD3, DDPG, and SAC
+Given these two constraints, the viable candidates are DDPG, TD3, and SAC
 [@Haarnoja2018]. Among these, DDPG and TD3 are preferred because they use
 natively deterministic policies, which aligns with the evaluation objective of
 a single exposure decision per state and avoids the need to choose between
 sampling from or taking the mode of a stochastic action distribution at
-deployment. SAC is excluded on scope grounds: the thesis compares TD3, DDPG,
+deployment. SAC is excluded on scope grounds: the thesis compares DDPG, TD3,
 and PPO as representatives of the three algorithmic families described in this
 chapter, and adding SAC as a fourth candidate would require a separate
 hyperparameter search without introducing a qualitatively distinct design point
-relative to the off-policy deterministic family already covered by TD3 and DDPG.
+relative to the off-policy deterministic family already covered by DDPG and TD3.
 
 Among the two remaining candidates, TD3 is preferred over DDPG because it was
 introduced precisely to correct DDPG's two main failure modes: critic
@@ -243,7 +243,7 @@ particularly relevant to the continuous-action trading problem: learning paradig
 policy type, and stability mechanisms. These differences determine how to
 interpret empirical comparisons and why TD3 is selected over the alternatives.
 
-**On-policy vs. off-policy learning.** TD3 and DDPG are off-policy algorithms
+**On-policy vs. off-policy learning.** DDPG and TD3 are off-policy algorithms
 that use experience replay, allowing each transition to be reused many times
 across multiple gradient updates. This is valuable when the simulation budget is bounded,
 as it is in this thesis by the fixed historical training window. Replay buffers
@@ -253,7 +253,7 @@ it, requiring more training iterations for comparable sample efficiency. However
 on-policy learning can be more stable when the environment distribution shifts
 rapidly, as financial markets do.
 
-**Deterministic vs. stochastic policies.** TD3 and DDPG output deterministic
+**Deterministic vs. stochastic policies.** DDPG and TD3 output deterministic
 actions $a = \mu_\theta(s)$, matching the evaluation objective of a single
 exposure decision per state. During training, exploration is handled by adding
 noise to the deterministic action: $a = \mu_\theta(s) + \epsilon$, with
@@ -279,7 +279,7 @@ TD3 targets value estimation errors, while PPO constrains policy changes directl
 
 **Sample efficiency vs. stability trade-off.** The practical implication of
 these differences is a trade-off between sample efficiency and training stability.
-TD3 and DDPG can make efficient use of limited training data through replay, but
+DDPG and TD3 can make efficient use of limited training data through replay, but
 DDPG's instability can make it difficult to train reliably. PPO is typically more
 stable but requires more data to achieve comparable performance due to its
 on-policy nature. In the present simulation setup, where the training window is bounded by the
@@ -302,7 +302,7 @@ mechanisms a strong fit for the thesis design.
 : Algorithm properties for trading applications. Author's own synthesis based on [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024; @Liu2024dai]. $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited. {#tbl-algo-comparison}
 
 This comparison framework guides the experimental design in Chapter 6, where
-TD3, PPO, and DDPG are evaluated on identical trading tasks to empirically
+PPO, DDPG, and TD3 are evaluated on identical trading tasks to empirically
 assess how these algorithmic differences translate to trading performance.
 The results help determine whether TD3's theoretical advantages (reduced
 overestimation, deterministic policy) translate to practical benefits in the

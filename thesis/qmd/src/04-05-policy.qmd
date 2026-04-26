@@ -80,7 +80,7 @@ The slow rate ensures the bootstrap target shifts gradually, even while the onli
 actor receives more aggressive gradient updates. The target actor is never used for
 data collection or evaluation.
 
-**Architectural difference between TD3 and DDPG.** The actor networks for TD3 and DDPG
+**Architectural difference between DDPG and TD3.** The actor networks for DDPG and TD3
 are identical. The differences between the two algorithms lie entirely in the critic and
 training procedure: TD3 maintains twin critics and uses their minimum for conservative
 value targets, and delays actor updates to one per every two critic updates. DDPG uses
@@ -123,7 +123,7 @@ required.
 
 **Evaluation.** At evaluation time, stochastic sampling is replaced by the mode of the
 TanhNormal distribution, which is $\tanh(\mu_\theta(s_t))$. This yields a deterministic
-action for each state, directly comparable to the TD3 and DDPG evaluation policies.
+action for each state, directly comparable to the DDPG and TD3 evaluation policies.
 
 **Value network.** Unlike DDPG and TD3, whose critics estimate $Q(s, a)$, PPO's critic
 estimates the state value $V(s)$. The input is therefore the state vector alone (26
