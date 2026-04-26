@@ -160,8 +160,11 @@ peaks caused by function approximation, acting as a regularizer on the value
 landscape.
 
 Together, these three modifications produce an algorithm that is substantially
-more reliable than DDPG on standard continuous control benchmarks while
-retaining its off-policy sample efficiency. This matters for the present thesis
+more reliable than DDPG on standard continuous control benchmarks [@Fujimoto2018],
+and empirical comparisons in financial domains have found similar patterns, with
+TD3 achieving competitive or superior risk-adjusted performance relative to DDPG
+and PPO across stock, cryptocurrency, and continuous-action trading tasks
+[@Mohammadshafie2024; @Liu2024dai; @Gort2022]. This matters for the present thesis
 for a specific reason: the agent is trained in a price-taking historical-market
 simulator where each transition can be replayed because the agent's action
 changes portfolio wealth but not the subsequent order-book path. Replay therefore
@@ -270,7 +273,7 @@ mechanisms a strong fit for the thesis design.
 | **Suitability for Limited Data** | Lower | High | High |
 | **Interpretability** | Lower (stochastic) | High (deterministic) | High (deterministic) |
 
-*This table represents the author's own synthesis based on the algorithmic properties described in the cited papers.*
+*This table represents the author's own synthesis based on the algorithmic properties described in the cited papers [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024; @Liu2024dai].*
 
 This comparison framework guides the experimental design in Chapter 6, where
 TD3, PPO, and DDPG are evaluated on identical trading tasks to empirically
