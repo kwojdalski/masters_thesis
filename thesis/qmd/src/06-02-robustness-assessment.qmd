@@ -8,7 +8,7 @@ change materially under nearby alternatives in feature specification, reward
 definition, transaction-cost assumptions, or split design.
 
 The goal is to separate results that appear structural from results that may
-depend too heavily on one narrow experimental configuration.
+depend too heavily on one narrow experimental setup.
 
 ```{python}
 #| label: robustness_setup
@@ -42,7 +42,7 @@ drawdown behavior.
 
 The following snapshot provides the current experiment context used in the
 automated Chapter 6 result wiring. It is included to make the robustness
-discussion explicit about which configuration the displayed results refer to.
+discussion explicit about which experimental setup the displayed results refer to.
 
 ```{python}
 #| echo: false
@@ -59,7 +59,7 @@ else:
         ("Algorithm", params.get("training_algorithm")),
         ("Reward Type", params.get("env_reward_type")),
         ("Train Size", params.get("data_train_size")),
-        ("Feature Config", params.get("data_feature_config")),
+        ("Feature Set", "Causal LOB microstructure feature set"),
         ("Finished Runs in Snapshot", 0 if runs_df.empty else int((runs_df["status"] == "FINISHED").sum())),
         ("Latest Training Steps", None if latest is None else latest.get("training_steps")),
     ]
@@ -73,7 +73,7 @@ The robustness framework is centered on five dimensions most
 directly connected to the current empirical design:
 
 1. **Random-seed sensitivity**: whether performance is stable across repeated
-   runs of the same configuration.
+   runs of the same setup.
 2. **Feature-set sensitivity**: if the richer state-space design improves
    results relative to simpler snapshot-heavy alternatives without introducing
    unstable behavior.
@@ -85,8 +85,7 @@ directly connected to the current empirical design:
    changes in the chronological split or training-window length.
 
 These dimensions are sufficient to test if the conclusions here are
-specific to one narrow configuration or remain credible under nearby
-variations.
+specific to one narrow setup or remain credible under nearby variations.
 
 ### Robustness Matrix for Experimental Reporting [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
@@ -99,7 +98,7 @@ compiled.
 #| echo: false
 
 robustness_rows = [
-    ("Random seed", "seed", "Stochastic training path sensitivity", ">= 5 seeds per selected configuration", "Required"),
+    ("Random seed", "seed", "Stochastic training path sensitivity", ">= 5 seeds per selected setup", "Required"),
     ("Feature subset", "env.feature_columns / feature pipeline", "State representation redundancy and overfitting", "All-features vs reduced non-redundant set", "Required"),
     ("Reward function", "reward_type", "Objective-function dependence", "log_return vs differential_sharpe", "Recommended"),
     ("Transaction costs", "trading_fees", "Turnover-driven performance inflation", "Zero-cost and nonzero-cost comparison", "Required"),
@@ -118,7 +117,7 @@ display(robustness_df)
 
 Noisy training curves are common in actor-critic methods and should not be
 treated as the primary robustness criterion. In the present workflow, the more
-informative question is whether the same configuration produces similar
+informative question is whether the same setup produces similar
 evaluation outcomes across repeated runs and whether qualitative behavior, such
 as persistent overtrading or directional bias, changes systematically when the
 feature set, reward, or cost assumptions are varied.

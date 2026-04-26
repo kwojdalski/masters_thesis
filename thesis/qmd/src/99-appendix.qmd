@@ -8,8 +8,7 @@ The tables below catalogue every feature type implemented in the feature
 registry. The subset used in the main
 state-space experiment is marked in the **In model** column: ✓ indicates
 all variants are used, while a specific parameter value indicates only that
-variant is used. The active subset is defined in
-`src/configs/features/hft_lob_features_causal.yaml`.
+variant is used.
 Feature names match the keys produced by the feature pipeline at runtime.
 Formulas for the active LOB features are given in Chapter 4.
 
@@ -65,8 +64,7 @@ Literature: the cited work that motivates or introduces the feature; not a claim
 # TD3 Hyperparameters
 
 The table below lists all hyperparameters for the main AAPL state-space
-experiment. The full configuration file is
-`src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`.
+experiment.
 
 | Parameter | Value | Notes |
 |---|---|---|
@@ -99,57 +97,46 @@ experiment. The full configuration file is
 | Transaction fee | 0.000 | Baseline setting |
 | Random seed | 42 | |
 
-: TD3 hyperparameters for the main AAPL state-space experiment. Full configuration: `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`. {#tbl-td3-hyperparams longtable=true tbl-colwidths="[36,18,46]"}
+: TD3 hyperparameters for the main AAPL state-space experiment. {#tbl-td3-hyperparams longtable=true tbl-colwidths="[36,18,46]"}
 
 ---
 
-# Experiment Configuration Example
+# Main Experiment Specification
 
-The YAML snippet below is a condensed version of the main experiment
-configuration, illustrating the configuration-driven workflow described in
-Chapter 5.
+The table below condenses the main AAPL experiment into a self-contained
+research specification. It records the empirical choices needed to reproduce
+the experiment without exposing implementation-specific file names.
 
-```yaml
-seed: 42
+| Component | Specification |
+|---|---|
+| Asset and data | AAPL, ten-level limit order book observations during regular U.S. trading hours |
+| Training size | 15,000 chronologically ordered observations |
+| Feature set | Causal LOB microstructure feature set: imbalance, fair-value, spread and cost, order-flow, and regime features |
+| Environment backend | Continuous single-asset trading environment |
+| Action | Target portfolio exposure $a_t \in [-1, 1]$ |
+| Reward | Differential Sharpe Ratio with $\eta = 0.01$ |
+| Transaction fee | 0.000 in the baseline setting |
+| Algorithm | TD3 |
+| Network widths | Actor and critic hidden layers [128, 64] |
+| Learning rates | Actor 0.0001; critic 0.0001 |
+| Discount factor | $\gamma = 0.995$ |
+| Target update | $\tau = 0.001$ |
+| Policy delay | 2 critic updates per actor update |
+| Target policy noise | $\sigma = 0.2$, clipped at $\pm 0.3$ |
+| Exploration noise | $\sigma = 0.1$ during training |
+| Total training steps | 2,000,000 |
+| Mini-batch size | 128 |
+| Replay buffer size | 100,000 |
+| Loss function | Smooth L1 (Huber) |
+| Random seed | 42 |
 
-data:
-  data_path: "stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
-  feature_config: "src/configs/features/hft_lob_features_causal.yaml"
-  train_size: 15000
-
-env:
-  backend: "tradingenv"
-  mode: "hft"
-  trading_fees: 0.000
-  price_column: "close"
-  reward_type: "differential_sharpe"
-  reward_eta: 0.01
-
-network:
-  actor_hidden_dims: [128, 64]
-  value_hidden_dims: [128, 64]
-
-training:
-  algorithm: "TD3"
-  actor_lr: 0.0001
-  value_lr: 0.0001
-  gamma: 0.995
-  tau: 0.001
-  policy_noise: 0.2
-  noise_clip: 0.3
-  policy_delay: 2
-  exploration_noise_std: 0.1
-  max_steps: 2000000
-  sample_size: 128
-  buffer_size: 100000
-  loss_function: "smooth_l1"
-```
+: Main AAPL TD3 experiment specification. {#tbl-main-experiment-spec longtable=true tbl-colwidths="[28,72]"}
 
 ---
 
 # TD3 Training Workflow Diagram
 
-The diagram below summarizes the configuration-driven workflow described in
+The diagram below summarizes the structured training workflow described in
 Chapter 5.
 
 ```{=latex}
@@ -174,7 +161,7 @@ Chapter 5.
   }
 }}%%
 flowchart TD
-    A[Scenario + feature config] --> B[Pre-run validation]
+    A[Experiment specification + feature set] --> B[Pre-run validation]
     B --> C[build_prepared_dataset]
     C --> D[PreparedDataset<br/>train / val / test + metadata]
     D --> E[build_training_bundle]
@@ -346,8 +333,8 @@ microstructure literature; IC/ICIR ranking selects among the available
 implementations of those mechanisms and removes redundancy via a conditional IC
 filter. This appendix describes the operational pipeline that implements Stage 2
 of that procedure. It takes a theory-defined candidate pool as input, scores each
-feature against a forward return proxy, and writes the selected feature
-specification to a YAML file that the training pipeline loads directly.
+feature against a forward return proxy, and stores the selected feature
+specification used by the training pipeline.
 
 ## Feature Group Registry
 
@@ -362,30 +349,30 @@ Section 4.2. Each group corresponds to a distinct microstructure mechanism:
 | `flow` | Order flow and trade flow features | 7 |
 | `regime` | Regime and temporal features | 4 |
 
-: Feature groups defined in the group registry (`src/configs/features/feature_groups.yaml`). The imbalance, fair value, spread, and flow groups correspond to the four signal categories in Section 4.2; the regime group provides temporal context. {#tbl-feature-groups}
+: Feature groups used by the state-space design. The imbalance, fair value, spread, and flow groups correspond to the four signal categories in Section 4.2; the regime group provides temporal context. {#tbl-feature-groups}
 
-The group registry is a YAML configuration that lists the full specification
-(name, type, parameters, normalization flag, domain tag) for each feature within
-each group. Groups can be composed by name, and individual features can be
-excluded, without editing the feature source code.
+The group registry lists the full specification (name, type, parameters,
+normalization flag, domain tag) for each feature within each group. Groups can
+be composed by name, and individual features can be excluded, without editing
+the feature source code.
 
 ## Selection Procedure
 
 The offline selection procedure takes a candidate pool of features, scores
 each one against a proxy target, and applies a greedy redundancy filter to
 produce a reduced set. The procedure is run once before training; the resulting
-feature list is written to a YAML file that the training pipeline loads
-directly. This ensures that feature selection is not repeated on every training
-run and that the reduced specification is reproducible.
+feature list is stored as the selected feature specification used by the
+training pipeline. This ensures that feature selection is not repeated on every
+training run and that the reduced specification is reproducible.
 
 **Step 1: Theory-constrained candidate pool construction.** The user specifies
-which feature groups to include. Each group in `feature_groups.yaml` corresponds
-to a distinct microstructure mechanism (see Section 4.2); only groups with a
-theoretical prior are eligible for inclusion. The `FeatureGroupResolver` expands
-group names into a flat list of `FeatureConfig` instances. Individual features
-can be excluded at this stage, but no feature from outside the theory-defined
-groups can be added. This constraint is enforced by the group registry structure,
-not by post-hoc filtering.
+which feature groups to include. Each group corresponds to a distinct
+microstructure mechanism (see Section 4.2); only groups with a theoretical prior
+are eligible for inclusion. The feature resolver expands group names into a flat
+list of feature specifications. Individual features can be excluded at this
+stage, but no feature from outside the theory-defined groups can be added. This
+constraint is enforced by the group registry structure, not by post-hoc
+filtering.
 
 **Step 2: Proxy target.** Each feature is scored against a forward log-return
 target at horizon $h$:
@@ -419,10 +406,9 @@ is a principled alternative to pairwise correlation thresholding: two features
 can be highly correlated yet both informative if each predicts a distinct
 component of the forward return.
 
-**Step 5: Output.** The selected feature specifications are written to a YAML
-file that can be referenced directly by the training scenario configuration
-via `data.feature_config`. The training pipeline reads this file at runtime;
-no selection logic runs during training.
+**Step 5: Output.** The selected feature specifications are stored as the
+feature set used by the training pipeline. The training run reads this fixed
+feature set at runtime; no selection logic runs during training.
 
 The diagram below summarizes the offline feature selection pipeline.
 
@@ -436,8 +422,8 @@ The diagram below summarizes the offline feature selection pipeline.
 %%| fig-height: 3.75
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 4, 'useMaxWidth': true}}}%%
 flowchart TD
-    GRP["feature_groups.yaml<br/>(5 named groups)"]
-    RES["FeatureGroupResolver<br/>expand group names"]
+    GRP["Feature-group catalogue<br/>(5 named groups)"]
+    RES["Feature resolver<br/>expand group names"]
     POOL["Candidate Pool<br/>(25 features)"]
 
     GRP --> RES --> POOL
@@ -448,12 +434,12 @@ flowchart TD
     SCORE --> RANK["Rank by ICIR<br/>drop if |ICIR| < 0.02"]
     RANK --> FILTER["Conditional IC Filter<br/>residualize on selected set"]
     FILTER --> SEL["Selected Features<br/>(top_k = 12)"]
-    SEL --> YAML["selected_features.yaml"]
-    YAML --> TRAIN["Training Pipeline<br/>data.feature_config"]
+    SEL --> SPEC["Selected feature specification"]
+    SPEC --> TRAIN["Training Pipeline"]
 
     style GRP fill:#e1f5fe
     style SEL fill:#e8f5e9
-    style YAML fill:#e8f5e9
+    style SPEC fill:#e8f5e9
     style TRAIN fill:#fff3e0
     style SCORE fill:#fff3e0
     style FILTER fill:#fce4ec

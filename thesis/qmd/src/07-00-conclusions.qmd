@@ -14,7 +14,7 @@ behavior of an RL trading agent.
 
 The empirical contribution is accompanied by a methodological one. The thesis
 developed an end-to-end and reproducible pipeline covering feature engineering
-from 10-level order book data, configuration-driven experiment management, TD3
+from 10-level order book data, structured experiment management, TD3
 training with a Differential Sharpe Ratio reward, and a strict separation
 between training diagnostics and held-out financial evaluation. This
 methodological contribution matters alongside the empirical one: it provides a

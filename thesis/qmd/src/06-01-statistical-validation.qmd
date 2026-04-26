@@ -4,7 +4,7 @@
 This section focuses on uncertainty arising from the training process itself.
 For the present AAPL high-frequency TD3 setup, repeated runs can diverge
 because of random initialization, replay sampling, and exploration noise even
-when the dataset and configuration are fixed. The purpose of statistical
+when the dataset and experimental setup are fixed. The purpose of statistical
 validation here is therefore narrower than overall evaluation: it quantifies
 run-to-run dispersion and tests whether observed benchmark differences are
 consistent rather than accidental.
@@ -73,7 +73,7 @@ the performance claim.
 
 In the current work, statistical validation serves three narrower purposes.
 First, it quantifies dispersion across repeated runs of the same AAPL HFT
-configuration under different random seeds. Second, it supports comparison
+setup under different random seeds. Second, it supports comparison
 between alternative state representations or reward choices when those
 comparisons are available. Third, it prevents overinterpretation of a single run
 whose performance may reflect favorable stochastic training dynamics rather than
@@ -182,7 +182,7 @@ else:
 ### Descriptive Statistics and Uncertainty Estimates [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
-For repeated runs of the same configuration, descriptive statistics provide the
+For repeated runs of the same setup, descriptive statistics provide the
 first indication of stability. Here, quantities such as the sample
 mean, standard deviation, and range are summaries of variability
 under the reported protocol, not as universal claims about future market

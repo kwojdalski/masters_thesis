@@ -101,7 +101,7 @@ relative to a close-price-only baseline, with a final 10-stock evaluation
 reporting a Sharpe ratio of 2.68. This figure warrants scrutiny: annualized Sharpe
 ratios above 2 are rare in live trading and typically indicate either
 insufficient out-of-sample discipline, favorable selection among multiple
-configurations, or evaluation periods that coincide with a strong directional
+model variants, or evaluation periods that coincide with a strong directional
 trend. The study does not report results across multiple random seeds or under
 realistic spread-crossing costs with a frozen policy, making it difficult to
 determine whether the reported performance reflects genuine signal or
@@ -109,7 +109,7 @@ overfitting to the evaluation window. Methodologically the paper supports the
 practical value of feature enrichment in continuous-action actor-critic trading,
 but it also illustrates a broader pattern in the RL trading literature: without
 standardized evaluation protocols — multi-seed reporting, held-out test periods
-not used for configuration selection, and explicit cost assumptions — performance
+not used for model selection, and explicit cost assumptions — performance
 claims are difficult to assess on their own terms.
 
 @Yang2020 evaluated an ensemble stock-trading strategy built from PPO, A2C, and
