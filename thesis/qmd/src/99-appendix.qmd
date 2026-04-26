@@ -443,8 +443,8 @@ The diagram below summarizes the offline feature selection pipeline.
 
 ```{mermaid}
 %%| fig-align: center
-%%| fig-width: 5.5
-%%| fig-height: 7.5
+%%| fig-width: 2.75
+%%| fig-height: 3.75
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 4, 'useMaxWidth': true}}}%%
 flowchart TD
     GRP["feature_groups.yaml<br/>(5 named groups)"]
