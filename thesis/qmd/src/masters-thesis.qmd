@@ -23,6 +23,8 @@ format:
       - \usepackage{amsmath}
       - \usepackage{booktabs}
       - \usepackage{longtable}
+      - \usepackage{tikz}
+      - \usetikzlibrary{arrows.meta}
       - \nralbumu{310284}
       - \speciality{Economics}
       - \opiekun{dr Pawel Sakowski}

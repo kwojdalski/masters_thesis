@@ -7,10 +7,9 @@ equations, and algorithm taxonomies are presented in Chapter 3; the focus here
 is on why each one is consequential for trading problems.
 
 ::: {.content-visible when-format="pdf"}
-```{tikz}
-#| fig-align: center
-#| fig-cap: "The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment."
-\usetikzlibrary{arrows.meta}
+```{=latex}
+\begin{figure}[h]
+\centering
 \begin{tikzpicture}[
   >=Latex,
   thick,
@@ -35,6 +34,9 @@ is on why each one is consequential for trading problems.
 \node[right, font=\small] at (-1.0, 0.15) {$S_{t+1}$};
 
 \end{tikzpicture}
+\caption{The agent-environment interaction loop in reinforcement learning. At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment.}
+\label{fig-rl-loop}
+\end{figure}
 ```
 :::
 
