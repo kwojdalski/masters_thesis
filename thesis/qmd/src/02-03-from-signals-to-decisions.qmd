@@ -23,3 +23,15 @@ held-out data under a fixed evaluation protocol. The role of the literature is
 to justify which mechanisms are worth representing in the state; the later
 empirical chapters test whether those representations support tradable decisions
 under the simulation assumptions of this thesis.
+
+In the quantitative trading literature, predictive signals of this kind are
+commonly referred to as alphas: mathematical expressions over market data that
+encode a directional view on short-horizon returns [@Tulchinsky2019]. The
+microstructure features in this thesis's state space — order-flow imbalance,
+microprice divergence, spread regime, and book shape — occupy the same
+conceptual role. The distinction from the traditional alpha framework is that
+they are not used as standalone trading rules. Instead they serve as inputs to
+an RL policy that learns, through experience, how to combine and act on them
+optimally. The RL agent replaces the hand-coded combination rule with a learned
+function, and the evaluation discipline remains the same: out-of-sample
+performance under realistic cost assumptions.
