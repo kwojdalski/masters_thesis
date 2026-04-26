@@ -5,8 +5,8 @@
 # Feature Inventory
 
 The tables below catalogue every feature type implemented in the feature
-registry (`src/trading_rl/features/`). The subset used in the main
-state-space experiment is marked with [x] in the
+registry. The subset used in the main
+state-space experiment is marked with ✓ in the
 **In model** column; this subset is defined in
 `src/configs/features/hft_lob_features_causal.yaml`.
 Feature names match the keys produced by the feature pipeline at runtime.
@@ -23,37 +23,37 @@ definition.
 
 | Feature name | Group | Param | In model | Literature |
 |---|---|---|:---:|---|
-| `hft_book_pressure_l0` | Imbalance | level 0 | [x] | Cao et al. (2004); Biais et al. (1995) |
-| `hft_book_pressure_l1` | Imbalance | level 1 | [x] | Cao et al. (2004) |
-| `hft_book_pressure_l2` | Imbalance | level 2 | [x] | Cao et al. (2004) |
-| `hft_order_book_imbalance_3l` | Imbalance | $N=3$ | [x] | Cont et al. (2014) |
-| `hft_order_count_imbalance_l0` | Imbalance | level 0 | [x] | Biais et al. (1995) |
+| `hft_book_pressure_l0` | Imbalance | level 0 | ✓ | Cao et al. (2004); Biais et al. (1995) |
+| `hft_book_pressure_l1` | Imbalance | level 1 | ✓ | Cao et al. (2004) |
+| `hft_book_pressure_l2` | Imbalance | level 2 | ✓ | Cao et al. (2004) |
+| `hft_order_book_imbalance_3l` | Imbalance | $N=3$ | ✓ | Cont et al. (2014) |
+| `hft_order_count_imbalance_l0` | Imbalance | level 0 | ✓ | Biais et al. (1995) |
 | `hft_order_count_imbalance_l1` | Imbalance | level 1 | | Biais et al. (1995) |
-| `hft_microprice` | Fair value | --- | [x] | Stoikov (2018) |
-| `hft_microprice_divergence` | Fair value | --- | [x] | Stoikov (2018) |
-| `hft_vwmp_skew` | Fair value | $N=3$ | [x] | Stoikov (2018) |
+| `hft_microprice` | Fair value | --- | ✓ | Stoikov (2018) |
+| `hft_microprice_divergence` | Fair value | --- | ✓ | Stoikov (2018) |
+| `hft_vwmp_skew` | Fair value | $N=3$ | ✓ | Stoikov (2018) |
 | `hft_price_vamp_1k` | Fair value | \$1k | | Volume-adjusted mid price |
 | `hft_price_vamp_5k` | Fair value | \$5k | | Volume-adjusted mid price |
 | `hft_depth_ratio` | Depth | $N=4$ | | Bouchaud et al. (2002) |
-| `hft_spread_bps` | Spread/cost | --- | [x] | Kyle (1985); Glosten & Milgrom (1985) |
-| `hft_spread_ratio_50` | Spread/cost | $W=50$ | [x] | Easley et al. (2012) |
+| `hft_spread_bps` | Spread/cost | --- | ✓ | Kyle (1985); Glosten & Milgrom (1985) |
+| `hft_spread_ratio_50` | Spread/cost | $W=50$ | ✓ | Easley et al. (2012) |
 | `hft_spread_ratio_200` | Spread/cost | $W=200$ | | Easley et al. (2012) |
-| `hft_bid_convexity` | Spread/cost | bid side | [x] | Bouchaud et al. (2002) |
-| `hft_ask_convexity` | Spread/cost | ask side | [x] | Bouchaud et al. (2002) |
-| `hft_bid_slope` | Spread/cost | 5 levels | [x] | Bouchaud et al. (2002); Kyle (1985) |
-| `hft_ask_slope` | Spread/cost | 5 levels | [x] | Bouchaud et al. (2002); Kyle (1985) |
-| `hft_ofi` | Order flow | --- | [x] | Cont et al. (2014) |
+| `hft_bid_convexity` | Spread/cost | bid side | ✓ | Bouchaud et al. (2002) |
+| `hft_ask_convexity` | Spread/cost | ask side | ✓ | Bouchaud et al. (2002) |
+| `hft_bid_slope` | Spread/cost | 5 levels | ✓ | Bouchaud et al. (2002); Kyle (1985) |
+| `hft_ask_slope` | Spread/cost | 5 levels | ✓ | Bouchaud et al. (2002); Kyle (1985) |
+| `hft_ofi` | Order flow | --- | ✓ | Cont et al. (2014) |
 | `hft_ofi_rolling_10` | Order flow | $W=10$ | | Cont et al. (2014) |
-| `hft_ofi_rolling_50` | Order flow | $W=50$ | [x] | Cont et al. (2014) |
+| `hft_ofi_rolling_50` | Order flow | $W=50$ | ✓ | Cont et al. (2014) |
 | `hft_ofi_rolling_200` | Order flow | $W=200$ | | Cont et al. (2014) |
 | `hft_ofi_multilevel_3l` | Order flow | $N=3$ | | Cont et al. (2014) |
 | `hft_ofi_multilevel_5l` | Order flow | $N=5$ | | Cont et al. (2014) |
-| `hft_bid_queue_depletion` | Order flow | bid side | [x] | Foucault et al. (2005) |
-| `hft_ask_queue_depletion` | Order flow | ask side | [x] | Foucault et al. (2005) |
-| `hft_signed_trade_flow_50` | Order flow | $W=50$ | [x] | Lee & Ready (1991) |
+| `hft_bid_queue_depletion` | Order flow | bid side | ✓ | Foucault et al. (2005) |
+| `hft_ask_queue_depletion` | Order flow | ask side | ✓ | Foucault et al. (2005) |
+| `hft_signed_trade_flow_50` | Order flow | $W=50$ | ✓ | Lee & Ready (1991) |
 | `hft_signed_trade_flow_200` | Order flow | $W=200$ | | Lee & Ready (1991) |
-| `hft_odd_lot_trade_ratio_200` | Order flow | $W=200$ | [x] | Boehmer et al. (2021) |
-| `hft_odd_lot_imbalance_200` | Order flow | $W=200$ | [x] | Boehmer et al. (2021) |
+| `hft_odd_lot_trade_ratio_200` | Order flow | $W=200$ | ✓ | Boehmer et al. (2021) |
+| `hft_odd_lot_imbalance_200` | Order flow | $W=200$ | ✓ | Boehmer et al. (2021) |
 | `hft_vpin_100` | Order flow | $W=100$ | | Easley et al. (2012) |
 | `hft_vpin_500` | Order flow | $W=500$ | | Easley et al. (2012) |
 | `hft_cancel_to_trade_200` | Order flow | $W=200$ | | Foucault et al. (2005) |
@@ -62,10 +62,10 @@ definition.
 | `hft_trade_arrival_rate_500` | Order flow | $W=500$ | | Engle (2000) |
 | `hft_large_trade_ratio_200` | Order flow | $W=200$ | | Institutional flow proxy |
 | `hft_ofi_autocorr_{50,200}` | Order flow | $W \in \{50, 200\}$ | | Cont et al. (2014) |
-| `hft_inter_event_time` | Regime/temp. | --- | [x] | Engle (2000) |
-| `hft_mid_price_acceleration` | Regime/temp. | --- | [x] | Abergel et al. (2016) |
-| `hft_hour_sin` | Regime/temp. | --- | [x] | Wood et al. (1985) |
-| `hft_hour_cos` | Regime/temp. | --- | [x] | Wood et al. (1985) |
+| `hft_inter_event_time` | Regime/temp. | --- | ✓ | Engle (2000) |
+| `hft_mid_price_acceleration` | Regime/temp. | --- | ✓ | Abergel et al. (2016) |
+| `hft_hour_sin` | Regime/temp. | --- | ✓ | Wood et al. (1985) |
+| `hft_hour_cos` | Regime/temp. | --- | ✓ | Wood et al. (1985) |
 
 : LOB microstructure features implemented in the feature registry. The In model column marks features used in the main state-space experiment. {#tbl-lob-features longtable=true tbl-colwidths="[34,15,10,9,32]"}
 
