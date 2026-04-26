@@ -124,7 +124,7 @@ Chapter 5.
 seed: 42
 
 data:
-  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
+  data_path: "stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
   feature_config: "src/configs/features/hft_lob_features_causal.yaml"
   train_size: 15000
 
