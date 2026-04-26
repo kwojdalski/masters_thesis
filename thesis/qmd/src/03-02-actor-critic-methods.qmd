@@ -162,11 +162,15 @@ peaks caused by function approximation, acting as a regularizer on the value
 landscape.
 
 Together, these three modifications produce an algorithm that is substantially
-more reliable than DDPG on standard continuous control benchmarks [@Fujimoto2018],
-and empirical comparisons in financial domains have found similar patterns, with
-TD3 achieving competitive or superior risk-adjusted performance relative to DDPG
-and PPO across stock, cryptocurrency, and continuous-action trading tasks
-[@Mohammadshafie2024; @Liu2024dai; @Gort2022]. This matters for the present thesis
+more reliable than DDPG on standard continuous control benchmarks [@Fujimoto2018].
+Evidence from trading-adjacent settings is more limited and heterogeneous:
+@Mohammadshafie2024 compare several deep RL strategies in asset-holding tasks
+and find TD3 competitive with alternatives; @Gort2022 evaluate TD3 in
+cryptocurrency trading with explicit attention to backtest overfitting.
+These results should not be read as establishing a general ranking — they span
+different asset classes, reward formulations, and evaluation protocols — but they
+suggest TD3's stability mechanisms are not systematically harmful in financial
+settings. This matters for the present thesis
 for a specific reason: the agent is trained in a price-taking historical-market
 simulator where each transition can be replayed because the agent's action
 changes portfolio wealth but not the subsequent order-book path. Replay therefore
