@@ -80,6 +80,38 @@ entropy bonuses rather than explicit noise injection.
 \end{algorithm}
 ```
 
+```{=html}
+<pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
+<strong>Algorithm 1</strong> TD3 Trading Experiment Workflow
+<em>Require:</em> Experiment specification (dataset, feature set, hyperparameters)
+<em>Ensure:</em>  Trained policy μ<sub>θ</sub>, evaluation metrics
+
+ 1: Load and validate experiment specification; check paths and split feasibility
+ 2: Load L3 order book dataset; sort chronologically
+ 3: Split data into train / validation / test subsets (chronological)
+ 4: Initialise and validate feature pipeline on training split
+ 5: Transform each split chronologically with causal session-aware normalization
+ 6: Build training environment from processed training data
+ 7: Initialise actor μ<sub>θ</sub>, twin critics Q<sub>φ1</sub>, Q<sub>φ2</sub>,
+    target networks μ<sub>θ'</sub>, Q<sub>φ1'</sub>, Q<sub>φ2'</sub>, replay buffer 𝒟
+ 8: <strong>for</strong> each step t = 1, …, max_steps <strong>do</strong>
+ 9:   a<sub>t</sub> ← μ<sub>θ</sub>(s<sub>t</sub>) + ε,  ε ~ 𝒩(0, σ<sub>explore</sub>)
+10:   Execute a<sub>t</sub>; observe r<sub>t</sub>, s<sub>t+1</sub>; store (s<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>, s<sub>t+1</sub>) in 𝒟
+11:   Sample mini-batch ℬ ~ 𝒟
+12:   Compute smoothed target action: ã' ← μ<sub>θ'</sub>(s') + clip(𝒩(0, σ<sub>noise</sub>), ±c)
+13:   Compute Bellman target: y ← r + γ · min<sub>i=1,2</sub> Q<sub>φi'</sub>(s', ã')
+14:   Update both critics by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>φi</sub>(s, a))
+15:   <strong>if</strong> t mod policy_delay = 0 <strong>then</strong>
+16:     Update actor: θ ← θ + α∇<sub>θ</sub>Q<sub>φ1</sub>(s, μ<sub>θ</sub>(s))
+17:     Soft-update targets: φi' ← τφi + (1−τ)φi';  θ' ← τθ + (1−τ)θ'
+18:   <strong>end if</strong>
+19:   Checkpoint and log metrics at configured intervals
+20: <strong>end for</strong>
+21: Evaluate deterministic policy μ<sub>θ</sub> on test split
+22: Compute financial performance metrics from realised return series
+</pre>
+```
+
 The notation follows the conventions established in Chapter 3.
 $\mu_\theta$ is the actor (deterministic policy) with parameters $\theta$;
 $Q_{\phi_i}$ are the two critic networks with parameters $\phi_i$;
