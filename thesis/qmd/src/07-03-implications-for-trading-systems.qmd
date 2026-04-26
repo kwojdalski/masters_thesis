@@ -3,7 +3,7 @@
 
 The empirical findings carry several implications for the design of deep RL
 trading systems operating on limit order book data, beyond the specific
-AAPL experiment studied here.
+experiments studied here.
 
 **Microstructure-aware features are a necessary, not optional, ingredient.**
 The performance gap between the extended and baseline feature sets demonstrates

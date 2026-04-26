@@ -66,5 +66,5 @@ group.
 
 | Term | Definition |
 |------|------------|
-| **AAPL** | The NASDAQ ticker symbol for Apple Inc. The equity used as the single-asset trading instrument throughout this thesis. |
+| **AAPL** | The NASDAQ ticker symbol for Apple Inc. One of four Nasdaq-listed equities — alongside MSFT, TSLA, and NVDA — used as trading instruments in this thesis. |
 | **Sharpe ratio** | A risk-adjusted performance measure defined as the ratio of mean excess return to return volatility. Higher values indicate better return per unit of risk. |

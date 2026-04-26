@@ -2,7 +2,7 @@
 <!-- [PLACEHOLDER] -->
 
 This section focuses on uncertainty arising from the training process itself.
-For the present AAPL high-frequency TD3 setup, repeated runs can diverge
+For the present high-frequency TD3 setup, repeated runs can diverge
 because of random initialization, replay sampling, and exploration noise even
 when the dataset and experimental setup are fixed. The purpose of statistical
 validation here is therefore narrower than overall evaluation: it quantifies
@@ -72,7 +72,7 @@ the performance claim.
 <!-- [PLACEHOLDER] -->
 
 In the current work, statistical validation serves three narrower purposes.
-First, it quantifies dispersion across repeated runs of the same AAPL HFT
+First, it quantifies dispersion across repeated runs of the same high-frequency trading
 setup under different random seeds. Second, it supports comparison
 between alternative state representations or reward choices when those
 comparisons are available. Third, it prevents overinterpretation of a single run

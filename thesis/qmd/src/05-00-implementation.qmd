@@ -10,7 +10,7 @@ The empirical workflow is organized through three functional layers that
 together implement a single-asset trading simulation.
 
 **Market data and feature construction.** The agent observes states derived
-from high-frequency AAPL order-book data. Raw order-book information is
+from high-frequency order-book data across four Nasdaq-listed equities (AAPL, MSFT, TSLA, and NVDA). Raw order-book information is
 transformed into a vector of microstructure features. This layer is
 responsible for loading and validating the market dataset, preserving
 chronological ordering, constructing derived features, separating learning
@@ -44,7 +44,7 @@ experiments.
 not to move quoted prices, consume displayed depth, or alter subsequent order-book
 states. The environment therefore treats the agent as price-taking rather than
 market-shaping. This is defensible only while position sizes remain small
-relative to displayed order-book depth, which is the case for the AAPL MBP-10
+relative to displayed order-book depth, which is the case for the MBP-10
 dataset used here.
 
 **Mid-price execution.** Trades are valued at the mid-price rather than at
@@ -68,7 +68,7 @@ change. Baseline runs use a no-fee setting; sensitivity experiments vary
 this parameter.
 
 **Narrow data scope.** Training, validation, and testing are conducted on a
-single three-day window of AAPL data (February 25–27, 2026). This scope means the agent has only encountered one volatility regime, one spread
+single three-day window of data (February 25–27, 2026) across the four instruments. This scope means the agent has only encountered one volatility regime, one spread
 environment, and one pattern of intraday seasonality. Results should be
 interpreted as a proof of concept rather than as evidence of
 generalizability across market conditions or time periods.

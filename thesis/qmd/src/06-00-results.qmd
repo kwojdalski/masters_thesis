@@ -2,7 +2,7 @@
 <!-- [PLACEHOLDER] -->
 
 This chapter reports the evidence for the thesis-facing experiment:
-the TD3 agent trained on high-frequency AAPL order-book-derived features under
+the TD3 agent trained on high-frequency order-book-derived features from four Nasdaq equities (AAPL, MSFT, TSLA, and NVDA) under
 the state-space design defined in Chapters 4 and 5. It is organized in three
 parts: statistical validation of repeated-run variability, robustness
 assessment under nearby design changes, and final performance evaluation on the
@@ -51,7 +51,7 @@ actions.
 
 Beyond the benchmark strategies, a key empirical question is how the different
 algorithmic choices discussed in Chapter 3 translate to trading performance.
-This section compares TD3, PPO, and DDPG on identical data, features, and
+This section compares PPO, DDPG, and TD3 on identical data, features, and
 evaluation protocols to assess the practical implications of their theoretical
 differences.
 
@@ -65,7 +65,7 @@ tests are performed to determine whether observed differences are meaningful.
 
 ### Performance Comparison
 
-[Insert actual experimental results here comparing TD3, PPO, and DDPG on the
+[Insert actual experimental results here comparing PPO, DDPG, and TD3 on the
 same dataset and evaluation protocol. Include metrics such as:
 - Sharpe ratio and Sortino ratio
 - Maximum drawdown and drawdown duration
@@ -81,7 +81,7 @@ same dataset and evaluation protocol. Include metrics such as:
 
 # TODO: Load algorithm comparison results
 # This section will be populated with actual experimental results
-# comparing TD3, PPO, and DDPG performance
+# comparing PPO, DDPG, and TD3 performance
 
 print("Algorithm comparison results will be added here after experiments are run.")
 ```
