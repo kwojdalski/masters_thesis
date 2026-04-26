@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.9.37">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -10,6 +10,9 @@
 
 <title>Microstructure-Aware Reinforcement Learning for High-Frequency Trading – Microstructure-Aware RL for HFT</title>
 <style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
 div.columns{display: flex; gap: min(4vw, 1.5em);}
@@ -60,7 +63,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 div.csl-bib-body { }
 div.csl-entry {
   clear: both;
-  margin-bottom: 0em;
 }
 .hanging-indent div.csl-entry {
   margin-left:2em;
@@ -79,7 +81,7 @@ div.csl-indent {
 }</style>
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -92,10 +94,10 @@ div.csl-indent {
 <script src="../../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../../site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../../site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../../site_libs/bootstrap/bootstrap-c1fac2584b48ed01fb6e278e36375074.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../../site_libs/bootstrap/bootstrap-158031087360bce0ff56dc785ce39e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -126,12 +128,12 @@ div.csl-indent {
 <script src="../../../site_libs/quarto-diagram/mermaid.min.js"></script>
 <script src="../../../site_libs/quarto-diagram/mermaid-init.js"></script>
 <link href="../../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -144,7 +146,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -292,7 +294,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">April 26, 2026 13:01 UTC</p>
+      <p class="date">April 26, 2026 13:18 UTC</p>
     </div>
   </div>
   
@@ -387,7 +389,7 @@ window.Quarto = {
 <p>The microstructure mechanisms discussed in this chapter manifest in observable empirical regularities at intraday and tick-level timescales.</p>
 <p>At these timescales, financial markets exhibit structural patterns that are distinct from the macro-level anomalies studied in the asset pricing literature. They arise not from investor irrationality or information asymmetry in the fundamental sense, but from the mechanics of how orders interact in a limit order book: the strategic behavior of market makers, the clustering of institutional activity, and the discrete price grid imposed by exchange rules. Understanding these patterns is a prerequisite for designing a tick-level trading agent, since they define the environment in which the agent operates and motivate the feature set used here.</p>
 <p><span class="citation" data-cites="Roll1984">Roll (<a href="#ref-Roll1984" role="doc-biblioref">1984</a>)</span> demonstrated that bid-ask spreads induce negative serial correlation in transaction prices at very short horizons, as they bounce between bid and ask quotes. This microstructure noise distinguishes observed transaction prices from the latent efficient price and creates a mechanical pattern that matters for any tick-level decision rule. It is not, by itself, a tradable opportunity: any attempt to exploit bid-ask bounce must overcome spread costs, latency, and the timing constraints of the execution model. In this thesis, spread in basis points and the spread ratio feature directly encode the cost of crossing the bid-ask, conditioning the agent’s position-sizing decisions on the current liquidity environment. Whether this information supports profitable decisions is left to the later out-of-sample evaluation.</p>
-<p><span class="citation" data-cites="Wood1985">Wood, McInish, and Ord (<a href="#ref-Wood1985" role="doc-biblioref">1985</a>)</span> and <span class="citation" data-cites="Harris1986">Harris (<a href="#ref-Harris1986" role="doc-biblioref">1986</a>)</span> documented intraday patterns in volume, volatility, and returns: a pronounced U-shape in trading activity and spread width, with elevated liquidity demand at market open and close and a quiet midday period. These patterns reflect institutional trading schedules and liquidity provision dynamics rather than information arrival. They motivate time-of-day context variables, but they do not establish a standalone trading signal without horizon-specific validation and transaction-cost assessment. The hour-of-day sine and cosine encodings in the observation vector are motivated by this evidence because the agent should distinguish early-session conditions (wide spreads, high adverse selection) from midday periods (tighter spreads, lower activity) when sizing positions.</p>
+<p><span class="citation" data-cites="Wood1985">Wood et al. (<a href="#ref-Wood1985" role="doc-biblioref">1985</a>)</span> and <span class="citation" data-cites="Harris1986">Harris (<a href="#ref-Harris1986" role="doc-biblioref">1986</a>)</span> documented intraday patterns in volume, volatility, and returns: a pronounced U-shape in trading activity and spread width, with elevated liquidity demand at market open and close and a quiet midday period. These patterns reflect institutional trading schedules and liquidity provision dynamics rather than information arrival. They motivate time-of-day context variables, but they do not establish a standalone trading signal without horizon-specific validation and transaction-cost assessment. The hour-of-day sine and cosine encodings in the observation vector are motivated by this evidence because the agent should distinguish early-session conditions (wide spreads, high adverse selection) from midday periods (tighter spreads, lower activity) when sizing positions.</p>
 <p><span class="citation" data-cites="Harris1991">Harris (<a href="#ref-Harris1991" role="doc-biblioref">1991</a>)</span> showed that prices cluster at round numbers and psychologically attractive levels, creating discontinuities in the order book that affect optimal order placement and execution. In a 10-level LOB, price clustering manifests as uneven spacing between price levels — a pattern captured by the book convexity feature, which measures the curvature of the price ladder on each side. Awareness of price clustering is also relevant to the spread ratio feature, since clusters create temporary spread compression and expansion that deviates from the recent average.</p>
 <p>These three findings collectively establish that short-horizon price dynamics are structured, not random. The bid-ask bounce motivates spread-aware features and reward design; intraday periodicity motivates temporal context features; price discreteness motivates curvature features of the order book. Rather than treating the limit order book as a transparent window onto an efficient price, the empirical evidence supports modeling it as a strategic environment with predictable mechanical regularities — which is precisely the setting in which a reinforcement learning agent can learn to act systematically.</p>
 <p>This does not mean that every microstructure regularity is directly tradable. Some variables describe the current liquidity environment more than they forecast the next price change, and any useful signal must survive transaction costs, action timing, and out-of-sample evaluation. The role of the literature review is therefore to justify the candidate state variables; whether those variables support profitable decisions is an empirical question addressed by the later experimental chapters.</p>
@@ -401,12 +403,12 @@ window.Quarto = {
 <p><span class="citation" data-cites="Kyle1985">Kyle (<a href="#ref-Kyle1985" role="doc-biblioref">1985</a>)</span> formalized the price impact of informed trading through the lambda parameter, which measures the sensitivity of price changes to order flow. In Kyle’s continuous-time model, the informed trader optimally splits their order to minimize price impact, and the market maker sets prices to break even against order flow. The resulting relationship between order imbalance and price change is linear, with slope <span class="math inline">\(\lambda\)</span> that depends on the ratio of informed to uninformed volume. The order flow features in Chapter 4 — OFI and signed trade flow — can be understood as empirical proxies for Kyle’s order imbalance variable, with the bid-ask slope features measuring the depth analogue of <span class="math inline">\(\lambda\)</span> across levels of the order book. The limitation is that these proxies summarize observable pressure and depth, not the latent information set of the informed trader in Kyle’s model.</p>
 <p><strong>Limit order book mechanics.</strong> <span class="citation" data-cites="Glosten1994">Glosten (<a href="#ref-Glosten1994" role="doc-biblioref">1994</a>)</span> developed the theory of the open limit order book as a competitive equilibrium, showing that a full LOB can sustain itself as a market mechanism under adverse selection. The key insight is that the price schedule embedded in the LOB — the sequence of bid and ask quotes at increasing depths — reflects the cumulative information content of orders at each quantity level. Deeper levels of the book attract less informed order flow but carry higher execution uncertainty for those posting limit orders.</p>
 <p>This theoretical result motivates the multi-level features used in Chapter 4. The book is not a single price but a price schedule, and the shape of that profile — measured by depth ratios, slopes, and convexity features — may encode information about how informed the marginal liquidity provider expects the market to be at each quantity level. In this sense, the theory motivates examining multi-level book-shape features; it does not by itself establish which specification is most informative for the present application.</p>
-<p><strong>Order flow and short-term price prediction.</strong> <span class="citation" data-cites="Cont2014">Cont, Kukanov, and Stoikov (<a href="#ref-Cont2014" role="doc-biblioref">2014</a>)</span> provide the most direct empirical and theoretical treatment of the relationship between LOB events and short-term price changes. Their framework decomposes all LOB events into limit order arrivals, cancellations, and market orders, and defines order flow imbalance (OFI) as the net directional pressure these events exert on the best bid and ask queues. In a sample of NYSE stocks, they find a linear relationship between OFI and mid-price changes over intervals of one second to one minute, with OFI explaining 60–80% of short-term price variation. Importantly, the relationship is contemporaneous: OFI at time <span class="math inline">\(t\)</span> is correlated with price changes at time <span class="math inline">\(t\)</span>, not a lagged effect, which is consistent with the efficient incorporation of order book information into prices.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<p><strong>Order flow and short-term price prediction.</strong> <span class="citation" data-cites="Cont2014">Cont et al. (<a href="#ref-Cont2014" role="doc-biblioref">2014</a>)</span> provide the most direct empirical and theoretical treatment of the relationship between LOB events and short-term price changes. Their framework decomposes all LOB events into limit order arrivals, cancellations, and market orders, and defines order flow imbalance (OFI) as the net directional pressure these events exert on the best bid and ask queues. In a sample of NYSE stocks, they find a linear relationship between OFI and mid-price changes over intervals of one second to one minute, with OFI explaining 60–80% of short-term price variation. Importantly, the relationship is contemporaneous: OFI at time <span class="math inline">\(t\)</span> is correlated with price changes at time <span class="math inline">\(t\)</span>, not a lagged effect, which is consistent with the efficient incorporation of order book information into prices.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
 <p>The theoretical channel is straightforward: when buy-side pressure dominates (positive OFI), market makers raise quotes to attract sell-side flow and reduce inventory risk, mechanically pushing the mid-price upward. The OFI feature in the feature design is included primarily as a state variable summarizing current order-flow pressure, not because the literature alone proves standalone predictive power at the forecast horizon relevant to this thesis.</p>
 <p><strong>Fair value estimation from the order book.</strong> <span class="citation" data-cites="Stoikov2018">Stoikov (<a href="#ref-Stoikov2018" role="doc-biblioref">2018</a>)</span> derives the microprice as the theoretically optimal estimate of the next transaction price given the current state of the top-of-book queues. The key observation is that the mid-price — the arithmetic average of best bid and ask — is an inadequate fair value estimate when the queues are imbalanced, because the side with the thinner queue is more likely to be depleted first by incoming market orders, pulling the next transaction price toward the opposite side. The microprice corrects for this by volume-weighting the best quotes:</p>
 <p><span class="math display">\[\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}\]</span></p>
 <p>When <span class="math inline">\(V^{bid}_0 \gg V^{ask}_0\)</span>, the microprice is pulled toward the ask — the side more likely to move. The microprice divergence from mid captures this adjustment as a stationary signal and serves as the primary fair value feature in Chapter 4. Its limitation is that it is a top-of-book fair-value proxy; it does not incorporate deeper queue dynamics, hidden liquidity, or the agent’s own execution priority.</p>
-<p>Taken together, these four theoretical frameworks identify several mechanisms that may be relevant for state design in limit-order-book markets. The spread encodes adverse selection risk <span class="citation" data-cites="GlostenMilgrom1985">(<a href="#ref-GlostenMilgrom1985" role="doc-biblioref">Glosten and Milgrom 1985</a>)</span>; price impact and order imbalance are related through Kyle’s lambda <span class="citation" data-cites="Kyle1985">(<a href="#ref-Kyle1985" role="doc-biblioref">Kyle 1985</a>)</span>; the shape of the full book encodes the information content at each depth level <span class="citation" data-cites="Glosten1994">(<a href="#ref-Glosten1994" role="doc-biblioref">Glosten 1994</a>)</span>; and OFI is the dominant contemporaneous predictor of short-term price changes <span class="citation" data-cites="Cont2014">(<a href="#ref-Cont2014" role="doc-biblioref">Cont, Kukanov, and Stoikov 2014</a>)</span>. The microprice <span class="citation" data-cites="Stoikov2018">(<a href="#ref-Stoikov2018" role="doc-biblioref">Stoikov 2018</a>)</span> provides a theoretically optimal fair value estimate that conditions on the current queue imbalance.</p>
+<p>Taken together, these four theoretical frameworks identify several mechanisms that may be relevant for state design in limit-order-book markets. The spread encodes adverse selection risk <span class="citation" data-cites="GlostenMilgrom1985">(<a href="#ref-GlostenMilgrom1985" role="doc-biblioref">Glosten and Milgrom 1985</a>)</span>; price impact and order imbalance are related through Kyle’s lambda <span class="citation" data-cites="Kyle1985">(<a href="#ref-Kyle1985" role="doc-biblioref">Kyle 1985</a>)</span>; the shape of the full book encodes the information content at each depth level <span class="citation" data-cites="Glosten1994">(<a href="#ref-Glosten1994" role="doc-biblioref">Glosten 1994</a>)</span>; and OFI is the dominant contemporaneous predictor of short-term price changes <span class="citation" data-cites="Cont2014">(<a href="#ref-Cont2014" role="doc-biblioref">Cont et al. 2014</a>)</span>. The microprice <span class="citation" data-cites="Stoikov2018">(<a href="#ref-Stoikov2018" role="doc-biblioref">Stoikov 2018</a>)</span> provides a theoretically optimal fair value estimate that conditions on the current queue imbalance.</p>
 <p>These mechanisms are not independent: they all reflect aspects of information aggregation through order flow. They therefore motivate the candidate feature families introduced in Chapter 4, including spread-based, order-flow, depth-shape, and fair-value signals. Whether that feature set captures the most informative aspects of the environment is not something the literature alone can settle; within this thesis, that question is addressed only through the later design and empirical evaluation chapters.</p>
 </section>
 <section id="from-microstructure-signals-to-tradable-decisions-verified" class="level2" data-number="2.3">
@@ -426,8 +428,8 @@ window.Quarto = {
 <section id="supervised-learning-verified" class="level4">
 <h4 class="anchored" data-anchor-id="supervised-learning-verified">Supervised Learning [VERIFIED]</h4>
 <!-- [VERIFIED] -->
-<p>Supervised learning trains a model on labeled input-output pairs <span class="math inline">\((X_i, Y_i)_{i=1}^{n}\)</span> to minimize a loss function <span class="math inline">\(\mathcal{L}(f_\theta(X), Y)\)</span> over a held-out sample. In trading, supervised approaches have been widely applied to return prediction, directional classification, and volatility forecasting — tasks where historical outcomes provide a natural training signal <span class="citation" data-cites="Krauss2017 Zhang2019">(<a href="#ref-Krauss2017" role="doc-biblioref">Krauss, Do, and Huck 2017</a>; <a href="#ref-Zhang2019" role="doc-biblioref">Zhang, Zohren, and Roberts 2019</a>)</span>.</p>
-<p>This includes modern LOB prediction models, which use deep architectures to map order book snapshots or event sequences into short-horizon price-movement labels. Such models are a serious benchmark class for extracting information from high-dimensional market data, especially when the objective is directional classification <span class="citation" data-cites="Zhang2019">(<a href="#ref-Zhang2019" role="doc-biblioref">Zhang, Zohren, and Roberts 2019</a>)</span>. A strong supervised trading benchmark would not stop at an unconstrained return forecast. It would translate predicted returns or class probabilities into positions through a cost-aware rule, such as trading only when the expected move exceeds the spread and fee threshold, scaling exposure by forecast confidence, or optimizing classification thresholds on a validation set for net return rather than raw accuracy. A second supervised variant would learn the action directly from labels constructed ex post: for example, the position that would have maximized next-horizon net return after costs, or a discretized buy/sell/hold target with an explicit no-trade region.</p>
+<p>Supervised learning trains a model on labeled input-output pairs <span class="math inline">\((X_i, Y_i)_{i=1}^{n}\)</span> to minimize a loss function <span class="math inline">\(\mathcal{L}(f_\theta(X), Y)\)</span> over a held-out sample. In trading, supervised approaches have been widely applied to return prediction, directional classification, and volatility forecasting — tasks where historical outcomes provide a natural training signal <span class="citation" data-cites="Krauss2017 Zhang2019">(<a href="#ref-Krauss2017" role="doc-biblioref">Krauss et al. 2017</a>; <a href="#ref-Zhang2019" role="doc-biblioref">Zhang et al. 2019</a>)</span>.</p>
+<p>This includes modern LOB prediction models, which use deep architectures to map order book snapshots or event sequences into short-horizon price-movement labels. Such models are a serious benchmark class for extracting information from high-dimensional market data, especially when the objective is directional classification <span class="citation" data-cites="Zhang2019">(<a href="#ref-Zhang2019" role="doc-biblioref">Zhang et al. 2019</a>)</span>. A strong supervised trading benchmark would not stop at an unconstrained return forecast. It would translate predicted returns or class probabilities into positions through a cost-aware rule, such as trading only when the expected move exceeds the spread and fee threshold, scaling exposure by forecast confidence, or optimizing classification thresholds on a validation set for net return rather than raw accuracy. A second supervised variant would learn the action directly from labels constructed ex post: for example, the position that would have maximized next-horizon net return after costs, or a discretized buy/sell/hold target with an explicit no-trade region.</p>
 <p>These alternatives are important because they close part of the gap between prediction and trading. They allow the supervised model to account for transaction costs, avoid low-conviction trades, and produce a policy-like mapping from market state to position. The limitation is therefore not that supervised learning is an inherently weak baseline. It is that the financial objective enters the pipeline indirectly: either through hand-designed thresholds and sizing rules applied after prediction, or through labels whose definition already embeds a particular holding horizon, cost model, and notion of ex post optimality.</p>
 <p>This creates two sources of possible misalignment. First, a model that minimizes mean squared error, cross-entropy, or another statistical loss may not maximize risk-adjusted return after transaction costs, because predictive accuracy and trading profitability are not equivalent criteria <span class="citation" data-cites="Moody1998">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span>. Second, direct action labels are only as credible as the rule used to construct them. In a noisy and path-dependent environment, the ex post best one-step action need not be the action that maximizes longer-horizon portfolio utility once turnover, inventory persistence, and risk are considered.</p>
 <p>This misalignment is most consequential at high frequencies, where turnover costs consume a large fraction of gross returns. At lower frequencies — daily or weekly rebalancing — the cost of turning over a position is small relative to the forecast signal, and well-specified supervised models remain competitive. Factor-based strategies in the Fama-French tradition, momentum screens, and several recent deep-learning forecasting papers achieve meaningful net alpha precisely because the prediction horizon is long enough for transaction costs to be a second-order concern. The advantage of direct optimization narrows as the cost-to-signal ratio decreases. At tick frequency, where the present thesis operates, this ratio is unfavorable for a predict-then-trade pipeline: the cost of crossing the spread on each position change can exceed the directional signal per step, making the alignment between reward and realized return a first-order design requirement. The motivation for reinforcement learning in this thesis should therefore be understood narrowly. TD3 is not adopted because supervised LOB prediction is irrelevant, but because the empirical question studied here concerns continuous exposure control under a reward function that includes the consequences of position changes directly.</p>
@@ -476,7 +478,7 @@ window.Quarto = {
 <!-- [VERIFIED] -->
 <p>Reinforcement learning is a reasoned choice for algorithmic trading, not an arbitrary methodological one. The argument rests on three structural properties of the trading problem.</p>
 <p><strong>Unknown market dynamics.</strong> Model-based approaches require an explicit transition model — a specification of how the environment responds to actions. In financial markets, this model is unknown and non-stationary: price dynamics depend on the aggregate behavior of all participants, which changes continuously. Model-free RL methods learn directly from experience without requiring a transition model, making them a reasonable candidate for this setting <span class="citation" data-cites="Sutton2018">(<a href="#ref-Sutton2018" role="doc-biblioref">Sutton and Barto 2018</a>)</span>.</p>
-<p><strong>Off-policy learning and historical replay.</strong> Online experimentation in live markets is constrained by capital, risk, and regulatory requirements. The alternative is to learn from historical order book data — a fixed dataset of past transitions. Off-policy algorithms such as TD3 <span class="citation" data-cites="Fujimoto2018">(<a href="#ref-Fujimoto2018" role="doc-biblioref">Fujimoto, Hoof, and Meger 2018</a>)</span> can train on stored experience rather than requiring fresh environment interaction at every update, making them sample-efficient in the data-limited financial setting. This should not be confused with a full offline-RL guarantee. Training from historical replay still raises distribution-shift and extrapolation risks when the learned policy selects actions that are poorly represented in the historical data.</p>
+<p><strong>Off-policy learning and historical replay.</strong> Online experimentation in live markets is constrained by capital, risk, and regulatory requirements. The alternative is to learn from historical order book data — a fixed dataset of past transitions. Off-policy algorithms such as TD3 <span class="citation" data-cites="Fujimoto2018">(<a href="#ref-Fujimoto2018" role="doc-biblioref">Fujimoto et al. 2018</a>)</span> can train on stored experience rather than requiring fresh environment interaction at every update, making them sample-efficient in the data-limited financial setting. This should not be confused with a full offline-RL guarantee. Training from historical replay still raises distribution-shift and extrapolation risks when the learned policy selects actions that are poorly represented in the historical data.</p>
 <p><strong>Continuous position sizing.</strong> Trading decisions are naturally continuous: the agent should be able to express any degree of conviction through the size of its position, not just a binary buy/sell signal. Value-based methods such as DQN <span class="citation" data-cites="Mnih2015">(<a href="#ref-Mnih2015" role="doc-biblioref">Mnih et al. 2015</a>)</span> require a discrete action space and cannot represent fractional positions without reintroducing a grid approximation. Deterministic actor-critic methods operate natively in continuous action spaces and are therefore more appropriate for position-sizing tasks.</p>
 <p>Together these three properties point toward a model-free, off-policy, continuous-action algorithm — which is the class to which TD3 belongs. This is a reasoned design choice, not a claim that TD3 is universally superior for trading. The MDP formulation remains approximate because market states are partially observable and non-stationary. The formal algorithmic properties of TD3 are derived in Chapter 3. The present section is concerned with how the broader RL literature has been applied to trading and what that literature implies for the design choices made in this thesis.</p>
 </section>
@@ -492,7 +494,7 @@ window.Quarto = {
 </div>
 <p>Portfolio decisions are sequential and path-dependent. This makes the MDP framework <span class="citation" data-cites="Bellman1957 Puterman1994">(<a href="#ref-Bellman1957" role="doc-biblioref">Bellman 1957</a>; <a href="#ref-Puterman1994" role="doc-biblioref">Puterman 1994</a>)</span> the formal language for trading agents. However, financial environments only approximately satisfy standard MDP assumptions. Market regime shifts, structural breaks, and partial observability all contribute to this approximation.</p>
 <p>For this review, the most useful RL concepts are not the formal machinery of Chapter 3, but the dimensions along which applied trading papers differ. These dimensions determine whether results from one study are comparable to another and whether they are relevant to the problem addressed in this thesis.</p>
-<p>The first dimension is the formulation of the trading problem itself: what is treated as the state, what counts as an action, and what scalar reward is used to evaluate behavior. In trading applications, these choices vary materially across studies. Some papers define the state using bar-level prices and technical indicators, while others incorporate current holdings, order-book information, or broader market context. Likewise, actions may represent a discrete buy/sell/hold decision or a continuous exposure level. Reward definitions also differ: some studies optimize raw return, others net return after transaction costs, and others risk-adjusted criteria such as Sharpe-oriented objectives <span class="citation" data-cites="Moody1998 Ng1999">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>; <a href="#ref-Ng1999" role="doc-biblioref">Ng, Harada, and Russell 1999</a>)</span>. These modeling choices are not cosmetic. They change the economic meaning of the task the algorithm is solving.</p>
+<p>The first dimension is the formulation of the trading problem itself: what is treated as the state, what counts as an action, and what scalar reward is used to evaluate behavior. In trading applications, these choices vary materially across studies. Some papers define the state using bar-level prices and technical indicators, while others incorporate current holdings, order-book information, or broader market context. Likewise, actions may represent a discrete buy/sell/hold decision or a continuous exposure level. Reward definitions also differ: some studies optimize raw return, others net return after transaction costs, and others risk-adjusted criteria such as Sharpe-oriented objectives <span class="citation" data-cites="Moody1998 Ng1999">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>; <a href="#ref-Ng1999" role="doc-biblioref">Ng et al. 1999</a>)</span>. These modeling choices are not cosmetic. They change the economic meaning of the task the algorithm is solving.</p>
 <p>The second dimension is action-space structure. Discrete-action methods such as Q-learning and its deep variants are naturally aligned with buy/sell/hold formulations <span class="citation" data-cites="Watkins1989 Mnih2015">(<a href="#ref-Watkins1989" role="doc-biblioref">Watkins 1989</a>; <a href="#ref-Mnih2015" role="doc-biblioref">Mnih et al. 2015</a>)</span>. Continuous-control methods, by contrast, are designed for problems in which the agent chooses a portfolio weight or exposure level on a continuum. This distinction is central in the trading literature because it separates papers that treat trading as a classification-like decision problem from papers that treat it as a position-sizing problem. For the latter class, policy-gradient and actor-critic methods are usually the relevant algorithmic family <span class="citation" data-cites="Williams1992 Sutton2000">(<a href="#ref-Williams1992" role="doc-biblioref">Williams 1992</a>; <a href="#ref-Sutton2000" role="doc-biblioref">Sutton et al. 2000</a>)</span>.</p>
 <p>The third dimension is the training regime, especially the distinction between on-policy and off-policy learning. In financial applications this matters not only for sample efficiency but also for the practicality of learning from historical data. Off-policy methods can in principle reuse stored experience through replay-based updates <span class="citation" data-cites="Lin1992">(<a href="#ref-Lin1992" role="doc-biblioref">Lin 1992</a>)</span>, which is one reason they appear frequently in trading research where live experimentation is expensive or constrained. At the same time, the literature makes clear that training on historical market data does not eliminate instability, because financial environments remain noisy, non-stationary, and only approximately Markov <span class="citation" data-cites="Tsitsiklis1997 Deng2016">(<a href="#ref-Tsitsiklis1997" role="doc-biblioref">Tsitsiklis and Van Roy 1997</a>; <a href="#ref-Deng2016" role="doc-biblioref">Deng et al. 2017</a>)</span>. Algorithm choice therefore cannot be separated from the validation protocol under which performance is assessed.</p>
 <p>The fourth dimension is reward design. Financial RL studies differ not only in which algorithm they use, but in what behavior they incentivize. Rewards based on raw price changes can encourage excessive turnover or sensitivity to noise, whereas cost-aware or risk-adjusted rewards aim to align optimization more closely with economically meaningful outcomes. The Differential Sharpe Ratio is one influential example <span class="citation" data-cites="Moody1998">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span>, but the broader point is that reported performance is difficult to interpret without understanding the objective under which the policy was trained.</p>
@@ -512,7 +514,7 @@ window.Quarto = {
 <section id="from-discrete-to-continuous-action-spaces-verified" class="level3">
 <h3 class="anchored" data-anchor-id="from-discrete-to-continuous-action-spaces-verified">From Discrete to Continuous Action Spaces [VERIFIED]</h3>
 <!-- [VERIFIED] -->
-<p>Early value-based approaches applied Q-learning with discrete buy/sell/hold actions to equity and futures markets <span class="citation" data-cites="Neuneier1998 Lee2007">(<a href="#ref-Neuneier1998" role="doc-biblioref">Neuneier 1998</a>; <a href="#ref-Lee2007" role="doc-biblioref">J. W. Lee et al. 2007</a>)</span>. These studies established that RL could learn profitable patterns from historical data, but also identified persistent problems: sparse rewards, delayed credit assignment, and out-of-sample performance degradation. More fundamentally, discrete action spaces force an artificial granularity on position sizing — a coarse grid loses control precision while a fine grid reintroduces the curse of dimensionality.</p>
+<p>Early value-based approaches applied Q-learning with discrete buy/sell/hold actions to equity and futures markets <span class="citation" data-cites="Neuneier1998 Lee2007">(<a href="#ref-Neuneier1998" role="doc-biblioref">Neuneier 1998</a>; <a href="#ref-Lee2007" role="doc-biblioref">Lee et al. 2007</a>)</span>. These studies established that RL could learn profitable patterns from historical data, but also identified persistent problems: sparse rewards, delayed credit assignment, and out-of-sample performance degradation. More fundamentally, discrete action spaces force an artificial granularity on position sizing — a coarse grid loses control precision while a fine grid reintroduces the curse of dimensionality.</p>
 <p><span class="citation" data-cites="Gold2003">Gold (<a href="#ref-Gold2003" role="doc-biblioref">2003</a>)</span> and <span class="citation" data-cites="Dempster2006">Dempster and Romahi (<a href="#ref-Dempster2006" role="doc-biblioref">2002</a>)</span> extended the direct and recurrent reinforcement learning tradition to foreign-exchange trading systems. Their relevance is that the trading policy maps market state directly into positions rather than into an intermediate price forecast. The evidence is also cautionary: performance varied substantially across currency pairs and depended on the choice of model and system parameters, making early direct-RL results better interpreted as feasibility evidence than as a robust trading edge.</p>
 </section>
 <section id="deep-reinforcement-learning-era-verified" class="level3">
@@ -520,27 +522,27 @@ window.Quarto = {
 <!-- [VERIFIED] -->
 <p>The introduction of deep function approximators to RL trading extended applicability to high-dimensional state spaces.</p>
 <p><span class="citation" data-cites="Xiong2018">Xiong et al. (<a href="#ref-Xiong2018" role="doc-biblioref">2018</a>)</span> and <span class="citation" data-cites="Deng2016">Deng et al. (<a href="#ref-Deng2016" role="doc-biblioref">2017</a>)</span> adapted DQN for equity and cryptocurrency trading, demonstrating that convolutional networks could extract useful features from raw price data. However, both studies noted high variance across runs — a characteristic instability of value-based methods under noisy financial rewards.</p>
-<p><span class="citation" data-cites="Jiang2017">Jiang, Xu, and Liang (<a href="#ref-Jiang2017" role="doc-biblioref">2017</a>)</span> proposed the portfolio-vector-memory (PVM) architecture, combining policy gradients with recurrent networks for cryptocurrency portfolio management. Their fully differentiable end-to-end design incorporated current holdings into the state and penalized transaction costs explicitly, outperforming Markowitz mean-variance allocation in backtests across 12 cryptocurrencies.</p>
+<p><span class="citation" data-cites="Jiang2017">Jiang et al. (<a href="#ref-Jiang2017" role="doc-biblioref">2017</a>)</span> proposed the portfolio-vector-memory (PVM) architecture, combining policy gradients with recurrent networks for cryptocurrency portfolio management. Their fully differentiable end-to-end design incorporated current holdings into the state and penalized transaction costs explicitly, outperforming Markowitz mean-variance allocation in backtests across 12 cryptocurrencies.</p>
 <p>An earlier cryptocurrency portfolio study by <span class="citation" data-cites="JiangLiang2017Crypto">Jiang and Liang (<a href="#ref-JiangLiang2017Crypto" role="doc-biblioref">2017</a>)</span> used a convolutional network to map historical prices directly into continuous portfolio weights under a deterministic policy-gradient-style objective. Its 30-minute Poloniex backtests are relevant because they treat trading as direct portfolio-action optimization, but the assumptions of immediate execution and no market impact remain far from tick-level order-book trading.</p>
 <p><span class="citation" data-cites="Liang2018">Liang et al. (<a href="#ref-Liang2018" role="doc-biblioref">2018</a>)</span> applied DDPG to stock trading and conducted ablation studies showing that: (i) DDPG outperformed DQN for continuous position sizing, (ii) Sharpe-based rewards improved out-of-sample generalization, and (iii) transaction cost modeling was critical for realistic performance assessment.</p>
-<p><span class="citation" data-cites="Majidi2024">Majidi, Shamsi, and Marvasti (<a href="#ref-Majidi2024" role="doc-biblioref">2024</a>)</span> provided a focused TD3 study on single-asset trading for AMZN and BTC using daily data and a continuous action space in <span class="math inline">\([-1,1]\)</span>. Their minimal state representation — lagged close-return windows rather than large technical-indicator sets — reported improved return and Sharpe ratio for TD3 versus discrete variants and buy-and-hold, though results were mixed across assets. This study is best interpreted as evidence that continuous action sizing can be beneficial under realistic frictions, not as definitive proof of robust alpha across market regimes.</p>
+<p><span class="citation" data-cites="Majidi2024">Majidi et al. (<a href="#ref-Majidi2024" role="doc-biblioref">2024</a>)</span> provided a focused TD3 study on single-asset trading for AMZN and BTC using daily data and a continuous action space in <span class="math inline">\([-1,1]\)</span>. Their minimal state representation — lagged close-return windows rather than large technical-indicator sets — reported improved return and Sharpe ratio for TD3 versus discrete variants and buy-and-hold, though results were mixed across assets. This study is best interpreted as evidence that continuous action sizing can be beneficial under realistic frictions, not as definitive proof of robust alpha across market regimes.</p>
 <p><span class="citation" data-cites="Kabbani2022">Kabbani and Duman (<a href="#ref-Kabbani2022" role="doc-biblioref">2022</a>)</span> proposed a TD3-based framework incorporating account state (cash and holdings), price features, technical indicators, and optional FinBERT-derived news sentiment. Richer state designs improved both return and Sharpe ratio relative to a close-price-only baseline, with a final 10-stock evaluation reporting a Sharpe ratio of 2.68. This figure warrants scrutiny: annualized Sharpe ratios above 2 are rare in live trading and typically indicate either insufficient out-of-sample discipline, favorable selection among multiple configurations, or evaluation periods that coincide with a strong directional trend. The study does not report results across multiple random seeds or under realistic spread-crossing costs with a frozen policy, making it difficult to determine whether the reported performance reflects genuine signal or overfitting to the evaluation window. Methodologically the paper supports the practical value of feature enrichment in continuous-action actor-critic trading, but it also illustrates a broader pattern in the RL trading literature: without standardized evaluation protocols — multi-seed reporting, held-out test periods not used for configuration selection, and explicit cost assumptions — performance claims are difficult to assess on their own terms.</p>
 <p><span class="citation" data-cites="Yang2020">Yang et al. (<a href="#ref-Yang2020" role="doc-biblioref">2020</a>)</span> evaluated an ensemble stock-trading strategy built from PPO, A2C, and DDPG on Dow Jones constituents. The study is relevant as an actor-critic comparison in a liquid equity universe, but it is not evidence about millisecond-level LOB trading; its state representation, trading frequency, and execution assumptions differ from the setting studied in this thesis.</p>
 <p><span class="citation" data-cites="Wang2019AlphaStock">Wang et al. (<a href="#ref-Wang2019AlphaStock" role="doc-biblioref">2019</a>)</span> proposed AlphaStock, which combines a Sharpe-oriented RL objective with history-state and cross-asset attention networks. Its contribution is mainly about representation and interpretability in stock selection: the attention mechanism gives a partial account of which asset characteristics drive portfolio construction. This supports the broader claim that state representation matters materially in RL trading, but it does not address order-book-driven single-asset exposure control.</p>
-<p><span class="citation" data-cites="Zhang2020">Zhang, Zohren, and Roberts (<a href="#ref-Zhang2020" role="doc-biblioref">2020</a>)</span> provide a broader review of deep RL trading systems, emphasizing that algorithm choice cannot be separated from state representation, action design, reward definition, transaction costs, and evaluation protocol. The review is useful here as a synthesis of design dimensions rather than as evidence for the superiority of any single algorithm.</p>
+<p><span class="citation" data-cites="Zhang2020">Zhang et al. (<a href="#ref-Zhang2020" role="doc-biblioref">2020</a>)</span> provide a broader review of deep RL trading systems, emphasizing that algorithm choice cannot be separated from state representation, action design, reward definition, transaction costs, and evaluation protocol. The review is useful here as a synthesis of design dimensions rather than as evidence for the superiority of any single algorithm.</p>
 </section>
 <section id="comparative-evidence-and-limitations-verified" class="level3">
 <h3 class="anchored" data-anchor-id="comparative-evidence-and-limitations-verified">Comparative Evidence and Limitations [VERIFIED]</h3>
 <!-- [VERIFIED] -->
 <p><strong>Algorithm comparisons and reproducibility.</strong> <span class="citation" data-cites="FinRL2020">Liu et al. (<a href="#ref-FinRL2020" role="doc-biblioref">2020</a>)</span> illustrates a later move toward reproducible DRL trading pipelines by implementing several standard algorithms, including DQN, DDPG, PPO, SAC, A2C, and TD3, within common market environments and backtesting workflows. Its relevance is infrastructural rather than evidentiary: it shows that applied trading studies increasingly require standardized environments, comparable baselines, and explicit market-friction assumptions before algorithm rankings can be interpreted.</p>
 <p><span class="citation" data-cites="Lopez2018">López de Prado (<a href="#ref-Lopez2018" role="doc-biblioref">2018</a>)</span> compared deep RL against traditional quantitative strategies (momentum, mean reversion, pairs trading), noting that RL exhibited superior adaptability during regime changes while traditional strategies offered better interpretability. Hybrid approaches combining domain knowledge with RL often outperformed either in isolation.</p>
-<p><strong>Overfitting and generalization.</strong> <span class="citation" data-cites="Krauss2017">Krauss, Do, and Huck (<a href="#ref-Krauss2017" role="doc-biblioref">2017</a>)</span> demonstrated that many published RL trading strategies fail to generalize out-of-sample, attributing this to high noise-to-signal ratios in financial data, limited training data relative to model complexity, and non-stationarity that invalidates training-period patterns. The implication is that evaluation methodology — strict temporal splits, multi-seed reporting, realistic cost assumptions — matters as much as algorithm choice.</p>
+<p><strong>Overfitting and generalization.</strong> <span class="citation" data-cites="Krauss2017">Krauss et al. (<a href="#ref-Krauss2017" role="doc-biblioref">2017</a>)</span> demonstrated that many published RL trading strategies fail to generalize out-of-sample, attributing this to high noise-to-signal ratios in financial data, limited training data relative to model complexity, and non-stationarity that invalidates training-period patterns. The implication is that evaluation methodology — strict temporal splits, multi-seed reporting, realistic cost assumptions — matters as much as algorithm choice.</p>
 <p><strong>Reward specification.</strong> <span class="citation" data-cites="Millea2021">Millea (<a href="#ref-Millea2021" role="doc-biblioref">2021</a>)</span> emphasizes that reward shaping is one of the central design choices in DRL trading. Misspecified rewards can lead to metric gaming, excessive turnover, ignoring tail risks, or misalignment with actual investor preferences. The Differential Sharpe Ratio <span class="citation" data-cites="Moody1998">(<a href="#ref-Moody1998" role="doc-biblioref">Moody and Saffell 1998</a>)</span> addresses some of these concerns by targeting risk-adjusted return directly, but does not fully resolve the tension between reward simplicity and the richness of real trading objectives.</p>
 </section>
 <section id="structured-comparison-of-representative-studies-verified" class="level3">
 <h3 class="anchored" data-anchor-id="structured-comparison-of-representative-studies-verified">Structured Comparison of Representative Studies [VERIFIED]</h3>
 <!-- [VERIFIED] -->
-<p>The literature reviewed here points to several patterns relevant to the design choices in this thesis. Across the representative studies discussed above, continuous-action actor-critic methods are frequently preferred over discrete-action alternatives for position-sizing tasks <span class="citation" data-cites="Liang2018 Majidi2024 Kabbani2022">(<a href="#ref-Liang2018" role="doc-biblioref">Liang et al. 2018</a>; <a href="#ref-Majidi2024" role="doc-biblioref">Majidi, Shamsi, and Marvasti 2024</a>; <a href="#ref-Kabbani2022" role="doc-biblioref">Kabbani and Duman 2022</a>)</span>. Risk-adjusted reward signals, especially Differential Sharpe Ratio formulations, also appear promising for out-of-sample generalization relative to raw return objectives, though such claims remain highly sensitive to the evaluation protocol and cost assumptions. Explicit transaction cost modeling is a prerequisite for any realistic performance claim at the frequencies considered here.</p>
+<p>The literature reviewed here points to several patterns relevant to the design choices in this thesis. Across the representative studies discussed above, continuous-action actor-critic methods are frequently preferred over discrete-action alternatives for position-sizing tasks <span class="citation" data-cites="Liang2018 Majidi2024 Kabbani2022">(<a href="#ref-Liang2018" role="doc-biblioref">Liang et al. 2018</a>; <a href="#ref-Majidi2024" role="doc-biblioref">Majidi et al. 2024</a>; <a href="#ref-Kabbani2022" role="doc-biblioref">Kabbani and Duman 2022</a>)</span>. Risk-adjusted reward signals, especially Differential Sharpe Ratio formulations, also appear promising for out-of-sample generalization relative to raw return objectives, though such claims remain highly sensitive to the evaluation protocol and cost assumptions. Explicit transaction cost modeling is a prerequisite for any realistic performance claim at the frequencies considered here.</p>
 <p>Viewed by design dimension, the strongest lessons are narrower than the headline returns reported in many papers. State representations must include the information needed for the action being optimized; action spaces should match the economic decision, especially when the task is exposure sizing; rewards must penalize costs and avoid encouraging excessive turnover; and validation must use held-out periods, frozen policies, and repeated runs where stochastic training is material. Without these elements, a positive backtest is best interpreted as a proof of concept rather than evidence of a robust trading edge.</p>
 <p>Within the representative literature reviewed here, a comparatively underexplored design combination is the joint use of order-book-derived state variables, continuous-control RL, and an explicit microstructure-oriented state design. Much of the applied literature relies primarily on OHLCV or other aggregated price representations, while studies using deeper limit-order-book information remain fewer and methodologically heterogeneous. The present thesis is positioned within that less represented part of the literature by constructing the agent’s observation vector from 10-level order book data and by evaluating a continuous-control agent under the modeling assumptions stated in later chapters.</p>
 </section>
@@ -669,10 +671,10 @@ window.Quarto = {
 <section id="td3-addressing-the-instability-of-deterministic-actor-critic-methods-verified" class="level3">
 <h3 class="anchored" data-anchor-id="td3-addressing-the-instability-of-deterministic-actor-critic-methods-verified">TD3: Addressing the Instability of Deterministic Actor-Critic Methods [VERIFIED]</h3>
 <!-- [VERIFIED] -->
-<p><span class="citation" data-cites="Fujimoto2018">Fujimoto, Hoof, and Meger (<a href="#ref-Fujimoto2018" role="doc-biblioref">2018</a>)</span> introduced TD3 as a direct response to DDPG’s failure modes, proposing three targeted mechanisms.</p>
+<p><span class="citation" data-cites="Fujimoto2018">Fujimoto et al. (<a href="#ref-Fujimoto2018" role="doc-biblioref">2018</a>)</span> introduced TD3 as a direct response to DDPG’s failure modes, proposing three targeted mechanisms.</p>
 <p><strong>Clipped double Q-learning.</strong> Two independent critic networks <span class="math inline">\(Q_{\phi_1}\)</span> and <span class="math inline">\(Q_{\phi_2}\)</span> are maintained, and the Bellman target is constructed using the minimum of their estimates:</p>
 <p><span class="math display">\[y = r + \gamma \min_{i=1,2} Q_{\phi_i'}(s', \tilde{a}')\]</span></p>
-<p>Taking the minimum provides a conservative estimate of target value and substantially reduces overestimation bias. This is analogous to the double Q-learning correction <span class="citation" data-cites="VanHasselt2016">(<a href="#ref-VanHasselt2016" role="doc-biblioref">Hasselt, Guez, and Silver 2016</a>)</span>, adapted to the deterministic actor- critic setting.</p>
+<p>Taking the minimum provides a conservative estimate of target value and substantially reduces overestimation bias. This is analogous to the double Q-learning correction <span class="citation" data-cites="VanHasselt2016">(<a href="#ref-VanHasselt2016" role="doc-biblioref">Hasselt et al. 2016</a>)</span>, adapted to the deterministic actor- critic setting.</p>
 <p><strong>Delayed policy updates.</strong> The actor and target networks are updated less frequently than the critics — typically once for every two critic updates. This allows the value estimates to stabilize before they are used to compute the policy gradient, breaking the feedback loop between an unstable critic and an erroneous actor update.</p>
 <p><strong>Target policy smoothing.</strong> When computing Bellman targets, noise is added to the target action <span class="math inline">\(\tilde{a}' = \mu_{\theta'}(s') + \epsilon\)</span>, with <span class="math inline">\(\epsilon\)</span> clipped to a small interval. This prevents the critics from fitting sharp value peaks caused by function approximation, acting as a regularizer on the value landscape.</p>
 <p>Together, these three modifications produce an algorithm that is substantially more reliable than DDPG on standard continuous control benchmarks while retaining its off-policy sample efficiency. This matters for the present thesis for a specific reason: the agent is trained in a price-taking historical-market simulator where each transition can be replayed because the agent’s action changes portfolio wealth but not the subsequent order-book path. Replay therefore improves computational use of the simulated experience, but only under this execution assumption; it should not be interpreted as evidence that the agent has observed all counterfactual market reactions to alternative trades.</p>
@@ -830,7 +832,7 @@ window.Quarto = {
 <h4 class="anchored" data-anchor-id="imbalance-features">Imbalance Features</h4>
 <p>Volume imbalance at a given price level <span class="math inline">\(i\)</span> is defined as:</p>
 <p><span class="math display">\[\text{BookPressure}_i = \frac{V^{bid}_i - V^{ask}_i}{V^{bid}_i + V^{ask}_i}\]</span></p>
-<p>Imbalance signals the relative weight of resting liquidity on each side and has been shown to predict short-term price direction <span class="citation" data-cites="Cao2004 Biais1995">(<a href="#ref-Cao2004" role="doc-biblioref">Cao, Chen, and Griffin 2004</a>; <a href="#ref-Biais1995" role="doc-biblioref">Biais, Hillion, and Spatt 1995</a>)</span>. The multi-level aggregate version averages this signal across the top <span class="math inline">\(N\)</span> levels:</p>
+<p>Imbalance signals the relative weight of resting liquidity on each side and has been shown to predict short-term price direction <span class="citation" data-cites="Cao2004 Biais1995">(<a href="#ref-Cao2004" role="doc-biblioref">Cao et al. 2004</a>; <a href="#ref-Biais1995" role="doc-biblioref">Biais et al. 1995</a>)</span>. The multi-level aggregate version averages this signal across the top <span class="math inline">\(N\)</span> levels:</p>
 <p><span class="math display">\[\text{OBI}_N = \frac{\sum_{i=0}^{N-1}(V^{bid}_i - V^{ask}_i)}{\sum_{i=0}^{N-1}(V^{bid}_i + V^{ask}_i)}\]</span></p>
 <p>The multi-level formulation is more robust to noise at the best quote and captures the depth structure of the book. Both single-level (levels 0–2) and three-level aggregate variants are included.</p>
 <p>Order count imbalance complements the volume-based measures by counting the number of resting orders rather than their aggregate size, making it sensitive to fragmentation that a single large institutional order would mask:</p>
@@ -848,19 +850,19 @@ window.Quarto = {
 <h4 class="anchored" data-anchor-id="spread-and-cost-features">Spread and Cost Features</h4>
 <p>The bid-ask spread, expressed in basis points, is the primary observable measure of adverse selection cost <span class="citation" data-cites="Kyle1985 GlostenMilgrom1985">(<a href="#ref-Kyle1985" role="doc-biblioref">Kyle 1985</a>; <a href="#ref-GlostenMilgrom1985" role="doc-biblioref">Glosten and Milgrom 1985</a>)</span>:</p>
 <p><span class="math display">\[\text{SpreadBps} = \frac{P^{ask}_0 - P^{bid}_0}{\frac{P^{bid}_0 + P^{ask}_0}{2}} \times 10{,}000\]</span></p>
-<p>A widening spread signals elevated information asymmetry or inventory risk among market makers. The spread ratio — current bid-ask relative to its recent rolling mean — separates the level effect from the regime signal, flagging periods of abnormally elevated adverse selection risk <span class="citation" data-cites="Easley2012">(<a href="#ref-Easley2012" role="doc-biblioref">Easley, López de Prado, and O’Hara 2012</a>)</span>.</p>
-<p>Bid and ask slopes measure the price elasticity of each side of the book across five levels <span class="citation" data-cites="Bouchaud2002">(<a href="#ref-Bouchaud2002" role="doc-biblioref">Bouchaud, Mézard, and Potters 2002</a>)</span>, capturing market impact per unit of trading volume and serving as a proxy for Kyle’s lambda <span class="citation" data-cites="Kyle1985">(<a href="#ref-Kyle1985" role="doc-biblioref">Kyle 1985</a>)</span>:</p>
+<p>A widening spread signals elevated information asymmetry or inventory risk among market makers. The spread ratio — current bid-ask relative to its recent rolling mean — separates the level effect from the regime signal, flagging periods of abnormally elevated adverse selection risk <span class="citation" data-cites="Easley2012">(<a href="#ref-Easley2012" role="doc-biblioref">Easley et al. 2012</a>)</span>.</p>
+<p>Bid and ask slopes measure the price elasticity of each side of the book across five levels <span class="citation" data-cites="Bouchaud2002">(<a href="#ref-Bouchaud2002" role="doc-biblioref">Bouchaud et al. 2002</a>)</span>, capturing market impact per unit of trading volume and serving as a proxy for Kyle’s lambda <span class="citation" data-cites="Kyle1985">(<a href="#ref-Kyle1985" role="doc-biblioref">Kyle 1985</a>)</span>:</p>
 <p><span class="math display">\[\text{BidSlope} = \frac{P^{bid}_0 - P^{bid}_4}{\sum_{i=0}^{4} V^{bid}_i}, \qquad
 \text{AskSlope} = \frac{P^{ask}_4 - P^{ask}_0}{\sum_{i=0}^{4} V^{ask}_i}\]</span></p>
 </section>
 <section id="order-flow-features" class="level4">
 <h4 class="anchored" data-anchor-id="order-flow-features">Order Flow Features</h4>
-<p>Order flow imbalance (OFI) <span class="citation" data-cites="Cont2014">(<a href="#ref-Cont2014" role="doc-biblioref">Cont, Kukanov, and Stoikov 2014</a>)</span> measures the net directional pressure from LOB events between consecutive snapshots, conditioning on whether each event represents genuine queue growth rather than a price improvement:</p>
+<p>Order flow imbalance (OFI) <span class="citation" data-cites="Cont2014">(<a href="#ref-Cont2014" role="doc-biblioref">Cont et al. 2014</a>)</span> measures the net directional pressure from LOB events between consecutive snapshots, conditioning on whether each event represents genuine queue growth rather than a price improvement:</p>
 <p><span class="math display">\[\text{OFI}_t =
 \Delta V^{bid}_t \cdot \mathbf{1}\!\left[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}\right]
 - \Delta V^{ask}_t \cdot \mathbf{1}\!\left[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}\right]\]</span></p>
-<p><span class="citation" data-cites="Cont2014">Cont, Kukanov, and Stoikov (<a href="#ref-Cont2014" role="doc-biblioref">2014</a>)</span> establish OFI as the single strongest predictor of short-term price changes in LOB data. A rolling sum over 50 events captures persistent directional pressure over multiple tick horizons.</p>
-<p>Signed trade flow (cumulative delta) <span class="citation" data-cites="LeeReady1991">(<a href="#ref-LeeReady1991" role="doc-biblioref">C. M. C. Lee and Ready 1991</a>)</span> is constructed directly from the trade tape rather than from book changes, providing a complementary signal that measures executed volume rather than queue dynamics:</p>
+<p><span class="citation" data-cites="Cont2014">Cont et al. (<a href="#ref-Cont2014" role="doc-biblioref">2014</a>)</span> establish OFI as the single strongest predictor of short-term price changes in LOB data. A rolling sum over 50 events captures persistent directional pressure over multiple tick horizons.</p>
+<p>Signed trade flow (cumulative delta) <span class="citation" data-cites="LeeReady1991">(<a href="#ref-LeeReady1991" role="doc-biblioref">Lee and Ready 1991</a>)</span> is constructed directly from the trade tape rather than from book changes, providing a complementary signal that measures executed volume rather than queue dynamics:</p>
 <p><span class="math display">\[\text{CumDelta}_{W,t} = \sum_{\tau=t-W+1}^{t} \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = B]
 - \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = A]\]</span></p>
 <p>Queue depletion measures how rapidly the best-bid or best-ask queue is being consumed across consecutive snapshots, identifying situations where the top-of-book queue is close to exhaustion and a price move is imminent.</p>
@@ -876,7 +878,7 @@ window.Quarto = {
 <p>Mid-price acceleration is the second finite difference of the mid-price:</p>
 <p><span class="math display">\[\text{Accel}_t = M_t - 2M_{t-1} + M_{t-2}, \qquad M_t = \frac{P^{bid}_0 + P^{ask}_0}{2}\]</span></p>
 <p>It distinguishes momentum regimes (positive, accelerating) from mean-reversion regimes (negative, decelerating) at tick frequency.</p>
-<p>The sine and cosine encodings of the hour-of-day capture the well-documented U-shaped intraday pattern in volume and spread <span class="citation" data-cites="Wood1985">(<a href="#ref-Wood1985" role="doc-biblioref">Wood, McInish, and Ord 1985</a>)</span>:</p>
+<p>The sine and cosine encodings of the hour-of-day capture the well-documented U-shaped intraday pattern in volume and spread <span class="citation" data-cites="Wood1985">(<a href="#ref-Wood1985" role="doc-biblioref">Wood et al. 1985</a>)</span>:</p>
 <p><span class="math display">\[\text{HourSin}_t = \sin\!\left(\frac{2\pi \cdot h_t}{24}\right), \qquad
 \text{HourCos}_t = \cos\!\left(\frac{2\pi \cdot h_t}{24}\right)\]</span></p>
 <p>The cyclical encoding ensures temporal continuity — 09:30 and 16:00 remain structurally distinct without imposing an arbitrary ordinal distance.</p>
@@ -900,13 +902,13 @@ window.Quarto = {
 </section>
 <section id="on-the-exclusion-of-raw-lob-columns" class="level3">
 <h3 class="anchored" data-anchor-id="on-the-exclusion-of-raw-lob-columns">On the Exclusion of Raw LOB Columns</h3>
-<p>Raw price and size columns — that is, the unprocessed bid and ask prices and sizes at each level — were deliberately excluded from the observation vector. Prior work in the deep learning tradition feeds the raw LOB matrix directly to the network <span class="citation" data-cites="Zhang2019">(<a href="#ref-Zhang2019" role="doc-biblioref">Zhang, Zohren, and Roberts 2019</a>)</span>, allowing convolutional or recurrent architectures to discover structure from data without hand-engineered intermediaries. This is a coherent approach when the model itself is the feature extractor.</p>
+<p>Raw price and size columns — that is, the unprocessed bid and ask prices and sizes at each level — were deliberately excluded from the observation vector. Prior work in the deep learning tradition feeds the raw LOB matrix directly to the network <span class="citation" data-cites="Zhang2019">(<a href="#ref-Zhang2019" role="doc-biblioref">Zhang et al. 2019</a>)</span>, allowing convolutional or recurrent architectures to discover structure from data without hand-engineered intermediaries. This is a coherent approach when the model itself is the feature extractor.</p>
 <p>In the present setup, however, comprehensive microstructure features with established theoretical mechanisms are the primary input to the agent. Including raw columns alongside them introduces redundancy without adding an interpretable signal: normalized bid sizes at each level carry substantially the same information as the imbalance features derived from them, and normalized absolute prices at tick frequency are near-meaningless once the local market state is already encoded through microprice divergence, OFI, and spread measures. Mixing both paradigms would imply that the engineered features are insufficient, which is inconsistent with the selection rationale described above. The observation vector is therefore composed entirely of theoretically motivated derived features.</p>
 </section>
 <section id="feature-selection-process" class="level3">
 <h3 class="anchored" data-anchor-id="feature-selection-process">Feature Selection Process</h3>
 <p>Feature selection follows a two-stage procedure that combines theoretical constraints with empirical ranking.</p>
-<p><strong>Stage 1: Theory-constrained candidate pool.</strong> The LOB feature registry contains over forty computable statistics. The candidate pool is restricted to features that represent a distinct mechanism identified in the market microstructure literature. Each of the five groups — imbalance, fair value, spread, order flow, and regime — corresponds to a specific theoretical construct: queue pressure <span class="citation" data-cites="Cao2004 Biais1995">(<a href="#ref-Cao2004" role="doc-biblioref">Cao, Chen, and Griffin 2004</a>; <a href="#ref-Biais1995" role="doc-biblioref">Biais, Hillion, and Spatt 1995</a>)</span>, fair value estimation <span class="citation" data-cites="Stoikov2018">(<a href="#ref-Stoikov2018" role="doc-biblioref">Stoikov 2018</a>)</span>, adverse selection cost <span class="citation" data-cites="Kyle1985 GlostenMilgrom1985">(<a href="#ref-Kyle1985" role="doc-biblioref">Kyle 1985</a>; <a href="#ref-GlostenMilgrom1985" role="doc-biblioref">Glosten and Milgrom 1985</a>)</span>, directional flow <span class="citation" data-cites="Cont2014 LeeReady1991">(<a href="#ref-Cont2014" role="doc-biblioref">Cont, Kukanov, and Stoikov 2014</a>; <a href="#ref-LeeReady1991" role="doc-biblioref">C. M. C. Lee and Ready 1991</a>)</span>, and intraday regime context <span class="citation" data-cites="Engle2000 Wood1985">(<a href="#ref-Engle2000" role="doc-biblioref">Engle 2000</a>; <a href="#ref-Wood1985" role="doc-biblioref">Wood, McInish, and Ord 1985</a>)</span>. Features not grounded in this literature — raw price and size columns, or purely data-driven aggregates without a microstructure interpretation — are excluded from consideration regardless of their statistical properties. This stage prevents data-mining by ensuring that every candidate has a prior economic justification before any data is examined.</p>
+<p><strong>Stage 1: Theory-constrained candidate pool.</strong> The LOB feature registry contains over forty computable statistics. The candidate pool is restricted to features that represent a distinct mechanism identified in the market microstructure literature. Each of the five groups — imbalance, fair value, spread, order flow, and regime — corresponds to a specific theoretical construct: queue pressure <span class="citation" data-cites="Cao2004 Biais1995">(<a href="#ref-Cao2004" role="doc-biblioref">Cao et al. 2004</a>; <a href="#ref-Biais1995" role="doc-biblioref">Biais et al. 1995</a>)</span>, fair value estimation <span class="citation" data-cites="Stoikov2018">(<a href="#ref-Stoikov2018" role="doc-biblioref">Stoikov 2018</a>)</span>, adverse selection cost <span class="citation" data-cites="Kyle1985 GlostenMilgrom1985">(<a href="#ref-Kyle1985" role="doc-biblioref">Kyle 1985</a>; <a href="#ref-GlostenMilgrom1985" role="doc-biblioref">Glosten and Milgrom 1985</a>)</span>, directional flow <span class="citation" data-cites="Cont2014 LeeReady1991">(<a href="#ref-Cont2014" role="doc-biblioref">Cont et al. 2014</a>; <a href="#ref-LeeReady1991" role="doc-biblioref">Lee and Ready 1991</a>)</span>, and intraday regime context <span class="citation" data-cites="Engle2000 Wood1985">(<a href="#ref-Engle2000" role="doc-biblioref">Engle 2000</a>; <a href="#ref-Wood1985" role="doc-biblioref">Wood et al. 1985</a>)</span>. Features not grounded in this literature — raw price and size columns, or purely data-driven aggregates without a microstructure interpretation — are excluded from consideration regardless of their statistical properties. This stage prevents data-mining by ensuring that every candidate has a prior economic justification before any data is examined.</p>
 <p><strong>Stage 2: IC/ICIR ranking within the theory-constrained pool.</strong> Within each group, multiple implementations of the same theoretical concept exist: OFI at different rolling horizons, spread ratios at different windows, imbalance at different depth levels. Theory cannot resolve which implementations are informative or which combinations are redundant; this is an empirical question. Each candidate is scored by its Information Coefficient Information Ratio (ICIR) — the mean IC divided by the standard deviation of IC over rolling windows of the validation split, where IC is the Spearman rank correlation between the feature and the forward log-return proxy. Redundancy within the selected set is controlled via a conditional IC filter: after each feature is selected, its linear signal is regressed out of remaining candidates, and ICIR is recomputed on the residuals. A candidate is included only if it retains incremental predictive content beyond what the already-selected features collectively capture. The full procedure is described in Appendix F.</p>
 <p>The result is a state space whose composition is jointly justified: every feature is grounded in theory (Stage 1) and empirically non-redundant within the theory-constrained pool (Stage 2). The two stages address different questions. Theory answers: which mechanisms belong in the state space? IC/ICIR answers: among the available implementations of those mechanisms, which combinations contribute distinct signal?</p>
 <p>The selection is operationalized through a registry-driven configuration pipeline. Feature names defined in the scenario YAML file resolve to computation functions in the feature registry at runtime; adding, removing, or reordering features requires only a change to the configuration file, not to source code. The active feature set for the main experiment is defined in <code>src/configs/features/hft_lob_features_causal.yaml</code> and referenced by the scenario file <code>src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml</code>.</p>
@@ -954,7 +956,7 @@ window.Quarto = {
 <h3 class="anchored" data-anchor-id="twin-critics">Twin Critics</h3>
 <p>TD3 maintains two independent Q-networks <span class="math inline">\(Q_{\theta_1}\)</span> and <span class="math inline">\(Q_{\theta_2}\)</span>. The Bellman target is computed using the minimum of the two estimates:</p>
 <p><span class="math display">\[y_t = r_t + \gamma \min_{i=1,2} Q_{\theta_i'}(s_{t+1}, \tilde{a}_{t+1})\]</span></p>
-<p>where <span class="math inline">\(\theta_i'\)</span> are slowly updated target network parameters and <span class="math inline">\(\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon\)</span> is the target action with smoothing noise. Taking the minimum counteracts the overestimation bias that arises when bootstrapped targets are computed from the same network being updated — a failure mode documented in DDPG and addressed here following <span class="citation" data-cites="Fujimoto2018">Fujimoto, Hoof, and Meger (<a href="#ref-Fujimoto2018" role="doc-biblioref">2018</a>)</span>.</p>
+<p>where <span class="math inline">\(\theta_i'\)</span> are slowly updated target network parameters and <span class="math inline">\(\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon\)</span> is the target action with smoothing noise. Taking the minimum counteracts the overestimation bias that arises when bootstrapped targets are computed from the same network being updated — a failure mode documented in DDPG and addressed here following <span class="citation" data-cites="Fujimoto2018">Fujimoto et al. (<a href="#ref-Fujimoto2018" role="doc-biblioref">2018</a>)</span>.</p>
 <p>Both critics are trained by minimizing the TD error against the shared target <span class="math inline">\(y_t\)</span>. The actor is updated using only the first critic’s gradient:</p>
 <p><span class="math display">\[\nabla_\phi J(\phi) = \mathbb{E}_{s \sim \mathcal{D}}\!\left[\nabla_a Q_{\theta_1}(s,a)\big|_{a=\mu_\phi(s)} \nabla_\phi \mu_\phi(s)\right]\]</span></p>
 <p>The second critic contributes only through the conservative Bellman target, not directly to the policy gradient.</p>
@@ -1375,17 +1377,17 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <section id="experiment-snapshot-placeholder" class="level2" data-number="6.4">
 <h2 data-number="6.4" class="anchored" data-anchor-id="experiment-snapshot-placeholder"><span class="header-section-number">6.4</span> Experiment Snapshot [PLACEHOLDER]</h2>
 <!-- [PLACEHOLDER] -->
-<div id="0e2d3662" class="cell" data-execution_count="3">
+<div id="4cca4b0d" class="cell" data-execution_count="3">
 <div class="cell-output cell-output-stdout">
 <pre><code>No runs found for experiment: TRADINGENV_TD3_AAPL_HFT_STATE_SPACE</code></pre>
 </div>
 </div>
-<div id="f41cdbca" class="cell" data-execution_count="4">
+<div id="ba73c051" class="cell" data-execution_count="4">
 <div class="cell-output cell-output-stdout">
 <pre><code>No active run detected for the selected experiment.</code></pre>
 </div>
 </div>
-<div id="c907121a" class="cell" data-execution_count="5">
+<div id="a769cc0f" class="cell" data-execution_count="5">
 <div class="cell-output cell-output-stdout">
 <pre><code>No evaluation comparison plot artifact available yet.</code></pre>
 </div>
@@ -1421,7 +1423,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <h3 class="anchored" data-anchor-id="statistical-significance-summary-placeholder">Statistical Significance Summary [PLACEHOLDER]</h3>
 <!-- [PLACEHOLDER] -->
 <p>The following table summarizes the results of five statistical tests comparing the TD3 agent against each benchmark strategy. For each test × benchmark combination, the p-value is reported along with a significance indicator at the 95% confidence level (p &lt; 0.05). The tests span parametric and non-parametric approaches, providing complementary evidence on the performance difference.</p>
-<div id="61c379bc" class="cell" data-execution_count="7">
+<div id="2791f862" class="cell" data-execution_count="7">
 <div class="cell-output cell-output-stdout">
 <pre><code>Placeholder values shown — run full experiment pipeline to populate.
 </code></pre>
@@ -1430,7 +1432,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <div>
 
 
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -1442,175 +1444,175 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
+<th data-quarto-table-cell-role="th">0</th>
 <td>Student's t-test</td>
 <td>Buy &amp; Hold</td>
 <td>0.0008</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
+<th data-quarto-table-cell-role="th">1</th>
 <td>Student's t-test</td>
 <td>Short &amp; Hold</td>
 <td>0.0231</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
+<th data-quarto-table-cell-role="th">2</th>
 <td>Student's t-test</td>
 <td>TWAP</td>
 <td>0.0087</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
+<th data-quarto-table-cell-role="th">3</th>
 <td>Student's t-test</td>
 <td>VWAP</td>
 <td>0.0324</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
+<th data-quarto-table-cell-role="th">4</th>
 <td>Student's t-test</td>
 <td>Random</td>
 <td>0.0001</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">5</td>
+<th data-quarto-table-cell-role="th">5</th>
 <td>Sharpe Bootstrap</td>
 <td>Buy &amp; Hold</td>
 <td>0.0012</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">6</td>
+<th data-quarto-table-cell-role="th">6</th>
 <td>Sharpe Bootstrap</td>
 <td>Short &amp; Hold</td>
 <td>0.0285</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">7</td>
+<th data-quarto-table-cell-role="th">7</th>
 <td>Sharpe Bootstrap</td>
 <td>TWAP</td>
 <td>0.0103</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">8</td>
+<th data-quarto-table-cell-role="th">8</th>
 <td>Sharpe Bootstrap</td>
 <td>VWAP</td>
 <td>0.0389</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">9</td>
+<th data-quarto-table-cell-role="th">9</th>
 <td>Sharpe Bootstrap</td>
 <td>Random</td>
 <td>0.0002</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">10</td>
+<th data-quarto-table-cell-role="th">10</th>
 <td>Sortino Bootstrap</td>
 <td>Buy &amp; Hold</td>
 <td>0.0009</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">11</td>
+<th data-quarto-table-cell-role="th">11</th>
 <td>Sortino Bootstrap</td>
 <td>Short &amp; Hold</td>
 <td>0.0256</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">12</td>
+<th data-quarto-table-cell-role="th">12</th>
 <td>Sortino Bootstrap</td>
 <td>TWAP</td>
 <td>0.0095</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">13</td>
+<th data-quarto-table-cell-role="th">13</th>
 <td>Sortino Bootstrap</td>
 <td>VWAP</td>
 <td>0.0351</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">14</td>
+<th data-quarto-table-cell-role="th">14</th>
 <td>Sortino Bootstrap</td>
 <td>Random</td>
 <td>0.0001</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">15</td>
+<th data-quarto-table-cell-role="th">15</th>
 <td>Mann-Whitney U</td>
 <td>Buy &amp; Hold</td>
 <td>0.0015</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">16</td>
+<th data-quarto-table-cell-role="th">16</th>
 <td>Mann-Whitney U</td>
 <td>Short &amp; Hold</td>
 <td>0.0312</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">17</td>
+<th data-quarto-table-cell-role="th">17</th>
 <td>Mann-Whitney U</td>
 <td>TWAP</td>
 <td>0.0124</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">18</td>
+<th data-quarto-table-cell-role="th">18</th>
 <td>Mann-Whitney U</td>
 <td>VWAP</td>
 <td>0.0423</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">19</td>
+<th data-quarto-table-cell-role="th">19</th>
 <td>Mann-Whitney U</td>
 <td>Random</td>
 <td>0.0003</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">20</td>
+<th data-quarto-table-cell-role="th">20</th>
 <td>Permutation Test</td>
 <td>Buy &amp; Hold</td>
 <td>0.0011</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">21</td>
+<th data-quarto-table-cell-role="th">21</th>
 <td>Permutation Test</td>
 <td>Short &amp; Hold</td>
 <td>0.0278</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">22</td>
+<th data-quarto-table-cell-role="th">22</th>
 <td>Permutation Test</td>
 <td>TWAP</td>
 <td>0.0099</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">23</td>
+<th data-quarto-table-cell-role="th">23</th>
 <td>Permutation Test</td>
 <td>VWAP</td>
 <td>0.0367</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">24</td>
+<th data-quarto-table-cell-role="th">24</th>
 <td>Permutation Test</td>
 <td>Random</td>
 <td>0.0002</td>
@@ -1627,7 +1629,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <h3 class="anchored" data-anchor-id="run-level-sample-summary-placeholder">Run-Level Sample Summary [PLACEHOLDER]</h3>
 <!-- [PLACEHOLDER] -->
 <p>The following table summarizes currently available finished runs for the selected experiment. These values should be interpreted as a sample of outcomes under the configured workflow rather than as definitive performance estimates.</p>
-<div id="77f935f6" class="cell" data-execution_count="8">
+<div id="3db6d606" class="cell" data-execution_count="8">
 <div class="cell-output cell-output-stdout">
 <pre><code>No finished runs available for experiment: TRADINGENV_TD3_AAPL_HFT_STATE_SPACE</code></pre>
 </div>
@@ -1637,7 +1639,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <h3 class="anchored" data-anchor-id="descriptive-statistics-and-uncertainty-estimates-placeholder">Descriptive Statistics and Uncertainty Estimates [PLACEHOLDER]</h3>
 <!-- [PLACEHOLDER] -->
 <p>For repeated runs of the same configuration, descriptive statistics provide the first indication of stability. Here, quantities such as the sample mean, standard deviation, and range are summaries of variability under the reported protocol, not as universal claims about future market performance. Repeated backtests quantify sensitivity to training randomness more than they resolve uncertainty about the underlying market process.</p>
-<div id="33398c52" class="cell" data-execution_count="9">
+<div id="93d18346" class="cell" data-execution_count="9">
 <div class="cell-output cell-output-stdout">
 <pre><code>No completed runs available for statistical summaries.</code></pre>
 </div>
@@ -1676,7 +1678,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <h3 class="anchored" data-anchor-id="current-evaluation-context-placeholder">Current Evaluation Context [PLACEHOLDER]</h3>
 <!-- [PLACEHOLDER] -->
 <p>The following snapshot provides the current experiment context used in the automated Chapter 6 result wiring. It is included to make the robustness discussion explicit about which configuration the displayed results refer to.</p>
-<div id="249d8de6" class="cell" data-execution_count="11">
+<div id="8f124c3b" class="cell" data-execution_count="11">
 <div class="cell-output cell-output-stdout">
 <pre><code>No finished runs available for experiment: TRADINGENV_TD3_AAPL_HFT_STATE_SPACE</code></pre>
 </div>
@@ -1699,12 +1701,12 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <h3 class="anchored" data-anchor-id="robustness-matrix-for-experimental-reporting-placeholder">Robustness Matrix for Experimental Reporting [PLACEHOLDER]</h3>
 <!-- [PLACEHOLDER] -->
 <p>The table below defines a practical robustness matrix for the evaluation part of the thesis. It can be used as a reporting checklist when final results are compiled.</p>
-<div id="62383fff" class="cell" data-execution_count="12">
+<div id="c61f5ae8" class="cell" data-execution_count="12">
 <div class="cell-output cell-output-display">
 <div>
 
 
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -1717,7 +1719,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
+<th data-quarto-table-cell-role="th">0</th>
 <td>Random seed</td>
 <td>seed</td>
 <td>Stochastic training path sensitivity</td>
@@ -1725,7 +1727,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>Required</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
+<th data-quarto-table-cell-role="th">1</th>
 <td>Feature subset</td>
 <td>env.feature_columns / feature pipeline</td>
 <td>State representation redundancy and overfitting</td>
@@ -1733,7 +1735,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>Required</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
+<th data-quarto-table-cell-role="th">2</th>
 <td>Reward function</td>
 <td>reward_type</td>
 <td>Objective-function dependence</td>
@@ -1741,7 +1743,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>Recommended</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
+<th data-quarto-table-cell-role="th">3</th>
 <td>Transaction costs</td>
 <td>trading_fees</td>
 <td>Turnover-driven performance inflation</td>
@@ -1749,7 +1751,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>Required</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
+<th data-quarto-table-cell-role="th">4</th>
 <td>Train split length</td>
 <td>train_size / split design</td>
 <td>Sample size and regime exposure sensitivity</td>
@@ -1783,7 +1785,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <section id="selected-metrics-from-the-latest-completed-run-placeholder" class="level3">
 <h3 class="anchored" data-anchor-id="selected-metrics-from-the-latest-completed-run-placeholder">Selected Metrics from the Latest Completed Run [PLACEHOLDER]</h3>
 <!-- [PLACEHOLDER] -->
-<div id="c6c5fa98" class="cell" data-execution_count="14">
+<div id="1c7c39b7" class="cell" data-execution_count="14">
 <div class="cell-output cell-output-stdout">
 <pre><code>Placeholder values shown — run full experiment pipeline to populate.
 </code></pre>
@@ -1792,7 +1794,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <div>
 
 
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -1802,52 +1804,52 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
+<th data-quarto-table-cell-role="th">0</th>
 <td>Total Return</td>
 <td>0.28%</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
+<th data-quarto-table-cell-role="th">1</th>
 <td>CAGR</td>
 <td>22.36%</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
+<th data-quarto-table-cell-role="th">2</th>
 <td>Annualized Volatility</td>
 <td>12.34%</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
+<th data-quarto-table-cell-role="th">3</th>
 <td>Sharpe Ratio</td>
 <td>1.8234</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
+<th data-quarto-table-cell-role="th">4</th>
 <td>Sortino Ratio</td>
 <td>2.4123</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">5</td>
+<th data-quarto-table-cell-role="th">5</th>
 <td>Max Drawdown</td>
 <td>-0.16%</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">6</td>
+<th data-quarto-table-cell-role="th">6</th>
 <td>Win Rate</td>
 <td>56.21%</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">7</td>
+<th data-quarto-table-cell-role="th">7</th>
 <td>Profit Factor</td>
 <td>1.3845</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">8</td>
+<th data-quarto-table-cell-role="th">8</th>
 <td>VaR (95%)</td>
 <td>-0.0021</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">9</td>
+<th data-quarto-table-cell-role="th">9</th>
 <td>CVaR (95%)</td>
 <td>-0.0034</td>
 </tr>
@@ -1862,7 +1864,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <h3 class="anchored" data-anchor-id="benchmark-comparison-placeholder">Benchmark Comparison [PLACEHOLDER]</h3>
 <!-- [PLACEHOLDER] -->
 <p>The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent’s performance highlighted in the first row.</p>
-<div id="0236b00c" class="cell" data-execution_count="15">
+<div id="d3dfde09" class="cell" data-execution_count="15">
 <div class="cell-output cell-output-stdout">
 <pre><code>Placeholder values shown — run full experiment pipeline to populate.
 </code></pre>
@@ -1871,7 +1873,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <div>
 
 
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -1888,7 +1890,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
+<th data-quarto-table-cell-role="th">0</th>
 <td>TD3 Agent</td>
 <td>0.28%</td>
 <td>22.36%</td>
@@ -1900,7 +1902,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>0.6400</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
+<th data-quarto-table-cell-role="th">1</th>
 <td>Buy &amp; Hold</td>
 <td>-0.12%</td>
 <td>-9.80%</td>
@@ -1912,7 +1914,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>0.0000</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
+<th data-quarto-table-cell-role="th">2</th>
 <td>Short &amp; Hold</td>
 <td>0.12%</td>
 <td>9.80%</td>
@@ -1924,7 +1926,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>0.0000</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
+<th data-quarto-table-cell-role="th">3</th>
 <td>TWAP</td>
 <td>-0.08%</td>
 <td>-6.50%</td>
@@ -1936,7 +1938,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>0.0200</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
+<th data-quarto-table-cell-role="th">4</th>
 <td>VWAP</td>
 <td>-0.07%</td>
 <td>-5.70%</td>
@@ -1948,7 +1950,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <td>0.0200</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">5</td>
+<th data-quarto-table-cell-role="th">5</th>
 <td>Random</td>
 <td>0.01%</td>
 <td>0.80%</td>
@@ -1974,7 +1976,7 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 <section id="evaluation-plots-placeholder" class="level3">
 <h3 class="anchored" data-anchor-id="evaluation-plots-placeholder">Evaluation Plots [PLACEHOLDER]</h3>
 <!-- [PLACEHOLDER] -->
-<div id="493bd09d" class="cell" data-execution_count="17">
+<div id="d945ea68" class="cell" data-execution_count="17">
 <div class="cell-output cell-output-stdout">
 <pre><code>No finished run available to display evaluation plots.</code></pre>
 </div>
@@ -2001,21 +2003,21 @@ s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{
 </section>
 <section id="bibliography" class="level1 unnumbered">
 <h1 class="unnumbered">Bibliography</h1>
-<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
 <div id="ref-Bellman1957" class="csl-entry" role="listitem">
-Bellman, Richard. 1957. <em>Dynamic Programming</em>. Princeton, NJ: Princeton University Press.
+Bellman, Richard. 1957. <em>Dynamic Programming</em>. Princeton University Press.
 </div>
 <div id="ref-Biais1995" class="csl-entry" role="listitem">
 Biais, Bruno, Pierre Hillion, and Chester Spatt. 1995. <span>“An Empirical Analysis of the Limit Order Book and the Order Flow in the <span>Paris Bourse</span>.”</span> <em>Journal of Finance</em> 50 (5): 1655–89. <a href="https://doi.org/10.1111/j.1540-6261.1995.tb05192.x">https://doi.org/10.1111/j.1540-6261.1995.tb05192.x</a>.
 </div>
 <div id="ref-Boehmer2021" class="csl-entry" role="listitem">
-Boehmer, Ekkehart, Charles M Jones, Xiaoyan Zhang, and Xinran Zhang. 2021. <span>“Tracking Retail Investor Activity.”</span> <em>Journal of Finance</em> 76 (5): 2249–2305. <a href="https://doi.org/10.1111/jofi.13033">https://doi.org/10.1111/jofi.13033</a>.
+Boehmer, Ekkehart, Charles M Jones, Xiaoyan Zhang, and Xinran Zhang. 2021. <span>“Tracking Retail Investor Activity.”</span> <em>Journal of Finance</em> 76 (5): 2249–305. <a href="https://doi.org/10.1111/jofi.13033">https://doi.org/10.1111/jofi.13033</a>.
 </div>
 <div id="ref-Bouchaud2002" class="csl-entry" role="listitem">
 Bouchaud, Jean-Philippe, Marc Mézard, and Marc Potters. 2002. <span>“Statistical Properties of Stock Order Books: Empirical Results and Models.”</span> <em>Quantitative Finance</em> 2 (4): 251–56. <a href="https://doi.org/10.1088/1469-7688/2/4/301">https://doi.org/10.1088/1469-7688/2/4/301</a>.
 </div>
 <div id="ref-Cao2004" class="csl-entry" role="listitem">
-Cao, Charles, Zhiwu Chen, and John M Griffin. 2004. <span>“Informational Content of Option Volume Prior to Takeovers.”</span> <em>Journal of Business</em> 77 (6): 1073–1109. <a href="https://doi.org/10.1086/422629">https://doi.org/10.1086/422629</a>.
+Cao, Charles, Zhiwu Chen, and John M Griffin. 2004. <span>“Informational Content of Option Volume Prior to Takeovers.”</span> <em>Journal of Business</em> 77 (6): 1073–109. <a href="https://doi.org/10.1086/422629">https://doi.org/10.1086/422629</a>.
 </div>
 <div id="ref-Cont2014" class="csl-entry" role="listitem">
 Cont, Rama, Arseniy Kukanov, and Sasha Stoikov. 2014. <span>“The Price Impact of Order Book Events.”</span> <em>Journal of Financial Econometrics</em> 12 (1): 47–88. <a href="https://doi.org/10.1093/jjfinec/nbt002">https://doi.org/10.1093/jjfinec/nbt002</a>.
@@ -2042,7 +2044,7 @@ Glosten, Lawrence R. 1994. <span>“Is the Electronic Open Limit Order Book Inev
 Glosten, Lawrence R, and Paul R Milgrom. 1985. <span>“Bid, Ask and Transaction Prices in a Specialist Market with Heterogeneously Informed Traders.”</span> <em>Journal of Financial Economics</em> 14 (1): 71–100. <a href="https://doi.org/10.1016/0304-405X(85)90044-3">https://doi.org/10.1016/0304-405X(85)90044-3</a>.
 </div>
 <div id="ref-Gold2003" class="csl-entry" role="listitem">
-Gold, Carl. 2003. <span>“<span>FX</span> Trading via Recurrent Reinforcement Learning.”</span> In <em>Proceedings of the 2003 IEEE International Conference on Computational Intelligence for Financial Engineering</em>, 363–70. <a href="https://doi.org/10.1109/CIFER.2003.1196283">https://doi.org/10.1109/CIFER.2003.1196283</a>.
+Gold, Carl. 2003. <span>“<span>FX</span> Trading via Recurrent Reinforcement Learning.”</span> <em>Proceedings of the 2003 IEEE International Conference on Computational Intelligence for Financial Engineering</em>, 363–70. <a href="https://doi.org/10.1109/CIFER.2003.1196283">https://doi.org/10.1109/CIFER.2003.1196283</a>.
 </div>
 <div id="ref-Haarnoja2018" class="csl-entry" role="listitem">
 Haarnoja, Tuomas, Aurick Zhou, Pieter Abbeel, and Sergey Levine. 2018. <span>“Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor.”</span> <em>ICML</em>, 1861–70.
@@ -2051,16 +2053,16 @@ Haarnoja, Tuomas, Aurick Zhou, Pieter Abbeel, and Sergey Levine. 2018. <span>“
 Harris, Lawrence. 1986. <span>“A Transaction Data Study of Weekly and Intradaily Patterns in Stock Returns.”</span> <em>Journal of Financial Economics</em> 16 (1): 99–117. <a href="https://doi.org/10.1016/0304-405X(86)90044-9">https://doi.org/10.1016/0304-405X(86)90044-9</a>.
 </div>
 <div id="ref-Harris1991" class="csl-entry" role="listitem">
-———. 1991. <span>“Stock Price Clustering and Discreteness.”</span> <em>Review of Financial Studies</em> 4 (3): 389–415. <a href="https://doi.org/10.1093/rfs/4.3.389">https://doi.org/10.1093/rfs/4.3.389</a>.
+Harris, Lawrence. 1991. <span>“Stock Price Clustering and Discreteness.”</span> <em>Review of Financial Studies</em> 4 (3): 389–415. <a href="https://doi.org/10.1093/rfs/4.3.389">https://doi.org/10.1093/rfs/4.3.389</a>.
 </div>
 <div id="ref-VanHasselt2016" class="csl-entry" role="listitem">
-Hasselt, Hado van, Arthur Guez, and David Silver. 2016. <span>“Deep Reinforcement Learning with Double <span>Q</span>-Learning.”</span> In <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>. Vol. 30. 1. <a href="https://doi.org/10.1609/aaai.v30i1.10295">https://doi.org/10.1609/aaai.v30i1.10295</a>.
+Hasselt, Hado van, Arthur Guez, and David Silver. 2016. <span>“Deep Reinforcement Learning with Double <span>Q</span>-Learning.”</span> <em>Proceedings of the AAAI Conference on Artificial Intelligence</em> 30. <a href="https://doi.org/10.1609/aaai.v30i1.10295">https://doi.org/10.1609/aaai.v30i1.10295</a>.
 </div>
 <div id="ref-JiangLiang2017Crypto" class="csl-entry" role="listitem">
 Jiang, Zhengyao, and Jinjun Liang. 2017. <span>“Cryptocurrency Portfolio Management with Deep Reinforcement Learning.”</span> <em>arXiv Preprint arXiv:1612.01277</em>. <a href="https://arxiv.org/abs/1612.01277">https://arxiv.org/abs/1612.01277</a>.
 </div>
 <div id="ref-Jiang2017" class="csl-entry" role="listitem">
-Jiang, Zhengyao, Dixing Xu, and Jinjun Liang. 2017. <span>“<span class="nocase">A Deep Reinforcement Learning Framework for the Financial Portfolio Management Problem</span>,”</span> 1–31. <a href="http://arxiv.org/abs/1706.10059">http://arxiv.org/abs/1706.10059</a>.
+Jiang, Zhengyao, Dixing Xu, and Jinjun Liang. 2017. <em><span class="nocase">A Deep Reinforcement Learning Framework for the Financial Portfolio Management Problem</span></em>. 1–31. <a href="http://arxiv.org/abs/1706.10059">http://arxiv.org/abs/1706.10059</a>.
 </div>
 <div id="ref-Kabbani2022" class="csl-entry" role="listitem">
 Kabbani, Talal, and Engin Duman. 2022. <span>“Deep Reinforcement Learning Approach for Trading Automation in the Stock Market.”</span> <em>IEEE Access</em> 10: 93564–74. <a href="https://doi.org/10.1109/ACCESS.2022.3203697">https://doi.org/10.1109/ACCESS.2022.3203697</a>.
@@ -2084,16 +2086,16 @@ Lee, Jae Won, Jonghun Park, Jangmin O, Jongwoo Lee, and Euyseok Hong. 2007. <spa
 Liang, Zhipeng, Haoyuan Chen, Jun Zhu, Kunyao Jiang, Yu Li, and Weinan Zhu. 2018. <span>“Adversarial Deep Reinforcement Learning in Portfolio Management.”</span> <em>arXiv Preprint arXiv:1808.09940</em>. <a href="https://arxiv.org/abs/1808.09940">https://arxiv.org/abs/1808.09940</a>.
 </div>
 <div id="ref-Lillicrap2015" class="csl-entry" role="listitem">
-Lillicrap, Timothy P., Jonathan J. Hunt, Alexander Pritzel, Nicolas Heess, Tom Erez, Yuval Tassa, David Silver, and Daan Wierstra. 2016. <span>“Continuous Control with Deep Reinforcement Learning.”</span> In <em>International Conference on Learning Representations</em>.
+Lillicrap, Timothy P., Jonathan J. Hunt, Alexander Pritzel, et al. 2016. <span>“Continuous Control with Deep Reinforcement Learning.”</span> <em>International Conference on Learning Representations</em>.
 </div>
 <div id="ref-Lin1992" class="csl-entry" role="listitem">
 Lin, Long-Ji. 1992. <span>“Self-Improving Reactive Agents Based on Reinforcement Learning, Planning and Teaching.”</span> <em>Machine Learning</em> 8 (3–4): 293–321. <a href="https://doi.org/10.1007/BF00992699">https://doi.org/10.1007/BF00992699</a>.
 </div>
 <div id="ref-FinRL2020" class="csl-entry" role="listitem">
-Liu, Xiao-Yang, Hongyang Yang, Qian Chen, Runjia Zhang, Liuqing Yang, Bowen Xiao, and Christina Dan Wang. 2020. <span>“<span>FinRL</span>: A Deep Reinforcement Learning Library for Automated Stock Trading in Quantitative Finance.”</span> <em>arXiv Preprint arXiv:2011.09607</em>. <a href="https://arxiv.org/abs/2011.09607">https://arxiv.org/abs/2011.09607</a>.
+Liu, Xiao-Yang, Hongyang Yang, Qian Chen, et al. 2020. <span>“<span>FinRL</span>: A Deep Reinforcement Learning Library for Automated Stock Trading in Quantitative Finance.”</span> <em>arXiv Preprint arXiv:2011.09607</em>. <a href="https://arxiv.org/abs/2011.09607">https://arxiv.org/abs/2011.09607</a>.
 </div>
 <div id="ref-Lopez2018" class="csl-entry" role="listitem">
-López de Prado, Marcos. 2018. <em>Advances in Financial Machine Learning</em>. Hoboken, NJ: Wiley.
+López de Prado, Marcos. 2018. <em>Advances in Financial Machine Learning</em>. Wiley.
 </div>
 <div id="ref-Majidi2024" class="csl-entry" role="listitem">
 Majidi, Naseh, Mahdi Shamsi, and Farokh Marvasti. 2024. <span>“Algorithmic Trading Using Continuous Action Space Deep Reinforcement Learning.”</span> <em>Expert Systems with Applications</em> 237: 121292. <a href="https://doi.org/10.1016/j.eswa.2023.121292">https://doi.org/10.1016/j.eswa.2023.121292</a>.
@@ -2102,13 +2104,13 @@ Majidi, Naseh, Mahdi Shamsi, and Farokh Marvasti. 2024. <span>“Algorithmic Tra
 Millea, Adrian. 2021. <span>“Deep Reinforcement Learning for Trading—a Critical Survey.”</span> <em>Data</em> 6 (11): 119. <a href="https://doi.org/10.3390/data6110119">https://doi.org/10.3390/data6110119</a>.
 </div>
 <div id="ref-Mnih2015" class="csl-entry" role="listitem">
-Mnih, Volodymyr, Koray Kavukcuoglu, David Silver, Andrei A. Rusu, Joel Veness, Marc G. Bellemare, Alex Graves, et al. 2015. <span>“Human-Level Control Through Deep Reinforcement Learning.”</span> <em>Nature</em> 518 (7540): 529–33. <a href="https://doi.org/10.1038/nature14236">https://doi.org/10.1038/nature14236</a>.
+Mnih, Volodymyr, Koray Kavukcuoglu, David Silver, et al. 2015. <span>“Human-Level Control Through Deep Reinforcement Learning.”</span> <em>Nature</em> 518 (7540): 529–33. <a href="https://doi.org/10.1038/nature14236">https://doi.org/10.1038/nature14236</a>.
 </div>
 <div id="ref-Moody1998" class="csl-entry" role="listitem">
-Moody, John, and Matthew Saffell. 1998. <span>“Reinforcement Learning for Trading.”</span>
+Moody, John, and Matthew Saffell. 1998. <em>Reinforcement Learning for Trading</em>.
 </div>
 <div id="ref-Moody2001" class="csl-entry" role="listitem">
-———. 2001. <span>“Learning to Trade via Direct Reinforcement.”</span> <em>IEEE Transactions on Neural Networks</em> 12 (4): 875–89. <a href="https://doi.org/10.1109/72.935097">https://doi.org/10.1109/72.935097</a>.
+Moody, John, and Matthew Saffell. 2001. <span>“Learning to Trade via Direct Reinforcement.”</span> <em>IEEE Transactions on Neural Networks</em> 12 (4): 875–89. <a href="https://doi.org/10.1109/72.935097">https://doi.org/10.1109/72.935097</a>.
 </div>
 <div id="ref-Neuneier1998" class="csl-entry" role="listitem">
 Neuneier, Ralph. 1998. <span>“Enhancing q-Learning for Optimal Asset Allocation.”</span> <em>Advances in Neural Information Processing Systems</em> 10: 936–42.
@@ -2117,16 +2119,16 @@ Neuneier, Ralph. 1998. <span>“Enhancing q-Learning for Optimal Asset Allocatio
 Ng, Andrew Y., Daishi Harada, and Stuart Russell. 1999. <span>“Policy Invariance Under Reward Transformations: Theory and Application to Reward Shaping.”</span> <em>ICML</em>, 278–87.
 </div>
 <div id="ref-Noonan2017LOXM" class="csl-entry" role="listitem">
-Noonan, Laura. 2017. <span>“<span class="nocase">JPMorgan to Take AI Trading Global</span>.”</span> <a href="https://www.ft.com/content/16b8ffb6-7161-11e7-aca6-c6bd07df1a3c?syn-25a6b1a6=1" class="uri">https://www.ft.com/content/16b8ffb6-7161-11e7-aca6-c6bd07df1a3c?syn-25a6b1a6=1</a>.
+Noonan, Laura. 2017. <em><span class="nocase">JPMorgan to Take AI Trading Global</span></em>. <a href="https://www.ft.com/content/16b8ffb6-7161-11e7-aca6-c6bd07df1a3c?syn-25a6b1a6=1" class="uri">Https://www.ft.com/content/16b8ffb6-7161-11e7-aca6-c6bd07df1a3c?syn-25a6b1a6=1</a>.
 </div>
 <div id="ref-Puterman1994" class="csl-entry" role="listitem">
-Puterman, Martin L. 1994. <em>Markov Decision Processes: Discrete Stochastic Dynamic Programming</em>. New York: John Wiley &amp; Sons.
+Puterman, Martin L. 1994. <em>Markov Decision Processes: Discrete Stochastic Dynamic Programming</em>. John Wiley &amp; Sons.
 </div>
 <div id="ref-Roll1984" class="csl-entry" role="listitem">
 Roll, Richard. 1984. <span>“A Simple Implicit Measure of the Effective Bid-Ask Spread in an Efficient Market.”</span> <em>Journal of Finance</em> 39 (4): 1127–39.
 </div>
 <div id="ref-Rummery1994" class="csl-entry" role="listitem">
-Rummery, Gavin A., and Mahesan Niranjan. 1994. <span>“On-Line q-Learning Using Connectionist Systems.”</span> CUED/F-INFENG/TR 166. University of Cambridge, Department of Engineering.
+Rummery, Gavin A., and Mahesan Niranjan. 1994. <em>On-Line q-Learning Using Connectionist Systems</em>. CUED/F-INFENG/TR 166. University of Cambridge, Department of Engineering.
 </div>
 <div id="ref-Schulman2015" class="csl-entry" role="listitem">
 Schulman, John, Sergey Levine, Philipp Moritz, Michael I. Jordan, and Pieter Abbeel. 2015. <span>“Trust Region Policy Optimization.”</span> <em>ICML</em>, 1889–97.
@@ -2138,7 +2140,7 @@ Schulman, John, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. 
 Stoikov, Sasha. 2018. <span>“The Micro-Price: A High-Frequency Estimator of Future Prices.”</span> <em>Quantitative Finance</em> 18 (12): 1959–66. <a href="https://doi.org/10.1080/14697688.2018.1489139">https://doi.org/10.1080/14697688.2018.1489139</a>.
 </div>
 <div id="ref-Sutton2018" class="csl-entry" role="listitem">
-Sutton, Richard S., and Andrew G. Barto. 2018. <em>Reinforcement Learning: An Introduction</em>. 2nd ed. Cambridge, MA: MIT Press.
+Sutton, Richard S., and Andrew G. Barto. 2018. <em>Reinforcement Learning: An Introduction</em>. 2nd ed. MIT Press.
 </div>
 <div id="ref-Sutton2000" class="csl-entry" role="listitem">
 Sutton, Richard S., David McAllester, Satinder Singh, and Yishay Mansour. 2000. <span>“Policy Gradient Methods for Reinforcement Learning with Function Approximation.”</span> <em>Advances in Neural Information Processing Systems</em> 12: 1057–63.
@@ -2147,7 +2149,7 @@ Sutton, Richard S., David McAllester, Satinder Singh, and Yishay Mansour. 2000. 
 Tsitsiklis, John N., and Benjamin Van Roy. 1997. <span>“An Analysis of Temporal-Difference Learning with Function Approximation.”</span> <em>IEEE Transactions on Automatic Control</em> 42 (5): 674–90. <a href="https://doi.org/10.1109/9.580874">https://doi.org/10.1109/9.580874</a>.
 </div>
 <div id="ref-Wang2019AlphaStock" class="csl-entry" role="listitem">
-Wang, Jingyuan, Yang Zhang, Ke Tang, Junjie Wu, and Zhang Xiong. 2019. <span>“<span>AlphaStock</span>: A Buying-Winners-and-Selling-Losers Investment Strategy Using Interpretable Deep Reinforcement Attention Networks.”</span> In <em>Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining</em>, 1900–1908. <a href="https://doi.org/10.1145/3292500.3330647">https://doi.org/10.1145/3292500.3330647</a>.
+Wang, Jingyuan, Yang Zhang, Ke Tang, Junjie Wu, and Zhang Xiong. 2019. <span>“<span>AlphaStock</span>: A Buying-Winners-and-Selling-Losers Investment Strategy Using Interpretable Deep Reinforcement Attention Networks.”</span> <em>Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining</em>, 1900–1908. <a href="https://doi.org/10.1145/3292500.3330647">https://doi.org/10.1145/3292500.3330647</a>.
 </div>
 <div id="ref-Watkins1989" class="csl-entry" role="listitem">
 Watkins, Christopher J. C. H. 1989. <em>Learning from Delayed Rewards</em>. King’s College, University of Cambridge.
@@ -2168,13 +2170,13 @@ Wood, Robert A., Thomas H. McInish, and J. Keith Ord. 1985. <span>“An Investig
 Xiong, Zhuoran, Xiao-Yang Liu, Shan Zhong, Hongyang Yang, and Anwar Walid. 2018. <span>“Practical Deep Reinforcement Learning Approach for Stock Trading.”</span> <em>arXiv Preprint arXiv:1811.07522</em>. <a href="https://arxiv.org/abs/1811.07522">https://arxiv.org/abs/1811.07522</a>.
 </div>
 <div id="ref-Yang2020" class="csl-entry" role="listitem">
-Yang, Hongyang, Xiao-Yang Liu, Shan Zhong, and Anwar Walid. 2020. <span>“Deep Reinforcement Learning for Automated Stock Trading: An Ensemble Strategy.”</span> Proceedings of the First ACM International Conference on AI in Finance. <a href="https://doi.org/10.1145/3383455.3422540">https://doi.org/10.1145/3383455.3422540</a>.
+Yang, Hongyang, Xiao-Yang Liu, Shan Zhong, and Anwar Walid. 2020. <em>Deep Reinforcement Learning for Automated Stock Trading: An Ensemble Strategy</em>. Proceedings of the First ACM International Conference on AI in Finance. <a href="https://doi.org/10.1145/3383455.3422540">https://doi.org/10.1145/3383455.3422540</a>.
 </div>
 <div id="ref-Zhang2019" class="csl-entry" role="listitem">
 Zhang, Zihao, Stefan Zohren, and Stephen Roberts. 2019. <span>“<span>DeepLOB</span>: Deep Convolutional Neural Networks for Limit Order Books.”</span> <em>IEEE Transactions on Signal Processing</em> 67 (11): 3001–12. <a href="https://doi.org/10.1109/TSP.2019.2907260">https://doi.org/10.1109/TSP.2019.2907260</a>.
 </div>
 <div id="ref-Zhang2020" class="csl-entry" role="listitem">
-———. 2020. <span>“Deep Reinforcement Learning for Trading.”</span> <em>The Journal of Financial Data Science</em> 2 (2): 25–40. <a href="https://doi.org/10.3905/jfds.2020.1.030">https://doi.org/10.3905/jfds.2020.1.030</a>.
+Zhang, Zihao, Stefan Zohren, and Stephen Roberts. 2020. <span>“Deep Reinforcement Learning for Trading.”</span> <em>The Journal of Financial Data Science</em> 2 (2): 25–40. <a href="https://doi.org/10.3905/jfds.2020.1.030">https://doi.org/10.3905/jfds.2020.1.030</a>.
 </div>
 </div>
 </section>
@@ -2184,7 +2186,7 @@ Zhang, Zihao, Stefan Zohren, and Stephen Roberts. 2019. <span>“<span>DeepLOB</
 <p>All features used in the main HFT experiment are z-score normalized with causal running statistics that are updated chronologically and reset at detected session boundaries, with two exceptions noted below the tables: the cyclical time encodings, which are inherently bounded in <span class="math inline">\([-1, 1]\)</span>, and the runtime position feature, which is already bounded in <span class="math inline">\([-1, 1]\)</span> by the action space definition.</p>
 <section id="lob-microstructure-features" class="level2" data-number="8.1">
 <h2 data-number="8.1" class="anchored" data-anchor-id="lob-microstructure-features"><span class="header-section-number">8.1</span> LOB Microstructure Features</h2>
-<div id="tbl-lob-features" class="quarto-float quarto-figure quarto-figure-center anchored" data-tbl-colwidths="[34,15,10,9,32]" data-longtable="true">
+<div id="tbl-lob-features" class="quarto-float quarto-figure quarto-figure-center anchored" data-longtable="true" data-tbl-colwidths="[34,15,10,9,32]">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-lob-features-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;1: LOB microstructure features implemented in the feature registry. The In model column marks features used in the main state-space experiment; when multiple parameter variants exist, the column specifies which variant is used (e.g., <span class="math inline">\(W=50\)</span>).
@@ -2437,7 +2439,7 @@ Table&nbsp;1: LOB microstructure features implemented in the feature registry. T
 <section id="td3-hyperparameters" class="level1" data-number="9">
 <h1 data-number="9"><span class="header-section-number">9</span> TD3 Hyperparameters</h1>
 <p>The table below lists all hyperparameters for the main AAPL state-space experiment. The full configuration file is <code>src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml</code>.</p>
-<div id="tbl-td3-hyperparams" class="quarto-float quarto-figure quarto-figure-center anchored" data-tbl-colwidths="[36,18,46]" data-longtable="true">
+<div id="tbl-td3-hyperparams" class="quarto-float quarto-figure quarto-figure-center anchored" data-longtable="true" data-tbl-colwidths="[36,18,46]">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-td3-hyperparams-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;2: TD3 hyperparameters for the main AAPL state-space experiment. Full configuration: <code>src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml</code>.
@@ -2607,7 +2609,7 @@ Table&nbsp;2: TD3 hyperparameters for the main AAPL state-space experiment. Full
 <section id="experiment-configuration-example" class="level1" data-number="10">
 <h1 data-number="10"><span class="header-section-number">10</span> Experiment Configuration Example</h1>
 <p>The YAML snippet below is a condensed version of the main experiment configuration, illustrating the configuration-driven workflow described in Chapter 5.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">seed</span><span class="kw">:</span><span class="at"> </span><span class="dv">42</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">seed</span><span class="kw">:</span><span class="at"> </span><span class="dv">42</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span><span class="kw">:</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">data_path</span><span class="kw">:</span><span class="at"> </span><span class="st">"stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"</span></span>
@@ -2639,7 +2641,7 @@ Table&nbsp;2: TD3 hyperparameters for the main AAPL state-space experiment. Full
 <span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">max_steps</span><span class="kw">:</span><span class="at"> </span><span class="dv">2000000</span></span>
 <span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">sample_size</span><span class="kw">:</span><span class="at"> </span><span class="dv">128</span></span>
 <span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">buffer_size</span><span class="kw">:</span><span class="at"> </span><span class="dv">100000</span></span>
-<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">loss_function</span><span class="kw">:</span><span class="at"> </span><span class="st">"smooth_l1"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">loss_function</span><span class="kw">:</span><span class="at"> </span><span class="st">"smooth_l1"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <hr>
 </section>
 <section id="td3-training-workflow-diagram" class="level1" data-number="11">
@@ -3045,7 +3047,7 @@ flowchart TD
 </tr>
 <tr class="odd">
 <td><strong>OFI (Order Flow Imbalance)</strong></td>
-<td>Net directional pressure exerted on the best bid and ask queues by limit order arrivals, cancellations, and executions <span class="citation" data-cites="Cont2014">(<a href="#ref-Cont2014" role="doc-biblioref">Cont, Kukanov, and Stoikov 2014</a>)</span>. The empirically dominant contemporaneous predictor of short-term price changes.</td>
+<td>Net directional pressure exerted on the best bid and ask queues by limit order arrivals, cancellations, and executions <span class="citation" data-cites="Cont2014">(<a href="#ref-Cont2014" role="doc-biblioref">Cont et al. 2014</a>)</span>. The empirically dominant contemporaneous predictor of short-term price changes.</td>
 </tr>
 <tr class="even">
 <td><strong>OHLCV</strong></td>
@@ -3162,7 +3164,7 @@ flowchart TD
 </tr>
 <tr class="even">
 <td><strong>TD3</strong></td>
-<td>Twin Delayed Deep Deterministic Policy Gradient <span class="citation" data-cites="Fujimoto2018">(<a href="#ref-Fujimoto2018" role="doc-biblioref">Fujimoto, Hoof, and Meger 2018</a>)</span>. An off-policy actor-critic algorithm for continuous control that extends DDPG with clipped double Q-learning, delayed policy updates, and target policy smoothing to reduce overestimation bias. The primary algorithm used in this thesis.</td>
+<td>Twin Delayed Deep Deterministic Policy Gradient <span class="citation" data-cites="Fujimoto2018">(<a href="#ref-Fujimoto2018" role="doc-biblioref">Fujimoto et al. 2018</a>)</span>. An off-policy actor-critic algorithm for continuous control that extends DDPG with clipped double Q-learning, delayed policy updates, and target policy smoothing to reduce overestimation bias. The primary algorithm used in this thesis.</td>
 </tr>
 <tr class="odd">
 <td><strong>Temporal difference (TD) learning</strong></td>
@@ -3269,13 +3271,14 @@ flowchart TD
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
