@@ -243,7 +243,7 @@ through clipped double Q-learning (taking the minimum of two critic estimates)
 and delayed policy updates (updating the actor less frequently than the critics).
 PPO prevents large policy changes through its clipped surrogate objective, which
 limits how much the policy can change in a single update. Both TD3 and PPO are
-substantially more stable than vanilla DDPG, but through different mechanisms:
+more stable than vanilla DDPG, but through different mechanisms:
 TD3 targets value estimation errors, while PPO constrains policy changes directly.
 
 **Sample efficiency vs. stability trade-off.** The practical implication of
