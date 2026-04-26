@@ -112,19 +112,139 @@ entropy bonuses rather than explicit noise injection.
 </pre>
 ```
 
+```{=latex}
+\begin{algorithm}
+\caption{DDPG Trading Experiment Workflow}
+\begin{algorithmic}[1]
+\Require Experiment specification (dataset, feature set, hyperparameters)
+\Ensure Trained policy $\mu_\theta$, evaluation metrics
+
+\State Load and validate experiment specification; check paths and split feasibility
+\State Load L3 order book dataset; sort chronologically
+\State Split data into train / validation / test subsets (chronological)
+\State Initialise and validate feature pipeline on training split
+\State Transform each split chronologically with causal session-aware normalization
+\State Build training environment from processed training data
+\State Initialise actor $\mu_\theta$, critic $Q_\phi$,
+       target networks $\mu_{\theta'}$, $Q_{\phi'}$,
+       replay buffer $\mathcal{D}$
+
+\For{each step $t = 1, \ldots, \texttt{max\_steps}$}
+    \State $a_t \leftarrow \mu_\theta(s_t) + \varepsilon$, \quad $\varepsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
+    \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
+    \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
+    \State Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\phi'}(s',\, \mu_{\theta'}(s'))$
+    \State Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\phi(s, a)\right)$
+    \State Update actor: $\theta \leftarrow \theta + \alpha_\theta \nabla_\theta Q_\phi(s,\, \mu_\theta(s))$
+    \State Soft-update targets: $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$; \; $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$
+    \State Checkpoint and log metrics at configured intervals
+\EndFor
+
+\State Evaluate deterministic policy $\mu_\theta$ on test split
+\State Compute financial performance metrics from realised return series
+\end{algorithmic}
+\end{algorithm}
+```
+
+```{=html}
+<pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
+<strong>Algorithm 2</strong> DDPG Trading Experiment Workflow
+<em>Require:</em> Experiment specification (dataset, feature set, hyperparameters)
+<em>Ensure:</em>  Trained policy μ<sub>θ</sub>, evaluation metrics
+
+ 1: Load and validate experiment specification; check paths and split feasibility
+ 2: Load L3 order book dataset; sort chronologically
+ 3: Split data into train / validation / test subsets (chronological)
+ 4: Initialise and validate feature pipeline on training split
+ 5: Transform each split chronologically with causal session-aware normalization
+ 6: Build training environment from processed training data
+ 7: Initialise actor μ<sub>θ</sub>, critic Q<sub>φ</sub>,
+    target networks μ<sub>θ'</sub>, Q<sub>φ'</sub>, replay buffer 𝒟
+ 8: <strong>for</strong> each step t = 1, …, max_steps <strong>do</strong>
+ 9:   a<sub>t</sub> ← μ<sub>θ</sub>(s<sub>t</sub>) + ε,  ε ~ 𝒩(0, σ<sub>explore</sub>)
+10:   Execute a<sub>t</sub>; observe r<sub>t</sub>, s<sub>t+1</sub>; store (s<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>, s<sub>t+1</sub>) in 𝒟
+11:   Sample mini-batch ℬ ~ 𝒟
+12:   Compute Bellman target: y ← r + γ · Q<sub>φ'</sub>(s', μ<sub>θ'</sub>(s'))
+13:   Update critic by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>φ</sub>(s, a))
+14:   Update actor: θ ← θ + α<sub>θ</sub>∇<sub>θ</sub>Q<sub>φ</sub>(s, μ<sub>θ</sub>(s))
+15:   Soft-update targets: φ' ← τφ + (1−τ)φ';  θ' ← τθ + (1−τ)θ'
+16:   Checkpoint and log metrics at configured intervals
+17: <strong>end for</strong>
+18: Evaluate deterministic policy μ<sub>θ</sub> on test split
+19: Compute financial performance metrics from realised return series
+</pre>
+```
+
+```{=latex}
+\begin{algorithm}
+\caption{PPO Trading Experiment Workflow}
+\begin{algorithmic}[1]
+\Require Experiment specification (dataset, feature set, hyperparameters)
+\Ensure Trained policy $\pi_\theta$, evaluation metrics
+
+\State Load and validate experiment specification; check paths and split feasibility
+\State Load L3 order book dataset; sort chronologically
+\State Split data into train / validation / test subsets (chronological)
+\State Initialise and validate feature pipeline on training split
+\State Transform each split chronologically with causal session-aware normalization
+\State Build training environment from processed training data
+\State Initialise stochastic actor $\pi_\theta$ (TanhNormal), value network $V_\phi$
+
+\For{each batch iteration $k = 1, \ldots, \texttt{max\_steps} / \texttt{frames\_per\_batch}$}
+    \State Collect trajectory $\mathcal{T}_k$ of \texttt{frames\_per\_batch} steps using $\pi_\theta$
+    \State Compute advantage estimates $\hat{A}_t$ via GAE using $V_\phi$ on $\mathcal{T}_k$
+    \For{each PPO epoch $j = 1, \ldots, K$}
+        \State Sample mini-batch $\mathcal{B} \sim \mathcal{T}_k$
+        \State Compute probability ratio: $r_t(\theta) \leftarrow \pi_\theta(a_t \mid s_t) / \pi_{\theta_{\text{old}}}(a_t \mid s_t)$
+        \State Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(r_t \hat{A}_t,\; \text{clip}(r_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
+        \State Compute value loss: $\mathcal{L}^{V} \leftarrow \mathcal{L}_{\text{L2}}\!\left(V_\phi(s) - V^{\text{target}}\right)$
+        \State Compute entropy bonus: $\mathcal{L}^{H} \leftarrow c_1 \mathcal{H}(\pi_\theta(\cdot \mid s))$
+        \State Update $\theta$, $\phi$ jointly: minimise $-\mathcal{L}^{\text{CLIP}} + c_2 \mathcal{L}^{V} - \mathcal{L}^{H}$
+    \EndFor
+    \State Checkpoint and log metrics at configured intervals
+\EndFor
+
+\State Evaluate policy mode $\tanh(\mu_\theta(s))$ on test split
+\State Compute financial performance metrics from realised return series
+\end{algorithmic}
+\end{algorithm}
+```
+
+```{=html}
+<pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
+<strong>Algorithm 3</strong> PPO Trading Experiment Workflow
+<em>Require:</em> Experiment specification (dataset, feature set, hyperparameters)
+<em>Ensure:</em>  Trained policy π<sub>θ</sub>, evaluation metrics
+
+ 1: Load and validate experiment specification; check paths and split feasibility
+ 2: Load L3 order book dataset; sort chronologically
+ 3: Split data into train / validation / test subsets (chronological)
+ 4: Initialise and validate feature pipeline on training split
+ 5: Transform each split chronologically with causal session-aware normalization
+ 6: Build training environment from processed training data
+ 7: Initialise stochastic actor π<sub>θ</sub> (TanhNormal), value network V<sub>φ</sub>
+ 8: <strong>for</strong> each batch iteration k = 1, …, max_steps / frames_per_batch <strong>do</strong>
+ 9:   Collect trajectory 𝒯<sub>k</sub> of frames_per_batch steps using π<sub>θ</sub>
+10:   Compute advantage estimates Â<sub>t</sub> via GAE using V<sub>φ</sub> on 𝒯<sub>k</sub>
+11:   <strong>for</strong> each PPO epoch j = 1, …, K <strong>do</strong>
+12:     Sample mini-batch ℬ ~ 𝒯<sub>k</sub>
+13:     Compute probability ratio: r<sub>t</sub>(θ) ← π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>) / π<sub>θ_old</sub>(a<sub>t</sub>|s<sub>t</sub>)
+14:     Compute clipped objective: ℒ<sup>CLIP</sup> ← 𝔼[min(r<sub>t</sub>Â<sub>t</sub>, clip(r<sub>t</sub>, 1±ε)Â<sub>t</sub>)]
+15:     Compute value loss: ℒ<sup>V</sup> ← ℒ<sub>L2</sub>(V<sub>φ</sub>(s) − V<sup>target</sup>)
+16:     Compute entropy bonus: ℒ<sup>H</sup> ← c<sub>1</sub> ℋ(π<sub>θ</sub>(·|s))
+17:     Update θ, φ jointly: minimise −ℒ<sup>CLIP</sup> + c<sub>2</sub>ℒ<sup>V</sup> − ℒ<sup>H</sup>
+18:   <strong>end for</strong>
+19:   Checkpoint and log metrics at configured intervals
+20: <strong>end for</strong>
+21: Evaluate policy mode tanh(μ<sub>θ</sub>(s)) on test split
+22: Compute financial performance metrics from realised return series
+</pre>
+```
+
 The notation follows the conventions established in Chapter 3.
-$\mu_\theta$ is the actor (deterministic policy) with parameters $\theta$;
-$Q_{\phi_i}$ are the two critic networks with parameters $\phi_i$;
-primed symbols ($\theta'$, $\phi_i'$) denote the corresponding slowly updated
-target networks.
-$\mathcal{D}$ is the replay buffer storing past transitions $(s, a, r, s')$.
-$\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})$ is the exploration
-noise added to actions during training only;
-$\sigma_{\text{noise}}$ and $c$ are the target policy smoothing standard
-deviation and clip bound respectively.
-$\gamma$ is the discount factor, $\tau$ the soft-update coefficient, $\alpha$
-the actor learning rate, and $d$ the policy delay (critic updates per actor
-update). Concrete values for all parameters are listed in Appendix B.
+For TD3 and DDPG: $\mu_\theta$ is the deterministic actor; $Q_\phi$ (DDPG) and $Q_{\phi_1}$, $Q_{\phi_2}$ (TD3) are the critic networks; primed symbols denote slowly updated target networks; $\mathcal{D}$ is the replay buffer; $\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})$ is training-only exploration noise; $\tau$ is the soft-update coefficient.
+For PPO: $\pi_\theta$ is the stochastic actor (TanhNormal distribution); $V_\phi$ is the state value network; $\hat{A}_t$ are GAE advantage estimates; $r_t(\theta)$ is the probability ratio between new and old policies; $\epsilon$ is the clipping threshold; $c_1$, $c_2$ are the entropy and value loss coefficients; $K$ is the number of PPO epochs per batch.
+$\gamma$ is the discount factor and $\alpha$ the learning rate across all three algorithms. Concrete values are listed in Appendix B.
 
 ### Evaluation
 
