@@ -59,6 +59,8 @@ thesis_runtime_config:
   experiment_name: "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
 ---
 
+<!-- GitHub Pages publish workflow verification. -->
+
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
 \newpage
