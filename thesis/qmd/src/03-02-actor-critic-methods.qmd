@@ -117,7 +117,7 @@ actions (typically Gaussian), and actions are sampled from this distribution.
 Exploration is handled naturally through the entropy of the action distribution,
 which can be explicitly encouraged through an entropy bonus term in the objective:
 
-$$L^{CLIP+ENT}(\theta) = L^{CLIP}(\theta) - c_1 \mathcal{H}(\pi_\theta)$$ {#eq-ppo-entropy}
+$$L^{CLIP+ENT}(\theta) = L^{CLIP}(\theta) + c_1 \mathcal{H}(\pi_\theta)$$ {#eq-ppo-entropy}
 
 where $\mathcal{H}(\pi_\theta)$ is the policy entropy and $c_1$ is a coefficient
 controlling the strength of the exploration bonus.
