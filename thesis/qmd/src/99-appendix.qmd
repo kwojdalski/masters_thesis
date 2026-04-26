@@ -256,7 +256,7 @@ in the TD3 architecture used here.
 
 ```{mermaid}
 %%| fig-align: center
-%%| fig-width: 5
+%%| fig-width: 3.5
 %%| fig-height: 3.5
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '9px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 3, 'useMaxWidth': true}}}%%
 graph TD
