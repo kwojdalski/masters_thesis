@@ -94,6 +94,29 @@ The table below defines a practical robustness matrix for the evaluation part of
 the thesis. It can be used as a reporting checklist when final results are
 compiled.
 
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\begin{table}[h]
+\caption{Robustness dimensions considered in this thesis, with control variables, risks addressed, assessment designs, and priorities.}
+\label{tbl-robustness-dimensions}
+\resizebox{0.5\linewidth}{!}{%
+\begin{tabular}{lllll}
+\toprule
+Dimension & Control Variable & Primary Risk Addressed & Assessment Design & Priority \\
+\midrule
+Random seed & seed & Stochastic training path sensitivity & $\geq$5 seeds per selected setup & Required \\
+Feature subset & feature\_columns / pipeline & State representation redundancy & All-features vs reduced set & Required \\
+Reward function & reward\_type & Objective-function dependence & log\_return vs differential\_sharpe & Recommended \\
+Transaction costs & trading\_fees & Turnover-driven performance inflation & Zero-cost vs nonzero-cost & Required \\
+Train split length & train\_size / split design & Sample size and regime sensitivity & Short vs longer train windows & Recommended \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+```
+:::
+
+::: {.content-visible when-format="html"}
 ```{python}
 #| echo: false
 #| label: tbl-robustness-dimensions
@@ -113,6 +136,8 @@ robustness_df = pd.DataFrame(
 )
 display(robustness_df)
 ```
+:::
+
 
 ### Interpreting Noisy Training Curves in Robustness Terms [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
