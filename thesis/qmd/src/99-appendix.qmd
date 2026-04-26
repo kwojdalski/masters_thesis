@@ -10,7 +10,6 @@ state-space experiment is marked in the **In model** column: ✓ indicates
 all variants are used, while a specific parameter value indicates only that
 variant is used.
 Feature names match the keys produced by the feature pipeline at runtime.
-Formulas for the active LOB features are given in Chapter 4.
 
 All features used in the main HFT experiment are z-score normalized with causal
 running statistics that are updated chronologically and reset at detected
@@ -21,43 +20,43 @@ definition.
 
 ## LOB Microstructure Features
 
-| Feature name | Group | Param | In model | Literature |
-|---|---|---|:---:|---|
-| `hft_book_pressure` | Imbalance | levels {0, 1, 2} | ✓ | Cao et al. (2004); Biais et al. (1995) |
-| `hft_order_book_imbalance` | Imbalance | $N=3$ | ✓ | Cont et al. (2014) |
-| `hft_order_count_imbalance` | Imbalance | levels {0, 1} | level 0 | Biais et al. (1995) |
-| `hft_microprice` | Fair value | --- | ✓ | Stoikov (2018) |
-| `hft_microprice_divergence` | Fair value | --- | ✓ | Stoikov (2018) |
-| `hft_vwmp_skew` | Fair value | $N=3$ | ✓ | Stoikov (2018) |
-| `hft_price_vamp` | Fair value | {$1k, $5k} | | Volume-adjusted mid price |
-| `hft_depth_ratio` | Depth | $N=4$ | | Bouchaud et al. (2002) |
-| `hft_spread_bps` | Spread/cost | --- | ✓ | Kyle (1985); Glosten & Milgrom (1985) |
-| `hft_spread_ratio` | Spread/cost | $W \in \{50, 200\}$ | $W=50$ | Easley et al. (2012) |
-| `hft_bid_convexity` | Spread/cost | bid side | ✓ | Bouchaud et al. (2002) |
-| `hft_ask_convexity` | Spread/cost | ask side | ✓ | Bouchaud et al. (2002) |
-| `hft_bid_slope` | Spread/cost | 5 levels | ✓ | Bouchaud et al. (2002); Kyle (1985) |
-| `hft_ask_slope` | Spread/cost | 5 levels | ✓ | Bouchaud et al. (2002); Kyle (1985) |
-| `hft_ofi` | Order flow | --- | ✓ | Cont et al. (2014) |
-| `hft_ofi_rolling` | Order flow | $W \in \{10, 50, 200\}$ | $W=50$ | Cont et al. (2014) |
-| `hft_ofi_multilevel` | Order flow | $N \in \{3, 5\}$ | | Cont et al. (2014) |
-| `hft_bid_queue_depletion` | Order flow | bid side | ✓ | Foucault et al. (2005) |
-| `hft_ask_queue_depletion` | Order flow | ask side | ✓ | Foucault et al. (2005) |
-| `hft_signed_trade_flow` | Order flow | $W \in \{50, 200\}$ | $W=50$ | Lee & Ready (1991) |
-| `hft_odd_lot_trade_ratio` | Order flow | $W=200$ | ✓ | Boehmer et al. (2021) |
-| `hft_odd_lot_imbalance` | Order flow | $W=200$ | ✓ | Boehmer et al. (2021) |
-| `hft_vpin` | Order flow | $W \in \{100, 500\}$ | | Easley et al. (2012) |
-| `hft_cancel_to_trade` | Order flow | $W \in \{200, 1000\}$ | | Foucault et al. (2005) |
-| `hft_trade_arrival_rate` | Order flow | $W \in \{100, 500\}$ | | Engle (2000) |
-| `hft_large_trade_ratio` | Order flow | $W=200$ | | Institutional flow proxy |
-| `hft_ofi_autocorr` | Order flow | $W \in \{50, 200\}$ | | Cont et al. (2014) |
-| `hft_inter_event_time` | Regime/temp. | --- | ✓ | Engle (2000) |
-| `hft_mid_price_acceleration` | Regime/temp. | --- | ✓ | Abergel et al. (2016) |
-| `hft_hour_sin` | Regime/temp. | --- | ✓ | Wood et al. (1985) |
-| `hft_hour_cos` | Regime/temp. | --- | ✓ | Wood et al. (1985) |
+Notation: $M_t = \tfrac{1}{2}(P^{bid}_0 + P^{ask}_0)$ (mid-price); $S_t = P^{ask}_0 - P^{bid}_0$ (spread); $\Sigma_W$ (rolling sum over $W$ events); $\bar{x}_W$ (rolling mean over $W$ events). Features marked ✓ in the **In model** column are used in the main state-space experiment; when multiple parameter variants exist, the selected variant is specified.
 
-: LOB microstructure features implemented in the feature registry. The In model column marks features used in the main state-space experiment; when multiple parameter variants exist, the column specifies which variant is used (e.g., $W=50$). {#tbl-lob-features longtable=true tbl-colwidths="[34,15,10,9,32]"}
+| Feature | Group | Formula | Param | In model |
+|:--------|:------|:--------|:------|:--------:|
+| `hft_book_pressure` | Imbalance | $(V^{bid}_i - V^{ask}_i)/(V^{bid}_i + V^{ask}_i)$ | $i \in \{0,1,2\}$ | ✓ |
+| `hft_order_book_imbalance` | Imbalance | $\frac{\sum_{i<N}(V^{bid}_i-V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ | $N=3$ | ✓ |
+| `hft_order_count_imbalance` | Imbalance | $(C^{bid}_i-C^{ask}_i)/(C^{bid}_i+C^{ask}_i)$ | $i=0$ | level 0 |
+| `hft_microprice` | Fair value | $(V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0)/(V^{bid}_0+V^{ask}_0)$ | --- | ✓ |
+| `hft_microprice_divergence` | Fair value | Microprice $- M_t$ | --- | ✓ |
+| `hft_vwmp_skew` | Fair value | $(\overline{P}^{vw}_N - M_t)/S_t$; $\overline{P}^{vw}_N = \frac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ | $N=3$ | ✓ |
+| `hft_price_vamp` | Fair value | Avg. execution price for fixed-notional order walked through $N$ levels | $Q\in\{1k,5k\}$ | |
+| `hft_depth_ratio` | Depth | $(V^{bid}_0+V^{ask}_0)\,/\,\sum_{i=1}^{N}(V^{bid}_i+V^{ask}_i)$ | $N=4$ | |
+| `hft_spread_bps` | Spread/cost | $(P^{ask}_0-P^{bid}_0)/M_t \times 10{,}000$ | --- | ✓ |
+| `hft_spread_ratio` | Spread/cost | $\text{SpreadBps}_t\,/\,\bar{\text{SpreadBps}}_W$ | $W=50$ | $W=50$ |
+| `hft_bid_convexity` | Spread/cost | $(P^{bid}_0-P^{bid}_1)-(P^{bid}_1-P^{bid}_2)$ | bid | ✓ |
+| `hft_ask_convexity` | Spread/cost | $(P^{ask}_2-P^{ask}_1)-(P^{ask}_1-P^{ask}_0)$ | ask | ✓ |
+| `hft_bid_slope` | Spread/cost | $(P^{bid}_0-P^{bid}_4)\,/\,\sum_{i<5}V^{bid}_i$ | 5 levels | ✓ |
+| `hft_ask_slope` | Spread/cost | $(P^{ask}_4-P^{ask}_0)\,/\,\sum_{i<5}V^{ask}_i$ | 5 levels | ✓ |
+| `hft_ofi` | Order flow | $\Delta V^{bid}_t\cdot\mathbf{1}[P^{bid}_{0,t}\geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t\cdot\mathbf{1}[P^{ask}_{0,t}\leq P^{ask}_{0,t-1}]$ | --- | ✓ |
+| `hft_ofi_rolling` | Order flow | $\Sigma_W\,\text{OFI}_t$ | $W=50$ | $W=50$ |
+| `hft_ofi_multilevel` | Order flow | $\sum_{i<N}\text{OFI}^{(i)}_t$ (Cont et al. event classification applied at each level $i$) | $N\in\{3,5\}$ | |
+| `hft_bid_queue_depletion` | Order flow | $\max(V^{bid}_{0,t-1}-V^{bid}_{0,t},\,0)\,/\,V^{bid}_{0,t-1}$ | bid | ✓ |
+| `hft_ask_queue_depletion` | Order flow | $\max(V^{ask}_{0,t-1}-V^{ask}_{0,t},\,0)\,/\,V^{ask}_{0,t-1}$ | ask | ✓ |
+| `hft_signed_trade_flow` | Order flow | $\Sigma_W\,\text{size}_\tau\cdot(\mathbf{1}[\text{side}=B]-\mathbf{1}[\text{side}=A])$ | $W=50$ | $W=50$ |
+| `hft_odd_lot_trade_ratio` | Order flow | $\Sigma_W\,\mathbf{1}[\text{trade}\wedge\text{size}<L]\,/\,\Sigma_W\,\mathbf{1}[\text{trade}]$, $L=100$ | $W=200$ | ✓ |
+| `hft_odd_lot_imbalance` | Order flow | $(B^{odd}_W-S^{odd}_W)/(B^{odd}_W+S^{odd}_W)$; odd-lot buy/sell vol., size $<L=100$ | $W=200$ | ✓ |
+| `hft_vpin` | Order flow | $|B_W-S_W|/(B_W+S_W)$; $B_W,S_W$ rolling buy/sell volume | $W\in\{100,500\}$ | |
+| `hft_cancel_to_trade` | Order flow | $\Sigma_W\,\mathbf{1}[\text{action}=C]\,/\,\Sigma_W\,\mathbf{1}[\text{action}=T]$ | $W\in\{200,1000\}$ | |
+| `hft_trade_arrival_rate` | Order flow | $\Sigma_W\,\mathbf{1}[\text{action}=T]$ | $W\in\{100,500\}$ | |
+| `hft_large_trade_ratio` | Order flow | $\Sigma_W\,\mathbf{1}[\text{trade}\wedge\text{size}\geq Q]\,/\,\Sigma_W\,\mathbf{1}[\text{trade}]$, $Q=500$ | $W=200$ | |
+| `hft_ofi_autocorr` | Order flow | $\hat{\rho}(\text{OFI}_{t-W:t},\,\text{lag}=1)$ | $W\in\{50,200\}$ | |
+| `hft_inter_event_time` | Regime/temp. | $\log(1+\Delta t_{\text{ns}})$ | --- | ✓ |
+| `hft_mid_price_acceleration` | Regime/temp. | $M_t-2M_{t-1}+M_{t-2}$ | --- | ✓ |
+| `hft_hour_sin` | Regime/temp. | $\sin(2\pi h_t/24)$ | --- | ✓ |
+| `hft_hour_cos` | Regime/temp. | $\cos(2\pi h_t/24)$ | --- | ✓ |
 
-Literature: the cited work that motivates or introduces the feature; not a claim that the exact implementation follows the cited paper's specification.
+: Full LOB feature registry with formulas. {#tbl-lob-features longtable=true tbl-colwidths="[22,12,44,12,10]"}
 
 ---
 
