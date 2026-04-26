@@ -6,7 +6,7 @@ market state, selects a continuous portfolio exposure $a_t \in [-1, 1]$, and
 receives a scalar reward reflecting realized return net of transaction costs.
 A baseline formulation of this reward is:
 
-$$r_t = a_{t-1} \cdot \frac{P_t - P_{t-1}}{P_{t-1}} - c \cdot |a_t - a_{t-1}|$$
+$$r_t = a_{t-1} \cdot \frac{P_t - P_{t-1}}{P_{t-1}} - c \cdot |a_t - a_{t-1}|$$ {#eq-reward-baseline}
 
 where $a_{t-1}$ is the exposure held during the period, $P_t$ is price at
 the end of the period, and $c \cdot |a_t - a_{t-1}|$ is the transaction cost
@@ -14,7 +14,7 @@ proportional to the size of the position change. The agent learns a deterministi
 policy $\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}$ to maximize expected
 cumulative reward:
 
-$$\max_\theta \mathbb{E}\!\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]$$
+$$\max_\theta \mathbb{E}\!\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]$$ {#eq-rl-objective}
 
 In trading, two properties are essential for the reward to work well in
 practice: the signal should be risk-adjusted so the agent does not maximize
@@ -28,7 +28,7 @@ addresses both requirements.
 
 The simplest reward is the single-step log-return:
 
-$$r_t = \log\frac{P_t}{P_{t-1}} \cdot a_{t-1}$$
+$$r_t = \log\frac{P_t}{P_{t-1}} \cdot a_{t-1}$$ {#eq-log-return-reward}
 
 At tick frequency, this signal is dominated by microstructure noise. Individual
 price changes on an MBP-10 order book are a fraction of the spread. The
@@ -51,12 +51,12 @@ The Differential Sharpe Ratio [@Moody1998] resolves both issues. It is defined
 as the first-order approximation of how the current return $R_t$ changes the
 exponentially weighted Sharpe ratio:
 
-$$D_t = \frac{B_{t-1}\,\Delta A_t - \frac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2\right)^{3/2}}$$
+$$D_t = \frac{B_{t-1}\,\Delta A_t - \frac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2\right)^{3/2}}$$ {#eq-dsr}
 
 where $A_t$ and $B_t$ are exponentially weighted estimates of the first and
 second moments of returns:
 
-$$A_t = \eta R_t + (1-\eta)\,A_{t-1}, \qquad B_t = \eta R_t^2 + (1-\eta)\,B_{t-1}$$
+$$A_t = \eta R_t + (1-\eta)\,A_{t-1}, \qquad B_t = \eta R_t^2 + (1-\eta)\,B_{t-1}$$ {#eq-dsr-moments}
 
 and $\Delta A_t = A_t - A_{t-1}$, $\Delta B_t = B_t - B_{t-1}$. At $t=0$,
 $A_0 = B_0 = 0$.

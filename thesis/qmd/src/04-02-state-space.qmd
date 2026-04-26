@@ -75,13 +75,13 @@ distinct aspect of LOB microstructure.
 
 Volume imbalance at a given price level $i$ is defined as:
 
-$$\text{BookPressure}_i = \frac{V^{bid}_i - V^{ask}_i}{V^{bid}_i + V^{ask}_i}$$
+$$\text{BookPressure}_i = \frac{V^{bid}_i - V^{ask}_i}{V^{bid}_i + V^{ask}_i}$$ {#eq-book-pressure}
 
 Imbalance signals the relative weight of resting liquidity on each side and
 has been shown to predict short-term price direction [@Cao2004; @Biais1995].
 The multi-level aggregate version averages this signal across the top $N$ levels:
 
-$$\text{OBI}_N = \frac{\sum_{i=0}^{N-1}(V^{bid}_i - V^{ask}_i)}{\sum_{i=0}^{N-1}(V^{bid}_i + V^{ask}_i)}$$
+$$\text{OBI}_N = \frac{\sum_{i=0}^{N-1}(V^{bid}_i - V^{ask}_i)}{\sum_{i=0}^{N-1}(V^{bid}_i + V^{ask}_i)}$$ {#eq-obi}
 
 The multi-level formulation is more robust to noise at the best quote and captures
 the depth structure of the book. Both single-level (levels 0–2) and three-level
@@ -91,21 +91,21 @@ Order count imbalance complements the volume-based measures by counting the numb
 of resting orders rather than their aggregate size, making it sensitive to
 fragmentation that a single large institutional order would mask:
 
-$$\text{OCI}_i = \frac{C^{bid}_i - C^{ask}_i}{C^{bid}_i + C^{ask}_i}$$
+$$\text{OCI}_i = \frac{C^{bid}_i - C^{ask}_i}{C^{bid}_i + C^{ask}_i}$$ {#eq-oci}
 
 #### Fair Value Features
 
 The microprice [@Stoikov2018] is a volume-weighted estimate of where the next
 transaction price is likely to occur:
 
-$$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$
+$$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$ {#eq-microprice}
 
 When the ask side is thin relative to the bid side, the microprice is pulled
 toward the ask — the side more likely to move first. The microprice divergence
 from mid-price isolates the imbalance component of fair value as a stationary
 signal:
 
-$$\text{MicroDiv} = \text{Microprice} - \frac{P^{bid}_0 + P^{ask}_0}{2}$$
+$$\text{MicroDiv} = \text{Microprice} - \frac{P^{bid}_0 + P^{ask}_0}{2}$$ {#eq-microdiv}
 
 The volume-weighted mid-price skew extends this concept across three levels,
 measuring whether deep liquidity is positioned asymmetrically relative to the
@@ -116,7 +116,7 @@ current mid-price.
 The bid-ask spread, expressed in basis points, is the primary observable measure
 of adverse selection cost [@Kyle1985; @GlostenMilgrom1985]:
 
-$$\text{SpreadBps} = \frac{P^{ask}_0 - P^{bid}_0}{\frac{P^{bid}_0 + P^{ask}_0}{2}} \times 10{,}000$$
+$$\text{SpreadBps} = \frac{P^{ask}_0 - P^{bid}_0}{\frac{P^{bid}_0 + P^{ask}_0}{2}} \times 10{,}000$$ {#eq-spread-bps}
 
 A widening spread signals elevated information asymmetry or inventory risk among
 market makers. The spread ratio — current bid-ask relative to its recent rolling
@@ -128,7 +128,7 @@ five levels [@Bouchaud2002], capturing market impact per unit of trading volume
 and serving as a proxy for Kyle's lambda [@Kyle1985]:
 
 $$\text{BidSlope} = \frac{P^{bid}_0 - P^{bid}_4}{\sum_{i=0}^{4} V^{bid}_i}, \qquad
-\text{AskSlope} = \frac{P^{ask}_4 - P^{ask}_0}{\sum_{i=0}^{4} V^{ask}_i}$$
+\text{AskSlope} = \frac{P^{ask}_4 - P^{ask}_0}{\sum_{i=0}^{4} V^{ask}_i}$$ {#eq-slope}
 
 #### Order Flow Features
 
@@ -138,7 +138,7 @@ represents genuine queue growth rather than a price improvement:
 
 $$\text{OFI}_t =
 \Delta V^{bid}_t \cdot \mathbf{1}\!\left[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}\right]
-- \Delta V^{ask}_t \cdot \mathbf{1}\!\left[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}\right]$$
+- \Delta V^{ask}_t \cdot \mathbf{1}\!\left[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}\right]$$ {#eq-ofi}
 
 @Cont2014 establish OFI as the single strongest predictor of short-term price
 changes in LOB data. A rolling sum over 50 events captures persistent directional
@@ -149,7 +149,7 @@ the trade tape rather than from book changes, providing a complementary signal
 that measures executed volume rather than queue dynamics:
 
 $$\text{CumDelta}_{W,t} = \sum_{\tau=t-W+1}^{t} \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = B]
-- \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = A]$$
+- \text{size}_\tau \cdot \mathbf{1}[\text{side}_\tau = A]$$ {#eq-cum-delta}
 
 Queue depletion measures how rapidly the best-bid or best-ask queue is being
 consumed across consecutive snapshots, identifying situations where the top-of-book
@@ -170,14 +170,14 @@ providing directional signals.
 
 Log inter-event time [@Engle2000] captures the activity rate of the market:
 
-$$\text{LogGap}_t = \log\!\left(1 + (t_{\text{ns}} - t_{\text{ns},t-1})\right)$$
+$$\text{LogGap}_t = \log\!\left(1 + (t_{\text{ns}} - t_{\text{ns},t-1})\right)$$ {#eq-log-gap}
 
 Dense update bursts indicate informed order flow or a large order working through
 the book; sparse updates signal low activity and reduced adverse selection risk.
 
 Mid-price acceleration is the second finite difference of the mid-price:
 
-$$\text{Accel}_t = M_t - 2M_{t-1} + M_{t-2}, \qquad M_t = \frac{P^{bid}_0 + P^{ask}_0}{2}$$
+$$\text{Accel}_t = M_t - 2M_{t-1} + M_{t-2}, \qquad M_t = \frac{P^{bid}_0 + P^{ask}_0}{2}$$ {#eq-accel}
 
 It distinguishes momentum regimes (positive, accelerating) from mean-reversion
 regimes (negative, decelerating) at tick frequency.
@@ -186,7 +186,7 @@ The sine and cosine encodings of the hour-of-day capture the well-documented
 U-shaped intraday pattern in volume and spread [@Wood1985]:
 
 $$\text{HourSin}_t = \sin\!\left(\frac{2\pi \cdot h_t}{24}\right), \qquad
-\text{HourCos}_t = \cos\!\left(\frac{2\pi \cdot h_t}{24}\right)$$
+\text{HourCos}_t = \cos\!\left(\frac{2\pi \cdot h_t}{24}\right)$$ {#eq-hour-encoding}
 
 The cyclical encoding ensures temporal continuity — 09:30 and 16:00 remain
 structurally distinct without imposing an arbitrary ordinal distance.
@@ -228,7 +228,7 @@ specified by the feature set used in each experiment.
 All features except cyclical time encodings and the position feature are
 standardized with causal running statistics:
 
-$$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sigma_{i,t} + \epsilon}$$
+$$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sigma_{i,t} + \epsilon}$$ {#eq-z-score}
 
 The mean $\mu_{i,t}$ and standard deviation $\sigma_{i,t}$ are updated online
 from observations available up to timestep $t$ within the current chronological
@@ -242,7 +242,7 @@ counterproductive.
 
 The formal observation space is:
 
-$$\mathcal{S} = \mathbb{R}^d$$
+$$\mathcal{S} = \mathbb{R}^d$$ {#eq-obs-space}
 
 In practice, after standardization, feature values concentrate in $[-3, 3]$ under
 approximate Gaussian assumptions. The policy and value networks must generalize

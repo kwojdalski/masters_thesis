@@ -110,17 +110,17 @@ To preserve causality, this study employs a **cumulative running normalization**
 
 $$
 \bar{x}_t = \bar{x}_{t-1} + \frac{1}{t}(x_t - \bar{x}_{t-1})
-$$
+$$ {#eq-welford-mean}
 
 $$
 s^2_t = s^2_{t-1} + \frac{1}{t}\bigl[(x_t - \bar{x}_{t-1})^2 - s^2_{t-1}\bigr]
-$$
+$$ {#eq-welford-var}
 
 where $\bar{x}_t$ and $s^2_t$ are the mean and variance after processing $t$ observations. The normalized value at timestep $t$ is then computed from the cumulative statistics available after observing the current feature value:
 
 $$
 \tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{s^2_t + \epsilon}}
-$$
+$$ {#eq-running-normalize}
 
 This ensures that the scaling statistics used to normalize $\tilde{x}_t$ incorporate only observations $1, \dots, t$ and no future values. Since $x_t$ is part of the observation available before the action at time $t$ is chosen, this transformation preserves the causal information structure while avoiding the instability that would arise from normalizing early-session observations with an almost empty denominator. The computational cost of this approach is $O(1)$ per update, making it efficient even for large datasets.
 
@@ -138,11 +138,11 @@ This implementation supports an optional **time-weighted normalization** mode, w
 
 $$
 \bar{x}^{\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot x_i}{\sum_{i=1}^t \Delta t_i}
-$$
+$$ {#eq-tw-mean}
 
 $$
 s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{time}}_t)^2}{\sum_{i=1}^t \Delta t_i}
-$$
+$$ {#eq-tw-var}
 
 When the time weights sum to the total elapsed time, the normalized value reflects the feature's deviation relative to its time-averaged trajectory rather than its average across discrete events. For the main experiments, event-based weighting is used as the default, matching the standard approach in the RL literature (e.g., Stable Baselines3, Ray RLLib). Sensitivity analysis with time-weighted normalization could be conducted as a direction for future work.
 

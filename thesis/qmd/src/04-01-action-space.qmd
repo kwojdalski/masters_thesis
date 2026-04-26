@@ -14,7 +14,7 @@ Trading systems can be formulated with either discrete or continuous action spac
 
 In this implementation, the action space is defined as a continuous interval:
 
-$$\mathcal{A} = [-1.0, 1.0]$$
+$$\mathcal{A} = [-1.0, 1.0]$$ {#eq-action-space}
 
 where the action $a_t \in \mathcal{A}$ at time $t$ represents the target portfolio allocation for the traded asset. The semantic interpretation is:
 
@@ -32,7 +32,7 @@ The action space is bounded to prevent unrealistic leverage. In practice, unboun
 
 Transaction costs are applied proportionally to position changes. If the agent transitions from $a_{t-1}$ to $a_t$, the turnover magnitude is $|a_t - a_{t-1}|$, and fees are calculated as:
 
-$$\text{fee}_t = \text{trading\_fees} \times |a_t - a_{t-1}| \times \text{notional value}$$
+$$\text{fee}_t = \text{trading\_fees} \times |a_t - a_{t-1}| \times \text{notional value}$$ {#eq-transaction-fee}
 
 This incentivizes the agent to minimize unnecessary portfolio rebalancing, as frequent adjustments erode returns. During training, the RL algorithm must learn to balance the potential gains from reallocation against the friction costs incurred.
 
@@ -40,7 +40,7 @@ This incentivizes the agent to minimize unnecessary portfolio rebalancing, as fr
 
 During training, exploration is introduced through additive Gaussian noise:
 
-$$a_t^{\text{noisy}} = \text{clip}(a_t + \epsilon, -1.0, 1.0)$$
+$$a_t^{\text{noisy}} = \text{clip}(a_t + \epsilon, -1.0, 1.0)$$ {#eq-exploration-noise}
 
 where $\epsilon \sim \mathcal{N}(0, \sigma^2)$ and $\sigma$ is the exploration noise standard deviation.^[The main experiment uses $\sigma = 0.1$. The range 0.1–0.3 reflects common practice in continuous-action TD3 applications; values above 0.3 tend to destabilize learning in low-signal environments such as tick-frequency returns.] The clipping operation ensures actions remain within valid bounds. This exploration mechanism encourages the agent to discover diverse trading strategies during early training phases while gradually converging to deterministic exploitation as learning progresses.
 

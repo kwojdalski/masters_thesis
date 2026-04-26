@@ -376,7 +376,7 @@ filtering.
 
 **Step 2: Proxy target.** Each feature is scored against a forward log-return
 target at horizon $h$:
-$$y_t = \log \frac{p_{t+h}}{p_t}$$
+$$y_t = \log \frac{p_{t+h}}{p_t}$$ {#eq-app-forward-return}
 This proxy is a cheap, model-free measure of directional predictability; it is
 not the reward function used during training, but it provides a consistent
 benchmark for comparing feature informativeness.
@@ -384,10 +384,10 @@ benchmark for comparing feature informativeness.
 **Step 3: Scoring.** Each feature is evaluated using the Information Coefficient
 (IC) framework standard in quantitative factor research. The IC of feature $f_i$
 at time $t$ is its Spearman rank correlation with the forward return target:
-$$\text{IC}_i(t) = \rho_{\text{Sp}}\!\left(f_i(t),\, y(t)\right)$$
+$$\text{IC}_i(t) = \rho_{\text{Sp}}\!\left(f_i(t),\, y(t)\right)$$ {#eq-app-ic}
 computed over rolling windows on the validation split. The primary ranking
 criterion is the Information Coefficient Information Ratio (ICIR):
-$$\text{ICIR}_i = \frac{\overline{\text{IC}}_i}{\sigma(\text{IC}_i)}$$
+$$\text{ICIR}_i = \frac{\overline{\text{IC}}_i}{\sigma(\text{IC}_i)}$$ {#eq-app-icir}
 where $\overline{\text{IC}}_i$ is the mean IC and $\sigma(\text{IC}_i)$ is its
 standard deviation. ICIR captures both signal strength (the numerator) and
 signal consistency across time (the denominator); a feature with a high mean IC
