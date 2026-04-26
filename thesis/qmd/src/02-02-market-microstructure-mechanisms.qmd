@@ -1,4 +1,5 @@
-## Market Microstructure Mechanisms
+## Market Microstructure Mechanisms [VERIFIED]
+<!-- [VERIFIED] -->
 
 Market microstructure is grounded in a theoretical literature that models the
 strategic interactions between informed

@@ -1,7 +1,9 @@
 
-## Classifying RL Algorithms
+## Classifying RL Algorithms [VERIFIED]
+<!-- [VERIFIED] -->
 
-### Model-free vs Model-based
+### Model-free vs Model-based [VERIFIED]
+<!-- [VERIFIED] -->
 
 Reinforcement learning algorithms divide into two broad families depending on
 whether they require a model of the environment.
@@ -20,7 +22,8 @@ sampled experience being informative for the target environment and on the
 function approximator generalizing usefully across states and actions. TD3
 belongs to this family.
 
-### Value-Based, Policy-Based, and Actor-Critic
+### Value-Based, Policy-Based, and Actor-Critic [VERIFIED]
+<!-- [VERIFIED] -->
 
 A second dimension classifies algorithms by what they learn and optimize.
 
@@ -44,7 +47,8 @@ and a critic $Q_w(s,a)$ evaluates them, using the critic's lower-variance
 estimates to guide actor updates. The full actor-critic derivation and TD3's
 specific extensions are given in @sec-td3-lineage.
 
-### On-Policy vs Off-Policy
+### On-Policy vs Off-Policy [VERIFIED]
+<!-- [VERIFIED] -->
 
 On-policy methods evaluate and improve the same policy used to collect
 experience. SARSA is a canonical example, updating with:

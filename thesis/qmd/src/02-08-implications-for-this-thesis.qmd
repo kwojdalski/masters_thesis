@@ -1,4 +1,5 @@
-## Implications for This Thesis
+## Implications for This Thesis [VERIFIED]
+<!-- [VERIFIED] -->
 
 The literature reviewed in this chapter motivates the empirical design of the
 thesis along five dimensions. First, market microstructure theory and evidence

@@ -1,4 +1,5 @@
-# Reinforcement Learning
+# Reinforcement Learning [VERIFIED]
+<!-- [VERIFIED] -->
 
 This chapter develops the reinforcement learning foundations required for the
 trading agent implemented here. It is organized in three parts. The
@@ -10,7 +11,8 @@ model-based, and on-policy vs. off-policy. The third part traces the algorithmic
 lineage from early value-based methods to TD3, showing how these properties
 converge on TD3 as the algorithm of choice for continuous-control trading.
 
-## Components of a Reinforcement Learning System
+## Components of a Reinforcement Learning System [VERIFIED]
+<!-- [VERIFIED] -->
 
 Reinforcement learning systems address sequential decision-making problems by
 selecting actions that maximize cumulative discounted future rewards. This
@@ -32,7 +34,8 @@ and intraday seasonality. The state representation used in this thesis should
 therefore be understood as an attempt to construct a useful decision state under
 partial observability, not as proof that the market itself is fully Markovian.
 
-### Environment
+### Environment [VERIFIED]
+<!-- [VERIFIED] -->
 
 The environment defines the space of possible states and the rules governing
 transitions between them. In the trading setting studied here, the
@@ -43,7 +46,8 @@ The environment encapsulates everything outside the agent's direct control —
 price dynamics, spread, and execution frictions represented by the simulator —
 under a set of explicit simulation assumptions.
 
-### State
+### State [VERIFIED]
+<!-- [VERIFIED] -->
 
 The state $s_t$ is a snapshot of the environment at time $t$ that contains
 sufficient information for the agent to select an action. In the HFT setting of
@@ -54,7 +58,8 @@ non-terminal, continuing the interaction sequence. The Markov property requires
 that the optimal action depend only on $s_t$ and not on the full history; the
 feature engineering in Chapter 4 is designed to approximate this property.
 
-### Action
+### Action [VERIFIED]
+<!-- [VERIFIED] -->
 
 The action $a_t$ is the decision the agent takes given state $s_t$. In this
 thesis the action space is continuous: $a_t \in [-1, 1]$, representing the
@@ -63,7 +68,8 @@ formulation is important because it allows the agent to express varying degrees
 of conviction through position size, rather than being restricted to a binary
 buy/sell decision.
 
-### Policy
+### Policy [VERIFIED]
+<!-- [VERIFIED] -->
 
 The policy $\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}$ maps states to
 actions. A deterministic policy is used — given the same state,
@@ -72,7 +78,8 @@ agent expected to behave consistently under identical market conditions. During
 training, exploration noise is added to the policy output to encourage discovery
 of profitable behaviors; at evaluation time the policy is used without noise.
 
-### Reward
+### Reward [VERIFIED]
+<!-- [VERIFIED] -->
 
 The reward $r_t$ is a scalar signal returned by the environment after the agent
 takes action $a_t$ in state $s_t$. It provides the only learning signal available
@@ -82,7 +89,8 @@ optimizes. In trading, rewards are typically derived from portfolio returns,
 possibly adjusted for risk and transaction costs. The specific reward formulation
 used here is developed in Chapter 4.
 
-### Value Function
+### Value Function [VERIFIED]
+<!-- [VERIFIED] -->
 
 The value function $V^\pi(s)$ estimates the expected cumulative discounted reward
 starting from state $s$ under policy $\pi$:

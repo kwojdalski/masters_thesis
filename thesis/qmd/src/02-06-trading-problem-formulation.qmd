@@ -1,4 +1,5 @@
-## Trading Problem Formulation
+## Trading Problem Formulation [VERIFIED]
+<!-- [VERIFIED] -->
 
 This section identifies the reinforcement learning concepts most important for
 interpreting the finance literature reviewed in this chapter. Formal definitions,
