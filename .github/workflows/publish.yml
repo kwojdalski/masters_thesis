@@ -68,16 +68,19 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
 
-      - name: Publish committed thesis PDF
+      - name: Render thesis to PDF
         run: |
-          if [ ! -f "thesis/qmd/src/masters-thesis.pdf" ]; then
-            echo "ERROR: committed PDF not found at thesis/qmd/src/masters-thesis.pdf"
+          quarto render thesis/qmd/src/masters-thesis.qmd --to pdf
+
+          if [ ! -f "thesis/qmd/src/masters_thesis.pdf" ]; then
+            echo "ERROR: rendered PDF not found at thesis/qmd/src/masters_thesis.pdf"
             exit 1
           fi
 
-          echo "Using committed PDF artifact"
-          echo "PDF file size: $(wc -c < thesis/qmd/src/masters-thesis.pdf) bytes"
-          cp thesis/qmd/src/masters-thesis.pdf _site/masters-thesis.pdf
+          echo "PDF file size: $(wc -c < thesis/qmd/src/masters_thesis.pdf) bytes"
+          cp thesis/qmd/src/masters_thesis.pdf _site/masters_thesis.pdf
+        env:
+          PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
