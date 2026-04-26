@@ -42,6 +42,8 @@ format:
     number-depth: 2
     toc-location: right
     format-links: false
+    grid:
+      body-width: 960px
     other-links:
       - text: PDF
         href: /masters_thesis/masters_thesis.pdf
