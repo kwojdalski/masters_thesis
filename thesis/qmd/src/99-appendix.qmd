@@ -40,51 +40,51 @@ $\hat{\rho}(\cdot,\text{lag}=1)$: sample autocorrelation at lag 1.
 
 ```{=latex}
 \begin{landscape}
-\small
-\begin{longtable}{p{0.20\linewidth} p{0.11\linewidth} p{0.43\linewidth} p{0.12\linewidth} >{\centering\arraybackslash}p{0.09\linewidth}}
-\caption{Full LOB feature registry with formulas.\label{tbl-lob-features}} \\
+\footnotesize
+\begin{longtable}{p{0.18\linewidth} p{0.09\linewidth} p{0.34\linewidth} p{0.09\linewidth} >{\centering\arraybackslash}p{0.07\linewidth} p{0.15\linewidth}}
+\caption{Full LOB feature registry with formulas and citations.\label{tbl-lob-features}} \\
 \toprule
-Feature & Group & Formula & Param & In model \\
+Feature & Group & Formula & Param & In model & Citation \\
 \midrule
 \endfirsthead
-\multicolumn{5}{l}{\small\textit{Table \ref{tbl-lob-features} continued.}} \\
+\multicolumn{6}{l}{\footnotesize\textit{Table \ref{tbl-lob-features} continued.}} \\
 \toprule
-Feature & Group & Formula & Param & In model \\
+Feature & Group & Formula & Param & In model & Citation \\
 \midrule
 \endhead
 \bottomrule
 \endlastfoot
-\texttt{hft\_book\_pressure} & Imbalance & $(V^{bid}_i - V^{ask}_i)/(V^{bid}_i + V^{ask}_i)$ & $i \in \{0,1,2\}$ & $\checkmark$ \\
-\texttt{hft\_order\_book\_imbalance} & Imbalance & $\dfrac{\sum_{i<N}(V^{bid}_i-V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ & $N=3$ & $\checkmark$ \\
-\texttt{hft\_order\_count\_imbalance} & Imbalance & $(C^{bid}_i-C^{ask}_i)/(C^{bid}_i+C^{ask}_i)$ & $i=0$ & level 0 \\
-\texttt{hft\_microprice} & Fair value & $(V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0)/(V^{bid}_0+V^{ask}_0)$ & --- & $\checkmark$ \\
-\texttt{hft\_microprice\_divergence} & Fair value & Microprice $- M_t$ & --- & $\checkmark$ \\
-\texttt{hft\_vwmp\_skew} & Fair value & $(\bar{P}^{vw}_N - M_t)/S_t$;\enspace $\bar{P}^{vw}_N = \dfrac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ & $N=3$ & $\checkmark$ \\
-\texttt{hft\_price\_vamp} & Fair value & Avg.\ execution price for fixed-notional order walked through $N$ levels & $Q\in\{1k,5k\}$ & \\
-\texttt{hft\_depth\_ratio} & Depth & $(V^{bid}_0+V^{ask}_0)\,/\,\sum_{i=1}^{N}(V^{bid}_i+V^{ask}_i)$ & $N=4$ & \\
-\texttt{hft\_spread\_bps} & Spread/cost & $(P^{ask}_0-P^{bid}_0)/M_t \times 10{,}000$ & --- & $\checkmark$ \\
-\texttt{hft\_spread\_ratio} & Spread/cost & $\mathrm{SpreadBps}_t\,/\,\bar{\mathrm{SpreadBps}}_W$ & $W=50$ & $W=50$ \\
-\texttt{hft\_bid\_convexity} & Spread/cost & $(P^{bid}_0-P^{bid}_1)-(P^{bid}_1-P^{bid}_2)$ & bid & $\checkmark$ \\
-\texttt{hft\_ask\_convexity} & Spread/cost & $(P^{ask}_2-P^{ask}_1)-(P^{ask}_1-P^{ask}_0)$ & ask & $\checkmark$ \\
-\texttt{hft\_bid\_slope} & Spread/cost & $(P^{bid}_0-P^{bid}_4)\,/\,\sum_{i<5}V^{bid}_i$ & 5 levels & $\checkmark$ \\
-\texttt{hft\_ask\_slope} & Spread/cost & $(P^{ask}_4-P^{ask}_0)\,/\,\sum_{i<5}V^{ask}_i$ & 5 levels & $\checkmark$ \\
-\texttt{hft\_ofi} & Order flow & $\Delta V^{bid}_t\cdot\mathbf{1}[P^{bid}_{0,t}\geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t\cdot\mathbf{1}[P^{ask}_{0,t}\leq P^{ask}_{0,t-1}]$ & --- & $\checkmark$ \\
-\texttt{hft\_ofi\_rolling} & Order flow & $\Sigma_W\,\mathrm{OFI}_t$ & $W=50$ & $W=50$ \\
-\texttt{hft\_ofi\_multilevel} & Order flow & $\sum_{i<N}\mathrm{OFI}^{(i)}_t$ (Cont et al.\ event classification at each level $i$) & $N\in\{3,5\}$ & \\
-\texttt{hft\_bid\_queue\_depletion} & Order flow & $\max(V^{bid}_{0,t-1}-V^{bid}_{0,t},\,0)\,/\,V^{bid}_{0,t-1}$ & bid & $\checkmark$ \\
-\texttt{hft\_ask\_queue\_depletion} & Order flow & $\max(V^{ask}_{0,t-1}-V^{ask}_{0,t},\,0)\,/\,V^{ask}_{0,t-1}$ & ask & $\checkmark$ \\
-\texttt{hft\_signed\_trade\_flow} & Order flow & $\Sigma_W\,\mathrm{size}_\tau\cdot(\mathbf{1}[\mathrm{side}_\tau=B]-\mathbf{1}[\mathrm{side}_\tau=A])$ & $W=50$ & $W=50$ \\
-\texttt{hft\_odd\_lot\_trade\_ratio} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}<L]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & $\checkmark$ \\
-\texttt{hft\_odd\_lot\_imbalance} & Order flow & $(V^{B,\mathrm{odd}}_W-V^{S,\mathrm{odd}}_W)/(V^{B,\mathrm{odd}}_W+V^{S,\mathrm{odd}}_W)$; odd-lot buy/sell vol., size $<L$ & $W=200$ & $\checkmark$ \\
-\texttt{hft\_vpin} & Order flow & $|V^B_W-V^S_W|\,/\,(V^B_W+V^S_W)$ & $W\in\{100,500\}$ & \\
-\texttt{hft\_cancel\_to\_trade} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{action}=C]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{action}=T]$ & $W\in\{200,1000\}$ & \\
-\texttt{hft\_trade\_arrival\_rate} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{action}=T]$ & $W\in\{100,500\}$ & \\
-\texttt{hft\_large\_trade\_ratio} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}\geq Q]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & \\
-\texttt{hft\_ofi\_autocorr} & Order flow & $\hat{\rho}(\mathrm{OFI}_{t-W:t},\,\mathrm{lag}=1)$ & $W\in\{50,200\}$ & \\
-\texttt{hft\_inter\_event\_time} & Regime/temp. & $\log(1+\Delta t_{\mathrm{ns}})$ & --- & $\checkmark$ \\
-\texttt{hft\_mid\_price\_acceleration} & Regime/temp. & $M_t-2M_{t-1}+M_{t-2}$ & --- & $\checkmark$ \\
-\texttt{hft\_hour\_sin} & Regime/temp. & $\sin(2\pi h_t/24)$ & --- & $\checkmark$ \\
-\texttt{hft\_hour\_cos} & Regime/temp. & $\cos(2\pi h_t/24)$ & --- & $\checkmark$ \\
+\texttt{hft\_book\_pressure} & Imbalance & $(V^{bid}_i - V^{ask}_i)/(V^{bid}_i + V^{ask}_i)$ & $i \in \{0,1,2\}$ & $\checkmark$ & Cao et al.\ (2004); Biais et al.\ (1995) \\
+\texttt{hft\_order\_book\_imbalance} & Imbalance & $\dfrac{\sum_{i<N}(V^{bid}_i-V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ & $N=3$ & $\checkmark$ & Cont et al.\ (2014) \\
+\texttt{hft\_order\_count\_imbalance} & Imbalance & $(C^{bid}_i-C^{ask}_i)/(C^{bid}_i+C^{ask}_i)$ & $i=0$ & level 0 & Biais et al.\ (1995) \\
+\texttt{hft\_microprice} & Fair value & $(V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0)/(V^{bid}_0+V^{ask}_0)$ & --- & $\checkmark$ & Stoikov (2018) \\
+\texttt{hft\_microprice\_divergence} & Fair value & Microprice $- M_t$ & --- & $\checkmark$ & Stoikov (2018) \\
+\texttt{hft\_vwmp\_skew} & Fair value & $(\bar{P}^{vw}_N - M_t)/S_t$;\enspace $\bar{P}^{vw}_N = \dfrac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ & $N=3$ & $\checkmark$ & Stoikov (2018) \\
+\texttt{hft\_price\_vamp} & Fair value & Avg.\ execution price for fixed-notional order walked through $N$ levels & $Q\in\{1k,5k\}$ & & --- \\
+\texttt{hft\_depth\_ratio} & Depth & $(V^{bid}_0+V^{ask}_0)\,/\,\sum_{i=1}^{N}(V^{bid}_i+V^{ask}_i)$ & $N=4$ & & Bouchaud et al.\ (2002) \\
+\texttt{hft\_spread\_bps} & Spread/cost & $(P^{ask}_0-P^{bid}_0)/M_t \times 10{,}000$ & --- & $\checkmark$ & Kyle (1985); Glosten \& Milgrom (1985) \\
+\texttt{hft\_spread\_ratio} & Spread/cost & $\mathrm{SpreadBps}_t\,/\,\bar{\mathrm{SpreadBps}}_W$ & $W=50$ & $W=50$ & Easley et al.\ (2012) \\
+\texttt{hft\_bid\_convexity} & Spread/cost & $(P^{bid}_0-P^{bid}_1)-(P^{bid}_1-P^{bid}_2)$ & bid & $\checkmark$ & Bouchaud et al.\ (2002) \\
+\texttt{hft\_ask\_convexity} & Spread/cost & $(P^{ask}_2-P^{ask}_1)-(P^{ask}_1-P^{ask}_0)$ & ask & $\checkmark$ & Bouchaud et al.\ (2002) \\
+\texttt{hft\_bid\_slope} & Spread/cost & $(P^{bid}_0-P^{bid}_4)\,/\,\sum_{i<5}V^{bid}_i$ & 5 levels & $\checkmark$ & Bouchaud et al.\ (2002); Kyle (1985) \\
+\texttt{hft\_ask\_slope} & Spread/cost & $(P^{ask}_4-P^{ask}_0)\,/\,\sum_{i<5}V^{ask}_i$ & 5 levels & $\checkmark$ & Bouchaud et al.\ (2002); Kyle (1985) \\
+\texttt{hft\_ofi} & Order flow & $\Delta V^{bid}_t\cdot\mathbf{1}[P^{bid}_{0,t}\geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t\cdot\mathbf{1}[P^{ask}_{0,t}\leq P^{ask}_{0,t-1}]$ & --- & $\checkmark$ & Cont et al.\ (2014) \\
+\texttt{hft\_ofi\_rolling} & Order flow & $\Sigma_W\,\mathrm{OFI}_t$ & $W=50$ & $W=50$ & Cont et al.\ (2014) \\
+\texttt{hft\_ofi\_multilevel} & Order flow & $\sum_{i<N}\mathrm{OFI}^{(i)}_t$ (event classification at each level $i$) & $N\in\{3,5\}$ & & Cont et al.\ (2014) \\
+\texttt{hft\_bid\_queue\_depletion} & Order flow & $\max(V^{bid}_{0,t-1}-V^{bid}_{0,t},\,0)\,/\,V^{bid}_{0,t-1}$ & bid & $\checkmark$ & Foucault et al.\ (2005) \\
+\texttt{hft\_ask\_queue\_depletion} & Order flow & $\max(V^{ask}_{0,t-1}-V^{ask}_{0,t},\,0)\,/\,V^{ask}_{0,t-1}$ & ask & $\checkmark$ & Foucault et al.\ (2005) \\
+\texttt{hft\_signed\_trade\_flow} & Order flow & $\Sigma_W\,\mathrm{size}_\tau\cdot(\mathbf{1}[\mathrm{side}_\tau=B]-\mathbf{1}[\mathrm{side}_\tau=A])$ & $W=50$ & $W=50$ & Lee \& Ready (1991) \\
+\texttt{hft\_odd\_lot\_trade\_ratio} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}<L]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & $\checkmark$ & Boehmer et al.\ (2021) \\
+\texttt{hft\_odd\_lot\_imbalance} & Order flow & $(V^{B,\mathrm{odd}}_W-V^{S,\mathrm{odd}}_W)/(V^{B,\mathrm{odd}}_W+V^{S,\mathrm{odd}}_W)$; size $<L$ & $W=200$ & $\checkmark$ & Boehmer et al.\ (2021) \\
+\texttt{hft\_vpin} & Order flow & $|V^B_W-V^S_W|\,/\,(V^B_W+V^S_W)$ & $W\in\{100,500\}$ & & Easley et al.\ (2012) \\
+\texttt{hft\_cancel\_to\_trade} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{action}=C]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{action}=T]$ & $W\in\{200,1000\}$ & & Foucault et al.\ (2005) \\
+\texttt{hft\_trade\_arrival\_rate} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{action}=T]$ & $W\in\{100,500\}$ & & Engle (2000) \\
+\texttt{hft\_large\_trade\_ratio} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}\geq Q]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & & --- \\
+\texttt{hft\_ofi\_autocorr} & Order flow & $\hat{\rho}(\mathrm{OFI}_{t-W:t},\,\mathrm{lag}=1)$ & $W\in\{50,200\}$ & & Cont et al.\ (2014) \\
+\texttt{hft\_inter\_event\_time} & Regime/temp. & $\log(1+\Delta t_{\mathrm{ns}})$ & --- & $\checkmark$ & Engle (2000) \\
+\texttt{hft\_mid\_price\_acceleration} & Regime/temp. & $M_t-2M_{t-1}+M_{t-2}$ & --- & $\checkmark$ & Abergel et al.\ (2016) \\
+\texttt{hft\_hour\_sin} & Regime/temp. & $\sin(2\pi h_t/24)$ & --- & $\checkmark$ & Wood et al.\ (1985) \\
+\texttt{hft\_hour\_cos} & Regime/temp. & $\cos(2\pi h_t/24)$ & --- & $\checkmark$ & Wood et al.\ (1985) \\
 \end{longtable}
 \end{landscape}
 ```
