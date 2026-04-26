@@ -235,7 +235,7 @@ empirical chapters must still evaluate performance under explicit transaction
 costs, chronological validation, and the simulation assumptions stated in later
 sections.
 
-### Algorithm Comparison: TD3, PPO, and DDPG for Trading [VERIFIED]
+### Algorithm Comparison: PPO, DDPG, and TD3 for Trading [VERIFIED]
 <!-- [VERIFIED] -->
 
 The three algorithms considered here differ along three dimensions that are
