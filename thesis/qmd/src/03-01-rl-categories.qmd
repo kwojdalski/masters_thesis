@@ -37,7 +37,7 @@ $\arg\max_a Q(s,a)$ becomes intractable over an uncountable set.
 $\pi_\theta$. REINFORCE (@Williams1992) updates parameters by gradient ascent
 on expected return:
 
-$$\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}\!\left[\sum_t r_t\right]$$
+$$\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}\!\left[\sum_t r_t\right]$$ {#eq-policy-gradient-update}
 
 Policy gradients handle continuous actions naturally but suffer from high
 variance, requiring many samples to obtain a reliable gradient signal.
@@ -53,7 +53,7 @@ specific extensions are given in @sec-td3-lineage.
 On-policy methods evaluate and improve the same policy used to collect
 experience. SARSA is a canonical example, updating with:
 
-$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma Q(s_{t+1},a_{t+1}) - Q(s_t,a_t)\bigr]$$
+$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma Q(s_{t+1},a_{t+1}) - Q(s_t,a_t)\bigr]$$ {#eq-sarsa-update}
 
 where $a_{t+1}$ is drawn from the current policy. On-policy methods tend to
 be stable but wasteful: each sample is used once and then discarded.
@@ -62,7 +62,7 @@ Off-policy methods decouple the data-collection policy (the behavior policy)
 from the policy being improved (the target policy). Q-learning updates with
 the greedy maximum:
 
-$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)\bigr]$$
+$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)\bigr]$$ {#eq-qlearning-update}
 
 regardless of how $a_{t+1}$ was actually selected. This separation allows
 experience from a replay buffer — collected under earlier or exploratory

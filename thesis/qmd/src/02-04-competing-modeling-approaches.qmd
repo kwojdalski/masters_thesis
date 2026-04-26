@@ -148,7 +148,7 @@ state-action pairs, imitating historical or hand-crafted trades without an
 explicit forecasting stage. In the latter case, the model learns
 $f: X \rightarrow a$ by minimizing a loss over these examples $(X_i, a_i^*)$:
 
-$$\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$
+$$\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$ {#eq-imitation-learning}
 
 The limitation is the same in both cases: the optimization target is a
 surrogate rather than the trading objective itself. Forecast-based systems

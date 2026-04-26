@@ -11,7 +11,7 @@ actor-critic.
 TD3 maintains two independent Q-networks $Q_{\theta_1}$ and $Q_{\theta_2}$.
 The Bellman target is computed using the minimum of the two estimates:
 
-$$y_t = r_t + \gamma \min_{i=1,2} Q_{\theta_i'}(s_{t+1}, \tilde{a}_{t+1})$$
+$$y_t = r_t + \gamma \min_{i=1,2} Q_{\theta_i'}(s_{t+1}, \tilde{a}_{t+1})$$ {#eq-bellman-target}
 
 where $\theta_i'$ are slowly updated target network parameters and
 $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon$ is the target action with
@@ -23,7 +23,7 @@ updated — a failure mode documented in DDPG and addressed here following
 Both critics are trained by minimizing the TD error against the shared target
 $y_t$. The actor is updated using only the first critic's gradient:
 
-$$\nabla_\phi J(\phi) = \mathbb{E}_{s \sim \mathcal{D}}\!\left[\nabla_a Q_{\theta_1}(s,a)\big|_{a=\mu_\phi(s)} \nabla_\phi \mu_\phi(s)\right]$$
+$$\nabla_\phi J(\phi) = \mathbb{E}_{s \sim \mathcal{D}}\!\left[\nabla_a Q_{\theta_1}(s,a)\big|_{a=\mu_\phi(s)} \nabla_\phi \mu_\phi(s)\right]$$ {#eq-actor-gradient}
 
 The second critic contributes only through the conservative Bellman target,
 not directly to the policy gradient.
@@ -32,7 +32,7 @@ not directly to the policy gradient.
 
 The critics are trained with Smooth L1 (Huber) loss rather than MSE:
 
-$$\mathcal{L}(\delta) = \begin{cases} 0.5\,\delta^2 & |\delta| \leq 1 \\ |\delta| - 0.5 & \text{otherwise} \end{cases}$$
+$$\mathcal{L}(\delta) = \begin{cases} 0.5\,\delta^2 & |\delta| \leq 1 \\ |\delta| - 0.5 & \text{otherwise} \end{cases}$$ {#eq-huber-loss}
 
 where $\delta = y_t - Q_\theta(s_t, a_t)$ is the TD error. The linear tail
 limits the influence of large TD errors that occur during volatile market

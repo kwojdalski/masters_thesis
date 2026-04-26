@@ -95,7 +95,7 @@ used here is developed in Chapter 4.
 The value function $V^\pi(s)$ estimates the expected cumulative discounted reward
 starting from state $s$ under policy $\pi$:
 
-$$V^\pi(s) = \mathbb{E}_\pi\!\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k} \,\Big|\, s_t = s\right]$$
+$$V^\pi(s) = \mathbb{E}_\pi\!\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k} \,\Big|\, s_t = s\right]$$ {#eq-rl-value-function}
 
 where $\gamma \in [0, 1]$ is the discount factor. The value function allows the
 agent to reason about long-run consequences rather than only immediate rewards —

@@ -1,18 +1,16 @@
 ## Policy
 
-The policy maps the current state to an action. The three algorithms compared in
-this thesis — TD3, DDPG, and PPO — differ in a fundamental property of this mapping:
-TD3 and DDPG produce a single deterministic action for each state, while PPO maintains
-a probability distribution over actions and samples from it. This distinction has direct
+The policy maps the current state to an action. The three algorithms compared in this thesis — PPO, DDPG, and TD3 — differ in a fundamental property of this mapping:
+PPO maintains a probability distribution over actions and samples from it, while DDPG and TD3 produce a single deterministic action for each state. This distinction has direct
 consequences for how each algorithm explores during training, how it behaves at
 evaluation time, and what the policy gradient looks like. The subsections below describe
 each architecture, followed by a table that makes the design choices explicit.
 
-### Deterministic Policy: TD3 and DDPG {#sec-policy-deterministic}
+### Stochastic Policy: PPO {#sec-policy-stochastic}
 
-Both TD3 and DDPG implement a deterministic policy:
+PPO maintains a stochastic policy:
 
-$$\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}, \qquad a_t = \mu_\theta(s_t)$$
+$$\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}, \qquad a_t = \mu_\theta(s_t)$$ {#eq-det-policy}
 
 The policy is a multi-layer perceptron. The input is the $d = 26$-dimensional state
 vector. The network passes this through two hidden layers and produces a scalar action:
@@ -21,7 +19,7 @@ $$s_t \in \mathbb{R}^{26}
   \xrightarrow{\text{Linear}} \mathbb{R}^{128}
   \xrightarrow{\text{ReLU}} \mathbb{R}^{64}
   \xrightarrow{\text{ReLU}} \mathbb{R}^{1}
-  \xrightarrow{\text{Tanh}} [-1,\,1]$$
+  \xrightarrow{\text{Tanh}} [-1,\,1]$$ {#eq-det-actor-network}
 
 Hidden layers use ReLU activations, which avoid the vanishing-gradient problem that
 arises with saturating activations in deep hidden layers [@Mnih2015]. The output layer
@@ -40,24 +38,41 @@ The actor network contains approximately 11,800 trainable parameters:
 | Linear + Tanh | 64 | 1 | 65 |
 | **Total** | | | **11,777** |
 
-**Exploration.** Because the policy is deterministic, it does not generate action
-diversity on its own. During data collection, additive Gaussian noise is injected:
+**Exploration.** Because the policy is stochastic, it generates action diversity naturally through the entropy of the action distribution:
 
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
-\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$
+\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-ppo-exploration}
+
+The deterministic action for evaluation is obtained by taking the mode of the distribution: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
+
+**Deterministic Policy: DDPG {#sec-policy-deterministic}**
+
+DDPG implements a deterministic policy:
+
+**Exploration.** Because the policy is deterministic, it does not generate action diversity on its own. During data collection, additive Gaussian noise is injected:
+
+$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
+\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-ddpg-exploration}
 
 The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
 
-TD3 adds a separate, independent noise term during critic updates for target policy
-smoothing ($\sigma_{\text{smooth}} = 0.2$, clipped to $[-0.3, 0.3]$). This is not
-exploration noise — it is a regularizer that prevents the critics from fitting sharp
-value peaks in the action space (Section 4.4). DDPG does not apply this smoothing;
-this is one of the three mechanisms that TD3 adds over DDPG.
+**Deterministic Policy: TD3 {#sec-policy-deterministic-td3}**
+
+TD3 implements a deterministic policy:
+
+**Exploration.** Because the policy is deterministic, it does not generate action diversity on its own. During data collection, additive Gaussian noise is injected:
+
+$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
+\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-td3-exploration}
+
+The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
+
+TD3 adds a separate, independent noise term during critic updates for target policy smoothing ($\sigma_{\text{smooth}} = 0.2$, clipped to $[-0.3, 0.3]$). This is not exploration noise — it is a regularizer that prevents the critics from fitting sharp value peaks in the action space (Section 4.4). DDPG does not apply this smoothing; this is one of the three mechanisms that TD3 adds over DDPG.
 
 **Target actor.** Both algorithms maintain a slowly updated copy of the actor,
 $\mu_{\theta'}$, used only when computing Bellman targets:
 
-$$\theta' \leftarrow \tau\,\theta + (1 - \tau)\,\theta', \qquad \tau = 0.001$$
+$$\theta' \leftarrow \tau\,\theta + (1 - \tau)\,\theta', \qquad \tau = 0.001$$ {#eq-target-actor-update}
 
 The slow rate ensures the bootstrap target shifts gradually, even while the online
 actor receives more aggressive gradient updates. The target actor is never used for
@@ -69,7 +84,7 @@ training procedure: TD3 maintains twin critics and uses their minimum for conser
 value targets, and delays actor updates to one per every two critic updates. DDPG uses
 a single critic and updates actor and critic at the same frequency. This makes DDPG the
 natural ablation for TD3: it isolates the effect of TD3's stability mechanisms while
-holding the policy architecture constant.
+holding the policy architecture constant. This makes DDPG a natural baseline; TD3 then adds three targeted mechanisms: clipped double Q-learning, delayed policy updates, and target policy smoothing.
 
 ### Stochastic Policy: PPO {#sec-policy-stochastic}
 
@@ -77,7 +92,7 @@ PPO maintains a stochastic policy that outputs a probability distribution over a
 at each state:
 
 $$\pi_\theta(\cdot \mid s_t) = \text{TanhNormal}\!\left(\mu_\theta(s_t),\,
-\sigma_\theta(s_t)\right)$$
+\sigma_\theta(s_t)\right)$$ {#eq-ppo-distribution}
 
 The actor network shares the same hidden-layer structure as the deterministic actors
 — two layers of width [128, 64] — but its output head differs. The final linear
@@ -91,7 +106,7 @@ $$s_t \in \mathbb{R}^{26}
   \xrightarrow{\text{Tanh}} \mathbb{R}^{64}
   \xrightarrow{\text{Tanh}} \mathbb{R}^{2}
   \xrightarrow{\text{split}} (\mu,\, \log\sigma)
-  \longrightarrow \text{TanhNormal}(\mu, \sigma)$$
+  \longrightarrow \text{TanhNormal}(\mu, \sigma)$$ {#eq-ppo-actor-network}
 
 The PPO actor uses Tanh activations in the hidden layers, following standard practice
 for actors with stochastic output heads where bounded hidden representations improve
@@ -108,7 +123,7 @@ required.
 TanhNormal distribution, which is $\tanh(\mu_\theta(s_t))$. This yields a deterministic
 action for each state, directly comparable to the TD3 and DDPG evaluation policies.
 
-**Value network.** Unlike TD3 and DDPG, whose critics estimate $Q(s, a)$, PPO's critic
+**Value network.** Unlike DDPG and TD3, whose critics estimate $Q(s, a)$, PPO's critic
 estimates the state value $V(s)$. The input is therefore the state vector alone (26
 dimensions), not the state-action concatenation. The critic architecture is otherwise
 identical: two hidden layers of width [128, 64] with Tanh activations, followed by a

@@ -93,7 +93,7 @@ because the side with the thinner queue is more likely to be depleted first by
 incoming market orders, pulling the next transaction price toward the opposite
 side. The microprice corrects for this by volume-weighting the best quotes:
 
-$$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$
+$$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$ {#eq-microprice-ch2}
 
 When $V^{bid}_0 \gg V^{ask}_0$, the microprice is pulled toward the ask —
 the side more likely to move. The microprice divergence from mid captures this
