@@ -307,12 +307,12 @@ def format_benchmark_comparison_table(
     ]
     labels = {
         "strategy": "Strategy",
-        "total_return": "Total Return",
-        "annualized_return_cagr": "Annualized Return (CAGR)",
-        "annualized_volatility": "Annualized Volatility",
-        "sharpe_ratio": "Sharpe Ratio",
-        "sortino_ratio": "Sortino Ratio",
-        "max_drawdown": "Max Drawdown",
+        "total_return": "TR",
+        "annualized_return_cagr": "CAGR",
+        "annualized_volatility": "Volatility",
+        "sharpe_ratio": "SR",
+        "sortino_ratio": "Sortino",
+        "max_drawdown": "Max DD",
         "win_rate": "Win Rate",
         "turnover": "Turnover",
     }

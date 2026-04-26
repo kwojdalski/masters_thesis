@@ -179,7 +179,7 @@ between reward simplicity and the richness of real trading objectives.
 \label{tbl-rl-studies-comparison} \\
 \toprule
 \textbf{Study} &
-\textbf{Market / Task} &
+\textbf{Problem} &
 \textbf{State Variables} &
 \textbf{Action Space} &
 \textbf{Reward / Objective} &
@@ -189,7 +189,7 @@ between reward simplicity and the richness of real trading objectives.
 \multicolumn{6}{c}{\textit{(continued from previous page)}} \\
 \toprule
 \textbf{Study} &
-\textbf{Market / Task} &
+\textbf{Problem} &
 \textbf{State Variables} &
 \textbf{Action Space} &
 \textbf{Reward / Objective} &
