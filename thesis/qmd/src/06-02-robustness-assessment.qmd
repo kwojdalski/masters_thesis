@@ -96,6 +96,8 @@ compiled.
 
 ```{python}
 #| echo: false
+#| label: tbl-robustness-dimensions
+#| tbl-cap: "Robustness dimensions considered in this thesis, with control variables, risks addressed, assessment designs, and priorities."
 
 robustness_rows = [
     ("Random seed", "seed", "Stochastic training path sensitivity", ">= 5 seeds per selected setup", "Required"),
