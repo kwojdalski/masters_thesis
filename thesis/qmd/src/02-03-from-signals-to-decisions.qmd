@@ -1,4 +1,5 @@
-## From Microstructure Signals to Tradable Decisions
+## From Microstructure Signals to Tradable Decisions [VERIFIED]
+<!-- [VERIFIED] -->
 
 The preceding sections motivate the use of LOB-derived variables as state
 descriptors, but they do not imply that those variables are automatically

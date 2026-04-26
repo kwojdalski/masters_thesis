@@ -1,4 +1,5 @@
-## Actor-Critic Methods for Continuous Control {#sec-td3-lineage}
+## Actor-Critic Methods for Continuous Control [VERIFIED] {#sec-td3-lineage}
+<!-- [VERIFIED] -->
 
 The development of reinforcement learning algorithms is a series of conceptual breaks
 , each motivated by a limitation in the preceding framework. 
@@ -8,7 +9,8 @@ algorithm, which is employed here. The survey is not exhaustive; it
 focuses on the algorithmic properties that are directly relevant to the
 continuous-action, single-asset trading problem formulated in Chapter 4.
 
-### Value-Based Methods and Their Limitations in Continuous Control
+### Value-Based Methods and Their Limitations in Continuous Control [VERIFIED]
+<!-- [VERIFIED] -->
 
 The foundational algorithms of the field — Q-learning [@Watkins1992] and its
 on-policy variant SARSA [@Rummery1994] — operate over tabular representations
@@ -35,7 +37,8 @@ continuous control, while a fine grid makes the maximization step computationall
 expensive and recovers the curse of dimensionality in higher-dimensional
 portfolio settings.
 
-### Policy Gradient Methods and the Actor-Critic Architecture
+### Policy Gradient Methods and the Actor-Critic Architecture [VERIFIED]
+<!-- [VERIFIED] -->
 
 A distinct class of algorithms avoids the maximization problem by
 parameterizing the policy directly and optimizing it through gradient ascent on
@@ -57,7 +60,8 @@ higher-valued actions, while the critic provides a lower-variance baseline.
 This separation is the architectural foundation of all subsequent
 continuous-action algorithms, including TD3.
 
-### DDPG: Deterministic Policies for Continuous Control
+### DDPG: Deterministic Policies for Continuous Control [VERIFIED]
+<!-- [VERIFIED] -->
 
 @Lillicrap2015 introduced Deep Deterministic Policy Gradient (DDPG), which
 extends the actor-critic framework to deterministic policies over continuous
@@ -81,7 +85,8 @@ environments, where rewards are noisy and non-stationary, these instabilities
 are particularly damaging because the critic cannot distinguish between genuine
 market signal and approximation artifacts.
 
-### PPO: On-Policy Actor-Critic with Clipped Objectives
+### PPO: On-Policy Actor-Critic with Clipped Objectives [VERIFIED]
+<!-- [VERIFIED] -->
 
 @Schulman2017 introduced Proximal Policy Optimization (PPO), which balances
 the sample efficiency of off-policy methods with the stability of on-policy
@@ -124,7 +129,8 @@ relevant consideration for high-frequency trading, where the available
 order-book sample may be limited relative to the complexity of the value
 function approximation.
 
-### TD3: Addressing the Instability of Deterministic Actor-Critic Methods
+### TD3: Addressing the Instability of Deterministic Actor-Critic Methods [VERIFIED]
+<!-- [VERIFIED] -->
 
 @Fujimoto2018 introduced TD3 as a direct response to DDPG's failure modes,
 proposing three targeted mechanisms.
@@ -197,7 +203,8 @@ empirical chapters must still evaluate performance under explicit transaction
 costs, chronological validation, and the simulation assumptions stated in later
 sections.
 
-### Algorithm Comparison: TD3, PPO, and DDPG for Trading
+### Algorithm Comparison: TD3, PPO, and DDPG for Trading [VERIFIED]
+<!-- [VERIFIED] -->
 
 The three algorithms considered here differ along three dimensions that are
 particularly relevant to the continuous-action trading problem: learning paradigm,

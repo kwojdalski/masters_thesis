@@ -1,4 +1,5 @@
-# Literature Review
+# Literature Review [VERIFIED]
+<!-- [VERIFIED] -->
 
 This chapter surveys the academic foundations relevant to reinforcement learning
 for tick-level order-book trading. It first distinguishes the controlled

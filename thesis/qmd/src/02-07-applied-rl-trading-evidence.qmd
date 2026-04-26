@@ -1,4 +1,5 @@
-## Applied RL Trading Evidence
+## Applied RL Trading Evidence [VERIFIED]
+<!-- [VERIFIED] -->
 
 The application of reinforcement learning to financial trading has evolved from
 theoretical proposals to practical implementations across diverse market
@@ -16,7 +17,8 @@ reported performance is interpreted skeptically unless the study specifies what
 information the agent observes, how actions map to trades, whether costs are
 charged, and how out-of-sample performance is selected and reported.
 
-### Early Applications and Proof-of-Concept
+### Early Applications and Proof-of-Concept [VERIFIED]
+<!-- [VERIFIED] -->
 
 @Moody1998 presented the first comprehensive application of RL to trading,
 introducing recurrent reinforcement learning for optimizing trading systems.
@@ -33,7 +35,8 @@ intermediate outcomes.
 RL-optimized policies could generate positive risk-adjusted returns after
 transaction costs — a stringent test of practical viability.
 
-### From Discrete to Continuous Action Spaces
+### From Discrete to Continuous Action Spaces [VERIFIED]
+<!-- [VERIFIED] -->
 
 Early value-based approaches applied Q-learning with discrete buy/sell/hold
 actions to equity and futures markets [@Neuneier1998; @Lee2007]. These studies
@@ -52,7 +55,8 @@ substantially across currency pairs and depended on the choice of model and
 system parameters, making early direct-RL results better interpreted as
 feasibility evidence than as a robust trading edge.
 
-### Deep Reinforcement Learning Era
+### Deep Reinforcement Learning Era [VERIFIED]
+<!-- [VERIFIED] -->
 
 The introduction of deep function approximators to RL trading extended
 applicability to high-dimensional state spaces.
@@ -128,7 +132,8 @@ reward definition, transaction costs, and evaluation protocol. The review is
 useful here as a synthesis of design dimensions rather than as evidence for the
 superiority of any single algorithm.
 
-### Comparative Evidence and Limitations
+### Comparative Evidence and Limitations [VERIFIED]
+<!-- [VERIFIED] -->
 
 **Algorithm comparisons and reproducibility.**
 @FinRL2020 illustrates a later move toward reproducible DRL trading pipelines by
@@ -161,7 +166,8 @@ The Differential Sharpe Ratio [@Moody1998] addresses some of these concerns by
 targeting risk-adjusted return directly, but does not fully resolve the tension
 between reward simplicity and the richness of real trading objectives.
 
-### Structured Comparison of Representative Studies
+### Structured Comparison of Representative Studies [VERIFIED]
+<!-- [VERIFIED] -->
 
 ```{=latex}
 \begingroup

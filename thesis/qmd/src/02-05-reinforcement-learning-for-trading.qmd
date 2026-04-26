@@ -1,4 +1,5 @@
-## Reinforcement Learning for Trading
+## Reinforcement Learning for Trading [VERIFIED]
+<!-- [VERIFIED] -->
 
 Reinforcement learning is a reasoned choice for algorithmic trading, not an
 arbitrary methodological one. The argument rests on three structural properties

@@ -1,4 +1,5 @@
-## Tick-Level Order Book Trading
+## Tick-Level Order Book Trading [VERIFIED]
+<!-- [VERIFIED] -->
 
 Tick-level trading differs from bar-based trading because the decision unit is an
 order book event rather than a fixed calendar interval. A daily or minute-level

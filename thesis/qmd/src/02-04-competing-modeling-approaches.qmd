@@ -1,4 +1,5 @@
-## Competing Modeling Approaches
+## Competing Modeling Approaches [VERIFIED]
+<!-- [VERIFIED] -->
 
 The alternatives to reinforcement learning fall into two complementary
 perspectives: learning paradigm and decision-system architecture.
@@ -7,9 +8,11 @@ supervised, unsupervised, semi-supervised, and reinforcement learning; the
 present section discusses the first three explicitly and then motivates
 reinforcement learning through the architectural comparison that follows.
 
-### Learning Paradigms
+### Learning Paradigms [VERIFIED]
+<!-- [VERIFIED] -->
 
-#### Supervised Learning
+#### Supervised Learning [VERIFIED]
+<!-- [VERIFIED] -->
 
 Supervised learning trains a model on labeled input-output pairs
 $(X_i, Y_i)_{i=1}^{n}$ to minimize a loss function $\mathcal{L}(f_\theta(X), Y)$
@@ -69,7 +72,8 @@ irrelevant, but because the empirical question studied here concerns continuous
 exposure control under a reward function that includes the consequences of
 position changes directly.
 
-#### Unsupervised Learning
+#### Unsupervised Learning [VERIFIED]
+<!-- [VERIFIED] -->
 
 Unsupervised learning identifies structure in unlabeled data
 $\{X_i\}_{i=1}^{n}$ without a target variable. In trading research it is
@@ -86,7 +90,8 @@ ratio, inter-event time, temporal encodings — that condition the agent's
 observation on the current market state without requiring an explicit
 unsupervised clustering step.
 
-#### Semi-Supervised Learning
+#### Semi-Supervised Learning [VERIFIED]
+<!-- [VERIFIED] -->
 
 Semi-supervised learning combines a small labeled set with a larger unlabeled
 set, propagating label information through structural similarity in the data.
@@ -104,9 +109,11 @@ already been reformulated as supervised or reinforcement learning.
 The same conclusion follows from a second perspective: the architecture of the
 decision system itself.
 
-### Decision-System Architectures
+### Decision-System Architectures [VERIFIED]
+<!-- [VERIFIED] -->
 
-#### Rule-Based Trading Strategies
+#### Rule-Based Trading Strategies [VERIFIED]
+<!-- [VERIFIED] -->
 
 Rule-based strategies encode trading decisions as explicit conditional logic:
 position changes are triggered when observable market quantities cross
@@ -130,7 +137,8 @@ non-stationarity is the primary motivation for learning-based approaches,
 which can update their behavior from experience rather than requiring explicit
 rule revision.
 
-#### Indirect Optimization via Forecasts or Labels
+#### Indirect Optimization via Forecasts or Labels [VERIFIED]
+<!-- [VERIFIED] -->
 
 An intermediate class of trading systems learns a surrogate target rather than
 optimizing trading performance directly. One variant employs supervised learning
@@ -151,7 +159,8 @@ against actions derived from historical rules or expert behavior, which embeds
 a prior about what constitutes optimal behavior and does not guarantee
 maximizing risk-adjusted return.
 
-#### Direct Optimization of Trading Performance
+#### Direct Optimization of Trading Performance [VERIFIED]
+<!-- [VERIFIED] -->
 
 Direct optimization removes both the intermediate forecast and the labeled
 action requirement. The agent observes the market state $X_t$, selects an
