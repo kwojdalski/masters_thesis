@@ -38,6 +38,8 @@ The actor network contains approximately 11,800 trainable parameters:
 | Linear + Tanh | 64 | 1 | 65 |
 | **Total** | | | **11,777** |
 
+: Actor network architecture ($d=26$ input features). {#tbl-actor-arch}
+
 **Exploration.** Because the policy is stochastic, it generates action diversity naturally through the entropy of the action distribution:
 
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
@@ -154,3 +156,5 @@ the controlled comparison.
 | Critic input | $(s, a)$ | $(s, a)$ | $s$ only |
 | Number of critics | 1 | 2 (twin) | 1 |
 | Actor update freq. | Every step | Every 2 critic steps | Every epoch |
+
+: Policy design choices for each algorithm in the controlled comparison. {#tbl-policy-comparison}

@@ -20,7 +20,27 @@ definition.
 
 ## LOB Microstructure Features
 
-Notation: $M_t = \tfrac{1}{2}(P^{bid}_0 + P^{ask}_0)$ (mid-price); $S_t = P^{ask}_0 - P^{bid}_0$ (spread); $\Sigma_W$ (rolling sum over $W$ events); $\bar{x}_W$ (rolling mean over $W$ events). Features marked ✓ in the **In model** column are used in the main state-space experiment; when multiple parameter variants exist, the selected variant is specified.
+**Notation.**
+$P^{bid}_i$, $P^{ask}_i$: bid/ask price at book level $i$;
+$V^{bid}_i$, $V^{ask}_i$: resting volume at level $i$;
+$C^{bid}_i$, $C^{ask}_i$: order count at level $i$;
+$M_t = \tfrac{1}{2}(P^{bid}_0+P^{ask}_0)$: mid-price;
+$S_t = P^{ask}_0-P^{bid}_0$: spread;
+$\Delta V^{bid}_t = V^{bid}_{0,t}-V^{bid}_{0,t-1}$, $\Delta V^{ask}_t = V^{ask}_{0,t}-V^{ask}_{0,t-1}$: tick-to-tick volume change;
+$W$: rolling window in events;
+$\Sigma_W\,x_t = \sum_{\tau=t-W+1}^{t} x_\tau$: rolling sum;
+$\bar{x}_W$: rolling mean over $W$ events;
+$V^B_W$, $V^S_W$: rolling buy/sell volume over $W$ events;
+$L$: odd-lot size threshold (100 shares);
+$Q$: notional or size threshold;
+$h_t$: hour of day (0–23);
+$\Delta t_{\text{ns}}$: inter-event time in nanoseconds;
+$\mathbf{1}[\cdot]$: indicator function;
+$\hat{\rho}(\cdot,\text{lag}=1)$: sample autocorrelation at lag 1.
+
+```{=latex}
+\begin{landscape}
+```
 
 | Feature | Group | Formula | Param | In model |
 |:--------|:------|:--------|:------|:--------:|
@@ -29,7 +49,7 @@ Notation: $M_t = \tfrac{1}{2}(P^{bid}_0 + P^{ask}_0)$ (mid-price); $S_t = P^{ask
 | `hft_order_count_imbalance` | Imbalance | $(C^{bid}_i-C^{ask}_i)/(C^{bid}_i+C^{ask}_i)$ | $i=0$ | level 0 |
 | `hft_microprice` | Fair value | $(V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0)/(V^{bid}_0+V^{ask}_0)$ | --- | ✓ |
 | `hft_microprice_divergence` | Fair value | Microprice $- M_t$ | --- | ✓ |
-| `hft_vwmp_skew` | Fair value | $(\overline{P}^{vw}_N - M_t)/S_t$; $\overline{P}^{vw}_N = \frac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ | $N=3$ | ✓ |
+| `hft_vwmp_skew` | Fair value | $(\bar{P}^{vw}_N - M_t)/S_t$; $\bar{P}^{vw}_N = \frac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ | $N=3$ | ✓ |
 | `hft_price_vamp` | Fair value | Avg. execution price for fixed-notional order walked through $N$ levels | $Q\in\{1k,5k\}$ | |
 | `hft_depth_ratio` | Depth | $(V^{bid}_0+V^{ask}_0)\,/\,\sum_{i=1}^{N}(V^{bid}_i+V^{ask}_i)$ | $N=4$ | |
 | `hft_spread_bps` | Spread/cost | $(P^{ask}_0-P^{bid}_0)/M_t \times 10{,}000$ | --- | ✓ |
@@ -40,16 +60,16 @@ Notation: $M_t = \tfrac{1}{2}(P^{bid}_0 + P^{ask}_0)$ (mid-price); $S_t = P^{ask
 | `hft_ask_slope` | Spread/cost | $(P^{ask}_4-P^{ask}_0)\,/\,\sum_{i<5}V^{ask}_i$ | 5 levels | ✓ |
 | `hft_ofi` | Order flow | $\Delta V^{bid}_t\cdot\mathbf{1}[P^{bid}_{0,t}\geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t\cdot\mathbf{1}[P^{ask}_{0,t}\leq P^{ask}_{0,t-1}]$ | --- | ✓ |
 | `hft_ofi_rolling` | Order flow | $\Sigma_W\,\text{OFI}_t$ | $W=50$ | $W=50$ |
-| `hft_ofi_multilevel` | Order flow | $\sum_{i<N}\text{OFI}^{(i)}_t$ (Cont et al. event classification applied at each level $i$) | $N\in\{3,5\}$ | |
+| `hft_ofi_multilevel` | Order flow | $\sum_{i<N}\text{OFI}^{(i)}_t$ (Cont et al. event classification at each level $i$) | $N\in\{3,5\}$ | |
 | `hft_bid_queue_depletion` | Order flow | $\max(V^{bid}_{0,t-1}-V^{bid}_{0,t},\,0)\,/\,V^{bid}_{0,t-1}$ | bid | ✓ |
 | `hft_ask_queue_depletion` | Order flow | $\max(V^{ask}_{0,t-1}-V^{ask}_{0,t},\,0)\,/\,V^{ask}_{0,t-1}$ | ask | ✓ |
-| `hft_signed_trade_flow` | Order flow | $\Sigma_W\,\text{size}_\tau\cdot(\mathbf{1}[\text{side}=B]-\mathbf{1}[\text{side}=A])$ | $W=50$ | $W=50$ |
-| `hft_odd_lot_trade_ratio` | Order flow | $\Sigma_W\,\mathbf{1}[\text{trade}\wedge\text{size}<L]\,/\,\Sigma_W\,\mathbf{1}[\text{trade}]$, $L=100$ | $W=200$ | ✓ |
-| `hft_odd_lot_imbalance` | Order flow | $(B^{odd}_W-S^{odd}_W)/(B^{odd}_W+S^{odd}_W)$; odd-lot buy/sell vol., size $<L=100$ | $W=200$ | ✓ |
-| `hft_vpin` | Order flow | $|B_W-S_W|/(B_W+S_W)$; $B_W,S_W$ rolling buy/sell volume | $W\in\{100,500\}$ | |
+| `hft_signed_trade_flow` | Order flow | $\Sigma_W\,\text{size}_\tau\cdot(\mathbf{1}[\text{side}_\tau=B]-\mathbf{1}[\text{side}_\tau=A])$ | $W=50$ | $W=50$ |
+| `hft_odd_lot_trade_ratio` | Order flow | $\Sigma_W\,\mathbf{1}[\text{trade}\wedge\text{size}<L]\,/\,\Sigma_W\,\mathbf{1}[\text{trade}]$ | $W=200$ | ✓ |
+| `hft_odd_lot_imbalance` | Order flow | $(V^{B,odd}_W-V^{S,odd}_W)/(V^{B,odd}_W+V^{S,odd}_W)$; odd-lot buy/sell vol., size $<L$ | $W=200$ | ✓ |
+| `hft_vpin` | Order flow | $|V^B_W-V^S_W|\,/\,(V^B_W+V^S_W)$ | $W\in\{100,500\}$ | |
 | `hft_cancel_to_trade` | Order flow | $\Sigma_W\,\mathbf{1}[\text{action}=C]\,/\,\Sigma_W\,\mathbf{1}[\text{action}=T]$ | $W\in\{200,1000\}$ | |
 | `hft_trade_arrival_rate` | Order flow | $\Sigma_W\,\mathbf{1}[\text{action}=T]$ | $W\in\{100,500\}$ | |
-| `hft_large_trade_ratio` | Order flow | $\Sigma_W\,\mathbf{1}[\text{trade}\wedge\text{size}\geq Q]\,/\,\Sigma_W\,\mathbf{1}[\text{trade}]$, $Q=500$ | $W=200$ | |
+| `hft_large_trade_ratio` | Order flow | $\Sigma_W\,\mathbf{1}[\text{trade}\wedge\text{size}\geq Q]\,/\,\Sigma_W\,\mathbf{1}[\text{trade}]$ | $W=200$ | |
 | `hft_ofi_autocorr` | Order flow | $\hat{\rho}(\text{OFI}_{t-W:t},\,\text{lag}=1)$ | $W\in\{50,200\}$ | |
 | `hft_inter_event_time` | Regime/temp. | $\log(1+\Delta t_{\text{ns}})$ | --- | ✓ |
 | `hft_mid_price_acceleration` | Regime/temp. | $M_t-2M_{t-1}+M_{t-2}$ | --- | ✓ |
@@ -57,6 +77,10 @@ Notation: $M_t = \tfrac{1}{2}(P^{bid}_0 + P^{ask}_0)$ (mid-price); $S_t = P^{ask
 | `hft_hour_cos` | Regime/temp. | $\cos(2\pi h_t/24)$ | --- | ✓ |
 
 : Full LOB feature registry with formulas. {#tbl-lob-features longtable=true tbl-colwidths="[22,12,44,12,10]"}
+
+```{=latex}
+\end{landscape}
+```
 
 ---
 

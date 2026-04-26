@@ -66,8 +66,6 @@ an order-book event with multi-level bid/ask prices, sizes, and order counts,
 plus trade descriptors used for order-flow features. The core column groups
 are summarized below.
 
-Table: Input schema used in the empirical pipeline
-
 | Column group | Description | Role |
 |---|---|---|
 | `timestamp` | Chronological event index | Ordering, temporal features |
@@ -76,6 +74,8 @@ Table: Input schema used in the empirical pipeline
 | `bid_ct_NN`, `ask_ct_NN` | Order count at level `NN` | Order count imbalance |
 | `action`, `side`, `size` | Event type, aggressor side, size | Signed trade flow features |
 | `close` (auxiliary) | Mid-price-like pricing series | Reward and portfolio valuation |
+
+: Input schema used in the empirical pipeline. `NN` denotes the zero-indexed book level (00–09). {#tbl-input-schema}
 
 ### Preprocessing and Splitting
 
