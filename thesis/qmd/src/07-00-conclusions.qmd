@@ -53,7 +53,27 @@ periods, including different volatility and liquidity regimes, with multi-seed
 reporting to separate genuine policy quality from favorable initialization.
 Natural model extensions include richer agent-state variables, broader
 cross-asset information, and comparisons with alternative actor-critic or
-sequence-model architectures. Taken together, these extensions would test
+sequence-model architectures.
+
+A separate and underexplored direction concerns instrument selection. This
+thesis deliberately chose highly liquid large-cap equities to make the
+price-taking assumption defensible: in deep, continuously quoted markets,
+simulated agent trades represent a negligible fraction of displayed volume.
+The cost of that choice is that microstructure signals in these instruments
+are competed away rapidly by a large population of sophisticated participants,
+compressing the persistence of any learnable pattern. Assets with intermediate
+liquidity — sufficiently active to generate a rich and informative order book,
+but not so deep that every microstructure pattern is immediately arbitraged —
+may offer more persistent alphas for an RL agent to learn on. Instruments such
+as mid-cap equities, exchange-traded products with moderate average daily
+volume, or less-covered international equities are plausible candidates. The
+trade-off is that lower liquidity also amplifies market impact and widens
+effective execution costs, which would require explicit impact modelling rather
+than the price-taking simplification used here. Exploring this liquidity
+spectrum is therefore a meaningful direction for future work, provided that the
+simulation assumptions are updated accordingly.
+
+Taken together, these extensions would test
 whether the feasibility result established here survives under more realistic
 conditions.
 
