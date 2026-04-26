@@ -44,8 +44,11 @@ experiments.
 not to move quoted prices, consume displayed depth, or alter subsequent order-book
 states. The environment therefore treats the agent as price-taking rather than
 market-shaping. This is defensible only while position sizes remain small
-relative to displayed order-book depth, which is the case for the MBP-10
-dataset used here.
+relative to displayed order-book depth, which holds for the MBP-10 dataset
+used here: all four instruments — AAPL, MSFT, TSLA, and NVDA — are
+highly liquid Nasdaq-listed blue-chips with tight spreads, deep displayed
+depth, and continuous two-sided quoting, ensuring that simulated agent
+trades represent a negligible fraction of resting book volume at any level.
 
 **Mid-price execution.** Trades are valued at the mid-price rather than at
 executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
