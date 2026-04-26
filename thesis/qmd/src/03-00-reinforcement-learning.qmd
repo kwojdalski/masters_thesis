@@ -50,7 +50,7 @@ under a set of explicit simulation assumptions.
 <!-- [VERIFIED] -->
 
 The state $s_t$ is a snapshot of the environment at time $t$ that contains
-sufficient information for the agent to select an action. In the HFT setting of
+sufficient information for the agent to select an action. In the HFT setting,
 the state is a vector of engineered microstructure features derived
 from the limit order book: imbalance measures, spread, order flow signals, and
 temporal encodings. States can be terminal, ending an episode, or
