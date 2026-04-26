@@ -197,34 +197,22 @@ signal from each simulated step than on-policy methods that discard transitions
 after a single gradient update. This constraint disadvantages PPO relative to
 TD3 and DDPG, though it does not determine the choice between them.
 
-Given these two constraints, the choice between TD3, DDPG, and SAC [@Haarnoja2018]
-rests on a design preference rather than a structural requirement: the evaluation
-policy in this thesis is deterministic. This is a choice — SAC, for instance,
-trains a stochastic policy but can be evaluated by taking the mode of the action
-distribution, which effectively recovers a deterministic deployment policy. The
-preference for a natively deterministic actor is motivated by the fact that
-training and evaluation objectives then coincide without approximation: TD3's
-actor is trained to maximize $Q(s, \mu_\theta(s))$ directly, so the policy used
-at evaluation is the same object being optimized throughout training. With a
-stochastic policy evaluated at the mode, there is a gap between the training
-objective (expected return under the distribution) and the evaluation objective
-(return under the mode). In noisy financial environments where the reward signal
-is already weakly informative, introducing this additional mismatch is
-undesirable.
+Given these two constraints, the viable candidates are TD3, DDPG, and SAC
+[@Haarnoja2018]. Among these, DDPG and TD3 are preferred because they use
+natively deterministic policies, which aligns with the evaluation objective of
+a single exposure decision per state and avoids the need to choose between
+sampling from or taking the mode of a stochastic action distribution at
+deployment. SAC is excluded on scope grounds: the thesis compares TD3, DDPG,
+and PPO as representatives of the three algorithmic families described in this
+chapter, and adding SAC as a fourth candidate would require a separate
+hyperparameter search without introducing a qualitatively distinct design point
+relative to the off-policy deterministic family already covered by TD3 and DDPG.
 
-Among algorithms that satisfy all three criteria — continuous actions,
-replay-based learning, and a natively deterministic policy — DDPG and TD3
-are the only candidates. TD3 is preferred over DDPG because it was
+Among the two remaining candidates, TD3 is preferred over DDPG because it was
 introduced precisely to correct DDPG's two main failure modes: critic
 overestimation and policy-update instability from premature actor updates. Both
 failure modes are expected to be acute when rewards are noisy and the critic
-must separate genuine market signal from approximation artifacts. SAC is
-excluded not because its stochastic training objective is theoretically inferior
-but for scope: the thesis compares TD3, DDPG, and PPO as representatives of the
-three algorithmic families described in this chapter, and adding a fourth
-candidate would require a separate hyperparameter search without introducing a
-qualitatively distinct design point, since DDPG and TD3 already cover the
-off-policy deterministic family.
+must separate genuine market signal from approximation artifacts.
 
 TD3 is therefore not chosen as a generally superior trading method; it is chosen
 as the algorithm whose structural properties — off-policy replay, deterministic
