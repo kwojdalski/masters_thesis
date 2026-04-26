@@ -26,7 +26,10 @@ from thesis_mlflow_results import (
 
 
 def display_table(frame: pd.DataFrame) -> None:
-    display(frame.style.hide(axis="index"))
+    try:
+        display(frame.style.hide(axis="index"))
+    except AttributeError:
+        display(frame)
 
 
 EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
