@@ -193,9 +193,12 @@ collection is outside the scope of the thesis.
 
 This selection does not imply that TD3 dominates all alternatives. SAC
 [@Haarnoja2018] is a strong continuous-control alternative because its stochastic
-policy and maximum-entropy objective can improve exploration, but it optimizes
-an entropy-regularized criterion rather than the deterministic exposure policy
-evaluated here. PPO is often robust in practice, but its on-policy updates are
+policy and maximum-entropy objective can improve exploration. It is excluded from
+the empirical comparison not on theoretical grounds but for reasons of scope: the
+thesis compares TD3, DDPG, and PPO as representatives of the three algorithmic
+families described in this chapter, and adding SAC would require a fourth
+hyperparameter search without adding a qualitatively distinct design point given
+that DDPG and TD3 already cover the off-policy deterministic family. PPO is often robust in practice, but its on-policy updates are
 less aligned with replay-based learning from a fixed historical simulation. DDPG
 is the closest baseline conceptually, but TD3 was introduced precisely to reduce
 DDPG's overestimation and policy-update instability. TD3 is therefore not chosen
