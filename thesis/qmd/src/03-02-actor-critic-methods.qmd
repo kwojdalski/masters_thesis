@@ -1,8 +1,8 @@
 ## Actor-Critic Methods for Continuous Control [VERIFIED] {#sec-td3-lineage}
 <!-- [VERIFIED] -->
 
-The development of reinforcement learning algorithms is a series of conceptual breaks
-, each motivated by a limitation in the preceding framework. 
+The development of reinforcement learning algorithms is a series of conceptual breaks,
+each motivated by a limitation in the preceding framework.
 This section traces the specific
 lineage that leads to the Twin Delayed Deep Deterministic Policy Gradient (TD3)
 algorithm, which is employed here. The survey is not exhaustive; it
@@ -42,8 +42,9 @@ portfolio settings.
 
 A distinct class of algorithms avoids the maximization problem by
 parameterizing the policy directly and optimizing it through gradient ascent on
-expected cumulative reward. The foundational result, REINFORCE [@Williams1992],
-uses Monte Carlo estimates of the policy gradient:
+expected cumulative reward. The foundational result is due to @Williams1992, who
+introduced REINFORCE, and @Sutton2000, who established the policy gradient
+theorem in the general function approximation setting. The gradient takes the form:
 
 $$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t | s_t) \cdot G_t\right]$$ {#eq-reinforce-gradient}
 
