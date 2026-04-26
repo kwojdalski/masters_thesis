@@ -98,9 +98,9 @@ weakly informative.
 ### PPO: On-Policy Actor-Critic with Clipped Objectives [VERIFIED]
 <!-- [VERIFIED] -->
 
-@Schulman2017 introduced Proximal Policy Optimization (PPO), which balances
-the sample efficiency of off-policy methods with the stability of on-policy
-updates. PPO optimizes a clipped surrogate objective:
+@Schulman2017 introduced Proximal Policy Optimization (PPO), an on-policy
+algorithm that balances the size of each policy update against training
+stability. PPO optimizes a clipped surrogate objective:
 
 $$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(r_t(\theta)\hat{A}_t,
 \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$ {#eq-ppo-clip}
