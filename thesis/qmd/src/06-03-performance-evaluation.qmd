@@ -100,12 +100,12 @@ if benchmark_df is None or benchmark_df.empty:
         ("Random", "0.01%", "0.80%", "16.80%", "0.0500", "0.0600", "-0.43%", "50.10%", "0.9800"),
     ], columns=[
         "Strategy",
-        "Total Return",
-        "Annualized Return (CAGR)",
-        "Annualized Volatility",
-        "Sharpe Ratio",
-        "Sortino Ratio",
-        "Max Drawdown",
+        "TR",
+        "CAGR",
+        "Volatility",
+        "SR",
+        "Sortino",
+        "Max DD",
         "Win Rate",
         "Turnover",
     ])
