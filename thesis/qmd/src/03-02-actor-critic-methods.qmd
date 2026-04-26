@@ -73,7 +73,8 @@ $$\nabla_\theta J(\theta) = \mathbb{E}_s\left[\nabla_a Q_\phi(s, a)\big|_{a=\mu_
 
 DDPG inherits the experience replay and target network mechanisms from DQN,
 making it an off-policy algorithm and therefore sample-efficient. However,
-empirical studies consistently report two failure modes in DDPG. First, the
+@Fujimoto2018 identify two failure modes in DDPG, both corroborated by
+independent reproducibility studies [@Henderson2018]. First, the
 critic tends to overestimate action values because actor optimization can exploit
 positive approximation errors in the critic, and bootstrapped targets can
 propagate those overestimated values through subsequent updates. Overestimated
@@ -169,7 +170,7 @@ execution assumption; it should not be interpreted as evidence that the agent ha
 observed all counterfactual market reactions to alternative trades.
 
 TD3 is selected as the main algorithm because it matches four requirements of
-the empirical design. First, the action is a continuous target exposure in
+the thesis design. First, the action is a continuous target exposure in
 $[-1,1]$, so discretized value-based methods such as DQN would require an
 arbitrary action grid and would make position sizing a modelling artifact.
 Second, the evaluation policy is deterministic, so a deterministic actor provides
@@ -257,17 +258,19 @@ candidate.
 
 **Table: Algorithm Properties for Trading Applications**
 
-| Property | DDPG | TD3 | PPO |
+| Property | PPO | DDPG | TD3 |
 |----------|------|-----|-----|
-| **Policy Type** | Deterministic | Deterministic | Stochastic |
-| **Learning Paradigm** | Off-policy (replay) | Off-policy (replay) | On-policy |
-| **Exploration Mechanism** | Action noise | Action noise + smoothing | Entropy bonus |
-| **Stability Mechanism** | Prone to overestimation | Double Q + delayed updates | Clipped objective |
-| **Sample Efficiency** | High | High | Moderate |
-| **Training Stability** | Low | High | High |
-| **Hyperparameter Sensitivity** | High | Moderate | Low |
-| **Suitability for Limited Data** | High | High | Lower |
-| **Interpretability** | High (deterministic) | High (deterministic) | Lower (stochastic) |
+| **Policy Type** | Stochastic | Deterministic | Deterministic |
+| **Learning Paradigm** | On-policy | Off-policy (replay) | Off-policy (replay) |
+| **Exploration Mechanism** | Entropy bonus | Action noise | Action noise + smoothing |
+| **Stability Mechanism** | Clipped objective | Prone to overestimation | Double Q + delayed updates |
+| **Sample Efficiency** | Moderate | High | High |
+| **Training Stability** | High | Low | High |
+| **Hyperparameter Sensitivity** | Low | High | Moderate |
+| **Suitability for Limited Data** | Lower | High | High |
+| **Interpretability** | Lower (stochastic) | High (deterministic) | High (deterministic) |
+
+*This table represents the author's own synthesis based on the algorithmic properties described in the cited papers.*
 
 This comparison framework guides the experimental design in Chapter 6, where
 TD3, PPO, and DDPG are evaluated on identical trading tasks to empirically
