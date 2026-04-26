@@ -75,7 +75,9 @@ are summarized below.
 | `action`, `side`, `size` | Event type, aggressor side, size | Signed trade flow features |
 | `close` (auxiliary) | Mid-price-like pricing series | Reward and portfolio valuation |
 
-: Input schema used in the empirical pipeline. `NN` denotes the zero-indexed book level (00–09). {#tbl-input-schema}
+: Input schema used in the empirical pipeline. {#tbl-input-schema}
+
+*`NN` denotes the zero-indexed book level (00–09).*
 
 ### Preprocessing and Splitting
 
