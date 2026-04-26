@@ -13,7 +13,7 @@ continuous-action, single-asset trading problem formulated in Chapter 4.
 <!-- [VERIFIED] -->
 
 The foundational algorithms of the field — Q-learning [@Watkins1992] and its
-on-policy variant SARSA [@Rummery1994] — operate over tabular representations
+on-policy variant SARSA [@Sutton2018] — operate over tabular representations
 of state-action value functions. Both methods converge to the optimal policy
 under mild conditions, but only when the state-action space is small enough to
 enumerate explicitly. In a trading context with continuous price-derived
