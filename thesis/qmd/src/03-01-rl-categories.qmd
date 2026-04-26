@@ -2,6 +2,52 @@
 ## Classifying RL Algorithms [VERIFIED]
 <!-- [VERIFIED] -->
 
+The diagram below maps the reinforcement learning landscape from the Bellman
+equation through the key algorithmic relaxations that lead to TD3. It is
+intended as an orientation before the detailed treatment that follows.
+
+```{=latex}
+\begin{center}
+```
+
+```{mermaid}
+%%| fig-align: center
+%%| fig-width: 6.4
+%%| fig-height: 8.1
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
+graph TD
+    A[MDP] -->|Solution| B(Bellman Equation)
+    B --> C{Known model?}
+    C -->|Yes| D[Dynamic Programming]
+    C -->|No| E[Reinforcement Learning]
+    E --> F{Value estimation?}
+    F -->|Full episode| G[Monte Carlo]
+    F -->|Bootstrap| H[Temporal Difference<br/>SARSA / Q-Learning]
+    E --> I{State space?}
+    I -->|Small / Discrete| J[Tabular Methods]
+    I -->|Large / Continuous| K[Function Approximation<br/>Deep RL]
+    K --> L{Action space?}
+    L -->|Discrete| M[Value-Based<br/>DQN / Rainbow]
+    L -->|Continuous| N[Policy-Based<br/>REINFORCE / PPO]
+    L -->|Either| O[Actor-Critic]
+    O --> O1{On/Off-Policy?}
+    O1 -->|On-Policy| O2[A2C / PPO]
+    O1 -->|Off-Policy| O3[DDPG / TD3 / SAC]
+    O3 --> O4{Policy type?}
+    O4 -->|Deterministic| O5[DDPG]
+    O4 -->|Twin critics +<br/>delayed updates| O6[TD3 — This Thesis]
+    O4 -->|Max entropy| O7[SAC]
+    E --> P{Sample efficiency?}
+    P -->|Need planning| Q[Model-Based RL<br/>Dyna-Q / Dreamer]
+    P -->|Model-free OK| R[Model-Free RL]
+```
+
+```{=latex}
+\end{center}
+```
+
+*Figure: RL algorithm taxonomy from Bellman equation to TD3. Source: author's own diagram, based on @Sutton2018.*
+
 ### Model-free vs Model-based [VERIFIED]
 <!-- [VERIFIED] -->
 
