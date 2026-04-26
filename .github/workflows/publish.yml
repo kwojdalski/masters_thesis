@@ -55,7 +55,7 @@ jobs:
 
       - name: Install Python dependencies for code execution
         run: |
-          pip install pandas numpy matplotlib pillow ipython jupyter scipy scikit-learn
+          pip install pandas numpy matplotlib pillow ipython jupyter scipy scikit-learn jinja2
 
       - name: Render thesis to HTML
         run: |
