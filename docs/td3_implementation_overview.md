@@ -142,10 +142,10 @@ $$
 \bar\theta \leftarrow \tau \theta + (1-\tau)\bar\theta
 $$
 
-## Main Experiment Configuration
+## Reference Configuration
 
-The primary AAPL scenario is `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`.
-Key hyperparameters used in the thesis comparison:
+A reference AAPL scenario is provided at `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`.
+Key hyperparameters used in the comparison:
 
 | Parameter | Value |
 |-----------|-------|

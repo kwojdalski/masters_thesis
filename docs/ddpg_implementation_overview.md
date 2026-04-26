@@ -153,15 +153,15 @@ $$
 \bar\theta \leftarrow \tau \theta + (1-\tau)\bar\theta
 $$
 
-## Role in the Thesis Comparison
+## Role as Ablation Baseline
 
-DDPG is the **ablation baseline for TD3**. The actor architecture is identical: a two-hidden-layer MLP with dims `[128, 64]`, ReLU activations, and Tanh output. The differences from TD3 are purely in the training procedure:
+DDPG is the ablation baseline for TD3. The actor architecture is identical: a two-hidden-layer MLP with dims `[128, 64]`, ReLU activations, and Tanh output. The differences from TD3 are purely in the training procedure:
 
 - Single critic (no twin networks → no conservative Q-target)
 - No delayed actor updates (actor and critic update simultaneously)
 - No target policy smoothing (no noise added to target actions during critic update)
 
-This makes DDPG the cleanest way to isolate the effect of TD3's three stability mechanisms. The AAPL scenario file for the comparison is `src/configs/scenarios/aapl/ddpg_hft_lob_state_space.yaml`, which is identical to the TD3 scenario on every controlled variable (data, features, capacity, seed, learning rates).
+This makes DDPG the cleanest way to isolate the effect of TD3's three stability mechanisms. A reference AAPL scenario file is `src/configs/scenarios/aapl/ddpg_hft_lob_state_space.yaml`, which matches the TD3 scenario on every controlled variable (data, features, capacity, seed, learning rates).
 
 ## Components
 - **CLI + configs**: scenario/config selection and optional data generation.

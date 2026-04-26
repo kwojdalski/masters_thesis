@@ -288,10 +288,10 @@ TD3 doesn't use advantages because:
 
 ## Technical Comparison
 
-All three algorithms are evaluated in the main AAPL experiment with equalized network
-capacity — actor and critic hidden dims `[128, 64]` for all — so that performance
-differences reflect algorithm properties, not model size. See the scenario files under
-`src/configs/scenarios/aapl/`.
+The three algorithms are evaluated with equalized network capacity — actor and critic
+hidden dims `[128, 64]` for all — so that performance differences reflect algorithm
+properties, not model size. See the scenario files under `src/configs/scenarios/aapl/`
+for reference configurations.
 
 | Aspect | DDPG | TD3 | PPO |
 |--------|------|-----|-----|
@@ -308,9 +308,9 @@ differences reflect algorithm properties, not model size. See the scenario files
 | **Stability** | Prone to Q-overestimation | Conservative Q-targets via min | Clipped objective |
 | **Sample efficiency** | High | High | Lower |
 
-## Role in the Experiment
+## Role in Algorithm Comparison
 
-- **TD3**: Primary algorithm. Chosen for continuous-action, deterministic-policy, replay-based HFT simulation.
+- **TD3**: Primary algorithm for continuous-action, deterministic-policy, replay-based HFT simulation.
 - **DDPG**: Ablation baseline for TD3. Identical actor architecture; removes twin critics, delayed updates, and target smoothing. Isolates the effect of TD3's stability mechanisms.
 - **PPO**: Algorithm-class baseline. Tests whether on-policy stability compensates for lower sample efficiency on limited HFT data.
 

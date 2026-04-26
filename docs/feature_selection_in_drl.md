@@ -7,7 +7,7 @@ This note summarizes how the DRL trading literature typically chooses input vari
 - what variables are included,
 - how authors justify them,
 - whether formal feature selection is used,
-- and what process is most defensible for this thesis project.
+- and what process is most defensible for this project.
 
 In most papers, "feature selection" is really "state design" for an MDP/POMDP, not a classical supervised-learning feature-selection pipeline.
 
@@ -276,7 +276,7 @@ Many papers do not:
 
 This is a major methodological weakness in parts of the DRL trading literature.
 
-## Practical Guidance for This Thesis / Project
+## Practical Guidance for This Project
 
 A defensible feature-selection process for this codebase should be:
 
@@ -337,9 +337,9 @@ At minimum, report:
 - performance dispersion across seeds,
 - robustness across splits/regimes.
 
-## Suggested Thesis Framing (Optional)
+## Suggested Framing (Optional)
 
-A strong way to describe feature selection in the thesis:
+A strong way to describe feature selection:
 
 "Feature selection is treated as state-space design under an MDP formulation. Candidate variables are chosen from financial domain knowledge and agent-state requirements, then validated through grouped ablation studies under leakage-safe temporal splits."
 
@@ -363,4 +363,4 @@ Useful additions later:
 
 - a comparison table (`paper | task | state variables | selection method | ablation? | leakage controls?`)
 - explicit mapping from this literature review to the feature sets in `src/configs/scenarios/*.yaml`
-- a thesis-ready subsection with formal citations in the project's chosen bibliography style
+- a report-ready subsection with formal citations in the project's chosen bibliography style

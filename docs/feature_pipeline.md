@@ -32,7 +32,7 @@ flowchart TD
 
 ## Feature Group Composition
 
-Features are organized into semantic groups matching the thesis state-space design (Chapter 4, Section 4.2):
+Features are organized into semantic groups matching the HFT state-space design:
 
 | Group | Description | Features |
 |-------|-------------|----------|
