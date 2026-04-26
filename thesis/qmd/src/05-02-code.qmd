@@ -1,25 +1,26 @@
 ## Implementation and Training Pipeline
 
-### Configuration-Driven Design
+### Experiment Specification Design
 
-Each experiment is fully specified by an external YAML scenario file covering
-data paths, feature subsets, reward type, environment settings, and
-optimization hyperparameters. No source-code changes are required to switch
-between experimental variants. A pre-training validation stage checks path
-availability, feature definitions, split feasibility, and column compatibility
-before any computation begins, preventing wasted runs from misconfigured
-experiments. A condensed example configuration is provided in Appendix C.
+Each experiment is fully specified by a structured set of inputs covering the
+dataset, feature subset, reward type, environment settings, and optimization
+hyperparameters. No source-code changes are required to switch between
+experimental variants. A pre-training validation stage checks path availability,
+feature definitions, split feasibility, and column compatibility before any
+computation begins, preventing wasted runs from invalid experimental
+specifications. A condensed summary of the main specification is provided in
+Appendix C.
 
 ### Feature Pipeline
 
-Feature engineering is registry-driven: feature names in the scenario file
-resolve to computation functions, allowing scenario-level composition without
-editing training code. This design is central to systematic feature subset
-comparisons. Normalization parameters are estimated on the training split only
-for non-causal scalers. For the main HFT experiment, features use causal
-running normalization: each split is transformed chronologically, and the
-normalization state is reset at detected session boundaries. This preserves
-causal integrity across both time and the chronological split.
+Feature engineering is registry-driven: feature names resolve to computation
+functions, allowing feature-set composition without editing training code. This
+design is central to systematic feature subset comparisons. Normalization
+parameters are estimated on the training split only for non-causal scalers. For
+the main HFT experiment, features use causal running normalization: each split
+is transformed chronologically, and the normalization state is reset at detected
+session boundaries. This preserves causal integrity across both time and the
+chronological split.
 
 ### Training Loop
 
@@ -46,10 +47,10 @@ entropy bonuses rather than explicit noise injection.
 \begin{algorithm}
 \caption{TD3 Trading Experiment Workflow}
 \begin{algorithmic}[1]
-\Require Experiment configuration (data path, feature set, hyperparameters)
+\Require Experiment specification (dataset, feature set, hyperparameters)
 \Ensure Trained policy $\mu_\theta$, evaluation metrics
 
-\State Load and validate configuration; check paths and split feasibility
+\State Load and validate experiment specification; check paths and split feasibility
 \State Load L3 order book dataset; sort chronologically
 \State Split data into train / validation / test subsets (chronological)
 \State Initialise and validate feature pipeline on training split

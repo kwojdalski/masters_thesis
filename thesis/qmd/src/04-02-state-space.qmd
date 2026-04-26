@@ -223,7 +223,7 @@ representation both simpler and better matched to the actual distribution.]
 
 The complete observation vector $s_t \in \mathbb{R}^d$ is formed by concatenating
 all engineered features. The exact dimensionality $d$ is scenario-dependent and
-specified in the configuration files governing each experiment.
+specified by the feature set used in each experiment.
 
 All features except cyclical time encodings and the position feature are
 standardized with causal running statistics:
@@ -311,13 +311,13 @@ Theory answers: which mechanisms belong in the state space? IC/ICIR answers:
 among the available implementations of those mechanisms, which combinations
 contribute distinct signal?
 
-The selection is operationalized through a registry-driven configuration pipeline.
-Feature names defined in the scenario YAML file resolve to computation functions
-in the feature registry at runtime; adding, removing, or reordering features
-requires only a change to the configuration file, not to source code. The active
-feature set for the main experiment is defined in
-`src/configs/features/hft_lob_features_causal.yaml` and referenced by the
-scenario file `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`.
+The selection is operationalized through a registry-driven feature pipeline.
+Feature names resolve to computation functions at runtime; adding, removing, or
+reordering features therefore changes the experimental specification without
+rewriting the feature implementations. The active feature set for the main
+experiment is the causal LOB set summarized in Appendix A: imbalance, fair-value,
+spread and cost, order-flow, and regime features derived from the ten-level
+order book.
 
 The final state vector has dimensionality $d = 26$: 25 LOB-derived features
 across five groups (5 imbalance, 3 fair value, 6 spread and cost, 7 order flow,

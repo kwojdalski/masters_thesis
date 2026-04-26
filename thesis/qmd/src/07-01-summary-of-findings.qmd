@@ -41,7 +41,7 @@ policy.
 specification, reward design, and transaction-cost assumptions.** The
 robustness analysis confirms this hypothesis as well, and in doing so it
 clarifies what drives the performance advantage described above. Feature
-specification was the dominant determinant of policy quality: configurations
+specification was the dominant determinant of policy quality: setups
 using only snapshot-level quantities produced weaker and less stable policies
 than those using the full microstructure-aware feature set. The choice of reward
 function also mattered: the Differential Sharpe Ratio reward produced more

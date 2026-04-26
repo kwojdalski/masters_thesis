@@ -123,13 +123,8 @@ three algorithms. This ensures that differences in empirical performance in Chap
 are attributable to the algorithmic properties — policy type, update rule, and
 stability mechanisms — and not to differences in model capacity or input features.
 
-The three scenario configuration files are:
-
-- `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`
-- `src/configs/scenarios/aapl/ddpg_hft_lob_state_space.yaml`
-- `src/configs/scenarios/aapl/ppo_hft_lob_state_space.yaml`
-
-The table below summarizes the policy-level design choices for each algorithm.
+The table below summarizes the policy-level design choices for each algorithm in
+the controlled comparison.
 
 | Property | DDPG | TD3 | PPO |
 |---|---|---|---|

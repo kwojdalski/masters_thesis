@@ -398,7 +398,7 @@ Benchmarks:
 Consider the canonical Tic Tac Toe game as an example. A conventional
 approach to policy optimization for maximizing win probability would require
 defining a deterministic policy across $3^9$ possible states (acknowledging some
-configurations are infeasible). The factor $3$ represents the three possible cell
+states are infeasible). The factor $3$ represents the three possible cell
 states (player X, player O, or empty), while $9$ corresponds to the standard
 $3\times3$ matrix. This deterministic approach presents challenges in
 implementation robustness and generalizability. Reinforcement learning offers an

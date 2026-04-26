@@ -88,7 +88,7 @@ The dataset is then split chronologically into training, validation, and test
 subsets. Shuffling is not used because it would destroy temporal structure
 and introduce information from future periods into earlier training samples.
 The training split is used to fit model parameters; the validation split
-supports configuration comparison and development diagnostics; the test split
+supports model comparison and development diagnostics; the test split
 is reserved for final out-of-sample reporting and does not influence any
 model selection decisions.
 

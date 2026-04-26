@@ -23,9 +23,9 @@ reward formulation, and the main policy and value-function design choices used
 in the empirical system.
 
 Chapter 5 describes the implementation of the research pipeline, including the
-simulation architecture, data preparation, configuration-driven feature
-engineering, code structure, and the TD3-based training workflow used to
-produce reproducible experiments.
+simulation architecture, data preparation, reproducible feature engineering,
+code structure, and the TD3-based training workflow used to produce
+reproducible experiments.
 
 Chapter 6 reports the empirical results. It combines experiment snapshots,
 performance evaluation, statistical validation, and robustness assessment to
