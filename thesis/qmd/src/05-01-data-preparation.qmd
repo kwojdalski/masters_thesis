@@ -146,7 +146,7 @@ $$
 s^{2,\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{time}}_t)^2}{\sum_{i=1}^t \Delta t_i}
 $$ {#eq-tw-var}
 
-When the time weights sum to the total elapsed time, the normalized value reflects the feature's deviation relative to its time-averaged trajectory rather than its average across discrete events. For the main experiments, event-based weighting is used as the default, matching the standard approach in the RL literature (e.g., Stable Baselines3, Ray RLLib). Sensitivity analysis with time-weighted normalization could be conducted as a direction for future work.
+When the time weights sum to the total elapsed time, the normalized value reflects the feature's deviation relative to its time-averaged trajectory rather than its average across discrete events. For the main experiments, event-based weighting is used as the default, matching the standard approach in the RL literature [e.g., @Raffin2021; @Liang2018RLlib]. Sensitivity analysis with time-weighted normalization could be conducted as a direction for future work.
 
 #### Split-Specific Statistics and Leakage Prevention
 
