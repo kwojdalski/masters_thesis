@@ -137,9 +137,9 @@ $$
 L(\theta,\phi) = L^{\text{CLIP}}(\theta) - c_1 L^{V}(\phi) + c_2 L^{H}(\theta)
 $$
 
-## Role in the Thesis Comparison
+## Role as Algorithm-Class Baseline
 
-PPO is the **algorithm-class baseline**: it tests whether on-policy stability compensates for lower sample efficiency on limited HFT data. The AAPL scenario file is `src/configs/scenarios/aapl/ppo_hft_lob_state_space.yaml`.
+PPO is the algorithm-class baseline: it tests whether on-policy stability compensates for lower sample efficiency on limited HFT data. A reference AAPL scenario file is `src/configs/scenarios/aapl/ppo_hft_lob_state_space.yaml`.
 
 Network capacity is equalized with TD3 and DDPG for a controlled comparison:
 
