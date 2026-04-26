@@ -1,8 +1,8 @@
 ## Implications for This Thesis [VERIFIED]
 <!-- [VERIFIED] -->
 
-The literature reviewed in this chapter motivates the empirical design of the
-thesis along five dimensions. First, market microstructure theory and evidence
+The literature reviewed in this chapter motivates the thesis design along
+five dimensions. First, market microstructure theory and evidence
 support the use of LOB-derived state variables rather than relying only on
 bar-level price summaries. Spread, imbalance, order-flow, fair-value, and
 intraday-regime features each correspond to a distinct mechanism discussed in
