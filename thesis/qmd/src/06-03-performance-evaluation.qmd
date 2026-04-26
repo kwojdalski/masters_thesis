@@ -24,6 +24,11 @@ from thesis_mlflow_results import (
     load_experiment_snapshot,
 )
 
+
+def display_table(frame: pd.DataFrame) -> None:
+    display(frame.style.hide(axis="index"))
+
+
 EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
@@ -58,7 +63,7 @@ if key_metrics_df is None or key_metrics_df.empty:
         ("CVaR (95%)", "-0.0034"),
     ], columns=["Metric", "Value"])
 
-display(key_metrics_df)
+display_table(key_metrics_df)
 ```
 
 ### Benchmark Comparison [PLACEHOLDER]
@@ -98,7 +103,7 @@ if benchmark_df is None or benchmark_df.empty:
         "Turnover",
     ])
 
-display(benchmark_df)
+display_table(benchmark_df)
 ```
 
 ### Evaluation Metadata Snapshot [PLACEHOLDER]
@@ -123,7 +128,7 @@ if finished is not None:
         ("Final Reward (latest metric)", None if latest is None else latest.get("final_reward")),
     ]
     meta_df = pd.DataFrame(rows, columns=["Field", "Value"])
-    display(meta_df)
+    display_table(meta_df)
 ```
 
 ### Evaluation Plots [PLACEHOLDER]
