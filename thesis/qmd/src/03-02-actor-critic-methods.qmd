@@ -124,11 +124,11 @@ For trading applications, PPO's stochastic policy provides built-in exploration
 without requiring explicit noise injection during training, and its clipped
 objective helps avoid catastrophic performance drops that can occur in
 high-variance financial environments. However, its on-policy nature means each
-transition is used only once before being discarded, which is computationally
-expensive when training on limited historical data. This is a particularly
-relevant consideration for high-frequency trading, where the available
-order-book sample may be limited relative to the complexity of the value
-function approximation.
+transition is used only once before being discarded, which requires more
+simulator transitions for comparable learning. In the present thesis, where
+the training window is fixed to a specific historical period, this makes
+on-policy methods less efficient than replay-based alternatives at extracting
+signal from a bounded simulation budget.
 
 ### TD3: Addressing the Instability of Deterministic Actor-Critic Methods [VERIFIED]
 <!-- [VERIFIED] -->
@@ -251,10 +251,10 @@ these differences is a trade-off between sample efficiency and training stabilit
 TD3 and DDPG can make efficient use of limited training data through replay, but
 DDPG's instability can make it difficult to train reliably. PPO is typically more
 stable but requires more data to achieve comparable performance due to its
-on-policy nature. For high-frequency trading applications, where training data
-may be limited but stability is critical for avoiding catastrophic losses, TD3's
-combination of off-policy efficiency and stability mechanisms makes it a strong
-candidate.
+on-policy nature. In the present simulation setup, where the training window is bounded by the
+historical period used, TD3's replay-based learning extracts more signal from
+each transition, making its combination of off-policy efficiency and stability
+mechanisms a strong fit for the thesis design.
 
 **Table: Algorithm Properties for Trading Applications**
 
