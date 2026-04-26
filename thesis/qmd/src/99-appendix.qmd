@@ -399,7 +399,7 @@ The diagram below summarizes the offline feature selection pipeline.
 
 ```{mermaid}
 %%| fig-align: center
-%%| fig-width: 2.75
+%%| fig-width: 1.9
 %%| fig-height: 3.75
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 4, 'useMaxWidth': true}}}%%
 flowchart TD
