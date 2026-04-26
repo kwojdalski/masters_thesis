@@ -182,8 +182,8 @@ to the objective. Third, compared with DDPG, TD3 directly addresses critic
 overestimation and unstable actor updates, both of which are acute when rewards
 are noisy and weakly informative. Fourth, compared with on-policy methods such
 as PPO, TD3 can reuse simulator transitions through replay, which is important
-when the available high-frequency sample is limited and live data collection is
-outside the scope of the thesis.
+when the training window is bounded by a fixed historical period and live data
+collection is outside the scope of the thesis.
 
 This selection does not imply that TD3 dominates all alternatives. SAC
 [@Haarnoja2018] is a strong continuous-control alternative because its stochastic
@@ -217,8 +217,8 @@ interpret empirical comparisons and why TD3 is selected over the alternatives.
 
 **On-policy vs. off-policy learning.** TD3 and DDPG are off-policy algorithms
 that use experience replay, allowing each transition to be reused many times
-across multiple gradient updates. This is valuable when training data is limited,
-as is typical with high-frequency historical order-book data. Replay buffers
+across multiple gradient updates. This is valuable when the simulation budget is bounded,
+as it is in this thesis by the fixed historical training window. Replay buffers
 also decorrelate consecutive transitions, reducing the variance of gradient
 estimates. PPO is on-policy and uses each transition only once before discarding
 it, requiring more training iterations for comparable sample efficiency. However,
