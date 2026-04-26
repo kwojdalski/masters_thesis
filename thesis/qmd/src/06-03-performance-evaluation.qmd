@@ -113,6 +113,8 @@ if benchmark_df is None or benchmark_df.empty:
 display_table(benchmark_df)
 ```
 
+*TR: Total Return. CAGR: Compound Annual Growth Rate. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
+
 ### Evaluation Metadata Snapshot [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
