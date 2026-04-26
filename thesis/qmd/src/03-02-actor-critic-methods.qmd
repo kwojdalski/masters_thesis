@@ -287,8 +287,6 @@ historical period used, TD3's replay-based learning extracts more signal from
 each transition, making its combination of off-policy efficiency and stability
 mechanisms a strong fit for the thesis design.
 
-**Table: Algorithm Properties for Trading Applications**
-
 | Property | PPO | DDPG | TD3 |
 |----------|------|-----|-----|
 | **Policy Type** | Stochastic | Deterministic | Deterministic |
@@ -301,7 +299,7 @@ mechanisms a strong fit for the thesis design.
 | **Suitability for Limited Data** | Lower | Moderate$^a$ | High |
 | **Interpretability** | Lower (stochastic) | High (deterministic) | High (deterministic) |
 
-*This table represents the author's own synthesis based on the algorithmic properties described in the cited papers [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024; @Liu2024dai]. $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited and instability has fewer iterations to self-correct.*
+: Algorithm properties for trading applications. Author's own synthesis based on [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024; @Liu2024dai]. $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited. {#tbl-algo-comparison}
 
 This comparison framework guides the experimental design in Chapter 6, where
 TD3, PPO, and DDPG are evaluated on identical trading tasks to empirically
