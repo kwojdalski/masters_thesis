@@ -45,7 +45,7 @@ parameterizing the policy directly and optimizing it through gradient ascent on
 expected cumulative reward. The foundational result, REINFORCE [@Williams1992],
 uses Monte Carlo estimates of the policy gradient:
 
-$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t | s_t) \cdot G_t\right]$$
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t | s_t) \cdot G_t\right]$$ {#eq-reinforce-gradient}
 
 where $G_t$ is the return from time $t$. While REINFORCE applies naturally to
 continuous action spaces through a parameterized distribution (for example, a
@@ -69,7 +69,7 @@ action spaces. Rather than sampling an action from a distribution, the actor
 outputs a single action $\mu_\theta(s)$ directly. The policy gradient simplifies
 to:
 
-$$\nabla_\theta J(\theta) = \mathbb{E}_s\left[\nabla_a Q_\phi(s, a)\big|_{a=\mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s)\right]$$
+$$\nabla_\theta J(\theta) = \mathbb{E}_s\left[\nabla_a Q_\phi(s, a)\big|_{a=\mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s)\right]$$ {#eq-ddpg-gradient}
 
 DDPG inherits the experience replay and target network mechanisms from DQN,
 making it an off-policy algorithm and therefore sample-efficient. However,
@@ -82,9 +82,11 @@ Q-values then push the policy toward actions that exploit the critic's errors
 rather than the true reward signal. Second, the algorithm is sensitive to the
 relative frequency of actor and critic updates: updating the actor before the
 critic has converged amplifies the overestimation problem. In financial
-environments, where rewards are noisy and non-stationary, these instabilities
-are particularly damaging because the critic cannot distinguish between genuine
-market signal and approximation artifacts.
+environments, where rewards are noisy and non-stationary, one would expect
+these instabilities to be particularly acute: the critic must separate genuine
+market signal from approximation artifacts, and overestimated Q-values provide
+a corrupted learning signal under conditions where the true reward is already
+weakly informative.
 
 ### PPO: On-Policy Actor-Critic with Clipped Objectives [VERIFIED]
 <!-- [VERIFIED] -->
@@ -94,7 +96,7 @@ the sample efficiency of off-policy methods with the stability of on-policy
 updates. PPO optimizes a clipped surrogate objective:
 
 $$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(r_t(\theta)\hat{A}_t,
-\text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$
+\text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$ {#eq-ppo-clip}
 
 where $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ is the
 probability ratio between the new and old policies, $\epsilon$ is a clipping
@@ -115,7 +117,7 @@ actions (typically Gaussian), and actions are sampled from this distribution.
 Exploration is handled naturally through the entropy of the action distribution,
 which can be explicitly encouraged through an entropy bonus term in the objective:
 
-$$L^{CLIP+ENT}(\theta) = L^{CLIP}(\theta) - c_1 \mathcal{H}(\pi_\theta)$$
+$$L^{CLIP+ENT}(\theta) = L^{CLIP}(\theta) - c_1 \mathcal{H}(\pi_\theta)$$ {#eq-ppo-entropy}
 
 where $\mathcal{H}(\pi_\theta)$ is the policy entropy and $c_1$ is a coefficient
 controlling the strength of the exploration bonus.
@@ -140,7 +142,7 @@ proposing three targeted mechanisms.
 $Q_{\phi_2}$ are maintained, and the Bellman target is constructed using the
 minimum of their estimates:
 
-$$y = r + \gamma \min_{i=1,2} Q_{\phi_i'}(s', \tilde{a}')$$
+$$y = r + \gamma \min_{i=1,2} Q_{\phi_i'}(s', \tilde{a}')$$ {#eq-td3-target}
 
 Taking the minimum provides a conservative estimate of target value and
 substantially reduces overestimation bias. This is analogous to the double
@@ -270,10 +272,10 @@ mechanisms a strong fit for the thesis design.
 | **Sample Efficiency** | Moderate | High | High |
 | **Training Stability** | High | Low | High |
 | **Hyperparameter Sensitivity** | Low | High | Moderate |
-| **Suitability for Limited Data** | Lower | High | High |
+| **Suitability for Limited Data** | Lower | Moderate$^a$ | High |
 | **Interpretability** | Lower (stochastic) | High (deterministic) | High (deterministic) |
 
-*This table represents the author's own synthesis based on the algorithmic properties described in the cited papers [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024; @Liu2024dai].*
+*This table represents the author's own synthesis based on the algorithmic properties described in the cited papers [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024; @Liu2024dai]. $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited and instability has fewer iterations to self-correct.*
 
 This comparison framework guides the experimental design in Chapter 6, where
 TD3, PPO, and DDPG are evaluated on identical trading tasks to empirically
