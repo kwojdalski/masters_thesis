@@ -64,13 +64,19 @@ continuous-action algorithms, including TD3.
 ### DDPG: Deterministic Policies for Continuous Control [VERIFIED]
 <!-- [VERIFIED] -->
 
-@Lillicrap2015 introduced Deep Deterministic Policy Gradient (DDPG), which
-extends the actor-critic framework to deterministic policies over continuous
-action spaces. Rather than sampling an action from a distribution, the actor
-outputs a single action $\mu_\theta(s)$ directly. The policy gradient simplifies
-to:
+@Silver2014 established the deterministic policy gradient (DPG) theorem,
+showing that for a deterministic policy $\mu_\theta: \mathcal{S} \rightarrow
+\mathcal{A}$ the policy gradient takes the form:
 
 $$\nabla_\theta J(\theta) = \mathbb{E}_s\left[\nabla_a Q_\phi(s, a)\big|_{a=\mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s)\right]$$ {#eq-ddpg-gradient}
+
+@Lillicrap2015 then introduced Deep Deterministic Policy Gradient (DDPG),
+which applied the DPG theorem to deep neural network function approximators,
+replacing the tabular actor and critic used by @Silver2014 with multi-layer
+networks. Rather than sampling an action from a distribution, the actor
+outputs a single action $\mu_\theta(s)$ directly, making the gradient
+computation tractable over a continuous action space without the intractable
+$\arg\max$ required by value-based methods.
 
 DDPG inherits the experience replay and target network mechanisms from DQN,
 making it an off-policy algorithm and therefore sample-efficient. However,
