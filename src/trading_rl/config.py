@@ -39,6 +39,10 @@ class DataConfig:
     # to reduce memory usage. Set prepared_data_dir to enable caching.
     lazy_load: bool = False
     prepared_data_dir: str | None = None  # Directory for cached prepared splits
+    # Memmap streaming: save per-symbol numpy memmap files so the training
+    # environment loads only one episode window at a time. Set this directory
+    # to enable; StreamingTradingEnv is used automatically when files are found.
+    memmap_dir: str | None = None
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
@@ -66,6 +70,11 @@ class EnvConfig:
     include_position_feature: bool = (
         False  # Append runtime feature_position from TradingEnv broker state
     )
+
+    # Streaming episode length: rows per episode when StreamingTradingEnv is used.
+    # Each reset() loads exactly this many rows from a random position in a random
+    # per-symbol memmap file, so peak memory is episode_length × features × 4 bytes.
+    streaming_episode_length: int = 10_000
 
     # Reward function configuration (all backends)
     reward_type: str = RewardType.LOG_RETURN  # Reward type: "log_return" or "differential_sharpe"

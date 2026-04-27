@@ -1,16 +1,15 @@
-"""Lazy-loading DataFrame for on-demand data access.
-
-Implements DataFrame-like interface but loads from parquet files
-lazily. This keeps memory usage low during training by only
-loading data when accessed.
-"""
+"""Lazy-loading DataFrame and numpy memmap utilities for on-demand data access."""
 
 from __future__ import annotations
 
+import json
 import logging
-import pandas as pd
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -165,3 +164,89 @@ def load_prepared_splits(
 
     logger.info(f"Loaded lazy references for {len(paths)} splits from {output_dir}")
     return paths
+
+
+@dataclass
+class MemmapPaths:
+    """Paths and metadata for a single symbol's memmap training split."""
+
+    data_path: Path   # float32 array, shape (n_rows, n_cols)
+    index_path: Path  # int64 nanosecond timestamps, shape (n_rows,)
+    n_rows: int
+    columns: list[str]
+
+
+def save_symbol_memmap(
+    df: pd.DataFrame,
+    output_dir: Path,
+    prefix: str,
+) -> MemmapPaths:
+    """Save a single DataFrame as numpy memmap files for streaming access.
+
+    Writes two files:
+    - ``{prefix}_train_data.npy``: float32 array of shape (N, C).
+    - ``{prefix}_train_index.npy``: int64 nanosecond timestamps of shape (N,).
+    - ``{prefix}_columns.json``: ordered list of column names.
+
+    Args:
+        df: DataFrame to serialise (training split for one symbol).
+        output_dir: Directory to write files into.
+        prefix: File name prefix, e.g. ``"0"`` for the first symbol.
+
+    Returns:
+        MemmapPaths pointing at the written files.
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    columns = list(df.columns)
+    data_path = output_dir / f"{prefix}_train_data.npy"
+    np.save(data_path, df.to_numpy(dtype=np.float32))
+
+    try:
+        index_ns = df.index.astype(np.int64).to_numpy()
+    except (TypeError, AttributeError):
+        index_ns = np.arange(len(df), dtype=np.int64)
+    index_path = output_dir / f"{prefix}_train_index.npy"
+    np.save(index_path, index_ns)
+
+    (output_dir / f"{prefix}_columns.json").write_text(json.dumps(columns))
+
+    logger.info("Saved memmap for prefix '%s' to %s (%d rows)", prefix, output_dir, len(df))
+    return MemmapPaths(data_path=data_path, index_path=index_path, n_rows=len(df), columns=columns)
+
+
+def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
+    """Discover and load all per-symbol memmap metadata from a directory.
+
+    Scans for ``*_train_data.npy`` files written by :func:`save_symbol_memmap`.
+
+    Args:
+        output_dir: Directory previously written by :func:`save_symbol_memmap`.
+
+    Returns:
+        List of :class:`MemmapPaths`, one per symbol, sorted by prefix.
+    """
+    output_dir = Path(output_dir)
+    results: list[MemmapPaths] = []
+
+    for data_file in sorted(output_dir.glob("*_train_data.npy")):
+        prefix = data_file.name[: -len("_train_data.npy")]
+        index_file = output_dir / f"{prefix}_train_index.npy"
+        cols_file = output_dir / f"{prefix}_columns.json"
+        if not index_file.exists() or not cols_file.exists():
+            logger.warning("Skipping incomplete memmap prefix '%s'", prefix)
+            continue
+        data = np.load(data_file, mmap_mode="r")
+        columns = json.loads(cols_file.read_text())
+        results.append(
+            MemmapPaths(
+                data_path=data_file,
+                index_path=index_file,
+                n_rows=data.shape[0],
+                columns=columns,
+            )
+        )
+
+    logger.info("Found %d memmap symbol file(s) in %s", len(results), output_dir)
+    return results
