@@ -82,14 +82,14 @@ class TD3Trainer(BaseTrainer):
         # Gaussian exploration around the deterministic policy
         self.exploration_module = AdditiveGaussianModule(
             spec=td3_action_spec,
-            sigma_init=getattr(config, "exploration_noise_std", 0.1),
-            sigma_end=getattr(config, "exploration_noise_std", 0.1),
+            sigma_init=getattr(config, "exploration_noise_std", 0.2),
+            sigma_end=getattr(config, "exploration_noise_std", 0.2),
             annealing_num_steps=config.max_steps,
         )
         # Log the exploration noise std
         logger.info(
             "Exploration Noise Std: %.3f",
-            getattr(config, "exploration_noise_std", 0.1),
+            getattr(config, "exploration_noise_std", 0.2),
         )
 
         # TD3 uses two critics; configure loss and optimizers

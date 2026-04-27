@@ -90,13 +90,13 @@ class DDPGTrainer(BaseTrainer):
 
         self.exploration_module = AdditiveGaussianModule(
             spec=ddpg_action_spec,
-            sigma_init=getattr(config, "exploration_noise_std", 0.1),
-            sigma_end=getattr(config, "exploration_noise_std", 0.1),
+            sigma_init=getattr(config, "exploration_noise_std", 0.2),
+            sigma_end=getattr(config, "exploration_noise_std", 0.2),
             annealing_num_steps=config.max_steps,
         )
         logger.info(
             "Exploration Noise Std: %.3f",
-            getattr(config, "exploration_noise_std", 0.1),
+            getattr(config, "exploration_noise_std", 0.2),
         )
 
         # Counters for tracking successful vs skipped batches
