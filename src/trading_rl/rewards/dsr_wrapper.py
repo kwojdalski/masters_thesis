@@ -69,13 +69,11 @@ class StatefulRewardWrapper(gym.Wrapper):
             history = self.env.unwrapped.history
             custom_reward = float(self.reward_fn(history))
         else:
-            # Cannot access history - log warning and use original reward
-            import warnings
-            warnings.warn(
-                f"Cannot access history from {type(self.env.unwrapped).__name__}. "
-                "Using original reward. DSR wrapper may not be working correctly."
+            raise RuntimeError(
+                f"StatefulRewardWrapper: cannot access trading history from "
+                f"{type(self.env.unwrapped).__name__}. DSR reward cannot be computed. "
+                "Ensure the environment exposes _get_info(), info['history'], or .history."
             )
-            custom_reward = reward
 
         return obs, custom_reward, terminated, truncated, info
 
