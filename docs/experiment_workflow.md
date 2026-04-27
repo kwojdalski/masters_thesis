@@ -10,16 +10,13 @@ The experiment system can train PPO, DDPG, or TD3 agents on trading environments
 
 ``` mermaid
 flowchart TD
-    A[CLI: python src/cli.py experiment] --> B[ExperimentCommand.execute]
-    B --> C{--scenario provided?}
-    C -->|Yes| D[Load scenario config<br/>from src/configs/]
-    C -->|No| E[Load config from<br/>--config path]
-    D --> F[ExperimentParams validation]
+    A[CLI: python src/cli.py train] --> B[TrainingCommand / ExperimentCommand.execute]
+    B --> C{--config provided?}
+    C -->|Yes| D[Load scenario config<br/>from path or shorthand]
+    C -->|No| E[Load default config]
+    D --> F[Params validation]
     E --> F
-    F --> G{--generate-data?}
-    G -->|Yes| H[DataGeneratorCommand.execute<br/>Generate synthetic data]
-    G -->|No| I[run_multiple_experiments]
-    H --> I
+    F --> I[run_multiple_experiments]
     
     I --> J{For each trial}
     J --> K[run_single_experiment]
@@ -181,10 +178,22 @@ Configuration dataclass containing all experiment parameters: - **DataConfig**: 
 
 ## Usage Examples
 
-### Basic Experiment
+### Basic Single Run
 
 ``` bash
-python src/cli.py experiment --config ./src/configs/default.yaml --trials 3
+uv run python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml
+```
+
+Config paths accept either a full path or a `group/name` shorthand relative to `src/configs/scenarios`:
+
+``` bash
+uv run python src/cli.py train --config sine_wave/ppo_no_trend
+```
+
+### Multiple Trials
+
+``` bash
+uv run python src/cli.py train --config sine_wave/ppo_no_trend --trials 3 --name "sweep_run"
 ```
 
 ### PPO/DDPG/TD3 Selection
@@ -195,25 +204,23 @@ python src/cli.py experiment --config ./src/configs/default.yaml --trials 3
 ### Custom Configuration
 
 ``` bash
-python src/cli.py experiment \
-  --config ./src/configs/upward_drift_optimized.yaml \
+uv run python src/cli.py train \
+  --config sine_wave/ppo_no_trend \
   --trials 5 \
   --name "upward_drift_test" \
-  --dashboard
+  --config-override training.max_steps=50000
 ```
 
-### Configuration Options
+### CLI Options
 
--   `--dashboard`: Launch MLflow UI after completion
--   `--clear-cache`: Clear data processing cache
--   `--seed`: Set random seed for reproducibility
-
-### CLI Helpers (Train)
-
--   `--config-override/-o`: Apply OmegaConf dotlist overrides to training config (repeatable)
--   `--from-checkpoint`: Resume from a specific checkpoint file
+-   `--trials N`: Run N independent trials (default 1); checkpoint resume is only available for single runs
+-   `--clear-cache`: Clear data processing cache before running
+-   `--config-override/-o`: Apply OmegaConf dotlist overrides (repeatable)
+-   `--from-checkpoint <path>`: Resume from a specific checkpoint file
 -   `--from-last-checkpoint`: Resume from the most recent checkpoint for the experiment
--   `--log-regex`: Filter console logs by regex (useful for debugging)
+-   `--additional-steps N`: Extra steps to train when resuming a checkpoint
+-   `--mlflow-run-id <id>`: Append metrics into an existing MLflow run
+-   `--verbose/-v` / `--log-regex`: Control console log verbosity
 
 ## Output Structure
 

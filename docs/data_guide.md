@@ -25,28 +25,28 @@ Download historical cryptocurrency data from multiple exchanges using `scripts/f
 
 ```bash
 # Download BTC/USDT from Bitfinex (default)
-python scripts/fetch_crypto.py download-crypto
+uv run python scripts/fetch_crypto.py download-crypto
 
 # Download from Binance with custom timeframe
-python scripts/fetch_crypto.py download-crypto \
+uv run python scripts/fetch_crypto.py download-crypto \
   --exchange binance \
   --symbols BTC/USDT \
   --timeframe 1h \
   --start-date 2024-01-01
 
 # Download multiple pairs
-python scripts/fetch_crypto.py download-crypto \
+uv run python scripts/fetch_crypto.py download-crypto \
   --symbols "BTC/USDT,ETH/USDT,SOL/USDT" \
   --timeframe 1d
 
 # List available exchanges
-python scripts/fetch_crypto.py list-exchanges
+uv run python scripts/fetch_crypto.py list-exchanges
 ```
 
 ### Interactive Mode
 
 ```bash
-python scripts/fetch_crypto.py download-crypto --interactive
+uv run python scripts/fetch_crypto.py download-crypto --interactive
 ```
 
 ### Output
@@ -91,17 +91,17 @@ Get your API key from: https://databento.com
 
 ```bash
 # Download AAPL hourly OHLCV (default)
-python scripts/fetch_stocks.py download-stocks
+uv run python scripts/fetch_stocks.py download-stocks
 
 # Download multiple stocks with custom dates
-python scripts/fetch_stocks.py download-stocks \
+uv run python scripts/fetch_stocks.py download-stocks \
   --symbols "AAPL,MSFT,GOOGL" \
   --start-date 2024-01-01 \
   --end-date 2024-12-31 \
   --timeframe 1h
 
 # Download raw order book data
-python scripts/fetch_stocks.py download-stocks \
+uv run python scripts/fetch_stocks.py download-stocks \
   --symbols AAPL \
   --raw \
   --schema mbp-10 \
@@ -109,18 +109,18 @@ python scripts/fetch_stocks.py download-stocks \
   --end-date 2024-01-31
 
 # Download from NYSE
-python scripts/fetch_stocks.py download-stocks \
+uv run python scripts/fetch_stocks.py download-stocks \
   --symbols IBM \
   --dataset XNYS.TRADES
 
 # List available datasets
-python scripts/fetch_stocks.py list-datasets
+uv run python scripts/fetch_stocks.py list-datasets
 ```
 
 ### Interactive Mode
 
 ```bash
-python scripts/fetch_stocks.py download-stocks --interactive
+uv run python scripts/fetch_stocks.py download-stocks --interactive
 ```
 
 ### Output
@@ -233,7 +233,7 @@ Data is split BEFORE feature engineering to prevent data leakage:
 
 ```bash
 # 1. Download BTC data
-python scripts/fetch_crypto.py download-crypto \
+uv run python scripts/fetch_crypto.py download-crypto \
   --exchange binance \
   --symbols BTC/USDT \
   --timeframe 1h \
@@ -244,8 +244,7 @@ python scripts/fetch_crypto.py download-crypto \
 #   data_path: "./data/raw/crypto/binance-BTCUSDT-1h.parquet"
 
 # 3. Train agent
-python -m trading_rl.train_trading_agent \
-  --scenario your_scenario.yaml
+uv run python src/cli.py train --config your_scenario
 ```
 
 ### Download stock data and train
@@ -255,7 +254,7 @@ python -m trading_rl.train_trading_agent \
 export DATABENTO_API_KEY='your-key'
 
 # 2. Download AAPL data
-python scripts/fetch_stocks.py download-stocks \
+uv run python scripts/fetch_stocks.py download-stocks \
   --symbols AAPL \
   --start-date 2024-01-01 \
   --end-date 2024-12-31 \
@@ -266,8 +265,7 @@ python scripts/fetch_stocks.py download-stocks \
 #   data_path: "./data/raw/stocks/AAPL_2024-01-01_2024-12-31_1h.parquet"
 
 # 4. Train agent
-python -m trading_rl.train_trading_agent \
-  --scenario your_scenario.yaml
+uv run python src/cli.py train --config your_scenario
 ```
 
 ### Generate synthetic data for testing

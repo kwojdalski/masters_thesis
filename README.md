@@ -43,12 +43,21 @@ Common commands:
 | `uv run python src/cli.py scenarios` | List available scenario configs |
 | `uv run python src/cli.py data generate --sine-wave --n-periods 8 --samples-per_period 250 --output-file data/raw/synthetic/sine_wave.parquet` | Generate synthetic sine-wave data |
 | `uv run python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml` | Train a single agent |
-| `uv run python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend.yaml --trials 3` | Run multiple trials |
+| `uv run python src/cli.py train --config sine_wave/ppo_no_trend --trials 3` | Run multiple trials (shorthand config path) |
+| `uv run python src/cli.py train --config sine_wave/ppo_no_trend --from-last-checkpoint --additional-steps 5000` | Resume from last checkpoint |
 | `uv run python src/cli.py validate --scenario aapl_td3_hft_lob` | Validate scenario config and data dependencies |
+| `uv run python src/cli.py feature-research --scenario sine_wave/ppo_no_trend` | Run offline feature scoring |
 | `uv run python src/cli.py dashboard` | Launch the MLflow UI |
-| `uv run python src/cli.py checkpoints` | Inspect or clean checkpoints |
-| `uv run python src/cli.py experiments` | List MLflow experiments |
-| `uv run python src/cli.py artifacts --experiment <regex>` | List artifacts per run |
+| `uv run python src/cli.py checkpoints` | List checkpoints; supports `--delete <regex>`, `--delete-all`, `--dry-run` |
+| `uv run python src/cli.py experiments` | List MLflow experiments; supports `--delete <regex>`, `--delete-all`, `--dry-run` |
+| `uv run python src/cli.py artifacts --experiment <regex>` | List artifacts per run; supports `--delete`, `--run-id`, `--prefix` |
+
+Global options available on all commands:
+
+| Option | Purpose |
+| --- | --- |
+| `--verbose` / `-v` | Enable debug-level logging |
+| `--log-regex <pattern>` | Only show log lines matching the regex |
 
 ## Data Download
 
