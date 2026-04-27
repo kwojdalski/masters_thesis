@@ -43,7 +43,7 @@ finished = snapshot.latest_finished
 ```{python}
 #| echo: false
 #| label: tbl-key-metrics
-#| tbl-cap: "Selected performance metrics for the TD3 agent on the held-out evaluation period."
+#| tbl-cap: "Trading Strategy Performance Metrics"
 
 # Try real data first
 key_metrics_df = None
