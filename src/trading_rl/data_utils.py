@@ -307,113 +307,76 @@ def ensure_unique_index_for_hft_tradingenv(
     return updated["train"], updated["val"], updated["test"]
 
 
-def _build_pooled_dataset(
-    config: Any, logger: logging.Logger, data_paths: list[str]
-) -> "PreparedDataset":
-    """Build a pooled dataset by processing each file independently then concatenating.
+# ---------------------------------------------------------------------------
+# Dataset-building helpers
+# ---------------------------------------------------------------------------
 
-    Each file is normalized using its own training split statistics (per-symbol
-    z-score normalization), then the splits are concatenated across symbols.
-    """
-    lazy_load = getattr(config.data, "lazy_load", False)
-    prepared_dir = getattr(config.data, "prepared_data_dir", None)
-    memmap_dir = getattr(config.data, "memmap_dir", None)
-
-    # Fast path: all caches already exist — skip feature engineering entirely.
-    if lazy_load and prepared_dir:
-        prepared_dir = Path(prepared_dir)
-        prepared_files_exist = all(
-            (prepared_dir / f"{split}_prepared.parquet").exists()
-            for split in ["train", "val", "test"]
-        )
-        if prepared_files_exist:
-            logger.info("Pooled training: loading prepared splits from cache at %s", prepared_dir)
-            lazy_splits = load_prepared_splits(prepared_dir)
-            train_lazy = lazy_splits["train"]
-            feature_columns = [c for c in train_lazy.columns if str(c).startswith("feature_")]
-            configured_price_column = getattr(config.env, "price_column", None)
-            price_column = (
-                configured_price_column
-                if isinstance(configured_price_column, str) and configured_price_column in train_lazy.columns
-                else "close"
-            )
-            memmap_paths: list[MemmapPaths] | None = None
-            if memmap_dir and Path(memmap_dir).exists():
-                found = load_memmap_paths(Path(memmap_dir))
-                if found:
-                    memmap_paths = found
-            return PreparedDataset(
-                train_df=train_lazy,
-                val_df=lazy_splits["val"],
-                test_df=lazy_splits["test"],
-                feature_columns=feature_columns,
-                price_column=price_column,
-                raw_columns=list(train_lazy.columns),
-                memmap_train_paths=memmap_paths,
-            )
-
-    import gc
-    import tempfile
-
-    logger.info("Pooled training: processing %d data files independently", len(data_paths))
-
-    # Process each symbol one at a time and write to temp parquet files so only
-    # one symbol's data lives in memory during feature engineering.
-    tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
-    tmp_paths: list[dict[str, Path]] = []
-    collected_memmap_paths: list[MemmapPaths] = []
-
-    for i, data_path in enumerate(data_paths):
-        logger.info("Processing %s (%d/%d)", data_path, i + 1, len(data_paths))
-        train_df_i, val_df_i, test_df_i = prepare_data(
-            data_path=data_path,
-            train_size=config.data.train_size,
-            validation_size=getattr(config.data, "validation_size", None),
-            download_if_missing=config.data.download_data,
-            feature_config_path=getattr(config.data, "feature_config", None),
-        )
-        # Apply close-column derivation per-symbol so memmap files are self-contained.
-        train_df_i, val_df_i, test_df_i = ensure_close_column_for_hft(
-            train_df_i, val_df_i, test_df_i, config, logger
-        )
-        if memmap_dir:
-            mp = save_symbol_memmap(train_df_i, Path(memmap_dir), prefix=str(i))
-            collected_memmap_paths.append(mp)
-        sym_paths = {}
-        for split, df in [("train", train_df_i), ("val", val_df_i), ("test", test_df_i)]:
-            p = tmp_dir / f"{i}_{split}.parquet"
-            df.to_parquet(p)
-            sym_paths[split] = p
-        tmp_paths.append(sym_paths)
-        del train_df_i, val_df_i, test_df_i
-        gc.collect()
-
-    # Concatenate from disk — only one parquet file per symbol in memory at a time.
-    train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths], ignore_index=True)
-    val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths], ignore_index=True)
-    test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths], ignore_index=True)
-
-    import shutil
-    shutil.rmtree(tmp_dir, ignore_errors=True)
-
-    logger.info(
-        "Pooled splits: train=%d, val=%d, test=%d rows",
-        len(train_df),
-        len(val_df),
-        len(test_df),
+def _parquet_cache_exists(prepared_dir: Path) -> bool:
+    return all(
+        (prepared_dir / f"{split}_prepared.parquet").exists()
+        for split in ["train", "val", "test"]
     )
 
-    # ensure_close_column_for_hft was already applied per-symbol in the loop above;
-    # run it again on the concat only when memmap_dir is NOT set (original path).
-    if not memmap_dir:
-        train_df, val_df, test_df = ensure_close_column_for_hft(
-            train_df, val_df, test_df, config, logger
-        )
-    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(
-        train_df, val_df, test_df, config, logger
+
+def _resolve_feature_pipeline(config: Any, logger: logging.Logger) -> Any:
+    """Return a FeaturePipeline built from feature_groups YAML, or None."""
+    feature_groups = getattr(config.data, "feature_groups", None)
+    if not feature_groups:
+        return None
+    from trading_rl.features.groups import FeatureGroupResolver
+    from trading_rl.features.pipeline import FeaturePipeline
+
+    resolver = FeatureGroupResolver.from_yaml(feature_groups)
+    group_names = resolver.list_groups()
+    logger.info("Using all %d feature groups from %s", len(group_names), feature_groups)
+    pipeline = FeaturePipeline(resolver.resolve(group_names))
+    logger.info("Built pipeline: %d features from %d groups", len(pipeline.features), len(group_names))
+    return pipeline
+
+
+def _call_prepare_data(
+    data_path: str,
+    config: Any,
+    feature_pipeline: Any = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Call prepare_data with all standard config fields."""
+    return prepare_data(
+        data_path=data_path,
+        train_size=config.data.train_size,
+        validation_size=getattr(config.data, "validation_size", None),
+        download_if_missing=config.data.download_data,
+        exchange_names=getattr(config.data, "exchange_names", None),
+        symbols=getattr(config.data, "symbols", None),
+        timeframe=getattr(config.data, "timeframe", "1h"),
+        data_dir=getattr(config.data, "data_dir", "data"),
+        since=getattr(config.data, "download_since", None),
+        feature_config_path=getattr(config.data, "feature_config", None),
+        feature_pipeline=feature_pipeline,
     )
+
+
+def _finalize_splits(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    config: Any,
+    logger: logging.Logger,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Apply post-processing transforms and validation."""
+    train_df, val_df, test_df = ensure_close_column_for_hft(train_df, val_df, test_df, config, logger)
+    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(train_df, val_df, test_df, config, logger)
     validate_prepared_data(train_df, val_df, test_df, config)
+    return train_df, val_df, test_df
 
+
+def _make_dataset(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    config: Any,
+    memmap_paths: list[MemmapPaths] | None = None,
+) -> "PreparedDataset":
+    """Detect feature/price columns and construct a PreparedDataset."""
     feature_columns = [col for col in train_df.columns if str(col).startswith("feature_")]
     configured_price_column = getattr(config.env, "price_column", None)
     price_column = (
@@ -421,13 +384,6 @@ def _build_pooled_dataset(
         if isinstance(configured_price_column, str) and configured_price_column in train_df.columns
         else "close"
     )
-
-    if lazy_load and prepared_dir:
-        prepared_dir = Path(prepared_dir)
-        logger.info("Saving pooled prepared splits to cache at %s", prepared_dir)
-        prepared_dir.mkdir(parents=True, exist_ok=True)
-        save_prepared_splits(train_df, val_df, test_df, prepared_dir)
-
     return PreparedDataset(
         train_df=train_df,
         val_df=val_df,
@@ -435,134 +391,111 @@ def _build_pooled_dataset(
         feature_columns=feature_columns,
         price_column=price_column,
         raw_columns=list(train_df.columns),
-        memmap_train_paths=collected_memmap_paths if collected_memmap_paths else None,
+        memmap_train_paths=memmap_paths,
     )
 
+
+# ---------------------------------------------------------------------------
+# Symbol-level processing
+# ---------------------------------------------------------------------------
+
+def _build_single_symbol_splits(
+    config: Any, logger: logging.Logger
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Load and process one symbol through the full feature engineering pipeline."""
+    pipeline = _resolve_feature_pipeline(config, logger)
+    train_df, val_df, test_df = _call_prepare_data(config.data.data_path, config, pipeline)
+    return _finalize_splits(train_df, val_df, test_df, config, logger)
+
+
+def _build_pooled_splits(
+    config: Any,
+    logger: logging.Logger,
+    data_paths: list[str],
+    memmap_dir: Path | None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
+    """Process each symbol independently then concatenate from disk.
+
+    Each symbol is feature-engineered, written to a temp parquet, and freed
+    before the next symbol loads.  This keeps peak memory to ~1 symbol at a
+    time during feature engineering rather than accumulating all symbols.
+    """
+    import gc
+    import shutil
+    import tempfile
+
+    logger.info("Pooled training: processing %d symbols", len(data_paths))
+    tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
+    tmp_paths: list[dict[str, Path]] = []
+    collected_memmap_paths: list[MemmapPaths] = []
+
+    for i, data_path in enumerate(data_paths):
+        logger.info("Processing %s (%d/%d)", data_path, i + 1, len(data_paths))
+        train_i, val_i, test_i = _call_prepare_data(data_path, config)
+        # Apply close-column derivation per-symbol so each memmap is self-contained.
+        train_i, val_i, test_i = ensure_close_column_for_hft(train_i, val_i, test_i, config, logger)
+
+        if memmap_dir:
+            collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=str(i)))
+
+        sym: dict[str, Path] = {}
+        for split, df in [("train", train_i), ("val", val_i), ("test", test_i)]:
+            p = tmp_dir / f"{i}_{split}.parquet"
+            df.to_parquet(p)
+            sym[split] = p
+        tmp_paths.append(sym)
+        del train_i, val_i, test_i
+        gc.collect()
+
+    train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths], ignore_index=True)
+    val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths], ignore_index=True)
+    test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths], ignore_index=True)
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    logger.info("Pooled splits: train=%d, val=%d, test=%d", len(train_df), len(val_df), len(test_df))
+
+    # ensure_close was applied per-symbol above; only run unique-index + validate on concat.
+    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(train_df, val_df, test_df, config, logger)
+    validate_prepared_data(train_df, val_df, test_df, config)
+
+    return train_df, val_df, test_df, collected_memmap_paths or None
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
 
 def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedDataset":
     """Build a prepared dataset bundle for RL training and evaluation."""
+    lazy_load = getattr(config.data, "lazy_load", False)
+    prepared_dir = Path(d) if (d := getattr(config.data, "prepared_data_dir", None)) else None
+    memmap_dir   = Path(d) if (d := getattr(config.data, "memmap_dir", None)) else None
+
+    # Fast path: skip all feature engineering when the parquet cache exists.
+    if lazy_load and prepared_dir and _parquet_cache_exists(prepared_dir):
+        logger.info("Loading prepared splits from parquet cache at %s", prepared_dir)
+        lazy_splits = load_prepared_splits(prepared_dir)
+        memmap_paths = load_memmap_paths(memmap_dir) if memmap_dir and memmap_dir.exists() else None
+        return _make_dataset(
+            lazy_splits["train"], lazy_splits["val"], lazy_splits["test"],
+            config, memmap_paths or None,
+        )
+
     data_paths = getattr(config.data, "data_paths", None)
     if data_paths:
-        return _build_pooled_dataset(config, logger, data_paths)
-
-    # Determine feature pipeline source: groups, plain config, or default
-    feature_groups = getattr(config.data, "feature_groups", None)
-    feature_config_path = getattr(config.data, "feature_config", None)
-
-    if feature_groups:
-        # Group-based pipeline construction (no selection — that is an offline step)
-        from trading_rl.features.groups import FeatureGroupResolver
-        from trading_rl.features.pipeline import FeaturePipeline
-
-        resolver = FeatureGroupResolver.from_yaml(feature_groups)
-        group_names = resolver.list_groups()
-        logger.info("Using all %d feature groups from %s", len(group_names), feature_groups)
-
-        feature_configs = resolver.resolve(group_names)
-
-        pipeline = FeaturePipeline(feature_configs)
-        logger.info(
-            "Built pipeline from groups: %d features from %d groups",
-            len(pipeline.features),
-            len(group_names),
-        )
-
-        train_df, val_df, test_df = prepare_data(
-            data_path=config.data.data_path,
-            train_size=config.data.train_size,
-            validation_size=getattr(config.data, "validation_size", None),
-            download_if_missing=config.data.download_data,
-            exchange_names=config.data.exchange_names,
-            symbols=config.data.symbols,
-            timeframe=config.data.timeframe,
-            data_dir=config.data.data_dir,
-            since=config.data.download_since,
-            feature_pipeline=pipeline,
+        train_df, val_df, test_df, memmap_paths = _build_pooled_splits(
+            config, logger, data_paths, memmap_dir
         )
     else:
-        # Legacy path: YAML config or default pipeline
-        train_df, val_df, test_df = prepare_data(
-            data_path=config.data.data_path,
-            train_size=config.data.train_size,
-            validation_size=getattr(config.data, "validation_size", None),
-            download_if_missing=config.data.download_data,
-            exchange_names=config.data.exchange_names,
-            symbols=config.data.symbols,
-            timeframe=config.data.timeframe,
-            data_dir=config.data.data_dir,
-            since=config.data.download_since,
-            feature_config_path=getattr(config.data, "feature_config", None),
-        )
-    train_df, val_df, test_df = ensure_close_column_for_hft(
-        train_df, val_df, test_df, config, logger
-    )
-    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(
-        train_df, val_df, test_df, config, logger
-    )
-    validate_prepared_data(train_df, val_df, test_df, config)
-
-    feature_columns = [
-        col for col in train_df.columns if str(col).startswith("feature_")
-    ]
-    configured_price_column = getattr(config.env, "price_column", None)
-    price_column = (
-        configured_price_column
-        if isinstance(configured_price_column, str) and configured_price_column in train_df.columns
-        else "close"
-    )
-
-    lazy_load = getattr(config.data, "lazy_load", False)
-    prepared_dir = getattr(config.data, "prepared_data_dir", None)
-    memmap_dir = getattr(config.data, "memmap_dir", None)
-
-    # Save per-symbol memmap for the training split.
-    single_memmap: list[MemmapPaths] | None = None
-    if memmap_dir:
-        mp = save_symbol_memmap(train_df, Path(memmap_dir), prefix="0")
-        single_memmap = [mp]
+        train_df, val_df, test_df = _build_single_symbol_splits(config, logger)
+        memmap_paths = [save_symbol_memmap(train_df, memmap_dir, "0")] if memmap_dir else None
 
     if lazy_load and prepared_dir:
-        prepared_dir = Path(prepared_dir)
-        prepared_files_exist = all(
-            (prepared_dir / f"{split}_prepared.parquet").exists()
-            for split in ["train", "val", "test"]
-        )
+        logger.info("Saving prepared splits to parquet cache at %s", prepared_dir)
+        prepared_dir.mkdir(parents=True, exist_ok=True)
+        save_prepared_splits(train_df, val_df, test_df, prepared_dir)
 
-        if prepared_files_exist:
-            logger.info("Loading prepared splits from cache")
-            lazy_splits = load_prepared_splits(prepared_dir)
-            return PreparedDataset(
-                train_df=lazy_splits["train"],
-                val_df=lazy_splits["val"],
-                test_df=lazy_splits["test"],
-                feature_columns=feature_columns,
-                price_column=price_column,
-                raw_columns=list(lazy_splits["train"].columns),
-                memmap_train_paths=single_memmap,
-            )
-        else:
-            logger.info("Preparing fresh splits and saving to cache")
-            prepared_dir.mkdir(parents=True, exist_ok=True)
-            save_prepared_splits(train_df, val_df, test_df, prepared_dir)
-            return PreparedDataset(
-                train_df=train_df,
-                val_df=val_df,
-                test_df=test_df,
-                feature_columns=feature_columns,
-                price_column=price_column,
-                raw_columns=list(train_df.columns),
-                memmap_train_paths=single_memmap,
-            )
-
-    return PreparedDataset(
-        train_df=train_df,
-        val_df=val_df,
-        test_df=test_df,
-        feature_columns=feature_columns,
-        price_column=price_column,
-        raw_columns=list(train_df.columns),
-        memmap_train_paths=single_memmap,
-    )
+    return _make_dataset(train_df, val_df, test_df, config, memmap_paths)
 
 
 def prepare_data(
