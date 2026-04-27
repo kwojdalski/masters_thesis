@@ -167,14 +167,19 @@ maximizing risk-adjusted return.
 #### Direct Optimization of Trading Performance [VERIFIED]
 <!-- [VERIFIED] -->
 
-Direct optimization removes both the intermediate forecast and the labeled
-action requirement. The agent observes the market state $X_t$, selects an
-action, and receives a scalar reward reflecting trading performance. It then
-adjusts its behavior based on that reward signal — no labels, no predictions,
-no proxy objective.
+Direct optimization removes the predict-then-trade pipeline: the agent observes
+the market state $X_t$, selects an action, and receives a reward computed from
+realized returns and transaction costs directly. There is no decoupled forecast
+stage and no separate rule translating predictions into positions — transaction
+costs and position sizing enter the optimization loop directly rather than being
+handled by a post-hoc threshold or sizing rule.
 
-The critical difference from the preceding approaches is that the optimization
-objective is aligned directly with trading performance: there is no surrogate
-loss whose relationship to actual returns must be assumed. This alignment is
-the primary motivation for using deep RL. The
-specific reward formulation and its design rationale are developed in Chapter 4.
+The structural advantage over supervised approaches is therefore not the
+elimination of a modeling assumption but the elimination of the calibration gap
+between a forecast objective and a decision rule. The reward used in this thesis
+— the Differential Sharpe Ratio — is itself an approximation of risk-adjusted
+return rather than a direct measure of financial performance, and the
+relationship between training reward and out-of-sample return remains an
+empirical question. This distinction is developed in Chapter 4, which also
+explains why a shaped reward is necessary at tick frequency and how financial
+performance metrics are kept separate from the training objective.

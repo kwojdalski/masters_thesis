@@ -165,7 +165,8 @@ def _build_trainer(
     effective_experiment_name: str,
     logger: logging.Logger,
 ) -> tuple[Any, int, int]:
-    n_obs = env.observation_spec["observation"].shape[-1]
+    import math
+    n_obs = math.prod(env.observation_spec["observation"].shape)
     n_act = env.action_spec.shape[-1]
     logger.info("Environment: %s observations, %s actions", n_obs, n_act)
 

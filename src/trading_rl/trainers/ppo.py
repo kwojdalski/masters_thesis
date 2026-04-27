@@ -293,15 +293,18 @@ class PPOTrainer(BaseTrainer):
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):
         """Factory for PPO actor and value network."""
+        obs_ndim = len(env.observation_spec["observation"].shape)
         actor = create_ppo_actor(
             n_obs,
             n_act,
             hidden_dims=config.network.actor_hidden_dims,
             spec=env.action_spec,
+            obs_ndim=obs_ndim,
         )
         value_net = create_ppo_value_network(
             n_obs,
             hidden_dims=config.network.value_hidden_dims,
+            obs_ndim=obs_ndim,
         )
         return actor, value_net
 
