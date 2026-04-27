@@ -77,7 +77,11 @@ class StreamingTradingEnv(TradingEnv):
 
         try:
             index = pd.DatetimeIndex(window_index_ns)
-        except Exception:
+        except (ValueError, OverflowError) as e:
+            logger.warning(
+                "Could not parse timestamps for symbol %d, using RangeIndex: %s",
+                file_idx, e,
+            )
             index = pd.RangeIndex(len(window_data))
 
         return pd.DataFrame(window_data, columns=mp.columns, index=index)
