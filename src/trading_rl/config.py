@@ -76,6 +76,12 @@ class EnvConfig:
     # per-symbol memmap file, so peak memory is episode_length × features × 4 bytes.
     streaming_episode_length: int = 10_000
 
+    # Thresholds for ContinuousToDiscreteAction (gym_trading_env.continuous backend).
+    # The actor's continuous output is bucketed into positions[0/1/2] based on these
+    # two boundaries: output < lower → positions[0], lower..upper → positions[1],
+    # output > upper → positions[2].
+    continuous_action_thresholds: list[float] = field(default_factory=lambda: [-0.33, 0.33])
+
     # Reward function configuration (all backends)
     reward_type: str = RewardType.LOG_RETURN  # Reward type: "log_return" or "differential_sharpe"
     reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")

@@ -167,7 +167,7 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
                 env,
                 ContinuousToDiscreteAction(
                     discrete_actions=config.env.positions,
-                    thresholds=[-0.33, 0.33],
+                    thresholds=getattr(config.env, "continuous_action_thresholds", [-0.33, 0.33]),
                     device=getattr(config.training, "device", "cpu"),
                 ),
             )
