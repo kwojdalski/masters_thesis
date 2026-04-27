@@ -102,4 +102,6 @@ agent to reason about long-run consequences rather than only immediate rewards â
 a necessary capability in trading, where the cost of a position change today
 affects future returns through transaction costs and portfolio path dependence.
 The action-value function $Q^\pi(s, a)$ extends this to state-action pairs and
-forms the basis of the critic networks in actor-critic algorithms.
+forms the basis of the critic networks in actor-critic algorithms. This
+cumulative discounted reward term appears explicitly in the RL objective in
+@eq-rl-objective.

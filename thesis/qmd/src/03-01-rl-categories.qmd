@@ -6,8 +6,10 @@ The diagram below maps the reinforcement learning landscape from the Bellman
 equation through the key algorithmic relaxations that lead to TD3. It is
 intended as an orientation before the detailed treatment that follows.
 
+::: {.content-visible when-format="pdf"}
 ```{=latex}
-\begin{center}
+\begin{figure}[h]
+\centering
 ```
 
 ```{mermaid}
@@ -43,10 +45,46 @@ graph TD
 ```
 
 ```{=latex}
-\end{center}
+\caption{RL algorithm taxonomy from Bellman equation to TD3. Source: author's own diagram, based on @Sutton2018.}
+\label{fig-rl-taxonomy}
+\end{figure}
 ```
+:::
 
-*Figure: RL algorithm taxonomy from Bellman equation to TD3. Source: author's own diagram, based on @Sutton2018.*
+::: {.content-visible when-format="html"}
+```{mermaid}
+%%| fig-cap: "RL algorithm taxonomy from Bellman equation to TD3. Source: author's own diagram, based on @Sutton2018."
+%%| fig-align: center
+%%| fig-width: 6.4
+%%| fig-height: 8.1
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
+graph TD
+    A[MDP] -->|Solution| B(Bellman Equation)
+    B --> C{Known model?}
+    C -->|Yes| D[Dynamic Programming]
+    C -->|No| E[Reinforcement Learning]
+    E --> F{Value estimation?}
+    F -->|Full episode| G[Monte Carlo]
+    F -->|Bootstrap| H[Temporal Difference<br/>SARSA / Q-Learning]
+    E --> I{State space?}
+    I -->|Small / Discrete| J[Tabular Methods]
+    I -->|Large / Continuous| K[Function Approximation<br/>Deep RL]
+    K --> L{Action space?}
+    L -->|Discrete| M[Value-Based<br/>DQN / Rainbow]
+    L -->|Continuous| N[Policy-Based<br/>REINFORCE / PPO]
+    L -->|Either| O[Actor-Critic]
+    O --> O1{On/Off-Policy?}
+    O1 -->|On-Policy| O2[A2C / PPO]
+    O1 -->|Off-Policy| O3[DDPG / TD3 / SAC]
+    O3 --> O4{Policy type?}
+    O4 -->|Deterministic| O5[DDPG]
+    O4 -->|Twin critics +<br/>delayed updates| O6[TD3 — This Thesis]
+    O4 -->|Max entropy| O7[SAC]
+    E --> P{Sample efficiency?}
+    P -->|Need planning| Q[Model-Based RL<br/>Dyna-Q / Dreamer]
+    P -->|Model-free OK| R[Model-Free RL]
+```
+:::
 
 ### Model-free vs Model-based [VERIFIED]
 <!-- [VERIFIED] -->
@@ -86,7 +124,9 @@ on expected return:
 $$\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}\!\left[\sum_t r_t\right]$$ {#eq-policy-gradient-update}
 
 Policy gradients handle continuous actions naturally but suffer from high
-variance, requiring many samples to obtain a reliable gradient signal.
+variance, requiring many samples to obtain a reliable gradient signal. This
+variance problem motivates the actor-critic architecture, which introduces a
+critic network to provide lower-variance value estimates.
 
 **Actor-critic** methods combine both: an actor $\mu_\theta$ selects actions
 and a critic $Q_w(s,a)$ evaluates them, using the critic's lower-variance
@@ -109,6 +149,9 @@ from the policy being improved (the target policy). Q-learning updates with
 the greedy maximum:
 
 $$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)\bigr]$$ {#eq-qlearning-update}
+
+This is contrasted with SARSA's update in @eq-sarsa-update, where the next
+action is sampled from the current policy rather than taking the maximum.
 
 regardless of how $a_{t+1}$ was actually selected. This separation allows
 experience from a replay buffer — collected under earlier or exploratory
