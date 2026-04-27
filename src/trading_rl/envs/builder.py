@@ -113,6 +113,14 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         from torchrl.envs.transforms import StepCounter
 
         backend = self._resolve_backend(config)
+
+        _GYM_TRADING_BACKENDS = {"gym_trading_env.discrete", "gym_trading_env.continuous"}
+        if backend not in _GYM_TRADING_BACKENDS:
+            raise ValueError(
+                f"memmap streaming is only supported with gym_trading_env backends "
+                f"(got '{backend}'). Use a gym_trading_env.* backend or disable memmap_dir."
+            )
+
         continuous = backend == "gym_trading_env.continuous"
 
         episode_length = getattr(config.env, "streaming_episode_length", 10_000)
