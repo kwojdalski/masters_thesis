@@ -199,10 +199,14 @@ different depth levels. Theory cannot resolve which implementations are
 informative or which combinations are redundant; this is an empirical question.
 Each candidate is scored by its Information Coefficient Information Ratio (ICIR)
 — the mean IC divided by the standard deviation of IC over rolling windows of the
-validation split, where IC is the Spearman rank correlation between the feature
-and the forward log-return proxy. Redundancy within the selected set is controlled
-via a conditional IC filter: after each feature is selected, its linear signal is
-regressed out of remaining candidates, and ICIR is recomputed on the residuals.
+training split, where IC is the Spearman rank correlation between the feature
+and the forward log-return proxy. Scoring and the conditional IC redundancy filter
+both operate exclusively on the training split so that the validation split
+remains clean for model comparison. The validation IC is computed separately and
+reported as an out-of-sample stability check but plays no role in selection.
+Redundancy within the selected set is controlled via a conditional IC filter:
+after each feature is selected, its linear signal is regressed out of remaining
+candidates, and ICIR is recomputed on the residuals.
 A candidate is included only if it retains incremental predictive content beyond
 what the already-selected features collectively capture. The full procedure is
 described in Appendix F.
