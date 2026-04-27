@@ -424,6 +424,8 @@ def _build_pooled_splits(
     import shutil
     import tempfile
 
+    pipeline = _resolve_feature_pipeline(config, logger)
+
     logger.info("Pooled training: processing %d symbols", len(data_paths))
     tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
     tmp_paths: list[dict[str, Path]] = []
@@ -431,7 +433,7 @@ def _build_pooled_splits(
 
     for i, data_path in enumerate(data_paths):
         logger.info("Processing %s (%d/%d)", data_path, i + 1, len(data_paths))
-        train_i, val_i, test_i = _call_prepare_data(data_path, config)
+        train_i, val_i, test_i = _call_prepare_data(data_path, config, pipeline)
         # Apply close-column derivation per-symbol so each memmap is self-contained.
         train_i, val_i, test_i = ensure_close_column_for_hft(train_i, val_i, test_i, config, logger)
 
