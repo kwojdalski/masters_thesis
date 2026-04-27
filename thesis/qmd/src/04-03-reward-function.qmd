@@ -106,3 +106,42 @@ training.
 Conflating the two would invalidate the
 empirical comparison. For example, treating a high training DSR as
 evidence of a strong Sharpe ratio on the test set would be incorrect.
+
+### Limitations of the Differential Sharpe Ratio
+
+The DSR approach has several limitations that should be acknowledged. First, it
+assumes that the first and second moments of returns are approximately stationary
+over the effective memory window ($\approx 1/\eta$ steps). In reality, intraday
+trading exhibits well-documented non-stationarity in both mean and variance due
+to market opening effects, scheduled announcements, and regime shifts
+[@Engle2000; @Cont2014]. While the exponential weighting does provide some
+adaptation, sudden structural breaks can temporarily destabilize the DSR signal
+during transition periods.
+
+Second, the DSR inherits the fundamental limitation of variance-based risk
+measures: it treats upside and downside volatility symmetrically. Investors and
+traders typically care more about downside risk and tail events than about overall
+variance. Alternative risk-adjusted measures such as the Sortino ratio (which
+penalizes only downside deviation), the Calmar ratio (which normalizes returns by
+maximum drawdown), or utility-based rewards (which can incorporate asymmetric
+loss functions) would better align with investor preferences but are either
+non-recursive or computationally intractable for online learning at tick frequency.
+
+Third, the DSR can be unstable when the denominator $(B_{t-1} - A_{t-1}^2)^{3/2}$ is
+small — either because the effective sample size is insufficient (early in training)
+or because realized variance is temporarily low. This can amplify microstructure
+noise and produce extreme reward values that destabilize gradient estimates.
+
+The DSR was chosen despite these limitations for three reasons. First, its
+recursive formulation makes it uniquely suitable for online RL: alternatives such
+as fixed-window Sharpe or utility-based rewards require storing unbounded history
+or solving optimization problems at each step, which is infeasible at tick frequency.
+Second, while variance is an imperfect proxy for risk, it provides a tractable
+baseline that discourages the most pathological high-turnover behaviors. Third,
+the empirical evaluation in Chapter 6 uses actual financial metrics (Sharpe ratio,
+drawdown, annualized return) computed from deterministic rollouts, so any systematic
+biases introduced by DSR's limitations will be visible in the final performance
+assessment rather than masked by the reward signal itself. The limitations chapter
+identifies reward ablation — comparing DSR to Sortino-based signals, direct
+log-return objectives, and drawdown-penalizing rewards — as a priority direction for
+future work.
