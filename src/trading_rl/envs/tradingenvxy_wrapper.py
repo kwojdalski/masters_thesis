@@ -7,10 +7,12 @@ from XAI Asset Management, making it compatible with TorchRL training pipelines.
 from typing import Any
 
 import gymnasium as gym
+import numpy as np
 import pandas as pd
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import RenameTransform
 from tradingenv import TradingEnv
+from tradingenv.broker.fees import BrokerFees
 from tradingenv.contracts import Stock
 from tradingenv.features import Feature
 from tradingenv.rewards import LogReturn
@@ -18,6 +20,7 @@ from tradingenv.spaces import BoxPortfolio
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
+from trading_rl.data_loading import MemmapPaths
 from trading_rl.envs.trading_envs import BaseTradingEnvironmentFactory
 from trading_rl.rewards import DifferentialSharpeRatio
 
@@ -303,8 +306,6 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         prices.columns = stocks
 
         # Create TradingEnv
-        from tradingenv.broker.fees import BrokerFees
-
         broker_fees = BrokerFees(
             proportional=fee,
             fixed=0.0,
@@ -339,6 +340,140 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
 
         logger.info("Created TradingEnv environment successfully")
         return wrapped_env
+
+
+class StreamingTradingEnvXY(gym.Env):
+    """Streaming tradingenv environment that loads episode windows from numpy memmaps.
+
+    Rebuilds the inner ``tradingenv.TradingEnv`` on every ``reset()`` using a
+    randomly sampled window so peak memory stays proportional to
+    ``episode_length``, not the full dataset.
+
+    Presents stable ``observation_space`` and ``action_space`` to TorchRL
+    (determined by feature/price column count, not window size).
+
+    Args:
+        memmap_paths: Per-symbol memmap metadata from
+            :func:`~trading_rl.data_loading.save_symbol_memmap`.
+        episode_length: Rows per episode window.
+        feature_columns: Static ``feature_*`` columns used as observations.
+        price_column: Column used as the asset price.
+        initial_cash: Starting portfolio value.
+        fee: Proportional broker fee.
+        reward_type: ``"log_return"`` or ``"differential_sharpe"``.
+        reward_eta: DSR learning rate (only used when
+            ``reward_type="differential_sharpe"``).
+        runtime_feature_columns: Runtime-computed feature names (e.g.
+            ``"feature_position"``).
+    """
+
+    metadata = {"render_modes": []}
+
+    def __init__(
+        self,
+        memmap_paths: list[MemmapPaths],
+        episode_length: int,
+        feature_columns: list[str],
+        price_column: str,
+        initial_cash: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
+        fee: float = 0.0,
+        reward_type: str = "log_return",
+        reward_eta: float = 0.01,
+        runtime_feature_columns: list[str] | None = None,
+    ) -> None:
+        if not memmap_paths:
+            raise ValueError("memmap_paths must contain at least one entry")
+
+        self._memmap_paths = memmap_paths
+        self._episode_length = episode_length
+        self._feature_columns = feature_columns
+        self._price_column = price_column
+        self._initial_cash = initial_cash
+        self._fee = fee
+        self._reward_type = reward_type
+        self._reward_eta = reward_eta
+        self._runtime_feature_columns = runtime_feature_columns or []
+
+        stocks = [Stock(price_column)]
+        self.action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
+        n_obs = len(feature_columns) + len(self._runtime_feature_columns)
+        self.observation_space = gym.spaces.Box(
+            low=-np.inf, high=np.inf, shape=(n_obs,), dtype=np.float32
+        )
+        self._inner_env: TradingEnv | None = None
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _make_reward(self):
+        if self._reward_type == "differential_sharpe":
+            return DifferentialSharpeRatio(eta=self._reward_eta)
+        if self._reward_type == "log_return":
+            return LogReturn()
+        raise ValueError(
+            f"Unknown reward type: {self._reward_type!r}. "
+            "Supported: 'log_return', 'differential_sharpe'"
+        )
+
+    def _load_window(self, file_idx: int, start: int) -> pd.DataFrame:
+        mp = self._memmap_paths[file_idx]
+        end = start + self._episode_length
+        data_mm = np.load(mp.data_path, mmap_mode="r")
+        index_mm = np.load(mp.index_path, mmap_mode="r")
+        window_data = np.array(data_mm[start:end], dtype=np.float32)
+        window_index = np.array(index_mm[start:end])
+        try:
+            index = pd.DatetimeIndex(window_index)
+        except Exception:
+            index = pd.RangeIndex(len(window_data))
+        return pd.DataFrame(window_data, columns=mp.columns, index=index)
+
+    def _build_inner_env(self, window_df: pd.DataFrame) -> TradingEnv:
+        stocks = [Stock(self._price_column)]
+        prices = window_df[[self._price_column]].copy()
+        prices.columns = pd.Index(stocks)
+        features = [
+            CustomFeature(
+                self._feature_columns,
+                window_df[self._feature_columns],
+                runtime_features=self._runtime_feature_columns,
+                traded_contracts=stocks,
+            )
+        ]
+        return TradingEnv(
+            action_space=BoxPortfolio(stocks, low=-1.0, high=1.0),
+            state=features,
+            reward=self._make_reward(),
+            prices=prices,
+            initial_cash=self._initial_cash,
+            broker_fees=BrokerFees(proportional=self._fee, fixed=0.0),
+        )
+
+    # ------------------------------------------------------------------
+    # Gymnasium API
+    # ------------------------------------------------------------------
+
+    def reset(self, *, seed=None, options=None):
+        file_idx = np.random.randint(0, len(self._memmap_paths))
+        mp = self._memmap_paths[file_idx]
+        max_start = mp.n_rows - self._episode_length
+        start = np.random.randint(0, max(1, max_start))
+        window_df = self._load_window(file_idx, start)
+        self._inner_env = self._build_inner_env(window_df)
+        obs = self._inner_env.reset()
+        return obs, {}
+
+    def step(self, action):
+        obs, reward, done, info = self._inner_env.step(action)
+        return obs, reward, bool(done), False, info
+
+    def render(self):
+        if self._inner_env is not None:
+            return self._inner_env.render()
+
+    def close(self):
+        pass
 
 
 # Alias for backward compatibility

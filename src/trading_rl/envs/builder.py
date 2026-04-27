@@ -10,7 +10,7 @@ import pandas as pd
 from torchrl.envs import GymWrapper, TransformedEnv
 
 from logger import get_logger
-from trading_rl.config import ExperimentConfig
+from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
 from trading_rl.data_loading import MemmapPaths, load_memmap_paths
 from trading_rl.envs.trading_envs import Backend, create_environment as build_backend_env
 
@@ -113,17 +113,20 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         from torchrl.envs.transforms import StepCounter
 
         backend = self._resolve_backend(config)
+        episode_length = getattr(config.env, "streaming_episode_length", 10_000)
+
+        if backend == "tradingenv":
+            return self._create_streaming_tradingenv(memmap_paths, episode_length, config)
 
         _GYM_TRADING_BACKENDS = {"gym_trading_env.discrete", "gym_trading_env.continuous"}
         if backend not in _GYM_TRADING_BACKENDS:
             raise ValueError(
-                f"memmap streaming is only supported with gym_trading_env backends "
-                f"(got '{backend}'). Use a gym_trading_env.* backend or disable memmap_dir."
+                f"memmap streaming is not supported for backend '{backend}'. "
+                "Supported: gym_trading_env.discrete, gym_trading_env.continuous, tradingenv."
             )
 
         continuous = backend == "gym_trading_env.continuous"
 
-        episode_length = getattr(config.env, "streaming_episode_length", 10_000)
         base_env = StreamingTradingEnv(
             memmap_paths=memmap_paths,
             episode_length=episode_length,
@@ -145,6 +148,48 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
                 ),
             )
 
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
+            return TransformedEnv(env, StepCounter())
+
+    def _create_streaming_tradingenv(
+        self,
+        memmap_paths: list[MemmapPaths],
+        episode_length: int,
+        config: ExperimentConfig,
+    ) -> TransformedEnv:
+        import warnings
+        from trading_rl.envs.tradingenvxy_wrapper import StreamingTradingEnvXY
+        from torchrl.envs.transforms import RenameTransform, StepCounter
+
+        feature_columns = getattr(config.env, "feature_columns", None)
+        if not feature_columns:
+            feature_columns = [c for c in memmap_paths[0].columns if c.startswith("feature_")]
+
+        price_column = getattr(config.env, "price_column", None) or "close"
+        initial_cash = getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)
+        fee = getattr(config.env, "trading_fees", 0.0)
+        reward_type = getattr(config.env, "reward_type", "log_return")
+        reward_eta = getattr(config.env, "reward_eta", 0.01)
+        include_position = getattr(config.env, "include_position_feature", False)
+        runtime_cols = ["feature_position"] if include_position else []
+
+        base_env = StreamingTradingEnvXY(
+            memmap_paths=memmap_paths,
+            episode_length=episode_length,
+            feature_columns=feature_columns,
+            price_column=price_column,
+            initial_cash=initial_cash,
+            fee=fee,
+            reward_type=reward_type,
+            reward_eta=reward_eta,
+            runtime_feature_columns=runtime_cols,
+        )
+        env = GymWrapper(base_env)
+        env = TransformedEnv(
+            env,
+            RenameTransform(in_keys=["CustomFeature"], out_keys=["observation"]),
+        )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
             return TransformedEnv(env, StepCounter())
