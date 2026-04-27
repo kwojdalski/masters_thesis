@@ -14,8 +14,15 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
-# Lazy loading utilities
-from trading_rl.data_loading import LazyDataFrame, save_prepared_splits, load_prepared_splits
+# Lazy loading and memmap utilities
+from trading_rl.data_loading import (
+    LazyDataFrame,
+    MemmapPaths,
+    load_memmap_paths,
+    load_prepared_splits,
+    save_prepared_splits,
+    save_symbol_memmap,
+)
 
 _HFT_MIN_TIMESTAMP_GAP_NS = 1_000_000_000
 
@@ -33,6 +40,9 @@ class PreparedDataset:
     feature_columns: list[str]
     price_column: str
     raw_columns: list[str]
+    # Per-symbol memmap paths for StreamingTradingEnv. None when memmap_dir is
+    # not configured; set by _build_pooled_dataset / build_prepared_dataset.
+    memmap_train_paths: list[MemmapPaths] | None = None
 
 
 def clear_data_cache():
@@ -307,7 +317,9 @@ def _build_pooled_dataset(
     """
     lazy_load = getattr(config.data, "lazy_load", False)
     prepared_dir = getattr(config.data, "prepared_data_dir", None)
+    memmap_dir = getattr(config.data, "memmap_dir", None)
 
+    # Fast path: all caches already exist — skip feature engineering entirely.
     if lazy_load and prepared_dir:
         prepared_dir = Path(prepared_dir)
         prepared_files_exist = all(
@@ -325,6 +337,11 @@ def _build_pooled_dataset(
                 if isinstance(configured_price_column, str) and configured_price_column in train_lazy.columns
                 else "close"
             )
+            memmap_paths: list[MemmapPaths] | None = None
+            if memmap_dir and Path(memmap_dir).exists():
+                found = load_memmap_paths(Path(memmap_dir))
+                if found:
+                    memmap_paths = found
             return PreparedDataset(
                 train_df=train_lazy,
                 val_df=lazy_splits["val"],
@@ -332,9 +349,11 @@ def _build_pooled_dataset(
                 feature_columns=feature_columns,
                 price_column=price_column,
                 raw_columns=list(train_lazy.columns),
+                memmap_train_paths=memmap_paths,
             )
 
-    import tempfile, gc
+    import gc
+    import tempfile
 
     logger.info("Pooled training: processing %d data files independently", len(data_paths))
 
@@ -342,6 +361,7 @@ def _build_pooled_dataset(
     # one symbol's data lives in memory during feature engineering.
     tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
     tmp_paths: list[dict[str, Path]] = []
+    collected_memmap_paths: list[MemmapPaths] = []
 
     for i, data_path in enumerate(data_paths):
         logger.info("Processing %s (%d/%d)", data_path, i + 1, len(data_paths))
@@ -352,6 +372,13 @@ def _build_pooled_dataset(
             download_if_missing=config.data.download_data,
             feature_config_path=getattr(config.data, "feature_config", None),
         )
+        # Apply close-column derivation per-symbol so memmap files are self-contained.
+        train_df_i, val_df_i, test_df_i = ensure_close_column_for_hft(
+            train_df_i, val_df_i, test_df_i, config, logger
+        )
+        if memmap_dir:
+            mp = save_symbol_memmap(train_df_i, Path(memmap_dir), prefix=str(i))
+            collected_memmap_paths.append(mp)
         sym_paths = {}
         for split, df in [("train", train_df_i), ("val", val_df_i), ("test", test_df_i)]:
             p = tmp_dir / f"{i}_{split}.parquet"
@@ -376,9 +403,12 @@ def _build_pooled_dataset(
         len(test_df),
     )
 
-    train_df, val_df, test_df = ensure_close_column_for_hft(
-        train_df, val_df, test_df, config, logger
-    )
+    # ensure_close_column_for_hft was already applied per-symbol in the loop above;
+    # run it again on the concat only when memmap_dir is NOT set (original path).
+    if not memmap_dir:
+        train_df, val_df, test_df = ensure_close_column_for_hft(
+            train_df, val_df, test_df, config, logger
+        )
     train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(
         train_df, val_df, test_df, config, logger
     )
@@ -405,6 +435,7 @@ def _build_pooled_dataset(
         feature_columns=feature_columns,
         price_column=price_column,
         raw_columns=list(train_df.columns),
+        memmap_train_paths=collected_memmap_paths if collected_memmap_paths else None,
     )
 
 
@@ -480,20 +511,24 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
         else "close"
     )
 
-    # Lazy loading support: optionally save prepared splits and use LazyDataFrame
     lazy_load = getattr(config.data, "lazy_load", False)
     prepared_dir = getattr(config.data, "prepared_data_dir", None)
+    memmap_dir = getattr(config.data, "memmap_dir", None)
+
+    # Save per-symbol memmap for the training split.
+    single_memmap: list[MemmapPaths] | None = None
+    if memmap_dir:
+        mp = save_symbol_memmap(train_df, Path(memmap_dir), prefix="0")
+        single_memmap = [mp]
 
     if lazy_load and prepared_dir:
         prepared_dir = Path(prepared_dir)
-        # Check if prepared splits already exist
         prepared_files_exist = all(
             (prepared_dir / f"{split}_prepared.parquet").exists()
             for split in ["train", "val", "test"]
         )
 
         if prepared_files_exist:
-            # Load from cached files using LazyDataFrame
             logger.info("Loading prepared splits from cache")
             lazy_splits = load_prepared_splits(prepared_dir)
             return PreparedDataset(
@@ -503,13 +538,12 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
                 feature_columns=feature_columns,
                 price_column=price_column,
                 raw_columns=list(lazy_splits["train"].columns),
+                memmap_train_paths=single_memmap,
             )
         else:
-            # Prepare fresh and save to cache
             logger.info("Preparing fresh splits and saving to cache")
             prepared_dir.mkdir(parents=True, exist_ok=True)
             save_prepared_splits(train_df, val_df, test_df, prepared_dir)
-            # Still return DataFrames for first run (next run will use cache)
             return PreparedDataset(
                 train_df=train_df,
                 val_df=val_df,
@@ -517,6 +551,7 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
                 feature_columns=feature_columns,
                 price_column=price_column,
                 raw_columns=list(train_df.columns),
+                memmap_train_paths=single_memmap,
             )
 
     return PreparedDataset(
@@ -526,6 +561,7 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
         feature_columns=feature_columns,
         price_column=price_column,
         raw_columns=list(train_df.columns),
+        memmap_train_paths=single_memmap,
     )
 
 

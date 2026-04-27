@@ -15,6 +15,7 @@ from trading_rl.envs.trading_envs import (
     get_environment_factory,
     validate_backend,
 )
+from trading_rl.envs.streaming_env import StreamingTradingEnv
 from trading_rl.envs.tradingenvxy_wrapper import (
     TradingEnvXYFactory,
     TradingEnvXYWrapper,
@@ -34,6 +35,7 @@ __all__ = [
     "create_environment",
     "get_environment_factory",
     "validate_backend",
+    "StreamingTradingEnv",
 ]
 # The following shell command is an example for running training using a specific configuration.
 # Move this to documentation or comments, not Python code.

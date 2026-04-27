@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import pandas as pd
-from torchrl.envs import TransformedEnv
+from torchrl.envs import GymWrapper, TransformedEnv
 
 from logger import get_logger
 from trading_rl.config import ExperimentConfig
+from trading_rl.data_loading import MemmapPaths, load_memmap_paths
 from trading_rl.envs.trading_envs import Backend, create_environment as build_backend_env
 
 
@@ -64,9 +66,20 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
 
     def create(self, df: pd.DataFrame, config: ExperimentConfig) -> TransformedEnv:
         """Create environment using resolved backend and provided config."""
+        memmap_paths = self._resolve_memmap_paths(config)
+        if memmap_paths:
+            env = self._create_streaming_env(memmap_paths, config)
+            self.logger.info(
+                "Created StreamingTradingEnv",
+                extra={
+                    "n_symbols": len(memmap_paths),
+                    "episode_length": getattr(config.env, "streaming_episode_length", 10_000),
+                },
+            )
+            return env
+
         backend = self._resolve_backend(config)
         env = build_backend_env(df=df, config=config, backend=backend)
-
         self.logger.info(
             "Created environment",
             extra={
@@ -76,3 +89,36 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             },
         )
         return env
+
+    def _resolve_memmap_paths(self, config: ExperimentConfig) -> list[MemmapPaths] | None:
+        """Return per-symbol MemmapPaths if memmap_dir is configured and populated."""
+        memmap_dir = getattr(getattr(config, "data", None), "memmap_dir", None)
+        if not memmap_dir:
+            return None
+        p = Path(memmap_dir)
+        if not p.exists():
+            return None
+        paths = load_memmap_paths(p)
+        return paths if paths else None
+
+    def _create_streaming_env(
+        self,
+        memmap_paths: list[MemmapPaths],
+        config: ExperimentConfig,
+    ) -> TransformedEnv:
+        from trading_rl.envs.streaming_env import StreamingTradingEnv
+        from trading_rl.data_utils import reward_function
+        from torchrl.envs.transforms import StepCounter
+
+        episode_length = getattr(config.env, "streaming_episode_length", 10_000)
+        base_env = StreamingTradingEnv(
+            memmap_paths=memmap_paths,
+            episode_length=episode_length,
+            name=config.env.name,
+            positions=config.env.positions,
+            trading_fees=config.env.trading_fees,
+            borrow_interest_rate=config.env.borrow_interest_rate,
+            reward_function=reward_function,
+        )
+        env = GymWrapper(base_env)
+        return TransformedEnv(env, StepCounter())
