@@ -110,19 +110,21 @@ def _build_score_table(
     val_frame: pd.DataFrame,
     window_size: int | None = None,
 ) -> pd.DataFrame:
-    """Build per-feature IC/ICIR scoring table."""
-    target_col = next(col for col in val_frame.columns if col.startswith("target_"))
-    feature_cols = [col for col in val_frame.columns if col != target_col]
+    """Build per-feature IC/ICIR scoring table.
 
-    val_target = val_frame[target_col]
+    Primary scoring uses the training split so the validation split stays
+    clean for model comparison. Validation IC is reported for stability only.
+    """
+    target_col = next(col for col in train_frame.columns if col.startswith("target_"))
+    feature_cols = [col for col in train_frame.columns if col != target_col]
+
     train_target = train_frame[target_col]
+    val_target = val_frame[target_col]
 
     rows: list[dict[str, float | str]] = []
     for feat in feature_cols:
-        val_series = val_frame[feat]
-        train_series = train_frame[feat]
-
-        ic_series = _compute_ic_series(val_series, val_target, window_size)
+        # Primary IC/ICIR scored on training split
+        ic_series = _compute_ic_series(train_frame[feat], train_target, window_size)
 
         if len(ic_series) == 0 or ic_series.std() == 0:
             mean_ic, ic_std, icir, ic_tstat, ic_positive_ratio = 0.0, 1e-10, 0.0, 0.0, 0.0
@@ -134,8 +136,9 @@ def _build_score_table(
             ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
             ic_positive_ratio = float((ic_series > 0).mean())
 
-        train_ic = _compute_ic_series(train_series, train_target, window_size)
-        train_mean_ic = float(train_ic.mean()) if len(train_ic) > 0 else 0.0
+        # Validation IC for out-of-sample stability reporting only
+        val_ic = _compute_ic_series(val_frame[feat], val_target, window_size)
+        val_mean_ic = float(val_ic.mean()) if len(val_ic) > 0 else 0.0
 
         rows.append(
             {
@@ -145,8 +148,8 @@ def _build_score_table(
                 "icir": float(icir),
                 "ic_tstat": float(ic_tstat),
                 "ic_positive_ratio": ic_positive_ratio,
-                "train_mean_ic": train_mean_ic,
-                "ic_stability": abs(mean_ic - train_mean_ic),
+                "val_mean_ic": val_mean_ic,
+                "ic_stability": abs(mean_ic - val_mean_ic),
             }
         )
 

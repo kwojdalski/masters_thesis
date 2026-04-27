@@ -206,12 +206,17 @@ def _build_icir_score_table(
     """Build per-feature IC/ICIR scoring table.
 
     For each feature, computes:
-    - mean_ic: mean of rolling IC values on the validation split
+    - mean_ic: mean of rolling IC values on the training split
     - ic_std: standard deviation of rolling IC values
     - icir: mean_ic / ic_std (Information Coefficient Information Ratio)
     - ic_tstat: approximate t-statistic (mean_ic / (ic_std / sqrt(n)))
     - ic_positive_ratio: fraction of rolling windows with IC > 0
-    - ic_decay: IC at multiple horizons (if available)
+    - val_mean_ic: mean IC on the validation split (out-of-sample stability check)
+    - ic_stability: abs difference between train and val mean IC
+
+    Primary scoring uses the training split so that the validation split
+    remains clean for model comparison and is not contaminated by feature
+    selection.
 
     Args:
         train_frame: Training DataFrame with feature and target columns.
@@ -222,19 +227,17 @@ def _build_icir_score_table(
         Tuple of (scores DataFrame sorted by ICIR descending, IC series dict).
     """
     target_col = next(
-        col for col in val_frame.columns if col.startswith("target_")
+        col for col in train_frame.columns if col.startswith("target_")
     )
-    feature_cols = [col for col in val_frame.columns if col != target_col]
-    val_target = val_frame[target_col]
+    feature_cols = [col for col in train_frame.columns if col != target_col]
+    train_target = train_frame[target_col]
 
     ic_series_dict: dict[str, pd.Series] = {}
     rows: list[dict[str, float | str]] = []
 
     for feat in feature_cols:
-        val_series = val_frame[feat]
-
-        # Compute IC series on validation split
-        ic_series = _compute_ic_series(val_series, val_target, window_size)
+        # Compute IC series on training split (primary scoring)
+        ic_series = _compute_ic_series(train_frame[feat], train_target, window_size)
         ic_series_dict[feat] = ic_series
 
         if len(ic_series) == 0 or ic_series.std() == 0:
@@ -251,10 +254,10 @@ def _build_icir_score_table(
             ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
             ic_positive_ratio = float((ic_series > 0).mean())
 
-        # Also compute training IC for stability assessment
-        train_target = train_frame[target_col]
-        train_ic = _compute_ic_series(train_frame[feat], train_target, window_size)
-        train_mean_ic = float(train_ic.mean()) if len(train_ic) > 0 else 0.0
+        # Compute validation IC for out-of-sample stability reporting only
+        val_target = val_frame[target_col]
+        val_ic = _compute_ic_series(val_frame[feat], val_target, window_size)
+        val_mean_ic = float(val_ic.mean()) if len(val_ic) > 0 else 0.0
 
         rows.append(
             {
@@ -264,8 +267,8 @@ def _build_icir_score_table(
                 "icir": float(icir),
                 "ic_tstat": float(ic_tstat),
                 "ic_positive_ratio": ic_positive_ratio,
-                "train_mean_ic": train_mean_ic,
-                "ic_stability": abs(mean_ic - train_mean_ic),
+                "val_mean_ic": val_mean_ic,
+                "ic_stability": abs(mean_ic - val_mean_ic),
             }
         )
 
@@ -304,17 +307,17 @@ def _compute_ic_decay(
     results: list[dict] = []
 
     for h in horizons:
-        val_target = _build_proxy_target(val_df, h)
-        val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
+        train_target = _build_proxy_target(train_df, h)
+        train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
 
-        if val_aligned.empty:
+        if train_aligned.empty:
             continue
 
-        target_col = val_aligned.columns[-1]
-        feature_cols = [c for c in val_aligned.columns if c != target_col]
+        target_col = train_aligned.columns[-1]
+        feature_cols = [c for c in train_aligned.columns if c != target_col]
 
         for feat in feature_cols:
-            ic = _compute_ic_series(val_aligned[feat], val_aligned[target_col])
+            ic = _compute_ic_series(train_aligned[feat], train_aligned[target_col])
             mean_ic = float(ic.mean()) if len(ic) > 0 else 0.0
             results.append(
                 {"feature": feat, "horizon": h, "ic": mean_ic}
@@ -557,8 +560,8 @@ def _build_multi_horizon_score_table(
         horizon_results[h] = {}
 
         for feat in feature_cols:
-            # Compute IC series for this horizon
-            ic_series = _compute_ic_series(val_aligned[feat], val_target_series, window_size)
+            # Compute IC series on training split (primary scoring)
+            ic_series = _compute_ic_series(train_aligned[feat], train_target_series, window_size)
 
             if len(ic_series) == 0 or ic_series.std() == 0:
                 mean_ic = 0.0
@@ -574,10 +577,9 @@ def _build_multi_horizon_score_table(
                 ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
                 ic_positive_ratio = float((ic_series > 0).mean())
 
-            # Compute training IC for stability
-            train_target_series = train_aligned[target_col]
-            train_ic = _compute_ic_series(train_aligned[feat], train_target_series, window_size)
-            train_mean_ic = float(train_ic.mean()) if len(train_ic) > 0 else 0.0
+            # Compute validation IC for out-of-sample stability reporting only
+            val_ic = _compute_ic_series(val_aligned[feat], val_target_series, window_size)
+            val_mean_ic = float(val_ic.mean()) if len(val_ic) > 0 else 0.0
 
             horizon_results[h][feat] = {
                 "mean_ic": mean_ic,
@@ -585,8 +587,8 @@ def _build_multi_horizon_score_table(
                 "icir": icir,
                 "ic_tstat": ic_tstat,
                 "ic_positive_ratio": ic_positive_ratio,
-                "train_mean_ic": train_mean_ic,
-                "ic_stability": abs(mean_ic - train_mean_ic),
+                "val_mean_ic": val_mean_ic,
+                "ic_stability": abs(mean_ic - val_mean_ic),
             }
 
     # Build composite scores using weighted averaging
@@ -609,7 +611,7 @@ def _build_multi_horizon_score_table(
         composite_icir = 0.0
         composite_ic_tstat = 0.0
         composite_ic_positive_ratio = 0.0
-        composite_train_mean_ic = 0.0
+        composite_val_mean_ic = 0.0
         composite_ic_stability = 0.0
         total_weight = 0.0
 
@@ -623,7 +625,7 @@ def _build_multi_horizon_score_table(
             composite_icir += scores["icir"] * weight
             composite_ic_tstat += scores["ic_tstat"] * weight
             composite_ic_positive_ratio += scores["ic_positive_ratio"] * weight
-            composite_train_mean_ic += scores["train_mean_ic"] * weight
+            composite_val_mean_ic += scores["val_mean_ic"] * weight
             composite_ic_stability += scores["ic_stability"] * weight
             total_weight += weight
 
@@ -633,7 +635,7 @@ def _build_multi_horizon_score_table(
             composite_icir /= total_weight
             composite_ic_tstat /= total_weight
             composite_ic_positive_ratio /= total_weight
-            composite_train_mean_ic /= total_weight
+            composite_val_mean_ic /= total_weight
             composite_ic_stability /= total_weight
 
         # Compute horizon-specific IC for reporting
@@ -647,7 +649,7 @@ def _build_multi_horizon_score_table(
             "icir": composite_icir,
             "ic_tstat": composite_ic_tstat,
             "ic_positive_ratio": composite_ic_positive_ratio,
-            "train_mean_ic": composite_train_mean_ic,
+            "val_mean_ic": composite_val_mean_ic,
             "ic_stability": composite_ic_stability,
             "horizon_ic_scores": horizon_ic_str,
         })
@@ -949,9 +951,8 @@ class FeatureSelector:
                 row["feature"], row["icir"], row["mean_ic"], row.get("ic_tstat", 0),
             )
 
-        # Compute inter-feature correlation on validation data for reporting
+        # Compute inter-feature correlation on validation data for reporting only
         if cfg.use_multi_horizon:
-            # Use first horizon target for alignment
             primary_horizon = cfg.ic_decay_horizons[0]
             val_target = _build_proxy_target(val_df, primary_horizon)
             val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
@@ -959,18 +960,19 @@ class FeatureSelector:
             val_target = _build_proxy_target(val_df, cfg.horizon)
             val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
 
-        # Get feature columns from val_aligned (exclude target columns)
         feature_cols_from_val = [col for col in val_aligned.columns if not col.startswith("target_")]
         correlation_matrix = val_aligned[feature_cols_from_val].corr().fillna(0.0)
 
-        # Select features using conditional IC redundancy filter
-        val_target_col = next(
-            col for col in val_aligned.columns if col.startswith("target_")
+        # Conditional IC redundancy filter runs on training data so that the
+        # validation split is not used for any part of feature selection.
+        feature_cols_from_train = [col for col in train_aligned.columns if not col.startswith("target_")]
+        train_target_col = next(
+            col for col in train_aligned.columns if col.startswith("target_")
         )
         selected_names = _select_features_conditional_ic(
             scores,
-            val_aligned[feature_cols_from_val],
-            val_aligned[val_target_col],
+            train_aligned[feature_cols_from_train],
+            train_aligned[train_target_col],
             top_k=cfg.top_k,
             icir_threshold=cfg.icir_threshold,
         )
@@ -1101,7 +1103,7 @@ class FeatureSelector:
                     "icir": np.mean(scores["icir_values"]),
                     "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
                     "ic_positive_ratio": len([v for v in split_selections if feat in v]) / len(split_selections),
-                    "train_mean_ic": np.mean(scores["mean_ic_values"]),  # Use val as proxy
+                    "val_mean_ic": np.mean(scores["mean_ic_values"]),
                     "ic_stability": np.std(scores["icir_values"]) if len(scores["icir_values"]) > 1 else 0.0,
                 })
 
@@ -1127,7 +1129,7 @@ class FeatureSelector:
                         "icir": np.mean(scores["icir_values"]),
                         "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
                         "ic_positive_ratio": len([v for v in split_selections if feat in v]) / len(split_selections),
-                        "train_mean_ic": np.mean(scores["mean_ic_values"]),
+                        "val_mean_ic": np.mean(scores["mean_ic_values"]),
                         "ic_stability": np.std(scores["icir_values"]) if len(scores["icir_values"]) > 1 else 0.0,
                     })
 
@@ -1135,7 +1137,7 @@ class FeatureSelector:
             logger.warning("No features with valid scores found in ensemble selection")
             composite_scores = pd.DataFrame(columns=[
                 "feature", "mean_ic", "ic_std", "icir", "ic_tstat",
-                "ic_positive_ratio", "train_mean_ic", "ic_stability"
+                "ic_positive_ratio", "val_mean_ic", "ic_stability"
             ])
         else:
             composite_scores = pd.DataFrame(rows).sort_values("icir", ascending=False)
