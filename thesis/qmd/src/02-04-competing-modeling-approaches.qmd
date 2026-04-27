@@ -104,7 +104,12 @@ constitutes an optimal action at a given market state depends on subsequent
 price evolution, which is noisy and non-stationary. Constructing pseudo-labels
 for unlabeled market observations requires either a strong prior on optimal
 behavior or a separate forecasting model — at which point the problem has
-already been reformulated as supervised or reinforcement learning.
+already been reformulated as supervised or reinforcement learning. This
+instability of financial labels is documented by @Lopez2018 [Ch. 3], who
+argues that fixed-horizon labeling schemes are path-dependent and
+regime-sensitive, and proposes the triple-barrier method as a more robust
+alternative — itself an acknowledgment that no universal labeling criterion
+exists across market conditions.
 
 The same conclusion follows from a second perspective: the architecture of the
 decision system itself.
