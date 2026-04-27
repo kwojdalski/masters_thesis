@@ -39,7 +39,7 @@ graph TD
     P -->|Model-free OK| R[Model-Free RL]
 ```
 
-Source: author's own diagram, based on @Sutton2018.
+Source: author's own diagram, based on @Sutton2018.[^taxonomy-note]
 
 [^taxonomy-note]: This taxonomy is a pedagogical simplification rather than a precise classification. Algorithmic categories have fuzzy boundaries: many methods combine ideas from multiple traditions, and implementations can vary. PPO appears under both "Policy-Based" and "Actor-Critic" paths because it uses a stochastic policy (policy-gradient tradition) with a value-based critic (actor-critic tradition). The grouping of DDPG, TD3, and SAC under a single "Off-Policy" branch obscures fundamental differences: DDPG and TD3 use deterministic policies and focus on value-estimation corrections, while SAC uses maximum-entropy reinforcement learning and treats exploration as an objective rather than a mechanism. The Sutton & Barto framework on which this diagram is based is itself a teaching tool; readers should not infer mutually exclusive algorithmic families from the crisp boundaries shown here.
 
