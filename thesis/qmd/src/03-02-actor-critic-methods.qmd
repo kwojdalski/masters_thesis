@@ -349,7 +349,7 @@ mechanisms a strong fit for the thesis design.
 
 : Algorithm properties for trading applications. {#tbl-algo-comparison}
 
-Author's own synthesis based on [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024; @Liu2024dai]. $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited.
+Author's own synthesis based on [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024]. $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited.
 
 This comparison framework guides the experimental design in Chapter 6, where
 PPO, DDPG, and TD3 are evaluated on identical trading tasks to empirically
