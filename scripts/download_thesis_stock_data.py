@@ -48,7 +48,7 @@ THESIS_DOWNLOADS = [
     ThesisStockDownload(
         symbol="AAPL",
         start_date="2026-02-25",
-        end_date="2026-02-27",
+        end_date="2026-03-03",
         dataset="XNAS.ITCH",
         schema="mbp-10",
         aggregate=False,
@@ -57,7 +57,7 @@ THESIS_DOWNLOADS = [
     ThesisStockDownload(
         symbol="MSFT",
         start_date="2026-02-25",
-        end_date="2026-02-27",
+        end_date="2026-03-03",
         dataset="XNAS.ITCH",
         schema="mbp-10",
         aggregate=False,
@@ -66,7 +66,7 @@ THESIS_DOWNLOADS = [
     ThesisStockDownload(
         symbol="TSLA",
         start_date="2026-02-25",
-        end_date="2026-02-27",
+        end_date="2026-03-03",
         dataset="XNAS.ITCH",
         schema="mbp-10",
         aggregate=False,
@@ -75,7 +75,7 @@ THESIS_DOWNLOADS = [
     ThesisStockDownload(
         symbol="NVDA",
         start_date="2026-02-25",
-        end_date="2026-02-27",
+        end_date="2026-03-03",
         dataset="XNAS.ITCH",
         schema="mbp-10",
         aggregate=False,
