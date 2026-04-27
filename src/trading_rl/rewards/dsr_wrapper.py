@@ -158,7 +158,9 @@ class DifferentialSharpeRatioAnyTrading:
 
         # D_t = (B_{t-1} * ΔA_t - A_{t-1} * ΔB_t / 2) / (B_{t-1} - A_{t-1}^2)^(3/2)
         variance = self.B_t - self.A_t ** 2  # Var = B_{t-1} - A_{t-1}^2
-        denominator = variance ** 1.5 + self.epsilon
+        # Clamp to non-negative: floating-point drift can give slightly negative
+        # variance, and Python raises ValueError on negative ** 1.5.
+        denominator = max(variance, 0.0) ** 1.5 + self.epsilon
         dsr = (self.B_t * delta_A - self.A_t * delta_B / 2) / denominator
 
         # NOW update EMAs for next step

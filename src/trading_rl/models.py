@@ -19,6 +19,29 @@ logger = get_logger(__name__)
 memory = Memory(location=".cache/joblib", verbose=1)
 
 
+class _FlattenObs(nn.Module):
+    """Flatten a multi-dimensional observation to a 1-D feature vector.
+
+    gym_anytrading returns per-step observations shaped [window, n_features].
+    Batched, this gives [T, window, n_features]; unbatched, [window, n_features].
+
+    By recording obs_ndim (number of dims per single observation), we can always
+    flatten exactly the obs dims regardless of whether a batch dim is present:
+        x.flatten(start_dim=-obs_ndim)  →  [..., window*n_features]
+    For 1-D obs (obs_ndim=1) this is a no-op because flattening a single dim
+    leaves the tensor unchanged.
+    """
+
+    def __init__(self, obs_ndim: int = 1):
+        super().__init__()
+        self.obs_ndim = obs_ndim
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.obs_ndim > 1:
+            return x.flatten(start_dim=-self.obs_ndim)
+        return x
+
+
 class ScaleFromUnitRange(nn.Module):
     """Map actions from normalized [-1, 1] range to environment action bounds."""
 
@@ -72,22 +95,28 @@ class DiscreteNet(nn.Module):
     """
 
     def __init__(
-        self, input_dim: int, n_actions: int, hidden_dims: list[int] | None = None
+        self,
+        input_dim: int,
+        n_actions: int,
+        hidden_dims: list[int] | None = None,
+        obs_ndim: int = 1,
     ):
         """Initialize the discrete action network.
 
         Args:
-            input_dim: Dimension of input observations
-            n_actions: Number of discrete actions
+            input_dim: Total flattened dimension of one observation.
+            n_actions: Number of discrete actions.
             hidden_dims: List of hidden layer dimensions. Defaults to [64, 32].
+            obs_ndim: Number of dims per single observation (1 for flat, 2 for
+                      gym_anytrading's [window, features] obs, etc.).
         """
         super().__init__()
 
         if hidden_dims is None:
             hidden_dims = [64, 32]
 
-        # Build network layers
-        layers = []
+        # Build network layers; _FlattenObs handles multi-dim obs (e.g. anytrading)
+        layers: list[nn.Module] = [_FlattenObs(obs_ndim=obs_ndim)]
         prev_dim = input_dim
 
         for hidden_dim in hidden_dims:
@@ -209,14 +238,17 @@ def create_ppo_actor(
     n_act: int,
     hidden_dims: list[int] | None = None,
     spec: Any | None = None,
+    obs_ndim: int = 1,
 ) -> ProbabilisticActor:
     """Create a probabilistic actor specifically for PPO.
 
     Args:
-        n_obs: Number of observations
-        n_act: Number of actions
-        hidden_dims: Hidden layer dimensions
-        spec: Action spec from environment
+        n_obs: Total flattened observation size.
+        n_act: Number of actions.
+        hidden_dims: Hidden layer dimensions.
+        spec: Action spec from environment.
+        obs_ndim: Number of dims per single observation (1 for flat obs,
+                  2 for gym_anytrading's [window, features] obs).
 
     Returns:
         ProbabilisticActor module configured for PPO
@@ -224,7 +256,7 @@ def create_ppo_actor(
     logger.info("Creating PPO actor network")
 
     # Create base network
-    net = DiscreteNet(n_obs, n_act, hidden_dims)
+    net = DiscreteNet(n_obs, n_act, hidden_dims, obs_ndim=obs_ndim)
 
     # Wrap in TensorDictModule
     module = TensorDictModule(
@@ -316,12 +348,15 @@ def create_continuous_ppo_actor(
 def create_ppo_value_network(
     n_obs: int,
     hidden_dims: list[int] | None = None,
+    obs_ndim: int = 1,
 ) -> ValueOperator:
     """Create a value network for PPO (state value estimation).
 
     Args:
-        n_obs: Number of observations
-        hidden_dims: Hidden layer dimensions for MLP
+        n_obs: Total flattened observation size.
+        hidden_dims: Hidden layer dimensions for MLP.
+        obs_ndim: Number of dims per single observation (1 for flat, 2 for
+                  gym_anytrading's [window, features] obs).
 
     Returns:
         ValueOperator module for V(s) estimation
@@ -332,10 +367,13 @@ def create_ppo_value_network(
         hidden_dims = [64, 32, 16]
 
     value_net = ValueOperator(
-        MLP(
-            in_features=n_obs,  # PPO value network only takes state
-            out_features=1,
-            num_cells=hidden_dims,
+        nn.Sequential(
+            _FlattenObs(obs_ndim=obs_ndim),
+            MLP(
+                in_features=n_obs,
+                out_features=1,
+                num_cells=hidden_dims,
+            ),
         ),
         in_keys=["observation"],  # Only state input for V(s)
         out_keys=["state_value"],  # V(s) not Q(s,a)

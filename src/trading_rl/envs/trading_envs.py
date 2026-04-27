@@ -86,8 +86,9 @@ class DiscreteActionWrapper(gym.ActionWrapper):
 
         # Check if it's a vector (length > 1) which implies OneHot or Probs
         if hasattr(action, "shape") and len(action.shape) >= 1 and action.shape[-1] > 1:
-            # Assume it's a one-hot or probability vector, take argmax
-            if hasattr(action, "argmax"):
+            import torch
+
+            if isinstance(action, torch.Tensor):
                 action = action.argmax(dim=-1)
             else:
                 import numpy as np
@@ -123,6 +124,7 @@ class BaseTradingEnvironmentFactory:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
             return TransformedEnv(env, StepCounter())
+
 
     def make(self, *args, **kwargs) -> TransformedEnv:
         """Abstract method to be implemented by subclasses."""

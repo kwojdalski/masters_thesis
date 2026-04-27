@@ -41,6 +41,10 @@ def test_column_value_feature_normalizes_with_train_fit():
     test_df = train_df.copy()
     test_df["close"] = test_df["close"] + 10.0
 
+    # Use global (StandardScaler) normalization so fit+transform on the same
+    # data produces a zero-mean output. The default "running" mode is an online
+    # normalizer that intentionally does not produce zero-mean output on the
+    # training split (it normalizes each step by past-only statistics).
     pipeline = FeaturePipeline.from_config_dict(
         [
             {
@@ -48,6 +52,7 @@ def test_column_value_feature_normalizes_with_train_fit():
                 "feature_type": "column_value",
                 "params": {"column": "close"},
                 "normalize": True,
+                "normalization_method": "global",
             }
         ]
     )
