@@ -35,6 +35,10 @@ class DataConfig:
     # Multi-symbol pooled training: list of parquet paths processed independently
     # (per-symbol normalization) then concatenated. When set, data_path is ignored.
     data_paths: list[str] | None = None
+    # Lazy loading: use LazyDataFrame instead of in-memory DataFrames
+    # to reduce memory usage. Set prepared_data_dir to enable caching.
+    lazy_load: bool = False
+    prepared_data_dir: str | None = None  # Directory for cached prepared splits
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0

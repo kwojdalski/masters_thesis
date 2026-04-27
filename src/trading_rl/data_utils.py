@@ -14,6 +14,9 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
+# Lazy loading utilities
+from trading_rl.data_loading import LazyDataFrame, save_prepared_splits, load_prepared_splits
+
 _HFT_MIN_TIMESTAMP_GAP_NS = 1_000_000_000
 
 # Setup joblib memory for caching expensive operations
@@ -302,6 +305,35 @@ def _build_pooled_dataset(
     Each file is normalized using its own training split statistics (per-symbol
     z-score normalization), then the splits are concatenated across symbols.
     """
+    lazy_load = getattr(config.data, "lazy_load", False)
+    prepared_dir = getattr(config.data, "prepared_data_dir", None)
+
+    if lazy_load and prepared_dir:
+        prepared_dir = Path(prepared_dir)
+        prepared_files_exist = all(
+            (prepared_dir / f"{split}_prepared.parquet").exists()
+            for split in ["train", "val", "test"]
+        )
+        if prepared_files_exist:
+            logger.info("Pooled training: loading prepared splits from cache at %s", prepared_dir)
+            lazy_splits = load_prepared_splits(prepared_dir)
+            train_lazy = lazy_splits["train"]
+            feature_columns = [c for c in train_lazy.columns if str(c).startswith("feature_")]
+            configured_price_column = getattr(config.env, "price_column", None)
+            price_column = (
+                configured_price_column
+                if isinstance(configured_price_column, str) and configured_price_column in train_lazy.columns
+                else "close"
+            )
+            return PreparedDataset(
+                train_df=train_lazy,
+                val_df=lazy_splits["val"],
+                test_df=lazy_splits["test"],
+                feature_columns=feature_columns,
+                price_column=price_column,
+                raw_columns=list(train_lazy.columns),
+            )
+
     logger.info("Pooled training: processing %d data files independently", len(data_paths))
 
     all_train: list[pd.DataFrame] = []
@@ -347,6 +379,12 @@ def _build_pooled_dataset(
         if isinstance(configured_price_column, str) and configured_price_column in train_df.columns
         else "close"
     )
+
+    if lazy_load and prepared_dir:
+        prepared_dir = Path(prepared_dir)
+        logger.info("Saving pooled prepared splits to cache at %s", prepared_dir)
+        prepared_dir.mkdir(parents=True, exist_ok=True)
+        save_prepared_splits(train_df, val_df, test_df, prepared_dir)
 
     return PreparedDataset(
         train_df=train_df,
@@ -429,6 +467,45 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
         if isinstance(configured_price_column, str) and configured_price_column in train_df.columns
         else "close"
     )
+
+    # Lazy loading support: optionally save prepared splits and use LazyDataFrame
+    lazy_load = getattr(config.data, "lazy_load", False)
+    prepared_dir = getattr(config.data, "prepared_data_dir", None)
+
+    if lazy_load and prepared_dir:
+        prepared_dir = Path(prepared_dir)
+        # Check if prepared splits already exist
+        prepared_files_exist = all(
+            (prepared_dir / f"{split}_prepared.parquet").exists()
+            for split in ["train", "val", "test"]
+        )
+
+        if prepared_files_exist:
+            # Load from cached files using LazyDataFrame
+            logger.info("Loading prepared splits from cache")
+            lazy_splits = load_prepared_splits(prepared_dir)
+            return PreparedDataset(
+                train_df=lazy_splits["train"],
+                val_df=lazy_splits["val"],
+                test_df=lazy_splits["test"],
+                feature_columns=feature_columns,
+                price_column=price_column,
+                raw_columns=list(lazy_splits["train"].columns),
+            )
+        else:
+            # Prepare fresh and save to cache
+            logger.info("Preparing fresh splits and saving to cache")
+            prepared_dir.mkdir(parents=True, exist_ok=True)
+            save_prepared_splits(train_df, val_df, test_df, prepared_dir)
+            # Still return DataFrames for first run (next run will use cache)
+            return PreparedDataset(
+                train_df=train_df,
+                val_df=val_df,
+                test_df=test_df,
+                feature_columns=feature_columns,
+                price_column=price_column,
+                raw_columns=list(train_df.columns),
+            )
 
     return PreparedDataset(
         train_df=train_df,
