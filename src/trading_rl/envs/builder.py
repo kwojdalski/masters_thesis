@@ -106,9 +106,14 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         memmap_paths: list[MemmapPaths],
         config: ExperimentConfig,
     ) -> TransformedEnv:
-        from trading_rl.envs.streaming_env import StreamingTradingEnv
+        import warnings
+        from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
         from trading_rl.data_utils import reward_function
+        from trading_rl.envs.streaming_env import StreamingTradingEnv
         from torchrl.envs.transforms import StepCounter
+
+        backend = self._resolve_backend(config)
+        continuous = backend == "gym_trading_env.continuous"
 
         episode_length = getattr(config.env, "streaming_episode_length", 10_000)
         base_env = StreamingTradingEnv(
@@ -121,4 +126,17 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             reward_function=reward_function,
         )
         env = GymWrapper(base_env)
-        return TransformedEnv(env, StepCounter())
+
+        if continuous:
+            env = TransformedEnv(
+                env,
+                ContinuousToDiscreteAction(
+                    discrete_actions=config.env.positions,
+                    thresholds=[-0.33, 0.33],
+                    device=getattr(config.training, "device", "cpu"),
+                ),
+            )
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
+            return TransformedEnv(env, StepCounter())
