@@ -5,11 +5,15 @@ This chapter develops the reinforcement learning foundations required for the
 trading agent implemented here. It is organized in three parts. The
 first part introduces the core components of an RL system —
 the formal vocabulary of states, actions, rewards, policies, and value functions
-that all subsequent algorithms inherit. The second part classifies RL algorithms
-along the dimensions that matter most for the trading problem: model-free vs.
-model-based, and on-policy vs. off-policy. The third part traces the algorithmic
-lineage from early value-based methods to TD3, showing how these properties
-converge on TD3 as the algorithm of choice for continuous-control trading.
+that all subsequent algorithms inherit. Each component is presented with trading
+motivation: the text explains why these concepts are challenging or distinctive
+in financial environments, while the detailed implementation choices (specific
+features, exact reward formulation, network architectures) are deferred to
+Chapter 4. The second part classifies RL algorithms along the dimensions that
+matter most for the trading problem: model-free vs. model-based, and on-policy
+vs. off-policy. The third part traces the algorithmic lineage from early
+value-based methods to TD3, showing how these properties converge on TD3 as the
+algorithm of choice for continuous-control trading.
 
 ## Components of a Reinforcement Learning System [VERIFIED]
 <!-- [VERIFIED] -->
@@ -58,6 +62,14 @@ non-terminal, continuing the interaction sequence. The Markov property requires
 that the optimal action depend only on $s_t$ and not on the full history; the
 feature engineering in Chapter 4 is designed to approximate this property.
 
+State representation is particularly challenging in financial markets because the
+true market state is only partially observable—agents lack information about
+hidden liquidity, other participants' private orders, and latent regime
+shifts. The engineered state vector described here is therefore necessarily
+an approximation, and Chapter 4.2 discusses how specific microstructure features
+are selected and normalized to construct a useful decision state under partial
+observability and non-stationarity.
+
 ### Action [VERIFIED]
 <!-- [VERIFIED] -->
 
@@ -73,10 +85,20 @@ buy/sell decision.
 
 The policy $\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}$ maps states to
 actions. A deterministic policy is used — given the same state,
-the policy always produces the same action. This is appropriate for a trading
-agent expected to behave consistently under identical market conditions. During
-training, exploration noise is added to the policy output to encourage discovery
-of profitable behaviors; at evaluation time the policy is used without noise.
+the policy always produces the same action. A deterministic policy is chosen here
+because the evaluation objective is a single exposure decision per state, and
+consistency is important for interpretability and execution in deployed trading
+systems. During training, exploration noise is added to the policy output to
+encourage discovery of profitable behaviors; at evaluation time the policy is
+used without noise.
+
+The choice between deterministic and stochastic policies involves a trade-off
+that is particularly salient in trading environments. Stochastic policies can
+provide more flexible exploration and robustness to uncertainty, but they require
+selecting between sampling or taking the mode at deployment time. Deterministic
+policies eliminate this ambiguity but require explicit exploration mechanisms.
+Chapter 4.5 compares both approaches (PPO's stochastic policy vs. DDPG/TD3's
+deterministic policy) in the context of the trading problem.
 
 ### Reward [VERIFIED]
 <!-- [VERIFIED] -->
@@ -88,6 +110,14 @@ therefore a critical design choice: it determines what the agent actually
 optimizes. In trading, rewards are typically derived from portfolio returns,
 possibly adjusted for risk and transaction costs. The specific reward formulation
 used here is developed in Chapter 4.
+
+Reward misspecification is a fundamental risk in trading applications. A
+naive reward function that optimizes raw returns without accounting for risk,
+transaction costs, or tail risk can lead to pathological behaviors such as
+excessive turnover, overconcentration in volatile positions, or ignoring rare but
+catastrophic events. The Differential Sharpe Ratio formulation used in
+Chapter 4.3 addresses this by providing a risk-adjusted learning signal that
+penalizes volatility while remaining recursively computable for online learning.
 
 ### Value Function [VERIFIED]
 <!-- [VERIFIED] -->
