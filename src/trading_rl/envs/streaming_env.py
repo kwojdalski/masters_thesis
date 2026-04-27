@@ -87,10 +87,11 @@ class StreamingTradingEnv(TradingEnv):
     # ------------------------------------------------------------------
 
     def reset(self, seed=None, options=None, **kwargs):
-        file_idx = np.random.randint(0, len(self._memmap_paths))
+        rng = np.random.default_rng(seed)
+        file_idx = int(rng.integers(0, len(self._memmap_paths)))
         mp = self._memmap_paths[file_idx]
         max_start = mp.n_rows - self._episode_length
-        start = np.random.randint(0, max(1, max_start))
+        start = int(rng.integers(0, max(1, max_start)))
 
         window_df = self._load_window(file_idx, start)
         self._set_df(window_df)
