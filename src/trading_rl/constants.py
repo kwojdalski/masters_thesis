@@ -7,7 +7,7 @@ YAML-loaded strings keep working in comparisons without any conversion:
     reward_type == RewardType.LOG_RETURN                 # True when value is "log_return"
 """
 
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 
 
 class Algorithm(StrEnum):
@@ -63,3 +63,16 @@ class DataFormat(StrEnum):
     PARQUET = "parquet"
     CSV = "csv"
     PICKLE = "pickle"
+
+
+class TradePosition(IntEnum):
+    """Discrete trading position values used by the trading environment.
+
+    These are the raw position integers passed to the environment and stored
+    in the positions list.  The integer values (-1, 0, 1) are the canonical
+    representation; the names are the human-readable labels used in plots.
+    """
+
+    SHORT = -1
+    HOLD = 0
+    LONG = 1

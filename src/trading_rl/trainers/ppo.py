@@ -26,6 +26,7 @@ from torchrl.objectives import ClipPPOLoss
 
 from logger import get_logger
 from trading_rl.config import TrainingConfig
+from trading_rl.constants import TradePosition
 from trading_rl.models import (
     create_continuous_ppo_actor,
     create_ppo_actor,
@@ -365,7 +366,7 @@ class PPOTrainer(BaseTrainer):
             with torch.no_grad():
                 env_to_use = env
                 obs = env_to_use.reset()
-                action_names = {0: "Short", 1: "Hold", 2: "Long"}
+                action_names = {i: pos.name.capitalize() for i, pos in enumerate(TradePosition)}
                 action_probs_data = []
                 current_episode_steps = 0
 
@@ -508,7 +509,7 @@ class PPOTrainer(BaseTrainer):
                         break
 
             df_probs = pd.DataFrame(action_probs_data)
-            action_order = ["Short", "Hold", "Long"]
+            action_order = [pos.name.capitalize() for pos in TradePosition]
             df_probs["Action"] = pd.Categorical(
                 df_probs["Action"], categories=action_order, ordered=True
             )
@@ -544,8 +545,9 @@ class PPOTrainer(BaseTrainer):
             logger.exception("Action probabilities plot failed", exc_info=exc)
             fallback_steps = min(max_steps, 500)
             fallback_data = []
+            _action_labels = [pos.name.capitalize() for pos in TradePosition]
             for step in range(fallback_steps):
-                for action in ["Short", "Hold", "Long"]:
+                for action in _action_labels:
                     fallback_data.append(
                         {"Step": step, "Action": action, "Probability": 0.33}
                     )
@@ -553,7 +555,7 @@ class PPOTrainer(BaseTrainer):
             df_fallback = pd.DataFrame(fallback_data)
             df_fallback["Action"] = pd.Categorical(
                 df_fallback["Action"],
-                categories=["Short", "Hold", "Long"],
+                categories=_action_labels,
                 ordered=True,
             )
             plot = (

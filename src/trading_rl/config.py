@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, EnvMode, ExplainabilityMethod, RewardType, StatisticalTest
+from trading_rl.constants import Algorithm, EnvMode, ExplainabilityMethod, RewardType, StatisticalTest, TradePosition
 
 
 @dataclass
@@ -46,7 +46,7 @@ class EnvConfig:
 
     name: str = "BTCUSD"
     mode: str = EnvMode.MFT  # Feature regime mode: "mft" (medium-frequency) or "hft" (high-frequency)
-    positions: list[int] = field(default_factory=lambda: [-1, 0, 1])
+    positions: list[int] = field(default_factory=lambda: list(TradePosition))
     trading_fees: float = 0.0  # 0.01% = 0.0001
     borrow_interest_rate: float = 0.0  # 0.0003% = 0.000003
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE  # Starting portfolio value for logging

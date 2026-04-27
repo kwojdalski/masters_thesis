@@ -6,6 +6,7 @@ from torchrl.data import Bounded
 from torchrl.envs.transforms import Transform
 
 from logger import get_logger
+from trading_rl.constants import TradePosition
 
 logger = get_logger(__name__)
 
@@ -34,7 +35,7 @@ class ContinuousToDiscreteAction(Transform):
         super().__init__()
 
         if discrete_actions is None:
-            discrete_actions = [-1, 0, 1]
+            discrete_actions = list(TradePosition)
         if thresholds is None:
             thresholds = [-0.33, 0.33]
 
