@@ -36,7 +36,12 @@ $$r_t = \log\frac{P_t}{P_{t-1}} \cdot a_{t-1}$$ {#eq-log-return-reward}
 
 This is the first term of @eq-reward-baseline without the transaction cost
 penalty. At tick frequency, this signal is dominated by microstructure noise.
-Individual price changes on an MBP-10 order book are a fraction of the spread.
+Individual price changes on an MBP-10 order book are a fraction of the spread.^[
+MBP-10 (Market By Price, 10 levels) is a standardized L3 order book format
+provided by Databento that captures full depth-of-book snapshots at the event
+level, including resting quantities and order counts at each price level. The
+schema documentation is available at:
+https://databento.com/docs/schemas-and-data-formats/mbp-10]
 The agent cannot distinguish genuine directional movement from quote flickering in
 a single step.
 

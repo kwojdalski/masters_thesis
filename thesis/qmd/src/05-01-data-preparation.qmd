@@ -55,7 +55,12 @@ information advantage.
 The data were obtained from Nasdaq via the DataBento API, using the MBP-10
 (Market By Price, 10 levels) feed — a standardised L3 order book format that
 provides full depth-of-book snapshots at the event level, including resting
-quantities and order counts at each price level. This granularity is necessary
+quantities and order counts at each price level.^[
+MBP-10 schema documentation: https://databento.com/docs/schemas-and-data-formats/mbp-10
+For a technical reference on market data quality and L3 order book processing,
+see Nasdaq TotalView-ITCH specification:
+https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHSpecification.pdf]
+This granularity is necessary
 for constructing the microstructure features described in Chapter 4 and listed
 in Appendix A.
 
