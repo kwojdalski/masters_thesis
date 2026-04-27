@@ -235,11 +235,32 @@ Given these two constraints, the viable candidates are DDPG, TD3, and SAC
 natively deterministic policies, which aligns with the evaluation objective of
 a single exposure decision per state and avoids the need to choose between
 sampling from or taking the mode of a stochastic action distribution at
-deployment. SAC is excluded on scope grounds: the thesis compares DDPG, TD3,
-and PPO as representatives of the three algorithmic families described in this
-chapter, and adding SAC as a fourth candidate would require a separate
-hyperparameter search without introducing a qualitatively distinct design point
-relative to the off-policy deterministic family already covered by DDPG and TD3.
+deployment.
+
+SAC represents a distinct approach to continuous-control RL that warrants
+explicit discussion. Unlike TD3, which addresses instability through
+value-estimation corrections (twin critics and delayed updates), SAC
+formulates the problem as maximum entropy reinforcement learning: it optimizes
+both expected return and policy entropy simultaneously, treating exploration as
+an objective rather than a mechanism. This entropy-augmented framework has been
+applied to trading problems in the literature [@FinRL2020] and addresses the
+non-stationarity concern in a fundamentally different way—by encouraging policy
+diversity continuously rather than relying on off-policy replay from a fixed
+historical dataset.
+
+SAC is excluded from the present study on methodological scope grounds, not
+because it lacks relevance. The entropy-temperature coefficient that balances
+return maximization against exploration introduces an additional objective
+dimension that is not present in the return-only formulation used here.
+Comparing SAC to TD3 would therefore require answering two questions: (1) does
+the entropy-augmented objective improve trading performance, and (2) is any
+improvement attributable to the maximum-entropy formulation or to the
+off-policy replay that both algorithms share? Disentangling these effects
+would require a controlled ablation that is outside the thesis's methodological
+focus, which is on value-estimation corrections for deterministic policies in
+historical simulators. SAC remains a promising direction for future work,
+particularly its online variants that adapt the entropy coefficient during
+training to address regime shifts in non-stationary markets.
 
 Among the two remaining candidates, TD3 is preferred over DDPG because it was
 introduced precisely to correct DDPG's two main failure modes: critic
