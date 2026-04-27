@@ -98,7 +98,7 @@ The following table summarizes the results of five statistical tests comparing t
 ```{python}
 #| echo: false
 #| label: tbl-statistical-significance
-#| tbl-cap: "Statistical significance of TD3 outperformance over benchmark strategies across five tests. Significance threshold: p < 0.05."
+#| tbl-cap: "Statistical significance of TD3 outperformance over benchmark strategies across five tests."
 
 # Load latest finished run for statistical test artifacts
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
