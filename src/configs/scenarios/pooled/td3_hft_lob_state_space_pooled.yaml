@@ -14,16 +14,16 @@ seed: 42
 
 data:
   data_paths:
-    - "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
-    - "./data/raw/stocks/MSFT_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
-    - "./data/raw/stocks/TSLA_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
-    - "./data/raw/stocks/NVDA_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
+    - "./data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+    - "./data/raw/stocks/MSFT_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+    - "./data/raw/stocks/TSLA_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+    - "./data/raw/stocks/NVDA_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
   # data_path is unused when data_paths is set but must be present for schema validation
-  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
+  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
   # Use causal normalization (running Welford's algorithm with session resets)
   feature_config: "src/configs/features/hft_lob_features_causal.yaml"
   download_data: false
-  train_size: 15000
+  train_size: 200000
 
 env:
   name: "TRADINGENV_TD3_POOLED_HFT_STATE_SPACE"
