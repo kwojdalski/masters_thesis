@@ -16,6 +16,10 @@ cumulative reward:
 
 $$\max_\theta \mathbb{E}\!\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]$$ {#eq-rl-objective}
 
+This objective matches the standard RL formulation introduced in
+@eq-rl-value-function, with the cumulative discounted reward as the
+quantity being optimized.
+
 In trading, two properties are essential for the reward to work well in
 practice: the signal should be risk-adjusted so the agent does not maximize
 returns by taking excessive volatility, and it should be computable recursively
@@ -30,9 +34,10 @@ The simplest reward is the single-step log-return:
 
 $$r_t = \log\frac{P_t}{P_{t-1}} \cdot a_{t-1}$$ {#eq-log-return-reward}
 
-At tick frequency, this signal is dominated by microstructure noise. Individual
-price changes on an MBP-10 order book are a fraction of the spread. The
-agent cannot distinguish genuine directional movement from quote flickering in
+This is the first term of @eq-reward-baseline without the transaction cost
+penalty. At tick frequency, this signal is dominated by microstructure noise.
+Individual price changes on an MBP-10 order book are a fraction of the spread.
+The agent cannot distinguish genuine directional movement from quote flickering in
 a single step.
 
 Training on raw log-return produces highly variable gradient
@@ -52,6 +57,11 @@ as the first-order approximation of how the current return $R_t$ changes the
 exponentially weighted Sharpe ratio:
 
 $$D_t = \frac{B_{t-1}\,\Delta A_t - \frac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2\right)^{3/2}}$$ {#eq-dsr}
+
+This replaces the simple log-return in @eq-log-return-reward with a
+risk-adjusted measure that penalizes volatility. The DSR reward signal
+addresses the high-variance problem that affects raw returns, though it
+does not eliminate the noise concerns at tick frequency.
 
 where $A_t$ and $B_t$ are exponentially weighted estimates of the first and
 second moments of returns:

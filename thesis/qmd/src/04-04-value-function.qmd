@@ -18,12 +18,22 @@ $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon$ is the target action with
 smoothing noise. Taking the minimum counteracts the overestimation bias that
 arises when bootstrapped targets are computed from the same network being
 updated — a failure mode documented in DDPG and addressed here following
-@Fujimoto2018.
+@Fujimoto2018. This formulation extends the standard Q-learning target
+in @eq-qlearning-update by (1) using twin critics to reduce overestimation and
+(2) employing a deterministic target policy rather than taking a maximum
+over actions. The TD3 target was first introduced in Chapter 3 in
+@eq-td3-target.
 
 Both critics are trained by minimizing the TD error against the shared target
 $y_t$. The actor is updated using only the first critic's gradient:
 
 $$\nabla_\phi J(\phi) = \mathbb{E}_{s \sim \mathcal{D}}\!\left[\nabla_a Q_{\theta_1}(s,a)\big|_{a=\mu_\phi(s)} \nabla_\phi \mu_\phi(s)\right]$$ {#eq-actor-gradient}
+
+This is the deterministic policy gradient theorem from @Silver2014, first
+presented in the general form in @eq-ddpg-gradient. The gradient chain
+through the critic provides a lower-variance estimate of how policy
+parameters should change compared to the REINFORCE gradient in
+@eq-reinforce-gradient.
 
 The second critic contributes only through the conservative Bellman target,
 not directly to the policy gradient.
@@ -36,4 +46,7 @@ $$\mathcal{L}(\delta) = \begin{cases} 0.5\,\delta^2 & |\delta| \leq 1 \\ |\delta
 
 where $\delta = y_t - Q_\theta(s_t, a_t)$ is the TD error. The linear tail
 limits the influence of large TD errors that occur during volatile market
-episodes, providing robustness that MSE does not.
+episodes, providing robustness that MSE does not. This loss function is
+applied to the TD error derived from the Bellman target in @eq-bellman-target,
+where $\delta = y_t - Q_\theta(s_t, a_t)$ measures the discrepancy between
+the predicted and bootstrapped value estimates.

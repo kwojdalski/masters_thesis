@@ -45,6 +45,12 @@ The actor network contains approximately 11,800 trainable parameters:
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-ppo-exploration}
 
+This formulation shows how PPO injects noise during training while removing it
+at evaluation time, similar to DDPG and TD3 exploration in
+@eq-ddpg-exploration and @eq-td3-exploration. However, PPO's stochastic
+policy maintains action diversity through the distribution itself (shown in
+@eq-ppo-distribution) rather than relying solely on additive noise.
+
 The deterministic action for evaluation is obtained by taking the mode of the distribution: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
 
 **Deterministic Policy: DDPG {#sec-policy-deterministic}**
@@ -56,6 +62,12 @@ DDPG implements a deterministic policy:
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-ddpg-exploration}
 
+This matches the exploration mechanism described in @eq-exploration-noise, where
+Gaussian noise is added to deterministic actions and clipped to the action
+space bounds. The noise is removed at evaluation time. TD3 uses the same
+exploration approach but adds additional target policy smoothing during
+critic updates, as shown in @eq-td3-exploration.
+
 The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
 
 **Deterministic Policy: TD3 {#sec-policy-deterministic-td3}**
@@ -66,6 +78,13 @@ TD3 implements a deterministic policy:
 
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-td3-exploration}
+
+This is identical to DDPG's exploration in @eq-ddpg-exploration during training.
+However, TD3 adds a separate noise term for target policy smoothing when
+computing Bellman targets (as shown in @eq-bellman-target and @eq-td3-target),
+which prevents the critics from fitting sharp value peaks in the action
+space. This target smoothing noise $\epsilon_{\text{smooth}} \sim \mathcal{N}(0, 0.2^2)$
+is clipped to $[-0.3, 0.3]$ and is distinct from the exploration noise.
 
 The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
 
@@ -143,18 +162,18 @@ stability mechanisms — and not to differences in model capacity or input featu
 The table below summarizes the policy-level design choices for each algorithm in
 the controlled comparison.
 
-| Property | DDPG | TD3 | PPO |
+| Property | PPO | DDPG | TD3 |
 |---|---|---|---|
-| Policy type | Deterministic | Deterministic | Stochastic |
-| Actor output | $\mu_\theta(s) \in [-1,1]$ | $\mu_\theta(s) \in [-1,1]$ | TanhNormal$(\mu, \sigma)$ |
+| Policy type | Stochastic | Deterministic | Deterministic |
+| Actor output | TanhNormal$(\mu, \sigma)$ | $\mu_\theta(s) \in [-1,1]$ | $\mu_\theta(s) \in [-1,1]$ |
 | Hidden dims | [128, 64] | [128, 64] | [128, 64] |
-| Hidden activation | ReLU | ReLU | Tanh |
-| Output activation | Tanh | Tanh | — (distribution) |
-| Exploration | Additive noise $\sigma=0.1$ | Additive noise $\sigma=0.1$ | Entropy bonus $c_1=0.01$ |
-| Target smoothing | None | $\sigma=0.2$, clip $\pm0.3$ | None |
-| Evaluation action | $\mu_\theta(s_t)$ | $\mu_\theta(s_t)$ | $\tanh(\mu_\theta(s_t))$ |
-| Critic input | $(s, a)$ | $(s, a)$ | $s$ only |
-| Number of critics | 1 | 2 (twin) | 1 |
-| Actor update freq. | Every step | Every 2 critic steps | Every epoch |
+| Hidden activation | Tanh | ReLU | ReLU |
+| Output activation | — (distribution) | Tanh | Tanh |
+| Exploration | Entropy bonus $c_1=0.01$ | Additive noise $\sigma=0.1$ | Additive noise $\sigma=0.1$ |
+| Target smoothing | None | None | $\sigma=0.2$, clip $\pm0.3$ |
+| Evaluation action | $\tanh(\mu_\theta(s_t))$ | $\mu_\theta(s_t)$ | $\mu_\theta(s_t)$ |
+| Critic input | $s$ only | $(s, a)$ | $(s, a)$ |
+| Number of critics | 1 | 1 | 2 (twin) |
+| Actor update freq. | Every epoch | Every step | Every 2 critic steps |
 
 : Policy design choices for each algorithm in the controlled comparison. {#tbl-policy-comparison}
