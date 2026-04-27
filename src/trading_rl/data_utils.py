@@ -334,14 +334,17 @@ def _build_pooled_dataset(
                 raw_columns=list(train_lazy.columns),
             )
 
+    import tempfile, gc
+
     logger.info("Pooled training: processing %d data files independently", len(data_paths))
 
-    all_train: list[pd.DataFrame] = []
-    all_val: list[pd.DataFrame] = []
-    all_test: list[pd.DataFrame] = []
+    # Process each symbol one at a time and write to temp parquet files so only
+    # one symbol's data lives in memory during feature engineering.
+    tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
+    tmp_paths: list[dict[str, Path]] = []
 
-    for data_path in data_paths:
-        logger.info("Processing %s", data_path)
+    for i, data_path in enumerate(data_paths):
+        logger.info("Processing %s (%d/%d)", data_path, i + 1, len(data_paths))
         train_df_i, val_df_i, test_df_i = prepare_data(
             data_path=data_path,
             train_size=config.data.train_size,
@@ -349,13 +352,22 @@ def _build_pooled_dataset(
             download_if_missing=config.data.download_data,
             feature_config_path=getattr(config.data, "feature_config", None),
         )
-        all_train.append(train_df_i)
-        all_val.append(val_df_i)
-        all_test.append(test_df_i)
+        sym_paths = {}
+        for split, df in [("train", train_df_i), ("val", val_df_i), ("test", test_df_i)]:
+            p = tmp_dir / f"{i}_{split}.parquet"
+            df.to_parquet(p)
+            sym_paths[split] = p
+        tmp_paths.append(sym_paths)
+        del train_df_i, val_df_i, test_df_i
+        gc.collect()
 
-    train_df = pd.concat(all_train, ignore_index=True)
-    val_df = pd.concat(all_val, ignore_index=True)
-    test_df = pd.concat(all_test, ignore_index=True)
+    # Concatenate from disk — only one parquet file per symbol in memory at a time.
+    train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths], ignore_index=True)
+    val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths], ignore_index=True)
+    test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths], ignore_index=True)
+
+    import shutil
+    shutil.rmtree(tmp_dir, ignore_errors=True)
 
     logger.info(
         "Pooled splits: train=%d, val=%d, test=%d rows",
