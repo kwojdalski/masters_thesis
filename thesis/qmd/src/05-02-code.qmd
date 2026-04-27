@@ -236,10 +236,30 @@ entropy bonuses rather than explicit noise injection.
 </pre>
 ```
 
-The notation follows the conventions established in Chapter 3.
-For DDPG and TD3: $\mu_\theta$ is the deterministic actor; $Q_\phi$ (DDPG) and $Q_{\phi_1}$, $Q_{\phi_2}$ (TD3) are the critic networks; primed symbols denote slowly updated target networks; $\mathcal{D}$ is the replay buffer; $\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})$ is training-only exploration noise; $\tau$ is the soft-update coefficient.
-For PPO: $\pi_\theta$ is the stochastic actor (TanhNormal distribution); $V_\phi$ is the state value network; $\hat{A}_t$ are GAE advantage estimates; $r_t(\theta)$ is the probability ratio between new and old policies; $\epsilon$ is the clipping threshold; $c_1$, $c_2$ are the entropy and value loss coefficients; $K$ is the number of PPO epochs per batch.
-$\gamma$ is the discount factor and $\alpha$ the learning rate across all three algorithms. Concrete values are listed in Appendix B.
+The notation follows the conventions established in Chapter 3:
+
+**For DDPG and TD3:**
+- $\mu_\theta$ is the deterministic actor
+- $Q_\phi$ (DDPG) and $Q_{\phi_1}$, $Q_{\phi_2}$ (TD3) are the critic networks
+- Primed symbols denote slowly updated target networks
+- $\mathcal{D}$ is the replay buffer
+- $\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})$ is training-only exploration noise
+- $\tau$ is the soft-update coefficient
+
+**For PPO:**
+- $\pi_\theta$ is the stochastic actor (TanhNormal distribution)
+- $V_\phi$ is the state value network
+- $\hat{A}_t$ are GAE advantage estimates
+- $r_t(\theta)$ is the probability ratio between new and old policies
+- $\epsilon$ is the clipping threshold
+- $c_1$, $c_2$ are the entropy and value loss coefficients
+- $K$ is the number of PPO epochs per batch
+
+**Common to all algorithms:**
+- $\gamma$ is the discount factor
+- $\alpha$ is the learning rate
+
+Concrete values are listed in Appendix B.
 
 ### Evaluation
 
