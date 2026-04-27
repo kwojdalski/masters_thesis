@@ -116,7 +116,7 @@ claims are difficult to assess on their own terms.
 DDPG on Dow Jones constituents. The study is relevant as an actor-critic
 comparison in a liquid equity universe, but it is not evidence about
 millisecond-level LOB trading; its state representation, trading frequency, and
-execution assumptions differ from the setting studied in this thesis.
+execution assumptions differ from the setting studied in the current work.
 
 @Wang2019AlphaStock proposed AlphaStock, which combines a Sharpe-oriented RL
 objective with history-state and cross-asset attention networks. Its contribution

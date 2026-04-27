@@ -126,7 +126,7 @@ cases within the broader trading system design.
 - Robustness across different market conditions (if multiple test periods are evaluated)]
 
 This comparison provides empirical grounding for the algorithmic choices made
-in this thesis and offers guidance for algorithm selection in similar
+in this study and offers guidance for algorithm selection in similar
 continuous-action trading applications.
 
 ## Evaluation Protocol [PLACEHOLDER]

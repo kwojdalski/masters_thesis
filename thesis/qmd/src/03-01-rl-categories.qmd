@@ -6,13 +6,8 @@ The diagram below maps the reinforcement learning landscape from the Bellman
 equation through the key algorithmic relaxations that lead to TD3. It is
 intended as an orientation before the detailed treatment that follows.
 
-::: {.content-visible when-format="pdf"}
-```{=latex}
-\begin{figure}[h]
-\centering
-```
-
 ```{mermaid}
+%%| fig-cap: "RL algorithm taxonomy from Bellman equation to TD3"
 %%| fig-align: center
 %%| fig-width: 6.4
 %%| fig-height: 8.1
@@ -24,13 +19,13 @@ graph TD
     C -->|No| E[Reinforcement Learning]
     E --> F{Value estimation?}
     F -->|Full episode| G[Monte Carlo]
-    F -->|Bootstrap| H[Temporal Difference<br/>SARSA / Q-Learning]
+    F -->|Bootstrap| H["Temporal Difference<br/>SARSA / Q-Learning"]
     E --> I{State space?}
     I -->|Small / Discrete| J[Tabular Methods]
-    I -->|Large / Continuous| K[Function Approximation<br/>Deep RL]
+    I -->|Large / Continuous| K["Function Approximation<br/>Deep RL"]
     K --> L{Action space?}
-    L -->|Discrete| M[Value-Based<br/>DQN / Rainbow]
-    L -->|Continuous| N[Policy-Based<br/>REINFORCE / PPO]
+    L -->|Discrete| M["Value-Based<br/>DQN / Rainbow"]
+    L -->|Continuous| N["Policy-Based<br/>REINFORCE / PPO"]
     L -->|Either| O[Actor-Critic]
     O --> O1{On/Off-Policy?}
     O1 -->|On-Policy| O2[A2C / PPO]
@@ -40,55 +35,13 @@ graph TD
     O4 -->|Twin critics +<br/>delayed updates| O6[TD3 — This Thesis]
     O4 -->|Max entropy| O7[SAC]
     E --> P{Sample efficiency?}
-    P -->|Need planning| Q[Model-Based RL<br/>Dyna-Q / Dreamer]
+    P -->|Need planning| Q["Model-Based RL<br/>Dyna-Q / Dreamer"]
     P -->|Model-free OK| R[Model-Free RL]
 ```
 
-```{=latex}
-\caption{RL algorithm taxonomy from Bellman equation to TD3. Source: author's own diagram, based on @Sutton2018.}
-\label{fig-rl-taxonomy}
-\end{figure}
-```
+Source: author's own diagram, based on @Sutton2018.
 
-^[This taxonomy is a pedagogical simplification rather than a precise classification. Algorithmic categories have fuzzy boundaries: many methods combine ideas from multiple traditions, and implementations can vary. PPO appears under both "Policy-Based" and "Actor-Critic" paths because it uses a stochastic policy (policy-gradient tradition) with a value-based critic (actor-critic tradition). The grouping of DDPG, TD3, and SAC under a single "Off-Policy" branch obscures fundamental differences: DDPG and TD3 use deterministic policies and focus on value-estimation corrections, while SAC uses maximum-entropy reinforcement learning and treats exploration as an objective rather than a mechanism. The Sutton \& Barto framework on which this diagram is based is itself a teaching tool; readers should not infer mutually exclusive algorithmic families from the crisp boundaries shown here.]
-:::
-
-::: {.content-visible when-format="html"}
-```{mermaid}
-%%| fig-cap: "RL algorithm taxonomy from Bellman equation to TD3. Source: author's own diagram, based on @Sutton2018."
-%%| fig-align: center
-%%| fig-width: 6.4
-%%| fig-height: 8.1
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
-graph TD
-    A[MDP] -->|Solution| B(Bellman Equation)
-    B --> C{Known model?}
-    C -->|Yes| D[Dynamic Programming]
-    C -->|No| E[Reinforcement Learning]
-    E --> F{Value estimation?}
-    F -->|Full episode| G[Monte Carlo]
-    F -->|Bootstrap| H[Temporal Difference<br/>SARSA / Q-Learning]
-    E --> I{State space?}
-    I -->|Small / Discrete| J[Tabular Methods]
-    I -->|Large / Continuous| K[Function Approximation<br/>Deep RL]
-    K --> L{Action space?}
-    L -->|Discrete| M[Value-Based<br/>DQN / Rainbow]
-    L -->|Continuous| N[Policy-Based<br/>REINFORCE / PPO]
-    L -->|Either| O[Actor-Critic]
-    O --> O1{On/Off-Policy?}
-    O1 -->|On-Policy| O2[A2C / PPO]
-    O1 -->|Off-Policy| O3[DDPG / TD3 / SAC]
-    O3 --> O4{Policy type?}
-    O4 -->|Deterministic| O5[DDPG]
-    O4 -->|Twin critics +<br/>delayed updates| O6[TD3 — This Thesis]
-    O4 -->|Max entropy| O7[SAC]
-    E --> P{Sample efficiency?}
-    P -->|Need planning| Q[Model-Based RL<br/>Dyna-Q / Dreamer]
-    P -->|Model-free OK| R[Model-Free RL]
-```
-
-^[This taxonomy is a pedagogical simplification rather than a precise classification. Algorithmic categories have fuzzy boundaries: many methods combine ideas from multiple traditions, and implementations can vary. PPO appears under both "Policy-Based" and "Actor-Critic" paths because it uses a stochastic policy (policy-gradient tradition) with a value-based critic (actor-critic tradition). The grouping of DDPG, TD3, and SAC under a single "Off-Policy" branch obscures fundamental differences: DDPG and TD3 use deterministic policies and focus on value-estimation corrections, while SAC uses maximum-entropy reinforcement learning and treats exploration as an objective rather than a mechanism. The Sutton \& Barto framework on which this diagram is based is itself a teaching tool; readers should not infer mutually exclusive algorithmic families from the crisp boundaries shown here.]
-:::
+[^taxonomy-note]: This taxonomy is a pedagogical simplification rather than a precise classification. Algorithmic categories have fuzzy boundaries: many methods combine ideas from multiple traditions, and implementations can vary. PPO appears under both "Policy-Based" and "Actor-Critic" paths because it uses a stochastic policy (policy-gradient tradition) with a value-based critic (actor-critic tradition). The grouping of DDPG, TD3, and SAC under a single "Off-Policy" branch obscures fundamental differences: DDPG and TD3 use deterministic policies and focus on value-estimation corrections, while SAC uses maximum-entropy reinforcement learning and treats exploration as an objective rather than a mechanism. The Sutton & Barto framework on which this diagram is based is itself a teaching tool; readers should not infer mutually exclusive algorithmic families from the crisp boundaries shown here.
 
 ### Model-free vs Model-based [VERIFIED]
 <!-- [VERIFIED] -->

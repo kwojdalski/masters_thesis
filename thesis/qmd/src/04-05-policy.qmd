@@ -1,12 +1,12 @@
 ## Policy
 
-The policy maps the current state to an action. The three algorithms compared in this thesis — PPO, DDPG, and TD3 — differ in a fundamental property of this mapping:
+The policy maps the current state to an action. The three algorithms compared here — PPO, DDPG, and TD3 — differ in a fundamental property of this mapping:
 PPO maintains a probability distribution over actions and samples from it, while DDPG and TD3 produce a single deterministic action for each state. This distinction has direct
 consequences for how each algorithm explores during training, how it behaves at
 evaluation time, and what the policy gradient looks like. The subsections below describe
 each architecture, followed by a table that makes the design choices explicit.
 
-### Stochastic Policy: PPO {#sec-policy-stochastic}
+### Deterministic Policy Architecture {#sec-policy-deterministic-arch}
 
 PPO maintains a stochastic policy:
 

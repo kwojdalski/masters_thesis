@@ -68,9 +68,6 @@ if key_metrics_df is None or key_metrics_df.empty:
 display_table(key_metrics_df)
 ```
 
-### Benchmark Comparison [PLACEHOLDER]
-<!-- [PLACEHOLDER] -->
-
 The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
 
 ```{python}
