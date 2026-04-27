@@ -1,0 +1,135 @@
+# DDPG Configuration for Pooled Multi-Symbol Training — Memmap Streaming
+# ========================================================================
+# Identical to ddpg_hft_lob_state_space_pooled.yaml except the training
+# environment loads episode windows on-demand from numpy memmap files.
+# Shares memmap/prepared cache with the TD3 and PPO streaming configs
+# (same data, same features — no redundant reprocessing).
+#
+# Data: Tick-level MBP-10 order book snapshots, US market hours only
+# Symbols: AAPL, MSFT, TSLA, NVDA — 2026-02-25 to 2026-03-03
+# Backend: TradingEnv (continuous action space)
+# Algorithm: DDPG
+
+seed: 42
+
+data:
+  data_paths:
+    - "./data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+    - "./data/raw/stocks/MSFT_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+    - "./data/raw/stocks/TSLA_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+    - "./data/raw/stocks/NVDA_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+  feature_config: "src/configs/features/hft_lob_features_causal.yaml"
+  download_data: false
+  train_size: 200000
+  lazy_load: true
+  prepared_data_dir: "./data/prepared/pooled_aapl_msft_tsla_nvda"
+  memmap_dir: "./data/memmap/pooled_aapl_msft_tsla_nvda"
+
+env:
+  name: "TRADINGENV_DDPG_POOLED_HFT_STATE_SPACE_STREAMING"
+  backend: "tradingenv"
+  mode: "hft"
+
+  trading_fees: 0.000
+  price_column: "close"
+  include_position_feature: true
+  streaming_episode_length: 50000
+
+  feature_columns: [
+    "feature_hft_book_pressure_l0",
+    "feature_hft_book_pressure_l1",
+    "feature_hft_book_pressure_l2",
+    "feature_hft_order_book_imbalance_3l",
+    "feature_hft_order_count_imbalance_l0",
+    "feature_hft_microprice",
+    "feature_hft_microprice_divergence",
+    "feature_hft_vwmp_skew",
+    "feature_hft_spread_bps",
+    "feature_hft_spread_ratio_50",
+    "feature_hft_bid_convexity",
+    "feature_hft_ask_convexity",
+    "feature_hft_bid_slope",
+    "feature_hft_ask_slope",
+    "feature_hft_ofi",
+    "feature_hft_ofi_rolling_50",
+    "feature_hft_bid_queue_depletion",
+    "feature_hft_ask_queue_depletion",
+    "feature_hft_signed_trade_flow_50",
+    "feature_hft_odd_lot_trade_ratio_200",
+    "feature_hft_odd_lot_imbalance_200",
+    "feature_hft_inter_event_time",
+    "feature_hft_mid_price_acceleration",
+    "feature_hft_hour_sin",
+    "feature_hft_hour_cos",
+    "feature_position",
+  ]
+
+  reward_type: "differential_sharpe"
+  reward_eta: 0.01
+
+network:
+  actor_hidden_dims: [128, 64]
+  value_hidden_dims: [128, 64]
+
+training:
+  algorithm: "DDPG"
+  temp_eval_interval: 100000
+
+  actor_lr: 0.0001
+  value_lr: 0.0001
+  value_weight_decay: 0.000002
+  actor_weight_decay: 0.000002
+
+  max_steps: 2000000
+  checkpoint_interval: 100000
+  init_rand_steps: 1000
+  frames_per_batch: 200
+  optim_steps_per_batch: 5
+  sample_size: 128
+  buffer_size: 100000
+  save_buffer: true
+
+  gamma: 0.995
+
+  tau: 0.001
+  exploration_noise_std: 0.1
+
+  loss_function: "smooth_l1"
+
+  eval_steps: 720
+  eval_interval: 1000
+  log_interval: 100
+
+logging:
+  log_level: "INFO"
+  save_plots: false
+
+explainability:
+  enabled: true
+  n_steps: 500
+  methods: ["permutation", "integrated_gradients"]
+  temp_explainability_interval: 100000
+
+statistical_testing:
+  enabled: true
+  log_to_research_artifacts: true
+
+  compare_to_buy_and_hold: true
+  compare_to_short_and_hold: true
+  compare_to_twap: true
+  compare_to_vwap: true
+  compare_to_random: true
+
+  tests:
+    - "t_test"
+    - "sharpe_bootstrap"
+    - "sortino_bootstrap"
+    - "mann_whitney"
+    - "permutation_test"
+
+  n_bootstrap_samples: 10000
+  n_permutations: 10000
+  n_random_trials: 100
+  confidence_level: 0.95
+  random_seed: 42
