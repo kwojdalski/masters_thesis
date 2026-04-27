@@ -111,7 +111,7 @@ weakly informative.
 
 @Schulman2017 introduced Proximal Policy Optimization (PPO), an on-policy
 algorithm that balances the size of each policy update against training
-stibility. PPO optimizes a clipped surrogate objective:
+stability. PPO optimizes a clipped surrogate objective:
 
 $$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(r_t(\theta)\hat{A}_t,
 \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$ {#eq-ppo-clip}
