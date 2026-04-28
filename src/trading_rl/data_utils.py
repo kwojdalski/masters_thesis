@@ -336,27 +336,38 @@ def _resolve_feature_pipeline(config: Any, logger: logging.Logger) -> Any:
     return pipeline
 
 
-def _call_prepare_data(
-    data_path: str,
-    config: Any,
-    feature_pipeline: Any = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Call prepare_data with all standard config fields."""
-    return prepare_data(
-        data_path=data_path,
-        train_size=config.data.train_size,
-        validation_size=getattr(config.data, "validation_size", None),
-        download_if_missing=config.data.download_data,
-        exchange_names=getattr(config.data, "exchange_names", None),
-        symbols=getattr(config.data, "symbols", None),
-        timeframe=getattr(config.data, "timeframe", "1h"),
-        data_dir=getattr(config.data, "data_dir", "data"),
-        since=getattr(config.data, "download_since", None),
-        feature_config_path=getattr(config.data, "feature_config", None),
-        feature_pipeline=feature_pipeline,
-        feature_cache_dir=getattr(config.data, "feature_cache_dir", ".cache/feature_transformation"),
-        use_load_cache=getattr(config.data, "use_load_cache", True),
-    )
+@dataclass
+class PrepareDataConfig:
+    """Parameters for prepare_data, decoupled from any specific config system."""
+
+    train_size: int
+    validation_size: int | None = None
+    download_if_missing: bool = False
+    exchange_names: list[str] | None = None
+    symbols: list[str] | None = None
+    timeframe: str = "1h"
+    data_dir: str = "data"
+    since: Any | None = None
+    feature_config_path: str | None = None
+    feature_cache_dir: str | None = ".cache/feature_transformation"
+    use_load_cache: bool = True
+
+    @classmethod
+    def from_config(cls, cfg: Any) -> "PrepareDataConfig":
+        """Build from an OmegaConf node or DataConfig-like object (config.data)."""
+        return cls(
+            train_size=cfg.train_size,
+            validation_size=getattr(cfg, "validation_size", None),
+            download_if_missing=getattr(cfg, "download_data", False),
+            exchange_names=getattr(cfg, "exchange_names", None),
+            symbols=getattr(cfg, "symbols", None),
+            timeframe=getattr(cfg, "timeframe", "1h"),
+            data_dir=getattr(cfg, "data_dir", "data"),
+            since=getattr(cfg, "download_since", None),
+            feature_config_path=getattr(cfg, "feature_config", None),
+            feature_cache_dir=getattr(cfg, "feature_cache_dir", ".cache/feature_transformation"),
+            use_load_cache=getattr(cfg, "use_load_cache", True),
+        )
 
 
 def _finalize_splits(
@@ -408,7 +419,8 @@ def _build_single_symbol_splits(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Load and process one symbol through the full feature engineering pipeline."""
     pipeline = _resolve_feature_pipeline(config, logger)
-    train_df, val_df, test_df = _call_prepare_data(config.data.data_path, config, pipeline)
+    prep_cfg = PrepareDataConfig.from_config(config.data)
+    train_df, val_df, test_df = prepare_data(config.data.data_path, prep_cfg, pipeline)
     return _finalize_splits(train_df, val_df, test_df, config, logger)
 
 
@@ -433,6 +445,7 @@ def _build_pooled_splits(
     import tempfile
 
     pipeline = _resolve_feature_pipeline(config, logger)
+    prep_cfg = PrepareDataConfig.from_config(config.data)
 
     logger.info("pooled training n_symbols=%d", len(data_paths))
     tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
@@ -441,7 +454,7 @@ def _build_pooled_splits(
 
     for i, data_path in enumerate(data_paths):
         logger.info("process symbol idx=%d/%d path=%s", i + 1, len(data_paths), data_path)
-        train_i, val_i, test_i = _call_prepare_data(data_path, config, pipeline)
+        train_i, val_i, test_i = prepare_data(data_path, prep_cfg, pipeline)
         # Apply close-column derivation per-symbol so each memmap is self-contained.
         train_i, val_i, test_i = ensure_close_column_for_hft(train_i, val_i, test_i, config, logger)
 
@@ -551,18 +564,8 @@ def _feature_cache_key(
 
 def prepare_data(
     data_path: str,
-    train_size: int,
-    validation_size: int | None = None,
-    download_if_missing: bool = False,
-    exchange_names: list[str] | None = None,
-    symbols: list[str] | None = None,
-    timeframe: str = "1h",
-    data_dir: str = "data",
-    since: Any | None = None,
-    feature_config_path: str | None = None,
+    cfg: "PrepareDataConfig",
     feature_pipeline: Any | None = None,
-    feature_cache_dir: str | None = ".cache/feature_transformation",
-    use_load_cache: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Prepare trading data for RL training with proper train/val/test split.
 
@@ -570,37 +573,25 @@ def prepare_data(
     data leakage. Normalization statistics are computed only on training data.
 
     Args:
-        data_path: Path to data file
-        train_size: Number of samples to use for training
-        validation_size: Number of samples for validation. If None, split the
-            remaining data equally between validation and test.
-        download_if_missing: Whether to download data if file doesn't exist
-        exchange_names: Exchange names for download
-        symbols: Trading symbols for download
-        timeframe: Data timeframe
-        data_dir: Directory for downloaded data
-        since: Start date for download
-        feature_config_path: Path to YAML config for features. If None, uses default pipeline.
-        feature_pipeline: Pre-built FeaturePipeline instance. If provided, takes priority
-            over feature_config_path.
+        data_path: Path to the data file for this symbol.
+        cfg: PrepareDataConfig with split sizes, cache settings, and download params.
+        feature_pipeline: Pre-built FeaturePipeline instance. When provided it
+            takes priority over cfg.feature_config_path.
 
     Returns:
         Tuple of (train_df, val_df, test_df) with raw OHLCV plus engineered features.
 
     Example:
-        train_df, val_df, test_df = prepare_data(
-            data_path="data.parquet",
-            train_size=450,
-            feature_config_path="configs/features/sine_wave.yaml"
-        )
+        cfg = PrepareDataConfig(train_size=450, feature_config_path="configs/features/sine_wave.yaml")
+        train_df, val_df, test_df = prepare_data("data.parquet", cfg)
     """
     # Feature cache — skip the expensive transform when inputs haven't changed.
     _cache_entry: Path | None = None
-    if feature_cache_dir and Path(data_path).exists():
+    if cfg.feature_cache_dir and Path(data_path).exists():
         cache_key = _feature_cache_key(
-            data_path, train_size, validation_size, feature_config_path, feature_pipeline
+            data_path, cfg.train_size, cfg.validation_size, cfg.feature_config_path, feature_pipeline
         )
-        _cache_entry = Path(feature_cache_dir) / cache_key
+        _cache_entry = Path(cfg.feature_cache_dir) / cache_key
         _splits = ("train", "val", "test")
         if all((_cache_entry / f"{s}.parquet").exists() for s in _splits):
             logger.info("feature cache hit key=%s path=%s", cache_key[:8], _cache_entry)
@@ -609,8 +600,8 @@ def prepare_data(
 
     # Check if data exists
     if not Path(data_path).exists():
-        if download_if_missing and exchange_names and symbols and since:
-            download_trading_data(exchange_names, symbols, timeframe, data_dir, since)
+        if cfg.download_if_missing and cfg.exchange_names and cfg.symbols and cfg.since:
+            download_trading_data(cfg.exchange_names, cfg.symbols, cfg.timeframe, cfg.data_dir, cfg.since)
         else:
             raise FileNotFoundError(
                 f"Data file not found: {data_path}. "
@@ -619,13 +610,15 @@ def prepare_data(
 
     # Load raw OHLCV data
     file_signature = Path(data_path).stat().st_mtime_ns
-    _loader = load_trading_data if use_load_cache else load_trading_data.__wrapped__
+    _loader = load_trading_data if cfg.use_load_cache else load_trading_data.__wrapped__
     df = _loader(data_path, cache_bust=file_signature)
     df = df.dropna()
 
     logger.info("load raw data n_rows=%d n_cols=%d", len(df), len(df.columns))
 
     # Split data BEFORE feature engineering (critical for preventing leakage!)
+    train_size = cfg.train_size
+    validation_size = cfg.validation_size
     if train_size >= len(df):
         raise ValueError(
             f"train_size ({train_size}) must be smaller than dataset length ({len(df)})"
@@ -659,9 +652,9 @@ def prepare_data(
     if feature_pipeline is not None:
         logger.info("use pre-built feature pipeline n_features=%d", len(feature_pipeline.features))
         pipeline = feature_pipeline
-    elif feature_config_path:
-        logger.info("load feature pipeline path=%s", feature_config_path)
-        pipeline = FeaturePipeline.from_yaml(feature_config_path)
+    elif cfg.feature_config_path:
+        logger.info("load feature pipeline path=%s", cfg.feature_config_path)
+        pipeline = FeaturePipeline.from_yaml(cfg.feature_config_path)
     else:
         logger.info("use default feature pipeline")
         pipeline = create_default_pipeline()

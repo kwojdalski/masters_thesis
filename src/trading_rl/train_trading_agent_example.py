@@ -13,6 +13,7 @@ import gym_trading_env  # noqa: F401
 from trading_rl import (
     DDPGTrainer,
     ExperimentConfig,
+    PrepareDataConfig,
     create_actor,
     create_environment,
     create_value_network,
@@ -37,15 +38,8 @@ config.seed = set_seed(config.seed)
 # Prepare data
 logger.info("prepare data")
 train_df, _val_df, _test_df = prepare_data(
-    data_path=config.data.data_path,
-    train_size=config.data.train_size,
-    validation_size=getattr(config.data, "validation_size", None),
-    download_if_missing=config.data.download_data,
-    exchange_names=config.data.exchange_names,
-    symbols=config.data.symbols,
-    timeframe=config.data.timeframe,
-    data_dir=config.data.data_dir,
-    since=config.data.download_since,
+    config.data.data_path,
+    PrepareDataConfig.from_config(config.data),
 )
 
 # %%
