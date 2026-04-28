@@ -90,6 +90,24 @@ THESIS_DOWNLOADS = [
         aggregate=False,
         filter_us_hours=True,
     ),
+    ThesisStockDownload(
+        symbol="AMZN",
+        start_date="2026-02-25",
+        end_date="2026-03-03",
+        dataset="XNAS.ITCH",
+        schema="mbp-10",
+        aggregate=False,
+        filter_us_hours=True,
+    ),
+    ThesisStockDownload(
+        symbol="AVGO",
+        start_date="2026-02-25",
+        end_date="2026-03-03",
+        dataset="XNAS.ITCH",
+        schema="mbp-10",
+        aggregate=False,
+        filter_us_hours=True,
+    ),
 ]
 
 

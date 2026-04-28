@@ -2,9 +2,10 @@
 
 ### Asset Selection
 
-The experiments use equity data from five Nasdaq-listed blue-chip instruments:
+The experiments use equity data from seven Nasdaq-listed blue-chip instruments:
 AAPL (Apple Inc.), MSFT (Microsoft Corp.), TSLA (Tesla Inc.), GOOGL
-(Alphabet Inc. Class A), and META (Meta Platforms Inc.). All five are
+(Alphabet Inc. Class A), META (Meta Platforms Inc.), AMZN (Amazon.com Inc.),
+and AVGO (Broadcom Inc.). All seven are
 among the most liquid equities in US markets, with tight spreads, deep displayed
 depth, and continuous two-sided quoting throughout the trading session. The
 selection criterion was high but not extreme liquidity: instruments were chosen
@@ -54,7 +55,7 @@ in the state space — order-flow imbalance, relative spread, depth slope, queue
 imbalance — are inherently relative measures that carry the same semantic meaning
 regardless of the underlying price level or absolute volume.
 
-A further consideration is access symmetry. Because all four instruments trade
+A further consideration is access symmetry. Because all seven instruments trade
 on a centralized, regulated exchange with public pre-trade transparency, all
 market participants observe the same order book. This contrasts with OTC markets
 or less liquid instruments where information asymmetry and differential access
