@@ -382,6 +382,9 @@ def train(
         "--log-regex",
         help="Only show log lines that match this regex",
     ),
+    interactive: bool = typer.Option(
+        False, "--interactive", "-i", help="Ask setup questions before training starts"
+    ),
 ):
     """Train trading agents (single run or multiple trials).
 
@@ -414,6 +417,10 @@ def train(
 
         # Verbose logging
         python src/cli.py train --from-last-checkpoint --additional-steps 5000 --verbose
+
+        # Interactive setup (guided prompts)
+        python src/cli.py train --interactive
+        python src/cli.py train -c sine_wave/ppo_no_trend --interactive
     """
 
     if verbose or log_regex:
@@ -442,6 +449,7 @@ def train(
         from_last_checkpoint=from_last_checkpoint,
         mlflow_run_id=mlflow_run_id,
         additional_steps=additional_steps,
+        interactive=interactive,
     )
 
     training_cmd.execute(params)
