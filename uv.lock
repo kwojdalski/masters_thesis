@@ -1938,6 +1938,12 @@ docs = [
     { name = "sphinx-rtd-theme" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "jupyter" },
+    { name = "nbformat" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "black", specifier = ">=24.3.0" },
@@ -1979,6 +1985,12 @@ requires-dist = [
     { name = "yfinance", marker = "extra == 'analysis'", specifier = ">=0.2.0" },
 ]
 provides-extras = ["dev", "analysis", "docs"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "jupyter", specifier = ">=1.1.1" },
+    { name = "nbformat", specifier = ">=5.10.4" },
+]
 
 [[package]]
 name = "matplotlib"
