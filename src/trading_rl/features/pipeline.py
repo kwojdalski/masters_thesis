@@ -138,7 +138,7 @@ class FeaturePipeline:
         # Fit each feature
         for feature in self.features:
             feature.fit(df)
-            logger.debug(f"Fitted feature: {feature.get_output_name()}")
+            logger.debug("fit feature name=%s", feature.get_output_name())
 
         self._is_fitted = True
         logger.info("fit feature pipeline complete")
@@ -163,7 +163,7 @@ class FeaturePipeline:
                 "Pipeline must be fitted before transform. Call fit() first."
             )
 
-        logger.debug(f"Transforming data with shape: {df.shape}")
+        logger.debug("transform data shape=%s", df.shape)
 
         # Validate required columns
         self._validate_columns(df)
@@ -175,7 +175,7 @@ class FeaturePipeline:
         for feature in self.features:
             output_name = feature.get_output_name()
             result[output_name] = feature.transform(df)
-            logger.debug(f"Transformed feature: {output_name}")
+            logger.debug("transform feature name=%s", output_name)
 
         # Drop any remaining NaN rows
         rows_before = len(result)
@@ -184,11 +184,11 @@ class FeaturePipeline:
 
         if rows_before != rows_after:
             logger.debug(
-                f"Dropped {rows_before - rows_after} rows with NaN values "
-                f"({rows_before} -> {rows_after})"
+                "transform drop nan n_dropped=%d n_rows_before=%d n_rows_after=%d",
+                rows_before - rows_after, rows_before, rows_after,
             )
 
-        logger.debug(f"Output features shape: {result.shape}")
+        logger.debug("transform output n_rows=%d n_cols=%d", *result.shape)
         return result
 
     def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -298,7 +298,7 @@ def create_default_pipeline() -> FeaturePipeline:
         train_features = pipeline.transform(train_df)
         test_features = pipeline.transform(test_df)
     """
-    logger.info("Creating default feature pipeline")
+    logger.info("build default feature pipeline")
 
     configs = [
         FeatureConfig(
@@ -334,5 +334,5 @@ def create_default_pipeline() -> FeaturePipeline:
     ]
 
     pipeline = FeaturePipeline(configs)
-    logger.info("Default pipeline created with 5 features")
+    logger.info("build default feature pipeline complete n_features=%d", len(configs))
     return pipeline
