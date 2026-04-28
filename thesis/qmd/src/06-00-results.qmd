@@ -2,7 +2,7 @@
 <!-- [PLACEHOLDER] -->
 
 This chapter reports the evidence for the thesis-facing experiment:
-the TD3 agent trained on high-frequency order-book-derived features from five Nasdaq equities (AAPL, MSFT, TSLA, GOOGL, and META) under
+the TD3 agent trained on high-frequency order-book-derived features from seven Nasdaq equities (AAPL, MSFT, TSLA, GOOGL, META, AMZN, and AVGO) under
 the state-space design defined in Chapters 4 and 5. It is organized in three
 parts: statistical validation of repeated-run variability, robustness
 assessment under nearby design changes, and final performance evaluation on the
