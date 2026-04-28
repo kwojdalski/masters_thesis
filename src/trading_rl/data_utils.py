@@ -668,10 +668,11 @@ def prepare_data(
     test_df = pd.concat([test_df_raw, test_features], axis=1)
 
     logger.info(
-        "feature engineering complete train_shape=%s val_shape=%s test_shape=%s",
-        train_df.shape,
-        val_df.shape,
-        test_df.shape,
+        "feature engineering complete"
+        " train_n_rows=%d train_n_cols=%d"
+        " val_n_rows=%d val_n_cols=%d"
+        " test_n_rows=%d test_n_cols=%d",
+        *train_df.shape, *val_df.shape, *test_df.shape,
     )
     logger.info("feature columns cols=%s", list(train_features.columns))
 
