@@ -31,7 +31,7 @@ def log_dataframe_info(
     if not logger.isEnabledFor(log_level):
         return
 
-    logger.log(log_level, "dataframe shape name=%s shape=%s", name, df.shape)
+    logger.log(log_level, "dataframe shape name=%s n_rows=%d n_cols=%d", name, *df.shape)
     logger.log(log_level, "dataframe columns name=%s columns=%s", name, df.columns.tolist())
 
     if hasattr(df, "dtypes"):

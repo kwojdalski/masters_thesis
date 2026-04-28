@@ -90,7 +90,7 @@ class PriceDataGenerator:
     ) -> None:
         """Log common dataset summary information."""
         self.logger.info("%s saved to %s", context, output_path)
-        self.logger.debug("shape=%s", df.shape)
+        self.logger.debug("n_rows=%d n_cols=%d", *df.shape)
         if not df.empty:
             self.logger.debug(
                 "Index range: %s -> %s",
