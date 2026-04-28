@@ -199,9 +199,16 @@ def save_symbol_memmap(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    columns = list(df.columns)
+    # Drop non-numeric columns — they cannot be stored as float32 and are not
+    # needed by the streaming environment (e.g. ticker symbol string columns).
+    numeric_df = df.select_dtypes(include=[np.number])
+    dropped = set(df.columns) - set(numeric_df.columns)
+    if dropped:
+        logger.warning("save memmap dropping non-numeric columns cols=%s", sorted(dropped))
+
+    columns = list(numeric_df.columns)
     data_path = output_dir / f"{prefix}_train_data.npy"
-    np.save(data_path, df.to_numpy(dtype=np.float32))
+    np.save(data_path, numeric_df.to_numpy(dtype=np.float32))
 
     try:
         index_ns = df.index.astype(np.int64).to_numpy()
