@@ -73,7 +73,16 @@ THESIS_DOWNLOADS = [
         filter_us_hours=True,
     ),
     ThesisStockDownload(
-        symbol="NVDA",
+        symbol="GOOGL",
+        start_date="2026-02-25",
+        end_date="2026-03-03",
+        dataset="XNAS.ITCH",
+        schema="mbp-10",
+        aggregate=False,
+        filter_us_hours=True,
+    ),
+    ThesisStockDownload(
+        symbol="META",
         start_date="2026-02-25",
         end_date="2026-03-03",
         dataset="XNAS.ITCH",
