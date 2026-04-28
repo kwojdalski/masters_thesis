@@ -23,6 +23,10 @@ _PATH_EXTENSIONS = frozenset({
     ".pkl", ".npz", ".npy", ".h5", ".hdf5", ".db", ".sqlite", ".txt",
 })
 
+# Matches standalone numbers in an already-interpolated plain-text message.
+# Only runs after getMessage(), so the text is guaranteed ANSI-free.
+_NUMBER_RE = re.compile(r'(?<![.\d\w])([+-]?\d[\d,]*(?:\.\d+)?%?)(?![.\d])')
+
 
 def _is_path_like(value: str) -> bool:
     """Return True if the string looks like a filesystem path."""
@@ -32,22 +36,32 @@ def _is_path_like(value: str) -> bool:
     return dot != -1 and value[dot:] in _PATH_EXTENSIONS
 
 
-def _colorize_arg(arg: object) -> object:
-    """Wrap a single log argument with an ANSI color code based on its type."""
-    if isinstance(arg, (int, float)):
-        return f"{_COLOR_NUMBER}{arg}{_COLOR_RESET}"
+def _colorize_path_arg(arg: object) -> object:
+    """Colorize a single arg if it is a path-like string; leave numbers untouched.
+
+    Numbers must not be pre-colorized because %d/%f format specifiers require
+    a real number, not a string.  Numbers are colorized post-interpolation by
+    _colorize_numbers_in_text() instead.
+    """
     if isinstance(arg, (str, Path)) and _is_path_like(str(arg)):
         return f"{_COLOR_PATH}{arg}{_COLOR_RESET}"
     return arg
 
 
-def _colorize_args(args: object) -> object:
-    """Colorize a log record's args tuple (or mapping) by value type."""
+def _colorize_path_args(args: object) -> object:
+    """Apply _colorize_path_arg to every element of a record's args."""
     if isinstance(args, tuple):
-        return tuple(_colorize_arg(a) for a in args)
+        return tuple(_colorize_path_arg(a) for a in args)
     if isinstance(args, dict):
-        return {k: _colorize_arg(v) for k, v in args.items()}
+        return {k: _colorize_path_arg(v) for k, v in args.items()}
     return args
+
+
+def _colorize_numbers_in_text(text: str) -> str:
+    """Highlight standalone numbers in an already-interpolated plain-text string."""
+    if "\033[" in text:
+        return text  # already contains ANSI — don't corrupt it
+    return _NUMBER_RE.sub(lambda m: f"{_COLOR_NUMBER}{m.group()}{_COLOR_RESET}", text)
 
 
 def _supports_color() -> bool:
@@ -111,22 +125,26 @@ class ColoredFormatter(DotMillisFormatter):
             f"{self.COLORS['BOLD']}{log_color}{record.levelname}{self.COLORS['RESET']}"
         )
 
-        # Colorize args by type before interpolation — no regex scanning needed.
+        # Phase 1: pre-colorize path-like string args only.
+        # Numeric args must stay as real numbers so %d/%f specifiers don't fail.
+        original_msg = record.msg
         original_args = record.args
         try:
-            record.args = _colorize_args(record.args)
+            record.args = _colorize_path_args(record.args)
+            # Phase 2: interpolate then colorize numbers in the resulting text.
+            record.msg = _colorize_numbers_in_text(record.getMessage())
+            record.args = None
         except Exception:
-            pass
+            record.msg = original_msg
+            record.args = original_args
 
-        # Store original levelname and replace temporarily
         original_levelname = record.levelname
         record.levelname = colored_levelname
 
-        # Format the message
         formatted = super().format(record)
 
-        # Restore original values
         record.levelname = original_levelname
+        record.msg = original_msg
         record.args = original_args
 
         return formatted
