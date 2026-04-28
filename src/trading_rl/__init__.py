@@ -14,8 +14,8 @@ from trading_rl.data_utils import (
     download_trading_data,
     load_trading_data,
     prepare_data,
-    reward_function,
 )
+from trading_rl.rewards import reward_function
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 
 from .models import (

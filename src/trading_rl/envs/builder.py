@@ -108,7 +108,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
     ) -> TransformedEnv:
         import warnings
         from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
-        from trading_rl.data_utils import reward_function
+        from trading_rl.rewards import reward_function
         from trading_rl.envs.streaming_env import StreamingTradingEnv
         from torchrl.envs.transforms import StepCounter
 
