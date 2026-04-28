@@ -67,7 +67,7 @@ richer self-awareness improves policy quality.
 <!-- [PLACEHOLDER] -->
 
 The empirical design uses a pooled model trained across four Nasdaq large-cap
-equities (AAPL, MSFT, TSLA, and NVDA), but the agent still manages a
+equities (AAPL, MSFT, TSLA, GOOGL, and META), but the agent still manages a
 single-asset position at a time. A direct extension is to introduce synchronized cross-asset
 observations: intraday VIX futures as a regime-conditioning signal, sector ETF
 order flow as a proxy for institutional activity, or correlated large-cap LOB

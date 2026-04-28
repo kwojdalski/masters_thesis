@@ -87,7 +87,7 @@ side, signed trade flow from the tape [@LeeReady1991], and odd-lot trade ratio a
 imbalance, which separate retail and algorithmic small-lot activity from
 institutional flow and thereby signal changes in adverse selection risk
 [@Boehmer2021].^[Odd-lot share is computed from the February 25–27, 2026 MBP-10
-dataset across AAPL, MSFT, TSLA, and NVDA and should not be interpreted as a
+dataset across AAPL, MSFT, TSLA, GOOGL, and META and should not be interpreted as a
 long-run population statistic. The share of odd-lot trades in large-cap Nasdaq
 equities has increased substantially since the SEC's 2023 amendments to odd-lot
 reporting rules. MBP-10 (Market By Price, 10 levels) is a standardized L3 order

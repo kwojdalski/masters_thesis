@@ -139,7 +139,7 @@ the experiment without exposing implementation-specific file names.
 
 | Component | Specification |
 |---|---|
-| Asset and data | AAPL, MSFT, TSLA, and NVDA; ten-level limit order book observations during regular U.S. trading hours |
+| Asset and data | AAPL, MSFT, TSLA, GOOGL, and META; ten-level limit order book observations during regular U.S. trading hours |
 | Training size | 15,000 chronologically ordered observations |
 | Feature set | Causal LOB microstructure feature set: imbalance, fair-value, spread and cost, order-flow, and regime features |
 | Environment backend | Continuous single-asset trading environment |
