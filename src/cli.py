@@ -28,7 +28,7 @@ from cli.commands import (
     ValidationCommand,
     ValidationParams,
 )
-from logger import configure_logging
+from logger import setup_logging as _setup_root_logging
 
 # Ensure matplotlib can cache fonts to a writable directory
 if "MPLCONFIGDIR" in os.environ:
@@ -62,10 +62,8 @@ def _configure_logging(verbose: bool, log_regex: str | None) -> None:
         os.environ["LOG_REGEX"] = log_regex
     else:
         os.environ.pop("LOG_REGEX", None)
-    configure_logging(
-        component="cli",
+    _setup_root_logging(
         level=level,
-        simplified=not verbose,
         log_regex=log_regex,
     )
     os.environ["LOG_LEVEL"] = level
