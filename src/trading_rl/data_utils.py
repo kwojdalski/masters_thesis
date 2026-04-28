@@ -447,7 +447,19 @@ def _build_pooled_splits(
 
         if memmap_dir:
             memmap_marker = memmap_dir / f"{i}_train_data.npy"
-            if not memmap_marker.exists():
+            if memmap_marker.exists():
+                prefix = str(i)
+                cols = json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
+                data = np.load(memmap_marker, mmap_mode="r")
+                collected_memmap_paths.append(
+                    MemmapPaths(
+                        data_path=memmap_marker,
+                        index_path=memmap_dir / f"{prefix}_train_index.npy",
+                        n_rows=data.shape[0],
+                        columns=cols,
+                    )
+                )
+            else:
                 collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=str(i)))
 
         sym: dict[str, Path] = {}
