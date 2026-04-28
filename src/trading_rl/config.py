@@ -43,6 +43,12 @@ class DataConfig:
     # environment loads only one episode window at a time. Set this directory
     # to enable; StreamingTradingEnv is used automatically when files are found.
     memmap_dir: str | None = None
+    # Feature transformation cache: stores per-symbol train/val/test parquets
+    # keyed by a content hash. Acts as a per-symbol checkpoint — completed symbols
+    # are skipped on restart. Set to None to disable.
+    feature_cache_dir: str | None = ".cache/feature_transformation"
+    # Whether to use the joblib cache for raw data loading.
+    use_load_cache: bool = True
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
