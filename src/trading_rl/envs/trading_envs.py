@@ -13,7 +13,7 @@ from torchrl.envs.transforms import StepCounter
 from logger import get_logger
 from trading_rl.config import ExperimentConfig
 from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
-from trading_rl.data_utils import reward_function
+from trading_rl.rewards import reward_function
 
 logger = get_logger(__name__)
 
