@@ -180,19 +180,19 @@ def log_parameter_faq_artifact() -> None:
 
     try:
         if not mlflow.active_run():
-            logger.warning("No active MLflow run - skipping FAQ artifacts")
+            logger.warning("no active mlflow run skipping faq artifacts")
             return
 
         faq_path = Path(__file__).resolve().parent.parent / "docs" / "parameter_faq.md"
         if not faq_path.exists():
-            logger.warning(f"FAQ file not found: {faq_path}")
+            logger.warning("faq file not found path=%s", faq_path)
             return
 
         try:
             mlflow.log_artifact(str(faq_path), "documentation")
-            logger.info("Successfully logged FAQ markdown artifact")
+            logger.info("log faq markdown artifact")
         except Exception as md_error:
-            logger.error(f"Failed to log markdown FAQ: {md_error}")
+            logger.error("log faq markdown failed err=%s", md_error)
             return
 
         try:
@@ -206,7 +206,7 @@ def log_parameter_faq_artifact() -> None:
                     md_content, extensions=["tables", "fenced_code", "toc"]
                 )
             except Exception as ext_error:
-                logger.warning(f"Failed with extensions, trying basic conversion: {ext_error}")
+                logger.warning("markdown extensions failed trying basic conversion err=%s", ext_error)
                 html_content = markdown.markdown(md_content)
 
             styled_html = f"""<!DOCTYPE html>
@@ -243,18 +243,18 @@ def log_parameter_faq_artifact() -> None:
 
             if os.path.exists(html_temp_path):
                 mlflow.log_artifact(html_temp_path, "documentation")
-                logger.info("Successfully logged FAQ HTML artifact")
+                logger.info("log faq html artifact")
                 os.unlink(html_temp_path)
             else:
-                logger.error("HTML file was not created!")
+                logger.error("html file was not created")
 
         except ImportError:
-            logger.warning("Markdown library not available - skipping HTML conversion")
+            logger.warning("markdown library not available skipping html conversion")
         except Exception as html_error:
-            logger.error(f"Failed to create/log HTML FAQ: {html_error}")
+            logger.error("log faq html failed err=%s", html_error)
 
     except Exception as e:
-        logger.error(f"Error in FAQ artifact logging: {e}")
+        logger.error("faq artifact logging failed err=%s", e)
 
 
 def log_data_overview(df, config) -> None:
@@ -262,7 +262,7 @@ def log_data_overview(df, config) -> None:
     logger = get_project_logger(__name__)
 
     if not mlflow.active_run():
-        logger.warning("No active MLflow run - skipping data overview logging")
+        logger.warning("no active mlflow run skipping data overview logging")
         return
 
     try:
@@ -320,7 +320,7 @@ def log_data_overview(df, config) -> None:
                 mlflow.log_artifact(temp_path, "data_overview/plots")
                 os.unlink(temp_path)
             except Exception as plot_error:  # pragma: no cover
-                logger.warning(f"Failed to create plot for {column}: {plot_error}")
+                logger.warning("create plot failed column=%s err=%s", column, plot_error)
 
         if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
             try:
@@ -347,10 +347,10 @@ def log_data_overview(df, config) -> None:
                 mlflow.log_artifact(temp_path, "data_overview/plots")
                 os.unlink(temp_path)
             except Exception as combined_error:  # pragma: no cover
-                logger.warning(f"Failed to create combined OHLC plot: {combined_error}")
+                logger.warning("create combined ohlc plot failed err=%s", combined_error)
 
     except Exception as e:  # pragma: no cover
-        logger.warning(f"Failed to log data overview: {e}")
+        logger.warning("log data overview failed err=%s", e)
 
 
 def log_final_metrics(
@@ -430,7 +430,7 @@ def log_evaluation_report(
     """
     logger = get_project_logger(__name__)
     if not mlflow.active_run():
-        logger.warning("No active MLflow run - skipping evaluation report logging")
+        logger.warning("no active mlflow run skipping evaluation report logging")
         return
 
     metric_prefix = f"eval_{split_prefix}_" if split_prefix else "eval_"
@@ -447,7 +447,7 @@ def log_evaluation_report(
             mlflow.log_metric(f"{metric_prefix}{key}", metric_value)
 
     if not clean_report:
-        logger.warning("No finite evaluation metrics to log")
+        logger.warning("no finite evaluation metrics to log")
         return
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as handle:
@@ -474,11 +474,11 @@ def log_statistical_tests(
     """
     logger = get_project_logger(__name__)
     if not mlflow.active_run():
-        logger.warning("No active MLflow run - skipping statistical test logging")
+        logger.warning("no active mlflow run skipping statistical test logging")
         return
 
     if not test_results.get("enabled", False):
-        logger.debug("Statistical testing disabled - skipping logging")
+        logger.debug("statistical testing disabled skipping logging")
         return
 
     stat_artifact_dir = f"statistical_tests/{split_prefix}" if split_prefix else "statistical_tests"
@@ -492,7 +492,7 @@ def log_statistical_tests(
     for baseline_result in test_results.get("baselines", []):
         baseline_name = baseline_result.get("baseline", "unknown")
         if "error" in baseline_result:
-            logger.warning(f"Skipping {baseline_name} due to error: {baseline_result['error']}")
+            logger.warning("skip baseline baseline=%s err=%s", baseline_name, baseline_result['error'])
             continue
 
         if "n_strategy_samples" in baseline_result:
@@ -572,7 +572,7 @@ def log_statistical_tests(
             mlflow.log_artifact(handle.name, research_artifact_subdir)
             os.unlink(handle.name)
 
-    logger.info("Statistical test results logged to MLflow")
+    logger.info("log statistical test results to mlflow")
 
 
 def log_explainability_results(
@@ -641,7 +641,7 @@ def log_evaluation_plots(
     logger = get_project_logger(__name__)
 
     if not mlflow.active_run():
-        logger.warning("No active MLflow run - skipping plot artifact logging")
+        logger.warning("no active mlflow run skipping plot artifact logging")
         return
 
     @contextlib.contextmanager
@@ -679,7 +679,7 @@ def log_evaluation_plots(
                 if key:
                     saved_paths[key] = tmp_path
             except Exception:
-                logger.exception(f"Failed to save {filename} plot")
+                logger.exception("save plot failed filename=%s", filename)
 
         _save(reward_plot, f"{timestamp}_rewards.png", "rewards", artifact_dir, 16, 10)
         _save(action_plot, f"{timestamp}_positions.png", "positions", artifact_dir, 16, 10)
@@ -687,17 +687,17 @@ def log_evaluation_plots(
         if action_probs_plot is not None:
             _save(action_probs_plot, f"{timestamp}_action_probabilities.png", "action_probabilities", artifact_dir, 16, 10)
         else:
-            logger.info("Action probability plot missing; skipping that artifact")
+            logger.info("action probability plot missing skipping artifact")
 
         if actual_returns_plot is not None:
             _save(actual_returns_plot, f"{timestamp}_actual_returns.png", "actual_returns", artifact_dir, 16, 10)
         else:
-            logger.warning("Actual returns plot missing; skipping that artifact")
+            logger.warning("actual returns plot missing skipping artifact")
 
         if merged_plot is not None:
             _save(merged_plot, f"{timestamp}_merged_comparison.png", "merged_comparison", artifact_dir, 16, 16)
         else:
-            logger.info("Merged comparison plot missing; skipping that artifact")
+            logger.info("merged comparison plot missing skipping artifact")
 
         if logs and (logs.get("loss_value") or logs.get("loss_actor")):
             from plotnine import aes, facet_wrap, geom_line, ggplot, labs
@@ -765,11 +765,11 @@ def log_evaluation_plots(
                     combined.save(tmp_combined, format="PNG")
                     mlflow.log_artifact(tmp_combined, artifact_dir)
                 except Exception as combine_error:  # pragma: no cover
-                    logger.warning(f"Failed to create combined evaluation plot: {combine_error}")
+                    logger.warning("create combined evaluation plot failed err=%s", combine_error)
 
-        logger.info("Saved evaluation and training plots as MLflow artifacts")
+        logger.info("save evaluation and training plots as mlflow artifacts")
     except Exception as e:  # pragma: no cover
-        logger.warning(f"Failed to save plots as artifacts: {e}")
+        logger.warning("save plots as artifacts failed err=%s", e)
     finally:
         if os.path.exists(batch_temp_dir):
             shutil.rmtree(batch_temp_dir)

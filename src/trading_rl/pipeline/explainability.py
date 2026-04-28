@@ -36,7 +36,7 @@ def run_explainability_analysis(
     if not config.explainability.enabled:
         return
 
-    logger.info("Running explainability analysis...")
+    logger.info("run explainability analysis")
 
     try:
         if config.env.feature_columns:
@@ -46,20 +46,18 @@ def run_explainability_analysis(
                 col for col in train_df.columns if str(col).startswith("feature_")
             ]
 
-        logger.debug(
-            f"Using {len(feature_names)} features for explainability: {feature_names}"
-        )
+        logger.debug("explainability n_features=%d features=%s", len(feature_names), feature_names)
 
         rollout = eval_ctx.env.rollout(max_steps=config.explainability.n_steps)
         obs_batch = rollout["observation"]
-        logger.debug(f"Observation batch shape: {obs_batch.shape}")
+        logger.debug("explainability obs_batch shape=%s", obs_batch.shape)
 
         analyzer = RLInterpretabilityAnalyzer(trainer, feature_names)
         results = {}
 
         for method in config.explainability.methods:
             if method == ExplainabilityMethod.PERMUTATION:
-                logger.info("Computing permutation importance...")
+                logger.info("compute permutation importance")
                 df = analyzer.compute_global_importance(obs_batch)
                 plot = analyzer.plot_importance(
                     df,
@@ -75,10 +73,10 @@ def run_explainability_analysis(
                     artifact_path_prefix=artifact_path_prefix,
                 )
                 results[ExplainabilityMethod.PERMUTATION] = df
-                logger.info("Permutation importance analysis complete.")
+                logger.info("compute permutation importance complete")
 
             elif method == ExplainabilityMethod.INTEGRATED_GRADIENTS:
-                logger.info("Computing integrated gradients importance...")
+                logger.info("compute integrated gradients importance")
                 df = analyzer.compute_global_ig(obs_batch)
                 plot = analyzer.plot_importance(
                     df,
@@ -94,13 +92,13 @@ def run_explainability_analysis(
                     artifact_path_prefix=artifact_path_prefix,
                 )
                 results[ExplainabilityMethod.INTEGRATED_GRADIENTS] = df
-                logger.info("Integrated gradients importance analysis complete.")
+                logger.info("compute integrated gradients importance complete")
 
         if (
             ExplainabilityMethod.PERMUTATION in results
             and ExplainabilityMethod.INTEGRATED_GRADIENTS in results
         ):
-            logger.info("Creating merged explainability plot...")
+            logger.info("create merged explainability plot")
             merged_plot = analyzer.plot_importance_merged(
                 results[ExplainabilityMethod.PERMUTATION],
                 results[ExplainabilityMethod.INTEGRATED_GRADIENTS],
@@ -112,7 +110,7 @@ def run_explainability_analysis(
                 metrics=None,
                 artifact_path_prefix=artifact_path_prefix,
             )
-            logger.info("Merged explainability plot saved.")
+            logger.info("save merged explainability plot")
 
     except Exception as e:
-        logger.error(f"Failed to run explainability analysis: {e}")
+        logger.error("explainability analysis failed err=%s", e)

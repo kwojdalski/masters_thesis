@@ -447,7 +447,7 @@ class PriceDataGenerator:
         if output_file is None:
             output_file = f"{pattern_type}_validation.parquet"
 
-        self.logger.info(f"Generating {pattern_type} pattern from config {config_path}")
+        self.logger.info("generate pattern type=%s config=%s", pattern_type, config_path)
 
         if pattern_type == PatternType.UPWARD_DRIFT:
             return self.generate_upward_drift_pattern(
@@ -1002,7 +1002,7 @@ def main():
         logger.info("  - %s", f)
 
     # Generate synthetic patterns for DDPG validation
-    logger.info("Generating synthetic patterns for algorithm validation...")
+    logger.info("generate synthetic patterns for algorithm validation")
 
     # Generate sine wave pattern with trend (good for DDPG validation)
     generator.generate_sine_wave_pattern(
@@ -1051,7 +1051,7 @@ def main():
 
     # Generate synthetic data from BTCUSDT if available
     if "binance-BTCUSDT-1h.parquet" in source_files:
-        logger.info("Generating synthetic data from BTCUSDT...")
+        logger.info("generate synthetic data from btcusdt")
 
         # Full dataset copy
         generator.copy_data("binance-BTCUSDT-1h.parquet", "BTCUSDT_full.parquet")

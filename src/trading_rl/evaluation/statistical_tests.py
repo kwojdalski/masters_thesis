@@ -66,7 +66,7 @@ def run_all_statistical_tests(
     if not config.enabled:
         return {"enabled": False}
 
-    logger.info("Running statistical significance tests...")
+    logger.info("run statistical significance tests")
 
     all_results = {
         "enabled": True,
@@ -77,52 +77,50 @@ def run_all_statistical_tests(
 
     if config.compare_to_buy_and_hold and prices is not None:
         try:
-            logger.info("Computing buy-and-hold baseline...")
+            logger.info("compute buy-and-hold baseline")
             bh_returns = compute_buy_and_hold_returns(prices, max_steps)
             benchmark_returns_map["buy_and_hold"] = bh_returns
 
-            logger.info(
-                f"Running tests against buy-and-hold (n={len(bh_returns)} samples)..."
-            )
+            logger.info("run tests baseline=buy_and_hold n_samples=%d", len(bh_returns))
             bh_results = run_statistical_tests(
                 strategy_returns, bh_returns, "buy_and_hold", config
             )
             all_results["baselines"].append(bh_results)
-            logger.info("Buy-and-hold tests complete")
+            logger.info("buy-and-hold tests complete")
         except Exception as e:
-            logger.error(f"Failed to run buy-and-hold comparison: {e}")
+            logger.error("buy-and-hold comparison failed err=%s", e)
             all_results["baselines"].append(
                 {"baseline": "buy_and_hold", "error": str(e)}
             )
 
     if getattr(config, "compare_to_short_and_hold", False) and prices is not None:
         try:
-            logger.info("Computing short-and-hold baseline...")
+            logger.info("compute short-and-hold baseline")
             sh_returns = compute_short_and_hold_returns(prices, max_steps)
             benchmark_returns_map["short_and_hold"] = sh_returns
             sh_results = run_statistical_tests(
                 strategy_returns, sh_returns, "short_and_hold", config
             )
             all_results["baselines"].append(sh_results)
-            logger.info("Short-and-hold tests complete")
+            logger.info("short-and-hold tests complete")
         except Exception as e:
-            logger.error(f"Failed to run short-and-hold comparison: {e}")
+            logger.error("short-and-hold comparison failed err=%s", e)
             all_results["baselines"].append(
                 {"baseline": "short_and_hold", "error": str(e)}
             )
 
     if getattr(config, "compare_to_twap", False) and prices is not None:
         try:
-            logger.info("Computing TWAP baseline...")
+            logger.info("compute twap baseline")
             twap_returns = compute_twap_returns(prices, max_steps)
             benchmark_returns_map["twap"] = twap_returns
             twap_results = run_statistical_tests(
                 strategy_returns, twap_returns, "twap", config
             )
             all_results["baselines"].append(twap_results)
-            logger.info("TWAP tests complete")
+            logger.info("twap tests complete")
         except Exception as e:
-            logger.error(f"Failed to run TWAP comparison: {e}")
+            logger.error("twap comparison failed err=%s", e)
             all_results["baselines"].append({"baseline": "twap", "error": str(e)})
 
     if getattr(config, "compare_to_vwap", False) and prices is not None:
@@ -152,16 +150,14 @@ def run_all_statistical_tests(
                 vwap_results["volume_source"] = volume_source
                 all_results["baselines"].append(vwap_results)
                 all_results["vwap_volume_source"] = volume_source
-                logger.info("VWAP tests complete")
+                logger.info("vwap tests complete")
         except Exception as e:
-            logger.error(f"Failed to run VWAP comparison: {e}")
+            logger.error("vwap comparison failed err=%s", e)
             all_results["baselines"].append({"baseline": "vwap", "error": str(e)})
 
     if config.compare_to_random:
         try:
-            logger.info(
-                f"Computing random baseline ({config.n_random_trials} trials)..."
-            )
+            logger.info("compute random baseline n_trials=%d", config.n_random_trials)
             random_trials = compute_random_baseline_returns(
                 env, max_steps, n_trials=config.n_random_trials, seed=config.random_seed
             )
@@ -169,9 +165,7 @@ def run_all_statistical_tests(
             # Aggregate random trials (use mean across trials)
             random_returns_mean = np.mean(random_trials, axis=0)
 
-            logger.info(
-                f"Running tests against random baseline (n={len(random_returns_mean)} samples)..."
-            )
+            logger.info("run tests baseline=random n_samples=%d", len(random_returns_mean))
             random_results = run_statistical_tests(
                 strategy_returns, random_returns_mean, "random_actions", config
             )
@@ -179,9 +173,9 @@ def run_all_statistical_tests(
             benchmark_returns_map["random_actions"] = random_returns_mean
 
             all_results["baselines"].append(random_results)
-            logger.info("Random baseline tests complete")
+            logger.info("random baseline tests complete")
         except Exception as e:
-            logger.error(f"Failed to run random baseline comparison: {e}")
+            logger.error("random baseline comparison failed err=%s", e)
             all_results["baselines"].append(
                 {"baseline": "random_actions", "error": str(e)}
             )
@@ -192,7 +186,7 @@ def run_all_statistical_tests(
         periods_per_year=periods_per_year,
     )
 
-    logger.info("Statistical significance testing complete")
+    logger.info("statistical significance testing complete")
     return all_results
 
 __all__ = [

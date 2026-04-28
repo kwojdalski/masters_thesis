@@ -167,7 +167,7 @@ class TD3Trainer(BaseTrainer):
 
         env_to_use = eval_env or self.env
 
-        logger.debug(f"Running deterministic evaluation for {max_steps} steps")
+        logger.debug("eval deterministic max_steps=%d", max_steps)
         with set_exploration_type(InteractionType.MODE):
             rollout_deterministic = env_to_use.rollout(
                 max_steps=max_steps, policy=self.actor
@@ -178,7 +178,7 @@ class TD3Trainer(BaseTrainer):
 
         actual_returns_deterministic = extract_tradingenv_returns(env_to_use, max_steps)
 
-        logger.debug(f"Running random evaluation for {max_steps} steps")
+        logger.debug("eval random max_steps=%d", max_steps)
         # Use explicit random policy to ensure a distinct trajectory
         random_policy = RandomPolicy(self.td3_action_spec)
         with set_exploration_type(InteractionType.RANDOM):
@@ -238,7 +238,7 @@ class TD3Trainer(BaseTrainer):
             # Get DSR parameters from config (reward_eta is the standard name)
             dsr_eta = getattr(config.env, "reward_eta", 0.01) if config else 0.01
 
-            logger.debug(f"Calculating DSR benchmarks with eta={dsr_eta}")
+            logger.debug("calc dsr benchmarks eta=%s", dsr_eta)
 
             # Calculate DSR for buy-and-hold
             bh_dsr, _ = calculate_benchmark_dsr(
@@ -396,12 +396,13 @@ class TD3Trainer(BaseTrainer):
             if logger.isEnabledFor(logging.DEBUG):
                 actions = sample["action"]
                 rewards = sample["next", "reward"]
-                logger.debug(f"[Batch {batch_idx}, Step {j}] Sample stats:")
                 logger.debug(
-                    f"  Actions - mean: {actions.mean():.4f}, std: {actions.std():.4f}, min: {actions.min():.4f}, max: {actions.max():.4f}"
-                )
-                logger.debug(
-                    f"  Rewards - mean: {rewards.mean():.4f}, std: {rewards.std():.4f}, min: {rewards.min():.4f}, max: {rewards.max():.4f}"
+                    "td3 batch sample stats batch=%d step=%d "
+                    "action_mean=%.4f action_std=%.4f action_min=%.4f action_max=%.4f "
+                    "reward_mean=%.4f reward_std=%.4f reward_min=%.4f reward_max=%.4f",
+                    batch_idx, j,
+                    actions.mean(), actions.std(), actions.min(), actions.max(),
+                    rewards.mean(), rewards.std(), rewards.min(), rewards.max(),
                 )
 
             # Ensure sample has consistent shapes for TD3Loss
@@ -431,16 +432,16 @@ class TD3Trainer(BaseTrainer):
                 # DEBUG: Log loss values
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(
-                        f"  Q-value loss: {loss_vals['loss_qvalue'].item():.6f}"
+                        "td3 losses loss_qvalue=%.6f loss_actor=%.6f",
+                        loss_vals['loss_qvalue'].item(), loss_vals['loss_actor'].item(),
                     )
-                    logger.debug(f"  Actor loss: {loss_vals['loss_actor'].item():.6f}")
 
             except RuntimeError as e:
                 if "All input tensors" in str(e) and "must share a unique shape" in str(
                     e
                 ):
                     self.skipped_batches += 1
-                    logger.warning(f"TD3 tensor shape error: {e}, skipping this batch")
+                    logger.warning("td3 tensor shape error skipping batch err=%s", e)
                     continue
                 else:
                     raise e
@@ -537,11 +538,11 @@ class TD3Trainer(BaseTrainer):
 
     def train(self, callback=None) -> dict[str, list]:
         """Run training loop for RL agent, with exploration for TD3."""
-        logger.debug("TD3 Training configuration:")
-        logger.debug(f"  Max steps: {self.config.max_steps}")
-        logger.debug(f"  Init random steps: {self.config.init_rand_steps}")
-        logger.debug(f"  Frames per batch: {self.config.frames_per_batch}")
-        logger.debug(f"  Buffer size: {self.config.buffer_size}")
+        logger.debug(
+            "td3 train config max_steps=%d init_rand_steps=%d frames_per_batch=%d buffer_size=%d",
+            self.config.max_steps, self.config.init_rand_steps,
+            self.config.frames_per_batch, self.config.buffer_size,
+        )
 
         # Create the noisy policy by chaining actor + exploration module
         # We do this once here to use when switching
@@ -620,10 +621,9 @@ class TD3Trainer(BaseTrainer):
             # DEBUG: Log action distribution during evaluation
             if logger.isEnabledFor(logging.DEBUG):
                 actions = eval_rollout["action"]
-                logger.debug("[EVALUATION] Action statistics:")
-                logger.debug(f"  Actions shape: {actions.shape}")
                 logger.debug(
-                    f"  Actions - mean: {actions.mean():.4f}, std: {actions.std():.4f}"
+                    "td3 eval action stats shape=%s mean=%.4f std=%.4f",
+                    actions.shape, actions.mean(), actions.std(),
                 )
                 logger.debug(
                     f"  Actions - min: {actions.min():.4f}, max: {actions.max():.4f}"

@@ -31,29 +31,26 @@ def log_dataframe_info(
     if not logger.isEnabledFor(log_level):
         return
 
-    logger.log(log_level, f"{name} shape: {df.shape}")
-    logger.log(log_level, f"{name} columns: {df.columns.tolist()}")
+    logger.log(log_level, "dataframe shape name=%s shape=%s", name, df.shape)
+    logger.log(log_level, "dataframe columns name=%s columns=%s", name, df.columns.tolist())
 
     if hasattr(df, "dtypes"):
-        logger.debug(f"{name} dtypes: {df.dtypes.to_dict()}")
+        logger.debug("dataframe dtypes name=%s dtypes=%s", name, df.dtypes.to_dict())
 
     if hasattr(df, "memory_usage"):
         try:
             total_memory = df.memory_usage(deep=True).sum()
-            logger.debug(f"{name} memory usage: {total_memory / 1024 / 1024:.2f} MB")
+            logger.debug("dataframe memory name=%s mb=%.2f", name, total_memory / 1024 / 1024)
         except Exception as e:
-            logger.debug(f"Could not calculate memory usage for {name}: {e}")
+            logger.debug("dataframe memory error name=%s err=%s", name, e)
 
     if hasattr(df, "isnull"):
         null_counts = df.isnull().sum()
         if null_counts.any():
-            logger.debug(
-                f"{name} null values: {null_counts[null_counts > 0].to_dict()}"
-            )
+            logger.debug("dataframe nulls name=%s nulls=%s", name, null_counts[null_counts > 0].to_dict())
 
-    # Log sample data if DEBUG level
     if logger.isEnabledFor(logging.DEBUG) and hasattr(df, "head"):
-        logger.debug(f"{name} sample data:\n{df.head()}")
+        logger.debug("dataframe sample name=%s\n%s", name, df.head())
 
 
 def log_processing_step(
@@ -124,7 +121,7 @@ def log_error_with_context(
     else:
         logger.error(error_msg)
 
-    logger.debug(f"Full error details for {context}:", exc_info=True)
+    logger.debug("error details context=%s", context, exc_info=True)
 
 
 def log_function_call(
@@ -237,7 +234,7 @@ def LogContext(
     start_time = time.time()
 
     if log_start and logger.isEnabledFor(log_level):
-        logger.log(log_level, f"Starting: {operation}")
+        logger.log(log_level, "start operation=%s", operation)
 
     try:
         yield
@@ -251,7 +248,7 @@ def LogContext(
         duration = time.time() - start_time
 
         if log_end and logger.isEnabledFor(log_level):
-            logger.log(log_level, f"Completed: {operation}")
+            logger.log(log_level, "complete operation=%s", operation)
 
         if log_performance:
             log_performance_metrics(logger, operation, duration)

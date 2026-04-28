@@ -260,7 +260,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         # Create reward function based on configuration
         if reward_type == "differential_sharpe":
             reward = DifferentialSharpeRatio(eta=reward_eta)
-            logger.info(f"Using Differential Sharpe Ratio reward with eta={reward_eta}")
+            logger.info("reward differential_sharpe eta=%s", reward_eta)
         elif reward_type == "log_return":
             reward = LogReturn()
             logger.info("Using LogReturn reward")

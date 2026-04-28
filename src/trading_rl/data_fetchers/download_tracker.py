@@ -53,7 +53,7 @@ class DownloadTracker:
                 with open(self.cache_file) as f:
                     return json.load(f)
             except (json.JSONDecodeError, IOError) as e:
-                logger.warning(f"Failed to load cache, starting fresh: {e}")
+                logger.warning("load cache failed starting fresh err=%s", e)
                 return {}
         return {}
 
@@ -63,7 +63,7 @@ class DownloadTracker:
             with open(self.cache_file, "w") as f:
                 json.dump(self.cache, f, indent=2, default=str)
         except IOError as e:
-            logger.error(f"Failed to save cache: {e}")
+            logger.error("save cache failed err=%s", e)
 
     def _compute_hash(self, params: dict[str, Any]) -> str:
         """Compute hash of download parameters.
@@ -209,7 +209,7 @@ class DownloadTracker:
         }
 
         self._save_cache()
-        logger.info(f"Recorded download: {len(symbols)} symbols, {rows_downloaded} rows")
+        logger.info("record download n_symbols=%d n_rows=%d", len(symbols), rows_downloaded)
 
     def get_recent_downloads(self, hours: int = 24) -> list[dict[str, Any]]:
         """Get downloads from the last N hours.
@@ -256,7 +256,7 @@ class DownloadTracker:
 
         if to_remove:
             self._save_cache()
-            logger.info(f"Cleaned up {len(to_remove)} old cache entries")
+            logger.info("cleanup cache n_removed=%d", len(to_remove))
 
         return len(to_remove)
 

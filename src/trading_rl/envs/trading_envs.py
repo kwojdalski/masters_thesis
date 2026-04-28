@@ -48,7 +48,7 @@ def validate_backend(backend: str, log_backend: bool = False) -> None:
             f"Invalid backend '{backend}'. Supported backends are: {SUPPORTED_BACKENDS}"
         )
     if log_backend:
-        logger.warning(f"Using backend: {backend}")
+        logger.warning("validate backend backend=%s", backend)
 
 
 def validate_actions(backend: Backend, positions: list[int] | None) -> None:
@@ -365,12 +365,12 @@ def create_environment(
     if backend is None:
         if config is not None and hasattr(config.env, "backend"):
             backend = config.env.backend
-            logger.warning(f"Backend determined from config: {backend}")
+            logger.warning("backend from config backend=%s", backend)
         else:
             backend = EnvBackend.GYM_TRADING_DISCRETE
-            logger.warning(f"Using default backend: {backend}")
+            logger.warning("backend default backend=%s", backend)
     else:
-        logger.warning(f"Backend explicitly specified: {backend}")
+        logger.warning("backend explicit backend=%s", backend)
 
     # Validate backend early (without additional logging)
     validate_backend(backend, log_backend=False)

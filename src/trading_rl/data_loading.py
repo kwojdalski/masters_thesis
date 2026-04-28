@@ -52,7 +52,7 @@ class LazyDataFrame:
     def _load_if_needed(self) -> pd.DataFrame:
         """Load DataFrame from file if not already cached."""
         if self._df is None or (not self.cache_after_load and self._loaded):
-            logger.debug(f"Lazy loading {self.file_path}")
+            logger.debug("lazy load path=%s", self.file_path)
             self._df = pd.read_parquet(self.file_path)
             self._loaded = True
         return self._df

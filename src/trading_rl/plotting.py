@@ -145,4 +145,4 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
     with mlflow.start_run(run_name="experiment_summary"):
         mlflow.log_artifact(plot_path)
 
-    logger.info(f"Comparison plots saved to: {plot_path}")
+    logger.info("save comparison plots path=%s", plot_path)
