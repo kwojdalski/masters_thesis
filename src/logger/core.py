@@ -14,67 +14,40 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any, ClassVar
 
-
-# Matches file-system paths: ./rel, ../rel, /abs, or bare relative/path.ext
-# Requires at least one slash so plain words are not accidentally matched.
-_PATH_PATTERN = re.compile(
-    r'(?:'
-    r'\.{1,2}/[\w./\-]+'            # ./rel or ../rel
-    r'|/[\w./\-]+'                  # /absolute
-    r'|(?<![=\d\w/])(?=[a-zA-Z_])[\w.\-]+(?:/[\w./\-]+)+'  # bare relative/path
-    r')'
-)
-
-# Standalone numbers — not part of a path or already-colored span.
-_NUMBER_PATTERN = re.compile(
-    r'(?<![.\d\w])(\$?[+-]?\d[\d,]*(?:\.\d+)?%?)(?![.\d])'
-)
-
 _COLOR_NUMBER = "\033[38;5;117m"   # light blue
 _COLOR_PATH   = "\033[38;5;180m"   # warm tan/golden
 _COLOR_RESET  = "\033[0m"
 
+_PATH_EXTENSIONS = frozenset({
+    ".parquet", ".csv", ".log", ".yaml", ".yml", ".json", ".pt", ".pth",
+    ".pkl", ".npz", ".npy", ".h5", ".hdf5", ".db", ".sqlite", ".txt",
+})
 
-def _colorize_message(text: str) -> str:
-    """Highlight paths (warm tan) and standalone numbers (light blue).
 
-    Skips the text unchanged if it already contains ANSI escape sequences to
-    avoid corrupting any codes embedded in the message string.
-    """
-    if "\033[" in text:
-        return text
+def _is_path_like(value: str) -> bool:
+    """Return True if the string looks like a filesystem path."""
+    if "/" in value or value.startswith("."):
+        return True
+    dot = value.rfind(".")
+    return dot != -1 and value[dot:] in _PATH_EXTENSIONS
 
-    # Colorize paths first; build the result and a plain-text shadow for number
-    # matching so digits inside already-colored paths are not double-highlighted.
-    segments: list[str] = []
-    plain_shadow: list[str] = []   # same length, but colored spans replaced with spaces
-    last = 0
-    for m in _PATH_PATTERN.finditer(text):
-        prefix = text[last:m.start()]
-        segments.append(prefix)
-        plain_shadow.append(prefix)
-        colored_path = f"{_COLOR_PATH}{m.group()}{_COLOR_RESET}"
-        segments.append(colored_path)
-        plain_shadow.append(" " * len(m.group()))  # mask path for number scan
-        last = m.end()
-    segments.append(text[last:])
-    plain_shadow.append(text[last:])
 
-    # Reconstruct the full string (with path colors) for number substitution,
-    # but only scan the plain-shadow so we never touch digits inside path spans.
-    shadow_text = "".join(plain_shadow)
-    result_text = "".join(segments)
+def _colorize_arg(arg: object) -> object:
+    """Wrap a single log argument with an ANSI color code based on its type."""
+    if isinstance(arg, (int, float)):
+        return f"{_COLOR_NUMBER}{arg}{_COLOR_RESET}"
+    if isinstance(arg, (str, Path)) and _is_path_like(str(arg)):
+        return f"{_COLOR_PATH}{arg}{_COLOR_RESET}"
+    return arg
 
-    # Replace numbers in shadow positions with colored versions in result_text.
-    offset_delta = 0  # accounts for ANSI codes inserted before this point
-    for m in _NUMBER_PATTERN.finditer(shadow_text):
-        colored_num = f"{_COLOR_NUMBER}{m.group()}{_COLOR_RESET}"
-        start = m.start() + offset_delta
-        end   = m.end()   + offset_delta
-        result_text = result_text[:start] + colored_num + result_text[end:]
-        offset_delta += len(colored_num) - len(m.group())
 
-    return result_text
+def _colorize_args(args: object) -> object:
+    """Colorize a log record's args tuple (or mapping) by value type."""
+    if isinstance(args, tuple):
+        return tuple(_colorize_arg(a) for a in args)
+    if isinstance(args, dict):
+        return {k: _colorize_arg(v) for k, v in args.items()}
+    return args
 
 
 def _supports_color() -> bool:
@@ -138,13 +111,10 @@ class ColoredFormatter(DotMillisFormatter):
             f"{self.COLORS['BOLD']}{log_color}{record.levelname}{self.COLORS['RESET']}"
         )
 
-        # Colorize numbers in the message portion only
-        original_msg = record.msg
+        # Colorize args by type before interpolation — no regex scanning needed.
         original_args = record.args
         try:
-            colorized_msg = _colorize_message(record.getMessage())
-            record.msg = colorized_msg
-            record.args = None
+            record.args = _colorize_args(record.args)
         except Exception:
             pass
 
@@ -157,7 +127,6 @@ class ColoredFormatter(DotMillisFormatter):
 
         # Restore original values
         record.levelname = original_levelname
-        record.msg = original_msg
         record.args = original_args
 
         return formatted
