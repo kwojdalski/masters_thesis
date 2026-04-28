@@ -7,6 +7,7 @@ data:
   data_path: "./data/raw/binance/binance-BTCUSDT-1h.parquet"
   download_data: false
   train_size: 1000
+  use_load_cache: false
 
 env:
   name: "BTCUSD"

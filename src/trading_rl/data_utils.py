@@ -355,6 +355,7 @@ def _call_prepare_data(
         feature_config_path=getattr(config.data, "feature_config", None),
         feature_pipeline=feature_pipeline,
         feature_cache_dir=getattr(config.data, "feature_cache_dir", "data/.feature_cache"),
+        use_load_cache=getattr(config.data, "use_load_cache", True),
     )
 
 
@@ -543,6 +544,7 @@ def prepare_data(
     feature_config_path: str | None = None,
     feature_pipeline: Any | None = None,
     feature_cache_dir: str | None = "data/.feature_cache",
+    use_load_cache: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Prepare trading data for RL training with proper train/val/test split.
 
@@ -602,7 +604,8 @@ def prepare_data(
 
     # Load raw OHLCV data
     file_signature = Path(data_path).stat().st_mtime_ns
-    df = load_trading_data(data_path, cache_bust=file_signature)
+    _loader = load_trading_data if use_load_cache else load_trading_data.__wrapped__
+    df = _loader(data_path, cache_bust=file_signature)
     df = df.dropna()
 
     logger.info("load raw data n_rows=%d n_cols=%d", len(df), len(df.columns))
