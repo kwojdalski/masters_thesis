@@ -254,7 +254,7 @@ class BaseTrainer(ABC):
                 portfolio_valuation = initial_val * np.exp(actual_returns[-1])
             else:
                 # Fallback to cumulative reward if extraction fails
-                logger.warning("Failed to extract actual returns for DSR; falling back to reward sum")
+                logger.warning("failed to extract actual returns for dsr, falling back to reward sum")
                 portfolio_valuation = initial_val * np.exp(episode_reward)
         else:
             # Fallback for any other custom reward types
@@ -393,7 +393,7 @@ class BaseTrainer(ABC):
                 )
         except RuntimeError:
             # Fallback for distributions without analytical mode (e.g. TanhNormal)
-            logger.debug("MODE exploration failed, falling back to MEAN/DETERMINISTIC")
+            logger.debug("mode exploration failed, falling back to mean/deterministic")
             with set_exploration_type(InteractionType.DETERMINISTIC):
                 rollout_deterministic = env_to_use.rollout(
                     max_steps=max_steps, policy=self.actor
@@ -710,7 +710,7 @@ class BaseTrainer(ABC):
             logger.warning("training interrupted by user saving checkpoint")
             checkpoint_path = self._save_interrupt_checkpoint()
             if checkpoint_path:
-                logger.info("Interrupt checkpoint saved to: %s", checkpoint_path)
+                logger.info("interrupt checkpoint saved path=%s", checkpoint_path)
             raise
 
         if on_train_end is not None:

@@ -264,7 +264,7 @@ class DownloadTracker:
         """Clear all download cache."""
         self.cache = {}
         self._save_cache()
-        logger.info("Download cache cleared")
+        logger.info("download cache cleared")
 
     def get_stats(self) -> dict[str, Any]:
         """Get statistics about cached downloads.

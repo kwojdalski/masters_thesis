@@ -132,7 +132,7 @@ class DifferentialSharpeRatio(AbstractReward):
         self.A_t = 0.0
         self.B_t = 0.0
         self._prev_nlv = None
-        logger.debug("DSR state reset")
+        logger.debug("dsr state reset")
 
     def __repr__(self) -> str:
         """String representation of DSR state."""

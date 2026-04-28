@@ -944,7 +944,7 @@ class FeatureSelector:
                 train_aligned, val_aligned, window_size=cfg.window_size,
             )
 
-        logger.info("IC/ICIR scoring complete, top 5 features:")
+        logger.info("ic/icir scoring complete, top 5 features")
         for _, row in scores.head(5).iterrows():
             logger.info(
                 "  %s: ICIR=%.4f, mean_IC=%.6f, t=%.2f",
@@ -1134,7 +1134,7 @@ class FeatureSelector:
                     })
 
         if not rows:
-            logger.warning("No features with valid scores found in ensemble selection")
+            logger.warning("no features with valid scores found in ensemble selection")
             composite_scores = pd.DataFrame(columns=[
                 "feature", "mean_ic", "ic_std", "icir", "ic_tstat",
                 "ic_positive_ratio", "val_mean_ic", "ic_stability"
@@ -1307,5 +1307,5 @@ class FeatureSelector:
             yaml.dump(payload, default_flow_style=False, sort_keys=False),
             encoding="utf-8",
         )
-        logger.info("Wrote %d selected features to %s", len(features), output_path)
+        logger.info("write selected features count=%d path=%s", len(features), output_path)
         return output_path

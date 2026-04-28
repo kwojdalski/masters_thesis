@@ -411,7 +411,7 @@ class TD3Trainer(BaseTrainer):
                 torch.isnan(sample["next", "reward"]).any()
                 or torch.isinf(sample["next", "reward"]).any()
             ):
-                logger.warning("Found NaN/inf in reward, skipping optimization step")
+                logger.warning("nan/inf in reward, skip optimization step")
                 continue
 
             # Ensure done and terminated have consistent shapes
@@ -712,7 +712,7 @@ class TD3Trainer(BaseTrainer):
                 }
                 logger.info("save replay buffer path=%s n_experiences=%s", buffer_dir, len(self.replay_buffer))
             except Exception:
-                logger.exception("Failed to save replay buffer")
+                logger.exception("failed to save replay buffer")
 
         torch.save(checkpoint, path)
         logger.info("save checkpoint path=%s", path)
@@ -724,7 +724,7 @@ class TD3Trainer(BaseTrainer):
 
         checkpoint = torch.load(path, weights_only=False)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("TD3 checkpoint keys: %s", sorted(checkpoint.keys()))
+            logger.debug("td3 checkpoint keys=%s", sorted(checkpoint.keys()))
 
         # Restore functional params and sync modules
         if "actor_params_state" in checkpoint:

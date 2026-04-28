@@ -263,7 +263,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             logger.info("reward differential_sharpe eta=%s", reward_eta)
         elif reward_type == "log_return":
             reward = LogReturn()
-            logger.info("Using LogReturn reward")
+            logger.info("using log_return reward")
         else:
             raise ValueError(
                 f"Unknown reward type: {reward_type}. "
@@ -338,7 +338,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         # Add step counter
         wrapped_env = self._wrap_with_step_counter(wrapped_env)
 
-        logger.info("Created TradingEnv environment successfully")
+        logger.info("create TradingEnv environment done")
         return wrapped_env
 
 

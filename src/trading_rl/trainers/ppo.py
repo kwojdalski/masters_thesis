@@ -543,7 +543,7 @@ class PPOTrainer(BaseTrainer):
             return plot
 
         except Exception as exc:  # pragma: no cover - logged for diagnostics
-            logger.exception("Action probabilities plot failed", exc_info=exc)
+            logger.exception("action probabilities plot failed", exc_info=exc)
             fallback_steps = min(max_steps, 500)
             fallback_data = []
             _action_labels = [pos.name.capitalize() for pos in TradePosition]
@@ -744,5 +744,5 @@ class PPOTrainerContinuous(PPOTrainer):
             return plot
 
         except Exception as exc:  # pragma: no cover - logged for diagnostics
-            logger.exception("Continuous action plot failed", exc_info=exc)
+            logger.exception("continuous action plot failed", exc_info=exc)
             return None

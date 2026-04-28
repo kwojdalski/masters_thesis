@@ -327,7 +327,7 @@ if __name__ == "__main__":
         os.path.join(_script_dir, "..", "data", "raw", "databento", "20250501", "glbx-mdp3-20250501.mbo.dbn"),
     )
     if os.path.exists(data_path):
-        logger.info("Loading MBO data from %s", data_path)
+        logger.info("load mbo data path=%s", data_path)
         data = db.DBNStore.from_file(data_path)
     else:
         logger.info(

@@ -242,7 +242,7 @@ def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
         index_file = output_dir / f"{prefix}_train_index.npy"
         cols_file = output_dir / f"{prefix}_columns.json"
         if not index_file.exists() or not cols_file.exists():
-            logger.warning("Skipping incomplete memmap prefix '%s'", prefix)
+            logger.warning("skip incomplete memmap prefix=%s", prefix)
             continue
         data = np.load(data_file, mmap_mode="r")
         columns = json.loads(cols_file.read_text())

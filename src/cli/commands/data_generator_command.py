@@ -109,7 +109,7 @@ class DataGeneratorCommand(BaseCommand):
             return ScenarioDefaults()
 
         config_path = self._resolve_config_path(scenario)
-        self.logger.info("Reading scenario defaults from %s", config_path)
+        self.logger.info("read scenario defaults path=%s", config_path)
 
         with config_path.open("r", encoding="utf-8") as handle:
             scenario_config = self.load_config(config_path)
@@ -210,7 +210,7 @@ class DataGeneratorCommand(BaseCommand):
     
     def _list_files(self, generator) -> None:
         """List available source files."""
-        self.logger.info("Available source files:")
+        self.logger.info("available source files")
         source_files = generator.list_source_files()
         if not source_files:
             self.logger.warning("  No parquet files found in source directory")
@@ -235,7 +235,7 @@ class DataGeneratorCommand(BaseCommand):
             volatility=float(sine_params["volatility"]),
             start_date=str(sine_params["start_date"]),
         )
-        self.logger.info("Successfully generated sine wave pattern with %s rows", len(df))
+        self.logger.info("generate sine wave pattern rows=%s", len(df))
     
     def _collect_sine_wave_params(
         self, sine_wave: SineWaveParams, pattern_defaults: dict[str, Any]
@@ -275,7 +275,7 @@ class DataGeneratorCommand(BaseCommand):
             pullback_floor=float(drift_params["pullback_floor"]),
             start_date=str(drift_params["start_date"]),
         )
-        self.logger.info("Successfully generated upward drift pattern with %s rows", len(df))
+        self.logger.info("generate upward drift pattern rows=%s", len(df))
     
     def _collect_upward_drift_params(
         self, upward_drift: UpwardDriftParams, pattern_defaults: dict[str, Any]
@@ -321,4 +321,4 @@ class DataGeneratorCommand(BaseCommand):
             end_date=params.end_date,
             sample_size=params.sample_size,
         )
-        self.logger.info("Successfully generated synthetic data with %s rows", len(df))
+        self.logger.info("generate synthetic data rows=%s", len(df))

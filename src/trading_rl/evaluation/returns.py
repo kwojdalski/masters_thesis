@@ -42,16 +42,16 @@ def extract_tradingenv_returns(env, n_steps):
         if hasattr(env, "_env") and hasattr(env._env, "_env"):
             trading_env = env._env._env
         else:
-            logger.debug("Cannot unwrap to TradingEnv - missing _env attribute")
+            logger.debug("cannot unwrap to TradingEnv, missing _env attribute")
             return None
 
         if not hasattr(trading_env, "broker"):
-            logger.debug("Unwrapped env has no broker attribute")
+            logger.debug("unwrapped env has no broker attribute")
             return None
 
         broker = trading_env.broker
         if not hasattr(broker, "track_record") or len(broker.track_record) == 0:
-            logger.debug("Broker has no track_record or it's empty")
+            logger.debug("broker has no track_record or it's empty")
             return None
 
         nlv_values = []
@@ -61,11 +61,11 @@ def extract_tradingenv_returns(env, n_steps):
             if hasattr(record, "context_post") and hasattr(record.context_post, "nlv"):
                 nlv_values.append(float(record.context_post.nlv))
             else:
-                logger.warning("Track record missing context_post.nlv")
+                logger.warning("track record missing context_post.nlv")
                 return None
 
         if len(nlv_values) < 2:
-            logger.debug("Insufficient NLV values: %s", len(nlv_values))
+            logger.debug("insufficient nlv values count=%s", len(nlv_values))
             return None
 
         log_returns = []
@@ -88,5 +88,5 @@ def extract_tradingenv_returns(env, n_steps):
         )
         return cumulative_returns
     except Exception as exc:
-        logger.warning("Failed to extract TradingEnv returns: %s", exc)
+        logger.warning("failed to extract TradingEnv returns: %s", exc)
         return None
