@@ -72,7 +72,7 @@ def download_trading_data(
             "Install it with: pip install gym-trading-env"
         )
 
-    logger.info(f"Downloading data for {symbols} from {exchange_names}")
+    logger.info("download data symbols=%s exchanges=%s", symbols, exchange_names)
     download(
         exchange_names=exchange_names,
         symbols=symbols,
@@ -80,7 +80,7 @@ def download_trading_data(
         dir=data_dir,
         since=since,
     )
-    logger.info("Data download complete")
+    logger.info("download data complete")
 
 
 @memory.cache
@@ -95,7 +95,7 @@ def load_trading_data(data_path: str, cache_bust: float | None = None) -> pd.Dat
         DataFrame with OHLCV data
     """
     data_file = Path(data_path)
-    logger.info(f"Loading data from {data_file}")
+    logger.info("load data path=%s", data_file)
     # cache_bust ensures cache invalidation when the file changes
     _ = cache_bust
     suffix = data_file.suffix.lower()
@@ -108,7 +108,7 @@ def load_trading_data(data_path: str, cache_bust: float | None = None) -> pd.Dat
             f"Unsupported data format '{suffix}' for file {data_file}. "
             "Supported formats: .pkl, .pickle, .parquet"
         )
-    logger.info(f"Loaded {len(df)} rows of data")
+    logger.info("load data n_rows=%d", len(df))
     return df
 
 
@@ -222,9 +222,9 @@ def ensure_close_column_for_hft(
 
         nan_ratio = float(derived_df["close"].isna().mean())
         logger.info(
-            "Derived 'close' for %s split in HFT mode from (ask_px_00 + bid_px_00)/2%s (NaN ratio after fill: %.6f)",
+            "derive close split=%s method=mid_price%s nan_ratio=%.6f",
             split_name,
-            " with price fallback" if "price" in derived_df.columns else "",
+            "+fallback" if "price" in derived_df.columns else "",
             nan_ratio,
         )
 
@@ -294,8 +294,7 @@ def ensure_unique_index_for_hft_tradingenv(
             int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
         )
         logger.info(
-            "Adjusted %s split index for HFT TradingEnv: resolved %d duplicate timestamps; "
-            "min gap %d -> %d ns; max shift: %d ns",
+            "adjust hft index split=%s duplicates=%d min_gap_ns=%d->%d max_shift_ns=%d",
             split_name,
             duplicate_count,
             old_min_gap_ns,
@@ -329,9 +328,9 @@ def _resolve_feature_pipeline(config: Any, logger: logging.Logger) -> Any:
 
     resolver = FeatureGroupResolver.from_yaml(feature_groups)
     group_names = resolver.list_groups()
-    logger.info("Using all %d feature groups from %s", len(group_names), feature_groups)
+    logger.info("use feature groups n=%d source=%s", len(group_names), feature_groups)
     pipeline = FeaturePipeline(resolver.resolve(group_names))
-    logger.info("Built pipeline: %d features from %d groups", len(pipeline.features), len(group_names))
+    logger.info("build feature pipeline n_features=%d n_groups=%d", len(pipeline.features), len(group_names))
     return pipeline
 
 
@@ -427,13 +426,13 @@ def _build_pooled_splits(
 
     pipeline = _resolve_feature_pipeline(config, logger)
 
-    logger.info("Pooled training: processing %d symbols", len(data_paths))
+    logger.info("pooled training n_symbols=%d", len(data_paths))
     tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
     tmp_paths: list[dict[str, Path]] = []
     collected_memmap_paths: list[MemmapPaths] = []
 
     for i, data_path in enumerate(data_paths):
-        logger.info("Processing %s (%d/%d)", data_path, i + 1, len(data_paths))
+        logger.info("process symbol idx=%d/%d path=%s", i + 1, len(data_paths), data_path)
         train_i, val_i, test_i = _call_prepare_data(data_path, config, pipeline)
         # Apply close-column derivation per-symbol so each memmap is self-contained.
         train_i, val_i, test_i = ensure_close_column_for_hft(train_i, val_i, test_i, config, logger)
@@ -455,7 +454,7 @@ def _build_pooled_splits(
     test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths], ignore_index=True)
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
-    logger.info("Pooled splits: train=%d, val=%d, test=%d", len(train_df), len(val_df), len(test_df))
+    logger.info("pooled splits train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df))
 
     # ensure_close was applied per-symbol above; only run unique-index + validate on concat.
     train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(train_df, val_df, test_df, config, logger)
@@ -476,7 +475,7 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
 
     # Fast path: skip all feature engineering when the parquet cache exists.
     if lazy_load and prepared_dir and _parquet_cache_exists(prepared_dir):
-        logger.info("Loading prepared splits from parquet cache at %s", prepared_dir)
+        logger.info("load prepared splits cache_dir=%s", prepared_dir)
         lazy_splits = load_prepared_splits(prepared_dir)
         memmap_paths = load_memmap_paths(memmap_dir) if memmap_dir and memmap_dir.exists() else None
         return _make_dataset(
@@ -494,7 +493,7 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
         memmap_paths = [save_symbol_memmap(train_df, memmap_dir, "0")] if memmap_dir else None
 
     if lazy_load and prepared_dir:
-        logger.info("Saving prepared splits to parquet cache at %s", prepared_dir)
+        logger.info("save prepared splits cache_dir=%s", prepared_dir)
         prepared_dir.mkdir(parents=True, exist_ok=True)
         save_prepared_splits(train_df, val_df, test_df, prepared_dir)
 
@@ -559,7 +558,7 @@ def prepare_data(
     df = load_trading_data(data_path, cache_bust=file_signature)
     df = df.dropna()
 
-    logger.info(f"Loaded raw data: {len(df)} rows, {len(df.columns)} columns")
+    logger.info("load raw data n_rows=%d n_cols=%d", len(df), len(df.columns))
 
     # Split data BEFORE feature engineering (critical for preventing leakage!)
     if train_size >= len(df):
@@ -583,7 +582,7 @@ def prepare_data(
     test_df_raw = df[val_end:].copy()
 
     logger.info(
-        "Split data: train=%s, val=%s, test=%s",
+        "split data train=%d val=%d test=%d",
         len(train_df_raw),
         len(val_df_raw),
         len(test_df_raw),
@@ -593,29 +592,27 @@ def prepare_data(
     from trading_rl.features import FeaturePipeline, create_default_pipeline
 
     if feature_pipeline is not None:
-        logger.info("Using pre-built feature pipeline with %d features", len(feature_pipeline.features))
+        logger.info("use pre-built feature pipeline n_features=%d", len(feature_pipeline.features))
         pipeline = feature_pipeline
     elif feature_config_path:
-        logger.info(
-            f"Loading feature pipeline from: \033[96m{feature_config_path}\033[0m"
-        )
+        logger.info("load feature pipeline path=%s", feature_config_path)
         pipeline = FeaturePipeline.from_yaml(feature_config_path)
     else:
-        logger.info("Using default feature pipeline (legacy create_features behavior)")
+        logger.info("use default feature pipeline")
         pipeline = create_default_pipeline()
 
     # Fit pipeline on training data ONLY (prevents test data leakage)
-    logger.info("Fitting feature pipeline on training data...")
+    logger.info("fit feature pipeline")
     pipeline.fit(train_df_raw)
 
     # Transform train/validation/test using fitted parameters
-    logger.info("Transforming training data...")
+    logger.info("transform split name=train")
     train_features = pipeline.transform(train_df_raw)
 
-    logger.info("Transforming validation data...")
+    logger.info("transform split name=val")
     val_features = pipeline.transform(val_df_raw)
 
-    logger.info("Transforming test data...")
+    logger.info("transform split name=test")
     test_features = pipeline.transform(test_df_raw)
 
     # Keep raw OHLCV for price/info columns, append engineered features
@@ -624,11 +621,11 @@ def prepare_data(
     test_df = pd.concat([test_df_raw, test_features], axis=1)
 
     logger.info(
-        "Feature engineering complete: train=%s, val=%s, test=%s",
+        "feature engineering complete train_shape=%s val_shape=%s test_shape=%s",
         train_df.shape,
         val_df.shape,
         test_df.shape,
     )
-    logger.info(f"Features: {list(train_features.columns)}")
+    logger.info("feature columns cols=%s", list(train_features.columns))
 
     return train_df, val_df, test_df

@@ -87,10 +87,6 @@ class TD3Trainer(BaseTrainer):
             annealing_num_steps=config.max_steps,
         )
         # Log the exploration noise std
-        logger.info(
-            "Exploration Noise Std: %.3f",
-            getattr(config, "exploration_noise_std", 0.2),
-        )
 
         # TD3 uses two critics; configure loss and optimizers
         self.td3_loss = TD3Loss(
@@ -129,11 +125,11 @@ class TD3Trainer(BaseTrainer):
         self.successful_batches = 0
         self.skipped_batches = 0
 
-        logger.info("TD3 Trainer initialized")
         logger.info(
-            "Actor LR: %s, Value LR: %s, Noise: %.3f, Clip: %.3f, Delay: %d",
+            "init td3 trainer actor_lr=%s value_lr=%s exploration_noise_std=%.3f policy_noise=%.3f noise_clip=%.3f policy_delay=%d",
             config.actor_lr,
             config.value_lr,
+            getattr(config, "exploration_noise_std", 0.2),
             getattr(config, "policy_noise", 0.2),
             getattr(config, "noise_clip", 0.5),
             self.policy_delay,
@@ -592,25 +588,22 @@ class TD3Trainer(BaseTrainer):
         total_batches = self.successful_batches + self.skipped_batches
         if total_batches > 0:
             success_rate = (self.successful_batches / total_batches) * 100
-            summary_msg = (
-                f"Batch processing summary: {self.successful_batches}/{total_batches} "
-                f"batches successful ({success_rate:.1f}%), {self.skipped_batches} skipped due to tensor shape errors"
+            _log = logger.warning if success_rate < _MIN_BATCH_SUCCESS_RATE else logger.info
+            _log(
+                "td3 batch summary successful=%d/%d success_rate=%.1f%% skipped=%d",
+                self.successful_batches, total_batches, success_rate, self.skipped_batches,
             )
-
-            if success_rate < _MIN_BATCH_SUCCESS_RATE:
-                logger.warning(summary_msg)
-            else:
-                logger.info(summary_msg)
         else:
-            logger.warning("No optimization batches were attempted during training")
+            logger.warning("td3 no optimization batches attempted")
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
         curr_loss_value = loss_vals["loss_qvalue"].item()
         curr_loss_actor = loss_vals["loss_actor"].item()
 
-        logger.info(f"Max steps: {max_length}, Buffer size: {buffer_len}")
-        logger.info(f"TD3 Value loss: {curr_loss_value:.4f}")
-        logger.info(f"TD3 Actor loss: {curr_loss_actor:.4f}")
+        logger.info(
+            "td3 step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f",
+            max_length, buffer_len, curr_loss_value, curr_loss_actor,
+        )
 
     def _evaluate(self) -> None:
         with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
@@ -656,14 +649,11 @@ class TD3Trainer(BaseTrainer):
 
                 # Check if agent is stuck
                 if actions.std() < 0.01:
-                    logger.warning(
-                        f"  ⚠️  Agent appears STUCK - action std is very low ({actions.std():.6f})"
-                    )
+                    logger.warning("td3 eval agent stuck action_std=%.6f", actions.std())
 
             logger.info(
-                f"\033[92mTD3 Eval\033[0m - \033[93mMean reward:\033[0m {mean_reward:.4f}, "
-                f"\033[93mSum reward:\033[0m {sum_reward:.4f}, "
-                f"\033[93mMax steps:\033[0m {max_steps}"
+                "td3 eval mean_reward=%.4f sum_reward=%.4f max_steps=%d",
+                mean_reward, sum_reward, max_steps,
             )
 
             del eval_rollout
@@ -709,7 +699,7 @@ class TD3Trainer(BaseTrainer):
 
         # Optionally save replay buffer (can be very large)
         if getattr(self.config, "save_buffer", False):
-            logger.info("Saving replay buffer to disk (this may take a while)...")
+            logger.info("save replay buffer")
             path_obj = Path(path)
             buffer_dir = path_obj.with_suffix("")
             buffer_dir = buffer_dir.with_name(f"{buffer_dir.name}_buffer")
@@ -720,16 +710,12 @@ class TD3Trainer(BaseTrainer):
                     "buffer_size": len(self.replay_buffer),
                     "max_size": self.replay_buffer._storage.max_size,
                 }
-                logger.info(
-                    "Replay buffer saved to %s (%s experiences)",
-                    buffer_dir,
-                    len(self.replay_buffer),
-                )
+                logger.info("save replay buffer path=%s n_experiences=%s", buffer_dir, len(self.replay_buffer))
             except Exception:
                 logger.exception("Failed to save replay buffer")
 
         torch.save(checkpoint, path)
-        logger.info(f"\033[95mTD3 checkpoint saved to {path}\033[0m")
+        logger.info("save checkpoint path=%s", path)
 
     def load_checkpoint(self, path: str) -> None:
         # Load checkpoint with weights_only=False for TorchRL compatibility
@@ -781,37 +767,28 @@ class TD3Trainer(BaseTrainer):
 
         # Optionally restore replay buffer if it was saved
         if "replay_buffer" in checkpoint:
-            logger.info("Restoring replay buffer from checkpoint (legacy)...")
+            logger.info("restore replay buffer legacy n_experiences=%s", len(checkpoint["replay_buffer"]))
             self.replay_buffer = checkpoint["replay_buffer"]
-            buffer_size = len(self.replay_buffer)
-            logger.info("Replay buffer restored: %s experiences", buffer_size)
         else:
             buffer_path = checkpoint.get("replay_buffer_path")
             if buffer_path and Path(buffer_path).exists():
                 try:
                     self.replay_buffer.loads(buffer_path)
                     buffer_size = len(self.replay_buffer)
-                    logger.info(
-                        "Replay buffer loaded from %s (%s experiences)",
-                        buffer_path,
-                        buffer_size,
-                    )
+                    logger.info("load replay buffer path=%s n_experiences=%s", buffer_path, buffer_size)
                 except Exception:
                     logger.exception(
                         "Failed to load replay buffer from %s", buffer_path
                     )
             else:
-                logger.info(
-                    "No replay buffer in checkpoint - starting with empty buffer"
-                )
+                logger.info("no replay buffer in checkpoint start_fresh=true")
 
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(
-                "\033[92mLoaded TD3 checkpoint state: total_count=%s, total_episodes=%s, mlflow_run_id=%s, mlflow_run_name=%s, mlflow_experiment_name=%s\033[0m",
-                self.total_count,
-                self.total_episodes,
-                self.mlflow_run_id,
-                self.mlflow_run_name,
-                self.mlflow_experiment_name,
-            )
-        logger.info(f"\033[95mTD3 checkpoint loaded from {path}\033[0m")
+        logger.debug(
+            "load checkpoint state total_count=%s total_episodes=%s mlflow_run_id=%s mlflow_run_name=%s experiment=%s",
+            self.total_count,
+            self.total_episodes,
+            self.mlflow_run_id,
+            self.mlflow_run_name,
+            self.mlflow_experiment_name,
+        )
+        logger.info("load checkpoint path=%s", path)

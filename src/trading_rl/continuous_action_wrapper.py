@@ -49,10 +49,10 @@ class ContinuousToDiscreteAction(Transform):
             low=-1.0, high=1.0, shape=(1,), dtype=torch.float32, device=device
         )
 
-        logger.info("ContinuousToDiscreteAction initialized:")
-        logger.info(f"  Discrete actions: {discrete_actions}")
-        logger.info(f"  Thresholds: {thresholds}")
-        logger.info(f"  Continuous action spec: {self.action_spec}")
+        logger.info(
+            "init continuous_to_discrete actions=%s thresholds=%s action_spec=%s",
+            discrete_actions, thresholds, self.action_spec,
+        )
 
     def _apply_transform(self, obs: TensorDict) -> TensorDict:
         """Apply transform to observations (no-op for this transform)."""
