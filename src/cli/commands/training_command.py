@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
@@ -28,6 +29,7 @@ class TrainingParams:
     from_checkpoint: Path | None = None  # Path to checkpoint alias
     from_last_checkpoint: bool = False  # Resume from most recent checkpoint
     mlflow_run_id: str | None = None  # Resume MLflow run by ID
+    interactive: bool = False
 
 
 class TrainingCommand(BaseCommand):
@@ -41,9 +43,15 @@ class TrainingCommand(BaseCommand):
                     "Use only one of --from-checkpoint or --from-last-checkpoint."
                 )
 
+            if params.interactive:
+                self._interactive_setup(params)
+
             # Load and configure experiment
             config = self._load_training_config(params)
             self._resolve_checkpoint_path(config, params)
+
+            if params.interactive:
+                self._interactive_post_config(config, params)
 
             if params.checkpoint_path:
                 self.console.print(
@@ -67,6 +75,37 @@ class TrainingCommand(BaseCommand):
 
         except Exception as e:
             self.handle_error(e, "Training")
+
+    def _interactive_setup(self, params: TrainingParams) -> None:
+        """Ask setup questions before config is loaded (pre-config phase)."""
+        self.console.print("\n[bold]Interactive training setup[/bold]")
+
+        if params.experiment_name is None:
+            name = typer.prompt("Experiment name", default="")
+            if name:
+                params.experiment_name = name
+
+        if not params.from_checkpoint and not params.from_last_checkpoint:
+            if typer.confirm("Resume from the last checkpoint?", default=False):
+                params.from_last_checkpoint = True
+
+    def _interactive_post_config(self, config: Any, params: TrainingParams) -> None:
+        """Ask setup questions that need the loaded config (post-config phase)."""
+        current_steps = config.training.max_steps
+        override_steps = typer.confirm(
+            f"Max training steps is {current_steps:,}. Change it?", default=False
+        )
+        if override_steps:
+            new_steps = typer.prompt("New max steps", default=current_steps)
+            config.training.max_steps = int(new_steps)
+
+        cache_enabled = getattr(config.data, "feature_cache_dir", "data/.feature_cache") is not None
+        if cache_enabled:
+            if typer.confirm("Process features from scratch (skip cache)?", default=False):
+                config.data.feature_cache_dir = None
+                self.console.print("[yellow]Feature cache disabled — features will be recomputed.[/yellow]")
+        else:
+            self.console.print("[dim]Feature caching is already disabled in config.[/dim]")
 
     def _load_training_config(self, params: TrainingParams) -> Any:
         """Load and configure training parameters."""
