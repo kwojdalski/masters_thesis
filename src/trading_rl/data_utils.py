@@ -1,5 +1,7 @@
 """Data loading and preprocessing utilities for trading RL."""
 
+import hashlib
+import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -352,6 +354,7 @@ def _call_prepare_data(
         since=getattr(config.data, "download_since", None),
         feature_config_path=getattr(config.data, "feature_config", None),
         feature_pipeline=feature_pipeline,
+        feature_cache_dir=getattr(config.data, "feature_cache_dir", "data/.feature_cache"),
     )
 
 
@@ -500,6 +503,33 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
     return _make_dataset(train_df, val_df, test_df, config, memmap_paths)
 
 
+def _feature_cache_key(
+    data_path: str,
+    train_size: int,
+    validation_size: int | None,
+    feature_config_path: str | None,
+    feature_pipeline: Any | None,
+) -> str:
+    """Compute a cache key that changes whenever inputs change."""
+    file_mtime = Path(data_path).stat().st_mtime_ns
+
+    if feature_pipeline is not None:
+        pipeline_repr = [
+            {"name": fc.name, "feature_type": fc.feature_type, "params": fc.params}
+            for fc in feature_pipeline.feature_configs
+        ]
+        config_sig = hashlib.md5(
+            json.dumps(pipeline_repr, sort_keys=True).encode()
+        ).hexdigest()[:12]
+    elif feature_config_path and Path(feature_config_path).exists():
+        config_sig = hashlib.md5(Path(feature_config_path).read_bytes()).hexdigest()[:12]
+    else:
+        config_sig = "default"
+
+    raw = f"{Path(data_path).name}|{file_mtime}|{train_size}|{validation_size}|{config_sig}"
+    return hashlib.md5(raw.encode()).hexdigest()
+
+
 def prepare_data(
     data_path: str,
     train_size: int,
@@ -512,6 +542,7 @@ def prepare_data(
     since: Any | None = None,
     feature_config_path: str | None = None,
     feature_pipeline: Any | None = None,
+    feature_cache_dir: str | None = "data/.feature_cache",
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Prepare trading data for RL training with proper train/val/test split.
 
@@ -543,6 +574,22 @@ def prepare_data(
             feature_config_path="configs/features/sine_wave.yaml"
         )
     """
+    # Feature cache — skip the expensive transform when inputs haven't changed.
+    _cache_entry: Path | None = None
+    if feature_cache_dir and Path(data_path).exists():
+        cache_key = _feature_cache_key(
+            data_path, train_size, validation_size, feature_config_path, feature_pipeline
+        )
+        _cache_entry = Path(feature_cache_dir) / cache_key
+        if (_cache_entry / "train.parquet").exists():
+            logger.info("feature cache hit key=%s path=%s", cache_key[:8], _cache_entry)
+            return (
+                pd.read_parquet(_cache_entry / "train.parquet"),
+                pd.read_parquet(_cache_entry / "val.parquet"),
+                pd.read_parquet(_cache_entry / "test.parquet"),
+            )
+        logger.info("feature cache miss key=%s", cache_key[:8])
+
     # Check if data exists
     if not Path(data_path).exists():
         if download_if_missing and exchange_names and symbols and since:
@@ -627,5 +674,12 @@ def prepare_data(
         test_df.shape,
     )
     logger.info("feature columns cols=%s", list(train_features.columns))
+
+    if _cache_entry is not None:
+        _cache_entry.mkdir(parents=True, exist_ok=True)
+        train_df.to_parquet(_cache_entry / "train.parquet")
+        val_df.to_parquet(_cache_entry / "val.parquet")
+        test_df.to_parquet(_cache_entry / "test.parquet")
+        logger.info("save feature cache key=%s path=%s", cache_key[:8], _cache_entry)
 
     return train_df, val_df, test_df
