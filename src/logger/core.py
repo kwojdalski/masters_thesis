@@ -21,7 +21,13 @@ _NUMBER_PATTERN = re.compile(
 
 
 def _colorize_numbers(text: str) -> str:
-    """Wrap standalone numbers in light blue ANSI color."""
+    """Wrap standalone numbers in light blue ANSI color.
+
+    Skips the text unchanged if it already contains ANSI escape sequences to
+    avoid corrupting codes embedded in the message string.
+    """
+    if "\033[" in text:
+        return text
     LIGHT_BLUE = "\033[38;5;117m"
     RESET = "\033[0m"
     return _NUMBER_PATTERN.sub(lambda m: f"{LIGHT_BLUE}{m.group()}{RESET}", text)
@@ -177,9 +183,10 @@ def setup_logging(
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
     root_logger.setLevel(numeric_level)
-    # Silence noisy asyncio selector debug output on macOS
+    # Silence noisy third-party loggers
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("selectors").setLevel(logging.WARNING)
+    logging.getLogger("joblib").setLevel(logging.ERROR)
 
     if log_regex is None:
         log_regex = os.environ.get("LOG_REGEX")

@@ -49,7 +49,7 @@ class FeaturePipeline:
             feature = FeatureRegistry.create(config)
             self.features.append(feature)
 
-        logger.info(f"Created pipeline with {len(self.features)} features")
+        logger.info("build feature pipeline n_features=%d", len(self.features))
 
     @classmethod
     def from_config_dict(cls, config_dict: list[dict]) -> "FeaturePipeline":
@@ -103,7 +103,7 @@ class FeaturePipeline:
         if not config_file.exists():
             raise FileNotFoundError(f"Feature config file not found: {config_path}")
 
-        logger.info(f"Loading feature pipeline from: \033[96m{config_path}\033[0m")
+        logger.info("load feature pipeline path=%s", config_path)
 
         with config_file.open("r") as f:
             config_data = yaml.safe_load(f)
@@ -114,7 +114,7 @@ class FeaturePipeline:
             )
 
         feature_list = config_data["features"]
-        logger.info(f"Found {len(feature_list)} features in config")
+        logger.info("load feature pipeline n_features=%d path=%s", len(feature_list), config_path)
 
         return cls.from_config_dict(feature_list)
 
