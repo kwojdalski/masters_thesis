@@ -1,8 +1,11 @@
 """Data loading and preprocessing utilities for trading RL."""
 
+import gc
 import hashlib
 import json
 import logging
+import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -163,6 +166,20 @@ def validate_prepared_data(
         )
 
 
+_Splits = tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+
+
+def _map_splits(
+    fn,
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+) -> _Splits:
+    """Apply fn(split_name, df) to each split and return (train, val, test)."""
+    results = {name: fn(name, df) for name, df in (("train", train_df), ("val", val_df), ("test", test_df))}
+    return results["train"], results["val"], results["test"]
+
+
 def ensure_close_column_for_hft(
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
@@ -176,34 +193,22 @@ def ensure_close_column_for_hft(
         return train_df, val_df, test_df
 
     required_cols = {"ask_px_00", "bid_px_00"}
-    dataframes = {
-        "train": train_df,
-        "val": val_df,
-        "test": test_df,
-    }
-    updated: dict[str, pd.DataFrame] = {}
 
-    for split_name, df in dataframes.items():
+    def _process(split_name: str, df: pd.DataFrame) -> pd.DataFrame:
         if "close" in df.columns:
-            updated[split_name] = df
-            continue
-
+            return df
         missing = sorted(required_cols - set(df.columns))
         if missing:
             raise ValueError(
                 "HFT mode requires a raw 'close' column or top-of-book columns "
                 f"ask_px_00/bid_px_00 to derive it. Missing columns in {split_name}: {missing}"
             )
-
         derived_df = df.copy()
         mid_price = (derived_df["ask_px_00"] + derived_df["bid_px_00"]) / 2.0
         if "price" in derived_df.columns:
             mid_price = mid_price.fillna(derived_df["price"])
-
         mid_price = mid_price.ffill().bfill()
         derived_df["close"] = mid_price
-        updated[split_name] = derived_df
-
         nan_ratio = float(derived_df["close"].isna().mean())
         logger.info(
             "derive close split=%s method=mid_price%s nan_ratio=%.6f",
@@ -211,8 +216,9 @@ def ensure_close_column_for_hft(
             "+fallback" if "price" in derived_df.columns else "",
             nan_ratio,
         )
+        return derived_df
 
-    return updated["train"], updated["val"], updated["test"]
+    return _map_splits(_process, train_df, val_df, test_df)
 
 
 def ensure_unique_index_for_hft_tradingenv(
@@ -228,67 +234,44 @@ def ensure_unique_index_for_hft_tradingenv(
     if mode != "hft" or backend != "tradingenv":
         return train_df, val_df, test_df
 
-    dataframes = {
-        "train": train_df,
-        "val": val_df,
-        "test": test_df,
-    }
-    updated: dict[str, pd.DataFrame] = {}
     min_gap_ns = _HFT_MIN_TIMESTAMP_GAP_NS
 
-    for split_name, df in dataframes.items():
+    def _process(split_name: str, df: pd.DataFrame) -> pd.DataFrame:
         if not isinstance(df.index, pd.DatetimeIndex):
             raise ValueError(
                 "HFT TradingEnv requires DatetimeIndex to enforce unique event ordering, "
                 f"but {split_name} split has index type {type(df.index).__name__}."
             )
-
         index = df.index
         index_ns_raw = index.view("i8")
-        old_min_gap_ns = (
-            int(np.diff(index_ns_raw).min()) if len(index_ns_raw) > 1 else min_gap_ns
-        )
+        old_min_gap_ns = int(np.diff(index_ns_raw).min()) if len(index_ns_raw) > 1 else min_gap_ns
         requires_adjustment = (
             not index.is_unique
             or not index.is_monotonic_increasing
             or old_min_gap_ns < min_gap_ns
             or index.tz is not None
         )
-
         if not requires_adjustment:
-            updated[split_name] = df
-            continue
-
+            return df
         adjusted_df = df.sort_index(kind="stable").copy()
         index = adjusted_df.index
         index_ns = index.view("i8")
         positions = np.arange(len(index_ns), dtype=np.int64) * min_gap_ns
         adjusted_ns = np.maximum.accumulate(index_ns - positions) + positions
         adjusted_index = pd.to_datetime(adjusted_ns, utc=True).tz_localize(None)
-
         adjusted_df.index = adjusted_index
         if not adjusted_df.index.is_unique:
-            raise ValueError(
-                f"Failed to enforce unique index for {split_name} HFT split."
-            )
-
+            raise ValueError(f"Failed to enforce unique index for {split_name} HFT split.")
         duplicate_count = int(index.duplicated().sum())
         max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
-        new_min_gap_ns = (
-            int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
-        )
+        new_min_gap_ns = int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
         logger.info(
             "adjust hft index split=%s duplicates=%d min_gap_ns=%d->%d max_shift_ns=%d",
-            split_name,
-            duplicate_count,
-            old_min_gap_ns,
-            new_min_gap_ns,
-            max_shift_ns,
+            split_name, duplicate_count, old_min_gap_ns, new_min_gap_ns, max_shift_ns,
         )
+        return adjusted_df
 
-        updated[split_name] = adjusted_df
-
-    return updated["train"], updated["val"], updated["test"]
+    return _map_splits(_process, train_df, val_df, test_df)
 
 
 # ---------------------------------------------------------------------------
@@ -422,10 +405,6 @@ def _build_pooled_splits(
     prepare_data(): symbols that were fully processed before an interruption
     return immediately from cache on the next run.
     """
-    import gc
-    import shutil
-    import tempfile
-
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
 
