@@ -111,7 +111,7 @@ def setup_logging(config: ExperimentConfig) -> logging.Logger:
     warnings.filterwarnings("ignore", category=PlotnineWarning)
 
     logger = get_project_logger(__name__)
-    logger.info("Starting experiment: %s", config.experiment_name)
+    logger.info("start experiment name=%s", config.experiment_name)
     return logger
 
 
@@ -149,12 +149,9 @@ def _build_train_env(
     config: ExperimentConfig,
     logger: logging.Logger,
 ) -> Any:
-    logger.info("Creating environment...")
+    logger.info("build environment")
     env = AlgorithmicEnvironmentBuilder().create(dataset.train_df, config)
-    logger.debug("Environment specs:")
-    logger.debug("  Observation spec: %s", env.observation_spec)
-    logger.debug("  Action spec: %s", env.action_spec)
-    logger.debug("  Reward spec: %s", env.reward_spec)
+    logger.debug("environment obs_spec=%s action_spec=%s reward_spec=%s", env.observation_spec, env.action_spec, env.reward_spec)
     return env
 
 
@@ -168,22 +165,12 @@ def _build_trainer(
     import math
     n_obs = math.prod(env.observation_spec["observation"].shape)
     n_act = env.action_spec.shape[-1]
-    logger.info("Environment: %s observations, %s actions", n_obs, n_act)
+    logger.info("build environment n_obs=%s n_act=%s", n_obs, n_act)
 
     backend = getattr(config.env, "backend", "")
-    logger.info(
-        "Creating models for %s algorithm (Backend: %s)...",
-        algorithm,
-        backend,
-    )
+    logger.info("build models algorithm=%s backend=%s", algorithm, backend)
     trainer_cls = _select_trainer_class(algorithm, backend)
-
-    if trainer_cls == PPOTrainerContinuous:
-        logger.info("Selected PPOTrainerContinuous for continuous environment")
-    elif trainer_cls == PPOTrainer:
-        logger.info("Selected PPOTrainer for discrete environment")
-    else:
-        logger.info("Selected %s", trainer_cls.__name__)
+    logger.info("select trainer cls=%s", trainer_cls.__name__)
 
     if algorithm == Algorithm.TD3:
         actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
@@ -295,10 +282,7 @@ def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> Non
             formatted_key = format_key(key)
 
             if is_dataclass(value):
-                if indent == 0:
-                    logger.debug("%s\033[93m%s:\033[0m", prefix, formatted_key)
-                else:
-                    logger.debug("%s%s:", prefix, formatted_key)
+                logger.debug("%s%s:", prefix, formatted_key)
                 print_dataclass(value, indent + 1)
             else:
                 logger.debug("%s%s: %s", prefix, formatted_key, format_value(value))
@@ -343,13 +327,8 @@ def build_experiment_runtime(
     config.seed = set_seed(config.seed)
     _print_config_debug(config, logger)
 
-    logger.info("Preparing data...")
-    logger.debug("  Data path: %s", config.data.data_path)
-    logger.debug("  Train size: %s", config.data.train_size)
-    logger.debug(
-        "  Feature config: %s",
-        getattr(config.data, "feature_config", None),
-    )
+    logger.info("prepare data")
+    logger.debug("data path=%s train_size=%s feature_config=%s", config.data.data_path, config.data.train_size, getattr(config.data, "feature_config", None))
 
     prepared_dataset = build_prepared_dataset(config, logger)
     train_df = prepared_dataset.train_df

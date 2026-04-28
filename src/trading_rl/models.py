@@ -138,10 +138,7 @@ class DiscreteNet(nn.Module):
 
         self.network = nn.Sequential(*layers)
 
-        logger.info(
-            f"Created DiscreteNet: input_dim={input_dim}, "
-            f"n_actions={n_actions}, hidden_dims={hidden_dims}"
-        )
+        logger.info("build discrete_net input_dim=%d n_actions=%d hidden_dims=%s", input_dim, n_actions, hidden_dims)
 
     def forward(self, x):
         """Forward pass.
@@ -173,7 +170,7 @@ def create_actor(
     Returns:
         ProbabilisticActor module
     """
-    logger.info("Creating actor network")
+    logger.info("build actor network")
 
     # Create base network
     net = DiscreteNet(n_obs, n_act, hidden_dims)
@@ -195,7 +192,7 @@ def create_actor(
         default_interaction_type=InteractionType.RANDOM,
     )
 
-    logger.info("Actor network created")
+    logger.info("build actor network complete")
     return actor
 
 
@@ -214,7 +211,7 @@ def create_value_network(
     Returns:
         ValueOperator module
     """
-    logger.info("Creating value network")
+    logger.info("build value network")
 
     if hidden_dims is None:
         hidden_dims = [64, 32, 16]
@@ -229,7 +226,7 @@ def create_value_network(
         out_keys=["state_action_value"],
     )
 
-    logger.info(f"Value network created with hidden_dims={hidden_dims}")
+    logger.info("build value network hidden_dims=%s", hidden_dims)
     return value_net
 
 
@@ -253,7 +250,7 @@ def create_ppo_actor(
     Returns:
         ProbabilisticActor module configured for PPO
     """
-    logger.info("Creating PPO actor network")
+    logger.info("build ppo actor network")
 
     # Create base network
     net = DiscreteNet(n_obs, n_act, hidden_dims, obs_ndim=obs_ndim)
@@ -277,7 +274,7 @@ def create_ppo_actor(
         return_log_prob=True,  # This automatically creates action_log_prob
     )
 
-    logger.info("PPO actor network created")
+    logger.info("build ppo actor network complete")
     return actor
 
 
@@ -301,7 +298,7 @@ def create_continuous_ppo_actor(
     Returns:
         ProbabilisticActor module configured for continuous PPO
     """
-    logger.info("Creating Continuous PPO actor network")
+    logger.info("build continuous ppo actor network")
 
     if hidden_dims is None:
         hidden_dims = [64, 32]
@@ -341,7 +338,7 @@ def create_continuous_ppo_actor(
         return_log_prob=True,
     )
 
-    logger.info("Continuous PPO actor network created")
+    logger.info("build continuous ppo actor network complete")
     return actor
 
 
@@ -361,7 +358,7 @@ def create_ppo_value_network(
     Returns:
         ValueOperator module for V(s) estimation
     """
-    logger.info("Creating PPO value network")
+    logger.info("build ppo value network")
 
     if hidden_dims is None:
         hidden_dims = [64, 32, 16]
@@ -379,7 +376,7 @@ def create_ppo_value_network(
         out_keys=["state_value"],  # V(s) not Q(s,a)
     )
 
-    logger.info(f"PPO value network created with hidden_dims={hidden_dims}")
+    logger.info("build ppo value network hidden_dims=%s", hidden_dims)
     return value_net
 
 
@@ -400,7 +397,7 @@ def create_ddpg_actor(
     Returns:
         Deterministic actor module for DDPG
     """
-    logger.info("Creating DDPG deterministic actor")
+    logger.info("build ddpg actor")
 
     if hidden_dims is None:
         hidden_dims = [64, 32]
@@ -432,7 +429,7 @@ def create_ddpg_actor(
         out_keys=["action"],
     )
 
-    logger.info("DDPG deterministic actor created")
+    logger.info("build ddpg actor complete")
     return actor
 
 
@@ -465,7 +462,7 @@ def create_td3_qvalue_network(
         out_keys=["state_action_value"],
     )
 
-    logger.info(f"TD3 Q-value network created with hidden_dims={hidden_dims}")
+    logger.info("build td3 qvalue network hidden_dims=%s", hidden_dims)
     return value_net
 
 
@@ -528,7 +525,7 @@ def create_td3_twin_qvalue_network(
     This creates a single ValueOperator that outputs num_qvalue_nets Q-values,
     which is what TorchRL's TD3Loss expects.
     """
-    logger.info(f"Creating TD3 twin Q-value network with {num_qvalue_nets} outputs")
+    logger.info("build td3 twin qvalue network n_outputs=%d", num_qvalue_nets)
     if hidden_dims is None:
         hidden_dims = [64, 32, 16]
 
@@ -543,9 +540,7 @@ def create_td3_twin_qvalue_network(
         out_keys=["state_action_value"],
     )
 
-    logger.info(
-        f"TD3 twin Q-value network created with hidden_dims={hidden_dims}, outputs={num_qvalue_nets}"
-    )
+    logger.info("build td3 twin qvalue network hidden_dims=%s n_outputs=%d", hidden_dims, num_qvalue_nets)
     return value_net
 
 
@@ -559,14 +554,14 @@ def create_td3_stacked_qvalue_network(
 
     Deprecated: Use create_td3_twin_qvalue_network instead for better TD3Loss compatibility.
     """
-    logger.info("Creating TD3 stacked Q-value networks")
+    logger.info("build td3 stacked qvalue networks")
     # Create two individual Q-networks using the existing factory
     qvalue_net1 = create_td3_qvalue_network(n_obs, n_act, hidden_dims)
     qvalue_net2 = create_td3_qvalue_network(n_obs, n_act, hidden_dims)
 
     # Combine them into a single TensorDictModule
     stacked_q_net = StackedQValueNetwork(qvalue_net1, qvalue_net2)
-    logger.info("TD3 stacked Q-value network created")
+    logger.info("build td3 stacked qvalue networks complete")
     return stacked_q_net
 
 

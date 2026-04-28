@@ -92,10 +92,12 @@ class PPOTrainer(BaseTrainer):
         # Note: Don't set composite LP aggregate for PPO to avoid conflicts
         # with log_prob_key property
 
-        logger.info("PPO Trainer initialized")
-        logger.info(f"Learning rate: {config.actor_lr}")
-        logger.info(f"Clip epsilon: {getattr(config, 'clip_epsilon', 0.2)}")
-        logger.info(f"Entropy bonus: {getattr(config, 'entropy_bonus', 0.01)}")
+        logger.info(
+            "init ppo trainer lr=%s clip_epsilon=%.3f entropy_bonus=%.4f",
+            config.actor_lr,
+            getattr(config, "clip_epsilon", 0.2),
+            getattr(config, "entropy_bonus", 0.01),
+        )
 
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int
@@ -187,10 +189,10 @@ class PPOTrainer(BaseTrainer):
         curr_loss_value = loss_vals["loss_critic"].item()
         curr_loss_entropy = loss_vals["loss_entropy"].item()
 
-        logger.info(f"Max steps: {max_length}, Buffer size: {buffer_len}")
-        logger.info(f"PPO Value loss: {curr_loss_value:.4f}")
-        logger.info(f"PPO Actor loss: {curr_loss_actor:.4f}")
-        logger.info(f"PPO Entropy loss: {curr_loss_entropy:.4f}")
+        logger.info(
+            "ppo step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f loss_entropy=%.4f",
+            max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
+        )
 
     def _evaluate(self) -> None:
         """Evaluate current PPO policy."""
@@ -215,9 +217,8 @@ class PPOTrainer(BaseTrainer):
             self.logs["eval_step_count"].append(max_steps)
 
             logger.info(
-                f"\033[92mPPO Eval\033[0m - \033[93mMean reward:\033[0m {mean_reward:.4f}, "
-                f"\033[93mSum reward:\033[0m {sum_reward:.4f}, "
-                f"\033[93mMax steps:\033[0m {max_steps}"
+                "ppo eval mean_reward=%.4f sum_reward=%.4f max_steps=%d",
+                mean_reward, sum_reward, max_steps,
             )
 
             del eval_rollout
@@ -267,7 +268,7 @@ class PPOTrainer(BaseTrainer):
             "mlflow_experiment_name": experiment_name,
         }
         torch.save(checkpoint, path)
-        logger.info(f"\033[95mPPO checkpoint saved to {path}\033[0m")
+        logger.info("save checkpoint path=%s", path)
 
     def load_checkpoint(self, path: str) -> None:
         """Load PPO training checkpoint.
@@ -289,7 +290,7 @@ class PPOTrainer(BaseTrainer):
         self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
         self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
         self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
-        logger.info(f"\033[95mPPO checkpoint loaded from {path}\033[0m")
+        logger.info("load checkpoint path=%s", path)
 
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):

@@ -48,10 +48,7 @@ def _resolve_experiment_name_from_checkpoint(
 
     if resume_experiment_name:
         if resume_experiment_name != config.experiment_name:
-            logger.info(
-                "Resuming MLflow experiment name from checkpoint: %s",
-                resume_experiment_name,
-            )
+            logger.info("resume experiment name=%s", resume_experiment_name)
         config.experiment_name = resume_experiment_name
         effective_experiment_name = resume_experiment_name
         if hasattr(trainer, "checkpoint_prefix"):
@@ -68,12 +65,10 @@ def _start_mlflow_run_for_resumption(
     """Start or resume MLflow run for checkpoint resumption."""
     resume_run_id = getattr(trainer, "mlflow_run_id", None)
     if resume_run_id:
-        logger.info(f"Resuming MLflow run: {resume_run_id}")
+        logger.info("resume mlflow run run_id=%s", resume_run_id)
         mlflow.start_run(run_id=resume_run_id)
     else:
-        logger.info(
-            f"Creating new MLflow run for resumed training from step {original_steps}"
-        )
+        logger.info("create mlflow run from_step=%d", original_steps)
         mlflow.start_run(run_name=f"resumed_step_{original_steps}")
 
 
@@ -150,17 +145,15 @@ def setup_checkpoint_resumption(
     if not Path(checkpoint_path).exists():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
 
-    logger.info("Resuming training from checkpoint")
-    logger.info(f"Checkpoint: {checkpoint_path}")
+    logger.info("resume training from checkpoint path=%s", checkpoint_path)
 
     trainer.load_checkpoint(str(checkpoint_path))
     original_steps = trainer.total_count
-    logger.info(f"Checkpoint loaded! Resuming from step {original_steps}")
+    logger.info("load checkpoint step=%d", original_steps)
 
     if additional_steps:
         trainer.config.max_steps = original_steps + additional_steps
-        logger.info(f"Training for {additional_steps} additional steps")
-        logger.info(f"Target: {trainer.config.max_steps} total steps")
+        logger.info("extend training additional_steps=%d target_steps=%d", additional_steps, trainer.config.max_steps)
 
     tracking_uri = _setup_mlflow_tracking_from_checkpoint(trainer)
     effective_experiment_name = _resolve_experiment_name_from_checkpoint(

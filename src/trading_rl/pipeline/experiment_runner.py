@@ -115,7 +115,7 @@ def _run_training_phase(
     trainer = runtime.training_bundle.trainer
     mlflow_callback = runtime.training_bundle.mlflow_callback
 
-    logger.info("Starting training...")
+    logger.info("start training")
     interrupted = False
     try:
         logs = trainer.train(callback=mlflow_callback)
@@ -206,11 +206,11 @@ def execute_single_experiment(
     )
 
     if training_result.interrupted:
-        logger.info("Training interrupted; final evaluation complete!")
+        logger.info("training interrupted final_eval=complete")
     else:
-        logger.info("Training complete!")
-    logger.info("Final reward: %.4f", final_reward)
-    logger.info("Checkpoint saved to: %s", final_checkpoint_path)
+        logger.info("training complete")
+    logger.info("final reward=%.4f", final_reward)
+    logger.info("save checkpoint path=%s", final_checkpoint_path)
 
     return build_experiment_result(
         trainer=trainer,

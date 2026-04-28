@@ -137,7 +137,7 @@ def save_prepared_splits(
         output_path = output_dir / f"{split_name}_prepared.parquet"
         df.to_parquet(output_path)
         paths[split_name] = output_path
-        logger.info(f"Saved {split_name} split to {output_path} ({len(df)} rows)")
+        logger.info("save split name=%s path=%s n_rows=%d", split_name, output_path, len(df))
 
     return paths
 
@@ -162,7 +162,7 @@ def load_prepared_splits(
             raise FileNotFoundError(f"Prepared split file not found: {file_path}")
         paths[split_name] = LazyDataFrame(file_path)
 
-    logger.info(f"Loaded lazy references for {len(paths)} splits from {output_dir}")
+    logger.info("load lazy splits n_splits=%d dir=%s", len(paths), output_dir)
     return paths
 
 
@@ -212,7 +212,7 @@ def save_symbol_memmap(
 
     (output_dir / f"{prefix}_columns.json").write_text(json.dumps(columns))
 
-    logger.info("Saved memmap for prefix '%s' to %s (%d rows)", prefix, output_dir, len(df))
+    logger.info("save memmap prefix=%s dir=%s n_rows=%d", prefix, output_dir, len(df))
     return MemmapPaths(data_path=data_path, index_path=index_path, n_rows=len(df), columns=columns)
 
 
@@ -248,5 +248,5 @@ def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
             )
         )
 
-    logger.info("Found %d memmap symbol file(s) in %s", len(results), output_dir)
+    logger.info("load memmap n_symbols=%d dir=%s", len(results), output_dir)
     return results
