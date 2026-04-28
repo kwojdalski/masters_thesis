@@ -16,6 +16,19 @@ import warnings
 from typing import Any
 
 import gym_trading_env  # noqa: F401
+
+# gym_trading_env sets warnings.filterwarnings("error") at import time.
+# Reset to defaults now so that TorchRL's own DeprecationWarnings (e.g.
+# VanillaWeightUpdater) don't become fatal errors during the next imports.
+warnings.filterwarnings("default")
+# Suppress TorchRL internal deprecation warnings about WeightUpdaterBase subclasses;
+# these are library-internal and not actionable from user code.
+warnings.filterwarnings(
+    "ignore",
+    message=".*inherits from WeightUpdaterBase is deprecated.*",
+    category=DeprecationWarning,
+)
+
 import mlflow
 import torch.multiprocessing as mp
 
@@ -40,9 +53,6 @@ from trading_rl.plotting import visualize_training
 
 # Avoid torch_shm_manager requirement in restricted environments
 mp.set_sharing_strategy("file_system")
-
-# gym_trading_env sets warnings to errors; reset to defaults for TorchRL
-warnings.filterwarnings("default")
 # tradingenv TrackRecord converts pandas.Timestamp -> datetime (microseconds),
 # which emits this noisy warning when nanoseconds are present.
 warnings.filterwarnings(
