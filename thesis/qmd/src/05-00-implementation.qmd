@@ -15,7 +15,7 @@ transformed into a vector of microstructure features. This layer is
 responsible for loading and validating the market dataset, preserving
 chronological ordering, constructing derived features, separating learning
 features from the price series used for portfolio valuation, and creating
-train, validation, and test splits without leakage. Reinforcement learning in financial settings is highly sensitive to timestamp
+train, validation, and test splits without leakage (see @sec-feature-normalization-and-causality-preservation). Reinforcement learning in financial settings is highly sensitive to timestamp
 errors and inconsistencies between engineered features and the price series
 used by the simulation.
 
