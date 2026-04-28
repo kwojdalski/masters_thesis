@@ -130,7 +130,7 @@ class FeaturePipeline:
             self for chaining
         """
         logger.info("fit feature pipeline")
-        logger.debug("fit feature pipeline shape=%s", df.shape)
+        logger.debug("fit feature pipeline n_rows=%d n_cols=%d", *df.shape)
 
         # Validate required columns
         self._validate_columns(df)
@@ -163,7 +163,7 @@ class FeaturePipeline:
                 "Pipeline must be fitted before transform. Call fit() first."
             )
 
-        logger.debug("transform data shape=%s", df.shape)
+        logger.debug("transform data n_rows=%d n_cols=%d", *df.shape)
 
         # Validate required columns
         self._validate_columns(df)
