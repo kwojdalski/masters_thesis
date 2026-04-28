@@ -25,7 +25,7 @@ _PATH_EXTENSIONS = frozenset({
 
 # Matches standalone numbers in an already-interpolated plain-text message.
 # Only runs after getMessage(), so the text is guaranteed ANSI-free.
-_NUMBER_RE = re.compile(r'(?<![.\d\w])([+-]?\d[\d,]*(?:\.\d+)?%?)(?![.\d])')
+_NUMBER_RE = re.compile(r'(?<![.\d\w])([+-]?\d[\d,]*(?:\.\d+)?%?)(?![.\d\w])')
 
 
 def _is_path_like(value: str) -> bool:
