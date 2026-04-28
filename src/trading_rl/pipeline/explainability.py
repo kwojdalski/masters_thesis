@@ -50,7 +50,7 @@ def run_explainability_analysis(
 
         rollout = eval_ctx.env.rollout(max_steps=config.explainability.n_steps)
         obs_batch = rollout["observation"]
-        logger.debug("explainability obs_batch shape=%s", obs_batch.shape)
+        logger.debug("explainability obs_batch n_rows=%d n_cols=%d", *obs_batch.shape)
 
         analyzer = RLInterpretabilityAnalyzer(trainer, feature_names)
         results = {}

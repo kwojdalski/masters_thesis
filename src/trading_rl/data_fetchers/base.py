@@ -193,7 +193,7 @@ class BaseDataSource(ABC):
             Description of the dataset (e.g., "Synthetic sample", "Stock data")
         """
         self.logger.info("save dataset context=%s path=%s", context, output_path)
-        self.logger.debug("save dataset shape=%s", df.shape)
+        self.logger.debug("save dataset n_rows=%d n_cols=%d", *df.shape)
 
         if not df.empty:
             self.logger.debug("save dataset index_min=%s index_max=%s", df.index.min(), df.index.max())
