@@ -14,15 +14,26 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
 import os
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Annotated
+
+import typer
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT_DIR = Path("data/raw/stocks")
+
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from logger import get_logger, setup_logging
+
+setup_logging(level="INFO")
+logger = get_logger(__name__)
+
+app = typer.Typer(help="Download Databento stock data required by the thesis.")
 
 
 @dataclass(frozen=True)
@@ -112,81 +123,25 @@ THESIS_DOWNLOADS = [
 ]
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Download the Databento stock data required by the thesis."
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=DEFAULT_OUTPUT_DIR,
-        help="Output directory for downloaded files (default: data/raw/stocks).",
-    )
-    parser.add_argument(
-        "--skip-existing",
-        action="store_true",
-        help="Skip symbols whose filtered (*_us_hours.parquet) file already exists.",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Pass --force to fetch_stocks.py and ignore the download cache.",
-    )
-    parser.add_argument(
-        "--skip-filter",
-        action="store_true",
-        help="Only download raw data; do not create *_us_hours.parquet files.",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Print commands without running them.",
-    )
-    return parser.parse_args()
-
-
 def run_command(command: list[str], *, dry_run: bool) -> None:
-    printable = " ".join(command)
-    print(printable)
+    logger.debug("run command cmd=%s", " ".join(command))
     if dry_run:
         return
     subprocess.run(command, cwd=REPO_ROOT, check=True)  # noqa: S603
 
 
-def ensure_api_key_present(dry_run: bool) -> None:
-    if dry_run:
-        return
-    if not os.getenv("DATABENTO_API_KEY"):
-        raise RuntimeError(
-            "DATABENTO_API_KEY is not set. Export it before downloading thesis data."
-        )
-
-
 def fetch_command(job: ThesisStockDownload, output_dir: Path, force: bool) -> list[str]:
     command = [
-        "uv",
-        "run",
-        "python",
-        "scripts/fetch_stocks.py",
-        "download-stocks",
-        "--symbols",
-        job.symbol,
-        "--start-date",
-        job.start_date,
-        "--end-date",
-        job.end_date,
-        "--dataset",
-        job.dataset,
-        "--schema",
-        job.schema,
-        "--output-dir",
-        str(output_dir),
+        "uv", "run", "python", "scripts/fetch_stocks.py", "download-stocks",
+        "--symbols", job.symbol,
+        "--start-date", job.start_date,
+        "--end-date", job.end_date,
+        "--dataset", job.dataset,
+        "--schema", job.schema,
+        "--output-dir", str(output_dir),
         "--sequential",
     ]
-    if job.aggregate:
-        command.append("--aggregate")
-    else:
-        command.append("--raw")
+    command.append("--aggregate" if job.aggregate else "--raw")
     if force:
         command.append("--force")
     return command
@@ -194,44 +149,75 @@ def fetch_command(job: ThesisStockDownload, output_dir: Path, force: bool) -> li
 
 def filter_command(input_file: Path, output_file: Path) -> list[str]:
     return [
-        "uv",
-        "run",
-        "python",
-        "scripts/filter_us_hours.py",
+        "uv", "run", "python", "scripts/filter_us_hours.py",
         str(input_file),
         str(output_file),
     ]
 
 
-def main() -> int:
-    args = parse_args()
-    output_dir = args.output_dir
-    ensure_api_key_present(args.dry_run)
+@app.command()
+def main(
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output-dir", "-o", help="Output directory for downloaded files."),
+    ] = DEFAULT_OUTPUT_DIR,
+    skip_existing: Annotated[
+        bool,
+        typer.Option("--skip-existing", "-s", help="Skip symbols whose filtered *_us_hours.parquet already exists."),
+    ] = False,
+    force: Annotated[
+        bool,
+        typer.Option("--force", "-f", help="Pass --force to fetch_stocks.py, ignoring the download cache."),
+    ] = False,
+    skip_filter: Annotated[
+        bool,
+        typer.Option("--skip-filter", help="Only download raw data; do not create *_us_hours.parquet files."),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Log commands without executing them."),
+    ] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Enable debug-level logging."),
+    ] = False,
+) -> None:
+    """Download Databento MBP-10 data for all thesis symbols and filter to US market hours."""
+    if verbose:
+        setup_logging(level="DEBUG")
+
+    if not dry_run and not os.getenv("DATABENTO_API_KEY"):
+        logger.error("DATABENTO_API_KEY is not set")
+        raise typer.Exit(code=1)
+
+    logger.info("start thesis data download n_symbols=%d dry_run=%s", len(THESIS_DOWNLOADS), dry_run)
+    logger.debug("output_dir=%s skip_existing=%s force=%s skip_filter=%s", output_dir, skip_existing, force, skip_filter)
+
+    skipped = 0
+    downloaded = 0
+    filtered = 0
 
     for job in THESIS_DOWNLOADS:
         filtered_file = output_dir / job.filtered_filename
-        if args.skip_existing and filtered_file.exists():
-            print(f"\nSkipping {job.symbol} — {filtered_file.name} already exists.")
+
+        if skip_existing and filtered_file.exists():
+            logger.info("skip symbol=%s reason=already exists path=%s", job.symbol, filtered_file.name)
+            skipped += 1
             continue
 
-        print(
-            f"\nDownloading {job.symbol} {job.schema} data "
-            f"from {job.start_date} to {job.end_date}"
-        )
-        run_command(fetch_command(job, output_dir, args.force), dry_run=args.dry_run)
+        logger.info("download symbol=%s schema=%s dates=%s to %s", job.symbol, job.schema, job.start_date, job.end_date)
+        run_command(fetch_command(job, output_dir, force), dry_run=dry_run)
+        downloaded += 1
 
-        if job.filter_us_hours and not args.skip_filter:
+        if job.filter_us_hours and not skip_filter:
             raw_file = output_dir / job.raw_filename
-            print(f"\nFiltering US market hours: {filtered_file}")
-            run_command(filter_command(raw_file, filtered_file), dry_run=args.dry_run)
+            logger.info("filter us hours symbol=%s output=%s", job.symbol, filtered_file.name)
+            logger.debug("filter input=%s output=%s", raw_file, filtered_file)
+            run_command(filter_command(raw_file, filtered_file), dry_run=dry_run)
+            filtered += 1
 
-    print("\nThesis stock data workflow complete.")
-    return 0
+    logger.info("thesis data download complete downloaded=%d filtered=%d skipped=%d", downloaded, filtered, skipped)
 
 
 if __name__ == "__main__":
-    try:
-        raise SystemExit(main())
-    except Exception as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        raise SystemExit(1) from exc
+    app()

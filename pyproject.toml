@@ -134,6 +134,12 @@ quote-style = "double"
 indent-style = "space"
 docstring-code-format = true
 
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "nbformat>=5.10.4",
+]
+
 [tool.ruff.lint.flake8-tidy-imports]
 # Disallow all relative imports.
 ban-relative-imports = "all"
