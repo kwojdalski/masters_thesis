@@ -184,7 +184,7 @@ class DDPGTrainer(BaseTrainer):
                     e
                 ):
                     self.skipped_batches += 1
-                    logger.warning(f"DDPG tensor shape error: {e}, skipping this batch")
+                    logger.warning("ddpg tensor shape error skipping batch err=%s", e)
                     continue
                 else:
                     raise e

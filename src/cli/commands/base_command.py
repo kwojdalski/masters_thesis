@@ -30,7 +30,7 @@ class BaseCommand(ABC):
     def handle_error(self, error: Exception, context: str) -> None:
         """Standardized error handling."""
         self.console.print(f"[bold red]{context} failed: {error}[/bold red]")
-        self.logger.error(f"{context} failed", exc_info=error)
+        self.logger.error("command failed context=%s", context, exc_info=error)
         raise typer.Exit(1) from error
     
     def resolve_seed(self, provided_seed: int | None) -> int:

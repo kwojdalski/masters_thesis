@@ -80,7 +80,7 @@ class RLInterpretabilityAnalyzer:
         Use Feature Permutation to calculate global importance over a batch of data.
         This is the 'Lucarelli-style' analysis.
         """
-        logger.info("Computing Feature Permutation Importance...")
+        logger.info("compute feature permutation importance")
         fp = FeaturePermutation(self.proxy)
         
         # Attribution shape will match obs_batch shape
@@ -100,7 +100,7 @@ class RLInterpretabilityAnalyzer:
         """
         Use Integrated Gradients to calculate global importance over a batch of data.
         """
-        logger.info("Computing Global Integrated Gradients Importance...")
+        logger.info("compute global integrated gradients importance")
         ig = IntegratedGradients(self.proxy)
         
         # Baselines are typically zero
@@ -121,7 +121,7 @@ class RLInterpretabilityAnalyzer:
         """
         Use Integrated Gradients to see why a specific trade was made.
         """
-        logger.info("Computing Integrated Gradients Attribution for sample...")
+        logger.info("compute integrated gradients attribution for sample")
         ig = IntegratedGradients(self.proxy)
         
         # Baselines are typically zero (no information)

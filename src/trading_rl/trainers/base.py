@@ -258,7 +258,7 @@ class BaseTrainer(ABC):
                 portfolio_valuation = initial_val * np.exp(episode_reward)
         else:
             # Fallback for any other custom reward types
-            logger.debug(f"Unrecognized reward_type '{reward_type}'; assuming reward matches log-return for valuation")
+            logger.debug("unrecognized reward_type=%s assuming log-return for valuation", reward_type)
             portfolio_valuation = initial_val * np.exp(episode_reward)
 
         callback._portfolio_value = portfolio_valuation
@@ -385,7 +385,7 @@ class BaseTrainer(ABC):
         env_to_use = eval_env or self.env
 
         # Deterministic rollout
-        logger.debug(f"Running deterministic evaluation for {max_steps} steps")
+        logger.debug("eval deterministic max_steps=%d", max_steps)
         try:
             with set_exploration_type(InteractionType.MODE):
                 rollout_deterministic = env_to_use.rollout(
@@ -405,7 +405,7 @@ class BaseTrainer(ABC):
         actual_returns_deterministic = extract_tradingenv_returns(env_to_use, max_steps)
 
         # Random rollout (can be overridden in subclasses)
-        logger.debug(f"Running random evaluation for {max_steps} steps")
+        logger.debug("eval random max_steps=%d", max_steps)
         with set_exploration_type(InteractionType.RANDOM):
             rollout_random = env_to_use.rollout(max_steps=max_steps, policy=self.actor)
 
@@ -467,7 +467,7 @@ class BaseTrainer(ABC):
             # Get DSR parameters from config (reward_eta is the standard name)
             dsr_eta = getattr(config.env, "reward_eta", 0.01) if config else 0.01
 
-            logger.debug(f"Calculating DSR benchmarks with eta={dsr_eta}")
+            logger.debug("calc dsr benchmarks eta=%s", dsr_eta)
 
             # Calculate DSR for buy-and-hold
             bh_dsr, _ = calculate_benchmark_dsr(
@@ -704,10 +704,10 @@ class BaseTrainer(ABC):
                     on_batch_end(i, data)
 
                 if self.total_count >= self.config.max_steps:
-                    logger.info(f"Training stopped after {self.config.max_steps} steps")
+                    logger.info("training stopped max_steps=%d", self.config.max_steps)
                     break
         except KeyboardInterrupt:
-            logger.warning("Training interrupted by user (Ctrl-C). Saving checkpoint...")
+            logger.warning("training interrupted by user saving checkpoint")
             checkpoint_path = self._save_interrupt_checkpoint()
             if checkpoint_path:
                 logger.info("Interrupt checkpoint saved to: %s", checkpoint_path)

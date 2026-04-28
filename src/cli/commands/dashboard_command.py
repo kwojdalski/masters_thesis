@@ -104,7 +104,7 @@ class DashboardCommand(BaseCommand):
             if len(runs) > 0:
                 self._display_best_run(runs)
         except Exception as e:
-            self.logger.warning(f"Could not retrieve runs for experiment {exp.name}: {e}")
+            self.logger.warning("retrieve runs failed experiment=%s err=%s", exp.name, e)
     
     def _display_best_run(self, runs) -> None:
         """Display best run information if available."""
