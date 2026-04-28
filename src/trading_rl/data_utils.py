@@ -445,9 +445,9 @@ def _build_pooled_splits(
         del train_i, val_i, test_i
         gc.collect()
 
-    train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths], ignore_index=True)
-    val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths], ignore_index=True)
-    test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths], ignore_index=True)
+    train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths])
+    val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths])
+    test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths])
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
     logger.info("pooled splits train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df))
