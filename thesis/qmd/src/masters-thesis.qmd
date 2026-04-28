@@ -74,8 +74,8 @@ on continuous portfolio exposure control and addresses the practical constraints
 — execution modeling, transaction cost sensitivity, and evaluation discipline —
 that most often invalidate paper-trading results.
 
-A TD3 agent is trained on high-frequency limit order book data from seven
-Nasdaq-listed equities (AAPL, MSFT, TSLA, GOOGL, META, AMZN, and AVGO) and evaluated against
+A TD3 agent is trained on high-frequency limit order book data from six
+Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO) and evaluated against
 benchmark strategies under explicit simulation assumptions.
 The agent achieves positive out-of-sample risk-adjusted returns that exceed the
 evaluated benchmarks, and a microstructure-aware state representation

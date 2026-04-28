@@ -25,7 +25,7 @@ discipline.
 At the same time, the conclusions must be interpreted within the limits of the
 experimental setup. The simulation uses a mid-price execution proxy rather than
 executable bid/ask fills, assumes zero market impact and zero latency, and is
-evaluated on a narrow three-day window of data from seven instruments with a single random seed. These
+evaluated on a narrow three-day window of data from six instruments with a single random seed. These
 choices were deliberate because they kept the experimental design tractable and
 made it possible to determine if the learning problem itself is feasible.
 They also place a clear boundary on the claim being made. The thesis

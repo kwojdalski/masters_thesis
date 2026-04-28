@@ -1,4 +1,4 @@
-# PPO Configuration for Pooled Multi-Symbol Training (AAPL, MSFT, TSLA, GOOGL, META, AMZN, AVGO)
+# PPO Configuration for Pooled Multi-Symbol Training (AAPL, MSFT, TSLA, META, AMZN, AVGO)
 # ============================================================================
 # This scenario trains a single shared policy on all four thesis instruments.
 # Each file is processed independently (per-symbol z-score normalization) and
@@ -9,7 +9,7 @@
 # network capacity, and evaluation identical for controlled comparison.
 #
 # Data: Tick-level MBP-10 order book snapshots, US market hours only
-# Symbols: AAPL, MSFT, TSLA, GOOGL, META, AMZN, AVGO — 2026-02-25 to 2026-03-03
+# Symbols: AAPL, MSFT, TSLA, META, AMZN, AVGO — 2026-02-25 to 2026-03-03
 # Backend: TradingEnv (continuous action space)
 # Algorithm: PPO
 # Features: thesis state-space microstructure features
@@ -21,7 +21,6 @@ data:
     - "./data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
     - "./data/raw/stocks/MSFT_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
     - "./data/raw/stocks/TSLA_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
-    - "./data/raw/stocks/GOOGL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
     - "./data/raw/stocks/META_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
     - "./data/raw/stocks/AMZN_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
     - "./data/raw/stocks/AVGO_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"

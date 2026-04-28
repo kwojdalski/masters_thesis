@@ -2,22 +2,16 @@
 
 ### Asset Selection
 
-The experiments use equity data from seven Nasdaq-listed blue-chip instruments:
-AAPL (Apple Inc.), MSFT (Microsoft Corp.), TSLA (Tesla Inc.), GOOGL
-(Alphabet Inc. Class A), META (Meta Platforms Inc.), AMZN (Amazon.com Inc.),
-and AVGO (Broadcom Inc.). All seven are
+The experiments use equity data from six Nasdaq-listed blue-chip instruments:
+AAPL (Apple Inc.), MSFT (Microsoft Corp.), TSLA (Tesla Inc.), META (Meta Platforms Inc.), AMZN (Amazon.com Inc.),
+and AVGO (Broadcom Inc.). All six are
 among the most liquid equities in US markets, with tight spreads, deep displayed
 depth, and continuous two-sided quoting throughout the trading session. The
 selection criterion was high but not extreme liquidity: instruments were chosen
 to ensure defensible price-taking assumptions and rich microstructure signals,
 while avoiding names whose order-book event density on the Nasdaq ITCH feed
 would be disproportionately inflated by factors unrelated to underlying
-economic activity.^[GOOGL's event count on the Nasdaq ITCH feed is elevated
-relative to other instruments of comparable market capitalisation, likely due to
-arbitrage activity between Alphabet's two share classes (GOOGL and GOOG), which
-are separately listed and continuously cross-hedged by market makers. This
-structural feature inflates the number of quote refreshes on the lit book without
-necessarily reflecting a broader base of informational trading.] This
+economic activity. This
 liquidity profile ensures that the price-taking assumption embedded in the
 simulation — that agent trades do not move quoted prices — is empirically
 defensible, and that the microstructure features derived from the order book
@@ -55,7 +49,7 @@ in the state space — order-flow imbalance, relative spread, depth slope, queue
 imbalance — are inherently relative measures that carry the same semantic meaning
 regardless of the underlying price level or absolute volume.
 
-A further consideration is access symmetry. Because all seven instruments trade
+A further consideration is access symmetry. Because all six instruments trade
 on a centralized, regulated exchange with public pre-trade transparency, all
 market participants observe the same order book. This contrasts with OTC markets
 or less liquid instruments where information asymmetry and differential access
