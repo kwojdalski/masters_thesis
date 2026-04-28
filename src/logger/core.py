@@ -15,22 +15,66 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 
+# Matches file-system paths: ./rel, ../rel, /abs, or bare relative/path.ext
+# Requires at least one slash so plain words are not accidentally matched.
+_PATH_PATTERN = re.compile(
+    r'(?:'
+    r'\.{1,2}/[\w./\-]+'            # ./rel or ../rel
+    r'|/[\w./\-]+'                  # /absolute
+    r'|(?<![=\d\w/])(?=[a-zA-Z_])[\w.\-]+(?:/[\w./\-]+)+'  # bare relative/path
+    r')'
+)
+
+# Standalone numbers — not part of a path or already-colored span.
 _NUMBER_PATTERN = re.compile(
     r'(?<![.\d\w])(\$?[+-]?\d[\d,]*(?:\.\d+)?%?)(?![.\d])'
 )
 
+_COLOR_NUMBER = "\033[38;5;117m"   # light blue
+_COLOR_PATH   = "\033[38;5;180m"   # warm tan/golden
+_COLOR_RESET  = "\033[0m"
 
-def _colorize_numbers(text: str) -> str:
-    """Wrap standalone numbers in light blue ANSI color.
+
+def _colorize_message(text: str) -> str:
+    """Highlight paths (warm tan) and standalone numbers (light blue).
 
     Skips the text unchanged if it already contains ANSI escape sequences to
-    avoid corrupting codes embedded in the message string.
+    avoid corrupting any codes embedded in the message string.
     """
     if "\033[" in text:
         return text
-    LIGHT_BLUE = "\033[38;5;117m"
-    RESET = "\033[0m"
-    return _NUMBER_PATTERN.sub(lambda m: f"{LIGHT_BLUE}{m.group()}{RESET}", text)
+
+    # Colorize paths first; build the result and a plain-text shadow for number
+    # matching so digits inside already-colored paths are not double-highlighted.
+    segments: list[str] = []
+    plain_shadow: list[str] = []   # same length, but colored spans replaced with spaces
+    last = 0
+    for m in _PATH_PATTERN.finditer(text):
+        prefix = text[last:m.start()]
+        segments.append(prefix)
+        plain_shadow.append(prefix)
+        colored_path = f"{_COLOR_PATH}{m.group()}{_COLOR_RESET}"
+        segments.append(colored_path)
+        plain_shadow.append(" " * len(m.group()))  # mask path for number scan
+        last = m.end()
+    segments.append(text[last:])
+    plain_shadow.append(text[last:])
+
+    # Reconstruct the full string (with path colors) for number substitution,
+    # but only scan the plain-shadow so we never touch digits inside path spans.
+    shadow_text = "".join(plain_shadow)
+    result_text = "".join(segments)
+
+    # Replace numbers in shadow positions with colored versions in result_text.
+    offset_delta = 0  # accounts for ANSI codes inserted before this point
+    for m in _NUMBER_PATTERN.finditer(shadow_text):
+        colored_num = f"{_COLOR_NUMBER}{m.group()}{_COLOR_RESET}"
+        start = m.start() + offset_delta
+        end   = m.end()   + offset_delta
+        result_text = result_text[:start] + colored_num + result_text[end:]
+        offset_delta += len(colored_num) - len(m.group())
+
+    return result_text
 
 
 def _supports_color() -> bool:
@@ -98,7 +142,7 @@ class ColoredFormatter(DotMillisFormatter):
         original_msg = record.msg
         original_args = record.args
         try:
-            colorized_msg = _colorize_numbers(record.getMessage())
+            colorized_msg = _colorize_message(record.getMessage())
             record.msg = colorized_msg
             record.args = None
         except Exception:

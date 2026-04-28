@@ -129,8 +129,8 @@ class FeaturePipeline:
         Returns:
             self for chaining
         """
-        logger.info("Fitting feature pipeline on training data")
-        logger.debug(f"Training data shape: {df.shape}")
+        logger.info("fit feature pipeline")
+        logger.debug("fit feature pipeline shape=%s", df.shape)
 
         # Validate required columns
         self._validate_columns(df)
@@ -141,7 +141,7 @@ class FeaturePipeline:
             logger.debug(f"Fitted feature: {feature.get_output_name()}")
 
         self._is_fitted = True
-        logger.info("Feature pipeline fitted successfully")
+        logger.info("fit feature pipeline complete")
         return self
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
