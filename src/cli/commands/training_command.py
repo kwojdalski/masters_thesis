@@ -99,7 +99,7 @@ class TrainingCommand(BaseCommand):
             new_steps = typer.prompt("New max steps", default=current_steps)
             config.training.max_steps = int(new_steps)
 
-        cache_enabled = getattr(config.data, "feature_cache_dir", "data/.feature_cache") is not None
+        cache_enabled = getattr(config.data, "feature_cache_dir", ".cache/feature_transformation") is not None
         if cache_enabled:
             if typer.confirm("Process features from scratch (skip cache)?", default=False):
                 config.data.feature_cache_dir = None
