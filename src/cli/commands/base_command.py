@@ -23,7 +23,7 @@ class BaseCommand(ABC):
         if not config_path:
             return {}
         
-        self.logger.info("Loading config from %s", config_path)
+        self.logger.info("load config path=%s", config_path)
         with config_path.open("r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     

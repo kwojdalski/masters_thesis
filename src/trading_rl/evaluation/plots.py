@@ -238,6 +238,6 @@ def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
     """Merge reward and action comparison plots into a single vertical layout."""
     merged_plot = reward_plot / action_plot
     if save_path:
-        logger.info("Saving merged comparison plot to %s", save_path)
+        logger.info("save merged comparison plot path=%s", save_path)
         merged_plot.save(save_path, dpi=150, verbose=False)
     return merged_plot

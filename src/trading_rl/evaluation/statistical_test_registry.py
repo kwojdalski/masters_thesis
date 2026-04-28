@@ -344,7 +344,7 @@ def register_test(test_class: type[StatisticalTest]) -> None:
     """Register a new test class (for extensibility)."""
     instance = test_class()
     TEST_REGISTRY[instance.name] = test_class
-    logger.info("Registered statistical test: %s", instance.name)
+    logger.info("registered statistical test name=%s", instance.name)
 
 
 def list_available_tests() -> list[str]:

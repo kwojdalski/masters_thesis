@@ -288,7 +288,7 @@ def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> Non
                 logger.debug("%s%s: %s", prefix, formatted_key, format_value(value))
 
     logger.debug("=" * 60)
-    logger.debug("CONFIGURATION VALUES")
+    logger.debug("configuration values")
     logger.debug("=" * 60)
     print_dataclass(config)
     logger.debug("=" * 60)
@@ -347,7 +347,7 @@ def build_experiment_runtime(
     )
 
     if logger.isEnabledFor(logging.DEBUG):
-        logger.debug("Training data statistics:")
+        logger.debug("training data statistics")
         if "close" in train_df.columns:
             logger.debug(
                 "  Close price - min: %.2f, max: %.2f, mean: %.2f",

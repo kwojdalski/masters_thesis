@@ -102,16 +102,16 @@ class StockDataFetcher(BaseMarketDataFetcher):
         )
 
         if df.empty:
-            self.logger.warning("No data returned from Databento")
+            self.logger.warning("no data returned from databento")
             return df
 
         if aggregate:
             if timeframe is None:
                 timeframe = "1h"
-                self.logger.info("No timeframe specified, defaulting to 1h")
+                self.logger.info("no timeframe specified, defaulting to 1h")
             df = self._convert_to_ohlcv(df, schema=schema, timeframe=timeframe)
         else:
-            self.logger.info("Keeping raw %s data without aggregation", schema)
+            self.logger.info("keep raw data schema=%s", schema)
 
         if save_to_file:
             suffix = timeframe if aggregate and timeframe else f"raw_{schema}"
@@ -164,7 +164,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
         config = self.load_config(config_path)
         stock_config = config.get("stock_data", {})
 
-        self.logger.info("Fetching stock data from config: %s", config_path)
+        self.logger.info("fetch stock data config=%s", config_path)
         return self.fetch_market_data(
             symbols=stock_config.get("symbols", []),
             start_date=stock_config.get("start_date"),
@@ -389,7 +389,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
     def _write_parquet(self, df: pd.DataFrame, filename: str) -> Path:
         output_path = self.output_dir / filename
         df.to_parquet(output_path)
-        self.logger.info("Saved %d rows to %s", len(df), output_path)
+        self.logger.info("save rows=%d path=%s", len(df), output_path)
         return output_path
 
     def list_available_datasets(self, source: str = "databento") -> dict[str, str]:

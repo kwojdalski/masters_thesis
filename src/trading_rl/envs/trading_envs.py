@@ -66,7 +66,7 @@ def validate_actions(backend: Backend, positions: list[int] | None) -> None:
                 f"{backend} supports only two actions {allowed} (short/long), "
                 f"but positions={positions}. Please set env.positions to {allowed}."
             )
-        logger.debug("Validated actions for %s backend: %s", backend, positions)
+        logger.debug("validate actions backend=%s positions=%s", backend, positions)
 
 
 class DiscreteActionWrapper(gym.ActionWrapper):
@@ -256,7 +256,7 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
         env = GymWrapper(base_env)
         env = self._wrap_with_step_counter(env)
 
-        logger.info("Created forex-v0 environment")
+        logger.info("create forex-v0 environment done")
         return env
 
 
@@ -295,9 +295,7 @@ class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
                 reward_eta = getattr(self.config.env, "reward_eta", 0.01)
                 dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta)
                 base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
-                logger.info(
-                    f"Applied DSR reward to stocks-v0 environment (eta={reward_eta})"
-                )
+                logger.info("apply dsr reward to stocks-v0 environment eta=%s", reward_eta)
             elif reward_type != "log_return":
                 raise ValueError(
                     f"Unknown reward type: {reward_type}. "
@@ -308,7 +306,7 @@ class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
         env = GymWrapper(base_env)
         env = self._wrap_with_step_counter(env)
 
-        logger.info("Created stocks-v0 environment")
+        logger.info("create stocks-v0 environment done")
         return env
 
 

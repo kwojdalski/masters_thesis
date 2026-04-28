@@ -35,7 +35,7 @@ logger = setup_logging(config)
 config.seed = set_seed(config.seed)
 
 # Prepare data
-logger.info("Preparing data...")
+logger.info("prepare data")
 train_df, _val_df, _test_df = prepare_data(
     data_path=config.data.data_path,
     train_size=config.data.train_size,
@@ -50,17 +50,17 @@ train_df, _val_df, _test_df = prepare_data(
 
 # %%
 # Create environment
-logger.info("Creating environment...")
+logger.info("create environment")
 env = create_environment(train_df, config)
 # %%
 # Get environment specs
 n_obs = env.observation_spec["observation"].shape[-1]
 n_act = env.action_spec.shape[-1]
-logger.info(f"Environment: {n_obs} observations, {n_act} actions")
+logger.info("environment obs=%s actions=%s", n_obs, n_act)
 
 # %%
 # Create models
-logger.info("Creating models...")
+logger.info("create models")
 actor = create_actor(
     n_obs,
     n_act,
@@ -75,7 +75,7 @@ value_net = create_value_network(
 )
 # %%
 # Create trainer
-logger.info("Initializing trainer...")
+logger.info("init trainer")
 trainer = DDPGTrainer(
     actor=actor,
     value_net=value_net,
@@ -86,7 +86,7 @@ trainer = DDPGTrainer(
 )
 # %%
 # Train
-logger.info("Starting training...")
+logger.info("start training")
 logs = trainer.train()
 # %%
 # Save checkpoint
@@ -97,7 +97,7 @@ trainer.save_checkpoint(str(checkpoint_path))
 
 # %%
 # Visualize results
-logger.info("Creating visualizations...")
+logger.info("create visualizations")
 loss_plot = visualize_training(
     logs
     # save_path=str(
@@ -119,8 +119,8 @@ reward_plot
 action_plot
 final_reward
 # %%
-logger.info("Training complete!")
-logger.info(f"Checkpoint saved to: {checkpoint_path}")
+logger.info("training complete")
+logger.info("checkpoint saved path=%s", checkpoint_path)
 
 # %%
 # Example usage for multiple experiments:

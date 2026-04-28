@@ -90,7 +90,7 @@ class PriceDataGenerator:
     ) -> None:
         """Log common dataset summary information."""
         self.logger.info("%s saved to %s", context, output_path)
-        self.logger.debug("Shape=%s", df.shape)
+        self.logger.debug("shape=%s", df.shape)
         if not df.empty:
             self.logger.debug(
                 "Index range: %s -> %s",
@@ -122,9 +122,9 @@ class PriceDataGenerator:
         if not filepath.exists():
             raise FileNotFoundError(f"File not found: {filepath}")
 
-        self.logger.debug("Loading dataset from %s", filepath)
+        self.logger.debug("load dataset path=%s", filepath)
         df = pd.read_parquet(filepath)
-        self.logger.debug("Loaded %s rows from %s", len(df), filepath)
+        self.logger.debug("loaded rows=%s path=%s", len(df), filepath)
         return df
 
     def generate_synthetic_sample(
@@ -175,7 +175,7 @@ class PriceDataGenerator:
         # Sample if specified
         if sample_size is not None and sample_size < len(df):
             df = df.sample(n=sample_size, random_state=42).sort_index()
-            self.logger.debug("Sampled %s rows from source data", len(df))
+            self.logger.debug("sampled rows=%s", len(df))
 
         # Save to output directory
         if output_file is None:
@@ -218,9 +218,9 @@ class PriceDataGenerator:
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_path}")
 
-        self.logger.debug("Copying file from %s to %s", source_path, output_path)
+        self.logger.debug("copy file src=%s dst=%s", source_path, output_path)
         shutil.copy2(source_path, output_path)
-        self.logger.info("Copied %s to %s", source_path, output_path)
+        self.logger.info("copied src=%s dst=%s", source_path, output_path)
 
     def list_source_files(self) -> list[str]:
         """
@@ -996,7 +996,7 @@ def main():
     logger = generator.logger
 
     # List available source files
-    logger.info("Available source files:")
+    logger.info("available source files")
     source_files = generator.list_source_files()
     for f in source_files:
         logger.info("  - %s", f)

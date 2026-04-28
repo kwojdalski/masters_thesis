@@ -162,7 +162,7 @@ class DDPGTrainer(BaseTrainer):
                 torch.isnan(sample["next", "reward"]).any()
                 or torch.isinf(sample["next", "reward"]).any()
             ):
-                logger.warning("Found NaN/inf in reward, skipping optimization step")
+                logger.warning("nan/inf in reward, skip optimization step")
                 continue
 
             # Ensure done and terminated have consistent shapes
@@ -359,7 +359,7 @@ class DDPGTrainer(BaseTrainer):
                     len(self.replay_buffer),
                 )
             except Exception:
-                logger.exception("Failed to save replay buffer")
+                logger.exception("failed to save replay buffer")
 
         torch.save(checkpoint, path)
         logger.info("save checkpoint path=%s", path)

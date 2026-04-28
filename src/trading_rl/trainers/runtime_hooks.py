@@ -55,7 +55,7 @@ class TrainerRuntimeHooks:
         """Enable or disable temporary periodic evaluation."""
         eval_interval = getattr(config.training, "temp_eval_interval", None)
         if eval_interval is None or eval_interval <= 0:
-            logger.info("Periodic evaluation disabled (temp_eval_interval not set)")
+            logger.info("periodic evaluation disabled (temp_eval_interval not set)")
             self._evaluation = None
             return
 
@@ -84,11 +84,11 @@ class TrainerRuntimeHooks:
             config.explainability, "temp_explainability_interval", None
         )
         if explainability_interval is None or explainability_interval <= 0:
-            logger.info("Periodic explainability disabled (temp_explainability_interval not set)")
+            logger.info("periodic explainability disabled (temp_explainability_interval not set)")
             self._explainability = None
             return
         if not config.explainability.enabled:
-            logger.info("Periodic explainability disabled (explainability.enabled is False)")
+            logger.info("periodic explainability disabled (explainability.enabled is False)")
             self._explainability = None
             return
 
@@ -140,7 +140,7 @@ class TrainerRuntimeHooks:
         hook: PeriodicEvaluationHook,
     ) -> None:
         """Run evaluation during training and log artifacts without affecting control flow."""
-        logger.info("Running temporary evaluation at step %s...", step_number)
+        logger.info("run temporary evaluation step=%s", step_number)
 
         try:
             (
@@ -179,7 +179,7 @@ class TrainerRuntimeHooks:
                     artifact_prefix,
                 )
             else:
-                logger.warning("No active MLflow run - skipping temp evaluation logging")
+                logger.warning("no active mlflow run, skip temp evaluation logging")
         except Exception as exc:
             logger.error(
                 "Temporary evaluation failed at step %s: %s",

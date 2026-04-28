@@ -200,7 +200,7 @@ def evaluate_split(
         )
         return None
 
-    logger.info("Evaluating agent on %s split (%d rows)...", split, len(split_df))
+    logger.info("evaluate agent split=%s rows=%d", split, len(split_df))
     split_ctx = build_evaluation_context_for_split(split=split, df=split_df, config=config)
 
     (
