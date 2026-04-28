@@ -21,9 +21,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
+import pyarrow.parquet as pq
 import typer
+from rich.console import Console
+from rich.table import Table
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+console = Console()
 DEFAULT_OUTPUT_DIR = Path("data/raw/stocks")
 
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -147,6 +151,34 @@ def fetch_command(job: ThesisStockDownload, output_dir: Path, force: bool) -> li
     return command
 
 
+def _print_summary_table(jobs: list[ThesisStockDownload], output_dir: Path) -> None:
+    table = Table(title="Thesis Dataset Summary", show_header=True, header_style="bold")
+    table.add_column("Symbol", style="cyan")
+    table.add_column("File", style="dim")
+    table.add_column("Rows", justify="right", style="green")
+    table.add_column("Status", justify="center")
+
+    total_rows = 0
+    for job in jobs:
+        filtered_file = output_dir / job.filtered_filename
+        if filtered_file.exists():
+            try:
+                n_rows = pq.read_metadata(filtered_file).num_rows
+                total_rows += n_rows
+                table.add_row(job.symbol, filtered_file.name, f"{n_rows:,}", "[green]ok[/green]")
+                logger.debug("summary symbol=%s n_rows=%d path=%s", job.symbol, n_rows, filtered_file)
+            except Exception as e:
+                logger.warning("summary read failed symbol=%s err=%s", job.symbol, e)
+                table.add_row(job.symbol, filtered_file.name, "—", "[yellow]error[/yellow]")
+        else:
+            table.add_row(job.symbol, filtered_file.name, "—", "[red]missing[/red]")
+
+    table.add_section()
+    table.add_row("[bold]Total[/bold]", "", f"[bold]{total_rows:,}[/bold]", "")
+    console.print(table)
+    logger.info("summary total_rows=%d n_files=%d", total_rows, len(jobs))
+
+
 def filter_command(input_file: Path, output_file: Path) -> list[str]:
     return [
         "uv", "run", "python", "scripts/filter_us_hours.py",
@@ -217,6 +249,7 @@ def main(
             filtered += 1
 
     logger.info("thesis data download complete downloaded=%d filtered=%d skipped=%d", downloaded, filtered, skipped)
+    _print_summary_table(THESIS_DOWNLOADS, output_dir)
 
 
 if __name__ == "__main__":
