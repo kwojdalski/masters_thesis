@@ -315,7 +315,7 @@ class PrepareDataConfig:
     since: Any | None = None
     feature_config_path: str | None = None
     feature_cache_dir: str | None = ".cache/feature_transformation"
-    use_load_cache: bool = True
+    use_load_cache: bool = False
 
     @classmethod
     def from_config(cls, cfg: Any) -> "PrepareDataConfig":
