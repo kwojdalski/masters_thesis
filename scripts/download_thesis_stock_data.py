@@ -7,6 +7,7 @@ that the scenario YAML files reference.
 
 Usage:
     uv run python scripts/download_thesis_stock_data.py
+    uv run python scripts/download_thesis_stock_data.py --skip-existing
     uv run python scripts/download_thesis_stock_data.py --force
     uv run python scripts/download_thesis_stock_data.py --dry-run
 """
@@ -122,6 +123,11 @@ def parse_args() -> argparse.Namespace:
         help="Output directory for downloaded files (default: data/raw/stocks).",
     )
     parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip symbols whose filtered (*_us_hours.parquet) file already exists.",
+    )
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Pass --force to fetch_stocks.py and ignore the download cache.",
@@ -203,6 +209,11 @@ def main() -> int:
     ensure_api_key_present(args.dry_run)
 
     for job in THESIS_DOWNLOADS:
+        filtered_file = output_dir / job.filtered_filename
+        if args.skip_existing and filtered_file.exists():
+            print(f"\nSkipping {job.symbol} — {filtered_file.name} already exists.")
+            continue
+
         print(
             f"\nDownloading {job.symbol} {job.schema} data "
             f"from {job.start_date} to {job.end_date}"
@@ -211,7 +222,6 @@ def main() -> int:
 
         if job.filter_us_hours and not args.skip_filter:
             raw_file = output_dir / job.raw_filename
-            filtered_file = output_dir / job.filtered_filename
             print(f"\nFiltering US market hours: {filtered_file}")
             run_command(filter_command(raw_file, filtered_file), dry_run=args.dry_run)
 
