@@ -417,12 +417,19 @@ def _build_pooled_splits(
     logger: logging.Logger,
     data_paths: list[str],
     memmap_dir: Path | None,
+    checkpoint_dir: Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
     """Process each symbol independently then concatenate from disk.
 
     Each symbol is feature-engineered, written to a temp parquet, and freed
     before the next symbol loads.  This keeps peak memory to ~1 symbol at a
     time during feature engineering rather than accumulating all symbols.
+
+    If *checkpoint_dir* is provided the intermediate per-symbol parquets are
+    written there instead of a throwaway temp directory.  On a subsequent run
+    any symbol whose three parquet files already exist is skipped, so the
+    process can be resumed after an interruption.  The checkpoint directory is
+    **not** removed on completion so it can serve as a permanent cache.
     """
     import gc
     import shutil
@@ -431,11 +438,41 @@ def _build_pooled_splits(
     pipeline = _resolve_feature_pipeline(config, logger)
 
     logger.info("pooled training n_symbols=%d", len(data_paths))
-    tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
+
+    use_stable_dir = checkpoint_dir is not None
+    if use_stable_dir:
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        tmp_dir = checkpoint_dir
+    else:
+        tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
+
     tmp_paths: list[dict[str, Path]] = []
     collected_memmap_paths: list[MemmapPaths] = []
 
     for i, data_path in enumerate(data_paths):
+        sym: dict[str, Path] = {
+            split: tmp_dir / f"{i}_{split}.parquet"
+            for split in ("train", "val", "test")
+        }
+
+        if use_stable_dir and all(p.exists() for p in sym.values()):
+            logger.info(
+                "skip symbol idx=%d/%d (checkpoint exists) path=%s",
+                i + 1, len(data_paths), data_path,
+            )
+            tmp_paths.append(sym)
+            if memmap_dir:
+                # Reload train split to rebuild memmap if it was not saved yet.
+                memmap_marker = memmap_dir / f"{i}_train_data.npy"
+                if not memmap_marker.exists():
+                    train_i = pd.read_parquet(sym["train"])
+                    collected_memmap_paths.append(
+                        save_symbol_memmap(train_i, memmap_dir, prefix=str(i))
+                    )
+                    del train_i
+                    gc.collect()
+            continue
+
         logger.info("process symbol idx=%d/%d path=%s", i + 1, len(data_paths), data_path)
         train_i, val_i, test_i = _call_prepare_data(data_path, config, pipeline)
         # Apply close-column derivation per-symbol so each memmap is self-contained.
@@ -444,11 +481,8 @@ def _build_pooled_splits(
         if memmap_dir:
             collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=str(i)))
 
-        sym: dict[str, Path] = {}
         for split, df in [("train", train_i), ("val", val_i), ("test", test_i)]:
-            p = tmp_dir / f"{i}_{split}.parquet"
-            df.to_parquet(p)
-            sym[split] = p
+            df.to_parquet(sym[split])
         tmp_paths.append(sym)
         del train_i, val_i, test_i
         gc.collect()
@@ -456,7 +490,9 @@ def _build_pooled_splits(
     train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths], ignore_index=True)
     val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths], ignore_index=True)
     test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths], ignore_index=True)
-    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    if not use_stable_dir:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     logger.info("pooled splits train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df))
 
@@ -487,10 +523,14 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
             config, memmap_paths or None,
         )
 
+    checkpoint_dir = (
+        Path(d) if (d := getattr(config.data, "pooled_checkpoint_dir", None)) else None
+    )
+
     data_paths = getattr(config.data, "data_paths", None)
     if data_paths:
         train_df, val_df, test_df, memmap_paths = _build_pooled_splits(
-            config, logger, data_paths, memmap_dir
+            config, logger, data_paths, memmap_dir, checkpoint_dir=checkpoint_dir
         )
     else:
         train_df, val_df, test_df = _build_single_symbol_splits(config, logger)
