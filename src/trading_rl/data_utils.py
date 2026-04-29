@@ -29,7 +29,7 @@ from trading_rl.data_loading import (
     save_symbol_memmap,
 )
 
-_HFT_MIN_TIMESTAMP_GAP_NS = 1_000_000_000
+_HFT_MIN_TIMESTAMP_GAP_NS = 1
 
 # Setup joblib memory for caching expensive operations
 memory = Memory(location=".cache/joblib", verbose=1)
