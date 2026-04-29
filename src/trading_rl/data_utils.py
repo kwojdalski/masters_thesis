@@ -445,9 +445,20 @@ def _build_pooled_splits(
         del train_i, val_i, test_i
         gc.collect()
 
-    train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths])
-    val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths])
-    test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths])
+    # When streaming via memmap the training env never reads train_df, so
+    # avoid loading all symbols — use the first symbol as a representative
+    # sample for validation, logging, and train-split evaluation.
+    if memmap_dir:
+        train_df = pd.read_parquet(tmp_paths[0]["train"])
+        logger.info(
+            "streaming mode: skipping full train concat, using first symbol as sample"
+            " n_rows=%d", len(train_df),
+        )
+    else:
+        train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths])
+
+    val_df  = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths])
+    test_df = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths])
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
     logger.info("pooled splits train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df))
