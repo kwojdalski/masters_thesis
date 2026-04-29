@@ -160,7 +160,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
     ) -> TransformedEnv:
         import warnings
         from trading_rl.envs.tradingenvxy_wrapper import StreamingTradingEnvXY
-        from torchrl.envs.transforms import RenameTransform, StepCounter
+        from torchrl.envs.transforms import StepCounter
 
         feature_columns = getattr(config.env, "feature_columns", None)
         if not feature_columns:
@@ -188,10 +188,6 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             runtime_feature_columns=runtime_cols,
         )
         env = GymWrapper(base_env)
-        env = TransformedEnv(
-            env,
-            RenameTransform(in_keys=["CustomFeature"], out_keys=["observation"]),
-        )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
             return TransformedEnv(env, StepCounter())
