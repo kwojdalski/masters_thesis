@@ -173,11 +173,13 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         reward_eta = getattr(config.env, "reward_eta", 0.01)
         include_position = getattr(config.env, "include_position_feature", False)
         runtime_cols = ["feature_position"] if include_position else []
+        # feature_position lives in the env at runtime, not in the memmap data
+        static_feature_columns = [c for c in feature_columns if c not in runtime_cols]
 
         base_env = StreamingTradingEnvXY(
             memmap_paths=memmap_paths,
             episode_length=episode_length,
-            feature_columns=feature_columns,
+            feature_columns=static_feature_columns,
             price_column=price_column,
             initial_cash=initial_cash,
             fee=fee,
