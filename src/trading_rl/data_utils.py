@@ -636,8 +636,11 @@ def prepare_data(
 
     # Keep raw OHLCV for price/info columns, append engineered features
     train_df = pd.concat([train_df_raw, train_features], axis=1)
+    del train_df_raw, train_features
     val_df = pd.concat([val_df_raw, val_features], axis=1)
+    del val_df_raw, val_features
     test_df = pd.concat([test_df_raw, test_features], axis=1)
+    del test_df_raw, test_features
 
     logger.info(
         "feature engineering complete"
