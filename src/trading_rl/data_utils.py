@@ -29,7 +29,7 @@ from trading_rl.data_loading import (
     save_symbol_memmap,
 )
 
-_HFT_MIN_TIMESTAMP_GAP_NS = 1
+_HFT_MIN_TIMESTAMP_GAP_NS = 1_000  # 1 µs — minimum distinguishable by Python datetime (microsecond precision)
 
 # Setup joblib memory for caching expensive operations
 memory = Memory(location=".cache/joblib", verbose=1)
@@ -486,7 +486,10 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
     memmap_dir   = Path(d) if (d := getattr(config.data, "memmap_dir", None)) else None
 
     # Fast path: skip all feature engineering when the parquet cache exists.
-    if lazy_load and prepared_dir and _parquet_cache_exists(prepared_dir):
+    # Skip if memmap_dir is configured but memmaps are missing — fall through
+    # so _build_pooled_splits regenerates them.
+    memmap_ready = (not memmap_dir) or (memmap_dir.exists() and bool(load_memmap_paths(memmap_dir)))
+    if lazy_load and prepared_dir and _parquet_cache_exists(prepared_dir) and memmap_ready:
         logger.info("load prepared splits cache_dir=%s", prepared_dir)
         lazy_splits = load_prepared_splits(prepared_dir)
         memmap_paths = load_memmap_paths(memmap_dir) if memmap_dir and memmap_dir.exists() else None
