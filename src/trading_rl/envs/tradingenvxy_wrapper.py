@@ -462,11 +462,18 @@ class StreamingTradingEnvXY(gym.Env):
         window_df = self._load_window(file_idx, start)
         self._inner_env = self._build_inner_env(window_df)
         obs = self._inner_env.reset()
-        return obs, {}
+        return self._extract_obs(obs), {}
 
     def step(self, action):
         obs, reward, done, info = self._inner_env.step(action)
-        return obs, reward, bool(done), False, info
+        return self._extract_obs(obs), reward, bool(done), False, info
+
+    def _extract_obs(self, obs) -> np.ndarray:
+        # TradingEnv returns {"CustomFeature": array}; unwrap to flat array
+        # to match the Box observation_space declared in __init__.
+        if isinstance(obs, dict):
+            return obs["CustomFeature"]
+        return obs
 
     def render(self):
         if self._inner_env is not None:
