@@ -418,6 +418,9 @@ def _build_pooled_splits(
         train_i, val_i, test_i = prepare_data(data_path, prep_cfg, pipeline)
         # Apply close-column derivation per-symbol so each memmap is self-contained.
         train_i, val_i, test_i = ensure_close_column_for_hft(train_i, val_i, test_i, config, logger)
+        # Deduplicate timestamps before saving to memmap so the streaming env
+        # never receives a window with duplicate indices.
+        train_i, val_i, test_i = ensure_unique_index_for_hft_tradingenv(train_i, val_i, test_i, config, logger)
 
         if memmap_dir:
             memmap_marker = memmap_dir / f"{i}_train_data.npy"
@@ -463,7 +466,9 @@ def _build_pooled_splits(
 
     logger.info("pooled splits train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df))
 
-    # ensure_close was applied per-symbol above; only run unique-index + validate on concat.
+    # ensure_unique_index was applied per-symbol above; re-run on concat to fix
+    # cross-symbol timestamp collisions in val/test (train is first-symbol only
+    # in streaming mode so also benefits from a re-check).
     train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(train_df, val_df, test_df, config, logger)
     validate_prepared_data(train_df, val_df, test_df, config)
 
