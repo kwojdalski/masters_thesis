@@ -20,7 +20,7 @@ format:
       - \usepackage{rotating}
       - \usepackage{algorithm}
       - \usepackage{algpseudocode}
-      - \usepackage{amsmath}
+      - \usepackage{mathtools}
       - \usepackage{booktabs}
       - \usepackage{longtable}
       - \usepackage{pdflscape}
