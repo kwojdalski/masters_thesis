@@ -223,7 +223,7 @@ entropy bonuses rather than explicit noise injection.
  4:   Compute advantage estimates Â<sub>t</sub> via GAE using V<sub>φ</sub> on 𝒯<sub>k</sub>
  5:   <strong>for</strong> each PPO epoch j = 1, …, K <strong>do</strong>
  6:     Sample mini-batch ℬ ~ 𝒯<sub>k</sub>
- 7:     Compute probability ratio: ρ<sub>t</sub>(θ) ← π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>) / π<sub>θ_old</sub>(a<sub>t</sub>|s<sub>t</sub>)
+ 7:     Compute probability ratio: ρ<sub>t</sub>(θ) ← π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>) / π<sub>θ<sub>old</sub></sub>(a<sub>t</sub>|s<sub>t</sub>)
  8:     Compute clipped objective: ℒ<sup>CLIP</sup> ← 𝔼[min(ρ<sub>t</sub>Â<sub>t</sub>, clip(ρ<sub>t</sub>, 1±ε)Â<sub>t</sub>)]
  9:     Compute value loss: ℒ<sup>V</sup> ← ℒ<sub>L2</sub>(V<sub>φ</sub>(s) − V<sup>target</sup>)
 10:     Compute entropy bonus: ℒ<sup>H</sup> ← c<sub>1</sub> ℋ(π<sub>θ</sub>(·|s))
