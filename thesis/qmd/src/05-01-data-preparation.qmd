@@ -169,7 +169,7 @@ To address this, running statistics are **reset at session boundaries**. A sessi
 
 An additional design choice concerns whether to weight observations by event count or by elapsed time. In high-frequency trading, events cluster during periods of high market activity: a burst of order-book updates over one second may contain 100 events, while a quiet 10-second interval may contain only one. An event-based normalization (the default in many standard RL libraries) would assign equal weight to each of the 100 clustered events and the one sparse event, effectively over-representing the high-activity period in the statistical summary. Continuous-time markets, however, are not sensitive to the number of events per se but to the duration over which each price or quote persists.
 
-This implementation supports an optional **time-weighted normalization** mode, where each observation $x_t$ is weighted by the elapsed time since the previous event, $\Delta t_t = t - t_{t-1}$. The weighted mean and variance are computed as:
+This implementation supports an optional **time-weighted normalization** mode, where each observation $x_t$ is weighted by the elapsed time since the previous event, $\Delta t_t = t_t - t_{t-1}$. The weighted mean and variance are computed as:
 
 $$
 \bar{x}^{\text{time}}_t = \frac{\sum_{i=1}^t \Delta t_i \cdot x_i}{\sum_{i=1}^t \Delta t_i}
