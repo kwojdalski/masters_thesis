@@ -272,11 +272,7 @@ def run_feature_research(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    file_signature = Path(config.data.data_path).stat().st_mtime_ns
-    raw_df = load_trading_data(
-        config.data.data_path,
-        cache_bust=file_signature,
-    ).dropna()
+    raw_df = load_trading_data(config.data.data_path).dropna()
 
     train_size = config.data.train_size
     remaining = len(raw_df) - train_size

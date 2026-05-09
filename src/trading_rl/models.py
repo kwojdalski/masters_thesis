@@ -4,7 +4,6 @@ from typing import Any
 
 import torch
 import torch.nn as nn
-from joblib import Memory
 from tensordict import TensorDict
 from tensordict.nn import InteractionType, TensorDictModule, NormalParamExtractor
 from torch import distributions as d
@@ -14,9 +13,6 @@ from torchrl.modules.distributions import TanhNormal
 from logger import get_logger
 
 logger = get_logger(__name__)
-
-# Setup joblib memory for caching model creation
-memory = Memory(location=".cache/joblib", verbose=1)
 
 
 class _FlattenObs(nn.Module):
@@ -81,10 +77,6 @@ def _extract_action_bounds_from_spec(spec: Any) -> tuple[torch.Tensor, torch.Ten
 
     return torch.as_tensor(low), torch.as_tensor(high)
 
-
-def clear_model_cache():
-    """Clear model creation cache."""
-    memory.clear(warn=True)
 
 
 class DiscreteNet(nn.Module):

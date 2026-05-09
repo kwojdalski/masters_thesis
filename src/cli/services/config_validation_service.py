@@ -343,8 +343,7 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
         return report
 
     try:
-        file_signature = data_path.stat().st_mtime_ns
-        df = load_trading_data(str(data_path), cache_bust=file_signature)
+        df = load_trading_data(str(data_path))
     except Exception as exc:
         report.add(
             code="DATA_LOAD_FAILED",
