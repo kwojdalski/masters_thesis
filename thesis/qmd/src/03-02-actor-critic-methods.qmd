@@ -183,19 +183,19 @@ signal from a bounded simulation budget.
 @Fujimoto2018 introduced TD3 as a direct response to DDPG's failure modes,
 proposing three targeted mechanisms.
 
-**Clipped double Q-learning.** Two independent critic networks $Q_{\phi_1}$ and
-$Q_{\phi_2}$ are maintained, and the Bellman target is constructed using the
+**Clipped double Q-learning.** Two independent critic networks $Q_{\theta_1}$ and
+$Q_{\theta_2}$ are maintained, and the Bellman target is constructed using the
 minimum of their estimates:
 
-$$y = r + \gamma \min_{i=1,2} Q_{\phi_i'}(s', \tilde{a}')$$ {#eq-td3-target}
+$$y = r + \gamma \min_{i=1,2} Q_{\theta_i'}(s', \tilde{a}')$$ {#eq-td3-target}
 
 where:
 
 - $r$ — immediate reward
 - $\gamma$ — discount factor
-- $Q_{\phi_i'}$ — two target critic networks with slowly updated parameters $\phi_i'$
+- $Q_{\theta_i'}$ — two target critic networks with slowly updated parameters $\theta_i'$
 - $s'$ — next state
-- $\tilde{a}' = \mu_{\theta'}(s') + \epsilon$ — target action with smoothing noise $\epsilon$
+- $\tilde{a}' = \mu_{\phi'}(s') + \epsilon$ — target action with smoothing noise $\epsilon$
 
 This differs from the standard Q-learning target in @eq-qlearning-update
 through two key modifications: (1) the minimum operator over two critics
@@ -215,7 +215,7 @@ policy gradient, breaking the feedback loop between an unstable critic and an
 erroneous actor update.
 
 **Target policy smoothing.** When computing Bellman targets, noise is added to
-the target action $\tilde{a}' = \mu_{\theta'}(s') + \epsilon$, with $\epsilon$
+the target action $\tilde{a}' = \mu_{\phi'}(s') + \epsilon$, with $\epsilon$
 clipped to a small interval. This prevents the critics from fitting sharp value
 peaks caused by function approximation, acting as a regularizer on the value
 landscape.
