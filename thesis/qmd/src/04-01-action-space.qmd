@@ -38,7 +38,11 @@ The action space is bounded to prevent unrealistic leverage. In practice, unboun
 
 Transaction costs are applied proportionally to position changes. If the agent transitions from $a_{t-1}$ to $a_t$, the turnover magnitude is $|a_t - a_{t-1}|$, and fees are calculated as:
 
-$$\text{fee}_t = \text{trading\_fees} \times |a_t - a_{t-1}| \times \text{notional value}$$ {#eq-transaction-fee}
+$$\text{fee}_t = c \times |a_t - a_{t-1}| \times \text{notional value}$$ {#eq-transaction-fee}
+
+where:
+
+- $c$ — transaction cost rate (trading fees per unit of notional turnover), matching the penalty term in @eq-reward-baseline
 
 This cost term appears in the reward function as the penalty $c \cdot |a_t - a_{t-1}|$ shown in @eq-reward-baseline. The agent must learn to balance expected returns from position adjustments against this turnover cost. This incentivizes the agent to minimize unnecessary portfolio rebalancing, as frequent adjustments erode returns. During training, the RL algorithm must learn to balance the potential gains from reallocation against the friction costs incurred.
 

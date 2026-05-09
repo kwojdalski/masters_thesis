@@ -76,17 +76,17 @@ architecture with deterministic policies and twin critics as described in
 <!-- [VERIFIED] -->
 
 @Silver2014 established the deterministic policy gradient (DPG) theorem,
-showing that for a deterministic policy $\mu_\theta: \mathcal{S} \rightarrow
-\mathcal{A}$ the policy gradient takes the form:
+showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow
+\mathcal{A}$ the policy gradient takes the form:^[The original @Silver2014 paper uses $\theta$ for the actor and $w$ for the critic; @Lillicrap2015 uses $\theta^\mu$ and $\theta^Q$. This thesis adopts the @Fujimoto2018 convention throughout — $\phi$ for the actor and $\theta$ for the critic(s) — to maintain consistency with the TD3 equations in Chapter 4.]
 
-$$\nabla_\theta J(\theta) = \mathbb{E}_s\left[\nabla_a Q_\phi(s, a)\big|_{a=\mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s)\right]$$ {#eq-ddpg-gradient}
+$$\nabla_\phi J(\phi) = \mathbb{E}_s\left[\nabla_a Q_\theta(s, a)\big|_{a=\mu_\phi(s)} \cdot \nabla_\phi \mu_\phi(s)\right]$$ {#eq-ddpg-gradient}
 
 where:
 
-- $J(\theta)$ — expected return
-- $Q_\phi(s,a)$ — critic (action-value function) parameterized by $\phi$
-- $\mu_\theta(s)$ — deterministic actor
-- $\nabla_a Q_\phi$ — gradient evaluated at the action produced by the current policy
+- $J(\phi)$ — expected return
+- $Q_\theta(s,a)$ — critic (action-value function) parameterized by $\theta$
+- $\mu_\phi(s)$ — deterministic actor
+- $\nabla_a Q_\theta$ — gradient evaluated at the action produced by the current policy
 
 This deterministic gradient is a specialization of the stochastic policy
 gradient in @eq-reinforce-gradient for policies that output a single action
@@ -125,12 +125,12 @@ weakly informative.
 algorithm that balances the size of each policy update against training
 stability. PPO optimizes a clipped surrogate objective:
 
-$$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(r_t(\theta)\hat{A}_t,
-\text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$ {#eq-ppo-clip}
+$$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(\rho_t(\theta)\hat{A}_t,
+\text{clip}(\rho_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$ {#eq-ppo-clip}
 
 where:
 
-- $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ — probability ratio between the updated and old policies
+- $\rho_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ — probability ratio between the updated and old policies^[@Schulman2017 uses $r_t(\theta)$ for this ratio, but that symbol is reserved throughout this thesis for the RL reward signal. $\rho_t(\theta)$ is used here to avoid the conflict.]
 - $\hat{A}_t$ — advantage estimate
 - $\epsilon$ — clipping hyperparameter (typically 0.2) limiting how far the new policy may deviate from the old one in a single update
 
@@ -187,15 +187,15 @@ proposing three targeted mechanisms.
 $Q_{\theta_2}$ are maintained, and the Bellman target is constructed using the
 minimum of their estimates:
 
-$$y = r + \gamma \min_{i=1,2} Q_{\theta_i'}(s', \tilde{a}')$$ {#eq-td3-target}
+$$y_t = r_t + \gamma \min_{i=1,2} Q_{\theta_i'}(s_{t+1}, \tilde{a}_{t+1})$$ {#eq-td3-target}
 
 where:
 
-- $r$ — immediate reward
+- $r_t$ — immediate reward
 - $\gamma$ — discount factor
 - $Q_{\theta_i'}$ — two target critic networks with slowly updated parameters $\theta_i'$
-- $s'$ — next state
-- $\tilde{a}' = \mu_{\phi'}(s') + \epsilon$ — target action with smoothing noise $\epsilon$
+- $s_{t+1}$ — next state
+- $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon$ — target action with smoothing noise $\epsilon$
 
 This differs from the standard Q-learning target in @eq-qlearning-update
 through two key modifications: (1) the minimum operator over two critics
