@@ -86,7 +86,7 @@ entropy bonuses rather than explicit noise injection.
        replay buffer $\mathcal{D}$
 
 \For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \mu_\phi(s_t) + \varepsilon$, \quad $\varepsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
+    \State $a_t \leftarrow \mu_\phi(s_t) + \epsilon$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
     \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
     \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
     \State Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\phi'}(s') + \text{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}),\, \pm c\right)$
@@ -143,12 +143,12 @@ entropy bonuses rather than explicit noise injection.
        replay buffer $\mathcal{D}$
 
 \For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \mu_\phi(s_t) + \varepsilon$, \quad $\varepsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
+    \State $a_t \leftarrow \mu_\phi(s_t) + \epsilon$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
     \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
     \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
     \State Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
     \State Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\theta(s, a)\right)$
-    \State Update actor: $\phi \leftarrow \phi + \alpha_\phi \nabla_\phi Q_\theta(s,\, \mu_\phi(s))$
+    \State Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_\theta(s,\, \mu_\phi(s))$
     \State Soft-update targets: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
     \State Checkpoint and log metrics at configured intervals
 \EndFor
@@ -173,7 +173,7 @@ entropy bonuses rather than explicit noise injection.
  5:   Sample mini-batch ℬ ~ 𝒟
  6:   Compute Bellman target: y ← r + γ · Q<sub>θ'</sub>(s', μ<sub>φ'</sub>(s'))
  7:   Update critic by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>θ</sub>(s, a))
- 8:   Update actor: φ ← φ + α<sub>φ</sub>∇<sub>φ</sub>Q<sub>θ</sub>(s, μ<sub>φ</sub>(s))
+ 8:   Update actor: φ ← φ + α∇<sub>φ</sub>Q<sub>θ</sub>(s, μ<sub>φ</sub>(s))
  9:   Soft-update targets: θ' ← τθ + (1−τ)θ';  φ' ← τφ + (1−τ)φ'
 10:   Checkpoint and log metrics at configured intervals
 11: <strong>end for</strong>
@@ -196,8 +196,8 @@ entropy bonuses rather than explicit noise injection.
     \State Compute advantage estimates $\hat{A}_t$ via GAE using $V_\phi$ on $\mathcal{T}_k$
     \For{each PPO epoch $j = 1, \ldots, K$}
         \State Sample mini-batch $\mathcal{B} \sim \mathcal{T}_k$
-        \State Compute probability ratio: $r_t(\theta) \leftarrow \pi_\theta(a_t \mid s_t) / \pi_{\theta_{\text{old}}}(a_t \mid s_t)$
-        \State Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(r_t \hat{A}_t,\; \text{clip}(r_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
+        \State Compute probability ratio: $\rho_t(\theta) \leftarrow \pi_\theta(a_t \mid s_t) / \pi_{\theta_{\text{old}}}(a_t \mid s_t)$
+        \State Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(\rho_t \hat{A}_t,\; \text{clip}(\rho_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
         \State Compute value loss: $\mathcal{L}^{V} \leftarrow \mathcal{L}_{\text{L2}}\!\left(V_\phi(s) - V^{\text{target}}\right)$
         \State Compute entropy bonus: $\mathcal{L}^{H} \leftarrow c_1 \mathcal{H}(\pi_\theta(\cdot \mid s))$
         \State Update $\theta$, $\phi$ jointly: minimise $-\mathcal{L}^{\text{CLIP}} + c_2 \mathcal{L}^{V} - \mathcal{L}^{H}$
@@ -223,8 +223,8 @@ entropy bonuses rather than explicit noise injection.
  4:   Compute advantage estimates Â<sub>t</sub> via GAE using V<sub>φ</sub> on 𝒯<sub>k</sub>
  5:   <strong>for</strong> each PPO epoch j = 1, …, K <strong>do</strong>
  6:     Sample mini-batch ℬ ~ 𝒯<sub>k</sub>
- 7:     Compute probability ratio: r<sub>t</sub>(θ) ← π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>) / π<sub>θ_old</sub>(a<sub>t</sub>|s<sub>t</sub>)
- 8:     Compute clipped objective: ℒ<sup>CLIP</sup> ← 𝔼[min(r<sub>t</sub>Â<sub>t</sub>, clip(r<sub>t</sub>, 1±ε)Â<sub>t</sub>)]
+ 7:     Compute probability ratio: ρ<sub>t</sub>(θ) ← π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>) / π<sub>θ_old</sub>(a<sub>t</sub>|s<sub>t</sub>)
+ 8:     Compute clipped objective: ℒ<sup>CLIP</sup> ← 𝔼[min(ρ<sub>t</sub>Â<sub>t</sub>, clip(ρ<sub>t</sub>, 1±ε)Â<sub>t</sub>)]
  9:     Compute value loss: ℒ<sup>V</sup> ← ℒ<sub>L2</sub>(V<sub>φ</sub>(s) − V<sup>target</sup>)
 10:     Compute entropy bonus: ℒ<sup>H</sup> ← c<sub>1</sub> ℋ(π<sub>θ</sub>(·|s))
 11:     Update θ, φ jointly: minimise −ℒ<sup>CLIP</sup> + c<sub>2</sub>ℒ<sup>V</sup> − ℒ<sup>H</sup>
@@ -243,14 +243,14 @@ The notation follows the conventions established in Chapter 3:
 - $Q_\theta$ (DDPG) and $Q_{\theta_1}$, $Q_{\theta_2}$ (TD3) are the critic networks
 - Primed symbols denote slowly updated target networks
 - $\mathcal{D}$ is the replay buffer
-- $\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})$ is training-only exploration noise
+- $\epsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})$ is training-only exploration noise
 - $\tau$ is the soft-update coefficient
 
 **For PPO:**
 - $\pi_\theta$ is the stochastic actor (TanhNormal distribution)
 - $V_\phi$ is the state value network
 - $\hat{A}_t$ are GAE advantage estimates
-- $r_t(\theta)$ is the probability ratio between new and old policies
+- $\rho_t(\theta)$ is the probability ratio between new and old policies
 - $\epsilon$ is the clipping threshold
 - $c_1$, $c_2$ are the entropy and value loss coefficients
 - $K$ is the number of PPO epochs per batch
