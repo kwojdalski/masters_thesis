@@ -98,7 +98,9 @@ are summarized below.
 | 14:30:00.024979 | A | A | 271.79 | 140 | 271.45 | 271.79 | 500 | 140 |
 | 14:30:00.025009 | A | A | 271.79 | 100 | 271.45 | 271.79 | 500 | 240 |
 
-: Four consecutive AAPL MBP-10 events, 25 February 2026. Action: A = limit-order addition, T = trade print. Side: B = bid, A = ask, N = no aggressor side (trade report). Best Bid/Ask and Bid Sz/Ask Sz reflect the level-0 (top-of-book) snapshot after each event is applied. {#tbl-raw-sample}
+: Four consecutive AAPL MBP-10 events, 25 February 2026. {#tbl-raw-sample}
+
+*Action: A = limit-order addition, T = trade print. Side: B = bid, A = ask, N = no aggressor side (trade report). Best Bid/Ask and Bid Sz/Ask Sz reflect the level-0 (top-of-book) snapshot after each event is applied.*
 
 ### Preprocessing and Splitting
 
