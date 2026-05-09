@@ -122,7 +122,7 @@ the complete specification including all parameter values is in Appendix A.
 | Spread (bps) | Spread | $\dfrac{P^{ask}_0 - P^{bid}_0}{\tfrac{1}{2}(P^{bid}_0 + P^{ask}_0)} \times 10{,}000$ | @Kyle1985 |
 | Bid/ask slope | Spread | $\dfrac{P^{bid}_0 - P^{bid}_4}{\sum_{i=0}^{4} V^{bid}_i}$ | @Bouchaud2002 |
 | Order flow imbalance | Order flow | $\Delta V^{bid}_t \cdot \mathbf{1}[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t \cdot \mathbf{1}[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}]$ | @Cont2014 |
-| Signed trade flow | Order flow | $\sum_{\tau=t-W+1}^{t} \mathrm{size}_\tau \cdot (\mathbf{1}[\mathrm{side}_\tau = B] - \mathbf{1}[\mathrm{side}_\tau = A])$ | @LeeReady1991 |
+| Signed trade flow | Order flow | $\sum_{\tau=t-W+1}^{t} \mathrm{size}_\tau \cdot (\mathbf{1}[\mathrm{side}_\tau = \mathrm{B}] - \mathbf{1}[\mathrm{side}_\tau = \mathrm{A}])$ | @LeeReady1991 |
 
 : Key feature definitions. Full specification in Appendix A. {#tbl-features}
 
