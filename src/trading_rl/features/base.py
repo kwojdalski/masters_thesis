@@ -720,7 +720,8 @@ class Feature(ABC):
                 normalized_values.append(0.0)
                 continue
 
-            self.scaler.update(np.asarray([value], dtype=float))
+            # Normalize using pre-update stats so x_t is not included in its own
+            # mean/std estimate. Update after to keep the estimator causal.
             count = getattr(self.scaler, "count", 0)
             if count < 2:
                 normalized = 0.0
@@ -731,6 +732,7 @@ class Feature(ABC):
                 if not np.isfinite(normalized):
                     normalized = 0.0
 
+            self.scaler.update(np.asarray([value], dtype=float))
             normalized_values.append(float(normalized))
 
         return pd.Series(normalized_values, index=session_data.index, dtype=float)
@@ -753,10 +755,8 @@ class Feature(ABC):
                 normalized_values.append(0.0)
                 continue
 
-            self.scaler.update(
-                np.asarray([value], dtype=float),
-                np.asarray([weight], dtype=float),
-            )
+            # Normalize using pre-update stats so x_t is not included in its own
+            # weighted mean/std estimate. Update after to keep the estimator causal.
             total_weight = getattr(self.scaler, "total_weight", 0.0)
             if total_weight <= weight:
                 normalized = 0.0
@@ -767,6 +767,10 @@ class Feature(ABC):
                 if not np.isfinite(normalized):
                     normalized = 0.0
 
+            self.scaler.update(
+                np.asarray([value], dtype=float),
+                np.asarray([weight], dtype=float),
+            )
             normalized_values.append(float(normalized))
 
         return pd.Series(normalized_values, index=session_data.index, dtype=float)
