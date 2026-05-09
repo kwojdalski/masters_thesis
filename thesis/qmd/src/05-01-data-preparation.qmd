@@ -149,13 +149,15 @@ where:
 The normalized value at timestep $t$ is then computed from the cumulative statistics available after observing the current feature value:
 
 $$
-\tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{s_t^2 + \epsilon}}
+\tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{s_t^2 + \varepsilon}}
 $$ {#eq-running-normalize}
 
 where:
 
 - $\bar{x}_t$ and $s_t^2$ — defined by @eq-welford-mean and @eq-welford-var
-- $\epsilon > 0$ — small constant (here $10^{-4}$) added to the denominator for numerical stability when variance is near zero
+- $\varepsilon > 0$ — small constant (here $10^{-4}$) added to the denominator for numerical stability when variance is near zero
+
+This single-feature presentation corresponds to $\mu_{i,t}$ and $\sigma_{i,t}^2$ in the multi-feature formulation of @eq-z-score, with the feature index $i$ suppressed here for clarity.
 
 This ensures that the scaling statistics used to normalize $\tilde{x}_t$ incorporate only observations $1, \dots, t$ and no future values. Since $x_t$ is part of the observation available before the action at time $t$ is chosen, this transformation preserves the causal information structure while avoiding the instability that would arise from normalizing early-session observations with an almost empty denominator. The computational cost of this approach is $O(1)$ per update, making it efficient even for large datasets.
 

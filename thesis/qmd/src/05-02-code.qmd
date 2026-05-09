@@ -34,7 +34,7 @@ update rules (deterministic policy gradient for DDPG/TD3, clipped surrogate for
 PPO) and replay buffer usage (off-policy for DDPG/TD3, on-policy for PPO).
 
 For DDPG and TD3, experience is collected into a replay buffer, twin critics are
-updated from sampled mini-batches, and the actor is updated every $d$ critic
+updated from sampled mini-batches, and the actor is updated every 2 critic
 steps via the deterministic policy gradient. Target networks track the main
 networks through soft updates with coefficient $\tau$. Exploration noise is
 applied during training and removed at evaluation time. For PPO, training follows
