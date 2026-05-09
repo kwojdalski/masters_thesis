@@ -45,6 +45,7 @@ automated Chapter 6 result wiring. It is included to make the robustness
 discussion explicit about which experimental setup the displayed results refer to.
 
 ```{python}
+#| label: robustness_eval_context
 #| echo: false
 
 if finished is None:
