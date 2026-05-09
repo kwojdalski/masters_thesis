@@ -30,6 +30,7 @@ class DataConfig:
     )
     train_size: int = 1000
     validation_size: int | None = None
+    test_size: int | None = None
     feature_config: str | None = None  # Path to feature config YAML
     feature_groups: str | None = None  # Path to feature groups YAML
     # Multi-symbol pooled training: list of parquet paths processed independently

@@ -301,6 +301,7 @@ class PrepareDataConfig:
 
     train_size: int
     validation_size: int | None = None
+    test_size: int | None = None
     download_if_missing: bool = False
     exchange_names: list[str] | None = None
     symbols: list[str] | None = None
@@ -316,6 +317,7 @@ class PrepareDataConfig:
         return cls(
             train_size=cfg.train_size,
             validation_size=getattr(cfg, "validation_size", None),
+            test_size=getattr(cfg, "test_size", None),
             download_if_missing=getattr(cfg, "download_data", False),
             exchange_names=getattr(cfg, "exchange_names", None),
             symbols=getattr(cfg, "symbols", None),
@@ -516,6 +518,7 @@ def _feature_cache_key(
     data_path: str,
     train_size: int,
     validation_size: int | None,
+    test_size: int | None,
     feature_config_path: str | None,
     feature_pipeline: Any | None,
 ) -> str:
@@ -535,7 +538,7 @@ def _feature_cache_key(
     else:
         config_sig = "default"
 
-    raw = f"{Path(data_path).name}|{file_mtime}|{train_size}|{validation_size}|{config_sig}"
+    raw = f"{Path(data_path).name}|{file_mtime}|{train_size}|{validation_size}|{test_size}|{config_sig}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
@@ -566,7 +569,7 @@ def prepare_data(
     _cache_entry: Path | None = None
     if cfg.feature_cache_dir and Path(data_path).exists():
         cache_key = _feature_cache_key(
-            data_path, cfg.train_size, cfg.validation_size, cfg.feature_config_path, feature_pipeline
+            data_path, cfg.train_size, cfg.validation_size, cfg.test_size, cfg.feature_config_path, feature_pipeline
         )
         _cache_entry = Path(cfg.feature_cache_dir) / cache_key
         _splits = ("train", "val", "test")
@@ -594,13 +597,14 @@ def prepare_data(
     # Split data BEFORE feature engineering (critical for preventing leakage!)
     train_size = cfg.train_size
     validation_size = cfg.validation_size
+    test_size = cfg.test_size
     if train_size >= len(df):
         raise ValueError(
             f"train_size ({train_size}) must be smaller than dataset length ({len(df)})"
         )
     remaining = len(df) - train_size
     if validation_size is None:
-        validation_size = remaining // 2
+        validation_size = remaining // 2 if test_size is None else remaining // 2
     if validation_size < 0:
         raise ValueError(f"validation_size must be >= 0, got {validation_size}")
     if validation_size >= remaining:
@@ -608,11 +612,20 @@ def prepare_data(
             f"validation_size ({validation_size}) must be smaller than remaining "
             f"data after train split ({remaining})"
         )
-
     val_end = train_size + validation_size
+    if test_size is not None:
+        test_end = val_end + test_size
+        if test_end > len(df):
+            raise ValueError(
+                f"train_size + validation_size + test_size ({test_end}) exceeds "
+                f"dataset length ({len(df)})"
+            )
+    else:
+        test_end = len(df)
+
     train_df_raw = df[:train_size].copy()
     val_df_raw = df[train_size:val_end].copy()
-    test_df_raw = df[val_end:].copy()
+    test_df_raw = df[val_end:test_end].copy()
 
     logger.info(
         "split data train=%d val=%d test=%d",
