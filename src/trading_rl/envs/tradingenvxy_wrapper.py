@@ -12,6 +12,7 @@ import pandas as pd
 from torchrl.envs import GymWrapper, TransformedEnv
 from torchrl.envs.transforms import RenameTransform
 from tradingenv import TradingEnv
+from tradingenv.broker.broker import EndOfEpisodeError
 from tradingenv.broker.fees import BrokerFees
 from tradingenv.contracts import Stock
 from tradingenv.features import Feature
@@ -50,10 +51,13 @@ class GymnasiumTradingEnvWrapper(gym.Env):
 
     def step(self, action):
         """Step and return (observation, reward, terminated, truncated, info) tuple."""
-        obs, reward, done, info = self._env.step(action)
-        terminated = done
-        truncated = False
-        return obs, reward, terminated, truncated, info
+        try:
+            obs, reward, done, info = self._env.step(action)
+        except EndOfEpisodeError:
+            # Portfolio went bankrupt — end the episode with a penalty reward.
+            obs = np.zeros(self.observation_space.shape, dtype=np.float32)
+            return obs, -1.0, True, False, {"bankrupt": True}
+        return obs, reward, bool(done), False, info
 
     def render(self):
         """Render the environment."""
@@ -465,7 +469,11 @@ class StreamingTradingEnvXY(gym.Env):
         return self._extract_obs(obs), {}
 
     def step(self, action):
-        obs, reward, done, info = self._inner_env.step(action)
+        try:
+            obs, reward, done, info = self._inner_env.step(action)
+        except EndOfEpisodeError:
+            obs = np.zeros(self.observation_space.shape, dtype=np.float32)
+            return obs, -1.0, True, False, {"bankrupt": True}
         return self._extract_obs(obs), reward, bool(done), False, info
 
     def _extract_obs(self, obs) -> np.ndarray:
