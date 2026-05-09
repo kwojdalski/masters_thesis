@@ -1,6 +1,7 @@
 """Base trainer and utilities."""
 
 import contextlib
+import signal
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -666,6 +667,16 @@ class BaseTrainer(ABC):
             len(self.logs.get("loss_value", [])),
         )
 
+        # Set up explicit signal handling to ensure interrupts are processed
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+
+        def signal_handler(sig, frame):
+            logger.info("SIGINT received, raising KeyboardInterrupt...")
+            signal.signal(signal.SIGINT, original_sigint_handler)
+            raise KeyboardInterrupt()
+
+        signal.signal(signal.SIGINT, signal_handler)
+
         try:
             for i, data in enumerate(self.collector):
                 if on_batch_start is not None:
@@ -712,6 +723,8 @@ class BaseTrainer(ABC):
             if checkpoint_path:
                 logger.info("interrupt checkpoint saved path=%s", checkpoint_path)
             raise
+        finally:
+            signal.signal(signal.SIGINT, original_sigint_handler)
 
         if on_train_end is not None:
             on_train_end()
