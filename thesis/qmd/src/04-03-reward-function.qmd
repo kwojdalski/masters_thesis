@@ -19,7 +19,7 @@ The agent learns a deterministic
 policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ to maximize expected
 cumulative reward:
 
-$$\max_\phi \mathbb{E}\!\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]$$ {#eq-rl-objective}
+$$\max_\phi \mathbb{E}_{\mu_\phi}\!\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]$$ {#eq-rl-objective}
 
 where:
 
@@ -87,7 +87,7 @@ where:
 - $B_{t-1}$ — exponentially weighted estimate of the second moment of returns (defined in @eq-dsr-moments)
 - $\Delta A_t = R_t - A_{t-1}$ — one-step increment of $A$
 - $\Delta B_t = R_t^2 - B_{t-1}$ — one-step increment of $B$
-- $(B_{t-1} - A_{t-1}^2)^{3/2}$ — running variance raised to the power $3/2$, stabilized by a small constant $\epsilon$ in the implementation
+- $(B_{t-1} - A_{t-1}^2)^{3/2}$ — running variance raised to the power $3/2$, stabilized by a small constant $\varepsilon$ in the implementation
 
 This replaces the simple log-return in @eq-log-return-reward with a
 risk-adjusted measure that penalizes volatility. When DSR training is

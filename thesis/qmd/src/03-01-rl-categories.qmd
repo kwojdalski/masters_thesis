@@ -49,7 +49,7 @@ Source: author's own diagram, based on @Sutton2018.[^taxonomy-note]
 Reinforcement learning algorithms divide into two broad families depending on
 whether they require a model of the environment.
 
-Model-based methods learn or are given a transition model $P(s'|s,a)$ and use
+Model-based methods learn or are given a transition model $P(s' \mid s,a)$ and use
 it to plan ahead — computing value functions by rolling out simulated
 trajectories rather than purely from observed data. Dyna-Q and AlphaZero are
 canonical examples. When the model is accurate, planning is data-efficient;
@@ -78,7 +78,7 @@ $\arg\max_a Q(s, a)$ becomes intractable over an uncountable set.
 $\pi_\theta$. REINFORCE (@Williams1992) updates parameters by gradient ascent
 on expected return:
 
-$$\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}\!\left[\sum_t r_t\right]$$ {#eq-policy-gradient-update}
+$$\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}_{\pi_\theta}\!\left[\sum_t r_t\right]$$ {#eq-policy-gradient-update}
 
 where:
 
