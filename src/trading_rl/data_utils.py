@@ -253,14 +253,22 @@ def ensure_unique_index_for_hft_tradingenv(
         )
         if not requires_adjustment:
             return df
-        adjusted_df = df.sort_index(kind="stable").copy()
-        index = adjusted_df.index
-        index_ns = index.view("i8")
+        # sort_index() returns a new DataFrame already — no extra .copy() needed.
+        # When already sorted, a shallow copy suffices: column arrays are shared,
+        # only the index metadata is replaced.
+        if not index.is_monotonic_increasing:
+            df = df.sort_index(kind="stable")
+        else:
+            df = df.copy(deep=False)
+        index = df.index
+        # Detach from the index buffer before we replace it below so the
+        # post-assignment stats (duplicate_count, max_shift_ns) remain valid.
+        index_ns = index.view("i8").copy()
         positions = np.arange(len(index_ns), dtype=np.int64) * min_gap_ns
         adjusted_ns = np.maximum.accumulate(index_ns - positions) + positions
         adjusted_index = pd.to_datetime(adjusted_ns, utc=True).tz_localize(None)
-        adjusted_df.index = adjusted_index
-        if not adjusted_df.index.is_unique:
+        df.index = adjusted_index
+        if not df.index.is_unique:
             raise ValueError(f"Failed to enforce unique index for {split_name} HFT split.")
         duplicate_count = int(index.duplicated().sum())
         max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
@@ -269,7 +277,7 @@ def ensure_unique_index_for_hft_tradingenv(
             "adjust hft index split=%s duplicates=%d min_gap_ns=%d->%d max_shift_ns=%d",
             split_name, duplicate_count, old_min_gap_ns, new_min_gap_ns, max_shift_ns,
         )
-        return adjusted_df
+        return df
 
     return _map_splits(_process, train_df, val_df, test_df)
 
