@@ -80,7 +80,12 @@ on expected return:
 
 $$\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}\!\left[\sum_t r_t\right]$$ {#eq-policy-gradient-update}
 
-where $\theta$ are the policy parameters, $\alpha > 0$ is the learning rate, $\nabla_\theta$ denotes the gradient with respect to $\theta$, and $r_t$ is the reward at step $t$.
+where:
+
+- $\theta$ — policy parameters
+- $\alpha > 0$ — learning rate
+- $\nabla_\theta$ — gradient with respect to $\theta$
+- $r_t$ — reward at step $t$
 
 Policy gradients handle continuous actions naturally but suffer from high
 variance, requiring many samples to obtain a reliable gradient signal. This
@@ -100,7 +105,15 @@ experience. SARSA is a canonical example, updating with:
 
 $$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma Q(s_{t+1},a_{t+1}) - Q(s_t,a_t)\bigr]$$ {#eq-sarsa-update}
 
-where $Q(s,a)$ is the action-value function, $\alpha > 0$ is the learning rate, $r_t$ is the reward received after taking action $a_t$ in state $s_t$, $\gamma \in [0,1]$ is the discount factor, and $a_{t+1}$ is drawn from the current policy. On-policy methods tend to
+where:
+
+- $Q(s,a)$ — action-value function
+- $\alpha > 0$ — learning rate
+- $r_t$ — reward received after taking action $a_t$ in state $s_t$
+- $\gamma \in [0,1]$ — discount factor
+- $a_{t+1}$ — next action drawn from the current policy
+
+On-policy methods tend to
 be stable but wasteful: each sample is used once and then discarded.
 
 Off-policy methods decouple the data-collection policy (the behavior policy)
@@ -109,7 +122,10 @@ the greedy maximum:
 
 $$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)\bigr]$$ {#eq-qlearning-update}
 
-where $\max_a Q(s_{t+1}, a)$ is the greedy value of the next state, taking the maximum over all possible actions $a$; remaining symbols are as in @eq-sarsa-update.
+where:
+
+- $\max_a Q(s_{t+1}, a)$ — greedy value of the next state, taking the maximum over all possible actions $a$
+- remaining symbols are as in @eq-sarsa-update
 
 This is contrasted with SARSA's update in @eq-sarsa-update, where the next
 action is sampled from the current policy rather than taking the maximum.

@@ -137,7 +137,14 @@ standardized with causal running statistics:
 
 $$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sigma_{i,t} + \epsilon}$$ {#eq-z-score}
 
-where $x_{i,t}$ is the raw value of feature $i$ at step $t$, $\mu_{i,t}$ and $\sigma_{i,t}$ are the running mean and standard deviation estimated from observations up to $t$, and $\epsilon > 0$ is a small constant for numerical stability. The mean $\mu_{i,t}$ and standard deviation $\sigma_{i,t}$ are updated online
+where:
+
+- $x_{i,t}$ — raw value of feature $i$ at step $t$
+- $\mu_{i,t}$ — running mean estimated from observations up to $t$
+- $\sigma_{i,t}$ — running standard deviation estimated from observations up to $t$
+- $\epsilon > 0$ — small constant for numerical stability
+
+The mean $\mu_{i,t}$ and standard deviation $\sigma_{i,t}$ are updated online
 from observations available up to timestep $t$ within the current chronological
 split and trading session. The running statistics are reset at detected session
 boundaries, preventing previous-day market conditions from contaminating the

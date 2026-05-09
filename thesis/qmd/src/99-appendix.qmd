@@ -358,6 +358,13 @@ filtering.
 **Step 2: Proxy target.** Each feature is scored against a forward log-return
 target at horizon $h$:
 $$y_t = \log \frac{p_{t+h}}{p_t}$$ {#eq-app-forward-return}
+
+where:
+
+- $y_t$ — forward log-return at horizon $h$
+- $p_t$ — price at time $t$
+- $h$ — look-ahead horizon
+
 This proxy is a cheap, model-free measure of directional predictability; it is
 not the reward function used during training, but it provides a consistent
 benchmark for comparing feature informativeness.
@@ -366,11 +373,20 @@ benchmark for comparing feature informativeness.
 (IC) framework standard in quantitative factor research. The IC of feature $f_i$
 at time $t$ is its Spearman rank correlation with the forward return target:
 $$\text{IC}_i(t) = \rho_{\text{Sp}}\!\left(f_i(t),\, y(t)\right)$$ {#eq-app-ic}
+
+where:
+
+- $f_i(t)$ — value of feature $i$ at time $t$
+- $y(t)$ — forward return target at time $t$
+- $\rho_{\text{Sp}}$ — Spearman rank correlation
+
 computed over rolling windows on the validation split. The primary ranking
 criterion is the Information Coefficient Information Ratio (ICIR):
 $$\text{ICIR}_i = \frac{\overline{\text{IC}}_i}{\sigma(\text{IC}_i)}$$ {#eq-app-icir}
-where $\overline{\text{IC}}_i$ is the mean IC and $\sigma(\text{IC}_i)$ is its
-standard deviation. ICIR captures both signal strength (the numerator) and
+where:
+
+- $\overline{\text{IC}}_i$ — mean IC of feature $i$ across rolling windows
+- $\sigma(\text{IC}_i)$ — standard deviation of IC across rolling windows ICIR captures both signal strength (the numerator) and
 signal consistency across time (the denominator); a feature with a high mean IC
 but erratic sign is penalized relative to one with a modest but stable IC.
 Features with $|\text{ICIR}_i| < 0.02$ are removed before the redundancy step.
