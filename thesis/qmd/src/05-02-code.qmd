@@ -79,27 +79,27 @@ entropy bonuses rather than explicit noise injection.
 \caption{TD3 Training (follows Algorithm 0)}
 \begin{algorithmic}[1]
 \Require Processed environments from Algorithm 0; TD3 hyperparameters
-\Ensure Trained policy $\mu_\theta$, evaluation metrics
+\Ensure Trained policy $\mu_\phi$, evaluation metrics
 
-\State Initialise actor $\mu_\theta$, twin critics $Q_{\phi_1}$, $Q_{\phi_2}$,
-       target networks $\mu_{\theta'}$, $Q_{\phi_1'}$, $Q_{\phi_2'}$,
+\State Initialise actor $\mu_\phi$, twin critics $Q_{\theta_1}$, $Q_{\theta_2}$,
+       target networks $\mu_{\phi'}$, $Q_{\theta_1'}$, $Q_{\theta_2'}$,
        replay buffer $\mathcal{D}$
 
 \For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \mu_\theta(s_t) + \varepsilon$, \quad $\varepsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
+    \State $a_t \leftarrow \mu_\phi(s_t) + \varepsilon$, \quad $\varepsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
     \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
     \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
-    \State Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\theta'}(s') + \text{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}),\, \pm c\right)$
-    \State Compute Bellman target: $y \leftarrow r + \gamma \cdot \min_{i=1,2} Q_{\phi_i'}(s',\, \tilde{a}')$
-    \State Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_{\phi_i}(s, a)\right)$
+    \State Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\phi'}(s') + \text{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}),\, \pm c\right)$
+    \State Compute Bellman target: $y \leftarrow r + \gamma \cdot \min_{i=1,2} Q_{\theta_i'}(s',\, \tilde{a}')$
+    \State Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_{\theta_i}(s, a)\right)$
     \If{$t \bmod \texttt{policy\_delay} = 0$}
-        \State Update actor: $\theta \leftarrow \theta + \alpha \nabla_\theta Q_{\phi_1}(s,\, \mu_\theta(s))$
-        \State Soft-update targets: $\phi_i' \leftarrow \tau\phi_i + (1-\tau)\phi_i'$; \; $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$
+        \State Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_{\theta_1}(s,\, \mu_\phi(s))$
+        \State Soft-update targets: $\theta_i' \leftarrow \tau\theta_i + (1-\tau)\theta_i'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
     \EndIf
     \State Checkpoint and log metrics at configured intervals
 \EndFor
 
-\State Evaluate deterministic policy $\mu_\theta$ on test split
+\State Evaluate deterministic policy $\mu_\phi$ on test split
 \State Compute financial performance metrics from realised return series
 \end{algorithmic}
 \end{algorithm}
@@ -109,24 +109,24 @@ entropy bonuses rather than explicit noise injection.
 <pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
 <strong>Algorithm 1</strong> TD3 Training (follows Algorithm 0)
 <em>Require:</em> Processed environments from Algorithm 0; TD3 hyperparameters
-<em>Ensure:</em>  Trained policy μ<sub>θ</sub>, evaluation metrics
+<em>Ensure:</em>  Trained policy μ<sub>φ</sub>, evaluation metrics
 
- 1: Initialise actor μ<sub>θ</sub>, twin critics Q<sub>φ1</sub>, Q<sub>φ2</sub>,
-    target networks μ<sub>θ'</sub>, Q<sub>φ1'</sub>, Q<sub>φ2'</sub>, replay buffer 𝒟
+ 1: Initialise actor μ<sub>φ</sub>, twin critics Q<sub>θ1</sub>, Q<sub>θ2</sub>,
+    target networks μ<sub>φ'</sub>, Q<sub>θ1'</sub>, Q<sub>θ2'</sub>, replay buffer 𝒟
  2: <strong>for</strong> each step t = 1, …, max_steps <strong>do</strong>
- 3:   a<sub>t</sub> ← μ<sub>θ</sub>(s<sub>t</sub>) + ε,  ε ~ 𝒩(0, σ<sub>explore</sub>)
+ 3:   a<sub>t</sub> ← μ<sub>φ</sub>(s<sub>t</sub>) + ε,  ε ~ 𝒩(0, σ<sub>explore</sub>)
  4:   Execute a<sub>t</sub>; observe r<sub>t</sub>, s<sub>t+1</sub>; store (s<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>, s<sub>t+1</sub>) in 𝒟
  5:   Sample mini-batch ℬ ~ 𝒟
- 6:   Compute smoothed target action: ã' ← μ<sub>θ'</sub>(s') + clip(𝒩(0, σ<sub>noise</sub>), ±c)
- 7:   Compute Bellman target: y ← r + γ · min<sub>i=1,2</sub> Q<sub>φi'</sub>(s', ã')
- 8:   Update both critics by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>φi</sub>(s, a))
+ 6:   Compute smoothed target action: ã' ← μ<sub>φ'</sub>(s') + clip(𝒩(0, σ<sub>noise</sub>), ±c)
+ 7:   Compute Bellman target: y ← r + γ · min<sub>i=1,2</sub> Q<sub>θi'</sub>(s', ã')
+ 8:   Update both critics by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>θi</sub>(s, a))
  9:   <strong>if</strong> t mod policy_delay = 0 <strong>then</strong>
-10:     Update actor: θ ← θ + α∇<sub>θ</sub>Q<sub>φ1</sub>(s, μ<sub>θ</sub>(s))
-11:     Soft-update targets: φi' ← τφi + (1−τ)φi';  θ' ← τθ + (1−τ)θ'
+10:     Update actor: φ ← φ + α∇<sub>φ</sub>Q<sub>θ1</sub>(s, μ<sub>φ</sub>(s))
+11:     Soft-update targets: θi' ← τθi + (1−τ)θi';  φ' ← τφ + (1−τ)φ'
 12:   <strong>end if</strong>
 13:   Checkpoint and log metrics at configured intervals
 14: <strong>end for</strong>
-15: Evaluate deterministic policy μ<sub>θ</sub> on test split
+15: Evaluate deterministic policy μ<sub>φ</sub> on test split
 16: Compute financial performance metrics from realised return series
 </pre>
 ```
@@ -136,24 +136,24 @@ entropy bonuses rather than explicit noise injection.
 \caption{DDPG Training (follows Algorithm 0)}
 \begin{algorithmic}[1]
 \Require Processed environments from Algorithm 0; DDPG hyperparameters
-\Ensure Trained policy $\mu_\theta$, evaluation metrics
+\Ensure Trained policy $\mu_\phi$, evaluation metrics
 
-\State Initialise actor $\mu_\theta$, critic $Q_\phi$,
-       target networks $\mu_{\theta'}$, $Q_{\phi'}$,
+\State Initialise actor $\mu_\phi$, critic $Q_\theta$,
+       target networks $\mu_{\phi'}$, $Q_{\theta'}$,
        replay buffer $\mathcal{D}$
 
 \For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \mu_\theta(s_t) + \varepsilon$, \quad $\varepsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
+    \State $a_t \leftarrow \mu_\phi(s_t) + \varepsilon$, \quad $\varepsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}})$
     \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
     \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
-    \State Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\phi'}(s',\, \mu_{\theta'}(s'))$
-    \State Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\phi(s, a)\right)$
-    \State Update actor: $\theta \leftarrow \theta + \alpha_\theta \nabla_\theta Q_\phi(s,\, \mu_\theta(s))$
-    \State Soft-update targets: $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$; \; $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$
+    \State Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
+    \State Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\theta(s, a)\right)$
+    \State Update actor: $\phi \leftarrow \phi + \alpha_\phi \nabla_\phi Q_\theta(s,\, \mu_\phi(s))$
+    \State Soft-update targets: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
     \State Checkpoint and log metrics at configured intervals
 \EndFor
 
-\State Evaluate deterministic policy $\mu_\theta$ on test split
+\State Evaluate deterministic policy $\mu_\phi$ on test split
 \State Compute financial performance metrics from realised return series
 \end{algorithmic}
 \end{algorithm}
@@ -163,21 +163,21 @@ entropy bonuses rather than explicit noise injection.
 <pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
 <strong>Algorithm 2</strong> DDPG Training (follows Algorithm 0)
 <em>Require:</em> Processed environments from Algorithm 0; DDPG hyperparameters
-<em>Ensure:</em>  Trained policy μ<sub>θ</sub>, evaluation metrics
+<em>Ensure:</em>  Trained policy μ<sub>φ</sub>, evaluation metrics
 
- 1: Initialise actor μ<sub>θ</sub>, critic Q<sub>φ</sub>,
-    target networks μ<sub>θ'</sub>, Q<sub>φ'</sub>, replay buffer 𝒟
+ 1: Initialise actor μ<sub>φ</sub>, critic Q<sub>θ</sub>,
+    target networks μ<sub>φ'</sub>, Q<sub>θ'</sub>, replay buffer 𝒟
  2: <strong>for</strong> each step t = 1, …, max_steps <strong>do</strong>
- 3:   a<sub>t</sub> ← μ<sub>θ</sub>(s<sub>t</sub>) + ε,  ε ~ 𝒩(0, σ<sub>explore</sub>)
+ 3:   a<sub>t</sub> ← μ<sub>φ</sub>(s<sub>t</sub>) + ε,  ε ~ 𝒩(0, σ<sub>explore</sub>)
  4:   Execute a<sub>t</sub>; observe r<sub>t</sub>, s<sub>t+1</sub>; store (s<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>, s<sub>t+1</sub>) in 𝒟
  5:   Sample mini-batch ℬ ~ 𝒟
- 6:   Compute Bellman target: y ← r + γ · Q<sub>φ'</sub>(s', μ<sub>θ'</sub>(s'))
- 7:   Update critic by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>φ</sub>(s, a))
- 8:   Update actor: θ ← θ + α<sub>θ</sub>∇<sub>θ</sub>Q<sub>φ</sub>(s, μ<sub>θ</sub>(s))
- 9:   Soft-update targets: φ' ← τφ + (1−τ)φ';  θ' ← τθ + (1−τ)θ'
+ 6:   Compute Bellman target: y ← r + γ · Q<sub>θ'</sub>(s', μ<sub>φ'</sub>(s'))
+ 7:   Update critic by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>θ</sub>(s, a))
+ 8:   Update actor: φ ← φ + α<sub>φ</sub>∇<sub>φ</sub>Q<sub>θ</sub>(s, μ<sub>φ</sub>(s))
+ 9:   Soft-update targets: θ' ← τθ + (1−τ)θ';  φ' ← τφ + (1−τ)φ'
 10:   Checkpoint and log metrics at configured intervals
 11: <strong>end for</strong>
-12: Evaluate deterministic policy μ<sub>θ</sub> on test split
+12: Evaluate deterministic policy μ<sub>φ</sub> on test split
 13: Compute financial performance metrics from realised return series
 </pre>
 ```
@@ -239,8 +239,8 @@ entropy bonuses rather than explicit noise injection.
 The notation follows the conventions established in Chapter 3:
 
 **For DDPG and TD3:**
-- $\mu_\theta$ is the deterministic actor
-- $Q_\phi$ (DDPG) and $Q_{\phi_1}$, $Q_{\phi_2}$ (TD3) are the critic networks
+- $\mu_\phi$ is the deterministic actor
+- $Q_\theta$ (DDPG) and $Q_{\theta_1}$, $Q_{\theta_2}$ (TD3) are the critic networks
 - Primed symbols denote slowly updated target networks
 - $\mathcal{D}$ is the replay buffer
 - $\varepsilon \sim \mathcal{N}(0, \sigma_{\text{explore}})$ is training-only exploration noise

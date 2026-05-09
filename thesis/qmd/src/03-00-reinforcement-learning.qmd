@@ -83,7 +83,7 @@ buy/sell decision.
 ### Policy [VERIFIED]
 <!-- [VERIFIED] -->
 
-The policy $\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}$ maps states to
+The policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ maps states to
 actions. A deterministic policy is used — given the same state,
 the policy always produces the same action. A deterministic policy is chosen here
 because the evaluation objective is a single exposure decision per state, and

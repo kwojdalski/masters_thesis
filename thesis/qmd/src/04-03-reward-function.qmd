@@ -13,7 +13,7 @@ where:
 - $a_{t-1}$ — portfolio exposure held during the period
 - $P_t$ — price at the end of the period
 - $c \cdot |a_t - a_{t-1}|$ — transaction cost proportional to the size of the position change The agent learns a deterministic
-policy $\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}$ to maximize expected
+policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ to maximize expected
 cumulative reward:
 
 $$\max_\theta \mathbb{E}\!\left[\sum_{t=1}^T \gamma^{t-1} r_t\right]$$ {#eq-rl-objective}
