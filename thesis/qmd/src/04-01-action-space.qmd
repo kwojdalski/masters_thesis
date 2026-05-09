@@ -38,7 +38,7 @@ The action space is bounded to prevent unrealistic leverage. In practice, unboun
 
 Transaction costs are applied proportionally to position changes. If the agent transitions from $a_{t-1}$ to $a_t$, the turnover magnitude is $|a_t - a_{t-1}|$, and fees are calculated as:
 
-$$\text{fee}_t = c \times |a_t - a_{t-1}| \times \text{notional value}$$ {#eq-transaction-fee}
+$$\text{fee}_t = c \cdot |a_t - a_{t-1}| \cdot \text{notional value}$$ {#eq-transaction-fee}
 
 where:
 
