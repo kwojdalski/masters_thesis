@@ -76,8 +76,7 @@ architecture with deterministic policies and twin critics as described in
 <!-- [VERIFIED] -->
 
 @Silver2014 established the deterministic policy gradient (DPG) theorem,
-showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow
-\mathcal{A}$ the policy gradient takes the form:^[The original @Silver2014 paper uses $\theta$ for the actor and $w$ for the critic; @Lillicrap2015 uses $\theta^\mu$ and $\theta^Q$. This thesis adopts the @Fujimoto2018 convention throughout — $\phi$ for the actor and $\theta$ for the critic(s) — to maintain consistency with the TD3 equations in Chapter 4.]
+showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ the policy gradient takes the form:^[The original @Silver2014 paper uses $\theta$ for the actor and $w$ for the critic; @Lillicrap2015 uses $\theta^\mu$ and $\theta^Q$. This thesis adopts the @Fujimoto2018 convention throughout — $\phi$ for the actor and $\theta$ for the critic(s) — to maintain consistency with the TD3 equations in Chapter 4.]
 
 $$\nabla_\phi J(\phi) = \mathbb{E}_s\!\left[\nabla_a Q_\theta(s, a)\big|_{a=\mu_\phi(s)} \cdot \nabla_\phi \mu_\phi(s)\right]$$ {#eq-ddpg-gradient}
 
