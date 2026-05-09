@@ -34,6 +34,3 @@ separate promising outcomes from noise, overfitting, or fragile conclusions.
 Chapter 7 synthesizes the findings, discusses the main limitations of the
 current framework, and draws implications for future research and practical
 trading-system development.
-
-A glossary of key terms and abbreviations from both reinforcement learning and
-market microstructure is provided at the end of the thesis.
