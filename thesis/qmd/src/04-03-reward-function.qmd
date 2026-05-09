@@ -98,7 +98,7 @@ $$A_t = \eta R_t + (1-\eta)\,A_{t-1}, \qquad B_t = \eta R_t^2 + (1-\eta)\,B_{t-1
 
 where:
 
-- $R_t = \log(P_t / P_{t-1}) \cdot a_{t-1}$ — portfolio log-return at step $t$
+- $R_t = \log(P_t / P_{t-1}) \cdot a_{t-1}$ — portfolio log-return at step $t$^[In the implementation, $R_t$ is computed as $\log(\text{NLV}_t / \text{NLV}_{t-1})$, where $\text{NLV}_t$ is the net liquidation value of the portfolio. This is equivalent to the formula above when transaction costs are zero. When costs are non-zero, the NLV-based return absorbs transaction costs implicitly, making the implementation more conservative than the analytic expression suggests.]
 - $\eta \in (0,1]$ — exponential smoothing parameter
 - $A_t$ — running mean of returns
 - $B_t$ — running mean of squared returns
