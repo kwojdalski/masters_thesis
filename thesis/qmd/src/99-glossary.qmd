@@ -52,12 +52,12 @@ group.
 | **PCA** | Principal Component Analysis. A dimensionality reduction technique that projects data onto orthogonal axes of maximum variance. |
 | **Policy gradient** | A family of RL algorithms that directly optimize the policy parameters through gradient ascent on expected cumulative reward. Handles continuous action spaces naturally. |
 | **PPO** | Proximal Policy Optimization. An on-policy actor-critic algorithm that constrains policy updates to a trust region to improve stability. |
-| **Q-learning** | A model-free, off-policy value-based RL algorithm that learns the action-value function $Q(s,a)$ through temporal difference updates [@Watkins1992]. |
+| **Q-learning** | A model-free, off-policy value-based RL algorithm that learns the action-value function $Q(s, a)$ through temporal difference updates [@Watkins1992]. |
 | **Replay buffer** | A data structure storing past environment transitions $(s_t, a_t, r_t, s_{t+1})$ for reuse in off-policy training. Decorrelates training samples and improves sample efficiency. |
 | **REINFORCE** | A Monte Carlo policy gradient algorithm [@Williams1992] that updates policy parameters using full-episode return estimates. High variance; foundational to modern policy gradient methods. |
 | **RL** | Reinforcement Learning. A machine learning paradigm in which an agent learns to make sequential decisions by interacting with an environment and maximizing cumulative reward. |
 | **SAC** | Soft Actor-Critic [@Haarnoja2018]. An off-policy actor-critic algorithm incorporating a maximum-entropy objective to encourage exploration through stochastic policies. |
-| **SARSA** | State-Action-Reward-State-Action. An on-policy temporal difference algorithm that updates $Q(s,a)$ using the action actually taken by the current policy. |
+| **SARSA** | State-Action-Reward-State-Action. An on-policy temporal difference algorithm that updates $Q(s, a)$ using the action actually taken by the current policy. |
 | **TD3** | Twin Delayed Deep Deterministic Policy Gradient [@Fujimoto2018]. An off-policy actor-critic algorithm for continuous control that extends DDPG with clipped double Q-learning, delayed policy updates, and target policy smoothing to reduce overestimation bias. The primary algorithm used in this thesis. |
 | **Temporal difference (TD) learning** | A class of RL methods that update value estimates based on the difference between successive predictions, without requiring full episode trajectories. |
 | **Value function** | A function estimating the expected cumulative discounted reward from a given state (or state-action pair) under a given policy. The critic network in actor-critic algorithms approximates this function. |
