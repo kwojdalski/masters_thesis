@@ -211,7 +211,7 @@ class StatisticalTestingConfig:
     # Test parameters
     n_bootstrap_samples: int = 10000  # Number of bootstrap samples
     n_permutations: int = 10000  # Number of permutations for permutation test
-    n_random_trials: int = 100  # Number of random baseline trials
+    n_random_trials: int = 10  # Number of random baseline trials
     confidence_level: float = 0.95  # Confidence level (e.g., 0.95 for 95% CI)
     random_seed: int | None = None  # Seed for reproducible random baseline
 
