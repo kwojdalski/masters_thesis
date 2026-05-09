@@ -407,6 +407,11 @@ def _build_pooled_splits(
 
     for i, data_path in enumerate(data_paths):
         logger.info("process symbol idx=%d/%d path=%s", i + 1, len(data_paths), data_path)
+        # Reset scaler state so each symbol is normalised independently.
+        # Without this, RunningMeanStd accumulates statistics across symbols,
+        # making symbol N's normalization order-dependent on symbols 1..N-1.
+        if pipeline is not None:
+            pipeline.reset()
         train_i, val_i, test_i = prepare_data(data_path, prep_cfg, pipeline)
         # Apply close-column derivation per-symbol so each memmap is self-contained.
         train_i, val_i, test_i = ensure_close_column_for_hft(train_i, val_i, test_i, config, logger)
