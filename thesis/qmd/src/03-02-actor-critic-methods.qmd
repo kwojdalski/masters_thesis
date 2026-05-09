@@ -130,7 +130,7 @@ $$L^{CLIP}(\theta) = \mathbb{E}_t\!\left[\min\left(\rho_t(\theta)\hat{A}_t,
 
 where:
 
-- $\rho_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)}$ — probability ratio between the updated and old policies^[@Schulman2017 uses $r_t(\theta)$ for this ratio, but that symbol is reserved throughout this thesis for the RL reward signal. $\rho_t(\theta)$ is used here to avoid the conflict.]
+- $\rho_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)}$ — probability ratio between the updated and old policies^[@Schulman2017 uses $r_t(\theta)$ for this ratio, but that symbol is reserved throughout this thesis for the RL reward signal. $\rho_t(\theta)$ is used here to avoid the conflict.]
 - $\hat{A}_t$ — advantage estimate
 - $\epsilon$ — clipping hyperparameter (typically 0.2) limiting how far the new policy may deviate from the old one in a single update
 
