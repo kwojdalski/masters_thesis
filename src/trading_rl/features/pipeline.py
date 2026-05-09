@@ -205,6 +205,19 @@ class FeaturePipeline:
         """
         return self.fit(df).transform(df)
 
+    def reset(self) -> "FeaturePipeline":
+        """Reset all feature scaler states so the pipeline can be re-fitted from scratch.
+
+        Call this between symbols in pooled multi-symbol training to prevent
+        RunningMeanStd from accumulating statistics across symbols, which would
+        make each symbol's normalization order-dependent.
+        """
+        for feature in self.features:
+            if feature.scaler is not None and hasattr(feature.scaler, "reset"):
+                feature.scaler.reset()
+        self._is_fitted = False
+        return self
+
     def get_feature_names(self) -> list[str]:
         """Get list of output feature column names.
 
