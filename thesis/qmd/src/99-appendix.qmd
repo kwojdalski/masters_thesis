@@ -357,12 +357,12 @@ filtering.
 
 **Step 2: Proxy target.** Each feature is scored against a forward log-return
 target at horizon $h$:
-$$y_t = \log \frac{p_{t+h}}{p_t}$$ {#eq-app-forward-return}
+$$y_t = \log \frac{P_{t+h}}{P_t}$$ {#eq-app-forward-return}
 
 where:
 
 - $y_t$ — forward log-return at horizon $h$
-- $p_t$ — price at time $t$
+- $P_t$ — price at time $t$
 - $h$ — look-ahead horizon
 
 This proxy is a cheap, model-free measure of directional predictability; it is

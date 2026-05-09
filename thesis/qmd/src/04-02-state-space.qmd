@@ -135,14 +135,14 @@ specified by the feature set used in each experiment.
 All features except cyclical time encodings and the position feature are
 standardized with causal running statistics:
 
-$$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sqrt{\sigma_{i,t}^2 + \epsilon}}$$ {#eq-z-score}
+$$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sqrt{\sigma_{i,t}^2 + \varepsilon}}$$ {#eq-z-score}
 
 where:
 
 - $x_{i,t}$ — raw value of feature $i$ at step $t$
 - $\mu_{i,t}$ — running mean estimated from observations up to $t$
 - $\sigma_{i,t}^2$ — running variance estimated from observations up to $t$
-- $\epsilon > 0$ — small constant for numerical stability
+- $\varepsilon > 0$ — small constant for numerical stability
 
 The mean $\mu_{i,t}$ and variance $\sigma_{i,t}^2$ are updated online
 from observations available up to timestep $t$ within the current chronological

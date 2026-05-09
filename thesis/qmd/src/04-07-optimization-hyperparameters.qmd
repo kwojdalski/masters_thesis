@@ -11,7 +11,7 @@ tick-frequency rewards and the sensitivity of bootstrapped TD targets to
 large gradient steps. Stability was prioritized over sample efficiency.
 
 Actor and critic use the same nominal rate, but TD3's policy delay (every
-$d=2$ critic updates) effectively halves the actor's update frequency,
+2 critic updates) effectively halves the actor's update frequency,
 providing additional stability without a separate hyperparameter.
 
 ### Weight Decay
