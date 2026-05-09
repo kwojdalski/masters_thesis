@@ -165,7 +165,7 @@ This ensures that the scaling statistics used to normalize $\tilde{x}_t$ incorpo
 
 The continuous-time nature of equity markets introduces regime discontinuities at session boundaries. Overnight and weekend price gaps, changes in order-flow patterns between the opening auction and continuous trading, and differences in liquidity across intraday periods all represent shifts in the underlying data-generating process. A naive cumulative normalization that spans these boundaries would allow statistics from the previous session to contaminate the current session's representation. For example, a $5\%$ overnight price decline would make the opening trade appear as an extreme outlier when normalized against statistics that include the previous day's stable prices, even though such gaps are expected in continuous-time markets.
 
-To address this, running statistics are **reset at session boundaries**. A session break is defined as a time gap exceeding one hour, which distinguishes short intraday interruptions (e.g., lunch recess) from genuine overnight or weekend closures. At each boundary, $\bar{x}$ and $s^2$ are reinitialized to their default values ($\bar{x}=0, s^2=1$), and the accumulation process begins anew for the next session. This prevents the overnight gap from distorting the morning's normalization statistics and ensures that each trading session's features are scaled relative to that session's own empirical distribution.
+To address this, running statistics are **reset at session boundaries**. A session break is defined as a time gap exceeding one hour, which distinguishes short intraday interruptions (e.g., lunch recess) from genuine overnight or weekend closures. At each boundary, $\bar{x}$ and $\sigma^2$ are reinitialized to their default values ($\bar{x}=0, \sigma^2=1$), and the accumulation process begins anew for the next session. This prevents the overnight gap from distorting the morning's normalization statistics and ensures that each trading session's features are scaled relative to that session's own empirical distribution.
 
 #### Event-Time vs. Continuous-Time Weighting
 
@@ -178,7 +178,7 @@ $$
 $$ {#eq-tw-mean}
 
 $$
-s_t^{2,\text{time}} = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{time}}_t)^2}{\sum_{i=1}^t \Delta t_i}
+\sigma_t^{2,\text{time}} = \frac{\sum_{i=1}^t \Delta t_i \cdot (x_i - \bar{x}^{\text{time}}_t)^2}{\sum_{i=1}^t \Delta t_i}
 $$ {#eq-tw-var}
 
 When the time weights sum to the total elapsed time, the normalized value reflects the feature's deviation relative to its time-averaged trajectory rather than its average across discrete events. For the main experiments, event-based weighting is used as the default, matching the standard approach in the RL literature [e.g., @Raffin2021; @Liang2018RLlib]. Sensitivity analysis with time-weighted normalization could be conducted as a direction for future work.
