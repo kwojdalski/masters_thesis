@@ -10,13 +10,13 @@ each architecture, followed by a table that makes the design choices explicit.
 
 DDPG and TD3 implement a deterministic policy:
 
-$$\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}, \qquad a_t = \mu_\theta(s_t)$$ {#eq-det-policy}
+$$\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}, \qquad a_t = \mu_\phi(s_t)$$ {#eq-det-policy}
 
 where:
 
 - $\mathcal{S} = \mathbb{R}^{26}$ — observation space
 - $\mathcal{A} = [-1,1]$ — continuous action space
-- $\theta$ — network parameters
+- $\phi$ — network parameters
 - $s_t$ — state at step $t$
 - $a_t$ — resulting deterministic action
 
@@ -50,16 +50,16 @@ The actor network contains approximately 11,800 trainable parameters:
 
 **Exploration.** Because the policy is deterministic, it does not generate action diversity on its own. During data collection, additive Gaussian noise is injected into the policy output and the result is clipped to the action bounds:
 
-$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
+$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-det-exploration}
 
 where:
 
-- $\mu_\theta(s_t)$ — deterministic policy output
+- $\mu_\phi(s_t)$ — deterministic policy output
 - $\epsilon \sim \mathcal{N}(0, \sigma^2)$ — Gaussian exploration noise with $\sigma = 0.1$
 - $\text{clip}(\cdot, -1, 1)$ — projects the perturbed action back into the valid action space
 
-The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$. The specific exploration formulations for DDPG and TD3 are given in @eq-ddpg-exploration and @eq-td3-exploration.
+The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\phi(s_t)$. The specific exploration formulations for DDPG and TD3 are given in @eq-ddpg-exploration and @eq-td3-exploration.
 
 **Deterministic Policy: DDPG {#sec-policy-deterministic}**
 
@@ -67,12 +67,12 @@ DDPG implements a deterministic policy:
 
 **Exploration.** Because the policy is deterministic, it does not generate action diversity on its own. During data collection, additive Gaussian noise is injected:
 
-$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
+$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-ddpg-exploration}
 
 where:
 
-- $\mu_\theta(s_t)$ — deterministic policy output
+- $\mu_\phi(s_t)$ — deterministic policy output
 - $\epsilon \sim \mathcal{N}(0, \sigma^2)$ — Gaussian exploration noise with $\sigma = 0.1$
 - $\text{clip}(\cdot,-1,1)$ — ensures the action remains in $[-1,1]$
 
@@ -82,7 +82,7 @@ space bounds. The noise is removed at evaluation time. TD3 uses the same
 exploration approach but adds additional target policy smoothing during
 critic updates, as shown in @eq-td3-exploration.
 
-The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
+The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\phi(s_t)$.
 
 **Deterministic Policy: TD3 {#sec-policy-deterministic-td3}**
 
@@ -90,7 +90,7 @@ TD3 implements a deterministic policy:
 
 **Exploration.** Because the policy is deterministic, it does not generate action diversity on its own. During data collection, additive Gaussian noise is injected:
 
-$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
+$$a_t^{\text{train}} = \text{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-td3-exploration}
 
 where:
@@ -105,19 +105,19 @@ which prevents the critics from fitting sharp value peaks in the action
 space. This target smoothing noise $\epsilon_{\text{smooth}} \sim \mathcal{N}(0, 0.2^2)$
 is clipped to $[-0.3, 0.3]$ and is distinct from the exploration noise.
 
-The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
+The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\phi(s_t)$.
 
 TD3 adds a separate, independent noise term during critic updates for target policy smoothing ($\sigma_{\text{smooth}} = 0.2$, clipped to $[-0.3, 0.3]$). This is not exploration noise — it is a regularizer that prevents the critics from fitting sharp value peaks in the action space (Section 4.4). DDPG does not apply this smoothing; this is one of the three mechanisms that TD3 adds over DDPG.
 
 **Target actor.** Both algorithms maintain a slowly updated copy of the actor,
-$\mu_{\theta'}$, used only when computing Bellman targets:
+$\mu_{\phi'}$, used only when computing Bellman targets:
 
-$$\theta' \leftarrow \tau\,\theta + (1 - \tau)\,\theta', \qquad \tau = 0.001$$ {#eq-target-actor-update}
+$$\phi' \leftarrow \tau\,\phi + (1 - \tau)\,\phi', \qquad \tau = 0.001$$ {#eq-target-actor-update}
 
 where:
 
-- $\theta$ — online actor parameters
-- $\theta'$ — target actor parameters
+- $\phi$ — online actor parameters
+- $\phi'$ — target actor parameters
 - $\tau = 0.001$ — soft-update coefficient controlling how quickly the target tracks the online network
 
 The slow rate ensures the bootstrap target shifts gradually, even while the online
@@ -196,13 +196,13 @@ the controlled comparison.
 | Property | PPO | DDPG | TD3 |
 |---|---|---|---|
 | Policy type | Stochastic | Deterministic | Deterministic |
-| Actor output | TanhNormal$(\mu, \sigma)$ | $\mu_\theta(s) \in [-1,1]$ | $\mu_\theta(s) \in [-1,1]$ |
+| Actor output | TanhNormal$(\mu, \sigma)$ | $\mu_\phi(s) \in [-1,1]$ | $\mu_\phi(s) \in [-1,1]$ |
 | Hidden dims | [128, 64] | [128, 64] | [128, 64] |
 | Hidden activation | Tanh | ReLU | ReLU |
 | Output activation | — (distribution) | Tanh | Tanh |
 | Exploration | Entropy bonus $c_1=0.01$ | Additive noise $\sigma=0.1$ | Additive noise $\sigma=0.1$ |
 | Target smoothing | None | None | $\sigma=0.2$, clip $\pm0.3$ |
-| Evaluation action | $\tanh(\mu_\theta(s_t))$ | $\mu_\theta(s_t)$ | $\mu_\theta(s_t)$ |
+| Evaluation action | $\tanh(\mu_\theta(s_t))$ | $\mu_\phi(s_t)$ | $\mu_\phi(s_t)$ |
 | Critic input | $s$ only | $(s, a)$ | $(s, a)$ |
 | Number of critics | 1 | 1 | 2 (twin) |
 | Actor update freq. | Every epoch | Every step | Every 2 critic steps |
