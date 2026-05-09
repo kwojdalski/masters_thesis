@@ -124,7 +124,7 @@ weakly informative.
 algorithm that balances the size of each policy update against training
 stability. PPO optimizes a clipped surrogate objective:
 
-$$L^{CLIP}(\theta) = \mathbb{E}_t\!\left[\min\left(\rho_t(\theta)\hat{A}_t,
+$$L^{\mathrm{CLIP}}(\theta) = \mathbb{E}_t\!\left[\min\left(\rho_t(\theta)\hat{A}_t,
 \operatorname{clip}(\rho_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$ {#eq-ppo-clip}
 
 where:
@@ -154,11 +154,11 @@ actions (typically Gaussian), and actions are sampled from this distribution.
 Exploration is handled naturally through the entropy of the action distribution,
 which can be explicitly encouraged through an entropy bonus term in the objective:
 
-$$L^{CLIP+ENT}(\theta) = L^{CLIP}(\theta) + c_1 \mathcal{H}(\pi_\theta)$$ {#eq-ppo-entropy}
+$$L^{\mathrm{CLIP+ENT}}(\theta) = L^{\mathrm{CLIP}}(\theta) + c_1 \mathcal{H}(\pi_\theta)$$ {#eq-ppo-entropy}
 
 where:
 
-- $L^{CLIP}(\theta)$ — clipped surrogate objective from @eq-ppo-clip
+- $L^{\mathrm{CLIP}}(\theta)$ — clipped surrogate objective from @eq-ppo-clip
 - $\mathcal{H}(\pi_\theta) = -\mathbb{E}[\log \pi_\theta(a \mid s)]$ — policy entropy
 - $c_1 > 0$ — coefficient controlling the strength of the exploration bonus
 
