@@ -23,29 +23,29 @@ is on why each one is consequential for trading problems.
 
 % Right path (action)
 \draw[->] (agent.east) -- ++(2.8,0) -- ++(0,-3) -- (env.east);
-\node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$A_t$};
+\node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$a_t$};
 
 % Left path (state + reward)
 \draw[->] (env.west) -- ++(-2.8,0) -- ++(0,3) -- (agent.west);
-\node[left,  align=right, font=\normalsize] at (-2.8, 3)   {state\\[2pt]$S_t$};
-\node[right, align=left,  font=\normalsize] at (-2.8, 1.5) {reward\\[2pt]$R_t$};
+\node[left,  align=right, font=\normalsize] at (-2.8, 3)   {state\\[2pt]$s_t$};
+\node[right, align=left,  font=\normalsize] at (-2.8, 1.5) {reward\\[2pt]$r_t$};
 
 % Dashed line with next-step labels
 \draw[dashed, thin] (-1.0, 0.55) -- (-1.0, -0.55);
-\node[right, font=\small] at (-1.0, 0.45) {$R_{t+1}$};
-\node[right, font=\small] at (-1.0, 0.15) {$S_{t+1}$};
+\node[right, font=\small] at (-1.0, 0.45) {$r_{t+1}$};
+\node[right, font=\small] at (-1.0, 0.15) {$s_{t+1}$};
 
 \end{tikzpicture}
 \end{figure}
 ```
 
-At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment.
+At each step the agent observes state $s_t$ and reward $r_t$, selects action $a_t$, and receives the next state $s_{t+1}$ and reward $r_{t+1}$ from the environment.
 :::
 
 ::: {.content-visible when-format="html"}
 ![The agent-environment interaction loop in reinforcement learning.](diagrams/rl-loop.svg){fig-align="center"}
 
-At each step the agent observes state $S_t$ and reward $R_t$, selects action $A_t$, and receives the next state $S_{t+1}$ and reward $R_{t+1}$ from the environment.
+At each step the agent observes state $s_t$ and reward $r_t$, selects action $a_t$, and receives the next state $s_{t+1}$ and reward $r_{t+1}$ from the environment.
 :::
 
 Portfolio decisions are sequential and path-dependent. This makes the MDP
