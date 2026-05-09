@@ -1,8 +1,12 @@
 ## Glossary of Abbreviations and Key Terms {.unnumbered}
 
 This glossary defines abbreviations and domain-specific terms used throughout
-the thesis. Terms are grouped by domain and listed alphabetically within each
-group.
+the thesis. Entries are restricted to terms whose meaning in this context
+differs from everyday usage or whose precise definition is necessary to
+interpret the empirical results; widely understood concepts are omitted.
+Terms are grouped by domain — market microstructure and trading, reinforcement
+learning and machine learning, and other — and listed alphabetically within
+each group. For mathematical notation and feature formulas, see Appendix A.
 
 ### Market Microstructure and Trading
 
