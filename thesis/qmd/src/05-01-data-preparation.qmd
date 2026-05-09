@@ -93,10 +93,10 @@ are summarized below.
 
 | Timestamp (UTC) | Action | Side | Price (\$) | Size | Best Bid (\$) | Best Ask (\$) | Bid Sz | Ask Sz |
 |:---|:---:|:---:|---:|---:|---:|---:|---:|---:|
-| 14:30:00.016 203 566 | A | B | 271.20 | 200 | 271.45 | 271.85 | 500 | 756 |
-| 14:30:00.024 730 644 | T | N | 271.65 |  21 | 271.45 | 271.85 | 500 | 756 |
-| 14:30:00.024 979 079 | A | A | 271.79 | 140 | 271.45 | 271.79 | 500 | 140 |
-| 14:30:00.025 009 404 | A | A | 271.79 | 100 | 271.45 | 271.79 | 500 | 240 |
+| 14:30:00.016203 | A | B | 271.20 | 200 | 271.45 | 271.85 | 500 | 756 |
+| 14:30:00.024730 | T | N | 271.65 |  21 | 271.45 | 271.85 | 500 | 756 |
+| 14:30:00.024979 | A | A | 271.79 | 140 | 271.45 | 271.79 | 500 | 140 |
+| 14:30:00.025009 | A | A | 271.79 | 100 | 271.45 | 271.79 | 500 | 240 |
 
 : Four consecutive AAPL MBP-10 events, 25 February 2026. Action: A = limit-order addition, T = trade print. Side: B = bid, A = ask, N = no aggressor side (trade report). Best Bid/Ask and Bid Sz/Ask Sz reflect the level-0 (top-of-book) snapshot after each event is applied. {#tbl-raw-sample}
 
