@@ -74,7 +74,7 @@ on continuous portfolio exposure control and addresses the practical constraints
 — execution modeling, transaction cost sensitivity, and evaluation discipline —
 that most often invalidate paper-trading results.
 
-A TD3 agent is trained on tick-level order book snapshots from six
+A Twin Delayed DDPG (TD3) agent is trained on tick-level order book snapshots from six
 Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO), covering three
 consecutive trading sessions in February 2026, and evaluated against benchmark
 strategies under explicit simulation assumptions.
