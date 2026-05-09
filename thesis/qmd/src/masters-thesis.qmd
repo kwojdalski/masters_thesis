@@ -27,7 +27,7 @@ format:
       - \usepackage{tikz}
       - \usetikzlibrary{arrows.meta}
       - \nralbumu{310284}
-      - \speciality{Economics}
+      - \speciality{Quantitative Finance}
       - \opiekun{dr Pawel Sakowski}
       - \keywords{Reinforcement Learning, High-Frequency Trading, Order Book, Single-Asset Trading, TD3}
       - \dziedzina{14.3 Economics}
