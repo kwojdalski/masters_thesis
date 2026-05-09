@@ -33,7 +33,7 @@ over actions. The TD3 target was first introduced in Chapter 3 in
 Both critics are trained by minimizing the TD error against the shared target
 $y_t$. The actor is updated using only the first critic's gradient:
 
-$$\nabla_\phi J(\phi) = \mathbb{E}_{s \sim \mathcal{D}}\!\left[\nabla_a Q_{\theta_1}(s,a)\big|_{a=\mu_\phi(s)} \nabla_\phi \mu_\phi(s)\right]$$ {#eq-actor-gradient}
+$$\nabla_\phi J(\phi) = \mathbb{E}_{s \sim \mathcal{D}}\!\left[\nabla_a Q_{\theta_1}(s,a)\big|_{a=\mu_\phi(s)} \cdot \nabla_\phi \mu_\phi(s)\right]$$ {#eq-actor-gradient}
 
 where:
 

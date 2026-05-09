@@ -51,7 +51,7 @@ The actor network contains approximately 11,800 trainable parameters:
 **Exploration.** Because the policy is deterministic, it does not generate action diversity on its own. During data collection, additive Gaussian noise is injected into the policy output and the result is clipped to the action bounds:
 
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right),
-\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-det-exploration}
+\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$
 
 where:
 

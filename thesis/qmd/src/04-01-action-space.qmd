@@ -14,7 +14,7 @@ Trading systems can be formulated with either discrete or continuous action spac
 
 In this implementation, the action space is defined as a continuous interval:
 
-$$\mathcal{A} = [-1.0, 1.0]$$ {#eq-action-space}
+$$\mathcal{A} = [-1, 1]$$ {#eq-action-space}
 
 This continuous action space is required for deterministic policy gradient
 methods like DDPG and TD3, which are designed for problems where the agent
