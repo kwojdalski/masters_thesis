@@ -155,6 +155,15 @@ $f: X \rightarrow a$ by minimizing a loss over these examples $(X_i, a_i^*)$:
 
 $$\min_{\theta} \sum_{i=1}^{N} \ell(f_{\theta}(X_i), a_i^*)$$ {#eq-imitation-learning}
 
+where:
+
+- $\theta$ — parameters of the policy function being learned
+- $N$ — number of labeled training examples
+- $X_i$ — market state (input features) for example $i$
+- $a_i^*$ — expert or rule-derived action label for example $i$
+- $f_\theta(X_i)$ — predicted action under the current parameters
+- $\ell(\cdot, \cdot)$ — loss function measuring deviation from the expert action
+
 The limitation is the same in both cases: the optimization target is a
 surrogate rather than the trading objective itself. Forecast-based systems
 optimize statistical accuracy and then translate predictions into actions
