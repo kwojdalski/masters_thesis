@@ -125,7 +125,7 @@ different volatility regimes, spread environments, or intraday seasonality
 patterns beyond this specific period, and the generalizability of the results
 is bounded accordingly.
 
-### Feature Normalization and Causality Preservation
+### Feature Normalization and Causality Preservation {#sec-feature-normalization-and-causality-preservation}
 
 Normalization of microstructure features presents a methodological challenge for sequential learning: the conventional approach of fitting a standard scaler on the full training dataset and applying it globally introduces look-ahead bias. Each observation's normalized value would incorporate statistical information from future timesteps, violating the causal structure that a trading agent must respect in deployment. An agent at step $t$ can only condition on information available at time $t$; allowing its inputs to be scaled using the mean and variance of the entire training set (including steps $t+1, t+2, \dots$) would, in effect, provide the agent with knowledge it cannot access.
 
