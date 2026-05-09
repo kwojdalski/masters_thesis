@@ -72,7 +72,7 @@ A second dimension classifies algorithms by what they learn and optimize.
 by acting greedily with respect to it. Q-learning and its deep variant DQN
 (@Mnih2015) are prototypical examples. They work well in discrete action
 spaces but struggle when actions are continuous, because the greedy step
-$\arg\max_a Q(s,a)$ becomes intractable over an uncountable set.
+$\arg\max_a Q(s, a)$ becomes intractable over an uncountable set.
 
 **Policy-based** methods directly parameterize and optimize the policy
 $\pi_\theta$. REINFORCE (@Williams1992) updates parameters by gradient ascent
@@ -93,7 +93,7 @@ variance problem motivates the actor-critic architecture, which introduces a
 critic network to provide lower-variance value estimates.
 
 **Actor-critic** methods combine both: an actor $\mu_\phi$ selects actions
-and a critic $Q_\theta(s,a)$ evaluates them, using the critic's lower-variance
+and a critic $Q_\theta(s, a)$ evaluates them, using the critic's lower-variance
 estimates to guide actor updates. The full actor-critic derivation and TD3's
 specific extensions are given in @sec-td3-lineage.
 
@@ -103,11 +103,11 @@ specific extensions are given in @sec-td3-lineage.
 On-policy methods evaluate and improve the same policy used to collect
 experience. SARSA is a canonical example, updating with:
 
-$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma Q(s_{t+1},a_{t+1}) - Q(s_t,a_t)\bigr]$$ {#eq-sarsa-update}
+$$Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha\bigl[r_t + \gamma Q(s_{t+1}, a_{t+1}) - Q(s_t, a_t)\bigr]$$ {#eq-sarsa-update}
 
 where:
 
-- $Q(s,a)$ — action-value function
+- $Q(s, a)$ — action-value function
 - $\alpha > 0$ — learning rate
 - $r_t$ — reward received after taking action $a_t$ in state $s_t$
 - $\gamma \in [0,1]$ — discount factor
@@ -120,7 +120,7 @@ Off-policy methods decouple the data-collection policy (the behavior policy)
 from the policy being improved (the target policy). Q-learning updates with
 the greedy maximum:
 
-$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1},a) - Q(s_t,a_t)\bigr]$$ {#eq-qlearning-update}
+$$Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha\bigl[r_t + \gamma \max_a Q(s_{t+1}, a) - Q(s_t, a_t)\bigr]$$ {#eq-qlearning-update}
 
 where:
 
