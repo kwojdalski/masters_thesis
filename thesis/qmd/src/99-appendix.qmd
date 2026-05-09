@@ -372,12 +372,12 @@ benchmark for comparing feature informativeness.
 **Step 3: Scoring.** Each feature is evaluated using the Information Coefficient
 (IC) framework standard in quantitative factor research. The IC of feature $f_i$
 at time $t$ is its Spearman rank correlation with the forward return target:
-$$\text{IC}_i(t) = \rho_{\text{Sp}}\!\left(f_i(t),\, y(t)\right)$$ {#eq-app-ic}
+$$\text{IC}_{i,t} = \rho_{\text{Sp}}\!\left(f_{i,t},\, y_t\right)$$ {#eq-app-ic}
 
 where:
 
-- $f_i(t)$ — value of feature $i$ at time $t$
-- $y(t)$ — forward return target at time $t$
+- $f_{i,t}$ — value of feature $i$ at time $t$
+- $y_t$ — forward return target at time $t$
 - $\rho_{\text{Sp}}$ — Spearman rank correlation
 
 computed over rolling windows on the validation split. The primary ranking
