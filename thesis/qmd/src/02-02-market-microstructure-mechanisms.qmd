@@ -95,6 +95,13 @@ side. The microprice corrects for this by volume-weighting the best quotes:
 
 $$\text{Microprice} = \frac{V^{ask}_0 \cdot P^{bid}_0 + V^{bid}_0 \cdot P^{ask}_0}{V^{bid}_0 + V^{ask}_0}$$ {#eq-microprice-ch2}
 
+where:
+
+- $P^{bid}_0$ — best bid price (level 0)
+- $P^{ask}_0$ — best ask price (level 0)
+- $V^{bid}_0$ — resting volume at the best bid
+- $V^{ask}_0$ — resting volume at the best ask
+
 When $V^{bid}_0 \gg V^{ask}_0$, the microprice is pulled toward the ask —
 the side more likely to move. The microprice divergence from mid captures this
 adjustment as a stationary signal and serves as the primary fair value feature
