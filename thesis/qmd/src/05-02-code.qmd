@@ -86,7 +86,7 @@ entropy bonuses rather than explicit noise injection.
        replay buffer $\mathcal{D}$
 
 \For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \mu_\phi(s_t) + \epsilon$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
+    \State $a_t \leftarrow \text{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
     \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
     \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
     \State Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\phi'}(s') + \text{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}^2),\, \pm c\right)$
@@ -114,7 +114,7 @@ entropy bonuses rather than explicit noise injection.
  1: Initialise actor μ<sub>φ</sub>, twin critics Q<sub>θ1</sub>, Q<sub>θ2</sub>,
     target networks μ<sub>φ'</sub>, Q<sub>θ1'</sub>, Q<sub>θ2'</sub>, replay buffer 𝒟
  2: <strong>for</strong> each step t = 1, …, max_steps <strong>do</strong>
- 3:   a<sub>t</sub> ← μ<sub>φ</sub>(s<sub>t</sub>) + ε,  ε ~ 𝒩(0, σ<sub>explore</sub><sup>2</sup>)
+ 3:   a<sub>t</sub> ← clip(μ<sub>φ</sub>(s<sub>t</sub>) + ε, −1, 1),  ε ~ 𝒩(0, σ<sub>explore</sub><sup>2</sup>)
  4:   Execute a<sub>t</sub>; observe r<sub>t</sub>, s<sub>t+1</sub>; store (s<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>, s<sub>t+1</sub>) in 𝒟
  5:   Sample mini-batch ℬ ~ 𝒟
  6:   Compute smoothed target action: ã' ← μ<sub>φ'</sub>(s') + clip(𝒩(0, σ<sub>noise</sub><sup>2</sup>), ±c)
@@ -143,7 +143,7 @@ entropy bonuses rather than explicit noise injection.
        replay buffer $\mathcal{D}$
 
 \For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \mu_\phi(s_t) + \epsilon$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
+    \State $a_t \leftarrow \text{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
     \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
     \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
     \State Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
@@ -168,7 +168,7 @@ entropy bonuses rather than explicit noise injection.
  1: Initialise actor μ<sub>φ</sub>, critic Q<sub>θ</sub>,
     target networks μ<sub>φ'</sub>, Q<sub>θ'</sub>, replay buffer 𝒟
  2: <strong>for</strong> each step t = 1, …, max_steps <strong>do</strong>
- 3:   a<sub>t</sub> ← μ<sub>φ</sub>(s<sub>t</sub>) + ε,  ε ~ 𝒩(0, σ<sub>explore</sub><sup>2</sup>)
+ 3:   a<sub>t</sub> ← clip(μ<sub>φ</sub>(s<sub>t</sub>) + ε, −1, 1),  ε ~ 𝒩(0, σ<sub>explore</sub><sup>2</sup>)
  4:   Execute a<sub>t</sub>; observe r<sub>t</sub>, s<sub>t+1</sub>; store (s<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>, s<sub>t+1</sub>) in 𝒟
  5:   Sample mini-batch ℬ ~ 𝒟
  6:   Compute Bellman target: y ← r + γ · Q<sub>θ'</sub>(s', μ<sub>φ'</sub>(s'))
