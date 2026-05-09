@@ -38,10 +38,7 @@ and intraday seasonality. The state representation used in this thesis should
 therefore be understood as an attempt to construct a useful decision state under
 partial observability, not as proof that the market itself is fully Markovian.
 
-### Environment [VERIFIED]
-<!-- [VERIFIED] -->
-
-The environment defines the space of possible states and the rules governing
+**Environment.** The environment defines the space of possible states and the rules governing
 transitions between them. In the trading setting studied here, the
 environment is the simulated order-book market: it receives a portfolio-exposure
 action from the agent at each time step, updates the portfolio value according
@@ -50,10 +47,7 @@ The environment encapsulates everything outside the agent's direct control —
 price dynamics, spread, and execution frictions represented by the simulator —
 under a set of explicit simulation assumptions.
 
-### State [VERIFIED]
-<!-- [VERIFIED] -->
-
-The state $s_t$ is a snapshot of the environment at time $t$ that contains
+**State.** The state $s_t$ is a snapshot of the environment at time $t$ that contains
 sufficient information for the agent to select an action. In the HFT setting,
 the state is a vector of engineered microstructure features derived
 from the limit order book: imbalance measures, spread, order flow signals, and
@@ -70,20 +64,14 @@ an approximation, and Chapter 4.2 discusses how specific microstructure features
 are selected and normalized to construct a useful decision state under partial
 observability and non-stationarity.
 
-### Action [VERIFIED]
-<!-- [VERIFIED] -->
-
-The action $a_t$ is the decision the agent takes given state $s_t$. In this
+**Action.** The action $a_t$ is the decision the agent takes given state $s_t$. In this
 thesis the action space is continuous: $a_t \in [-1, 1]$, representing the
 target portfolio exposure from maximum short to maximum long. The continuous
 formulation is important because it allows the agent to express varying degrees
 of conviction through position size, rather than being restricted to a binary
 buy/sell decision.
 
-### Policy [VERIFIED]
-<!-- [VERIFIED] -->
-
-The policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ maps states to
+**Policy.** The policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ maps states to
 actions. A deterministic policy is used — given the same state,
 the policy always produces the same action. A deterministic policy is chosen here
 because the evaluation objective is a single exposure decision per state, and
@@ -100,10 +88,7 @@ policies eliminate this ambiguity but require explicit exploration mechanisms.
 Chapter 4.5 compares both approaches (PPO's stochastic policy vs. DDPG/TD3's
 deterministic policy) in the context of the trading problem.
 
-### Reward [VERIFIED]
-<!-- [VERIFIED] -->
-
-The reward $r_t$ is a scalar signal returned by the environment after the agent
+**Reward.** The reward $r_t$ is a scalar signal returned by the environment after the agent
 takes action $a_t$ in state $s_t$. It provides the only learning signal available
 to the agent — there are no labels, no supervisor. The reward function is
 therefore a critical design choice: it determines what the agent actually
@@ -119,10 +104,7 @@ catastrophic events. The Differential Sharpe Ratio formulation used in
 Chapter 4.3 addresses this by providing a risk-adjusted learning signal that
 penalizes volatility while remaining recursively computable for online learning.
 
-### Value Function [VERIFIED]
-<!-- [VERIFIED] -->
-
-The value function $V^\pi(s)$ estimates the expected cumulative discounted reward
+**Value Function.** The value function $V^\pi(s)$ estimates the expected cumulative discounted reward
 starting from state $s$ under policy $\pi$:
 
 $$V^\pi(s) = \mathbb{E}_\pi\!\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k} \,\Big|\, s_t = s\right]$$ {#eq-rl-value-function}
