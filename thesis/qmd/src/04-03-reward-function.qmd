@@ -73,7 +73,7 @@ is desirable in an online RL setting.
 ### Differential Sharpe Ratio
 
 The Differential Sharpe Ratio [@Moody1998] resolves both issues. It is defined
-as the first-order approximation of how the current return $R_t$ changes the
+as the first-order approximation of how the current portfolio log-return $\rho_t$ changes the
 exponentially weighted Sharpe ratio:
 
 $$D_t = \frac{B_{t-1}\,\Delta A_t - \frac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2\right)^{3/2}}$$ {#eq-dsr}
@@ -82,8 +82,8 @@ where:
 
 - $A_{t-1}$ — exponentially weighted estimate of the first moment of returns (defined in @eq-dsr-moments)
 - $B_{t-1}$ — exponentially weighted estimate of the second moment of returns (defined in @eq-dsr-moments)
-- $\Delta A_t = R_t - A_{t-1}$ — one-step increment of $A$
-- $\Delta B_t = R_t^2 - B_{t-1}$ — one-step increment of $B$
+- $\Delta A_t = \rho_t - A_{t-1}$ — one-step increment of $A$
+- $\Delta B_t = \rho_t^2 - B_{t-1}$ — one-step increment of $B$
 - $(B_{t-1} - A_{t-1}^2)^{3/2}$ — running variance raised to the power $3/2$, stabilized by a small constant $\epsilon$ in the implementation
 
 This replaces the simple log-return in @eq-log-return-reward with a
@@ -94,11 +94,11 @@ does not eliminate the noise concerns at tick frequency.
 $A_t$ and $B_t$ are exponentially weighted estimates of the first and
 second moments of returns:
 
-$$A_t = \eta R_t + (1-\eta)\,A_{t-1}, \qquad B_t = \eta R_t^2 + (1-\eta)\,B_{t-1}$$ {#eq-dsr-moments}
+$$A_t = \eta \rho_t + (1-\eta)\,A_{t-1}, \qquad B_t = \eta \rho_t^2 + (1-\eta)\,B_{t-1}$$ {#eq-dsr-moments}
 
 where:
 
-- $R_t = \log(P_t / P_{t-1}) \cdot a_{t-1}$ — portfolio log-return at step $t$^[In the implementation, $R_t$ is computed as $\log(\text{NLV}_t / \text{NLV}_{t-1})$, where $\text{NLV}_t$ is the net liquidation value of the portfolio. This is equivalent to the formula above when transaction costs are zero. When costs are non-zero, the NLV-based return absorbs transaction costs implicitly, making the implementation more conservative than the analytic expression suggests.]
+- $\rho_t = \log(P_t / P_{t-1}) \cdot a_{t-1}$ — portfolio log-return at step $t$^[In the implementation, $\rho_t$ is computed as $\log(\text{NLV}_t / \text{NLV}_{t-1})$, where $\text{NLV}_t$ is the net liquidation value of the portfolio. This is equivalent to the formula above when transaction costs are zero. When costs are non-zero, the NLV-based return absorbs transaction costs implicitly, making the implementation more conservative than the analytic expression suggests.]
 - $\eta \in (0,1]$ — exponential smoothing parameter
 - $A_t$ — running mean of returns
 - $B_t$ — running mean of squared returns

@@ -92,8 +92,8 @@ variance, requiring many samples to obtain a reliable gradient signal. This
 variance problem motivates the actor-critic architecture, which introduces a
 critic network to provide lower-variance value estimates.
 
-**Actor-critic** methods combine both: an actor $\mu_\theta$ selects actions
-and a critic $Q_w(s,a)$ evaluates them, using the critic's lower-variance
+**Actor-critic** methods combine both: an actor $\mu_\phi$ selects actions
+and a critic $Q_\theta(s,a)$ evaluates them, using the critic's lower-variance
 estimates to guide actor updates. The full actor-critic derivation and TD3's
 specific extensions are given in @sec-td3-lineage.
 
