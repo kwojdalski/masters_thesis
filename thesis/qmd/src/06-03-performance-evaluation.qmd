@@ -113,6 +113,7 @@ display_table(benchmark_df)
 <!-- [PLACEHOLDER] -->
 
 ```{python}
+#| label: eval_metadata_snapshot
 #| echo: false
 
 if finished is not None:
@@ -138,6 +139,7 @@ if finished is not None:
 <!-- [PLACEHOLDER] -->
 
 ```{python}
+#| label: eval_plots
 #| echo: false
 #| warning: false
 

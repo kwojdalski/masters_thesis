@@ -169,6 +169,7 @@ selected experiment. These values should be interpreted as a sample of outcomes
 under the configured workflow rather than as definitive performance estimates.
 
 ```{python}
+#| label: run_sample_summary
 #| echo: false
 
 if finished_runs.empty:
@@ -192,6 +193,7 @@ performance. Repeated backtests quantify sensitivity to training randomness more
 than they resolve uncertainty about the underlying market process.
 
 ```{python}
+#| label: descriptive_stats
 #| echo: false
 
 candidate_metrics = ["final_reward", "episode_reward", "value_loss", "training_steps"]

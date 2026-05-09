@@ -161,6 +161,7 @@ runs_df = runs_overview_table(EXPERIMENT_NAME)
 <!-- [PLACEHOLDER] -->
 
 ```{python}
+#| label: runs_snapshot
 #| echo: false
 
 if runs_df.empty:
@@ -174,6 +175,7 @@ else:
 ```
 
 ```{python}
+#| label: active_run_metrics
 #| echo: false
 
 def _series_to_frame(series, title):
@@ -197,6 +199,7 @@ else:
 ```
 
 ```{python}
+#| label: eval_comparison_plot
 #| echo: false
 #| warning: false
 
