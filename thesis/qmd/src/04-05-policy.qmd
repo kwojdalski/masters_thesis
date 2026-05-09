@@ -8,7 +8,7 @@ each architecture, followed by a table that makes the design choices explicit.
 
 ### Deterministic Policy Architecture {#sec-policy-deterministic-arch}
 
-PPO maintains a stochastic policy:
+DDPG and TD3 implement a deterministic policy:
 
 $$\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}, \qquad a_t = \mu_\theta(s_t)$$ {#eq-det-policy}
 
@@ -48,10 +48,10 @@ The actor network contains approximately 11,800 trainable parameters:
 
 : Actor network architecture ($d=26$ input features). {#tbl-actor-arch}
 
-**Exploration.** Because the policy is stochastic, it generates action diversity naturally through the entropy of the action distribution:
+**Exploration.** Because the policy is deterministic, it does not generate action diversity on its own. During data collection, additive Gaussian noise is injected into the policy output and the result is clipped to the action bounds:
 
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
-\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-ppo-exploration}
+\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-det-exploration}
 
 where:
 
@@ -59,13 +59,7 @@ where:
 - $\epsilon \sim \mathcal{N}(0, \sigma^2)$ — Gaussian exploration noise with $\sigma = 0.1$
 - $\text{clip}(\cdot, -1, 1)$ — projects the perturbed action back into the valid action space
 
-This formulation shows how PPO injects noise during training while removing it
-at evaluation time, similar to DDPG and TD3 exploration in
-@eq-ddpg-exploration and @eq-td3-exploration. However, PPO's stochastic
-policy maintains action diversity through the distribution itself (shown in
-@eq-ppo-distribution) rather than relying solely on additive noise.
-
-The deterministic action for evaluation is obtained by taking the mode of the distribution: $a_t^{\text{eval}} = \mu_\theta(s_t)$.
+The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\theta(s_t)$. The specific exploration formulations for DDPG and TD3 are given in @eq-ddpg-exploration and @eq-td3-exploration.
 
 **Deterministic Policy: DDPG {#sec-policy-deterministic}**
 
