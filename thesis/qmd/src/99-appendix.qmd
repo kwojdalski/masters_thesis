@@ -386,7 +386,9 @@ $$\text{ICIR}_i = \frac{\overline{\text{IC}}_i}{\sigma(\text{IC}_i)}$$ {#eq-app-
 where:
 
 - $\overline{\text{IC}}_i$ — mean IC of feature $i$ across rolling windows
-- $\sigma(\text{IC}_i)$ — standard deviation of IC across rolling windows ICIR captures both signal strength (the numerator) and
+- $\sigma(\text{IC}_i)$ — standard deviation of IC across rolling windows
+
+ICIR captures both signal strength (the numerator) and
 signal consistency across time (the denominator); a feature with a high mean IC
 but erratic sign is penalized relative to one with a modest but stable IC.
 Features with $|\text{ICIR}_i| < 0.02$ are removed before the redundancy step.
