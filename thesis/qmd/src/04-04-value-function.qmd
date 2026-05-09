@@ -13,9 +13,7 @@ The Bellman target is computed using the minimum of the two estimates:
 
 $$y_t = r_t + \gamma \min_{i=1,2} Q_{\theta_i'}(s_{t+1}, \tilde{a}_{t+1})$$ {#eq-bellman-target}
 
-where $\theta_i'$ are slowly updated target network parameters and
-$\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon$ is the target action with
-smoothing noise. Taking the minimum counteracts the overestimation bias that
+where $r_t$ is the immediate reward, $\gamma$ is the discount factor, $Q_{\theta_i'}$ are the two target critic networks with slowly updated parameters $\theta_i'$, $s_{t+1}$ is the next state, and $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon$ is the smoothed target action with $\epsilon \sim \mathcal{N}(0, \sigma^2)$ clipped to a small interval. Taking the minimum counteracts the overestimation bias that
 arises when bootstrapped targets are computed from the same network being
 updated — a failure mode documented in DDPG and addressed here following
 @Fujimoto2018. This formulation extends the standard Q-learning target
@@ -28,6 +26,8 @@ Both critics are trained by minimizing the TD error against the shared target
 $y_t$. The actor is updated using only the first critic's gradient:
 
 $$\nabla_\phi J(\phi) = \mathbb{E}_{s \sim \mathcal{D}}\!\left[\nabla_a Q_{\theta_1}(s,a)\big|_{a=\mu_\phi(s)} \nabla_\phi \mu_\phi(s)\right]$$ {#eq-actor-gradient}
+
+where $\phi$ are the actor (policy) parameters being updated, $J(\phi)$ is the expected return, $\mathcal{D}$ is the replay buffer, $Q_{\theta_1}(s,a)$ is the first critic evaluated at the current policy action $\mu_\phi(s)$, and $\nabla_\phi \mu_\phi(s)$ is the Jacobian of the policy with respect to its parameters.
 
 This is the deterministic policy gradient theorem from @Silver2014, first
 presented in the general form in @eq-ddpg-gradient. The gradient chain

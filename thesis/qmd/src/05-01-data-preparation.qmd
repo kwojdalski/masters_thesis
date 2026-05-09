@@ -139,11 +139,13 @@ $$
 s^2_t = s^2_{t-1} + \frac{1}{t}\bigl[(x_t - \bar{x}_{t-1})^2 - s^2_{t-1}\bigr]
 $$ {#eq-welford-var}
 
-where $\bar{x}_t$ and $s^2_t$ are the mean and variance after processing $t$ observations. The normalized value at timestep $t$ is then computed from the cumulative statistics available after observing the current feature value:
+where $\bar{x}_t$ and $s^2_t$ are the running mean and variance after observing $t$ values, $x_t$ is the current observation, and $\bar{x}_{t-1}$ is the mean from the previous step. The normalized value at timestep $t$ is then computed from the cumulative statistics available after observing the current feature value:
 
 $$
 \tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{s^2_t + \epsilon}}
 $$ {#eq-running-normalize}
+
+where $\bar{x}_t$ and $s^2_t$ are defined by @eq-welford-mean and @eq-welford-var, and $\epsilon > 0$ is a small constant (here $10^{-4}$) added to the denominator for numerical stability when variance is near zero.
 
 This ensures that the scaling statistics used to normalize $\tilde{x}_t$ incorporate only observations $1, \dots, t$ and no future values. Since $x_t$ is part of the observation available before the action at time $t$ is chosen, this transformation preserves the causal information structure while avoiding the instability that would arise from normalizing early-session observations with an almost empty denominator. The computational cost of this approach is $O(1)$ per update, making it efficient even for large datasets.
 

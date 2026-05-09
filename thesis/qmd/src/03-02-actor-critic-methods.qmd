@@ -48,11 +48,11 @@ theorem in the general function approximation setting. The gradient takes the fo
 
 $$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t | s_t) \cdot G_t\right]$$ {#eq-reinforce-gradient}
 
+where $J(\theta) = \mathbb{E}_{\pi_\theta}[\sum_t r_t]$ is the expected return objective, $\pi_\theta(a_t \mid s_t)$ is the probability of action $a_t$ under the current policy, $G_t = \sum_{k=0}^\infty \gamma^k r_{t+k}$ is the discounted return from step $t$, and $\nabla_\theta \log \pi_\theta$ is the score function (log-policy gradient).
+
 This generalizes the simpler form shown in @eq-policy-gradient-update, which
 presents the parameter update rule directly rather than deriving it from the
-gradient of the objective.
-
-where $G_t$ is the return from time $t$. While REINFORCE applies naturally to
+gradient of the objective. While REINFORCE applies naturally to
 continuous action spaces through a parameterized distribution (for example, a
 Gaussian policy), it suffers from high variance in the gradient estimate because
 $G_t$ is computed from a full episode trajectory, making it sensitive to
@@ -75,6 +75,8 @@ showing that for a deterministic policy $\mu_\theta: \mathcal{S} \rightarrow
 \mathcal{A}$ the policy gradient takes the form:
 
 $$\nabla_\theta J(\theta) = \mathbb{E}_s\left[\nabla_a Q_\phi(s, a)\big|_{a=\mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s)\right]$$ {#eq-ddpg-gradient}
+
+where $J(\theta)$ is the expected return, $Q_\phi(s,a)$ is the critic (action-value function) parameterized by $\phi$, $\mu_\theta(s)$ is the deterministic actor, and the gradient $\nabla_a Q_\phi$ is evaluated at the action produced by the current policy.
 
 This deterministic gradient is a specialization of the stochastic policy
 gradient in @eq-reinforce-gradient for policies that output a single action
@@ -116,15 +118,13 @@ stability. PPO optimizes a clipped surrogate objective:
 $$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(r_t(\theta)\hat{A}_t,
 \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$ {#eq-ppo-clip}
 
+where $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ is the probability ratio between the updated and old policies, $\hat{A}_t$ is the advantage estimate, and $\epsilon$ is the clipping hyperparameter (typically 0.2) that limits how far the new policy may deviate from the old one in a single update.
+
 This contrasts with TD3's approach to policy updates, which uses the
 deterministic gradient in @eq-ddpg-gradient and @eq-actor-gradient without
 explicit clipping constraints. PPO's clipping mechanism provides stability
 through objective constraints, while TD3 achieves stability through
 target smoothing and delayed updates.
-
-where $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ is the
-probability ratio between the new and old policies, $\epsilon$ is a clipping
-hyperparameter (typically 0.2), and $\hat{A}_t$ is the advantage estimate.
 
 The clipping mechanism prevents excessively large policy updates that would
 collapse performance, making PPO more robust to hyperparameter choices than
@@ -143,12 +143,11 @@ which can be explicitly encouraged through an entropy bonus term in the objectiv
 
 $$L^{CLIP+ENT}(\theta) = L^{CLIP}(\theta) + c_1 \mathcal{H}(\pi_\theta)$$ {#eq-ppo-entropy}
 
+where $L^{CLIP}(\theta)$ is the clipped surrogate objective from @eq-ppo-clip, $\mathcal{H}(\pi_\theta) = -\mathbb{E}[\log \pi_\theta(a \mid s)]$ is the policy entropy, and $c_1 > 0$ is a coefficient controlling the strength of the exploration bonus.
+
 This entropy-based exploration contrasts with TD3's additive noise approach
 described in @eq-td3-exploration, where exploration is injected directly into
 deterministic actions.
-
-where $\mathcal{H}(\pi_\theta)$ is the policy entropy and $c_1$ is a coefficient
-controlling the strength of the exploration bonus.
 
 For trading applications, PPO's stochastic policy provides built-in exploration
 without requiring explicit noise injection during training, and its clipped
@@ -171,6 +170,8 @@ $Q_{\phi_2}$ are maintained, and the Bellman target is constructed using the
 minimum of their estimates:
 
 $$y = r + \gamma \min_{i=1,2} Q_{\phi_i'}(s', \tilde{a}')$$ {#eq-td3-target}
+
+where $r$ is the immediate reward, $\gamma$ is the discount factor, $Q_{\phi_i'}$ are the two target critic networks with slowly updated parameters $\phi_i'$, $s'$ is the next state, and $\tilde{a}' = \mu_{\theta'}(s') + \epsilon$ is the target action with smoothing noise $\epsilon$.
 
 This differs from the standard Q-learning target in @eq-qlearning-update
 through two key modifications: (1) the minimum operator over two critics

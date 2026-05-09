@@ -12,6 +12,8 @@ PPO maintains a stochastic policy:
 
 $$\mu_\theta: \mathcal{S} \rightarrow \mathcal{A}, \qquad a_t = \mu_\theta(s_t)$$ {#eq-det-policy}
 
+where $\mathcal{S} = \mathbb{R}^{26}$ is the observation space, $\mathcal{A} = [-1,1]$ is the continuous action space, $\theta$ are the network parameters, $s_t$ is the state at step $t$, and $a_t$ is the resulting deterministic action.
+
 The policy is a multi-layer perceptron. The input is the $d = 26$-dimensional state
 vector. The network passes this through two hidden layers and produces a scalar action:
 
@@ -45,6 +47,8 @@ The actor network contains approximately 11,800 trainable parameters:
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-ppo-exploration}
 
+where $\mu_\theta(s_t)$ is the deterministic policy output, $\epsilon$ is Gaussian exploration noise with standard deviation $\sigma = 0.1$, and $\text{clip}(\cdot, -1, 1)$ projects the perturbed action back into the valid action space.
+
 This formulation shows how PPO injects noise during training while removing it
 at evaluation time, similar to DDPG and TD3 exploration in
 @eq-ddpg-exploration and @eq-td3-exploration. However, PPO's stochastic
@@ -61,6 +65,8 @@ DDPG implements a deterministic policy:
 
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-ddpg-exploration}
+
+where $\mu_\theta(s_t)$ is the deterministic policy output, $\epsilon \sim \mathcal{N}(0, \sigma^2)$ is Gaussian exploration noise with $\sigma = 0.1$, and $\text{clip}(\cdot,-1,1)$ ensures the action remains in $[-1,1]$.
 
 This matches the exploration mechanism described in @eq-exploration-noise, where
 Gaussian noise is added to deterministic actions and clipped to the action
@@ -79,6 +85,8 @@ TD3 implements a deterministic policy:
 $$a_t^{\text{train}} = \text{clip}\!\left(\mu_\theta(s_t) + \epsilon,\; -1,\; 1\right),
 \qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$ {#eq-td3-exploration}
 
+where symbols are as in @eq-ddpg-exploration; $\sigma = 0.1$ is the exploration noise standard deviation, identical to DDPG's during data collection.
+
 This is identical to DDPG's exploration in @eq-ddpg-exploration during training.
 However, TD3 adds a separate noise term for target policy smoothing when
 computing Bellman targets (as shown in @eq-bellman-target and @eq-td3-target),
@@ -94,6 +102,8 @@ TD3 adds a separate, independent noise term during critic updates for target pol
 $\mu_{\theta'}$, used only when computing Bellman targets:
 
 $$\theta' \leftarrow \tau\,\theta + (1 - \tau)\,\theta', \qquad \tau = 0.001$$ {#eq-target-actor-update}
+
+where $\theta$ are the online actor parameters, $\theta'$ are the target actor parameters, and $\tau = 0.001$ is the soft-update coefficient controlling how quickly the target tracks the online network.
 
 The slow rate ensures the bootstrap target shifts gradually, even while the online
 actor receives more aggressive gradient updates. The target actor is never used for
@@ -114,6 +124,8 @@ at each state:
 
 $$\pi_\theta(\cdot \mid s_t) = \text{TanhNormal}\!\left(\mu_\theta(s_t),\,
 \sigma_\theta(s_t)\right)$$ {#eq-ppo-distribution}
+
+where $\mu_\theta(s_t)$ is the state-dependent mean and $\sigma_\theta(s_t) > 0$ is the state-dependent standard deviation produced by the actor network, and TanhNormal denotes a Gaussian distribution whose samples are squashed through $\tanh$ to lie in $(-1,1)$.
 
 The actor network shares the same hidden-layer structure as the deterministic actors
 — two layers of width [128, 64] — but its output head differs. The final linear
