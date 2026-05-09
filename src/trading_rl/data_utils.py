@@ -13,8 +13,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from gym_trading_env.downloader import download
-from joblib import Memory
-
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -31,9 +29,6 @@ from trading_rl.data_loading import (
 
 _HFT_MIN_TIMESTAMP_GAP_NS = 1_000  # 1 µs — minimum distinguishable by Python datetime (microsecond precision)
 
-# Setup joblib memory for caching expensive operations
-memory = Memory(location=".cache/joblib", verbose=1)
-
 
 @dataclass(frozen=True)
 class PreparedDataset:
@@ -48,11 +43,6 @@ class PreparedDataset:
     # Per-symbol memmap paths for StreamingTradingEnv. None when memmap_dir is
     # not configured; set by _build_pooled_dataset / build_prepared_dataset.
     memmap_train_paths: list[MemmapPaths] | None = None
-
-
-def clear_data_cache():
-    """Clear data processing cache."""
-    memory.clear(warn=True)
 
 
 def download_trading_data(
@@ -88,21 +78,17 @@ def download_trading_data(
     logger.info("download data complete")
 
 
-@memory.cache
-def load_trading_data(data_path: str, cache_bust: float | None = None) -> pd.DataFrame:
-    """Load trading data from pickle file.
+def load_trading_data(data_path: str) -> pd.DataFrame:
+    """Load trading data from parquet or pickle file.
 
     Args:
-        data_path: Path to pickle file
-        cache_bust: Optional timestamp or hash to bust joblib cache
+        data_path: Path to parquet or pickle file
 
     Returns:
         DataFrame with OHLCV data
     """
     data_file = Path(data_path)
     logger.info("load data path=%s", data_file)
-    # cache_bust ensures cache invalidation when the file changes
-    _ = cache_bust
     suffix = data_file.suffix.lower()
     if suffix in {".pkl", ".pickle"}:
         df = pd.read_pickle(data_file)
@@ -323,7 +309,6 @@ class PrepareDataConfig:
     since: Any | None = None
     feature_config_path: str | None = None
     feature_cache_dir: str | None = ".cache/feature_transformation"
-    use_load_cache: bool = False
 
     @classmethod
     def from_config(cls, cfg: Any) -> "PrepareDataConfig":
@@ -339,7 +324,6 @@ class PrepareDataConfig:
             since=getattr(cfg, "download_since", None),
             feature_config_path=getattr(cfg, "feature_config", None),
             feature_cache_dir=getattr(cfg, "feature_cache_dir", ".cache/feature_transformation"),
-            use_load_cache=getattr(cfg, "use_load_cache", True),
         )
 
 
@@ -597,9 +581,7 @@ def prepare_data(
             )
 
     # Load raw OHLCV data
-    file_signature = Path(data_path).stat().st_mtime_ns
-    _loader = load_trading_data if cfg.use_load_cache else load_trading_data.__wrapped__
-    df = _loader(data_path, cache_bust=file_signature)
+    df = load_trading_data(data_path)
     df = df.dropna()
 
     logger.info("load raw data n_rows=%d n_cols=%d", len(df), len(df.columns))

@@ -48,20 +48,9 @@ class ExperimentCommand(BaseCommand):
     def _clear_caches(self) -> None:
         """Clear all caches before experiments."""
         self.console.print("[blue]Clearing caches before experiments...[/blue]")
-        try:
-            from trading_rl.cache_utils import (
-                clear_data_cache,
-                clear_model_cache,
-                clear_training_cache,
-            )
-            clear_data_cache()
-            clear_model_cache()
-            clear_training_cache()
-            self.console.print("[green]Caches cleared.[/green]")
-        except ImportError:
-            self.console.print(
-                "[yellow]Cache utilities unavailable; skipping cache clear.[/yellow]"
-            )
+        from trading_rl.cache_utils import clear_all_caches
+        clear_all_caches()
+        self.console.print("[green]Caches cleared.[/green]")
     
     def _load_experiment_config(self, params: ExperimentParams):
         """Load and configure experiment parameters."""

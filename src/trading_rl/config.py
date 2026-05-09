@@ -47,9 +47,6 @@ class DataConfig:
     # keyed by a content hash. Acts as a per-symbol checkpoint — completed symbols
     # are skipped on restart. Set to None to disable.
     feature_cache_dir: str | None = ".cache/feature_transformation"
-    # Whether to use the joblib cache for raw data loading.
-    # Disabled by default: parquet loads are fast and the feature cache makes this redundant.
-    use_load_cache: bool = False
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0

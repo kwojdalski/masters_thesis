@@ -14,7 +14,6 @@ data:
   lazy_load: true
   prepared_data_dir: ./data/prepared/pooled_aapl_msft_tsla_nvda
   memmap_dir: ./data/memmap/pooled_aapl_msft_tsla_nvda
-  use_load_cache: false
   feature_cache_dir: ".cache/feature_transformation"
 env:
   name: TRADINGENV_PPO_POOLED_HFT_STATE_SPACE_STREAMING
