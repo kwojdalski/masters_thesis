@@ -136,25 +136,25 @@ $$
 $$ {#eq-welford-mean}
 
 $$
-s_t^2 = s_{t-1}^2 + \frac{1}{t}\bigl[(x_t - \bar{x}_{t-1})^2 - s_{t-1}^2\bigr]
+\sigma_t^2 = \sigma_{t-1}^2 + \frac{1}{t}\bigl[(x_t - \bar{x}_{t-1})^2 - \sigma_{t-1}^2\bigr]
 $$ {#eq-welford-var}
 
 where:
 
 - $\bar{x}_t$ — running mean after observing $t$ values
-- $s_t^2$ — running variance after observing $t$ values
+- $\sigma_t^2$ — running variance after observing $t$ values
 - $x_t$ — current observation
 - $\bar{x}_{t-1}$ — mean from the previous step
 
 The normalized value at timestep $t$ is then computed from the cumulative statistics available after observing the current feature value:
 
 $$
-\tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{s_t^2 + \varepsilon}}
+\tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{\sigma_t^2 + \varepsilon}}
 $$ {#eq-running-normalize}
 
 where:
 
-- $\bar{x}_t$ and $s_t^2$ — defined by @eq-welford-mean and @eq-welford-var
+- $\bar{x}_t$ and $\sigma_t^2$ — defined by @eq-welford-mean and @eq-welford-var
 - $\varepsilon > 0$ — small constant (here $10^{-4}$) added to the denominator for numerical stability when variance is near zero
 
 This single-feature presentation corresponds to $\mu_{i,t}$ and $\sigma_{i,t}^2$ in the multi-feature formulation of @eq-z-score, with the feature index $i$ suppressed here for clarity.
