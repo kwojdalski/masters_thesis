@@ -239,12 +239,19 @@ def evaluate_split(
     MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
 
     if config.statistical_testing.enabled:
-        run_statistical_tests_for_split(
-            trainer=trainer,
-            split_ctx=split_ctx,
-            config=config,
-            logger=logger,
-        )
+        try:
+            run_statistical_tests_for_split(
+                trainer=trainer,
+                split_ctx=split_ctx,
+                config=config,
+                logger=logger,
+            )
+        except KeyboardInterrupt:
+            logger.warning(
+                "Statistical tests interrupted for %s split. "
+                "Returning main evaluation results without statistical tests...",
+                split
+            )
 
     return SplitEvaluationResult(
         final_reward=split_final_reward,
