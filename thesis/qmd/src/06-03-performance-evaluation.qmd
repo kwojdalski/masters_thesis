@@ -38,6 +38,7 @@ finished = snapshot.latest_finished
 ```
 
 ```{python}
+#| label: key_metrics_data
 #| echo: false
 
 # Try real data first
@@ -74,6 +75,7 @@ display_table(key_metrics_df)
 The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
 
 ```{python}
+#| label: benchmark_data
 #| echo: false
 
 # Try real data first
