@@ -28,7 +28,7 @@ $M_t = \tfrac{1}{2}(P^{bid}_0+P^{ask}_0)$: mid-price;
 $S_t = P^{ask}_0-P^{bid}_0$: spread;
 $\Delta V^{bid}_t = V^{bid}_{0,t}-V^{bid}_{0,t-1}$, $\Delta V^{ask}_t = V^{ask}_{0,t}-V^{ask}_{0,t-1}$: tick-to-tick volume change;
 $W$: rolling window in events;
-$\Sigma_W\,x_t = \sum_{\tau=t-W+1}^{t} x_\tau$: rolling sum;
+$\sum_W\,x_t = \sum_{\tau=t-W+1}^{t} x_\tau$: rolling sum;
 $\bar{x}_W$: rolling mean over $W$ events;
 $V^B_W$, $V^S_W$: rolling buy/sell volume over $W$ events;
 $L$: odd-lot size threshold (100 shares);
@@ -69,17 +69,17 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_bid\_slope} & Spread/cost & $(P^{bid}_0-P^{bid}_4)\,/\,\sum_{i<5}V^{bid}_i$ & 5 levels & $\checkmark$ & Bouchaud et al.\ (2002); Kyle (1985) \\
 \texttt{hft\_ask\_slope} & Spread/cost & $(P^{ask}_4-P^{ask}_0)\,/\,\sum_{i<5}V^{ask}_i$ & 5 levels & $\checkmark$ & Bouchaud et al.\ (2002); Kyle (1985) \\
 \texttt{hft\_ofi} & Order flow & $\Delta V^{bid}_t\cdot\mathbf{1}[P^{bid}_{0,t}\geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t\cdot\mathbf{1}[P^{ask}_{0,t}\leq P^{ask}_{0,t-1}]$ & --- & $\checkmark$ & Cont et al.\ (2014) \\
-\texttt{hft\_ofi\_rolling} & Order flow & $\Sigma_W\,\mathrm{OFI}_t$ & $W=50$ & $W=50$ & Cont et al.\ (2014) \\
+\texttt{hft\_ofi\_rolling} & Order flow & $\sum_W\,\mathrm{OFI}_t$ & $W=50$ & $W=50$ & Cont et al.\ (2014) \\
 \texttt{hft\_ofi\_multilevel} & Order flow & $\sum_{i<N}\mathrm{OFI}^{(i)}_t$ (event classification at each level $i$) & $N\in\{3,5\}$ & & Cont et al.\ (2014) \\
 \texttt{hft\_bid\_queue\_depletion} & Order flow & $\max(V^{bid}_{0,t-1}-V^{bid}_{0,t},\,0)\,/\,V^{bid}_{0,t-1}$ & bid & $\checkmark$ & Foucault et al.\ (2005) \\
 \texttt{hft\_ask\_queue\_depletion} & Order flow & $\max(V^{ask}_{0,t-1}-V^{ask}_{0,t},\,0)\,/\,V^{ask}_{0,t-1}$ & ask & $\checkmark$ & Foucault et al.\ (2005) \\
-\texttt{hft\_signed\_trade\_flow} & Order flow & $\Sigma_W\,\mathrm{size}_\tau\cdot(\mathbf{1}[\mathrm{side}_\tau=\mathrm{B}]-\mathbf{1}[\mathrm{side}_\tau=\mathrm{A}])$ & $W=50$ & $W=50$ & Lee \& Ready (1991) \\
-\texttt{hft\_odd\_lot\_trade\_ratio} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}<L]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & $\checkmark$ & Boehmer et al.\ (2021) \\
+\texttt{hft\_signed\_trade\_flow} & Order flow & $\sum_W\,\mathrm{size}_\tau\cdot(\mathbf{1}[\mathrm{side}_\tau=\mathrm{B}]-\mathbf{1}[\mathrm{side}_\tau=\mathrm{A}])$ & $W=50$ & $W=50$ & Lee \& Ready (1991) \\
+\texttt{hft\_odd\_lot\_trade\_ratio} & Order flow & $\sum_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}<L]\,/\,\sum_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & $\checkmark$ & Boehmer et al.\ (2021) \\
 \texttt{hft\_odd\_lot\_imbalance} & Order flow & $(V^{B,\mathrm{odd}}_W-V^{S,\mathrm{odd}}_W)/(V^{B,\mathrm{odd}}_W+V^{S,\mathrm{odd}}_W)$; size $<L$ & $W=200$ & $\checkmark$ & Boehmer et al.\ (2021) \\
 \texttt{hft\_vpin} & Order flow & $|V^B_W-V^S_W|\,/\,(V^B_W+V^S_W)$ & $W\in\{100,500\}$ & & Easley et al.\ (2012) \\
-\texttt{hft\_cancel\_to\_trade} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{action}=\mathrm{C}]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{action}=\mathrm{T}]$ & $W\in\{200,1000\}$ & & Foucault et al.\ (2005) \\
-\texttt{hft\_trade\_arrival\_rate} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{action}=\mathrm{T}]$ & $W\in\{100,500\}$ & & Engle (2000) \\
-\texttt{hft\_large\_trade\_ratio} & Order flow & $\Sigma_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}\geq Q]\,/\,\Sigma_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & & --- \\
+\texttt{hft\_cancel\_to\_trade} & Order flow & $\sum_W\,\mathbf{1}[\mathrm{action}=\mathrm{C}]\,/\,\sum_W\,\mathbf{1}[\mathrm{action}=\mathrm{T}]$ & $W\in\{200,1000\}$ & & Foucault et al.\ (2005) \\
+\texttt{hft\_trade\_arrival\_rate} & Order flow & $\sum_W\,\mathbf{1}[\mathrm{action}=\mathrm{T}]$ & $W\in\{100,500\}$ & & Engle (2000) \\
+\texttt{hft\_large\_trade\_ratio} & Order flow & $\sum_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}\geq Q]\,/\,\sum_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & & --- \\
 \texttt{hft\_ofi\_autocorr} & Order flow & $\hat{\rho}(\mathrm{OFI}_{t-W:t},\,\mathrm{lag}=1)$ & $W\in\{50,200\}$ & & Cont et al.\ (2014) \\
 \texttt{hft\_inter\_event\_time} & Regime/temp. & $\log(1+\Delta t_{\mathrm{ns}})$ & --- & $\checkmark$ & Engle (2000) \\
 \texttt{hft\_mid\_price\_acceleration} & Regime/temp. & $M_t-2M_{t-1}+M_{t-2}$ & --- & $\checkmark$ & Abergel et al.\ (2016) \\
