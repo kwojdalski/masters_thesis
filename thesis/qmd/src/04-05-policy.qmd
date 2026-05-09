@@ -48,18 +48,7 @@ The actor network contains approximately 11,800 trainable parameters:
 
 : Actor network architecture ($d=26$ input features). {#tbl-actor-arch}
 
-**Exploration.** Because the policy is deterministic, it does not generate action diversity on its own. During data collection, additive Gaussian noise is injected into the policy output and the result is clipped to the action bounds:
-
-$$a_t^{\text{train}} = \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right),
-\qquad \epsilon \sim \mathcal{N}(0,\, \sigma^2), \quad \sigma = 0.1$$
-
-where:
-
-- $\mu_\phi(s_t)$ — deterministic policy output
-- $\epsilon \sim \mathcal{N}(0, \sigma^2)$ — Gaussian exploration noise with $\sigma = 0.1$
-- $\operatorname{clip}(\cdot, -1, 1)$ — projects the perturbed action back into the valid action space
-
-The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\phi(s_t)$. The specific exploration formulations for DDPG and TD3 are given in @eq-ddpg-exploration and @eq-td3-exploration.
+**Exploration.** Because deterministic policies do not generate action diversity on their own, DDPG and TD3 inject additive Gaussian noise during data collection and clip the perturbed action to the valid interval. The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\phi(s_t)$. The specific exploration formulations for DDPG and TD3 are given in @eq-ddpg-exploration and @eq-td3-exploration.
 
 **Deterministic Policy: DDPG {#sec-policy-deterministic}**
 
