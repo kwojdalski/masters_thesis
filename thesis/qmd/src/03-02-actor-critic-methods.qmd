@@ -215,7 +215,7 @@ policy gradient, breaking the feedback loop between an unstable critic and an
 erroneous actor update.
 
 **Target policy smoothing.** When computing Bellman targets, noise is added to
-the target action $\tilde{a}' = \mu_{\phi'}(s') + \epsilon$, with $\epsilon$
+the target action $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon$, with $\epsilon$
 clipped to a small interval. This prevents the critics from fitting sharp value
 peaks caused by function approximation, acting as a regularizer on the value
 landscape.

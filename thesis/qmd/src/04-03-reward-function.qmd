@@ -90,7 +90,8 @@ where:
 - $(B_{t-1} - A_{t-1}^2)^{3/2}$ — running variance raised to the power $3/2$, stabilized by a small constant $\epsilon$ in the implementation
 
 This replaces the simple log-return in @eq-log-return-reward with a
-risk-adjusted measure that penalizes volatility. The DSR reward signal
+risk-adjusted measure that penalizes volatility. When DSR training is
+active, $r_t \coloneqq D_t$ in @eq-rl-objective. The DSR reward signal
 addresses the high-variance problem that affects raw returns, though it
 does not eliminate the noise concerns at tick frequency.
 
