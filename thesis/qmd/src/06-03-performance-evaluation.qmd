@@ -39,8 +39,6 @@ finished = snapshot.latest_finished
 
 ```{python}
 #| echo: false
-#| label: tbl-key-metrics
-#| tbl-cap: "Trading Strategy Performance Metrics"
 
 # Try real data first
 key_metrics_df = None
@@ -49,9 +47,8 @@ if finished is not None:
     if key_metrics_df.empty:
         key_metrics_df = None
 
-# Fall back to mock data matching format_key_metrics() schema
 if key_metrics_df is None or key_metrics_df.empty:
-    print("Placeholder values shown — run full experiment pipeline to populate.\n")
+    print("Placeholder values shown — run full experiment pipeline to populate.")
     key_metrics_df = pd.DataFrame([
         ("Total Return", "0.28%"),
         ("CAGR", "22.36%"),
@@ -64,6 +61,12 @@ if key_metrics_df is None or key_metrics_df.empty:
         ("VaR (95%)", "-0.0021"),
         ("CVaR (95%)", "-0.0034"),
     ], columns=["Metric", "Value"])
+```
+
+```{python}
+#| echo: false
+#| label: tbl-key-metrics
+#| tbl-cap: "Trading Strategy Performance Metrics"
 
 display_table(key_metrics_df)
 ```
@@ -72,8 +75,6 @@ The TD3 agent is evaluated against five benchmark strategies spanning passive ex
 
 ```{python}
 #| echo: false
-#| label: tbl-benchmark-comparison
-#| tbl-cap: "Benchmark Strategy Performance Comparison"
 
 # Try real data first
 benchmark_df = None
@@ -82,9 +83,8 @@ if finished is not None:
     if benchmark_df.empty:
         benchmark_df = None
 
-# Fall back to mock data matching benchmark_comparison_table schema
 if benchmark_df is None or benchmark_df.empty:
-    print("Placeholder values shown — run full experiment pipeline to populate.\n")
+    print("Placeholder values shown — run full experiment pipeline to populate.")
     benchmark_df = pd.DataFrame([
         ("TD3 Agent", "0.28%", "22.36%", "12.34%", "1.8234", "2.4123", "-0.16%", "56.21%", "0.6400"),
         ("Buy & Hold", "-0.12%", "-9.80%", "14.40%", "-0.6800", "-0.8100", "-0.34%", "N/A", "0.0000"),
@@ -103,6 +103,12 @@ if benchmark_df is None or benchmark_df.empty:
         "Win Rate",
         "Turnover",
     ])
+```
+
+```{python}
+#| echo: false
+#| label: tbl-benchmark-comparison
+#| tbl-cap: "Benchmark Strategy Performance Comparison"
 
 display_table(benchmark_df)
 ```
