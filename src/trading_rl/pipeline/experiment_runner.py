@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -160,7 +161,14 @@ def execute_single_experiment(
         checkpoint_path=checkpoint_path,
     )
 
-    split_results = evaluate_all_splits(
+    split_results = {}
+    primary_split = None
+    final_reward = float("nan")
+    last_positions = []
+    evaluation_report = {}
+
+    try:
+        split_results = evaluate_all_splits(
         trainer=trainer,
         train_df=prepared_dataset.train_df,
         val_df=prepared_dataset.val_df,
@@ -204,6 +212,37 @@ def execute_single_experiment(
         final_metrics=final_metrics,
         mlflow_callback=runtime.training_bundle.mlflow_callback,
     )
+    except KeyboardInterrupt:
+        logger.warning(
+            "Evaluation interrupted by user. Using partial evaluation results..."
+        )
+        # Use whatever evaluation results were collected before interruption
+        if split_results:
+            primary_split, final_reward, last_positions, evaluation_report = (
+                resolve_primary_split_result(split_results)
+            )
+        final_metrics = build_final_metrics(
+            config=config,
+            effective_experiment_name=runtime.effective_experiment_name,
+            interrupted=True,
+            logs=training_result.logs,
+            train_df=prepared_dataset.train_df,
+            val_df=prepared_dataset.val_df,
+            test_df=prepared_dataset.test_df,
+            n_obs=runtime.training_bundle.n_obs,
+            n_act=runtime.training_bundle.n_act,
+            primary_split=primary_split,
+            final_reward=final_reward,
+            last_positions=last_positions,
+            evaluation_report=evaluation_report,
+            split_results=split_results,
+        )
+        log_final_metrics(
+            logs=training_result.logs,
+            final_metrics=final_metrics,
+            mlflow_callback=runtime.training_bundle.mlflow_callback,
+        )
+        logger.info("evaluation interrupted results_saved")
 
     if training_result.interrupted:
         logger.info("training interrupted final_eval=complete")
