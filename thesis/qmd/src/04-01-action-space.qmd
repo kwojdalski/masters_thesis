@@ -50,7 +50,7 @@ This cost term appears in the reward function as the penalty $c \cdot |a_t - a_{
 
 During training, exploration is introduced through additive Gaussian noise:
 
-$$a_t^{\text{noisy}} = \text{clip}(a_t + \epsilon, -1.0, 1.0)$$ {#eq-exploration-noise}
+$$a_t^{\text{noisy}} = \text{clip}(a_t + \epsilon, -1, 1)$$ {#eq-exploration-noise}
 
 where:
 

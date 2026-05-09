@@ -46,7 +46,7 @@ expected cumulative reward. The foundational result is due to @Williams1992, who
 introduced REINFORCE, and @Sutton2000, who established the policy gradient
 theorem in the general function approximation setting. The gradient takes the form:
 
-$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t \mid s_t) \cdot G_t\right]$$ {#eq-reinforce-gradient}
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\!\left[\nabla_\theta \log \pi_\theta(a_t \mid s_t) \cdot G_t\right]$$ {#eq-reinforce-gradient}
 
 where:
 
@@ -79,7 +79,7 @@ architecture with deterministic policies and twin critics as described in
 showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow
 \mathcal{A}$ the policy gradient takes the form:^[The original @Silver2014 paper uses $\theta$ for the actor and $w$ for the critic; @Lillicrap2015 uses $\theta^\mu$ and $\theta^Q$. This thesis adopts the @Fujimoto2018 convention throughout — $\phi$ for the actor and $\theta$ for the critic(s) — to maintain consistency with the TD3 equations in Chapter 4.]
 
-$$\nabla_\phi J(\phi) = \mathbb{E}_s\left[\nabla_a Q_\theta(s, a)\big|_{a=\mu_\phi(s)} \cdot \nabla_\phi \mu_\phi(s)\right]$$ {#eq-ddpg-gradient}
+$$\nabla_\phi J(\phi) = \mathbb{E}_s\!\left[\nabla_a Q_\theta(s, a)\big|_{a=\mu_\phi(s)} \cdot \nabla_\phi \mu_\phi(s)\right]$$ {#eq-ddpg-gradient}
 
 where:
 
@@ -125,7 +125,7 @@ weakly informative.
 algorithm that balances the size of each policy update against training
 stability. PPO optimizes a clipped surrogate objective:
 
-$$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(\rho_t(\theta)\hat{A}_t,
+$$L^{CLIP}(\theta) = \mathbb{E}_t\!\left[\min\left(\rho_t(\theta)\hat{A}_t,
 \text{clip}(\rho_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$$ {#eq-ppo-clip}
 
 where:
