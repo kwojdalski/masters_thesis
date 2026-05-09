@@ -498,6 +498,13 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
         )
 
     data_paths = getattr(config.data, "data_paths", None)
+    if data_paths and len(data_paths) > 1 and not memmap_dir:
+        raise ValueError(
+            f"Multi-symbol pooled training requires data.memmap_dir to be set. "
+            f"Got {len(data_paths)} symbols in data.data_paths but memmap_dir is not configured. "
+            "Use the pooled_streaming scenario configs (e.g. pooled/td3_hft_lob_state_space_pooled_streaming) "
+            "which set memmap_dir and use StreamingTradingEnvXY for correct per-symbol episode resets."
+        )
     if data_paths:
         train_df, val_df, test_df, memmap_paths = _build_pooled_splits(
             config, logger, data_paths, memmap_dir
