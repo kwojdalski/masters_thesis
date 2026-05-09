@@ -169,49 +169,49 @@ def execute_single_experiment(
 
     try:
         split_results = evaluate_all_splits(
-        trainer=trainer,
-        train_df=prepared_dataset.train_df,
-        val_df=prepared_dataset.val_df,
-        test_df=prepared_dataset.test_df,
-        config=config,
-        algorithm=runtime.training_bundle.algorithm,
-        logs=training_result.logs,
-        logger=logger,
-    )
-    primary_split, final_reward, last_positions, evaluation_report = (
-        resolve_primary_split_result(split_results)
-    )
-    run_primary_split_explainability(
-        primary_split=primary_split,
-        trainer=trainer,
-        train_df=prepared_dataset.train_df,
-        val_df=prepared_dataset.val_df,
-        test_df=prepared_dataset.test_df,
-        config=config,
-        logger=logger,
-    )
+            trainer=trainer,
+            train_df=prepared_dataset.train_df,
+            val_df=prepared_dataset.val_df,
+            test_df=prepared_dataset.test_df,
+            config=config,
+            algorithm=runtime.training_bundle.algorithm,
+            logs=training_result.logs,
+            logger=logger,
+        )
+        primary_split, final_reward, last_positions, evaluation_report = (
+            resolve_primary_split_result(split_results)
+        )
+        run_primary_split_explainability(
+            primary_split=primary_split,
+            trainer=trainer,
+            train_df=prepared_dataset.train_df,
+            val_df=prepared_dataset.val_df,
+            test_df=prepared_dataset.test_df,
+            config=config,
+            logger=logger,
+        )
 
-    final_metrics = build_final_metrics(
-        config=config,
-        effective_experiment_name=runtime.effective_experiment_name,
-        interrupted=training_result.interrupted,
-        logs=training_result.logs,
-        train_df=prepared_dataset.train_df,
-        val_df=prepared_dataset.val_df,
-        test_df=prepared_dataset.test_df,
-        n_obs=runtime.training_bundle.n_obs,
-        n_act=runtime.training_bundle.n_act,
-        primary_split=primary_split,
-        final_reward=final_reward,
-        last_positions=last_positions,
-        evaluation_report=evaluation_report,
-        split_results=split_results,
-    )
-    log_final_metrics(
-        logs=training_result.logs,
-        final_metrics=final_metrics,
-        mlflow_callback=runtime.training_bundle.mlflow_callback,
-    )
+        final_metrics = build_final_metrics(
+            config=config,
+            effective_experiment_name=runtime.effective_experiment_name,
+            interrupted=training_result.interrupted,
+            logs=training_result.logs,
+            train_df=prepared_dataset.train_df,
+            val_df=prepared_dataset.val_df,
+            test_df=prepared_dataset.test_df,
+            n_obs=runtime.training_bundle.n_obs,
+            n_act=runtime.training_bundle.n_act,
+            primary_split=primary_split,
+            final_reward=final_reward,
+            last_positions=last_positions,
+            evaluation_report=evaluation_report,
+            split_results=split_results,
+        )
+        log_final_metrics(
+            logs=training_result.logs,
+            final_metrics=final_metrics,
+            mlflow_callback=runtime.training_bundle.mlflow_callback,
+        )
     except KeyboardInterrupt:
         logger.warning(
             "Evaluation interrupted by user. Using partial evaluation results..."
