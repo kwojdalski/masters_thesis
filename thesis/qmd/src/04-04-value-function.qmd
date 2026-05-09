@@ -56,7 +56,13 @@ not directly to the policy gradient.
 
 The critics are trained with Smooth L1 (Huber) loss rather than MSE:
 
-$$\mathcal{L}(\delta) = \begin{cases} 0.5\,\delta^2 & |\delta| \leq 1 \\ |\delta| - 0.5 & \text{otherwise} \end{cases}$$ {#eq-huber-loss}
+$$
+\mathcal{L}(\delta) =
+\begin{cases}
+0.5\,\delta^2, & |\delta| \leq 1, \\
+|\delta| - 0.5, & \text{otherwise}.
+\end{cases}
+$$ {#eq-huber-loss}
 
 where:
 
