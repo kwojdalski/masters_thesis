@@ -10,7 +10,7 @@ corresponds to a short intraday interval — this horizon covers a meaningful
 window of market activity without extending so far that value estimates
 accumulate excessive variance from stochastic rewards.
 
-$\gamma = 0.99$ is held constant across all experiments to isolate the effect
+$\gamma = 0.995$ is held constant across all experiments to isolate the effect
 of other design choices (state representation, reward function). Sensitivity
 to $\gamma$ is a natural direction for future work, particularly whether lower
 values (0.9–0.95) improve performance in choppy, mean-reverting regimes.

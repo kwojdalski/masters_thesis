@@ -46,7 +46,7 @@ expected cumulative reward. The foundational result is due to @Williams1992, who
 introduced REINFORCE, and @Sutton2000, who established the policy gradient
 theorem in the general function approximation setting. The gradient takes the form:
 
-$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t | s_t) \cdot G_t\right]$$ {#eq-reinforce-gradient}
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t \mid s_t) \cdot G_t\right]$$ {#eq-reinforce-gradient}
 
 where:
 
@@ -97,7 +97,7 @@ rather than a distribution. TD3 uses this gradient form as shown in
 which applied the DPG theorem to deep neural network function approximators,
 replacing the tabular actor and critic used by @Silver2014 with multi-layer
 networks. Rather than sampling an action from a distribution, the actor
-outputs a single action $\mu_\theta(s)$ directly, making the gradient
+outputs a single action $\mu_\phi(s)$ directly, making the gradient
 computation tractable over a continuous action space without the intractable
 $\arg\max$ required by value-based methods.
 
@@ -130,7 +130,7 @@ $$L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(\rho_t(\theta)\hat{A}_t,
 
 where:
 
-- $\rho_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ — probability ratio between the updated and old policies^[@Schulman2017 uses $r_t(\theta)$ for this ratio, but that symbol is reserved throughout this thesis for the RL reward signal. $\rho_t(\theta)$ is used here to avoid the conflict.]
+- $\rho_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)}$ — probability ratio between the updated and old policies^[@Schulman2017 uses $r_t(\theta)$ for this ratio, but that symbol is reserved throughout this thesis for the RL reward signal. $\rho_t(\theta)$ is used here to avoid the conflict.]
 - $\hat{A}_t$ — advantage estimate
 - $\epsilon$ — clipping hyperparameter (typically 0.2) limiting how far the new policy may deviate from the old one in a single update
 
@@ -327,9 +327,9 @@ on-policy learning can be more stable when the environment distribution shifts
 rapidly, as financial markets do.
 
 **Deterministic vs. stochastic policies.** DDPG and TD3 output deterministic
-actions $a = \mu_\theta(s)$, matching the evaluation objective of a single
+actions $a = \mu_\phi(s)$, matching the evaluation objective of a single
 exposure decision per state. During training, exploration is handled by adding
-noise to the deterministic action: $a = \mu_\theta(s) + \epsilon$, with
+noise to the deterministic action: $a = \mu_\phi(s) + \epsilon$, with
 $\epsilon \sim \mathcal{N}(0, \sigma^2)$. At evaluation time, the noise is removed,
 yielding a consistent, interpretable policy. PPO maintains a stochastic policy
 that outputs a distribution over actions (typically Gaussian), with actions
