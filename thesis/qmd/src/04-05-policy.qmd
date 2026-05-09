@@ -146,8 +146,8 @@ $$s_t \in \mathbb{R}^{26}
   \xrightarrow{\text{Linear}} \mathbb{R}^{128}
   \xrightarrow{\text{Tanh}} \mathbb{R}^{64}
   \xrightarrow{\text{Tanh}} \mathbb{R}^{2}
-  \xrightarrow{\text{split}} (\mu,\, \log\sigma)
-  \longrightarrow \text{TanhNormal}(\mu, \sigma)$$ {#eq-ppo-actor-network}
+  \xrightarrow{\text{split}} (\mu_\theta(s_t),\, \log\sigma_\theta(s_t))
+  \longrightarrow \text{TanhNormal}(\mu_\theta(s_t), \sigma_\theta(s_t))$$ {#eq-ppo-actor-network}
 
 The PPO actor uses Tanh activations in the hidden layers, following standard practice
 for actors with stochastic output heads where bounded hidden representations improve
