@@ -239,6 +239,7 @@ entropy bonuses rather than explicit noise injection.
 The notation follows the conventions established in Chapter 3:
 
 **For DDPG and TD3:**
+
 - $\mu_\phi$ is the deterministic actor
 - $Q_\theta$ (DDPG) and $Q_{\theta_1}$, $Q_{\theta_2}$ (TD3) are the critic networks
 - Primed symbols denote slowly updated target networks
@@ -247,6 +248,7 @@ The notation follows the conventions established in Chapter 3:
 - $\tau$ is the soft-update coefficient
 
 **For PPO:**
+
 - $\pi_\theta$ is the stochastic actor (TanhNormal distribution)
 - $V_\phi$ is the state value network
 - $\hat{A}_t$ are GAE advantage estimates
@@ -256,6 +258,7 @@ The notation follows the conventions established in Chapter 3:
 - $K$ is the number of PPO epochs per batch
 
 **Common to all algorithms:**
+
 - $\gamma$ is the discount factor
 - $\alpha$ is the learning rate
 
