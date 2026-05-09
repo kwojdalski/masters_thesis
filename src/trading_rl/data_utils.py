@@ -668,7 +668,8 @@ def prepare_data(
         " test_n_rows=%d test_n_cols=%d",
         *train_df.shape, *val_df.shape, *test_df.shape,
     )
-    logger.info("feature columns cols=%s", list(train_features.columns))
+    feature_cols = [c for c in train_df.columns if str(c).startswith("feature_")]
+    logger.info("feature columns cols=%s", feature_cols)
 
     if _cache_entry is not None:
         _cache_entry.mkdir(parents=True, exist_ok=True)
