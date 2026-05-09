@@ -176,7 +176,7 @@ TanhNormal distribution, which is $\tanh(\mu_\theta(s_t))$. This yields a determ
 action for each state, directly comparable to the DDPG and TD3 evaluation policies.
 
 **Value network.** Unlike DDPG and TD3, whose critics estimate $Q(s, a)$, PPO's critic
-estimates the state value $V(s)$. The input is therefore the state vector alone (26
+estimates the state value $V_\phi(s)$.^[In the PPO context, $\phi$ parameterises the value network $V_\phi$, whereas for DDPG and TD3 it parameterises the actor $\mu_\phi$. The PPO actor is parameterised by $\theta$ throughout.] The input is therefore the state vector alone (26
 dimensions), not the state-action concatenation. The critic architecture is otherwise
 identical: two hidden layers of width [128, 64] with Tanh activations, followed by a
 linear output layer producing a scalar value estimate.
