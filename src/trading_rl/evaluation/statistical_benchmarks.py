@@ -172,6 +172,7 @@ def compute_random_baseline_returns(
     seed: int | None = None,
 ) -> list[np.ndarray]:
     """Generate random action baseline returns via Monte Carlo sampling."""
+    import signal
     import torch
     from tensordict.nn import InteractionType
     from torchrl.envs.utils import set_exploration_type
@@ -180,17 +181,29 @@ def compute_random_baseline_returns(
         np.random.seed(seed)
         torch.manual_seed(seed)
 
-    random_returns = []
-    for trial in range(n_trials):
-        env.set_seed(seed + trial if seed is not None else None)
-        with torch.no_grad():
-            with set_exploration_type(InteractionType.RANDOM):
-                rollout = env.rollout(max_steps=max_steps)
-        rewards = (
-            rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
-        )
-        random_returns.append(np.exp(rewards) - 1.0)
-    return random_returns
+    # Set up signal handler for interrupting long-running random baseline computation
+    original_sigint_handler = signal.getsignal(signal.SIGINT)
+
+    def signal_handler(sig, frame):
+        signal.signal(signal.SIGINT, original_sigint_handler)
+        raise KeyboardInterrupt()
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        random_returns = []
+        for trial in range(n_trials):
+            env.set_seed(seed + trial if seed is not None else None)
+            with torch.no_grad():
+                with set_exploration_type(InteractionType.RANDOM):
+                    rollout = env.rollout(max_steps=max_steps)
+            rewards = (
+                rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
+            )
+            random_returns.append(np.exp(rewards) - 1.0)
+        return random_returns
+    finally:
+        signal.signal(signal.SIGINT, original_sigint_handler)
 
 
 def summarize_random_baseline_trials(
