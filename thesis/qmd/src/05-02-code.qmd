@@ -86,10 +86,10 @@ entropy bonuses rather than explicit noise injection.
        replay buffer $\mathcal{D}$
 
 \For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \text{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
+    \State $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
     \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
     \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
-    \State Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\phi'}(s') + \text{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}^2),\, \pm c\right)$
+    \State Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\phi'}(s') + \operatorname{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}^2),\, \pm c\right)$
     \State Compute Bellman target: $y \leftarrow r + \gamma \cdot \min_{i=1,2} Q_{\theta_i'}(s',\, \tilde{a}')$
     \State Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_{\theta_i}(s, a)\right)$
     \If{$t \bmod \texttt{policy\_delay} = 0$}
@@ -143,7 +143,7 @@ entropy bonuses rather than explicit noise injection.
        replay buffer $\mathcal{D}$
 
 \For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \text{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
+    \State $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
     \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
     \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
     \State Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
@@ -197,7 +197,7 @@ entropy bonuses rather than explicit noise injection.
     \For{each PPO epoch $j = 1, \ldots, K$}
         \State Sample mini-batch $\mathcal{B} \sim \mathcal{T}_k$
         \State Compute probability ratio: $\rho_t(\theta) \leftarrow \pi_\theta(a_t \mid s_t) / \pi_{\theta_{\text{old}}}(a_t \mid s_t)$
-        \State Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(\rho_t \hat{A}_t,\; \text{clip}(\rho_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
+        \State Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(\rho_t \hat{A}_t,\; \operatorname{clip}(\rho_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
         \State Compute value loss: $\mathcal{L}^{V} \leftarrow \mathcal{L}_{\text{L2}}\!\left(V_\phi(s) - V^{\text{target}}\right)$
         \State Compute entropy bonus: $\mathcal{L}^{H} \leftarrow c_1 \mathcal{H}(\pi_\theta(\cdot \mid s))$
         \State Update $\theta$, $\phi$ jointly: minimise $-\mathcal{L}^{\text{CLIP}} + c_2 \mathcal{L}^{V} - \mathcal{L}^{H}$
