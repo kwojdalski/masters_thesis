@@ -44,7 +44,7 @@ def build_evaluation_context_for_split(
         df: DataFrame for this split.
         config: Experiment configuration.
     """
-    eval_env = AlgorithmicEnvironmentBuilder().create(df, config)
+    eval_env = AlgorithmicEnvironmentBuilder().create(df, config, use_memmap=False)
     eval_max_steps = min(config.training.eval_steps, len(df) - 1)
     return EvaluationContext(
         split=split,

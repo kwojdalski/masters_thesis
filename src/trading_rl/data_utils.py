@@ -279,6 +279,174 @@ def _parquet_cache_exists(prepared_dir: Path) -> bool:
     )
 
 
+def _prepared_cache_metadata_path(prepared_dir: Path) -> Path:
+    return prepared_dir / "_prepared_cache_metadata.json"
+
+
+def _data_source_signature(config: Any) -> list[dict[str, Any]]:
+    paths = config.data.data_paths or [config.data.data_path]
+    signature = []
+    for path_value in paths:
+        path = Path(path_value)
+        stat = path.stat() if path.exists() else None
+        signature.append(
+            {
+                "path": str(path),
+                "mtime_ns": stat.st_mtime_ns if stat else None,
+                "size": stat.st_size if stat else None,
+            }
+        )
+    return signature
+
+
+def _config_cache_signature(config: Any) -> dict[str, Any]:
+    feature_config = getattr(config.data, "feature_config", None)
+    feature_groups = getattr(config.data, "feature_groups", None)
+
+    def _file_hash(path_value: str | None) -> str | None:
+        if not path_value:
+            return None
+        path = Path(path_value)
+        if not path.exists():
+            return None
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    return {
+        "version": 1,
+        "data_sources": _data_source_signature(config),
+        "train_size": getattr(config.data, "train_size", None),
+        "validation_size": getattr(config.data, "validation_size", None),
+        "test_size": getattr(config.data, "test_size", None),
+        "feature_config": feature_config,
+        "feature_config_hash": _file_hash(feature_config),
+        "feature_groups": feature_groups,
+        "feature_groups_hash": _file_hash(feature_groups),
+        "env_mode": getattr(config.env, "mode", None),
+        "env_backend": getattr(config.env, "backend", None),
+        "price_column": getattr(config.env, "price_column", None),
+        "feature_columns": getattr(config.env, "feature_columns", None),
+        "include_position_feature": getattr(config.env, "include_position_feature", None),
+    }
+
+
+def _expected_cached_split_rows(config: Any, memmap_dir: Path | None) -> dict[str, int | None]:
+    data_paths = getattr(config.data, "data_paths", None) or []
+    n_symbols = len(data_paths) if data_paths else 1
+    train_rows = getattr(config.data, "train_size", None)
+    validation_size = getattr(config.data, "validation_size", None)
+    test_size = getattr(config.data, "test_size", None)
+    return {
+        "train": train_rows,
+        "val": validation_size * n_symbols if validation_size is not None else None,
+        "test": test_size * n_symbols if test_size is not None else None,
+    }
+
+
+def _cached_split_rows(prepared_dir: Path) -> dict[str, int]:
+    rows = {}
+    for split in ["train", "val", "test"]:
+        rows[split] = len(pd.read_parquet(prepared_dir / f"{split}_prepared.parquet"))
+    return rows
+
+
+def _memmap_cache_compatible(
+    config: Any,
+    memmap_dir: Path | None,
+    logger: logging.Logger,
+) -> bool:
+    if not memmap_dir:
+        return True
+    if not memmap_dir.exists():
+        return False
+    paths = load_memmap_paths(memmap_dir)
+    if not paths:
+        return False
+
+    data_paths = getattr(config.data, "data_paths", None) or []
+    expected_count = len(data_paths) if data_paths else 1
+    if len(paths) != expected_count:
+        logger.info(
+            "memmap cache mismatch expected_symbols=%d actual_symbols=%d",
+            expected_count,
+            len(paths),
+        )
+        return False
+
+    expected_train_rows = int(config.data.train_size)
+    bad_rows = [p.n_rows for p in paths if p.n_rows != expected_train_rows]
+    if bad_rows:
+        logger.info(
+            "memmap cache mismatch expected_train_rows=%d actual_rows=%s",
+            expected_train_rows,
+            bad_rows,
+        )
+        return False
+    return True
+
+
+def _prepared_cache_compatible(
+    config: Any,
+    prepared_dir: Path,
+    memmap_dir: Path | None,
+    logger: logging.Logger,
+) -> bool:
+    if not _parquet_cache_exists(prepared_dir):
+        return False
+    if not _memmap_cache_compatible(config, memmap_dir, logger):
+        return False
+
+    metadata_path = _prepared_cache_metadata_path(prepared_dir)
+    expected_signature = _config_cache_signature(config)
+    if metadata_path.exists():
+        try:
+            metadata = json.loads(metadata_path.read_text())
+        except json.JSONDecodeError:
+            logger.info("prepared cache metadata invalid path=%s", metadata_path)
+            return False
+        if metadata.get("config_signature") != expected_signature:
+            logger.info("prepared cache metadata mismatch path=%s", metadata_path)
+            return False
+        return True
+
+    expected_rows = _expected_cached_split_rows(config, memmap_dir)
+    actual_rows = _cached_split_rows(prepared_dir)
+    for split, expected in expected_rows.items():
+        if expected is not None and actual_rows[split] != expected:
+            logger.info(
+                "legacy prepared cache row mismatch split=%s expected=%s actual=%s",
+                split,
+                expected,
+                actual_rows[split],
+            )
+            return False
+
+    logger.info("legacy prepared cache accepted without metadata dir=%s", prepared_dir)
+    return True
+
+
+def _write_prepared_cache_metadata(
+    config: Any,
+    prepared_dir: Path,
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    memmap_paths: list[MemmapPaths] | None,
+) -> None:
+    metadata = {
+        "config_signature": _config_cache_signature(config),
+        "split_rows": {
+            "train": len(train_df),
+            "val": len(val_df),
+            "test": len(test_df),
+        },
+        "memmap_rows": [p.n_rows for p in memmap_paths or []],
+        "memmap_files": [str(p.data_path) for p in memmap_paths or []],
+    }
+    _prepared_cache_metadata_path(prepared_dir).write_text(
+        json.dumps(metadata, indent=2, sort_keys=True)
+    )
+
+
 def _resolve_feature_pipeline(config: Any, logger: logging.Logger) -> Any:
     """Return a FeaturePipeline built from feature_groups YAML, or None."""
     feature_groups = getattr(config.data, "feature_groups", None)
@@ -423,18 +591,28 @@ def _build_pooled_splits(
 
         if memmap_dir:
             memmap_marker = memmap_dir / f"{i}_train_data.npy"
+            expected_columns = list(train_i.select_dtypes(include=[np.number]).columns)
             if memmap_marker.exists():
                 prefix = str(i)
                 cols = json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
                 data = np.load(memmap_marker, mmap_mode="r")
-                collected_memmap_paths.append(
-                    MemmapPaths(
-                        data_path=memmap_marker,
-                        index_path=memmap_dir / f"{prefix}_train_index.npy",
-                        n_rows=data.shape[0],
-                        columns=cols,
+                if data.shape[0] == len(train_i) and cols == expected_columns:
+                    collected_memmap_paths.append(
+                        MemmapPaths(
+                            data_path=memmap_marker,
+                            index_path=memmap_dir / f"{prefix}_train_index.npy",
+                            n_rows=data.shape[0],
+                            columns=cols,
+                        )
                     )
-                )
+                else:
+                    logger.info(
+                        "memmap cache mismatch prefix=%s expected_rows=%d actual_rows=%d",
+                        prefix,
+                        len(train_i),
+                        data.shape[0],
+                    )
+                    collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=prefix))
             else:
                 collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=str(i)))
 
@@ -484,11 +662,14 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
     prepared_dir = Path(d) if (d := getattr(config.data, "prepared_data_dir", None)) else None
     memmap_dir   = Path(d) if (d := getattr(config.data, "memmap_dir", None)) else None
 
-    # Fast path: skip all feature engineering when the parquet cache exists.
-    # Skip if memmap_dir is configured but memmaps are missing — fall through
-    # so _build_pooled_splits regenerates them.
-    memmap_ready = (not memmap_dir) or (memmap_dir.exists() and bool(load_memmap_paths(memmap_dir)))
-    if lazy_load and prepared_dir and _parquet_cache_exists(prepared_dir) and memmap_ready:
+    # Fast path: skip feature engineering only when prepared and memmap caches
+    # match the current split sizes, data sources, and feature config.
+    cache_ready = (
+        lazy_load
+        and prepared_dir
+        and _prepared_cache_compatible(config, prepared_dir, memmap_dir, logger)
+    )
+    if cache_ready:
         logger.info("load prepared splits cache_dir=%s", prepared_dir)
         lazy_splits = load_prepared_splits(prepared_dir)
         memmap_paths = load_memmap_paths(memmap_dir) if memmap_dir and memmap_dir.exists() else None
@@ -517,6 +698,14 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
         logger.info("save prepared splits cache_dir=%s", prepared_dir)
         prepared_dir.mkdir(parents=True, exist_ok=True)
         save_prepared_splits(train_df, val_df, test_df, prepared_dir)
+        _write_prepared_cache_metadata(
+            config,
+            prepared_dir,
+            train_df,
+            val_df,
+            test_df,
+            memmap_paths,
+        )
 
     return _make_dataset(train_df, val_df, test_df, config, memmap_paths)
 
