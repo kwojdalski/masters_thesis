@@ -194,7 +194,7 @@ where:
 - $\gamma$ — discount factor
 - $Q_{\theta_i'}$ — two target critic networks with slowly updated parameters $\theta_i'$
 - $s_{t+1}$ — next state
-- $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon$ — target action with smoothing noise $\epsilon$
+- $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon_{\text{smooth}}$ — target action with smoothing noise $\epsilon_{\text{smooth}}$
 
 This differs from the standard Q-learning target in @eq-qlearning-update
 through two key modifications: (1) the minimum operator over two critics
@@ -214,7 +214,7 @@ policy gradient, breaking the feedback loop between an unstable critic and an
 erroneous actor update.
 
 **Target policy smoothing.** When computing Bellman targets, noise is added to
-the target action $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon$, with $\epsilon$
+the target action $\tilde{a}_{t+1} = \mu_{\phi'}(s_{t+1}) + \epsilon_{\text{smooth}}$, with $\epsilon_{\text{smooth}}$
 clipped to a small interval. This prevents the critics from fitting sharp value
 peaks caused by function approximation, acting as a regularizer on the value
 landscape.
