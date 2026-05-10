@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
 
 import yaml
@@ -25,12 +26,18 @@ class FeatureResearchDataConfig:
     feature_config: str | None = None
 
 
+class TargetType(StrEnum):
+    SHARPE = "sharpe"
+    RETURN = "return"
+
+
 @dataclass
 class FeatureResearchRunConfig:
     """Research procedure settings."""
 
+    target_type: TargetType = TargetType.SHARPE
     horizons: list[int] = field(default_factory=lambda: [10, 50, 200])
-    vol_window: int = 50
+    vol_window: int = 50          # rolling vol window (only used when target_type="sharpe")
     top_k: int = 10
     icir_threshold: float = 0.02
     window_size: int = 1000
@@ -57,6 +64,13 @@ class FeatureResearchConfig:
             )
         if not self.data.feature_config:
             errors.append("data.feature_config must be set")
+        try:
+            TargetType(self.research.target_type)
+        except ValueError:
+            errors.append(
+                f"research.target_type must be one of {[t.value for t in TargetType]}, "
+                f"got '{self.research.target_type}'"
+            )
         if not self.research.horizons or any(h <= 0 for h in self.research.horizons):
             errors.append(
                 f"research.horizons must be a non-empty list of positive ints, got {self.research.horizons}"
@@ -135,6 +149,9 @@ class FeatureResearchConfig:
             if key in research_dict:
                 research_dict[key] = value
 
+        if "target_type" in research_dict:
+            research_dict["target_type"] = TargetType(research_dict["target_type"])
+
         return cls(
             experiment_name=config_dict.get("experiment_name", "feature_research"),
             data=FeatureResearchDataConfig(**data_dict),
@@ -146,22 +163,34 @@ class FeatureResearchConfig:
         cls,
         experiment_config: ExperimentConfig,
         output_dir: str | None = None,
+        overrides: list[str] | None = None,
     ) -> "FeatureResearchConfig":
-        """Derive a feature research config from an experiment scenario."""
+        """Derive a feature research config from an experiment scenario.
+
+        ``overrides`` are OmegaConf dotlist entries (e.g.
+        ``["research.target_type=return", "research.horizons=[10,50]"]``)
+        applied on top of the derived config so CLI flags reach research
+        settings that are not part of the experiment scenario YAML.
+        """
         default_output_dir = output_dir or str(
             Path(experiment_config.logging.log_dir) / "feature_research"
         )
-        return cls.from_dict(
-            {
-                "experiment_name": experiment_config.experiment_name,
-                "data": {
-                    "data_path": experiment_config.data.data_path,
-                    "train_size": experiment_config.data.train_size,
-                    "validation_size": experiment_config.data.validation_size,
-                    "feature_config": experiment_config.data.feature_config,
-                },
-                "research": {
-                    "output_dir": default_output_dir,
-                },
-            }
-        )
+        base_dict: dict = {
+            "experiment_name": experiment_config.experiment_name,
+            "data": {
+                "data_path": experiment_config.data.data_path,
+                "train_size": experiment_config.data.train_size,
+                "validation_size": experiment_config.data.validation_size,
+                "feature_config": experiment_config.data.feature_config,
+            },
+            "research": {
+                "output_dir": default_output_dir,
+            },
+        }
+        if overrides and OmegaConf is not None:
+            cfg = OmegaConf.merge(
+                OmegaConf.create(base_dict),
+                OmegaConf.from_dotlist(overrides),
+            )
+            base_dict = OmegaConf.to_container(cfg, resolve=True)
+        return cls.from_dict(base_dict)

@@ -17,7 +17,7 @@ from sklearn.linear_model import LinearRegression
 
 from logger import get_logger
 from trading_rl.data_utils import load_trading_data
-from trading_rl.feature_research.config import FeatureResearchConfig
+from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
 from trading_rl.features import FeaturePipeline
 
 logger = get_logger(__name__)
@@ -46,6 +46,23 @@ def _resolve_price_series(df: pd.DataFrame) -> pd.Series:
         "Offline feature research requires either 'close' or "
         "'bid_px_00'/'ask_px_00' columns to define proxy targets."
     )
+
+
+def _build_return_target(df: pd.DataFrame, horizon: int) -> pd.Series:
+    """Raw forward log-return proxy target."""
+    price = _resolve_price_series(df)
+    return np.log(price.shift(-horizon) / price).rename(f"target_return_h{horizon}")
+
+
+def _build_target(
+    df: pd.DataFrame, horizon: int, target_type: TargetType, vol_window: int
+) -> pd.Series:
+    """Dispatch to the right target builder based on target_type."""
+    if target_type == TargetType.RETURN:
+        return _build_return_target(df, horizon)
+    if target_type == TargetType.SHARPE:
+        return _build_sharpe_proxy_target(df, horizon, vol_window)
+    raise ValueError(f"Unknown target_type '{target_type}'.")
 
 
 def _build_sharpe_proxy_target(df: pd.DataFrame, horizon: int, vol_window: int) -> pd.Series:
@@ -149,6 +166,7 @@ def _build_score_table(
     horizons: list[int],
     vol_window: int,
     window_size: int,
+    target_type: TargetType = TargetType.SHARPE,
 ) -> pd.DataFrame:
     """Build per-feature IC/ICIR scoring table across multiple Sharpe-proxy horizons.
 
@@ -165,8 +183,8 @@ def _build_score_table(
         best_h = horizons[0]
 
         for h in horizons:
-            train_target = _build_sharpe_proxy_target(train_raw, h, vol_window)
-            val_target = _build_sharpe_proxy_target(val_raw, h, vol_window)
+            train_target = _build_target(train_raw, h, target_type, vol_window)
+            val_target = _build_target(val_raw, h, target_type, vol_window)
 
             # Align feature with target (drop NaNs from vol warm-up + forward shift)
             train_aligned = pd.concat([train_features[feat], train_target], axis=1).dropna()
@@ -346,6 +364,12 @@ def run_feature_research(
         val_df,
         config.data.feature_config,
     )
+    logger.info(
+        "feature scoring target_type=%s horizons=%s vol_window=%d",
+        config.research.target_type,
+        config.research.horizons,
+        config.research.vol_window,
+    )
     scores = _build_score_table(
         train_features,
         val_features,
@@ -354,6 +378,7 @@ def run_feature_research(
         horizons=config.research.horizons,
         vol_window=config.research.vol_window,
         window_size=config.research.window_size,
+        target_type=config.research.target_type,
     )
 
     # Use the dominant horizon (highest mean |ICIR| across features) for
@@ -365,8 +390,8 @@ def run_feature_research(
     )
     logger.info("dominant horizon for redundancy pruning: h=%d", dominant_horizon)
 
-    dom_train_target = _build_sharpe_proxy_target(train_df, dominant_horizon, config.research.vol_window)
-    dom_val_target = _build_sharpe_proxy_target(val_df, dominant_horizon, config.research.vol_window)
+    dom_train_target = _build_target(train_df, dominant_horizon, config.research.target_type, config.research.vol_window)
+    dom_val_target = _build_target(val_df, dominant_horizon, config.research.target_type, config.research.vol_window)
 
     feature_cols = scores["feature"].tolist()
     val_aligned = pd.concat([val_features[feature_cols], dom_val_target], axis=1).dropna()

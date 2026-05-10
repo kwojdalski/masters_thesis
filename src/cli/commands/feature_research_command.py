@@ -109,13 +109,17 @@ class FeatureResearchCommand(BaseCommand):
                 exp_path,
                 overrides=params.config_overrides,
             )
-            return FeatureResearchConfig.from_experiment_config(experiment_config)
+            return FeatureResearchConfig.from_experiment_config(
+                experiment_config, overrides=params.config_overrides
+            )
         if params.scenario:
             scenario_path = self._resolve_scenario_config_path(params.scenario)
             experiment_config = ExperimentConfig.from_yaml(
                 scenario_path, overrides=params.config_overrides
             )
-            return FeatureResearchConfig.from_experiment_config(experiment_config)
+            return FeatureResearchConfig.from_experiment_config(
+                experiment_config, overrides=params.config_overrides
+            )
         raise typer.BadParameter(
             "Provide --config, --experiment-config, or --scenario for feature research."
         )
