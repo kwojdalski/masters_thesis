@@ -406,6 +406,17 @@ def _prepared_cache_compatible(
         if metadata.get("config_signature") != expected_signature:
             logger.info("prepared cache metadata mismatch path=%s", metadata_path)
             return False
+        expected_rows = _expected_cached_split_rows(config, memmap_dir)
+        metadata_rows = metadata.get("split_rows", {})
+        for split, expected in expected_rows.items():
+            if expected is not None and metadata_rows.get(split) != expected:
+                logger.info(
+                    "prepared cache metadata row mismatch split=%s expected=%s actual=%s",
+                    split,
+                    expected,
+                    metadata_rows.get(split),
+                )
+                return False
         return True
 
     expected_rows = _expected_cached_split_rows(config, memmap_dir)
