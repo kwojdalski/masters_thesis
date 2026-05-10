@@ -170,7 +170,8 @@ def setup_checkpoint_resumption(
         MLflowTrainingCallback.log_parameter_faq_artifact()
         MLflowTrainingCallback.log_training_parameters(config)
         MLflowTrainingCallback.log_config_artifact(config)
-        MLflowTrainingCallback.log_data_overview(train_df, config)
+        MLflowTrainingCallback.log_raw_data_overview(train_df, config)
+        MLflowTrainingCallback.log_transformed_data_overview(train_df, config)
 
     return CheckpointResumptionResult(
         mlflow_callback=mlflow_callback,
