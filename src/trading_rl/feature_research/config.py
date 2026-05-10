@@ -25,6 +25,7 @@ class FeatureResearchDataConfig:
     train_size: int = 1000
     validation_size: int | None = None
     feature_config: str | None = None
+    feature_cache_dir: str | None = ".cache/feature_transformation"
 
     def resolve_paths(self) -> list[str]:
         """Return the effective list of data paths.
@@ -196,6 +197,7 @@ class FeatureResearchConfig:
                 "train_size": experiment_config.data.train_size,
                 "validation_size": experiment_config.data.validation_size,
                 "feature_config": experiment_config.data.feature_config,
+                "feature_cache_dir": getattr(experiment_config.data, "feature_cache_dir", ".cache/feature_transformation"),
             },
             "research": {
                 "output_dir": default_output_dir,
