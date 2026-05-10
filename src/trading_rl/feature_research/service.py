@@ -32,6 +32,8 @@ class FeatureResearchArtifacts:
     correlation_csv: Path
     selected_yaml: Path
     summary_md: Path
+    scores: pd.DataFrame
+    selected_names: list[str]
 
 
 def _resolve_price_series(df: pd.DataFrame) -> pd.Series:
@@ -330,19 +332,9 @@ def run_feature_research(
         scores=scores,
     )
 
-    selected_names = {f.name for f in selected_features}
-    header = f"{'#':<4} {'Feature':<45} {'ICIR':>7} {'Mean IC':>9} {'Val IC':>9} {'Selected':>9}"
-    divider = "-" * len(header)
-    rows = [header, divider]
-    for rank, row in enumerate(scores.itertuples(), start=1):
-        name = str(row.feature).removeprefix("feature_")
-        selected_marker = "YES" if row.feature in selected_names else "-"
-        rows.append(
-            f"{rank:<4} {name:<45} {row.icir:>7.3f} {row.mean_ic:>9.4f} {row.val_mean_ic:>9.4f} {selected_marker:>9}"
-        )
-    rows.append(divider)
-    rows.append(f"Total ranked: {len(scores)}   Selected: {len(selected_features)}   ICIR threshold: {config.research.icir_threshold}")
-    logger.info("Feature research results:\n%s", "\n".join(rows))
+    selected_name_list = [f.name for f in selected_features]
+    selected_name_set = set(selected_name_list)
+
     logger.info(
         "Offline feature research complete: %d features ranked, %d selected",
         len(scores),
@@ -355,4 +347,6 @@ def run_feature_research(
         correlation_csv=correlation_csv,
         selected_yaml=selected_yaml,
         summary_md=summary_md,
+        scores=scores,
+        selected_names=selected_name_list,
     )
