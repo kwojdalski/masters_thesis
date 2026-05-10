@@ -17,14 +17,15 @@ from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 
 from trading_rl.callbacks.artifacts import (
     log_config_artifact,
-    log_data_overview,
     log_evaluation_plots,
     log_evaluation_report,
     log_explainability_results,
     log_final_metrics,
     log_parameter_faq_artifact,
+    log_raw_data_overview,
     log_statistical_tests,
     log_training_parameters,
+    log_transformed_data_overview,
 )
 
 _POSITION_CHANGE_TOLERANCE = 0.1
@@ -48,7 +49,8 @@ class MLflowTrainingCallback:
     # Re-export artifact helpers so callers using
     # ``MLflowTrainingCallback.log_*(…)`` continue to work unchanged.
     log_config_artifact = staticmethod(log_config_artifact)
-    log_data_overview = staticmethod(log_data_overview)
+    log_raw_data_overview = staticmethod(log_raw_data_overview)
+    log_transformed_data_overview = staticmethod(log_transformed_data_overview)
     log_evaluation_plots = staticmethod(log_evaluation_plots)
     log_evaluation_report = staticmethod(log_evaluation_report)
     log_explainability_results = staticmethod(log_explainability_results)

@@ -257,30 +257,30 @@ def log_parameter_faq_artifact() -> None:
         logger.error("faq artifact logging failed err=%s", e)
 
 
-def log_data_overview(df, config) -> None:
-    """Log dataset overview, sample, and quick visuals to MLflow."""
+def _log_overview_impl(df: pd.DataFrame, config: Any, artifact_dir: str, data_label: str) -> None:
+    """Shared implementation for raw and transformed data overview logging."""
     logger = get_project_logger(__name__)
 
     if not mlflow.active_run():
-        logger.warning("no active mlflow run skipping data overview logging")
+        logger.warning("no active mlflow run skipping %s logging", artifact_dir)
         return
 
     try:
         from plotnine import aes, element_text, geom_step, ggplot, labs, theme
 
-        mlflow.log_param("dataset_shape", f"{df.shape[0]}x{df.shape[1]}")
-        mlflow.log_param("dataset_columns", list(df.columns))
-        mlflow.log_param("date_range", f"{df.index.min()} to {df.index.max()}")
-        mlflow.log_param("data_source", config.data.data_path)
+        param_prefix = artifact_dir.replace("/", "_")
+        mlflow.log_param(f"{param_prefix}_shape", f"{df.shape[0]}x{df.shape[1]}")
+        mlflow.log_param(f"{param_prefix}_columns", list(df.columns))
+        mlflow.log_param(f"{param_prefix}_date_range", f"{df.index.min()} to {df.index.max()}")
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             df.head(50).to_csv(f.name)
-            mlflow.log_artifact(f.name, "data_overview")
+            mlflow.log_artifact(f.name, artifact_dir)
             os.unlink(f.name)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write("Dataset Overview\n")
-            f.write("================\n\n")
+            separator = "=" * (len(data_label) + 9)
+            f.write(f"{data_label} Overview\n{separator}\n\n")
             f.write(f"Shape: {df.shape}\n")
             f.write(f"Columns: {list(df.columns)}\n")
             f.write(f"Date Range: {df.index.min()} to {df.index.max()}\n\n")
@@ -289,21 +289,15 @@ def log_data_overview(df, config) -> None:
             f.write("\n\nStatistical Summary:\n")
             f.write(str(df.describe()))
             f.flush()
-            mlflow.log_artifact(f.name, "data_overview")
+            mlflow.log_artifact(f.name, artifact_dir)
             os.unlink(f.name)
 
         plot_df = df.head(200).reset_index()
         plot_df["time_index"] = range(len(plot_df))
+        index_col = plot_df.columns[0]
+        columns_to_plot = [c for c in df.columns if c in plot_df.columns and c != index_col][:5]
 
-        ohlcv_columns = ["open", "high", "low", "close", "volume"]
-        available_columns = [col for col in ohlcv_columns if col in plot_df.columns]
-        feature_columns = [
-            col
-            for col in plot_df.columns
-            if col not in [*ohlcv_columns, plot_df.columns[0], "time_index"]
-        ]
-
-        for column in available_columns + feature_columns[:5]:
+        for column in columns_to_plot:
             try:
                 p = (
                     ggplot(plot_df, aes(x="time_index", y=column))
@@ -317,17 +311,18 @@ def log_data_overview(df, config) -> None:
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), f"{column}.png")
                 p.save(temp_path, width=16, height=10, dpi=150)
-                mlflow.log_artifact(temp_path, "data_overview/plots")
+                mlflow.log_artifact(temp_path, f"{artifact_dir}/plots")
                 os.unlink(temp_path)
             except Exception as plot_error:  # pragma: no cover
                 logger.warning("create plot failed column=%s err=%s", column, plot_error)
 
-        if all(col in plot_df.columns for col in ["open", "high", "low", "close"]):
+        ohlc_cols = ["open", "high", "low", "close"]
+        if all(col in plot_df.columns for col in ohlc_cols):
             try:
                 ohlc_melted = pd.melt(
-                    plot_df[["time_index", "open", "high", "low", "close"]].dropna(),
+                    plot_df[["time_index", *ohlc_cols]].dropna(),
                     id_vars=["time_index"],
-                    value_vars=["open", "high", "low", "close"],
+                    value_vars=ohlc_cols,
                     var_name="price_type",
                     value_name="price",
                 )
@@ -344,13 +339,28 @@ def log_data_overview(df, config) -> None:
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), "ohlc_combined.png")
                 p_combined.save(temp_path, width=20, height=10, dpi=150)
-                mlflow.log_artifact(temp_path, "data_overview/plots")
+                mlflow.log_artifact(temp_path, f"{artifact_dir}/plots")
                 os.unlink(temp_path)
             except Exception as combined_error:  # pragma: no cover
                 logger.warning("create combined ohlc plot failed err=%s", combined_error)
 
     except Exception as e:  # pragma: no cover
-        logger.warning("log data overview failed err=%s", e)
+        logger.warning("log %s failed err=%s", artifact_dir, e)
+
+
+def log_raw_data_overview(df: pd.DataFrame, config: Any) -> None:
+    """Log raw (pre-transformation) dataset overview, sample, and visuals to MLflow."""
+    raw_cols = [c for c in df.columns if not str(c).startswith("feature_")]
+    raw_df = df[raw_cols] if raw_cols else df
+    mlflow.log_param("data_source", config.data.data_path)
+    _log_overview_impl(raw_df, config, "raw_data_overview", "Raw Data")
+
+
+def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
+    """Log transformed (feature-engineered) dataset overview, sample, and visuals to MLflow."""
+    feat_cols = [c for c in df.columns if str(c).startswith("feature_")]
+    feat_df = df[feat_cols] if feat_cols else df
+    _log_overview_impl(feat_df, config, "transformed_data_overview", "Transformed Data")
 
 
 def log_final_metrics(
