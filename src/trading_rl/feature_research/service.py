@@ -99,9 +99,9 @@ def _compute_ic_series(
         ic = aligned.iloc[:, 0].corr(aligned.iloc[:, 1], method="spearman")
         return pd.Series([float(ic) if pd.notna(ic) else 0.0], index=[aligned.index[0]])
 
-    rolling_ic = aligned.iloc[:, 0].rolling(window_size).corr(
-        aligned.iloc[:, 1], method="spearman"
-    )
+    feat_ranked = aligned.iloc[:, 0].rolling(window_size).rank()
+    tgt_ranked = aligned.iloc[:, 1].rolling(window_size).rank()
+    rolling_ic = feat_ranked.rolling(window_size).corr(tgt_ranked)
     return rolling_ic.dropna()
 
 
