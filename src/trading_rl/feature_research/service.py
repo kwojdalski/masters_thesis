@@ -332,7 +332,7 @@ def run_feature_research(
         scores=scores,
     )
 
-    selected_name_list = [f.name for f in selected_features]
+    selected_name_list = list(selected_features)
     selected_name_set = set(selected_name_list)
 
     logger.info(
