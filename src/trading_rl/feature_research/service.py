@@ -328,18 +328,16 @@ def _write_summary(
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def run_feature_research(
-    *,
+def _score_single_symbol(
+    data_path: str,
     config: FeatureResearchConfig,
-) -> FeatureResearchArtifacts:
-    """Run offline IC/ICIR feature scoring and conditional IC selection."""
-    output_dir = config.research.output_dir or (
-        Path("logs") / config.experiment_name / "feature_research"
-    )
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, list[dict]]:
+    """Load one symbol, split, compute features, score IC/ICIR.
 
-    raw_df = load_trading_data(config.data.data_path).dropna()
+    Returns (scores, train_features, val_features, val_raw, feature_configs).
+    """
+    symbol = Path(data_path).stem
+    raw_df = load_trading_data(data_path).dropna()
 
     train_size = config.data.train_size
     remaining = len(raw_df) - train_size
@@ -350,26 +348,23 @@ def run_feature_research(
     )
 
     if train_size >= len(raw_df):
-        raise ValueError("train_size must be smaller than dataset length.")
+        raise ValueError(
+            f"train_size={train_size} must be smaller than dataset length "
+            f"{len(raw_df)} for symbol '{symbol}'."
+        )
     if validation_size <= 0 or validation_size >= remaining:
         raise ValueError(
-            "validation_size must be > 0 and smaller than the post-train remainder."
+            f"validation_size={validation_size} invalid for symbol '{symbol}' "
+            f"(post-train remainder is {remaining})."
         )
 
     train_df = raw_df.iloc[:train_size].copy()
     val_df = raw_df.iloc[train_size : train_size + validation_size].copy()
 
     train_features, val_features, feature_configs = _align_feature_frames(
-        train_df,
-        val_df,
-        config.data.feature_config,
+        train_df, val_df, config.data.feature_config
     )
-    logger.info(
-        "feature scoring target_type=%s horizons=%s vol_window=%d",
-        config.research.target_type,
-        config.research.horizons,
-        config.research.vol_window,
-    )
+
     scores = _build_score_table(
         train_features,
         val_features,
@@ -380,9 +375,95 @@ def run_feature_research(
         window_size=config.research.window_size,
         target_type=config.research.target_type,
     )
+    return scores, train_features, val_features, val_df, feature_configs
 
-    # Use the dominant horizon (highest mean |ICIR| across features) for
-    # the conditional IC redundancy step in _select_features.
+
+def _aggregate_symbol_scores(per_symbol_scores: list[pd.DataFrame]) -> pd.DataFrame:
+    """Average per-feature IC statistics across symbols.
+
+    best_horizon is set to the most frequently dominant horizon across symbols.
+    """
+    combined = pd.concat(per_symbol_scores, ignore_index=True)
+    agg = (
+        combined.groupby("feature")
+        .agg(
+            best_horizon=("best_horizon", lambda s: int(s.mode().iloc[0])),
+            mean_ic=("mean_ic", "mean"),
+            ic_std=("ic_std", "mean"),
+            icir=("icir", "mean"),
+            ic_tstat=("ic_tstat", "mean"),
+            ic_positive_ratio=("ic_positive_ratio", "mean"),
+            val_mean_ic=("val_mean_ic", "mean"),
+            ic_stability=("ic_stability", "mean"),
+        )
+        .reset_index()
+    )
+    return (
+        agg.sort_values("icir", ascending=False, key=abs)
+        .reset_index(drop=True)
+    )
+
+
+def run_feature_research(
+    *,
+    config: FeatureResearchConfig,
+) -> FeatureResearchArtifacts:
+    """Run offline IC/ICIR feature scoring and conditional IC selection.
+
+    When ``config.data.data_paths`` contains more than one path, IC statistics
+    are computed independently per symbol and then averaged.  Features that
+    score consistently across all symbols are ranked highest, giving a more
+    generalizable shortlist than single-symbol scoring.
+    """
+    output_dir = config.research.output_dir or (
+        Path("logs") / config.experiment_name / "feature_research"
+    )
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    data_paths = config.data.resolve_paths()
+    multi_symbol = len(data_paths) > 1
+
+    logger.info(
+        "feature scoring target_type=%s horizons=%s vol_window=%d n_symbols=%d",
+        config.research.target_type,
+        config.research.horizons,
+        config.research.vol_window,
+        len(data_paths),
+    )
+
+    per_symbol_scores: list[pd.DataFrame] = []
+    all_val_features: list[pd.DataFrame] = []
+    all_val_raw: list[pd.DataFrame] = []
+    feature_configs: list[dict] = []
+
+    for idx, data_path in enumerate(data_paths):
+        symbol = Path(data_path).stem
+        logger.info("scoring symbol %d/%d: %s", idx + 1, len(data_paths), symbol)
+        sym_scores, _, sym_val_features, sym_val_raw, sym_feature_configs = (
+            _score_single_symbol(data_path, config)
+        )
+        per_symbol_scores.append(sym_scores)
+        all_val_features.append(sym_val_features)
+        all_val_raw.append(sym_val_raw)
+        if not feature_configs:
+            feature_configs = sym_feature_configs
+
+        if multi_symbol:
+            sym_scores.to_csv(
+                output_path / f"feature_scores_{symbol}.csv", index=False
+            )
+
+    scores = (
+        _aggregate_symbol_scores(per_symbol_scores)
+        if multi_symbol
+        else per_symbol_scores[0]
+    )
+
+    # Pool val features across symbols for correlation and redundancy pruning.
+    pooled_val_features = pd.concat(all_val_features, ignore_index=True)
+    pooled_val_raw = pd.concat(all_val_raw, ignore_index=True)
+
     dominant_horizon = int(
         scores.groupby("best_horizon")["icir"]
         .apply(lambda s: s.abs().mean())
@@ -390,11 +471,15 @@ def run_feature_research(
     )
     logger.info("dominant horizon for redundancy pruning: h=%d", dominant_horizon)
 
-    dom_train_target = _build_target(train_df, dominant_horizon, config.research.target_type, config.research.vol_window)
-    dom_val_target = _build_target(val_df, dominant_horizon, config.research.target_type, config.research.vol_window)
+    dom_val_target = _build_target(
+        pooled_val_raw, dominant_horizon,
+        config.research.target_type, config.research.vol_window,
+    )
 
     feature_cols = scores["feature"].tolist()
-    val_aligned = pd.concat([val_features[feature_cols], dom_val_target], axis=1).dropna()
+    val_aligned = pd.concat(
+        [pooled_val_features[feature_cols], dom_val_target], axis=1
+    ).dropna()
 
     selected_features = _select_features(
         scores,
@@ -404,7 +489,7 @@ def run_feature_research(
         icir_threshold=config.research.icir_threshold,
     )
 
-    correlation_matrix = val_features[feature_cols].corr().fillna(0.0)
+    correlation_matrix = pooled_val_features[feature_cols].corr().fillna(0.0)
 
     scores_csv = output_path / "feature_scores.csv"
     correlation_csv = output_path / "feature_correlations.csv"
@@ -421,9 +506,6 @@ def run_feature_research(
         scores=scores,
     )
 
-    selected_name_list = list(selected_features)
-    selected_name_set = set(selected_name_list)
-
     logger.info(
         "Offline feature research complete: %d features ranked, %d selected",
         len(scores),
@@ -437,5 +519,5 @@ def run_feature_research(
         selected_yaml=selected_yaml,
         summary_md=summary_md,
         scores=scores,
-        selected_names=selected_name_list,
+        selected_names=list(selected_features),
     )

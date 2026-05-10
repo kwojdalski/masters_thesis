@@ -21,9 +21,19 @@ class FeatureResearchDataConfig:
     """Data inputs for offline feature research."""
 
     data_path: str = "data/bitfinex2-BTCUSDT-1m.pkl"
+    data_paths: list[str] | None = None
     train_size: int = 1000
     validation_size: int | None = None
     feature_config: str | None = None
+
+    def resolve_paths(self) -> list[str]:
+        """Return the effective list of data paths.
+
+        ``data_paths`` takes precedence; falls back to the single ``data_path``.
+        """
+        if self.data_paths:
+            return list(self.data_paths)
+        return [self.data_path]
 
 
 class TargetType(StrEnum):
@@ -140,6 +150,9 @@ class FeatureResearchConfig:
         for key, value in config_dict.get("data", {}).items():
             if key in data_dict:
                 data_dict[key] = value
+        # Normalise data_paths: OmegaConf may deserialise it as a ListConfig
+        if data_dict.get("data_paths") is not None:
+            data_dict["data_paths"] = list(data_dict["data_paths"])
 
         research_dict = {
             field_name: getattr(research_defaults, field_name)
@@ -179,6 +192,7 @@ class FeatureResearchConfig:
             "experiment_name": experiment_config.experiment_name,
             "data": {
                 "data_path": experiment_config.data.data_path,
+                "data_paths": experiment_config.data.data_paths,
                 "train_size": experiment_config.data.train_size,
                 "validation_size": experiment_config.data.validation_size,
                 "feature_config": experiment_config.data.feature_config,
