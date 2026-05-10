@@ -230,7 +230,6 @@ def _build_score_table(
 def _select_features(
     scores: pd.DataFrame,
     feature_data: pd.DataFrame,
-    target: pd.Series,
     top_k: int,
     icir_threshold: float = 0.02,
 ) -> list[str]:
@@ -328,13 +327,23 @@ def _write_summary(
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+# Max val rows per symbol kept for the pooled correlation / redundancy-pruning
+# step. IC scoring uses the full train split; only this downstream pool is capped.
+_VAL_POOL_CAP = 20_000
+
+
 def _score_single_symbol(
     data_path: str,
     config: FeatureResearchConfig,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, list[dict]]:
+) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
     """Load one symbol, split, compute features, score IC/ICIR.
 
-    Returns (scores, train_features, val_features, val_raw, feature_configs).
+    Returns (scores, val_features_sample, feature_configs).
+
+    All large intermediate frames (raw data, train split, train features) are
+    explicitly deleted before returning so peak RSS stays proportional to one
+    symbol at a time. val_features_sample is capped at _VAL_POOL_CAP rows —
+    sufficient for pooled correlation and redundancy pruning.
     """
     symbol = Path(data_path).stem
     raw_df = load_trading_data(data_path).dropna()
@@ -360,22 +369,40 @@ def _score_single_symbol(
 
     train_df = raw_df.iloc[:train_size].copy()
     val_df = raw_df.iloc[train_size : train_size + validation_size].copy()
+    del raw_df
+
+    # Extract minimal price-only frames (preserving index) so _build_score_table
+    # can construct targets without keeping full LOB columns in memory.
+    train_price_df = pd.DataFrame(
+        {"close": _resolve_price_series(train_df).values}, index=train_df.index
+    )
+    val_price_df = pd.DataFrame(
+        {"close": _resolve_price_series(val_df).values}, index=val_df.index
+    )
 
     train_features, val_features, feature_configs = _align_feature_frames(
         train_df, val_df, config.data.feature_config
     )
+    del train_df, val_df
 
     scores = _build_score_table(
         train_features,
         val_features,
-        train_df,
-        val_df,
+        train_price_df,
+        val_price_df,
         horizons=config.research.horizons,
         vol_window=config.research.vol_window,
         window_size=config.research.window_size,
         target_type=config.research.target_type,
     )
-    return scores, train_features, val_features, val_df, feature_configs
+    del train_features, train_price_df, val_price_df
+
+    if len(val_features) > _VAL_POOL_CAP:
+        val_features = val_features.sample(
+            n=_VAL_POOL_CAP, random_state=0
+        ).reset_index(drop=True)
+
+    return scores, val_features, feature_configs
 
 
 def _aggregate_symbol_scores(per_symbol_scores: list[pd.DataFrame]) -> pd.DataFrame:
@@ -434,18 +461,16 @@ def run_feature_research(
 
     per_symbol_scores: list[pd.DataFrame] = []
     all_val_features: list[pd.DataFrame] = []
-    all_val_raw: list[pd.DataFrame] = []
     feature_configs: list[dict] = []
 
     for idx, data_path in enumerate(data_paths):
         symbol = Path(data_path).stem
         logger.info("scoring symbol %d/%d: %s", idx + 1, len(data_paths), symbol)
-        sym_scores, _, sym_val_features, sym_val_raw, sym_feature_configs = (
-            _score_single_symbol(data_path, config)
+        sym_scores, sym_val_features, sym_feature_configs = _score_single_symbol(
+            data_path, config
         )
         per_symbol_scores.append(sym_scores)
         all_val_features.append(sym_val_features)
-        all_val_raw.append(sym_val_raw)
         if not feature_configs:
             feature_configs = sym_feature_configs
 
@@ -460,36 +485,23 @@ def run_feature_research(
         else per_symbol_scores[0]
     )
 
-    # Pool val features across symbols for correlation and redundancy pruning.
-    pooled_val_features = pd.concat(all_val_features, ignore_index=True)
-    pooled_val_raw = pd.concat(all_val_raw, ignore_index=True)
-
-    dominant_horizon = int(
-        scores.groupby("best_horizon")["icir"]
-        .apply(lambda s: s.abs().mean())
-        .idxmax()
-    )
-    logger.info("dominant horizon for redundancy pruning: h=%d", dominant_horizon)
-
-    dom_val_target = _build_target(
-        pooled_val_raw, dominant_horizon,
-        config.research.target_type, config.research.vol_window,
-    )
-
     feature_cols = scores["feature"].tolist()
-    val_aligned = pd.concat(
-        [pooled_val_features[feature_cols], dom_val_target], axis=1
-    ).dropna()
+    pooled_val_features = pd.concat(all_val_features, ignore_index=True)
+    del all_val_features
+
+    # _select_features uses only the feature values for linear residualization;
+    # drop NaN rows so the regression is clean.
+    val_features_clean = pooled_val_features[feature_cols].dropna()
 
     selected_features = _select_features(
         scores,
-        val_aligned[feature_cols],
-        val_aligned[dom_val_target.name],
+        val_features_clean,
         top_k=config.research.top_k,
         icir_threshold=config.research.icir_threshold,
     )
 
     correlation_matrix = pooled_val_features[feature_cols].corr().fillna(0.0)
+    del pooled_val_features
 
     scores_csv = output_path / "feature_scores.csv"
     correlation_csv = output_path / "feature_correlations.csv"
