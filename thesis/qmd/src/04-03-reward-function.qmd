@@ -79,7 +79,7 @@ The Differential Sharpe Ratio [@Moody1998] resolves both issues. It is defined
 as the first-order approximation of how the current portfolio log-return $R_t$ changes the
 exponentially weighted Sharpe ratio:
 
-$$D_t = \frac{B_{t-1}\,\Delta A_t - \frac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2\right)^{3/2}}$$ {#eq-dsr}
+$$D_t = \frac{B_{t-1}\,\Delta A_t - \frac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2 + \varepsilon\right)^{3/2}}$$ {#eq-dsr}
 
 where:
 
@@ -87,7 +87,7 @@ where:
 - $B_{t-1}$ — exponentially weighted estimate of the second moment of returns (defined in @eq-dsr-moments)
 - $\Delta A_t = R_t - A_{t-1}$ — one-step increment of $A$
 - $\Delta B_t = R_t^2 - B_{t-1}$ — one-step increment of $B$
-- $(B_{t-1} - A_{t-1}^2)^{3/2}$ — running variance raised to the power $3/2$, stabilized by a small constant $\varepsilon$ in the implementation
+- $(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$ — running variance raised to the power $3/2$, stabilized by a small constant $\varepsilon$
 
 This replaces the simple log-return in @eq-log-return-reward with a
 risk-adjusted measure that penalizes volatility. When DSR training is
@@ -160,7 +160,7 @@ maximum drawdown), or utility-based rewards (which can incorporate asymmetric
 loss functions) would better align with investor preferences but are either
 non-recursive or computationally intractable for online learning at tick frequency.
 
-Third, the DSR can be unstable when the denominator $(B_{t-1} - A_{t-1}^2)^{3/2}$ is
+Third, the DSR can be unstable when the denominator $(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$ is
 small — either because the effective sample size is insufficient (early in training)
 or because realized variance is temporarily low. This can amplify microstructure
 noise and produce extreme reward values that destabilize gradient estimates.
