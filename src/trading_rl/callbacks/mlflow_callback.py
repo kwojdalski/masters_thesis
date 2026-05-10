@@ -124,6 +124,8 @@ class MLflowTrainingCallback:
         mlflow.log_metric("actor_loss", actor_loss, step=step)
         mlflow.log_metric("value_loss", value_loss, step=step)
 
+        mlflow.log_metric("total_steps_trained", step, step=step)
+
         if extra_metrics:
             for key, val in extra_metrics.items():
                 mlflow.log_metric(key, val, step=step)
