@@ -126,11 +126,12 @@ def _build_score_table(
         # Primary IC/ICIR scored on training split
         ic_series = _compute_ic_series(train_frame[feat], train_target, window_size)
 
-        if len(ic_series) == 0 or ic_series.std() == 0:
+        ic_std_raw = ic_series.std()
+        if len(ic_series) == 0 or not (ic_std_raw > 0):
             mean_ic, ic_std, icir, ic_tstat, ic_positive_ratio = 0.0, 1e-10, 0.0, 0.0, 0.0
         else:
             mean_ic = float(ic_series.mean())
-            ic_std = float(ic_series.std())
+            ic_std = float(ic_std_raw)
             icir = mean_ic / ic_std if ic_std > 1e-10 else 0.0
             n = len(ic_series)
             ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0

@@ -32,7 +32,7 @@ class FeatureResearchRunConfig:
     horizon: int = 1
     top_k: int = 10
     icir_threshold: float = 0.02
-    window_size: int | None = None
+    window_size: int = 1000
     output_dir: str | None = None
 
 
