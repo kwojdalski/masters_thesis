@@ -4,7 +4,6 @@ from typing import Any
 
 import torch
 import torch.nn as nn
-from tensordict import TensorDict
 from tensordict.nn import InteractionType, TensorDictModule, NormalParamExtractor
 from torch import distributions as d
 from torchrl.modules import MLP, ProbabilisticActor, ValueOperator
@@ -457,104 +456,6 @@ def create_td3_qvalue_network(
     logger.info("build td3 qvalue network hidden_dims=%s", hidden_dims)
     return value_net
 
-
-class StackedQValueNetwork(TensorDictModule):
-    """
-    A TensorDictModule that combines two Q-value networks (ValueOperator) and stacks their outputs.
-    The combined module takes 'observation' and 'action' and outputs 'state_action_value'
-    where the last dimension of 'state_action_value' contains the Q-values from each critic.
-    """
-
-    def __init__(self, qvalue_net1: ValueOperator, qvalue_net2: ValueOperator):
-        # Pass a dummy nn.Identity() module as the 'module' argument
-        # The actual logic is in the forward method of StackedQValueNetwork itself.
-
-        super().__init__(
-            module=nn.Identity(),  # Dummy module to satisfy TensorDictModule's __init__
-            in_keys=qvalue_net1.in_keys,  # Assume in_keys are consistent
-            out_keys=qvalue_net1.out_keys,  # Assume out_keys are consistent
-        )
-
-        self.qvalue_nets = nn.ModuleList([qvalue_net1, qvalue_net2])
-
-        def forward(self, tensordict: TensorDict) -> TensorDict:
-            # Call each Q-network sequentially, passing a clone to avoid in-place modification issues
-
-            q_outputs = []
-
-            for q_net in self.qvalue_nets:
-                q_output_td = q_net(
-                    tensordict.clone()
-                )  # Clone to prevent in-place modification of tensordict for next net
-
-                q_outputs.append(
-                    q_output_td.get(self.out_keys[0])
-                )  # Assuming single output key for ValueOperator
-
-            # Concatenate the Q-values along the last dimension
-
-            # Each q_output is [..., 1]. We want [..., 2].
-
-            stacked_q_values = torch.cat(
-                q_outputs, dim=-1
-            )  # Output shape will be [..., 2]
-
-            # Set the stacked Q-values in the original tensordict
-            tensordict.set(self.out_keys[0], stacked_q_values)
-
-            return tensordict
-
-
-def create_td3_twin_qvalue_network(
-    n_obs: int,
-    n_act: int,
-    hidden_dims: list[int] | None = None,
-    num_qvalue_nets: int = 2,
-) -> ValueOperator:
-    """
-    Create a twin Q-value network for TD3 that outputs multiple Q-values.
-
-    This creates a single ValueOperator that outputs num_qvalue_nets Q-values,
-    which is what TorchRL's TD3Loss expects.
-    """
-    logger.info("build td3 twin qvalue network n_outputs=%d", num_qvalue_nets)
-    if hidden_dims is None:
-        hidden_dims = [64, 32, 16]
-
-    # Create MLP that outputs num_qvalue_nets Q-values
-    value_net = ValueOperator(
-        MLP(
-            in_features=n_obs + n_act,
-            out_features=num_qvalue_nets,  # Output multiple Q-values
-            num_cells=hidden_dims,
-        ),
-        in_keys=["observation", "action"],
-        out_keys=["state_action_value"],
-    )
-
-    logger.info("build td3 twin qvalue network hidden_dims=%s n_outputs=%d", hidden_dims, num_qvalue_nets)
-    return value_net
-
-
-def create_td3_stacked_qvalue_network(
-    n_obs: int,
-    n_act: int,
-    hidden_dims: list[int] | None = None,
-) -> TensorDictModule:
-    """
-    Create a combined Q-value network for TD3 that outputs stacked Q-values.
-
-    Deprecated: Use create_td3_twin_qvalue_network instead for better TD3Loss compatibility.
-    """
-    logger.info("build td3 stacked qvalue networks")
-    # Create two individual Q-networks using the existing factory
-    qvalue_net1 = create_td3_qvalue_network(n_obs, n_act, hidden_dims)
-    qvalue_net2 = create_td3_qvalue_network(n_obs, n_act, hidden_dims)
-
-    # Combine them into a single TensorDictModule
-    stacked_q_net = StackedQValueNetwork(qvalue_net1, qvalue_net2)
-    logger.info("build td3 stacked qvalue networks complete")
-    return stacked_q_net
 
 
 def count_parameters(model: nn.Module) -> int:
