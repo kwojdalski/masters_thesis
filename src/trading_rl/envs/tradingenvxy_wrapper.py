@@ -483,6 +483,12 @@ class StreamingTradingEnvXY(gym.Env):
             return obs["CustomFeature"]
         return obs
 
+    @property
+    def broker(self):
+        if self._inner_env is None:
+            return None
+        return self._inner_env.broker
+
     def render(self):
         if self._inner_env is not None:
             return self._inner_env.render()
