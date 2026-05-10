@@ -119,6 +119,33 @@ Work through the ranked list one item at a time. For each item:
   - Any other text — treat as a custom instruction and act on it
   - `done` — stop and proceed to commit
 
+## GitHub Issues
+
+For **every** finding in the summary table — regardless of whether the user fixes it or skips it — create a GitHub issue using `gh issue create`. Do this after the summary table is printed, before starting the interactive review.
+
+Issue format:
+```
+gh issue create \
+  --title "<short description matching summary table>" \
+  --body "$(cat <<'EOF'
+**File:** <file:line>
+**Category:** <category number and label>
+**Severity:** <CRITICAL / HIGH / MEDIUM / LOW>
+
+**Problem:**
+<concrete description of what will go wrong>
+
+**Proposed fix:**
+<specific fix>
+EOF
+)" \
+  --label "antipattern"
+```
+
+- Use label `antipattern`. Create the label first if it does not exist: `gh label create antipattern --color "#e4e669" --description "Anti-pattern finding" 2>/dev/null || true`
+- Create one issue per finding. Do not batch findings into one issue.
+- After creating all issues, print the list of issue URLs so the user can see them.
+
 ## Finishing
 
 When the user types `done`, or all items have been reviewed:
