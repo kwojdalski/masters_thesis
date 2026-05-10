@@ -70,7 +70,7 @@ def log_config_artifact(config) -> None:
         },
         "env": {
             "name": config.env.name,
-            "positions": config.env.positions,
+            "positions": [int(p) for p in config.env.positions],
             "trading_fees": config.env.trading_fees,
             "borrow_interest_rate": config.env.borrow_interest_rate,
         },

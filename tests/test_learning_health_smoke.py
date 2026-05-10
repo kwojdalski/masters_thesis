@@ -26,6 +26,8 @@ import pandas as pd
 import pytest
 import torch
 
+import mlflow
+
 from trading_rl.config import ExperimentConfig
 from trading_rl.train_trading_agent import build_training_context
 
@@ -152,6 +154,7 @@ class TestLearningHealth:
 
     @pytest.fixture()
     def context(self, tmp_path: Path) -> dict:
+        mlflow.end_run()
         config = _make_health_config(tmp_path)
         return build_training_context(config=config, create_mlflow_callback=False)
 

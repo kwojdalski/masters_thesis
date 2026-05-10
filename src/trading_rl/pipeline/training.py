@@ -372,7 +372,7 @@ def build_experiment_runtime(
         create_mlflow_callback=create_mlflow_callback,
     )
 
-    if mlflow.active_run():
+    if create_mlflow_callback and mlflow.active_run():
         MLflowTrainingCallback.log_parameter_faq_artifact()
         MLflowTrainingCallback.log_training_parameters(config)
         MLflowTrainingCallback.log_config_artifact(config)
