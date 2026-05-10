@@ -55,19 +55,22 @@ class FeatureResearchCommand(BaseCommand):
         table.add_column("ICIR", justify="right", style="green")
         table.add_column("Mean IC", justify="right")
         table.add_column("Val IC", justify="right")
+        table.add_column("Horizon", justify="right", style="dim")
         table.add_column("Selected", justify="center")
 
         for rank, row in enumerate(artifacts.scores.itertuples(), start=1):
             name = str(row.feature).removeprefix("feature_")
             is_selected = row.feature in selected_set
             selected_cell = "[bold green]YES[/bold green]" if is_selected else "[dim]-[/dim]"
-            icir_str = f"{row.icir:.3f}"
+            val_ic_str = f"{row.val_mean_ic:.4f}" if row.val_mean_ic == row.val_mean_ic else "-"
+            horizon_str = str(int(row.best_horizon)) if hasattr(row, "best_horizon") else "-"
             table.add_row(
                 str(rank),
                 name,
-                icir_str,
+                f"{row.icir:.3f}",
                 f"{row.mean_ic:.4f}",
-                f"{row.val_mean_ic:.4f}" if row.val_mean_ic == row.val_mean_ic else "-",
+                val_ic_str,
+                horizon_str,
                 selected_cell,
             )
 

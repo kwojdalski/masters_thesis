@@ -29,7 +29,8 @@ class FeatureResearchDataConfig:
 class FeatureResearchRunConfig:
     """Research procedure settings."""
 
-    horizon: int = 1
+    horizons: list[int] = field(default_factory=lambda: [10, 50, 200])
+    vol_window: int = 50
     top_k: int = 10
     icir_threshold: float = 0.02
     window_size: int = 1000
@@ -56,9 +57,13 @@ class FeatureResearchConfig:
             )
         if not self.data.feature_config:
             errors.append("data.feature_config must be set")
-        if self.research.horizon <= 0:
+        if not self.research.horizons or any(h <= 0 for h in self.research.horizons):
             errors.append(
-                f"research.horizon must be > 0, got {self.research.horizon}"
+                f"research.horizons must be a non-empty list of positive ints, got {self.research.horizons}"
+            )
+        if self.research.vol_window <= 1:
+            errors.append(
+                f"research.vol_window must be > 1, got {self.research.vol_window}"
             )
         if self.research.top_k <= 0:
             errors.append(f"research.top_k must be > 0, got {self.research.top_k}")
