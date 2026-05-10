@@ -64,9 +64,15 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         )
         return backend
 
-    def create(self, df: pd.DataFrame, config: ExperimentConfig) -> TransformedEnv:
+    def create(
+        self,
+        df: pd.DataFrame,
+        config: ExperimentConfig,
+        *,
+        use_memmap: bool = True,
+    ) -> TransformedEnv:
         """Create environment using resolved backend and provided config."""
-        memmap_paths = self._resolve_memmap_paths(config)
+        memmap_paths = self._resolve_memmap_paths(config) if use_memmap else None
         if memmap_paths:
             env = self._create_streaming_env(memmap_paths, config)
             self.logger.info(
