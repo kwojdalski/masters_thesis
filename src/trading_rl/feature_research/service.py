@@ -16,7 +16,7 @@ import yaml
 from sklearn.linear_model import LinearRegression
 
 from logger import get_logger
-from trading_rl.data_utils import load_trading_data
+from trading_rl.data_utils import load_trading_data, _feature_cache_key
 from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
 from trading_rl.features import FeaturePipeline
 
@@ -346,14 +346,72 @@ def _score_single_symbol(
     sufficient for pooled correlation and redundancy pruning.
     """
     symbol = Path(data_path).stem
+
+    # --- feature cache lookup -------------------------------------------
+    # Reuses the same cache directory as the training pipeline so a symbol
+    # that was already prepared for training gets a free hit here.
+    # Cache stores: train_features, val_features, train_price, val_price.
+    cache_entry: Path | None = None
+    validation_size_resolved: int | None = None
+
+    if config.data.feature_cache_dir and Path(data_path).exists():
+        # Resolve validation_size now so the cache key is stable.
+        raw_len = len(load_trading_data(data_path).dropna())
+        train_size_cfg = config.data.train_size
+        remaining_cfg = raw_len - train_size_cfg
+        validation_size_resolved = (
+            config.data.validation_size
+            if config.data.validation_size is not None
+            else remaining_cfg // 2
+        )
+        cache_key = _feature_cache_key(
+            data_path,
+            train_size_cfg,
+            validation_size_resolved,
+            test_size=None,
+            feature_config_path=config.data.feature_config,
+            feature_pipeline=None,
+        )
+        cache_entry = Path(config.data.feature_cache_dir) / f"fr_{cache_key}"
+        _fr_files = ("train_features", "val_features", "train_price", "val_price")
+        if all((cache_entry / f"{f}.parquet").exists() for f in _fr_files):
+            logger.info("feature research cache hit symbol=%s key=%s", symbol, cache_key[:8])
+            train_features = pd.read_parquet(cache_entry / "train_features.parquet")
+            val_features = pd.read_parquet(cache_entry / "val_features.parquet")
+            train_price_df = pd.read_parquet(cache_entry / "train_price.parquet")
+            val_price_df = pd.read_parquet(cache_entry / "val_price.parquet")
+            feature_configs = [
+                cfg.__dict__.copy()
+                for cfg in FeaturePipeline.from_yaml(config.data.feature_config).feature_configs
+            ]
+            scores = _build_score_table(
+                train_features, val_features, train_price_df, val_price_df,
+                horizons=config.research.horizons,
+                vol_window=config.research.vol_window,
+                window_size=config.research.window_size,
+                target_type=config.research.target_type,
+            )
+            del train_features, train_price_df, val_price_df
+            if len(val_features) > _VAL_POOL_CAP:
+                val_features = val_features.sample(
+                    n=_VAL_POOL_CAP, random_state=0
+                ).reset_index(drop=True)
+            return scores, val_features, feature_configs
+        logger.info("feature research cache miss symbol=%s key=%s", symbol, cache_key[:8])
+    # --- end cache lookup ------------------------------------------------
+
     raw_df = load_trading_data(data_path).dropna()
 
     train_size = config.data.train_size
     remaining = len(raw_df) - train_size
     validation_size = (
-        config.data.validation_size
-        if config.data.validation_size is not None
-        else remaining // 2
+        validation_size_resolved
+        if validation_size_resolved is not None
+        else (
+            config.data.validation_size
+            if config.data.validation_size is not None
+            else remaining // 2
+        )
     )
 
     if train_size >= len(raw_df):
@@ -371,8 +429,6 @@ def _score_single_symbol(
     val_df = raw_df.iloc[train_size : train_size + validation_size].copy()
     del raw_df
 
-    # Extract minimal price-only frames (preserving index) so _build_score_table
-    # can construct targets without keeping full LOB columns in memory.
     train_price_df = pd.DataFrame(
         {"close": _resolve_price_series(train_df).values}, index=train_df.index
     )
@@ -385,11 +441,18 @@ def _score_single_symbol(
     )
     del train_df, val_df
 
+    # Persist to cache before scoring so repeated runs with different research
+    # settings (horizons, target_type) reuse the expensive feature computation.
+    if cache_entry is not None:
+        cache_entry.mkdir(parents=True, exist_ok=True)
+        train_features.to_parquet(cache_entry / "train_features.parquet")
+        val_features.to_parquet(cache_entry / "val_features.parquet")
+        train_price_df.to_parquet(cache_entry / "train_price.parquet")
+        val_price_df.to_parquet(cache_entry / "val_price.parquet")
+        logger.info("feature research cache write symbol=%s key=%s", symbol, cache_key[:8])
+
     scores = _build_score_table(
-        train_features,
-        val_features,
-        train_price_df,
-        val_price_df,
+        train_features, val_features, train_price_df, val_price_df,
         horizons=config.research.horizons,
         vol_window=config.research.vol_window,
         window_size=config.research.window_size,
