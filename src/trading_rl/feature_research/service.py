@@ -48,41 +48,42 @@ def _resolve_price_series(df: pd.DataFrame) -> pd.Series:
     )
 
 
-def _build_proxy_target(df: pd.DataFrame, horizon: int) -> pd.Series:
-    """Build a forward return proxy target."""
+def _build_sharpe_proxy_target(df: pd.DataFrame, horizon: int, vol_window: int) -> pd.Series:
+    """Build a Sharpe-proxy target: forward return scaled by recent realised vol.
+
+    Dividing by rolling vol rewards features that predict good risk-adjusted
+    returns rather than raw price movement, which is closer to what DSR
+    optimises over an episode.
+    """
     price = _resolve_price_series(df)
-    target = np.log(price.shift(-horizon) / price)
-    return target.rename(f"target_log_return_h{horizon}")
+    tick_log_ret = np.log(price / price.shift(1))
+    rolling_vol = tick_log_ret.rolling(vol_window).std()
+    forward_ret = np.log(price.shift(-horizon) / price)
+    sharpe_proxy = forward_ret / (rolling_vol + 1e-10)
+    return sharpe_proxy.rename(f"target_sharpe_h{horizon}_v{vol_window}")
 
 
 def _align_feature_frames(
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
     feature_config_path: str,
-    horizon: int,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
-    """Create train/validation frames with aligned feature and target columns."""
+    """Fit feature pipeline on train, transform both splits; return feature-only frames."""
     pipeline = FeaturePipeline.from_yaml(feature_config_path)
     pipeline.fit(train_df)
 
     train_features = pipeline.transform(train_df)
     val_features = pipeline.transform(val_df)
 
-    train_target = _build_proxy_target(train_df, horizon)
-    val_target = _build_proxy_target(val_df, horizon)
-
-    train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
-    val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
-
-    if train_aligned.empty or val_aligned.empty:
+    if train_features.empty or val_features.empty:
         raise ValueError(
-            "Feature research produced empty train/validation frames after "
-            "target alignment. Reduce the horizon or provide more data."
+            "Feature pipeline produced empty frames. "
+            "Check the feature config and data."
         )
 
     return (
-        train_aligned,
-        val_aligned,
+        train_features,
+        val_features,
         [cfg.__dict__.copy() for cfg in pipeline.feature_configs],
     )
 
@@ -107,58 +108,103 @@ def _compute_ic_series(
     return rolling_ic.dropna()
 
 
+def _score_feature_at_horizon(
+    feat_train: pd.Series,
+    feat_val: pd.Series,
+    train_target: pd.Series,
+    val_target: pd.Series,
+    window_size: int,
+) -> dict[str, float]:
+    """Return IC/ICIR stats for one feature against one horizon target."""
+    ic_series = _compute_ic_series(feat_train, train_target, window_size)
+    ic_std_raw = ic_series.std()
+    if len(ic_series) == 0 or not (ic_std_raw > 0):
+        mean_ic = ic_std = icir = ic_tstat = ic_positive_ratio = 0.0
+    else:
+        mean_ic = float(ic_series.mean())
+        ic_std = float(ic_std_raw)
+        icir = mean_ic / ic_std if ic_std > 1e-10 else 0.0
+        n = len(ic_series)
+        ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
+        ic_positive_ratio = float((ic_series > 0).mean())
+
+    val_ic = _compute_ic_series(feat_val, val_target, window_size)
+    val_mean_ic = float(val_ic.mean()) if len(val_ic) > 0 else 0.0
+
+    return {
+        "mean_ic": mean_ic,
+        "ic_std": ic_std,
+        "icir": icir,
+        "ic_tstat": ic_tstat,
+        "ic_positive_ratio": ic_positive_ratio,
+        "val_mean_ic": val_mean_ic,
+    }
+
+
 def _build_score_table(
-    train_frame: pd.DataFrame,
-    val_frame: pd.DataFrame,
-    window_size: int | None = None,
+    train_features: pd.DataFrame,
+    val_features: pd.DataFrame,
+    train_raw: pd.DataFrame,
+    val_raw: pd.DataFrame,
+    horizons: list[int],
+    vol_window: int,
+    window_size: int,
 ) -> pd.DataFrame:
-    """Build per-feature IC/ICIR scoring table.
+    """Build per-feature IC/ICIR scoring table across multiple Sharpe-proxy horizons.
 
-    Primary scoring uses the training split so the validation split stays
-    clean for model comparison. Validation IC is reported for stability only.
+    For each feature, scores are computed against every horizon target. The row
+    with the highest |ICIR| is kept as the representative score, and
+    ``best_horizon`` records which horizon produced it.
     """
-    target_col = next(col for col in train_frame.columns if col.startswith("target_"))
-    feature_cols = [col for col in train_frame.columns if col != target_col]
+    feature_cols = list(train_features.columns)
+    rows: list[dict] = []
 
-    train_target = train_frame[target_col]
-    val_target = val_frame[target_col]
-
-    rows: list[dict[str, float | str]] = []
     for feat in feature_cols:
-        # Primary IC/ICIR scored on training split
-        ic_series = _compute_ic_series(train_frame[feat], train_target, window_size)
+        best: dict[str, float] = {}
+        best_icir_abs = -1.0
+        best_h = horizons[0]
 
-        ic_std_raw = ic_series.std()
-        if len(ic_series) == 0 or not (ic_std_raw > 0):
-            mean_ic, ic_std, icir, ic_tstat, ic_positive_ratio = 0.0, 1e-10, 0.0, 0.0, 0.0
-        else:
-            mean_ic = float(ic_series.mean())
-            ic_std = float(ic_std_raw)
-            icir = mean_ic / ic_std if ic_std > 1e-10 else 0.0
-            n = len(ic_series)
-            ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
-            ic_positive_ratio = float((ic_series > 0).mean())
+        for h in horizons:
+            train_target = _build_sharpe_proxy_target(train_raw, h, vol_window)
+            val_target = _build_sharpe_proxy_target(val_raw, h, vol_window)
 
-        # Validation IC for out-of-sample stability reporting only
-        val_ic = _compute_ic_series(val_frame[feat], val_target, window_size)
-        val_mean_ic = float(val_ic.mean()) if len(val_ic) > 0 else 0.0
+            # Align feature with target (drop NaNs from vol warm-up + forward shift)
+            train_aligned = pd.concat([train_features[feat], train_target], axis=1).dropna()
+            val_aligned = pd.concat([val_features[feat], val_target], axis=1).dropna()
+
+            if len(train_aligned) < 10:
+                continue
+
+            stats = _score_feature_at_horizon(
+                train_aligned.iloc[:, 0],
+                val_aligned.iloc[:, 0] if len(val_aligned) >= 10 else train_aligned.iloc[:10, 0],
+                train_aligned.iloc[:, 1],
+                val_aligned.iloc[:, 1] if len(val_aligned) >= 10 else train_aligned.iloc[:10, 1],
+                window_size,
+            )
+
+            if abs(stats["icir"]) > best_icir_abs:
+                best_icir_abs = abs(stats["icir"])
+                best = stats
+                best_h = h
 
         rows.append(
             {
                 "feature": feat,
-                "mean_ic": mean_ic,
-                "ic_std": float(ic_std),
-                "icir": float(icir),
-                "ic_tstat": float(ic_tstat),
-                "ic_positive_ratio": ic_positive_ratio,
-                "val_mean_ic": val_mean_ic,
-                "ic_stability": abs(mean_ic - val_mean_ic),
+                "best_horizon": best_h,
+                "mean_ic": best.get("mean_ic", 0.0),
+                "ic_std": best.get("ic_std", 1e-10),
+                "icir": best.get("icir", 0.0),
+                "ic_tstat": best.get("ic_tstat", 0.0),
+                "ic_positive_ratio": best.get("ic_positive_ratio", 0.0),
+                "val_mean_ic": best.get("val_mean_ic", 0.0),
+                "ic_stability": abs(best.get("mean_ic", 0.0) - best.get("val_mean_ic", 0.0)),
             }
         )
 
     return (
         pd.DataFrame(rows)
-        .sort_values("icir", ascending=False)
+        .sort_values("icir", ascending=False, key=abs)
         .reset_index(drop=True)
     )
 
@@ -239,7 +285,7 @@ def _write_summary(
         "",
         f"- Experiment: `{config.experiment_name}`",
         f"- Feature config: `{config.data.feature_config}`",
-        f"- Proxy target horizon: `{config.research.horizon}`",
+        f"- Proxy target horizons: `{config.research.horizons}` (Sharpe-proxy, vol window={config.research.vol_window})",
         f"- Requested top_k: `{config.research.top_k}`",
         f"- ICIR threshold: `{config.research.icir_threshold}`",
         "",
@@ -295,27 +341,45 @@ def run_feature_research(
     train_df = raw_df.iloc[:train_size].copy()
     val_df = raw_df.iloc[train_size : train_size + validation_size].copy()
 
-    train_frame, val_frame, feature_configs = _align_feature_frames(
+    train_features, val_features, feature_configs = _align_feature_frames(
         train_df,
         val_df,
         config.data.feature_config,
-        config.research.horizon,
     )
-    scores = _build_score_table(train_frame, val_frame, window_size=config.research.window_size)
+    scores = _build_score_table(
+        train_features,
+        val_features,
+        train_df,
+        val_df,
+        horizons=config.research.horizons,
+        vol_window=config.research.vol_window,
+        window_size=config.research.window_size,
+    )
 
-    val_target_col = next(col for col in val_frame.columns if col.startswith("target_"))
+    # Use the dominant horizon (highest mean |ICIR| across features) for
+    # the conditional IC redundancy step in _select_features.
+    dominant_horizon = int(
+        scores.groupby("best_horizon")["icir"]
+        .apply(lambda s: s.abs().mean())
+        .idxmax()
+    )
+    logger.info("dominant horizon for redundancy pruning: h=%d", dominant_horizon)
+
+    dom_train_target = _build_sharpe_proxy_target(train_df, dominant_horizon, config.research.vol_window)
+    dom_val_target = _build_sharpe_proxy_target(val_df, dominant_horizon, config.research.vol_window)
+
     feature_cols = scores["feature"].tolist()
-    val_aligned = pd.concat([val_frame[feature_cols], val_frame[val_target_col]], axis=1).dropna()
+    val_aligned = pd.concat([val_features[feature_cols], dom_val_target], axis=1).dropna()
 
     selected_features = _select_features(
         scores,
         val_aligned[feature_cols],
-        val_aligned[val_target_col],
+        val_aligned[dom_val_target.name],
         top_k=config.research.top_k,
         icir_threshold=config.research.icir_threshold,
     )
 
-    correlation_matrix = val_frame[feature_cols].corr().fillna(0.0)
+    correlation_matrix = val_features[feature_cols].corr().fillna(0.0)
 
     scores_csv = output_path / "feature_scores.csv"
     correlation_csv = output_path / "feature_correlations.csv"
