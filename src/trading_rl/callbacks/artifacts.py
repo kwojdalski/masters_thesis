@@ -257,7 +257,14 @@ def log_parameter_faq_artifact() -> None:
         logger.error("faq artifact logging failed err=%s", e)
 
 
-def _log_overview_impl(df: pd.DataFrame, config: Any, artifact_dir: str, data_label: str) -> None:
+def _log_overview_impl(
+    df: pd.DataFrame,
+    config: Any,
+    artifact_dir: str,
+    data_label: str,
+    n_plot_samples: int = 200,
+    max_features: int | None = 5,
+) -> None:
     """Shared implementation for raw and transformed data overview logging."""
     logger = get_project_logger(__name__)
 
@@ -292,10 +299,11 @@ def _log_overview_impl(df: pd.DataFrame, config: Any, artifact_dir: str, data_la
             mlflow.log_artifact(f.name, artifact_dir)
             os.unlink(f.name)
 
-        plot_df = df.head(200).reset_index()
+        plot_df = df.head(n_plot_samples).reset_index()
         plot_df["time_index"] = range(len(plot_df))
         index_col = plot_df.columns[0]
-        columns_to_plot = [c for c in df.columns if c in plot_df.columns and c != index_col][:5]
+        all_cols = [c for c in df.columns if c in plot_df.columns and c != index_col]
+        columns_to_plot = all_cols if max_features is None else all_cols[:max_features]
 
         for column in columns_to_plot:
             try:
@@ -360,7 +368,14 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
     """Log transformed (feature-engineered) dataset overview, sample, and visuals to MLflow."""
     feat_cols = [c for c in df.columns if str(c).startswith("feature_")]
     feat_df = df[feat_cols] if feat_cols else df
-    _log_overview_impl(feat_df, config, "transformed_data_overview", "Transformed Data")
+    _log_overview_impl(
+        feat_df,
+        config,
+        "transformed_data_overview",
+        "Transformed Data",
+        n_plot_samples=1000,
+        max_features=None,
+    )
 
 
 def log_final_metrics(
