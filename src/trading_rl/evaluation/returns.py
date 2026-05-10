@@ -36,20 +36,33 @@ def calculate_actual_returns(rollout, env=None):
     return cumulative_returns
 
 
+def _find_broker(env, max_depth: int = 8):
+    """Traverse a TorchRL env stack to find the tradingenv broker.
+
+    Different env topologies use either ._env (TransformedEnv) or .env
+    (TorchRL GymWrapper) to reference the next layer, so both are tried.
+    Returns the broker object or None if not found.
+    """
+    obj = env
+    for _ in range(max_depth):
+        if hasattr(obj, "broker"):
+            broker = obj.broker
+            if broker is not None:
+                return broker
+        next_obj = getattr(obj, "_env", None) or getattr(obj, "env", None)
+        if next_obj is None or next_obj is obj:
+            break
+        obj = next_obj
+    return None
+
+
 def extract_tradingenv_returns(env, n_steps):
     """Extract actual portfolio returns from TradingEnv broker."""
     try:
-        if hasattr(env, "_env") and hasattr(env._env, "_env"):
-            trading_env = env._env._env
-        else:
-            logger.debug("cannot unwrap to TradingEnv, missing _env attribute")
+        broker = _find_broker(env)
+        if broker is None:
+            logger.debug("cannot find tradingenv broker in env stack")
             return None
-
-        if not hasattr(trading_env, "broker"):
-            logger.debug("unwrapped env has no broker attribute")
-            return None
-
-        broker = trading_env.broker
         if not hasattr(broker, "track_record") or len(broker.track_record) == 0:
             logger.debug("broker has no track_record or it's empty")
             return None
