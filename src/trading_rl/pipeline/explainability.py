@@ -64,12 +64,11 @@ def run_explainability_analysis(
                     title="Global Feature Importance (Permutation)",
                     color="steelblue",
                 )
-                metrics = analyzer.quantify_interpretability(df)
                 MLflowTrainingCallback.log_explainability_results(
                     df,
                     plot,
                     method=ExplainabilityMethod.PERMUTATION,
-                    metrics=metrics,
+                    metrics=None,
                     artifact_path_prefix=artifact_path_prefix,
                 )
                 results[ExplainabilityMethod.PERMUTATION] = df
@@ -83,12 +82,11 @@ def run_explainability_analysis(
                     title="Global Feature Importance (Integrated Gradients)",
                     color="coral",
                 )
-                metrics = analyzer.quantify_interpretability(df)
                 MLflowTrainingCallback.log_explainability_results(
                     df,
                     plot,
                     method=ExplainabilityMethod.INTEGRATED_GRADIENTS,
-                    metrics=metrics,
+                    metrics=None,
                     artifact_path_prefix=artifact_path_prefix,
                 )
                 results[ExplainabilityMethod.INTEGRATED_GRADIENTS] = df
