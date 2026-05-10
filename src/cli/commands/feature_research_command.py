@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import typer
+from rich.table import Table
 
 from trading_rl import ExperimentConfig
 from trading_rl.feature_research import FeatureResearchConfig, run_feature_research
@@ -37,16 +38,43 @@ class FeatureResearchCommand(BaseCommand):
 
             artifacts = run_feature_research(config=config)
 
-            self.console.print(f"[green]Scores:[/green] {artifacts.scores_csv}")
-            self.console.print(
-                f"[green]Correlations:[/green] {artifacts.correlation_csv}"
-            )
-            self.console.print(
-                f"[green]Suggested feature config:[/green] {artifacts.selected_yaml}"
-            )
+            self._display_feature_scores(artifacts)
+
+            self.console.print(f"\n[green]Scores:[/green] {artifacts.scores_csv}")
+            self.console.print(f"[green]Correlations:[/green] {artifacts.correlation_csv}")
+            self.console.print(f"[green]Suggested feature config:[/green] {artifacts.selected_yaml}")
             self.console.print(f"[green]Summary:[/green] {artifacts.summary_md}")
         except Exception as error:
             self.handle_error(error, "Offline feature research")
+
+    def _display_feature_scores(self, artifacts) -> None:
+        selected_set = set(artifacts.selected_names)
+        table = Table(title="Feature Research Results", show_header=True, header_style="bold")
+        table.add_column("#", style="dim", justify="right", width=4)
+        table.add_column("Feature", style="cyan")
+        table.add_column("ICIR", justify="right", style="green")
+        table.add_column("Mean IC", justify="right")
+        table.add_column("Val IC", justify="right")
+        table.add_column("Selected", justify="center")
+
+        for rank, row in enumerate(artifacts.scores.itertuples(), start=1):
+            name = str(row.feature).removeprefix("feature_")
+            is_selected = row.feature in selected_set
+            selected_cell = "[bold green]YES[/bold green]" if is_selected else "[dim]-[/dim]"
+            icir_str = f"{row.icir:.3f}"
+            table.add_row(
+                str(rank),
+                name,
+                icir_str,
+                f"{row.mean_ic:.4f}",
+                f"{row.val_mean_ic:.4f}" if row.val_mean_ic == row.val_mean_ic else "-",
+                selected_cell,
+            )
+
+        self.console.print(table)
+        self.console.print(
+            f"[bold]{len(artifacts.selected_names)} of {len(artifacts.scores)} features selected[/bold]"
+        )
 
     def _load_config(self, params: FeatureResearchParams) -> FeatureResearchConfig:
         """Load feature research configuration."""
