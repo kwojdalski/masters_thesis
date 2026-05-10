@@ -611,7 +611,7 @@ def prepare_data(
         )
     remaining = len(df) - train_size
     if validation_size is None:
-        validation_size = remaining // 2 if test_size is None else remaining // 2
+        validation_size = remaining // 2 if test_size is None else (remaining - test_size) // 2
     if validation_size < 0:
         raise ValueError(f"validation_size must be >= 0, got {validation_size}")
     if validation_size >= remaining:
