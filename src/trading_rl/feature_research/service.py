@@ -358,6 +358,10 @@ def _score_single_symbol(
         # Resolve validation_size now so the cache key is stable.
         raw_len = len(load_trading_data(data_path).dropna())
         train_size_cfg = config.data.train_size
+        # Apply the same proportional fallback used below so the cache key
+        # is consistent with the actual split that will be computed.
+        if train_size_cfg >= raw_len:
+            train_size_cfg = max(10, int(raw_len * 0.8))
         remaining_cfg = raw_len - train_size_cfg
         validation_size_resolved = (
             config.data.validation_size
