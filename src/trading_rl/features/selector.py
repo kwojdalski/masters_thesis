@@ -191,11 +191,10 @@ def _compute_ic_series(
         ic = aligned.iloc[:, 0].corr(aligned.iloc[:, 1], method="spearman")
         return pd.Series([float(ic) if pd.notna(ic) else 0.0], index=[aligned.index[0]])
 
-    rolling_ic = aligned.iloc[:, 0].rolling(window_size).corr(
-        aligned.iloc[:, 1], method="spearman"
-    )
-    rolling_ic = rolling_ic.dropna()
-    return rolling_ic
+    feat_r = aligned.iloc[:, 0].rank()
+    tgt_r = aligned.iloc[:, 1].rank()
+    rolling_ic = feat_r.rolling(window_size).corr(tgt_r)
+    return rolling_ic.dropna()
 
 
 def _build_icir_score_table(
