@@ -2,10 +2,11 @@
 
 ### Experiment Specification Design
 
-Each experiment is fully specified by a structured set of inputs covering the
-dataset, feature subset, reward type, environment settings, and optimization
-hyperparameters. No source-code changes are required to switch between
-experimental variants. A pre-training validation stage checks path availability,
+The full source code for this thesis is publicly available at
+@Wojdalski2026. Each experiment is fully specified by a structured set of
+inputs covering the dataset, feature subset, reward type, environment
+settings, and optimization hyperparameters. No source-code changes are
+required to switch between experimental variants. A pre-training validation stage checks path availability,
 feature definitions, split feasibility, and column compatibility before any
 computation begins, preventing wasted runs from invalid experimental
 specifications. A condensed summary of the main specification is provided in
