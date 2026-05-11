@@ -557,6 +557,24 @@ def run_feature_research(
         else per_symbol_scores[0]
     )
 
+    # Attach per-file significance counts: how many files had |ICIR| >= threshold.
+    if multi_symbol and per_symbol_scores:
+        n_total = len(per_symbol_scores)
+        all_sym = pd.concat(per_symbol_scores, ignore_index=True)
+        sig_counts = (
+            all_sym.groupby("feature")["icir"]
+            .apply(lambda s: int((s.abs() >= config.research.icir_threshold).sum()))
+            .reset_index()
+            .rename(columns={"icir": "n_files_significant"})
+        )
+        sig_counts["pct_files_significant"] = (
+            sig_counts["n_files_significant"] / n_total * 100
+        ).round(1)
+        scores = scores.merge(sig_counts, on="feature", how="left")
+    else:
+        scores["n_files_significant"] = 1
+        scores["pct_files_significant"] = 100.0
+
     feature_cols = scores["feature"].tolist()
     pooled_val_features = pd.concat(all_val_features, ignore_index=True)
     del all_val_features
