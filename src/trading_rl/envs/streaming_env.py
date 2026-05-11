@@ -53,6 +53,8 @@ class StreamingTradingEnv(TradingEnv):
 
         self._memmap_paths = memmap_paths
         self._episode_length = episode_length
+        self._symbol_queue: list[int] = []
+        self._symbol_rng = np.random.default_rng()
 
         # Bootstrap with a concrete window so the parent can set observation_space.
         bootstrap_df = self._load_window(0, 0)
@@ -90,9 +92,16 @@ class StreamingTradingEnv(TradingEnv):
     # Override reset to swap in a fresh window each episode
     # ------------------------------------------------------------------
 
+    def _next_symbol_idx(self) -> int:
+        if not self._symbol_queue:
+            order = list(range(len(self._memmap_paths)))
+            self._symbol_rng.shuffle(order)
+            self._symbol_queue = order
+        return self._symbol_queue.pop()
+
     def reset(self, seed=None, options=None, **kwargs):
         rng = np.random.default_rng(seed)
-        file_idx = int(rng.integers(0, len(self._memmap_paths)))
+        file_idx = self._next_symbol_idx()
         mp = self._memmap_paths[file_idx]
         max_start = mp.n_rows - self._episode_length
         start = int(rng.integers(0, max(1, max_start)))

@@ -390,6 +390,8 @@ class StreamingTradingEnvXY(gym.Env):
 
         self._memmap_paths = memmap_paths
         self._episode_length = episode_length
+        self._symbol_queue: list[int] = []
+        self._symbol_rng = np.random.default_rng()
         self._feature_columns = feature_columns
         self._price_column = price_column
         self._initial_cash = initial_cash
@@ -458,8 +460,15 @@ class StreamingTradingEnvXY(gym.Env):
     # Gymnasium API
     # ------------------------------------------------------------------
 
+    def _next_symbol_idx(self) -> int:
+        if not self._symbol_queue:
+            order = list(range(len(self._memmap_paths)))
+            self._symbol_rng.shuffle(order)
+            self._symbol_queue = order
+        return self._symbol_queue.pop()
+
     def reset(self, *, seed=None, options=None):
-        file_idx = np.random.randint(0, len(self._memmap_paths))
+        file_idx = self._next_symbol_idx()
         mp = self._memmap_paths[file_idx]
         max_start = mp.n_rows - self._episode_length
         start = np.random.randint(0, max(1, max_start))
