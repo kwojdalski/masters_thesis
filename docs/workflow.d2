@@ -1,0 +1,178 @@
+direction: right
+
+# ─────────────────────────────────────────────
+# Stage 1 – Raw data
+# ─────────────────────────────────────────────
+acquire: Data Acquisition {
+  style.fill: "#dbeafe"
+  style.stroke: "#3b82f6"
+
+  parquet: "Raw MBP-10 parquet\n~7M tick events per symbol\n6 symbols · 4 trading days" {
+    shape: cylinder
+    style.fill: "#bfdbfe"
+  }
+}
+
+# ─────────────────────────────────────────────
+# Stage 2 – Offline feature research
+# ─────────────────────────────────────────────
+research: Offline Feature Research {
+  style.fill: "#fef9c3"
+  style.stroke: "#ca8a04"
+
+  fr_split: "Chronological split\ntrain_size rows" {
+    shape: step
+    style.fill: "#fef08a"
+  }
+
+  fr_pipe: "Feature pipeline\nfit on train · transform both splits\nWelford online normalisation" {
+    shape: step
+    style.fill: "#fef08a"
+  }
+
+  fr_ic: "IC / ICIR scoring\nrolling Spearman rank correlation\nvs Sharpe-proxy target\nhorizons [10, 50, 200]" {
+    shape: step
+    style.fill: "#fef08a"
+  }
+
+  fr_agg: "Aggregate across symbols\nmean ICIR ranking" {
+    shape: step
+    style.fill: "#fef08a"
+  }
+
+  fr_sel: "Greedy conditional IC selection\nlinear residualisation\nfor redundancy pruning" {
+    shape: step
+    style.fill: "#fef08a"
+  }
+
+  fr_yaml: "selected_features.yaml\nreduced feature config" {
+    shape: document
+    style.fill: "#fde68a"
+  }
+
+  fr_split -> fr_pipe -> fr_ic -> fr_agg -> fr_sel -> fr_yaml
+}
+
+# ─────────────────────────────────────────────
+# Stage 3 – Data preparation
+# ─────────────────────────────────────────────
+prep: Data Preparation {
+  style.fill: "#dcfce7"
+  style.stroke: "#16a34a"
+
+  dp_split: "Chronological split per symbol\ntrain · val · test" {
+    shape: step
+    style.fill: "#bbf7d0"
+  }
+
+  dp_fit: "Feature pipeline\nfit on train only\nWelford online normalisation" {
+    shape: step
+    style.fill: "#bbf7d0"
+  }
+
+  dp_cache: "Parquet cache\ndata/prepared/\ntrain · val · test per symbol" {
+    shape: cylinder
+    style.fill: "#86efac"
+  }
+
+  dp_mem: "Memmap files\ndata/memmap/\n{i}_train_data.npy  float32\n{i}_train_index.npy  int64\n{i}_columns.json" {
+    shape: cylinder
+    style.fill: "#86efac"
+  }
+
+  dp_split -> dp_fit -> dp_cache
+  dp_fit -> dp_mem
+}
+
+# ─────────────────────────────────────────────
+# Stage 4 – RL training
+# ─────────────────────────────────────────────
+train: RL Training {
+  style.fill: "#fee2e2"
+  style.stroke: "#dc2626"
+
+  env: "StreamingTradingEnvXY\nreset(): shuffle symbol deck\npick random 50k-row window\nfrom that symbol's memmap" {
+    shape: step
+    style.fill: "#fecaca"
+  }
+
+  collector: "SyncDataCollector\ncollect frames_per_batch=200\ntransitions per update" {
+    shape: step
+    style.fill: "#fecaca"
+  }
+
+  buffer: "Replay Buffer\nLazyTensorStorage\nbuffer_size=100k transitions" {
+    shape: queue
+    style.fill: "#fca5a5"
+  }
+
+  td3: "TD3Loss\ntwin critics · clipped double Q\ndelayed actor update (every 2 steps)\ntarget policy smoothing σ=0.2" {
+    shape: step
+    style.fill: "#fecaca"
+  }
+
+  soft: "Soft target network update\nτ = 0.001" {
+    shape: step
+    style.fill: "#fecaca"
+  }
+
+  ckpt: "Checkpoint\nactor + twin critic weights\noptimizer state\nevery 100k steps" {
+    shape: document
+    style.fill: "#fca5a5"
+  }
+
+  env -> collector -> buffer -> td3 -> soft
+  soft -> collector: "next batch"
+  td3 -> ckpt
+}
+
+# ─────────────────────────────────────────────
+# Stage 5 – Evaluation
+# ─────────────────────────────────────────────
+eval: Evaluation {
+  style.fill: "#f3e8ff"
+  style.stroke: "#9333ea"
+
+  backtest: "Deterministic rollout\nno exploration noise\nfull val split · full test split" {
+    shape: step
+    style.fill: "#e9d5ff"
+  }
+
+  metrics: "Per-split metrics\nSharpe ratio · max drawdown\ntotal return · win rate\nposition change ratio" {
+    shape: step
+    style.fill: "#e9d5ff"
+  }
+
+  stats: "Statistical significance tests\nt-test · Sharpe bootstrap\nSortino bootstrap · Mann-Whitney\nvs buy-and-hold · TWAP · VWAP · random" {
+    shape: step
+    style.fill: "#e9d5ff"
+  }
+
+  expl: "Explainability\npermutation feature importance\nn_steps=500" {
+    shape: step
+    style.fill: "#e9d5ff"
+  }
+
+  mlflow: "MLflow\nparameters · metrics\nartifacts · plots" {
+    shape: cylinder
+    style.fill: "#c4b5fd"
+  }
+
+  backtest -> metrics -> stats -> mlflow
+  backtest -> expl -> mlflow
+}
+
+# ─────────────────────────────────────────────
+# Cross-stage connections
+# ─────────────────────────────────────────────
+acquire.parquet -> research.fr_split
+acquire.parquet -> prep.dp_split
+
+research.fr_yaml -> prep.dp_fit: "feeds reduced\nfeature config" {
+  style.stroke-dash: 4
+  style.stroke: "#ca8a04"
+}
+
+prep.dp_mem -> train.env: "memmap paths\nper symbol"
+prep.dp_cache -> eval.backtest: "val + test\nDataFrames"
+train.ckpt -> eval.backtest: "trained\nactor weights"
