@@ -1,16 +1,28 @@
 direction: down
 
 # ─────────────────────────────────────────────
-# Stage 1 – Raw data
+# Stage 1 – Data Acquisition
 # ─────────────────────────────────────────────
 acquire: Data Acquisition {
   style.fill: "#dbeafe"
   style.stroke: "#3b82f6"
 
-  parquet: "Raw MBP-10 parquet\n~7M tick events per symbol\n6 symbols · 4 trading days" {
-    shape: cylinder
+  source: "DataBento\nMBP-10 (market-by-price, 10 levels)\nus_hours filter (14:30–21:00 UTC)" {
+    shape: step
     style.fill: "#bfdbfe"
   }
+
+  symbols: "6 symbols\nAAPL · MSFT · TSLA\nMETA · AMZN · AVGO\n4 trading days\n2026-02-25 to 2026-03-03" {
+    shape: step
+    style.fill: "#bfdbfe"
+  }
+
+  parquet: "Raw MBP-10 parquet per symbol\n~7M tick events · ~40 columns\nbid_px_00..09 · ask_px_00..09\nbid_sz_00..09 · ask_sz_00..09\nbid_ct_00..09 · ask_ct_00..09\naction · ts_event" {
+    shape: cylinder
+    style.fill: "#93c5fd"
+  }
+
+  source -> symbols -> parquet
 }
 
 # ─────────────────────────────────────────────
@@ -20,7 +32,7 @@ research: Offline Feature Research {
   style.fill: "#fef9c3"
   style.stroke: "#ca8a04"
 
-  per_symbol: Per-Symbol Scoring (repeat for each symbol) {
+  per_symbol: Per-Symbol Scoring (repeat for each of 6 symbols) {
     style.fill: "#fefce8"
     style.stroke: "#a16207"
 
@@ -29,17 +41,17 @@ research: Offline Feature Research {
       style.fill: "#fef08a"
     }
 
-    fr_cache: "Feature cache check\n.cache/feature_transformation/\nkeyed by file hash + config hash" {
+    fr_cache: "Feature cache check\n.cache/feature_transformation/\nkey = MD5(path + mtime + sizes + feature_config)" {
       shape: diamond
       style.fill: "#fde68a"
     }
 
-    fr_pipe: "FeaturePipeline.fit(train)\ntransform train + val\nWelford online normalisation\nper-feature z-score" {
+    fr_pipe: "FeaturePipeline.fit(train)\ntransform train + val\nWelford online normalisation\nper-feature z-score · session boundary reset" {
       shape: step
       style.fill: "#fef08a"
     }
 
-    fr_cache_write: "Write cache\ntrain_features.parquet\nval_features.parquet\ntrain_price.parquet\nval_price.parquet" {
+    fr_cache_write: "Write to cache\nfr_train_features.parquet\nfr_val_features.parquet\nfr_train_price.parquet\nfr_val_price.parquet" {
       shape: cylinder
       style.fill: "#fde68a"
     }
@@ -49,39 +61,40 @@ research: Offline Feature Research {
       style.fill: "#fef08a"
     }
 
-    fr_target: "Build proxy targets per horizon h ∈ [10, 50, 200]\n\nSharpe proxy: forward_ret / (rolling_vol + ε)\n  forward_ret  = log(price[t+h] / price[t])\n  rolling_vol  = rolling std of log returns (window=50)\n\nReturn proxy: log(price[t+h] / price[t])" {
+    fr_target: "Build proxy targets per horizon h ∈ [10, 50, 200]\n\nSharpe proxy (default):\n  tick_log_ret = log(price[t] / price[t-1])\n  rolling_vol  = rolling std of tick_log_ret (window=50)\n  forward_ret  = log(price[t+h] / price[t])\n  target       = forward_ret / (rolling_vol + 1e-10)\n\nReturn proxy (alternative):\n  target = log(price[t+h] / price[t])" {
       shape: step
       style.fill: "#fef08a"
     }
 
-    fr_ic: "IC scoring per feature × horizon\n\nRolling Spearman rank correlation\n  window_size = 1000 ticks\n\nComputed on train split:\n  mean_ic  = mean of rolling IC series\n  ic_std   = std of rolling IC series\n  ICIR     = mean_ic / ic_std\n  ic_tstat = mean_ic / (ic_std / √n)\n  ic_positive_ratio = fraction IC > 0\n\nComputed on val split (out-of-sample check):\n  val_mean_ic" {
+    fr_ic: "IC scoring — per feature × per horizon\n\nRolling Spearman rank correlation (window_size=1000)\n  feat_ranked = rolling rank of feature values\n  tgt_ranked  = rolling rank of target values\n  IC_t        = Pearson(feat_ranked_t, tgt_ranked_t)\n\nStats computed on train split:\n  mean_ic          = mean(IC series)\n  ic_std           = std(IC series)\n  ICIR             = mean_ic / ic_std\n  ic_tstat         = mean_ic / (ic_std / √n)\n  ic_positive_ratio = fraction of IC > 0\n\nOut-of-sample check on val split:\n  val_mean_ic      = mean IC on val data" {
       shape: step
       style.fill: "#fef08a"
     }
 
-    fr_best_h: "Best horizon selection per feature\nkeep horizon with highest |ICIR|\nrecord best_horizon" {
+    fr_best_h: "Best horizon selection per feature\nkeep stats for horizon with highest |ICIR|\nrecord best_horizon\nic_stability = |mean_ic − val_mean_ic|" {
       shape: step
       style.fill: "#fef08a"
     }
 
-    fr_scores_sym: "feature_scores_{symbol}.csv\nfeature · best_horizon · mean_ic\nic_std · ICIR · ic_tstat\nic_positive_ratio · val_mean_ic\nic_stability" {
+    fr_scores_sym: "feature_scores_{symbol}.csv\nfeature · best_horizon · mean_ic\nic_std · ICIR · ic_tstat\nic_positive_ratio · val_mean_ic · ic_stability" {
       shape: document
       style.fill: "#fde68a"
     }
 
-    fr_split -> fr_cache -> fr_pipe: "cache miss"
-    fr_cache -> fr_cache_write: "after transform" {style.stroke-dash: 4}
-    fr_cache -> fr_price: "cache hit (skip transform)"
-    fr_pipe -> fr_price
+    fr_split -> fr_cache
+    fr_cache -> fr_pipe: "miss"
+    fr_pipe -> fr_cache_write
+    fr_cache_write -> fr_price
+    fr_cache -> fr_price: "hit (skip transform)"
     fr_price -> fr_target -> fr_ic -> fr_best_h -> fr_scores_sym
   }
 
-  fr_agg: "Aggregate across all symbols\nmean ICIR per feature\nbest_horizon by mode\nsorted by |ICIR| descending" {
+  fr_agg: "Aggregate scores across all 6 symbols\nmean of: mean_ic · ic_std · ICIR · ic_tstat\n         ic_positive_ratio · val_mean_ic · ic_stability\nbest_horizon = mode across symbols\nsort by |ICIR| descending" {
     shape: step
     style.fill: "#fef08a"
   }
 
-  fr_sel: "Greedy conditional IC selection\n\n1. Walk features sorted by |ICIR|\n2. Skip if |ICIR| < icir_threshold (0.02)\n3. Add candidate to selected set\n4. Residualise remaining features against\n   selected via LinearRegression\n   (removes shared linear variance)\n5. Stop when top_k features selected" {
+  fr_sel: "Greedy conditional IC selection\n\n1. Walk features sorted by |ICIR| descending\n2. Skip if |ICIR| < icir_threshold (default 0.02)\n3. Accept candidate → append to selected\n4. Residualise remaining features against selected:\n     regressor.fit(selected_matrix, remaining_matrix)\n     remaining -= regressor.predict(selected_matrix)\n   (removes shared linear variance so next pick\n    is not a near-duplicate of an already-selected feature)\n5. Repeat until top_k features selected (default 10)" {
     shape: step
     style.fill: "#fef08a"
   }
@@ -90,22 +103,22 @@ research: Offline Feature Research {
     style.fill: "#fefce8"
     style.stroke: "#a16207"
 
-    fr_scores_csv: "feature_scores.csv\naggregated rankings\nall features" {
+    fr_scores_csv: "feature_scores.csv\naggregated rankings · all features" {
       shape: document
       style.fill: "#fde68a"
     }
 
-    fr_corr_csv: "feature_correlations.csv\npairwise Pearson correlation\non pooled val features" {
+    fr_corr_csv: "feature_correlations.csv\npairwise Pearson correlation\non pooled val features (capped 20k rows/symbol)" {
       shape: document
       style.fill: "#fde68a"
     }
 
-    fr_yaml: "selected_features.yaml\nreduced feature config\nonly selected features" {
+    fr_yaml: "selected_features.yaml\nreduced feature config\nonly top_k selected features" {
       shape: document
       style.fill: "#fde68a"
     }
 
-    fr_summary: "summary.md\ntop-10 ranked features\nselected list · config params" {
+    fr_summary: "summary.md\ntop-10 ranked features table\nselected list · experiment config" {
       shape: document
       style.fill: "#fde68a"
     }
@@ -121,119 +134,213 @@ prep: Data Preparation {
   style.fill: "#dcfce7"
   style.stroke: "#16a34a"
 
-  dp_split: "Chronological split per symbol\ntrain · val · test" {
+  dp_loop: Per-Symbol Processing (repeat for each of 6 symbols) {
+    style.fill: "#f0fdf4"
+    style.stroke: "#15803d"
+
+    dp_cache_chk: "Feature cache check\n.cache/feature_transformation/\nkey = MD5(path + mtime + sizes + feature_config)" {
+      shape: diamond
+      style.fill: "#bbf7d0"
+    }
+
+    dp_load: "load_trading_data()\nread parquet · drop NaNs\n~7M rows" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    dp_split: "Chronological split (no shuffling)\ntrain:  first train_size rows  (200k)\nval:    next  validation_size  (~3.4M)\ntest:   remainder               (~3.4M)" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    dp_fit: "FeaturePipeline.fit(train_df_raw)\ncompute normalisation stats on train ONLY\nWelford online algorithm\nresets at session gaps > 1 hour" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    dp_transform: "Transform all three splits\ntrain_features = pipeline.transform(train_df_raw)\nval_features   = pipeline.transform(val_df_raw)\ntest_features  = pipeline.transform(test_df_raw)" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    dp_hft: "HFT post-processing\nensure_close_column_for_hft()\n  close = (bid_px_00 + ask_px_00) / 2\nensure_unique_index_for_hft_tradingenv()\n  deduplicate timestamps with 1µs gap" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    dp_cache_write: "Write parquet cache\n.cache/feature_transformation/{key}/\ntrain.parquet · val.parquet · test.parquet" {
+      shape: cylinder
+      style.fill: "#86efac"
+    }
+
+    dp_memmap: "save_symbol_memmap(train_df)\nwrite float32 binary array to disk\n{i}_train_data.npy   (n_rows × n_cols)\n{i}_train_index.npy  (nanosecond timestamps)\n{i}_columns.json     (column names)" {
+      shape: cylinder
+      style.fill: "#86efac"
+    }
+
+    dp_cache_chk -> dp_load: "miss"
+    dp_cache_chk -> dp_hft: "hit (skip load + transform)"
+    dp_load -> dp_split -> dp_fit -> dp_transform -> dp_hft
+    dp_hft -> dp_cache_write
+    dp_hft -> dp_memmap
+  }
+
+  dp_concat: "Concatenate splits across symbols\ntrain_df = first symbol only (streaming mode)\nval_df   = concat all 6 val splits\ntest_df  = concat all 6 test splits\nvalidate_prepared_data()" {
     shape: step
     style.fill: "#bbf7d0"
   }
 
-  dp_fit: "Feature pipeline\nfit on train only\nWelford online normalisation" {
+  dp_prepared: "PreparedDataset\ntrain_df · val_df · test_df\nfeature_columns · price_column\nmemmap_train_paths (6 MemmapPaths)" {
     shape: step
-    style.fill: "#bbf7d0"
-  }
-
-  dp_cache: "Parquet cache\ndata/prepared/\ntrain · val · test per symbol" {
-    shape: cylinder
     style.fill: "#86efac"
   }
 
-  dp_mem: "Memmap files\ndata/memmap/\n{i}_train_data.npy  float32\n{i}_train_index.npy  int64\n{i}_columns.json" {
-    shape: cylinder
-    style.fill: "#86efac"
-  }
-
-  dp_split -> dp_fit -> dp_cache
-  dp_fit -> dp_mem
+  dp_loop -> dp_concat -> dp_prepared
 }
 
 # ─────────────────────────────────────────────
-# Stage 4 – RL training
+# Stage 4 – RL Training
 # ─────────────────────────────────────────────
 train: RL Training {
   style.fill: "#fee2e2"
   style.stroke: "#dc2626"
 
-  env: "StreamingTradingEnvXY\nreset(): shuffle symbol deck\npick random 50k-row window\nfrom that symbol's memmap" {
+  networks: Network Architecture {
+    style.fill: "#fff1f2"
+    style.stroke: "#b91c1c"
+
+    actor_net: "Actor  (deterministic policy)\nMLP: [n_obs → 128 → 64 → n_act]\nReLU activations · Tanh output\nscaled to action bounds [-1, 1]\ncontinuous portfolio weight" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    critic_net: "Twin Critics  (clipped double Q)\n2 × ValueOperator\nMLP: [n_obs + n_act → 128 → 64 → 1]\nReLU activations\ninput = concat(observation, action)" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    target_nets: "Target Networks  (soft-copied)\nactor_target   ← τ·actor   + (1−τ)·actor_target\ncritic_target  ← τ·critic  + (1−τ)·critic_target\nτ = 0.001" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+  }
+
+  env: "StreamingTradingEnvXY  (episode reset)\nShuffle symbol deck → pick next symbol\nPick random start ∈ [0, train_size − episode_length]\nLoad 50k-row window from memmap\nBuild inner TradingEnv with DSR reward\n→ ~40 episodes total across 2M training steps" {
     shape: step
     style.fill: "#fecaca"
   }
 
-  collector: "SyncDataCollector\ncollect frames_per_batch=200\ntransitions per update" {
+  reward: "Differential Sharpe Ratio reward  (per step)\n\nR_t = log return of portfolio value\n\nEMA updates (η = 0.01):\n  A_t = (1−η)·A_{t−1} + η·R_t        (mean)\n  B_t = (1−η)·B_{t−1} + η·R_t²       (2nd moment)\n\nReward:\n  ΔA_t = R_t − A_{t−1}\n  ΔB_t = R_t² − B_{t−1}\n  D_t  = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n          / (B_{t−1} − A_{t−1}²)^(3/2) + ε" {
     shape: step
     style.fill: "#fecaca"
   }
 
-  buffer: "Replay Buffer\nLazyTensorStorage\nbuffer_size=100k transitions" {
+  collector: "SyncDataCollector\ncollect frames_per_batch = 200 transitions\nexploration: Gaussian noise σ = 0.1\nfirst init_rand_steps = 1000 are random" {
+    shape: step
+    style.fill: "#fecaca"
+  }
+
+  buffer: "Replay Buffer\nLazyTensorStorage\ncapacity = 100k transitions\nsampling: uniform random" {
     shape: queue
     style.fill: "#fca5a5"
   }
 
-  td3: "TD3Loss\ntwin critics · clipped double Q\ndelayed actor update (every 2 steps)\ntarget policy smoothing σ=0.2" {
-    shape: step
-    style.fill: "#fecaca"
+  update: TD3 Update (optim_steps_per_batch = 5 times per collect) {
+    style.fill: "#fff1f2"
+    style.stroke: "#b91c1c"
+
+    sample: "Sample mini-batch\nbatch_size = 128 transitions\nfrom replay buffer" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    critic_loss: "Critic loss  (smooth L1)\nTarget action:\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\nTarget Q:\n  y = r + γ · min(Q1_target(s',ã), Q2_target(s',ã))\n  γ = 0.995\nLoss:\n  L = SmoothL1(Q1(s,a) − y) + SmoothL1(Q2(s,a) − y)" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    actor_loss: "Actor loss  (every policy_delay = 2 critic steps)\n  L = −mean(Q1(s, actor(s)))" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    soft_update: "Soft target update\nactor_target  ← τ·actor  + (1−τ)·actor_target\ncritic_target ← τ·critic + (1−τ)·critic_target\nτ = 0.001" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    sample -> critic_loss -> actor_loss -> soft_update
   }
 
-  soft: "Soft target network update\nτ = 0.001" {
-    shape: step
-    style.fill: "#fecaca"
-  }
-
-  ckpt: "Checkpoint\nactor + twin critic weights\noptimizer state\nevery 100k steps" {
+  ckpt: "Checkpoint  (every 100k steps)\nactor weights · twin critic weights\noptimizer state · replay buffer (optional)\nsaved to logs/{experiment}/" {
     shape: document
     style.fill: "#fca5a5"
   }
 
-  env -> collector -> buffer -> td3 -> soft
-  soft -> collector: "next batch"
-  td3 -> ckpt
+  periodic_eval: "Periodic evaluation  (every eval_interval steps)\ndeterministic rollout on train-split window\nlog episode reward · portfolio return\nmarket return benchmark" {
+    shape: step
+    style.fill: "#fecaca"
+  }
+
+  env -> reward -> collector -> buffer -> update
+  update -> soft_update: "" {style.opacity: 0}
+  update -> ckpt
+  update -> periodic_eval
+  periodic_eval -> collector: "continue training"
 }
 
 # ─────────────────────────────────────────────
 # Stage 5 – Evaluation
 # ─────────────────────────────────────────────
-eval: Evaluation {
+eval: Post-Training Evaluation {
   style.fill: "#f3e8ff"
   style.stroke: "#9333ea"
 
-  backtest: "Deterministic rollout\nno exploration noise\nfull val split · full test split" {
+  rollout: "Deterministic rollout  (no exploration noise)\nfull val split  (~3.4M ticks, continuous)\nfull test split (~3.4M ticks, continuous)\nactor in deterministic mode" {
     shape: step
     style.fill: "#e9d5ff"
   }
 
-  metrics: "Per-split metrics\nSharpe ratio · max drawdown\ntotal return · win rate\nposition change ratio" {
+  metrics: "Performance metrics  (per split)\nSharpe ratio      · Sortino ratio\nTotal return       · Annualised return\nMax drawdown       · Avg drawdown\nMax drawdown duration · Recovery time\nWin rate (hit rate)\nPosition change ratio" {
     shape: step
     style.fill: "#e9d5ff"
   }
 
-  stats: "Statistical significance tests\nt-test · Sharpe bootstrap\nSortino bootstrap · Mann-Whitney\nvs buy-and-hold · TWAP · VWAP · random" {
+  benchmarks: "Benchmark strategies\nBuy-and-hold · Short-and-hold\nTWAP · VWAP · Random policy\n(same time period, same starting capital)" {
     shape: step
     style.fill: "#e9d5ff"
   }
 
-  expl: "Explainability\npermutation feature importance\nn_steps=500" {
+  stats: "Statistical significance tests\nvs each benchmark:\n  t-test (two-sample, returns)\n  Mann-Whitney U test\n  Sharpe bootstrap  (n=10k samples)\n  Sortino bootstrap (n=10k samples)\nconfidence level = 0.95\nreports p-value · test statistic · conclusion" {
     shape: step
     style.fill: "#e9d5ff"
   }
 
-  mlflow: "MLflow\nparameters · metrics\nartifacts · plots" {
+  expl: "Explainability\nPermutation feature importance:\n  for each feature:\n    shuffle feature values in observation\n    measure drop in cumulative reward\n    importance = reward_original − reward_shuffled\nn_steps = 500\noutput: ranked feature importance bar chart" {
+    shape: step
+    style.fill: "#e9d5ff"
+  }
+
+  mlflow: "MLflow artifacts\nParameters: full ExperimentConfig\nMetrics:    all per-split performance metrics\nArtifacts:\n  evaluation plots (reward curve · actions)\n  feature importance chart\n  statistical test report\n  model checkpoint\n  selected_features.yaml" {
     shape: cylinder
     style.fill: "#c4b5fd"
   }
 
-  backtest -> metrics -> stats -> mlflow
-  backtest -> expl -> mlflow
+  rollout -> metrics -> benchmarks -> stats -> mlflow
+  rollout -> expl -> mlflow
 }
 
 # ─────────────────────────────────────────────
 # Cross-stage connections
 # ─────────────────────────────────────────────
-acquire.parquet -> research.fr_split
-acquire.parquet -> prep.dp_split
+acquire.parquet -> research.per_symbol: "raw tick data\nper symbol"
+acquire.parquet -> prep.dp_loop: "raw tick data\nper symbol"
 
-research.fr_yaml -> prep.dp_fit: "feeds reduced\nfeature config" {
+research.fr_outputs.fr_yaml -> prep.dp_loop.dp_fit: "reduced feature config\n(optional, feeds next run)" {
   style.stroke-dash: 4
   style.stroke: "#ca8a04"
 }
 
-prep.dp_mem -> train.env: "memmap paths\nper symbol"
-prep.dp_cache -> eval.backtest: "val + test\nDataFrames"
-train.ckpt -> eval.backtest: "trained\nactor weights"
+prep.dp_prepared -> train.env: "MemmapPaths\n6 symbols"
+prep.dp_prepared -> eval.rollout: "val_df + test_df\nconcatenated splits"
+train.ckpt -> eval.rollout: "trained actor weights\n(deterministic mode)"
