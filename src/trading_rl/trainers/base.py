@@ -730,10 +730,12 @@ class BaseTrainer(ABC):
             on_train_end()
 
         t1 = time.time()
+        elapsed = t1 - t0
         logger.info(
             f"{completion_prefix}: {self.total_count} steps, "
-            f"{self.total_episodes} episodes, {t1 - t0:.2f}s"
+            f"{self.total_episodes} episodes, {elapsed:.2f}s"
         )
+        self.logs["training_duration_s"].append(elapsed)
         return dict(self.logs)
 
     def train(self, callback: Any = None) -> dict[str, list]:
