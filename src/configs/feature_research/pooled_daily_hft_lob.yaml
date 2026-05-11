@@ -1,0 +1,38 @@
+experiment_name: pooled_daily_hft_lob_feature_research
+
+data:
+  # 18 training files: 6 symbols x 3 days (2026-02-25 to 2026-02-27)
+  # Feature research operates only on these files, scored per file.
+  data_paths:
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-27_raw_mbp-10_us_hours.parquet
+  # train_size larger than any single day file triggers the 80/20 proportional
+  # split inside _score_single_symbol, so each file is scored in full.
+  train_size: 9999999
+  feature_config: src/configs/features/hft_lob_features_causal.yaml
+  feature_cache_dir: ".cache/feature_transformation"
+
+research:
+  target_type: sharpe
+  horizons: [10, 50, 200]
+  vol_window: 50
+  top_k: 25
+  icir_threshold: 0.02
+  window_size: 1000
+  output_dir: logs/pooled_daily_hft_lob/feature_research

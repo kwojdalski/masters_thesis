@@ -166,6 +166,77 @@ def _map_splits(
     return results["train"], results["val"], results["test"]
 
 
+def _derive_close_hft_single(
+    df: pd.DataFrame,
+    split_name: str,
+    logger: logging.Logger,
+) -> pd.DataFrame:
+    """Derive 'close' mid-price column for one HFT split if not already present."""
+    if "close" in df.columns:
+        return df
+    required = {"ask_px_00", "bid_px_00"}
+    missing = sorted(required - set(df.columns))
+    if missing:
+        raise ValueError(
+            "HFT mode requires a raw 'close' column or top-of-book columns "
+            f"ask_px_00/bid_px_00. Missing in {split_name}: {missing}"
+        )
+    result = df.copy()
+    mid_price = (result["ask_px_00"] + result["bid_px_00"]) / 2.0
+    if "price" in result.columns:
+        mid_price = mid_price.fillna(result["price"])
+    result["close"] = mid_price.ffill().bfill()
+    nan_ratio = float(result["close"].isna().mean())
+    method = "mid_price+fallback" if "price" in result.columns else "mid_price"
+    logger.info("derive close split=%s method=%s nan_ratio=%.6f", split_name, method, nan_ratio)
+    return result
+
+
+def _deduplicate_hft_index_single(
+    df: pd.DataFrame,
+    split_name: str,
+    logger: logging.Logger,
+) -> pd.DataFrame:
+    """Enforce unique, monotonic nanosecond timestamps for one HFT split."""
+    if not isinstance(df.index, pd.DatetimeIndex):
+        raise ValueError(
+            "HFT TradingEnv requires DatetimeIndex to enforce unique event ordering, "
+            f"but {split_name} split has index type {type(df.index).__name__}."
+        )
+    min_gap_ns = _HFT_MIN_TIMESTAMP_GAP_NS
+    index = df.index
+    index_ns_raw = index.view("i8")
+    old_min_gap_ns = int(np.diff(index_ns_raw).min()) if len(index_ns_raw) > 1 else min_gap_ns
+    requires_adjustment = (
+        not index.is_unique
+        or not index.is_monotonic_increasing
+        or old_min_gap_ns < min_gap_ns
+        or index.tz is not None
+    )
+    if not requires_adjustment:
+        return df
+    if not index.is_monotonic_increasing:
+        df = df.sort_index(kind="stable")
+    else:
+        df = df.copy(deep=False)
+    index = df.index
+    index_ns = index.view("i8").copy()
+    positions = np.arange(len(index_ns), dtype=np.int64) * min_gap_ns
+    adjusted_ns = np.maximum.accumulate(index_ns - positions) + positions
+    adjusted_index = pd.to_datetime(adjusted_ns, utc=True).tz_localize(None)
+    df.index = adjusted_index
+    if not df.index.is_unique:
+        raise ValueError(f"Failed to enforce unique index for {split_name} HFT split.")
+    duplicate_count = int(index.duplicated().sum())
+    max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
+    new_min_gap_ns = int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
+    logger.info(
+        "adjust hft index split=%s duplicates=%d min_gap_ns=%d->%d max_shift_ns=%d",
+        split_name, duplicate_count, old_min_gap_ns, new_min_gap_ns, max_shift_ns,
+    )
+    return df
+
+
 def ensure_close_column_for_hft(
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
@@ -177,34 +248,11 @@ def ensure_close_column_for_hft(
     mode = str(getattr(config.env, "mode", "mft")).lower().strip()
     if mode != "hft":
         return train_df, val_df, test_df
-
-    required_cols = {"ask_px_00", "bid_px_00"}
-
-    def _process(split_name: str, df: pd.DataFrame) -> pd.DataFrame:
-        if "close" in df.columns:
-            return df
-        missing = sorted(required_cols - set(df.columns))
-        if missing:
-            raise ValueError(
-                "HFT mode requires a raw 'close' column or top-of-book columns "
-                f"ask_px_00/bid_px_00 to derive it. Missing columns in {split_name}: {missing}"
-            )
-        derived_df = df.copy()
-        mid_price = (derived_df["ask_px_00"] + derived_df["bid_px_00"]) / 2.0
-        if "price" in derived_df.columns:
-            mid_price = mid_price.fillna(derived_df["price"])
-        mid_price = mid_price.ffill().bfill()
-        derived_df["close"] = mid_price
-        nan_ratio = float(derived_df["close"].isna().mean())
-        logger.info(
-            "derive close split=%s method=mid_price%s nan_ratio=%.6f",
-            split_name,
-            "+fallback" if "price" in derived_df.columns else "",
-            nan_ratio,
-        )
-        return derived_df
-
-    return _map_splits(_process, train_df, val_df, test_df)
+    return (
+        _derive_close_hft_single(train_df, "train", logger),
+        _derive_close_hft_single(val_df, "val", logger),
+        _derive_close_hft_single(test_df, "test", logger),
+    )
 
 
 def ensure_unique_index_for_hft_tradingenv(
@@ -219,53 +267,11 @@ def ensure_unique_index_for_hft_tradingenv(
     backend = str(getattr(config.env, "backend", "")).lower().strip()
     if mode != "hft" or backend != "tradingenv":
         return train_df, val_df, test_df
-
-    min_gap_ns = _HFT_MIN_TIMESTAMP_GAP_NS
-
-    def _process(split_name: str, df: pd.DataFrame) -> pd.DataFrame:
-        if not isinstance(df.index, pd.DatetimeIndex):
-            raise ValueError(
-                "HFT TradingEnv requires DatetimeIndex to enforce unique event ordering, "
-                f"but {split_name} split has index type {type(df.index).__name__}."
-            )
-        index = df.index
-        index_ns_raw = index.view("i8")
-        old_min_gap_ns = int(np.diff(index_ns_raw).min()) if len(index_ns_raw) > 1 else min_gap_ns
-        requires_adjustment = (
-            not index.is_unique
-            or not index.is_monotonic_increasing
-            or old_min_gap_ns < min_gap_ns
-            or index.tz is not None
-        )
-        if not requires_adjustment:
-            return df
-        # sort_index() returns a new DataFrame already — no extra .copy() needed.
-        # When already sorted, a shallow copy suffices: column arrays are shared,
-        # only the index metadata is replaced.
-        if not index.is_monotonic_increasing:
-            df = df.sort_index(kind="stable")
-        else:
-            df = df.copy(deep=False)
-        index = df.index
-        # Detach from the index buffer before we replace it below so the
-        # post-assignment stats (duplicate_count, max_shift_ns) remain valid.
-        index_ns = index.view("i8").copy()
-        positions = np.arange(len(index_ns), dtype=np.int64) * min_gap_ns
-        adjusted_ns = np.maximum.accumulate(index_ns - positions) + positions
-        adjusted_index = pd.to_datetime(adjusted_ns, utc=True).tz_localize(None)
-        df.index = adjusted_index
-        if not df.index.is_unique:
-            raise ValueError(f"Failed to enforce unique index for {split_name} HFT split.")
-        duplicate_count = int(index.duplicated().sum())
-        max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
-        new_min_gap_ns = int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
-        logger.info(
-            "adjust hft index split=%s duplicates=%d min_gap_ns=%d->%d max_shift_ns=%d",
-            split_name, duplicate_count, old_min_gap_ns, new_min_gap_ns, max_shift_ns,
-        )
-        return df
-
-    return _map_splits(_process, train_df, val_df, test_df)
+    return (
+        _deduplicate_hft_index_single(train_df, "train", logger),
+        _deduplicate_hft_index_single(val_df, "val", logger),
+        _deduplicate_hft_index_single(test_df, "test", logger),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -284,9 +290,10 @@ def _prepared_cache_metadata_path(prepared_dir: Path) -> Path:
 
 
 def _data_source_signature(config: Any) -> list[dict[str, Any]]:
-    paths = config.data.data_paths or [config.data.data_path]
+    paths = list(config.data.data_paths or [config.data.data_path])
+    val_paths = list(getattr(config.data, "val_data_paths", None) or [])
     signature = []
-    for path_value in paths:
+    for path_value in paths + val_paths:
         path = Path(path_value)
         stat = path.stat() if path.exists() else None
         signature.append(
@@ -330,6 +337,11 @@ def _config_cache_signature(config: Any) -> dict[str, Any]:
 
 
 def _expected_cached_split_rows(config: Any, memmap_dir: Path | None) -> dict[str, int | None]:
+    # Per-day mode: each file has a different number of rows, so we cannot
+    # assert a fixed split size — return None to skip row-count validation.
+    if getattr(config.data, "val_data_paths", None):
+        return {"train": None, "val": None, "test": None}
+
     data_paths = getattr(config.data, "data_paths", None) or []
     n_symbols = len(data_paths) if data_paths else 1
     train_rows = getattr(config.data, "train_size", None)
@@ -371,6 +383,11 @@ def _memmap_cache_compatible(
             len(paths),
         )
         return False
+
+    # Per-day mode: each memmap has variable rows (one per (symbol, day) file).
+    # Skip the uniform row-count check; file count is sufficient.
+    if getattr(config.data, "val_data_paths", None):
+        return True
 
     expected_train_rows = int(config.data.train_size)
     bad_rows = [p.n_rows for p in paths if p.n_rows != expected_train_rows]
@@ -562,6 +579,161 @@ def _build_single_symbol_splits(
     return _finalize_splits(train_df, val_df, test_df, config, logger)
 
 
+def _build_per_day_splits(
+    config: Any,
+    logger: logging.Logger,
+    train_paths: list[str],
+    val_paths: list[str],
+    memmap_dir: Path | None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
+    """Process per-(symbol, day) training files with separate validation files.
+
+    Training files are used in full (no internal split).  One feature pipeline
+    is fit per symbol from all of that symbol's training days combined, which
+    gives more stable normalisation statistics than fitting on a single day.
+
+    Validation files are transformed with their symbol's fitted pipeline then
+    split 50/50 into val and test halves.
+
+    Symbol identity is derived from the filename prefix up to the first
+    underscore, e.g. ``AAPL_2026-02-25_raw_mbp-10_us_hours.parquet`` → ``AAPL``.
+    Training and validation paths must be ordered alphabetically by symbol so
+    that each val file maps to the matching symbol group.
+    """
+    from collections import defaultdict
+
+    from trading_rl.features import FeaturePipeline
+
+    feature_config = getattr(config.data, "feature_config", None)
+    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+    backend = str(getattr(config.env, "backend", "")).lower().strip()
+
+    def _symbol_of(path: str) -> str:
+        return Path(path).name.split("_")[0]
+
+    # Group training paths by symbol (order within each group preserved)
+    symbol_train_paths: dict[str, list[str]] = defaultdict(list)
+    for p in train_paths:
+        symbol_train_paths[_symbol_of(p)].append(p)
+
+    # Fit one FeaturePipeline per symbol on concatenated training days
+    logger.info("per-day mode: fitting per-symbol pipelines n_symbols=%d", len(symbol_train_paths))
+    symbol_pipelines: dict[str, Any] = {}
+    for symbol, sym_paths in sorted(symbol_train_paths.items()):
+        logger.info("fit pipeline symbol=%s n_days=%d", symbol, len(sym_paths))
+        raw_parts = [load_trading_data(p).dropna() for p in sym_paths]
+        combined = pd.concat(raw_parts)
+        del raw_parts
+        pipeline = FeaturePipeline.from_yaml(feature_config)
+        pipeline.fit(combined)
+        symbol_pipelines[symbol] = pipeline
+        del combined
+        gc.collect()
+
+    # Transform each training file → save memmap
+    tmp_dir = Path(tempfile.mkdtemp(prefix="per_day_splits_"))
+    collected_memmap_paths: list[MemmapPaths] = []
+    first_train_df: pd.DataFrame | None = None
+
+    for i, train_path in enumerate(train_paths):
+        symbol = _symbol_of(train_path)
+        pipeline = symbol_pipelines[symbol]
+        logger.info("transform train idx=%d/%d path=%s", i + 1, len(train_paths), train_path)
+
+        raw_df = load_trading_data(train_path).dropna()
+        train_features = pipeline.transform(raw_df)
+        train_df_i = pd.concat([raw_df, train_features], axis=1)
+        del raw_df, train_features
+
+        if mode == "hft":
+            train_df_i = _derive_close_hft_single(train_df_i, f"train_{i}", logger)
+        if mode == "hft" and backend == "tradingenv":
+            train_df_i = _deduplicate_hft_index_single(train_df_i, f"train_{i}", logger)
+
+        if first_train_df is None:
+            first_train_df = train_df_i.copy()
+
+        if memmap_dir:
+            prefix = str(i)
+            memmap_marker = memmap_dir / f"{prefix}_train_data.npy"
+            expected_cols = list(train_df_i.select_dtypes(include=[np.number]).columns)
+            if memmap_marker.exists():
+                cached_data = np.load(memmap_marker, mmap_mode="r")
+                cached_cols = json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
+                if cached_data.shape[0] == len(train_df_i) and cached_cols == expected_cols:
+                    collected_memmap_paths.append(
+                        MemmapPaths(
+                            data_path=memmap_marker,
+                            index_path=memmap_dir / f"{prefix}_train_index.npy",
+                            n_rows=cached_data.shape[0],
+                            columns=cached_cols,
+                        )
+                    )
+                else:
+                    logger.info(
+                        "memmap cache mismatch prefix=%s expected_rows=%d actual_rows=%d",
+                        prefix, len(train_df_i), cached_data.shape[0],
+                    )
+                    collected_memmap_paths.append(
+                        save_symbol_memmap(train_df_i, memmap_dir, prefix)
+                    )
+            else:
+                collected_memmap_paths.append(save_symbol_memmap(train_df_i, memmap_dir, prefix))
+
+        del train_df_i
+        gc.collect()
+
+    # Transform val files: split each 50/50 into val and test halves
+    val_tmp: list[dict[str, Path]] = []
+    for j, val_path in enumerate(val_paths):
+        symbol = _symbol_of(val_path)
+        pipeline = symbol_pipelines.get(symbol)
+        if pipeline is None:
+            raise ValueError(
+                f"No fitted pipeline for symbol '{symbol}' (from val path {val_path}). "
+                f"Known symbols: {sorted(symbol_pipelines)}"
+            )
+        logger.info("transform val idx=%d/%d path=%s symbol=%s", j + 1, len(val_paths), val_path, symbol)
+
+        raw_val = load_trading_data(val_path).dropna()
+        val_features = pipeline.transform(raw_val)
+        val_df_j = pd.concat([raw_val, val_features], axis=1)
+        del raw_val, val_features
+
+        if mode == "hft":
+            val_df_j = _derive_close_hft_single(val_df_j, f"val_{j}", logger)
+        if mode == "hft" and backend == "tradingenv":
+            val_df_j = _deduplicate_hft_index_single(val_df_j, f"val_{j}", logger)
+
+        mid = len(val_df_j) // 2
+        sym_paths: dict[str, Path] = {}
+        for split, df_part in [("val", val_df_j.iloc[:mid]), ("test", val_df_j.iloc[mid:])]:
+            p = tmp_dir / f"{j}_{split}.parquet"
+            df_part.to_parquet(p)
+            sym_paths[split] = p
+        val_tmp.append(sym_paths)
+        del val_df_j
+        gc.collect()
+
+    val_df = pd.concat([pd.read_parquet(p["val"]) for p in val_tmp])
+    test_df = pd.concat([pd.read_parquet(p["test"]) for p in val_tmp])
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    # Re-run index deduplication on the concatenated val/test to fix any
+    # cross-symbol timestamp collisions introduced by pd.concat.
+    if mode == "hft" and backend == "tradingenv":
+        val_df = _deduplicate_hft_index_single(val_df, "val_concat", logger)
+        test_df = _deduplicate_hft_index_single(test_df, "test_concat", logger)
+
+    logger.info(
+        "per-day splits: n_train_memmaps=%d val=%d test=%d",
+        len(collected_memmap_paths), len(val_df), len(test_df),
+    )
+    validate_prepared_data(first_train_df, val_df, test_df, config)
+
+    return first_train_df, val_df, test_df, collected_memmap_paths or None
+
+
 def _build_pooled_splits(
     config: Any,
     logger: logging.Logger,
@@ -569,6 +741,11 @@ def _build_pooled_splits(
     memmap_dir: Path | None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
     """Process each symbol independently then concatenate from disk.
+
+    When ``config.data.val_data_paths`` is set the function delegates to
+    :func:`_build_per_day_splits`, which treats each training file as a
+    complete training unit (no internal train/val split) and sources
+    validation data from the separate val files.
 
     Each symbol is feature-engineered, written to a temp parquet, and freed
     before the next symbol loads.  This keeps peak memory to ~1 symbol at a
@@ -578,6 +755,10 @@ def _build_pooled_splits(
     prepare_data(): symbols that were fully processed before an interruption
     return immediately from cache on the next run.
     """
+    val_data_paths = getattr(config.data, "val_data_paths", None)
+    if val_data_paths:
+        return _build_per_day_splits(config, logger, data_paths, list(val_data_paths), memmap_dir)
+
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
 

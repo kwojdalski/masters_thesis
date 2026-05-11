@@ -403,6 +403,16 @@ def _score_single_symbol(
     raw_df = load_trading_data(data_path).dropna()
 
     train_size = config.data.train_size
+    # When train_size is larger than the file (per-day mode where we want the
+    # full file as training), use 80 % of the file as train and 10 % as val.
+    if train_size >= len(raw_df):
+        train_size = max(10, int(len(raw_df) * 0.8))
+        logger.info(
+            "train_size exceeds file length for '%s' — using proportional split "
+            "train=%d (80 %%) val=%d (10 %%)",
+            symbol, train_size, int(len(raw_df) * 0.1),
+        )
+
     remaining = len(raw_df) - train_size
     validation_size = (
         validation_size_resolved
@@ -414,11 +424,6 @@ def _score_single_symbol(
         )
     )
 
-    if train_size >= len(raw_df):
-        raise ValueError(
-            f"train_size={train_size} must be smaller than dataset length "
-            f"{len(raw_df)} for symbol '{symbol}'."
-        )
     if validation_size <= 0 or validation_size >= remaining:
         raise ValueError(
             f"validation_size={validation_size} invalid for symbol '{symbol}' "
