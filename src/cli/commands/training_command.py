@@ -295,7 +295,7 @@ class TrainingCommand(BaseCommand):
         return result
 
     def _display_training_results(self, result: dict[str, Any]) -> None:
-        """Display training results in two side-by-side tables."""
+        """Display training results in three side-by-side tables."""
         final_metrics = result.get("final_metrics", {})
         eval_report = final_metrics.get("evaluation_report", {})
 
@@ -305,13 +305,36 @@ class TrainingCommand(BaseCommand):
             t.add_column("Value", style="green")
             return t
 
-        training_table = make_table("Training")
-        for source, key, display_name, fmt in [
-            (final_metrics, "final_reward", "Final Reward", ".4f"),
-            (final_metrics, "training_steps", "Training Steps", ","),
+        run_table = make_table("Run")
+        start = final_metrics.get("data_start_date", "")
+        end = final_metrics.get("data_end_date", "")
+        if start:
+            run_table.add_row("Data Start", str(start)[:10])
+        if end:
+            run_table.add_row("Data End", str(end)[:10])
+        for key, label in [
+            ("train_size", "Train Rows"),
+            ("validation_size", "Val Rows"),
+            ("test_size", "Test Rows"),
+            ("data_size_total", "Total Rows"),
         ]:
-            if key in source:
-                training_table.add_row(display_name, f"{source[key]:{fmt}}")
+            if key in final_metrics:
+                run_table.add_row(label, f"{final_metrics[key]:,}")
+        duration = final_metrics.get("training_duration_s")
+        if duration is not None:
+            mins, secs = divmod(int(duration), 60)
+            run_table.add_row("Duration", f"{mins}m {secs}s")
+
+        steps_table = make_table("Steps")
+        for key, label, fmt in [
+            ("total_env_steps", "Env Steps", ","),
+            ("total_episodes", "Episodes", ","),
+            ("optimizer_steps", "Optimizer Steps", ","),
+            ("eval_steps", "Eval Horizon", ","),
+        ]:
+            if key in final_metrics:
+                steps_table.add_row(label, f"{final_metrics[key]:{fmt}}")
+        steps_table.add_row("Final Reward", f"{final_metrics.get('final_reward', float('nan')):.4f}")
 
         performance_table = make_table("Performance")
         for source, key, display_name, fmt in [
@@ -326,7 +349,7 @@ class TrainingCommand(BaseCommand):
             if key in source:
                 performance_table.add_row(display_name, f"{source[key]:{fmt}}")
 
-        self.console.print(Columns([training_table, performance_table]))
+        self.console.print(Columns([run_table, steps_table, performance_table]))
 
     def _save_training_plots(
         self, result: dict[str, Any], config, params: TrainingParams

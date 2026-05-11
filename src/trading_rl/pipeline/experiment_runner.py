@@ -206,6 +206,8 @@ def execute_single_experiment(
             last_positions=last_positions,
             evaluation_report=evaluation_report,
             split_results=split_results,
+            total_env_steps=int(trainer.total_count),
+            total_episodes=int(trainer.total_episodes),
         )
         log_final_metrics(
             logs=training_result.logs,
@@ -236,6 +238,8 @@ def execute_single_experiment(
             last_positions=last_positions,
             evaluation_report=evaluation_report,
             split_results=split_results,
+            total_env_steps=int(trainer.total_count),
+            total_episodes=int(trainer.total_episodes),
         )
         log_final_metrics(
             logs=training_result.logs,

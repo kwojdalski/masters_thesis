@@ -361,11 +361,19 @@ def build_final_metrics(
     last_positions: list[Any],
     evaluation_report: dict[str, float],
     split_results: dict[str, dict[str, Any]],
+    total_env_steps: int = 0,
+    total_episodes: int = 0,
 ) -> dict[str, Any]:
     is_portfolio_backend = config.env.backend == "tradingenv"
+    duration_entries = logs.get("training_duration_s", [])
+    training_duration_s = duration_entries[-1] if duration_entries else None
     return {
         "final_reward": final_reward,
-        "training_steps": len(logs.get("loss_value", [])),
+        "optimizer_steps": len(logs.get("loss_value", [])),
+        "total_env_steps": total_env_steps,
+        "total_episodes": int(total_episodes),
+        "training_duration_s": training_duration_s,
+        "eval_steps": config.training.eval_steps,
         "interrupted": interrupted,
         (
             "portfolio_weights" if is_portfolio_backend else "last_position_per_episode"

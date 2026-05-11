@@ -386,7 +386,9 @@ def log_final_metrics(
     """Log final training metrics to MLflow."""
     logger = get_project_logger(__name__)
     mlflow.log_metric("final_reward", final_metrics["final_reward"])
-    mlflow.log_metric("training_steps", final_metrics["training_steps"])
+    mlflow.log_metric("optimizer_steps", final_metrics.get("optimizer_steps", final_metrics.get("training_steps", 0)))
+    mlflow.log_metric("total_env_steps", final_metrics.get("total_env_steps", 0))
+    mlflow.log_metric("total_episodes", final_metrics.get("total_episodes", 0))
 
     if "last_position_per_episode" in final_metrics:
         positions = final_metrics["last_position_per_episode"]
