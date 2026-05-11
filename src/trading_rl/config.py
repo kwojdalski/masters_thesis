@@ -48,6 +48,11 @@ class DataConfig:
     # keyed by a content hash. Acts as a per-symbol checkpoint — completed symbols
     # are skipped on restart. Set to None to disable.
     feature_cache_dir: str | None = ".cache/feature_transformation"
+    # Per-day validation split: when set, each path in data_paths is used in
+    # full as a training unit (no internal train/val split).  These paths supply
+    # the validation (first half) and test (second half) data instead.
+    # Expected convention: one val file per symbol, e.g. the last trading day.
+    val_data_paths: list[str] | None = None
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0

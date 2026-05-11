@@ -1,19 +1,38 @@
 seed: 42
 data:
   data_paths:
-  - ./data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet
-  - ./data/raw/stocks/MSFT_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet
-  - ./data/raw/stocks/TSLA_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet
-  - ./data/raw/stocks/META_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet
-  - ./data/raw/stocks/AMZN_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet
-  - ./data/raw/stocks/AVGO_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet
-  data_path: ./data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-27_raw_mbp-10_us_hours.parquet
+  val_data_paths:
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-03-02_raw_mbp-10_us_hours.parquet
+  data_path: ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet
   feature_config: src/configs/features/hft_lob_features_causal.yaml
   download_data: false
-  train_size: 200000
+  train_size: 50000
   lazy_load: true
-  prepared_data_dir: ./data/prepared/pooled_aapl_msft_tsla_nvda
-  memmap_dir: ./data/memmap/pooled_aapl_msft_tsla_nvda
+  prepared_data_dir: ./data/prepared/pooled_daily_6sym
+  memmap_dir: ./data/memmap/pooled_daily_6sym
   feature_cache_dir: ".cache/feature_transformation"
 env:
   name: TRADINGENV_PPO_POOLED_HFT_STATE_SPACE_STREAMING

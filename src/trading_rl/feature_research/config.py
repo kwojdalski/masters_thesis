@@ -189,12 +189,20 @@ class FeatureResearchConfig:
         default_output_dir = output_dir or str(
             Path(experiment_config.logging.log_dir) / "feature_research"
         )
+        # When the experiment uses per-day files with val_data_paths, feature
+        # research should score only the training paths.  Pass a very large
+        # train_size so _score_single_symbol triggers the 80/20 proportional
+        # fallback for each per-day file.
+        val_paths = getattr(experiment_config.data, "val_data_paths", None)
+        effective_train_size = (
+            9_999_999 if val_paths else experiment_config.data.train_size
+        )
         base_dict: dict = {
             "experiment_name": experiment_config.experiment_name,
             "data": {
                 "data_path": experiment_config.data.data_path,
                 "data_paths": experiment_config.data.data_paths,
-                "train_size": experiment_config.data.train_size,
+                "train_size": effective_train_size,
                 "validation_size": experiment_config.data.validation_size,
                 "feature_config": experiment_config.data.feature_config,
                 "feature_cache_dir": getattr(experiment_config.data, "feature_cache_dir", ".cache/feature_transformation"),
