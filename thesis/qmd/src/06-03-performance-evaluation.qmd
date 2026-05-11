@@ -117,6 +117,8 @@ display_table(benchmark_df)
 
 *TR: Total Return. CAGR: Compound Annual Growth Rate. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
 
+All annualized metrics use **trading-time periods** as the annualization factor: 252 trading days per year, scaled by the number of bars per trading day (390 for 1-minute data, 78 for 5-minute, 26 for 15-minute, etc.). Calendar-based factors — 365 × 24 × 60 = 525,600 for 1-minute data — are approximately 5.35× larger, which inflates Sharpe and Sortino by a factor of $\sqrt{5.35} \approx 2.31$ and distorts CAGR by compressing the implied time horizon. The implementation in `evaluation/report.py` uses trading-time factors exclusively.
+
 ### Evaluation Metadata Snapshot [PLACEHOLDER]
 <!-- [PLACEHOLDER] -->
 
