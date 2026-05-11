@@ -20,37 +20,98 @@ research: Offline Feature Research {
   style.fill: "#fef9c3"
   style.stroke: "#ca8a04"
 
-  fr_split: "Chronological split\ntrain_size rows" {
+  per_symbol: Per-Symbol Scoring (repeat for each symbol) {
+    style.fill: "#fefce8"
+    style.stroke: "#a16207"
+
+    fr_split: "Chronological split\ntrain: first train_size rows\nval: next validation_size rows" {
+      shape: step
+      style.fill: "#fef08a"
+    }
+
+    fr_cache: "Feature cache check\n.cache/feature_transformation/\nkeyed by file hash + config hash" {
+      shape: diamond
+      style.fill: "#fde68a"
+    }
+
+    fr_pipe: "FeaturePipeline.fit(train)\ntransform train + val\nWelford online normalisation\nper-feature z-score" {
+      shape: step
+      style.fill: "#fef08a"
+    }
+
+    fr_cache_write: "Write cache\ntrain_features.parquet\nval_features.parquet\ntrain_price.parquet\nval_price.parquet" {
+      shape: cylinder
+      style.fill: "#fde68a"
+    }
+
+    fr_price: "Resolve price series\nmid-price = (bid_px_00 + ask_px_00) / 2\n(no close column in LOB data)" {
+      shape: step
+      style.fill: "#fef08a"
+    }
+
+    fr_target: "Build proxy targets per horizon h ∈ [10, 50, 200]\n\nSharpe proxy: forward_ret / (rolling_vol + ε)\n  forward_ret  = log(price[t+h] / price[t])\n  rolling_vol  = rolling std of log returns (window=50)\n\nReturn proxy: log(price[t+h] / price[t])" {
+      shape: step
+      style.fill: "#fef08a"
+    }
+
+    fr_ic: "IC scoring per feature × horizon\n\nRolling Spearman rank correlation\n  window_size = 1000 ticks\n\nComputed on train split:\n  mean_ic  = mean of rolling IC series\n  ic_std   = std of rolling IC series\n  ICIR     = mean_ic / ic_std\n  ic_tstat = mean_ic / (ic_std / √n)\n  ic_positive_ratio = fraction IC > 0\n\nComputed on val split (out-of-sample check):\n  val_mean_ic" {
+      shape: step
+      style.fill: "#fef08a"
+    }
+
+    fr_best_h: "Best horizon selection per feature\nkeep horizon with highest |ICIR|\nrecord best_horizon" {
+      shape: step
+      style.fill: "#fef08a"
+    }
+
+    fr_scores_sym: "feature_scores_{symbol}.csv\nfeature · best_horizon · mean_ic\nic_std · ICIR · ic_tstat\nic_positive_ratio · val_mean_ic\nic_stability" {
+      shape: document
+      style.fill: "#fde68a"
+    }
+
+    fr_split -> fr_cache -> fr_pipe: "cache miss"
+    fr_cache -> fr_cache_write: "after transform" {style.stroke-dash: 4}
+    fr_cache -> fr_price: "cache hit (skip transform)"
+    fr_pipe -> fr_price
+    fr_price -> fr_target -> fr_ic -> fr_best_h -> fr_scores_sym
+  }
+
+  fr_agg: "Aggregate across all symbols\nmean ICIR per feature\nbest_horizon by mode\nsorted by |ICIR| descending" {
     shape: step
     style.fill: "#fef08a"
   }
 
-  fr_pipe: "Feature pipeline\nfit on train · transform both splits\nWelford online normalisation" {
+  fr_sel: "Greedy conditional IC selection\n\n1. Walk features sorted by |ICIR|\n2. Skip if |ICIR| < icir_threshold (0.02)\n3. Add candidate to selected set\n4. Residualise remaining features against\n   selected via LinearRegression\n   (removes shared linear variance)\n5. Stop when top_k features selected" {
     shape: step
     style.fill: "#fef08a"
   }
 
-  fr_ic: "IC / ICIR scoring\nrolling Spearman rank correlation\nvs Sharpe-proxy target\nhorizons [10, 50, 200]" {
-    shape: step
-    style.fill: "#fef08a"
+  fr_outputs: Artifacts {
+    style.fill: "#fefce8"
+    style.stroke: "#a16207"
+
+    fr_scores_csv: "feature_scores.csv\naggregated rankings\nall features" {
+      shape: document
+      style.fill: "#fde68a"
+    }
+
+    fr_corr_csv: "feature_correlations.csv\npairwise Pearson correlation\non pooled val features" {
+      shape: document
+      style.fill: "#fde68a"
+    }
+
+    fr_yaml: "selected_features.yaml\nreduced feature config\nonly selected features" {
+      shape: document
+      style.fill: "#fde68a"
+    }
+
+    fr_summary: "summary.md\ntop-10 ranked features\nselected list · config params" {
+      shape: document
+      style.fill: "#fde68a"
+    }
   }
 
-  fr_agg: "Aggregate across symbols\nmean ICIR ranking" {
-    shape: step
-    style.fill: "#fef08a"
-  }
-
-  fr_sel: "Greedy conditional IC selection\nlinear residualisation\nfor redundancy pruning" {
-    shape: step
-    style.fill: "#fef08a"
-  }
-
-  fr_yaml: "selected_features.yaml\nreduced feature config" {
-    shape: document
-    style.fill: "#fde68a"
-  }
-
-  fr_split -> fr_pipe -> fr_ic -> fr_agg -> fr_sel -> fr_yaml
+  per_symbol -> fr_agg -> fr_sel -> fr_outputs
 }
 
 # ─────────────────────────────────────────────
