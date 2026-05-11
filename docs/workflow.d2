@@ -205,74 +205,110 @@ train: RL Training {
   style.fill: "#fee2e2"
   style.stroke: "#dc2626"
 
-  networks: Network Architecture {
+  shared_env: Shared Environment + Reward {
     style.fill: "#fff1f2"
     style.stroke: "#b91c1c"
 
-    actor_net: "Actor  (deterministic policy)\nMLP: [n_obs → 128 → 64 → n_act]\nReLU activations · Tanh output\nscaled to action bounds [-1, 1]\ncontinuous portfolio weight" {
+    env: "StreamingTradingEnvXY  (episode reset)\nShuffle symbol deck → pick next symbol\nPick random start ∈ [0, train_size − episode_length]\nLoad 50k-row window from memmap\nBuild inner TradingEnv\n→ ~40 episodes total across 2M training steps" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    critic_net: "Twin Critics  (clipped double Q)\n2 × ValueOperator\nMLP: [n_obs + n_act → 128 → 64 → 1]\nReLU activations\ninput = concat(observation, action)" {
+    reward: "Differential Sharpe Ratio reward  (per step)\n\nR_t = log return of portfolio value\n\nEMA updates (η = 0.01):\n  A_t = (1−η)·A_{t−1} + η·R_t        (mean)\n  B_t = (1−η)·B_{t−1} + η·R_t²       (2nd moment)\n\nReward:\n  ΔA_t = R_t − A_{t−1}\n  ΔB_t = R_t² − B_{t−1}\n  D_t  = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n          / (B_{t−1} − A_{t−1}²)^(3/2) + ε" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    target_nets: "Target Networks  (soft-copied)\nactor_target   ← τ·actor   + (1−τ)·actor_target\ncritic_target  ← τ·critic  + (1−τ)·critic_target\nτ = 0.001" {
+    collector: "SyncDataCollector\ncollect frames_per_batch = 200 transitions per update\nfirst init_rand_steps = 1000 are fully random" {
       shape: step
       style.fill: "#fecaca"
     }
+
+    env -> reward -> collector
   }
 
-  env: "StreamingTradingEnvXY  (episode reset)\nShuffle symbol deck → pick next symbol\nPick random start ∈ [0, train_size − episode_length]\nLoad 50k-row window from memmap\nBuild inner TradingEnv with DSR reward\n→ ~40 episodes total across 2M training steps" {
-    shape: step
-    style.fill: "#fecaca"
-  }
-
-  reward: "Differential Sharpe Ratio reward  (per step)\n\nR_t = log return of portfolio value\n\nEMA updates (η = 0.01):\n  A_t = (1−η)·A_{t−1} + η·R_t        (mean)\n  B_t = (1−η)·B_{t−1} + η·R_t²       (2nd moment)\n\nReward:\n  ΔA_t = R_t − A_{t−1}\n  ΔB_t = R_t² − B_{t−1}\n  D_t  = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n          / (B_{t−1} − A_{t−1}²)^(3/2) + ε" {
-    shape: step
-    style.fill: "#fecaca"
-  }
-
-  collector: "SyncDataCollector\ncollect frames_per_batch = 200 transitions\nexploration: Gaussian noise σ = 0.1\nfirst init_rand_steps = 1000 are random" {
-    shape: step
-    style.fill: "#fecaca"
-  }
-
-  buffer: "Replay Buffer\nLazyTensorStorage\ncapacity = 100k transitions\nsampling: uniform random" {
-    shape: queue
-    style.fill: "#fca5a5"
-  }
-
-  update: TD3 Update (optim_steps_per_batch = 5 times per collect) {
+  td3: TD3  (Twin Delayed Deep Deterministic Policy Gradient) {
     style.fill: "#fff1f2"
-    style.stroke: "#b91c1c"
+    style.stroke: "#991b1b"
 
-    sample: "Sample mini-batch\nbatch_size = 128 transitions\nfrom replay buffer" {
+    td3_net: "Networks\nActor (deterministic):\n  MLP [n_obs → 128 → 64 → n_act] + ReLU + Tanh\n  output: continuous portfolio weight ∈ [−1, 1]\n\nTwin Critics (clipped double Q):\n  2 × MLP [n_obs + n_act → 128 → 64 → 1] + ReLU\n  input: concat(observation, action)\n\nTarget Networks (soft-copied):\n  actor_target · Q1_target · Q2_target\n  τ = 0.001" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    critic_loss: "Critic loss  (smooth L1)\nTarget action:\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\nTarget Q:\n  y = r + γ · min(Q1_target(s',ã), Q2_target(s',ã))\n  γ = 0.995\nLoss:\n  L = SmoothL1(Q1(s,a) − y) + SmoothL1(Q2(s,a) − y)" {
+    td3_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.1 added to deterministic action" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    actor_loss: "Actor loss  (every policy_delay = 2 critic steps)\n  L = −mean(Q1(s, actor(s)))" {
+    td3_buffer: "Replay Buffer  (off-policy)\nLazyTensorStorage · capacity = 100k\nsampling: uniform random" {
+      shape: queue
+      style.fill: "#fca5a5"
+    }
+
+    td3_update: "Update  (optim_steps_per_batch = 5 × per collect)\n\nCritic loss  (SmoothL1):\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\n  y = r + γ · min(Q1_tgt(s',ã), Q2_tgt(s',ã))  γ=0.995\n  L = SmoothL1(Q1(s,a)−y) + SmoothL1(Q2(s,a)−y)\n\nActor loss  (every policy_delay=2 critic steps):\n  L = −mean(Q1(s, actor(s)))\n\nSoft target update:\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    soft_update: "Soft target update\nactor_target  ← τ·actor  + (1−τ)·actor_target\ncritic_target ← τ·critic + (1−τ)·critic_target\nτ = 0.001" {
-      shape: step
-      style.fill: "#fecaca"
-    }
-
-    sample -> critic_loss -> actor_loss -> soft_update
+    td3_net -> td3_explore -> td3_buffer -> td3_update
   }
 
-  ckpt: "Checkpoint  (every 100k steps)\nactor weights · twin critic weights\ntarget network weights\noptimizer states (actor + critic)\ntotal_count · total_episodes · logs\nmlflow run id / name / uri\nreplay buffer dump (optional)\nsaved to logs/{experiment}/" {
+  ddpg: DDPG  (Deep Deterministic Policy Gradient) {
+    style.fill: "#fff1f2"
+    style.stroke: "#991b1b"
+
+    ddpg_net: "Networks\nActor (deterministic):\n  MLP [n_obs → 128 → 64 → n_act] + ReLU + Tanh\n  output: continuous portfolio weight ∈ [−1, 1]\n\nSingle Critic  (standard Q):\n  MLP [n_obs + n_act → 128 → 64 → 1] + ReLU\n  input: concat(observation, action)\n\nTarget Networks (soft-copied):\n  actor_target · Q_target\n  τ = 0.001" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    ddpg_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.1 added to deterministic action" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    ddpg_buffer: "Replay Buffer  (off-policy)\nLazyTensorStorage · capacity = 100k\nsampling: uniform random" {
+      shape: queue
+      style.fill: "#fca5a5"
+    }
+
+    ddpg_update: "Update  (optim_steps_per_batch = 5 × per collect)\n\nCritic loss  (SmoothL1 or MSE):\n  y = r + γ · Q_target(s', actor_target(s'))  γ=0.995\n  L = SmoothL1(Q(s,a) − y)\n\nActor loss  (every step — no delay):\n  L = −mean(Q(s, actor(s)))\n\nSoft target update:\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    ddpg_net -> ddpg_explore -> ddpg_buffer -> ddpg_update
+  }
+
+  ppo: PPO  (Proximal Policy Optimisation) {
+    style.fill: "#fff1f2"
+    style.stroke: "#991b1b"
+
+    ppo_net: "Networks\nActor (stochastic):\n  Discrete: MLP [n_obs → 128 → 64 → n_act] → softmax\n    → OneHotCategorical distribution\n    → samples discrete action + log_prob\n  Continuous: MLP [n_obs → 64 → 32 → n_act×2] + Tanh\n    → NormalParamExtractor → loc, scale\n    → TanhNormal distribution\n\nCritic  (state value V(s), no action input):\n  MLP [n_obs → 128 → 64 → 1]\n  output: V(s)  (not Q(s,a))\n\nNo target networks" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    ppo_explore: "Exploration\nStochastic sampling from\nactor distribution (inherent)\nno separate noise module" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    ppo_advantage: "Advantage estimation  (on full batch before shuffle)\nGAE via TorchRL ValueEstimator\ncomputed on ordered rollout\nbefore minibatch sampling\n(shuffling would break temporal structure)" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    ppo_update: "Update  (ppo_epochs=4 passes over fresh batch)\nOn-policy: fresh batch only — no replay buffer\n\nClipPPOLoss:\n  loss_objective = −min(r_t·A_t, clip(r_t, 1±ε)·A_t)\n    r_t = π(a|s) / π_old(a|s)  (probability ratio)\n    ε   = clip_epsilon = 0.2\n  loss_critic  = MSE(V(s) − V_target)\n  loss_entropy = −entropy_bonus · H[π]   bonus=0.01\n  total = loss_objective + loss_critic + loss_entropy" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    ppo_net -> ppo_explore -> ppo_advantage -> ppo_update
+  }
+
+  ckpt: "Checkpoint  (every 100k steps)\nactor weights · critic weights\ntarget network weights (TD3/DDPG only)\noptimizer states\ntotal_count · total_episodes · logs\nmlflow run id / name / uri\nreplay buffer dump (optional, TD3/DDPG only)\nsaved to logs/{experiment}/" {
     shape: document
     style.fill: "#fca5a5"
   }
@@ -286,12 +322,12 @@ train: RL Training {
     style.fill: "#fff1f2"
     style.stroke: "#b91c1c"
 
-    train_params: "Parameters  (logged once at run start)\nexperiment_name · seed\ndata: train_size · timeframe · symbols\nenv: name · positions · trading_fees · reward_type\nnetwork: actor_hidden_dims · value_hidden_dims\ntraining: algorithm · lr · max_steps · buffer_size\n          batch_size · gamma · tau · policy_delay\n          policy_noise · noise_clip · exploration_noise_std" {
+    train_params: "Parameters  (logged once at run start)\nexperiment_name · seed\ndata: train_size · timeframe · symbols\nenv: name · positions · trading_fees · reward_type\nnetwork: actor_hidden_dims · value_hidden_dims\ntraining: algorithm · lr · max_steps · buffer_size\n          batch_size · gamma · tau · policy_delay (TD3)\n          policy_noise · noise_clip (TD3)\n          clip_epsilon · entropy_bonus (PPO)" {
       shape: document
       style.fill: "#fecaca"
     }
 
-    train_step_metrics: "Step metrics  (every log_interval steps)\nactor_loss · value_loss\ntotal_steps_trained\navg_position_changes" {
+    train_step_metrics: "Step metrics  (every log_interval steps)\nactor_loss · value_loss\nloss_entropy (PPO only)\ntotal_steps_trained · avg_position_changes" {
       shape: document
       style.fill: "#fecaca"
     }
@@ -307,12 +343,19 @@ train: RL Training {
     }
   }
 
-  env -> reward -> collector -> buffer -> update
-  update -> soft_update: "" {style.opacity: 0}
-  update -> ckpt
-  update -> periodic_eval
-  update -> train_mlflow
-  periodic_eval -> collector: "continue training"
+  shared_env -> td3
+  shared_env -> ddpg
+  shared_env -> ppo
+  td3.td3_update -> ckpt
+  ddpg.ddpg_update -> ckpt
+  ppo.ppo_update -> ckpt
+  td3.td3_update -> periodic_eval
+  ddpg.ddpg_update -> periodic_eval
+  ppo.ppo_update -> periodic_eval
+  td3.td3_update -> train_mlflow
+  ddpg.ddpg_update -> train_mlflow
+  ppo.ppo_update -> train_mlflow
+  periodic_eval -> shared_env.collector: "continue training"
 }
 
 # ─────────────────────────────────────────────
