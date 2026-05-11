@@ -282,8 +282,8 @@ class TD3Trainer(BaseTrainer):
                     "buy_and_hold": np.log(benchmark_series / benchmark_series.shift(1))
                     .fillna(0)
                     .cumsum()[:max_steps],
-                    "max_profit": np.log(
-                        abs(benchmark_series / benchmark_series.shift(1) - 1) + 1
+                    "max_profit": np.abs(
+                        np.log(benchmark_series / benchmark_series.shift(1))
                     )
                     .fillna(0)
                     .cumsum()[:max_steps],
