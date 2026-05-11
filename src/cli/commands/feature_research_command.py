@@ -56,6 +56,8 @@ class FeatureResearchCommand(BaseCommand):
         table.add_column("Mean IC", justify="right")
         table.add_column("Val IC", justify="right")
         table.add_column("Horizon", justify="right", style="dim")
+        table.add_column("Sig files", justify="right", style="dim")
+        table.add_column("Sig %", justify="right", style="dim")
         table.add_column("Selected", justify="center")
 
         for rank, row in enumerate(artifacts.scores.itertuples(), start=1):
@@ -64,6 +66,8 @@ class FeatureResearchCommand(BaseCommand):
             selected_cell = "[bold green]YES[/bold green]" if is_selected else "[dim]-[/dim]"
             val_ic_str = f"{row.val_mean_ic:.4f}" if row.val_mean_ic == row.val_mean_ic else "-"
             horizon_str = str(int(row.best_horizon)) if hasattr(row, "best_horizon") else "-"
+            n_sig = int(getattr(row, "n_files_significant", 0))
+            pct_sig = float(getattr(row, "pct_files_significant", 0.0))
             table.add_row(
                 str(rank),
                 name,
@@ -71,6 +75,8 @@ class FeatureResearchCommand(BaseCommand):
                 f"{row.mean_ic:.4f}",
                 val_ic_str,
                 horizon_str,
+                str(n_sig),
+                f"{pct_sig:.0f}%",
                 selected_cell,
             )
 
