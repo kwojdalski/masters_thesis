@@ -6,6 +6,7 @@ from typing import Any
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.columns import Columns
 from rich.table import Table
 
 from cli.services import validate_experiment_config
@@ -294,21 +295,26 @@ class TrainingCommand(BaseCommand):
         return result
 
     def _display_training_results(self, result: dict[str, Any]) -> None:
-        """Display training results in a formatted table."""
-        table = Table(title="Training Results", show_header=True, header_style="bold")
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="green")
-
-        # Extract metrics from nested structure
+        """Display training results in two side-by-side tables."""
         final_metrics = result.get("final_metrics", {})
         eval_report = final_metrics.get("evaluation_report", {})
 
-        # Define metrics to display: (source_dict, key, display_name, format_spec)
-        metrics_spec = [
-            # Core training metrics
+        def make_table(title: str) -> Table:
+            t = Table(title=title, show_header=True, header_style="bold")
+            t.add_column("Metric", style="cyan")
+            t.add_column("Value", style="green")
+            return t
+
+        training_table = make_table("Training")
+        for source, key, display_name, fmt in [
             (final_metrics, "final_reward", "Final Reward", ".4f"),
             (final_metrics, "training_steps", "Training Steps", ","),
-            # Trading performance metrics
+        ]:
+            if key in source:
+                training_table.add_row(display_name, f"{source[key]:{fmt}}")
+
+        performance_table = make_table("Performance")
+        for source, key, display_name, fmt in [
             (eval_report, "total_return", "Total Return", ".2%"),
             (eval_report, "annualized_return_cagr", "CAGR", ".2%"),
             (eval_report, "sharpe_ratio", "Sharpe Ratio", ".3f"),
@@ -316,15 +322,11 @@ class TrainingCommand(BaseCommand):
             (eval_report, "max_drawdown", "Max Drawdown", ".2%"),
             (eval_report, "win_rate", "Win Rate", ".2%"),
             (eval_report, "profit_factor", "Profit Factor", ".3f"),
-        ]
-
-        # Add rows for available metrics
-        for source, key, display_name, fmt in metrics_spec:
+        ]:
             if key in source:
-                value = source[key]
-                table.add_row(display_name, f"{value:{fmt}}")
+                performance_table.add_row(display_name, f"{source[key]:{fmt}}")
 
-        self.console.print(table)
+        self.console.print(Columns([training_table, performance_table]))
 
     def _save_training_plots(
         self, result: dict[str, Any], config, params: TrainingParams
