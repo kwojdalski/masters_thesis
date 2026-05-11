@@ -272,7 +272,7 @@ train: RL Training {
     sample -> critic_loss -> actor_loss -> soft_update
   }
 
-  ckpt: "Checkpoint  (every 100k steps)\nactor weights · twin critic weights\noptimizer state · replay buffer (optional)\nsaved to logs/{experiment}/" {
+  ckpt: "Checkpoint  (every 100k steps)\nactor weights · twin critic weights\ntarget network weights\noptimizer states (actor + critic)\ntotal_count · total_episodes · logs\nmlflow run id / name / uri\nreplay buffer dump (optional)\nsaved to logs/{experiment}/" {
     shape: document
     style.fill: "#fca5a5"
   }
@@ -282,10 +282,36 @@ train: RL Training {
     style.fill: "#fecaca"
   }
 
+  train_mlflow: MLflow — logged during training {
+    style.fill: "#fff1f2"
+    style.stroke: "#b91c1c"
+
+    train_params: "Parameters  (logged once at run start)\nexperiment_name · seed\ndata: train_size · timeframe · symbols\nenv: name · positions · trading_fees · reward_type\nnetwork: actor_hidden_dims · value_hidden_dims\ntraining: algorithm · lr · max_steps · buffer_size\n          batch_size · gamma · tau · policy_delay\n          policy_noise · noise_clip · exploration_noise_std" {
+      shape: document
+      style.fill: "#fecaca"
+    }
+
+    train_step_metrics: "Step metrics  (every log_interval steps)\nactor_loss · value_loss\ntotal_steps_trained\navg_position_changes" {
+      shape: document
+      style.fill: "#fecaca"
+    }
+
+    train_episode_metrics: "Episode metrics  (every episode end)\nepisode_reward · episode_portfolio_valuation\nepisode_position_changes\nepisode_position_change_ratio\nepisode_sum_position · episode_exploration_ratio" {
+      shape: document
+      style.fill: "#fecaca"
+    }
+
+    train_config_artifact: "Config artifacts  (logged once)\nscenario YAML file\nparameter_faq.md documentation" {
+      shape: document
+      style.fill: "#fecaca"
+    }
+  }
+
   env -> reward -> collector -> buffer -> update
   update -> soft_update: "" {style.opacity: 0}
   update -> ckpt
   update -> periodic_eval
+  update -> train_mlflow
   periodic_eval -> collector: "continue training"
 }
 
@@ -321,13 +347,43 @@ eval: Post-Training Evaluation {
     style.fill: "#e9d5ff"
   }
 
-  mlflow: "MLflow artifacts\nParameters: full ExperimentConfig\nMetrics:    all per-split performance metrics\nArtifacts:\n  evaluation plots (reward curve · actions)\n  feature importance chart\n  statistical test report\n  model checkpoint\n  selected_features.yaml" {
-    shape: cylinder
-    style.fill: "#c4b5fd"
+  eval_artifacts: MLflow — artifacts logged after training {
+    style.fill: "#faf5ff"
+    style.stroke: "#7e22ce"
+
+    final_metrics: "Final summary metrics\nfinal_reward · training_steps\navg_actor_loss · episode_avg_reward\nepisode_portfolio_valuation\navg_position_change_ratio\ntotal_position_changes" {
+      shape: document
+      style.fill: "#e9d5ff"
+    }
+
+    eval_metrics_artifact: "Evaluation metrics  (per split: train · val · test)\nevaluation_metrics/{split}/*.json\nall performance metrics as JSON\n+ mlflow scalar metrics prefixed eval_{split}_*" {
+      shape: document
+      style.fill: "#e9d5ff"
+    }
+
+    eval_plots: "Evaluation plots  (per split)\nevaluation_plots/\n  reward_comparison.png   (agent vs benchmarks)\n  actions_plot.png        (portfolio weights over time)\n  actual_returns_plot.png (realised P&L)\n  merged_plot.png         (reward + actions combined)" {
+      shape: document
+      style.fill: "#e9d5ff"
+    }
+
+    stat_artifacts: "Statistical test artifacts  (per split)\nstatistical_tests/{split}/*.json  (full results)\nstatistical_tests/{split}/*.csv   (benchmark table)\nresearch_artifacts/statistical_tests/*.json\n  (compact summary: p-values · effect sizes · significance)" {
+      shape: document
+      style.fill: "#e9d5ff"
+    }
+
+    expl_artifacts: "Explainability artifacts  (primary split)\nexplainability/\n  explainability_permutation.png  (importance bar chart)\n  importance_permutation.csv      (scores per feature)" {
+      shape: document
+      style.fill: "#e9d5ff"
+    }
+
+    position_data: "Position / portfolio weight data\nposition_data/*.json   (last 100 positions per episode)\nportfolio_weights_data/*.json" {
+      shape: document
+      style.fill: "#e9d5ff"
+    }
   }
 
-  rollout -> metrics -> benchmarks -> stats -> mlflow
-  rollout -> expl -> mlflow
+  rollout -> metrics -> benchmarks -> stats -> eval_artifacts
+  rollout -> expl -> eval_artifacts
 }
 
 # ─────────────────────────────────────────────
