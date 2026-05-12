@@ -374,6 +374,7 @@ def build_final_metrics(
         "total_episodes": int(total_episodes),
         "training_duration_s": training_duration_s,
         "eval_steps": config.training.eval_steps,
+        "episode_length": getattr(config.env, "streaming_episode_length", len(train_df) if not train_df.empty else 0),
         "interrupted": interrupted,
         (
             "portfolio_weights" if is_portfolio_backend else "last_position_per_episode"
