@@ -506,6 +506,7 @@ class PrepareDataConfig:
     since: Any | None = None
     feature_config_path: str | None = None
     feature_cache_dir: str | None = ".cache/feature_transformation"
+    filter_lob_levels: int | None = None
 
     @classmethod
     def from_config(cls, cfg: Any) -> "PrepareDataConfig":
@@ -522,6 +523,7 @@ class PrepareDataConfig:
             since=getattr(cfg, "download_since", None),
             feature_config_path=getattr(cfg, "feature_config", None),
             feature_cache_dir=getattr(cfg, "feature_cache_dir", ".cache/feature_transformation"),
+            filter_lob_levels=getattr(cfg, "filter_lob_levels", None),
         )
 
 
@@ -607,6 +609,14 @@ def _build_per_day_splits(
     feature_config = getattr(config.data, "feature_config", None)
     mode = str(getattr(config.env, "mode", "mft")).lower().strip()
     backend = str(getattr(config.env, "backend", "")).lower().strip()
+    filter_lob_levels = getattr(config.data, "filter_lob_levels", None)
+
+    def _load(path: str) -> pd.DataFrame:
+        df = load_trading_data(path).dropna()
+        if filter_lob_levels is not None:
+            from trading_rl.data.lob_filters import filter_unchanged_lob
+            df = filter_unchanged_lob(df, levels=filter_lob_levels)
+        return df
 
     def _symbol_of(path: str) -> str:
         return Path(path).name.split("_")[0]
@@ -621,7 +631,7 @@ def _build_per_day_splits(
     symbol_pipelines: dict[str, Any] = {}
     for symbol, sym_paths in sorted(symbol_train_paths.items()):
         logger.info("fit pipeline symbol=%s n_days=%d", symbol, len(sym_paths))
-        raw_parts = [load_trading_data(p).dropna() for p in sym_paths]
+        raw_parts = [_load(p) for p in sym_paths]
         combined = pd.concat(raw_parts)
         del raw_parts
         pipeline = FeaturePipeline.from_yaml(feature_config)
@@ -640,7 +650,7 @@ def _build_per_day_splits(
         pipeline = symbol_pipelines[symbol]
         logger.info("transform train idx=%d/%d path=%s", i + 1, len(train_paths), train_path)
 
-        raw_df = load_trading_data(train_path).dropna()
+        raw_df = _load(train_path)
         train_features = pipeline.transform(raw_df)
         train_df_i = pd.concat([raw_df, train_features], axis=1)
         del raw_df, train_features
@@ -695,7 +705,7 @@ def _build_per_day_splits(
             )
         logger.info("transform val idx=%d/%d path=%s symbol=%s", j + 1, len(val_paths), val_path, symbol)
 
-        raw_val = load_trading_data(val_path).dropna()
+        raw_val = _load(val_path)
         val_features = pipeline.transform(raw_val)
         val_df_j = pd.concat([raw_val, val_features], axis=1)
         del raw_val, val_features
@@ -979,6 +989,9 @@ def prepare_data(
     # Load raw OHLCV data
     df = load_trading_data(data_path)
     df = df.dropna()
+    if cfg.filter_lob_levels is not None:
+        from trading_rl.data.lob_filters import filter_unchanged_lob
+        df = filter_unchanged_lob(df, levels=cfg.filter_lob_levels)
 
     logger.info("load raw data n_rows=%d n_cols=%d", len(df), len(df.columns))
 
