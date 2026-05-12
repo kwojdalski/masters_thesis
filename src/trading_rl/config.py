@@ -157,8 +157,19 @@ class TrainingConfig:
     # Evaluation
     eval_interval: int = 1000
     eval_steps: int = 500
+    eval_fraction: float | None = None  # Fraction of val data to use per eval rollout; overrides eval_steps when set
     log_interval: int = 1000
     temp_eval_interval: int | None = None  # Run temporary evaluation every N steps (None = disabled)
+
+    def resolve_eval_steps(self, val_len: int) -> int:
+        """Return the number of eval steps to use given the validation data length.
+
+        If eval_fraction is set, returns int(val_len * eval_fraction), floored
+        at 1.  Otherwise falls back to eval_steps.
+        """
+        if self.eval_fraction is not None:
+            return max(1, int(val_len * self.eval_fraction))
+        return self.eval_steps
 
 
 @dataclass
@@ -278,6 +289,10 @@ class ExperimentConfig:
         if self.training.eval_steps <= 0:
             errors.append(
                 f"training.eval_steps must be > 0, got {self.training.eval_steps}"
+            )
+        if self.training.eval_fraction is not None and not (0.0 < self.training.eval_fraction <= 1.0):
+            errors.append(
+                f"training.eval_fraction must be in (0, 1], got {self.training.eval_fraction}"
             )
         if self.training.checkpoint_interval < 0:
             errors.append(
@@ -621,6 +636,7 @@ class ExperimentConfig:
                 "tau": self.training.tau,
                 "loss_function": self.training.loss_function,
                 "eval_steps": self.training.eval_steps,
+                "eval_fraction": self.training.eval_fraction,
                 "eval_interval": self.training.eval_interval,
                 "log_interval": self.training.log_interval,
             },

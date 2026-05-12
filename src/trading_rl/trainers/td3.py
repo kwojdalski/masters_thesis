@@ -608,7 +608,8 @@ class TD3Trainer(BaseTrainer):
 
     def _evaluate(self) -> None:
         with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
-            eval_rollout = self.env.rollout(self.config.eval_steps, self.actor)
+            n_eval = self.config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.config.eval_steps
+            eval_rollout = self.env.rollout(n_eval, self.actor)
 
             mean_reward = eval_rollout["next", "reward"].mean().item()
             sum_reward = eval_rollout["next", "reward"].sum().item()

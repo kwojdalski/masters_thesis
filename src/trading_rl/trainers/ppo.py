@@ -197,15 +197,16 @@ class PPOTrainer(BaseTrainer):
     def _evaluate(self) -> None:
         """Evaluate current PPO policy."""
         with torch.no_grad():
+            n_eval = self.config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.config.eval_steps
             try:
                 with set_exploration_type(InteractionType.MODE):
-                    eval_rollout = self.env.rollout(self.config.eval_steps, self.actor)
+                    eval_rollout = self.env.rollout(n_eval, self.actor)
             except RuntimeError:
                 logger.debug(
                     "Mode not available for distribution, falling back to Mean"
                 )
                 with set_exploration_type(InteractionType.DETERMINISTIC):
-                    eval_rollout = self.env.rollout(self.config.eval_steps, self.actor)
+                    eval_rollout = self.env.rollout(n_eval, self.actor)
 
             # Log evaluation metrics
             mean_reward = eval_rollout["next", "reward"].mean().item()

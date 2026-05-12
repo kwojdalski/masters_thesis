@@ -102,6 +102,10 @@ class BaseTrainer(ABC):
             config=config,
         )
 
+        # Set by the pipeline after construction when val data length is known.
+        # Used by _evaluate to resolve eval_fraction against actual data size.
+        self._eval_data_len: int | None = None
+
         # Training state
         self.total_count = 0
         self.total_episodes = 0
