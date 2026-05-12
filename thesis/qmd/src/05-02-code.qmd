@@ -44,197 +44,107 @@ epochs of updates are performed on each batch, and the clipped surrogate objecti
 constrains policy changes. The stochastic policy handles exploration through
 entropy bonuses rather than explicit noise injection.
 
-```{=latex}
+```pseudocode
+#| html-line-number: true
+#| pdf-line-number: true
+
 \begin{algorithm}
 \caption{Common Experiment Setup}
-\begin{algorithmic}[1]
-\Require Experiment specification (dataset, feature set, hyperparameters)
-\Ensure Processed train/validation/test environments ready for algorithm-specific training
-\State Load and validate experiment specification; check paths and split feasibility
-\State Load L3 order book dataset; sort chronologically
-\State Split data into train / validation / test subsets (chronological)
-\State Initialise and validate feature pipeline on training split
-\State Transform each split chronologically with causal session-aware normalization
-\State Build training environment from processed training data
+\begin{algorithmic}
+\REQUIRE Experiment specification (dataset, feature set, hyperparameters)
+\ENSURE Processed train/validation/test environments ready for algorithm-specific training
+\STATE Load and validate experiment specification; check paths and split feasibility
+\STATE Load L3 order book dataset; sort chronologically
+\STATE Split data into train / validation / test subsets (chronological)
+\STATE Initialise and validate feature pipeline on training split
+\STATE Transform each split chronologically with causal session-aware normalization
+\STATE Build training environment from processed training data
 \end{algorithmic}
 \end{algorithm}
 ```
 
-```{=html}
-<pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
-<strong>Algorithm 0</strong> Common Experiment Setup
-<em>Require:</em> Experiment specification (dataset, feature set, hyperparameters)
-<em>Ensure:</em>  Processed train/validation/test environments ready for algorithm-specific training
+```pseudocode
+#| html-line-number: true
+#| pdf-line-number: true
 
-1: Load and validate experiment specification; check paths and split feasibility
-2: Load L3 order book dataset; sort chronologically
-3: Split data into train / validation / test subsets (chronological)
-4: Initialise and validate feature pipeline on training split
-5: Transform each split chronologically with causal session-aware normalization
-6: Build training environment from processed training data
-</pre>
-```
-
-```{=latex}
 \begin{algorithm}
 \caption{TD3 Training (follows Algorithm 0)}
-\begin{algorithmic}[1]
-\Require Processed environments from Algorithm 0; TD3 hyperparameters
-\Ensure Trained policy $\mu_\phi$, evaluation metrics
-
-\State Initialise actor $\mu_\phi$, twin critics $Q_{\theta_1}$, $Q_{\theta_2}$,
-       target networks $\mu_{\phi'}$, $Q_{\theta_1'}$, $Q_{\theta_2'}$,
-       replay buffer $\mathcal{D}$
-
-\For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
-    \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
-    \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
-    \State Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\phi'}(s') + \operatorname{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}^2),\, \pm c\right)$
-    \State Compute Bellman target: $y \leftarrow r + \gamma \cdot \min_{i=1,2} Q_{\theta_i'}(s',\, \tilde{a}')$
-    \State Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_{\theta_i}(s, a)\right)$
-    \If{$t \bmod \texttt{policy\_delay} = 0$}
-        \State Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_{\theta_1}(s,\, \mu_\phi(s))$
-        \State Soft-update targets: $\theta_i' \leftarrow \tau\theta_i + (1-\tau)\theta_i'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
-    \EndIf
-    \State Checkpoint and log metrics at configured intervals
-\EndFor
-
-\State Evaluate deterministic policy $\mu_\phi$ on test split
-\State Compute financial performance metrics from realised return series
+\begin{algorithmic}
+\REQUIRE Processed environments from Algorithm 0; TD3 hyperparameters
+\ENSURE Trained policy $\mu_\phi$, evaluation metrics
+\STATE Initialise actor $\mu_\phi$, twin critics $Q_{\theta_1}$, $Q_{\theta_2}$, target networks $\mu_{\phi'}$, $Q_{\theta_1'}$, $Q_{\theta_2'}$, replay buffer $\mathcal{D}$
+\FOR{each step $t = 1, \ldots, \texttt{max\_steps}$}
+  \STATE $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
+  \STATE Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
+  \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
+  \STATE Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\phi'}(s') + \operatorname{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}^2),\, \pm c\right)$
+  \STATE Compute Bellman target: $y \leftarrow r + \gamma \cdot \min_{i=1,2} Q_{\theta_i'}(s',\, \tilde{a}')$
+  \STATE Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_{\theta_i}(s, a)\right)$
+  \IF{$t \bmod \texttt{policy\_delay} = 0$}
+    \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_{\theta_1}(s,\, \mu_\phi(s))$
+    \STATE Soft-update targets: $\theta_i' \leftarrow \tau\theta_i + (1-\tau)\theta_i'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
+  \ENDIF
+  \STATE Checkpoint and log metrics at configured intervals
+\ENDFOR
+\STATE Evaluate deterministic policy $\mu_\phi$ on test split
+\STATE Compute financial performance metrics from realised return series
 \end{algorithmic}
 \end{algorithm}
 ```
 
-```{=html}
-<pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
-<strong>Algorithm 1</strong> TD3 Training (follows Algorithm 0)
-<em>Require:</em> Processed environments from Algorithm 0; TD3 hyperparameters
-<em>Ensure:</em>  Trained policy μ<sub>φ</sub>, evaluation metrics
+```pseudocode
+#| html-line-number: true
+#| pdf-line-number: true
 
- 1: Initialise actor μ<sub>φ</sub>, twin critics Q<sub>θ1</sub>, Q<sub>θ2</sub>,
-    target networks μ<sub>φ'</sub>, Q<sub>θ1'</sub>, Q<sub>θ2'</sub>, replay buffer 𝒟
- 2: <strong>for</strong> each step t = 1, …, max_steps <strong>do</strong>
- 3:   a<sub>t</sub> ← clip(μ<sub>φ</sub>(s<sub>t</sub>) + ε, −1, 1),  ε ~ 𝒩(0, σ<sub>explore</sub><sup>2</sup>)
- 4:   Execute a<sub>t</sub>; observe r<sub>t</sub>, s<sub>t+1</sub>; store (s<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>, s<sub>t+1</sub>) in 𝒟
- 5:   Sample mini-batch ℬ ~ 𝒟
- 6:   Compute smoothed target action: ã' ← μ<sub>φ'</sub>(s') + clip(𝒩(0, σ<sub>noise</sub><sup>2</sup>), ±c)
- 7:   Compute Bellman target: y ← r + γ · min<sub>i=1,2</sub> Q<sub>θi'</sub>(s', ã')
- 8:   Update both critics by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>θi</sub>(s, a))
- 9:   <strong>if</strong> t mod policy_delay = 0 <strong>then</strong>
-10:     Update actor: φ ← φ + α∇<sub>φ</sub>Q<sub>θ1</sub>(s, μ<sub>φ</sub>(s))
-11:     Soft-update targets: θi' ← τθi + (1−τ)θi';  φ' ← τφ + (1−τ)φ'
-12:   <strong>end if</strong>
-13:   Checkpoint and log metrics at configured intervals
-14: <strong>end for</strong>
-15: Evaluate deterministic policy μ<sub>φ</sub> on test split
-16: Compute financial performance metrics from realised return series
-</pre>
-```
-
-```{=latex}
 \begin{algorithm}
 \caption{DDPG Training (follows Algorithm 0)}
-\begin{algorithmic}[1]
-\Require Processed environments from Algorithm 0; DDPG hyperparameters
-\Ensure Trained policy $\mu_\phi$, evaluation metrics
-
-\State Initialise actor $\mu_\phi$, critic $Q_\theta$,
-       target networks $\mu_{\phi'}$, $Q_{\theta'}$,
-       replay buffer $\mathcal{D}$
-
-\For{each step $t = 1, \ldots, \texttt{max\_steps}$}
-    \State $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
-    \State Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
-    \State Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
-    \State Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
-    \State Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\theta(s, a)\right)$
-    \State Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_\theta(s,\, \mu_\phi(s))$
-    \State Soft-update targets: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
-    \State Checkpoint and log metrics at configured intervals
-\EndFor
-
-\State Evaluate deterministic policy $\mu_\phi$ on test split
-\State Compute financial performance metrics from realised return series
+\begin{algorithmic}
+\REQUIRE Processed environments from Algorithm 0; DDPG hyperparameters
+\ENSURE Trained policy $\mu_\phi$, evaluation metrics
+\STATE Initialise actor $\mu_\phi$, critic $Q_\theta$, target networks $\mu_{\phi'}$, $Q_{\theta'}$, replay buffer $\mathcal{D}$
+\FOR{each step $t = 1, \ldots, \texttt{max\_steps}$}
+  \STATE $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right)$, \quad $\epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
+  \STATE Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
+  \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
+  \STATE Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
+  \STATE Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\theta(s, a)\right)$
+  \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_\theta(s,\, \mu_\phi(s))$
+  \STATE Soft-update targets: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
+  \STATE Checkpoint and log metrics at configured intervals
+\ENDFOR
+\STATE Evaluate deterministic policy $\mu_\phi$ on test split
+\STATE Compute financial performance metrics from realised return series
 \end{algorithmic}
 \end{algorithm}
 ```
 
-```{=html}
-<pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
-<strong>Algorithm 2</strong> DDPG Training (follows Algorithm 0)
-<em>Require:</em> Processed environments from Algorithm 0; DDPG hyperparameters
-<em>Ensure:</em>  Trained policy μ<sub>φ</sub>, evaluation metrics
+```pseudocode
+#| html-line-number: true
+#| pdf-line-number: true
 
- 1: Initialise actor μ<sub>φ</sub>, critic Q<sub>θ</sub>,
-    target networks μ<sub>φ'</sub>, Q<sub>θ'</sub>, replay buffer 𝒟
- 2: <strong>for</strong> each step t = 1, …, max_steps <strong>do</strong>
- 3:   a<sub>t</sub> ← clip(μ<sub>φ</sub>(s<sub>t</sub>) + ε, −1, 1),  ε ~ 𝒩(0, σ<sub>explore</sub><sup>2</sup>)
- 4:   Execute a<sub>t</sub>; observe r<sub>t</sub>, s<sub>t+1</sub>; store (s<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>, s<sub>t+1</sub>) in 𝒟
- 5:   Sample mini-batch ℬ ~ 𝒟
- 6:   Compute Bellman target: y ← r + γ · Q<sub>θ'</sub>(s', μ<sub>φ'</sub>(s'))
- 7:   Update critic by minimising ℒ<sub>Smooth-L1</sub>(y − Q<sub>θ</sub>(s, a))
- 8:   Update actor: φ ← φ + α∇<sub>φ</sub>Q<sub>θ</sub>(s, μ<sub>φ</sub>(s))
- 9:   Soft-update targets: θ' ← τθ + (1−τ)θ';  φ' ← τφ + (1−τ)φ'
-10:   Checkpoint and log metrics at configured intervals
-11: <strong>end for</strong>
-12: Evaluate deterministic policy μ<sub>φ</sub> on test split
-13: Compute financial performance metrics from realised return series
-</pre>
-```
-
-```{=latex}
 \begin{algorithm}
 \caption{PPO Training (follows Algorithm 0)}
-\begin{algorithmic}[1]
-\Require Processed environments from Algorithm 0; PPO hyperparameters
-\Ensure Trained policy $\pi_\theta$, evaluation metrics
-
-\State Initialise stochastic actor $\pi_\theta$ (TanhNormal), value network $V_\phi$
-
-\For{each batch iteration $k = 1, \ldots, \texttt{max\_steps} / \texttt{frames\_per\_batch}$}
-    \State Collect trajectory $\mathcal{T}_k$ of \texttt{frames\_per\_batch} steps using $\pi_\theta$
-    \State Compute advantage estimates $\hat{A}_t$ via GAE using $V_\phi$ on $\mathcal{T}_k$
-    \For{each PPO epoch $j = 1, \ldots, K$}
-        \State Sample mini-batch $\mathcal{B} \sim \mathcal{T}_k$
-        \State Compute probability ratio: $\rho_t(\theta) \leftarrow \pi_\theta(a_t \mid s_t) / \pi_{\theta_{\text{old}}}(a_t \mid s_t)$
-        \State Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(\rho_t \hat{A}_t,\; \operatorname{clip}(\rho_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
-        \State Compute value loss: $\mathcal{L}^{V} \leftarrow \mathcal{L}_{\text{L2}}\!\left(V_\phi(s) - V^{\text{target}}\right)$
-        \State Compute entropy bonus: $\mathcal{L}^{H} \leftarrow c_1 \mathcal{H}(\pi_\theta(\cdot \mid s))$
-        \State Update $\theta$, $\phi$ jointly: minimise $-\mathcal{L}^{\text{CLIP}} + c_2 \mathcal{L}^{V} - \mathcal{L}^{H}$
-    \EndFor
-    \State Checkpoint and log metrics at configured intervals
-\EndFor
-
-\State Evaluate policy mode $\tanh(\mu_\theta(s))$ on test split
-\State Compute financial performance metrics from realised return series
+\begin{algorithmic}
+\REQUIRE Processed environments from Algorithm 0; PPO hyperparameters
+\ENSURE Trained policy $\pi_\theta$, evaluation metrics
+\STATE Initialise stochastic actor $\pi_\theta$ (TanhNormal), value network $V_\phi$
+\FOR{each batch iteration $k = 1, \ldots, \texttt{max\_steps} / \texttt{frames\_per\_batch}$}
+  \STATE Collect trajectory $\mathcal{T}_k$ of \texttt{frames\_per\_batch} steps using $\pi_\theta$
+  \STATE Compute advantage estimates $\hat{A}_t$ via GAE using $V_\phi$ on $\mathcal{T}_k$
+  \FOR{each PPO epoch $j = 1, \ldots, K$}
+    \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{T}_k$
+    \STATE Compute probability ratio: $\rho_t(\theta) \leftarrow \pi_\theta(a_t \mid s_t) / \pi_{\theta_{\text{old}}}(a_t \mid s_t)$
+    \STATE Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(\rho_t \hat{A}_t,\; \operatorname{clip}(\rho_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
+    \STATE Compute value loss: $\mathcal{L}^{V} \leftarrow \mathcal{L}_{\text{L2}}\!\left(V_\phi(s) - V^{\text{target}}\right)$
+    \STATE Compute entropy bonus: $\mathcal{L}^{H} \leftarrow c_1 \mathcal{H}(\pi_\theta(\cdot \mid s))$
+    \STATE Update $\theta$, $\phi$ jointly: minimise $-\mathcal{L}^{\text{CLIP}} + c_2 \mathcal{L}^{V} - \mathcal{L}^{H}$
+  \ENDFOR
+  \STATE Checkpoint and log metrics at configured intervals
+\ENDFOR
+\STATE Evaluate policy mode $\tanh(\mu_\theta(s))$ on test split
+\STATE Compute financial performance metrics from realised return series
 \end{algorithmic}
 \end{algorithm}
-```
-
-```{=html}
-<pre style="background:#f8f8f8; border:1px solid #ddd; padding:1em; font-size:0.88em; line-height:1.5;">
-<strong>Algorithm 3</strong> PPO Training (follows Algorithm 0)
-<em>Require:</em> Processed environments from Algorithm 0; PPO hyperparameters
-<em>Ensure:</em>  Trained policy π<sub>θ</sub>, evaluation metrics
-
- 1: Initialise stochastic actor π<sub>θ</sub> (TanhNormal), value network V<sub>φ</sub>
- 2: <strong>for</strong> each batch iteration k = 1, …, max_steps / frames_per_batch <strong>do</strong>
- 3:   Collect trajectory 𝒯<sub>k</sub> of frames_per_batch steps using π<sub>θ</sub>
- 4:   Compute advantage estimates Â<sub>t</sub> via GAE using V<sub>φ</sub> on 𝒯<sub>k</sub>
- 5:   <strong>for</strong> each PPO epoch j = 1, …, K <strong>do</strong>
- 6:     Sample mini-batch ℬ ~ 𝒯<sub>k</sub>
- 7:     Compute probability ratio: ρ<sub>t</sub>(θ) ← π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>) / π<sub>θ<sub>old</sub></sub>(a<sub>t</sub>|s<sub>t</sub>)
- 8:     Compute clipped objective: ℒ<sup>CLIP</sup> ← 𝔼[min(ρ<sub>t</sub>Â<sub>t</sub>, clip(ρ<sub>t</sub>, 1±ε)Â<sub>t</sub>)]
- 9:     Compute value loss: ℒ<sup>V</sup> ← ℒ<sub>L2</sub>(V<sub>φ</sub>(s) − V<sup>target</sup>)
-10:     Compute entropy bonus: ℒ<sup>H</sup> ← c<sub>1</sub> ℋ(π<sub>θ</sub>(·|s))
-11:     Update θ, φ jointly: minimise −ℒ<sup>CLIP</sup> + c<sub>2</sub>ℒ<sup>V</sup> − ℒ<sup>H</sup>
-12:   <strong>end for</strong>
-13:   Checkpoint and log metrics at configured intervals
-14: <strong>end for</strong>
-15: Evaluate policy mode tanh(μ<sub>θ</sub>(s)) on test split
-16: Compute financial performance metrics from realised return series
-</pre>
 ```
 
 The notation follows the conventions established in Chapter 3:
