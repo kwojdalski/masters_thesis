@@ -704,11 +704,12 @@ class BaseTrainer(ABC):
                 collected_steps = self.total_count if not self._use_replay_buffer else buffer_len
                 if collected_steps > self.config.init_rand_steps:
                     self._optimization_step(i, max_length, buffer_len)
-                self.total_episodes += data["next", "done"].sum()
+                episodes_in_batch = int(data["next", "done"].sum().item())
+                self.total_episodes += episodes_in_batch
                 self._maybe_save_checkpoint()
                 self.runtime_hooks.maybe_run(self.total_count)
 
-                if self.callback and hasattr(self.callback, "log_episode_stats"):
+                if self.callback and hasattr(self.callback, "log_episode_stats") and episodes_in_batch > 0:
                     self._log_episode_stats(data, self.callback)
 
                 if on_batch_end is not None:
