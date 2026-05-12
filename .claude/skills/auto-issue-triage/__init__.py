@@ -349,6 +349,7 @@ def main():
 
     if not issues:
         print("No open issues found requiring triage.")
+        print("All issues resolved! Skill is no longer needed.")
         return
 
     print(f"Found {len(issues)} issue(s) to triage")
