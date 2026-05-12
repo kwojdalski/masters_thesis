@@ -498,11 +498,37 @@ def prepare_data(
     else:
         config_path = config_file
 
+    from rich.progress import (
+        BarColumn,
+        MofNCompleteColumn,
+        Progress,
+        SpinnerColumn,
+        TextColumn,
+        TimeElapsedColumn,
+    )
+
     config = ExperimentConfig.from_yaml(config_path, overrides=config_override)
     console.print(f"[blue]Config loaded: {config_path}[/blue]")
-    console.print("[yellow]Preparing data (this may take a while)…[/yellow]")
 
-    dataset = build_prepared_dataset(config, _log)
+    data_paths = getattr(config.data, "data_paths", None) or []
+    val_data_paths = getattr(config.data, "val_data_paths", None) or []
+    n_symbols = len({Path(p).name.split("_")[0] for p in data_paths})
+    total_steps = n_symbols + len(data_paths) + len(val_data_paths)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}", justify="left"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Preparing data…", total=total_steps)
+
+        def _on_step(label: str) -> None:
+            progress.update(task, advance=1, description=label)
+
+        dataset = build_prepared_dataset(config, _log, progress_callback=_on_step)
 
     console.print(
         f"[green]Done.[/green] "
