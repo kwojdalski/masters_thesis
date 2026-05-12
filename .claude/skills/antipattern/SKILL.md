@@ -123,6 +123,14 @@ Work through the ranked list one item at a time. For each item:
 
 For **every** finding in the summary table — regardless of whether the user fixes it or skips it — create a GitHub issue using `gh issue create`. Do this after the summary table is printed, before starting the interactive review.
 
+**Before creating any issues, fetch existing open issues and deduplicate:**
+
+```bash
+gh issue list --state open --limit 100 --json number,title,body
+```
+
+For each finding, scan the existing issue list for a title or body that describes the same file, the same line range, or the same root cause. If a sufficiently similar issue already exists, skip creation and note the existing issue URL in your output instead. Only create a new issue if no existing issue covers the same problem.
+
 Issue format:
 ```
 gh issue create \
@@ -144,7 +152,7 @@ EOF
 
 - Use label `antipattern`. Create the label first if it does not exist: `gh label create antipattern --color "#e4e669" --description "Anti-pattern finding" 2>/dev/null || true`
 - Create one issue per finding. Do not batch findings into one issue.
-- After creating all issues, print the list of issue URLs so the user can see them.
+- After processing all findings, print the list of new issue URLs and any existing issues that were matched instead of duplicated.
 
 ## Finishing
 
