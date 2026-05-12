@@ -234,32 +234,6 @@ The transformed features in @tbl-transformed-features demonstrate several key pr
 
 These features are computed from the raw order book data using the causal running normalization described in @eq-running-normalize. The normalization ensures that features are on comparable scales across different securities and time periods, while the causal structure guarantees that the agent never has access to future information when making decisions. The 10 features shown in this table (4 displayed for brevity) are part of a larger feature set that includes additional microstructure signals such as depth slopes, queue imbalances, and rolling statistics of order flow.
 
-```python
-import pandas as pd
-
-# Load prepared training data
-df = pd.read_parquet('data/prepared/pooled_daily_6sym_selected/train_prepared.parquet')
-
-# Select raw and feature columns
-raw_cols = ['ts_event', 'bid_px_00', 'ask_px_00', 'bid_sz_00', 'ask_sz_00']
-feature_cols = [
-    'feature_hft_book_pressure_l0',
-    'feature_hft_order_book_imbalance_3l',
-    'feature_hft_microprice',
-    'feature_hft_ofi'
-]
-
-# Get sample data
-sample = df[raw_cols + feature_cols].head(12)
-sample['Time (UTC)'] = sample['ts_event'].dt.strftime('%H:%M:%S.%f').str[:-3]
-
-# Display key columns
-display_cols = ['Time (UTC)'] + raw_cols[1:] + feature_cols
-print(sample[display_cols].round(2))
-```
-
-: Python code to reproduce the transformed features table from the prepared training data.
-
 ### Feature and Price Column Separation
 
 A strict separation is maintained between the observation features passed to
