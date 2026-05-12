@@ -39,6 +39,7 @@ data:
   prepared_data_dir: ./data/prepared/pooled_daily_6sym_selected
   memmap_dir: ./data/memmap/pooled_daily_6sym_selected
   feature_cache_dir: ".cache/feature_transformation"
+  filter_lob_levels: 5
 env:
   name: TRADINGENV_TD3_POOLED_HFT_SELECTED_STREAMING
   backend: tradingenv

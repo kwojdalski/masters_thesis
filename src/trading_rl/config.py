@@ -53,6 +53,10 @@ class DataConfig:
     # the validation (first half) and test (second half) data instead.
     # Expected convention: one val file per symbol, e.g. the last trading day.
     val_data_paths: list[str] | None = None
+    # Drop rows where none of the first N LOB levels changed. Set to e.g. 5 for
+    # MBP-10 data when features only consume levels 0-4, eliminating deep-book-only
+    # update events that carry no signal for the configured feature set.
+    filter_lob_levels: int | None = None
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
