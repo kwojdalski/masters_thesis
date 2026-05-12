@@ -60,6 +60,7 @@ env:
   - feature_hft_ofi_rolling_50
   - feature_hft_signed_trade_flow_50
   - feature_position
+  obs_clip: 5.0
   reward_type: differential_sharpe
   reward_eta: 0.01
 network:

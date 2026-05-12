@@ -96,6 +96,11 @@ class EnvConfig:
     # output > upper → positions[2].
     continuous_action_thresholds: list[float] = field(default_factory=lambda: [-0.33, 0.33])
 
+    # Observation clipping: clip normalized features to [-obs_clip, obs_clip] before
+    # passing to the network. Eliminates gradient spikes from session-open cold-start
+    # periods where running normalization stats haven't converged yet.
+    obs_clip: float | None = 5.0
+
     # Reward function configuration (all backends)
     reward_type: str = RewardType.LOG_RETURN  # Reward type: "log_return" or "differential_sharpe"
     reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")

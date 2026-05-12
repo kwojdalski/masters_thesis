@@ -392,6 +392,7 @@ class StreamingTradingEnvXY(gym.Env):
         reward_type: str = "log_return",
         reward_eta: float = 0.01,
         runtime_feature_columns: list[str] | None = None,
+        obs_clip: float | None = None,
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -407,6 +408,7 @@ class StreamingTradingEnvXY(gym.Env):
         self._reward_type = reward_type
         self._reward_eta = reward_eta
         self._runtime_feature_columns = runtime_feature_columns or []
+        self._obs_clip = obs_clip
 
         stocks = [Stock(price_column)]
         self.action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
@@ -497,7 +499,9 @@ class StreamingTradingEnvXY(gym.Env):
         # TradingEnv returns {"CustomFeature": array}; unwrap to flat array
         # to match the Box observation_space declared in __init__.
         if isinstance(obs, dict):
-            return obs["CustomFeature"]
+            obs = obs["CustomFeature"]
+        if self._obs_clip is not None:
+            obs = np.clip(obs, -self._obs_clip, self._obs_clip)
         return obs
 
     @property
