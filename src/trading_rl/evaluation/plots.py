@@ -39,8 +39,12 @@ def compare_rollouts(rollouts, n_obs, is_portfolio: bool = False):
 
     for i in range(len(rollouts)):
         for j in range(i + 1, len(rollouts)):
-            actions_equal = bool(allclose(all_actions[i].float(), all_actions[j].float()))
-            rewards_equal = bool(allclose(all_rewards[i].float(), all_rewards[j].float()))
+            # One rollout may terminate early (e.g. bankruptcy); truncate to the
+            # shorter length so allclose receives same-shape tensors.
+            min_a = min(all_actions[i].shape[0], all_actions[j].shape[0])
+            min_r = min(all_rewards[i].shape[0], all_rewards[j].shape[0])
+            actions_equal = bool(allclose(all_actions[i][:min_a].float(), all_actions[j][:min_a].float()))
+            rewards_equal = bool(allclose(all_rewards[i][:min_r].float(), all_rewards[j][:min_r].float()))
             logger.info(
                 "Run %s vs Run %s | actions_identical=%s rewards_identical=%s",
                 i + 1,
