@@ -328,6 +328,7 @@ class TrainingCommand(BaseCommand):
         steps_table = make_table("Steps")
         for key, label, fmt in [
             ("total_env_steps", "Env Steps", ","),
+            ("episode_length", "Episode Length", ","),
             ("total_episodes", "Episodes", ","),
             ("optimizer_steps", "Optimizer Steps", ","),
             ("eval_steps", "Eval Horizon", ","),
@@ -354,6 +355,7 @@ class TrainingCommand(BaseCommand):
         legend_lines = [
             "[bold]Legend[/bold]",
             "[cyan]Env Steps[/cyan]          Total environment steps collected during training.",
+            "[cyan]Episode Length[/cyan]     Steps per episode (streaming window or full dataset). Episodes = Env Steps / Episode Length.",
             "[cyan]Episodes[/cyan]           Number of full episodes completed (resets) during training.",
             "[cyan]Optimizer Steps[/cyan]    Number of gradient update steps taken.",
             "[cyan]Eval Horizon[/cyan]       Number of steps used for each evaluation rollout.",
