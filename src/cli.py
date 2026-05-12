@@ -455,6 +455,63 @@ def train(
     training_cmd.execute(params)
 
 
+@app.command(name="prepare-data")
+def prepare_data(
+    scenario: str | None = typer.Option(
+        None, "--scenario", "-s", help="Scenario name or path under src/configs/scenarios"
+    ),
+    config_file: Path | None = typer.Option(  # noqa: B008
+        None, "--config", "-c", help="Path to experiment config YAML"
+    ),
+    config_override: list[str] | None = typer.Option(
+        None, "--config-override", "-o", help="OmegaConf dotlist override (repeatable)"
+    ),
+):
+    """Materialise features and populate the data cache without training.
+
+    Loads the experiment config, runs the full data-preparation pipeline
+    (raw parquet → LOB filter → feature computation → memmap/parquet cache),
+    then exits.  Run this once after changing hft_lob_features_all.yaml so
+    that subsequent feature-research and train runs hit the cache immediately.
+    """
+    from trading_rl import ExperimentConfig
+    from trading_rl.data_utils import build_prepared_dataset
+    from logger import get_logger as _get_logger
+
+    _log = _get_logger(__name__)
+    console = Console()
+
+    if scenario and config_file:
+        raise typer.BadParameter("Cannot specify both --config and --scenario.")
+    if not scenario and not config_file:
+        raise typer.BadParameter("Provide --scenario or --config.")
+
+    if scenario:
+        search = [
+            Path(scenario),
+            Path("src/configs/scenarios") / scenario,
+            Path("src/configs/scenarios") / f"{scenario}.yaml",
+        ]
+        config_path = next((p for p in search if p.exists()), None)
+        if config_path is None:
+            raise typer.BadParameter(f"Scenario '{scenario}' not found.")
+    else:
+        config_path = config_file
+
+    config = ExperimentConfig.from_yaml(config_path, overrides=config_override)
+    console.print(f"[blue]Config loaded: {config_path}[/blue]")
+    console.print("[yellow]Preparing data (this may take a while)…[/yellow]")
+
+    dataset = build_prepared_dataset(config, _log)
+
+    console.print(
+        f"[green]Done.[/green] "
+        f"train={len(dataset.train_df):,} val={len(dataset.val_df):,} "
+        f"test={len(dataset.test_df):,} rows, "
+        f"{len(dataset.feature_columns)} feature columns"
+    )
+
+
 @app.command()
 def validate(
     config_file: Path | None = typer.Option(  # noqa: B008
