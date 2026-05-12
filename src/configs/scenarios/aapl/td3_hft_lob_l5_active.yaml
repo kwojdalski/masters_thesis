@@ -136,7 +136,7 @@ training:
   loss_function: "smooth_l1"
 
   # Evaluation
-  eval_steps: 720  # ~1 day of trading at 1min intervals
+  eval_steps: 10000  # ~10-20% of a filtered HFT session (~50k ticks/day for AAPL)
   eval_interval: 1000
   log_interval: 100
 
