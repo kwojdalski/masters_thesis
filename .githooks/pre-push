@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "pre-push: pytest checks are disabled."
-exit 0
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+echo "pre-push: running smoke tests..."
+uv run pytest -m "smoke or push_smoke"
