@@ -297,7 +297,6 @@ class TrainingCommand(BaseCommand):
     def _display_training_results(self, result: dict[str, Any]) -> None:
         """Display training results in three side-by-side tables."""
         final_metrics = result.get("final_metrics", {})
-        eval_report = final_metrics.get("evaluation_report", {})
 
         def make_table(title: str) -> Table:
             t = Table(title=title, show_header=True, header_style="bold")
@@ -337,20 +336,30 @@ class TrainingCommand(BaseCommand):
                 steps_table.add_row(label, f"{final_metrics[key]:{fmt}}")
         steps_table.add_row("Final Reward", f"{final_metrics.get('final_reward', float('nan')):.4f}")
 
-        performance_table = make_table("Performance")
-        for source, key, display_name, fmt in [
-            (eval_report, "total_return", "Total Return", ".2%"),
-            (eval_report, "annualized_return_cagr", "CAGR", ".2%"),
-            (eval_report, "sharpe_ratio", "Sharpe Ratio", ".3f"),
-            (eval_report, "sortino_ratio", "Sortino Ratio", ".3f"),
-            (eval_report, "max_drawdown", "Max Drawdown", ".2%"),
-            (eval_report, "win_rate", "Win Rate", ".2%"),
-            (eval_report, "profit_factor", "Profit Factor", ".3f"),
-        ]:
-            if key in source:
-                performance_table.add_row(display_name, f"{source[key]:{fmt}}")
+        _perf_metrics = [
+            ("total_return", "Total Return", ".2%"),
+            ("annualized_return_cagr", "CAGR", ".2%"),
+            ("sharpe_ratio", "Sharpe Ratio", ".3f"),
+            ("sortino_ratio", "Sortino Ratio", ".3f"),
+            ("max_drawdown", "Max Drawdown", ".2%"),
+            ("win_rate", "Win Rate", ".2%"),
+            ("profit_factor", "Profit Factor", ".3f"),
+        ]
 
-        self.console.print(Columns([run_table, steps_table, performance_table]))
+        split_results = final_metrics.get("split_results", {})
+        split_label = {"train": "Train", "val": "Val", "test": "Test"}
+        perf_tables = []
+        for split in ("train", "val", "test"):
+            report = split_results.get(split, {}).get("evaluation_report", {})
+            if not report:
+                continue
+            t = make_table(f"Performance ({split_label[split]})")
+            for key, display_name, fmt in _perf_metrics:
+                if key in report:
+                    t.add_row(display_name, f"{report[key]:{fmt}}")
+            perf_tables.append(t)
+
+        self.console.print(Columns([run_table, steps_table, *perf_tables]))
 
         legend_lines = [
             "[bold]Legend[/bold]",
