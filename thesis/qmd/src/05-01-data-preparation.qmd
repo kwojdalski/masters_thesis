@@ -209,6 +209,57 @@ For causal running normalization, statistics are maintained **independently per 
 
 Cyclical temporal encodings (hour-of-day sine and cosine) are already bounded in $[-1, 1]$ and are not subject to z-score normalization. Raw price columns used for portfolio accounting are kept in their original units and are never replaced by normalized values. This separation ensures that the observation features passed to the learning algorithm are statistically well-behaved, while the pricing inputs used for reward and valuation computation retain economic interpretability and correct accounting semantics.
 
+#### Transformed Feature Example
+
+To illustrate how the raw order book data is transformed into the input features used by the RL agent, @tbl-transformed-features shows a sample of consecutive events from the AAPL feed at market open. The left portion displays the raw order book state (best bid/ask prices and sizes), while the right portion shows the corresponding transformed microstructure features.
+
+| Time (UTC) | Best Bid ($) | Best Ask ($) | Bid Size | Ask Size | Book Pressure | Order Imbalance | Microprice Deviation | Order Flow Imbalance |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 14:30:00.016 | 271.45 | 271.85 | 500 | 756 | 0.00 | 0.00 | 0.000 | 0.00 |
+| 14:30:00.024 | 271.45 | 271.85 | 500 | 756 | 0.00 | 0.00 | 0.000 | 0.00 |
+| 14:30:00.024 | 271.45 | 271.79 | 500 | 140 | 76.63 | 13.66 | 10.639 | 61600.00 |
+| 14:30:00.024 | 271.45 | 271.79 | 500 | 240 | 0.83 | 1.40 | 0.685 | -1.05 |
+| 14:30:00.024 | 271.45 | 271.79 | 600 | 240 | 0.89 | 2.20 | 0.837 | -0.10 |
+| 14:30:00.025 | 271.45 | 271.79 | 600 | 100 | 1.62 | 2.29 | 1.773 | 0.07 |
+| 14:30:00.028 | 271.45 | 271.73 | 600 | 40 | 1.68 | 1.58 | 0.740 | -0.28 |
+| 14:30:00.028 | 271.45 | 271.73 | 600 | 140 | 0.67 | 1.00 | -0.062 | -1.00 |
+| 14:30:00.028 | 271.45 | 271.73 | 600 | 140 | 0.61 | 0.88 | -0.058 | -0.42 |
+| 14:30:00.028 | 271.45 | 271.73 | 600 | 100 | 0.82 | 1.01 | 0.242 | -0.19 |
+| 14:30:00.028 | 271.45 | 271.85 | 600 | 656 | -1.39 | -0.73 | -0.944 | -0.39 |
+| 14:30:00.028 | 271.54 | 271.85 | 100 | 656 | -3.11 | -0.02 | -2.313 | -3.05 |
+
+: Sample of raw order book data and corresponding transformed microstructure features. The raw columns show the best bid/ask prices and sizes, while the transformed features capture order book pressure, imbalance, and flow dynamics. The features are normalized using causal running statistics and serve as the input to the RL agent's policy network. {#tbl-transformed-features}
+
+The transformed features in @tbl-transformed-features demonstrate several key properties of the feature engineering approach. First, the **Book Pressure** and **Order Imbalance** columns capture the instantaneous state of order book liquidity and directional pressure. Large positive values (e.g., 76.63 at 14:30:00.024) indicate strong buying pressure, while negative values (e.g., -3.11 at 14:30:00.028) signal selling pressure. Second, the **Microprice Deviation** shows how far the current microprice lies from the mid-price, providing a refined estimate of the transaction price that accounts for order book depth. Third, the **Order Flow Imbalance** tracks the net signed trade flow over a short window, capturing momentum in the order flow direction.
+
+These features are computed from the raw order book data using the causal running normalization described in @eq-running-normalize. The normalization ensures that features are on comparable scales across different securities and time periods, while the causal structure guarantees that the agent never has access to future information when making decisions. The 10 features shown in this table (4 displayed for brevity) are part of a larger feature set that includes additional microstructure signals such as depth slopes, queue imbalances, and rolling statistics of order flow.
+
+```python
+import pandas as pd
+
+# Load prepared training data
+df = pd.read_parquet('data/prepared/pooled_daily_6sym_selected/train_prepared.parquet')
+
+# Select raw and feature columns
+raw_cols = ['ts_event', 'bid_px_00', 'ask_px_00', 'bid_sz_00', 'ask_sz_00']
+feature_cols = [
+    'feature_hft_book_pressure_l0',
+    'feature_hft_order_book_imbalance_3l',
+    'feature_hft_microprice',
+    'feature_hft_ofi'
+]
+
+# Get sample data
+sample = df[raw_cols + feature_cols].head(12)
+sample['Time (UTC)'] = sample['ts_event'].dt.strftime('%H:%M:%S.%f').str[:-3]
+
+# Display key columns
+display_cols = ['Time (UTC)'] + raw_cols[1:] + feature_cols
+print(sample[display_cols].round(2))
+```
+
+: Python code to reproduce the transformed features table from the prepared training data.
+
 ### Feature and Price Column Separation
 
 A strict separation is maintained between the observation features passed to
