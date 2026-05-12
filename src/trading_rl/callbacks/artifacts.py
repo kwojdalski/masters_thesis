@@ -91,6 +91,7 @@ def log_config_artifact(config) -> None:
             "buffer_size": config.training.buffer_size,
             "loss_function": config.training.loss_function,
             "eval_steps": config.training.eval_steps,
+            "eval_fraction": config.training.eval_fraction,
             "eval_interval": config.training.eval_interval,
             "log_interval": config.training.log_interval,
         },
@@ -154,6 +155,8 @@ def log_training_parameters(config) -> None:
         )
         mlflow.log_param("training_loss_function", str(config.training.loss_function))
         mlflow.log_param("training_eval_steps", int(config.training.eval_steps))
+        if config.training.eval_fraction is not None:
+            mlflow.log_param("training_eval_fraction", float(config.training.eval_fraction))
         mlflow.log_param("training_eval_interval", int(config.training.eval_interval))
         mlflow.log_param("training_log_interval", int(config.training.log_interval))
 
