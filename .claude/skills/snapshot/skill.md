@@ -45,13 +45,18 @@ Push the tag to GitHub:
 git push origin stable/YYYY-MM-DD
 ```
 
-### 4. Find the previous snapshot tag
+### 4. Find the previous snapshot tag from GitHub Releases
+
+Query GitHub Releases to find the most recently published daily build (at this point today's release has not been created yet, so the first result is yesterday's):
 
 ```bash
-git tag --list "stable/*" --sort=-version:refname | sed -n '2p'
+gh release list --limit 50 --json tagName --jq '.[].tagName' | grep "^stable/" | head -1
 ```
 
-If no previous tag exists, use the first commit: `git rev-list --max-parents=0 HEAD`
+If no previous `stable/*` release exists on GitHub, fall back to the first commit:
+```bash
+git rev-list --max-parents=0 HEAD
+```
 
 Store the result as PREV.
 
