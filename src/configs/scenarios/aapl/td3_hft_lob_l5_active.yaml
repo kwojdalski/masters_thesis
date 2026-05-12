@@ -22,7 +22,7 @@ seed: 42
 data:
   data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
   # data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_small.parquet"
-  feature_config: "src/configs/features/hft_lob_l5_active.yaml"
+  feature_config: "src/configs/features/hft_lob_features_all.yaml"
   download_data: false
   train_size: 15000  # ~2M ticks for training (filtered to US market hours 9:30 AM - 4:00 PM EST)
 
