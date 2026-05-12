@@ -58,7 +58,20 @@ Scan for the following, in order of severity:
 
 1. Output the commands reference above immediately.
 
-2. Read the key Python files in `/Users/krzysztofwojdalski/github_projects/masters_thesis/src/`. Focus on:
+2. Check for existing GitHub issues labeled "bugfinder" BEFORE scanning the codebase:
+
+   ```
+   gh issue list --label bugfinder --state all --limit 100 --json number,title,body,state
+   ```
+
+   Store this information in memory. For each existing issue, extract:
+   - File path and line number
+   - Category and severity
+   - The root cause description
+
+   This pre-check prevents reporting duplicates and allows you to filter findings that would collide with existing issues.
+
+3. Read the key Python files in `/Users/krzysztofwojdalski/github_projects/masters_thesis/src/`. Focus on:
    - `trading_rl/rewards/` — reward formulas and EMA logic
    - `trading_rl/trainers/` — training loops, loss computation, target updates
    - `trading_rl/envs/` — episode boundaries, observation construction, reset logic
@@ -69,14 +82,21 @@ Scan for the following, in order of severity:
 
    Read enough to understand the execution path, not just the surface. Trace how values flow from raw data through features, env, reward, and into metrics.
 
-3. For each finding, record:
+4. For each finding, record:
    - Category number and label
    - File path and line number (or range)
    - The exact problematic code snippet (verbatim, ≤10 lines)
    - What the code actually computes vs what it should compute — be specific with values or variable names
    - A proposed fix (concrete replacement, not vague advice)
 
-4. Rank findings by severity:
+5. **Filter findings against existing GitHub issues** (from step 2):
+   - For each finding, compare it against the stored existing issues
+   - If an existing issue describes the same file, the same code path, and the same incorrect behavior as your finding, mark this finding as a duplicate
+   - "Sufficiently similar" means same file + same root cause — different severity or a rephrased title is not sufficient to treat them as distinct
+   - Remove duplicates from the ranked list before proceeding
+   - If all findings are duplicates, report this to the user and exit
+
+6. Rank findings by severity:
    - Category 1 (wrong formula) — results are numerically wrong; can't be trusted
    - Category 2 (wrong variable) — silently uses wrong data; hard to detect
    - Category 3 (state not reset) — results depend on episode order; non-reproducible
@@ -84,10 +104,10 @@ Scan for the following, in order of severity:
    - Category 4 (silent wrong behavior) — masks real errors, degrades quality silently
    - Category 5 (benchmark/metric errors) — evaluation comparisons are invalid
 
-5. Output a summary table:
+7. Output a summary table (only for non-duplicate findings):
 
 ```
-BUG REPORT
+BUG REPORT (N new findings, M duplicates filtered out)
 ==========
  # | Cat | Severity | Bug (truncated)                                  | File
 ---|-----|----------|--------------------------------------------------|------------------
@@ -97,11 +117,13 @@ BUG REPORT
 ...
 ```
 
-6. Say: "Found N bugs across M files. Starting review — reply ok to acknowledge (and I will fix it if feasible), s to skip, or done to stop."
+8. Say: "Found N new bugs across M files (M duplicates filtered out from existing issues). Starting review — reply ok to acknowledge (and I will fix it if feasible), s to skip, or done to stop."
 
 ## GitHub Issues
 
-For **every** finding in the summary table — regardless of whether the user fixes it or skips it — create a GitHub issue using `gh issue create`. Do this after the summary table is printed, before starting the interactive review.
+For **every** finding in the summary table (these have already been filtered against existing issues in step 5), create a GitHub issue using `gh issue create`. Do this after the summary table is printed, before starting the interactive review.
+
+**Note:** Duplicate checking has already been performed in step 5. All findings in the summary table are guaranteed to be new issues that do not collide with existing ones. Create issues directly without additional duplicate checks.
 
 Issue format:
 ```
@@ -124,7 +146,7 @@ EOF
 
 - Use label `bugfinder`. Create the label first if it does not exist: `gh label create bugfinder --color "#d93f0b" --description "Logic bug found by bugfinder skill" 2>/dev/null || true`
 - Create one issue per finding. Do not batch findings into one issue.
-- After creating all issues, print the list of issue URLs so the user can see them.
+- After processing all findings, print the list of created issue URLs so the user can see them.
 
 ## Interactive Review
 
