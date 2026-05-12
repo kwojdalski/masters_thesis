@@ -1,0 +1,371 @@
+# Canonical HFT LOB Feature Bank
+# ================================
+#
+# This is the single materialization config used by all HFT experiments.
+# It computes every applicable HFT feature from MBP-10 data once. Experiment
+# configs select a subset via env.feature_columns — they do NOT change this
+# file. Only add a feature here when you want it available for future
+# selection; removing a feature invalidates the prepared-data cache.
+#
+# Normalization: causal running mean/std (Welford's), reset at session breaks.
+# This eliminates look-ahead bias for sequential RL.
+#
+# Required raw columns (MBP-10):
+#   bid_px_00..bid_px_09, ask_px_00..ask_px_09
+#   bid_sz_00..bid_sz_09, ask_sz_00..ask_sz_09
+#   bid_ct_00..bid_ct_09, ask_ct_00..ask_ct_09
+#   action, side, size
+#
+# Index: DatetimeIndex (nanosecond precision)
+
+normalization_method: "running"
+use_time_weights: false
+reset_on_session_break: true
+session_break_threshold_hours: 1.0
+
+features:
+  # ===========================================================================
+  # Imbalance
+  # ===========================================================================
+
+  - name: "hft_book_pressure_l0"
+    feature_type: "book_pressure"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      level: 0
+
+  - name: "hft_book_pressure_l1"
+    feature_type: "book_pressure"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      level: 1
+
+  - name: "hft_book_pressure_l2"
+    feature_type: "book_pressure"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      level: 2
+
+  - name: "hft_order_book_imbalance_3l"
+    feature_type: "order_book_imbalance"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      levels: 3
+
+  - name: "hft_order_count_imbalance_l0"
+    feature_type: "order_count_imbalance"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      level: 0
+
+  # ===========================================================================
+  # Fair Value
+  # ===========================================================================
+
+  - name: "hft_microprice"
+    feature_type: "microprice"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_microprice_divergence"
+    feature_type: "microprice_divergence"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_vwmp_skew"
+    feature_type: "vwmp_skew"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      levels: 3
+
+  - name: "hft_price_vamp"
+    feature_type: "price_vamp"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      levels: 5
+      notional: 1000
+
+  # ===========================================================================
+  # Spread and Book Shape
+  # ===========================================================================
+
+  - name: "hft_spread_bps"
+    feature_type: "spread_bps"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+
+  - name: "hft_spread_ratio_50"
+    feature_type: "spread_ratio"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 50
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+
+  - name: "hft_bid_convexity"
+    feature_type: "book_convexity"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "bid"
+
+  - name: "hft_ask_convexity"
+    feature_type: "book_convexity"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "ask"
+
+  - name: "hft_bid_slope"
+    feature_type: "bid_ask_slope"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "bid"
+      levels: 5
+
+  - name: "hft_ask_slope"
+    feature_type: "bid_ask_slope"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "ask"
+      levels: 5
+
+  - name: "hft_depth_ratio"
+    feature_type: "depth_ratio"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      levels_deep: 4
+
+  # ===========================================================================
+  # Order Flow
+  # ===========================================================================
+
+  - name: "hft_ofi"
+    feature_type: "ofi"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_ofi_rolling_50"
+    feature_type: "ofi_rolling"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 50
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+      bid_size_col: "bid_sz_00"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_ofi_multilevel_3l"
+    feature_type: "ofi_multilevel"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      levels: 3
+
+  - name: "hft_ofi_autocorrelation_50"
+    feature_type: "ofi_autocorrelation"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 50
+
+  - name: "hft_bid_queue_depletion"
+    feature_type: "queue_depletion"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "bid"
+      bid_size_col: "bid_sz_00"
+
+  - name: "hft_ask_queue_depletion"
+    feature_type: "queue_depletion"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      side: "ask"
+      ask_size_col: "ask_sz_00"
+
+  - name: "hft_signed_trade_flow_50"
+    feature_type: "signed_trade_flow"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 50
+      action_col: "action"
+      side_col: "side"
+      size_col: "size"
+
+  - name: "hft_vpin_100"
+    feature_type: "vpin"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 100
+      action_col: "action"
+      side_col: "side"
+      size_col: "size"
+
+  - name: "hft_large_trade_ratio_100"
+    feature_type: "large_trade_ratio"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 100
+      action_col: "action"
+      size_col: "size"
+
+  - name: "hft_cancel_to_trade_ratio_200"
+    feature_type: "cancel_to_trade_ratio"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 200
+      action_col: "action"
+
+  - name: "hft_trade_arrival_rate_100"
+    feature_type: "trade_arrival_rate"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 100
+      action_col: "action"
+
+  - name: "hft_odd_lot_trade_ratio_200"
+    feature_type: "odd_lot_trade_ratio"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 200
+      round_lot: 100
+      action_col: "action"
+      size_col: "size"
+
+  - name: "hft_odd_lot_imbalance_200"
+    feature_type: "odd_lot_imbalance"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      window: 200
+      round_lot: 100
+      action_col: "action"
+      side_col: "side"
+      size_col: "size"
+
+  # ===========================================================================
+  # Regime and Temporal
+  # ===========================================================================
+
+  - name: "hft_inter_event_time"
+    feature_type: "inter_event_time"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+
+  - name: "hft_mid_price_acceleration"
+    feature_type: "mid_price_acceleration"
+    normalize: true
+    normalization_method: "running"
+    reset_on_session_break: true
+    domain: "hft"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+
+  - name: "hft_hour_sin"
+    feature_type: "hour_sin"
+    normalize: false
+    domain: "hft"
+
+  - name: "hft_hour_cos"
+    feature_type: "hour_cos"
+    normalize: false
+    domain: "hft"

@@ -331,8 +331,9 @@ def _config_cache_signature(config: Any) -> dict[str, Any]:
         "env_mode": getattr(config.env, "mode", None),
         "env_backend": getattr(config.env, "backend", None),
         "price_column": getattr(config.env, "price_column", None),
-        "feature_columns": getattr(config.env, "feature_columns", None),
-        "include_position_feature": getattr(config.env, "include_position_feature", None),
+        # env.feature_columns and include_position_feature are selection settings
+        # applied at env build time — they do not affect how data is prepared, so
+        # they must NOT be part of the cache signature.
     }
 
 
