@@ -97,7 +97,7 @@ training:
   tau: 0.001
   exploration_noise_std: 0.1
   loss_function: smooth_l1
-  eval_steps: 10000  # ~10-20% of a filtered HFT session (~50k ticks/day for AAPL)
+  eval_fraction: 0.2  # 20% of the validation split, regardless of tick density
   eval_interval: 1000
   log_interval: 100
 logging:

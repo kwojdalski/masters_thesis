@@ -237,6 +237,7 @@ def _build_training_bundle(
         effective_experiment_name,
         logger,
     )
+    trainer._eval_data_len = len(dataset.val_df)
 
     mlflow_callback = None
     if create_mlflow_callback:
