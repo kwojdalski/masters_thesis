@@ -143,3 +143,12 @@ dev = [
 [tool.ruff.lint.flake8-tidy-imports]
 # Disallow all relative imports.
 ban-relative-imports = "all"
+
+[tool.uv]
+# gym-trading-env 0.3.5 hard-pins flask==2.2.5, but that version has a known
+# LOW-severity security issue (missing Vary: Cookie header). Override to allow
+# a patched version. gym-trading-env's web dashboard may not work correctly
+# with Flask 3.x, but that feature is not used in this project.
+override-dependencies = [
+    "flask>=3.1.3",
+]
