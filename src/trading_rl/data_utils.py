@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
@@ -588,6 +588,7 @@ def _build_per_day_splits(
     train_paths: list[str],
     val_paths: list[str],
     memmap_dir: Path | None,
+    progress_callback: "Callable[[str], None] | None" = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
     """Process per-(symbol, day) training files with separate validation files.
 
@@ -640,6 +641,8 @@ def _build_per_day_splits(
         symbol_pipelines[symbol] = pipeline
         del combined
         gc.collect()
+        if progress_callback:
+            progress_callback(f"fit {symbol}")
 
     # Transform each training file → save memmap
     tmp_dir = Path(tempfile.mkdtemp(prefix="per_day_splits_"))
@@ -693,6 +696,8 @@ def _build_per_day_splits(
 
         del train_df_i
         gc.collect()
+        if progress_callback:
+            progress_callback(f"train {Path(train_path).name}")
 
     # Transform val files: split each 50/50 into val and test halves
     val_tmp: list[dict[str, Path]] = []
@@ -725,6 +730,8 @@ def _build_per_day_splits(
         val_tmp.append(sym_paths)
         del val_df_j
         gc.collect()
+        if progress_callback:
+            progress_callback(f"val {Path(val_path).name}")
 
     val_df = pd.concat([pd.read_parquet(p["val"]) for p in val_tmp])
     test_df = pd.concat([pd.read_parquet(p["test"]) for p in val_tmp])
@@ -750,6 +757,7 @@ def _build_pooled_splits(
     logger: logging.Logger,
     data_paths: list[str],
     memmap_dir: Path | None,
+    progress_callback: "Callable[[str], None] | None" = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
     """Process each symbol independently then concatenate from disk.
 
@@ -768,7 +776,7 @@ def _build_pooled_splits(
     """
     val_data_paths = getattr(config.data, "val_data_paths", None)
     if val_data_paths:
-        return _build_per_day_splits(config, logger, data_paths, list(val_data_paths), memmap_dir)
+        return _build_per_day_splits(config, logger, data_paths, list(val_data_paths), memmap_dir, progress_callback)
 
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
@@ -859,7 +867,11 @@ def _build_pooled_splits(
 # Public entry point
 # ---------------------------------------------------------------------------
 
-def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedDataset":
+def build_prepared_dataset(
+    config: Any,
+    logger: logging.Logger,
+    progress_callback: "Callable[[str], None] | None" = None,
+) -> "PreparedDataset":
     """Build a prepared dataset bundle for RL training and evaluation."""
     lazy_load = getattr(config.data, "lazy_load", False)
     prepared_dir = Path(d) if (d := getattr(config.data, "prepared_data_dir", None)) else None
@@ -891,7 +903,7 @@ def build_prepared_dataset(config: Any, logger: logging.Logger) -> "PreparedData
         )
     if data_paths:
         train_df, val_df, test_df, memmap_paths = _build_pooled_splits(
-            config, logger, data_paths, memmap_dir
+            config, logger, data_paths, memmap_dir, progress_callback
         )
     else:
         train_df, val_df, test_df = _build_single_symbol_splits(config, logger)
