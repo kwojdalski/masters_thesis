@@ -109,6 +109,20 @@ non-negative prices, and non-crossed best quotes before any feature
 engineering. This stage is conservative: its purpose is correctness, not
 statistical filtering.
 
+Before feature engineering, each daily file is filtered to retain only events
+that modify at least one of the five shallowest book levels (levels 0–4). The
+full MBP-10 feed delivers updates at all ten price levels, but every
+microstructure feature in the state space draws exclusively on levels 0–4:
+order-flow imbalance, depth slopes, queue sizes, bid/ask slopes, and related
+signals are all defined relative to the top-of-book region. Events that update
+only levels 5–9 are therefore invisible to the feature computation; they produce
+consecutive observations with an identical observable state, inflating episode
+length and adding computational overhead without contributing any learnable
+signal. Including them would also implicitly penalise the agent for changes in
+book depth that it has no mechanism to detect or respond to. The filter is
+applied immediately after chronological validation and before any feature
+transformation, so the feature pipeline never encounters these no-signal events.
+
 The dataset is organized as one parquet file per security per trading day,
 yielding 24 files in total (6 symbols × 4 trading days). The four days cover
 February 25–27, 2026 (days 1–3, training) and March 2, 2026 (day 4,
