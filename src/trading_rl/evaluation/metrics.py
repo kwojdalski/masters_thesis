@@ -12,7 +12,10 @@ def _safe_div(numerator: float, denominator: float) -> float:
 
 
 def _equity_curve(simple_returns: np.ndarray) -> np.ndarray:
-    return np.cumprod(1.0 + simple_returns)
+    # Prepend 1.0 so the running-max starts at the true initial value (1.0).
+    # Without this, drawdown[0] is always 0 and any decline in the first period
+    # is invisible to the drawdown series.
+    return np.r_[1.0, np.cumprod(1.0 + simple_returns)]
 
 
 def _annualized_return_from_equity(equity_final: float, years: float) -> float:
