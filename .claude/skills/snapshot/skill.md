@@ -40,6 +40,11 @@ git tag -a stable/YYYY-MM-DD -m "Daily stable snapshot YYYY-MM-DD"
 
 Report the tag SHA: `git rev-parse stable/YYYY-MM-DD`
 
+Push the tag to GitHub:
+```bash
+git push origin stable/YYYY-MM-DD
+```
+
 ### 4. Find the previous snapshot tag
 
 ```bash
