@@ -49,6 +49,8 @@ format:
         href: /masters_thesis/masters_thesis.pdf
         icon: file-pdf
 bibliography: ../../bibliography/library.bib
+filters:
+  - pseudocode
 editor_options:
   chunk_output_type: console
   latex_engine: xelatex
