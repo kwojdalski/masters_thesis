@@ -1,6 +1,6 @@
 ---
 name: snapshot
-description: Create a dated stable-version git tag (stable/YYYY-MM-DD) and summarise what changed since the previous snapshot. Use when the user wants to mark the current state as a stable checkpoint or review daily progress.
+description: Create a dated stable-version git tag (stable/YYYY-MM-DD), push it, create a GitHub Release with an AI-generated changelog from the last day's commits, and summarise changes. Use when the user wants to mark the current state as a stable checkpoint or review daily progress.
 ---
 
 # Snapshot
@@ -53,38 +53,65 @@ git tag --list "stable/*" --sort=-version:refname | sed -n '2p'
 
 If no previous tag exists, use the first commit: `git rev-list --max-parents=0 HEAD`
 
-### 5. Summarise changes since the previous snapshot
+Store the result as PREV.
 
-Run the following three commands and present results:
+### 5. Analyse changes since PREV
 
-**Commit list** (one line each):
+Collect the raw material:
+
+**Commit list with full messages** (for analysis):
 ```bash
-git log <prev-tag>..HEAD --oneline
+git log PREV..HEAD --format="%h %s%n%b"
 ```
 
 **Files changed** (stat summary):
 ```bash
-git diff --stat <prev-tag>..HEAD
+git diff --stat PREV..HEAD
 ```
 
-**High-level grouped summary** — group changed files by directory/module and describe in plain English what areas of the codebase moved. Keep it under 15 lines. Focus on: new files added, deleted files, modules with heavy churn, and any config or dependency changes (`pyproject.toml`, `uv.lock`, `CLAUDE.md`).
+**Commit count:**
+```bash
+git log PREV..HEAD --oneline | wc -l
+```
 
-### 6. Output format
+Now write the release notes. Structure them as follows:
 
-Present the output as:
+- **Overview** (2-3 sentences): what was the main thrust of today's work — new features, fixes, experiments, refactoring, or thesis writing? Be specific about which subsystems moved.
+- **Changes by area**: group commits by module/directory. For each group, write 1-2 sentences describing what changed and why it matters. Focus on: `src/trading_rl/` (RL core), `src/configs/`, `src/cli/`, `tests/`, `thesis/`, `scripts/`, and config/dependency files (`pyproject.toml`, `uv.lock`). Skip areas with no changes.
+- **Files changed**: include the `git diff --stat` summary line (e.g. "12 files changed, 340 insertions(+), 45 deletions(-)").
+
+Keep the notes factual, concise, and under 40 lines total. No preamble, no sign-off.
+
+### 6. Create the GitHub Release
+
+Compose the release body from the notes above, then run:
+
+```bash
+gh release create stable/YYYY-MM-DD \
+  --title "Daily Build YYYY-MM-DD" \
+  --notes "RELEASE_BODY" \
+  --target master
+```
+
+If the release already exists (exit code non-zero with "already exists" message), skip creation and note it.
+
+Report the release URL returned by `gh release create`.
+
+### 7. Output format
+
+Print to the user:
 
 ```
 Snapshot: stable/YYYY-MM-DD  (SHA: <sha>)
 Previous: stable/PREV-DATE   (or "first commit")
+Release:  <GitHub release URL>
 
 ## Commits since last snapshot (<N> total)
-<git log output>
+<git log --oneline output>
 
 ## Files changed
 <git diff --stat output>
 
-## Summary
-<plain-English paragraph describing what changed and in which modules>
+## Release notes
+<the notes written in step 5>
 ```
-
-Keep the summary factual and concise. No preamble, no sign-off.
