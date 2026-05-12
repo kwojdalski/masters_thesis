@@ -55,7 +55,15 @@ class GymnasiumTradingEnvWrapper(gym.Env):
             obs, reward, done, info = self._env.step(action)
         except EndOfEpisodeError:
             # Portfolio went bankrupt — end the episode with a penalty reward.
-            obs = np.zeros(self.observation_space.shape, dtype=np.float32)
+            # TradingEnv observation_space is a Dict (shape=None); reconstruct a
+            # zero observation in the same format that normal steps return.
+            if self.observation_space.shape is not None:
+                obs = np.zeros(self.observation_space.shape, dtype=np.float32)
+            else:
+                obs = {
+                    k: np.zeros(v.shape, dtype=np.float32)
+                    for k, v in self.observation_space.spaces.items()
+                }
             return obs, -1.0, True, False, {"bankrupt": True}
         return obs, reward, bool(done), False, info
 
