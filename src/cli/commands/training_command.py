@@ -351,6 +351,25 @@ class TrainingCommand(BaseCommand):
 
         self.console.print(Columns([run_table, steps_table, performance_table]))
 
+        legend_lines = [
+            "[bold]Legend[/bold]",
+            "[cyan]Env Steps[/cyan]          Total environment steps collected during training.",
+            "[cyan]Episodes[/cyan]           Number of full episodes completed (resets) during training.",
+            "[cyan]Optimizer Steps[/cyan]    Number of gradient update steps taken.",
+            "[cyan]Eval Horizon[/cyan]       Number of steps used for each evaluation rollout.",
+            "[cyan]Final Reward[/cyan]       Raw reward signal at the last training step.",
+            "[cyan]Total Return[/cyan]       Cumulative portfolio return over the evaluation horizon.",
+            "[cyan]CAGR[/cyan]               Compound Annual Growth Rate — total return annualised.",
+            "[cyan]Sharpe Ratio[/cyan]       Mean excess return divided by its standard deviation, annualised.",
+            "[cyan]Sortino Ratio[/cyan]      Like Sharpe but penalises only downside deviation.",
+            "[cyan]Max Drawdown[/cyan]       Largest peak-to-trough decline in portfolio value.",
+            "[cyan]Win Rate[/cyan]           Fraction of steps where the portfolio return was positive.",
+            "[cyan]Profit Factor[/cyan]      Gross profit divided by gross loss (> 1 means net profitable).",
+        ]
+        self.console.print()
+        for line in legend_lines:
+            self.console.print(f"  {line}")
+
     def _save_training_plots(
         self, result: dict[str, Any], config, params: TrainingParams
     ) -> None:
