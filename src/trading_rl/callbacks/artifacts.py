@@ -460,7 +460,6 @@ def log_evaluation_report(
         logger.warning("no active mlflow run skipping evaluation report logging")
         return
 
-    metric_prefix = f"eval_{split_prefix}_" if split_prefix else "eval_"
     artifact_dir = f"evaluation_metrics/{split_prefix}" if split_prefix else "evaluation_metrics"
 
     clean_report: dict[str, float] = {}
@@ -471,7 +470,6 @@ def log_evaluation_report(
             continue
         if np.isfinite(metric_value):
             clean_report[key] = metric_value
-            mlflow.log_metric(f"{metric_prefix}{key}", metric_value)
 
     if not clean_report:
         logger.warning("no finite evaluation metrics to log")
