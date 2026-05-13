@@ -102,7 +102,7 @@ def _max_drawdown(simple_returns: np.ndarray) -> float:
     """Compute max drawdown from simple returns."""
     if simple_returns.size == 0:
         return np.nan
-    equity = np.cumprod(1.0 + simple_returns)
+    equity = np.r_[1.0, np.cumprod(1.0 + simple_returns)]
     running_max = np.maximum.accumulate(equity)
     drawdown = equity / running_max - 1.0
     return float(np.min(drawdown))
