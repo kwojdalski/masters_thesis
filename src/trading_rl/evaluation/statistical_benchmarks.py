@@ -159,15 +159,16 @@ def build_benchmark_comparison_table(
     strategy_returns: np.ndarray,
     benchmark_returns: dict[str, np.ndarray],
     periods_per_year: int = 252,
+    risk_free_rate_annual: float = 0.0,
 ) -> list[dict[str, float | str]]:
     """Build a cross-benchmark comparison table with core performance metrics."""
     rows: list[dict[str, float | str]] = []
     rows.append(
-        {"strategy": "agent", **_performance_summary(strategy_returns, periods_per_year)}
+        {"strategy": "agent", **_performance_summary(strategy_returns, periods_per_year, risk_free_rate_annual)}
     )
     for name, returns in benchmark_returns.items():
         rows.append(
-            {"strategy": name, **_performance_summary(returns, periods_per_year)}
+            {"strategy": name, **_performance_summary(returns, periods_per_year, risk_free_rate_annual)}
         )
     return rows
 
