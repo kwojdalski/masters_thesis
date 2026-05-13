@@ -760,7 +760,7 @@ class Feature(ABC):
             # Normalize using pre-update stats so x_t is not included in its own
             # weighted mean/std estimate. Update after to keep the estimator causal.
             total_weight = getattr(self.scaler, "total_weight", 0.0)
-            if total_weight <= weight:
+            if total_weight <= 0.0:
                 normalized = 0.0
             else:
                 normalized = (value - self.scaler.mean) / np.sqrt(
