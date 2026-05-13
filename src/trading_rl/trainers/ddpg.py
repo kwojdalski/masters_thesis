@@ -14,7 +14,7 @@ from torchrl.objectives import DDPGLoss, SoftUpdate
 from logger import get_logger
 from trading_rl.config import TrainingConfig
 from trading_rl.models import create_ddpg_actor, create_value_network
-from trading_rl.trainers.base import BaseTrainer, _MIN_BATCH_SUCCESS_RATE
+from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
 
 logger = get_logger(__name__)
 
@@ -250,7 +250,12 @@ class DDPGTrainer(BaseTrainer):
         """Evaluate current policy."""
         with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
             n_eval = self.config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.config.eval_steps
-            eval_rollout = self.env.rollout(n_eval, self.actor)
+            if self._eval_env is None:
+                logger.warning(
+                    "ddpg _evaluate: no dedicated eval env set; using training env "
+                    "which may corrupt SyncDataCollector state"
+                )
+            eval_rollout = (self._eval_env or self.env).rollout(n_eval, self.actor)
 
             # Log evaluation metrics
             mean_reward = eval_rollout["next", "reward"].mean().item()

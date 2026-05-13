@@ -106,6 +106,11 @@ class BaseTrainer(ABC):
         # Used by _evaluate to resolve eval_fraction against actual data size.
         self._eval_data_len: int | None = None
 
+        # Optional dedicated evaluation environment.  When set, periodic _evaluate()
+        # calls use this env instead of self.env, preventing SyncDataCollector
+        # state corruption.  Set by the pipeline after construction.
+        self._eval_env: Any | None = None
+
         # Training state
         self.total_count = 0
         self.total_episodes = 0

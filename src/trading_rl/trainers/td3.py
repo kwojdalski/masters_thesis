@@ -7,9 +7,8 @@ from typing import Any
 import torch
 from tensordict.nn import InteractionType, TensorDictSequential
 from torch.optim import Adam
-from torchrl.envs.utils import RandomPolicy
 from torchrl.data import Bounded
-from torchrl.envs.utils import set_exploration_type
+from torchrl.envs.utils import RandomPolicy, set_exploration_type
 from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import SoftUpdate
 from torchrl.objectives import TD3Loss as TorchRLTd3Loss
@@ -17,7 +16,7 @@ from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
-from trading_rl.trainers.base import BaseTrainer, _MIN_BATCH_SUCCESS_RATE
+from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
 
 logger = get_logger(__name__)
 
@@ -609,7 +608,12 @@ class TD3Trainer(BaseTrainer):
     def _evaluate(self) -> None:
         with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
             n_eval = self.config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.config.eval_steps
-            eval_rollout = self.env.rollout(n_eval, self.actor)
+            if self._eval_env is None:
+                logger.warning(
+                    "td3 _evaluate: no dedicated eval env set; using training env "
+                    "which may corrupt SyncDataCollector state"
+                )
+            eval_rollout = (self._eval_env or self.env).rollout(n_eval, self.actor)
 
             mean_reward = eval_rollout["next", "reward"].mean().item()
             sum_reward = eval_rollout["next", "reward"].sum().item()
