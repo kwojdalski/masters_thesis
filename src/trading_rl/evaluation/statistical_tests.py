@@ -189,6 +189,7 @@ def run_all_statistical_tests(
         strategy_returns=strategy_returns,
         benchmark_returns=benchmark_returns_map,
         periods_per_year=periods_per_year,
+        risk_free_rate_annual=0.0,
     )
 
     logger.info("statistical significance testing complete")
