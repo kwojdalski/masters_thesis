@@ -140,10 +140,10 @@ def build_evaluation_report_for_trainer(
             "Evaluation report requires env.price_column or 'close' in dataframe."
         )
 
-    benchmark_log_returns = (
-        np.log(benchmark_series / benchmark_series.shift(1)).fillna(0).to_numpy()
-    )[:max_steps]
-    benchmark_simple_returns = np.exp(benchmark_log_returns) - 1.0
+    benchmark_window = benchmark_series.iloc[: max_steps + 1]
+    benchmark_simple_returns = (
+        benchmark_window.pct_change().iloc[1:].to_numpy(dtype=float)
+    )
 
     is_portfolio = backend == "tradingenv"
     actions = _extract_action_array(rollout, is_portfolio=is_portfolio)
