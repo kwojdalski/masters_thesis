@@ -18,18 +18,20 @@ from trading_rl.evaluation.statistical_tests import run_all_statistical_tests
 
 def _make_test_config() -> SimpleNamespace:
     return SimpleNamespace(
+        # Statistical testing params
         enabled=True,
         tests=["t_test"],
-        compare_to_buy_and_hold=True,
-        compare_to_short_and_hold=True,
-        compare_to_twap=True,
-        compare_to_vwap=True,
-        compare_to_random=False,
         n_bootstrap_samples=100,
         n_permutations=100,
         confidence_level=0.95,
-        random_seed=42,
+        # Benchmark params (new field names — no compare_to_ prefix)
+        buy_and_hold=True,
+        short_and_hold=True,
+        twap=True,
+        vwap=True,
+        random=False,
         n_random_trials=5,
+        random_seed=42,
     )
 
 

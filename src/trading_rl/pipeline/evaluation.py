@@ -136,19 +136,19 @@ def run_statistical_tests_for_split(
 
         price_column = config.env.price_column or "close"
         benchmarks, _bench_meta = BenchmarkEngine.build(
-            split_ctx.df, config.statistical_testing, price_column
+            split_ctx.df, config.benchmarks, price_column
         )
 
         random_trials = None
-        if config.statistical_testing.compare_to_random:
+        if config.benchmarks.random:
             logger.info(
-                "compute random baseline n_trials=%d", config.statistical_testing.n_random_trials
+                "compute random baseline n_trials=%d", config.benchmarks.n_random_trials
             )
             random_trials = compute_random_baseline_returns(
                 split_ctx.env,
                 split_ctx.max_steps,
-                n_trials=config.statistical_testing.n_random_trials,
-                seed=config.statistical_testing.random_seed,
+                n_trials=config.benchmarks.n_random_trials,
+                seed=config.benchmarks.random_seed,
                 reward_type=config.env.reward_type,
             )
 

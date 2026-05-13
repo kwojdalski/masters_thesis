@@ -159,7 +159,7 @@ class EvaluateCommand(BaseCommand):
                 bench_returns_map: dict[str, Any] = {}
                 if "benchmarks" in components or "stats" in components:
                     benchmarks, _ = BenchmarkEngine.build(
-                        split_df, config.statistical_testing, price_column
+                        split_df, config.benchmarks, price_column
                     )
 
                     if "benchmarks" in components and benchmarks:

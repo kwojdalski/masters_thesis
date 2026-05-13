@@ -15,13 +15,16 @@ env:
   reward_type: "differential_sharpe"
   reward_eta: 0.01
 
+benchmarks:
+  buy_and_hold: true
+  short_and_hold: true
+  twap: false
+  vwap: false
+  random: true
+  n_random_trials: 10
+
 statistical_testing:
   enabled: true
-  compare_to_buy_and_hold: true
-  compare_to_short_and_hold: true
-  compare_to_twap: false
-  compare_to_vwap: false
-  compare_to_random: true
   tests:
     - "t_test"
     - "sharpe_bootstrap"

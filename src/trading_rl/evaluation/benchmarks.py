@@ -85,7 +85,7 @@ class BenchmarkEngine:
 
         Args:
             market_data: Full split DataFrame (prices + optional volume columns).
-            config: ``StatisticalTestingConfig`` controlling which benchmarks are on.
+            config: ``BenchmarksConfig`` controlling which benchmarks are on.
             price_column: Preferred price column; falls back to ``"close"`` if absent.
 
         Returns:
@@ -106,16 +106,16 @@ class BenchmarkEngine:
         specs: list[BenchmarkSpec] = []
         result_meta: dict[str, str] = {}
 
-        if config.compare_to_buy_and_hold:
+        if getattr(config, "buy_and_hold", False):
             specs.append(BenchmarkEngine.buy_and_hold(prices))
 
-        if getattr(config, "compare_to_short_and_hold", False):
+        if getattr(config, "short_and_hold", False):
             specs.append(BenchmarkEngine.short_and_hold(prices))
 
-        if getattr(config, "compare_to_twap", False):
+        if getattr(config, "twap", False):
             specs.append(BenchmarkEngine.twap(prices))
 
-        if getattr(config, "compare_to_vwap", False):
+        if getattr(config, "vwap", False):
             volumes, volume_source = resolve_vwap_volume_series(market_data)
             if volumes is None:
                 logger.warning(

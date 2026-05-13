@@ -210,21 +210,29 @@ class ExplainabilityConfig:
 
 
 @dataclass
+class BenchmarksConfig:
+    """Which baseline strategies to compute returns for during evaluation."""
+
+    buy_and_hold: bool = True
+    short_and_hold: bool = False
+    twap: bool = False
+    vwap: bool = False
+    random: bool = True  # Random-action baseline
+
+    # Random baseline parameters
+    n_random_trials: int = 10
+    random_seed: int | None = None
+
+
+@dataclass
 class StatisticalTestingConfig:
     """Statistical significance testing configuration for equity curves."""
 
     enabled: bool = False
-    log_to_research_artifacts: bool = False  # Log compact research artifact bundle to MLflow
+    log_to_research_artifacts: bool = False
     research_artifact_subdir: str = "research_artifacts/statistical_tests"
 
-    # Comparison baselines (can enable multiple)
-    compare_to_buy_and_hold: bool = True  # Compare to buy-and-hold benchmark
-    compare_to_short_and_hold: bool = False  # Compare to short-and-hold benchmark
-    compare_to_twap: bool = False  # Compare to TWAP execution baseline
-    compare_to_vwap: bool = False  # Compare to VWAP execution baseline
-    compare_to_random: bool = True  # Compare to random action baseline
-
-    # Statistical tests to perform (can enable multiple)
+    # Statistical tests to perform
     tests: list[str] = field(default_factory=lambda: [
         StatisticalTest.T_TEST,
         StatisticalTest.SHARPE_BOOTSTRAP,
@@ -234,11 +242,9 @@ class StatisticalTestingConfig:
     ])
 
     # Test parameters
-    n_bootstrap_samples: int = 10000  # Number of bootstrap samples
-    n_permutations: int = 10000  # Number of permutations for permutation test
-    n_random_trials: int = 10  # Number of random baseline trials
-    confidence_level: float = 0.95  # Confidence level (e.g., 0.95 for 95% CI)
-    random_seed: int | None = None  # Seed for reproducible random baseline
+    n_bootstrap_samples: int = 10000
+    n_permutations: int = 10000
+    confidence_level: float = 0.95
 
 
 @dataclass
@@ -252,6 +258,7 @@ class ExperimentConfig:
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
     explainability: ExplainabilityConfig = field(default_factory=ExplainabilityConfig)
+    benchmarks: BenchmarksConfig = field(default_factory=BenchmarksConfig)
     statistical_testing: StatisticalTestingConfig = field(default_factory=StatisticalTestingConfig)
 
     # Reproducibility
@@ -569,11 +576,31 @@ class ExperimentConfig:
                 if hasattr(config.explainability, key):
                     setattr(config.explainability, key, value)
 
+        # Backward compat: old YAMLs put compare_to_* and random trial params
+        # inside statistical_testing. Migrate them to benchmarks on the fly.
+        _LEGACY_BENCHMARK_KEYS = {
+            "compare_to_buy_and_hold": "buy_and_hold",
+            "compare_to_short_and_hold": "short_and_hold",
+            "compare_to_twap": "twap",
+            "compare_to_vwap": "vwap",
+            "compare_to_random": "random",
+            "n_random_trials": "n_random_trials",
+            "random_seed": "random_seed",
+        }
+        bench_overrides: dict = {}
         if "statistical_testing" in config_dict:
             stat_dict = config_dict["statistical_testing"]
+            for old_key, new_key in _LEGACY_BENCHMARK_KEYS.items():
+                if old_key in stat_dict:
+                    bench_overrides[new_key] = stat_dict[old_key]
             for key, value in stat_dict.items():
-                if hasattr(config.statistical_testing, key):
+                if key not in _LEGACY_BENCHMARK_KEYS and hasattr(config.statistical_testing, key):
                     setattr(config.statistical_testing, key, value)
+
+        bench_dict = {**bench_overrides, **config_dict.get("benchmarks", {})}
+        for key, value in bench_dict.items():
+            if hasattr(config.benchmarks, key):
+                setattr(config.benchmarks, key, value)
 
         return config
 
@@ -669,20 +696,22 @@ class ExperimentConfig:
                 "n_steps": self.explainability.n_steps,
                 "methods": self.explainability.methods,
             },
+            "benchmarks": {
+                "buy_and_hold": self.benchmarks.buy_and_hold,
+                "short_and_hold": self.benchmarks.short_and_hold,
+                "twap": self.benchmarks.twap,
+                "vwap": self.benchmarks.vwap,
+                "random": self.benchmarks.random,
+                "n_random_trials": self.benchmarks.n_random_trials,
+                "random_seed": self.benchmarks.random_seed,
+            },
             "statistical_testing": {
                 "enabled": self.statistical_testing.enabled,
                 "log_to_research_artifacts": self.statistical_testing.log_to_research_artifacts,
                 "research_artifact_subdir": self.statistical_testing.research_artifact_subdir,
-                "compare_to_buy_and_hold": self.statistical_testing.compare_to_buy_and_hold,
-                "compare_to_short_and_hold": self.statistical_testing.compare_to_short_and_hold,
-                "compare_to_twap": self.statistical_testing.compare_to_twap,
-                "compare_to_vwap": self.statistical_testing.compare_to_vwap,
-                "compare_to_random": self.statistical_testing.compare_to_random,
                 "tests": self.statistical_testing.tests,
                 "n_bootstrap_samples": self.statistical_testing.n_bootstrap_samples,
                 "n_permutations": self.statistical_testing.n_permutations,
-                "n_random_trials": self.statistical_testing.n_random_trials,
                 "confidence_level": self.statistical_testing.confidence_level,
-                "random_seed": self.statistical_testing.random_seed,
             },
         }
