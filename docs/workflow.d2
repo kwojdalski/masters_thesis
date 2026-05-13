@@ -1,6 +1,49 @@
 direction: down
 
 # ─────────────────────────────────────────────
+# CLI Entry Points  (all commands are subcommands of src/cli.py)
+# ─────────────────────────────────────────────
+cli: CLI Entry Points {
+  style.fill: "#f0f9ff"
+  style.stroke: "#0369a1"
+
+  cli_fr: "feature-research\nuv run python src/cli.py feature-research\n  --config <yaml>" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_prepare: "prepare-data\nuv run python src/cli.py prepare-data\n  --scenario <name>  [--config-override key=value]\n  Rich progress bar; caches result to data/prepared/" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_peek: "peek\nuv run python src/cli.py peek\n  --scenario <name>\n  Inspect prepared dataset: shapes · splits · columns" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_train: "train\nuv run python src/cli.py train\n  --scenario <name>  [--checkpoint-path <ckpt>]\n  [--config-override key=value]" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_evaluate: "evaluate\nuv run python src/cli.py evaluate\n  --config <yaml>" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_dashboard: "dashboard\nuv run python src/cli.py dashboard\n  --port 8080  (launches MLflow UI)" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_validate: "validate\nuv run python src/cli.py validate\n  --scenario <name>  (config validation only — no run)" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+}
+
+# ─────────────────────────────────────────────
 # Stage 1 – Data Acquisition
 # ─────────────────────────────────────────────
 acquire: Data Acquisition {
@@ -235,7 +278,7 @@ prep: Data Preparation {
     dp_hft -> dp_memmap
   }
 
-  dp_validate: "validate_prepared_data()\ncheck: train / val / test non-empty\ncheck: close column present\ncheck: feature_* columns present\ncheck: no NaN values in train split" {
+  dp_validate: "validate_prepared_data()\ncheck: train / val / test non-empty\ncheck: close column present\ncheck: feature_* columns present\ncheck: no NaN or Inf in train · val · test splits" {
     shape: step
     style.fill: "#bbf7d0"
   }
@@ -265,12 +308,12 @@ train: RL Training {
     style.fill: "#fff1f2"
     style.stroke: "#b91c1c"
 
-    env: "StreamingTradingEnvXY  (episode reset)\nPick next file from shuffled deck of 18 memmaps\n  (6 symbols × 3 training days; deck reshuffled each cycle)\nPick random start ∈ [0, n_rows − episode_length]\nLoad 50k-row window from memmap\nBuild fresh inner tradingenv.TradingEnv on each reset\n  action_space: BoxPortfolio [−1, 1]\n  observation: CustomFeature (26 static + 1 runtime position)\n→ ~40 episodes across 2M training steps" {
+    env: "StreamingTradingEnvXY  (episode reset)\nPick next file from shuffled deck of 18 memmaps\n  (6 symbols × 3 training days; deck reshuffled each cycle)\nPick random start ∈ [0, n_rows − episode_length]\nLoad 50k-row window from memmap\nBuild fresh inner tradingenv.TradingEnv on each reset\n  action_space: BoxPortfolio [−1, 1]\n  observation: CustomFeature (26 static + 1 runtime position)\nobs_clip = 5.0: clamp normalized observations to [−5, 5]\n  (caps session-open normalization spikes)\n→ ~40 episodes across 2M training steps" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    reward: "Differential Sharpe Ratio reward  (per step)\n\nR_t = log return of portfolio value\n\nEMA updates (η = 0.01):\n  A_t = (1−η)·A_{t−1} + η·R_t        (mean)\n  B_t = (1−η)·B_{t−1} + η·R_t²       (2nd moment)\n\nReward:\n  ΔA_t = R_t − A_{t−1}\n  ΔB_t = R_t² − B_{t−1}\n  D_t  = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n          / (B_{t−1} − A_{t−1}²)^(3/2) + ε\n\nReset A_t, B_t, prev_nlv to zero at each episode start" {
+    reward: "Differential Sharpe Ratio reward  (per step)\n\nR_t = log return of portfolio value  (NLV path, includes fees)\n\nEMA updates (η = 0.01):\n  A_t = (1−η)·A_{t−1} + η·R_t        (mean)\n  B_t = (1−η)·B_{t−1} + η·R_t²       (2nd moment)\n\nReward:\n  ΔA_t = R_t − A_{t−1}\n  ΔB_t = R_t² − B_{t−1}\n  D_t  = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n          / (B_{t−1} − A_{t−1}²)^(3/2) + ε\n\nclip_rewards = True: clamp D_t to [−10, 10]  (prevents gradient explosion)\n  configurable via clip_reward in DifferentialSharpeRatioAnyTrading\n\nReset A_t, B_t, prev_nlv to zero at each episode start" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -374,7 +417,7 @@ train: RL Training {
     style.fill: "#fecaca"
   }
 
-  periodic_eval: "Periodic evaluation  (every temp_eval_interval = 100k steps)\ndeterministic rollout on train-split window\neval_fraction = 0.2 × val split length\nlog episode reward · portfolio return\nmarket return benchmark\n→ temp MLflow metric (not final eval)" {
+  periodic_eval: "Periodic evaluation  (every temp_eval_interval = 100k steps)\ndedicated _eval_env  (separate from training env; warns if reusing training env)\ndeterministic rollout on train-split window\neval_steps = int(val_len × eval_fraction)  — data-size-relative horizon\n  eval_fraction overrides fixed eval_steps when set\nlog episode reward · portfolio return\n→ temp MLflow metric (not final eval)" {
     shape: step
     style.fill: "#fecaca"
   }
@@ -447,7 +490,7 @@ eval: Post-Training Evaluation {
     style.fill: "#e9d5ff"
   }
 
-  benchmarks: "Benchmark strategies\nBuy-and-hold · Short-and-hold\nTWAP · VWAP · Random policy\n(same time period, same starting capital)" {
+  benchmarks: "Benchmark strategies  (BenchmarkEngine.build())\nBenchmarkSpec: pure callable  compute_returns(max_steps) → np.ndarray\n  closes over price / volume series — no env coupling\nBenchmarkEngine resolves price column + volume source from market_data\nBuilt specs: Buy-and-hold · Short-and-hold · TWAP · VWAP\nRandom policy: compute_random_baseline_returns(env, ...)  (env-side only)\n  env coupling isolated to pipeline/evaluation.py\n(same time period, same starting capital)" {
     shape: step
     style.fill: "#e9d5ff"
   }
@@ -518,4 +561,26 @@ train.ckpt -> eval.rollout: "trained actor weights\n(deterministic mode)"
 train.ckpt -> train.resume: "resume path" {
   style.stroke-dash: 4
   style.stroke: "#dc2626"
+}
+
+# CLI → stage connections
+cli.cli_fr -> research: "drives" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+cli.cli_prepare -> prep: "drives" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+cli.cli_peek -> prep.dp_prepared: "reads" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+cli.cli_train -> train: "drives" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+cli.cli_evaluate -> eval: "drives" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
 }
