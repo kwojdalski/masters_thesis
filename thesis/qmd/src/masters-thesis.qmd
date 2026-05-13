@@ -20,6 +20,7 @@ format:
       - \usepackage{rotating}
       - \usepackage{algorithm}
       - \usepackage{algpseudocode}
+      - \AtBeginDocument{\let\REQUIRE\Require\let\ENSURE\Ensure\let\STATE\State\let\FOR\For\let\ENDFOR\EndFor\let\FORALL\ForAll\let\ENDFORALL\EndForAll\let\WHILE\While\let\ENDWHILE\EndWhile\let\IF\If\let\ELSIF\ElsIf\let\ELSE\Else\let\ENDIF\EndIf\let\RETURN\Return}
       - \usepackage{mathtools}
       - \usepackage{booktabs}
       - \usepackage{longtable}
