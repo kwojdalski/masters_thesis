@@ -37,6 +37,22 @@ def periods_per_year_from_timeframe(timeframe: str) -> int:
     return mapping.get(str(timeframe).lower(), 252)
 
 
+def _periods_per_year_from_index(df: pd.DataFrame) -> int | None:
+    """Derive annualization factor from a DataFrame's DatetimeIndex.
+
+    Computes the observed event rate (events/second) and projects it to one
+    full US trading year (252 days × 6.5 hours). Returns None when the index
+    is not a DatetimeIndex or contains fewer than two timestamps.
+    """
+    if not isinstance(df.index, pd.DatetimeIndex) or len(df) < 2:
+        return None
+    elapsed = (df.index[-1] - df.index[0]).total_seconds()
+    if elapsed <= 0:
+        return None
+    trading_seconds_per_year = 252 * 6.5 * 3600  # 5,896,800
+    return max(1, round(len(df) / elapsed * trading_seconds_per_year))
+
+
 def _extract_action_array(rollout, is_portfolio: bool) -> np.ndarray:
     action_tensor = rollout.get("action", None)
     if not isinstance(action_tensor, torch.Tensor):
@@ -133,8 +149,13 @@ def build_evaluation_report_for_trainer(
 
     is_portfolio = backend == "tradingenv"
     actions = _extract_action_array(rollout, is_portfolio=is_portfolio)
-    timeframe = getattr(getattr(config, "data", None), "timeframe", "1d")
-    periods_per_year = periods_per_year_from_timeframe(timeframe)
+    periods_per_year = _periods_per_year_from_index(df_prices)
+    if periods_per_year is not None:
+        logger.debug("periods_per_year derived from data index: %d", periods_per_year)
+    else:
+        timeframe = getattr(getattr(config, "data", None), "timeframe", "1d")
+        periods_per_year = periods_per_year_from_timeframe(timeframe)
+        logger.debug("periods_per_year from timeframe '%s': %d", timeframe, periods_per_year)
 
     return build_metric_report(
         strategy_simple_returns=strategy_simple_returns,
