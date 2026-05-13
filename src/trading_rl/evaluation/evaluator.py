@@ -228,12 +228,19 @@ class StrategyEvaluator:
             )
             return flat_actions[:max_steps].tolist()
 
-    def evaluate_split(self, split: str, df: pd.DataFrame) -> SplitEvaluationResult:
+    def evaluate_split(
+        self,
+        split: str,
+        df: pd.DataFrame,
+        env: Any | None = None,
+    ) -> SplitEvaluationResult:
         """Evaluate strategy on one data split.
 
         Args:
             split: Split name ("train", "val", or "test")
             df: DataFrame with OHLCV data for this split
+            env: Optional pre-built environment. Supplying this avoids rebuilding
+                a different backend or observation shape from a reduced config.
 
         Returns:
             SplitEvaluationResult with returns, metrics, and plots
@@ -250,8 +257,9 @@ class StrategyEvaluator:
 
         max_steps = self.config.max_steps or len(df) - 1
 
-        # Build environment
-        env = self._build_env(df)
+        # Use the caller-provided environment when available. Training code
+        # already builds split-specific envs from the full ExperimentConfig.
+        env = env if env is not None else self._build_env(df)
 
         # Run deterministic rollout
         rollout = self._run_rollout(env, max_steps)

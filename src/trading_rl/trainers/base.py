@@ -430,11 +430,8 @@ class BaseTrainer(ABC):
 
         eval_config = EvaluationConfig(**eval_config_kwargs)
 
-        # Create env factory for StrategyEvaluator
-        # For simplicity: delegate to AlgorithmicEnvironmentBuilder
-        from trading_rl.envs import AlgorithmicEnvironmentBuilder
-
-        env_factory = AlgorithmicEnvironmentBuilder().create
+        def env_factory(_df: Any, _config: Any) -> Any:
+            return env_to_use
 
         # Create evaluator and run evaluation
         evaluator = StrategyEvaluator(
@@ -443,7 +440,7 @@ class BaseTrainer(ABC):
             config=eval_config,
         )
 
-        result = evaluator.evaluate_split("eval", df)
+        result = evaluator.evaluate_split("eval", df, env=env_to_use)
 
         # Reconstruct tuple return for backward compatibility
         reward_plot = result.plots["reward_plot"] if result.plots else None
