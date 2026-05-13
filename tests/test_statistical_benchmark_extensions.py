@@ -39,15 +39,24 @@ def test_short_and_hold_is_inverse_of_buy_and_hold() -> None:
     assert np.allclose(sh, -bh)
 
 
+def test_buy_and_hold_uses_max_steps_price_transitions() -> None:
+    prices = pd.Series([100.0, 101.0, 102.0, 103.0])
+
+    returns = compute_buy_and_hold_returns(prices, max_steps=3)
+
+    assert len(returns) == 3
+    assert np.isclose(np.prod(1.0 + returns), 1.03)
+
+
 def test_twap_returns_are_finite() -> None:
-    prices = pd.Series(np.linspace(100.0, 110.0, 20))
+    prices = pd.Series(np.linspace(100.0, 110.0, 21))
     twap = compute_twap_returns(prices, max_steps=20)
     assert len(twap) == 20
     assert np.isfinite(twap).all()
 
 
 def test_vwap_returns_use_volume_schedule() -> None:
-    prices = pd.Series(np.linspace(100.0, 110.0, 10))
+    prices = pd.Series(np.linspace(100.0, 110.0, 11))
     volumes = pd.Series([1000, 900, 800, 700, 600, 500, 400, 300, 200, 100])
     vwap = compute_vwap_returns(prices, volumes, max_steps=10)
     twap = compute_twap_returns(prices, max_steps=10)
