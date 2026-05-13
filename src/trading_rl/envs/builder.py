@@ -136,6 +136,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         base_env = StreamingTradingEnv(
             memmap_paths=memmap_paths,
             episode_length=episode_length,
+            seed=getattr(config, "seed", None),
             name=config.env.name,
             positions=config.env.positions,
             trading_fees=config.env.trading_fees,
@@ -194,6 +195,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             reward_eta=reward_eta,
             runtime_feature_columns=runtime_cols,
             obs_clip=obs_clip,
+            seed=getattr(config, "seed", None),
         )
         env = GymWrapper(base_env)
         with warnings.catch_warnings():

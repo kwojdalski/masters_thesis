@@ -43,6 +43,7 @@ class StreamingTradingEnv(TradingEnv):
         self,
         memmap_paths: list[MemmapPaths],
         episode_length: int,
+        seed: int | None = None,
         **gym_kwargs,
     ) -> None:
         if not memmap_paths:
@@ -51,7 +52,7 @@ class StreamingTradingEnv(TradingEnv):
         self._memmap_paths = memmap_paths
         self._episode_length = episode_length
         self._symbol_queue: list[int] = []
-        self._symbol_rng = np.random.default_rng()
+        self._symbol_rng = np.random.default_rng(seed)
 
         # Bootstrap with a concrete window so the parent can set observation_space.
         bootstrap_df = self._load_window(0, 0)
@@ -98,11 +99,13 @@ class StreamingTradingEnv(TradingEnv):
         return self._symbol_queue.pop()
 
     def reset(self, seed=None, options=None, **kwargs):
-        rng = np.random.default_rng(seed)
+        if seed is not None:
+            self._symbol_rng = np.random.default_rng(seed)
+            self._symbol_queue = []
         file_idx = self._next_symbol_idx()
         mp = self._memmap_paths[file_idx]
         max_start = mp.n_rows - self._episode_length
-        start = int(rng.integers(0, max(1, max_start)))
+        start = int(self._symbol_rng.integers(0, max(1, max_start)))
 
         window_df = self._load_window(file_idx, start)
         self._set_df(window_df)
