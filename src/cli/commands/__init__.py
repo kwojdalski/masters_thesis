@@ -8,6 +8,7 @@ from .data_generator_command import (
     SineWaveParams,
     UpwardDriftParams,
 )
+from .evaluate_command import EvaluateCommand, EvaluateParams
 from .experiment_command import ExperimentCommand, ExperimentParams
 from .feature_research_command import FeatureResearchCommand, FeatureResearchParams
 from .training_command import TrainingCommand, TrainingParams
@@ -19,6 +20,8 @@ __all__ = [
     "DashboardParams",
     "DataGenerationParams",
     "DataGeneratorCommand",
+    "EvaluateCommand",
+    "EvaluateParams",
     "ExperimentCommand",
     "ExperimentParams",
     "FeatureResearchCommand",

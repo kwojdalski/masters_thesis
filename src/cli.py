@@ -17,6 +17,8 @@ from cli.commands import (
     DashboardParams,
     DataGenerationParams,
     DataGeneratorCommand,
+    EvaluateCommand,
+    EvaluateParams,
     ExperimentCommand,
     ExperimentParams,
     FeatureResearchCommand,
@@ -90,6 +92,7 @@ console = Console()
 # Command instances
 data_gen_cmd = DataGeneratorCommand(console)
 training_cmd = TrainingCommand(console)
+evaluate_cmd = EvaluateCommand(console)
 experiment_cmd = ExperimentCommand(console)
 dashboard_cmd = DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db")
 validation_cmd = ValidationCommand(console)
@@ -453,6 +456,82 @@ def train(
     )
 
     training_cmd.execute(params)
+
+
+@app.command()
+def evaluate(
+    config_file: Path | None = typer.Option(  # noqa: B008
+        None,
+        "--config",
+        "-c",
+        help="Path or scenario shorthand for the experiment config YAML",
+    ),
+    checkpoint: Path | None = typer.Option(  # noqa: B008
+        None,
+        "--checkpoint",
+        help=(
+            "Path to a .pt checkpoint file. "
+            "When omitted, the most recent checkpoint for the experiment is used."
+        ),
+    ),
+    split: str = typer.Option(
+        "test",
+        "--split",
+        "-s",
+        help="Data split(s) to evaluate: train, val, test, or all",
+    ),
+    only: list[str] | None = typer.Option(
+        None,
+        "--only",
+        help=(
+            "Components to run (repeatable): metrics, benchmarks, plots, stats. "
+            "Default: all components."
+        ),
+    ),
+    output_dir: Path = typer.Option(  # noqa: B008
+        Path("./eval_results"),
+        "--output-dir",
+        help="Directory to write results.json and plot PNGs",
+    ),
+    config_override: list[str] | None = typer.Option(
+        None,
+        "--config-override",
+        "-o",
+        help="OmegaConf dotlist override (repeatable)",
+    ),
+):
+    """Evaluate a trained policy from a checkpoint without re-running training.
+
+    Loads the experiment config to locate data and build the evaluation
+    environment, then loads the actor from a checkpoint (auto-discovered
+    from the config's log directory when --checkpoint is omitted).
+
+    Examples:
+        # Evaluate the latest checkpoint on the test split (default)
+        python src/cli.py evaluate --config sine_wave/ppo_no_trend
+
+        # Evaluate all splits
+        python src/cli.py evaluate -c sine_wave/ppo_no_trend --split all
+
+        # Only compute metrics and plots, skip benchmarks and stats
+        python src/cli.py evaluate -c sine_wave/ppo_no_trend --only metrics --only plots
+
+        # Use a specific checkpoint
+        python src/cli.py evaluate -c sine_wave/ppo_no_trend \\
+            --checkpoint logs/my_exp/my_exp_checkpoint_step_5000.pt
+
+        # Save to a custom directory
+        python src/cli.py evaluate -c sine_wave/ppo_no_trend --output-dir ./my_eval
+    """
+    params = EvaluateParams(
+        config_file=config_file,
+        checkpoint=checkpoint,
+        split=split,
+        only=only or None,
+        output_dir=output_dir,
+        config_overrides=config_override,
+    )
+    evaluate_cmd.execute(params)
 
 
 @app.command(name="prepare-data")
