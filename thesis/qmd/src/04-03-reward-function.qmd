@@ -164,6 +164,12 @@ Third, the DSR can be unstable when the denominator $(B_{t-1} - A_{t-1}^2 + \var
 small — either because the effective sample size is insufficient (early in training)
 or because realized variance is temporarily low. This can amplify microstructure
 noise and produce extreme reward values that destabilize gradient estimates.
+The implementation addresses this by clamping $D_t$ to the interval $[-c,\, c]$
+with $c = 10$, following the standard reward-clipping practice in deep RL
+[@Mnih2015]. The bound preserves the sign and relative ordering of rewards while
+preventing large gradient updates during low-variance regimes. DSR values outside
+this range occur rarely under normal market conditions and typically indicate
+numerical instability rather than genuine policy performance.
 
 The DSR was chosen despite these limitations for three reasons. First, its
 recursive formulation makes it uniquely suitable for online RL: alternatives such
