@@ -8,9 +8,6 @@ to the episode length, not the total dataset size.
 
 from __future__ import annotations
 
-import logging
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 from gym_trading_env.environments import TradingEnv
@@ -76,6 +73,7 @@ class StreamingTradingEnv(TradingEnv):
 
         window_data = np.array(data_mm[start:end], dtype=np.float32)
         window_index_ns = np.array(index_mm[start:end])
+        del data_mm, index_mm  # release OS file handles immediately
 
         try:
             index = pd.DatetimeIndex(window_index_ns)
