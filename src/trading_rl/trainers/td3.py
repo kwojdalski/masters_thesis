@@ -476,7 +476,16 @@ class TD3Trainer(BaseTrainer):
         if run:
             experiment = mlflow.get_experiment(run.info.experiment_id)
             experiment_name = experiment.name if experiment else None
+        from trading_rl.models import _extract_action_bounds_from_spec
+        _bounds = _extract_action_bounds_from_spec(getattr(self.env, "action_spec", None))
         checkpoint = {
+            "algorithm": "td3",
+            "n_obs": self.n_obs,
+            "n_act": self.n_act,
+            "actor_hidden_dims": getattr(self.config.network, "actor_hidden_dims", None),
+            "value_hidden_dims": getattr(self.config.network, "value_hidden_dims", None),
+            "action_low": _bounds[0].tolist() if _bounds is not None else None,
+            "action_high": _bounds[1].tolist() if _bounds is not None else None,
             "actor_state_dict": self.actor.state_dict(),
             "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
             "target_actor_params_state": self.td3_loss.target_actor_network_params.state_dict(),

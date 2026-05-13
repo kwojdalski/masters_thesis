@@ -251,6 +251,11 @@ class PPOTrainer(BaseTrainer):
             experiment = mlflow.get_experiment(run.info.experiment_id)
             experiment_name = experiment.name if experiment else None
         checkpoint = {
+            "algorithm": "ppo",
+            "n_obs": self.n_obs,
+            "n_act": self.n_act,
+            "actor_hidden_dims": getattr(self.config.network, "actor_hidden_dims", None),
+            "value_hidden_dims": getattr(self.config.network, "value_hidden_dims", None),
             "actor_state_dict": self.actor.state_dict(),
             "value_net_state_dict": self.value_net.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),

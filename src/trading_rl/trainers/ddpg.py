@@ -322,7 +322,16 @@ class DDPGTrainer(BaseTrainer):
                 if target_value_params is not None
                 else None
             )
+        from trading_rl.models import _extract_action_bounds_from_spec
+        _bounds = _extract_action_bounds_from_spec(getattr(self.env, "action_spec", None))
         checkpoint = {
+            "algorithm": "ddpg",
+            "n_obs": self.n_obs,
+            "n_act": self.n_act,
+            "actor_hidden_dims": getattr(self.config.network, "actor_hidden_dims", None),
+            "value_hidden_dims": getattr(self.config.network, "value_hidden_dims", None),
+            "action_low": _bounds[0].tolist() if _bounds is not None else None,
+            "action_high": _bounds[1].tolist() if _bounds is not None else None,
             "actor_state_dict": self.actor.state_dict(),
             "value_net_state_dict": self.value_net.state_dict(),
             "actor_params_state": actor_params_state,

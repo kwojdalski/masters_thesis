@@ -49,6 +49,13 @@ from trading_rl.evaluation.statistical_tests import (
     # Individual test functions
     t_test_mean_returns,
 )
+from trading_rl.evaluation.evaluator import (
+    EnvConfig,
+    EvaluationConfig,
+    SplitEvaluationResult,
+    StrategyEvaluator,
+)
+from trading_rl.evaluation.policy_loader import PolicyLoader
 
 __all__ = [
     "TEST_REGISTRY",
@@ -120,6 +127,7 @@ __all__ = [
     "t_test_mean_returns",
     "EnvConfig",
     "EvaluationConfig",
+    "PolicyLoader",
     "SplitEvaluationResult",
     "StrategyEvaluator",
 ]
