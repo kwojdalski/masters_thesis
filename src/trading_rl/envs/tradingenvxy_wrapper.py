@@ -442,7 +442,11 @@ class StreamingTradingEnvXY(gym.Env):
         window_index = np.array(index_mm[start:end])
         try:
             index = pd.DatetimeIndex(window_index)
-        except Exception:
+        except (ValueError, OverflowError) as e:
+            logger.warning(
+                "Could not parse timestamps dtype=%s error=%s, using RangeIndex",
+                window_index.dtype, e,
+            )
             index = pd.RangeIndex(len(window_data))
         return pd.DataFrame(window_data, columns=mp.columns, index=index)
 
