@@ -140,23 +140,53 @@ def create_actual_returns_plot(
         )
 
     returns_data = []
-    for i, rollout in enumerate(rollouts):
-        run_name = "Deterministic" if i == 0 else "Random"
-        if actual_returns_list and i < len(actual_returns_list):
-            actual_returns = actual_returns_list[i]
-        else:
-            actual_returns = extract_tradingenv_returns(env, n_obs) if env else None
 
-        if actual_returns is not None:
-            cumulative_log_returns = np.asarray(actual_returns[:n_obs], dtype=float)
-            logger.debug(
-                "%s: Using actual portfolio returns from TradingEnv broker",
-                run_name,
+    # Handle case where rollouts is None but actual_returns_list is provided
+    if rollouts is None and actual_returns_list:
+        for i, actual_returns in enumerate(actual_returns_list):
+            run_name = "Deterministic" if i == 0 else f"Run_{i}"
+
+            if actual_returns is not None:
+                cumulative_log_returns = np.asarray(actual_returns[:n_obs], dtype=float)
+                logger.debug(
+                    "%s: Using actual portfolio returns from provided list",
+                    run_name,
+                )
+
+                portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
+                returns_data.extend(
+                    [
+                        {"Steps": step, "Portfolio_Value": val, "Run": run_name}
+                        for step, val in enumerate(portfolio_values)
+                    ]
+                )
+    else:
+        # Original logic for when rollouts are provided
+        for i, rollout in enumerate(rollouts):
+            run_name = "Deterministic" if i == 0 else "Random"
+            if actual_returns_list and i < len(actual_returns_list):
+                actual_returns = actual_returns_list[i]
+            else:
+                actual_returns = extract_tradingenv_returns(env, n_obs) if env else None
+
+            if actual_returns is not None:
+                cumulative_log_returns = np.asarray(actual_returns[:n_obs], dtype=float)
+                logger.debug(
+                    "%s: Using actual portfolio returns from TradingEnv broker",
+                    run_name,
+                )
+            else:
+                rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
+                cumulative_log_returns = np.cumsum(rewards)
+                logger.debug("%s: Using rollout rewards as fallback", run_name)
+
+            portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
+            returns_data.extend(
+                [
+                    {"Steps": step, "Portfolio_Value": val, "Run": run_name}
+                    for step, val in enumerate(portfolio_values)
+                ]
             )
-        else:
-            rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
-            cumulative_log_returns = np.cumsum(rewards)
-            logger.debug("%s: Using rollout rewards as fallback", run_name)
 
         portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
         returns_data.extend(

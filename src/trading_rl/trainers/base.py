@@ -403,7 +403,24 @@ class BaseTrainer(ABC):
                 "enable_metrics": False,  # Metrics computed separately
             }
 
-        from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
+        from trading_rl.evaluation.evaluator import (
+            EnvConfig,
+            EvaluationConfig,
+            StrategyEvaluator,
+        )
+
+        # Add environment configuration to eval_config_kwargs
+        if config:
+            from trading_rl.evaluation.evaluator import EnvConfig
+            eval_config_kwargs["env"] = EnvConfig(
+                name=getattr(config.env, "name", ""),
+                positions=getattr(config.env, "positions", None),
+                mode=getattr(config.env, "mode", "mft"),
+                trading_fees=getattr(config.env, "trading_fees", 0.0),
+                borrow_interest_rate=getattr(config.env, "borrow_interest_rate", 0.0),
+                initial_portfolio_value=getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE),
+                price_column=getattr(config.env, "price_column", "close"),
+            )
 
         eval_config = EvaluationConfig(**eval_config_kwargs)
 
@@ -426,7 +443,7 @@ class BaseTrainer(ABC):
         reward_plot = result.plots["reward_plot"] if result.plots else None
         action_plot = result.plots["action_plot"] if result.plots else None
         actual_returns_plot = create_actual_returns_plot(
-            [result.rollout],
+            None,  # No rollout object available from SplitEvaluationResult
             max_steps,
             df_prices=df,
             env=env_to_use,
@@ -442,9 +459,9 @@ class BaseTrainer(ABC):
 
         is_portfolio = self._is_portfolio_backend(config)
 
-        final_reward = float(result.rollout["next", "reward"].sum().item())
-
-        last_positions = self._extract_actions(result.rollout, is_portfolio)
+        # Use final_reward and last_positions from SplitEvaluationResult
+        final_reward = float(result.final_reward)
+        last_positions = result.last_positions
 
         return (
             reward_plot,

@@ -16,11 +16,25 @@ from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
+import torch
 
 from trading_rl.constants import RewardType
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.plots import compare_rollouts
 from trading_rl.evaluation.returns import extract_tradingenv_returns
+
+
+@dataclass(frozen=True)
+class EnvConfig:
+    """Environment configuration for evaluation."""
+
+    name: str = ""  # Environment name
+    positions: list[int] | None = None  # Will use TradePosition default if None
+    mode: str = "mft"  # Feature regime mode
+    trading_fees: float = 0.0
+    borrow_interest_rate: float = 0.0
+    initial_portfolio_value: float = 10000.0
+    price_column: str = "close"  # Price column for environment
 
 
 @dataclass(frozen=True)
@@ -37,6 +51,7 @@ class EvaluationConfig:
     price_column: str = "close"
     enable_plots: bool = True
     enable_metrics: bool = True
+    env: EnvConfig = field(default_factory=EnvConfig)  # Environment configuration
 
 
 @dataclass(frozen=True)

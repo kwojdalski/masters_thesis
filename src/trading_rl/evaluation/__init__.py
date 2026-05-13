@@ -118,6 +118,7 @@ __all__ = [
     "sortino_ratio_bootstrap_test",
     # Individual test functions
     "t_test_mean_returns",
+    "EnvConfig",
     "EvaluationConfig",
     "SplitEvaluationResult",
     "StrategyEvaluator",
