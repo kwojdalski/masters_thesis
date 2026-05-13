@@ -119,15 +119,13 @@ def build_evaluation_report_for_trainer(
                 )
 
         if strategy_simple_returns.size == 0:
-            proxy_log_returns = (
-                rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
-            )
-            strategy_simple_returns = np.exp(proxy_log_returns) - 1.0
             logger.warning(
-                "Evaluation metrics fallback is using reward stream as log-return proxy; "
-                "return/CAGR metrics may be invalid when reward_type=%s.",
+                "Cannot compute return metrics for reward_type=%s: broker return extraction "
+                "unavailable or returned no data. All return/risk metrics will be NaN. "
+                "Use the tradingenv backend to enable broker NLV tracking.",
                 reward_type,
             )
+            # strategy_simple_returns stays empty; build_metric_report returns all-NaN.
 
     if benchmark_price_column in df_prices.columns:
         benchmark_series = df_prices[benchmark_price_column]
