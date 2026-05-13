@@ -82,49 +82,24 @@ class ContinuousToDiscreteAction(Transform):
             continuous_action: Tensor with continuous action values in [-1, 1]
 
         Returns:
-            Tensor with discrete action indices
+            Tensor with discrete action indices, shape = continuous_action.shape[:-1]
         """
-        # Ensure action is a tensor
         if not isinstance(continuous_action, torch.Tensor):
             continuous_action = torch.tensor(continuous_action, device=self.device)
 
-        # Get the action value (handle different tensor shapes)
-        if continuous_action.numel() == 1:
-            action_val = continuous_action.item()
-        else:
-            # Take first element if batch or multi-dimensional
-            action_val = continuous_action.flatten()[0].item()
+        values = continuous_action.reshape(-1).float()
 
-        # Map continuous action to discrete action index
         if len(self.thresholds) == 2 and len(self.discrete_actions) == 3:
-            # 3-action mapping: short, hold, long
-            if action_val < self.thresholds[0]:
-                discrete_idx = 0  # Short
-            elif action_val > self.thresholds[1]:
-                discrete_idx = 2  # Long
-            else:
-                discrete_idx = 1  # Hold
+            indices = torch.ones(values.shape, dtype=torch.long, device=self.device)
+            indices[values < self.thresholds[0]] = 0
+            indices[values > self.thresholds[1]] = 2
         else:
-            # General mapping for any number of actions
-            discrete_idx = 0
+            indices = torch.zeros(values.shape, dtype=torch.long, device=self.device)
             for i, threshold in enumerate(self.thresholds):
-                if action_val > threshold:
-                    discrete_idx = i + 1
-                else:
-                    break
-            # Clamp to valid range
-            discrete_idx = min(discrete_idx, len(self.discrete_actions) - 1)
+                indices[values > threshold] = i + 1
+            indices.clamp_(max=len(self.discrete_actions) - 1)
 
-        # Return discrete action as tensor with same shape as input
-        discrete_action = torch.tensor(
-            discrete_idx, dtype=torch.long, device=self.device
-        )
-
-        # Preserve batch dimensions
-        if continuous_action.shape:
-            discrete_action = discrete_action.expand(continuous_action.shape[:-1])
-
-        return discrete_action
+        return indices.reshape(continuous_action.shape[:-1])
 
     def transform_action_spec(self, action_spec):
         """Transform action spec to continuous space for TD3/DDPG.
