@@ -164,6 +164,7 @@ def run_statistical_tests_for_split(
             config=config.statistical_testing,
             market_data=split_ctx.df,
             periods_per_year=periods_per_year,
+            reward_type=config.env.reward_type,
         )
         MLflowTrainingCallback.log_statistical_tests(
             statistical_test_results,

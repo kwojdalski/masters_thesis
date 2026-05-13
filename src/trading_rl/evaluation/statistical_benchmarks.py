@@ -169,12 +169,16 @@ def compute_random_baseline_returns(
     max_steps: int,
     n_trials: int = 100,
     seed: int | None = None,
+    reward_type: str = "log_return",
 ) -> list[np.ndarray]:
     """Generate random action baseline returns via Monte Carlo sampling."""
     import signal
     import torch
     from tensordict.nn import InteractionType
     from torchrl.envs.utils import set_exploration_type
+
+    from trading_rl.constants import RewardType
+    use_nlv = reward_type != RewardType.LOG_RETURN
 
     if seed is not None:
         np.random.seed(seed)
@@ -196,6 +200,15 @@ def compute_random_baseline_returns(
             with torch.no_grad():
                 with set_exploration_type(InteractionType.RANDOM):
                     rollout = env.rollout(max_steps=max_steps)
+
+            if use_nlv:
+                from trading_rl.evaluation.returns import extract_tradingenv_returns
+                cumulative = extract_tradingenv_returns(env, max_steps)
+                if cumulative is not None and len(cumulative) > 1:
+                    step_log = np.diff(cumulative)
+                    random_returns.append(np.exp(step_log) - 1.0)
+                    continue
+
             rewards = (
                 rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
             )
