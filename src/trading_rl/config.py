@@ -66,7 +66,7 @@ DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
 class EnvConfig:
     """Trading environment configuration."""
 
-    name: str = "BTCUSD"
+    name: str = ""
     mode: str = EnvMode.MFT  # Feature regime mode: "mft" (medium-frequency) or "hft" (high-frequency)
     positions: list[int] = field(default_factory=lambda: list(TradePosition))
     trading_fees: float = 0.0  # 0.01% = 0.0001
@@ -462,6 +462,10 @@ class ExperimentConfig:
 
         if "experiment_name" not in config_dict:
             config_dict["experiment_name"] = derived_name
+
+        env_dict = config_dict.setdefault("env", {})
+        if isinstance(env_dict, dict) and not env_dict.get("name"):
+            env_dict["name"] = derived_name.upper()
 
         log_dict = config_dict.get("logging")
         if log_dict is None:
