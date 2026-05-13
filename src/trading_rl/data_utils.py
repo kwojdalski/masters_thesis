@@ -640,19 +640,36 @@ def _build_per_day_splits(
     for p in train_paths:
         symbol_train_paths[_symbol_of(p)].append(p)
 
-    # Fit one FeaturePipeline per symbol on concatenated training days
+    # Fit one FeaturePipeline per symbol on training days.
+    # Running/rolling scalers accumulate incrementally so we can fit file-by-file.
+    # Global (StandardScaler) requires the full concatenation.
     logger.info("per-day mode: fitting per-symbol pipelines n_symbols=%d", len(symbol_train_paths))
     symbol_pipelines: dict[str, Any] = {}
     for symbol, sym_paths in sorted(symbol_train_paths.items()):
-        logger.info("fit pipeline symbol=%s n_days=%d", symbol, len(sym_paths))
-        raw_parts = [_load(p) for p in sym_paths]
-        combined = pd.concat(raw_parts)
-        del raw_parts
         pipeline = FeaturePipeline.from_yaml(feature_config)
-        pipeline.fit(combined)
+        from trading_rl.features.base import NormalizationMethod
+        needs_full_concat = any(
+            fc.normalize and fc.normalization_method == NormalizationMethod.GLOBAL
+            for fc in pipeline.feature_configs
+        )
+        logger.info(
+            "fit pipeline symbol=%s n_days=%d incremental=%s",
+            symbol, len(sym_paths), not needs_full_concat,
+        )
+        if needs_full_concat:
+            raw_parts = [_load(p) for p in sym_paths]
+            combined = pd.concat(raw_parts)
+            del raw_parts
+            pipeline.fit(combined)
+            del combined
+            gc.collect()
+        else:
+            for p in sym_paths:
+                raw_df = _load(p)
+                pipeline.fit(raw_df)
+                del raw_df
+                gc.collect()
         symbol_pipelines[symbol] = pipeline
-        del combined
-        gc.collect()
         if progress_callback:
             progress_callback(f"fit {symbol}")
 
