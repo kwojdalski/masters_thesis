@@ -276,17 +276,13 @@ class TD3Trainer(BaseTrainer):
             y_label = "Cumulative DSR"
         else:
             # For log_return and other rewards, use log return benchmarks
+            price_window = benchmark_series.iloc[: max_steps + 1]
+            benchmark_returns = price_window.pct_change().iloc[1:].to_numpy(dtype=float)
             benchmark_df = pd.DataFrame(
                 {
-                    "x": range(max_steps),
-                    "buy_and_hold": np.log(benchmark_series / benchmark_series.shift(1))
-                    .fillna(0)
-                    .cumsum()[:max_steps],
-                    "max_profit": np.abs(
-                        np.log(benchmark_series / benchmark_series.shift(1))
-                    )
-                    .fillna(0)
-                    .cumsum()[:max_steps],
+                    "x": range(len(benchmark_returns)),
+                    "buy_and_hold": np.log1p(benchmark_returns).cumsum(),
+                    "max_profit": np.log1p(np.abs(benchmark_returns)).cumsum(),
                 }
             )
             for step, (bh_val, mp_val) in enumerate(
