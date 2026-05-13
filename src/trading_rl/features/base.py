@@ -72,8 +72,9 @@ class RollingWindowScaler:
             s = pd.Series(data)
 
         # Compute rolling mean and std (causal - only looks at past)
-        rolling_mean = s.rolling(window=self.window, min_periods=self.min_periods).mean()
-        rolling_std = s.rolling(window=self.window, min_periods=self.min_periods).std()
+        # Shift by 1 to ensure x_t is normalized using only previous values
+        rolling_mean = s.rolling(window=self.window, min_periods=self.min_periods).mean().shift(1)
+        rolling_std = s.rolling(window=self.window, min_periods=self.min_periods).std().shift(1)
 
         # Normalize: (x - rolling_mean) / rolling_std
         # Fill NaNs (from insufficient window) with 0 or forward fill
