@@ -221,12 +221,14 @@ Note: DSR must be calculated BEFORE updating the EMAs to use old values (t-1).
         B_t: Current EMA of squared returns (second moment estimate)
     """
 
-    def __init__(self, eta: float = 0.01, epsilon: float = 1e-8):
+    def __init__(self, eta: float = 0.01, epsilon: float = 1e-8, clip_rewards: bool = True):
         """Initialize DSR reward calculator.
 
         Args:
             eta: Learning rate for EMAs (0.001 to 0.1, default: 0.01)
             epsilon: Stability constant (default: 1e-8)
+            clip_rewards: Clamp output to [-10, 10] to prevent gradient explosion
+                when variance collapses near zero (default: True)
         """
         if not 0 < eta <= 1:
             raise ValueError(f"eta must be in (0, 1], got {eta}")
@@ -235,6 +237,7 @@ Note: DSR must be calculated BEFORE updating the EMAs to use old values (t-1).
 
         self.eta = eta
         self.epsilon = epsilon
+        self.clip_rewards = clip_rewards
 
         # Initialize EMAs
         self.A_t = 0.0  # EMA of R (mean)
@@ -294,8 +297,9 @@ Note: DSR must be calculated BEFORE updating the EMAs to use old values (t-1).
         # Update previous NLV for next step
         self._prev_nlv = nlv_now
 
-        # Clamp to prevent gradient explosion when variance collapses near zero
-        return float(np.clip(dsr, -10.0, 10.0))
+        if self.clip_rewards:
+            dsr = float(np.clip(dsr, -10.0, 10.0))
+        return float(dsr)
 
     def reset(self) -> None:
         """Reset DSR state for new episode.
