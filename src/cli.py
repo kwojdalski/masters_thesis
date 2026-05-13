@@ -499,12 +499,26 @@ def evaluate(
         "-o",
         help="OmegaConf dotlist override (repeatable)",
     ),
+    tracking_uri: str = typer.Option(
+        "sqlite:///mlflow.db",
+        "--tracking-uri",
+        help="MLflow tracking URI for logging results",
+    ),
+    no_mlflow: bool = typer.Option(
+        False,
+        "--no-mlflow",
+        help="Skip MLflow logging entirely (results only written to --output-dir)",
+    ),
 ):
     """Evaluate a trained policy from a checkpoint without re-running training.
 
     Loads the experiment config to locate data and build the evaluation
     environment, then loads the actor from a checkpoint (auto-discovered
     from the config's log directory when --checkpoint is omitted).
+
+    Results are written to --output-dir as results.json + plot PNGs and are
+    also logged to MLflow under the same experiment as the training run.
+    Use --no-mlflow to skip MLflow logging.
 
     Examples:
         # Evaluate the latest checkpoint on the test split (default)
@@ -520,8 +534,12 @@ def evaluate(
         python src/cli.py evaluate -c sine_wave/ppo_no_trend \\
             --checkpoint logs/my_exp/my_exp_checkpoint_step_5000.pt
 
-        # Save to a custom directory
-        python src/cli.py evaluate -c sine_wave/ppo_no_trend --output-dir ./my_eval
+        # Skip MLflow, write results locally only
+        python src/cli.py evaluate -c sine_wave/ppo_no_trend --no-mlflow
+
+        # Use a remote MLflow server
+        python src/cli.py evaluate -c sine_wave/ppo_no_trend \\
+            --tracking-uri http://localhost:5000
     """
     params = EvaluateParams(
         config_file=config_file,
@@ -530,6 +548,8 @@ def evaluate(
         only=only or None,
         output_dir=output_dir,
         config_overrides=config_override,
+        tracking_uri=tracking_uri,
+        no_mlflow=no_mlflow,
     )
     evaluate_cmd.execute(params)
 
