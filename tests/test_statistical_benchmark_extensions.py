@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
+from trading_rl.evaluation.statistical_benchmarks import build_benchmark_comparison_table
 from trading_rl.evaluation.statistical_tests import (
     compute_buy_and_hold_returns,
     compute_short_and_hold_returns,
@@ -53,6 +54,16 @@ def test_vwap_returns_use_volume_schedule() -> None:
     assert len(vwap) == 10
     assert np.isfinite(vwap).all()
     assert not np.allclose(vwap, twap)
+
+
+def test_benchmark_table_captures_initial_drawdown() -> None:
+    table = build_benchmark_comparison_table(
+        strategy_returns=np.array([-0.05, 0.10]),
+        benchmark_returns={},
+        periods_per_year=252,
+    )
+
+    assert np.isclose(table[0]["max_drawdown"], -0.05)
 
 
 def test_run_all_statistical_tests_includes_extended_benchmark_table() -> None:
