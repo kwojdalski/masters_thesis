@@ -30,10 +30,30 @@ if TYPE_CHECKING:
     from trading_rl.callbacks.mlflow_callback import MLflowTrainingCallback
 
 
+def _to_yaml_serializable(obj):
+    """Recursively convert enum values and other non-YAML-safe types to primitives."""
+    import enum
+    if isinstance(obj, dict):
+        return {k: _to_yaml_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_to_yaml_serializable(v) for v in obj]
+    if isinstance(obj, enum.Enum):
+        return obj.value
+    return obj
+
+
 def log_config_artifact(config) -> None:
-    """Log YAML config file as an MLflow artifact."""
+    """Log effective runtime config as an MLflow artifact.
+
+    Always serializes the in-memory config (including any CLI overrides) to
+    ``config/effective_config.yaml``.  If the originating scenario YAML can be
+    identified it is also logged to ``config/source_scenario.yaml`` for
+    reference, but it never replaces the effective config.
+    """
+    import yaml
+
+    # Log source YAML as reference only — do not return early.
     config_dir = Path("src/configs/scenarios")
-    config_file = None
     for candidate in config_dir.rglob("*.yaml"):
         cparts = candidate.parts
         try:
@@ -46,68 +66,16 @@ def log_config_artifact(config) -> None:
             )
         except ValueError:
             candidate_name = candidate.stem
-        if candidate_name == config.experiment_name:
-            config_file = candidate
+        if candidate_name == config.experiment_name and candidate.exists():
+            mlflow.log_artifact(str(candidate), "config/source")
             break
 
-    if config_file and config_file.exists():
-        mlflow.log_artifact(str(config_file), "config")
-        return
+    # Always log the effective in-memory config (captures overrides).
+    config_dict = _to_yaml_serializable(config.to_dict())
 
-    # Serialize the in-memory config
-    config_dict = {
-        "experiment_name": config.experiment_name,
-        "seed": config.seed,
-        "data": {
-            "data_path": config.data.data_path,
-            "download_data": config.data.download_data,
-            "exchange_names": config.data.exchange_names,
-            "symbols": config.data.symbols,
-            "timeframe": config.data.timeframe,
-            "data_dir": config.data.data_dir,
-            "download_since": config.data.download_since,
-            "train_size": config.data.train_size,
-        },
-        "env": {
-            "name": config.env.name,
-            "positions": [int(p) for p in config.env.positions],
-            "trading_fees": config.env.trading_fees,
-            "borrow_interest_rate": config.env.borrow_interest_rate,
-        },
-        "network": {
-            "actor_hidden_dims": config.network.actor_hidden_dims,
-            "value_hidden_dims": config.network.value_hidden_dims,
-        },
-        "training": {
-            "algorithm": config.training.algorithm,
-            "actor_lr": config.training.actor_lr,
-            "value_lr": config.training.value_lr,
-            "value_weight_decay": config.training.value_weight_decay,
-            "max_steps": config.training.max_steps,
-            "init_rand_steps": config.training.init_rand_steps,
-            "frames_per_batch": config.training.frames_per_batch,
-            "optim_steps_per_batch": config.training.optim_steps_per_batch,
-            "sample_size": config.training.sample_size,
-            "buffer_size": config.training.buffer_size,
-            "loss_function": config.training.loss_function,
-            "eval_steps": config.training.eval_steps,
-            "eval_fraction": config.training.eval_fraction,
-            "eval_interval": config.training.eval_interval,
-            "log_interval": config.training.log_interval,
-        },
-        "logging": {
-            "log_dir": config.logging.log_dir,
-            "log_level": config.logging.log_level,
-        },
-    }
-
-    for attr in ("tau", "clip_epsilon", "entropy_bonus", "vf_coef", "ppo_epochs"):
-        if hasattr(config.training, attr):
-            config_dict["training"][attr] = getattr(config.training, attr)
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        import yaml
-
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False, prefix="effective_config_"
+    ) as f:
         yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
         mlflow.log_artifact(f.name, "config")
         os.unlink(f.name)
