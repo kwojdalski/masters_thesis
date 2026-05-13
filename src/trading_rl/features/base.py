@@ -191,13 +191,9 @@ class RunningMeanStd:
             Normalized data with same shape as input.
         """
         if not self._fitted:
-            # First time: use raw data as-is, then update stats
-            if isinstance(data, pd.Series):
-                self.fit(data)
-                return data
-            else:
-                self.fit(data)
-                return data.copy()
+            raise RuntimeError(
+                "RunningMeanStd.transform() called before fit(). Call fit() first."
+            )
 
         if isinstance(data, pd.Series):
             s = data
