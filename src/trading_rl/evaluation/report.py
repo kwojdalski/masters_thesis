@@ -86,7 +86,7 @@ def build_evaluation_report_for_trainer(
             cumulative_log_returns = extract_tradingenv_returns(env_to_use, max_steps)
             if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
                 cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
-                step_log_returns = np.diff(cumulative_log_returns, prepend=0.0)
+                step_log_returns = np.diff(cumulative_log_returns)
                 strategy_simple_returns = np.exp(step_log_returns) - 1.0
                 logger.info(
                     "Evaluation metrics using actual TradingEnv broker returns "
