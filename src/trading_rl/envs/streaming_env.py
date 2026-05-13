@@ -105,7 +105,8 @@ class StreamingTradingEnv(TradingEnv):
         file_idx = self._next_symbol_idx()
         mp = self._memmap_paths[file_idx]
         max_start = mp.n_rows - self._episode_length
-        start = int(self._symbol_rng.integers(0, max(1, max_start)))
+        # Use max_start + 1 to include final valid start position (numpy.integers is exclusive)
+        start = int(self._symbol_rng.integers(0, max(1, max_start + 1)))
 
         window_df = self._load_window(file_idx, start)
         self._set_df(window_df)
