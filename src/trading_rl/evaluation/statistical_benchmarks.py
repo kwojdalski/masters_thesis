@@ -128,10 +128,9 @@ def _performance_summary(
     mu = float(np.mean(r))
     sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
     annualized_vol = sigma * np.sqrt(periods_per_year)
-    downside = r[r < 0]
-    downside_sigma = float(np.std(downside, ddof=1)) if downside.size > 1 else 0.0
+    downside_dev = float(np.sqrt(np.mean(np.square(np.minimum(r, 0.0)))))
     sharpe = _safe_div(mu * np.sqrt(periods_per_year), sigma)
-    sortino = _safe_div(mu * np.sqrt(periods_per_year), downside_sigma)
+    sortino = _safe_div(mu * np.sqrt(periods_per_year), downside_dev)
 
     equity = np.cumprod(1.0 + r)
     total_return = float(equity[-1] - 1.0)
