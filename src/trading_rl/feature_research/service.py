@@ -16,7 +16,7 @@ import yaml
 from sklearn.linear_model import LinearRegression
 
 from logger import get_logger
-from trading_rl.data_utils import load_trading_data, _feature_cache_key
+from trading_rl.data_utils import _feature_cache_key, load_trading_data
 from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
 from trading_rl.features import FeaturePipeline
 
@@ -119,9 +119,9 @@ def _compute_ic_series(
         ic = aligned.iloc[:, 0].corr(aligned.iloc[:, 1], method="spearman")
         return pd.Series([float(ic) if pd.notna(ic) else 0.0], index=[aligned.index[0]])
 
-    feat_ranked = aligned.iloc[:, 0].rolling(window_size).rank()
-    tgt_ranked = aligned.iloc[:, 1].rolling(window_size).rank()
-    rolling_ic = feat_ranked.rolling(window_size).corr(tgt_ranked)
+    feat_r = aligned.iloc[:, 0].rank()
+    tgt_r = aligned.iloc[:, 1].rank()
+    rolling_ic = feat_r.rolling(window_size).corr(tgt_r)
     return rolling_ic.dropna()
 
 
