@@ -545,40 +545,7 @@ class PPOTrainer(BaseTrainer):
 
         except Exception as exc:  # pragma: no cover - logged for diagnostics
             logger.exception("action probabilities plot failed", exc_info=exc)
-            fallback_steps = min(max_steps, 500)
-            fallback_data = []
-            _action_labels = [pos.name.capitalize() for pos in TradePosition]
-            for step in range(fallback_steps):
-                for action in _action_labels:
-                    fallback_data.append(
-                        {"Step": step, "Action": action, "Probability": 0.33}
-                    )
-
-            df_fallback = pd.DataFrame(fallback_data)
-            df_fallback["Action"] = pd.Categorical(
-                df_fallback["Action"],
-                categories=_action_labels,
-                ordered=True,
-            )
-            plot = (
-                ggplot(df_fallback, aes(x="Step", y="Probability", fill="Action"))
-                + geom_area(position="stack", alpha=0.8)
-                + labs(
-                    title="Action Probability Distribution (Fallback)",
-                    x="Time Step",
-                    y="Probability",
-                )
-                + scale_fill_manual(
-                    name="Action",
-                    values={
-                        "Short": "#F8766D",
-                        "Hold": "#C0C0C0",
-                        "Long": "#00BFC4",
-                    },
-                )
-            )
-
-            return plot
+            return None
 
 
 class PPOTrainerContinuous(PPOTrainer):
