@@ -93,15 +93,26 @@ class DifferentialSharpeRatioAnyTrading:
         >>> # Now dsr.reset() is called automatically on env.reset()
     """
 
-    def __init__(self, eta: float = 0.01, epsilon: float = 1e-8):
+    def __init__(
+        self,
+        eta: float = 0.01,
+        epsilon: float = 1e-8,
+        clip_reward: float | None = None,
+    ):
         """Initialize DSR reward function.
 
         Args:
             eta: EMA learning rate (controls adaptation speed)
             epsilon: Small constant for numerical stability
+            clip_reward: If set, clamp the DSR output to [-clip_reward, clip_reward]
+                before returning. Useful early in training when variance is near
+                zero and the denominator (epsilon) is tiny, which can produce
+                very large reward spikes. Set to e.g. 10.0 to match the
+                DifferentialSharpeRatio (tradingenv) behaviour.
         """
         self.eta = eta
         self.epsilon = epsilon
+        self.clip_reward = clip_reward
 
         # Internal state - reset on each episode
         self.A_t = 0.0  # EMA of returns (mean)
@@ -178,4 +189,6 @@ class DifferentialSharpeRatioAnyTrading:
         # Update prev_nlv for next step
         self._prev_nlv = nlv_now
 
+        if self.clip_reward is not None:
+            dsr = float(np.clip(dsr, -self.clip_reward, self.clip_reward))
         return float(dsr)
