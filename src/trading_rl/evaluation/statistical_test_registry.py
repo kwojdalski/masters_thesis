@@ -36,13 +36,11 @@ def _sortino_ratio(returns: np.ndarray, risk_free_rate: float = 0.0) -> float:
     if len(returns) == 0:
         return np.nan
     excess_returns = returns - risk_free_rate
-    downside_returns = excess_returns[excess_returns < 0]
-
-    if len(downside_returns) == 0:
-        downside_dev = float(np.std(returns, ddof=1))
-    else:
-        downside_dev = float(np.std(downside_returns, ddof=1))
-
+    # Standard target semideviation: sqrt(mean(min(r - target, 0)^2)).
+    # Using std(negative_returns) is wrong — it centres around the loss mean
+    # rather than zero, returning 0 when all losses are equal (NaN Sortino).
+    downside = np.minimum(excess_returns, 0.0)
+    downside_dev = float(np.sqrt(np.mean(np.square(downside))))
     return _safe_div(float(np.mean(excess_returns)), downside_dev)
 
 
