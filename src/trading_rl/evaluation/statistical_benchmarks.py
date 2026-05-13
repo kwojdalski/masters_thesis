@@ -14,8 +14,10 @@ def compute_buy_and_hold_returns(prices: pd.Series, max_steps: int) -> np.ndarra
     """Compute buy-and-hold returns from price series."""
     if len(prices) < 2:
         raise ValueError("Price series must have at least 2 values")
-    log_returns = np.log(prices / prices.shift(1)).fillna(0).to_numpy()[:max_steps]
-    return np.exp(log_returns) - 1.0
+    if max_steps <= 0:
+        return np.array([], dtype=float)
+    price_window = prices.iloc[: max_steps + 1]
+    return price_window.pct_change().iloc[1:].to_numpy(dtype=float)
 
 
 def compute_short_and_hold_returns(prices: pd.Series, max_steps: int) -> np.ndarray:
@@ -44,7 +46,8 @@ def _execution_schedule_returns(
     if len(prices) < 2:
         raise ValueError("Price series must have at least 2 values")
 
-    simple_asset_returns = prices.pct_change().fillna(0.0).to_numpy()[:max_steps]
+    price_window = prices.iloc[: max_steps + 1]
+    simple_asset_returns = price_window.pct_change().iloc[1:].to_numpy(dtype=float)
     n = len(simple_asset_returns)
     if n == 0:
         return np.array([], dtype=float)
@@ -111,6 +114,7 @@ def _max_drawdown(simple_returns: np.ndarray) -> float:
 def _performance_summary(
     simple_returns: np.ndarray,
     periods_per_year: int,
+    risk_free_rate_annual: float = 0.0,
 ) -> dict[str, float]:
     """Compute compact benchmark performance summary metrics."""
     r = np.asarray(simple_returns, dtype=float)
@@ -125,12 +129,16 @@ def _performance_summary(
             "max_drawdown": np.nan,
         }
 
+    rf_per_period = risk_free_rate_annual / periods_per_year
+    excess_returns = r - rf_per_period
     mu = float(np.mean(r))
+    mu_excess = float(np.mean(excess_returns))
     sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
     annualized_vol = sigma * np.sqrt(periods_per_year)
-    downside_dev = float(np.sqrt(np.mean(np.square(np.minimum(r, 0.0)))))
-    sharpe = _safe_div(mu * np.sqrt(periods_per_year), sigma)
-    sortino = _safe_div(mu * np.sqrt(periods_per_year), downside_dev)
+    downside = np.minimum(excess_returns, 0.0)
+    downside_dev = float(np.sqrt(np.mean(np.square(downside))))
+    sharpe = _safe_div(mu_excess * np.sqrt(periods_per_year), sigma)
+    sortino = _safe_div(mu_excess * np.sqrt(periods_per_year), downside_dev)
 
     equity = np.cumprod(1.0 + r)
     total_return = float(equity[-1] - 1.0)
