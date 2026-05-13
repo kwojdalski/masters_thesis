@@ -953,6 +953,8 @@ class FeatureSelector:
         # Compute inter-feature correlation on validation data for reporting only
         if cfg.use_multi_horizon:
             primary_horizon = cfg.ic_decay_horizons[0]
+            train_target = _build_proxy_target(train_df, primary_horizon)
+            train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
             val_target = _build_proxy_target(val_df, primary_horizon)
             val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
         else:
