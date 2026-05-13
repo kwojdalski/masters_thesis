@@ -336,9 +336,6 @@ def get_environment_factory(
 
 
 # Convenience functions that maintain backward compatibility
-_factory = CustomTradingEnvironmentFactory()
-
-
 def create_continuous_trading_environment(
     df: pd.DataFrame, config: ExperimentConfig
 ) -> TransformedEnv:
