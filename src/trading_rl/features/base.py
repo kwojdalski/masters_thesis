@@ -1,6 +1,5 @@
 """Base classes for feature engineering."""
 
-import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
@@ -642,18 +641,15 @@ class Feature(ABC):
 
             session_data = raw_values.iloc[start_idx:end_idx]
 
-            # Use a fresh per-session scaler so training-fitted stats on self.scaler
-            # are never destroyed.  The session scaler starts from zero and builds
-            # up stats purely from within-session observations.
+            # Swap in a throwaway scaler for this session so self.scaler is never
+            # mutated as a side effect of transform().
             saved_scaler = self.scaler
-            self.scaler = copy.deepcopy(saved_scaler)
-            self.scaler.reset()
+            self.scaler = RunningMeanStd(epsilon=saved_scaler.epsilon)
 
-            # Normalize each row from session-local stats observed so far.
             normalized_session = self._transform_running_session_online(session_data)
             all_normalized.append(normalized_session)
 
-            self.scaler = saved_scaler  # restore training-fitted scaler
+            self.scaler = saved_scaler
 
         # Concatenate all sessions
         if all_normalized:
@@ -700,19 +696,17 @@ class Feature(ABC):
 
             session_data = raw_values.iloc[start_idx:end_idx]
 
-            # Use a fresh per-session scaler so training-fitted stats on self.scaler
-            # are never destroyed.
+            # Swap in a throwaway scaler for this session so self.scaler is never
+            # mutated as a side effect of transform().
             saved_scaler = self.scaler
-            self.scaler = copy.deepcopy(saved_scaler)
-            self.scaler.reset()
+            self.scaler = TimeWeightedRunningMeanStd(epsilon=saved_scaler.epsilon)
 
-            # Normalize each row from session-local stats observed so far.
             normalized_session = self._transform_time_weighted_session_online(
                 session_data
             )
             all_normalized.append(normalized_session)
 
-            self.scaler = saved_scaler  # restore training-fitted scaler
+            self.scaler = saved_scaler
 
         # Concatenate all sessions
         if all_normalized:
