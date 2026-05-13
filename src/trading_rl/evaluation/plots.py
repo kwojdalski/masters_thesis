@@ -187,14 +187,10 @@ def create_actual_returns_plot(
             df_prices = None
 
     if df_prices is not None:
-        buy_and_hold = (
-            np.log(price_series / price_series.shift(1)).fillna(0).cumsum()[:n_obs]
-        )
-        max_profit = (
-            np.log(abs(price_series / price_series.shift(1) - 1) + 1)
-            .fillna(0)
-            .cumsum()[:n_obs]
-        )
+        price_window = price_series.iloc[: n_obs + 1]
+        benchmark_returns = price_window.pct_change().iloc[1:].to_numpy(dtype=float)
+        buy_and_hold = np.log1p(benchmark_returns).cumsum()
+        max_profit = np.log1p(np.abs(benchmark_returns)).cumsum()
 
         buy_and_hold_values = initial_portfolio_value * np.exp(
             np.asarray(buy_and_hold, dtype=float)
