@@ -20,19 +20,18 @@ logger = get_logger(__name__)
 def periods_per_year_from_timeframe(timeframe: str) -> int:
     """Convert timeframe strings to annualization factor.
 
-    Uses calendar-time periods, which is correct for 24/7 markets (crypto).
-    For traditional equity markets on a fixed timeframe, pass the appropriate
-    factor directly rather than relying on this mapping.
+    Uses US equity trading calendar: 252 trading days, 6.5 trading hours,
+    390 trading minutes per day.
     """
     mapping = {
-        "1m": 365 * 24 * 60,
-        "5m": 365 * 24 * 12,
-        "15m": 365 * 24 * 4,
-        "30m": 365 * 24 * 2,
-        "1h": 365 * 24,
-        "4h": 365 * 6,
-        "1d": 365,
-        "1w": 52,
+        "1m":  252 * 390,   # 98,280
+        "5m":  252 * 78,    # 19,656
+        "15m": 252 * 26,    # 6,552
+        "30m": 252 * 13,    # 3,276
+        "1h":  1638,        # 252 * 6.5
+        "4h":  504,         # 252 * 2
+        "1d":  252,
+        "1w":  52,
     }
     return mapping.get(str(timeframe).lower(), 252)
 
