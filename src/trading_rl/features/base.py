@@ -725,7 +725,7 @@ class Feature(ABC):
             # Normalize using pre-update stats so x_t is not included in its own
             # mean/std estimate. Update after to keep the estimator causal.
             count = getattr(self.scaler, "count", 0)
-            if count < 2:
+            if count < 1:
                 normalized = 0.0
             else:
                 normalized = (value - self.scaler.mean) / np.sqrt(

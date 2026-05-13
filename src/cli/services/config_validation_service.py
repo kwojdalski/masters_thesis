@@ -167,7 +167,7 @@ def _validate_env_columns(
     if price_column and price_column not in available_columns:
         mode = str(getattr(config.env, "mode", "mft")).lower().strip()
         can_derive_hft_close = (
-            mode == "hft"
+            mode == EnvMode.HFT
             and str(price_column) == "close"
             and {"ask_px_00", "bid_px_00"}.issubset(available_columns)
         )
@@ -255,9 +255,9 @@ def _validate_feature_domains(
         if domain not in set(FeatureDomain):
             invalid_domain_features.append(f"{output_name}({domain})")
             continue
-        if domain == "hft":
+        if domain == EnvMode.HFT:
             hft_features.append(output_name)
-        elif domain == "mft":
+        elif domain == EnvMode.MFT:
             mft_features.append(output_name)
 
     if invalid_domain_features:
@@ -272,7 +272,7 @@ def _validate_feature_domains(
             ),
         )
 
-    if mode == "mft" and hft_features:
+    if mode == EnvMode.MFT and hft_features:
         report.add(
             code="MFT_HAS_HFT_FEATURES",
             severity=Severity.ERROR,
@@ -283,7 +283,7 @@ def _validate_feature_domains(
             ),
         )
 
-    if mode == "hft":
+    if mode == EnvMode.HFT:
         if not hft_features:
             report.add(
                 code="HFT_FEATURES_MISSING",

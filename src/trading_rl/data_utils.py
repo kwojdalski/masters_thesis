@@ -6,20 +6,22 @@ import json
 import logging
 import shutil
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from gym_trading_env.downloader import download
+
 from logger import get_logger
+from trading_rl.constants import EnvMode, SplitName
 
 logger = get_logger(__name__)
 
 # Lazy loading and memmap utilities
 from trading_rl.data_loading import (
-    LazyDataFrame,
     MemmapPaths,
     load_memmap_paths,
     load_prepared_splits,
@@ -162,8 +164,10 @@ def _map_splits(
     test_df: pd.DataFrame,
 ) -> _Splits:
     """Apply fn(split_name, df) to each split and return (train, val, test)."""
-    results = {name: fn(name, df) for name, df in (("train", train_df), ("val", val_df), ("test", test_df))}
-    return results["train"], results["val"], results["test"]
+    results = {name: fn(name, df) for name, df in (
+        (SplitName.TRAIN, train_df), (SplitName.VAL, val_df), (SplitName.TEST, test_df)
+    )}
+    return results[SplitName.TRAIN], results[SplitName.VAL], results[SplitName.TEST]
 
 
 def _derive_close_hft_single(
@@ -246,12 +250,12 @@ def ensure_close_column_for_hft(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Ensure raw `close` exists in HFT mode by deriving mid-price from L1 book."""
     mode = str(getattr(config.env, "mode", "mft")).lower().strip()
-    if mode != "hft":
+    if mode != EnvMode.HFT:
         return train_df, val_df, test_df
     return (
-        _derive_close_hft_single(train_df, "train", logger),
-        _derive_close_hft_single(val_df, "val", logger),
-        _derive_close_hft_single(test_df, "test", logger),
+        _derive_close_hft_single(train_df, SplitName.TRAIN, logger),
+        _derive_close_hft_single(val_df, SplitName.VAL, logger),
+        _derive_close_hft_single(test_df, SplitName.TEST, logger),
     )
 
 
@@ -265,12 +269,12 @@ def ensure_unique_index_for_hft_tradingenv(
     """Ensure unique, monotonic timestamps for HFT data used with TradingEnv."""
     mode = str(getattr(config.env, "mode", "mft")).lower().strip()
     backend = str(getattr(config.env, "backend", "")).lower().strip()
-    if mode != "hft" or backend != "tradingenv":
+    if mode != EnvMode.HFT or backend != "tradingenv":
         return train_df, val_df, test_df
     return (
-        _deduplicate_hft_index_single(train_df, "train", logger),
-        _deduplicate_hft_index_single(val_df, "val", logger),
-        _deduplicate_hft_index_single(test_df, "test", logger),
+        _deduplicate_hft_index_single(train_df, SplitName.TRAIN, logger),
+        _deduplicate_hft_index_single(val_df, SplitName.VAL, logger),
+        _deduplicate_hft_index_single(test_df, SplitName.TEST, logger),
     )
 
 
@@ -281,7 +285,7 @@ def ensure_unique_index_for_hft_tradingenv(
 def _parquet_cache_exists(prepared_dir: Path) -> bool:
     return all(
         (prepared_dir / f"{split}_prepared.parquet").exists()
-        for split in ["train", "val", "test"]
+        for split in SplitName
     )
 
 
@@ -341,7 +345,7 @@ def _expected_cached_split_rows(config: Any, memmap_dir: Path | None) -> dict[st
     # Per-day mode: each file has a different number of rows, so we cannot
     # assert a fixed split size — return None to skip row-count validation.
     if getattr(config.data, "val_data_paths", None):
-        return {"train": None, "val": None, "test": None}
+        return {SplitName.TRAIN: None, SplitName.VAL: None, SplitName.TEST: None}
 
     data_paths = getattr(config.data, "data_paths", None) or []
     n_symbols = len(data_paths) if data_paths else 1
@@ -349,15 +353,15 @@ def _expected_cached_split_rows(config: Any, memmap_dir: Path | None) -> dict[st
     validation_size = getattr(config.data, "validation_size", None)
     test_size = getattr(config.data, "test_size", None)
     return {
-        "train": train_rows,
-        "val": validation_size * n_symbols if validation_size is not None else None,
-        "test": test_size * n_symbols if test_size is not None else None,
+        SplitName.TRAIN: train_rows,
+        SplitName.VAL: validation_size * n_symbols if validation_size is not None else None,
+        SplitName.TEST: test_size * n_symbols if test_size is not None else None,
     }
 
 
 def _cached_split_rows(prepared_dir: Path) -> dict[str, int]:
     rows = {}
-    for split in ["train", "val", "test"]:
+    for split in SplitName:
         rows[split] = len(pd.read_parquet(prepared_dir / f"{split}_prepared.parquet"))
     return rows
 
@@ -464,9 +468,9 @@ def _write_prepared_cache_metadata(
     metadata = {
         "config_signature": _config_cache_signature(config),
         "split_rows": {
-            "train": len(train_df),
-            "val": len(val_df),
-            "test": len(test_df),
+            SplitName.TRAIN: len(train_df),
+            SplitName.VAL: len(val_df),
+            SplitName.TEST: len(test_df),
         },
         "memmap_rows": [p.n_rows for p in memmap_paths or []],
         "memmap_files": [str(p.data_path) for p in memmap_paths or []],
@@ -659,9 +663,9 @@ def _build_per_day_splits(
         train_df_i = pd.concat([raw_df, train_features], axis=1)
         del raw_df, train_features
 
-        if mode == "hft":
+        if mode == EnvMode.HFT:
             train_df_i = _derive_close_hft_single(train_df_i, f"train_{i}", logger)
-        if mode == "hft" and backend == "tradingenv":
+        if mode == EnvMode.HFT and backend == "tradingenv":
             train_df_i = _deduplicate_hft_index_single(train_df_i, f"train_{i}", logger)
 
         if first_train_df is None:
@@ -716,9 +720,9 @@ def _build_per_day_splits(
         val_df_j = pd.concat([raw_val, val_features], axis=1)
         del raw_val, val_features
 
-        if mode == "hft":
+        if mode == EnvMode.HFT:
             val_df_j = _derive_close_hft_single(val_df_j, f"val_{j}", logger)
-        if mode == "hft" and backend == "tradingenv":
+        if mode == EnvMode.HFT and backend == "tradingenv":
             val_df_j = _deduplicate_hft_index_single(val_df_j, f"val_{j}", logger)
 
         mid = len(val_df_j) // 2
@@ -739,7 +743,7 @@ def _build_per_day_splits(
 
     # Re-run index deduplication on the concatenated val/test to fix any
     # cross-symbol timestamp collisions introduced by pd.concat.
-    if mode == "hft" and backend == "tradingenv":
+    if mode == EnvMode.HFT and backend == "tradingenv":
         val_df = _deduplicate_hft_index_single(val_df, "val_concat", logger)
         test_df = _deduplicate_hft_index_single(test_df, "test_concat", logger)
 

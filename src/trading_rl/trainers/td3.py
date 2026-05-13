@@ -15,6 +15,7 @@ from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
+from trading_rl.constants import RewardType
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
 from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
 
@@ -230,7 +231,7 @@ class TD3Trainer(BaseTrainer):
         reward_type = getattr(config.env, "reward_type", "log_return") if config else "log_return"
         benchmark_data = []
 
-        if reward_type == "differential_sharpe":
+        if reward_type == RewardType.DIFFERENTIAL_SHARPE:
             # For DSR, calculate DSR benchmarks
             from trading_rl.utils import calculate_benchmark_dsr
 

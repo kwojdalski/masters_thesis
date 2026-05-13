@@ -27,6 +27,7 @@ import pandas as pd
 import yaml
 
 from logger import get_logger
+from trading_rl.constants import EnsembleMethod
 from trading_rl.features.base import FeatureConfig
 from trading_rl.features.pipeline import FeaturePipeline
 
@@ -102,7 +103,7 @@ class FeatureSelectorConfig:
     n_cv_splits: int = 5
     cv_test_size: int = 1000
     cv_gap: int = 100
-    ensemble_method: str = "rank_average"
+    ensemble_method: EnsembleMethod = EnsembleMethod.RANK_AVERAGE
     enable_hyperparameter_search: bool = False
     hyperparameter_grid: dict[str, list[Any]] = field(default_factory=dict)
 
@@ -131,9 +132,11 @@ class FeatureSelectorConfig:
             if self.cv_gap < 0:
                 raise ValueError("cv_gap must be >= 0")
 
-        if self.ensemble_method not in ["majority", "rank_average", "weighted"]:
+        try:
+            self.ensemble_method = EnsembleMethod(self.ensemble_method)
+        except ValueError:
             raise ValueError(
-                f"ensemble_method must be one of 'majority', 'rank_average', 'weighted', "
+                f"ensemble_method must be one of {[e.value for e in EnsembleMethod]}, "
                 f"got '{self.ensemble_method}'"
             )
 
@@ -674,7 +677,7 @@ def _build_multi_horizon_score_table(
 
 def _ensemble_select_features(
     split_selections: list[list[str]],
-    ensemble_method: str = "rank_average",
+    ensemble_method: EnsembleMethod = EnsembleMethod.RANK_AVERAGE,
     scores_per_split: list[pd.DataFrame] | None = None,
 ) -> list[str]:
     """Ensemble feature selections across CV splits.
@@ -695,7 +698,7 @@ def _ensemble_select_features(
 
     n_splits = len(split_selections)
 
-    if ensemble_method == "majority":
+    if ensemble_method == EnsembleMethod.MAJORITY:
         # Vote by majority
         feature_votes: dict[str, int] = {}
         for split_selected in split_selections:
@@ -717,7 +720,7 @@ def _ensemble_select_features(
         )
         return ensemble_selected
 
-    elif ensemble_method == "rank_average":
+    elif ensemble_method == EnsembleMethod.RANK_AVERAGE:
         # Average rankings across splits
         feature_ranks: dict[str, list[int]] = {}
         for split_idx, split_selected in enumerate(split_selections):
@@ -742,7 +745,7 @@ def _ensemble_select_features(
         )
         return ensemble_selected
 
-    elif ensemble_method == "weighted":
+    elif ensemble_method == EnsembleMethod.WEIGHTED:
         if scores_per_split is None or len(scores_per_split) != n_splits:
             raise ValueError(
                 "scores_per_split must be provided for weighted ensemble method"
@@ -812,7 +815,7 @@ class FeatureSelector:
             use_cross_validation=True,
             n_cv_splits=5,
             cv_test_size=1000,
-            ensemble_method="rank_average"
+            ensemble_method=EnsembleMethod.RANK_AVERAGE
         )
         result = selector.select(candidates, df)
 
@@ -1069,7 +1072,7 @@ class FeatureSelector:
         ensemble_selected = _ensemble_select_features(
             split_selections=split_selections,
             ensemble_method=cfg.ensemble_method,
-            scores_per_split=split_scores if cfg.ensemble_method == "weighted" else None,
+            scores_per_split=split_scores if cfg.ensemble_method == EnsembleMethod.WEIGHTED else None,
         )
 
         # Trim to top_k if ensemble returned more

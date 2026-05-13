@@ -21,6 +21,7 @@ from tradingenv.spaces import BoxPortfolio
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
+from trading_rl.constants import RewardType
 from trading_rl.data_loading import MemmapPaths
 from trading_rl.envs.trading_envs import BaseTradingEnvironmentFactory
 from trading_rl.rewards import DifferentialSharpeRatio
@@ -270,10 +271,10 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         reward_eta = kwargs.pop("reward_eta", reward_eta)
 
         # Create reward function based on configuration
-        if reward_type == "differential_sharpe":
+        if reward_type == RewardType.DIFFERENTIAL_SHARPE:
             reward = DifferentialSharpeRatio(eta=reward_eta)
             logger.info("reward differential_sharpe eta=%s", reward_eta)
-        elif reward_type == "log_return":
+        elif reward_type == RewardType.LOG_RETURN:
             reward = LogReturn()
             logger.info("using log_return reward")
         else:
@@ -423,9 +424,9 @@ class StreamingTradingEnvXY(gym.Env):
     # ------------------------------------------------------------------
 
     def _make_reward(self):
-        if self._reward_type == "differential_sharpe":
+        if self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
             return DifferentialSharpeRatio(eta=self._reward_eta)
-        if self._reward_type == "log_return":
+        if self._reward_type == RewardType.LOG_RETURN:
             return LogReturn()
         raise ValueError(
             f"Unknown reward type: {self._reward_type!r}. "

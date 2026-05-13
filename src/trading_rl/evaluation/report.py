@@ -11,6 +11,7 @@ from tensordict.nn import InteractionType
 from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
+from trading_rl.constants import RewardType
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.returns import extract_tradingenv_returns
 
@@ -73,7 +74,7 @@ def build_evaluation_report_for_trainer(
 
     # Reward can be a shaped signal (e.g., differential Sharpe), so only interpret
     # rollout reward as log-return when reward_type explicitly says so.
-    if str(reward_type).lower() == "log_return":
+    if reward_type == RewardType.LOG_RETURN:
         strategy_log_returns = (
             rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
         )
