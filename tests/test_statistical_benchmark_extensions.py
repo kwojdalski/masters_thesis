@@ -5,14 +5,15 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from trading_rl.evaluation.statistical_benchmarks import build_benchmark_comparison_table
-from trading_rl.evaluation.statistical_tests import (
+from trading_rl.evaluation.benchmarks import BenchmarkEngine
+from trading_rl.evaluation.statistical_benchmarks import (
+    build_benchmark_comparison_table,
     compute_buy_and_hold_returns,
     compute_short_and_hold_returns,
     compute_twap_returns,
     compute_vwap_returns,
-    run_all_statistical_tests,
 )
+from trading_rl.evaluation.statistical_tests import run_all_statistical_tests
 
 
 def _make_test_config() -> SimpleNamespace:
@@ -87,13 +88,12 @@ def test_run_all_statistical_tests_includes_extended_benchmark_table() -> None:
     )
     config = _make_test_config()
 
+    benchmarks, _ = BenchmarkEngine.build(market_data, config, price_column="close")
     results = run_all_statistical_tests(
         strategy_returns=strategy_returns,
-        prices=prices,
-        env=None,
+        benchmarks=benchmarks,
         max_steps=30,
         config=config,
-        market_data=market_data,
         periods_per_year=252,
     )
 

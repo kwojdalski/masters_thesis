@@ -17,9 +17,11 @@ from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import (
     EvaluationContext,
     build_evaluation_report_for_trainer,
+    compute_random_baseline_returns,
     periods_per_year_from_timeframe,
     run_all_statistical_tests,
 )
+from trading_rl.evaluation.benchmarks import BenchmarkEngine
 from trading_rl.pipeline.explainability import run_explainability_analysis
 
 
@@ -96,24 +98,6 @@ def compute_strategy_simple_returns_for_split(
     return strategy_simple_returns
 
 
-def resolve_price_series_for_split(
-    split_ctx: EvaluationContext,
-    config: ExperimentConfig,
-    logger: logging.Logger,
-) -> pd.Series | None:
-    benchmark_price_column = config.env.price_column or "close"
-    if benchmark_price_column in split_ctx.df.columns:
-        return split_ctx.df[benchmark_price_column]
-    if "close" in split_ctx.df.columns:
-        return split_ctx.df["close"]
-
-    logger.warning(
-        "No price column found for %s buy-and-hold comparison",
-        split_ctx.split,
-    )
-    return None
-
-
 def _run_rollout(trainer: Any, split_ctx: EvaluationContext) -> Any:
     """Execute a deterministic rollout, falling back from MODE to DETERMINISTIC."""
     from tensordict.nn import InteractionType
@@ -141,10 +125,7 @@ def run_statistical_tests_for_split(
     config: ExperimentConfig,
     logger: logging.Logger,
 ) -> None:
-    logger.info(
-        "Running statistical significance tests for %s split...",
-        split_ctx.split,
-    )
+    logger.info("Running statistical significance tests for %s split...", split_ctx.split)
     try:
         rollout = _run_rollout(trainer, split_ctx)
         strategy_simple_returns = compute_strategy_simple_returns_for_split(
@@ -152,19 +133,35 @@ def run_statistical_tests_for_split(
             split_ctx=split_ctx,
             config=config,
         )
-        price_series = resolve_price_series_for_split(split_ctx, config, logger)
+
+        price_column = config.env.price_column or "close"
+        benchmarks, _bench_meta = BenchmarkEngine.build(
+            split_ctx.df, config.statistical_testing, price_column
+        )
+
+        random_trials = None
+        if config.statistical_testing.compare_to_random:
+            logger.info(
+                "compute random baseline n_trials=%d", config.statistical_testing.n_random_trials
+            )
+            random_trials = compute_random_baseline_returns(
+                split_ctx.env,
+                split_ctx.max_steps,
+                n_trials=config.statistical_testing.n_random_trials,
+                seed=config.statistical_testing.random_seed,
+                reward_type=config.env.reward_type,
+            )
+
         periods_per_year = periods_per_year_from_timeframe(
             getattr(config.data, "timeframe", "1d")
         )
         statistical_test_results = run_all_statistical_tests(
             strategy_returns=strategy_simple_returns,
-            prices=price_series,
-            env=split_ctx.env,
+            benchmarks=benchmarks,
             max_steps=split_ctx.max_steps,
             config=config.statistical_testing,
-            market_data=split_ctx.df,
+            random_baseline_trials=random_trials,
             periods_per_year=periods_per_year,
-            reward_type=config.env.reward_type,
         )
         MLflowTrainingCallback.log_statistical_tests(
             statistical_test_results,
@@ -172,16 +169,9 @@ def run_statistical_tests_for_split(
             log_to_research_artifacts=config.statistical_testing.log_to_research_artifacts,
             research_artifact_subdir=config.statistical_testing.research_artifact_subdir,
         )
-        logger.info(
-            "Statistical significance tests complete for %s split",
-            split_ctx.split,
-        )
+        logger.info("Statistical significance tests complete for %s split", split_ctx.split)
     except Exception as error:
-        logger.error(
-            "Failed to run statistical tests for %s split: %s",
-            split_ctx.split,
-            error,
-        )
+        logger.error("Failed to run statistical tests for %s split: %s", split_ctx.split, error)
 
 
 def evaluate_split(

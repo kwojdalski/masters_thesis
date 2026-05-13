@@ -1,7 +1,11 @@
 """Evaluation utilities for quantitative finance metrics."""
 
 from trading_rl.evaluation.context import EvaluationContext
-from trading_rl.evaluation.benchmarks import calculate_benchmark_dsr
+from trading_rl.evaluation.benchmarks import (
+    BenchmarkEngine,
+    BenchmarkSpec,
+    calculate_benchmark_dsr,
+)
 from trading_rl.evaluation.plots import (
     compare_rollouts,
     create_actual_returns_plot,
@@ -59,6 +63,8 @@ from trading_rl.evaluation.policy_loader import PolicyLoader
 
 __all__ = [
     "TEST_REGISTRY",
+    "BenchmarkEngine",
+    "BenchmarkSpec",
     "BootstrapTest",
     "calculate_actual_returns",
     "calculate_benchmark_dsr",

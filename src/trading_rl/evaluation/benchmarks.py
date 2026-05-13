@@ -2,12 +2,138 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from typing import Any, Callable
+
 import numpy as np
+import pandas as pd
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+from trading_rl.evaluation.statistical_benchmarks import (
+    compute_buy_and_hold_returns,
+    compute_short_and_hold_returns,
+    compute_twap_returns,
+    compute_vwap_returns,
+    resolve_vwap_volume_series,
+)
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class BenchmarkSpec:
+    """A benchmark defined by a name and a pure return-computation callable.
+
+    ``compute_returns(max_steps)`` closes over whatever data it needs (price
+    series, volume series) and returns a simple-returns array of length
+    ``max_steps``.  No environment objects are involved.
+    """
+
+    name: str
+    compute_returns: Callable[[int], np.ndarray]
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+class BenchmarkEngine:
+    """Factory for pure price-data benchmarks — no environment coupling."""
+
+    @staticmethod
+    def buy_and_hold(prices: pd.Series) -> BenchmarkSpec:
+        return BenchmarkSpec(
+            name="buy_and_hold",
+            compute_returns=lambda steps: compute_buy_and_hold_returns(prices, steps),
+        )
+
+    @staticmethod
+    def short_and_hold(prices: pd.Series) -> BenchmarkSpec:
+        return BenchmarkSpec(
+            name="short_and_hold",
+            compute_returns=lambda steps: compute_short_and_hold_returns(prices, steps),
+        )
+
+    @staticmethod
+    def twap(prices: pd.Series) -> BenchmarkSpec:
+        return BenchmarkSpec(
+            name="twap",
+            compute_returns=lambda steps: compute_twap_returns(prices, steps),
+        )
+
+    @staticmethod
+    def vwap(
+        prices: pd.Series,
+        volumes: pd.Series,
+        *,
+        volume_source: str | None = None,
+    ) -> BenchmarkSpec:
+        meta: dict[str, Any] = {}
+        if volume_source:
+            meta["volume_source"] = volume_source
+        return BenchmarkSpec(
+            name="vwap",
+            compute_returns=lambda steps: compute_vwap_returns(prices, volumes, steps),
+            metadata=meta,
+        )
+
+    @staticmethod
+    def build(
+        market_data: pd.DataFrame,
+        config: Any,
+        price_column: str = "close",
+    ) -> tuple[list[BenchmarkSpec], dict[str, str]]:
+        """Build all enabled benchmark specs from market data.
+
+        Args:
+            market_data: Full split DataFrame (prices + optional volume columns).
+            config: ``StatisticalTestingConfig`` controlling which benchmarks are on.
+            price_column: Preferred price column; falls back to ``"close"`` if absent.
+
+        Returns:
+            A ``(specs, metadata)`` tuple where ``metadata`` may contain
+            ``"vwap_volume_source"`` if VWAP is enabled.
+        """
+        if price_column not in market_data.columns:
+            if "close" in market_data.columns:
+                price_column = "close"
+            else:
+                logger.warning(
+                    "No price column '%s' or 'close' found; no benchmarks built.",
+                    price_column,
+                )
+                return [], {}
+
+        prices = market_data[price_column]
+        specs: list[BenchmarkSpec] = []
+        result_meta: dict[str, str] = {}
+
+        if config.compare_to_buy_and_hold:
+            specs.append(BenchmarkEngine.buy_and_hold(prices))
+
+        if getattr(config, "compare_to_short_and_hold", False):
+            specs.append(BenchmarkEngine.short_and_hold(prices))
+
+        if getattr(config, "compare_to_twap", False):
+            specs.append(BenchmarkEngine.twap(prices))
+
+        if getattr(config, "compare_to_vwap", False):
+            volumes, volume_source = resolve_vwap_volume_series(market_data)
+            if volumes is None:
+                logger.warning(
+                    "VWAP benchmark skipped: no usable volume column found. "
+                    "Expected one of: volume, trade_volume, last_size, size, qty, "
+                    "or bid_sz_00/ask_sz_00 for proxy."
+                )
+            else:
+                if volume_source and "proxy" in str(volume_source):
+                    logger.warning(
+                        "VWAP is using %s. This is quote-size-weighted, not true traded volume.",
+                        volume_source,
+                    )
+                specs.append(BenchmarkEngine.vwap(prices, volumes, volume_source=volume_source))
+                if volume_source:
+                    result_meta["vwap_volume_source"] = volume_source
+
+        return specs, result_meta
 
 
 def calculate_benchmark_dsr(
