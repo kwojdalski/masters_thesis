@@ -12,13 +12,14 @@ import torch
 
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
+from trading_rl.constants import RewardType
+from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import (
     EvaluationContext,
     build_evaluation_report_for_trainer,
     periods_per_year_from_timeframe,
     run_all_statistical_tests,
 )
-from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.pipeline.explainability import run_explainability_analysis
 
 
@@ -65,7 +66,7 @@ def compute_strategy_simple_returns_for_split(
     reward_type = config.env.reward_type
     backend = config.env.backend
 
-    if str(reward_type).lower() == "log_return":
+    if reward_type == RewardType.LOG_RETURN:
         strategy_log_returns = (
             rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[
                 : split_ctx.max_steps
@@ -327,7 +328,6 @@ def run_primary_split_explainability(
     if not primary_split:
         return
 
-    from trading_rl.pipeline.explainability import run_explainability_analysis
 
     split_frames = {"train": train_df, "val": val_df, "test": test_df}
     explainability_ctx = build_evaluation_context_for_split(

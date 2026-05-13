@@ -65,6 +65,22 @@ class DataFormat(StrEnum):
     PICKLE = "pickle"
 
 
+class EnsembleMethod(StrEnum):
+    """Feature selection ensemble methods for cross-validation."""
+
+    MAJORITY = "majority"
+    RANK_AVERAGE = "rank_average"
+    WEIGHTED = "weighted"
+
+
+class SplitName(StrEnum):
+    """Dataset split names."""
+
+    TRAIN = "train"
+    VAL = "val"
+    TEST = "test"
+
+
 class TradePosition(IntEnum):
     """Discrete trading position values used by the trading environment.
 

@@ -12,6 +12,7 @@ from torchrl.envs.transforms import StepCounter
 
 from logger import get_logger
 from trading_rl.config import ExperimentConfig
+from trading_rl.constants import RewardType
 from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
 from trading_rl.rewards import reward_function
 
@@ -234,7 +235,7 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
         # Apply DSR wrapper if configured
         if self.config is not None:
             reward_type = getattr(self.config.env, "reward_type", "log_return")
-            if reward_type == "differential_sharpe":
+            if reward_type == RewardType.DIFFERENTIAL_SHARPE:
                 from trading_rl.rewards.dsr_wrapper import (
                     DifferentialSharpeRatioAnyTrading,
                     StatefulRewardWrapper,
@@ -286,7 +287,7 @@ class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
         # Apply DSR wrapper if configured
         if self.config is not None:
             reward_type = getattr(self.config.env, "reward_type", "log_return")
-            if reward_type == "differential_sharpe":
+            if reward_type == RewardType.DIFFERENTIAL_SHARPE:
                 from trading_rl.rewards.dsr_wrapper import (
                     DifferentialSharpeRatioAnyTrading,
                     StatefulRewardWrapper,
