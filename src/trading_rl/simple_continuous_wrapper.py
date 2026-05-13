@@ -81,22 +81,15 @@ class ContinuousActionWrapper(EnvBase):
         return result
         
     def _continuous_to_discrete(self, continuous_action: torch.Tensor) -> torch.Tensor:
-        """Convert continuous action [-1, 1] to discrete action index."""
-        # Handle different tensor shapes
-        if continuous_action.numel() == 1:
-            action_val = continuous_action.item()
-        else:
-            action_val = continuous_action.flatten()[0].item()
-        
-        # Map to discrete action index
-        if action_val < self.thresholds[0]:
-            discrete_idx = 0  # Short
-        elif action_val > self.thresholds[1]:  
-            discrete_idx = 2  # Long
-        else:
-            discrete_idx = 1  # Hold
-            
-        return torch.tensor(discrete_idx, dtype=torch.long, device=self.device)
+        """Convert continuous action [-1, 1] to discrete action indices.
+
+        Returns a tensor with shape = continuous_action.shape[:-1].
+        """
+        values = continuous_action.reshape(-1).float()
+        indices = torch.ones(values.shape, dtype=torch.long, device=self.device)
+        indices[values < self.thresholds[0]] = 0
+        indices[values > self.thresholds[1]] = 2
+        return indices.reshape(continuous_action.shape[:-1])
 
     def set_seed(self, seed):
         """Set random seed."""
