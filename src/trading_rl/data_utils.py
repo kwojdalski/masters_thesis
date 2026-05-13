@@ -950,7 +950,19 @@ def _feature_cache_key(
 
     if feature_pipeline is not None:
         pipeline_repr = [
-            {"name": fc.name, "feature_type": fc.feature_type, "params": fc.params}
+            {
+                "name": fc.name,
+                "feature_type": fc.feature_type,
+                "params": fc.params,
+                "normalize": fc.normalize,
+                "normalization_method": fc.normalization_method,
+                "rolling_window": fc.rolling_window,
+                "reset_on_session_break": fc.reset_on_session_break,
+                "session_break_threshold_hours": fc.session_break_threshold_hours,
+                "use_time_weights": fc.use_time_weights,
+                "output_name": fc.output_name,
+                "domain": str(fc.domain),
+            }
             for fc in feature_pipeline.feature_configs
         ]
         config_sig = hashlib.md5(
