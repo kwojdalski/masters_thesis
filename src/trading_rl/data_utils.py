@@ -146,12 +146,20 @@ def validate_prepared_data(
                 f"Found: {non_feature_cols}"
             )
 
-    if train_df.isnull().any().any():
-        nan_cols = train_df.columns[train_df.isnull().any()].tolist()
-        raise ValueError(
-            f"Training data contains NaN values in columns: {nan_cols}. "
-            f"Clean the data before training."
-        )
+    for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+        if split_df.isnull().any().any():
+            nan_cols = split_df.columns[split_df.isnull().any()].tolist()
+            raise ValueError(
+                f"{split_name} data contains NaN values in columns: {nan_cols}. "
+                f"Clean the data before training."
+            )
+        numeric_cols = split_df.select_dtypes(include="number").columns
+        if np.isinf(split_df[numeric_cols].values).any():
+            inf_cols = [c for c in numeric_cols if np.isinf(split_df[c].values).any()]
+            raise ValueError(
+                f"{split_name} data contains infinite values in columns: {inf_cols}. "
+                f"Clean the data before training."
+            )
 
 
 _Splits = tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
