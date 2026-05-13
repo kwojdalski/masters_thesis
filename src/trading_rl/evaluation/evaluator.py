@@ -194,6 +194,7 @@ class StrategyEvaluator:
         return build_metric_report(
             strategy_simple_returns=simple_returns,
             benchmark_simple_returns=benchmark_simple_returns,
+            actions=None,
             periods_per_year=252,  # TODO: make configurable
             risk_free_rate_annual=0.0,
         )
@@ -312,7 +313,6 @@ class StrategyEvaluator:
         results = {}
 
         for split, df in [("train", train_df), ("val", val_df), ("test", test_df)]:
-            if len(df) < 2:
-                results[split] = self.evaluate_split(split, df)
+            results[split] = self.evaluate_split(split, df)
 
         return results
