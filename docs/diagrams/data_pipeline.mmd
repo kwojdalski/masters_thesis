@@ -1,26 +1,36 @@
 flowchart TD
-    A[build_prepared_dataset config] --> B[prepare_data]
-    B --> C{Data file exists?}
-    C -- No, download enabled --> D[download_trading_data]
-    C -- No, download disabled --> E[FileNotFoundError]
-    C -- Yes --> F[load_trading_data]
-    D --> F
-    F --> G[drop NaNs]
-    G --> H[train / val / test split<br/>chronological order]
-    H --> I{feature config path?}
-    I -- Yes --> J[FeaturePipeline.from_yaml]
-    I -- No --> K[create_default_pipeline]
-    J --> L[pipeline.fit on train only]
-    K --> L
-    L --> M[transform train]
-    L --> N[transform val]
-    L --> O[transform test]
-    M --> P[concat raw + features<br/>train df]
-    N --> Q[concat raw + features<br/>val df]
-    O --> R[concat raw + features<br/>test df]
-    P --> S[ensure_close_column_for_hft]
-    Q --> S
-    R --> S
-    S --> T[ensure_unique_index_for_hft_tradingenv]
-    T --> U[validate_prepared_data]
-    U --> V[PreparedDataset<br/>train_df / val_df / test_df<br/>feature_columns / price_column]
+    A["build_prepared_dataset(config)"] --> B{"Prepared-data cache\ncompatible?\ndata/prepared/{exp}/\ntrain/val/test_prepared.parquet\n+ _prepared_cache_metadata.json"}
+
+    B -- Hit --> DONE["PreparedDataset\ntrain_df · val_df · test_df\nfeature_columns · price_column\nmemmap_train_paths"]
+
+    B -- Miss --> C{"val_data_paths\nconfigured?"}
+
+    %% ── Per-day path (production pooled daily) ──────────────────────────────
+    C -- "Yes → per-day mode" --> PD1["Group 18 training parquet files by symbol\n6 symbol groups × 3 days each\n(sorted alphabetically: AAPL·AMZN·AVGO·META·MSFT·TSLA)"]
+    PD1 --> PD2["Per-symbol pipeline fitting (6 × fit)\nFor each symbol:\n  concat its 3 raw training-day DataFrames\n  FeaturePipeline.fit(combined)\n    Welford online normalisation\n    session boundary reset at gaps > 1 h\n  free combined + gc.collect()"]
+    PD2 --> PD3["Transform 18 training files\nFor each file i:\n  load_parquet(path_i).dropna()\n  features = pipeline[symbol].transform(raw)\n  merged = concat(raw, features)\n  HFT: derive close = (bid_px_00 + ask_px_00) / 2\n  HFT: deduplicate timestamps (1 µs min gap)\n  save_symbol_memmap → {i}_train_data.npy\n  free merged + gc.collect()"]
+    PD3 --> PD4["Transform 6 val files\nFor each val_path_j:\n  load_parquet(path_j).dropna()\n  features = pipeline[symbol].transform(raw)\n  merged = concat(raw, features)\n  HFT post-process\n  split at midpoint (50/50):\n    val_j  = merged[:mid] → tmp parquet\n    test_j = merged[mid:] → tmp parquet\n  free merged + gc.collect()"]
+    PD4 --> PD5["Assemble val_df / test_df\nval_df  = pd.concat(val_j  for j in 0..5)\ntest_df = pd.concat(test_j for j in 0..5)\nRe-deduplicate timestamps after concat\n(fix cross-symbol collisions)\ntrain_df = first_train_df (reference only)"]
+    PD5 --> VAL
+
+    %% ── Chronological path (single symbol / pooled without val_data_paths) ─
+    C -- "No → chronological mode" --> FC{"Feature cache\ncompatible?\n.cache/feature_transformation/\nkey = MD5(path+mtime+sizes+config)"}
+    FC -- Hit --> HFT
+    FC -- Miss --> F["load_trading_data(path)\nread parquet · drop NaNs"]
+    F --> G["Chronological split (no shuffling)\ntrain: first train_size rows\nval:   next validation_size rows\ntest:  remainder"]
+    G --> H{"feature_config\nprovided?"}
+    H -- Yes --> I["FeaturePipeline.from_yaml(feature_config)"]
+    H -- No --> J["No pipeline\nraw features pass through unchanged"]
+    I --> K["pipeline.fit(train_df_raw)\nWelford online normalisation\nsession boundary reset"]
+    J --> K2["skip fit"]
+    K --> L["Transform train / val / test\npipeline.transform(split_df_raw)"]
+    K2 --> L
+    L --> M["concat raw + features\n→ train_df_i · val_df_i · test_df_i"]
+    M --> N["Write feature cache\n.cache/feature_transformation/{key}/\ntrain.parquet · val.parquet · test.parquet"]
+    N --> HFT["HFT post-processing\nensure_close_column_for_hft()\n  close = (bid_px_00 + ask_px_00) / 2\nensure_unique_index_for_hft_tradingenv()\n  deduplicate timestamps 1 µs gap"]
+    HFT --> MM["save_symbol_memmap(train_df)\n{i}_train_data.npy (float32)\n{i}_train_index.npy (ns timestamps)\n{i}_columns.json"]
+    MM --> CONCAT["Concatenate splits across symbols\ntrain_df = first symbol only\nval_df   = concat all symbol val splits\ntest_df  = concat all symbol test splits"]
+    CONCAT --> VAL
+
+    %% ── Shared tail ─────────────────────────────────────────────────────────
+    VAL["validate_prepared_data()\n• non-empty train / val / test\n• close column present\n• feature_* columns present\n• no NaN in train split"] --> DONE

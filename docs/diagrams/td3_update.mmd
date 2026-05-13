@@ -1,11 +1,15 @@
 flowchart TD
-    A[Sample batch from replay buffer] --> B[Target action<br/>with smoothing noise]
-    B --> C[Target y from<br/>min of twin target critics]
-    C --> D[Update critic 1]
-    C --> E[Update critic 2]
-    D --> F{Policy delay reached?}
-    E --> F
-    F -->|Yes| G[Update actor<br/>via critic 1]
-    G --> H[Soft-update<br/>target networks]
-    F -->|No| I[Next critic step]
+    A["Sample batch from replay buffer\nsample_size = 128 transitions"] --> NAN{"NaN or Inf\nin reward?"}
+    NAN -- Yes --> SKIP["Skip optimization step\nlog warning"]
+    NAN -- No --> B["Target action with smoothing noise\nã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)"]
+    B --> C["Target y from min of twin target critics\ny = r + γ · min(Q1_tgt(s',ã), Q2_tgt(s',ã))  γ=0.995"]
+    C --> D["Compute critic loss (SmoothL1)\nL = SmoothL1(Q1(s,a)−y) + SmoothL1(Q2(s,a)−y)"]
+    D --> E["optimizer_value.zero_grad()\nloss_qvalue.backward()\noptimizer_value.step()"]
+    E --> ESYNC["Sync functional params → critic module\ntd3_loss.qvalue_network_params.to_module(value_net)"]
+    ESYNC --> F{"Policy delay reached?\ncurrent_step % policy_delay == 0\n(policy_delay = 2)"}
+    F -->|Yes| G["Recompute loss for actor update\n(uses updated critic weights)\nL = −mean(Q1(s, actor(s)))"]
+    G --> GA["optimizer_actor.zero_grad()\nloss_actor.backward()\noptimizer_actor.step()"]
+    GA --> GASYNC["Sync functional params → actor module\ntd3_loss.actor_network_params.to_module(actor)"]
+    GASYNC --> H["Soft-update target networks\nθ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001\nupdater.step()"]
+    F -->|No| I["Next critic step\n(actor and targets unchanged)"]
     H --> I

@@ -12,12 +12,12 @@ acquire: Data Acquisition {
     style.fill: "#bfdbfe"
   }
 
-  symbols: "6 symbols\nAAPL · MSFT · TSLA\nMETA · AMZN · AVGO\n4 trading days\n2026-02-25 to 2026-03-03" {
+  symbols: "6 symbols\nAAPL · MSFT · TSLA\nMETA · AMZN · AVGO\n4 trading days\n2026-02-25 to 2026-03-02" {
     shape: step
     style.fill: "#bfdbfe"
   }
 
-  parquet: "Raw MBP-10 parquet per symbol\n~7M tick events · ~40 columns\nbid_px_00..09 · ask_px_00..09\nbid_sz_00..09 · ask_sz_00..09\nbid_ct_00..09 · ask_ct_00..09\naction · ts_event" {
+  parquet: "Raw MBP-10 parquet per symbol per day\n~7M tick events · ~40 columns\nbid_px_00..09 · ask_px_00..09\nbid_sz_00..09 · ask_sz_00..09\nbid_ct_00..09 · ask_ct_00..09\naction · ts_event\n\nTraining files: 18  (6 symbols × 3 days: 2026-02-25, -02-26, -02-27)\nVal/test files:  6  (6 symbols × 1 day:  2026-03-02)" {
     shape: cylinder
     style.fill: "#93c5fd"
   }
@@ -134,7 +134,57 @@ prep: Data Preparation {
   style.fill: "#dcfce7"
   style.stroke: "#16a34a"
 
-  dp_loop: Per-Symbol Processing (repeat for each of 6 symbols) {
+  dp_prepared_cache: "Prepared-data cache check\ndata/prepared/{experiment}/{train,val,test}_prepared.parquet\n+ _prepared_cache_metadata.json\nKey: config signature (feature_config hash + data source mtimes + env mode)" {
+    shape: diamond
+    style.fill: "#bbf7d0"
+  }
+
+  dp_mode: "Splitting mode\nval_data_paths configured?" {
+    shape: diamond
+    style.fill: "#bbf7d0"
+  }
+
+  # ── Per-day path (production pooled daily scenario) ──────────────────────
+  dp_perday: Per-Day Split Mode  (val_data_paths present — production path) {
+    style.fill: "#f0fdf4"
+    style.stroke: "#15803d"
+
+    pd_group: "Group 18 training parquet files by symbol\n6 symbol groups (AAPL · AMZN · AVGO · META · MSFT · TSLA)\n3 files per symbol (days 2026-02-25, -02-26, -02-27)\nsorted alphabetically by filename prefix" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    pd_fit: "Per-symbol pipeline fitting  (6 × fit)\nFor each symbol:\n  concat raw DataFrames for its 3 training days\n  FeaturePipeline.fit(combined)\n    Welford online normalisation\n    session boundary reset at gaps > 1 hour\n  discard combined frame + gc.collect()" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    pd_train_transform: "Transform 18 training files  (one per day-symbol)\nFor each file i ∈ [0..17]:\n  raw_df = load_parquet(path_i).dropna()\n  features = pipeline[symbol_i].transform(raw_df)\n  merged = concat(raw_df, features)\n  HFT: derive close = (bid_px_00 + ask_px_00) / 2\n  HFT: deduplicate timestamps (1µs min gap)\n  save_symbol_memmap(merged, memmap_dir, prefix=i)\n    → {i}_train_data.npy · {i}_train_index.npy · {i}_columns.json\n  free merged + gc.collect()" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    pd_val_transform: "Transform 6 val files  (one per symbol, day 2026-03-02)\nFor each val_path_j  (j ∈ [0..5]):\n  raw_val = load_parquet(val_path_j).dropna()\n  features = pipeline[symbol_j].transform(raw_val)\n  merged = concat(raw_val, features)\n  HFT: derive close · deduplicate timestamps\n  split at midpoint (50/50):\n    val_j  = merged[:mid]  → saved to tmp parquet\n    test_j = merged[mid:]  → saved to tmp parquet\n  free merged + gc.collect()" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    pd_assemble: "Assemble val / test DataFrames\nval_df  = pd.concat(val_j  for j in 0..5)\ntest_df = pd.concat(test_j for j in 0..5)\nRe-deduplicate timestamps on concatenated frames\n  (fix cross-symbol timestamp collisions after concat)\ntrain_df = first_train_df  (file 0, reference only —\n  actual training lives in the 18 memmaps)" {
+      shape: step
+      style.fill: "#bbf7d0"
+    }
+
+    pd_memmaps: "18 memmap files (one per training day-symbol pair)\n{i}_train_data.npy   (n_rows × n_cols, float32)\n{i}_train_index.npy  (nanosecond timestamps)\n{i}_columns.json     (column names)" {
+      shape: cylinder
+      style.fill: "#86efac"
+    }
+
+    pd_group -> pd_fit -> pd_train_transform -> pd_val_transform -> pd_assemble
+    pd_train_transform -> pd_memmaps
+  }
+
+  # ── Chronological path (single symbol or pooled without val_data_paths) ──
+  dp_loop: Per-Symbol Chronological Mode  (no val_data_paths, repeat for each symbol) {
     style.fill: "#f0fdf4"
     style.stroke: "#15803d"
 
@@ -185,17 +235,23 @@ prep: Data Preparation {
     dp_hft -> dp_memmap
   }
 
-  dp_concat: "Concatenate splits across symbols\ntrain_df = first symbol only (streaming mode)\nval_df   = concat all 6 val splits\ntest_df  = concat all 6 test splits\nvalidate_prepared_data()" {
+  dp_validate: "validate_prepared_data()\ncheck: train / val / test non-empty\ncheck: close column present\ncheck: feature_* columns present\ncheck: no NaN values in train split" {
     shape: step
     style.fill: "#bbf7d0"
   }
 
-  dp_prepared: "PreparedDataset\ntrain_df · val_df · test_df\nfeature_columns · price_column\nmemmap_train_paths (6 MemmapPaths)" {
+  dp_prepared: "PreparedDataset\ntrain_df · val_df · test_df\nfeature_columns · price_column · raw_columns\nmemmap_train_paths  (18 MemmapPaths in per-day mode)" {
     shape: step
     style.fill: "#86efac"
   }
 
-  dp_loop -> dp_concat -> dp_prepared
+  dp_prepared_cache -> dp_mode: "miss"
+  dp_prepared_cache -> dp_prepared: "hit — load parquets from cache, skip all processing"
+  dp_mode -> dp_perday: "yes — production pooled daily"
+  dp_mode -> dp_loop: "no — single symbol or pooled (chronological)"
+  dp_perday.pd_assemble -> dp_validate
+  dp_loop -> dp_validate
+  dp_validate -> dp_prepared
 }
 
 # ─────────────────────────────────────────────
@@ -209,17 +265,17 @@ train: RL Training {
     style.fill: "#fff1f2"
     style.stroke: "#b91c1c"
 
-    env: "StreamingTradingEnvXY  (episode reset)\nShuffle symbol deck → pick next symbol\nPick random start ∈ [0, train_size − episode_length]\nLoad 50k-row window from memmap\nBuild inner TradingEnv\n→ ~40 episodes total across 2M training steps" {
+    env: "StreamingTradingEnvXY  (episode reset)\nPick next file from shuffled deck of 18 memmaps\n  (6 symbols × 3 training days; deck reshuffled each cycle)\nPick random start ∈ [0, n_rows − episode_length]\nLoad 50k-row window from memmap\nBuild fresh inner tradingenv.TradingEnv on each reset\n  action_space: BoxPortfolio [−1, 1]\n  observation: CustomFeature (26 static + 1 runtime position)\n→ ~40 episodes across 2M training steps" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    reward: "Differential Sharpe Ratio reward  (per step)\n\nR_t = log return of portfolio value\n\nEMA updates (η = 0.01):\n  A_t = (1−η)·A_{t−1} + η·R_t        (mean)\n  B_t = (1−η)·B_{t−1} + η·R_t²       (2nd moment)\n\nReward:\n  ΔA_t = R_t − A_{t−1}\n  ΔB_t = R_t² − B_{t−1}\n  D_t  = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n          / (B_{t−1} − A_{t−1}²)^(3/2) + ε" {
+    reward: "Differential Sharpe Ratio reward  (per step)\n\nR_t = log return of portfolio value\n\nEMA updates (η = 0.01):\n  A_t = (1−η)·A_{t−1} + η·R_t        (mean)\n  B_t = (1−η)·B_{t−1} + η·R_t²       (2nd moment)\n\nReward:\n  ΔA_t = R_t − A_{t−1}\n  ΔB_t = R_t² − B_{t−1}\n  D_t  = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n          / (B_{t−1} − A_{t−1}²)^(3/2) + ε\n\nReset A_t, B_t, prev_nlv to zero at each episode start" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    collector: "SyncDataCollector\ncollect frames_per_batch = 200 transitions per update\nfirst init_rand_steps = 1000 are fully random" {
+    collector: "SyncDataCollector\ncollect frames_per_batch = 200 transitions per update\n\nTD3 / DDPG:  init_rand_steps = 1000 fully random warmup\n             (RandomPolicy used until buffer has enough data)\nPPO:         init_rand_steps = 0  (stochastic sampling is inherent)" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -236,17 +292,17 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    td3_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.1 added to deterministic action" {
+    td3_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.1 (exploration_noise_std) added to deterministic action\nclipped to action spec bounds [−1, 1]" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    td3_buffer: "Replay Buffer  (off-policy)\nLazyTensorStorage · capacity = 100k\nsampling: uniform random" {
+    td3_buffer: "Replay Buffer  (off-policy)\nLazyTensorStorage · capacity = 100k transitions\nsampling: uniform random\nsample_size = 128 per gradient step" {
       shape: queue
       style.fill: "#fca5a5"
     }
 
-    td3_update: "Update  (optim_steps_per_batch = 5 × per collect)\n\nCritic loss  (SmoothL1):\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\n  y = r + γ · min(Q1_tgt(s',ã), Q2_tgt(s',ã))  γ=0.995\n  L = SmoothL1(Q1(s,a)−y) + SmoothL1(Q2(s,a)−y)\n\nActor loss  (every policy_delay=2 critic steps):\n  L = −mean(Q1(s, actor(s)))\n\nSoft target update:\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001" {
+    td3_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\n  y = r + γ · min(Q1_tgt(s',ã), Q2_tgt(s',ã))  γ=0.995\n  L = SmoothL1(Q1(s,a)−y) + SmoothL1(Q2(s,a)−y)\n\nActor loss  (every policy_delay=2 critic steps):\n  L = −mean(Q1(s, actor(s)))\n\nSoft target update  (every actor update step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -263,17 +319,17 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    ddpg_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.1 added to deterministic action" {
+    ddpg_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.1 (exploration_noise_std) added to deterministic action\nclipped to action spec bounds [−1, 1]" {
       shape: step
       style.fill: "#fecaca"
     }
 
-    ddpg_buffer: "Replay Buffer  (off-policy)\nLazyTensorStorage · capacity = 100k\nsampling: uniform random" {
+    ddpg_buffer: "Replay Buffer  (off-policy)\nLazyTensorStorage · capacity = 100k transitions\nsampling: uniform random\nsample_size = 128 per gradient step" {
       shape: queue
       style.fill: "#fca5a5"
     }
 
-    ddpg_update: "Update  (optim_steps_per_batch = 5 × per collect)\n\nCritic loss  (SmoothL1 or MSE):\n  y = r + γ · Q_target(s', actor_target(s'))  γ=0.995\n  L = SmoothL1(Q(s,a) − y)\n\nActor loss  (every step — no delay):\n  L = −mean(Q(s, actor(s)))\n\nSoft target update:\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001" {
+    ddpg_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  y = r + γ · Q_target(s', actor_target(s'))  γ=0.995\n  L = SmoothL1(Q(s,a) − y)\n\nActor loss  (every step — no policy delay):\n  L = −mean(Q(s, actor(s)))\n\nSoft target update  (every step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001\n\nNote: no target policy smoothing (noise_clip is TD3-only)" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -300,7 +356,7 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    ppo_update: "Update  (ppo_epochs=4 passes over fresh batch)\nOn-policy: fresh batch only — no replay buffer\n\nClipPPOLoss:\n  loss_objective = −min(r_t·A_t, clip(r_t, 1±ε)·A_t)\n    r_t = π(a|s) / π_old(a|s)  (probability ratio)\n    ε   = clip_epsilon = 0.2\n  loss_critic  = MSE(V(s) − V_target)\n  loss_entropy = −entropy_bonus · H[π]   bonus=0.01\n  total = loss_objective + loss_critic + loss_entropy" {
+    ppo_update: "Update  (ppo_epochs=4 passes over fresh batch)\nOn-policy: fresh batch only — no replay buffer\nnormalize_advantage = True\n\nClipPPOLoss:\n  r_t = π(a|s) / π_old(a|s)  (probability ratio)\n  loss_objective = −min(r_t·A_t, clip(r_t, 1±ε)·A_t)  ε=0.2\n  loss_critic    = L2(V(s) − V_target)\n  loss_entropy   = −H[π]  (entropy bonus = 0.01)\n\n  total = loss_objective\n        + vf_coef × loss_critic   (vf_coef = 0.5)\n        + entropy_bonus × loss_entropy" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -308,12 +364,22 @@ train: RL Training {
     ppo_net -> ppo_explore -> ppo_advantage -> ppo_update
   }
 
-  ckpt: "Checkpoint  (every 100k steps)\nactor weights · critic weights\ntarget network weights (TD3/DDPG only)\noptimizer states\ntotal_count · total_episodes · logs\nmlflow run id / name / uri\nreplay buffer dump (optional, TD3/DDPG only)\nsaved to logs/{experiment}/" {
+  ckpt: "Checkpoint  (every checkpoint_interval = 100k steps)\nactor weights · critic weights\ntarget network weights (TD3/DDPG only)\noptimizer states\ntotal_count · total_episodes · logs\nmlflow run id / name / experiment id / uri\nreplay buffer dump (optional, TD3/DDPG only)\nsaved to logs/{experiment}/" {
     shape: document
     style.fill: "#fca5a5"
   }
 
-  periodic_eval: "Periodic evaluation  (every eval_interval steps)\ndeterministic rollout on train-split window\nlog episode reward · portfolio return\nmarket return benchmark" {
+  resume: "Checkpoint Resumption  (optional)\n--checkpoint-path flag → load saved state\nrestore actor / critic / optimizer / buffer\nresume MLflow run (same run_id)\nadditional_steps override for extended training" {
+    shape: step
+    style.fill: "#fecaca"
+  }
+
+  periodic_eval: "Periodic evaluation  (every temp_eval_interval = 100k steps)\ndeterministic rollout on train-split window\neval_fraction = 0.2 × val split length\nlog episode reward · portfolio return\nmarket return benchmark\n→ temp MLflow metric (not final eval)" {
+    shape: step
+    style.fill: "#fecaca"
+  }
+
+  periodic_expl: "Periodic explainability  (every temp_explainability_interval = 100k steps)\nPermutation importance on train-split window\nn_steps = 500 rollout\nrank feature importance by reward drop\n→ temp artifact logged to MLflow" {
     shape: step
     style.fill: "#fecaca"
   }
@@ -327,7 +393,7 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    train_step_metrics: "Step metrics  (every log_interval steps)\nactor_loss · value_loss\nloss_entropy (PPO only)\ntotal_steps_trained · avg_position_changes" {
+    train_step_metrics: "Step metrics  (every log_interval = 100 steps)\nactor_loss · value_loss\nloss_entropy (PPO only)\ntotal_steps_trained · avg_position_changes" {
       shape: document
       style.fill: "#fecaca"
     }
@@ -352,10 +418,16 @@ train: RL Training {
   td3.td3_update -> periodic_eval
   ddpg.ddpg_update -> periodic_eval
   ppo.ppo_update -> periodic_eval
+  td3.td3_update -> periodic_expl
+  ddpg.ddpg_update -> periodic_expl
+  ppo.ppo_update -> periodic_expl
   td3.td3_update -> train_mlflow
   ddpg.ddpg_update -> train_mlflow
   ppo.ppo_update -> train_mlflow
   periodic_eval -> shared_env.collector: "continue training"
+  resume -> td3.td3_net: "restore weights + optimizer"
+  resume -> ddpg.ddpg_net: "restore weights + optimizer"
+  resume -> ppo.ppo_net: "restore weights + optimizer"
 }
 
 # ─────────────────────────────────────────────
@@ -365,7 +437,7 @@ eval: Post-Training Evaluation {
   style.fill: "#f3e8ff"
   style.stroke: "#9333ea"
 
-  rollout: "Deterministic rollout  (no exploration noise)\nfull val split  (~3.4M ticks, continuous)\nfull test split (~3.4M ticks, continuous)\nactor in deterministic mode" {
+  rollout: "Deterministic rollout  (no exploration noise)\nfull val split  (eval_fraction = 0.2 of total)\nfull test split (eval_fraction = 0.2 of total)\nactor in deterministic / MODE interaction type" {
     shape: step
     style.fill: "#e9d5ff"
   }
@@ -380,12 +452,12 @@ eval: Post-Training Evaluation {
     style.fill: "#e9d5ff"
   }
 
-  stats: "Statistical significance tests\nvs each benchmark:\n  t-test (two-sample, returns)\n  Mann-Whitney U test\n  Sharpe bootstrap  (n=10k samples)\n  Sortino bootstrap (n=10k samples)\nconfidence level = 0.95\nreports p-value · test statistic · conclusion" {
+  stats: "Statistical significance tests\nvs each benchmark:\n  t-test (two-sample, returns)\n  Mann-Whitney U test\n  Sharpe bootstrap  (n=10k samples)\n  Sortino bootstrap (n=10k samples)\n  Permutation test  (n=10k permutations)\nconfidence level = 0.95\nreports p-value · test statistic · conclusion" {
     shape: step
     style.fill: "#e9d5ff"
   }
 
-  expl: "Explainability\nPermutation feature importance:\n  for each feature:\n    shuffle feature values in observation\n    measure drop in cumulative reward\n    importance = reward_original − reward_shuffled\nn_steps = 500\noutput: ranked feature importance bar chart" {
+  expl: "Explainability  (primary split)\n\nPermutation feature importance (Captum FeaturePermutation):\n  for each feature:\n    shuffle feature values in observation\n    measure drop in cumulative reward vs baseline\n    importance = reward_original − reward_shuffled\n  n_steps = 500\n  output: ranked feature importance bar chart\n\nIntegrated Gradients (Captum IntegratedGradients):\n  ActorCaptumProxy wraps TorchRL actor for Captum\n  compute IG(x) = (x − baseline) × ∫ ∂actor/∂x dα  (n_steps=500)\n  baseline = zero tensor\n  output: signed feature attribution scores\n  (DDPG and PPO configs only)" {
     shape: step
     style.fill: "#e9d5ff"
   }
@@ -414,7 +486,7 @@ eval: Post-Training Evaluation {
       style.fill: "#e9d5ff"
     }
 
-    expl_artifacts: "Explainability artifacts  (primary split)\nexplainability/\n  explainability_permutation.png  (importance bar chart)\n  importance_permutation.csv      (scores per feature)" {
+    expl_artifacts: "Explainability artifacts  (primary split)\nexplainability/\n  explainability_permutation.png  (importance bar chart)\n  importance_permutation.csv      (scores per feature)\n  explainability_integrated_gradients.png  (attribution chart)\n  importance_integrated_gradients.csv      (signed scores)" {
       shape: document
       style.fill: "#e9d5ff"
     }
@@ -433,13 +505,17 @@ eval: Post-Training Evaluation {
 # Cross-stage connections
 # ─────────────────────────────────────────────
 acquire.parquet -> research.per_symbol: "raw tick data\nper symbol"
-acquire.parquet -> prep.dp_loop: "raw tick data\nper symbol"
+acquire.parquet -> prep.dp_mode: "raw tick data\n18 training + 6 val parquets"
 
-research.fr_outputs.fr_yaml -> prep.dp_loop.dp_fit: "reduced feature config\n(optional, feeds next run)" {
+research.fr_outputs.fr_yaml -> prep.dp_mode: "reduced feature config\n(optional, feeds next run)" {
   style.stroke-dash: 4
   style.stroke: "#ca8a04"
 }
 
-prep.dp_prepared -> train.env: "MemmapPaths\n6 symbols"
+prep.dp_prepared -> train.shared_env.env: "18 MemmapPaths\n(6 symbols × 3 days)"
 prep.dp_prepared -> eval.rollout: "val_df + test_df\nconcatenated splits"
 train.ckpt -> eval.rollout: "trained actor weights\n(deterministic mode)"
+train.ckpt -> train.resume: "resume path" {
+  style.stroke-dash: 4
+  style.stroke: "#dc2626"
+}
