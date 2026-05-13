@@ -117,17 +117,22 @@ def setup_logging(config: ExperimentConfig) -> logging.Logger:
 
 def set_seed(seed: int | None) -> int:
     """Set random seeds for reproducibility."""
+    import os
     import random
 
     if seed is None:
         seed = random.randint(1, 100000)  # noqa: S311
         logging.getLogger(__name__).info("Generated random seed: %s", seed)
 
+    os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     torch.manual_seed(seed)
     np.random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     return seed
 
 
