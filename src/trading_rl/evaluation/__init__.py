@@ -65,6 +65,33 @@ __all__ = [
     "PermutationTest",
     "SharpeBootstrapTest",
     "SortinoBootstrapTest",
+    "StatisticalTest",
+    "TTest",
+    "build_benchmark_comparison_table",
+    "build_evaluation_report_for_trainer",
+    "build_metric_report",
+    # Baseline computation
+    "compute_buy_and_hold_returns",
+    "compute_random_baseline_returns",
+    "compute_short_and_hold_returns",
+    "compute_twap_returns",
+    "compute_vwap_returns",
+    # Factory and registry
+    "get_test",
+    "list_available_tests",
+    "mann_whitney_test",
+    "periods_per_year_from_timeframe",
+    "permutation_test",
+    "register_test",
+    "run_all_statistical_tests",
+    "sharpe_ratio_bootstrap_test",
+    "sortino_ratio_bootstrap_test",
+    # Individual test functions
+    "t_test_mean_returns",
+    "PermutationMeanTest",
+    "PermutationTest",
+    "SharpeBootstrapTest",
+    "SortinoBootstrapTest",
     # Statistical test classes (for extensions)
     "StatisticalTest",
     "TTest",
@@ -91,4 +118,7 @@ __all__ = [
     "sortino_ratio_bootstrap_test",
     # Individual test functions
     "t_test_mean_returns",
+    "EvaluationConfig",
+    "SplitEvaluationResult",
+    "StrategyEvaluator",
 ]

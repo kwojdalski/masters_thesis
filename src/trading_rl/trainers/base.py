@@ -359,6 +359,102 @@ class BaseTrainer(ABC):
         algorithm: str | None = None,
         eval_env: Any | None = None,
     ) -> tuple[Any, ...]:
+        """Delegated evaluation - creates plots and results using StrategyEvaluator.
+
+        This method now delegates to StrategyEvaluator for evaluation logic,
+        decoupling training from evaluation. The original implementation
+        remains for backward compatibility during transition.
+
+        Args:
+            df: Price/OHLCV data for evaluation
+            max_steps: Maximum steps to evaluate
+            config: Experiment configuration (optional, uses default if None)
+            algorithm: Algorithm name (for logging only)
+            eval_env: Optional dedicated evaluation environment
+
+        Returns:
+            Tuple of (reward_plot, action_plot, action_probs_plot, final_reward,
+                     last_positions, actual_returns_plot, merged_plot)
+        """
+        import numpy as np
+        import pandas as pd
+
+        from trading_rl.utils import (
+            compare_rollouts,
+            create_actual_returns_plot,
+            create_merged_comparison_plot,
+        )
+
+        from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+
+        logger = get_logger(__name__)
+
+        env_to_use = eval_env or self.env
+
+        # Build evaluation config from training config (or use defaults)
+        eval_config_kwargs = {}
+        if config:
+            eval_config_kwargs = {
+                "reward_type": getattr(config.env, "reward_type", "log_return"),
+                "backend": getattr(config.env, "backend", "tradingenv"),
+                "price_column": getattr(config.env, "price_column", None),
+                "max_steps": max_steps,
+                "enable_plots": True,
+                "enable_metrics": False,  # Metrics computed separately
+            }
+
+        from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
+
+        eval_config = EvaluationConfig(**eval_config_kwargs)
+
+        # Create env factory for StrategyEvaluator
+        # For simplicity: delegate to AlgorithmicEnvironmentBuilder
+        from trading_rl.envs import AlgorithmicEnvironmentBuilder
+
+        env_factory = AlgorithmicEnvironmentBuilder().create
+
+        # Create evaluator and run evaluation
+        evaluator = StrategyEvaluator(
+            env_factory=env_factory,
+            policy=self.actor,
+            config=eval_config,
+        )
+
+        result = evaluator.evaluate_split("eval", df)
+
+        # Reconstruct tuple return for backward compatibility
+        reward_plot = result.plots["reward_plot"] if result.plots else None
+        action_plot = result.plots["action_plot"] if result.plots else None
+        actual_returns_plot = create_actual_returns_plot(
+            [result.rollout],
+            max_steps,
+            df_prices=df,
+            env=env_to_use,
+            actual_returns_list=[result.simple_returns],
+            initial_portfolio_value=(
+                float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
+                if config
+                else DEFAULT_INITIAL_PORTFOLIO_VALUE
+            ),
+            benchmark_price_column=getattr(config.env, "price_column", None) if config else "close",
+        )
+        merged_plot = create_merged_comparison_plot(reward_plot, action_plot)
+
+        is_portfolio = self._is_portfolio_backend(config)
+
+        final_reward = float(result.rollout["next", "reward"].sum().item())
+
+        last_positions = self._extract_actions(result.rollout, is_portfolio)
+
+        return (
+            reward_plot,
+            action_plot,
+            None,  # Third plot (action_probs_plot) - PPO-specific
+            final_reward,
+            last_positions,
+            actual_returns_plot,
+            merged_plot,
+        )
         """Default evaluation: deterministic vs random rollout comparison."""
         import numpy as np
         import pandas as pd
