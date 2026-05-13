@@ -245,6 +245,8 @@ def _build_training_bundle(
     trainer._eval_data_len = len(dataset.val_df)
     trainer.n_obs = n_obs
     trainer.n_act = n_act
+    trainer.actor_hidden_dims = config.network.actor_hidden_dims
+    trainer.value_hidden_dims = config.network.value_hidden_dims
 
     mlflow_callback = None
     if create_mlflow_callback:

@@ -110,6 +110,8 @@ class BaseTrainer(ABC):
         # Set by the pipeline after construction for checkpoint portability.
         self.n_obs: int | None = None
         self.n_act: int | None = None
+        self.actor_hidden_dims: list[int] | None = None
+        self.value_hidden_dims: list[int] | None = None
 
         # Optional dedicated evaluation environment.  When set, periodic _evaluate()
         # calls use this env instead of self.env, preventing SyncDataCollector
