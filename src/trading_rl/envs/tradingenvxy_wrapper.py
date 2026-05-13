@@ -394,6 +394,7 @@ class StreamingTradingEnvXY(gym.Env):
         reward_eta: float = 0.01,
         runtime_feature_columns: list[str] | None = None,
         obs_clip: float | None = None,
+        seed: int | None = None,
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -401,7 +402,7 @@ class StreamingTradingEnvXY(gym.Env):
         self._memmap_paths = memmap_paths
         self._episode_length = episode_length
         self._symbol_queue: list[int] = []
-        self._symbol_rng = np.random.default_rng()
+        self._symbol_rng = np.random.default_rng(seed)
         self._feature_columns = feature_columns
         self._price_column = price_column
         self._initial_cash = initial_cash
@@ -483,10 +484,13 @@ class StreamingTradingEnvXY(gym.Env):
         return self._symbol_queue.pop()
 
     def reset(self, *, seed=None, options=None):
+        if seed is not None:
+            self._symbol_rng = np.random.default_rng(seed)
+            self._symbol_queue = []
         file_idx = self._next_symbol_idx()
         mp = self._memmap_paths[file_idx]
         max_start = mp.n_rows - self._episode_length
-        start = np.random.randint(0, max(1, max_start))
+        start = int(self._symbol_rng.integers(0, max(1, max_start)))
         window_df = self._load_window(file_idx, start)
         self._inner_env = self._build_inner_env(window_df)
         obs = self._inner_env.reset()
