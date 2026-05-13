@@ -72,7 +72,7 @@ def calculate_benchmark_dsr(
         delta_a = r_t - a_t
         delta_b = r_t**2 - b_t
         variance = b_t - a_t**2
-        denominator = variance**1.5 + epsilon
+        denominator = max(variance, 0.0) ** 1.5 + epsilon
         dsr = (b_t * delta_a - a_t * delta_b / 2) / denominator
 
         a_t = (1 - eta) * a_t + eta * r_t
