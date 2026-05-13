@@ -193,13 +193,28 @@ def _build_score_table(
             if len(train_aligned) < 10:
                 continue
 
-            stats = _score_feature_at_horizon(
-                train_aligned.iloc[:, 0],
-                val_aligned.iloc[:, 0] if len(val_aligned) >= 10 else train_aligned.iloc[:10, 0],
-                train_aligned.iloc[:, 1],
-                val_aligned.iloc[:, 1] if len(val_aligned) >= 10 else train_aligned.iloc[:10, 1],
-                window_size,
-            )
+            if len(val_aligned) < 10:
+                logger.warning(
+                    "Insufficient val data for feature=%s horizon=%d (%d rows); "
+                    "val_mean_ic set to NaN",
+                    feat, h, len(val_aligned),
+                )
+                stats = _score_feature_at_horizon(
+                    train_aligned.iloc[:, 0],
+                    pd.Series([], dtype=float),
+                    train_aligned.iloc[:, 1],
+                    pd.Series([], dtype=float),
+                    window_size,
+                )
+                stats["val_mean_ic"] = float("nan")
+            else:
+                stats = _score_feature_at_horizon(
+                    train_aligned.iloc[:, 0],
+                    val_aligned.iloc[:, 0],
+                    train_aligned.iloc[:, 1],
+                    val_aligned.iloc[:, 1],
+                    window_size,
+                )
 
             if abs(stats["icir"]) > best_icir_abs:
                 best_icir_abs = abs(stats["icir"])
