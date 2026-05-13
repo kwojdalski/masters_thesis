@@ -308,7 +308,9 @@ class EvaluateCommand(BaseCommand):
 
         config_path = params.config_file
         if not config_path.exists():
-            config_path = self._resolve_scenario_config_path(str(params.config_file))
+            config_path = self._resolve_scenario_config_path(
+                str(params.config_file), command_file="evaluate.yaml"
+            )
 
         config = ExperimentConfig.from_yaml(
             config_path, overrides=params.config_overrides
@@ -316,20 +318,6 @@ class EvaluateCommand(BaseCommand):
         self.console.print(f"[dim]Config: {config_path}[/dim]")
         return config
 
-    def _resolve_scenario_config_path(self, scenario: str) -> Path:
-        candidate = Path(scenario)
-        search_paths = [
-            candidate,
-            Path("src/configs/scenarios") / scenario,
-            Path("src/configs/scenarios") / f"{scenario}.yaml",
-        ]
-        for path in search_paths:
-            if path.exists():
-                return path.resolve()
-        raise ValueError(
-            f"Config '{scenario}' not found. Provide a valid path or name under "
-            "src/configs/scenarios."
-        )
 
     def _resolve_checkpoint(self, config: Any, params: EvaluateParams) -> Path:
         if params.checkpoint is not None:

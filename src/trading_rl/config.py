@@ -452,10 +452,15 @@ class ExperimentConfig:
 
         # Build a unique name that includes the group subfolder when present.
         # e.g. src/configs/scenarios/sine_wave/ppo_no_trend.yaml -> sine_wave_ppo_no_trend
+        # e.g. src/configs/scenarios/btc/td3_tradingenv/train.yaml -> btc_td3_tradingenv
+        _COMMAND_STEMS = {"train", "evaluate", "experiment"}
         parts = yaml_path.parts
         try:
             scenarios_idx = list(parts).index("scenarios")
-            rel_parts = parts[scenarios_idx + 1:]
+            rel_parts = list(parts[scenarios_idx + 1:])
+            # Strip command-file stem so train.yaml / evaluate.yaml don't pollute the name
+            if rel_parts and Path(rel_parts[-1]).stem in _COMMAND_STEMS:
+                rel_parts = rel_parts[:-1]
             derived_name = "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else yaml_path.stem
         except ValueError:
             derived_name = yaml_path.stem

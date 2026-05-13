@@ -142,24 +142,3 @@ class ExperimentCommand(BaseCommand):
             "\n[dim]Check MLflow UI for detailed metrics and comparisons[/dim]"
         )
     
-    def _resolve_scenario_config_path(self, scenario: str) -> Path:
-        """Resolve scenario name to config file path."""
-        candidate_path = Path(scenario)
-
-        if candidate_path.is_dir():
-            candidate_path = candidate_path / "config.yaml"
-
-        search_paths = [
-            candidate_path,
-            Path("src/configs/scenarios") / scenario,
-            Path("src/configs/scenarios") / f"{scenario}.yaml",
-        ]
-
-        for path in search_paths:
-            if path.exists():
-                return path.resolve()
-
-        raise typer.BadParameter(
-            f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs/scenarios. "
-                f"Use 'scenarios' to see available options."
-        )
