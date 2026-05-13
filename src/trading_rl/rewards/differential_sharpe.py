@@ -294,7 +294,8 @@ Note: DSR must be calculated BEFORE updating the EMAs to use old values (t-1).
         # Update previous NLV for next step
         self._prev_nlv = nlv_now
 
-        return float(dsr)
+        # Clamp to prevent gradient explosion when variance collapses near zero
+        return float(np.clip(dsr, -10.0, 10.0))
 
     def reset(self) -> None:
         """Reset DSR state for new episode.
