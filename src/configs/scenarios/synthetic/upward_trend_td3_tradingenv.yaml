@@ -21,7 +21,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_UPTREND"
   backend: "tradingenv"
 
   # Transaction costs

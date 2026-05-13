@@ -15,7 +15,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_BTC_REDUCED_FEATURES"
   backend: "tradingenv"
 
   # Transaction costs

@@ -14,7 +14,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_BTC_OPTIMIZED"
   backend: "tradingenv"
 
   trading_fees: 0.0007  # 0.07% (Binance taker fee)

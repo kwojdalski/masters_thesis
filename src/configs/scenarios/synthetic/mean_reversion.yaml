@@ -15,7 +15,6 @@ data:
   train_size: 450
 
 env:
-  name: "MEANREVERT"
   positions: [-1, 0, 1]
   trading_fees: 0.0
   borrow_interest_rate: 0.0

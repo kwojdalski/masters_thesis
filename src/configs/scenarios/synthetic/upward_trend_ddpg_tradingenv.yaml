@@ -19,7 +19,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_DDPG_UPTREND"
   backend: "tradingenv"
   trading_fees: 0.001
   price_column: "close"

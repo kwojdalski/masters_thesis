@@ -13,7 +13,6 @@ data:
 
 # Environment Configuration - TradingEnv (Continuous Portfolio)
 env:
-  name: "SINEWAVE_NO_TREND_CONTINUOUS"
   backend: "tradingenv"  # Triggers PPOTrainerContinuous
   
   # Transaction costs

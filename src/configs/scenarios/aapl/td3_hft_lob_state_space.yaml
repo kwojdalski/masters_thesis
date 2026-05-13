@@ -26,7 +26,6 @@ data:
   train_size: 50000
 
 env:
-  name: "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
   backend: "tradingenv"
   mode: "hft"
 

@@ -19,7 +19,6 @@ data:
 
 # Environment Configuration
 env:
-  name: "TRADINGENV_TD3_BTC_MINIMAL"
   backend: "tradingenv"
 
   trading_fees: 0.0007

@@ -20,7 +20,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_PPO_SINE_OHLCV_ONLY"
   backend: "tradingenv"
 
   # Transaction costs

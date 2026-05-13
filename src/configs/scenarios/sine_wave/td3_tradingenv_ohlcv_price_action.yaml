@@ -21,7 +21,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_SINE_OHLCV_ONLY"
   backend: "tradingenv"
 
   # Transaction costs
