@@ -157,10 +157,10 @@ class MLflowTrainingCallback:
         episode_length = len(actions)
         position_change_ratio = position_changes / episode_length if episode_length > 0 else 0.0
 
-        episode_base = self._episode_count
-        if isinstance(episode_base, torch.Tensor):
-            episode_base = int(episode_base.item())
-        episode_num = int(episode_base) + len(self.training_stats["episode_rewards"])
+        # Calculate next episode number: current episode count + 1
+        episode_num = int(self._episode_count) + 1
+        if isinstance(episode_num, torch.Tensor):
+            episode_num = int(episode_num.item())
 
         mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
         mlflow.log_metric("episode_portfolio_valuation", portfolio_valuation, step=episode_num)
