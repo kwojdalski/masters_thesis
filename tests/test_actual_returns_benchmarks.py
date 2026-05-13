@@ -13,7 +13,7 @@ def test_actual_returns_plot_includes_benchmarks():
     """Test that benchmarks are added to actual returns plot when df_prices is provided."""
     # Create sample price data
     n_steps = 50
-    prices = 100 + np.random.randn(n_steps).cumsum()
+    prices = 100 + np.random.randn(n_steps + 1).cumsum()
     df_prices = pd.DataFrame({
         "close": prices,
         "open": prices * 0.99,
