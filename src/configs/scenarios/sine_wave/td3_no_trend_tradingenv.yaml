@@ -21,7 +21,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_PORTFOLIO"
   backend: "tradingenv"
 
   # Transaction costs

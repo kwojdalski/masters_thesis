@@ -16,7 +16,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_SINE_ALL_FEATURES"
   backend: "tradingenv"
 
   # Transaction costs

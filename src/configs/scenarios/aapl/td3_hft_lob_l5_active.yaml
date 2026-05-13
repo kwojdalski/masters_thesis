@@ -36,7 +36,6 @@ data:
 
 # Environment Configuration - TradingEnv Backend
 env:
-  name: "TRADINGENV_TD3_AAPL_HFT_L5_ACTIVE"
   backend: "tradingenv"
   mode: "hft"  # Enable HFT mode to accept HFT domain features
 

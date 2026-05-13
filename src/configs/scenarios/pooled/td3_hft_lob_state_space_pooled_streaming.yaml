@@ -40,7 +40,6 @@ data:
   memmap_dir: ./data/memmap/pooled_daily_6sym
   feature_cache_dir: ".cache/feature_transformation"
 env:
-  name: TRADINGENV_TD3_POOLED_HFT_STATE_SPACE_STREAMING
   backend: tradingenv
   mode: hft
   trading_fees: 0.0
