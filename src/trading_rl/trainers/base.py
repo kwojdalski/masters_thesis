@@ -20,6 +20,7 @@ from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
+from trading_rl.constants import RewardType
 from trading_rl.trainers.checkpointing import CheckpointManager
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 
@@ -251,10 +252,10 @@ class BaseTrainer(ABC):
         reward_type = getattr(callback, "reward_type", "log_return")
 
         # Determine actual portfolio valuation based on reward type
-        if reward_type == "log_return":
+        if reward_type == RewardType.LOG_RETURN:
             # For log_return, reward matches portfolio growth
             portfolio_valuation = initial_val * np.exp(episode_reward)
-        elif reward_type == "differential_sharpe":
+        elif reward_type == RewardType.DIFFERENTIAL_SHARPE:
             # For DSR, extract actual dollar returns from environment broker
             from trading_rl.evaluation.returns import extract_tradingenv_returns
 
@@ -301,19 +302,8 @@ class BaseTrainer(ABC):
         # Use initial_val from callback and portfolio_valuation calculated above
         portfolio_return = 100 * (portfolio_valuation / initial_val - 1)
 
-        # Compute buy-and-hold benchmark if price series is available on the callback
-        market_return = None
-        price_series = getattr(callback, "price_series", None)
-        episode_length = len(actions)
-        if price_series is not None and episode_length > 0:
-            end_idx = min(episode_length, len(price_series) - 1)
-            start_price = price_series.iloc[0]
-            end_price = price_series.iloc[end_idx]
-            market_return = 100 * (end_price / start_price - 1)
-
         logger.info(
             f"Episode {callback._episode_count} complete | "
-            f"Market Return: {market_return:5.2f}% | "
             f"Portfolio Return: {portfolio_return:5.2f}% | "
             f"Portfolio Value: ${portfolio_valuation:,.2f}"
         )
@@ -470,7 +460,7 @@ class BaseTrainer(ABC):
         reward_type = getattr(config.env, "reward_type", "log_return") if config else "log_return"
         benchmark_data = []
 
-        if reward_type == "differential_sharpe":
+        if reward_type == RewardType.DIFFERENTIAL_SHARPE:
             # For DSR, calculate DSR benchmarks
             from trading_rl.utils import calculate_benchmark_dsr
 
