@@ -50,6 +50,7 @@ def run_all_statistical_tests(
     *,
     market_data: pd.DataFrame | None = None,
     periods_per_year: int = 252,
+    reward_type: str = "log_return",
 ) -> dict[str, Any]:
     """Run all configured statistical significance tests.
 
@@ -59,6 +60,9 @@ def run_all_statistical_tests(
         env: Trading environment for random baseline
         max_steps: Number of steps for evaluation
         config: StatisticalTestingConfig
+        reward_type: Reward type string used by the environment; controls how
+            random-baseline returns are extracted (NLV path for DSR, reward
+            stream for log_return).
 
     Returns:
         Dict with all test results organized by baseline
@@ -159,7 +163,8 @@ def run_all_statistical_tests(
         try:
             logger.info("compute random baseline n_trials=%d", config.n_random_trials)
             random_trials = compute_random_baseline_returns(
-                env, max_steps, n_trials=config.n_random_trials, seed=config.random_seed
+                env, max_steps, n_trials=config.n_random_trials, seed=config.random_seed,
+                reward_type=reward_type,
             )
 
             # Aggregate random trials (use mean across trials)
