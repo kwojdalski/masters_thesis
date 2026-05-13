@@ -88,15 +88,31 @@ def best_level_ofi(
     bid_size_col: str,
     ask_size_col: str,
 ) -> pd.Series:
-    """Compute best-level order flow imbalance from consecutive snapshots."""
+    """Compute best-level order flow imbalance from consecutive snapshots.
+
+    Follows Cont et al. (2014): full queue size for price-change events,
+    delta for same-price events, negative prior size for price retreats.
+    """
     bid_px = df[bid_price_col].astype(float)
     ask_px = df[ask_price_col].astype(float)
     bid_sz = df[bid_size_col].astype(float)
     ask_sz = df[ask_size_col].astype(float)
-    ofi = (
-        bid_sz.diff() * (bid_px >= bid_px.shift(1)).astype(float)
-        - ask_sz.diff() * (ask_px <= ask_px.shift(1)).astype(float)
-    ).fillna(0.0)
+    prev_bid_px = bid_px.shift(1)
+    prev_ask_px = ask_px.shift(1)
+    prev_bid_sz = bid_sz.shift(1)
+    prev_ask_sz = ask_sz.shift(1)
+
+    bid_event = pd.Series(0.0, index=df.index)
+    bid_event[bid_px > prev_bid_px] = bid_sz[bid_px > prev_bid_px]
+    bid_event[bid_px == prev_bid_px] = (bid_sz - prev_bid_sz)[bid_px == prev_bid_px]
+    bid_event[bid_px < prev_bid_px] = -prev_bid_sz[bid_px < prev_bid_px]
+
+    ask_event = pd.Series(0.0, index=df.index)
+    ask_event[ask_px < prev_ask_px] = ask_sz[ask_px < prev_ask_px]
+    ask_event[ask_px == prev_ask_px] = (ask_sz - prev_ask_sz)[ask_px == prev_ask_px]
+    ask_event[ask_px > prev_ask_px] = -prev_ask_sz[ask_px > prev_ask_px]
+
+    ofi = (bid_event - ask_event).fillna(0.0)
     ofi.iloc[0] = 0.0
     return ofi
 
