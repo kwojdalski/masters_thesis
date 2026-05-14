@@ -7,6 +7,7 @@ framework and emits a reduced feature configuration for later RL experiments.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,7 +17,7 @@ import yaml
 from sklearn.linear_model import LinearRegression
 
 from logger import get_logger
-from trading_rl.data_utils import _feature_cache_key, load_trading_data
+from trading_rl.data_utils import load_trading_data
 from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
 from trading_rl.features import FeaturePipeline
 
@@ -383,14 +384,16 @@ def _score_single_symbol(
             if config.data.validation_size is not None
             else remaining_cfg // 2
         )
-        cache_key = _feature_cache_key(
-            data_path,
-            train_size_cfg,
-            validation_size_resolved,
-            test_size=None,
-            feature_config_path=config.data.feature_config,
-            feature_pipeline=None,
+        _feat_cfg_path = config.data.feature_config
+        _cfg_sig = (
+            hashlib.md5(Path(_feat_cfg_path).read_bytes()).hexdigest()[:12]
+            if _feat_cfg_path and Path(_feat_cfg_path).exists()
+            else "default"
         )
+        _file_mtime = Path(data_path).stat().st_mtime_ns
+        cache_key = hashlib.md5(
+            f"{Path(data_path).name}|{_file_mtime}|{train_size_cfg}|{validation_size_resolved}|{_cfg_sig}".encode()
+        ).hexdigest()
         cache_entry = Path(config.data.feature_cache_dir) / f"fr_{cache_key}"
         _fr_files = ("train_features", "val_features", "train_price", "val_price")
         if all((cache_entry / f"{f}.parquet").exists() for f in _fr_files):

@@ -956,13 +956,21 @@ def build_prepared_dataset(
 
 def _feature_cache_key(
     data_path: str,
-    train_size: int,
-    validation_size: int | None,
-    test_size: int | None,
     feature_config_path: str | None,
     feature_pipeline: Any | None,
+    filter_lob_levels: int | None = None,
 ) -> str:
-    """Compute a cache key that changes whenever inputs change."""
+    """Compute a cache key that changes whenever feature inputs change.
+
+    Split sizes (train/val/test) are intentionally excluded: all normalizers
+    in the active config are session-aware causal (running mean resets at each
+    intraday session boundary), so the feature value at tick t depends only on
+    prior ticks within the same session — not on where the train/val split falls.
+    The full transformed dataset is cached once and sliced at load time.
+
+    filter_lob_levels is included because it changes the raw row set before
+    feature computation.
+    """
     file_mtime = Path(data_path).stat().st_mtime_ns
 
     if feature_pipeline is not None:
@@ -990,7 +998,7 @@ def _feature_cache_key(
     else:
         config_sig = "default"
 
-    raw = f"{Path(data_path).name}|{file_mtime}|{train_size}|{validation_size}|{test_size}|{config_sig}"
+    raw = f"{Path(data_path).name}|{file_mtime}|lob{filter_lob_levels}|{config_sig}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
@@ -1014,21 +1022,39 @@ def prepare_data(
         Tuple of (train_df, val_df, test_df) with raw OHLCV plus engineered features.
 
     Example:
-        cfg = PrepareDataConfig(train_size=450, feature_config_path="configs/features/sine_wave.yaml")
+        cfg = PrepareDataConfig(train_size=450, feature_config_path="configs/feature_sets/sine_wave.yaml")
         train_df, val_df, test_df = prepare_data("data.parquet", cfg)
     """
     # Feature cache — skip the expensive transform when inputs haven't changed.
+    # The full transformed dataset is cached as a single file; train/val/test
+    # splits are sliced at load time so the cache is shared across configs that
+    # differ only in split sizes.
     _cache_entry: Path | None = None
+    _cache_key: str | None = None
     if cfg.feature_cache_dir and Path(data_path).exists():
-        cache_key = _feature_cache_key(
-            data_path, cfg.train_size, cfg.validation_size, cfg.test_size, cfg.feature_config_path, feature_pipeline
+        _cache_key = _feature_cache_key(
+            data_path, cfg.feature_config_path, feature_pipeline, cfg.filter_lob_levels
         )
-        _cache_entry = Path(cfg.feature_cache_dir) / cache_key
-        _splits = ("train", "val", "test")
-        if all((_cache_entry / f"{s}.parquet").exists() for s in _splits):
-            logger.info("feature cache hit key=%s path=%s", cache_key[:8], _cache_entry)
-            return tuple(pd.read_parquet(_cache_entry / f"{s}.parquet") for s in _splits)  # type: ignore[return-value]
-        logger.info("feature cache miss key=%s", cache_key[:8])
+        _cache_entry = Path(cfg.feature_cache_dir) / _cache_key
+        _full_cache = _cache_entry / "full.parquet"
+        if _full_cache.exists():
+            logger.info("feature cache hit key=%s path=%s", _cache_key[:8], _cache_entry)
+            full_df = pd.read_parquet(_full_cache)
+            # Resolve split sizes against the cached row count
+            _n = len(full_df)
+            _train = min(cfg.train_size, _n)
+            _remaining = _n - _train
+            _val = cfg.validation_size if cfg.validation_size is not None else (
+                _remaining // 2 if cfg.test_size is None else max(0, _remaining - cfg.test_size)
+            )
+            _val_end = _train + _val
+            _test_end = (_val_end + cfg.test_size) if cfg.test_size is not None else _n
+            return (
+                full_df.iloc[:_train],
+                full_df.iloc[_train:_val_end],
+                full_df.iloc[_val_end:_test_end],
+            )
+        logger.info("feature cache miss key=%s", _cache_key[:8])
 
     # Check if data exists
     if not Path(data_path).exists():
@@ -1106,23 +1132,20 @@ def prepare_data(
     logger.info("fit feature pipeline")
     pipeline.fit(train_df_raw)
 
-    # Transform train/validation/test using fitted parameters
-    logger.info("transform split name=train")
-    train_features = pipeline.transform(train_df_raw)
+    # Transform the full dataset in one pass. Because all normalizers are
+    # session-aware causal (stats reset at each intraday session boundary),
+    # the feature value at tick t depends only on prior ticks in the same
+    # session — not on where the train/val/test boundary falls. Transforming
+    # the full array lets us cache once and slice for any split configuration.
+    full_df_raw = df.iloc[:test_end].copy()
+    logger.info("transform full dataset n_rows=%d", len(full_df_raw))
+    full_features = pipeline.transform(full_df_raw)
+    full_df = pd.concat([full_df_raw, full_features], axis=1)
+    del full_df_raw, full_features
 
-    logger.info("transform split name=val")
-    val_features = pipeline.transform(val_df_raw)
-
-    logger.info("transform split name=test")
-    test_features = pipeline.transform(test_df_raw)
-
-    # Keep raw OHLCV for price/info columns, append engineered features
-    train_df = pd.concat([train_df_raw, train_features], axis=1)
-    del train_df_raw, train_features
-    val_df = pd.concat([val_df_raw, val_features], axis=1)
-    del val_df_raw, val_features
-    test_df = pd.concat([test_df_raw, test_features], axis=1)
-    del test_df_raw, test_features
+    train_df = full_df.iloc[:train_size]
+    val_df = full_df.iloc[train_size:val_end]
+    test_df = full_df.iloc[val_end:test_end]
 
     logger.info(
         "feature engineering complete"
@@ -1136,9 +1159,7 @@ def prepare_data(
 
     if _cache_entry is not None:
         _cache_entry.mkdir(parents=True, exist_ok=True)
-        train_df.to_parquet(_cache_entry / "train.parquet")
-        val_df.to_parquet(_cache_entry / "val.parquet")
-        test_df.to_parquet(_cache_entry / "test.parquet")
-        logger.info("save feature cache key=%s path=%s", cache_key[:8], _cache_entry)
+        full_df.to_parquet(_cache_entry / "full.parquet")
+        logger.info("save feature cache key=%s path=%s", _cache_key[:8], _cache_entry)
 
     return train_df, val_df, test_df
