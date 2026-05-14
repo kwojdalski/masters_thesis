@@ -802,7 +802,7 @@ class FeatureSelector:
         from trading_rl.features.groups import FeatureGroupResolver
         from trading_rl.features.selector import FeatureSelector, FeatureSelectorConfig
 
-        resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+        resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
         candidates = resolver.resolve(resolver.list_groups())
 
         # Standard single-split selection
@@ -839,7 +839,7 @@ class FeatureSelector:
         result = selector.select(candidates, df)
 
         # Write to YAML for training
-        FeatureSelector.write_selected_yaml(result, "src/configs/features/selected.yaml")
+        FeatureSelector.write_selected_yaml(result, "src/configs/feature_sets/selected.yaml")
     """
 
     def __init__(self, config: FeatureSelectorConfig | None = None) -> None:

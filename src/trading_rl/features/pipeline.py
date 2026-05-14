@@ -82,7 +82,7 @@ class FeaturePipeline:
             FeaturePipeline instance
 
         Example:
-            pipeline = FeaturePipeline.from_yaml("configs/features/sine_wave_price_action.yaml")
+            pipeline = FeaturePipeline.from_yaml("configs/feature_sets/sine_wave_price_action.yaml")
 
         YAML format:
             features:
@@ -269,7 +269,7 @@ class FeaturePipeline:
 
         Example:
             pipeline = FeaturePipeline.from_groups(
-                "src/configs/features/feature_groups.yaml",
+                "src/configs/feature_sets/feature_groups.yaml",
                 group_names=["imbalance", "fair_value", "flow"],
             )
         """

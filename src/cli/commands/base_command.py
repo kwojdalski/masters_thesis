@@ -96,7 +96,7 @@ class BaseCommand(ABC):
     ) -> Any:
         """Load ExperimentConfig from a scenario directory or a legacy YAML file.
 
-        Prefers the component-file layout (features.yaml + {command}.yaml) when the
+        Prefers the component-file layout (observation.yaml + {command}.yaml) when the
         resolved path is a directory; falls back to a single-file load otherwise.
         """
         from trading_rl import ExperimentConfig
@@ -111,7 +111,7 @@ class BaseCommand(ABC):
 
         if path.is_dir():
             command_file = f"{command}.yaml"
-            if (path / command_file).exists() or (path / "features.yaml").exists():
+            if (path / command_file).exists() or (path / "observation.yaml").exists():
                 return ExperimentConfig.from_scenario(path, command=command, overrides=overrides)
             # Directory exists but has no component files — fall through to legacy resolution
             resolved = self._resolve_scenario_config_path(str(scenario_or_path), command_file=command_file)

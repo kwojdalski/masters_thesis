@@ -1,6 +1,6 @@
 # HFT LOB Feature Formulas
 
-Definitions in `src/configs/features/hft_lob_features.yaml`.
+Definitions in `src/configs/feature_sets/hft_lob_features.yaml`.
 Implementation in `src/trading_rl/features/lob_features.py`.
 
 **Column naming convention**

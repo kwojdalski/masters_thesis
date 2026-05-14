@@ -499,7 +499,7 @@ class ExperimentConfig:
         """Load config by merging scenario component files.
 
         Merge order (later wins):
-          1. features.yaml          — feature pipeline + feature_columns
+          1. observation.yaml        — feature pipeline + feature_columns
           2. train.yaml             — base params (always included, even for evaluate)
           3. {command}.yaml         — command-specific overrides (skipped for "train")
           4. feature_selection.yaml — IC-selected columns (only when
@@ -515,7 +515,7 @@ class ExperimentConfig:
         if not scenario_dir.is_dir():
             raise NotADirectoryError(f"Scenario directory not found: {scenario_dir}")
 
-        features_path = scenario_dir / "features.yaml"
+        features_path = scenario_dir / "observation.yaml"
         train_path = scenario_dir / "train.yaml"
         command_path = scenario_dir / f"{command}.yaml"
         selection_path = scenario_dir / "feature_selection.yaml"

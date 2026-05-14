@@ -215,7 +215,7 @@ data:
 
 ```yaml
 data:
-  feature_config: "src/configs/features/btc_with_volume.yaml"
+  feature_config: "src/configs/feature_sets/btc_with_volume.yaml"
 ```
 
 Features are automatically computed and normalized. See [docs/prepare_data.md](./prepare_data.md) for details.

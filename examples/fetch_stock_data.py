@@ -159,7 +159,7 @@ def example_6_integration_with_training():
         data_path="data/raw/stocks/AAPL_2023_training.parquet",
         train_size=6000,  # ~250 days
         validation_size=1000,  # ~42 days
-        feature_config_path="src/configs/features/btc_with_volume.yaml",
+        feature_config_path="src/configs/feature_sets/btc_with_volume.yaml",
     )
 
     print(f"Training set: {len(train_df)} samples")

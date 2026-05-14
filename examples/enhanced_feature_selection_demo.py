@@ -19,7 +19,7 @@ def example_standard_selection():
     print("\n=== Standard Single-Split Selection ===")
 
     # Load feature groups
-    resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
     candidates = resolver.resolve(["imbalance", "fair_value"])
 
     # Standard selection
@@ -35,14 +35,14 @@ def example_standard_selection():
     # val_df = pd.read_pickle("path/to/val.pkl")
 
     # result = selector.select(candidates, train_df, val_df)
-    # FeatureSelector.write_selected_yaml(result, "configs/features/selected.yaml")
+    # FeatureSelector.write_selected_yaml(result, "configs/feature_sets/selected.yaml")
 
 
 def example_cross_validated_selection():
     """Cross-validated feature selection with ensemble."""
     print("\n=== Cross-Validated Selection ===")
 
-    resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
     candidates = resolver.resolve(["imbalance", "fair_value", "spread"])
 
     # Cross-validated selection
@@ -60,14 +60,14 @@ def example_cross_validated_selection():
     # df = pd.read_pickle("path/to/data.pkl")
 
     # result = selector.select(candidates, df=df)
-    # FeatureSelector.write_selected_yaml(result, "configs/features/cv_selected.yaml")
+    # FeatureSelector.write_selected_yaml(result, "configs/feature_sets/cv_selected.yaml")
 
 
 def example_multi_horizon_selection():
     """Multi-horizon feature selection for composite scoring."""
     print("\n=== Multi-Horizon Selection ===")
 
-    resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
     candidates = resolver.resolve(["imbalance", "fair_value", "flow"])
 
     # Multi-horizon selection
@@ -85,14 +85,14 @@ def example_multi_horizon_selection():
     # val_df = pd.read_pickle("path/to/val.pkl")
 
     # result = selector.select(candidates, train_df, val_df)
-    # FeatureSelector.write_selected_yaml(result, "configs/features/multi_horizon_selected.yaml")
+    # FeatureSelector.write_selected_yaml(result, "configs/feature_sets/multi_horizon_selected.yaml")
 
 
 def example_hyperparameter_search():
     """Automated hyperparameter search."""
     print("\n=== Hyperparameter Search ===")
 
-    resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
     candidates = resolver.resolve(["imbalance", "fair_value", "spread"])
 
     # Hyperparameter search
@@ -112,14 +112,14 @@ def example_hyperparameter_search():
     # df = pd.read_pickle("path/to/data.pkl")
 
     # result = selector.select(candidates, df=df)
-    # FeatureSelector.write_selected_yaml(result, "configs/features/hyperparameter_optimized.yaml")
+    # FeatureSelector.write_selected_yaml(result, "configs/feature_sets/hyperparameter_optimized.yaml")
 
 
 def example_combined_approach():
     """Combine CV and multi-horizon for robust selection."""
     print("\n=== Combined CV + Multi-Horizon ===")
 
-    resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
     candidates = resolver.resolve(resolver.list_groups())  # All groups
 
     # Combined approach
@@ -140,7 +140,7 @@ def example_combined_approach():
     # df = pd.read_pickle("path/to/data.pkl")
 
     # result = selector.select(candidates, df=df)
-    # FeatureSelector.write_selected_yaml(result, "configs/features/final_selected.yaml")
+    # FeatureSelector.write_selected_yaml(result, "configs/feature_sets/final_selected.yaml")
 
 
 if __name__ == "__main__":

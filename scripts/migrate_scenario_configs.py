@@ -2,12 +2,12 @@
 
 For each scenario YAML that is NOT already inside a properly structured directory,
 this script creates a directory with the same base name and writes:
-  features.yaml       — data.feature_config + env.feature_columns + env.mode
+  observation.yaml    — data.feature_config + env.feature_columns + env.mode
   train.yaml          — everything else
   evaluate.yaml       — benchmarks + statistical_testing (if present in source)
 
-For already-split directories (have train.yaml but no features.yaml), it just
-extracts the feature keys out of train.yaml and evaluate.yaml into features.yaml.
+For already-split directories (have train.yaml but no observation.yaml), it just
+extracts the feature keys out of train.yaml and evaluate.yaml into observation.yaml.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ def _remove(d: dict, keys: set[str]) -> dict:
     return {k: v for k, v in d.items() if k not in keys}
 
 
-def build_features_yaml(config: dict) -> dict:
+def build_observation_yaml(config: dict) -> dict:
     out: dict = {}
     data_features = _extract(config.get("data", {}), FEATURE_KEYS_DATA)
     if data_features:
@@ -42,7 +42,7 @@ def build_features_yaml(config: dict) -> dict:
     return out
 
 
-def strip_features_from(config: dict) -> dict:
+def strip_observation_from(config: dict) -> dict:
     out = dict(config)
     if "data" in out:
         out["data"] = _remove(out["data"], FEATURE_KEYS_DATA)
@@ -78,11 +78,11 @@ def migrate_flat_yaml(yaml_path: Path) -> None:
 
     scenario_dir.mkdir()
 
-    features = build_features_yaml(config)
+    features = build_observation_yaml(config)
     if features:
-        write_yaml(scenario_dir / "features.yaml", features)
+        write_yaml(scenario_dir / "observation.yaml", features)
 
-    train = strip_features_from(config)
+    train = strip_observation_from(config)
     train_eval_only = _extract(train, EVAL_ONLY_KEYS)
     train_no_eval = _remove(train, EVAL_ONLY_KEYS)
     write_yaml(scenario_dir / "train.yaml", train_no_eval)
@@ -95,31 +95,31 @@ def migrate_flat_yaml(yaml_path: Path) -> None:
 
 
 def migrate_split_dir(scenario_dir: Path) -> None:
-    """For a directory that has train.yaml but no features.yaml, extract features."""
+    """For a directory that has train.yaml but no observation.yaml, extract features."""
     train_path = scenario_dir / "train.yaml"
     evaluate_path = scenario_dir / "evaluate.yaml"
-    features_path = scenario_dir / "features.yaml"
+    observation_path = scenario_dir / "observation.yaml"
 
-    if features_path.exists():
-        print(f"  SKIP (features.yaml already exists): {scenario_dir}")
+    if observation_path.exists():
+        print(f"  SKIP (observation.yaml already exists): {scenario_dir}")
         return
 
     with open(train_path) as f:
         train_config = yaml.safe_load(f) or {}
 
-    features = build_features_yaml(train_config)
+    features = build_observation_yaml(train_config)
     if features:
-        write_yaml(features_path, features)
+        write_yaml(observation_path, features)
 
     # Strip feature keys from train.yaml
-    stripped_train = strip_features_from(train_config)
+    stripped_train = strip_observation_from(train_config)
     write_yaml(train_path, stripped_train)
 
     # Strip feature keys from evaluate.yaml too (if it exists)
     if evaluate_path.exists():
         with open(evaluate_path) as f:
             eval_config = yaml.safe_load(f) or {}
-        stripped_eval = strip_features_from(eval_config)
+        stripped_eval = strip_observation_from(eval_config)
         write_yaml(evaluate_path, stripped_eval)
 
 
@@ -131,23 +131,23 @@ def main() -> None:
         rel = path.relative_to(SCENARIOS_DIR)
         parts = rel.parts
 
-        # Already inside a command-component directory (has features.yaml sibling)
-        if (path.parent / "features.yaml").exists() and path.name in (
-            "train.yaml", "evaluate.yaml", "features.yaml", "feature_selection.yaml"
+        # Already inside a command-component directory (has observation.yaml sibling)
+        if (path.parent / "observation.yaml").exists() and path.name in (
+            "train.yaml", "evaluate.yaml", "observation.yaml", "feature_selection.yaml"
         ):
             continue
 
         # Flat scenario YAML (e.g. aapl/td3_hft_lob.yaml)
-        if path.is_file() and path.stem not in ("train", "evaluate", "features", "feature_selection", "default"):
+        if path.is_file() and path.stem not in ("train", "evaluate", "observation", "feature_selection", "default"):
             print(f"Migrating flat: {rel}")
             migrate_flat_yaml(path)
             continue
 
-    # Handle already-split directories (train.yaml + evaluate.yaml, no features.yaml)
+    # Handle already-split directories (train.yaml + evaluate.yaml, no observation.yaml)
     for d in sorted(SCENARIOS_DIR.rglob("*")):
         if not d.is_dir():
             continue
-        if (d / "train.yaml").exists() and not (d / "features.yaml").exists():
+        if (d / "train.yaml").exists() and not (d / "observation.yaml").exists():
             rel = d.relative_to(SCENARIOS_DIR)
             print(f"Extracting features from existing split: {rel}")
             migrate_split_dir(d)

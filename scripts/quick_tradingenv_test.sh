@@ -19,7 +19,7 @@ data:
   data_path: "./data/raw/synthetic/sine_wave_ppo_no_trend.parquet"
   download_data: false
   train_size: 100
-  feature_config: "src/configs/features/sine_wave_price_action.yaml"
+  feature_config: "src/configs/feature_sets/sine_wave_price_action.yaml"
 
 env:
   name: "TEST_PORTFOLIO"

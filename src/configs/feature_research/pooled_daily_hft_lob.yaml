@@ -25,7 +25,7 @@ data:
   # train_size larger than any single day file triggers the 80/20 proportional
   # split inside _score_single_symbol, so each file is scored in full.
   train_size: 9999999
-  feature_config: src/configs/features/hft_lob_features_all.yaml
+  feature_config: src/configs/feature_sets/hft_lob_features_all.yaml
   feature_cache_dir: ".cache/feature_transformation"
   filter_lob_levels: 5
 

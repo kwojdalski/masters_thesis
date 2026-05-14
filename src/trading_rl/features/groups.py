@@ -38,7 +38,7 @@ class FeatureGroupResolver:
 
     Usage::
 
-        resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+        resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
         configs = resolver.resolve(["imbalance", "fair_value"])
         pipeline = FeaturePipeline(configs)
     """

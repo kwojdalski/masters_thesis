@@ -69,7 +69,7 @@ Each scenario lives in a directory under `src/configs/scenarios/<group>/<name>/`
 
 | File | Purpose |
 | --- | --- |
-| `features.yaml` | Feature pipeline path and active `env.feature_columns` |
+| `observation.yaml` | Feature pipeline path and active `env.feature_columns` |
 | `train.yaml` | Data path, env, network, training hyperparameters |
 | `evaluate.yaml` | Benchmark and statistical-test overrides (evaluate command only) |
 | `feature_selection.yaml` | IC-selected column subset; applied when `data.automated_selection: true` |
