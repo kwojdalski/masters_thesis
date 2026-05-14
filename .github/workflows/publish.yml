@@ -56,6 +56,7 @@ jobs:
       - name: Install Python dependencies for code execution
         run: |
           pip install pandas numpy matplotlib pillow ipython jupyter scipy scikit-learn jinja2
+          python -m ipykernel install --user --name masters_thesis --display-name "Masters Thesis"
 
       - name: Render thesis to HTML
         run: |
