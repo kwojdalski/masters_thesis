@@ -378,7 +378,7 @@ def run_statistical_tests(
                 "n_bootstrap": config.n_bootstrap_samples,
                 "n_permutations": config.n_permutations,
                 "confidence_level": config.confidence_level,
-                "seed": config.random_seed,
+                "seed": getattr(config, "random_seed", None),
             }
             results[test_name] = test.run(
                 strategy_returns=strategy_returns,

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from trading_rl.evaluation.benchmarks import BenchmarkEngine
+from trading_rl.config import StatisticalTestingConfig
 from trading_rl.evaluation.statistical_benchmarks import (
     build_benchmark_comparison_table,
     compute_buy_and_hold_returns,
@@ -112,3 +113,30 @@ def test_run_all_statistical_tests_includes_extended_benchmark_table() -> None:
     assert "short_and_hold" in table_names
     assert "twap" in table_names
     assert "vwap" in table_names
+
+
+def test_statistical_tests_run_with_real_config_without_random_seed() -> None:
+    prices = pd.Series(np.linspace(100.0, 105.0, 30))
+    strategy_returns = np.full(29, 0.0002)
+    market_data = pd.DataFrame({"close": prices})
+    config = StatisticalTestingConfig(
+        enabled=True,
+        tests=["t_test"],
+    )
+    benchmarks, _ = BenchmarkEngine.build(
+        market_data,
+        SimpleNamespace(buy_and_hold=True, short_and_hold=False, twap=False, vwap=False),
+        price_column="close",
+    )
+
+    results = run_all_statistical_tests(
+        strategy_returns=strategy_returns,
+        benchmarks=benchmarks,
+        max_steps=29,
+        config=config,
+        periods_per_year=252,
+    )
+
+    baseline = results["baselines"][0]
+    assert "error" not in baseline["t_test"]
+    assert "t_statistic" in baseline["t_test"]
