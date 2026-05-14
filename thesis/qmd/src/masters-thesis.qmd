@@ -57,9 +57,9 @@ editor_options:
   latex_engine: xelatex
 jupyter:
   kernelspec:
-    display_name: Python 3
+    display_name: Masters Thesis
     language: python
-    name: python3
+    name: masters_thesis
 ---
 
 <!-- GitHub Pages publish workflow verification. -->
