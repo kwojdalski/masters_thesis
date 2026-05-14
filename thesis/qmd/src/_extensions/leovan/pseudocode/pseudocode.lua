@@ -17,6 +17,14 @@ local function ensure_html_deps()
       text-align: left;
     }
     </style>
+    <script type="text/javascript">
+    window.MathJax = window.MathJax || {};
+    window.MathJax.options = window.MathJax.options || {};
+    window.MathJax.options.ignoreHtmlClass =
+      (window.MathJax.options.ignoreHtmlClass
+        ? window.MathJax.options.ignoreHtmlClass + "|"
+        : "") + "pseudocode";
+    </script>
   ]]
   )
   quarto.doc.include_text(
@@ -59,6 +67,11 @@ local function ensure_html_deps()
           pseudocode.renderElement(source, pseudocodeOptions);
         });
         renderCaptions();
+        if (w.MathJax && w.MathJax.typesetPromise) {
+          w.MathJax.typesetPromise(
+            Array.from(d.querySelectorAll(".pseudocode-container"))
+          );
+        }
       }
 
       if (w.MathJax && w.MathJax.startup && w.MathJax.startup.promise) {
@@ -66,7 +79,13 @@ local function ensure_html_deps()
       } else if (d.readyState === "complete") {
         renderPseudocode();
       } else {
-        w.addEventListener("load", renderPseudocode, { once: true });
+        w.addEventListener("load", function() {
+          if (w.MathJax && w.MathJax.startup && w.MathJax.startup.promise) {
+            w.MathJax.startup.promise.then(renderPseudocode);
+          } else {
+            renderPseudocode();
+          }
+        }, { once: true });
       }
     })(document, window);
     </script>
