@@ -71,6 +71,8 @@ def extract_tradingenv_returns(env, n_steps):
         max_records = min(n_steps, len(broker.track_record))
         for i in range(max_records):
             record = broker.track_record[i]
+            if i == 0 and hasattr(record, "context_pre") and hasattr(record.context_pre, "nlv"):
+                nlv_values.append(float(record.context_pre.nlv))
             if hasattr(record, "context_post") and hasattr(record.context_post, "nlv"):
                 nlv_values.append(float(record.context_post.nlv))
             else:
