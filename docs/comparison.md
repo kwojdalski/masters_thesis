@@ -290,7 +290,7 @@ TD3 doesn't use advantages because:
 
 The three algorithms are evaluated with equalized network capacity — actor and critic
 hidden dims `[128, 64]` for all — so that performance differences reflect algorithm
-properties, not model size. See the scenario files under `src/configs/scenarios/aapl/`
+properties, not model size. See the scenario files under `src/configs/scenarios/pooled/`
 for reference configurations.
 
 | Aspect | DDPG | TD3 | PPO |
@@ -317,7 +317,7 @@ for reference configurations.
 ## Scenario Files for the Main Comparison
 
 ```
-src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml
-src/configs/scenarios/aapl/ddpg_hft_lob_state_space.yaml
-src/configs/scenarios/aapl/ppo_hft_lob_state_space.yaml
+src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/
+src/configs/scenarios/pooled/ddpg_hft_lob_state_space_pooled_streaming/
+src/configs/scenarios/pooled/ppo_hft_lob_state_space_pooled_streaming/
 ```

@@ -104,7 +104,7 @@ Each scenario lives in its own directory under `src/configs/scenarios/<group>/<n
 
 | File | Purpose |
 | --- | --- |
-| `features.yaml` | Feature pipeline path (`data.feature_config`) and active columns (`env.feature_columns`) |
+| `observation.yaml` | Feature pipeline path (`data.feature_config`) and active columns (`env.feature_columns`) |
 | `train.yaml` | Data path, environment, network, and training hyperparameters |
 | `evaluate.yaml` | Evaluation-only overrides: benchmarks and statistical tests |
 | `feature_selection.yaml` | IC-selected feature subset; applied automatically when `data.automated_selection: true` in `train.yaml` |
@@ -132,12 +132,11 @@ masters_thesis/
 │   ├── cli.py               # CLI entrypoint
 │   ├── configs/
 │   │   ├── scenarios/       # Experiment configs — one directory per scenario
-│   │   │   ├── aapl/
-│   │   │   │   └── td3_hft_lob_state_space/
-│   │   │   │       ├── features.yaml        # feature pipeline + active columns
+│   │   │   ├── pooled/
+│   │   │   │   └── td3_hft_lob_state_space_pooled_streaming_selected/
+│   │   │   │       ├── observation.yaml     # feature pipeline + active columns
 │   │   │   │       ├── train.yaml           # training hyperparameters
-│   │   │   │       ├── evaluate.yaml        # benchmark + stat-test overrides
-│   │   │   │       └── feature_selection.yaml  # IC-selected columns (optional)
+│   │   │   │       └── evaluate.yaml        # benchmark + stat-test overrides
 │   │   │   ├── btc/
 │   │   │   ├── pooled/
 │   │   │   ├── sine_wave/

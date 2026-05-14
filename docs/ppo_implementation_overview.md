@@ -139,7 +139,7 @@ $$
 
 ## Role as Algorithm-Class Baseline
 
-PPO is the algorithm-class baseline: it tests whether on-policy stability compensates for lower sample efficiency on limited HFT data. A reference AAPL scenario file is `src/configs/scenarios/aapl/ppo_hft_lob_state_space.yaml`.
+PPO is the algorithm-class baseline: it tests whether on-policy stability compensates for lower sample efficiency on limited HFT data. A reference scenario is at `src/configs/scenarios/pooled/ppo_hft_lob_state_space_pooled_streaming/`.
 
 Network capacity is equalized with TD3 and DDPG for a controlled comparison:
 

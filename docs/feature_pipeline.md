@@ -47,7 +47,7 @@ Groups are composed via `FeatureGroupResolver`:
 ```python
 from trading_rl.features import FeatureGroupResolver, FeaturePipeline
 
-resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
 
 # Use specific groups
 configs = resolver.resolve(["imbalance", "fair_value", "flow"])
@@ -105,7 +105,7 @@ Feature selection is an **offline** step. Run it once to produce a reduced featu
 ```python
 from trading_rl.features import FeatureGroupResolver, FeatureSelector, FeatureSelectorConfig
 
-resolver = FeatureGroupResolver.from_yaml("src/configs/features/feature_groups.yaml")
+resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
 candidates = resolver.resolve(resolver.list_groups())
 
 selector = FeatureSelector(FeatureSelectorConfig(top_k=12, corr_threshold=0.85))
@@ -114,7 +114,7 @@ result = selector.select(candidates, train_df, val_df)
 # Write selected features to a YAML for training
 FeatureSelector.write_selected_yaml(
     result,
-    "src/configs/features/selected_aapl_hft.yaml",
+    "src/configs/feature_sets/selected_aapl_hft.yaml",
 )
 ```
 
@@ -123,7 +123,7 @@ FeatureSelector.write_selected_yaml(
 With the component-file config layout, write the selected columns into `feature_selection.yaml` inside the scenario directory:
 
 ```yaml
-# src/configs/scenarios/aapl/td3_hft_lob_state_space/feature_selection.yaml
+# src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/feature_selection.yaml
 env:
   feature_columns:
     - feature_hft_book_pressure_l0
@@ -134,24 +134,24 @@ env:
 Then enable automatic selection in `train.yaml`:
 
 ```yaml
-# src/configs/scenarios/aapl/td3_hft_lob_state_space/train.yaml
+# src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/train.yaml
 data:
-  automated_selection: true   # loads feature_selection.yaml on top of features.yaml
+  automated_selection: true   # loads feature_selection.yaml on top of observation.yaml
 ```
 
-When `automated_selection: false` (the default), `env.feature_columns` from `features.yaml` is used unchanged.
+When `automated_selection: false` (the default), `env.feature_columns` from `observation.yaml` is used unchanged.
 
 The `feature-research` CLI command writes `feature_selection.yaml` directly into the scenario directory when `--scenario` is provided.
 
 ### In Scenario Config
 
-Feature groups are declared in `features.yaml` for **manual composition** (no IC selection):
+Feature groups are declared in `observation.yaml` for **manual composition** (no IC selection):
 
 ```yaml
-# src/configs/scenarios/aapl/td3_hft_lob_state_space/features.yaml
+# src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/observation.yaml
 data:
-  feature_groups: "src/configs/features/feature_groups.yaml"
-  feature_config: "src/configs/features/hft_lob_features_all.yaml"
+  feature_groups: "src/configs/feature_sets/feature_groups.yaml"
+  feature_config: "src/configs/feature_sets/hft_lob_features_all.yaml"
 env:
   feature_columns:
     - feature_hft_book_pressure_l0

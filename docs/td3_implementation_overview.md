@@ -144,7 +144,7 @@ $$
 
 ## Reference Configuration
 
-A reference AAPL scenario is provided at `src/configs/scenarios/aapl/td3_hft_lob_state_space.yaml`.
+A reference scenario is provided at `src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/`.
 Key hyperparameters used in the comparison:
 
 | Parameter | Value |

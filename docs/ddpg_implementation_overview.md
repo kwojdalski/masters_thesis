@@ -161,7 +161,7 @@ DDPG is the ablation baseline for TD3. The actor architecture is identical: a tw
 - No delayed actor updates (actor and critic update simultaneously)
 - No target policy smoothing (no noise added to target actions during critic update)
 
-This makes DDPG the cleanest way to isolate the effect of TD3's three stability mechanisms. A reference AAPL scenario file is `src/configs/scenarios/aapl/ddpg_hft_lob_state_space.yaml`, which matches the TD3 scenario on every controlled variable (data, features, capacity, seed, learning rates).
+This makes DDPG the cleanest way to isolate the effect of TD3's three stability mechanisms. A reference scenario is at `src/configs/scenarios/pooled/ddpg_hft_lob_state_space_pooled_streaming/`, which matches the TD3 scenario on every controlled variable (data, features, capacity, seed, learning rates).
 
 ## Components
 - **CLI + configs**: scenario/config selection and optional data generation.
