@@ -19,9 +19,29 @@ from torch import allclose
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
-from trading_rl.evaluation.returns import extract_tradingenv_returns
+from trading_rl.evaluation.returns import (
+    ReturnKind,
+    ReturnSeries,
+    extract_tradingenv_return_series,
+)
 
 logger = get_logger(__name__)
+
+
+def _portfolio_values_from_actual_returns(
+    actual_returns,
+    initial_portfolio_value: float,
+    n_obs: int,
+) -> np.ndarray:
+    if isinstance(actual_returns, ReturnSeries):
+        equity = actual_returns.to_equity(initial_portfolio_value).values
+        if actual_returns.kind == ReturnKind.EQUITY and not actual_returns.includes_initial:
+            return equity[:n_obs]
+        return equity[1 : n_obs + 1]
+
+    # Legacy callers pass cumulative log returns.
+    cumulative_log_returns = np.asarray(actual_returns[:n_obs], dtype=float)
+    return initial_portfolio_value * np.exp(cumulative_log_returns)
 
 
 def compare_rollouts(rollouts, n_obs, is_portfolio: bool = False):
@@ -147,13 +167,16 @@ def create_actual_returns_plot(
             run_name = "Deterministic" if i == 0 else f"Run_{i}"
 
             if actual_returns is not None:
-                cumulative_log_returns = np.asarray(actual_returns[:n_obs], dtype=float)
                 logger.debug(
                     "%s: Using actual portfolio returns from provided list",
                     run_name,
                 )
 
-                portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
+                portfolio_values = _portfolio_values_from_actual_returns(
+                    actual_returns,
+                    initial_portfolio_value,
+                    n_obs,
+                )
                 returns_data.extend(
                     [
                         {"Steps": step, "Portfolio_Value": val, "Run": run_name}
@@ -167,34 +190,30 @@ def create_actual_returns_plot(
             if actual_returns_list and i < len(actual_returns_list):
                 actual_returns = actual_returns_list[i]
             else:
-                actual_returns = extract_tradingenv_returns(env, n_obs) if env else None
+                actual_returns = extract_tradingenv_return_series(env, n_obs) if env else None
 
             if actual_returns is not None:
-                cumulative_log_returns = np.asarray(actual_returns[:n_obs], dtype=float)
                 logger.debug(
                     "%s: Using actual portfolio returns from TradingEnv broker",
                     run_name,
+                )
+                portfolio_values = _portfolio_values_from_actual_returns(
+                    actual_returns,
+                    initial_portfolio_value,
+                    n_obs,
                 )
             else:
                 rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
                 cumulative_log_returns = np.cumsum(rewards)
                 logger.debug("%s: Using rollout rewards as fallback", run_name)
+                portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
 
-            portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
             returns_data.extend(
                 [
                     {"Steps": step, "Portfolio_Value": val, "Run": run_name}
                     for step, val in enumerate(portfolio_values)
                 ]
             )
-
-        portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
-        returns_data.extend(
-            [
-                {"Steps": step, "Portfolio_Value": val, "Run": run_name}
-                for step, val in enumerate(portfolio_values)
-            ]
-        )
 
     if df_prices is not None:
         benchmark_col = benchmark_price_column

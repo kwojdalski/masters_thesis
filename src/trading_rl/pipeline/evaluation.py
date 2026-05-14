@@ -63,7 +63,10 @@ def compute_strategy_simple_returns_for_split(
     split_ctx: EvaluationContext,
     config: ExperimentConfig,
 ) -> np.ndarray:
-    from trading_rl.evaluation.returns import extract_tradingenv_returns
+    from trading_rl.evaluation.returns import (
+        RewardSeries,
+        extract_tradingenv_return_series,
+    )
 
     reward_type = config.env.reward_type
     backend = config.env.backend
@@ -74,26 +77,19 @@ def compute_strategy_simple_returns_for_split(
                 : split_ctx.max_steps
             ]
         )
-        return np.exp(strategy_log_returns) - 1.0
+        return RewardSeries(
+            strategy_log_returns,
+            RewardType.LOG_RETURN,
+        ).to_return_series().to_simple().values
 
     strategy_simple_returns = np.array([], dtype=float)
     if str(backend).lower() == "tradingenv":
-        cumulative_log_returns = extract_tradingenv_returns(
+        return_series = extract_tradingenv_return_series(
             split_ctx.env,
             split_ctx.max_steps,
         )
-        if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
-            cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
-            step_log_returns = np.diff(cumulative_log_returns)
-            strategy_simple_returns = np.exp(step_log_returns) - 1.0
-
-    if strategy_simple_returns.size == 0:
-        proxy_log_returns = (
-            rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[
-                : split_ctx.max_steps
-            ]
-        )
-        strategy_simple_returns = np.exp(proxy_log_returns) - 1.0
+        if return_series is not None:
+            strategy_simple_returns = return_series.to_simple().values
 
     return strategy_simple_returns
 

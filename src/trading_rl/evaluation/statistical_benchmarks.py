@@ -7,6 +7,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from trading_rl.evaluation.returns import (
+    ReturnSeries,
+    RewardSeries,
+    extract_tradingenv_return_series,
+)
 from trading_rl.evaluation.statistical_test_registry import _safe_div, _sharpe_ratio
 
 
@@ -112,11 +117,13 @@ def _max_drawdown(simple_returns: np.ndarray) -> float:
 
 
 def _performance_summary(
-    simple_returns: np.ndarray,
+    simple_returns: np.ndarray | ReturnSeries,
     periods_per_year: int,
     risk_free_rate_annual: float = 0.0,
 ) -> dict[str, float]:
     """Compute compact benchmark performance summary metrics."""
+    if isinstance(simple_returns, ReturnSeries):
+        simple_returns = simple_returns.to_simple().values
     r = np.asarray(simple_returns, dtype=float)
     r = r[np.isfinite(r)]
     if r.size == 0:
@@ -131,7 +138,6 @@ def _performance_summary(
 
     rf_per_period = risk_free_rate_annual / periods_per_year
     excess_returns = r - rf_per_period
-    mu = float(np.mean(r))
     mu_excess = float(np.mean(excess_returns))
     sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
     annualized_vol = sigma * np.sqrt(periods_per_year)
@@ -213,17 +219,21 @@ def compute_random_baseline_returns(
                     rollout = env.rollout(max_steps=max_steps)
 
             if use_nlv:
-                from trading_rl.evaluation.returns import extract_tradingenv_returns
-                cumulative = extract_tradingenv_returns(env, max_steps)
-                if cumulative is not None and len(cumulative) > 1:
-                    step_log = np.diff(cumulative)
-                    random_returns.append(np.exp(step_log) - 1.0)
+                series = extract_tradingenv_return_series(env, max_steps)
+                if series is not None:
+                    random_returns.append(series.to_simple().values)
                     continue
 
             rewards = (
                 rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
             )
-            random_returns.append(np.exp(rewards) - 1.0)
+            if reward_type == RewardType.LOG_RETURN:
+                random_returns.append(
+                    RewardSeries(rewards, RewardType.LOG_RETURN)
+                    .to_return_series()
+                    .to_simple()
+                    .values
+                )
         return random_returns
     finally:
         signal.signal(signal.SIGINT, original_sigint_handler)

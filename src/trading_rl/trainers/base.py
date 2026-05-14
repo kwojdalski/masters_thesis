@@ -13,14 +13,14 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 import torchrl.collectors.collectors as torchrl_collectors
-from tensordict.nn import InteractionType, set_composite_lp_aggregate
+from tensordict.nn import set_composite_lp_aggregate
 from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
-from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.constants import RewardType
+from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.trainers.checkpointing import CheckpointManager
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 
@@ -78,14 +78,16 @@ def _cumulative_log_returns_for_plot(
     cumulative_returns: np.ndarray | None,
 ) -> np.ndarray:
     """Return one cumulative log-return value per plotted step."""
-    if cumulative_returns is not None:
-        cumulative = np.asarray(cumulative_returns, dtype=float).reshape(-1)
-        if cumulative.size > 0 and np.isclose(cumulative[0], 0.0):
-            return cumulative[1:]
-        return cumulative
-
-    simple = np.asarray(simple_returns, dtype=float).reshape(-1)
-    return np.cumsum(np.log1p(simple))
+    series = (
+        ReturnSeries(
+            cumulative_returns,
+            ReturnKind.CUMULATIVE_LOG,
+            includes_initial=True,
+        )
+        if cumulative_returns is not None
+        else ReturnSeries(simple_returns, ReturnKind.SIMPLE)
+    )
+    return series.to_cumulative_log(include_initial=False).values
 
 
 class BaseTrainer(ABC):
@@ -278,12 +280,12 @@ class BaseTrainer(ABC):
             portfolio_valuation = initial_val * np.exp(episode_reward)
         elif reward_type == RewardType.DIFFERENTIAL_SHARPE:
             # For DSR, extract actual dollar returns from environment broker
-            from trading_rl.evaluation.returns import extract_tradingenv_returns
+            from trading_rl.evaluation.returns import extract_tradingenv_return_series
 
-            # Extract cumulative returns from broker (ignores the DSR RL reward)
-            actual_returns = extract_tradingenv_returns(self.env, data.numel())
-            if actual_returns is not None and len(actual_returns) > 0:
-                portfolio_valuation = initial_val * np.exp(actual_returns[-1])
+            # Extract the broker equity path (ignores the DSR RL reward).
+            actual_returns = extract_tradingenv_return_series(self.env, data.numel())
+            if actual_returns is not None and actual_returns.values.size > 0:
+                portfolio_valuation = float(actual_returns.values[-1])
             else:
                 # Fallback to cumulative reward if extraction fails
                 logger.warning("failed to extract actual returns for dsr, falling back to reward sum")
@@ -397,18 +399,11 @@ class BaseTrainer(ABC):
             Tuple of (reward_plot, action_plot, action_probs_plot, final_reward,
                      last_positions, actual_returns_plot, merged_plot)
         """
-        import numpy as np
-        import pandas as pd
-
+        from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
         from trading_rl.utils import (
-            compare_rollouts,
             create_actual_returns_plot,
             create_merged_comparison_plot,
         )
-
-        from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
-
-        logger = get_logger(__name__)
 
         env_to_use = eval_env or self.env
 
@@ -424,15 +419,12 @@ class BaseTrainer(ABC):
                 "enable_metrics": False,  # Metrics computed separately
             }
 
-        from trading_rl.evaluation.evaluator import (
-            EnvConfig,
-            EvaluationConfig,
-            StrategyEvaluator,
-        )
+        from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
 
         # Add environment configuration to eval_config_kwargs
         if config:
             from trading_rl.evaluation.evaluator import EnvConfig
+
             eval_config_kwargs["env"] = EnvConfig(
                 name=getattr(config.env, "name", ""),
                 positions=getattr(config.env, "positions", None),
@@ -460,16 +452,16 @@ class BaseTrainer(ABC):
         # Reconstruct tuple return for backward compatibility
         reward_plot = result.plots["reward_plot"] if result.plots else None
         action_plot = result.plots["action_plot"] if result.plots else None
-        plot_returns = _cumulative_log_returns_for_plot(
+        plot_series = result.return_series or ReturnSeries(
             result.simple_returns,
-            result.cumulative_returns,
+            ReturnKind.SIMPLE,
         )
         actual_returns_plot = create_actual_returns_plot(
             None,  # No rollout object available from SplitEvaluationResult
             max_steps,
             df_prices=df,
             env=env_to_use,
-            actual_returns_list=[plot_returns],
+            actual_returns_list=[plot_series],
             initial_portfolio_value=(
                 float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
                 if config
@@ -479,8 +471,6 @@ class BaseTrainer(ABC):
         )
         merged_plot = create_merged_comparison_plot(reward_plot, action_plot)
 
-        is_portfolio = self._is_portfolio_backend(config)
-
         # Use final_reward and last_positions from SplitEvaluationResult
         final_reward = float(result.final_reward)
         last_positions = result.last_positions
@@ -489,238 +479,6 @@ class BaseTrainer(ABC):
             reward_plot,
             action_plot,
             None,  # Third plot (action_probs_plot) - PPO-specific
-            final_reward,
-            last_positions,
-            actual_returns_plot,
-            merged_plot,
-        )
-        """Default evaluation: deterministic vs random rollout comparison."""
-        import numpy as np
-        import pandas as pd
-        from plotnine import (
-            aes,
-            element_text,
-            geom_line,
-            ggplot,
-            guide_legend,
-            guides,
-            labs,
-            scale_color_manual,
-            theme,
-        )
-
-        from trading_rl.utils import (
-            compare_rollouts,
-            create_actual_returns_plot,
-            create_merged_comparison_plot,
-        )
-
-        logger = get_logger(__name__)
-
-        env_to_use = eval_env or self.env
-
-        # Deterministic rollout
-        logger.debug("eval deterministic max_steps=%d", max_steps)
-        try:
-            with set_exploration_type(InteractionType.MODE):
-                rollout_deterministic = env_to_use.rollout(
-                    max_steps=max_steps, policy=self.actor
-                )
-        except RuntimeError:
-            # Fallback for distributions without analytical mode (e.g. TanhNormal)
-            logger.debug("mode exploration failed, falling back to mean/deterministic")
-            with set_exploration_type(InteractionType.DETERMINISTIC):
-                rollout_deterministic = env_to_use.rollout(
-                    max_steps=max_steps, policy=self.actor
-                )
-
-        # Extract actual returns immediately (before next rollout overwrites broker state)
-        from trading_rl.evaluation.returns import extract_tradingenv_returns
-
-        actual_returns_deterministic = extract_tradingenv_returns(env_to_use, max_steps)
-
-        # Random rollout (can be overridden in subclasses)
-        logger.debug("eval random max_steps=%d", max_steps)
-        with set_exploration_type(InteractionType.RANDOM):
-            rollout_random = env_to_use.rollout(max_steps=max_steps, policy=self.actor)
-
-        # Extract actual returns immediately (for random rollout)
-        actual_returns_random = extract_tradingenv_returns(env_to_use, max_steps)
-
-        # Detect backend type for proper plot labeling
-        is_portfolio = self._is_portfolio_backend(config)
-
-        reward_plot, action_plot = compare_rollouts(
-            [rollout_deterministic, rollout_random],
-            n_obs=max_steps,
-            is_portfolio=is_portfolio,
-        )
-
-        benchmark_price_column = "close"
-        if config:
-            configured_price_column = getattr(config.env, "price_column", None)
-            if isinstance(configured_price_column, str) and configured_price_column:
-                benchmark_price_column = configured_price_column
-
-        if benchmark_price_column in df.columns:
-            benchmark_series = df[benchmark_price_column]
-        elif "close" in df.columns:
-            logger.warning(
-                "Benchmark column '%s' missing in evaluation frame; falling back to 'close'.",
-                benchmark_price_column,
-            )
-            benchmark_series = df["close"]
-            benchmark_price_column = "close"
-        else:
-            raise ValueError(
-                "Evaluation benchmarks require env.price_column or 'close' in dataframe."
-            )
-
-        # Create actual returns plot with pre-extracted returns
-        actual_returns_plot = create_actual_returns_plot(
-            [rollout_deterministic, rollout_random],
-            n_obs=max_steps,
-            df_prices=df,
-            env=None,  # Don't pass env, use pre-extracted returns
-            actual_returns_list=[actual_returns_deterministic, actual_returns_random],
-            initial_portfolio_value=(
-                float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
-                if config
-                else DEFAULT_INITIAL_PORTFOLIO_VALUE
-            ),
-            benchmark_price_column=benchmark_price_column,
-        )
-
-        # Add benchmarks based on reward type
-        reward_type = getattr(config.env, "reward_type", "log_return") if config else "log_return"
-        benchmark_data = []
-
-        if reward_type == RewardType.DIFFERENTIAL_SHARPE:
-            # For DSR, calculate DSR benchmarks
-            from trading_rl.utils import calculate_benchmark_dsr
-
-            # Get DSR parameters from config (reward_eta is the standard name)
-            dsr_eta = getattr(config.env, "reward_eta", 0.01) if config else 0.01
-
-            logger.debug("calc dsr benchmarks eta=%s", dsr_eta)
-
-            # Calculate DSR for buy-and-hold
-            bh_dsr, _ = calculate_benchmark_dsr(
-                df,
-                strategy="buy_and_hold",
-                eta=dsr_eta,
-                max_steps=max_steps,
-                price_column=benchmark_price_column,
-                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)),
-            )
-
-            # Calculate DSR for max profit
-            mp_dsr, _ = calculate_benchmark_dsr(
-                df,
-                strategy="max_profit",
-                eta=dsr_eta,
-                max_steps=max_steps,
-                price_column=benchmark_price_column,
-                initial_portfolio_value=float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)),
-            )
-
-            # Add to benchmark data
-            for step, (bh_val, mp_val) in enumerate(zip(bh_dsr, mp_dsr, strict=False)):
-                benchmark_data.extend(
-                    [
-                        {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
-                        {
-                            "Steps": step,
-                            "Cumulative_Reward": mp_val,
-                            "Run": "Max Profit (Unleveraged)",
-                        },
-                    ]
-                )
-
-            y_label = "Cumulative DSR"
-        else:
-            # For log_return and other rewards, use log return benchmarks
-            price_window = benchmark_series.iloc[: max_steps + 1]
-            benchmark_returns = price_window.pct_change().iloc[1:].to_numpy(dtype=float)
-            benchmark_df = pd.DataFrame(
-                {
-                    "x": range(len(benchmark_returns)),
-                    "buy_and_hold": np.log1p(benchmark_returns).cumsum(),
-                    "max_profit": np.log1p(np.abs(benchmark_returns)).cumsum(),
-                }
-            )
-            for step, (bh_val, mp_val) in enumerate(
-                zip(benchmark_df["buy_and_hold"], benchmark_df["max_profit"], strict=False)
-            ):
-                benchmark_data.extend(
-                    [
-                        {"Steps": step, "Cumulative_Reward": bh_val, "Run": "Buy-and-Hold"},
-                        {
-                            "Steps": step,
-                            "Cumulative_Reward": mp_val,
-                            "Run": "Max Profit (Unleveraged)",
-                        },
-                    ]
-                )
-
-            y_label = "Cumulative Reward"
-
-        existing_data = reward_plot.data
-        combined_data = pd.concat(
-            [existing_data, pd.DataFrame(benchmark_data)], ignore_index=True
-        )
-        reward_plot = (
-            ggplot(combined_data, aes(x="Steps", y="Cumulative_Reward", color="Run"))
-            + geom_line()
-            + labs(
-                title="Cumulative Rewards Comparison", x="Steps", y=y_label
-            )
-            + scale_color_manual(
-                values={
-                    "Deterministic": "#F8766D",
-                    "Random": "#00BFC4",
-                    "Buy-and-Hold": "violet",
-                    "Max Profit (Unleveraged)": "green",
-                }
-            )
-            + theme(
-                figure_size=(13, 7.8),
-                legend_position="bottom",
-                legend_title=element_text(weight="bold", size=11),
-                legend_text=element_text(size=10),
-                subplots_adjust={'left': 0.10, 'right': 0.95},
-            )
-            + guides(color=guide_legend(title="Strategy"))
-        )
-
-        # Create merged comparison plot (rewards + actions stacked vertically)
-        merged_plot = create_merged_comparison_plot(reward_plot, action_plot)
-
-        # Final metrics
-        final_reward = float(rollout_deterministic["next"]["reward"].sum().item())
-
-        # Extract actions appropriately (is_portfolio already detected above)
-        actions = self._extract_actions(rollout_deterministic, is_portfolio)
-
-        if is_portfolio:
-            # Store portfolio weights (continuous values 0-1)
-            if actions.ndim > 1:
-                # Multi-asset: store mean allocation per asset
-                last_positions = actions.mean(dim=0).tolist()
-            else:
-                # Single asset: store allocation over time
-                last_positions = actions.flatten().tolist()
-        else:
-            # Store discrete positions (e.g., [-1, 0, 1])
-            actions_flat = (
-                actions.flatten().tolist() if hasattr(actions, "flatten") else []
-            )
-            last_positions = [int(a) - 1 for a in actions_flat] if actions_flat else []
-
-        return (
-            reward_plot,
-            action_plot,
-            None,
             final_reward,
             last_positions,
             actual_returns_plot,

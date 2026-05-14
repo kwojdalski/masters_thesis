@@ -6,6 +6,7 @@ import torch
 from tensordict import TensorDict
 
 from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
+from trading_rl.evaluation.returns import ReturnKind
 
 
 class _RolloutEnv:
@@ -49,7 +50,9 @@ def test_evaluate_split_uses_provided_environment_without_rebuilding() -> None:
     )
 
     assert env.rollout_calls == 1
-    np.testing.assert_allclose(result.simple_returns, np.zeros((2, 1)))
+    assert result.return_series is not None
+    assert result.return_series.kind == ReturnKind.LOG
+    np.testing.assert_allclose(result.simple_returns, np.zeros(2))
 
 
 def test_shaped_rewards_without_broker_do_not_become_returns() -> None:

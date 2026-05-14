@@ -6,8 +6,9 @@ import pytest
 import torch
 from tensordict import TensorDict
 
-from trading_rl.utils import calculate_benchmark_dsr, create_actual_returns_plot
+from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.trainers.base import _cumulative_log_returns_for_plot
+from trading_rl.utils import calculate_benchmark_dsr, create_actual_returns_plot
 
 
 def test_actual_returns_plot_includes_benchmarks():
@@ -223,16 +224,12 @@ def test_calculate_benchmark_dsr_uses_requested_price_column():
 def test_simple_returns_are_converted_before_actual_returns_plot():
     """Simple per-step returns must compound before being plotted as equity."""
     simple_returns = np.array([0.01, 0.02])
-    cumulative_log_returns = _cumulative_log_returns_for_plot(
-        simple_returns,
-        cumulative_returns=None,
-    )
 
     plot = create_actual_returns_plot(
         rollouts=None,
         n_obs=2,
         df_prices=None,
-        actual_returns_list=[cumulative_log_returns],
+        actual_returns_list=[ReturnSeries(simple_returns, ReturnKind.SIMPLE)],
         initial_portfolio_value=10000.0,
     )
 

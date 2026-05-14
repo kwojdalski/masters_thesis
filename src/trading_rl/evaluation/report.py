@@ -13,7 +13,7 @@ from torchrl.envs.utils import set_exploration_type
 from logger import get_logger
 from trading_rl.constants import RewardType
 from trading_rl.evaluation.metrics import build_metric_report
-from trading_rl.evaluation.returns import extract_tradingenv_returns
+from trading_rl.evaluation.returns import RewardSeries, extract_tradingenv_return_series
 
 logger = get_logger(__name__)
 
@@ -41,7 +41,7 @@ def _periods_per_year_from_index(df: pd.DataFrame) -> int | None:
     """Derive annualization factor from a DataFrame's DatetimeIndex.
 
     Computes the observed event rate (events/second) and projects it to one
-    full US trading year (252 days × 6.5 hours). Returns None when the index
+    full US trading year (252 days x 6.5 hours). Returns None when the index
     is not a DatetimeIndex or contains fewer than two timestamps.
     """
     if not isinstance(df.index, pd.DatetimeIndex) or len(df) < 2:
@@ -94,17 +94,18 @@ def build_evaluation_report_for_trainer(
         strategy_log_returns = (
             rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
         )
-        strategy_simple_returns = np.exp(strategy_log_returns) - 1.0
+        strategy_simple_returns = RewardSeries(
+            strategy_log_returns,
+            RewardType.LOG_RETURN,
+        ).to_return_series().to_simple().values
     else:
         strategy_simple_returns = np.array([], dtype=float)
 
         # TradingEnv backend can expose true NLV path via broker.track_record.
         if str(backend).lower() == "tradingenv":
-            cumulative_log_returns = extract_tradingenv_returns(env_to_use, max_steps)
-            if cumulative_log_returns is not None and len(cumulative_log_returns) > 0:
-                cumulative_log_returns = np.asarray(cumulative_log_returns, dtype=float)
-                step_log_returns = np.diff(cumulative_log_returns)
-                strategy_simple_returns = np.exp(step_log_returns) - 1.0
+            return_series = extract_tradingenv_return_series(env_to_use, max_steps)
+            if return_series is not None:
+                strategy_simple_returns = return_series.to_simple().values
                 logger.info(
                     "Evaluation metrics using actual TradingEnv broker returns "
                     "(reward_type=%s, %d steps).",

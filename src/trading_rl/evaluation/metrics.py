@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from trading_rl.evaluation.returns import ReturnSeries
+
 
 def _safe_div(numerator: float, denominator: float) -> float:
     if denominator == 0 or np.isnan(denominator):
@@ -92,13 +94,15 @@ def _holding_period(actions: np.ndarray) -> float:
 
 
 def build_metric_report(
-    strategy_simple_returns: np.ndarray,
-    benchmark_simple_returns: np.ndarray | None,
+    strategy_simple_returns: np.ndarray | ReturnSeries,
+    benchmark_simple_returns: np.ndarray | ReturnSeries | None,
     actions: np.ndarray | None,
     periods_per_year: int,
     risk_free_rate_annual: float = 0.0,
 ) -> dict[str, float]:
     """Compute 25 standard quantitative finance metrics."""
+    if isinstance(strategy_simple_returns, ReturnSeries):
+        strategy_simple_returns = strategy_simple_returns.to_simple().values
     r = np.asarray(strategy_simple_returns, dtype=float)
     r = r[np.isfinite(r)]
 
@@ -149,6 +153,8 @@ def build_metric_report(
     info_ratio = np.nan
     tracking_error = np.nan
     if benchmark_simple_returns is not None:
+        if isinstance(benchmark_simple_returns, ReturnSeries):
+            benchmark_simple_returns = benchmark_simple_returns.to_simple().values
         b = np.asarray(benchmark_simple_returns, dtype=float)
         n = min(r.size, b.size)
         if n > 1:

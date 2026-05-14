@@ -22,7 +22,11 @@ import torch
 from trading_rl.constants import RewardType
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.plots import compare_rollouts
-from trading_rl.evaluation.returns import extract_tradingenv_returns
+from trading_rl.evaluation.returns import (
+    ReturnSeries,
+    RewardSeries,
+    extract_tradingenv_return_series,
+)
 
 
 @dataclass(frozen=True)
@@ -67,6 +71,7 @@ class SplitEvaluationResult:
     last_positions: list[Any]
     simple_returns: np.ndarray
     cumulative_returns: np.ndarray | None = None  # For debugging
+    return_series: ReturnSeries | None = None
     metrics: dict[str, float] | None = None
     plots: dict[str, Any] | None = None  # Raw plot objects
 
@@ -132,9 +137,9 @@ class StrategyEvaluator:
                 with set_exploration_type(InteractionType.DETERMINISTIC):
                     return env.rollout(max_steps=max_steps, policy=self.policy)
 
-    def _extract_returns(
+    def _extract_return_series(
         self, env: Any, rollout: Any, max_steps: int
-    ) -> tuple[np.ndarray, np.ndarray | None]:
+    ) -> ReturnSeries | None:
         """Extract strategy returns based on reward type and backend.
 
         Args:
@@ -143,23 +148,20 @@ class StrategyEvaluator:
             max_steps: Number of steps
 
         Returns:
-            (simple_returns, cumulative_returns) tuple
+            ReturnSeries when a true return path is available.
         """
         # Extract NLV-based returns for TradingEnv backend
         if self.config.backend.lower() == "tradingenv":
-            cumulative = extract_tradingenv_returns(env, max_steps)
-            if cumulative is not None and len(cumulative) > 1:
-                step_log = np.diff(cumulative)
-                simple_returns = np.exp(step_log) - 1.0
-                return simple_returns, cumulative
+            series = extract_tradingenv_return_series(env, max_steps)
+            if series is not None:
+                return series
 
         # Extract reward-stream returns for log_return
         if self.config.reward_type == RewardType.LOG_RETURN:
             rewards = rollout["next", "reward"].detach().cpu().numpy()[:max_steps]
-            simple_returns = np.exp(rewards) - 1.0
-            return simple_returns, None
+            return RewardSeries(rewards, self.config.reward_type).to_return_series()
 
-        return np.array([], dtype=float), None
+        return None
 
     def _compute_metrics(self, simple_returns: np.ndarray, df: pd.DataFrame) -> dict[str, float]:
         """Compute financial metrics from strategy returns.
@@ -265,7 +267,13 @@ class StrategyEvaluator:
         rollout = self._run_rollout(env, max_steps)
 
         # Extract returns
-        simple_returns, cumulative_returns = self._extract_returns(env, rollout, max_steps)
+        return_series = self._extract_return_series(env, rollout, max_steps)
+        if return_series is None:
+            simple_returns = np.array([], dtype=float)
+            cumulative_returns = None
+        else:
+            simple_returns = return_series.to_simple().values
+            cumulative_returns = return_series.to_cumulative_log(include_initial=True).values
 
         # Compute metrics
         metrics = self._compute_metrics(simple_returns, df) if self.config.enable_metrics else None
@@ -289,6 +297,7 @@ class StrategyEvaluator:
             last_positions=last_positions,
             simple_returns=simple_returns,
             cumulative_returns=cumulative_returns,
+            return_series=return_series,
             metrics=metrics,
             plots=plots,
         )
