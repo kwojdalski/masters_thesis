@@ -16,7 +16,7 @@ from trading_rl.train_trading_agent import run_single_experiment
 
 
 SCENARIO_PATHS = (
-    Path("src/configs/scenarios/sine_wave/ppo_no_trend"),
+    Path("src/configs/scenarios/sine_wave/ppo_no_trend_tradingenv"),
     Path("src/configs/scenarios/sine_wave/td3_no_trend_tradingenv"),
     Path("src/configs/scenarios/synthetic/upward_trend_td3_tradingenv"),
     Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv"),
