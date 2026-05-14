@@ -26,32 +26,13 @@ jobs:
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
         with:
-          tinytex: true
-
-      - name: Install xelatex and LaTeX packages
-        run: |
-          # Install xelatex and required LaTeX packages
-          sudo apt-get update
-          sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-latex-extra texlive-science
-
-      - name: Verify LaTeX installation
-        run: |
-          # Check if xelatex is available
-          which xelatex
-          xelatex --version
-          # Check if pdflatex is available as fallback
-          which pdflatex || echo "pdflatex not found"
-
-      - name: Disable Chrome for PDF generation
-        run: |
-          # Disable Chrome/Chromium to prevent headless issues in CI
-          export QUARTO_NO_CHROME=1
-          export QUARTO_PANDOC_ARGS=--pdf-engine=xelatex
-          echo "QUARTO_NO_CHROME=1" >> $GITHUB_ENV
-
-      - name: Install pdf2svg
-        run: sudo apt-get install -y pdf2svg
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('.github/workflows/publish.yml') }}
+          restore-keys: pip-${{ runner.os }}-
 
       - name: Install Python dependencies for code execution
         run: |
