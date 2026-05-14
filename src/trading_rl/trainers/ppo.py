@@ -198,15 +198,21 @@ class PPOTrainer(BaseTrainer):
         """Evaluate current PPO policy."""
         with torch.no_grad():
             n_eval = self.config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.config.eval_steps
+            eval_env = self._eval_env or self.env
+            if self._eval_env is None:
+                logger.warning(
+                    "ppo _evaluate: no dedicated eval env set; using training env "
+                    "which may corrupt SyncDataCollector state"
+                )
             try:
                 with set_exploration_type(InteractionType.MODE):
-                    eval_rollout = self.env.rollout(n_eval, self.actor)
+                    eval_rollout = eval_env.rollout(n_eval, self.actor)
             except RuntimeError:
                 logger.debug(
                     "Mode not available for distribution, falling back to Mean"
                 )
                 with set_exploration_type(InteractionType.DETERMINISTIC):
-                    eval_rollout = self.env.rollout(n_eval, self.actor)
+                    eval_rollout = eval_env.rollout(n_eval, self.actor)
 
             # Log evaluation metrics
             mean_reward = eval_rollout["next", "reward"].mean().item()
