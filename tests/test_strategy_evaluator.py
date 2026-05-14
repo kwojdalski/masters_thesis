@@ -50,3 +50,30 @@ def test_evaluate_split_uses_provided_environment_without_rebuilding() -> None:
 
     assert env.rollout_calls == 1
     np.testing.assert_allclose(result.simple_returns, np.zeros((2, 1)))
+
+
+def test_shaped_rewards_without_broker_do_not_become_returns() -> None:
+    def forbidden_factory(_df: pd.DataFrame, _config: EvaluationConfig) -> object:
+        raise AssertionError("evaluation should use the already-built split env")
+
+    env = _RolloutEnv()
+    evaluator = StrategyEvaluator(
+        env_factory=forbidden_factory,
+        policy=object(),
+        config=EvaluationConfig(
+            reward_type="differential_sharpe",
+            backend="tradingenv",
+            max_steps=2,
+            enable_plots=False,
+            enable_metrics=False,
+        ),
+    )
+
+    result = evaluator.evaluate_split(
+        "test",
+        pd.DataFrame({"close": [100.0, 101.0, 102.0]}),
+        env=env,
+    )
+
+    assert env.rollout_calls == 1
+    assert result.simple_returns.size == 0

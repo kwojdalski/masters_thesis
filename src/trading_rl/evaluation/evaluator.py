@@ -159,10 +159,7 @@ class StrategyEvaluator:
             simple_returns = np.exp(rewards) - 1.0
             return simple_returns, None
 
-        # Fallback: compute from reward stream (not ideal, preserves behavior)
-        rewards = rollout["next", "reward"].detach().cpu().numpy()[:max_steps]
-        simple_returns = np.exp(rewards) - 1.0
-        return simple_returns, None
+        return np.array([], dtype=float), None
 
     def _compute_metrics(self, simple_returns: np.ndarray, df: pd.DataFrame) -> dict[str, float]:
         """Compute financial metrics from strategy returns.
