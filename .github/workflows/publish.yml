@@ -4,6 +4,11 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      render_pdf:
+        type: boolean
+        description: Force PDF render from source (installs LaTeX, slow)
+        default: false
 
 permissions:
   contents: read
@@ -23,9 +28,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect source changes
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE "thesis/qmd/src/.*\.(qmd|py)$"; then
+            echo "qmd_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "qmd_changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: ${{ steps.changes.outputs.qmd_changed == 'true' || github.event.inputs.render_pdf == 'true' }}
+
+      - name: Install LaTeX packages
+        if: steps.changes.outputs.qmd_changed == 'true' || github.event.inputs.render_pdf == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-latex-extra texlive-science pdf2svg
 
       - name: Cache pip packages
         uses: actions/cache@v4
@@ -34,7 +60,7 @@ jobs:
           key: pip-${{ runner.os }}-${{ hashFiles('.github/workflows/publish.yml') }}
           restore-keys: pip-${{ runner.os }}-
 
-      - name: Install Python dependencies for code execution
+      - name: Install Python dependencies
         run: |
           pip install pandas numpy matplotlib pillow ipython jupyter scipy scikit-learn jinja2
           python -m ipykernel install --user --name masters_thesis --display-name "Masters Thesis"
@@ -50,16 +76,24 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
 
-      - name: Publish committed thesis PDF
+      - name: Render thesis to PDF
+        if: steps.changes.outputs.qmd_changed == 'true' || github.event.inputs.render_pdf == 'true'
         run: |
-          if [ ! -f "thesis/qmd/src/masters_thesis.pdf" ]; then
-            echo "ERROR: committed PDF not found at thesis/qmd/src/masters_thesis.pdf"
+          quarto render thesis/qmd/src/masters-thesis.qmd --to pdf
+        env:
+          PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
+          QUARTO_NO_CHROME: "1"
+
+      - name: Copy PDF to site
+        run: |
+          # Use freshly rendered PDF if available, otherwise fall back to committed one
+          if [ -f "thesis/qmd/src/masters_thesis.pdf" ]; then
+            echo "PDF file size: $(wc -c < thesis/qmd/src/masters_thesis.pdf) bytes"
+            cp thesis/qmd/src/masters_thesis.pdf _site/masters_thesis.pdf
+          else
+            echo "ERROR: no PDF found"
             exit 1
           fi
-
-          echo "Using committed PDF artifact"
-          echo "PDF file size: $(wc -c < thesis/qmd/src/masters_thesis.pdf) bytes"
-          cp thesis/qmd/src/masters_thesis.pdf _site/masters_thesis.pdf
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
