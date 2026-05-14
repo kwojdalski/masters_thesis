@@ -223,8 +223,8 @@ local function render_pseudocode_block_html(global_options)
       if algorithm_id then
         outer_el.attr.identifier = algorithm_id
         global_options.html_identifier_number_mapping[algorithm_id] = global_options.html_current_number
-        global_options.html_current_number = global_options.html_current_number + 1
       end
+      global_options.html_current_number = global_options.html_current_number + 1
 
       return outer_el
     end,
