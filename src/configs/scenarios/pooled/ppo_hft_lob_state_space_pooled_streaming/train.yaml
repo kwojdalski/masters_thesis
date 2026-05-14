@@ -30,15 +30,17 @@ data:
   download_data: false
   train_size: 50000
   lazy_load: true
-  prepared_data_dir: ./data/prepared/pooled_daily_6sym
-  memmap_dir: ./data/memmap/pooled_daily_6sym
+  prepared_data_dir: ./data/prepared/pooled_daily_6sym_selected
+  memmap_dir: ./data/memmap/pooled_daily_6sym_selected
   feature_cache_dir: .cache/feature_transformation
+  filter_lob_levels: 5
 env:
   backend: tradingenv
   trading_fees: 0.0
   price_column: close
   include_position_feature: true
   streaming_episode_length: 50000
+  obs_clip: 5.0
   reward_type: differential_sharpe
   reward_eta: 0.01
 network:
