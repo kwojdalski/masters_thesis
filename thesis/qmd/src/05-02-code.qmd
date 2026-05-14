@@ -129,7 +129,7 @@ entropy bonuses rather than explicit noise injection.
 \ENSURE Trained policy $\pi_\theta$, evaluation metrics
 \STATE Initialise stochastic actor $\pi_\theta$ (TanhNormal), value network $V_\phi$
 \FOR{each batch iteration $k = 1, \ldots, \texttt{max\_steps} / \texttt{frames\_per\_batch}$}
-  \STATE Collect trajectory $\mathcal{T}_k$ of \texttt{frames\_per\_batch} steps using $\pi_\theta$
+  \STATE Collect trajectory $\mathcal{T}_k$ of $\texttt{frames\_per\_batch}$ steps using $\pi_\theta$
   \STATE Compute advantage estimates $\hat{A}_t$ via GAE using $V_\phi$ on $\mathcal{T}_k$
   \FOR{each PPO epoch $j = 1, \ldots, K$}
     \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{T}_k$
