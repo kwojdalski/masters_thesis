@@ -42,8 +42,8 @@ Common commands:
 | --- | --- |
 | `uv run python src/cli.py scenarios` | List available scenario configs |
 | `uv run python src/cli.py data generate --sine-wave --n-periods 8 --samples-per_period 250 --output-file data/raw/synthetic/sine_wave.parquet` | Generate synthetic sine-wave data |
-| `uv run python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml` | Train a single agent |
-| `uv run python src/cli.py train --config sine_wave/ppo_no_trend --trials 3` | Run multiple trials (shorthand config path) |
+| `uv run python src/cli.py train --scenario sine_wave/ppo_no_trend` | Train a single agent |
+| `uv run python src/cli.py train --scenario sine_wave/ppo_no_trend --trials 3` | Run multiple trials |
 | `uv run python src/cli.py train --config sine_wave/ppo_no_trend --from-last-checkpoint --additional-steps 5000` | Resume from last checkpoint |
 | `uv run python src/cli.py validate --scenario aapl_td3_hft_lob` | Validate scenario config and data dependencies |
 | `uv run python src/cli.py feature-research --scenario sine_wave/ppo_no_trend` | Run offline feature scoring |
@@ -100,14 +100,25 @@ See [docs/data_guide.md](docs/data_guide.md) for detailed instructions on data d
 
 ## Configuration
 
-- Scenario YAML files live in `src/configs/scenarios`.
-- Provide a custom config with `--config`.
-- Override values with dotlist syntax via `--config-override`, for example:
+Each scenario lives in its own directory under `src/configs/scenarios/<group>/<name>/` and contains up to four component files that are merged in order at load time:
+
+| File | Purpose |
+| --- | --- |
+| `features.yaml` | Feature pipeline path (`data.feature_config`) and active columns (`env.feature_columns`) |
+| `train.yaml` | Data path, environment, network, and training hyperparameters |
+| `evaluate.yaml` | Evaluation-only overrides: benchmarks and statistical tests |
+| `feature_selection.yaml` | IC-selected feature subset; applied automatically when `data.automated_selection: true` in `train.yaml` |
+
+Reference a scenario by its directory path or `group/name` shorthand:
 
 <!--pytest.mark.skip-->
 ```bash
+# By shorthand (resolves to src/configs/scenarios/sine_wave/ppo_no_trend/)
+uv run python src/cli.py train --scenario sine_wave/ppo_no_trend
+
+# Override individual values at run time
 uv run python src/cli.py train \
-  --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml \
+  --scenario sine_wave/ppo_no_trend \
   --config-override training.max_steps=50000 \
   --config-override training.actor_lr=3e-5
 ```
@@ -120,9 +131,18 @@ masters_thesis/
 │   ├── cli/                 # CLI command implementations
 │   ├── cli.py               # CLI entrypoint
 │   ├── configs/
-│   │   ├── scenarios/       # Experiment scenario YAML configs
-│   │   ├── data/            # Data-source/data-generation configs
-│   │   └── features/        # Feature-set configs
+│   │   ├── scenarios/       # Experiment configs — one directory per scenario
+│   │   │   ├── aapl/
+│   │   │   │   └── td3_hft_lob_state_space/
+│   │   │   │       ├── features.yaml        # feature pipeline + active columns
+│   │   │   │       ├── train.yaml           # training hyperparameters
+│   │   │   │       ├── evaluate.yaml        # benchmark + stat-test overrides
+│   │   │   │       └── feature_selection.yaml  # IC-selected columns (optional)
+│   │   │   ├── btc/
+│   │   │   ├── pooled/
+│   │   │   ├── sine_wave/
+│   │   │   └── synthetic/
+│   │   └── data/            # Data-source/data-generation configs
 │   ├── data_generator.py    # Synthetic data generation
 │   ├── logger/              # Shared logging utilities
 │   └── trading_rl/          # Core RL package

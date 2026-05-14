@@ -118,29 +118,48 @@ FeatureSelector.write_selected_yaml(
 )
 ```
 
-**Step 2: Train with the selected features**
+**Step 2: Place the selected features in the scenario directory**
+
+With the component-file config layout, write the selected columns into `feature_selection.yaml` inside the scenario directory:
 
 ```yaml
-data:
-  feature_config: "src/configs/features/selected_aapl_hft.yaml"
+# src/configs/scenarios/aapl/td3_hft_lob_state_space/feature_selection.yaml
+env:
+  feature_columns:
+    - feature_hft_book_pressure_l0
+    - feature_hft_ofi
+    # ... IC-selected subset
 ```
+
+Then enable automatic selection in `train.yaml`:
+
+```yaml
+# src/configs/scenarios/aapl/td3_hft_lob_state_space/train.yaml
+data:
+  automated_selection: true   # loads feature_selection.yaml on top of features.yaml
+```
+
+When `automated_selection: false` (the default), `env.feature_columns` from `features.yaml` is used unchanged.
+
+The `feature-research` CLI command writes `feature_selection.yaml` directly into the scenario directory when `--scenario` is provided.
 
 ### In Scenario Config
 
-Feature groups can be used directly in experiment YAML for **manual composition** (no selection, just pick groups):
+Feature groups are declared in `features.yaml` for **manual composition** (no IC selection):
 
 ```yaml
+# src/configs/scenarios/aapl/td3_hft_lob_state_space/features.yaml
 data:
-  data_path: "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
-  train_size: 15000
-  validation_size: 2500
   feature_groups: "src/configs/features/feature_groups.yaml"
-  feature_selection:
-    groups: ["imbalance", "fair_value", "spread", "flow", "regime"]
-    exclude: ["feature_hft_book_pressure_l2"]
+  feature_config: "src/configs/features/hft_lob_features_all.yaml"
+env:
+  feature_columns:
+    - feature_hft_book_pressure_l0
+    - feature_hft_microprice
+    # full manually-curated list
 ```
 
-For **research-based selection**, run the offline step to produce a reduced YAML, then use `feature_config` for training.
+For **research-based selection**, run the offline IC scoring step (`feature-research`) to populate `feature_selection.yaml`, then set `data.automated_selection: true` in `train.yaml`.
 
 ## Data Flow
 

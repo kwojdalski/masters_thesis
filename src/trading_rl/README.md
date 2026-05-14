@@ -31,14 +31,14 @@ trading_rl/
 
 ### `config.py`
 Defines configuration using dataclasses for:
-- **DataConfig**: Data loading and preprocessing settings
-- **EnvConfig**: Trading environment parameters
+- **DataConfig**: Data loading and preprocessing settings; `automated_selection: bool` applies `feature_selection.yaml` when `True`
+- **EnvConfig**: Trading environment parameters including `feature_columns`
 - **NetworkConfig**: Neural network architectures
 - **TrainingConfig**: Training hyperparameters
 - **LoggingConfig**: Logging settings
-- **ExperimentConfig**: Combined configuration
+- **ExperimentConfig**: Combined configuration; `from_scenario(dir, command, overrides)` merges the four component files (`features.yaml` → `train.yaml` → `evaluate.yaml` → `feature_selection.yaml`) via OmegaConf
 
-**Benefits**: Type-safe, easy to modify, can be serialized/deserialized
+**Benefits**: Type-safe, easy to modify; component-file layout keeps feature engineering and training hyperparameters in separate, independently editable files per scenario
 
 ### `data_utils.py`
 Data handling utilities:

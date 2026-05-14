@@ -9,7 +9,7 @@ End-to-end reference for the training pipeline, from CLI invocation to final eva
 ```mermaid
 flowchart TD
     CLI["cli.py\ntrain command"] --> TC["TrainingCommand.execute()"]
-    TC --> LC["_load_training_config()\nresolve YAML + CLI overrides"]
+    TC --> LC["_load_training_config()\nmerge scenario components\n+ CLI overrides"]
     LC --> RSE["run_single_experiment()"]
     RSE --> ESE["execute_single_experiment()"]
 

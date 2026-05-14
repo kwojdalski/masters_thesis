@@ -65,9 +65,16 @@ flowchart TD
 
 ### 1. Configuration Loading
 
--   Loads YAML configuration file or uses defaults
--   Validates configuration parameters
--   Sets up experiment-specific parameters
+Each scenario lives in a directory under `src/configs/scenarios/<group>/<name>/` with up to four component files merged in order:
+
+| File | Purpose |
+| --- | --- |
+| `features.yaml` | Feature pipeline path and active `env.feature_columns` |
+| `train.yaml` | Data path, env, network, training hyperparameters |
+| `evaluate.yaml` | Benchmark and statistical-test overrides (evaluate command only) |
+| `feature_selection.yaml` | IC-selected column subset; applied when `data.automated_selection: true` |
+
+`ExperimentConfig.from_scenario(dir, command)` performs the merge via OmegaConf. CLI `--config-override` dotlist values are applied on top. Legacy single-file YAML paths are still accepted.
 
 ### 2. Data Preparation
 
@@ -181,19 +188,15 @@ Configuration dataclass containing all experiment parameters: - **DataConfig**: 
 ### Basic Single Run
 
 ``` bash
-uv run python src/cli.py train --config src/configs/scenarios/sine_wave_ppo_no_trend_tradingenv.yaml
+uv run python src/cli.py train --scenario sine_wave/ppo_no_trend
 ```
 
-Config paths accept either a full path or a `group/name` shorthand relative to `src/configs/scenarios`:
-
-``` bash
-uv run python src/cli.py train --config sine_wave/ppo_no_trend
-```
+`--scenario` accepts a `group/name` shorthand (resolved under `src/configs/scenarios`) or a full directory path. `--config` still works for a legacy single-file YAML.
 
 ### Multiple Trials
 
 ``` bash
-uv run python src/cli.py train --config sine_wave/ppo_no_trend --trials 3 --name "sweep_run"
+uv run python src/cli.py train --scenario sine_wave/ppo_no_trend --trials 3 --name "sweep_run"
 ```
 
 ### PPO/DDPG/TD3 Selection
