@@ -11,8 +11,9 @@ All without coupling to training, MLflow, or specific algorithm details.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -51,6 +52,7 @@ class EvaluationConfig:
     price_column: str = "close"
     enable_plots: bool = True
     enable_metrics: bool = True
+    periods_per_year: int = 252
     env: EnvConfig = field(default_factory=EnvConfig)  # Environment configuration
 
 
@@ -195,7 +197,7 @@ class StrategyEvaluator:
             strategy_simple_returns=simple_returns,
             benchmark_simple_returns=benchmark_simple_returns,
             actions=None,
-            periods_per_year=252,  # TODO: make configurable
+            periods_per_year=self.config.periods_per_year,
             risk_free_rate_annual=0.0,
         )
 

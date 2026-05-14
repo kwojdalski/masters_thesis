@@ -13,7 +13,6 @@ from rich.table import Table
 
 from .base_command import BaseCommand
 
-
 _ALL_COMPONENTS = frozenset({"metrics", "benchmarks", "plots", "stats"})
 
 _PERF_ROWS = [
@@ -133,6 +132,7 @@ class EvaluateCommand(BaseCommand):
                     price_column=price_column,
                     enable_plots="plots" in components,
                     enable_metrics="metrics" in components,
+                    periods_per_year=periods_py,
                 )
 
                 evaluator = StrategyEvaluator(
@@ -146,7 +146,7 @@ class EvaluateCommand(BaseCommand):
                 split_output: dict[str, Any] = {
                     "split": split,
                     "final_reward": result.final_reward,
-                    "n_steps": int(len(result.simple_returns)),
+                    "n_steps": len(result.simple_returns),
                 }
 
                 if "metrics" in components and result.metrics:
@@ -168,14 +168,30 @@ class EvaluateCommand(BaseCommand):
                             bench_returns = spec.compute_returns(split_ctx.max_steps)
                             bench_returns_map[spec.name] = bench_returns
                             n = min(len(result.simple_returns), len(bench_returns))
-                            bench_report = build_metric_report(
+                            # Benchmark's own performance metrics
+                            bench_own = build_metric_report(
+                                strategy_simple_returns=bench_returns[:n],
+                                benchmark_simple_returns=bench_returns[:n],
+                                actions=None,
+                                periods_per_year=periods_py,
+                                risk_free_rate_annual=0.0,
+                            )
+                            # Relative metrics (alpha, beta, IR, TE) vs strategy
+                            bench_rel = build_metric_report(
                                 strategy_simple_returns=result.simple_returns[:n],
                                 benchmark_simple_returns=bench_returns[:n],
                                 actions=None,
                                 periods_per_year=periods_py,
                                 risk_free_rate_annual=0.0,
                             )
-                            bench_out[spec.name] = bench_report
+                            bench_out[spec.name] = {
+                                "benchmark_metrics": bench_own,
+                                "relative_metrics": {
+                                    k: bench_rel[k]
+                                    for k in ("alpha", "beta", "information_ratio", "tracking_error")
+                                    if k in bench_rel
+                                },
+                            }
                         split_output["benchmarks"] = bench_out
                         self._print_benchmark_table(split, bench_out)
                         if mlflow_run_id:
@@ -191,7 +207,9 @@ class EvaluateCommand(BaseCommand):
                         )
                         split_output["statistical_tests"] = stat_results
                         if mlflow_run_id:
-                            from trading_rl.callbacks.artifacts import log_statistical_tests
+                            from trading_rl.callbacks.artifacts import (
+                                log_statistical_tests,
+                            )
                             log_statistical_tests(stat_results, split_prefix=split)
 
                 if "plots" in components and result.plots:
@@ -235,8 +253,9 @@ class EvaluateCommand(BaseCommand):
             return _noop_context()
 
         try:
-            import mlflow
             from datetime import UTC, datetime
+
+            import mlflow
 
             mlflow.set_tracking_uri(params.tracking_uri)
             mlflow.set_experiment(config.experiment_name)
@@ -264,23 +283,31 @@ class EvaluateCommand(BaseCommand):
             return _noop_context()
 
     def _log_benchmarks_to_mlflow(
-        self, bench_out: dict[str, dict[str, float]], split: str
+        self, bench_out: dict[str, Any], split: str
     ) -> None:
         try:
             import mlflow
             import numpy as np
 
-            for bench_name, report in bench_out.items():
+            for bench_name, entry in bench_out.items():
                 with tempfile.NamedTemporaryFile(
                     mode="w", suffix=".json", delete=False
                 ) as f:
-                    json.dump(report, f, indent=2, default=_json_default)
+                    json.dump(entry, f, indent=2, default=_json_default)
                     f.flush()
                     mlflow.log_artifact(f.name, f"benchmarks/{split}/{bench_name}")
                     os.unlink(f.name)
 
+                bench_metrics = entry.get("benchmark_metrics", entry)
+                rel_metrics = entry.get("relative_metrics", {})
                 for key, _, _ in _PERF_ROWS:
-                    val = report.get(key)
+                    val = bench_metrics.get(key)
+                    if val is not None and np.isfinite(float(val)):
+                        mlflow.log_metric(
+                            f"bench_{split}_{bench_name}_{key}", float(val)
+                        )
+                for key in ("alpha", "beta", "information_ratio", "tracking_error"):
+                    val = rel_metrics.get(key)
                     if val is not None and np.isfinite(float(val)):
                         mlflow.log_metric(
                             f"bench_{split}_{bench_name}_{key}", float(val)
@@ -351,18 +378,35 @@ class EvaluateCommand(BaseCommand):
         self.console.print(table)
 
     def _print_benchmark_table(
-        self, split: str, bench_out: dict[str, dict[str, float]]
+        self, split: str, bench_out: dict[str, Any]
     ) -> None:
         table = Table(
-            title=f"Benchmark comparison ({split})", show_header=True, header_style="bold"
+            title=f"Benchmark performance ({split})", show_header=True, header_style="bold"
         )
         table.add_column("Benchmark", style="cyan")
         for _, label, _ in _PERF_ROWS:
             table.add_column(label, justify="right")
-        for bench_name, report in bench_out.items():
+        for _, label, _ in [
+            ("alpha", "Alpha", ".4f"),
+            ("beta", "Beta", ".3f"),
+            ("information_ratio", "Info Ratio", ".3f"),
+            ("tracking_error", "Track. Error", ".4f"),
+        ]:
+            table.add_column(label, justify="right")
+        for bench_name, entry in bench_out.items():
+            bench_metrics = entry.get("benchmark_metrics", entry)
+            rel_metrics = entry.get("relative_metrics", {})
             row = [bench_name]
             for key, _, fmt in _PERF_ROWS:
-                val = report.get(key)
+                val = bench_metrics.get(key)
+                row.append(f"{val:{fmt}}" if val is not None else "—")
+            for key, _, fmt in [
+                ("alpha", "", ".4f"),
+                ("beta", "", ".3f"),
+                ("information_ratio", "", ".3f"),
+                ("tracking_error", "", ".4f"),
+            ]:
+                val = rel_metrics.get(key)
                 row.append(f"{val:{fmt}}" if val is not None else "—")
             table.add_row(*row)
         self.console.print(table)
