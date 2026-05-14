@@ -143,7 +143,8 @@ def _performance_summary(
     equity = np.cumprod(1.0 + r)
     total_return = float(equity[-1] - 1.0)
     years = max(r.size / periods_per_year, 1e-12)
-    cagr = float(equity[-1] ** (1.0 / years) - 1.0)
+    log_eq = np.log(max(float(equity[-1]), 1e-12))
+    cagr = float(np.expm1(np.clip(log_eq / years, -50.0, 50.0)))
 
     return {
         "total_return": total_return,
@@ -182,6 +183,7 @@ def compute_random_baseline_returns(
 ) -> list[np.ndarray]:
     """Generate random action baseline returns via Monte Carlo sampling."""
     import signal
+
     import torch
     from tensordict.nn import InteractionType
     from torchrl.envs.utils import set_exploration_type
