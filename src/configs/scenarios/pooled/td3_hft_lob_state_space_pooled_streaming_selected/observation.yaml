@@ -1,5 +1,5 @@
 data:
-  feature_config: src/configs/features/hft_lob_features_all.yaml
+  feature_config: src/configs/feature_sets/hft_lob_features_all.yaml
 env:
   mode: hft
   feature_columns:

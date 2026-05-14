@@ -1,5 +1,0 @@
-data:
-  feature_config: src/configs/features/upward_trend_only.yaml
-env:
-  feature_columns:
-  - feature_trend
