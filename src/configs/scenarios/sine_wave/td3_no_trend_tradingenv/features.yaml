@@ -1,0 +1,7 @@
+data:
+  feature_config: src/configs/features/sine_wave_price_action.yaml
+env:
+  feature_columns:
+  - feature_log_return
+  - feature_high
+  - feature_low

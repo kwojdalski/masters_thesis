@@ -1,0 +1,6 @@
+data:
+  feature_config: src/configs/features/upward_trend_with_return.yaml
+env:
+  feature_columns:
+  - feature_log_return
+  - feature_trend

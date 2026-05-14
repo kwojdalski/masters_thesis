@@ -115,23 +115,15 @@ class TrainingCommand(BaseCommand):
             raise ValueError("Cannot specify both --config and --scenario.")
 
         if params.config_file:
-            config_path = (
-                params.config_file
-                if params.config_file.exists()
-                else self._resolve_scenario_config_path(str(params.config_file))
+            config = self._load_experiment_config(
+                params.config_file, command="train", overrides=params.config_overrides
             )
-            config = ExperimentConfig.from_yaml(
-                config_path, overrides=params.config_overrides
-            )
-            self.console.print(f"[blue]Loaded config from: {config_path}[/blue]")
+            self.console.print(f"[blue]Loaded config from: {params.config_file}[/blue]")
         elif params.scenario:
-            config_file = self._resolve_scenario_config_path(params.scenario)
-            config = ExperimentConfig.from_yaml(
-                config_file, overrides=params.config_overrides
+            config = self._load_experiment_config(
+                params.scenario, command="train", overrides=params.config_overrides
             )
-            self.console.print(
-                f"[blue]Loaded config from scenario: {params.scenario} -> {config_file}[/blue]"
-            )
+            self.console.print(f"[blue]Loaded config from scenario: {params.scenario}[/blue]")
         else:
             if params.config_overrides:
                 raise ValueError("--config-override requires --config or --scenario.")

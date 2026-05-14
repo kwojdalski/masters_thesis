@@ -328,21 +328,13 @@ class EvaluateCommand(BaseCommand):
     # ------------------------------------------------------------------
 
     def _load_config(self, params: EvaluateParams) -> Any:
-        from trading_rl import ExperimentConfig
-
         if params.config_file is None:
             raise ValueError("--config is required for the evaluate command.")
 
-        config_path = params.config_file
-        if not config_path.exists():
-            config_path = self._resolve_scenario_config_path(
-                str(params.config_file), command_file="evaluate.yaml"
-            )
-
-        config = ExperimentConfig.from_yaml(
-            config_path, overrides=params.config_overrides
+        config = self._load_experiment_config(
+            params.config_file, command="evaluate", overrides=params.config_overrides
         )
-        self.console.print(f"[dim]Config: {config_path}[/dim]")
+        self.console.print(f"[dim]Config: {params.config_file}[/dim]")
         return config
 
 

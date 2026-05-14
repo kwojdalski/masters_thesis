@@ -1,0 +1,8 @@
+data:
+  feature_config: src/configs/features/btc_with_volume.yaml
+env:
+  feature_columns:
+  - feature_log_return
+  - feature_high
+  - feature_low
+  - feature_log_volume

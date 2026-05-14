@@ -1,0 +1,43 @@
+data:
+  feature_config: src/configs/features/all_features.yaml
+env:
+  feature_columns:
+  - feature_log_return
+  - feature_high
+  - feature_low
+  - feature_trend
+  - feature_simple_return
+  - feature_rsi
+  - feature_return_lag_1
+  - feature_log_volume
+  - feature_volume_change
+  - feature_volume_ma_ratio_20
+  - feature_amihud_illiquidity
+  - feature_realized_volatility_20
+  - feature_volatility_ratio_5_60
+  - feature_hour_sin
+  - feature_hour_cos
+  - feature_day_of_week_sin
+  - feature_day_of_week_cos
+  - feature_minute_of_hour_sin
+  - feature_minute_of_hour_cos
+  - feature_sma_20
+  - feature_ema_20
+  - feature_wma_20
+  - feature_dema_20
+  - feature_tema_20
+  - feature_talib_rsi_14
+  - feature_macd_12_26_9
+  - feature_mom_10
+  - feature_roc_10
+  - feature_cmo_14
+  - feature_willr_14
+  - feature_cci_14
+  - feature_atr_14
+  - feature_natr_14
+  - feature_bbands_20
+  - feature_obv
+  - feature_ad
+  - feature_adosc_3_10
+  - feature_adx_14
+  - feature_aroon_14

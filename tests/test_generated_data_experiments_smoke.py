@@ -16,10 +16,10 @@ from trading_rl.train_trading_agent import run_single_experiment
 
 
 SCENARIO_PATHS = (
-    Path("src/configs/scenarios/sine_wave/ppo_no_trend.yaml"),
-    Path("src/configs/scenarios/sine_wave/td3_no_trend_tradingenv.yaml"),
-    Path("src/configs/scenarios/synthetic/upward_trend_td3_tradingenv.yaml"),
-    Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv.yaml"),
+    Path("src/configs/scenarios/sine_wave/ppo_no_trend"),
+    Path("src/configs/scenarios/sine_wave/td3_no_trend_tradingenv"),
+    Path("src/configs/scenarios/synthetic/upward_trend_td3_tradingenv"),
+    Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv"),
 )
 
 _CORE_REPORT_KEYS = ("total_return", "sharpe_ratio", "max_drawdown")
@@ -108,6 +108,9 @@ PUSH_SMOKE_CASES = tuple(
 
 
 def _load_yaml(path: Path) -> dict:
+    # Support both legacy single-file and new component-directory scenarios
+    if path.is_dir():
+        path = path / "train.yaml"
     with path.open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
 
@@ -172,8 +175,9 @@ def _make_smoke_config(
     tracking_db = tmp_path / "mlflow.db"
     log_dir = tmp_path / "logs"
 
-    return ExperimentConfig.from_yaml(
+    return ExperimentConfig.from_scenario(
         case.scenario_path,
+        command="train",
         overrides=[
             "seed=7",
             f"data.data_path={data_path}",

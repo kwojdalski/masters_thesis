@@ -1,0 +1,15 @@
+data:
+  feature_config: src/configs/features/btc_minimal_features.yaml
+env:
+  feature_columns:
+  - feature_log_return
+  - feature_return_lag_24
+  - feature_return_lag_168
+  - feature_realized_volatility_24
+  - feature_volume_ma_ratio_24
+  - feature_rsi_14
+  - feature_ema_20
+  - feature_atr_14
+  - feature_macd_12_26_9
+  - feature_hour_sin
+  - feature_hour_cos

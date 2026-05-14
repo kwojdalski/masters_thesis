@@ -88,6 +88,45 @@ class BaseCommand(ABC):
             "src/configs/scenarios."
         )
 
+    def _load_experiment_config(
+        self,
+        scenario_or_path: str | Path,
+        command: str = "train",
+        overrides: list[str] | None = None,
+    ) -> Any:
+        """Load ExperimentConfig from a scenario directory or a legacy YAML file.
+
+        Prefers the component-file layout (features.yaml + {command}.yaml) when the
+        resolved path is a directory; falls back to a single-file load otherwise.
+        """
+        from trading_rl import ExperimentConfig
+
+        path = Path(scenario_or_path)
+
+        # Expand short scenario names to their canonical directory under src/configs/scenarios
+        if not path.exists():
+            candidate = Path("src/configs/scenarios") / scenario_or_path
+            if candidate.exists():
+                path = candidate
+
+        if path.is_dir():
+            command_file = f"{command}.yaml"
+            if (path / command_file).exists() or (path / "features.yaml").exists():
+                return ExperimentConfig.from_scenario(path, command=command, overrides=overrides)
+            # Directory exists but has no component files — fall through to legacy resolution
+            resolved = self._resolve_scenario_config_path(str(scenario_or_path), command_file=command_file)
+            return ExperimentConfig.from_yaml(resolved, overrides=overrides)
+
+        # Legacy: single YAML file (absolute or relative)
+        if path.is_file():
+            return ExperimentConfig.from_yaml(path, overrides=overrides)
+
+        # Last resort: resolve via existing helper (handles flat .yaml fallback)
+        resolved = self._resolve_scenario_config_path(
+            str(scenario_or_path), command_file=f"{command}.yaml"
+        )
+        return ExperimentConfig.from_yaml(resolved, overrides=overrides)
+
     @abstractmethod
     def execute(self, **kwargs) -> Any:
         """Execute the command."""

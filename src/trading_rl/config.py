@@ -57,6 +57,8 @@ class DataConfig:
     # MBP-10 data when features only consume levels 0-4, eliminating deep-book-only
     # update events that carry no signal for the configured feature set.
     filter_lob_levels: int | None = None
+    # When True, feature_selection.yaml in the scenario dir overrides feature_columns.
+    automated_selection: bool = False
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
@@ -471,6 +473,117 @@ class ExperimentConfig:
             derived_name = "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else yaml_path.stem
         except ValueError:
             derived_name = yaml_path.stem
+
+        if "experiment_name" not in config_dict:
+            config_dict["experiment_name"] = derived_name
+
+        env_dict = config_dict.setdefault("env", {})
+        if isinstance(env_dict, dict) and not env_dict.get("name"):
+            env_dict["name"] = derived_name.upper()
+
+        log_dict = config_dict.get("logging")
+        if log_dict is None:
+            config_dict["logging"] = {"log_dir": str(Path("logs") / derived_name)}
+        elif isinstance(log_dict, dict) and "log_dir" not in log_dict:
+            log_dict["log_dir"] = str(Path("logs") / derived_name)
+
+        return cls.from_dict(config_dict)
+
+    @classmethod
+    def from_scenario(
+        cls,
+        scenario_dir: str | Path,
+        command: str = "train",
+        overrides: list[str] | None = None,
+    ) -> "ExperimentConfig":
+        """Load config by merging scenario component files.
+
+        Merge order (later wins):
+          1. features.yaml          — feature pipeline + feature_columns
+          2. train.yaml             — base params (always included, even for evaluate)
+          3. {command}.yaml         — command-specific overrides (skipped for "train")
+          4. feature_selection.yaml — IC-selected columns (only when
+                                      data.automated_selection is True)
+          5. CLI overrides
+
+        Args:
+            scenario_dir: Path to the scenario directory.
+            command: Which command file to load ("train" or "evaluate").
+            overrides: Optional OmegaConf dotlist overrides.
+        """
+        scenario_dir = Path(scenario_dir)
+        if not scenario_dir.is_dir():
+            raise NotADirectoryError(f"Scenario directory not found: {scenario_dir}")
+
+        features_path = scenario_dir / "features.yaml"
+        train_path = scenario_dir / "train.yaml"
+        command_path = scenario_dir / f"{command}.yaml"
+        selection_path = scenario_dir / "feature_selection.yaml"
+
+        if not train_path.exists():
+            raise FileNotFoundError(
+                f"train.yaml not found in scenario directory: {scenario_dir}"
+            )
+
+        overrides = overrides or []
+
+        if OmegaConf is not None:
+            layers = []
+            if features_path.exists():
+                layers.append(OmegaConf.load(str(features_path)))
+            layers.append(OmegaConf.load(str(train_path)))
+            # For evaluate, merge evaluate.yaml on top of train.yaml
+            if command != "train" and command_path.exists():
+                layers.append(OmegaConf.load(str(command_path)))
+            cfg = OmegaConf.merge(*layers) if len(layers) > 1 else layers[0]
+
+            automated = bool(OmegaConf.select(cfg, "data.automated_selection", default=False))
+            if automated and selection_path.exists():
+                cfg = OmegaConf.merge(cfg, OmegaConf.load(str(selection_path)))
+
+            if overrides:
+                cfg = OmegaConf.merge(cfg, OmegaConf.from_dotlist(overrides))
+            config_dict = OmegaConf.to_container(cfg, resolve=True)
+        else:
+            if overrides:
+                raise ImportError("OmegaConf is required for config overrides.")
+
+            def _merge(base: dict, override: dict) -> dict:
+                out = dict(base)
+                for k, v in override.items():
+                    if k in out and isinstance(out[k], dict) and isinstance(v, dict):
+                        out[k] = _merge(out[k], v)
+                    else:
+                        out[k] = v
+                return out
+
+            paths_to_load = [features_path, train_path]
+            if command != "train" and command_path.exists():
+                paths_to_load.append(command_path)
+
+            config_dict: dict = {}
+            for path in paths_to_load:
+                if path.exists():
+                    with open(path) as f:
+                        config_dict = _merge(config_dict, yaml.safe_load(f) or {})
+
+            if config_dict.get("data", {}).get("automated_selection") and selection_path.exists():
+                with open(selection_path) as f:
+                    config_dict = _merge(config_dict, yaml.safe_load(f) or {})
+
+        config_dict = config_dict or {}
+
+        # Derive experiment name from scenario directory (same logic as from_yaml)
+        _COMMAND_STEMS = {"train", "evaluate", "experiment"}
+        parts = command_path.parts
+        try:
+            scenarios_idx = list(parts).index("scenarios")
+            rel_parts = list(parts[scenarios_idx + 1:])
+            if rel_parts and Path(rel_parts[-1]).stem in _COMMAND_STEMS:
+                rel_parts = rel_parts[:-1]
+            derived_name = "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else scenario_dir.name
+        except ValueError:
+            derived_name = scenario_dir.name
 
         if "experiment_name" not in config_dict:
             config_dict["experiment_name"] = derived_name

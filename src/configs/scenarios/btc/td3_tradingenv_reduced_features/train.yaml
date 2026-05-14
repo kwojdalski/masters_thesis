@@ -5,7 +5,7 @@ data:
   train_size: 7000
 env:
   backend: tradingenv
-  trading_fees: 0.00035
+  trading_fees: 0.0
   price_column: close
   reward_type: differential_sharpe
   reward_eta: 0.01
@@ -18,17 +18,20 @@ network:
   - 64
 training:
   algorithm: TD3
+  temp_eval_interval: 100000
   actor_lr: 0.0001
   value_lr: 0.0001
   value_weight_decay: 2.0e-06
   actor_weight_decay: 2.0e-06
   max_steps: 5000000
-  init_rand_steps: 5000
+  checkpoint_interval: 100000
+  init_rand_steps: 500
   frames_per_batch: 200
   optim_steps_per_batch: 5
   sample_size: 128
   buffer_size: 100000
   save_buffer: true
+  gamma: 0.99
   tau: 0.001
   policy_noise: 0.2
   noise_clip: 0.3
@@ -44,4 +47,9 @@ logging:
   log_level: INFO
   save_plots: false
 explainability:
-  enabled: false
+  enabled: true
+  n_steps: 500
+  methods:
+  - permutation
+  - integrated_gradients
+  temp_explainability_interval: 50000
