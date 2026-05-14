@@ -1,4 +1,4 @@
-## Applied RL Trading Evidence [VERIFIED]
+## Applied RL Trading Evidence
 <!-- [VERIFIED] -->
 
 The application of reinforcement learning to financial trading has evolved from
@@ -17,7 +17,7 @@ reported performance is interpreted skeptically unless the study specifies what
 information the agent observes, how actions map to trades, whether costs are
 charged, and how out-of-sample performance is selected and reported.
 
-### Early Applications and Proof-of-Concept [VERIFIED]
+### Early Applications and Proof-of-Concept
 <!-- [VERIFIED] -->
 
 @Moody1998 presented the first comprehensive application of RL to trading,
@@ -35,7 +35,7 @@ intermediate outcomes.
 RL-optimized policies could generate positive risk-adjusted returns after
 transaction costs — a stringent test of practical viability.
 
-### From Discrete to Continuous Action Spaces [VERIFIED]
+### From Discrete to Continuous Action Spaces
 <!-- [VERIFIED] -->
 
 Early value-based approaches applied Q-learning with discrete buy/sell/hold
@@ -55,7 +55,7 @@ substantially across currency pairs and depended on the choice of model and
 system parameters, making early direct-RL results better interpreted as
 feasibility evidence than as a robust trading edge.
 
-### Deep Reinforcement Learning Era [VERIFIED]
+### Deep Reinforcement Learning Era
 <!-- [VERIFIED] -->
 
 The introduction of deep function approximators to RL trading extended
@@ -132,7 +132,7 @@ reward definition, transaction costs, and evaluation protocol. The review is
 useful here as a synthesis of design dimensions rather than as evidence for the
 superiority of any single algorithm.
 
-### Comparative Evidence and Limitations [VERIFIED]
+### Comparative Evidence and Limitations
 <!-- [VERIFIED] -->
 
 **Algorithm comparisons and reproducibility.**
@@ -166,7 +166,7 @@ The Differential Sharpe Ratio [@Moody1998] addresses some of these concerns by
 targeting risk-adjusted return directly, but does not fully resolve the tension
 between reward simplicity and the richness of real trading objectives.
 
-### Structured Comparison of Representative Studies [VERIFIED]
+### Structured Comparison of Representative Studies
 <!-- [VERIFIED] -->
 
 ```{=latex}

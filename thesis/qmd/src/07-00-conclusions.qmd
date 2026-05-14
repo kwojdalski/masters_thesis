@@ -1,4 +1,4 @@
-# Conclusions and Future Work [PLACEHOLDER]
+# Conclusions and Future Work
 <!-- [PLACEHOLDER] -->
 
 This thesis examined if a continuous-control deep RL agent

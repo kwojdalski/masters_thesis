@@ -1,4 +1,4 @@
-## Thesis Organization and Chapter Overview [VERIFIED]
+## Thesis Organization and Chapter Overview
 <!-- [VERIFIED] -->
 
 The thesis proceeds from problem formulation and motivating literature to agent design and implementation, and finally to empirical evaluation.

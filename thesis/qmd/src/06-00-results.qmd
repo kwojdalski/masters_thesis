@@ -1,4 +1,4 @@
-# Results [PLACEHOLDER]
+# Results
 <!-- [PLACEHOLDER] -->
 
 This chapter reports the evidence for the thesis-facing experiment:
@@ -8,7 +8,7 @@ parts: statistical validation of repeated-run variability, robustness
 assessment under nearby design changes, and final performance evaluation on the
 held-out split.
 
-## Benchmark Strategies [PLACEHOLDER]
+## Benchmark Strategies
 <!-- [PLACEHOLDER] -->
 
 Performance is assessed relative to five benchmark strategies. These
@@ -46,7 +46,7 @@ Failure to consistently outperform a random policy would indicate that the
 agent has not learned a meaningful relationship between observations and
 actions.
 
-## Algorithm Comparison Results [PLACEHOLDER]
+## Algorithm Comparison Results
 <!-- [PLACEHOLDER] -->
 
 Beyond the benchmark strategies, a key empirical question is how the different
@@ -129,7 +129,7 @@ This comparison provides empirical grounding for the algorithmic choices made
 in this study and offers guidance for algorithm selection in similar
 continuous-action trading applications.
 
-## Evaluation Protocol [PLACEHOLDER]
+## Evaluation Protocol
 <!-- [PLACEHOLDER] -->
 
 To keep the rendered thesis aligned with the recorded experiments, tables and
@@ -157,7 +157,7 @@ snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 runs_df = runs_overview_table(EXPERIMENT_NAME)
 ```
 
-## Experiment Snapshot [PLACEHOLDER]
+## Experiment Snapshot
 <!-- [PLACEHOLDER] -->
 
 ```{python}

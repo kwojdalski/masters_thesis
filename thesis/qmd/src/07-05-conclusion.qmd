@@ -1,4 +1,4 @@
-## Conclusion [PLACEHOLDER]
+## Conclusion
 <!-- [PLACEHOLDER] -->
 
 The central question of this thesis was: can a LOB-informed deep RL agent achieve meaningful out-of-sample trading performance in a high-frequency setting? The answer, under the specified experimental

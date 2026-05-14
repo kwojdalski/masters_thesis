@@ -1,4 +1,4 @@
-## Implications for This Thesis [VERIFIED]
+## Implications for This Thesis
 <!-- [VERIFIED] -->
 
 The literature reviewed in this chapter motivates the thesis design along

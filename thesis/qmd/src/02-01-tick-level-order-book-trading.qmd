@@ -1,4 +1,4 @@
-## Tick-Level Order Book Trading [VERIFIED]
+## Tick-Level Order Book Trading
 <!-- [VERIFIED] -->
 
 Tick-level trading differs from bar-based trading because the decision unit is an

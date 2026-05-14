@@ -1,4 +1,4 @@
-# Literature Review [VERIFIED]
+# Literature Review
 <!-- [VERIFIED] -->
 
 This chapter surveys the academic foundations relevant to reinforcement learning

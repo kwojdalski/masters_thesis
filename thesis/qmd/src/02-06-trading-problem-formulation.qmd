@@ -1,4 +1,4 @@
-## Trading Problem Formulation [VERIFIED]
+## Trading Problem Formulation
 <!-- [VERIFIED] -->
 
 This section identifies the reinforcement learning concepts most important for

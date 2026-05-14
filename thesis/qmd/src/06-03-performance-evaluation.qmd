@@ -1,4 +1,4 @@
-## Performance Evaluation [PLACEHOLDER]
+## Performance Evaluation
 <!-- [PLACEHOLDER] -->
 
 This section reports the held-out performance of the latest completed run of
@@ -119,7 +119,7 @@ display_table(benchmark_df)
 
 All annualized metrics use **calendar-time periods** as the annualization factor, which is correct for 24/7 markets such as cryptocurrency: for the BTC/USDT 1-hour data used in the primary experiments, this gives $365 \times 24 = 8{,}760$ periods per year. Sharpe and Sortino are scaled by $\sqrt{\text{periods per year}}$ and CAGR is annualized by raising $(1 + R_{\text{total}})$ to the power $\tfrac{\text{periods per year}}{n}$, where $n$ is the number of steps in the evaluation horizon.
 
-### Evaluation Metadata Snapshot [PLACEHOLDER]
+### Evaluation Metadata Snapshot
 <!-- [PLACEHOLDER] -->
 
 ```{python}
@@ -145,7 +145,7 @@ if finished is not None:
     display_table(meta_df)
 ```
 
-### Evaluation Plots [PLACEHOLDER]
+### Evaluation Plots
 <!-- [PLACEHOLDER] -->
 
 ```{python}
@@ -177,7 +177,7 @@ else:
             print(f"{title}: artifact not found")
 ```
 
-### Discussion: Reading Performance in the Context of State Design [PLACEHOLDER]
+### Discussion: Reading Performance in the Context of State Design
 <!-- [PLACEHOLDER] -->
 
 The key interpretive issue is not whether the agent attains a

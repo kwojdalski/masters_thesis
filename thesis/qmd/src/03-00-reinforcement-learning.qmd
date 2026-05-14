@@ -1,4 +1,4 @@
-# Reinforcement Learning [VERIFIED]
+# Reinforcement Learning
 <!-- [VERIFIED] -->
 
 This chapter develops the reinforcement learning foundations required for the
@@ -15,7 +15,7 @@ vs. off-policy. The third part traces the algorithmic lineage from early
 value-based methods to TD3, showing how these properties converge on TD3 as the
 algorithm of choice for continuous-control trading.
 
-## Components of a Reinforcement Learning System [VERIFIED]
+## Components of a Reinforcement Learning System
 <!-- [VERIFIED] -->
 
 Reinforcement learning systems address sequential decision-making problems by

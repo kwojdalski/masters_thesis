@@ -1,4 +1,4 @@
-## Competing Modeling Approaches [VERIFIED]
+## Competing Modeling Approaches
 <!-- [VERIFIED] -->
 
 The alternatives to reinforcement learning fall into two complementary
@@ -8,7 +8,7 @@ supervised, unsupervised, semi-supervised, and reinforcement learning; the
 present section discusses the first three explicitly and then motivates
 reinforcement learning through the architectural comparison that follows.
 
-### Learning Paradigms [VERIFIED]
+### Learning Paradigms
 <!-- [VERIFIED] -->
 
 **Supervised Learning.** Supervised learning trains a model on labeled input-output pairs
@@ -105,7 +105,7 @@ exists across market conditions.
 The same conclusion follows from a second perspective: the architecture of the
 decision system itself.
 
-### Decision-System Architectures [VERIFIED]
+### Decision-System Architectures
 <!-- [VERIFIED] -->
 
 **Rule-Based Trading Strategies.** Rule-based strategies encode trading decisions as explicit conditional logic:

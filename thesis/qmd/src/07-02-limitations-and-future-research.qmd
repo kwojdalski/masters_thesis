@@ -1,7 +1,7 @@
-## Limitations and Future Research [PLACEHOLDER]
+## Limitations and Future Research
 <!-- [PLACEHOLDER] -->
 
-### Order-Book Execution Realism Constraint [PLACEHOLDER]
+### Order-Book Execution Realism Constraint
 <!-- [PLACEHOLDER] -->
 
 A central limitation of the current empirical setup is the use of a
@@ -43,7 +43,7 @@ should therefore evaluate the same agents under explicit bid/ask execution
 rules, calibrated fee schedules, and slippage/impact models to quantify the
 robustness of the observed edge under realistic microstructure constraints.
 
-### Agent-State Feature Extensions [PLACEHOLDER]
+### Agent-State Feature Extensions
 <!-- [PLACEHOLDER] -->
 
 The current observation vector includes the agent's own portfolio exposure as
@@ -63,7 +63,7 @@ rule-based overlays. These extensions leave the market observation unchanged
 and add only internal state, making them a low-disruption way to test whether
 richer self-awareness improves policy quality.
 
-### Cross-Asset and Multi-Asset Extensions [PLACEHOLDER]
+### Cross-Asset and Multi-Asset Extensions
 <!-- [PLACEHOLDER] -->
 
 The empirical design uses a pooled model trained across six Nasdaq large-cap
@@ -77,7 +77,7 @@ where the agent simultaneously manages positions across multiple instruments and
 must account for correlation, capital constraints, and cross-asset execution
 costs.
 
-### Narrow Evaluation Window and Scope of the Empirical Claim [PLACEHOLDER]
+### Narrow Evaluation Window and Scope of the Empirical Claim
 <!-- [PLACEHOLDER] -->
 
 The most important constraint on interpreting the empirical results is the
@@ -111,7 +111,7 @@ protocol are robust to structural differences in order-book dynamics. It would a
 whether asset-class-specific tuning is necessary. These extensions are
 identified as the primary experimental directions for future work.
 
-### Algorithm Comparison and Reward Ablation [PLACEHOLDER]
+### Algorithm Comparison and Reward Ablation
 <!-- [PLACEHOLDER] -->
 
 The empirical pipeline is structured around TD3 and the Differential Sharpe
@@ -125,7 +125,7 @@ explicitly penalizes drawdown would test the sensitivity of policy behavior to
 reward specification — a dimension the thesis identifies as important but does
 not empirically vary.
 
-### Alternative Model Architectures [PLACEHOLDER]
+### Alternative Model Architectures
 <!-- [PLACEHOLDER] -->
 
 Two architectural directions appear promising. First, replacing
@@ -145,7 +145,7 @@ This is a natural fit for tree-based models known to perform well on structured
 financial data. Additionally, the interpretability of individual trees may provide
 additional insight into which features drive the learned value function.
 
-### Evaluation Robustness [PLACEHOLDER]
+### Evaluation Robustness
 <!-- [PLACEHOLDER] -->
 
 The current results are based on a fixed train/test split and a single random

@@ -1,4 +1,4 @@
-## Statistical Validation [PLACEHOLDER]
+## Statistical Validation
 <!-- [PLACEHOLDER] -->
 
 This section focuses on uncertainty arising from the training process itself.
@@ -31,7 +31,7 @@ runs_df = runs_overview_table(EXPERIMENT_NAME)
 finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.empty else pd.DataFrame()
 ```
 
-### Statistical Test Design [PLACEHOLDER]
+### Statistical Test Design
 <!-- [PLACEHOLDER] -->
 
 For each benchmark strategy defined in the preceding section, the evaluation
@@ -68,7 +68,7 @@ single test is treated as definitive, but consistent evidence across multiple
 tests — especially the non-parametric ones — provides stronger support for
 the performance claim.
 
-### Purpose and Scope of Statistical Validation [PLACEHOLDER]
+### Purpose and Scope of Statistical Validation
 <!-- [PLACEHOLDER] -->
 
 In the current work, statistical validation serves three narrower purposes.
@@ -90,7 +90,7 @@ This distinction is essential because low optimization loss or improving
 training diagnostics do not necessarily imply superior out-of-sample trading
 performance.
 
-### Statistical Significance Summary [PLACEHOLDER]
+### Statistical Significance Summary
 <!-- [PLACEHOLDER] -->
 
 The following table summarizes the results of five statistical tests comparing the TD3 agent against each benchmark strategy. For each test × benchmark combination, the p-value is reported along with a significance indicator at the 95% confidence level (p < 0.05). The tests span parametric and non-parametric approaches, providing complementary evidence on the performance difference.
@@ -161,7 +161,7 @@ stat_summary_df["p-value"] = stat_summary_df["p-value"].apply(lambda x: f"{x:.4f
 display(stat_summary_df)
 ```
 
-### Run-Level Sample Summary [PLACEHOLDER]
+### Run-Level Sample Summary
 <!-- [PLACEHOLDER] -->
 
 The following table summarizes currently available finished runs for the
@@ -182,7 +182,7 @@ else:
     display(view)
 ```
 
-### Descriptive Statistics and Uncertainty Estimates [PLACEHOLDER]
+### Descriptive Statistics and Uncertainty Estimates
 <!-- [PLACEHOLDER] -->
 
 For repeated runs of the same setup, descriptive statistics provide the
@@ -245,7 +245,7 @@ else:
                     )
 ```
 
-### Comparative Validation Strategy for Thesis-Grade Results [PLACEHOLDER]
+### Comparative Validation Strategy for Thesis-Grade Results
 <!-- [PLACEHOLDER] -->
 
 When comparative experiments are reported, they should be interpreted under a
@@ -264,7 +264,7 @@ This ordering matters because statistically detectable differences can still be
 economically unimportant if they coincide with unstable turnover, weak net
 returns after costs, or poor drawdown behavior.
 
-### Statistical Risks and Interpretation Caveats [PLACEHOLDER]
+### Statistical Risks and Interpretation Caveats
 <!-- [PLACEHOLDER] -->
 
 Several risks remain when interpreting these summaries. Repeated runs on the

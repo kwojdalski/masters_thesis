@@ -1,4 +1,4 @@
-## Robustness Assessment [PLACEHOLDER]
+## Robustness Assessment
 <!-- [PLACEHOLDER] -->
 
 This section shifts from training stochasticity to
@@ -25,7 +25,7 @@ finished = snapshot.latest_finished
 runs_df = runs_overview_table(EXPERIMENT_NAME)
 ```
 
-### Why Robustness Matters in This Thesis [PLACEHOLDER]
+### Why Robustness Matters in This Thesis
 <!-- [PLACEHOLDER] -->
 
 In this work, robustness matters because the agent is trained on a noisy
@@ -37,7 +37,7 @@ consistent under reasonable changes in seed, state representation, reward
 specification, and cost assumptions, while preserving interpretable turnover and
 drawdown behavior.
 
-### Current Evaluation Context [PLACEHOLDER]
+### Current Evaluation Context
 <!-- [PLACEHOLDER] -->
 
 The following snapshot provides the current experiment context used in the
@@ -67,7 +67,7 @@ else:
     display(pd.DataFrame(rows, columns=["Field", "Value"]))
 ```
 
-### Robustness Dimensions Considered in This Thesis [PLACEHOLDER]
+### Robustness Dimensions Considered in This Thesis
 <!-- [PLACEHOLDER] -->
 
 The robustness framework is centered on five dimensions most
@@ -88,7 +88,7 @@ directly connected to the current empirical design:
 These dimensions are sufficient to test if the conclusions here are
 specific to one narrow setup or remain credible under nearby variations.
 
-### Robustness Matrix for Experimental Reporting [PLACEHOLDER]
+### Robustness Matrix for Experimental Reporting
 <!-- [PLACEHOLDER] -->
 
 The table below defines a practical robustness matrix for the evaluation part of
@@ -140,7 +140,7 @@ display(robustness_df)
 :::
 
 
-### Interpreting Noisy Training Curves in Robustness Terms [PLACEHOLDER]
+### Interpreting Noisy Training Curves in Robustness Terms
 <!-- [PLACEHOLDER] -->
 
 Noisy training curves are common in actor-critic methods and should not be
@@ -155,7 +155,7 @@ concerns simpler versus broader order-book-derived state representations. If the
 increases instability or turnover, the result is weaker than a modest but more
 stable improvement.
 
-### Methodological Limits of the Current Robustness Snapshot [PLACEHOLDER]
+### Methodological Limits of the Current Robustness Snapshot
 <!-- [PLACEHOLDER] -->
 
 The current snapshot-based Chapter 6 integration supports reproducible loading

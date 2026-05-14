@@ -1,4 +1,4 @@
-## Reinforcement Learning for Trading [VERIFIED]
+## Reinforcement Learning for Trading
 <!-- [VERIFIED] -->
 
 Reinforcement learning is a reasoned choice for algorithmic trading, not an

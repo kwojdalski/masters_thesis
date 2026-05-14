@@ -1,5 +1,5 @@
 
-## Classifying RL Algorithms [VERIFIED]
+## Classifying RL Algorithms
 <!-- [VERIFIED] -->
 
 The diagram below maps the reinforcement learning landscape from the Bellman
@@ -43,7 +43,7 @@ Source: author's own diagram, based on @Sutton2018.[^taxonomy-note]
 
 [^taxonomy-note]: This taxonomy is a pedagogical simplification, not a precise classification. Categories have fuzzy boundaries: PPO appears under both "Policy-Based" and "Actor-Critic" because it combines a stochastic policy with a value-based critic; DDPG, TD3, and SAC share an "Off-Policy" branch despite fundamental differences in policy type and objective. Readers should not infer mutually exclusive algorithmic families from the crisp boundaries shown here.
 
-### Model-free vs Model-based [VERIFIED]
+### Model-free vs Model-based
 <!-- [VERIFIED] -->
 
 Reinforcement learning algorithms divide into two broad families depending on
@@ -63,7 +63,7 @@ sampled experience being informative for the target environment and on the
 function approximator generalizing usefully across states and actions. TD3
 belongs to this family.
 
-### Value-Based, Policy-Based, and Actor-Critic [VERIFIED]
+### Value-Based, Policy-Based, and Actor-Critic
 <!-- [VERIFIED] -->
 
 A second dimension classifies algorithms by what they learn and optimize.
@@ -97,7 +97,7 @@ and a critic $Q_\theta(s, a)$ evaluates them, using the critic's lower-variance
 estimates to guide actor updates. The full actor-critic derivation and TD3's
 specific extensions are given in @sec-td3-lineage.
 
-### On-Policy vs Off-Policy [VERIFIED]
+### On-Policy vs Off-Policy
 <!-- [VERIFIED] -->
 
 On-policy methods evaluate and improve the same policy used to collect

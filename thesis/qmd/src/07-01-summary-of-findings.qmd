@@ -1,4 +1,4 @@
-## Summary of Findings [PLACEHOLDER]
+## Summary of Findings
 <!-- [PLACEHOLDER] -->
 
 The thesis set out to answer three hypotheses concerning deep reinforcement learning

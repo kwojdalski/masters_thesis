@@ -1,4 +1,4 @@
-## Implications for Trading Systems [PLACEHOLDER]
+## Implications for Trading Systems
 <!-- [PLACEHOLDER] -->
 
 The empirical findings carry several implications for the design of deep RL
