@@ -243,6 +243,10 @@ def _build_training_bundle(
         logger,
     )
     trainer._eval_data_len = len(dataset.val_df)
+    if getattr(config.training, "eval_interval", 0) > 0:
+        trainer._eval_env = AlgorithmicEnvironmentBuilder().create(
+            dataset.val_df, config, use_memmap=False
+        )
     trainer.n_obs = n_obs
     trainer.n_act = n_act
     trainer.actor_hidden_dims = config.network.actor_hidden_dims
