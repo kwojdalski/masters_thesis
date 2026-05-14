@@ -82,7 +82,7 @@ entropy bonuses rather than explicit noise injection.
   \STATE Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_{\theta_i}(s, a)\right)$
   \IF{$t \bmod \texttt{policy\_delay} = 0$}
     \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_{\theta_1}(s,\, \mu_\phi(s))$
-    \STATE Soft-update targets: $\theta_i' \leftarrow \tau\theta_i + (1-\tau)\theta_i'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
+    \STATE Soft-update targets: $\theta_i' \leftarrow \tau\theta_i + (1-\tau)\theta_i'; \; \phi' \leftarrow \tau\phi + (1-\tau)\phi'$
   \ENDIF
   \STATE Checkpoint and log metrics at configured intervals
 \ENDFOR
@@ -109,7 +109,7 @@ entropy bonuses rather than explicit noise injection.
   \STATE Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
   \STATE Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\theta(s, a)\right)$
   \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_\theta(s,\, \mu_\phi(s))$
-  \STATE Soft-update targets: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'$; \; $\phi' \leftarrow \tau\phi + (1-\tau)\phi'$
+  \STATE Soft-update targets: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'; \; \phi' \leftarrow \tau\phi + (1-\tau)\phi'$
   \STATE Checkpoint and log metrics at configured intervals
 \ENDFOR
 \STATE Evaluate deterministic policy $\mu_\phi$ on test split
