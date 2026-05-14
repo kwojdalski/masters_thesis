@@ -1,13 +1,11 @@
 #!/bin/bash
 # Run all scenarios with specified trials
 
-set -e  # Exit on error
+set -e
 
-# Default values
 TRIALS=1
 FILTER=""
 
-# Parse named arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --trials)
@@ -20,7 +18,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo "Usage: $0 [--trials N] [--filter PATTERN]"
-            echo "  --trials N      Number of trials per scenario (default: 1)"
+            echo "  --trials N        Number of trials per scenario (default: 1)"
             echo "  --filter PATTERN  Only run scenarios matching grep pattern"
             exit 0
             ;;
@@ -32,9 +30,31 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-ALL_SCENARIOS=(default sine_wave sine_wave_ppo_no_trend sine_wave_ppo_trend mean_reversion upward_trend_ddpg upward_trend_ppo white_noise_no_trend_ppo)
+ALL_SCENARIOS=(
+    # BTC
+    btc/td3_tradingenv
+    btc/td3_tradingenv_reduced_features
+    btc/ppo_tradingenv_all_features
+    btc/ppo_tradingenv_all_features_log_return
 
-# Filter scenarios if pattern provided
+    # Pooled HFT
+    pooled/td3_hft_lob_state_space_pooled_streaming_selected
+    pooled/ddpg_hft_lob_state_space_pooled_streaming
+    pooled/ppo_hft_lob_state_space_pooled_streaming
+
+    # Sine wave
+    sine_wave/td3_no_trend_tradingenv
+    sine_wave/td3_tradingenv_all_features
+    sine_wave/td3_tradingenv_ohlcv_price_action
+    sine_wave/ppo_no_trend_tradingenv
+    sine_wave/ppo_no_trend_continuous
+    sine_wave/ppo_tradingenv_ohlcv_only
+
+    # Synthetic
+    synthetic/upward_trend_td3_tradingenv
+    synthetic/upward_trend_ddpg_tradingenv
+)
+
 if [[ -n "$FILTER" ]]; then
     SCENARIOS=()
     for scenario in "${ALL_SCENARIOS[@]}"; do
@@ -57,21 +77,18 @@ FAILED_SCENARIOS=()
 
 for scenario in "${SCENARIOS[@]}"; do
     echo "Running scenario: $scenario"
-
-    config_path="src/configs/scenarios/${scenario}.yaml"
-    if ! python src/cli.py train --config "$config_path" --trials "$TRIALS"; then
+    if ! uv run python src/cli.py train -c "$scenario" --trials "$TRIALS"; then
         echo "ERROR: Scenario $scenario failed!"
         FAILED_SCENARIOS+=("$scenario")
         continue
     fi
-    
-    echo "✓ Scenario $scenario completed successfully"
+    echo "Scenario $scenario completed successfully"
 done
 
 echo ""
 if [ ${#FAILED_SCENARIOS[@]} -eq 0 ]; then
-    echo "✓ All scenarios completed successfully!"
+    echo "All scenarios completed successfully."
 else
-    echo "❌ Failed scenarios: ${FAILED_SCENARIOS[*]}"
+    echo "Failed scenarios: ${FAILED_SCENARIOS[*]}"
     exit 1
 fi
