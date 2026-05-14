@@ -7,6 +7,7 @@ import torch
 from tensordict import TensorDict
 
 from trading_rl.utils import calculate_benchmark_dsr, create_actual_returns_plot
+from trading_rl.trainers.base import _cumulative_log_returns_for_plot
 
 
 def test_actual_returns_plot_includes_benchmarks():
@@ -217,6 +218,42 @@ def test_calculate_benchmark_dsr_uses_requested_price_column():
         price_column="price",
     )
     assert portfolio_values[-1] > 10000.0
+
+
+def test_simple_returns_are_converted_before_actual_returns_plot():
+    """Simple per-step returns must compound before being plotted as equity."""
+    simple_returns = np.array([0.01, 0.02])
+    cumulative_log_returns = _cumulative_log_returns_for_plot(
+        simple_returns,
+        cumulative_returns=None,
+    )
+
+    plot = create_actual_returns_plot(
+        rollouts=None,
+        n_obs=2,
+        df_prices=None,
+        actual_returns_list=[cumulative_log_returns],
+        initial_portfolio_value=10000.0,
+    )
+
+    final_value = float(plot.data[plot.data["Run"] == "Deterministic"].iloc[-1]["Portfolio_Value"])
+    assert abs(final_value - 10302.0) < 1e-6
+
+
+def test_cumulative_returns_drop_initial_zero_for_actual_returns_plot():
+    cumulative_log_returns = np.array([
+        0.0,
+        np.log1p(0.01),
+        np.log1p(0.01) + np.log1p(0.02),
+    ])
+
+    plot_returns = _cumulative_log_returns_for_plot(
+        simple_returns=np.array([0.0]),
+        cumulative_returns=cumulative_log_returns,
+    )
+
+    assert len(plot_returns) == 2
+    assert abs(float(np.exp(plot_returns[-1]) * 10000.0) - 10302.0) < 1e-6
 
 
 if __name__ == "__main__":

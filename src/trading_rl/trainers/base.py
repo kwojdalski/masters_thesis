@@ -73,6 +73,21 @@ def _build_sync_data_collector(
         )
 
 
+def _cumulative_log_returns_for_plot(
+    simple_returns: np.ndarray,
+    cumulative_returns: np.ndarray | None,
+) -> np.ndarray:
+    """Return one cumulative log-return value per plotted step."""
+    if cumulative_returns is not None:
+        cumulative = np.asarray(cumulative_returns, dtype=float).reshape(-1)
+        if cumulative.size > 0 and np.isclose(cumulative[0], 0.0):
+            return cumulative[1:]
+        return cumulative
+
+    simple = np.asarray(simple_returns, dtype=float).reshape(-1)
+    return np.cumsum(np.log1p(simple))
+
+
 class BaseTrainer(ABC):
     """Common utilities shared by RL trainers."""
 
@@ -445,12 +460,16 @@ class BaseTrainer(ABC):
         # Reconstruct tuple return for backward compatibility
         reward_plot = result.plots["reward_plot"] if result.plots else None
         action_plot = result.plots["action_plot"] if result.plots else None
+        plot_returns = _cumulative_log_returns_for_plot(
+            result.simple_returns,
+            result.cumulative_returns,
+        )
         actual_returns_plot = create_actual_returns_plot(
             None,  # No rollout object available from SplitEvaluationResult
             max_steps,
             df_prices=df,
             env=env_to_use,
-            actual_returns_list=[result.simple_returns],
+            actual_returns_list=[plot_returns],
             initial_portfolio_value=(
                 float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
                 if config
