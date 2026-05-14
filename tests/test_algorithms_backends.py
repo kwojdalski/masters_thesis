@@ -15,7 +15,7 @@ def test_ppo_anytrading_forex():
 
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \\
-      --config src/configs/scenarios/synthetic/upward_trend_ppo.yaml
+      --config synthetic/upward_trend_ppo
 
     Backend: gym_anytrading.forex (discrete: 2 actions [short=0, long=1])
     Algorithm: PPO (works with both discrete and continuous)
@@ -27,7 +27,7 @@ def test_ppo_anytrading_forex():
     configure_logging(component="test_ppo_anytrading", level="DEBUG")
 
     # Setup Parameters (override config in code for shorter runs)
-    config_path = Path("src/configs/scenarios/synthetic/upward_trend_ppo.yaml")
+    config_path = Path("src/configs/scenarios/synthetic/upward_trend_ppo")
 
     params = TrainingParams(
         config_file=config_path,
@@ -84,28 +84,22 @@ def test_ppo_tradingenv():
 @pytest.mark.slow
 def test_ddpg_continuous():
     """
-    Test DDPG algorithm with gym_trading_env.continuous backend.
+    Test DDPG algorithm with tradingenv backend (continuous portfolio weights).
 
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \\
-      --config src/configs/scenarios/sine_wave/baseline.yaml
+      --config synthetic/upward_trend_ddpg_tradingenv
 
-    Backend: gym_trading_env.continuous (continuous actions mapped to discrete positions)
+    Backend: tradingenv (continuous portfolio allocation)
     Algorithm: DDPG (requires continuous action space)
-    Data: Synthetic sine wave pattern
-
-    Note: Original config uses gym_anytrading.forex but DDPG requires continuous
-    action space. The AlgorithmicEnvironmentBuilder should auto-resolve to
-    gym_trading_env.continuous or raise an error if incompatible.
+    Data: Synthetic upward trend pattern
     """
     # Configure Logging
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_ddpg_continuous", level="DEBUG")
 
     # Setup Parameters (override config in code for shorter runs)
-    # Note: Using sine_wave.yaml as base, but backend incompatibility
-    # should be handled by the builder (auto-resolution or error)
-    config_path = Path("src/configs/scenarios/sine_wave/baseline.yaml")
+    config_path = Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv")
 
     params = TrainingParams(
         config_file=config_path,
@@ -130,7 +124,7 @@ def test_td3_continuous():
 
     Reproduces the CLI command:
     LOG_LEVEL=DEBUG python src/cli.py train \\
-      --config src/configs/scenarios/sine_wave/td3_no_trend.yaml
+      --config sine_wave/td3_no_trend
 
     Backend: gym_trading_env.continuous (continuous actions)
     Algorithm: TD3 (requires continuous action space)
@@ -141,7 +135,7 @@ def test_td3_continuous():
     configure_logging(component="test_td3_continuous", level="DEBUG")
 
     # Setup Parameters (override config in code for shorter runs)
-    config_path = Path("src/configs/scenarios/sine_wave/td3_no_trend.yaml")
+    config_path = Path("src/configs/scenarios/sine_wave/td3_no_trend")
 
     params = TrainingParams(
         config_file=config_path,
