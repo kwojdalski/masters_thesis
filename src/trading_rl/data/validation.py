@@ -31,11 +31,15 @@ class DataValidator:
         check_inf: bool = True,
         check_duplicates: bool = True,
         check_zero_variance: bool = True,
+        check_lob_deltas: bool = True,
+        lob_levels: int = 5,
     ) -> None:
         self.check_nan = check_nan
         self.check_inf = check_inf
         self.check_duplicates = check_duplicates
         self.check_zero_variance = check_zero_variance
+        self.check_lob_deltas = check_lob_deltas
+        self.lob_levels = lob_levels
 
     # ------------------------------------------------------------------
     # Individual checks — each raises ValueError on failure
@@ -156,6 +160,49 @@ class DataValidator:
                         f"These carry no signal and will produce NaN/inf during normalization."
                     )
 
+    def check_lob_delta(
+        self,
+        train_df: pd.DataFrame,
+        val_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        levels: int | None = None,
+        bid_px_prefix: str = "bid_px_",
+        ask_px_prefix: str = "ask_px_",
+        bid_sz_prefix: str = "bid_sz_",
+        ask_sz_prefix: str = "ask_sz_",
+    ) -> None:
+        """Raise ValueError if any consecutive LOB rows are identical across all tracked levels.
+
+        Checks that every row has at least one change (delta) in price or size
+        across the first ``levels`` LOB levels compared to the previous row.
+        A fully unchanged book between consecutive ticks indicates stale/duplicated
+        data that should have been filtered by filter_unchanged_lob.
+        """
+        n_levels = levels if levels is not None else self.lob_levels
+        for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+            lob_cols = []
+            for i in range(n_levels):
+                for prefix in (bid_px_prefix, ask_px_prefix, bid_sz_prefix, ask_sz_prefix):
+                    col = f"{prefix}{i:02d}"
+                    if col in split_df.columns:
+                        lob_cols.append(col)
+
+            if not lob_cols:
+                # No LOB columns present — skip silently (non-LOB dataset).
+                continue
+
+            lob = split_df[lob_cols]
+            # diff() is NaN for the first row; fillna(1) so the first row is never flagged.
+            unchanged = (lob.diff().fillna(1) == 0).all(axis=1)
+            n_unchanged = int(unchanged.sum())
+            if n_unchanged > 0:
+                pct = 100.0 * n_unchanged / len(split_df)
+                raise ValueError(
+                    f"{split_name} data has {n_unchanged} rows ({pct:.2f}%) where the "
+                    f"full order book is unchanged across all {n_levels} levels. "
+                    f"Run filter_unchanged_lob() before building the dataset."
+                )
+
     # ------------------------------------------------------------------
     # Composite entry point
     # ------------------------------------------------------------------
@@ -190,6 +237,8 @@ class DataValidator:
             self.check_duplicate_index(train_df, val_df, test_df)
         if self.check_zero_variance:
             self.check_zero_variance_features(train_df, val_df, test_df)
+        if self.check_lob_deltas:
+            self.check_lob_delta(train_df, val_df, test_df)
 
 
 def validate_prepared_data(
