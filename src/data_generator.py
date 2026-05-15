@@ -1113,9 +1113,12 @@ class PriceDataGenerator:
         ask_ct = np.empty((n_events, lob_levels), dtype=np.uint32)
 
         for lvl in range(lob_levels):
-            # Prices rounded to tick_size
-            raw_bid = mid_prices - half_spread - lvl * level_spacing
-            raw_ask = mid_prices + half_spread + lvl * level_spacing
+            # Prices rounded to tick_size; independent per-event noise on each
+            # side makes level spacing vary realistically across events.
+            bid_noise = rng.normal(0.0, 0.01, n_events)
+            ask_noise = rng.normal(0.0, 0.01, n_events)
+            raw_bid = mid_prices - half_spread - lvl * level_spacing + bid_noise
+            raw_ask = mid_prices + half_spread + lvl * level_spacing + ask_noise
             bid_px[:, lvl] = np.round(raw_bid / tick_size) * tick_size
             ask_px[:, lvl] = np.round(raw_ask / tick_size) * tick_size
 
