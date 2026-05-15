@@ -59,6 +59,11 @@ class DataConfig:
     filter_lob_levels: int | None = None
     # When True, feature_selection.yaml in the scenario dir overrides feature_columns.
     automated_selection: bool = False
+    # Drop first N rows from the training split after feature engineering.
+    # Running scalers (RunningMeanStd) produce valid-but-extreme values for the
+    # first N ticks before their statistics converge; discarding those rows
+    # prevents gradient spikes during early training episodes.
+    warmup_rows: int = 0
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0

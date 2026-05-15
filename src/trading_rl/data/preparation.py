@@ -86,6 +86,23 @@ def _resolve_feature_pipeline(config: Any, logger: Any) -> Any:
     return pipeline
 
 
+def _apply_warmup_skip(
+    train_df: pd.DataFrame,
+    warmup_rows: int,
+    logger: Any,
+    label: str = "",
+) -> pd.DataFrame:
+    if warmup_rows <= 0:
+        return train_df
+    if warmup_rows >= len(train_df):
+        raise ValueError(
+            f"warmup_rows ({warmup_rows}) must be less than training split size ({len(train_df)})"
+            + (f" [{label}]" if label else "")
+        )
+    logger.info("warmup skip n_rows=%d train_size_before=%d%s", warmup_rows, len(train_df), f" [{label}]" if label else "")
+    return train_df.iloc[warmup_rows:]
+
+
 def _finalize_splits(
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
@@ -96,6 +113,8 @@ def _finalize_splits(
     """Apply post-processing transforms and validation."""
     train_df, val_df, test_df = ensure_close_column_for_hft(train_df, val_df, test_df, config, logger)
     train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(train_df, val_df, test_df, config, logger)
+    warmup_rows = getattr(config.data, "warmup_rows", 0)
+    train_df = _apply_warmup_skip(train_df, warmup_rows, logger)
     validate_prepared_data(train_df, val_df, test_df, config)
     return train_df, val_df, test_df
 
@@ -370,6 +389,8 @@ def _build_pooled_splits(
         # Deduplicate timestamps before saving to memmap so the streaming env
         # never receives a window with duplicate indices.
         train_i, val_i, test_i = ensure_unique_index_for_hft_tradingenv(train_i, val_i, test_i, config, logger)
+        warmup_rows = getattr(config.data, "warmup_rows", 0)
+        train_i = _apply_warmup_skip(train_i, warmup_rows, logger, label=Path(data_path).name)
 
         if memmap_dir:
             memmap_marker = memmap_dir / f"{i}_train_data.npy"
