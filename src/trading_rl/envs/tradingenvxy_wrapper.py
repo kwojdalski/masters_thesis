@@ -39,16 +39,23 @@ class GymnasiumTradingEnvWrapper(gym.Env):
     This wrapper converts it to the new Gymnasium API where reset() returns (observation, info).
     """
 
-    def __init__(self, trading_env: TradingEnv):
+    def __init__(self, trading_env: TradingEnv, obs_clip: float | None = None):
         self._env = trading_env
         self.observation_space = trading_env.observation_space
         self.action_space = trading_env.action_space
+        self._obs_clip = obs_clip
+
+    def _clip_obs(self, obs):
+        if self._obs_clip is None:
+            return obs
+        if isinstance(obs, dict):
+            return {k: np.clip(v, -self._obs_clip, self._obs_clip) for k, v in obs.items()}
+        return np.clip(obs, -self._obs_clip, self._obs_clip)
 
     def reset(self, *, seed=None, options=None):
         """Reset and return (observation, info) tuple."""
         obs = self._env.reset()
-        info = {}
-        return obs, info
+        return self._clip_obs(obs), {}
 
     def step(self, action):
         """Step and return (observation, reward, terminated, truncated, info) tuple."""
@@ -66,7 +73,7 @@ class GymnasiumTradingEnvWrapper(gym.Env):
                     for k, v in self.observation_space.spaces.items()
                 }
             return obs, -1.0, True, False, {"bankrupt": True}
-        return obs, reward, bool(done), False, info
+        return self._clip_obs(obs), reward, bool(done), False, info
 
     def render(self):
         """Render the environment."""
@@ -327,8 +334,14 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         )
         logger.debug("TradingEnv constructed")
 
-        logger.debug("wrapping with GymnasiumTradingEnvWrapper")
-        gym_env = GymnasiumTradingEnvWrapper(env)
+        obs_clip = None
+        if config is not None:
+            env_cfg = getattr(config, "env", None)
+            if env_cfg is not None:
+                obs_clip = getattr(env_cfg, "obs_clip", None)
+
+        logger.debug("wrapping with GymnasiumTradingEnvWrapper obs_clip=%s", obs_clip)
+        gym_env = GymnasiumTradingEnvWrapper(env, obs_clip=obs_clip)
 
         logger.debug("wrapping with GymWrapper and transforms")
         wrapped_env = GymWrapper(gym_env)
