@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -23,6 +24,8 @@ from trading_rl.evaluation import (
 )
 from trading_rl.evaluation.benchmarks import BenchmarkEngine
 from trading_rl.pipeline.explainability import run_explainability_analysis
+from trading_rl.profiler import get_profiler
+from logger import log_banner
 
 
 @dataclass(frozen=True)
@@ -121,7 +124,7 @@ def run_statistical_tests_for_split(
     config: ExperimentConfig,
     logger: logging.Logger,
 ) -> None:
-    logger.info("Running statistical significance tests for %s split...", split_ctx.split)
+    logger.info("run statistical significance tests split=%s", split_ctx.split)
     try:
         rollout = _run_rollout(trainer, split_ctx)
         strategy_simple_returns = compute_strategy_simple_returns_for_split(
@@ -165,9 +168,9 @@ def run_statistical_tests_for_split(
             log_to_research_artifacts=config.statistical_testing.log_to_research_artifacts,
             research_artifact_subdir=config.statistical_testing.research_artifact_subdir,
         )
-        logger.info("Statistical significance tests complete for %s split", split_ctx.split)
+        logger.info("statistical significance tests complete split=%s", split_ctx.split)
     except Exception as error:
-        logger.error("Failed to run statistical tests for %s split: %s", split_ctx.split, error)
+        logger.error("statistical tests failed split=%s err=%s", split_ctx.split, error)
 
 
 def evaluate_split(
@@ -188,52 +191,59 @@ def evaluate_split(
         )
         return None
 
-    logger.info("evaluate agent split=%s rows=%d", split, len(split_df))
-    split_ctx = build_evaluation_context_for_split(split=split, df=split_df, config=config)
+    profiler = get_profiler()
+    log_banner(logger, f"EVALUATION START  split={split.upper()}  rows={len(split_df):,}")
 
-    (
-        reward_plot,
-        action_plot,
-        action_probs_plot,
-        split_final_reward,
-        split_last_positions,
-        actual_returns_plot,
-        merged_plot,
-    ) = trainer.evaluate(
-        split_ctx.df,
-        max_steps=split_ctx.max_steps,
-        config=config,
-        algorithm=algorithm,
-        eval_env=split_ctx.env,
-    )
+    with profiler.stage(f"eval_env_build_{split}"):
+        split_ctx = build_evaluation_context_for_split(split=split, df=split_df, config=config)
 
-    MLflowTrainingCallback.log_evaluation_plots(
-        reward_plot=reward_plot,
-        action_plot=action_plot,
-        action_probs_plot=action_probs_plot,
-        actual_returns_plot=actual_returns_plot,
-        logs=logs,
-        merged_plot=merged_plot,
-        artifact_path_prefix=f"evaluation_plots/{split}",
-    )
+    with profiler.stage(f"eval_rollout_{split}"):
+        (
+            reward_plot,
+            action_plot,
+            action_probs_plot,
+            split_final_reward,
+            split_last_positions,
+            actual_returns_plot,
+            merged_plot,
+        ) = trainer.evaluate(
+            split_ctx.df,
+            max_steps=split_ctx.max_steps,
+            config=config,
+            algorithm=algorithm,
+            eval_env=split_ctx.env,
+        )
 
-    split_evaluation_report = build_evaluation_report_for_trainer(
-        trainer=trainer,
-        df_prices=split_ctx.df,
-        max_steps=split_ctx.max_steps,
-        config=config,
-        eval_env=split_ctx.env,
-    )
-    MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
+    with profiler.stage(f"eval_mlflow_plots_{split}"):
+        MLflowTrainingCallback.log_evaluation_plots(
+            reward_plot=reward_plot,
+            action_plot=action_plot,
+            action_probs_plot=action_probs_plot,
+            actual_returns_plot=actual_returns_plot,
+            logs=logs,
+            merged_plot=merged_plot,
+            artifact_path_prefix=f"evaluation_plots/{split}",
+        )
+
+    with profiler.stage(f"eval_report_{split}"):
+        split_evaluation_report = build_evaluation_report_for_trainer(
+            trainer=trainer,
+            df_prices=split_ctx.df,
+            max_steps=split_ctx.max_steps,
+            config=config,
+            eval_env=split_ctx.env,
+        )
+        MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
 
     if config.statistical_testing.enabled:
         try:
-            run_statistical_tests_for_split(
-                trainer=trainer,
-                split_ctx=split_ctx,
-                config=config,
-                logger=logger,
-            )
+            with profiler.stage(f"eval_statistical_tests_{split}"):
+                run_statistical_tests_for_split(
+                    trainer=trainer,
+                    split_ctx=split_ctx,
+                    config=config,
+                    logger=logger,
+                )
         except KeyboardInterrupt:
             logger.warning(
                 "Statistical tests interrupted for %s split. "
@@ -241,6 +251,7 @@ def evaluate_split(
                 split
             )
 
+    log_banner(logger, f"EVALUATION END  split={split.upper()}  reward={split_final_reward:.4f}")
     return SplitEvaluationResult(
         final_reward=split_final_reward,
         last_positions=split_last_positions,
@@ -354,6 +365,12 @@ def build_final_metrics(
     is_portfolio_backend = config.env.backend == "tradingenv"
     duration_entries = logs.get("training_duration_s", [])
     training_duration_s = duration_entries[-1] if duration_entries else None
+
+    if config.data.data_paths:
+        unique_symbols = sorted({Path(p).parent.name for p in config.data.data_paths})
+    else:
+        unique_symbols = list(config.data.symbols) if config.data.symbols else []
+
     return {
         "final_reward": final_reward,
         "optimizer_steps": len(logs.get("loss_value", [])),
@@ -383,6 +400,7 @@ def build_final_metrics(
         "value_hidden_dims": config.network.value_hidden_dims,
         "n_observations": n_obs,
         "n_actions": n_act,
+        "unique_symbols": unique_symbols,
         "experiment_name": effective_experiment_name,
         "evaluation_split": primary_split or "none",
         "seed": config.seed,

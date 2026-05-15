@@ -24,6 +24,7 @@ from trading_rl.pipeline.training import (
     build_experiment_runtime,
     setup_mlflow_experiment,
 )
+from trading_rl.profiler import get_profiler, init_profiler
 
 
 @dataclass(frozen=True)
@@ -140,26 +141,33 @@ def execute_single_experiment(
     build_experiment_runtime_fn: Any = build_experiment_runtime,
 ) -> dict[str, Any]:
     """Run the end-to-end experiment flow and return the public result payload."""
-    runtime = _resolve_runtime(
-        config=config,
-        experiment_name=experiment_name,
-        progress_bar=progress_bar,
-        checkpoint_path=checkpoint_path,
-        additional_steps=additional_steps,
-        build_experiment_runtime_fn=build_experiment_runtime_fn,
-    )
-    _configure_periodic_hooks(runtime=runtime, config=config)
-    training_result = _run_training_phase(runtime=runtime)
+    profiler = init_profiler(level=config.profiling.level if getattr(config, "profiling", None) else 0)
+
+    with profiler.stage("runtime_build"):
+        runtime = _resolve_runtime(
+            config=config,
+            experiment_name=experiment_name,
+            progress_bar=progress_bar,
+            checkpoint_path=checkpoint_path,
+            additional_steps=additional_steps,
+            build_experiment_runtime_fn=build_experiment_runtime_fn,
+        )
+        _configure_periodic_hooks(runtime=runtime, config=config)
+
+    with profiler.stage("training"):
+        training_result = _run_training_phase(runtime=runtime)
 
     trainer = runtime.training_bundle.trainer
     prepared_dataset = runtime.prepared_dataset
     logger = runtime.logger
-    final_checkpoint_path = save_final_checkpoint(
-        config=config,
-        effective_experiment_name=runtime.effective_experiment_name,
-        trainer=trainer,
-        checkpoint_path=checkpoint_path,
-    )
+
+    with profiler.stage("checkpoint_save"):
+        final_checkpoint_path = save_final_checkpoint(
+            config=config,
+            effective_experiment_name=runtime.effective_experiment_name,
+            trainer=trainer,
+            checkpoint_path=checkpoint_path,
+        )
 
     split_results = {}
     primary_split = None
@@ -168,57 +176,59 @@ def execute_single_experiment(
     evaluation_report = {}
 
     try:
-        split_results = evaluate_all_splits(
-            trainer=trainer,
-            train_df=prepared_dataset.train_df,
-            val_df=prepared_dataset.val_df,
-            test_df=prepared_dataset.test_df,
-            config=config,
-            algorithm=runtime.training_bundle.algorithm,
-            logs=training_result.logs,
-            logger=logger,
-        )
+        with profiler.stage("eval_all_splits"):
+            split_results = evaluate_all_splits(
+                trainer=trainer,
+                train_df=prepared_dataset.train_df,
+                val_df=prepared_dataset.val_df,
+                test_df=prepared_dataset.test_df,
+                config=config,
+                algorithm=runtime.training_bundle.algorithm,
+                logs=training_result.logs,
+                logger=logger,
+            )
         primary_split, final_reward, last_positions, evaluation_report = (
             resolve_primary_split_result(split_results)
         )
-        run_primary_split_explainability(
-            primary_split=primary_split,
-            trainer=trainer,
-            train_df=prepared_dataset.train_df,
-            val_df=prepared_dataset.val_df,
-            test_df=prepared_dataset.test_df,
-            config=config,
-            logger=logger,
-        )
+        with profiler.stage("explainability"):
+            run_primary_split_explainability(
+                primary_split=primary_split,
+                trainer=trainer,
+                train_df=prepared_dataset.train_df,
+                val_df=prepared_dataset.val_df,
+                test_df=prepared_dataset.test_df,
+                config=config,
+                logger=logger,
+            )
 
-        final_metrics = build_final_metrics(
-            config=config,
-            effective_experiment_name=runtime.effective_experiment_name,
-            interrupted=training_result.interrupted,
-            logs=training_result.logs,
-            train_df=prepared_dataset.train_df,
-            val_df=prepared_dataset.val_df,
-            test_df=prepared_dataset.test_df,
-            n_obs=runtime.training_bundle.n_obs,
-            n_act=runtime.training_bundle.n_act,
-            primary_split=primary_split,
-            final_reward=final_reward,
-            last_positions=last_positions,
-            evaluation_report=evaluation_report,
-            split_results=split_results,
-            total_env_steps=int(trainer.total_count),
-            total_episodes=int(trainer.total_episodes),
-        )
-        log_final_metrics(
-            logs=training_result.logs,
-            final_metrics=final_metrics,
-            mlflow_callback=runtime.training_bundle.mlflow_callback,
-        )
+        with profiler.stage("finalization"):
+            final_metrics = build_final_metrics(
+                config=config,
+                effective_experiment_name=runtime.effective_experiment_name,
+                interrupted=training_result.interrupted,
+                logs=training_result.logs,
+                train_df=prepared_dataset.train_df,
+                val_df=prepared_dataset.val_df,
+                test_df=prepared_dataset.test_df,
+                n_obs=runtime.training_bundle.n_obs,
+                n_act=runtime.training_bundle.n_act,
+                primary_split=primary_split,
+                final_reward=final_reward,
+                last_positions=last_positions,
+                evaluation_report=evaluation_report,
+                split_results=split_results,
+                total_env_steps=int(trainer.total_count),
+                total_episodes=int(trainer.total_episodes),
+            )
+            log_final_metrics(
+                logs=training_result.logs,
+                final_metrics=final_metrics,
+                mlflow_callback=runtime.training_bundle.mlflow_callback,
+            )
     except KeyboardInterrupt:
         logger.warning(
             "Evaluation interrupted by user. Using partial evaluation results..."
         )
-        # Use whatever evaluation results were collected before interruption
         if split_results:
             primary_split, final_reward, last_positions, evaluation_report = (
                 resolve_primary_split_result(split_results)
@@ -254,6 +264,8 @@ def execute_single_experiment(
         logger.info("training complete")
     logger.info("final reward=%.4f", final_reward)
     logger.info("save checkpoint path=%s", final_checkpoint_path)
+
+    profiler.print_table()
 
     return build_experiment_result(
         trainer=trainer,
