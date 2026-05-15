@@ -348,6 +348,63 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
         n_plot_samples=1000,
         max_features=None,
     )
+    _log_feature_vs_return_scatter(df, config)
+
+
+def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
+    """Log scatter plots of feature_bid_px_00 and feature_ask_px_00 vs next-step log return."""
+    logger = get_project_logger(__name__)
+
+    if not mlflow.active_run():
+        return
+
+    price_col = getattr(getattr(config, "env", None), "price_column", "close")
+    target_features = [f for f in ("feature_bid_px_00", "feature_ask_px_00") if f in df.columns]
+
+    if not target_features or price_col not in df.columns:
+        return
+
+    try:
+        import numpy as np
+        import tempfile
+        from plotnine import aes, element_text, geom_point, geom_smooth, ggplot, labs, theme
+
+        prices = df[price_col].to_numpy(dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            log_ret = np.concatenate([np.diff(np.log(prices)), [np.nan]])
+        log_ret = np.where(np.isfinite(log_ret), log_ret, np.nan)
+
+        scatter_df = df[target_features].copy()
+        scatter_df["log_return"] = log_ret
+        scatter_df = scatter_df.dropna()
+
+        # Subsample for plotting performance
+        if len(scatter_df) > 2000:
+            scatter_df = scatter_df.sample(2000, random_state=42)
+
+        for feat in target_features:
+            try:
+                plot_data = scatter_df[[feat, "log_return"]].rename(columns={feat: "feature_value"})
+                p = (
+                    ggplot(plot_data, aes(x="feature_value", y="log_return"))
+                    + geom_point(alpha=0.2, size=0.8, color="steelblue")
+                    + geom_smooth(method="lm", color="red", size=0.8)
+                    + labs(
+                        title=f"{feat} vs Next-Step Log Return",
+                        x=feat,
+                        y="Log Return (t+1)",
+                    )
+                    + theme(plot_title=element_text(size=13, face="bold"))
+                )
+                temp_path = os.path.join(tempfile.gettempdir(), f"{feat}_vs_log_return.png")
+                p.save(temp_path, width=12, height=8, dpi=150)
+                mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
+                os.unlink(temp_path)
+            except Exception as e:  # pragma: no cover
+                logger.warning("feature vs return scatter failed feat=%s err=%s", feat, e)
+
+    except Exception as e:  # pragma: no cover
+        logger.warning("_log_feature_vs_return_scatter failed err=%s", e)
 
 
 def log_final_metrics(
