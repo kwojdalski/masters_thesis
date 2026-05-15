@@ -690,6 +690,24 @@ def peek(
     config = ExperimentConfig.from_yaml(config_path, overrides=config_override)
     dataset = build_prepared_dataset(config, _log)
 
+    # Auto-detect warm-up rows from the largest window in feature configs.
+    detected_warmup = 0
+    feature_config_path = getattr(config.data, "feature_config", None)
+    if feature_config_path:
+        try:
+            from trading_rl.features.pipeline import FeaturePipeline
+            _pipeline = FeaturePipeline.from_yaml(feature_config_path)
+            for fc in _pipeline.feature_configs:
+                for key in ("window", "period", "slow_period", "long_period"):
+                    val = fc.params.get(key)
+                    if isinstance(val, int):
+                        detected_warmup = max(detected_warmup, val)
+                detected_warmup = max(detected_warmup, fc.rolling_window or 0)
+        except Exception:
+            pass
+
+    effective_skip = skip_rows if skip_rows else detected_warmup
+
     # ── header ──────────────────────────────────────────────────────────────
     console.print(Panel(Text(str(config_path), style="bold cyan"), title="scenario", expand=False))
 
@@ -710,9 +728,12 @@ def peek(
     # ── feature stats ────────────────────────────────────────────────────────
     feat_cols = dataset.feature_columns
     env_selected = list(getattr(config.env, "feature_columns", None) or feat_cols)
-    train = dataset.train_df[feat_cols].iloc[skip_rows:]
+    train = dataset.train_df[feat_cols].iloc[effective_skip:]
 
-    skip_note = f", skip={skip_rows:,}" if skip_rows else ""
+    warmup_note = f"detected warm-up={detected_warmup}"
+    if skip_rows:
+        warmup_note += f", overridden to {skip_rows}"
+    skip_note = f", skip={effective_skip:,} ({warmup_note})" if effective_skip else ""
     stats_tbl = Table(
         title=f"Feature statistics (train{skip_note}, top {min(n_features, len(feat_cols))} of {len(feat_cols)})",
         show_header=True,
