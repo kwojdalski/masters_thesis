@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import torch
 from logger import get_logger as get_project_logger
+from logger import log_banner
 from logger import print_df_head
 from logger import setup_logging as configure_root_logging
 from trading_rl.profiler import get_profiler
@@ -307,6 +308,7 @@ def build_experiment_runtime(
     logger.info("prepare data")
     logger.debug("data path=%s train_size=%s feature_config=%s", config.data.data_path, config.data.train_size, getattr(config.data, "feature_config", None))
 
+    log_banner(logger, "DATA PREPARATION START")
     with profiler.stage("data_preparation", 2):
         prepared_dataset = build_prepared_dataset(config, logger)
     train_df = prepared_dataset.train_df
@@ -314,7 +316,15 @@ def build_experiment_runtime(
     test_df = prepared_dataset.test_df
 
     if logger.isEnabledFor(logging.INFO):
-        print_df_head(train_df, title="Training Data Head")
+        feature_cols = [c for c in train_df.columns if str(c).startswith("feature_")]
+        other_cols = [c for c in train_df.columns if not str(c).startswith("feature_")]
+        display_df = train_df[feature_cols + other_cols]
+        n_feature = len(feature_cols)
+        n_total = len(train_df.columns)
+        print_df_head(
+            display_df,
+            title=f"Prepared Training Split  ({n_feature} feature_* cols used as observations, {n_total} total)",
+        )
 
     logger.debug(
         "Data loaded - train: %s, val: %s, test: %s, columns: %s",
@@ -340,6 +350,11 @@ def build_experiment_runtime(
             logger.debug("  Features found: %s", feature_cols)
         else:
             logger.debug("  No feature_* columns found in prepared data")
+
+    log_banner(
+        logger,
+        f"DATA PREPARATION END  train={train_df.shape[0]:,}  val={val_df.shape[0]:,}  test={test_df.shape[0]:,}  features={len([c for c in train_df.columns if str(c).startswith('feature_')])}",
+    )
 
     with profiler.stage("train_env_build", 2):
         training_bundle = _build_training_bundle(
