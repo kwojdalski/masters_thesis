@@ -23,6 +23,8 @@ from cli.commands import (
     ExperimentParams,
     FeatureResearchCommand,
     FeatureResearchParams,
+    PeekCommand,
+    PeekParams,
     SineWaveParams,
     TrainingCommand,
     TrainingParams,
@@ -96,6 +98,7 @@ evaluate_cmd = EvaluateCommand(console)
 experiment_cmd = ExperimentCommand(console)
 dashboard_cmd = DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db")
 validation_cmd = ValidationCommand(console)
+peek_cmd = PeekCommand(console)
 feature_research_cmd = FeatureResearchCommand(console)
 
 
@@ -660,125 +663,13 @@ def peek(
     Loads from cache when available (instant after prepare-data).  Displays
     split sizes, date ranges, per-feature statistics, and memmap file inventory.
     """
-    from rich.panel import Panel
-    from rich.text import Text
-
-    from trading_rl import ExperimentConfig
-    from trading_rl.data_utils import build_prepared_dataset
-    from logger import get_logger as _get_logger
-
-    _log = _get_logger(__name__)
-    console = Console()
-
-    if scenario and config_file:
-        raise typer.BadParameter("Cannot specify both --config and --scenario.")
-    if not scenario and not config_file:
-        raise typer.BadParameter("Provide --scenario or --config.")
-
-    if scenario:
-        search = [
-            Path(scenario),
-            Path("src/configs/scenarios") / scenario,
-            Path("src/configs/scenarios") / f"{scenario}.yaml",
-        ]
-        config_path = next((p for p in search if p.exists()), None)
-        if config_path is None:
-            raise typer.BadParameter(f"Scenario '{scenario}' not found.")
-    else:
-        config_path = config_file
-
-    config = ExperimentConfig.from_yaml(config_path, overrides=config_override)
-    dataset = build_prepared_dataset(config, _log)
-
-    # Auto-detect warm-up rows from the largest window in feature configs.
-    detected_warmup = 0
-    feature_config_path = getattr(config.data, "feature_config", None)
-    if feature_config_path:
-        try:
-            from trading_rl.features.pipeline import FeaturePipeline
-            _pipeline = FeaturePipeline.from_yaml(feature_config_path)
-            for fc in _pipeline.feature_configs:
-                for key in ("window", "period", "slow_period", "long_period"):
-                    val = fc.params.get(key)
-                    if isinstance(val, int):
-                        detected_warmup = max(detected_warmup, val)
-                detected_warmup = max(detected_warmup, fc.rolling_window or 0)
-        except Exception:
-            pass
-
-    effective_skip = skip_rows if skip_rows else detected_warmup
-
-    # ── header ──────────────────────────────────────────────────────────────
-    console.print(Panel(Text(str(config_path), style="bold cyan"), title="scenario", expand=False))
-
-    # ── splits ──────────────────────────────────────────────────────────────
-    splits_tbl = Table(title="Splits", show_header=True, header_style="bold")
-    splits_tbl.add_column("split")
-    splits_tbl.add_column("rows", justify="right")
-    splits_tbl.add_column("columns", justify="right")
-    splits_tbl.add_column("first timestamp")
-    splits_tbl.add_column("last timestamp")
-
-    for name, df in [("train", dataset.train_df), ("val", dataset.val_df), ("test", dataset.test_df)]:
-        first = str(df.index[0]) if len(df) else "—"
-        last = str(df.index[-1]) if len(df) else "—"
-        splits_tbl.add_row(name, f"{len(df):,}", str(df.shape[1]), first, last)
-    console.print(splits_tbl)
-
-    # ── feature stats ────────────────────────────────────────────────────────
-    feat_cols = dataset.feature_columns
-    env_selected = list(getattr(config.env, "feature_columns", None) or feat_cols)
-    train = dataset.train_df[feat_cols].iloc[effective_skip:]
-
-    warmup_note = f"detected warm-up={detected_warmup}"
-    if skip_rows:
-        warmup_note += f", overridden to {skip_rows}"
-    skip_note = f", skip={effective_skip:,} ({warmup_note})" if effective_skip else ""
-    stats_tbl = Table(
-        title=f"Feature statistics (train{skip_note}, top {min(n_features, len(feat_cols))} of {len(feat_cols)})",
-        show_header=True,
-        header_style="bold",
-    )
-    stats_tbl.add_column("feature")
-    stats_tbl.add_column("selected", justify="center")
-    stats_tbl.add_column("mean", justify="right")
-    stats_tbl.add_column("std", justify="right")
-    stats_tbl.add_column("min", justify="right")
-    stats_tbl.add_column("max", justify="right")
-    stats_tbl.add_column("nulls", justify="right")
-
-    selected_set = set(env_selected)
-    desc = train.describe().T
-    for col in feat_cols[:n_features]:
-        row = desc.loc[col]
-        null_count = int(train[col].isnull().sum())
-        tick = "[green]yes[/green]" if col in selected_set else ""
-        stats_tbl.add_row(
-            col, tick,
-            f"{row['mean']:.4f}", f"{row['std']:.4f}",
-            f"{row['min']:.4f}", f"{row['max']:.4f}",
-            str(null_count) if null_count else "[green]0[/green]",
-        )
-    console.print(stats_tbl)
-
-    if len(feat_cols) > n_features:
-        console.print(f"  [dim]… {len(feat_cols) - n_features} more features hidden (use --top {len(feat_cols)} to show all)[/dim]")
-
-    # ── memmaps ──────────────────────────────────────────────────────────────
-    if dataset.memmap_train_paths:
-        mm_tbl = Table(title="Memmap files", show_header=True, header_style="bold")
-        mm_tbl.add_column("idx", justify="right")
-        mm_tbl.add_column("rows", justify="right")
-        mm_tbl.add_column("cols", justify="right")
-        mm_tbl.add_column("size")
-        mm_tbl.add_column("file")
-        for idx, mp in enumerate(dataset.memmap_train_paths):
-            size_mb = mp.data_path.stat().st_size / 1_048_576
-            mm_tbl.add_row(
-                str(idx), f"{mp.n_rows:,}", str(len(mp.columns)),
-                f"{size_mb:.1f} MB", mp.data_path.name,
-            )
-        console.print(mm_tbl)
+    peek_cmd.execute(PeekParams(
+        scenario=scenario,
+        config_file=config_file,
+        config_override=config_override,
+        n_features=n_features,
+        skip_rows=skip_rows,
+    ))
 
 
 @app.command()
