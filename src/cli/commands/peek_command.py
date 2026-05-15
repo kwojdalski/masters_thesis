@@ -148,7 +148,11 @@ class PeekCommand(BaseCommand):
         raw_train = raw_df.iloc[:train_size].iloc[effective_skip:]
 
         if price_col not in raw_train.columns:
-            return
+            if {"ask_px_00", "bid_px_00"}.issubset(raw_train.columns):
+                raw_train = raw_train.copy()
+                raw_train[price_col] = ((raw_train["ask_px_00"] + raw_train["bid_px_00"]) / 2.0).ffill().bfill()
+            else:
+                return
 
         prices = raw_train[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
