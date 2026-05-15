@@ -1,0 +1,13 @@
+experiment_name: sine_wave_hft_lob_state_space_feature_research
+
+data:
+  data_path: "./data/raw/synthetic/sine_wave_hft_lob.parquet"
+  train_size: 15000
+  validation_size: 2500
+  feature_config: "src/configs/feature_sets/hft_lob_features_state_space.yaml"
+
+research:
+  horizon: 1
+  top_k: 12
+  corr_threshold: 0.85
+  output_dir: "logs/sine_wave_hft_lob/feature_research"

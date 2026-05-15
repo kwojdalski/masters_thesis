@@ -1,0 +1,22 @@
+# HFT Sine Wave - MBP-10 LOB Configuration
+# ==========================================
+# Pattern: Sine wave mid-price encoded in a full 10-level order book (MBP-10).
+# Schema: identical to real AAPL XNAS.ITCH data (78 columns, nanosecond UTC index).
+# Use: Validating HFT LOB feature pipelines and RL agents on a controlled, predictable
+#      signal before moving to real market microstructure data.
+#
+# 20 000 events at ~100 µs median inter-event gap spans ~30 minutes of trading.
+# Mid-price oscillates: 270.0 ± 5.0 over 5 complete cycles.
+
+data_generator:
+  pattern_type: "hft_sine_wave_lob"
+  n_events: 20000
+  n_periods: 5
+  base_price: 270.0          # AAPL-scale price
+  amplitude: 5.0             # ±5.0 oscillation (~1.85% of base)
+  spread: 0.12               # L0 bid-ask spread in dollars (~4.4 bps)
+  level_spacing: 0.10        # Price step between consecutive LOB levels
+  tick_size: 0.01            # NASDAQ minimum tick
+  symbol: "AAPLUSD"
+  start_datetime: "2026-02-25 14:30:00"  # NYSE open in UTC
+  seed: 42

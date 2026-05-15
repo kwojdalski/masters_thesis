@@ -22,6 +22,7 @@ class PatternType(StrEnum):
     UPWARD_DRIFT = "upward_drift"
     MEAN_REVERSION = "mean_reversion"
     TRENDING = "trending"
+    HFT_SINE_WAVE_LOB = "hft_sine_wave_lob"
 
 
 # Default start date for synthetic time indices.  The value is a label only —
@@ -501,6 +502,20 @@ class PriceDataGenerator:
                 volatility=data_gen_config.get("volatility", 0.03),
                 consolidation_prob=data_gen_config.get("consolidation_prob", 0.2),
                 start_date=data_gen_config.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
+            )
+        elif pattern_type == PatternType.HFT_SINE_WAVE_LOB:
+            return self.generate_hft_sine_wave_lob(
+                output_file=output_file,
+                n_events=data_gen_config.get("n_events", 20000),
+                n_periods=data_gen_config.get("n_periods", 5),
+                base_price=data_gen_config.get("base_price", 270.0),
+                amplitude=data_gen_config.get("amplitude", 5.0),
+                spread=data_gen_config.get("spread", 0.12),
+                level_spacing=data_gen_config.get("level_spacing", 0.10),
+                tick_size=data_gen_config.get("tick_size", 0.01),
+                symbol=data_gen_config.get("symbol", "AAPLUSD"),
+                start_datetime=data_gen_config.get("start_datetime", "2026-02-25 14:30:00"),
+                seed=data_gen_config.get("seed", 42),
             )
 
     def generate_upward_drift_pattern(
@@ -990,6 +1005,201 @@ class PriceDataGenerator:
         self.logger.info(
             "Trends identified: %s | Strategy hint -> ride momentum, manage reversals",
             len(trend_segments),
+        )
+
+        return df
+
+    def generate_hft_sine_wave_lob(
+        self,
+        output_file: str,
+        n_events: int = 20000,
+        n_periods: int = 5,
+        base_price: float = 270.0,
+        amplitude: float = 5.0,
+        spread: float = 0.12,
+        level_spacing: float = 0.10,
+        tick_size: float = 0.01,
+        symbol: str = "AAPLUSD",
+        start_datetime: str = "2026-02-25 14:30:00",
+        seed: int = 42,
+    ) -> pd.DataFrame:
+        """
+        Generate synthetic HFT LOB data matching the MBP-10 structure of real stock data.
+
+        Produces a DataFrame with the same 78-column schema as Databento MBP-10 files
+        (e.g. AAPL XNAS.ITCH), where the mid-price follows a sine wave pattern.
+        Timestamps use nanosecond UTC precision with realistic inter-event gaps drawn
+        from a log-normal distribution (median ~100 microseconds).
+
+        Parameters
+        ----------
+        output_file : str
+            Output parquet file name.
+        n_events : int
+            Number of LOB events to generate.
+        n_periods : int
+            Number of complete sine wave cycles across the event sequence.
+        base_price : float
+            Centre price of the sine wave (e.g. 270.0 for AAPL-scale).
+        amplitude : float
+            Peak-to-trough half-amplitude of the mid-price oscillation.
+        spread : float
+            Typical bid-ask spread in dollars (L0 spread).
+        level_spacing : float
+            Price increment between consecutive LOB levels.
+        tick_size : float
+            Minimum price increment for rounding LOB prices.
+        symbol : str
+            Symbol string written to the ``symbol`` column.
+        start_datetime : str
+            UTC start datetime string (e.g. '2026-02-25 14:30:00' = NYSE open).
+        seed : int
+            Random seed for reproducibility.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with nanosecond UTC index and MBP-10 column schema.
+        """
+        self.logger.info(
+            "Generating HFT sine wave LOB -> n_events=%s, n_periods=%s, base_price=%.2f, amplitude=%.2f, spread=%.4f",
+            n_events,
+            n_periods,
+            base_price,
+            amplitude,
+            spread,
+        )
+
+        rng = np.random.default_rng(seed)
+        lob_levels = 10
+        half_spread = spread / 2.0
+
+        # --- Mid-price sine wave ---
+        t = np.linspace(0, 2 * np.pi * n_periods, n_events)
+        mid_prices = base_price + amplitude * np.sin(t)
+
+        # --- Nanosecond timestamps ---
+        # Log-normal inter-event gaps; median ~100 microseconds matches
+        # intra-session HFT event density (real AAPL ~25 events/second on average).
+        gaps_ns = rng.lognormal(mean=np.log(100_000), sigma=2.0, size=n_events).astype(
+            np.int64
+        )
+        gaps_ns = np.clip(gaps_ns, 0, int(60e9))  # cap individual gaps at 60 s
+        start_ns = pd.Timestamp(start_datetime, tz="UTC").value
+        timestamps_ns = start_ns + np.cumsum(gaps_ns)
+
+        # --- LOB snapshots ---
+        bid_px = np.empty((n_events, lob_levels))
+        ask_px = np.empty((n_events, lob_levels))
+        bid_sz = np.empty((n_events, lob_levels), dtype=np.uint32)
+        ask_sz = np.empty((n_events, lob_levels), dtype=np.uint32)
+        bid_ct = np.empty((n_events, lob_levels), dtype=np.uint32)
+        ask_ct = np.empty((n_events, lob_levels), dtype=np.uint32)
+
+        for lvl in range(lob_levels):
+            # Prices rounded to tick_size
+            raw_bid = mid_prices - half_spread - lvl * level_spacing
+            raw_ask = mid_prices + half_spread + lvl * level_spacing
+            bid_px[:, lvl] = np.round(raw_bid / tick_size) * tick_size
+            ask_px[:, lvl] = np.round(raw_ask / tick_size) * tick_size
+
+            # Sizes: inner levels shallower, outer levels deeper (typical LOB shape)
+            base_sz = max(50, 300 - lvl * 25)
+            bid_sz[:, lvl] = rng.integers(
+                max(1, base_sz - 50), base_sz + 150, n_events, dtype=np.uint32
+            )
+            ask_sz[:, lvl] = rng.integers(
+                max(1, base_sz - 50), base_sz + 150, n_events, dtype=np.uint32
+            )
+            # Order counts per level: 1-4 orders
+            bid_ct[:, lvl] = rng.integers(1, 5, n_events, dtype=np.uint32)
+            ask_ct[:, lvl] = rng.integers(1, 5, n_events, dtype=np.uint32)
+
+        # --- Per-event fields ---
+        # Action distribution matches real AAPL: A ~41%, C ~37%, T ~22%
+        actions = rng.choice(
+            np.array(["A", "C", "T"], dtype=object),
+            size=n_events,
+            p=[0.41, 0.37, 0.22],
+        )
+        is_trade = actions == "T"
+
+        # Side: B/A for Add/Cancel; N for Trade
+        side_ba = rng.choice(np.array(["B", "A"], dtype=object), size=n_events)
+        sides = np.where(is_trade, "N", side_ba)
+
+        # Depth: geometric, weighted toward level 0; trades always at 0
+        depths = (rng.geometric(p=0.6, size=n_events) - 1).astype(np.uint8)
+        depths = np.clip(depths, 0, lob_levels - 1).astype(np.uint8)
+        depths[is_trade] = 0
+
+        # Event price: price at the relevant LOB level for that event's side/depth
+        is_bid_side = sides == "B"
+        row_idx = np.arange(n_events)
+        event_prices = np.where(
+            is_bid_side,
+            bid_px[row_idx, depths],
+            ask_px[row_idx, depths],
+        )
+
+        sizes = rng.integers(100, 1001, n_events, dtype=np.uint32)
+        # Volume non-zero only for trades
+        volumes = np.where(is_trade, sizes.astype(np.float64), 0.0)
+
+        sequences = (np.arange(1, n_events + 1) * 10).astype(np.uint32)
+        ts_in_deltas = rng.integers(1_000, 500_001, n_events, dtype=np.int32)
+
+        # --- Build index and ts_event ---
+        utc_index = pd.DatetimeIndex(timestamps_ns, tz="UTC")
+        ts_event_naive = pd.DatetimeIndex(timestamps_ns)  # same values, no tz
+
+        start_date_str = pd.Timestamp(timestamps_ns[0], unit="ns", tz="UTC").date().isoformat()
+
+        # --- Assemble DataFrame ---
+        data: dict[str, Any] = {
+            "symbol": pd.array([symbol] * n_events, dtype="string"),
+            "price": event_prices,
+            "source": pd.array(["synthetic"] * n_events, dtype="string"),
+            "venue": pd.array(["SYNTHETIC"] * n_events, dtype="string"),
+            "volume": volumes,
+            "ts_event": ts_event_naive,
+            "rtype": np.full(n_events, 10, dtype=np.uint8),
+            "publisher_id": np.full(n_events, 2, dtype=np.uint16),
+            "instrument_id": np.zeros(n_events, dtype=np.uint32),
+            "action": actions,
+            "side": sides,
+            "depth": depths,
+            "size": sizes,
+            "flags": np.full(n_events, 128, dtype=np.uint8),
+            "ts_in_delta": ts_in_deltas,
+            "sequence": sequences,
+        }
+
+        for lvl in range(lob_levels):
+            tag = f"{lvl:02d}"
+            data[f"bid_px_{tag}"] = bid_px[:, lvl]
+            data[f"ask_px_{tag}"] = ask_px[:, lvl]
+            data[f"bid_sz_{tag}"] = bid_sz[:, lvl]
+            data[f"ask_sz_{tag}"] = ask_sz[:, lvl]
+            data[f"bid_ct_{tag}"] = bid_ct[:, lvl]
+            data[f"ask_ct_{tag}"] = ask_ct[:, lvl]
+
+        data["_is_normalized"] = np.ones(n_events, dtype=bool)
+        data["date"] = start_date_str
+
+        df = pd.DataFrame(data, index=utc_index)
+
+        output_path = self.output_dir / output_file
+        df.to_parquet(output_path)
+
+        self._log_dataset_summary(df, output_path, context="HFT sine wave LOB pattern")
+        self.logger.info(
+            "Mid-price range: %.4f - %.4f | action mix A/C/T: %d/%d/%d",
+            mid_prices.min(),
+            mid_prices.max(),
+            is_trade.sum() * 0 + (actions == "A").sum(),
+            (actions == "C").sum(),
+            is_trade.sum(),
         )
 
         return df
