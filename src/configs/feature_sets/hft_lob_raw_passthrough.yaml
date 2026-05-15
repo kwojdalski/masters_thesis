@@ -1,0 +1,146 @@
+# HFT LOB Raw Passthrough Features
+# ==================================
+# Passes the top-5 bid/ask price and size levels directly into the
+# observation space with no derived microstructure features.
+#
+# All features are tagged domain: hft so the config is compatible with
+# env.mode: hft (which auto-derives close from the top-of-book midpoint).
+# Normalization is applied via the standard pipeline fit/transform workflow
+# so train statistics are never leaked into validation or test splits.
+#
+# Required columns:
+#   bid_px_00..bid_px_04, ask_px_00..ask_px_04,
+#   bid_sz_00..bid_sz_04, ask_sz_00..ask_sz_04
+
+features:
+  # ---------------------------------------------------------------------------
+  # Bid prices (levels 0-4)
+  # ---------------------------------------------------------------------------
+  - name: "bid_px_00"
+    feature_type: "column_value"
+    params: {column: "bid_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_01"
+    feature_type: "column_value"
+    params: {column: "bid_px_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_02"
+    feature_type: "column_value"
+    params: {column: "bid_px_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_03"
+    feature_type: "column_value"
+    params: {column: "bid_px_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_04"
+    feature_type: "column_value"
+    params: {column: "bid_px_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask prices (levels 0-4)
+  # ---------------------------------------------------------------------------
+  - name: "ask_px_00"
+    feature_type: "column_value"
+    params: {column: "ask_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_01"
+    feature_type: "column_value"
+    params: {column: "ask_px_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_02"
+    feature_type: "column_value"
+    params: {column: "ask_px_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_03"
+    feature_type: "column_value"
+    params: {column: "ask_px_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_04"
+    feature_type: "column_value"
+    params: {column: "ask_px_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Bid sizes (levels 0-4)
+  # ---------------------------------------------------------------------------
+  - name: "bid_sz_00"
+    feature_type: "column_value"
+    params: {column: "bid_sz_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_01"
+    feature_type: "column_value"
+    params: {column: "bid_sz_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_02"
+    feature_type: "column_value"
+    params: {column: "bid_sz_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_03"
+    feature_type: "column_value"
+    params: {column: "bid_sz_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_04"
+    feature_type: "column_value"
+    params: {column: "bid_sz_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask sizes (levels 0-4)
+  # ---------------------------------------------------------------------------
+  - name: "ask_sz_00"
+    feature_type: "column_value"
+    params: {column: "ask_sz_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_01"
+    feature_type: "column_value"
+    params: {column: "ask_sz_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_02"
+    feature_type: "column_value"
+    params: {column: "ask_sz_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_03"
+    feature_type: "column_value"
+    params: {column: "ask_sz_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_04"
+    feature_type: "column_value"
+    params: {column: "ask_sz_04"}
+    normalize: true
+    domain: "hft"
