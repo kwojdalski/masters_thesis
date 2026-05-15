@@ -29,7 +29,6 @@ class ValidateDataCommand(BaseCommand):
 
     def execute(self, params: ValidateDataParams) -> None:
         from logger import get_logger as _get_logger
-        from trading_rl import ExperimentConfig
         from trading_rl.data import build_prepared_dataset
         from trading_rl.data.validation import DataValidator
 
@@ -40,13 +39,8 @@ class ValidateDataCommand(BaseCommand):
         if not params.scenario and not params.config_file:
             raise typer.BadParameter("Provide --scenario or --config.")
 
-        if params.scenario:
-            config_path = self._resolve_scenario_config_path(params.scenario)
-        else:
-            config_path = params.config_file
-
-        self.console.print(f"[cyan]Loading config:[/cyan] {config_path}")
-        config = ExperimentConfig.from_yaml(config_path, overrides=params.config_override)
+        source = params.scenario or params.config_file
+        config = self._load_experiment_config(source, overrides=params.config_override)
 
         self.console.print("[cyan]Building prepared dataset…[/cyan]")
         dataset = build_prepared_dataset(config, _log)
