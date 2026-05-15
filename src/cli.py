@@ -29,6 +29,8 @@ from cli.commands import (
     TrainingCommand,
     TrainingParams,
     UpwardDriftParams,
+    ValidateDataCommand,
+    ValidateDataParams,
     ValidationCommand,
     ValidationParams,
 )
@@ -98,6 +100,7 @@ evaluate_cmd = EvaluateCommand(console)
 experiment_cmd = ExperimentCommand(console)
 dashboard_cmd = DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db")
 validation_cmd = ValidationCommand(console)
+validate_data_cmd = ValidateDataCommand(console)
 peek_cmd = PeekCommand(console)
 feature_research_cmd = FeatureResearchCommand(console)
 
@@ -672,8 +675,8 @@ def peek(
     ))
 
 
-@app.command()
-def validate(
+@app.command(name="validate-config")
+def validate_config(
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to config file"
     ),
@@ -681,19 +684,47 @@ def validate(
         None, "--scenario", "-s", help="Scenario name or path to scenario file"
     ),
     config_override: list[str] | None = typer.Option(
-        None,
-        "--config-override",
-        "-o",
-        help="OmegaConf override in dotlist format (repeatable)",
+        None, "--config-override", "-o", help="OmegaConf override in dotlist format (repeatable)"
     ),
 ):
     """Validate experiment config, data dependencies, and feature wiring."""
-    params = ValidationParams(
+    validation_cmd.execute(ValidationParams(
         config_file=config_file,
         scenario=scenario,
         config_overrides=config_override,
-    )
-    validation_cmd.execute(params)
+    ))
+
+
+@app.command(name="validate-data")
+def validate_data(
+    config_file: Path | None = typer.Option(  # noqa: B008
+        None, "--config", "-c", help="Path to config file"
+    ),
+    scenario: str | None = typer.Option(
+        None, "--scenario", "-s", help="Scenario name or path to scenario file"
+    ),
+    config_override: list[str] | None = typer.Option(
+        None, "--config-override", "-o", help="OmegaConf override in dotlist format (repeatable)"
+    ),
+    no_nan: bool = typer.Option(False, "--no-nan", help="Skip NaN check"),
+    no_inf: bool = typer.Option(False, "--no-inf", help="Skip inf check"),
+    no_duplicates: bool = typer.Option(False, "--no-duplicates", help="Skip duplicate index check"),
+    no_zero_variance: bool = typer.Option(False, "--no-zero-variance", help="Skip zero-variance feature check"),
+    no_lob_deltas: bool = typer.Option(False, "--no-lob-deltas", help="Skip LOB delta check"),
+    lob_levels: int = typer.Option(5, "--lob-levels", help="Number of LOB levels to check for deltas"),
+):
+    """Validate the prepared dataset for a scenario using DataValidator."""
+    validate_data_cmd.execute(ValidateDataParams(
+        scenario=scenario,
+        config_file=config_file,
+        config_override=config_override,
+        check_nan=not no_nan,
+        check_inf=not no_inf,
+        check_duplicates=not no_duplicates,
+        check_zero_variance=not no_zero_variance,
+        check_lob_deltas=not no_lob_deltas,
+        lob_levels=lob_levels,
+    ))
 
 
 @app.command(name="feature-research")

@@ -13,6 +13,7 @@ from .experiment_command import ExperimentCommand, ExperimentParams
 from .feature_research_command import FeatureResearchCommand, FeatureResearchParams
 from .training_command import TrainingCommand, TrainingParams
 from .peek_command import PeekCommand, PeekParams
+from .validate_data_command import ValidateDataCommand, ValidateDataParams
 from .validation_command import ValidationCommand, ValidationParams
 
 __all__ = [
@@ -33,6 +34,8 @@ __all__ = [
     "UpwardDriftParams",
     "PeekCommand",
     "PeekParams",
+    "ValidateDataCommand",
+    "ValidateDataParams",
     "ValidationCommand",
     "ValidationParams",
 ]
