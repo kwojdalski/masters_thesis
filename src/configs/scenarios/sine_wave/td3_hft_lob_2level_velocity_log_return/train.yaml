@@ -4,7 +4,7 @@ data:
   data_config: src/configs/data/sine_wave_hft_lob.yaml
   download_data: false
   train_size: 2000
-  validation_size: 2500
+  validation_size: 10000
   feature_config: "src/configs/feature_sets/hft_lob_2level_with_velocity.yaml"
   filter_lob_levels: 2
   feature_cache_dir: .cache/feature_transformation
@@ -44,7 +44,7 @@ training:
   delay_qvalue: true
   exploration_noise_std: 0.1
   loss_function: smooth_l1
-  eval_steps: 2500
+  eval_steps: 10000
   eval_interval: 1000
   temp_eval_interval: 100000
   log_interval: 100
