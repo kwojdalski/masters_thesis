@@ -63,6 +63,40 @@ rule-based overlays. These extensions leave the market observation unchanged
 and add only internal state, making them a low-disruption way to test whether
 richer self-awareness improves policy quality.
 
+### Temporal Context and State Aliasing
+<!-- [PLACEHOLDER] -->
+
+The current observation vector is a snapshot: it represents the state of the
+order book and the agent's position at a single point in time, with no
+explicit encoding of the path that led there. This creates a state aliasing
+problem. Two market configurations that are identical in their current
+snapshot — same mid-price, same spread, same order flow imbalance, same
+portfolio exposure — may have arrived from very different trajectories: one
+following a sustained directional move, the other following a reversal. The
+economically appropriate response to these two situations is different, yet the
+agent receives the same observation and is expected to produce the same action.
+
+Adding lagged values of the key state variables — for instance, a fixed-length
+window of past order flow imbalance, mid-price returns, and spread readings —
+would partially resolve this. Even a shallow lag stack of five to ten
+time steps would allow the agent to distinguish an accelerating trend from
+a decelerating one, or a spread that is widening from one that is compressing,
+using only the features already present in the current design. The cost is a
+proportional increase in state dimensionality, which adds sample complexity
+to training but does not require architectural changes. This is a practical
+first step that could be evaluated independently of the more substantial
+redesign implied by sequence encoders.
+
+The architectural answer to state aliasing is to replace the flat observation
+vector with a learned temporal representation — an RNN hidden state or a
+Transformer attention window — as discussed in the alternative architectures
+section below. But the simpler diagnostic is to introduce raw lags first: if
+adding a modest lag window produces a measurable improvement in policy
+stability and out-of-sample performance, that result would directly motivate
+the more complex sequence architecture. If it does not, the aliasing problem
+may be less binding than the missing information sources discussed in the
+following section.
+
 ### Partial Observability and the Limits of the Spot Order Book
 <!-- [PLACEHOLDER] -->
 
