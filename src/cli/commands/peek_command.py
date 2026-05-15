@@ -61,6 +61,7 @@ class PeekCommand(BaseCommand):
         self.console.print(Panel(Text(str(config_path), style="bold cyan"), title="scenario", expand=False))
         self._print_splits(dataset)
         self._print_feature_stats(dataset, config, params.n_features, effective_skip, detected_warmup, params.skip_rows)
+        self._print_log_return_stats(dataset, config, effective_skip)
         self._print_memmaps(dataset)
 
     # ------------------------------------------------------------------
@@ -135,6 +136,47 @@ class PeekCommand(BaseCommand):
 
         if len(feat_cols) > n_features:
             self.console.print(f"  [dim]… {len(feat_cols) - n_features} more features hidden (use --top {len(feat_cols)} to show all)[/dim]")
+
+    def _print_log_return_stats(self, dataset, config, effective_skip: int) -> None:
+        import numpy as np
+
+        price_col = getattr(config.env, "price_column", "close")
+        train = dataset.train_df.iloc[effective_skip:]
+
+        if price_col not in train.columns:
+            return
+
+        prices = train[price_col].to_numpy(dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            log_rets = np.diff(np.log(prices))
+        log_rets = log_rets[np.isfinite(log_rets)]
+
+        if len(log_rets) == 0:
+            return
+
+        reward_type = getattr(config.env, "reward_type", "unknown")
+        tbl = Table(
+            title=f"Price log-returns on train (always-long proxy, price_column='{price_col}', reward_type='{reward_type}')",
+            show_header=True,
+            header_style="bold",
+        )
+        for col in ("n_steps", "mean", "std", "min", "p5", "p25", "p50", "p75", "p95", "max"):
+            tbl.add_column(col, justify="right")
+
+        p = np.percentile(log_rets, [5, 25, 50, 75, 95])
+        tbl.add_row(
+            f"{len(log_rets):,}",
+            f"{log_rets.mean():.6f}",
+            f"{log_rets.std():.6f}",
+            f"{log_rets.min():.6f}",
+            f"{p[0]:.6f}",
+            f"{p[1]:.6f}",
+            f"{p[2]:.6f}",
+            f"{p[3]:.6f}",
+            f"{p[4]:.6f}",
+            f"{log_rets.max():.6f}",
+        )
+        self.console.print(tbl)
 
     def _print_memmaps(self, dataset) -> None:
         if not dataset.memmap_train_paths:
