@@ -22,3 +22,4 @@ data_generator:
   session_duration_seconds: 30000.0      # 8.3 hours; test split (12.5% = 3750 s = 62.5 min) guaranteed to cross hour boundary
   odd_lot_fraction: 0.08                 # 8% of trades are odd-lot (<100 shares); needed for odd_lot features
   seed: 42
+  price_noise_std: 0.001                 # per-level bid/ask noise std (reduced 10x from default 0.01)

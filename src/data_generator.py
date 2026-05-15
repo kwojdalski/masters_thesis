@@ -1026,6 +1026,7 @@ class PriceDataGenerator:
         session_duration_seconds: float = 23400.0,
         odd_lot_fraction: float = 0.08,
         seed: int = 42,
+        price_noise_std: float = 0.01,
     ) -> pd.DataFrame:
         """
         Generate synthetic HFT LOB data matching the MBP-10 structure of real stock data.
@@ -1115,8 +1116,8 @@ class PriceDataGenerator:
         for lvl in range(lob_levels):
             # Prices rounded to tick_size; independent per-event noise on each
             # side makes level spacing vary realistically across events.
-            bid_noise = rng.normal(0.0, 0.01, n_events)
-            ask_noise = rng.normal(0.0, 0.01, n_events)
+            bid_noise = rng.normal(0.0, price_noise_std, n_events)
+            ask_noise = rng.normal(0.0, price_noise_std, n_events)
             raw_bid = mid_prices - half_spread - lvl * level_spacing + bid_noise
             raw_ask = mid_prices + half_spread + lvl * level_spacing + ask_noise
             bid_px[:, lvl] = np.round(raw_bid / tick_size) * tick_size
