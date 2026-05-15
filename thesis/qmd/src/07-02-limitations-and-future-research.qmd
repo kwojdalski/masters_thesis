@@ -154,3 +154,50 @@ on successive out-of-sample periods — would provide a more rigorous assessment
 of temporal generalization. Multi-seed reporting with confidence intervals
 would separate genuine policy quality from favorable initialization, which is a
 known confound in RL research.
+
+### Compute Scale as a Prerequisite for Superior Performance
+<!-- [PLACEHOLDER] -->
+
+A structural limitation of the present work — and of most academic RL trading
+research — is the scale at which models are trained and evaluated. The
+experiments in this thesis were conducted on a single machine with a modest GPU
+budget, covering six instruments over three trading sessions. This is a
+reasonable scope for a proof-of-concept study, but it raises the question of
+whether the marginal gains observed here could be converted into robust,
+economically meaningful edge at deployment scale.
+
+There is reason to believe that the relationship between compute and
+performance is not merely incremental in this domain. Profitably operating
+at tick frequency requires forecasting models that generalize across
+instruments, regimes, and time horizons simultaneously. Training such models
+demands large-scale data ingestion, distributed feature computation, and
+the ability to run many parallel rollouts — a workload that is qualitatively
+different from fitting a model to a few days of data on one asset.
+
+The capital expenditure decisions of leading quantitative firms suggest this
+view is widely held among practitioners. XTX Markets, a firm generating
+approximately \$250 billion in daily trading volume across equities, FX, fixed
+income, and derivatives, announced in January 2025 a commitment of over
+\euro{}1 billion to build a dedicated machine learning data centre campus in
+Kajaani, Finland, with the stated purpose of housing the infrastructure for its
+price-forecasting models across more than 50,000 instruments.^[See
+@XTXKajaani2025. The first phase covers 22.5 MW of IT capacity, with four
+additional data centres planned on the same 478-acre site.] Similarly, Qube
+Research \& Technologies (QRT), one of Europe's largest quantitative hedge
+funds, announced in February 2025 the construction of a dedicated
+high-performance computing facility in Akureyri, Iceland — powered by
+renewable geothermal and hydroelectric energy — specifically for accelerated
+compute supporting large-scale model calibration and data analysis.^[See
+@QRTIceland2025. QRT managed approximately \$23 billion in AUM at the time of
+the announcement.]
+
+These investments are not incidental infrastructure decisions. They reflect an
+industry consensus that superior ML-driven performance at the frontier of
+quantitative trading is contingent on compute scale that is far beyond what
+any single academic research project can access. Future academic work in this
+area should therefore be interpreted with this constraint in mind: the ceiling
+of what is achievable under typical academic compute budgets is likely well
+below the performance that would be observed under industry-scale training
+regimes. Collaborative research arrangements, cloud-based large-scale
+experimentation, or partnerships with data providers may be necessary to
+close this gap.
