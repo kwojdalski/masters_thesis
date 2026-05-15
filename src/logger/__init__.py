@@ -24,6 +24,7 @@ from logger.utils import (
     log_function_call,
     log_performance_metrics,
     log_processing_step,
+    print_df_head,
 )
 
 __all__ = [
@@ -40,6 +41,7 @@ __all__ = [
     "log_function_call",
     "log_performance_metrics",
     "log_processing_step",
+    "print_df_head",
     "setup_component_logger",
     "setup_logging",
     "trace_calls",

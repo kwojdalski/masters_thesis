@@ -13,6 +13,10 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
+import pandas as pd
+from rich.console import Console
+from rich.table import Table
+
 _GREEN = "\033[32m"
 _RESET = "\033[0m"
 _BANNER_WIDTH = 100
@@ -337,6 +341,102 @@ def logged_function(
         return wrapper
 
     return decorator
+
+
+def _fmt_cell(value: Any) -> str:
+    """Format a single DataFrame cell for terminal display."""
+    if pd.isna(value):
+        return "NaN"
+    if isinstance(value, float):
+        return f"{value:.6f}"
+    return str(value)
+
+
+def print_df_head(
+    df: pd.DataFrame,
+    n_rows: int = 5,
+    title: str = "DataFrame Head",
+    max_columns: int = 12,
+    paginate: bool = False,
+    columns_per_page: int = 10,
+    transpose: bool = False,
+) -> None:
+    """Print the first n_rows of a DataFrame as a Rich table.
+
+    Args:
+        df: DataFrame to display.
+        n_rows: Number of rows to show (ignored in transpose mode — all columns
+            become rows so the row count is driven by the column count).
+        title: Table title shown above each printed table.
+        max_columns: When paginate=False, cap the visible columns at this value.
+        paginate: When True, print all columns in sequential chunks of
+            columns_per_page width instead of truncating.
+        columns_per_page: Columns per page when paginate=True (or rows per page
+            in transpose mode).
+        transpose: When True, flip rows and columns — original column names
+            become the leftmost column and original row indices become the
+            column headers. Useful for wide DataFrames.
+    """
+    if df.empty:
+        return
+
+    console = Console()
+    head_df = df.head(n_rows)
+    all_columns = list(head_df.columns)
+    index_labels = [str(i) for i in head_df.index]
+
+    if transpose:
+        # Each original column becomes a row; original row indices become columns.
+        def _build_transposed_table(col_chunk: list[str], page_info: str) -> Table:
+            t = Table(title=f"{title}{page_info}")
+            t.add_column("Column", style="cyan")
+            for lbl in index_labels:
+                t.add_column(lbl, justify="right")
+            for col in col_chunk:
+                t.add_row(str(col), *[_fmt_cell(head_df.at[idx, col]) for idx in head_df.index])
+            return t
+
+        if paginate:
+            n_pages = max(1, -(-len(all_columns) // columns_per_page))
+            for page, start in enumerate(range(0, len(all_columns), columns_per_page), 1):
+                chunk = all_columns[start : start + columns_per_page]
+                info = f" — rows {start + 1}–{start + len(chunk)} of {len(all_columns)} (page {page}/{n_pages})"
+                console.print(_build_transposed_table(chunk, info))
+        else:
+            visible = all_columns[:max_columns]
+            hidden = len(all_columns) - len(visible)
+            console.print(_build_transposed_table(visible, ""))
+            if hidden > 0:
+                console.print(
+                    f"[dim]Showing {len(visible)} of {len(all_columns)} columns "
+                    f"({hidden} hidden). Pass paginate=True to see all.[/dim]"
+                )
+
+    else:
+        def _build_table(col_chunk: list[str], page_info: str) -> Table:
+            t = Table(title=f"{title}{page_info}")
+            t.add_column("index", style="cyan")
+            for col in col_chunk:
+                t.add_column(str(col), justify="right")
+            for idx, row in head_df.iterrows():
+                t.add_row(str(idx), *[_fmt_cell(row[col]) for col in col_chunk])
+            return t
+
+        if paginate:
+            n_pages = max(1, -(-len(all_columns) // columns_per_page))
+            for page, start in enumerate(range(0, len(all_columns), columns_per_page), 1):
+                chunk = all_columns[start : start + columns_per_page]
+                info = f" — columns {start + 1}–{start + len(chunk)} of {len(all_columns)} (page {page}/{n_pages})"
+                console.print(_build_table(chunk, info))
+        else:
+            visible = all_columns[:max_columns]
+            hidden = len(all_columns) - len(visible)
+            console.print(_build_table(visible, ""))
+            if hidden > 0:
+                console.print(
+                    f"[dim]Showing {len(visible)} of {len(all_columns)} columns "
+                    f"({hidden} hidden). Pass paginate=True to see all.[/dim]"
+                )
 
 
 def setup_component_specific_logger(

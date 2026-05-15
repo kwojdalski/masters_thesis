@@ -13,10 +13,8 @@ import mlflow
 import numpy as np
 import pandas as pd
 import torch
-from rich.console import Console
-from rich.table import Table
-
 from logger import get_logger as get_project_logger
+from logger import print_df_head
 from logger import setup_logging as configure_root_logging
 from trading_rl.profiler import get_profiler
 from trading_rl.callbacks import MLflowTrainingCallback
@@ -51,63 +49,6 @@ class ExperimentRuntime:
     training_bundle: TrainingBundle
 
 
-def _format_head_value(value: Any) -> str:
-    if isinstance(value, float):
-        abs_value = abs(value)
-        if (abs_value >= 1e5) or (0 < abs_value < 1e-3):
-            return f"{value:.4e}"
-        return f"{value:.6f}"
-    if isinstance(value, (int, np.integer)):
-        return str(value)
-    return str(value)
-
-
-def _print_training_data_head_table(
-    train_df: pd.DataFrame,
-    n_rows: int = 5,
-    max_columns: int = 12,
-    paginate: bool = False,
-    columns_per_page: int = 10,
-) -> None:
-    if train_df.empty:
-        return
-
-    head_df = train_df.head(n_rows)
-    console = Console()
-    all_columns = list(head_df.columns)
-
-    if paginate:
-        n_pages = max(1, -(-len(all_columns) // columns_per_page))  # ceil division
-        for page, start in enumerate(range(0, len(all_columns), columns_per_page), 1):
-            chunk = all_columns[start : start + columns_per_page]
-            table = Table(
-                title=f"Training Data Head — columns {start + 1}–{start + len(chunk)} of {len(all_columns)} (page {page}/{n_pages})"
-            )
-            table.add_column("index", style="cyan")
-            for col in chunk:
-                table.add_column(str(col), justify="right")
-            for idx, row in head_df.iterrows():
-                row_cells = [str(idx)]
-                row_cells.extend(_format_head_value(row[col]) for col in chunk)
-                table.add_row(*row_cells)
-            console.print(table)
-    else:
-        visible_columns = all_columns[:max_columns]
-        hidden_count = max(0, len(all_columns) - len(visible_columns))
-        table = Table(title="Training Data Head")
-        table.add_column("index", style="cyan")
-        for col in visible_columns:
-            table.add_column(str(col), justify="right")
-        for idx, row in head_df.iterrows():
-            row_cells = [str(idx)]
-            row_cells.extend(_format_head_value(row[col]) for col in visible_columns)
-            table.add_row(*row_cells)
-        console.print(table)
-        if hidden_count > 0:
-            console.print(
-                f"[dim]Showing {len(visible_columns)} of {len(all_columns)} columns "
-                f"({hidden_count} hidden). Pass paginate=True to see all.[/dim]"
-            )
 
 
 def setup_logging(config: ExperimentConfig) -> logging.Logger:
@@ -373,7 +314,7 @@ def build_experiment_runtime(
     test_df = prepared_dataset.test_df
 
     if logger.isEnabledFor(logging.INFO):
-        _print_training_data_head_table(train_df)
+        print_df_head(train_df, title="Training Data Head")
 
     logger.debug(
         "Data loaded - train: %s, val: %s, test: %s, columns: %s",
