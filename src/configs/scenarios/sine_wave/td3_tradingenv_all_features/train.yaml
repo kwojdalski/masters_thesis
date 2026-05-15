@@ -32,7 +32,7 @@ training:
   buffer_size: 50000
   save_buffer: true
   gamma: 0.99
-  tau: 0.001
+  tau: 0.005
   policy_noise: 0.2
   noise_clip: 0.3
   policy_delay: 2

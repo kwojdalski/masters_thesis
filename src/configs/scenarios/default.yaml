@@ -36,7 +36,7 @@ training:
   optim_steps_per_batch: 50
   sample_size: 50
   buffer_size: 100000
-  tau: 0.001
+  tau: 0.005
   loss_function: "l2"
   eval_steps: 500
   eval_interval: 200
