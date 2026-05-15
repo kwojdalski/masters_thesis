@@ -18,6 +18,7 @@ from logger.decorators import trace_calls
 from logger.utils import (
     LogContext,
     logged_function,
+    log_banner,
     log_dataframe_info,
     log_error_with_context,
     log_function_call,
@@ -28,6 +29,7 @@ from logger.utils import (
 __all__ = [
     "ColoredFormatter",
     "LogContext",
+    "log_banner",
     "StructuredFormatter",
     "configure_logging",
     "configure_weles_logging",

@@ -16,6 +16,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -657,6 +658,8 @@ def log_evaluation_plots(
         def _save(plot_obj, filename, key, dir_, width=8, height=5):
             tmp_path = os.path.join(batch_temp_dir, filename)
             try:
+                t_render = time.monotonic()
+                logger.debug("render plot filename=%s", filename)
                 with warnings.catch_warnings(), _suppress_plotnine():
                     warnings.simplefilter("ignore", PlotnineWarning)
                     if hasattr(plot_obj, "save"):
@@ -665,13 +668,19 @@ def log_evaluation_plots(
                         plot_obj.savefig(tmp_path, dpi=150)
                     else:
                         raise RuntimeError("Unsupported plot object for saving")
+                logger.debug("render done filename=%s elapsed=%.2fs", filename, time.monotonic() - t_render)
+
                 pil_logger = logging.getLogger("PIL.PngImagePlugin")
                 prev_level = pil_logger.level
                 pil_logger.setLevel(logging.INFO)
+                t_upload = time.monotonic()
+                logger.debug("mlflow log_artifact filename=%s dir=%s", filename, dir_)
                 try:
                     mlflow.log_artifact(tmp_path, dir_)
                 finally:
                     pil_logger.setLevel(prev_level)
+                logger.debug("mlflow log_artifact done filename=%s elapsed=%.2fs", filename, time.monotonic() - t_upload)
+
                 if key:
                     saved_paths[key] = tmp_path
             except Exception:

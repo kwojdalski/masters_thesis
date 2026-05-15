@@ -80,7 +80,7 @@ logging:
   log_level: INFO
   save_plots: false
 explainability:
-  enabled: true
+  enabled: false
   n_steps: 500
   methods:
   - permutation

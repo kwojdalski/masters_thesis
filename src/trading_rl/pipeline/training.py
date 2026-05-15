@@ -18,6 +18,7 @@ from rich.table import Table
 
 from logger import get_logger as get_project_logger
 from logger import setup_logging as configure_root_logging
+from trading_rl.profiler import get_profiler
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.constants import Algorithm
@@ -341,10 +342,13 @@ def build_experiment_runtime(
     config.seed = set_seed(config.seed)
     _print_config_debug(config, logger)
 
+    profiler = get_profiler()
+
     logger.info("prepare data")
     logger.debug("data path=%s train_size=%s feature_config=%s", config.data.data_path, config.data.train_size, getattr(config.data, "feature_config", None))
 
-    prepared_dataset = build_prepared_dataset(config, logger)
+    with profiler.stage("data_preparation", 2):
+        prepared_dataset = build_prepared_dataset(config, logger)
     train_df = prepared_dataset.train_df
     val_df = prepared_dataset.val_df
     test_df = prepared_dataset.test_df
@@ -377,14 +381,15 @@ def build_experiment_runtime(
         else:
             logger.debug("  No feature_* columns found in prepared data")
 
-    training_bundle = _build_training_bundle(
-        config=config,
-        dataset=prepared_dataset,
-        effective_experiment_name=effective_experiment_name,
-        logger=logger,
-        progress_bar=progress_bar,
-        create_mlflow_callback=create_mlflow_callback,
-    )
+    with profiler.stage("train_env_build", 2):
+        training_bundle = _build_training_bundle(
+            config=config,
+            dataset=prepared_dataset,
+            effective_experiment_name=effective_experiment_name,
+            logger=logger,
+            progress_bar=progress_bar,
+            create_mlflow_callback=create_mlflow_callback,
+        )
 
     if create_mlflow_callback and mlflow.active_run():
         MLflowTrainingCallback.log_parameter_faq_artifact()

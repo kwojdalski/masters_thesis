@@ -147,6 +147,8 @@ def build_metric_report(
     )
     turnover = _turnover(actions_arr)
     avg_holding = _holding_period(actions_arr)
+    pct_long = float(np.mean(actions_arr > 0)) if actions_arr.size > 0 else np.nan
+    pct_short = float(np.mean(actions_arr < 0)) if actions_arr.size > 0 else np.nan
 
     beta = np.nan
     alpha = np.nan
@@ -192,6 +194,8 @@ def build_metric_report(
         "expectancy_per_period": expectancy,
         "turnover": turnover,
         "average_holding_period": avg_holding,
+        "pct_long": pct_long,
+        "pct_short": pct_short,
         "beta": beta,
         "alpha": float(alpha) if np.isfinite(alpha) else np.nan,
         "information_ratio": info_ratio,
@@ -223,6 +227,8 @@ def _metric_keys() -> list[str]:
         "expectancy_per_period",
         "turnover",
         "average_holding_period",
+        "pct_long",
+        "pct_short",
         "beta",
         "alpha",
         "information_ratio",

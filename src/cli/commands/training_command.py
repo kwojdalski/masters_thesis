@@ -283,6 +283,9 @@ class TrainingCommand(BaseCommand):
             run_table.add_row("Data Start", str(start)[:10])
         if end:
             run_table.add_row("Data End", str(end)[:10])
+        unique_symbols = final_metrics.get("unique_symbols", [])
+        if unique_symbols:
+            run_table.add_row("Unique Symbols", str(len(unique_symbols)))
         for key, label in [
             ("train_size", "Train Rows"),
             ("validation_size", "Val Rows"),
@@ -316,6 +319,8 @@ class TrainingCommand(BaseCommand):
             ("max_drawdown", "Max Drawdown", ".2%"),
             ("win_rate", "Win Rate", ".2%"),
             ("profit_factor", "Profit Factor", ".3f"),
+            ("pct_long", "% Long", ".2%"),
+            ("pct_short", "% Short", ".2%"),
         ]
 
         split_results = final_metrics.get("split_results", {})

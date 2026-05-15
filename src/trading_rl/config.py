@@ -212,6 +212,18 @@ class ExplainabilityConfig:
 
 
 @dataclass
+class ProfilingConfig:
+    """Wall-clock profiling of pipeline stages, printed as a table at experiment end.
+
+    level 0: disabled
+    level 1: coarse stages (runtime_build, training, evaluation per split)
+    level 2: fine-grained stages within each coarse stage (data load, env build, rollout, plots, etc.)
+    """
+
+    level: int = 2
+
+
+@dataclass
 class BenchmarksConfig:
     """Which baseline strategies to compute returns for during evaluation."""
 
@@ -220,6 +232,7 @@ class BenchmarksConfig:
     twap: bool = False
     vwap: bool = False
     random: bool = True  # Random-action baseline
+    show_max_profit: bool = False  # Perfect-foresight upper bound in actual returns plot
 
     # Random baseline parameters
     n_random_trials: int = 10
@@ -262,6 +275,7 @@ class ExperimentConfig:
     explainability: ExplainabilityConfig = field(default_factory=ExplainabilityConfig)
     benchmarks: BenchmarksConfig = field(default_factory=BenchmarksConfig)
     statistical_testing: StatisticalTestingConfig = field(default_factory=StatisticalTestingConfig)
+    profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
 
     # Reproducibility
     seed: int | None = None

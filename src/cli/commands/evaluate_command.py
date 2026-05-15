@@ -23,6 +23,8 @@ _PERF_ROWS = [
     ("max_drawdown", "Max Drawdown", ".2%"),
     ("win_rate", "Win Rate", ".2%"),
     ("profit_factor", "Profit Factor", ".3f"),
+    ("pct_long", "% Long", ".2%"),
+    ("pct_short", "% Short", ".2%"),
 ]
 
 
@@ -279,7 +281,7 @@ class EvaluateCommand(BaseCommand):
             return _MlflowRunContext(ctx, meta, checkpoint_path, splits_to_eval)
 
         except Exception as exc:
-            self.logger.warning("MLflow unavailable, skipping run creation: %s", exc)
+            self.logger.warning("mlflow unavailable skip run creation err=%s", exc)
             return _noop_context()
 
     def _log_benchmarks_to_mlflow(
@@ -313,7 +315,7 @@ class EvaluateCommand(BaseCommand):
                             f"bench_{split}_{bench_name}_{key}", float(val)
                         )
         except Exception as exc:
-            self.logger.warning("Failed to log benchmarks to MLflow: %s", exc)
+            self.logger.warning("log benchmarks to mlflow failed err=%s", exc)
 
     @staticmethod
     def _mlflow_run_url(tracking_uri: str, run_id: str) -> str:
@@ -414,7 +416,7 @@ class EvaluateCommand(BaseCommand):
                 fig.savefig(out_path, bbox_inches="tight", dpi=150)
                 self.console.print(f"[dim]Saved plot: {out_path}[/dim]")
             except Exception as exc:
-                self.logger.warning("Failed to save plot %s: %s", name, exc)
+                self.logger.warning("save plot failed name=%s err=%s", name, exc)
 
 
 # ------------------------------------------------------------------

@@ -75,7 +75,7 @@ class TD3Trainer(BaseTrainer):
                 dtype=torch.float32,
             )
             logger.warning(
-                "Environment action_spec is not a Bounded spec; falling back to TD3 default [-1, 1] bounds."
+                "action_spec not Bounded spec fallback bounds=[-1, 1]"
             )
         self.td3_action_spec = td3_action_spec
 
@@ -216,7 +216,7 @@ class TD3Trainer(BaseTrainer):
             terminated = sample["next", "terminated"]
             if done.shape != terminated.shape:
                 logger.warning(
-                    f"Shape mismatch: done {done.shape} vs terminated {terminated.shape}"
+                    "shape mismatch done=%s terminated=%s", done.shape, terminated.shape
                 )
                 continue
 
@@ -356,16 +356,18 @@ class TD3Trainer(BaseTrainer):
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
                 logger.debug(
-                    f"[Batch {i}] Collected {data.numel()} steps, buffer size: {buffer_len}"
+                    "batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
                 )
                 logger.debug(
-                    f"  Episode rewards - mean: {episode_rewards.mean():.4f}, std: {episode_rewards.std():.4f}"
+                    "episode reward stats mean=%.4f std=%.4f",
+                    episode_rewards.mean(), episode_rewards.std(),
                 )
 
                 # Log actions being collected
                 collected_actions = data["action"]
                 logger.debug(
-                    f"  Collected actions - mean: {collected_actions.mean():.4f}, std: {collected_actions.std():.4f}"
+                    "collected action stats mean=%.4f std=%.4f",
+                    collected_actions.mean(), collected_actions.std(),
                 )
 
         def on_batch_end(i, data) -> None:
@@ -425,11 +427,11 @@ class TD3Trainer(BaseTrainer):
             if logger.isEnabledFor(logging.DEBUG):
                 actions = eval_rollout["action"]
                 logger.debug(
-                    "td3 eval action stats shape=%s mean=%.4f std=%.4f",
-                    actions.shape, actions.mean(), actions.std(),
+                    "td3 eval action stats n=%d mean=%.4f std=%.4f",
+                    actions.numel(), actions.mean(), actions.std(),
                 )
                 logger.debug(
-                    f"  Actions - min: {actions.min():.4f}, max: {actions.max():.4f}"
+                    "td3 eval action min=%.4f max=%.4f", actions.min(), actions.max()
                 )
 
                 # Show action distribution (histogram-like)
@@ -441,13 +443,14 @@ class TD3Trainer(BaseTrainer):
                 )
                 if len(unique_actions) <= 10:
                     logger.debug(
-                        f"  Action distribution: {dict(zip(unique_actions, counts, strict=False))}"
+                        "td3 eval action distribution=%s",
+                        dict(zip(unique_actions, counts, strict=False)),
                     )
                 else:
                     # Show percentiles if too many unique values
                     percentiles = np.percentile(actions_flat, [0, 25, 50, 75, 100])
                     logger.debug(
-                        f"  Action percentiles [0,25,50,75,100]: {percentiles}"
+                        "td3 eval action percentiles=%s", percentiles.tolist()
                     )
 
                 # Check if agent is stuck

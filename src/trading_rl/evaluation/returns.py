@@ -216,7 +216,7 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
             return None
 
         if np.any(np.asarray(nlv_values, dtype=float) <= 0):
-            logger.warning("Invalid NLV path contains non-positive values: %s", nlv_values)
+            logger.warning("nlv path contains non-positive values values=%s", nlv_values)
             return None
 
         series = ReturnSeries(
@@ -224,11 +224,6 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
             ReturnKind.EQUITY,
             name="strategy",
             includes_initial=True,
-        )
-        logger.info(
-            "Extracted %s NLV values from TradingEnv broker. Final value: %.6f",
-            len(series.values),
-            series.values[-1],
         )
         return series
     except Exception as exc:

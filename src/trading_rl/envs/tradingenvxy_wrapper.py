@@ -284,26 +284,20 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             )
 
         logger.info(
-            "Creating TradingEnv environment",
-            extra={
-                "df_shape": df.shape,
-                "feature_columns": feature_columns,
-                "runtime_feature_columns": runtime_feature_columns,
-                "price_column": price_column,
-                "initial_cash": initial_cash,
-                "fee": fee,
-                "reward_type": reward_type,
-            },
+            "creating TradingEnv environment n_rows=%d n_static_cols=%d n_runtime_cols=%d price_column=%s fee=%s",
+            len(df),
+            len(static_feature_columns),
+            len(runtime_feature_columns) if runtime_feature_columns else 0,
+            price_column,
+            fee,
         )
 
-        # Create Stock contracts for each price column
+        logger.debug("building stock contracts n_price_columns=%d", len(price_columns))
         stocks = [Stock(col) for col in price_columns]
-
-        # Create BoxPortfolio action space for continuous allocations
-        # Allow short selling by setting low to -1.0
         action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
+        logger.debug("action space built low=-1.0 high=1.0")
 
-        # Create custom features for observations
+        logger.debug("building CustomFeature n_static=%d", len(static_feature_columns))
         features = [
             CustomFeature(
                 static_feature_columns,
@@ -312,18 +306,16 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
                 traded_contracts=stocks,
             )
         ]
+        logger.debug("CustomFeature built")
 
-        # Prepare price DataFrame with Contract objects as columns
+        logger.debug("preparing price dataframe n_rows=%d n_cols=%d", len(df), len(price_columns))
         prices = df[price_columns].copy()
-        # Rename columns to use Contract objects instead of strings
         prices.columns = stocks
+        logger.debug("price dataframe ready")
 
-        # Create TradingEnv
-        broker_fees = BrokerFees(
-            proportional=fee,
-            fixed=0.0,
-        )
+        broker_fees = BrokerFees(proportional=fee, fixed=0.0)
 
+        logger.debug("constructing TradingEnv initial_cash=%s", initial_cash)
         env = TradingEnv(
             action_space=action_space,
             state=features,
@@ -333,23 +325,19 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             broker_fees=broker_fees,
             **kwargs,
         )
+        logger.debug("TradingEnv constructed")
 
-        # Wrap with Gymnasium compatibility layer
+        logger.debug("wrapping with GymnasiumTradingEnvWrapper")
         gym_env = GymnasiumTradingEnvWrapper(env)
 
-        # Wrap for TorchRL
+        logger.debug("wrapping with GymWrapper and transforms")
         wrapped_env = GymWrapper(gym_env)
-
-        # Rename observation key to match expected format
-        # TradingEnv creates observations with key "CustomFeature"
-        # but training script expects "observation"
         wrapped_env = TransformedEnv(
             wrapped_env,
             RenameTransform(in_keys=["CustomFeature"], out_keys=["observation"]),
         )
-
-        # Add step counter
         wrapped_env = self._wrap_with_step_counter(wrapped_env)
+        logger.debug("env wrapping done")
 
         logger.info("create TradingEnv environment done")
         return wrapped_env

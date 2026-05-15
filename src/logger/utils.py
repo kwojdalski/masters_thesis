@@ -13,6 +13,20 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
+_GREEN = "\033[32m"
+_RESET = "\033[0m"
+_BANNER_WIDTH = 100
+
+
+def log_banner(logger: logging.Logger, message: str) -> None:
+    """Log a fully green separator banner at INFO level."""
+    inner = f"  {message}  "
+    dashes = max(0, _BANNER_WIDTH - len(inner))
+    left = dashes // 2
+    right = dashes - left
+    line = "=" * left + inner + "=" * right
+    logger.info("%s%s%s", _GREEN, line, _RESET)
+
 
 def log_dataframe_info(
     logger: logging.Logger, df, name: str = "DataFrame", level: str = "INFO"
