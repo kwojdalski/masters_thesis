@@ -10,6 +10,7 @@ data:
   feature_cache_dir: .cache/feature_transformation
 env:
   backend: tradingenv
+  mode: hft
   trading_fees: 0.0
   price_column: close
   include_position_feature: true
