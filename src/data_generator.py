@@ -515,6 +515,8 @@ class PriceDataGenerator:
                 tick_size=data_gen_config.get("tick_size", 0.01),
                 symbol=data_gen_config.get("symbol", "AAPLUSD"),
                 start_datetime=data_gen_config.get("start_datetime", "2026-02-25 14:30:00"),
+                session_duration_seconds=data_gen_config.get("session_duration_seconds", 23400.0),
+                odd_lot_fraction=data_gen_config.get("odd_lot_fraction", 0.08),
                 seed=data_gen_config.get("seed", 42),
             )
 
@@ -1021,6 +1023,8 @@ class PriceDataGenerator:
         tick_size: float = 0.01,
         symbol: str = "AAPLUSD",
         start_datetime: str = "2026-02-25 14:30:00",
+        session_duration_seconds: float = 23400.0,
+        odd_lot_fraction: float = 0.08,
         seed: int = 42,
     ) -> pd.DataFrame:
         """
@@ -1028,8 +1032,8 @@ class PriceDataGenerator:
 
         Produces a DataFrame with the same 78-column schema as Databento MBP-10 files
         (e.g. AAPL XNAS.ITCH), where the mid-price follows a sine wave pattern.
-        Timestamps use nanosecond UTC precision with realistic inter-event gaps drawn
-        from a log-normal distribution (median ~100 microseconds).
+        Timestamps are nanosecond UTC, spread uniformly over ``session_duration_seconds``
+        using exponential inter-event gaps (Poisson arrival model).
 
         Parameters
         ----------
@@ -1053,6 +1057,13 @@ class PriceDataGenerator:
             Symbol string written to the ``symbol`` column.
         start_datetime : str
             UTC start datetime string (e.g. '2026-02-25 14:30:00' = NYSE open).
+        session_duration_seconds : float
+            Total wall-clock span of the generated session in seconds.
+            Default 23400 = 6.5 hours (full NYSE trading day).  Spreading events
+            across multiple hours ensures ``hour_sin``/``hour_cos`` features vary.
+        odd_lot_fraction : float
+            Fraction of trade events that are odd-lot sized (< 100 shares).
+            Ensures ``odd_lot_trade_ratio`` and ``odd_lot_imbalance`` are non-zero.
         seed : int
             Random seed for reproducibility.
 
@@ -1079,12 +1090,12 @@ class PriceDataGenerator:
         mid_prices = base_price + amplitude * np.sin(t)
 
         # --- Nanosecond timestamps ---
-        # Log-normal inter-event gaps; median ~100 microseconds matches
-        # intra-session HFT event density (real AAPL ~25 events/second on average).
-        gaps_ns = rng.lognormal(mean=np.log(100_000), sigma=2.0, size=n_events).astype(
-            np.int64
-        )
-        gaps_ns = np.clip(gaps_ns, 0, int(60e9))  # cap individual gaps at 60 s
+        # Exponential inter-event gaps scaled so that events fill session_duration_seconds.
+        # This guarantees the index spans multiple hours, which is required for
+        # hour_sin/hour_cos features to have non-zero variance.
+        mean_gap_ns = int(session_duration_seconds * 1e9 / n_events)
+        gaps_ns = rng.exponential(scale=mean_gap_ns, size=n_events).astype(np.int64)
+        gaps_ns = np.clip(gaps_ns, 1, int(120e9))  # floor 1 ns, cap at 2 minutes
         start_ns = pd.Timestamp(start_datetime, tz="UTC").value
         timestamps_ns = start_ns + np.cumsum(gaps_ns)
 
@@ -1124,9 +1135,11 @@ class PriceDataGenerator:
         )
         is_trade = actions == "T"
 
-        # Side: B/A for Add/Cancel; N for Trade
-        side_ba = rng.choice(np.array(["B", "A"], dtype=object), size=n_events)
-        sides = np.where(is_trade, "N", side_ba)
+        # Side: B/A for Add/Cancel and for Trade (aggressor side).
+        # Trades use B (buy-aggressive, lifted the ask) or A (sell-aggressive, hit the bid).
+        # 'N' is intentionally avoided for trades so that split_trade_flow() can
+        # classify buy/sell volume and signed_trade_flow has non-zero variance.
+        sides = rng.choice(np.array(["B", "A"], dtype=object), size=n_events)
 
         # Depth: geometric, weighted toward level 0; trades always at 0
         depths = (rng.geometric(p=0.6, size=n_events) - 1).astype(np.uint8)
@@ -1142,7 +1155,14 @@ class PriceDataGenerator:
             ask_px[row_idx, depths],
         )
 
+        # Sizes: round lots (100-1000) for most events; odd lots (1-99) for a fraction
+        # of trade events so that odd_lot_trade_ratio/odd_lot_imbalance are non-zero.
         sizes = rng.integers(100, 1001, n_events, dtype=np.uint32)
+        n_odd = int(is_trade.sum() * odd_lot_fraction)
+        trade_indices = np.where(is_trade)[0]
+        odd_indices = rng.choice(trade_indices, size=n_odd, replace=False)
+        sizes[odd_indices] = rng.integers(1, 100, n_odd, dtype=np.uint32)
+
         # Volume non-zero only for trades
         volumes = np.where(is_trade, sizes.astype(np.float64), 0.0)
 
