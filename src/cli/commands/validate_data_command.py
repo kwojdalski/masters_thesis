@@ -35,6 +35,7 @@ class ValidateDataParams:
     check_lob_deltas: bool = True
     lob_levels: int = 5
     verbose: bool = False
+    transpose: bool = False
 
 
 class ValidateDataCommand(BaseCommand):
@@ -68,7 +69,7 @@ class ValidateDataCommand(BaseCommand):
         )
 
         if params.verbose:
-            self._print_data_glimpse(dataset)
+            self._print_data_glimpse(dataset, transpose=params.transpose)
 
         self._print_checks_table(params)
         self.console.print("[cyan]Running checks…[/cyan]")
@@ -120,36 +121,39 @@ class ValidateDataCommand(BaseCommand):
         else:
             self.console.print("\n[green bold]All checks passed.[/green bold]")
 
-    def _print_data_glimpse(self, dataset, n_rows: int = 5, max_cols: int = 10) -> None:
+    def _print_data_glimpse(self, dataset, n_rows: int = 5, max_cols: int = 10, transpose: bool = False) -> None:
         import numpy as np
+
+        def _fmt(val) -> str:
+            if isinstance(val, float):
+                return "nan" if np.isnan(val) else f"{val:.4g}"
+            return str(val)
 
         for split_name, df in [("train", dataset.train_df), ("val", dataset.val_df), ("test", dataset.test_df)]:
             head = df.head(n_rows)
-            visible = list(head.columns[:max_cols])
-            hidden = max(0, len(head.columns) - len(visible))
+            title = f"Data Glimpse — {split_name} ({len(df):,} rows × {df.shape[1]} cols)"
 
-            tbl = Table(
-                title=f"Data Glimpse — {split_name} ({len(df):,} rows × {df.shape[1]} cols)",
-                show_header=True,
-                header_style="bold",
-            )
-            tbl.add_column("index", style="dim")
-            for col in visible:
-                tbl.add_column(str(col), justify="right")
-
-            for idx, row in head.iterrows():
-                cells = [str(idx)]
+            if transpose:
+                # Rows = columns, columns = sample indices — shows all features.
+                tbl = Table(title=title, show_header=True, header_style="bold")
+                tbl.add_column("column", style="dim")
+                for idx in head.index:
+                    tbl.add_column(str(idx), justify="right")
+                for col in df.columns:
+                    tbl.add_row(str(col), *[_fmt(head.at[idx, col]) for idx in head.index])
+            else:
+                visible = list(head.columns[:max_cols])
+                hidden = max(0, len(head.columns) - len(visible))
+                tbl = Table(title=title, show_header=True, header_style="bold")
+                tbl.add_column("index", style="dim")
                 for col in visible:
-                    val = row[col]
-                    if isinstance(val, float):
-                        cells.append("nan" if np.isnan(val) else f"{val:.4g}")
-                    else:
-                        cells.append(str(val))
-                tbl.add_row(*cells)
+                    tbl.add_column(str(col), justify="right")
+                for idx, row in head.iterrows():
+                    tbl.add_row(str(idx), *[_fmt(row[col]) for col in visible])
 
             self.console.print(tbl)
-            if hidden:
-                self.console.print(f"  [dim]… {hidden} more columns hidden[/dim]")
+            if not transpose and len(df.columns) > max_cols:
+                self.console.print(f"  [dim]… {len(df.columns) - max_cols} more columns hidden (use --transpose to see all)[/dim]")
 
     def _print_checks_table(self, params: ValidateDataParams) -> None:
         tbl = Table(title="Enabled Checks", show_header=True, header_style="bold dim")

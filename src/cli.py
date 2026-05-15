@@ -716,6 +716,7 @@ def validate_data(
     no_lob_deltas: bool = typer.Option(False, "--no-lob-deltas", help="Skip LOB delta check"),
     lob_levels: int = typer.Option(5, "--lob-levels", help="Number of LOB levels to check for deltas"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show description for each check"),
+    transpose: bool = typer.Option(False, "--transpose", "-t", help="Transpose data glimpse table (shows all columns)"),
 ):
     """Validate the prepared dataset for a scenario using DataValidator."""
     validate_data_cmd.execute(ValidateDataParams(
@@ -729,6 +730,7 @@ def validate_data(
         check_lob_deltas=not no_lob_deltas,
         lob_levels=lob_levels,
         verbose=verbose,
+        transpose=transpose,
     ))
 
 
