@@ -46,7 +46,8 @@ training:
   exploration_noise_std: 0.1
   loss_function: smooth_l1
   eval_steps: 2500
-  eval_interval: 500
+  eval_interval: 1000
+  temp_eval_interval: 100000
   log_interval: 100
 logging:
   log_level: INFO
