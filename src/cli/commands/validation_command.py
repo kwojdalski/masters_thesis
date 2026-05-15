@@ -37,55 +37,20 @@ class ValidationCommand(BaseCommand):
             self.handle_error(exc, "Validation")
 
     def _load_validation_config(self, params: ValidationParams) -> Any:
-        from trading_rl import ExperimentConfig
-
         if params.config_file and params.scenario:
             raise typer.BadParameter("Cannot specify both --config and --scenario.")
 
         if params.config_file:
-            config_path = (
-                params.config_file
-                if params.config_file.exists()
-                else self._resolve_scenario_config_path(str(params.config_file))
-            )
-            config = ExperimentConfig.from_yaml(
-                config_path, overrides=params.config_overrides
-            )
-            self.console.print(f"[blue]Loaded config from: {config_path}[/blue]")
-            return config
+            return self._load_experiment_config(params.config_file, overrides=params.config_overrides)
 
         if params.scenario:
-            config_file = self._resolve_scenario_config_path(params.scenario)
-            config = ExperimentConfig.from_yaml(
-                config_file, overrides=params.config_overrides
-            )
-            self.console.print(
-                f"[blue]Loaded config from scenario: {params.scenario} -> {config_file}[/blue]"
-            )
-            return config
+            return self._load_experiment_config(params.scenario, overrides=params.config_overrides)
 
         if params.config_overrides:
             raise typer.BadParameter("--config-override requires --config or --scenario.")
 
+        from trading_rl import ExperimentConfig
         return ExperimentConfig()
-
-    def _resolve_scenario_config_path(self, scenario: str) -> Path:
-        candidate_path = Path(scenario)
-        if candidate_path.is_dir():
-            candidate_path = candidate_path / "config.yaml"
-
-        search_paths = [
-            candidate_path,
-            Path("src/configs/scenarios") / scenario,
-            Path("src/configs/scenarios") / f"{scenario}.yaml",
-        ]
-        for path in search_paths:
-            if path.exists():
-                return path.resolve()
-
-        raise typer.BadParameter(
-            f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs/scenarios."
-        )
 
     def _render_report(self, report) -> None:
         table = Table(title="Validation Report")
