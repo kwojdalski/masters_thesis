@@ -11,7 +11,7 @@
 data_generator:
   pattern_type: "hft_sine_wave_lob"
   n_events: 20000
-  n_periods: 5
+  n_periods: 10
   base_price: 6.0            # minimum viable price (amplitude + LOB depth margin)
   amplitude: 5.0             # ±5.0 oscillation (~83% of base)
   spread: 0.12               # L0 bid-ask spread in dollars (~4.4 bps)
