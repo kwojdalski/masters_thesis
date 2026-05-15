@@ -715,6 +715,7 @@ def validate_data(
     no_zero_variance: bool = typer.Option(False, "--no-zero-variance", help="Skip zero-variance feature check"),
     no_lob_deltas: bool = typer.Option(False, "--no-lob-deltas", help="Skip LOB delta check"),
     lob_levels: int = typer.Option(5, "--lob-levels", help="Number of LOB levels to check for deltas"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show description for each check"),
 ):
     """Validate the prepared dataset for a scenario using DataValidator."""
     validate_data_cmd.execute(ValidateDataParams(
@@ -727,6 +728,7 @@ def validate_data(
         check_zero_variance=not no_zero_variance,
         check_lob_deltas=not no_lob_deltas,
         lob_levels=lob_levels,
+        verbose=verbose,
     ))
 
 
