@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 import numpy as np
 import pandas as pd
 from plotnine import (
@@ -26,6 +27,23 @@ from trading_rl.evaluation.returns import (
 )
 
 logger = get_logger(__name__)
+
+_RUN_DESCRIPTIONS: dict[str, str] = {
+    "Deterministic": "greedy policy with no exploration noise",
+    "Random": "uniformly sampled actions used as a baseline",
+    "Buy-and-Hold": "buy at step 0 and hold for the full evaluation horizon",
+    "Max Profit (Unleveraged)": "perfect-foresight upper bound — always trades in the correct direction",
+}
+
+
+def _build_run_caption(prefix: str, runs: list[str]) -> str:
+    """Build a caption line per run present in the plot."""
+    lines = [prefix]
+    for run in runs:
+        desc = _RUN_DESCRIPTIONS.get(run)
+        if desc:
+            lines.append(f"{run}: {desc}.")
+    return "\n".join(lines)
 
 
 def _portfolio_values_from_actual_returns(
@@ -103,36 +121,54 @@ def compare_rollouts(rollouts, n_obs, is_portfolio: bool = False):
         )
     df_actions = pd.DataFrame(actions_data)
 
+    reward_runs = list(df_rewards["Run"].unique())
     reward_plot = (
         ggplot(df_rewards, aes(x="Steps", y="Cumulative_Reward", color="Run"))
         + geom_line()
-        + labs(title="Cumulative Rewards Comparison", x="Steps", y="Cumulative Reward")
+        + labs(
+            title="Cumulative Rewards Comparison",
+            x="Steps",
+            y="Cumulative Reward",
+            caption=_build_run_caption(
+                "Cumulative sum of per-step rewards received by the agent.", reward_runs
+            ),
+        )
         + theme(
             figure_size=(13, 7.8),
             legend_position="bottom",
             legend_title=element_text(weight="bold", size=11),
             legend_text=element_text(size=10),
+            plot_caption=element_text(size=9, ha="left", color="#555555"),
             subplots_adjust={"left": 0.10, "right": 0.95},
         )
         + guides(color=guide_legend(title="Strategy"))
     )
 
+    action_runs = list(df_actions["Run"].unique())
     if is_portfolio:
         y_label = "Portfolio Weight"
         title = "Portfolio Allocation Comparison"
+        action_prefix = "Portfolio weight output by the agent at each step.\nRange [-1, 1]: -1 = fully short, 0 = flat, +1 = fully long."
     else:
         y_label = "Actions"
         title = "Actions Comparison"
+        action_prefix = "Discrete action selected by the agent at each step."
 
     action_plot = (
         ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
         + geom_line()
-        + labs(title=title, x="Steps", y=y_label)
+        + labs(
+            title=title,
+            x="Steps",
+            y=y_label,
+            caption=_build_run_caption(action_prefix, action_runs),
+        )
         + theme(
             figure_size=(13, 7.8),
             legend_position="bottom",
             legend_title=element_text(weight="bold", size=11),
             legend_text=element_text(size=10),
+            plot_caption=element_text(size=9, ha="left", color="#555555"),
             subplots_adjust={"left": 0.10, "right": 0.95},
         )
         + guides(color=guide_legend(title="Strategy"))
@@ -150,6 +186,7 @@ def create_actual_returns_plot(
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
+    show_max_profit: bool = False,
 ):
     """Create a plot showing actual portfolio returns, not training rewards."""
     if initial_capital is not None:
@@ -159,7 +196,9 @@ def create_actual_returns_plot(
             f"initial_portfolio_value must be > 0, got {initial_portfolio_value}"
         )
 
+    t0 = time.monotonic()
     returns_data = []
+    logger.debug("create_actual_returns_plot start n_obs=%d", n_obs)
 
     # Handle case where rollouts is None but actual_returns_list is provided
     if rollouts is None and actual_returns_list:
@@ -215,6 +254,8 @@ def create_actual_returns_plot(
                 ]
             )
 
+    logger.debug("returns_data built n_points=%d elapsed=%.2fs", len(returns_data), time.monotonic() - t0)
+
     if df_prices is not None:
         benchmark_col = benchmark_price_column
         if benchmark_col not in df_prices.columns:
@@ -239,37 +280,48 @@ def create_actual_returns_plot(
         price_window = price_series.iloc[: n_obs + 1]
         benchmark_returns = price_window.pct_change().iloc[1:].to_numpy(dtype=float)
         buy_and_hold = np.log1p(benchmark_returns).cumsum()
-        max_profit = np.log1p(np.abs(benchmark_returns)).cumsum()
-
         buy_and_hold_values = initial_portfolio_value * np.exp(
             np.asarray(buy_and_hold, dtype=float)
         )
-        max_profit_values = initial_portfolio_value * np.exp(
-            np.asarray(max_profit, dtype=float)
-        )
 
-        for step, (bh_val, mp_val) in enumerate(
-            zip(buy_and_hold_values, max_profit_values, strict=False)
-        ):
-            returns_data.extend(
-                [
-                    {"Steps": step, "Portfolio_Value": bh_val, "Run": "Buy-and-Hold"},
-                    {
-                        "Steps": step,
-                        "Portfolio_Value": mp_val,
-                        "Run": "Max Profit (Unleveraged)",
-                    },
-                ]
+        if show_max_profit:
+            max_profit = np.log1p(np.abs(benchmark_returns)).cumsum()
+            max_profit_values = initial_portfolio_value * np.exp(
+                np.asarray(max_profit, dtype=float)
             )
 
+        for step, bh_val in enumerate(buy_and_hold_values):
+            returns_data.append(
+                {"Steps": step, "Portfolio_Value": bh_val, "Run": "Buy-and-Hold"}
+            )
+            if show_max_profit:
+                returns_data.append(
+                    {
+                        "Steps": step,
+                        "Portfolio_Value": max_profit_values[step],
+                        "Run": "Max Profit (Unleveraged)",
+                    }
+                )
+
+    logger.debug("benchmark data appended total_points=%d elapsed=%.2fs", len(returns_data), time.monotonic() - t0)
+
+    logger.debug("building DataFrame for plot n_rows=%d", len(returns_data))
     df_returns = pd.DataFrame(returns_data)
-    return (
+    logger.debug("DataFrame built elapsed=%.2fs", time.monotonic() - t0)
+
+    returns_runs = list(df_returns["Run"].unique())
+    logger.debug("constructing ggplot object")
+    plot = (
         ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run"))
         + geom_line()
         + labs(
             title=f"Actual Portfolio Value (Start ${initial_portfolio_value:,.0f})",
             x="Steps",
             y="Portfolio Value ($)",
+            caption=_build_run_caption(
+                "Portfolio value in $ reconstructed from broker NLV (Net Liquidation Value) at each step.",
+                returns_runs,
+            ),
         )
         + scale_color_manual(
             values={
@@ -279,8 +331,13 @@ def create_actual_returns_plot(
                 "Max Profit (Unleveraged)": "green",
             }
         )
-        + theme(figure_size=(13, 7.8))
+        + theme(
+            figure_size=(13, 7.8),
+            plot_caption=element_text(size=9, ha="left", color="#555555"),
+        )
     )
+    logger.debug("ggplot object constructed elapsed=%.2fs", time.monotonic() - t0)
+    return plot
 
 
 def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
