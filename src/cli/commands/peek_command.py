@@ -139,14 +139,18 @@ class PeekCommand(BaseCommand):
 
     def _print_log_return_stats(self, dataset, config, effective_skip: int) -> None:
         import numpy as np
+        from trading_rl.data_utils import load_trading_data
 
         price_col = getattr(config.env, "price_column", "close")
-        train = dataset.train_df.iloc[effective_skip:]
 
-        if price_col not in train.columns:
+        raw_df = load_trading_data(config.data.data_path).dropna()
+        train_size = len(dataset.train_df) + effective_skip
+        raw_train = raw_df.iloc[:train_size].iloc[effective_skip:]
+
+        if price_col not in raw_train.columns:
             return
 
-        prices = train[price_col].to_numpy(dtype=float)
+        prices = raw_train[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
             log_rets = np.diff(np.log(prices))
         log_rets = log_rets[np.isfinite(log_rets)]
