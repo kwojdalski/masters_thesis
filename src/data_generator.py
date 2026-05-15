@@ -1090,14 +1090,19 @@ class PriceDataGenerator:
         mid_prices = base_price + amplitude * np.sin(t)
 
         # --- Nanosecond timestamps ---
-        # Exponential inter-event gaps scaled so that events fill session_duration_seconds.
-        # This guarantees the index spans multiple hours, which is required for
-        # hour_sin/hour_cos features to have non-zero variance.
-        mean_gap_ns = int(session_duration_seconds * 1e9 / n_events)
-        gaps_ns = rng.exponential(scale=mean_gap_ns, size=n_events).astype(np.int64)
-        gaps_ns = np.clip(gaps_ns, 1, int(120e9))  # floor 1 ns, cap at 2 minutes
+        # Uniform spacing with small jitter so that every contiguous slice of the
+        # data covers a predictable fraction of the session.  Exponential gaps
+        # cluster unpredictably and can put an entire split inside a single hour,
+        # causing hour_sin/hour_cos to be zero-variance in that split.
+        session_duration_ns = int(session_duration_seconds * 1e9)
+        step_ns = session_duration_ns // n_events
+        base_offsets = np.arange(n_events, dtype=np.int64) * step_ns
+        # ±10 % jitter, capped at 1 s, keeps events monotonically ordered
+        max_jitter_ns = min(step_ns // 10, int(1e9))
+        jitter = rng.integers(-max_jitter_ns, max_jitter_ns + 1, n_events, dtype=np.int64)
+        offsets = np.clip(base_offsets + jitter, 0, session_duration_ns - 1)
         start_ns = pd.Timestamp(start_datetime, tz="UTC").value
-        timestamps_ns = start_ns + np.cumsum(gaps_ns)
+        timestamps_ns = start_ns + offsets
 
         # --- LOB snapshots ---
         bid_px = np.empty((n_events, lob_levels))
