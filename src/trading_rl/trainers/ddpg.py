@@ -190,17 +190,17 @@ class DDPGTrainer(BaseTrainer):
                     raise e
 
             # Optimize actor
+            self.optimizer_actor.zero_grad()
             loss_vals["loss_actor"].backward()
             self.optimizer_actor.step()
-            self.optimizer_actor.zero_grad()
 
             # Sync functional actor params back to the actor module used by the collector/evaluator
             self.ddpg_loss.actor_network_params.to_module(self.actor)
 
             # Optimize value network
+            self.optimizer_value.zero_grad()
             loss_vals["loss_value"].backward()
             self.optimizer_value.step()
-            self.optimizer_value.zero_grad()
 
             # Sync functional value params back to the value module
             self.ddpg_loss.value_network_params.to_module(self.value_net)
