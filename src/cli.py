@@ -651,6 +651,9 @@ def peek(
     n_features: int = typer.Option(
         20, "--top", "-n", help="Max feature rows to show in stats table"
     ),
+    skip_rows: int = typer.Option(
+        0, "--skip", help="Skip first N rows before computing feature stats (excludes indicator warm-up)"
+    ),
 ):
     """Show a summary of the prepared dataset for a scenario.
 
@@ -707,10 +710,11 @@ def peek(
     # ── feature stats ────────────────────────────────────────────────────────
     feat_cols = dataset.feature_columns
     env_selected = list(getattr(config.env, "feature_columns", None) or feat_cols)
-    train = dataset.train_df[feat_cols]
+    train = dataset.train_df[feat_cols].iloc[skip_rows:]
 
+    skip_note = f", skip={skip_rows:,}" if skip_rows else ""
     stats_tbl = Table(
-        title=f"Feature statistics (train, top {min(n_features, len(feat_cols))} of {len(feat_cols)})",
+        title=f"Feature statistics (train{skip_note}, top {min(n_features, len(feat_cols))} of {len(feat_cols)})",
         show_header=True,
         header_style="bold",
     )
