@@ -49,7 +49,10 @@ class PeekCommand(BaseCommand):
         else:
             config_path = params.config_file
 
-        config = ExperimentConfig.from_yaml(config_path, overrides=params.config_override)
+        if config_path.is_dir():
+            config = ExperimentConfig.from_scenario(config_path, overrides=params.config_override)
+        else:
+            config = ExperimentConfig.from_yaml(config_path, overrides=params.config_override)
         dataset = build_prepared_dataset(config, _log)
 
         detected_warmup = self._detect_warmup(config)
