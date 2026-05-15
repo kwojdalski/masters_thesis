@@ -77,6 +77,30 @@ where the agent simultaneously manages positions across multiple instruments and
 must account for correlation, capital constraints, and cross-asset execution
 costs.
 
+A more tractable intermediate step — and a stronger test of whether the agent
+can learn to exploit a structured relationship — would be to design the
+simulation around instrument pairs with an economically well-defined price
+anchor rather than opportunistic correlation. The dual-class share structure of
+Alphabet Inc. offers a natural candidate: GOOGL (Class A shares, carrying one
+vote per share) and GOOG (Class C shares, carrying no voting rights) represent
+identical economic exposure to the same underlying business and trade on the
+same exchange. In the absence of corporate events affecting voting rights, both
+classes should track the same fundamental value, and historical deviations
+between their prices are generally small, bounded, and mean-reverting.
+
+This setting is structurally different from predicting the direction of a single
+asset's price. An agent managing a relative position — long one class and short
+the other — has access to a signal with a known theoretical anchor: any
+persistent spread between GOOG and GOOGL is either an arbitrage or a
+compensation for the difference in voting power. The target is the spread, not
+the level. This makes the learning problem more tractable, the evaluation
+criterion cleaner, and the behavioral interpretation of the learned policy
+more transparent. Whether a RL agent trained on LOB data can learn to
+identify and close such deviations — and whether that edge survives execution
+costs in a market where this spread is actively monitored — would be a more
+decisive test of the approach than the current single-asset directional
+setup.
+
 ### Narrow Evaluation Window and Scope of the Empirical Claim
 <!-- [PLACEHOLDER] -->
 
