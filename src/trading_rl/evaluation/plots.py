@@ -334,13 +334,35 @@ def create_actual_returns_plot(
     df_returns = pd.DataFrame(returns_data)
     logger.debug("DataFrame built elapsed=%.2fs", time.monotonic() - t0)
 
+    # Build title components: asset composition and datetime range.
+    asset_str = ""
+    if df_prices is not None and "symbol" in df_prices.columns:
+        symbols = sorted(df_prices["symbol"].dropna().unique().tolist())
+        if symbols:
+            asset_str = f" — {', '.join(symbols)} + Cash"
+
+    date_range_str = ""
+    if df_prices is not None and pd.api.types.is_datetime64_any_dtype(df_prices.index):
+        idx = df_prices.index[: n_obs + 1]
+        if len(idx) >= 2:
+            fmt = "%b %-d, %Y"
+            start_s = idx[0].strftime(fmt)
+            end_s = idx[-1].strftime(fmt)
+            date_range_str = start_s if start_s == end_s else f"{start_s} – {end_s}"
+
+    title_line1 = f"Actual Portfolio Value{asset_str}"
+    title_line2_parts = [f"Start ${initial_portfolio_value:,.0f}"]
+    if date_range_str:
+        title_line2_parts.append(date_range_str)
+    full_title = f"{title_line1}\n{' | '.join(title_line2_parts)}"
+
     returns_runs = list(df_returns["Run"].unique())
     logger.debug("constructing ggplot object")
     plot = (
         ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run"))
         + geom_line(size=0.35)
         + labs(
-            title=f"Actual Portfolio Value (Start ${initial_portfolio_value:,.0f})",
+            title=full_title,
             x="Steps",
             y="Portfolio Value ($)",
             caption=_build_run_caption(
