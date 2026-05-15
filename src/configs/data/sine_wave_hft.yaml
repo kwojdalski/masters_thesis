@@ -1,0 +1,18 @@
+# Sine Wave - HFT (High-Frequency) Configuration
+# ================================================
+# Pattern: Rapid oscillation at second-level granularity
+# Use: Testing mean-reversion strategies on sub-minute tick data
+#
+# 30 cycles * 60 samples/cycle = 1800 seconds (~30 minutes of HFT data)
+# Amplitude is ~0.1% of base price, reflecting realistic HFT spread sizes.
+
+data_generator:
+  pattern_type: "sine_wave"
+  freq: "s"              # Second-level bars (vs hourly for standard configs)
+  n_periods: 30          # 30 complete oscillation cycles
+  samples_per_period: 60 # 60 seconds per cycle (1-minute oscillation period)
+  base_price: 50000.0
+  amplitude: 50.0        # ~0.1% of base price - tight HFT-scale movements
+  trend_slope: 0.0       # Pure oscillation, no drift
+  volatility: 0.0001     # Minimal noise to keep signal clean
+  start_date: "2024-01-01"

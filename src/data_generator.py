@@ -248,6 +248,7 @@ class PriceDataGenerator:
         trend_slope: float = 0,
         volatility: float = 0.0,
         start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+        freq: str = "h",
     ) -> pd.DataFrame:
         """
         Generate synthetic OHLCV data with sine wave pattern and upward trend.
@@ -275,6 +276,9 @@ class PriceDataGenerator:
             Random noise factor (fraction of price)
         start_date : str
             Start date for the time index
+        freq : str
+            Pandas date_range frequency string (e.g. 'h' for hourly, 's' for seconds).
+            Use 's' for HFT-style high-frequency data.
 
         Returns
         -------
@@ -282,11 +286,12 @@ class PriceDataGenerator:
             Generated OHLCV data with datetime index
         """
         self.logger.info(
-            "Generating sine wave pattern -> periods=%s, samples_per_period=%s, amplitude=%.2f, trend_slope=%.2f",
+            "Generating sine wave pattern -> periods=%s, samples_per_period=%s, amplitude=%.2f, trend_slope=%.2f, freq=%s",
             n_periods,
             samples_per_period,
             amplitude,
             trend_slope,
+            freq,
         )
 
         total_samples = n_periods * samples_per_period
@@ -294,9 +299,9 @@ class PriceDataGenerator:
         # Create time series
         t = np.linspace(0, 2 * np.pi * n_periods, total_samples)
 
-        # Generate datetime index (hourly frequency)
+        # Generate datetime index at the requested frequency
         start_dt = pd.to_datetime(start_date)
-        dates = pd.date_range(start=start_dt, periods=total_samples, freq="h")
+        dates = pd.date_range(start=start_dt, periods=total_samples, freq=freq)
 
         # Generate sine wave with trend
         trend = trend_slope * np.arange(total_samples)
@@ -469,6 +474,7 @@ class PriceDataGenerator:
                 trend_slope=data_gen_config.get("trend_slope", 0),
                 volatility=data_gen_config.get("volatility", 0.0),
                 start_date=data_gen_config.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
+                freq=data_gen_config.get("freq", "h"),
             )
         elif pattern_type == PatternType.MEAN_REVERSION:
             return self.generate_mean_reversion_pattern(

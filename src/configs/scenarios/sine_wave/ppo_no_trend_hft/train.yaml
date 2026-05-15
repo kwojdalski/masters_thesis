@@ -1,0 +1,47 @@
+seed: 42
+data:
+  data_path: ./data/raw/synthetic/sine_wave_hft.parquet
+  data_config: src/configs/data/sine_wave_hft.yaml
+  download_data: false
+  exchange_names:
+  - synthetic
+  symbols:
+  - SINE/WAVE
+  timeframe: 1s
+  data_dir: data
+  download_since: '2024-01-01T00:00:00+00:00'
+  train_size: 1600
+env:
+  backend: tradingenv
+  trading_fees: 0.0001
+  price_column: close
+  reward_type: log_return
+  reward_eta: 0.01
+network:
+  actor_hidden_dims:
+  - 64
+  - 32
+  value_hidden_dims:
+  - 64
+  - 32
+training:
+  algorithm: PPO
+  actor_lr: 0.0003
+  actor_weight_decay: 0
+  value_lr: 0.0003
+  value_weight_decay: 5.0e-05
+  max_steps: 5000
+  init_rand_steps: 100
+  frames_per_batch: 256
+  sample_size: 64
+  buffer_size: 10000
+  clip_epsilon: 0.2
+  entropy_bonus: 0.01
+  vf_coef: 0.5
+  ppo_epochs: 4
+  loss_function: l2
+  eval_steps: 200
+  eval_interval: 200
+  log_interval: 100
+logging:
+  log_level: INFO
