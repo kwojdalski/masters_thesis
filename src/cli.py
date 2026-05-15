@@ -52,6 +52,9 @@ app = typer.Typer(
 data_app = typer.Typer(help="Data generation utilities")
 app.add_typer(data_app, name="data")
 
+validate_app = typer.Typer(help="Validation utilities")
+app.add_typer(validate_app, name="validate")
+
 
 def _configure_logging(verbose: bool, log_regex: str | None) -> None:
     """Configure logging based on CLI context."""
@@ -675,7 +678,7 @@ def peek(
     ))
 
 
-@app.command(name="validate-config")
+@validate_app.command(name="config")
 def validate_config(
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to config file"
@@ -695,7 +698,7 @@ def validate_config(
     ))
 
 
-@app.command(name="validate-data")
+@validate_app.command(name="data")
 def validate_data(
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to config file"
