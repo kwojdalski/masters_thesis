@@ -8,6 +8,31 @@ from trading_rl.features.base import Feature
 from trading_rl.features.registry import register_feature
 
 
+@register_feature("column_diff")
+class ColumnDiffFeature(Feature):
+    """First difference of a raw input column: x[t] - x[t-1].
+
+    Captures tick-to-tick velocity for any LOB or price column.
+
+    Params:
+        column: Input dataframe column to differentiate (required)
+    """
+
+    def _column_name(self) -> str:
+        column = self.config.params.get("column")
+        if not column:
+            raise ValueError(
+                "column_diff feature requires params.column (e.g. column: bid_px_00)"
+            )
+        return str(column)
+
+    def required_columns(self) -> list[str]:
+        return [self._column_name()]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        return df[self._column_name()].diff().fillna(0)
+
+
 @register_feature("column_value")
 class ColumnValueFeature(Feature):
     """Pass through a raw input column as a feature.

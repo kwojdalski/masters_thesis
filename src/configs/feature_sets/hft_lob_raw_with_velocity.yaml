@@ -1,0 +1,204 @@
+# HFT LOB Raw Passthrough + Velocity Features
+# ============================================
+# Extends hft_lob_raw_passthrough with first-difference (velocity) features
+# for the top-5 bid/ask price levels. Velocity captures tick-to-tick price
+# movement direction, which level-only features cannot encode.
+
+features:
+  # ---------------------------------------------------------------------------
+  # Bid prices (levels 0-4) — raw level
+  # ---------------------------------------------------------------------------
+  - name: "bid_px_00"
+    feature_type: "column_value"
+    params: {column: "bid_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_01"
+    feature_type: "column_value"
+    params: {column: "bid_px_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_02"
+    feature_type: "column_value"
+    params: {column: "bid_px_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_03"
+    feature_type: "column_value"
+    params: {column: "bid_px_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_04"
+    feature_type: "column_value"
+    params: {column: "bid_px_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask prices (levels 0-4) — raw level
+  # ---------------------------------------------------------------------------
+  - name: "ask_px_00"
+    feature_type: "column_value"
+    params: {column: "ask_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_01"
+    feature_type: "column_value"
+    params: {column: "ask_px_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_02"
+    feature_type: "column_value"
+    params: {column: "ask_px_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_03"
+    feature_type: "column_value"
+    params: {column: "ask_px_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_04"
+    feature_type: "column_value"
+    params: {column: "ask_px_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Bid sizes (levels 0-4)
+  # ---------------------------------------------------------------------------
+  - name: "bid_sz_00"
+    feature_type: "column_value"
+    params: {column: "bid_sz_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_01"
+    feature_type: "column_value"
+    params: {column: "bid_sz_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_02"
+    feature_type: "column_value"
+    params: {column: "bid_sz_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_03"
+    feature_type: "column_value"
+    params: {column: "bid_sz_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_04"
+    feature_type: "column_value"
+    params: {column: "bid_sz_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask sizes (levels 0-4)
+  # ---------------------------------------------------------------------------
+  - name: "ask_sz_00"
+    feature_type: "column_value"
+    params: {column: "ask_sz_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_01"
+    feature_type: "column_value"
+    params: {column: "ask_sz_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_02"
+    feature_type: "column_value"
+    params: {column: "ask_sz_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_03"
+    feature_type: "column_value"
+    params: {column: "ask_sz_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_04"
+    feature_type: "column_value"
+    params: {column: "ask_sz_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Bid price velocity (levels 0-4) — first difference
+  # ---------------------------------------------------------------------------
+  - name: "bid_px_00_vel"
+    feature_type: "column_diff"
+    params: {column: "bid_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_01_vel"
+    feature_type: "column_diff"
+    params: {column: "bid_px_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_02_vel"
+    feature_type: "column_diff"
+    params: {column: "bid_px_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_03_vel"
+    feature_type: "column_diff"
+    params: {column: "bid_px_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_04_vel"
+    feature_type: "column_diff"
+    params: {column: "bid_px_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask price velocity (levels 0-4) — first difference
+  # ---------------------------------------------------------------------------
+  - name: "ask_px_00_vel"
+    feature_type: "column_diff"
+    params: {column: "ask_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_01_vel"
+    feature_type: "column_diff"
+    params: {column: "ask_px_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_02_vel"
+    feature_type: "column_diff"
+    params: {column: "ask_px_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_03_vel"
+    feature_type: "column_diff"
+    params: {column: "ask_px_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_04_vel"
+    feature_type: "column_diff"
+    params: {column: "ask_px_04"}
+    normalize: true
+    domain: "hft"
