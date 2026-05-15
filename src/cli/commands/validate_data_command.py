@@ -121,14 +121,14 @@ class ValidateDataCommand(BaseCommand):
         else:
             self.console.print("\n[green bold]All checks passed.[/green bold]")
 
-    def _print_data_glimpse(self, dataset, n_rows: int = 5, max_cols: int = 10, transpose: bool = False) -> None:
+    def _print_data_glimpse(self, dataset, n_rows: int = 5, transpose: bool = False) -> None:
         for split_name, df in [("train", dataset.train_df), ("val", dataset.val_df), ("test", dataset.test_df)]:
             title = f"Data Glimpse — {split_name} ({len(df):,} rows × {df.shape[1]} cols)"
             print_df_head(
                 df,
                 n_rows=n_rows,
                 title=title,
-                max_columns=max_cols,
+                paginate=not transpose,
                 transpose=transpose,
             )
 
