@@ -17,7 +17,8 @@ from tensordict.nn import set_composite_lp_aggregate
 from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
 
-from logger import get_logger
+from logger import get_logger, log_banner
+from trading_rl.profiler import get_profiler
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.constants import RewardType
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
@@ -440,36 +441,50 @@ class BaseTrainer(ABC):
         def env_factory(_df: Any, _config: Any) -> Any:
             return env_to_use
 
-        # Create evaluator and run evaluation
+        profiler = get_profiler()
+
         evaluator = StrategyEvaluator(
             env_factory=env_factory,
             policy=self.actor,
             config=eval_config,
         )
 
-        result = evaluator.evaluate_split("eval", df, env=env_to_use)
+        with profiler.stage("agent_rollout", 2):
+            result = evaluator.evaluate_split("eval", df, env=env_to_use)
 
-        # Reconstruct tuple return for backward compatibility
         reward_plot = result.plots["reward_plot"] if result.plots else None
         action_plot = result.plots["action_plot"] if result.plots else None
         plot_series = result.return_series or ReturnSeries(
             result.simple_returns,
             ReturnKind.SIMPLE,
         )
-        actual_returns_plot = create_actual_returns_plot(
-            None,  # No rollout object available from SplitEvaluationResult
-            max_steps,
-            df_prices=df,
-            env=env_to_use,
-            actual_returns_list=[plot_series],
-            initial_portfolio_value=(
-                float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
-                if config
-                else DEFAULT_INITIAL_PORTFOLIO_VALUE
-            ),
-            benchmark_price_column=getattr(config.env, "price_column", None) if config else "close",
-        )
-        merged_plot = create_merged_comparison_plot(reward_plot, action_plot)
+
+        with profiler.stage("plot_actual_returns", 2):
+            _t = time.monotonic()
+            logger.debug("create_actual_returns_plot start n_steps=%d", max_steps)
+            actual_returns_plot = create_actual_returns_plot(
+                None,
+                max_steps,
+                df_prices=df,
+                env=env_to_use,
+                actual_returns_list=[plot_series],
+                initial_portfolio_value=(
+                    float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
+                    if config
+                    else DEFAULT_INITIAL_PORTFOLIO_VALUE
+                ),
+                benchmark_price_column=getattr(config.env, "price_column", None) if config else "close",
+                show_max_profit=config.benchmarks.show_max_profit if config else True,
+                training_steps=self.total_count,
+                training_episodes=self.total_episodes,
+            )
+            logger.debug("create_actual_returns_plot done elapsed=%.2fs", time.monotonic() - _t)
+
+        with profiler.stage("plot_merged", 2):
+            _t = time.monotonic()
+            logger.debug("create_merged_comparison_plot start")
+            merged_plot = create_merged_comparison_plot(reward_plot, action_plot)
+            logger.debug("create_merged_comparison_plot done elapsed=%.2fs", time.monotonic() - _t)
 
         # Use final_reward and last_positions from SplitEvaluationResult
         final_reward = float(result.final_reward)
@@ -547,7 +562,7 @@ class BaseTrainer(ABC):
         on_train_end: Callable[[], None] | None = None,
     ) -> dict[str, list]:
         """Shared training loop with optional algorithm-specific hooks."""
-        logger.info(start_message)
+        log_banner(logger, f"TRAINING START  {start_message}")
         t0 = time.time()
         self.callback = callback
         self._log_step_offset = max(
@@ -559,43 +574,44 @@ class BaseTrainer(ABC):
         original_sigint_handler = signal.getsignal(signal.SIGINT)
 
         def signal_handler(sig, frame):
-            logger.info("SIGINT received, raising KeyboardInterrupt...")
+            logger.info("sigint received raising KeyboardInterrupt")
             signal.signal(signal.SIGINT, original_sigint_handler)
             raise KeyboardInterrupt()
 
         signal.signal(signal.SIGINT, signal_handler)
 
+        _profiler = get_profiler()
         try:
             for i, data in enumerate(self.collector):
                 if on_batch_start is not None:
                     on_batch_start(i, data)
 
-                # Store current batch for on-policy algorithms (PPO)
                 self._current_batch = data
 
-                # Off-policy algorithms (TD3, DDPG) accumulate in replay buffer
-                # On-policy algorithms (PPO) skip buffer and train on fresh data only
-                if self._use_replay_buffer:
-                    self.replay_buffer.extend(data)
-                    max_length = self.replay_buffer[:]["next", "step_count"].max()
-                    buffer_len = len(self.replay_buffer)
-                else:
-                    # On-policy: get max_length from current batch, buffer stays empty
-                    max_length = data["next", "step_count"].max()
-                    buffer_len = data.numel()
+                with _profiler.stage("buffer_extend", 2):
+                    if self._use_replay_buffer:
+                        self.replay_buffer.extend(data)
+                        max_length = self.replay_buffer[:]["next", "step_count"].max()
+                        buffer_len = len(self.replay_buffer)
+                    else:
+                        max_length = data["next", "step_count"].max()
+                        buffer_len = data.numel()
 
                 self.total_count += data.numel()
 
-                # Check if we've collected enough experience to start training
-                # For off-policy: check replay buffer size
-                # For on-policy: check total steps collected
                 collected_steps = self.total_count if not self._use_replay_buffer else buffer_len
                 if collected_steps > self.config.init_rand_steps:
-                    self._optimization_step(i, max_length, buffer_len)
+                    with _profiler.stage("optimization", 2):
+                        self._optimization_step(i, max_length, buffer_len)
+
                 episodes_in_batch = int(data["next", "done"].sum().item())
                 self.total_episodes += episodes_in_batch
-                self._maybe_save_checkpoint()
-                self.runtime_hooks.maybe_run(self.total_count)
+
+                with _profiler.stage("checkpoint", 2):
+                    self._maybe_save_checkpoint()
+
+                with _profiler.stage("periodic_hooks", 2):
+                    self.runtime_hooks.maybe_run(self.total_count)
 
                 if self.callback and hasattr(self.callback, "log_episode_stats") and episodes_in_batch > 0:
                     self._log_episode_stats(data, self.callback)
@@ -620,10 +636,7 @@ class BaseTrainer(ABC):
 
         t1 = time.time()
         elapsed = t1 - t0
-        logger.info(
-            f"{completion_prefix}: {self.total_count} steps, "
-            f"{self.total_episodes} episodes, {elapsed:.2f}s"
-        )
+        log_banner(logger, f"TRAINING END  {self.total_count} steps  {self.total_episodes} episodes  {elapsed:.2f}s")
         self.logs["training_duration_s"].append(elapsed)
         return dict(self.logs)
 

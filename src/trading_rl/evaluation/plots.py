@@ -36,13 +36,22 @@ _RUN_DESCRIPTIONS: dict[str, str] = {
 }
 
 
-def _build_run_caption(prefix: str, runs: list[str]) -> str:
+def _build_run_caption(
+    prefix: str,
+    runs: list[str],
+    training_steps: int | None = None,
+    training_episodes: int | None = None,
+) -> str:
     """Build a caption line per run present in the plot."""
     lines = [prefix]
     for run in runs:
         desc = _RUN_DESCRIPTIONS.get(run)
         if desc:
             lines.append(f"{run}: {desc}.")
+    if training_steps is not None and training_episodes is not None:
+        lines.append(f"Agent performance after {training_steps:,} steps and {training_episodes:,} episodes.")
+    elif training_steps is not None:
+        lines.append(f"Agent performance after {training_steps:,} steps.")
     return "\n".join(lines)
 
 
@@ -62,7 +71,13 @@ def _portfolio_values_from_actual_returns(
     return initial_portfolio_value * np.exp(cumulative_log_returns)
 
 
-def compare_rollouts(rollouts, n_obs, is_portfolio: bool = False):
+def compare_rollouts(
+    rollouts,
+    n_obs,
+    is_portfolio: bool = False,
+    training_steps: int | None = None,
+    training_episodes: int | None = None,
+):
     """Compare multiple rollouts and visualize their actions and rewards."""
     all_actions = []
     for rollout in rollouts:
@@ -130,7 +145,10 @@ def compare_rollouts(rollouts, n_obs, is_portfolio: bool = False):
             x="Steps",
             y="Cumulative Reward",
             caption=_build_run_caption(
-                "Cumulative sum of per-step rewards received by the agent.", reward_runs
+                "Cumulative sum of per-step rewards received by the agent.",
+                reward_runs,
+                training_steps=training_steps,
+                training_episodes=training_episodes,
             ),
         )
         + theme(
@@ -161,7 +179,12 @@ def compare_rollouts(rollouts, n_obs, is_portfolio: bool = False):
             title=title,
             x="Steps",
             y=y_label,
-            caption=_build_run_caption(action_prefix, action_runs),
+            caption=_build_run_caption(
+                action_prefix,
+                action_runs,
+                training_steps=training_steps,
+                training_episodes=training_episodes,
+            ),
         )
         + theme(
             figure_size=(13, 7.8),
@@ -187,6 +210,8 @@ def create_actual_returns_plot(
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
     show_max_profit: bool = False,
+    training_steps: int | None = None,
+    training_episodes: int | None = None,
 ):
     """Create a plot showing actual portfolio returns, not training rewards."""
     if initial_capital is not None:
@@ -321,6 +346,8 @@ def create_actual_returns_plot(
             caption=_build_run_caption(
                 "Portfolio value in $ reconstructed from broker NLV (Net Liquidation Value) at each step.",
                 returns_runs,
+                training_steps=training_steps,
+                training_episodes=training_episodes,
             ),
         )
         + scale_color_manual(
