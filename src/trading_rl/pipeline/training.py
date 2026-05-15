@@ -324,7 +324,8 @@ def build_experiment_runtime(
         print_df_head(
             display_df,
             title=f"Prepared Training Split  ({n_feature} feature_* cols used as observations, {n_total} total)",
-            max_columns=5,
+            max_columns=7,
+            paginate=True,
         )
 
     logger.debug(
