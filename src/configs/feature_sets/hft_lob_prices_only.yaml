@@ -1,0 +1,75 @@
+# HFT LOB Prices-Only Passthrough Features
+# ==========================================
+# Passes the top-5 bid/ask price levels directly into the observation
+# space. Size columns are excluded — useful for ablating the contribution
+# of order book depth information.
+#
+# Required columns:
+#   bid_px_00..bid_px_04, ask_px_00..ask_px_04
+
+features:
+  # ---------------------------------------------------------------------------
+  # Bid prices (levels 0-4)
+  # ---------------------------------------------------------------------------
+  - name: "bid_px_00"
+    feature_type: "column_value"
+    params: {column: "bid_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_01"
+    feature_type: "column_value"
+    params: {column: "bid_px_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_02"
+    feature_type: "column_value"
+    params: {column: "bid_px_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_03"
+    feature_type: "column_value"
+    params: {column: "bid_px_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_04"
+    feature_type: "column_value"
+    params: {column: "bid_px_04"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask prices (levels 0-4)
+  # ---------------------------------------------------------------------------
+  - name: "ask_px_00"
+    feature_type: "column_value"
+    params: {column: "ask_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_01"
+    feature_type: "column_value"
+    params: {column: "ask_px_01"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_02"
+    feature_type: "column_value"
+    params: {column: "ask_px_02"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_03"
+    feature_type: "column_value"
+    params: {column: "ask_px_03"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_04"
+    feature_type: "column_value"
+    params: {column: "ask_px_04"}
+    normalize: true
+    domain: "hft"
