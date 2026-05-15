@@ -63,6 +63,66 @@ rule-based overlays. These extensions leave the market observation unchanged
 and add only internal state, making them a low-disruption way to test whether
 richer self-awareness improves policy quality.
 
+### Partial Observability and the Limits of the Spot Order Book
+<!-- [PLACEHOLDER] -->
+
+A fundamental constraint of the current setup — and of most academic RL
+trading research — is that the agent operates under severe partial
+observability. The state representation is constructed entirely from
+the spot limit order book of a single instrument at a single venue.
+This is a narrow window onto a market that is simultaneously shaped by
+activity across multiple execution venues, cross-asset dynamics, and
+information sources that have no representation in the LOB at all.
+
+Partial observability matters because agents trained on incomplete state
+representations are forced to treat phenomena that have external causes as
+unexplained noise in the environment. A price move driven by a large options
+hedge, a macro news release, or an institutional block trade executed in a
+dark pool appears to the agent as an unpredictable shock to the order book
+rather than as the consequence of an observable event. This limits the
+precision of any value estimate the agent can form and raises the variance
+of the reward signal, both of which degrade policy quality.
+
+Two categories of missing information are particularly relevant at the
+short horizons studied here. The first is the derivatives complex.
+Linear derivatives such as index futures and ETFs carry anticipatory price
+information because they trade with lower friction and are often the
+preferred instrument for expressing directional views. Non-linear derivatives
+— most importantly the single-stock and index options markets — embed
+forward-looking information about the distribution of future returns rather
+than just direction. Movements in implied volatility, put/call skew, and the
+term structure of options prices frequently precede movements in the
+underlying spot market, and they capture the aggregate assessment of
+informed participants about tail risk and regime transitions. An observation
+vector that incorporates even a compact representation of the near-term
+implied volatility surface — at-the-money vol, skew, and term structure slope
+— would give the agent access to information that is currently invisible to
+it, at the cost of substantially increasing state dimensionality and
+data infrastructure requirements.
+
+The second category is unstructured data and its downstream signals.
+Earnings announcements, central bank communications, analyst revisions,
+regulatory filings, and macroeconomic releases all move prices at horizons
+that are relevant to intraday positioning. Processing this information — which
+arrives as text, audio, or structured releases rather than as time series
+— requires natural language processing pipelines that sit entirely outside
+the scope of the current framework. A richer agent design would integrate
+processed signals from these sources: event indicators, sentiment scores, or
+embedding-based representations of document content. The practical challenge
+is that the quality and latency of such signals varies enormously across
+providers, and constructing a clean, backtest-safe version of an NLP-derived
+feature set introduces its own lookahead and selection biases that must be
+controlled carefully.
+
+Together, these limitations suggest that the performance ceiling of any
+agent that sees only the spot LOB is bounded not by the choice of RL
+algorithm or reward function, but by the information content of its
+observation. Closing this gap incrementally — first by adding futures and
+ETF quote data, then compact options market features, then processed
+text signals — would allow future work to decompose how much of the
+remaining unexplained return variance is attributable to each missing
+information source.
+
 ### Cross-Asset and Multi-Asset Extensions
 <!-- [PLACEHOLDER] -->
 
