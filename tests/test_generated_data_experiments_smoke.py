@@ -182,6 +182,7 @@ def _make_smoke_config(
             "seed=7",
             f"data.data_path={data_path}",
             f"data.train_size={case.train_size}",
+            "data.warmup_rows=0",
             f"data.validation_size={case.validation_size}",
             f"training.max_steps={case.max_steps}",
             f"training.init_rand_steps={case.init_rand_steps}",

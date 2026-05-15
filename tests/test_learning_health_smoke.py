@@ -91,6 +91,7 @@ def _make_health_config(tmp_path: Path) -> ExperimentConfig:
                 "validation_size": 16,
                 "download_data": False,
                 "feature_config": str(feature_config),
+                "warmup_rows": 0,
             },
             "env": {
                 "backend": "tradingenv",
