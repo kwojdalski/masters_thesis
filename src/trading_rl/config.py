@@ -63,7 +63,7 @@ class DataConfig:
     # Running scalers (RunningMeanStd) produce valid-but-extreme values for the
     # first N ticks before their statistics converge; discarding those rows
     # prevents gradient spikes during early training episodes.
-    warmup_rows: int = 0
+    warmup_rows: int = 300
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0
