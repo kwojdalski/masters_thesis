@@ -1,0 +1,97 @@
+# HFT LOB 2-Level Passthrough + Velocity Features
+# =================================================
+# Minimal LOB observation: top-2 bid/ask levels only (prices, sizes, velocities).
+# Reduces the 40-feature hft_lob_raw_with_velocity set to 12 features by dropping
+# levels 2-4, which are highly correlated with level 0 after z-score normalization
+# and contribute little independent signal.
+
+features:
+  # ---------------------------------------------------------------------------
+  # Bid prices (levels 0-1)
+  # ---------------------------------------------------------------------------
+  - name: "bid_px_00"
+    feature_type: "column_value"
+    params: {column: "bid_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_01"
+    feature_type: "column_value"
+    params: {column: "bid_px_01"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask prices (levels 0-1)
+  # ---------------------------------------------------------------------------
+  - name: "ask_px_00"
+    feature_type: "column_value"
+    params: {column: "ask_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_01"
+    feature_type: "column_value"
+    params: {column: "ask_px_01"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Bid sizes (levels 0-1)
+  # ---------------------------------------------------------------------------
+  - name: "bid_sz_00"
+    feature_type: "column_value"
+    params: {column: "bid_sz_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_sz_01"
+    feature_type: "column_value"
+    params: {column: "bid_sz_01"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask sizes (levels 0-1)
+  # ---------------------------------------------------------------------------
+  - name: "ask_sz_00"
+    feature_type: "column_value"
+    params: {column: "ask_sz_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_sz_01"
+    feature_type: "column_value"
+    params: {column: "ask_sz_01"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Bid price velocity (levels 0-1) — first difference
+  # ---------------------------------------------------------------------------
+  - name: "bid_px_00_vel"
+    feature_type: "column_diff"
+    params: {column: "bid_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "bid_px_01_vel"
+    feature_type: "column_diff"
+    params: {column: "bid_px_01"}
+    normalize: true
+    domain: "hft"
+
+  # ---------------------------------------------------------------------------
+  # Ask price velocity (levels 0-1) — first difference
+  # ---------------------------------------------------------------------------
+  - name: "ask_px_00_vel"
+    feature_type: "column_diff"
+    params: {column: "ask_px_00"}
+    normalize: true
+    domain: "hft"
+
+  - name: "ask_px_01_vel"
+    feature_type: "column_diff"
+    params: {column: "ask_px_01"}
+    normalize: true
+    domain: "hft"
