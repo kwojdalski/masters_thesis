@@ -36,7 +36,7 @@ training:
   optim_steps_per_batch: 5
   sample_size: 128
   buffer_size: 50000
-  gamma: 0.995
+  gamma: 0.99
   clip_epsilon: 0.2
   entropy_bonus: 0.01
   vf_coef: 0.5

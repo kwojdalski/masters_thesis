@@ -36,7 +36,7 @@ training:
   optim_steps_per_batch: 5
   sample_size: 128
   buffer_size: 50000
-  gamma: 0.995
+  gamma: 0.99
   tau: 0.001
   policy_noise: 0.2
   noise_clip: 0.3
