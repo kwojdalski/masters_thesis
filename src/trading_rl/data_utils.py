@@ -161,6 +161,25 @@ def validate_prepared_data(
                 f"Clean the data before training."
             )
 
+        # Duplicate row check — identical index + identical data is a data pipeline bug.
+        if split_df.index.duplicated().any():
+            n_dups = split_df.index.duplicated().sum()
+            raise ValueError(
+                f"{split_name} data contains {n_dups} duplicate index entries. "
+                f"De-duplicate before training."
+            )
+
+        # Zero-variance feature check — constant features break normalizers and carry no signal.
+        feat_cols_in_split = [c for c in split_df.columns if str(c).startswith("feature_")]
+        if feat_cols_in_split:
+            stds = split_df[feat_cols_in_split].std()
+            zero_var = stds[stds == 0].index.tolist()
+            if zero_var:
+                raise ValueError(
+                    f"{split_name} data has zero-variance feature columns: {zero_var}. "
+                    f"These carry no signal and will produce NaN/inf during normalization."
+                )
+
 
 _Splits = tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
