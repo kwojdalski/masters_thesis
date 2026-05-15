@@ -30,7 +30,7 @@ training:
   actor_weight_decay: 0
   value_lr: 0.0003
   value_weight_decay: 5.0e-05
-  max_steps: 25000
+  max_steps: 250000
   checkpoint_interval: 10000
   init_rand_steps: 100
   frames_per_batch: 200

@@ -23,7 +23,7 @@ training:
   actor_weight_decay: 0
   value_lr: 0.0003
   value_weight_decay: 5.0e-05
-  max_steps: 5000
+  max_steps: 50000
   init_rand_steps: 100
   frames_per_batch: 256
   sample_size: 64
