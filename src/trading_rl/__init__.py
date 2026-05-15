@@ -9,7 +9,7 @@ from trading_rl.config import (
     NetworkConfig,
     TrainingConfig,
 )
-from trading_rl.data_utils import (
+from trading_rl.data import (
     PrepareDataConfig,
     download_trading_data,
     load_trading_data,
