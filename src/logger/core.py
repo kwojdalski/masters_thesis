@@ -218,6 +218,7 @@ def setup_logging(
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("selectors").setLevel(logging.WARNING)
     logging.getLogger("joblib").setLevel(logging.ERROR)
+    logging.getLogger("torchrl").setLevel(logging.WARNING)
 
     if log_regex is None:
         log_regex = os.environ.get("LOG_REGEX")
