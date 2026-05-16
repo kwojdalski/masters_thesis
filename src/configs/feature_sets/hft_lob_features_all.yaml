@@ -360,3 +360,12 @@ features:
       bid_price_col: "bid_px_00"
       ask_price_col: "ask_px_00"
 
+  - name: "hft_hour_sin"
+    feature_type: "hour_sin"
+    normalize: false
+    domain: "hft"
+
+  - name: "hft_hour_cos"
+    feature_type: "hour_cos"
+    normalize: false
+    domain: "hft"
