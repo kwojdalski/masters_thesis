@@ -212,7 +212,7 @@ prep: Data Preparation {
       style.fill: "#bbf7d0"
     }
 
-    pd_assemble: "Assemble val / test DataFrames\nval_df  = pd.concat(val_j  for j in 0..5)\ntest_df = pd.concat(test_j for j in 0..5)\nRe-deduplicate timestamps on concatenated frames\n  (fix cross-symbol timestamp collisions after concat)\ntrain_df = first_train_df  (file 0, reference only —\n  actual training lives in the 18 memmaps)" {
+    pd_assemble: "Assemble val / test DataFrames\nval_df  = pd.concat(val_j  for j in 0..5)\ntest_df = pd.concat(test_j for j in 0..5)\nRe-deduplicate timestamps on concatenated frames\n  (fix cross-symbol timestamp collisions after concat)\nOptional size truncation:\n  if validation_size set: val_df  = val_df.iloc[:validation_size]\n  if test_size set:       test_df = test_df.iloc[:test_size]\n  (pooled configs use 50k each to keep eval fast)\ntrain_df = first_train_df  (file 0, reference only —\n  actual training lives in the 18 memmaps)" {
       shape: step
       style.fill: "#bbf7d0"
     }
@@ -308,7 +308,7 @@ train: RL Training {
     style.fill: "#fff1f2"
     style.stroke: "#b91c1c"
 
-    env: "StreamingTradingEnvXY  (episode reset)\nPick next file from shuffled deck of 18 memmaps\n  (6 symbols × 3 training days; deck reshuffled each cycle)\nPick random start ∈ [0, n_rows − episode_length]\nLoad 50k-row window from memmap\nBuild fresh inner tradingenv.TradingEnv on each reset\n  action_space: BoxPortfolio [−1, 1]\n  observation: CustomFeature (26 static + 1 runtime position)\nobs_clip = 5.0: clamp normalized observations to [−5, 5]\n  (caps session-open normalization spikes)\n→ ~40 episodes across 2M training steps" {
+    env: "StreamingTradingEnvXY  (episode reset)\nPick next file from shuffled deck of 18 memmaps\n  (6 symbols × 3 training days; deck reshuffled each cycle)\nPick random start ∈ [0, n_rows − episode_length]\nLoad 50k-row window from memmap\nBuild fresh inner tradingenv.TradingEnv on each reset\n  action_space: BoxPortfolio [−1, 1]\n  observation: CustomFeature (26 static + 1 runtime position)\nobs_clip = 5.0: clamp normalized observations to [−5, 5]\n  applied in both streaming (StreamingTradingEnvXY) and\n  non-streaming (GymnasiumTradingEnvWrapper) paths\n  (caps session-open normalization spikes)\n→ ~40 episodes across 2M training steps" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -318,7 +318,7 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    collector: "SyncDataCollector\ncollect frames_per_batch = 200 transitions per update\n\nTD3 / DDPG:  init_rand_steps = 1000 fully random warmup\n             (RandomPolicy used until buffer has enough data)\nPPO:         init_rand_steps = 0  (stochastic sampling is inherent)" {
+    collector: "SyncDataCollector\ncollect frames_per_batch = 200 transitions per update\n\nTD3 / DDPG:  init_rand_steps = 5000 fully random warmup\n             (RandomPolicy used until buffer has enough data)\nPPO:         init_rand_steps = 0  (stochastic sampling is inherent)" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -330,7 +330,7 @@ train: RL Training {
     style.fill: "#fff1f2"
     style.stroke: "#991b1b"
 
-    td3_net: "Networks\nActor (deterministic):\n  MLP [n_obs → 128 → 64 → n_act] + ReLU + Tanh\n  output: continuous portfolio weight ∈ [−1, 1]\n\nTwin Critics (clipped double Q):\n  2 × MLP [n_obs + n_act → 128 → 64 → 1] + ReLU\n  input: concat(observation, action)\n\nTarget Networks (soft-copied):\n  actor_target · Q1_target · Q2_target\n  τ = 0.001" {
+    td3_net: "Networks\nActor (deterministic):\n  MLP [n_obs → 128 → 64 → n_act] + ReLU + Tanh\n  output: continuous portfolio weight ∈ [−1, 1]\n\nTwin Critics (clipped double Q):\n  2 × MLP [n_obs + n_act → 128 → 64 → 1] + ReLU\n  input: concat(observation, action)\n\nTarget Networks (soft-copied):\n  actor_target · Q1_target · Q2_target\n  τ = 0.005" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -345,7 +345,7 @@ train: RL Training {
       style.fill: "#fca5a5"
     }
 
-    td3_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\n  y = r + γ · min(Q1_tgt(s',ã), Q2_tgt(s',ã))  γ=0.995\n  L = SmoothL1(Q1(s,a)−y) + SmoothL1(Q2(s,a)−y)\n\nActor loss  (every policy_delay=2 critic steps):\n  L = −mean(Q1(s, actor(s)))\n\nSoft target update  (every actor update step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001" {
+    td3_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\n  y = r + γ · min(Q1_tgt(s',ã), Q2_tgt(s',ã))  γ=0.995\n  L = SmoothL1(Q1(s,a)−y) + SmoothL1(Q2(s,a)−y)\n\nActor loss  (every policy_delay=2 critic steps):\n  L = −mean(Q1(s, actor(s)))\n\nSoft target update  (every actor update step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.005" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -357,7 +357,7 @@ train: RL Training {
     style.fill: "#fff1f2"
     style.stroke: "#991b1b"
 
-    ddpg_net: "Networks\nActor (deterministic):\n  MLP [n_obs → 128 → 64 → n_act] + ReLU + Tanh\n  output: continuous portfolio weight ∈ [−1, 1]\n\nSingle Critic  (standard Q):\n  MLP [n_obs + n_act → 128 → 64 → 1] + ReLU\n  input: concat(observation, action)\n\nTarget Networks (soft-copied):\n  actor_target · Q_target\n  τ = 0.001" {
+    ddpg_net: "Networks\nActor (deterministic):\n  MLP [n_obs → 128 → 64 → n_act] + ReLU + Tanh\n  output: continuous portfolio weight ∈ [−1, 1]\n\nSingle Critic  (standard Q):\n  MLP [n_obs + n_act → 128 → 64 → 1] + ReLU\n  input: concat(observation, action)\n\nTarget Networks (soft-copied):\n  actor_target · Q_target\n  τ = 0.005" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -372,7 +372,7 @@ train: RL Training {
       style.fill: "#fca5a5"
     }
 
-    ddpg_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  y = r + γ · Q_target(s', actor_target(s'))  γ=0.995\n  L = SmoothL1(Q(s,a) − y)\n\nActor loss  (every step — no policy delay):\n  L = −mean(Q(s, actor(s)))\n\nSoft target update  (every step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.001\n\nNote: no target policy smoothing (noise_clip is TD3-only)" {
+    ddpg_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  y = r + γ · Q_target(s', actor_target(s'))  γ=0.995\n  L = SmoothL1(Q(s,a) − y)\n\nActor loss  (every step — no policy delay):\n  L = −mean(Q(s, actor(s)))\n\nSoft target update  (every step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.005\n\nNote: no target policy smoothing (noise_clip is TD3-only)" {
       shape: step
       style.fill: "#fecaca"
     }
