@@ -402,6 +402,15 @@ def create_ddpg_actor(
         activate_last_layer=False,  # No activation on output
     )
 
+    # Small output-layer init: tanh saturates at ±1 when the last layer has
+    # large weights, killing gradients before training begins. [-3e-3, 3e-3]
+    # keeps the initial policy near-zero (flat), consistent with the TD3 paper.
+    for m in reversed(list(actor_net.modules())):
+        if isinstance(m, nn.Linear):
+            nn.init.uniform_(m.weight, -3e-3, 3e-3)
+            nn.init.zeros_(m.bias)
+            break
+
     # Produce normalized actions in [-1, 1], then map to env bounds if a bounded
     # spec is provided. This keeps the actor stable while supporting non-unit
     # action domains (e.g. [0, 1] long-only allocations).
