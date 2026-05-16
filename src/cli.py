@@ -663,6 +663,9 @@ def peek(
     skip_rows: int = typer.Option(
         0, "--skip", help="Skip first N rows before computing feature stats (excludes indicator warm-up)"
     ),
+    show_correlations: bool = typer.Option(
+        False, "--corr", help="Show feature–reward correlation table (Pearson + Spearman)"
+    ),
 ):
     """Show a summary of the prepared dataset for a scenario.
 
@@ -675,6 +678,7 @@ def peek(
         config_override=config_override,
         n_features=n_features,
         skip_rows=skip_rows,
+        show_correlations=show_correlations,
     ))
 
 

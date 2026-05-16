@@ -20,6 +20,7 @@ class PeekParams:
     config_override: list[str] | None = None
     n_features: int = 20
     skip_rows: int = 0
+    show_correlations: bool = False
 
 
 class PeekCommand(BaseCommand):
@@ -62,6 +63,8 @@ class PeekCommand(BaseCommand):
         self._print_splits(dataset)
         self._print_feature_stats(dataset, config, params.n_features, effective_skip, detected_warmup, params.skip_rows)
         self._print_log_return_stats(dataset, config, effective_skip)
+        if params.show_correlations:
+            self._print_reward_correlations(dataset, config, effective_skip)
         self._print_memmaps(dataset)
 
     # ------------------------------------------------------------------
@@ -184,6 +187,71 @@ class PeekCommand(BaseCommand):
             f"{p[4]:.6f}",
             f"{log_rets.max():.6f}",
         )
+        self.console.print(tbl)
+
+    def _print_reward_correlations(self, dataset, config, effective_skip: int) -> None:
+        import numpy as np
+        from scipy.stats import spearmanr
+        from trading_rl.data_utils import load_trading_data
+
+        price_col = getattr(config.env, "price_column", "close")
+        feat_cols = list(getattr(config.env, "feature_columns", None) or dataset.feature_columns)
+
+        raw_df = load_trading_data(config.data.data_path).dropna()
+        train_size = len(dataset.train_df) + effective_skip
+        raw_train = raw_df.iloc[:train_size].iloc[effective_skip:]
+
+        if price_col not in raw_train.columns:
+            if {"ask_px_00", "bid_px_00"}.issubset(raw_train.columns):
+                raw_train = raw_train.copy()
+                raw_train[price_col] = ((raw_train["ask_px_00"] + raw_train["bid_px_00"]) / 2.0).ffill().bfill()
+            else:
+                self.console.print("[yellow]Cannot compute correlations: price column not found.[/yellow]")
+                return
+
+        prices = raw_train[price_col].to_numpy(dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            log_rets = np.diff(np.log(prices))
+
+        feat_df = dataset.train_df[feat_cols].iloc[effective_skip:]
+        # Align: log_rets has one fewer row than prices
+        n = min(len(log_rets), len(feat_df) - 1)
+        log_rets = log_rets[:n]
+        feat_aligned = feat_df.iloc[1:n + 1]
+
+        rows = []
+        for col in feat_cols:
+            if col not in feat_aligned.columns:
+                continue
+            f = feat_aligned[col].to_numpy(dtype=float)
+            mask = np.isfinite(f) & np.isfinite(log_rets)
+            if mask.sum() < 10:
+                pearson, spearman = float("nan"), float("nan")
+            else:
+                pearson = float(np.corrcoef(f[mask], log_rets[mask])[0, 1])
+                spearman = float(spearmanr(f[mask], log_rets[mask]).statistic)
+            rows.append((col, pearson, spearman))
+
+        rows.sort(key=lambda r: abs(r[1]) if np.isfinite(r[1]) else 0, reverse=True)
+
+        tbl = Table(
+            title="Feature–reward correlations (train, sorted by |Pearson|)",
+            show_header=True,
+            header_style="bold",
+        )
+        tbl.add_column("feature")
+        tbl.add_column("Pearson", justify="right")
+        tbl.add_column("Spearman", justify="right")
+
+        def _fmt(v: float) -> str:
+            if not np.isfinite(v):
+                return "n/a"
+            color = "green" if abs(v) > 0.05 else ("yellow" if abs(v) > 0.01 else "red")
+            return f"[{color}]{v:+.4f}[/{color}]"
+
+        for col, p, s in rows:
+            tbl.add_row(col, _fmt(p), _fmt(s))
+
         self.console.print(tbl)
 
     def _print_memmaps(self, dataset) -> None:
