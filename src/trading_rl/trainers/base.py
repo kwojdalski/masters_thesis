@@ -327,9 +327,8 @@ class BaseTrainer(ABC):
         portfolio_return = 100 * (portfolio_valuation / initial_val - 1)
 
         logger.info(
-            f"Episode {callback._episode_count} complete | "
-            f"Portfolio Return: {portfolio_return:5.2f}% | "
-            f"Portfolio Value: ${portfolio_valuation:,.2f}"
+            "n_episode=%d portfolio_return_pct=%.2f portfolio_value=%.2f",
+            callback._episode_count, portfolio_return, portfolio_valuation,
         )
 
     def _is_portfolio_backend(self, config: Any) -> bool:

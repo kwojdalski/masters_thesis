@@ -457,9 +457,10 @@ class TD3Trainer(BaseTrainer):
                 if actions.std() < 0.01:
                     logger.warning("td3 eval agent stuck action_std=%.6f", actions.std())
 
+            eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
-                "td3 eval mean_reward=%.4f sum_reward=%.4f max_steps=%d",
-                mean_reward, sum_reward, max_steps,
+                "td3 eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
+                mean_reward, sum_reward, max_steps, eval_data_len,
             )
 
             del eval_rollout

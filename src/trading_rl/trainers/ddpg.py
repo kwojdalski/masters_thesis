@@ -266,9 +266,10 @@ class DDPGTrainer(BaseTrainer):
             self.logs["eval_reward_sum"].append(sum_reward)
             self.logs["eval_step_count"].append(max_steps)
 
+            eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
-                "ddpg eval mean_reward=%.4f sum_reward=%.4f max_steps=%d",
-                mean_reward, sum_reward, max_steps,
+                "ddpg eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
+                mean_reward, sum_reward, max_steps, eval_data_len,
             )
 
             del eval_rollout
