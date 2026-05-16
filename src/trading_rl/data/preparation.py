@@ -333,6 +333,13 @@ def _build_per_day_splits(
         val_df = _deduplicate_hft_index_single(val_df, "val_concat", logger)
         test_df = _deduplicate_hft_index_single(test_df, "test_concat", logger)
 
+    validation_size = getattr(config.data, "validation_size", None)
+    test_size_cfg = getattr(config.data, "test_size", None)
+    if validation_size is not None:
+        val_df = val_df.iloc[:validation_size]
+    if test_size_cfg is not None:
+        test_df = test_df.iloc[:test_size_cfg]
+
     logger.info(
         "per-day splits: n_train_memmaps=%d val=%d test=%d",
         len(collected_memmap_paths), len(val_df), len(test_df),

@@ -29,6 +29,8 @@ data:
   data_path: ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet
   download_data: false
   train_size: 50000
+  validation_size: 50000
+  test_size: 50000
   lazy_load: true
   prepared_data_dir: ./data/prepared/pooled_daily_6sym_selected
   memmap_dir: ./data/memmap/pooled_daily_6sym_selected
