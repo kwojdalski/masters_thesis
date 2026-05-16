@@ -209,6 +209,25 @@ class OrderBookImbalanceFeature(LOBFeature):
         return safe_divide(total_bid - total_ask, total_bid + total_ask)
 
 
+@register_feature("mid_price_velocity")
+class MidPriceVelocityFeature(LOBFeature):
+    """Mid-price velocity: first difference of (bid + ask) / 2."""
+
+    def required_columns(self) -> list[str]:
+        return [
+            self._p("bid_price_col", "bid_px_00"),
+            self._p("ask_price_col", "ask_px_00"),
+        ]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        mid = self._mid(
+            df,
+            self._p("bid_price_col", "bid_px_00"),
+            self._p("ask_price_col", "ask_px_00"),
+        )
+        return mid.diff().fillna(0.0)
+
+
 @register_feature("mid_price_acceleration")
 class MidPriceAccelerationFeature(LOBFeature):
     """Mid-price acceleration (second finite difference)."""

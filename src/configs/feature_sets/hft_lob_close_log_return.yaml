@@ -3,7 +3,9 @@ features:
   # On autocorrelated data this is essentially the reward signal lagged one step,
   # making it the most informative possible feature for a log_return reward.
   - name: "close_vel"
-    feature_type: "column_diff"
-    params: {column: "bid_px_00"}
+    feature_type: "mid_price_velocity"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
     normalize: true
     domain: "hft"
