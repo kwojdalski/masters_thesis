@@ -228,6 +228,29 @@ class MidPriceVelocityFeature(LOBFeature):
         return mid.diff().fillna(0.0)
 
 
+@register_feature("mid_price_future_velocity")
+class MidPriceFutureVelocityFeature(LOBFeature):
+    """Future mid-price velocity: next step's (bid+ask)/2 diff, shifted back by 1.
+
+    Intentional look-ahead / data leakage — used only as a training-loop
+    sanity check. Correlation with log_return reward should be ~1.0.
+    """
+
+    def required_columns(self) -> list[str]:
+        return [
+            self._p("bid_price_col", "bid_px_00"),
+            self._p("ask_price_col", "ask_px_00"),
+        ]
+
+    def compute(self, df: pd.DataFrame) -> pd.Series:
+        mid = self._mid(
+            df,
+            self._p("bid_price_col", "bid_px_00"),
+            self._p("ask_price_col", "ask_px_00"),
+        )
+        return mid.diff().shift(-1).fillna(0.0)
+
+
 @register_feature("mid_price_acceleration")
 class MidPriceAccelerationFeature(LOBFeature):
     """Mid-price acceleration (second finite difference)."""

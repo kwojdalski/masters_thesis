@@ -1,0 +1,11 @@
+features:
+  # Future mid-price velocity: intentional look-ahead (data leakage).
+  # Sanity check only — if the agent can't learn with this feature,
+  # the problem is in the training loop, not the signal quality.
+  - name: "future_close_vel"
+    feature_type: "mid_price_future_velocity"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+    normalize: true
+    domain: "hft"
