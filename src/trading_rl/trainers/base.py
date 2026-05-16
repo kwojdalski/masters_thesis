@@ -510,7 +510,7 @@ class BaseTrainer(ABC):
         with profiler.stage("plot_merged", 2):
             _t = time.monotonic()
             logger.debug("create_merged_comparison_plot start")
-            merged_plot = create_merged_comparison_plot(reward_plot, action_plot)
+            merged_plot = create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot)
             logger.debug("create_merged_comparison_plot done elapsed=%.2fs", time.monotonic() - _t)
 
         # Use final_reward and last_positions from SplitEvaluationResult

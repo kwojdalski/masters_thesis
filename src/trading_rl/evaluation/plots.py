@@ -389,9 +389,15 @@ def create_actual_returns_plot(
     return plot
 
 
-def create_merged_comparison_plot(reward_plot, action_plot, save_path=None):
-    """Merge reward and action comparison plots into a single vertical layout."""
-    merged_plot = reward_plot / action_plot
+def create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot=None, save_path=None):
+    """Merge reward, action, and (optionally) actual returns plots into a vertical layout."""
+    if actual_returns_plot is not None:
+        merged_plot = reward_plot / action_plot / actual_returns_plot
+    else:
+        merged_plot = reward_plot / action_plot
+    # 30% taller than the base single-plot height (7.8 * 1.3 per panel)
+    n_panels = 3 if actual_returns_plot is not None else 2
+    merged_plot = merged_plot + theme(figure_size=(13, round(7.8 * 1.3 * n_panels, 1)))
     if save_path:
         logger.info("save merged comparison plot path=%s", save_path)
         merged_plot.save(save_path, dpi=150, verbose=False)
