@@ -146,11 +146,19 @@ class DataValidator:
         train_df: pd.DataFrame,
         val_df: pd.DataFrame,
         test_df: pd.DataFrame,
+        selected_columns: list[str] | None = None,
     ) -> None:
-        """Raise ValueError if any split has zero-variance feature columns."""
+        """Raise ValueError if any split has zero-variance feature columns.
+
+        When selected_columns is provided only those columns are checked —
+        computed-but-not-selected features (e.g. hour_sin on single-day data)
+        are ignored so a stale cache doesn't force a full rebuild.
+        """
         for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
-            # Zero-variance feature check — constant features break normalizers and carry no signal.
-            feat_cols_in_split = [c for c in split_df.columns if str(c).startswith("feature_")]
+            if selected_columns is not None:
+                feat_cols_in_split = [c for c in selected_columns if c in split_df.columns]
+            else:
+                feat_cols_in_split = [c for c in split_df.columns if str(c).startswith("feature_")]
             if feat_cols_in_split:
                 stds = split_df[feat_cols_in_split].std()
                 zero_var = stds[stds == 0].index.tolist()
@@ -236,7 +244,8 @@ class DataValidator:
         if self.check_duplicates:
             self.check_duplicate_index(train_df, val_df, test_df)
         if self.check_zero_variance:
-            self.check_zero_variance_features(train_df, val_df, test_df)
+            selected_columns = getattr(getattr(config, "env", None), "feature_columns", None)
+            self.check_zero_variance_features(train_df, val_df, test_df, selected_columns)
         if self.check_lob_deltas:
             self.check_lob_delta(train_df, val_df, test_df)
 
