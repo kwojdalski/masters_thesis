@@ -16,6 +16,7 @@ env:
   include_position_feature: false
   obs_clip: 5.0
   reward_type: log_return
+  reward_scale: 0.003
 network:
   actor_hidden_dims:
   - 64

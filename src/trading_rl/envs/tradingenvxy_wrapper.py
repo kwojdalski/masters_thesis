@@ -263,6 +263,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         fee = 0.0
         reward_type = "log_return"
         reward_eta = 0.01
+        reward_scale = 1.0
         if config is not None:
             env_config = getattr(config, "env", None)
             if env_config is not None:
@@ -270,20 +271,22 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
                 fee = getattr(env_config, "trading_fees", 0.0)
                 reward_type = getattr(env_config, "reward_type", "log_return")
                 reward_eta = getattr(env_config, "reward_eta", 0.01)
+                reward_scale = getattr(env_config, "reward_scale", 1.0)
 
         # Override with explicit kwargs
         initial_cash = kwargs.pop("cash", initial_cash)
         fee = kwargs.pop("fee", fee)
         reward_type = kwargs.pop("reward_type", reward_type)
         reward_eta = kwargs.pop("reward_eta", reward_eta)
+        reward_scale = kwargs.pop("reward_scale", reward_scale)
 
         # Create reward function based on configuration
         if reward_type == RewardType.DIFFERENTIAL_SHARPE:
             reward = DifferentialSharpeRatio(eta=reward_eta)
             logger.info("reward differential_sharpe eta=%s", reward_eta)
         elif reward_type == RewardType.LOG_RETURN:
-            reward = LogReturn()
-            logger.info("using log_return reward")
+            reward = LogReturn(scale=reward_scale)
+            logger.info("using log_return reward scale=%s", reward_scale)
         else:
             raise ValueError(
                 f"Unknown reward type: {reward_type}. "
@@ -393,6 +396,7 @@ class StreamingTradingEnvXY(gym.Env):
         fee: float = 0.0,
         reward_type: str = "log_return",
         reward_eta: float = 0.01,
+        reward_scale: float = 1.0,
         runtime_feature_columns: list[str] | None = None,
         obs_clip: float | None = None,
         seed: int | None = None,
@@ -410,6 +414,7 @@ class StreamingTradingEnvXY(gym.Env):
         self._fee = fee
         self._reward_type = reward_type
         self._reward_eta = reward_eta
+        self._reward_scale = reward_scale
         self._runtime_feature_columns = runtime_feature_columns or []
         self._obs_clip = obs_clip
 
@@ -429,7 +434,7 @@ class StreamingTradingEnvXY(gym.Env):
         if self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
             return DifferentialSharpeRatio(eta=self._reward_eta)
         if self._reward_type == RewardType.LOG_RETURN:
-            return LogReturn()
+            return LogReturn(scale=self._reward_scale)
         raise ValueError(
             f"Unknown reward type: {self._reward_type!r}. "
             "Supported: 'log_return', 'differential_sharpe'"

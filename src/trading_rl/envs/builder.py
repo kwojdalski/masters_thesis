@@ -178,6 +178,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         fee = getattr(config.env, "trading_fees", 0.0)
         reward_type = getattr(config.env, "reward_type", "log_return")
         reward_eta = getattr(config.env, "reward_eta", 0.01)
+        reward_scale = getattr(config.env, "reward_scale", 1.0)
         include_position = getattr(config.env, "include_position_feature", False)
         runtime_cols = ["feature_position"] if include_position else []
         # feature_position lives in the env at runtime, not in the memmap data
@@ -193,6 +194,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             fee=fee,
             reward_type=reward_type,
             reward_eta=reward_eta,
+            reward_scale=reward_scale,
             runtime_feature_columns=runtime_cols,
             obs_clip=obs_clip,
             seed=getattr(config, "seed", None),
