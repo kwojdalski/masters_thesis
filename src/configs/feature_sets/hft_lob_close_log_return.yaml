@@ -4,6 +4,6 @@ features:
   # making it the most informative possible feature for a log_return reward.
   - name: "close_vel"
     feature_type: "column_diff"
-    params: {column: "close"}
+    params: {column: "bid_px_00"}
     normalize: true
     domain: "hft"
