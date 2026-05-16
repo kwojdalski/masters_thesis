@@ -331,6 +331,34 @@ class BaseTrainer(ABC):
             callback._episode_count, portfolio_return, portfolio_valuation,
         )
 
+    def _log_sample_transitions(self, data: Any, n: int = 3) -> None:
+        """Log n sample (s, a, r, s') tuples from a collected batch at DEBUG level."""
+        import numpy as np
+        try:
+            size = data.numel()
+            indices = np.linspace(0, size - 1, min(n, size), dtype=int)
+            for idx in indices:
+                td = data[int(idx)]
+                obs = td.get("observation")
+                next_obs = td.get(("next", "observation"))
+                action = td.get("action")
+                reward = td.get(("next", "reward"))
+
+                def _fmt(t):
+                    if t is None:
+                        return "?"
+                    arr = t.reshape(-1).cpu().tolist()
+                    return "[" + ", ".join(f"{v:.4f}" for v in arr) + "]"
+
+                logger.debug(
+                    "transition idx=%d  s=%s  a=%s  r=%.6f  s'=%s",
+                    idx, _fmt(obs), _fmt(action),
+                    float(reward) if reward is not None else float("nan"),
+                    _fmt(next_obs),
+                )
+        except Exception as exc:
+            logger.debug("_log_sample_transitions failed: %s", exc)
+
     def _is_portfolio_backend(self, config: Any) -> bool:
         """Detect if backend uses continuous portfolio weights.
 

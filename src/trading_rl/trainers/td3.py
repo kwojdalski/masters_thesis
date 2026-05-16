@@ -370,6 +370,9 @@ class TD3Trainer(BaseTrainer):
                     collected_actions.mean(), collected_actions.std(),
                 )
 
+                # SARSA-style sample transitions: (s, a, r, s')
+                self._log_sample_transitions(data, n=3)
+
         def on_batch_end(i, data) -> None:
             self._maybe_switch_from_random_warmup(algorithm_label="TD3")
 
