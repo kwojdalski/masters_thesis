@@ -38,7 +38,6 @@ training:
   optim_steps_per_batch: 5
   sample_size: 128
   buffer_size: 200000
-  save_buffer: true
   gamma: 0.9
   tau: 0.005
   policy_noise: 0.05
@@ -48,7 +47,6 @@ training:
   delay_qvalue: true
   exploration_noise_std: 0.8
   loss_function: smooth_l1
-  eval_fraction: 0.2
   eval_steps: 10000
   eval_interval: 1000
   temp_eval_interval: 100000
