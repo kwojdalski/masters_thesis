@@ -518,7 +518,7 @@ class TD3Trainer(BaseTrainer):
 
         # Optionally save replay buffer (can be very large)
         if getattr(self.config, "save_buffer", False):
-            logger.info("save replay buffer")
+            logger.info("save replay buffer path=%s", path)
             path_obj = Path(path)
             buffer_dir = path_obj.with_suffix("")
             buffer_dir = buffer_dir.with_name(f"{buffer_dir.name}_buffer")
