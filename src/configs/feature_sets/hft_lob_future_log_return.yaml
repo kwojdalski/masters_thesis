@@ -7,5 +7,5 @@ features:
     params:
       bid_price_col: "bid_px_00"
       ask_price_col: "ask_px_00"
-    normalize: true
+    normalize: false
     domain: "hft"
