@@ -13,7 +13,7 @@ data:
   memmap_dir: ./data/memmap/aapl_single_day_small_obs
   feature_cache_dir: .cache/feature_transformation
   filter_lob_levels: 5
-  feature_config: src/configs/feature_sets/hft_lob_features_all.yaml
+  feature_config: src/configs/feature_sets/hft_lob_oracle_with_market.yaml
 env:
   backend: tradingenv
   mode: hft
@@ -25,6 +25,7 @@ env:
   reward_type: differential_sharpe
   reward_eta: 0.01
   feature_columns:
+  - feature_future_close_vel
   - feature_hft_book_pressure_l0
   - feature_hft_order_book_imbalance_3l
   - feature_hft_order_count_imbalance_l0
