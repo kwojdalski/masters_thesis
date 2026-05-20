@@ -14,6 +14,7 @@ env:
   trading_fees: 0.0
   price_column: close
   include_position_feature: true
+  streaming_episode_length: 7000
   obs_clip: 5.0
   reward_type: log_return
   reward_scale: 0.003
@@ -31,7 +32,7 @@ training:
   value_weight_decay: 0.0
   actor_weight_decay: 0.0
   max_steps: 500000
-  init_rand_steps: 10000
+  init_rand_steps: 3000
   frames_per_batch: 200
   optim_steps_per_batch: 5
   sample_size: 128
