@@ -13,7 +13,7 @@ env:
   mode: hft
   trading_fees: 0.0
   price_column: close
-  include_position_feature: false
+  include_position_feature: true
   obs_clip: 5.0
   reward_type: log_return
   reward_scale: 0.003
