@@ -254,6 +254,9 @@ def _build_per_day_splits(
         if mode == EnvMode.HFT and backend == "tradingenv":
             train_df_i = _deduplicate_hft_index_single(train_df_i, f"train_{i}", logger)
 
+        warmup_rows = getattr(config.data, "warmup_rows", 0)
+        train_df_i = _apply_warmup_skip(train_df_i, warmup_rows, logger, label=Path(train_path).name)
+
         if first_train_df is None:
             first_train_df = train_df_i.copy()
 
