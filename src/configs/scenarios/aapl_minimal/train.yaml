@@ -63,6 +63,7 @@ training:
 logging:
   log_level: INFO
   save_plots: false
+  log_oracle_alignment_plot: true
 explainability:
   enabled: false
   n_steps: 500

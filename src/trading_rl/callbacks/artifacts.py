@@ -374,6 +374,8 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
         max_features=None,
     )
     _log_feature_vs_return_scatter(df, config)
+    if getattr(getattr(config, "logging", None), "log_oracle_alignment_plot", False):
+        _log_oracle_vs_reward_alignment(df, config)
 
 
 def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
@@ -430,6 +432,77 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
 
     except Exception as e:  # pragma: no cover
         logger.warning("_log_feature_vs_return_scatter failed err=%s", e)
+
+
+def _log_oracle_vs_reward_alignment(
+    df: pd.DataFrame,
+    config: Any,
+    n_points: int = 10_000,
+) -> None:
+    """Scatter plot of feature_future_close_vel[t] vs next-step log return[t+1].
+
+    Checks whether the oracle feature and reward signal are temporally aligned.
+    A correlation near 1.0 confirms they measure the same price movement.
+    """
+    logger = get_project_logger(__name__)
+
+    if not mlflow.active_run():
+        return
+
+    oracle_col = "feature_future_close_vel"
+    if oracle_col not in df.columns:
+        logger.debug("oracle alignment plot skipped: %s not in df", oracle_col)
+        return
+
+    price_col = getattr(getattr(config, "env", None), "price_column", "close")
+    if price_col not in df.columns:
+        logger.debug("oracle alignment plot skipped: price column %s not in df", price_col)
+        return
+
+    try:
+        prices = df[price_col].to_numpy(dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            log_ret = np.concatenate([[np.nan], np.diff(np.log(prices))])
+        log_ret = np.where(np.isfinite(log_ret), log_ret, np.nan)
+
+        plot_df = pd.DataFrame({
+            "oracle": df[oracle_col].to_numpy(dtype=float),
+            "log_return_next": np.roll(log_ret, -1),
+        })
+        plot_df.iloc[-1, plot_df.columns.get_loc("log_return_next")] = np.nan
+        plot_df = plot_df.dropna()
+
+        if len(plot_df) > n_points:
+            plot_df = plot_df.sample(n_points, random_state=42)
+
+        corr = float(plot_df["oracle"].corr(plot_df["log_return_next"]))
+        mlflow.log_metric("oracle_reward_alignment_corr", corr)
+
+        from plotnine import aes, annotate, element_text, geom_point, geom_smooth, ggplot, labs, theme
+
+        p = (
+            ggplot(plot_df, aes(x="oracle", y="log_return_next"))
+            + geom_point(alpha=0.15, size=0.6, color="steelblue")
+            + geom_smooth(method="lm", color="red", size=1.0)
+            + annotate("text", x=plot_df["oracle"].quantile(0.05),
+                       y=plot_df["log_return_next"].max() * 0.9,
+                       label=f"r = {corr:.4f}", size=11, color="darkred")
+            + labs(
+                title="Oracle Feature vs Next-Step Log Return (alignment check)",
+                x="feature_future_close_vel (normalised)",
+                y="Log Return [t+1]",
+            )
+            + theme(plot_title=element_text(size=12, face="bold"))
+        )
+
+        temp_path = os.path.join(tempfile.gettempdir(), "oracle_vs_reward_alignment.png")
+        p.save(temp_path, width=12, height=8, dpi=150)
+        mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
+        os.unlink(temp_path)
+        logger.info("log oracle alignment plot corr=%.4f n_points=%d", corr, len(plot_df))
+
+    except Exception as e:  # pragma: no cover
+        logger.warning("oracle alignment plot failed err=%s", e)
 
 
 def log_final_metrics(

@@ -197,6 +197,7 @@ class LoggingConfig:
     log_level: str = "INFO"
     tensorboard_dir: str = "runs"
     save_plots: bool = False  # Save training plots to disk in addition to MLflow
+    log_oracle_alignment_plot: bool = False  # Scatter plot of feature_future_close_vel vs next-step log return
 
 
 @dataclass
