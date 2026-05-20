@@ -460,46 +460,61 @@ def _log_oracle_vs_reward_alignment(
         return
 
     try:
+        from plotnine import aes, annotate, element_text, geom_point, geom_smooth, ggplot, labs, theme
+
         prices = df[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
             log_ret = np.concatenate([[np.nan], np.diff(np.log(prices))])
         log_ret = np.where(np.isfinite(log_ret), log_ret, np.nan)
+        log_return_next = np.roll(log_ret, -1)
 
-        plot_df = pd.DataFrame({
-            "oracle": df[oracle_col].to_numpy(dtype=float),
-            "log_return_next": np.roll(log_ret, -1),
-        })
-        plot_df.iloc[-1, plot_df.columns.get_loc("log_return_next")] = np.nan
-        plot_df = plot_df.dropna()
+        def _make_plot_df(oracle_values: np.ndarray) -> pd.DataFrame:
+            d = pd.DataFrame({"oracle": oracle_values, "log_return_next": log_return_next})
+            d.iloc[-1, d.columns.get_loc("log_return_next")] = np.nan
+            d = d.dropna()
+            if len(d) > n_points:
+                d = d.sample(n_points, random_state=42)
+            return d
 
-        if len(plot_df) > n_points:
-            plot_df = plot_df.sample(n_points, random_state=42)
-
-        corr = float(plot_df["oracle"].corr(plot_df["log_return_next"]))
-        mlflow.log_metric("oracle_reward_alignment_corr", corr)
-
-        from plotnine import aes, annotate, element_text, geom_point, geom_smooth, ggplot, labs, theme
-
-        p = (
-            ggplot(plot_df, aes(x="oracle", y="log_return_next"))
-            + geom_point(alpha=0.15, size=0.6, color="steelblue")
-            + geom_smooth(method="lm", color="red", size=1.0)
-            + annotate("text", x=plot_df["oracle"].quantile(0.05),
-                       y=plot_df["log_return_next"].max() * 0.9,
-                       label=f"r = {corr:.4f}", size=11, color="darkred")
-            + labs(
-                title="Oracle Feature vs Next-Step Log Return (alignment check)",
-                x="feature_future_close_vel (normalised)",
-                y="Log Return [t+1]",
+        def _scatter(plot_df: pd.DataFrame, x_label: str, filename: str, metric_key: str) -> None:
+            corr = float(plot_df["oracle"].corr(plot_df["log_return_next"]))
+            mlflow.log_metric(metric_key, corr)
+            p = (
+                ggplot(plot_df, aes(x="oracle", y="log_return_next"))
+                + geom_point(alpha=0.15, size=0.6, color="steelblue")
+                + geom_smooth(method="lm", color="red", size=1.0)
+                + annotate("text", x=plot_df["oracle"].quantile(0.05),
+                           y=plot_df["log_return_next"].max() * 0.9,
+                           label=f"r = {corr:.4f}", size=11, color="darkred")
+                + labs(
+                    title="Oracle Feature vs Next-Step Log Return (alignment check)",
+                    x=x_label,
+                    y="Log Return [t+1]",
+                )
+                + theme(plot_title=element_text(size=12, face="bold"))
             )
-            + theme(plot_title=element_text(size=12, face="bold"))
-        )
+            temp_path = os.path.join(tempfile.gettempdir(), filename)
+            p.save(temp_path, width=12, height=8, dpi=150)
+            mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
+            os.unlink(temp_path)
+            logger.info("log oracle alignment plot filename=%s corr=%.4f n=%d", filename, corr, len(plot_df))
 
-        temp_path = os.path.join(tempfile.gettempdir(), "oracle_vs_reward_alignment.png")
-        p.save(temp_path, width=12, height=8, dpi=150)
-        mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
-        os.unlink(temp_path)
-        logger.info("log oracle alignment plot corr=%.4f n_points=%d", corr, len(plot_df))
+        # Normalised feature column
+        plot_df_norm = _make_plot_df(df[oracle_col].to_numpy(dtype=float))
+        _scatter(plot_df_norm, "feature_future_close_vel (normalised)",
+                 "oracle_vs_reward_alignment_normalised.png",
+                 "oracle_reward_alignment_corr")
+
+        # Raw (unnormalised) mid-price velocity, computed directly from bid/ask
+        if {"bid_px_00", "ask_px_00"}.issubset(df.columns):
+            mid = (df["bid_px_00"] + df["ask_px_00"]) / 2.0
+            raw_oracle = mid.diff().shift(-1).fillna(0.0).to_numpy(dtype=float)
+            plot_df_raw = _make_plot_df(raw_oracle)
+            _scatter(plot_df_raw, "mid-price velocity raw (bid+ask)/2 diff [t+1]",
+                     "oracle_vs_reward_alignment_raw.png",
+                     "oracle_reward_alignment_corr_raw")
+        else:
+            logger.debug("oracle alignment raw plot skipped: bid_px_00/ask_px_00 not in df")
 
     except Exception as e:  # pragma: no cover
         logger.warning("oracle alignment plot failed err=%s", e)
