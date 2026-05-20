@@ -17,7 +17,7 @@ env:
   streaming_episode_length: 7000
   obs_clip: 5.0
   reward_type: log_return
-  reward_scale: 0.3
+  reward_scale: 30.0
 network:
   actor_hidden_dims:
   - 64
