@@ -518,6 +518,7 @@ class PriceDataGenerator:
                 session_duration_seconds=data_gen_config.get("session_duration_seconds", 23400.0),
                 odd_lot_fraction=data_gen_config.get("odd_lot_fraction", 0.08),
                 seed=data_gen_config.get("seed", 42),
+                price_noise_std=data_gen_config.get("price_noise_std", 0.01),
             )
 
     def generate_upward_drift_pattern(

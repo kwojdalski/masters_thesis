@@ -17,7 +17,7 @@ env:
   streaming_episode_length: 7000
   obs_clip: 5.0
   reward_type: log_return
-  reward_scale: 0.003
+  reward_scale: 0.0001
 network:
   actor_hidden_dims:
   - 64
@@ -44,7 +44,7 @@ training:
   policy_delay: 2
   delay_actor: true
   delay_qvalue: true
-  exploration_noise_std: 0.8
+  exploration_noise_std: 0.3
   loss_function: smooth_l1
   eval_steps: 10000
   eval_interval: 1000
