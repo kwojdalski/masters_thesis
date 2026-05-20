@@ -1,0 +1,128 @@
+# Oracle + Market Features (aapl_single_day subset)
+# ===================================================
+# Combines the future oracle signal with the 10 market microstructure features
+# used in the td3_hft_lob_aapl_single_day scenario.
+
+normalization_method: "running"
+use_time_weights: false
+reset_on_session_break: true
+session_break_threshold_hours: 1.0
+
+features:
+  # Oracle: future mid-price velocity (intentional look-ahead / sanity check)
+  - name: "future_close_vel"
+    feature_type: "mid_price_future_velocity"
+    params:
+      bid_price_col: "bid_px_00"
+      ask_price_col: "ask_px_00"
+    normalize: true
+    domain: "hft"
+
+  # Market microstructure features (same selection as aapl_single_day)
+  - name: hft_book_pressure_l0
+    feature_type: book_pressure
+    params:
+      level: 0
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_order_book_imbalance_3l
+    feature_type: order_book_imbalance
+    params:
+      levels: 3
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_order_count_imbalance_l0
+    feature_type: order_count_imbalance
+    params:
+      level: 0
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_microprice
+    feature_type: microprice
+    params:
+      bid_price_col: bid_px_00
+      bid_size_col: bid_sz_00
+      ask_price_col: ask_px_00
+      ask_size_col: ask_sz_00
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_microprice_divergence
+    feature_type: microprice_divergence
+    params:
+      bid_price_col: bid_px_00
+      bid_size_col: bid_sz_00
+      ask_price_col: ask_px_00
+      ask_size_col: ask_sz_00
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_bid_slope
+    feature_type: bid_ask_slope
+    params:
+      side: bid
+      levels: 5
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_ask_slope
+    feature_type: bid_ask_slope
+    params:
+      side: ask
+      levels: 5
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_ofi
+    feature_type: ofi
+    params:
+      bid_price_col: bid_px_00
+      bid_size_col: bid_sz_00
+      ask_price_col: ask_px_00
+      ask_size_col: ask_sz_00
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_ofi_rolling_50
+    feature_type: ofi_rolling
+    params:
+      bid_price_col: bid_px_00
+      bid_size_col: bid_sz_00
+      ask_price_col: ask_px_00
+      ask_size_col: ask_sz_00
+      window: 50
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
+
+  - name: hft_signed_trade_flow_50
+    feature_type: signed_trade_flow
+    params:
+      action_col: action
+      side_col: side
+      size_col: size
+      window: 50
+    normalize: true
+    normalization_method: running
+    reset_on_session_break: true
+    domain: hft
