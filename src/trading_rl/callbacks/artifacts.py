@@ -160,18 +160,43 @@ def log_parameter_faq_artifact() -> None:
             logger.warning("faq file not found path=%s", faq_path)
             return
 
+        with open(faq_path, encoding="utf-8") as f:
+            md_content = f.read()
+
         try:
-            mlflow.log_artifact(str(faq_path), "documentation")
-            logger.info("log faq markdown artifact")
+            import subprocess
+            commit = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+            ).decode().strip()
+            short = commit[:8]
+        except Exception:
+            commit, short = "unknown", "unknown"
+
+        run_header = (
+            f"<!-- generated -->\n"
+            f"## Run Metadata\n\n"
+            f"| Field | Value |\n"
+            f"|---|---|\n"
+            f"| Git commit | `{short}` (`{commit}`) |\n\n"
+            f"---\n\n"
+        )
+        md_content = run_header + md_content
+
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".md", delete=False, encoding="utf-8"
+            ) as tmp_md:
+                tmp_md.write(md_content)
+                tmp_md_path = tmp_md.name
+            mlflow.log_artifact(tmp_md_path, "documentation")
+            os.unlink(tmp_md_path)
+            logger.info("log faq markdown artifact commit=%s", short)
         except Exception as md_error:
             logger.error("log faq markdown failed err=%s", md_error)
             return
 
         try:
             import markdown
-
-            with open(faq_path, encoding="utf-8") as f:
-                md_content = f.read()
 
             try:
                 html_content = markdown.markdown(
