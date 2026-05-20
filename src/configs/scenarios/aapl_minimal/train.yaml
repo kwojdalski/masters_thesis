@@ -49,7 +49,7 @@ training:
   sample_size: 128
   buffer_size: 100000
   save_buffer: true
-  gamma: 0.99
+  gamma: 0.0
   tau: 0.005
   policy_noise: 0.2
   noise_clip: 0.3
