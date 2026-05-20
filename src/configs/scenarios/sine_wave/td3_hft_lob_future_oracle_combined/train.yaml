@@ -17,7 +17,7 @@ env:
   streaming_episode_length: 7000
   obs_clip: 5.0
   reward_type: log_return
-  reward_scale: 30.0
+  reward_scale: 0.003
 network:
   actor_hidden_dims:
   - 64
@@ -32,11 +32,13 @@ training:
   value_weight_decay: 0.0
   actor_weight_decay: 0.0
   max_steps: 500000
+  checkpoint_interval: 100000
   init_rand_steps: 3000
   frames_per_batch: 200
   optim_steps_per_batch: 5
   sample_size: 128
   buffer_size: 200000
+  save_buffer: true
   gamma: 0.9
   tau: 0.005
   policy_noise: 0.05
@@ -46,6 +48,7 @@ training:
   delay_qvalue: true
   exploration_noise_std: 0.8
   loss_function: smooth_l1
+  eval_fraction: 0.2
   eval_steps: 10000
   eval_interval: 1000
   temp_eval_interval: 100000
@@ -53,3 +56,9 @@ training:
 logging:
   log_level: INFO
   save_plots: false
+explainability:
+  enabled: false
+  n_steps: 500
+  methods:
+  - permutation
+  temp_explainability_interval: 100000
