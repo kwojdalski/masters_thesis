@@ -261,6 +261,7 @@ def _log_overview_impl(
     data_label: str,
     n_plot_samples: int = 200,
     max_features: int | None = 5,
+    plots_subdir: str = "plots",
 ) -> None:
     """Shared implementation for raw and transformed data overview logging."""
     logger = get_project_logger(__name__)
@@ -316,7 +317,7 @@ def _log_overview_impl(
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), f"{column}.png")
                 p.save(temp_path, width=16, height=10, dpi=150)
-                mlflow.log_artifact(temp_path, f"{artifact_dir}/plots")
+                mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
                 os.unlink(temp_path)
             except Exception as plot_error:  # pragma: no cover
                 logger.warning("create plot failed column=%s err=%s", column, plot_error)
@@ -344,7 +345,7 @@ def _log_overview_impl(
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), "ohlc_combined.png")
                 p_combined.save(temp_path, width=20, height=10, dpi=150)
-                mlflow.log_artifact(temp_path, f"{artifact_dir}/plots")
+                mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
                 os.unlink(temp_path)
             except Exception as combined_error:  # pragma: no cover
                 logger.warning("create combined ohlc plot failed err=%s", combined_error)
@@ -363,16 +364,35 @@ def log_raw_data_overview(df: pd.DataFrame, config: Any) -> None:
 
 def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
     """Log transformed (feature-engineered) dataset overview, sample, and visuals to MLflow."""
-    feat_cols = [c for c in df.columns if str(c).startswith("feature_")]
-    feat_df = df[feat_cols] if feat_cols else df
+    all_feat_cols = [c for c in df.columns if str(c).startswith("feature_")]
+    feat_df = df[all_feat_cols] if all_feat_cols else df
+
+    # All computed features
     _log_overview_impl(
         feat_df,
         config,
         "transformed_data_overview",
-        "Transformed Data",
+        "Transformed Data (all)",
         n_plot_samples=1000,
         max_features=None,
+        plots_subdir="plots/all_vars",
     )
+
+    # Only the features actually selected for the observation space
+    selected_cols = getattr(getattr(config, "env", None), "feature_columns", None) or []
+    selected_feat_cols = [c for c in selected_cols if c in df.columns and c != "feature_position"]
+    if selected_feat_cols:
+        sel_df = df[selected_feat_cols]
+        _log_overview_impl(
+            sel_df,
+            config,
+            "transformed_data_overview",
+            "Transformed Data (selected)",
+            n_plot_samples=1000,
+            max_features=None,
+            plots_subdir="plots/selected_vars",
+        )
+
     _log_feature_vs_return_scatter(df, config)
     if getattr(getattr(config, "logging", None), "log_oracle_alignment_plot", False):
         _log_oracle_vs_reward_alignment(df, config)
