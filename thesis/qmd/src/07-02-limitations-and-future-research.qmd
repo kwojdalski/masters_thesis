@@ -243,6 +243,76 @@ explicitly penalizes drawdown would test the sensitivity of policy behavior to
 reward specification — a dimension the thesis identifies as important but does
 not empirically vary.
 
+### Critic Pathologies in Deterministic Actor-Critic Methods
+<!-- [PLACEHOLDER] -->
+
+TD3 inherits two structural failure modes from the deterministic policy gradient
+family that are worth making explicit, because they constrain what the algorithm
+can learn regardless of reward design or observation quality.
+
+The first is overestimation bias. Even with the twin-critic minimum — which
+reduces but does not eliminate optimistic Q-value estimates — the actor is
+updated by ascending the gradient of $Q_1(s, \pi(s))$. If the critic has
+overestimated Q-values in some region of state-action space, the actor is pushed
+toward those states and actions not because they are genuinely good, but because
+the critic is wrong about them in a systematically optimistic direction. The
+twin-critic correction addresses the most severe overestimation at the target
+computation step, but the actor loss itself uses a single critic without the
+min, leaving the actor update exposed to regions where $Q_1$ is locally
+inflated.
+
+The second is extrapolation error. The critic is trained only on $(s, a)$ pairs
+that appear in the replay buffer, which reflects the historical distribution of
+the actor's behavior. When the actor is updated and begins producing actions in
+regions of action space that the critic has seen infrequently or not at all, the
+critic's Q-estimates in those regions are extrapolations from the training
+distribution rather than reliable value estimates. The actor, receiving no signal
+that it has moved outside the buffer's support, may follow these extrapolated
+values toward degenerate behavior — in a market making context, this could
+manifest as locking onto extreme spread width or position sizing that happens to
+receive a spuriously high Q-value in a sparsely visited region of action space.
+Target policy smoothing partially mitigates this by regularizing the critic to be
+locally consistent around actions seen in the buffer, but the fundamental
+exposure to out-of-distribution extrapolation remains. Algorithms that maintain a
+stochastic policy — SAC in particular — are structurally less vulnerable to this
+failure mode because the entropy bonus discourages the policy from collapsing to
+a narrow region of action space.
+
+### Reward Signal Quality at Tick Frequency
+<!-- [PLACEHOLDER] -->
+
+A prior constraint on all reward-driven learning at tick frequency is the
+signal-to-noise ratio of the reward signal itself. This is distinct from the
+question of which reward specification to use — it concerns whether any reward
+signal constructed from short-horizon realized returns is informative enough to
+guide gradient-based learning in the presence of microstructure noise.
+
+At the horizons studied here, individual tick-level price moves are dominated by
+bid-ask bounce, queue-position effects, and short-term order flow imbalance that
+partially reverts within seconds. The reward received at each step therefore
+reflects a mixture of genuine directional signal and transient noise that does
+not represent the agent's skill. The TD target that the critic regresses toward —
+$y = r + \gamma \cdot \min(Q_1^{\text{targ}}, Q_2^{\text{targ}})(s', a')$ —
+inherits this noise directly: if $r$ is dominated by transient microstructure
+effects rather than the agent's decisions, the critic cannot reliably distinguish
+states and actions that are genuinely good from those that happened to coincide
+with favorable noise realizations. The Differential Sharpe Ratio reward used in
+this thesis partially addresses this by constructing a running risk-adjusted
+signal rather than a step-by-step log-return, but the underlying noise floor of
+tick-level returns constrains how much any episode-level reward shaping can
+improve signal quality.
+
+This observation connects to the partial observability limitation discussed
+above. Much of the variance in the reward signal is driven by factors — large
+cross-venue order flow, options-market hedging, institutional block trades — that
+are invisible to the agent. From the agent's perspective this variance is
+irreducible noise, and the critic must fit a value function over a state space
+where a large fraction of the outcome variance has no representation in the
+observation. The practical implication is that even a well-specified reward
+function and a correctly implemented algorithm will face a learning problem whose
+difficulty is partly determined by the informativeness of the observation, not
+just the reward design.
+
 ### Alternative Model Architectures
 <!-- [PLACEHOLDER] -->
 
