@@ -148,6 +148,43 @@ providers, and constructing a clean, backtest-safe version of an NLP-derived
 feature set introduces its own lookahead and selection biases that must be
 controlled carefully.
 
+A third category — and arguably the most structurally significant — is
+proprietary order flow. Large financial institutions that operate as systematic
+internalizers, principal trading firms, or prime brokers have access to client
+order flow that never reaches the public limit order book. A systematic
+internalizer may handle a material fraction of retail equity flow across
+hundreds of instruments simultaneously, giving it real-time visibility into the
+aggregate directional demand of its client base before that demand has been
+expressed in public prices. Similarly, large-scale market makers and prop
+trading firms observe their own execution flow across thousands of transactions
+per second — a signal that directly measures the current imbalance between
+buyers and sellers at a granularity that no public data source can replicate.
+Hedge funds and investment banks with large prime brokerage and execution
+operations have analogous visibility into client positioning across instruments
+and time horizons.
+
+This information has substantial predictive value at the short horizons studied
+here. Knowing that a sustained institutional order is being worked in a given
+direction, or that retail flow has shifted from buy-dominated to sell-dominated
+over the preceding seconds, is qualitatively different from inferring order
+imbalance from the public LOB alone. The public order book reflects only the
+fraction of activity that reaches the exchange; the proprietary flow signals
+available to large institutions capture the full picture. This creates a
+structural information asymmetry between academic research, which is confined to
+public data sources, and industry participants who can use their own client flow
+as a predictive feature.
+
+The practical implication is that models trained exclusively on public data —
+regardless of their algorithmic sophistication — may face a performance ceiling
+imposed by this information gap rather than by their architecture or training
+procedure. Closing it is not primarily a matter of feature engineering: it
+requires either operating at sufficient scale to generate proprietary flow
+observations internally, or entering into data-sharing arrangements with
+institutions that already do. This consideration supports interpreting the
+results of this thesis, and of academic RL trading research more broadly, as a
+lower bound on what is achievable by well-resourced industry participants rather
+than as a reflection of the technique's fundamental limits.
+
 Together, these limitations suggest that the performance ceiling of any
 agent that sees only the spot LOB is bounded not by the choice of RL
 algorithm or reward function, but by the information content of its
