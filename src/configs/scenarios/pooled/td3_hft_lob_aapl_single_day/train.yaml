@@ -15,6 +15,7 @@ data:
   filter_lob_levels: 5
 env:
   backend: tradingenv
+  mode: hft
   trading_fees: 0.0
   price_column: close
   include_position_feature: true
