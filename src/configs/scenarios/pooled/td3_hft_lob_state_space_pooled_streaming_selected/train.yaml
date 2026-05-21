@@ -74,7 +74,7 @@ training:
   policy_delay: 2
   delay_actor: true
   delay_qvalue: true
-  exploration_noise_std: 0.1
+  exploration_noise_std: 0.3
   loss_function: smooth_l1
   eval_fraction: 0.2
   eval_interval: 1000
