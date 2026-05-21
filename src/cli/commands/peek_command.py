@@ -21,12 +21,14 @@ class PeekParams:
     n_features: int = 20
     skip_rows: int = 0
     show_correlations: bool = False
+    export: bool = False
 
 
 class PeekCommand(BaseCommand):
     """Show a prepared dataset summary: splits, feature stats, memmap inventory."""
 
     def execute(self, params: PeekParams) -> None:
+        import pandas as pd
         from logger import get_logger as _get_logger
         from trading_rl import ExperimentConfig
         from trading_rl.data_utils import build_prepared_dataset
@@ -59,13 +61,29 @@ class PeekCommand(BaseCommand):
         detected_warmup = self._detect_warmup(config)
         effective_skip = params.skip_rows if params.skip_rows else detected_warmup
 
+        export_dir: Path | None = None
+        if params.export:
+            scenario_name = config_path.stem if config_path.is_file() else config_path.name
+            export_dir = Path("reports/peek") / scenario_name
+            export_dir.mkdir(parents=True, exist_ok=True)
+
         self.console.print(Panel(Text(str(config_path), style="bold cyan"), title="scenario", expand=False))
-        self._print_splits(dataset)
-        self._print_feature_stats(dataset, config, params.n_features, effective_skip, detected_warmup, params.skip_rows)
-        self._print_log_return_stats(dataset, config, effective_skip)
+        splits_df = self._print_splits(dataset)
+        feat_df = self._print_feature_stats(dataset, config, params.n_features, effective_skip, detected_warmup, params.skip_rows)
+        ret_df = self._print_log_return_stats(dataset, config, effective_skip)
+        corr_df: pd.DataFrame | None = None
         if params.show_correlations:
-            self._print_reward_correlations(dataset, config, effective_skip)
+            corr_df = self._print_reward_correlations(dataset, config, effective_skip)
         self._print_memmaps(dataset)
+
+        if export_dir is not None:
+            splits_df.to_csv(export_dir / "splits.csv", index=False)
+            feat_df.to_csv(export_dir / "feature_stats.csv", index=False)
+            if ret_df is not None:
+                ret_df.to_csv(export_dir / "log_return_stats.csv", index=False)
+            if corr_df is not None:
+                corr_df.to_csv(export_dir / "correlations.csv", index=False)
+            self.console.print(f"\n[green]Exported to {export_dir}/[/green]")
 
     # ------------------------------------------------------------------
 
@@ -87,7 +105,10 @@ class PeekCommand(BaseCommand):
             pass
         return detected
 
-    def _print_splits(self, dataset) -> None:
+    def _print_splits(self, dataset) -> "pd.DataFrame":
+        import pandas as pd
+
+        rows = []
         tbl = Table(title="Splits", show_header=True, header_style="bold")
         tbl.add_column("split")
         tbl.add_column("rows", justify="right")
@@ -95,12 +116,16 @@ class PeekCommand(BaseCommand):
         tbl.add_column("first timestamp")
         tbl.add_column("last timestamp")
         for name, df in [("train", dataset.train_df), ("val", dataset.val_df), ("test", dataset.test_df)]:
-            first = str(df.index[0]) if len(df) else "—"
-            last = str(df.index[-1]) if len(df) else "—"
+            first = str(df.index[0]) if len(df) else ""
+            last = str(df.index[-1]) if len(df) else ""
             tbl.add_row(name, f"{len(df):,}", str(df.shape[1]), first, last)
+            rows.append({"split": name, "rows": len(df), "columns": df.shape[1], "first_timestamp": first, "last_timestamp": last})
         self.console.print(tbl)
+        return pd.DataFrame(rows)
 
-    def _print_feature_stats(self, dataset, config, n_features: int, effective_skip: int, detected_warmup: int, skip_rows: int) -> None:
+    def _print_feature_stats(self, dataset, config, n_features: int, effective_skip: int, detected_warmup: int, skip_rows: int) -> "pd.DataFrame":
+        import pandas as pd
+
         feat_cols = dataset.feature_columns
         env_selected = list(getattr(config.env, "feature_columns", None) or feat_cols)
         train = dataset.train_df[feat_cols].iloc[effective_skip:]
@@ -125,6 +150,7 @@ class PeekCommand(BaseCommand):
 
         selected_set = set(env_selected)
         desc = train.describe().T
+        export_rows = []
         for col in feat_cols[:n_features]:
             row = desc.loc[col]
             null_count = int(train[col].isnull().sum())
@@ -135,13 +161,25 @@ class PeekCommand(BaseCommand):
                 f"{row['min']:.4f}", f"{row['max']:.4f}",
                 str(null_count) if null_count else "[green]0[/green]",
             )
+            export_rows.append({
+                "feature": col,
+                "selected": col in selected_set,
+                "mean": float(row["mean"]),
+                "std": float(row["std"]),
+                "min": float(row["min"]),
+                "max": float(row["max"]),
+                "nulls": null_count,
+            })
         self.console.print(tbl)
 
         if len(feat_cols) > n_features:
             self.console.print(f"  [dim]… {len(feat_cols) - n_features} more features hidden (use --top {len(feat_cols)} to show all)[/dim]")
 
-    def _print_log_return_stats(self, dataset, config, effective_skip: int) -> None:
+        return pd.DataFrame(export_rows)
+
+    def _print_log_return_stats(self, dataset, config, effective_skip: int) -> "pd.DataFrame | None":
         import numpy as np
+        import pandas as pd
         from trading_rl.data_utils import load_trading_data
 
         price_col = getattr(config.env, "price_column", "close")
@@ -155,7 +193,7 @@ class PeekCommand(BaseCommand):
                 raw_train = raw_train.copy()
                 raw_train[price_col] = ((raw_train["ask_px_00"] + raw_train["bid_px_00"]) / 2.0).ffill().bfill()
             else:
-                return
+                return None
 
         prices = raw_train[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -163,7 +201,7 @@ class PeekCommand(BaseCommand):
         log_rets = log_rets[np.isfinite(log_rets)]
 
         if len(log_rets) == 0:
-            return
+            return None
 
         reward_type = getattr(config.env, "reward_type", "unknown")
         tbl = Table(
@@ -188,9 +226,24 @@ class PeekCommand(BaseCommand):
             f"{log_rets.max():.6f}",
         )
         self.console.print(tbl)
+        return pd.DataFrame([{
+            "price_column": price_col,
+            "reward_type": reward_type,
+            "n_steps": len(log_rets),
+            "mean": float(log_rets.mean()),
+            "std": float(log_rets.std()),
+            "min": float(log_rets.min()),
+            "p5": float(p[0]),
+            "p25": float(p[1]),
+            "p50": float(p[2]),
+            "p75": float(p[3]),
+            "p95": float(p[4]),
+            "max": float(log_rets.max()),
+        }])
 
-    def _print_reward_correlations(self, dataset, config, effective_skip: int) -> None:
+    def _print_reward_correlations(self, dataset, config, effective_skip: int) -> "pd.DataFrame | None":
         import numpy as np
+        import pandas as pd
         from scipy.stats import spearmanr
         from trading_rl.data_utils import load_trading_data
 
@@ -207,7 +260,7 @@ class PeekCommand(BaseCommand):
                 raw_train[price_col] = ((raw_train["ask_px_00"] + raw_train["bid_px_00"]) / 2.0).ffill().bfill()
             else:
                 self.console.print("[yellow]Cannot compute correlations: price column not found.[/yellow]")
-                return
+                return None
 
         prices = raw_train[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -253,6 +306,7 @@ class PeekCommand(BaseCommand):
             tbl.add_row(col, _fmt(p), _fmt(s))
 
         self.console.print(tbl)
+        return pd.DataFrame([{"feature": col, "pearson": p, "spearman": s} for col, p, s in rows])
 
     def _print_memmaps(self, dataset) -> None:
         if not dataset.memmap_train_paths:

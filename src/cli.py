@@ -666,6 +666,9 @@ def peek(
     show_correlations: bool = typer.Option(
         False, "--corr", help="Show feature–reward correlation table (Pearson + Spearman)"
     ),
+    export: bool = typer.Option(
+        False, "--export", help="Export tables as CSV files to reports/peek/<scenario>/"
+    ),
 ):
     """Show a summary of the prepared dataset for a scenario.
 
@@ -679,6 +682,7 @@ def peek(
         n_features=n_features,
         skip_rows=skip_rows,
         show_correlations=show_correlations,
+        export=export,
     ))
 
 
