@@ -325,13 +325,31 @@ attention mechanism aligns well with LOB inputs where the relative
 importance of recent events varies with market conditions.
 
 Second, a hybrid approach combining gradient-boosted trees with the RL framework
-is worth investigating. The recently proposed GBRL framework [@Fuhrer2025]
-directly integrates gradient boosting into the actor-critic architecture,
-replacing neural network components with gradient-boosted trees. The value
-estimation step is effectively a regression on tabular microstructure features.
-This is a natural fit for tree-based models known to perform well on structured
-financial data. Additionally, the interpretability of individual trees may provide
-additional insight into which features drive the learned value function.
+is a particularly interesting direction for this problem. The GBRL framework
+[@Fuhrer2025], presented at ICML 2025, integrates gradient boosting directly
+into the actor-critic architecture, replacing the MLP components with
+gradient-boosted trees while preserving the TD3 or PPO training loop. Unlike
+general-purpose gradient boosting libraries such as XGBoost or CatBoost, GBRL
+is designed specifically for the non-stationary, target-free setting of RL: it
+uses a shared tree structure across the policy and value function and is
+implemented in C++/CUDA to handle the high throughput of parallel rollout
+collection. The value estimation step is effectively a regression on tabular
+features — precisely the setting where gradient-boosted trees are known to match
+or outperform MLPs on structured financial data. This makes GBRL a natural fit
+for the order-book feature set designed in this thesis, where inputs are
+engineered tabular signals rather than raw image or sequence data.
+
+A further advantage is interpretability. Individual trees can be inspected to
+identify which features drive the value estimates at specific states, providing
+transparency that standard MLP critics cannot offer. For a thesis whose
+observation vector is constructed from economically motivated microstructure
+signals, this property is directly useful: it would allow post-hoc analysis of
+whether the value function assigns importance to features in a way that aligns
+with the economic reasoning motivating their inclusion. An open-source
+implementation is maintained by NVIDIA Research and integrates with
+stable-baselines3, making it accessible for future experimental work without
+requiring a full framework rewrite.^[The GBRL implementation is available at
+\url{https://github.com/NVlabs/gbrl}.]
 
 ### Evaluation Robustness
 <!-- [PLACEHOLDER] -->
