@@ -1,0 +1,12 @@
+[
+  {
+    "run_name":"hidden-matrix-delta",
+    "status":"FINISHED",
+    "start_time":"2026-05-15 23:10:52.198",
+    "end_time":"2026-05-15 23:21:53.449",
+    "final_reward":0.0,
+    "training_steps":null,
+    "episode_reward":0.0000011706,
+    "value_loss":0.0002046437
+  }
+]

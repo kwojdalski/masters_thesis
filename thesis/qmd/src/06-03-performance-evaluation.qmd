@@ -32,7 +32,7 @@ def display_table(frame: pd.DataFrame) -> None:
         display(frame)
 
 
-EXPERIMENT_NAME = "TRADINGENV_TD3_AAPL_HFT_STATE_SPACE"
+EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 ```
@@ -117,7 +117,7 @@ display_table(benchmark_df)
 
 *TR: Total Return. CAGR: Compound Annual Growth Rate. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
 
-All annualized metrics use **calendar-time periods** as the annualization factor, which is correct for 24/7 markets such as cryptocurrency: for the BTC/USDT 1-hour data used in the primary experiments, this gives $365 \times 24 = 8{,}760$ periods per year. Sharpe and Sortino are scaled by $\sqrt{\text{periods per year}}$ and CAGR is annualized by raising $(1 + R_{\text{total}})$ to the power $\tfrac{\text{periods per year}}{n}$, where $n$ is the number of steps in the evaluation horizon.
+All annualized metrics use **trading-time periods** as the annualization factor derived from the observed event rate in the evaluation data. For tick-level US equity data, the pipeline computes the events-per-second rate over the evaluation window and projects it to one full trading year ($252 \text{ days} \times 6.5 \text{ hours} = 5{,}896{,}800 \text{ seconds}$). Sharpe and Sortino are scaled by $\sqrt{\text{periods per year}}$ and CAGR is annualized by raising $(1 + R_{\text{total}})$ to the power $\tfrac{\text{periods per year}}{n}$, where $n$ is the number of steps in the evaluation horizon.
 
 ### Evaluation Metadata Snapshot
 <!-- [PLACEHOLDER] -->

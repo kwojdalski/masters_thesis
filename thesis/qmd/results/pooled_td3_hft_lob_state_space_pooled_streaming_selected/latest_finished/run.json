@@ -1,0 +1,17 @@
+{
+  "run_id": "298ddbea51da48ab9a4eb1a0ffe5bae5",
+  "run_name": "hidden-matrix-delta",
+  "status": "FINISHED",
+  "start_time": "2026-05-15T23:10:52.198000",
+  "end_time": "2026-05-15T23:21:53.449000",
+  "artifact_uri": "/Users/krzysztofwojdalski/github_projects/masters_thesis/mlruns/27/298ddbea51da48ab9a4eb1a0ffe5bae5/artifacts",
+  "experiment_name": "pooled_td3_hft_lob_state_space_pooled_streaming_selected",
+  "experiment_id": 27,
+  "files": {
+    "params": "params.json",
+    "latest_metrics": "latest_metrics.json",
+    "evaluation_report": null,
+    "statistical_tests": null
+  },
+  "evaluation_plots": {}
+}

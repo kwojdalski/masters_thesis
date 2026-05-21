@@ -1,5 +1,5 @@
 statistical_testing:
-  enabled: false
+  enabled: true
   log_to_research_artifacts: true
   compare_to_buy_and_hold: true
   compare_to_short_and_hold: true
