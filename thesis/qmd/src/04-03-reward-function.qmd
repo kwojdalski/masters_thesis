@@ -169,7 +169,19 @@ with $c = 10$, following the standard reward-clipping practice in deep RL
 [@Mnih2015]. The bound preserves the sign and relative ordering of rewards while
 preventing large gradient updates during low-variance regimes. DSR values outside
 this range occur rarely under normal market conditions and typically indicate
-numerical instability rather than genuine policy performance.
+numerical instability rather than genuine policy performance.^[In addition to
+clamping, the implementation applies a global reward scale $\kappa = 10^{-4}$
+($r_t \leftarrow \kappa \cdot D_t$) before rewards are stored in the replay
+buffer. At tick frequency, the underlying log-returns entering the DSR formula
+are of order $10^{-5}$, which makes the unscaled DSR signal—after the epsilon
+stabilisation in the denominator—typically of order $10^{-5}$ to $10^{-4}$ in
+absolute value. With discount factor $\gamma = 0.9$, critic targets lie in the
+range $Q \approx r / (1 - \gamma)$. Scaling ensures these targets remain in a
+numerically well-conditioned range for the Adam optimiser and the smooth-$L_1$
+(Huber) critic loss. Crucially, multiplying all rewards by a positive constant
+does not change the argmax of the value function, so the optimal policy is
+unaffected; only the scale of value estimates changes. This technique is standard
+practice in deep RL implementations [@andrychowicz2020matters].]
 
 The DSR was chosen despite these limitations for three reasons. First, its
 recursive formulation makes it uniquely suitable for online RL: alternatives such
