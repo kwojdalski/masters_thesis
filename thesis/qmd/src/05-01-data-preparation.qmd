@@ -279,10 +279,12 @@ training days across the six instruments.
 #| echo: false
 #| warning: false
 
+import subprocess
 from pathlib import Path
 import pandas as pd
 
-_PEEK_DIR = Path("reports/peek/td3_hft_lob_state_space_pooled_streaming_selected")
+_repo_root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
+_PEEK_DIR = _repo_root / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
 _splits_path = _PEEK_DIR / "splits.csv"
 
 if _splits_path.exists():
@@ -345,10 +347,12 @@ continuous-control RL on financial microstructure data.
 #| echo: false
 #| warning: false
 
+import subprocess
 from pathlib import Path
 import pandas as pd
 
-_PEEK_DIR = Path("reports/peek/td3_hft_lob_state_space_pooled_streaming_selected")
+_repo_root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
+_PEEK_DIR = _repo_root / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
 _feat_path = _PEEK_DIR / "feature_stats.csv"
 
 if _feat_path.exists():
