@@ -361,6 +361,23 @@ function and a correctly implemented algorithm will face a learning problem whos
 difficulty is partly determined by the informativeness of the observation, not
 just the reward design.
 
+A related and underexplored direction is whether the engineered features retain
+predictive power at longer action intervals. The current setup operates in event
+time — the agent acts on every tick — which maximizes temporal resolution but
+also maximizes exposure to the noise sources described above. Many of the
+features in the observation vector, such as order flow imbalance, depth
+asymmetry, and short-term volatility estimates, have been shown in the
+microstructure literature to carry predictive content for price movements over
+horizons of minutes to tens of minutes, not just the next event. Sub-sampling
+the LOB stream so that the agent acts every $N$ seconds or every $K$ events,
+rather than at every tick, would raise the effective signal-to-noise ratio of
+the reward and might reveal that the feature set generates genuine alpha at a
+horizon where the noise floor is lower. This would require no change to the
+observation vector or reward function — only to the action frequency — making it
+a low-cost diagnostic for whether the current results reflect a fundamental
+limitation of the features or simply a mismatch between the features' predictive
+horizon and the tick-level action frequency at which they are evaluated.
+
 ### Alternative Model Architectures
 <!-- [PLACEHOLDER] -->
 
