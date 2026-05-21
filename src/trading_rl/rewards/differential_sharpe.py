@@ -303,16 +303,19 @@ Note: DSR must be calculated BEFORE updating the EMAs to use old values (t-1).
             dsr = float(np.clip(dsr, -10.0, 10.0))
         return float(dsr * self.scale)
 
-    def reset(self) -> None:
+    def reset(self, persist_moments: bool = False) -> None:
         """Reset DSR state for new episode.
 
-        This should be called at the start of each new episode to clear
-        the EMA state and previous portfolio value.
+        Args:
+            persist_moments: If True, keep A_t and B_t (cross-episode continuity)
+                and only clear _prev_nlv so the new episode's first step is
+                handled correctly. Default False resets everything.
         """
-        self.A_t = 0.0
-        self.B_t = 0.0
+        if not persist_moments:
+            self.A_t = 0.0
+            self.B_t = 0.0
         self._prev_nlv = None
-        logger.debug("dsr state reset")
+        logger.debug("dsr state reset persist_moments=%s", persist_moments)
 
     def __repr__(self) -> str:
         """String representation of DSR state."""

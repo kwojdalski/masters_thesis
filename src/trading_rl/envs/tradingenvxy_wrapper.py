@@ -426,13 +426,23 @@ class StreamingTradingEnvXY(gym.Env):
         )
         self._inner_env: TradingEnv | None = None
 
+        # Persistent DSR object so A_t/B_t survive across episode boundaries.
+        # Only _prev_nlv is cleared on reset (new episode = new NLV reference).
+        self._persistent_dsr: DifferentialSharpeRatio | None = (
+            DifferentialSharpeRatio(eta=reward_eta, scale=reward_scale)
+            if RewardType(reward_type) == RewardType.DIFFERENTIAL_SHARPE
+            else None
+        )
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
     def _make_reward(self):
         if self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
-            return DifferentialSharpeRatio(eta=self._reward_eta)
+            # Return the same object every episode — moments persist, NLV is
+            # cleared by reset(persist_moments=True) called in self.reset().
+            return self._persistent_dsr
         if self._reward_type == RewardType.LOG_RETURN:
             return LogReturn(scale=self._reward_scale)
         raise ValueError(
@@ -493,6 +503,10 @@ class StreamingTradingEnvXY(gym.Env):
         if seed is not None:
             self._symbol_rng = np.random.default_rng(seed)
             self._symbol_queue = []
+        # Clear only _prev_nlv so the new episode's first step is handled
+        # correctly, while A_t/B_t carry over from the previous episode.
+        if self._persistent_dsr is not None:
+            self._persistent_dsr.reset(persist_moments=True)
         file_idx = self._next_symbol_idx()
         mp = self._memmap_paths[file_idx]
         max_start = mp.n_rows - self._episode_length
