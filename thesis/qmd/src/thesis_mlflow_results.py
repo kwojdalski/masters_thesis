@@ -629,13 +629,32 @@ def _load_experiment_snapshot_from_export(experiment_name: str) -> ExperimentSna
 
 
 def load_experiment_snapshot(experiment_name: str) -> ExperimentSnapshot:
+    # Prefer live MLflow so renders always reflect the latest finished run.
+    # Fall back to the static export when the database is unavailable (CI, offline).
+    try:
+        live = _load_experiment_snapshot_from_mlflow(experiment_name)
+        if live.latest_finished is not None or live.latest_running is not None:
+            return live
+    except Exception:
+        pass
     exported = _load_experiment_snapshot_from_export(experiment_name)
     if exported is not None:
         return exported
-    return _load_experiment_snapshot_from_mlflow(experiment_name)
+    return ExperimentSnapshot(
+        experiment_name=experiment_name,
+        latest_running=None,
+        latest_finished=None,
+    )
 
 
 def runs_overview_table(experiment_name: str) -> pd.DataFrame:
+    # Same preference: live MLflow first, static export as fallback.
+    try:
+        df = _runs_overview_table_from_mlflow(experiment_name)
+        if not df.empty:
+            return df
+    except Exception:
+        pass
     snapshot_dir = _experiment_snapshot_dir(experiment_name)
     json_path = snapshot_dir / "runs_overview.json"
     parquet_path = snapshot_dir / "runs_overview.parquet"
@@ -647,4 +666,4 @@ def runs_overview_table(experiment_name: str) -> pd.DataFrame:
         return df
     if parquet_path.exists():
         return pd.read_parquet(parquet_path)
-    return _runs_overview_table_from_mlflow(experiment_name)
+    return pd.DataFrame()
