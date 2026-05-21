@@ -319,6 +319,26 @@ operating as intended across all features. The absence of null values
 verifies that no look-ahead imputation or forward-fill was applied
 during feature construction.
 
+Several selected features — most notably `ofi` and `ofi_rolling_50` —
+exhibit extreme minimum and maximum values despite the near-unit standard
+deviation. This is a structural property of order-flow imbalance, not a
+data quality issue. The order book is quiet the overwhelming majority of
+the time: most tick events represent small queue adjustments that produce
+z-scores close to zero. Occasionally, however, a large aggressive order
+consumes multiple price levels in rapid succession, causing a spike of
+hundreds of raw OFI units. The Welford running standard deviation is
+dominated by the quiet majority, so these rare spikes emerge as z-scores
+of $\pm$290 or larger after normalization.
+
+The values in @tbl-feature-stats are post-normalization but pre-clipping.
+The environment applies a hard observation clip of $[-5, 5]$ via the
+`obs_clip` parameter, so the policy network never receives the extreme
+tails shown here. The table therefore faithfully describes the prepared
+dataset, while the effective input range seen by the agent is bounded.
+This two-step design — normalize to make the typical range well-behaved,
+then clip to suppress the rare extreme events — is standard practice in
+continuous-control RL on financial microstructure data.
+
 ```{python}
 #| label: tbl-feature-stats
 #| tbl-cap: "Distributional statistics of engineered microstructure features on the training split (skip=500). Selected: included in the agent observation vector."
