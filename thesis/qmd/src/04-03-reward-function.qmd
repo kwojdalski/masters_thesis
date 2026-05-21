@@ -125,8 +125,6 @@ Second, the DSR is
 recursively computable from $A_{t-1}$ and $B_{t-1}$ alone. This means no fixed window,
 no look-ahead, and no discontinuity as old observations expire.
 
-### Reward and Financial Return Are Not the Same
-
 A shaped reward such as DSR is used to stabilize learning. However, it is not
 equivalent to the financial performance metrics reported in Chapter 6.
 
@@ -139,8 +137,6 @@ training.
 Conflating the two would invalidate the
 empirical comparison. For example, treating a high training DSR as
 evidence of a strong Sharpe ratio on the test set would be incorrect.
-
-### Limitations of the Differential Sharpe Ratio
 
 The DSR approach has several limitations that should be acknowledged. First, it
 assumes that the first and second moments of returns are approximately stationary
