@@ -266,7 +266,8 @@ class PeekCommand(BaseCommand):
         with np.errstate(divide="ignore", invalid="ignore"):
             log_rets = np.diff(np.log(prices))
 
-        feat_df = dataset.train_df[feat_cols].iloc[effective_skip:]
+        available = [c for c in feat_cols if c in dataset.train_df.columns]
+        feat_df = dataset.train_df[available].iloc[effective_skip:]
         # Align: log_rets has one fewer row than prices
         n = min(len(log_rets), len(feat_df) - 1)
         log_rets = log_rets[:n]

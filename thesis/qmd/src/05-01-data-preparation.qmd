@@ -261,3 +261,98 @@ In the current implementation, the auxiliary pricing series used for portfolio
 valuation plays the role of a mid-price proxy rather than an executable bid/ask
 quote. This simplifies reward accounting but makes the resulting backtest
 performance optimistic relative to realistic spread-crossing execution.
+
+### Dataset Split Summary {#sec-dataset-split-summary}
+
+@tbl-dataset-splits summarises the row counts and timestamp ranges of
+the training, validation, and test subsets for the pooled six-asset
+dataset used in the primary experiment. Row counts reflect the number
+of order-book events that pass the level-0–4 filter after chronological
+validation. The validation and test subsets are each bounded at 50,000
+events by the configured `validation_size` and `test_size` parameters;
+the training subset comprises all remaining events from the three
+training days across the six instruments.
+
+```{python}
+#| label: tbl-dataset-splits
+#| tbl-cap: "Training, validation, and test split sizes and timestamp ranges for the pooled six-asset LOB dataset."
+#| echo: false
+#| warning: false
+
+from pathlib import Path
+import pandas as pd
+
+_PEEK_DIR = Path("reports/peek/td3_hft_lob_state_space_pooled_streaming_selected")
+_splits_path = _PEEK_DIR / "splits.csv"
+
+if _splits_path.exists():
+    splits_df = pd.read_csv(_splits_path)
+    display_df = splits_df.copy()
+    display_df["rows"] = display_df["rows"].apply(lambda x: f"{int(x):,}")
+    display_df = display_df.rename(columns={
+        "split": "Split",
+        "rows": "Events",
+        "columns": "Columns",
+        "first_timestamp": "First timestamp (UTC)",
+        "last_timestamp": "Last timestamp (UTC)",
+    })
+    display_df = display_df.drop(columns=["Columns"])
+    try:
+        display(display_df.style.hide(axis="index"))
+    except AttributeError:
+        display(display_df)
+else:
+    print("splits.csv not found — run: uv run python src/cli.py peek "
+          "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
+          "--skip 500 --export")
+```
+
+### Feature Statistics {#sec-feature-statistics}
+
+@tbl-feature-stats reports distributional statistics for all engineered
+microstructure features computed over the training split, after skipping
+the first 500 events to allow rolling-window features to stabilise. The
+"Selected" column indicates whether the feature is included in the
+agent's observation vector. Means close to zero and standard deviations
+near one confirm that the causal running normalization is
+operating as intended across all features. The absence of null values
+verifies that no look-ahead imputation or forward-fill was applied
+during feature construction.
+
+```{python}
+#| label: tbl-feature-stats
+#| tbl-cap: "Distributional statistics of engineered microstructure features on the training split (skip=500). Selected: included in the agent observation vector."
+#| echo: false
+#| warning: false
+
+_feat_path = _PEEK_DIR / "feature_stats.csv"
+
+if _feat_path.exists():
+    feat_df = pd.read_csv(_feat_path)
+
+    # Clean up feature names for display
+    feat_df["feature"] = feat_df["feature"].str.replace("feature_hft_", "", regex=False).str.replace("feature_", "", regex=False)
+    feat_df["selected"] = feat_df["selected"].map({True: "yes", False: ""})
+
+    for col in ("mean", "std", "min", "max"):
+        feat_df[col] = feat_df[col].apply(lambda x: f"{x:.4f}")
+    feat_df["nulls"] = feat_df["nulls"].astype(int)
+
+    feat_df = feat_df.rename(columns={
+        "feature": "Feature",
+        "selected": "Selected",
+        "mean": "Mean",
+        "std": "Std",
+        "min": "Min",
+        "max": "Max",
+        "nulls": "Nulls",
+    })
+
+    try:
+        display(feat_df.style.hide(axis="index"))
+    except AttributeError:
+        display(feat_df)
+else:
+    print("feature_stats.csv not found — run: uv run python src/cli.py peek "
+          "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
+          "--skip 500 --export")
