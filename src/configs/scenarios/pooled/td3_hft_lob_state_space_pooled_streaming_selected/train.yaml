@@ -44,7 +44,7 @@ env:
   obs_clip: 5.0
   reward_type: differential_sharpe
   reward_eta: 0.01
-  reward_scale: 0.0001
+  reward_scale: 1000
 network:
   actor_hidden_dims:
   - 128
