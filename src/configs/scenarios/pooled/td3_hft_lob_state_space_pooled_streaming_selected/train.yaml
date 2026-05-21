@@ -58,7 +58,7 @@ training:
   actor_lr: 0.0001
   value_lr: 0.0001
   value_weight_decay: 2.0e-06
-  actor_weight_decay: 2.0e-06
+  actor_weight_decay: 0.0
   max_steps: 3000000
   checkpoint_interval: 100000
   init_rand_steps: 100000
