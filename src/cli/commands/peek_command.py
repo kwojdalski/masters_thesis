@@ -289,7 +289,7 @@ class PeekCommand(BaseCommand):
         rows.sort(key=lambda r: abs(r[1]) if np.isfinite(r[1]) else 0, reverse=True)
 
         tbl = Table(
-            title="Feature–reward correlations (train, sorted by |Pearson|)",
+            title="Feature vs log-return correlations (train, sorted by |Pearson|)",
             show_header=True,
             header_style="bold",
         )
