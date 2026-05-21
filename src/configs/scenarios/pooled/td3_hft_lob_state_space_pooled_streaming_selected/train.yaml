@@ -35,6 +35,7 @@ data:
   memmap_dir: ./data/memmap/pooled_daily_6sym_selected
   feature_cache_dir: .cache/feature_transformation
   filter_lob_levels: 5
+  feature_config: src/configs/feature_sets/hft_lob_features_all.yaml
 env:
   backend: tradingenv
   mode: hft
@@ -45,6 +46,18 @@ env:
   obs_clip: 5.0
   reward_type: differential_sharpe
   reward_eta: 0.01
+  feature_columns:
+  - feature_hft_book_pressure_l0
+  - feature_hft_order_book_imbalance_3l
+  - feature_hft_order_count_imbalance_l0
+  - feature_hft_microprice
+  - feature_hft_microprice_divergence
+  - feature_hft_bid_slope
+  - feature_hft_ask_slope
+  - feature_hft_ofi
+  - feature_hft_ofi_rolling_50
+  - feature_hft_signed_trade_flow_50
+  - feature_position
 network:
   actor_hidden_dims:
   - 128
