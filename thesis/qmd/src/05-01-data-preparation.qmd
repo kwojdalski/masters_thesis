@@ -345,6 +345,10 @@ continuous-control RL on financial microstructure data.
 #| echo: false
 #| warning: false
 
+from pathlib import Path
+import pandas as pd
+
+_PEEK_DIR = Path("reports/peek/td3_hft_lob_state_space_pooled_streaming_selected")
 _feat_path = _PEEK_DIR / "feature_stats.csv"
 
 if _feat_path.exists():
@@ -376,3 +380,4 @@ else:
     print("feature_stats.csv not found — run: uv run python src/cli.py peek "
           "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
           "--skip 500 --export")
+```
