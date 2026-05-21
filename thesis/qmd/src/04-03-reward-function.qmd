@@ -165,19 +165,38 @@ with $c = 10$, following the standard reward-clipping practice in deep RL
 [@Mnih2015]. The bound preserves the sign and relative ordering of rewards while
 preventing large gradient updates during low-variance regimes. DSR values outside
 this range occur rarely under normal market conditions and typically indicate
-numerical instability rather than genuine policy performance.^[In addition to
-clamping, the implementation applies a global reward scale $\kappa = 10^{-4}$
-($r_t \leftarrow \kappa \cdot D_t$) before rewards are stored in the replay
-buffer. At tick frequency, the underlying log-returns entering the DSR formula
-are of order $10^{-5}$, which makes the unscaled DSR signal—after the epsilon
-stabilisation in the denominator—typically of order $10^{-5}$ to $10^{-4}$ in
-absolute value. With discount factor $\gamma = 0.9$, critic targets lie in the
-range $Q \approx r / (1 - \gamma)$. Scaling ensures these targets remain in a
-numerically well-conditioned range for the Adam optimiser and the smooth-$L_1$
-(Huber) critic loss. Crucially, multiplying all rewards by a positive constant
-does not change the argmax of the value function, so the optimal policy is
-unaffected; only the scale of value estimates changes. This technique is standard
-practice in deep RL implementations [@andrychowicz2020matters].]
+numerical instability rather than genuine policy performance.^[In the DSR
+scenario, the reward scale is $\kappa = 1$ — no additional rescaling is applied.
+At tick frequency, with $\varepsilon = 10^{-16}$, the denominator
+$(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$ is dominated by the empirical
+variance term: for typical intraday tick-level returns with
+$\sigma \approx 4.5 \times 10^{-5}$, the variance is of order $2 \times 10^{-9}$
+and its $3/2$ power is of order $10^{-13}$, far exceeding $\varepsilon = 10^{-16}$.
+The resulting DSR signal is therefore approximately $R_t / \sigma \sim \mathcal{O}(1)$,
+which lies naturally in a well-conditioned range for the Adam optimiser and the
+smooth-$L_1$ (Huber) critic loss. Crucially, this means no ad-hoc reward
+rescaling is required; the normalisation is an intrinsic property of the DSR
+formula once $\varepsilon$ is chosen small enough that the empirical variance
+dominates the stabiliser.]
+
+Fourth, the DSR introduces a latent-state dependency that conflicts with the
+Markovian assumption required by off-policy algorithms such as TD3. The running
+moments $A_t$ and $B_t$ are not included in the agent's observation vector, so
+the reward at time $t$ depends on the hidden trajectory of past returns through
+the episode. During training, TD3 stores transitions
+$(s_t, a_t, r_t, s_{t+1})$ in a replay buffer and samples them in random order;
+the stored reward $r_t = D_t$ was computed under the EMA state
+$(A_{t-1}, B_{t-1})$ prevailing at collection time, which differs from the EMA
+state at replay time. Consequently, the same state-action pair $(s, a)$ can
+produce different reward values when retrieved from the buffer at different
+training epochs, violating the assumption that $p(r, s' \mid s, a)$ is
+stationary. This produces contradictory Q-value targets and slows convergence.
+The effect is most pronounced early in each episode, before the EMA moments
+have stabilized; after approximately $1/\eta$ steps the moments approach a
+regime-consistent steady state and the reward distribution becomes approximately
+stationary. A theoretically clean resolution is to augment the observation with
+$(A_t, B_t)$, transforming the problem into a fully Markovian MDP; this is left
+as a direction for future work.
 
 The DSR was chosen despite these limitations for three reasons. First, its
 recursive formulation makes it uniquely suitable for online RL: alternatives such
