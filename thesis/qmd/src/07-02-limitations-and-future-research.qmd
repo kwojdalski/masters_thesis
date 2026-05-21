@@ -241,7 +241,18 @@ problem. Second, replacing the DSR reward with alternatives such as a
 Sortino-based signal, a direct log-return objective, or a reward that
 explicitly penalizes drawdown would test the sensitivity of policy behavior to
 reward specification — a dimension the thesis identifies as important but does
-not empirically vary.
+not empirically vary. Third, a structured search over the network
+architecture within the MLP family — covering learning rates, hidden layer
+width and depth, and activation function — would determine how much of the
+observed performance is attributable to the algorithm itself versus the
+specific parameterization chosen. Activation functions with different
+saturation and gradient propagation properties, such as GELU or ELU in place
+of ReLU, may interact differently with the bounded and often skewed
+distributional properties of order-book features. Layer normalization inside
+the critic, which stabilizes Q-value scale across reward magnitudes, is also
+untested here. These are not incidental details: in environments with a low
+signal-to-noise ratio, architecture choices can dominate algorithm differences
+in their effect on final policy quality.
 
 ### Critic Pathologies in Deterministic Actor-Critic Methods
 <!-- [PLACEHOLDER] -->
@@ -350,6 +361,21 @@ implementation is maintained by NVIDIA Research and integrates with
 stable-baselines3, making it accessible for future experimental work without
 requiring a full framework rewrite.^[The GBRL implementation is available at
 \url{https://github.com/NVlabs/gbrl}.]
+
+A counterpoint to both directions above is that increased model complexity may
+not be warranted given the signal quality constraints discussed in the preceding
+section. If the reward signal at tick frequency is dominated by microstructure
+noise rather than learnable structure, a high-capacity model — whether an MLP,
+a Transformer, or a gradient-boosted ensemble — will fit that noise rather than
+generalize from it. In this regime, a linear policy and linear critic, or a
+low-capacity model with strong regularization, may outperform more expressive
+architectures precisely because limited capacity prevents memorizing noise. A
+linear baseline should therefore be evaluated as a lower bound before
+committing to more complex designs: if a linear actor matches or exceeds the
+MLP in out-of-sample performance, this would be strong evidence that the
+problem as currently formulated does not contain non-linear structure that
+deep RL can exploit — and the appropriate response is to redesign the problem
+formulation rather than to increase model capacity.
 
 ### Evaluation Robustness
 <!-- [PLACEHOLDER] -->
