@@ -221,7 +221,7 @@ Note: DSR must be calculated BEFORE updating the EMAs to use old values (t-1).
         B_t: Current EMA of squared returns (second moment estimate)
     """
 
-    def __init__(self, eta: float = 0.01, epsilon: float = 1e-8, clip_rewards: bool = True, scale: float = 1.0):
+    def __init__(self, eta: float = 0.01, epsilon: float = 1e-16, clip_rewards: bool = True, scale: float = 1.0):
         """Initialize DSR reward calculator.
 
         Args:
