@@ -303,7 +303,7 @@ Note: DSR must be calculated BEFORE updating the EMAs to use old values (t-1).
             dsr = float(np.clip(dsr, -10.0, 10.0))
         return float(dsr * self.scale)
 
-    def reset(self, persist_moments: bool = False) -> None:
+    def reset(self, persist_moments: bool = True) -> None:
         """Reset DSR state for new episode.
 
         Args:
