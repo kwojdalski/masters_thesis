@@ -1,7 +1,6 @@
 """Environment creation helpers for trading experiments."""
 
 import warnings
-from enum import StrEnum
 
 import gym_anytrading  # noqa: F401  # registers envs if available
 import gym_trading_env  # noqa: F401
@@ -12,21 +11,11 @@ from torchrl.envs.transforms import StepCounter
 
 from logger import get_logger
 from trading_rl.config import ExperimentConfig
-from trading_rl.constants import RewardType
+from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
 from trading_rl.rewards import reward_function
 
 logger = get_logger(__name__)
-
-
-class EnvBackend(StrEnum):
-    """Supported trading environment backends."""
-
-    GYM_TRADING_DISCRETE = "gym_trading_env.discrete"
-    GYM_TRADING_CONTINUOUS = "gym_trading_env.continuous"
-    GYM_ANYTRADING_FOREX = "gym_anytrading.forex"
-    GYM_ANYTRADING_STOCKS = "gym_anytrading.stocks"
-    TRADINGENV = "tradingenv"
 
 
 # Keep for external callers that imported these names directly.

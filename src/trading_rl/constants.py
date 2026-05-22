@@ -32,6 +32,16 @@ class EnvMode(StrEnum):
     HFT = "hft"
 
 
+class EnvBackend(StrEnum):
+    """Supported trading environment backends."""
+
+    GYM_TRADING_DISCRETE = "gym_trading_env.discrete"
+    GYM_TRADING_CONTINUOUS = "gym_trading_env.continuous"
+    GYM_ANYTRADING_FOREX = "gym_anytrading.forex"
+    GYM_ANYTRADING_STOCKS = "gym_anytrading.stocks"
+    TRADINGENV = "tradingenv"
+
+
 class Severity(StrEnum):
     """Validation issue severity levels."""
 

@@ -11,7 +11,7 @@ from tensordict.nn import InteractionType
 from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
-from trading_rl.constants import RewardType
+from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.returns import RewardSeries, extract_tradingenv_return_series
 
@@ -102,7 +102,7 @@ def build_evaluation_report_for_trainer(
         strategy_simple_returns = np.array([], dtype=float)
 
         # TradingEnv backend can expose true NLV path via broker.track_record.
-        if str(backend).lower() == "tradingenv":
+        if str(backend).lower() == EnvBackend.TRADINGENV:
             return_series = extract_tradingenv_return_series(env_to_use, max_steps)
             if return_series is not None:
                 strategy_simple_returns = return_series.to_simple().values
@@ -146,7 +146,7 @@ def build_evaluation_report_for_trainer(
         benchmark_window.pct_change().iloc[1:].to_numpy(dtype=float)
     )
 
-    is_portfolio = backend == "tradingenv"
+    is_portfolio = backend == EnvBackend.TRADINGENV
     actions = _extract_action_array(rollout, is_portfolio=is_portfolio)
     periods_per_year = _periods_per_year_from_index(df_prices)
     if periods_per_year is not None:

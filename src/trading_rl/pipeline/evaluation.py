@@ -13,7 +13,7 @@ import torch
 
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
-from trading_rl.constants import RewardType
+from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import (
     EvaluationContext,
@@ -87,7 +87,7 @@ def compute_strategy_simple_returns_for_split(
         ).to_return_series().to_simple().values
 
     strategy_simple_returns = np.array([], dtype=float)
-    if str(backend).lower() == "tradingenv":
+    if str(backend).lower() == EnvBackend.TRADINGENV:
         return_series = extract_tradingenv_return_series(
             split_ctx.env,
             split_ctx.max_steps,
@@ -425,7 +425,7 @@ def build_final_metrics(
     total_env_steps: int = 0,
     total_episodes: int = 0,
 ) -> dict[str, Any]:
-    is_portfolio_backend = config.env.backend == "tradingenv"
+    is_portfolio_backend = config.env.backend == EnvBackend.TRADINGENV
     duration_entries = logs.get("training_duration_s", [])
     training_duration_s = duration_entries[-1] if duration_entries else None
 

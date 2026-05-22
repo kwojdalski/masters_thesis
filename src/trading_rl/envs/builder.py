@@ -11,6 +11,7 @@ from torchrl.envs import GymWrapper, TransformedEnv
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
+from trading_rl.constants import Algorithm, EnvBackend
 from trading_rl.data_loading import MemmapPaths, load_memmap_paths
 from trading_rl.envs.trading_envs import Backend, create_environment as build_backend_env
 
@@ -31,27 +32,36 @@ class BaseEnvironmentBuilder:
 class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
     """Backend-aware environment builder that also respects algorithm defaults."""
 
-    def __init__(self, default_backend: Backend = "gym_trading_env.discrete"):
+    def __init__(
+        self,
+        default_backend: Backend = EnvBackend.GYM_TRADING_DISCRETE,
+    ):
         super().__init__()
-        self.default_backend = default_backend
+        self.default_backend = EnvBackend(default_backend)
 
     def _resolve_backend(self, config: ExperimentConfig) -> Backend:
         """Determine backend from config, falling back to algorithm defaults."""
-        explicit_backend = getattr(getattr(config, "env", None), "backend", None)
-        algorithm = getattr(getattr(config, "training", None), "algorithm", "PPO")
+        explicit_backend_raw = getattr(getattr(config, "env", None), "backend", None)
+        explicit_backend = (
+            EnvBackend(explicit_backend_raw) if explicit_backend_raw else None
+        )
+        algorithm = getattr(getattr(config, "training", None), "algorithm", Algorithm.PPO)
         algo_backend: Backend | None
 
         # TD3/DDPG require continuous action space; enforce compatible backend
-        if str(algorithm).upper() in {"TD3", "DDPG"}:
-            if explicit_backend and explicit_backend not in {"gym_trading_env.continuous", "tradingenv"}:
+        if str(algorithm).upper() in {Algorithm.TD3, Algorithm.DDPG}:
+            if explicit_backend and explicit_backend not in {
+                EnvBackend.GYM_TRADING_CONTINUOUS,
+                EnvBackend.TRADINGENV,
+            }:
                 raise ValueError(
                     f"{algorithm} requires a continuous backend ('gym_trading_env.continuous' or 'tradingenv'), "
                     f"but config.env.backend is '{explicit_backend}'. "
                     "Please set env.backend to 'gym_trading_env.continuous' or 'tradingenv', or switch algorithm."
                 )
-            algo_backend = "gym_trading_env.continuous"
+            algo_backend = EnvBackend.GYM_TRADING_CONTINUOUS
         else:
-            algo_backend = "gym_trading_env.discrete"
+            algo_backend = EnvBackend.GYM_TRADING_DISCRETE
 
         backend: Backend = explicit_backend or algo_backend or self.default_backend
         self.logger.debug(
@@ -121,17 +131,20 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         backend = self._resolve_backend(config)
         episode_length = getattr(config.env, "streaming_episode_length", 10_000)
 
-        if backend == "tradingenv":
+        if backend == EnvBackend.TRADINGENV:
             return self._create_streaming_tradingenv(memmap_paths, episode_length, config)
 
-        _GYM_TRADING_BACKENDS = {"gym_trading_env.discrete", "gym_trading_env.continuous"}
+        _GYM_TRADING_BACKENDS = {
+            EnvBackend.GYM_TRADING_DISCRETE,
+            EnvBackend.GYM_TRADING_CONTINUOUS,
+        }
         if backend not in _GYM_TRADING_BACKENDS:
             raise ValueError(
                 f"memmap streaming is not supported for backend '{backend}'. "
                 "Supported: gym_trading_env.discrete, gym_trading_env.continuous, tradingenv."
             )
 
-        continuous = backend == "gym_trading_env.continuous"
+        continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
 
         base_env = StreamingTradingEnv(
             memmap_paths=memmap_paths,

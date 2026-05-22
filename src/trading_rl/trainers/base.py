@@ -20,7 +20,7 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 from logger import get_logger, log_banner
 from trading_rl.profiler import get_profiler
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
-from trading_rl.constants import RewardType
+from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.trainers.checkpointing import CheckpointManager
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
@@ -371,7 +371,7 @@ class BaseTrainer(ABC):
         if config is None:
             return False
         backend = getattr(config.env, "backend", None)
-        return backend == "tradingenv"
+        return backend == EnvBackend.TRADINGENV
 
     def _extract_actions(self, rollout: Any, is_portfolio: bool) -> Any:
         """Extract actions from rollout based on backend type.
@@ -440,7 +440,7 @@ class BaseTrainer(ABC):
         if config:
             eval_config_kwargs = {
                 "reward_type": getattr(config.env, "reward_type", "log_return"),
-                "backend": getattr(config.env, "backend", "tradingenv"),
+                "backend": getattr(config.env, "backend", EnvBackend.TRADINGENV),
                 "price_column": getattr(config.env, "price_column", None),
                 "max_steps": max_steps,
                 "enable_plots": True,

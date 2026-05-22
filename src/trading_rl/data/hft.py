@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from logger import get_logger
-from trading_rl.constants import EnvMode, SplitName
+from trading_rl.constants import EnvBackend, EnvMode, SplitName
 
 logger = get_logger(__name__)
 
@@ -130,7 +130,7 @@ def ensure_unique_index_for_hft_tradingenv(
     """Ensure unique, monotonic timestamps for HFT data used with TradingEnv."""
     mode = str(getattr(config.env, "mode", "mft")).lower().strip()
     backend = str(getattr(config.env, "backend", "")).lower().strip()
-    if mode != EnvMode.HFT or backend != "tradingenv":
+    if mode != EnvMode.HFT or backend != EnvBackend.TRADINGENV:
         return train_df, val_df, test_df
     return (
         _deduplicate_hft_index_single(train_df, SplitName.TRAIN, logger),

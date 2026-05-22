@@ -60,6 +60,7 @@ class EvaluateCommand(BaseCommand):
     # ------------------------------------------------------------------
 
     def _run(self, params: EvaluateParams) -> None:
+        from trading_rl.constants import EnvBackend
         from trading_rl.data_utils import build_prepared_dataset
         from trading_rl.evaluation import (
             EvaluationConfig,
@@ -93,7 +94,7 @@ class EvaluateCommand(BaseCommand):
         params.output_dir.mkdir(parents=True, exist_ok=True)
 
         price_column = getattr(config.env, "price_column", None) or "close"
-        backend = str(getattr(config.env, "backend", "tradingenv")).lower()
+        backend = str(getattr(config.env, "backend", EnvBackend.TRADINGENV)).lower()
         reward_type = str(getattr(config.env, "reward_type", "log_return"))
         timeframe = getattr(config.data, "timeframe", "1d")
         periods_py = periods_per_year_from_timeframe(timeframe)
@@ -295,7 +296,7 @@ class EvaluateCommand(BaseCommand):
         """
         import hashlib
         import pandas as pd
-        from trading_rl.constants import EnvMode
+        from trading_rl.constants import EnvBackend, EnvMode
         from trading_rl.data.hft import (
             _deduplicate_hft_index_single,
             _derive_close_hft_single,
@@ -341,7 +342,7 @@ class EvaluateCommand(BaseCommand):
 
         if mode == EnvMode.HFT:
             df = _derive_close_hft_single(df, stem, self.logger)
-        if mode == EnvMode.HFT and backend == "tradingenv":
+        if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
             df = _deduplicate_hft_index_single(df, stem, self.logger)
 
         if cache_path is not None:

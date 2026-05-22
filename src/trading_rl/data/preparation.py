@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from logger import get_logger
-from trading_rl.constants import EnvMode, SplitName
+from trading_rl.constants import EnvBackend, EnvMode, SplitName
 from trading_rl.data_loading import MemmapPaths, load_memmap_paths, load_prepared_splits, save_prepared_splits, save_symbol_memmap
 from trading_rl.data.cache import (
     _feature_cache_key,
@@ -251,7 +251,7 @@ def _build_per_day_splits(
 
         if mode == EnvMode.HFT:
             train_df_i = _derive_close_hft_single(train_df_i, f"train_{i}", logger)
-        if mode == EnvMode.HFT and backend == "tradingenv":
+        if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
             train_df_i = _deduplicate_hft_index_single(train_df_i, f"train_{i}", logger)
 
         warmup_rows = getattr(config.data, "warmup_rows", 0)
@@ -311,7 +311,7 @@ def _build_per_day_splits(
 
         if mode == EnvMode.HFT:
             val_df_j = _derive_close_hft_single(val_df_j, f"val_{j}", logger)
-        if mode == EnvMode.HFT and backend == "tradingenv":
+        if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
             val_df_j = _deduplicate_hft_index_single(val_df_j, f"val_{j}", logger)
 
         mid = len(val_df_j) // 2
@@ -332,7 +332,7 @@ def _build_per_day_splits(
 
     # Re-run index deduplication on the concatenated val/test to fix any
     # cross-symbol timestamp collisions introduced by pd.concat.
-    if mode == EnvMode.HFT and backend == "tradingenv":
+    if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
         val_df = _deduplicate_hft_index_single(val_df, "val_concat", logger)
         test_df = _deduplicate_hft_index_single(test_df, "test_concat", logger)
 

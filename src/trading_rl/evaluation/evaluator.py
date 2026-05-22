@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from trading_rl.constants import RewardType
+from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.plots import compare_rollouts
 from trading_rl.evaluation.returns import (
@@ -51,7 +51,7 @@ class EvaluationConfig:
     """
 
     reward_type: str = "log_return"
-    backend: str = "tradingenv"
+    backend: str = EnvBackend.TRADINGENV
     max_steps: int | None = None  # Resolve from DF if None
     price_column: str = "close"
     enable_plots: bool = True
@@ -151,7 +151,7 @@ class StrategyEvaluator:
             ReturnSeries when a true return path is available.
         """
         # Extract NLV-based returns for TradingEnv backend
-        if self.config.backend.lower() == "tradingenv":
+        if self.config.backend.lower() == EnvBackend.TRADINGENV:
             series = extract_tradingenv_return_series(env, max_steps)
             if series is not None:
                 return series
@@ -298,7 +298,7 @@ class StrategyEvaluator:
         # Generate plots
         plots = None
         if self.config.enable_plots:
-            is_portfolio = self.config.backend.lower() == "tradingenv"
+            is_portfolio = self.config.backend.lower() == EnvBackend.TRADINGENV
             reward_plot, action_plot = compare_rollouts([rollout], max_steps, is_portfolio=is_portfolio)
             plots = {
                 "reward_plot": reward_plot,

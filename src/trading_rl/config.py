@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, EnvMode, ExplainabilityMethod, RewardType, StatisticalTest, TradePosition
+from trading_rl.constants import Algorithm, EnvBackend, EnvMode, ExplainabilityMethod, RewardType, StatisticalTest, TradePosition
 
 
 @dataclass
@@ -79,7 +79,7 @@ class EnvConfig:
     trading_fees: float = 0.0  # 0.01% = 0.0001
     borrow_interest_rate: float = 0.0  # 0.0003% = 0.000003
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE  # Starting portfolio value for logging
-    backend: str = "gym_anytrading.forex"  # Backend type: gym_trading_env.discrete, gym_trading_env.continuous, gym_anytrading.forex, gym_anytrading.stocks, tradingenv
+    backend: str = EnvBackend.GYM_ANYTRADING_FOREX  # Backend type: gym_trading_env.discrete, gym_trading_env.continuous, gym_anytrading.forex, gym_anytrading.stocks, tradingenv
 
     # TradingEnv-specific configuration (optional)
     price_column: str | None = (
