@@ -173,6 +173,7 @@ else:
             ax.axis("off")
             ax.set_title(title)
             plt.show()
+            plt.close(fig)
         else:
             print(f"{title}: artifact not found")
 ```

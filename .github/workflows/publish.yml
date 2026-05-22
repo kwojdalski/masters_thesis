@@ -75,14 +75,17 @@ jobs:
           cp thesis/qmd/src/diagrams/*.svg _site/diagrams/
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
+          MPLBACKEND: Agg
 
       - name: Render thesis to PDF
         if: steps.changes.outputs.qmd_changed == 'true' || github.event.inputs.render_pdf == 'true'
+        timeout-minutes: 30
         run: |
           quarto render thesis/qmd/src/masters-thesis.qmd --to pdf
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
           QUARTO_NO_CHROME: "1"
+          MPLBACKEND: Agg
 
       - name: Copy PDF to site
         run: |
