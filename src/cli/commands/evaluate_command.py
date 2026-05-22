@@ -229,6 +229,7 @@ class EvaluateCommand(BaseCommand):
                             max_steps=split_ctx.max_steps,
                             config=config.statistical_testing,
                             periods_per_year=periods_py,
+                            status_fn=lambda msg: self.console.print(f"[dim]{msg}[/dim]"),
                         )
                         split_output["statistical_tests"] = stat_results
                         if mlflow_run_id:

@@ -49,6 +49,7 @@ def run_all_statistical_tests(
     *,
     random_baseline_trials: list[np.ndarray] | None = None,
     periods_per_year: int = 252,
+    status_fn: Any | None = None,
 ) -> dict[str, Any]:
     """Run all configured statistical significance tests against pre-built benchmarks.
 
@@ -68,7 +69,14 @@ def run_all_statistical_tests(
     if not config.enabled:
         return {"enabled": False}
 
-    logger.info("run statistical significance tests")
+    def _status(msg: str) -> None:
+        logger.info(msg)
+        if status_fn is not None:
+            status_fn(msg)
+
+    n_baselines = len(benchmarks) + (1 if random_baseline_trials is not None else 0)
+    n_bootstrap = getattr(config, "n_bootstrap_samples", "?")
+    _status(f"statistical tests: {n_baselines} baselines × {n_bootstrap:,} bootstrap samples")
 
     all_results: dict[str, Any] = {
         "enabled": True,
@@ -77,13 +85,12 @@ def run_all_statistical_tests(
     }
     benchmark_returns_map: dict[str, np.ndarray] = {}
 
-    for spec in benchmarks:
+    for i, spec in enumerate(benchmarks, 1):
         try:
-            logger.info("compute %s baseline", spec.name)
+            _status(f"  [{i}/{n_baselines}] {spec.name} ...")
             baseline_returns = spec.compute_returns(max_steps)
             benchmark_returns_map[spec.name] = baseline_returns
 
-            logger.info("run tests baseline=%s n_samples=%d", spec.name, len(baseline_returns))
             baseline_results = run_statistical_tests(
                 strategy_returns, baseline_returns, spec.name, config
             )
@@ -91,22 +98,23 @@ def run_all_statistical_tests(
             if "volume_source" in spec.metadata:
                 all_results["vwap_volume_source"] = spec.metadata["volume_source"]
             all_results["baselines"].append(baseline_results)
-            logger.info("%s tests complete", spec.name)
+            _status(f"  [{i}/{n_baselines}] {spec.name} done")
         except Exception as e:
             logger.error("%s comparison failed err=%s", spec.name, e)
             all_results["baselines"].append({"baseline": spec.name, "error": str(e)})
 
     if random_baseline_trials is not None:
         try:
+            idx = n_baselines
+            _status(f"  [{idx}/{n_baselines}] random_actions ...")
             random_returns_mean = np.mean(random_baseline_trials, axis=0)
-            logger.info("run tests baseline=random n_samples=%d", len(random_returns_mean))
             random_results = run_statistical_tests(
                 strategy_returns, random_returns_mean, "random_actions", config
             )
             random_results.update(summarize_random_baseline_trials(random_baseline_trials))
             benchmark_returns_map["random_actions"] = random_returns_mean
             all_results["baselines"].append(random_results)
-            logger.info("random baseline tests complete")
+            _status(f"  [{idx}/{n_baselines}] random_actions done")
         except Exception as e:
             logger.error("random baseline comparison failed err=%s", e)
             all_results["baselines"].append({"baseline": "random_actions", "error": str(e)})
@@ -118,7 +126,7 @@ def run_all_statistical_tests(
         risk_free_rate_annual=0.0,
     )
 
-    logger.info("statistical significance testing complete")
+    _status("statistical tests complete")
     return all_results
 
 __all__ = [
