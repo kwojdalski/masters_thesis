@@ -380,8 +380,8 @@ def create_actual_returns_plot(
     returns_runs = list(df_returns["Run"].unique())
     logger.debug("constructing ggplot object")
     caption_prefix = (
-        f"Portfolio value in $ reconstructed from broker NLV at each step."
-        f" Initial capital: ${initial_portfolio_value:,.0f}."
+        f"Portfolio value in \\$ reconstructed from broker NLV at each step."
+        f" Initial capital: \\${initial_portfolio_value:,.0f}."
     )
     if pooled_note:
         caption_prefix = f"{caption_prefix}\n{pooled_note}"
@@ -391,7 +391,7 @@ def create_actual_returns_plot(
         + labs(
             title=full_title,
             x="Steps",
-            y="Portfolio Value ($)",
+            y="Portfolio Value (\\$)",
             caption=_build_run_caption(
                 caption_prefix,
                 returns_runs,
