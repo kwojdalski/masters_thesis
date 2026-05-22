@@ -7,6 +7,11 @@ interpret the empirical results; widely understood concepts are omitted.
 Terms are grouped by domain — market microstructure and trading, reinforcement
 learning and machine learning, and other — and listed alphabetically within
 each group. For mathematical notation and feature formulas, see Appendix A.
+The glossary is intentionally selective. Not every technical term that appears
+in the text receives an entry; terms with widely accepted, unambiguous
+definitions — standard statistical measures, common financial concepts, and
+general machine-learning terminology — are omitted where their inclusion would
+expand the section beyond its practical purpose.
 
 ### Market Microstructure and Trading
 
@@ -14,6 +19,7 @@ each group. For mathematical notation and feature formulas, see Appendix A.
 |------|------------|
 | **Adverse selection** | The risk that a counterparty in a trade possesses superior private information, causing uninformed participants (e.g., market makers) to trade at a disadvantage. |
 | **Ask slope** | Price elasticity of the ask side of the order book across multiple depth levels; a proxy for market impact per unit of sell-side volume. |
+| **Backtest** | Historical simulation of a trading strategy using past market data to assess performance before live deployment. All performance figures reported in this thesis are based on backtests conducted on held-out out-of-sample data. |
 | **Basis points (bps)** | One hundredth of a percentage point (0.01%). Used to express spreads and returns at fine granularity. |
 | **Bid-ask spread** | The difference between the lowest ask price and the highest bid price in the order book; the primary observable measure of transaction cost and adverse selection risk. |
 | **Bid slope** | Price elasticity of the bid side of the order book across multiple depth levels; a proxy for market impact per unit of buy-side volume. |
@@ -30,6 +36,7 @@ each group. For mathematical notation and feature formulas, see Appendix A.
 | **Microprice** | A volume-weighted estimate of the next transaction price, derived from top-of-book bid and ask quantities [@Stoikov2018]. Adjusts the mid-price for queue imbalance. |
 | **MicroDiv (Microprice Divergence)** | The difference between the microprice and the mid-price; a stationary signal capturing the directional imbalance embedded in the top-of-book queues. |
 | **Mid-price** | The arithmetic average of the best bid and best ask prices; commonly used as a reference fair value when the spread is symmetric. |
+| **NLV (Net Liquidation Value)** | The current market value of all open positions plus available cash in a trading account. Used in this thesis as the basis for computing true portfolio returns during evaluation, as opposed to per-step reward signals. |
 | **OBI (Order Book Imbalance)** | Normalized difference in resting volume between bid and ask sides, aggregated across multiple depth levels. |
 | **OCI (Order Count Imbalance)** | Normalized difference in the number of resting orders between bid and ask sides at a given price level; sensitive to order fragmentation masked by volume-based measures. |
 | **OFI (Order Flow Imbalance)** | Net directional pressure exerted on the best bid and ask queues by limit order arrivals, cancellations, and executions [@Cont2014]. The empirically dominant contemporaneous predictor of short-term price changes. |
@@ -38,6 +45,7 @@ each group. For mathematical notation and feature formulas, see Appendix A.
 | **Queue depletion** | The rate at which the best-bid or best-ask queue is consumed by incoming market orders across consecutive snapshots; a leading indicator of imminent price movement. |
 | **RSI** | Relative Strength Index. A momentum oscillator measuring the speed and magnitude of price changes; used in rule-based and technical trading strategies. |
 | **Spread ratio** | The current bid-ask spread divided by its recent rolling mean; a regime signal separating absolute spread level from elevated adverse selection conditions. |
+| **TWAP** | Time-Weighted Average Price. An execution benchmark computed as the mean transaction price over a fixed time window, weighting each trade equally in time. Reported alongside VWAP in the performance comparison tables. |
 | **VIX** | CBOE Volatility Index. A measure of expected 30-day S&P 500 volatility derived from options prices; a common proxy for broad market fear or uncertainty. |
 | **VWAP** | Volume-Weighted Average Price. The average price of an asset weighted by traded volume over a period; a common execution benchmark. |
 
@@ -46,6 +54,8 @@ each group. For mathematical notation and feature formulas, see Appendix A.
 | Term | Definition |
 |------|------------|
 | **Actor-critic** | A class of reinforcement learning architectures combining a policy network (actor) that selects actions with a value network (critic) that evaluates them. Reduces gradient variance relative to pure policy gradient methods. |
+| **Bellman equation** | The recursive identity expressing the value of a state as immediate reward plus the discounted value of the successor state: $V(s) = r + \gamma V(s')$. The theoretical foundation of temporal difference learning and Q-learning. |
+| **Bootstrapping** | Updating a value estimate using another estimate as the target, rather than waiting for a complete episode return. Introduces bias but reduces variance; the mechanism underlying all temporal difference algorithms. |
 | **DDPG** | Deep Deterministic Policy Gradient [@Lillicrap2015]. An off-policy actor-critic algorithm for continuous action spaces using deterministic policies and experience replay. Predecessor to TD3. |
 | **DQN** | Deep Q-Network [@Mnih2015]. A value-based deep RL algorithm combining Q-learning with a deep neural network, experience replay, and a frozen target network. Restricted to discrete action spaces. |
 | **DSR** | Differential Sharpe Ratio [@Moody1998]. A reward formulation that approximates the gradient of the Sharpe Ratio with respect to returns, aligning the optimization objective with risk-adjusted performance. |
@@ -62,7 +72,9 @@ each group. For mathematical notation and feature formulas, see Appendix A.
 | **RL** | Reinforcement Learning. A machine learning paradigm in which an agent learns to make sequential decisions by interacting with an environment and maximizing cumulative reward. |
 | **SAC** | Soft Actor-Critic [@Haarnoja2018]. An off-policy actor-critic algorithm incorporating a maximum-entropy objective to encourage exploration through stochastic policies. |
 | **SARSA** | State-Action-Reward-State-Action. An on-policy temporal difference algorithm that updates $Q(s, a)$ using the action actually taken by the current policy. |
+| **Target network** | A periodically or slowly updated copy of the Q-network or actor network used to generate stable training targets, preventing the oscillations that arise when both prediction and target change simultaneously. Used in DQN, DDPG, and TD3. |
 | **TD3** | Twin Delayed Deep Deterministic Policy Gradient [@Fujimoto2018]. An off-policy actor-critic algorithm for continuous control that extends DDPG with clipped double Q-learning, delayed policy updates, and target policy smoothing to reduce overestimation bias. The primary algorithm used in this thesis. |
+| **TD error** | The difference between the Bellman target $y_t = r_t + \gamma Q(s_{t+1}, a_{t+1})$ and the current value estimate $Q(s_t, a_t)$. Minimising the mean squared TD error trains the critic network in all actor-critic algorithms. |
 | **Temporal difference (TD) learning** | A class of RL methods that update value estimates based on the difference between successive predictions, without requiring full episode trajectories. |
 | **Value function** | A function estimating the expected cumulative discounted reward from a given state (or state-action pair) under a given policy. The critic network in actor-critic algorithms approximates this function. |
 
@@ -71,4 +83,7 @@ each group. For mathematical notation and feature formulas, see Appendix A.
 | Term | Definition |
 |------|------------|
 | **AAPL** | The NASDAQ ticker symbol for Apple Inc. One of six Nasdaq-listed equities — alongside MSFT, TSLA, META, AMZN, and AVGO — used as trading instruments in this thesis. |
+| **Maximum drawdown** | The largest peak-to-trough decline in portfolio value over an evaluation period, expressed as a percentage. A standard tail-risk measure reported alongside the Sharpe and Sortino ratios in the performance tables. |
+| **Out-of-sample evaluation** | Assessment of model performance on data not used during training or hyperparameter selection. A central validation principle of this thesis: all reported performance figures are computed on a held-out test period. |
 | **Sharpe ratio** | A risk-adjusted performance measure defined as the ratio of mean excess return to return volatility. Higher values indicate better return per unit of risk. |
+| **Sortino ratio** | A risk-adjusted return measure analogous to the Sharpe ratio but using downside deviation — the volatility of negative returns only — rather than total volatility in the denominator. Rewards strategies that limit losses without penalising upside volatility. |
