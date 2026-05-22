@@ -476,8 +476,10 @@ class BaseTrainer(ABC):
             config=eval_config,
         )
 
+        _t = time.monotonic()
         with profiler.stage("agent_rollout", 2):
             result = evaluator.evaluate_split("eval", df, env=env_to_use)
+        logger.debug("evaluate.rollout_and_metrics elapsed=%.2fs", time.monotonic() - _t)
 
         reward_plot = result.plots["reward_plot"] if result.plots else None
         action_plot = result.plots["action_plot"] if result.plots else None
@@ -505,13 +507,12 @@ class BaseTrainer(ABC):
                 training_steps=self.total_count,
                 training_episodes=self.total_episodes,
             )
-            logger.debug("create_actual_returns_plot done elapsed=%.2fs", time.monotonic() - _t)
+            logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
 
         with profiler.stage("plot_merged", 2):
             _t = time.monotonic()
-            logger.debug("create_merged_comparison_plot start")
             merged_plot = create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot)
-            logger.debug("create_merged_comparison_plot done elapsed=%.2fs", time.monotonic() - _t)
+            logger.debug("evaluate.plot_merged elapsed=%.2fs", time.monotonic() - _t)
 
         # Use final_reward and last_positions from SplitEvaluationResult
         final_reward = float(result.final_reward)

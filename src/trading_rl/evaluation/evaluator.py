@@ -11,6 +11,7 @@ All without coupling to training, MLflow, or specific algorithm details.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -19,6 +20,7 @@ import numpy as np
 import pandas as pd
 import torch
 
+from logger import get_logger
 from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.plots import compare_rollouts
@@ -27,6 +29,8 @@ from trading_rl.evaluation.returns import (
     RewardSeries,
     extract_tradingenv_return_series,
 )
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -273,16 +277,21 @@ class StrategyEvaluator:
             )
 
         max_steps = self.config.max_steps or len(df) - 1
+        logger.debug("evaluate_split split=%s max_steps=%d df_rows=%d", split, max_steps, len(df))
 
         # Use the caller-provided environment when available. Training code
         # already builds split-specific envs from the full ExperimentConfig.
         env = env if env is not None else self._build_env(df)
 
         # Run deterministic rollout
+        _t = time.monotonic()
         rollout = self._run_rollout(env, max_steps)
+        logger.debug("evaluate_split: rollout elapsed=%.2fs steps=%d", time.monotonic() - _t, max_steps)
 
         # Extract returns
+        _t = time.monotonic()
         return_series = self._extract_return_series(env, rollout, max_steps)
+        logger.debug("evaluate_split: extract_returns elapsed=%.2fs", time.monotonic() - _t)
         if return_series is None:
             simple_returns = np.array([], dtype=float)
             cumulative_returns = None
@@ -295,17 +304,21 @@ class StrategyEvaluator:
         last_positions = self._extract_last_positions(actions, max_steps) if actions is not None else []
 
         # Compute metrics (pass positions for pct_long / pct_short)
+        _t = time.monotonic()
         metrics = (
             self._compute_metrics(simple_returns, df, last_positions)
             if self.config.enable_metrics
             else None
         )
+        logger.debug("evaluate_split: compute_metrics elapsed=%.2fs", time.monotonic() - _t)
 
         # Generate plots
         plots = None
         if self.config.enable_plots:
+            _t = time.monotonic()
             is_portfolio = self.config.backend.lower() == EnvBackend.TRADINGENV
             reward_plot, action_plot = compare_rollouts([rollout], max_steps, is_portfolio=is_portfolio)
+            logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
             plots = {
                 "reward_plot": reward_plot,
                 "action_plot": action_plot,

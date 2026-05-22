@@ -140,9 +140,15 @@ class TrainerRuntimeHooks:
         hook: PeriodicEvaluationHook,
     ) -> None:
         """Run evaluation during training and log artifacts without affecting control flow."""
-        logger.info("run temporary evaluation step=%s", step_number)
+        import time
+        _t_total = time.monotonic()
+        logger.info(
+            "run temporary evaluation step=%s max_steps=%s df_rows=%s",
+            step_number, hook.max_steps, len(hook.df),
+        )
 
         try:
+            _t = time.monotonic()
             (
                 reward_plot,
                 action_plot,
@@ -158,11 +164,13 @@ class TrainerRuntimeHooks:
                 algorithm=hook.algorithm,
                 eval_env=hook.eval_env,
             )
+            logger.debug("temp eval: trainer.evaluate elapsed=%.2fs", time.monotonic() - _t)
 
             if mlflow.active_run():
                 from trading_rl.callbacks import MLflowTrainingCallback
 
                 artifact_prefix = f"evaluation_plots_temp/step_{step_number:08d}"
+                _t = time.monotonic()
                 MLflowTrainingCallback.log_evaluation_plots(
                     reward_plot=reward_plot,
                     action_plot=action_plot,
@@ -172,19 +180,24 @@ class TrainerRuntimeHooks:
                     merged_plot=merged_plot,
                     artifact_path_prefix=artifact_prefix,
                 )
+                logger.debug("temp eval: mlflow artifact upload elapsed=%.2fs", time.monotonic() - _t)
+                _t = time.monotonic()
                 mlflow.log_metric("temp_eval_reward", final_reward, step=step_number)
+                logger.debug("temp eval: mlflow log_metric elapsed=%.2fs", time.monotonic() - _t)
                 logger.info(
-                    "Temporary evaluation complete: reward=%.4f, plots saved to %s",
-                    final_reward,
-                    artifact_prefix,
+                    "temp eval complete step=%s reward=%.4f artifacts=%s total_elapsed=%.2fs",
+                    step_number, final_reward, artifact_prefix, time.monotonic() - _t_total,
                 )
             else:
                 logger.warning("no active mlflow run, skip temp evaluation logging")
+                logger.info(
+                    "temp eval complete step=%s reward=%.4f total_elapsed=%.2fs",
+                    step_number, final_reward, time.monotonic() - _t_total,
+                )
         except Exception as exc:
             logger.error(
-                "Temporary evaluation failed at step %s: %s",
-                step_number,
-                exc,
+                "Temporary evaluation failed at step %s (elapsed=%.2fs): %s",
+                step_number, time.monotonic() - _t_total, exc,
             )
 
     def _run_temporary_explainability(
