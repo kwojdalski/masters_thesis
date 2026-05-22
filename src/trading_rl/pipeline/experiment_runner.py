@@ -86,25 +86,54 @@ def _configure_periodic_hooks(
     config: Any,
 ) -> None:
     """Wire periodic mid-training evaluation and explainability hooks."""
-    train_df = runtime.prepared_dataset.train_df
-    periodic_eval_ctx = build_evaluation_context_for_split(
-        split="train",
-        df=train_df,
-        config=config,
+    from trading_rl.trainers.runtime_hooks import SplitEvalContext
+
+    dataset = runtime.prepared_dataset
+    split_map = {
+        "train": dataset.train_df,
+        "val": dataset.val_df,
+        "test": dataset.test_df,
+    }
+
+    configured_splits: list[str] = list(
+        getattr(config.training, "temp_eval_splits", ["train"])
     )
+
+    split_contexts: list[SplitEvalContext] = []
+    for split_name in configured_splits:
+        df = split_map.get(split_name)
+        if df is None or len(df) < 2:
+            import logging as _logging
+            _logging.getLogger(__name__).warning(
+                "periodic eval: split '%s' not available or too small, skipping", split_name
+            )
+            continue
+        ctx = build_evaluation_context_for_split(split=split_name, df=df, config=config)
+        split_contexts.append(
+            SplitEvalContext(
+                split=split_name,
+                df=ctx.df,
+                max_steps=ctx.max_steps,
+                eval_env=ctx.env,
+            )
+        )
+
     trainer = runtime.training_bundle.trainer
     trainer.setup_periodic_evaluation(
-        df=periodic_eval_ctx.df,
-        max_steps=periodic_eval_ctx.max_steps,
+        splits=split_contexts,
         config=config,
         algorithm=runtime.training_bundle.algorithm,
-        eval_env=periodic_eval_ctx.env,
+    )
+
+    # Explainability hook continues to use train data only
+    train_ctx = build_evaluation_context_for_split(
+        split="train", df=dataset.train_df, config=config
     )
     trainer.setup_periodic_explainability(
-        df=periodic_eval_ctx.df,
+        df=train_ctx.df,
         max_steps=config.explainability.n_steps,
         config=config,
-        eval_env=periodic_eval_ctx.env,
+        eval_env=train_ctx.env,
     )
 
 

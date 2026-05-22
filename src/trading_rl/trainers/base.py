@@ -530,29 +530,23 @@ class BaseTrainer(ABC):
 
     def setup_periodic_evaluation(
         self,
-        df: Any,
-        max_steps: int,
+        splits: Any,
         config: Any,
         algorithm: str,
-        eval_env: Any = None,
     ) -> None:
         """Setup parameters for periodic evaluation during training.
 
         Call this before train() to enable temporary evaluations every N steps.
 
         Args:
-            df: DataFrame with evaluation data
-            max_steps: Maximum steps for evaluation rollout
-            config: Experiment configuration (must have training.temp_eval_interval set)
-            algorithm: Algorithm name
-            eval_env: Optional dedicated evaluation environment
+            splits: List of SplitEvalContext objects (one per split to evaluate).
+            config: Experiment configuration (must have training.temp_eval_interval set).
+            algorithm: Algorithm name.
         """
         self.runtime_hooks.configure_periodic_evaluation(
-            df=df,
-            max_steps=max_steps,
+            splits=splits,
             config=config,
             algorithm=algorithm,
-            eval_env=eval_env,
         )
 
     def setup_periodic_explainability(

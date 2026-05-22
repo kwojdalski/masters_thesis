@@ -13,14 +13,22 @@ logger = get_logger(__name__)
 
 
 @dataclass
+class SplitEvalContext:
+    """One split's data and environment for periodic evaluation."""
+
+    split: str
+    df: Any
+    max_steps: int
+    eval_env: Any = None
+
+
+@dataclass
 class PeriodicEvaluationHook:
     """Periodic evaluation configuration."""
 
-    df: Any
-    max_steps: int
+    splits: list[SplitEvalContext]
     config: Any
     algorithm: str
-    eval_env: Any = None
     last_step: int = 0
 
 
@@ -46,13 +54,17 @@ class TrainerRuntimeHooks:
     def configure_periodic_evaluation(
         self,
         *,
-        df: Any,
-        max_steps: int,
+        splits: list[SplitEvalContext],
         config: Any,
         algorithm: str,
-        eval_env: Any = None,
     ) -> None:
-        """Enable or disable temporary periodic evaluation."""
+        """Enable or disable temporary periodic evaluation.
+
+        Args:
+            splits: One SplitEvalContext per split to evaluate (e.g. train, val).
+            config: Full experiment config.
+            algorithm: Algorithm label used in plot titles.
+        """
         eval_interval = getattr(config.training, "temp_eval_interval", None)
         if eval_interval is None or eval_interval <= 0:
             logger.info("periodic evaluation disabled (temp_eval_interval not set)")
@@ -60,15 +72,14 @@ class TrainerRuntimeHooks:
             return
 
         self._evaluation = PeriodicEvaluationHook(
-            df=df,
-            max_steps=max_steps,
+            splits=splits,
             config=config,
             algorithm=algorithm,
-            eval_env=eval_env,
         )
+        split_names = [s.split for s in splits]
         logger.info(
-            "Periodic evaluation enabled: will evaluate every %s training steps",
-            eval_interval,
+            "periodic evaluation enabled interval=%s splits=%s",
+            eval_interval, split_names,
         )
 
     def configure_periodic_explainability(
@@ -142,63 +153,85 @@ class TrainerRuntimeHooks:
         """Run evaluation during training and log artifacts without affecting control flow."""
         import time
         _t_total = time.monotonic()
+        split_names = [s.split for s in hook.splits]
         logger.info(
-            "run temporary evaluation step=%s max_steps=%s df_rows=%s",
-            step_number, hook.max_steps, len(hook.df),
+            "run temporary evaluation step=%s splits=%s",
+            step_number, split_names,
         )
 
-        try:
-            _t = time.monotonic()
-            (
-                reward_plot,
-                action_plot,
-                action_probs_plot,
-                final_reward,
-                _last_positions,
-                actual_returns_plot,
-                merged_plot,
-            ) = self.trainer.evaluate(
-                df=hook.df,
-                max_steps=hook.max_steps,
-                config=hook.config,
-                algorithm=hook.algorithm,
-                eval_env=hook.eval_env,
+        for split_ctx in hook.splits:
+            _t_split = time.monotonic()
+            logger.info(
+                "temp eval split=%s max_steps=%s df_rows=%s",
+                split_ctx.split, split_ctx.max_steps, len(split_ctx.df),
             )
-            logger.debug("temp eval: trainer.evaluate elapsed=%.2fs", time.monotonic() - _t)
-
-            if mlflow.active_run():
-                from trading_rl.callbacks import MLflowTrainingCallback
-
-                artifact_prefix = f"evaluation_plots_temp/step_{step_number:08d}"
+            try:
                 _t = time.monotonic()
-                MLflowTrainingCallback.log_evaluation_plots(
-                    reward_plot=reward_plot,
-                    action_plot=action_plot,
-                    action_probs_plot=action_probs_plot,
-                    actual_returns_plot=actual_returns_plot,
-                    logs=None,
-                    merged_plot=merged_plot,
-                    artifact_path_prefix=artifact_prefix,
+                (
+                    reward_plot,
+                    action_plot,
+                    action_probs_plot,
+                    final_reward,
+                    _last_positions,
+                    actual_returns_plot,
+                    merged_plot,
+                ) = self.trainer.evaluate(
+                    df=split_ctx.df,
+                    max_steps=split_ctx.max_steps,
+                    config=hook.config,
+                    algorithm=hook.algorithm,
+                    eval_env=split_ctx.eval_env,
                 )
-                logger.debug("temp eval: mlflow artifact upload elapsed=%.2fs", time.monotonic() - _t)
-                _t = time.monotonic()
-                mlflow.log_metric("temp_eval_reward", final_reward, step=step_number)
-                logger.debug("temp eval: mlflow log_metric elapsed=%.2fs", time.monotonic() - _t)
-                logger.info(
-                    "temp eval complete step=%s reward=%.4f artifacts=%s total_elapsed=%.2fs",
-                    step_number, final_reward, artifact_prefix, time.monotonic() - _t_total,
+                logger.debug(
+                    "temp eval: trainer.evaluate split=%s elapsed=%.2fs",
+                    split_ctx.split, time.monotonic() - _t,
                 )
-            else:
-                logger.warning("no active mlflow run, skip temp evaluation logging")
-                logger.info(
-                    "temp eval complete step=%s reward=%.4f total_elapsed=%.2fs",
-                    step_number, final_reward, time.monotonic() - _t_total,
+
+                if mlflow.active_run():
+                    from trading_rl.callbacks import MLflowTrainingCallback
+
+                    artifact_prefix = (
+                        f"evaluation_plots_temp/step_{step_number:08d}/{split_ctx.split}"
+                    )
+                    _t = time.monotonic()
+                    MLflowTrainingCallback.log_evaluation_plots(
+                        reward_plot=reward_plot,
+                        action_plot=action_plot,
+                        action_probs_plot=action_probs_plot,
+                        actual_returns_plot=actual_returns_plot,
+                        logs=None,
+                        merged_plot=merged_plot,
+                        artifact_path_prefix=artifact_prefix,
+                    )
+                    logger.debug(
+                        "temp eval: mlflow upload split=%s elapsed=%.2fs",
+                        split_ctx.split, time.monotonic() - _t,
+                    )
+                    mlflow.log_metric(
+                        f"temp_eval_reward_{split_ctx.split}",
+                        final_reward,
+                        step=step_number,
+                    )
+                    logger.info(
+                        "temp eval complete split=%s reward=%.4f artifacts=%s elapsed=%.2fs",
+                        split_ctx.split, final_reward, artifact_prefix,
+                        time.monotonic() - _t_split,
+                    )
+                else:
+                    logger.warning(
+                        "no active mlflow run, skip temp evaluation logging split=%s",
+                        split_ctx.split,
+                    )
+            except Exception as exc:
+                logger.error(
+                    "temp eval failed split=%s step=%s elapsed=%.2fs err=%s",
+                    split_ctx.split, step_number, time.monotonic() - _t_split, exc,
                 )
-        except Exception as exc:
-            logger.error(
-                "Temporary evaluation failed at step %s (elapsed=%.2fs): %s",
-                step_number, time.monotonic() - _t_total, exc,
-            )
+
+        logger.info(
+            "temp eval all splits done step=%s total_elapsed=%.2fs",
+            step_number, time.monotonic() - _t_total,
+        )
 
     def _run_temporary_explainability(
         self,

@@ -176,6 +176,7 @@ class TrainingConfig:
     eval_fraction: float | None = None  # Fraction of val data to use per eval rollout; overrides eval_steps when set
     log_interval: int = 1000
     temp_eval_interval: int | None = None  # Run temporary evaluation every N steps (None = disabled)
+    temp_eval_splits: list[str] = field(default_factory=lambda: ["train"])  # Which splits to evaluate; options: train, val, test
 
     def resolve_eval_steps(self, val_len: int) -> int:
         """Return the number of eval steps to use given the validation data length.
