@@ -47,9 +47,20 @@ done
 
 echo ""
 echo "All three experiments running. PIDs: ${PIDS[*]}"
-echo "Tail logs with:"
-echo "  tail -f $LOG_DIR/td3.log $LOG_DIR/ddpg.log $LOG_DIR/ppo.log"
 echo ""
+
+if command -v multitail &>/dev/null; then
+    multitail -s 3 \
+        -l "tail -f $LOG_DIR/td3.log" \
+        -l "tail -f $LOG_DIR/ddpg.log" \
+        -l "tail -f $LOG_DIR/ppo.log" &
+    MULTITAIL_PID=$!
+else
+    echo "multitail not found — falling back to tail -f"
+    tail -f "$LOG_DIR/td3.log" "$LOG_DIR/ddpg.log" "$LOG_DIR/ppo.log" &
+    MULTITAIL_PID=$!
+fi
+
 echo "Waiting for all to finish..."
 
 FAILED=0
@@ -62,6 +73,8 @@ for i in "${!PIDS[@]}"; do
         FAILED=1
     fi
 done
+
+kill "$MULTITAIL_PID" 2>/dev/null || true
 
 if [[ $FAILED -eq 1 ]]; then
     echo "One or more experiments failed. Check logs in $LOG_DIR/" >&2
