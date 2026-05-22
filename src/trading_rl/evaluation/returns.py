@@ -215,8 +215,16 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
             logger.debug("insufficient nlv values count=%s", len(nlv_values))
             return None
 
-        if np.any(np.asarray(nlv_values, dtype=float) <= 0):
-            logger.warning("nlv path contains non-positive values values=%s", nlv_values)
+        nlv_array = np.asarray(nlv_values, dtype=float)
+        if np.any(nlv_array <= 0):
+            logger.warning("nlv path contains non-positive values; dropping series")
+            return None
+        if not np.all(np.isfinite(nlv_array)):
+            n_inf = int(np.sum(~np.isfinite(nlv_array)))
+            logger.warning(
+                "nlv path contains %d non-finite value(s) (likely cross-symbol price jump in val_df); dropping series",
+                n_inf,
+            )
             return None
 
         series = ReturnSeries(

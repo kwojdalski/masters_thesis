@@ -325,17 +325,27 @@ def create_actual_returns_plot(
     if df_prices is not None:
         price_window = price_series.iloc[: n_obs + 1]
         benchmark_returns = price_window.pct_change().iloc[1:].to_numpy(dtype=float)
-        buy_and_hold = np.log1p(benchmark_returns).cumsum()
-        buy_and_hold_values = initial_portfolio_value * np.exp(
-            np.asarray(buy_and_hold, dtype=float)
-        )
-
-        if show_max_profit:
-            max_profit = np.log1p(np.abs(benchmark_returns)).cumsum()
-            max_profit_values = initial_portfolio_value * np.exp(
-                np.asarray(max_profit, dtype=float)
+        n_bad = int(np.sum(~np.isfinite(benchmark_returns)))
+        if n_bad > 0:
+            logger.warning(
+                "benchmark price series has %d non-finite return(s) "
+                "(likely cross-symbol boundary in concatenated val_df); skipping benchmark lines",
+                n_bad,
+            )
+            df_prices = None
+        else:
+            buy_and_hold = np.log1p(benchmark_returns).cumsum()
+            buy_and_hold_values = initial_portfolio_value * np.exp(
+                np.asarray(buy_and_hold, dtype=float)
             )
 
+            if show_max_profit:
+                max_profit = np.log1p(np.abs(benchmark_returns)).cumsum()
+                max_profit_values = initial_portfolio_value * np.exp(
+                    np.asarray(max_profit, dtype=float)
+                )
+
+    if df_prices is not None:
         for step, bh_val in enumerate(buy_and_hold_values):
             returns_data.append(
                 {"Steps": step, "Portfolio_Value": bh_val, "Run": "Buy-and-Hold"}
