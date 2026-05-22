@@ -132,7 +132,13 @@ class StrategyEvaluator:
             try:
                 with set_exploration_type(InteractionType.MODE):
                     return env.rollout(max_steps=max_steps, policy=self.policy)
-            except RuntimeError:
+            except (NotImplementedError, RuntimeError) as exc:
+                if not (
+                    isinstance(exc, NotImplementedError)
+                    or "does not have a mode" in str(exc)
+                    or "analytical mode" in str(exc).lower()
+                ):
+                    raise
                 # Fallback for distributions without analytical mode
                 with set_exploration_type(InteractionType.DETERMINISTIC):
                     return env.rollout(max_steps=max_steps, policy=self.policy)
