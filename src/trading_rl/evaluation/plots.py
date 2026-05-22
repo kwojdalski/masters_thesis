@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from plotnine import (
     aes,
-    element_text,
     geom_line,
     ggplot,
     guide_legend,
@@ -16,6 +15,8 @@ from plotnine import (
     scale_color_manual,
     theme,
 )
+
+from trading_rl.evaluation.thesis_theme import FIGURE_HEIGHT, FIGURE_WIDTH, PALETTE, thesis_theme
 from torch import allclose
 
 from logger import get_logger
@@ -139,9 +140,9 @@ def compare_rollouts(
     reward_runs = list(df_rewards["Run"].unique())
     reward_plot = (
         ggplot(df_rewards, aes(x="Steps", y="Cumulative_Reward", color="Run"))
-        + geom_line(size=0.35)
+        + geom_line(size=0.5)
         + labs(
-            title="Cumulative Rewards Comparison",
+            title="Cumulative Rewards",
             x="Steps",
             y="Cumulative Reward",
             caption=_build_run_caption(
@@ -151,14 +152,7 @@ def compare_rollouts(
                 training_episodes=training_episodes,
             ),
         )
-        + theme(
-            figure_size=(13, 7.8),
-            legend_position="bottom",
-            legend_title=element_text(weight="bold", size=11),
-            legend_text=element_text(size=10),
-            plot_caption=element_text(size=9, ha="left", color="#555555"),
-            subplots_adjust={"left": 0.10, "right": 0.95},
-        )
+        + thesis_theme()
         + guides(color=guide_legend(title="Strategy"))
     )
 
@@ -174,7 +168,7 @@ def compare_rollouts(
 
     action_plot = (
         ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
-        + geom_line(size=0.35)
+        + geom_line(size=0.5)
         + labs(
             title=title,
             x="Steps",
@@ -186,14 +180,7 @@ def compare_rollouts(
                 training_episodes=training_episodes,
             ),
         )
-        + theme(
-            figure_size=(13, 7.8),
-            legend_position="bottom",
-            legend_title=element_text(weight="bold", size=11),
-            legend_text=element_text(size=10),
-            plot_caption=element_text(size=9, ha="left", color="#555555"),
-            subplots_adjust={"left": 0.10, "right": 0.95},
-        )
+        + thesis_theme()
         + guides(color=guide_legend(title="Strategy"))
     )
 
@@ -360,7 +347,7 @@ def create_actual_returns_plot(
     logger.debug("constructing ggplot object")
     plot = (
         ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run"))
-        + geom_line(size=0.35)
+        + geom_line(size=0.5)
         + labs(
             title=full_title,
             x="Steps",
@@ -372,18 +359,8 @@ def create_actual_returns_plot(
                 training_episodes=training_episodes,
             ),
         )
-        + scale_color_manual(
-            values={
-                "Deterministic": "#F8766D",
-                "Random": "#00BFC4",
-                "Buy-and-Hold": "violet",
-                "Max Profit (Unleveraged)": "green",
-            }
-        )
-        + theme(
-            figure_size=(13, 7.8),
-            plot_caption=element_text(size=9, ha="left", color="#555555"),
-        )
+        + scale_color_manual(values=PALETTE)
+        + thesis_theme()
     )
     logger.debug("ggplot object constructed elapsed=%.2fs", time.monotonic() - t0)
     return plot
@@ -395,9 +372,8 @@ def create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot=
         merged_plot = reward_plot / action_plot / actual_returns_plot
     else:
         merged_plot = reward_plot / action_plot
-    # 30% taller than the base single-plot height (7.8 * 1.3 per panel)
     n_panels = 3 if actual_returns_plot is not None else 2
-    merged_plot = merged_plot + theme(figure_size=(13, round(7.1 * n_panels, 1)))
+    merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH, round(FIGURE_HEIGHT * n_panels, 1)))
     if save_path:
         logger.info("save merged comparison plot path=%s", save_path)
         merged_plot.save(save_path, dpi=150, verbose=False)
