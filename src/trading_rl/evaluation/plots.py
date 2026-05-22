@@ -82,10 +82,16 @@ def _date_range_str(df: pd.DataFrame | None, n_obs: int) -> str:
     idx = df.index[: n_obs + 1]
     if len(idx) < 2:
         return ""
-    fmt = "%b %-d, %Y %H:%M"
+    fmt = "%Y-%m-%d %H:%M:%S"
     start_s = idx[0].strftime(fmt)
     end_s = idx[-1].strftime(fmt)
     return start_s if start_s == end_s else f"{start_s} – {end_s}"
+
+
+_REWARD_TYPE_LABELS: dict[str, str] = {
+    "log_return": "Log Return",
+    "differential_sharpe": "Differential Sharpe Ratio",
+}
 
 
 def compare_rollouts(
@@ -95,6 +101,7 @@ def compare_rollouts(
     training_steps: int | None = None,
     training_episodes: int | None = None,
     df: pd.DataFrame | None = None,
+    reward_type: str | None = None,
 ):
     """Compare multiple rollouts and visualize their actions and rewards."""
     all_actions = []
@@ -156,6 +163,11 @@ def compare_rollouts(
 
     date_str = _date_range_str(df, n_obs)
 
+    reward_label = _REWARD_TYPE_LABELS.get(reward_type or "", reward_type or "")
+    reward_prefix = "Cumulative sum of per-step rewards received by the agent."
+    if reward_label:
+        reward_prefix += f" Reward function: {reward_label}."
+
     reward_runs = list(df_rewards["Run"].unique())
     reward_plot = (
         ggplot(df_rewards, aes(x="Steps", y="Cumulative_Reward", color="Run"))
@@ -165,7 +177,7 @@ def compare_rollouts(
             x="Steps",
             y="Cumulative Reward",
             caption=_build_run_caption(
-                "Cumulative sum of per-step rewards received by the agent.",
+                reward_prefix,
                 reward_runs,
                 training_steps=training_steps,
                 training_episodes=training_episodes,

@@ -327,7 +327,10 @@ class StrategyEvaluator:
         if self.config.enable_plots:
             _t = time.monotonic()
             is_portfolio = self.config.backend.lower() == EnvBackend.TRADINGENV
-            reward_plot, action_plot = compare_rollouts([rollout], max_steps, is_portfolio=is_portfolio, df=df)
+            reward_plot, action_plot = compare_rollouts(
+                [rollout], max_steps, is_portfolio=is_portfolio, df=df,
+                reward_type=self.config.reward_type,
+            )
             logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
             plots = {
                 "reward_plot": reward_plot,
