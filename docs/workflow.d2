@@ -17,7 +17,7 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
-  cli_peek: "peek\nuv run python src/cli.py peek\n  --scenario <name>\n  Inspect prepared dataset: shapes · splits · columns" {
+  cli_peek: "peek\nuv run python src/cli.py peek\n  --scenario <name>\n  [--corr]    feature vs log-return correlation table\n  [--export]  write splits/feature_stats/correlations to reports/peek/\n  Inspect prepared dataset: shapes · splits · columns" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -27,7 +27,7 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
-  cli_evaluate: "evaluate\nuv run python src/cli.py evaluate\n  --config <yaml>" {
+  cli_evaluate: "evaluate\nuv run python src/cli.py evaluate\n  --scenario <name> | --config <yaml>\n  [--split train|val|test|all]  (default: all)\n  [--data-path <arbitrary.parquet>]\n  [--save-rollout]  → {split}_rollout.parquet" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -37,7 +37,12 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
-  cli_validate: "validate\nuv run python src/cli.py validate\n  --scenario <name>  (config validation only — no run)" {
+  cli_validate_config: "validate config\nuv run python src/cli.py validate config\n  --scenario <name>  config wiring + data dependencies" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_validate_data: "validate data\nuv run python src/cli.py validate data\n  --scenario <name>  [--verbose] [--transpose]\n  checks: NaN · Inf · duplicate index · zero-variance features\n          LOB delta (unchanged order books across levels)" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -202,7 +207,7 @@ prep: Data Preparation {
       style.fill: "#bbf7d0"
     }
 
-    pd_train_transform: "Transform 18 training files  (one per day-symbol)\nFor each file i ∈ [0..17]:\n  raw_df = load_parquet(path_i).dropna()\n  features = pipeline[symbol_i].transform(raw_df)\n  merged = concat(raw_df, features)\n  HFT: derive close = (bid_px_00 + ask_px_00) / 2\n  HFT: deduplicate timestamps (1µs min gap)\n  save_symbol_memmap(merged, memmap_dir, prefix=i)\n    → {i}_train_data.npy · {i}_train_index.npy · {i}_columns.json\n  free merged + gc.collect()" {
+    pd_train_transform: "Transform 18 training files  (one per day-symbol)\nFor each file i ∈ [0..17]:\n  raw_df = load_parquet(path_i).dropna()\n  features = pipeline[symbol_i].transform(raw_df)\n  merged = concat(raw_df, features)\n  warmup_rows skip: drop first 300 rows  (running-scaler cold-start)\n  HFT: derive close = (bid_px_00 + ask_px_00) / 2\n  HFT: deduplicate timestamps (1µs min gap)\n  save_symbol_memmap(merged, memmap_dir, prefix=i)\n    → {i}_train_data.npy · {i}_train_index.npy · {i}_columns.json\n  free merged + gc.collect()" {
       shape: step
       style.fill: "#bbf7d0"
     }
@@ -256,7 +261,7 @@ prep: Data Preparation {
       style.fill: "#bbf7d0"
     }
 
-    dp_hft: "HFT post-processing\nensure_close_column_for_hft()\n  close = (bid_px_00 + ask_px_00) / 2\nensure_unique_index_for_hft_tradingenv()\n  deduplicate timestamps with 1µs gap" {
+    dp_hft: "HFT post-processing\nwarmup_rows skip: drop first 300 rows of train split  (cold-start)\nensure_close_column_for_hft()\n  close = (bid_px_00 + ask_px_00) / 2\nensure_unique_index_for_hft_tradingenv()\n  deduplicate timestamps with 1µs gap" {
       shape: step
       style.fill: "#bbf7d0"
     }
@@ -313,7 +318,7 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    reward: "Differential Sharpe Ratio reward  (per step)\n\nR_t = log return of portfolio value  (NLV path, includes fees)\n\nEMA updates (η = 0.01):\n  A_t = (1−η)·A_{t−1} + η·R_t        (mean)\n  B_t = (1−η)·B_{t−1} + η·R_t²       (2nd moment)\n\nReward:\n  ΔA_t = R_t − A_{t−1}\n  ΔB_t = R_t² − B_{t−1}\n  D_t  = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n          / (B_{t−1} − A_{t−1}²)^(3/2) + ε\n\nclip_rewards = True: clamp D_t to [−10, 10]  (prevents gradient explosion)\n  configurable via clip_reward in DifferentialSharpeRatioAnyTrading\n\nReset A_t, B_t, prev_nlv to zero at each episode start" {
+    reward: "Reward  (per step) — configured via reward_type\n\nBase signal: R_t = log return of portfolio value  (NLV path, includes fees)\n\n─── reward_type = log_return  (primary pooled scenario) ───\n  reward = R_t × reward_scale      (scale = 10000 in pooled config)\n\n─── reward_type = differential_sharpe  (DSR scenarios) ───\n  EMA updates (η = 0.01):\n    A_t = (1−η)·A_{t−1} + η·R_t\n    B_t = (1−η)·B_{t−1} + η·R_t²\n  D_t = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n         / (B_{t−1} − A_{t−1}²)^(3/2) + ε   (ε = 1e−16)\n  clip_rewards = True: clamp to [−10, 10]\n  reward = D_t × scale  (scale configurable via reward_scale)\n  persist_moments: A_t, B_t optionally kept across episode boundaries\n    (default True in StreamingTradingEnv for cross-episode continuity)\n\nReset: A_t, B_t, prev_nlv to zero at each episode start\n  (unless persist_moments = True)" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -335,7 +340,7 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    td3_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.1 (exploration_noise_std) added to deterministic action\nclipped to action spec bounds [−1, 1]" {
+    td3_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.3 (exploration_noise_std) added to deterministic action\nclipped to action spec bounds [−1, 1]" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -345,7 +350,7 @@ train: RL Training {
       style.fill: "#fca5a5"
     }
 
-    td3_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\n  y = r + γ · min(Q1_tgt(s',ã), Q2_tgt(s',ã))  γ=0.995\n  L = SmoothL1(Q1(s,a)−y) + SmoothL1(Q2(s,a)−y)\n\nActor loss  (every policy_delay=2 critic steps):\n  L = −mean(Q1(s, actor(s)))\n\nSoft target update  (every actor update step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.005" {
+    td3_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  ã = actor_target(s') + clip(N(0, σ=0.2), ±0.3)\n  y = r + γ · min(Q1_tgt(s',ã), Q2_tgt(s',ã))  γ=0.9\n  L = SmoothL1(Q1(s,a)−y) + SmoothL1(Q2(s,a)−y)\n\nActor loss  (every policy_delay=2 critic steps):\n  L = −mean(Q1(s, actor(s)))\n\nSoft target update  (every actor update step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.005" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -362,7 +367,7 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    ddpg_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.1 (exploration_noise_std) added to deterministic action\nclipped to action spec bounds [−1, 1]" {
+    ddpg_explore: "Exploration\nAdditiveGaussianModule\nσ = 0.3 (exploration_noise_std) added to deterministic action\nclipped to action spec bounds [−1, 1]" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -372,7 +377,7 @@ train: RL Training {
       style.fill: "#fca5a5"
     }
 
-    ddpg_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  y = r + γ · Q_target(s', actor_target(s'))  γ=0.995\n  L = SmoothL1(Q(s,a) − y)\n\nActor loss  (every step — no policy delay):\n  L = −mean(Q(s, actor(s)))\n\nSoft target update  (every step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.005\n\nNote: no target policy smoothing (noise_clip is TD3-only)" {
+    ddpg_update: "Update  (optim_steps_per_batch = 5 per collect)\n\nCritic loss  (SmoothL1):\n  y = r + γ · Q_target(s', actor_target(s'))  γ=0.9\n  L = SmoothL1(Q(s,a) − y)\n\nActor loss  (every step — no policy delay):\n  L = −mean(Q(s, actor(s)))\n\nSoft target update  (every step):\n  θ_tgt ← τ·θ + (1−τ)·θ_tgt  τ=0.005\n\nNote: no target policy smoothing (noise_clip is TD3-only)" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -524,6 +529,16 @@ eval: Post-Training Evaluation {
       style.fill: "#e9d5ff"
     }
 
+    benchmark_table: "Benchmark comparison table  (per split)\nbenchmark_tables/{split}_benchmark_table.json\nbenchmark_tables/{split}_benchmark_table.png\n20+ columns per strategy: Total Return · CAGR · Sharpe · Sortino\n  Calmar · Max DD · Win Rate · Profit Factor · Mean/Step · Ann. Vol\n  Skewness · Kurtosis · % Long · % Short · Alpha · Beta · IR · TE\nStrategy row highlighted green; dark header" {
+      shape: document
+      style.fill: "#e9d5ff"
+    }
+
+    rollout_artifact: "Rollout data  (optional — requires --save-rollout flag)\n{split}_rollout.parquet\nper-step: observation · action · reward · done\nsaved to output_dir (default: eval_results/)" {
+      shape: document
+      style.fill: "#e9d5ff"
+    }
+
     stat_artifacts: "Statistical test artifacts  (per split)\nstatistical_tests/{split}/*.json  (full results)\nstatistical_tests/{split}/*.csv   (benchmark table)\nresearch_artifacts/statistical_tests/*.json\n  (compact summary: p-values · effect sizes · significance)" {
       shape: document
       style.fill: "#e9d5ff"
@@ -581,6 +596,14 @@ cli.cli_train -> train: "drives" {
   style.stroke: "#0369a1"
 }
 cli.cli_evaluate -> eval: "drives" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+cli.cli_validate_config -> prep.dp_prepared: "validates config wiring" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+cli.cli_validate_data -> prep.dp_prepared: "validates prepared dataset" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
 }
