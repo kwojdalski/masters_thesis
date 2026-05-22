@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from trading_rl.constants import MBOAction
 from trading_rl.features.lob_common import LOBFeature, best_level_ofi, safe_divide
 from trading_rl.features.registry import register_feature
 
@@ -94,8 +95,8 @@ class CancelToTradeRatioFeature(LOBFeature):
         action_col = self._p("action_col", "action")
         window = int(self._p("window", 200))
         action = df[action_col].astype(str)
-        cancels = (action == "C").astype(float)
-        trades = (action == "T").astype(float)
+        cancels = (action == MBOAction.CANCEL).astype(float)
+        trades = (action == MBOAction.TRADE).astype(float)
         rolling_cancels = cancels.rolling(window=window, min_periods=1).sum()
         rolling_trades = trades.rolling(window=window, min_periods=1).sum()
         return safe_divide(rolling_cancels, rolling_trades)
@@ -175,7 +176,7 @@ class TradeArrivalRateFeature(LOBFeature):
     def compute(self, df: pd.DataFrame) -> pd.Series:
         action_col = self._p("action_col", "action")
         window = int(self._p("window", 100))
-        trades = (df[action_col].astype(str) == "T").astype(float)
+        trades = (df[action_col].astype(str) == MBOAction.TRADE).astype(float)
         return trades.rolling(window=window, min_periods=1).sum()
 
 

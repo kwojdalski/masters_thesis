@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from trading_rl.constants import MBOAction, MBOSide
 from trading_rl.features.base import Feature
 
 
@@ -128,10 +129,10 @@ def split_trade_flow(
     action = df[action_col].astype(str)
     side = df[side_col].astype(str)
     size = df[size_col].astype(float)
-    is_trade = action == "T"
+    is_trade = action == MBOAction.TRADE
 
     buy_vol = pd.Series(0.0, index=df.index, dtype=float)
     sell_vol = pd.Series(0.0, index=df.index, dtype=float)
-    buy_vol[is_trade & (side == "B")] = size[is_trade & (side == "B")]
-    sell_vol[is_trade & (side == "A")] = size[is_trade & (side == "A")]
+    buy_vol[is_trade & (side == MBOSide.BID)] = size[is_trade & (side == MBOSide.BID)]
+    sell_vol[is_trade & (side == MBOSide.ASK)] = size[is_trade & (side == MBOSide.ASK)]
     return is_trade.astype(float), buy_vol, sell_vol

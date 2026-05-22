@@ -102,6 +102,25 @@ class BenchmarkName(StrEnum):
     RANDOM_ACTIONS = "random_actions"
 
 
+class MBOSide(StrEnum):
+    """Order book side codes used in Databento MBO records."""
+
+    ASK = "A"
+    BID = "B"
+
+
+class MBOAction(StrEnum):
+    """Order book action codes used in Databento MBO records."""
+
+    ADD = "A"
+    CANCEL = "C"
+    MODIFY = "M"
+    CLEAR = "R"
+    TRADE = "T"
+    FILL = "F"
+    NONE = "N"
+
+
 class TradePosition(IntEnum):
     """Discrete trading position values used by the trading environment.
 

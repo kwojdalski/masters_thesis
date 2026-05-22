@@ -4,32 +4,13 @@ from __future__ import annotations
 import os
 from collections import defaultdict
 from dataclasses import dataclass, field
-from enum import StrEnum
 from itertools import takewhile
 
 import databento as db
 from sortedcontainers import SortedDict
 
 from logger import configure_logging, get_logger
-
-
-class MBOSide(StrEnum):
-    """Order book side, as used in Databento MBO records."""
-
-    ASK = "A"
-    BID = "B"
-
-
-class MBOAction(StrEnum):
-    """Order book action type, as used in Databento MBO records."""
-
-    ADD = "A"
-    CANCEL = "C"
-    MODIFY = "M"
-    CLEAR = "R"
-    TRADE = "T"
-    FILL = "F"
-    NONE = "N"
+from trading_rl.constants import MBOAction, MBOSide
 
 
 def _env_flag(name: str, default: bool = False) -> bool:

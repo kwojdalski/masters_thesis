@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from trading_rl.constants import MBOAction, MBOSide
 from trading_rl.features.lob_common import LOBFeature, safe_divide, split_trade_flow
 from trading_rl.features.registry import register_feature
 
@@ -39,7 +40,7 @@ class OddLotTradeRatioFeature(LOBFeature):
         size_col = self._p("size_col", "size")
         window = int(self._p("window", 200))
         round_lot = float(self._p("round_lot", 100))
-        is_trade = (df[action_col].astype(str) == "T").astype(float)
+        is_trade = (df[action_col].astype(str) == MBOAction.TRADE).astype(float)
         is_odd = is_trade * (df[size_col].astype(float) < round_lot).astype(float)
         rolling_odd = is_odd.rolling(window=window, min_periods=1).sum()
         rolling_trades = is_trade.rolling(window=window, min_periods=1).sum()
@@ -60,11 +61,15 @@ class OddLotImbalanceFeature(LOBFeature):
         action = df[action_col].astype(str)
         side = df[side_col].astype(str)
         size = df[size_col].astype(float)
-        is_odd = (action == "T") & (size < round_lot)
+        is_odd = (action == MBOAction.TRADE) & (size < round_lot)
         odd_buy = pd.Series(0.0, index=df.index)
         odd_sell = pd.Series(0.0, index=df.index)
-        odd_buy[is_odd & (side == "B")] = size[is_odd & (side == "B")]
-        odd_sell[is_odd & (side == "A")] = size[is_odd & (side == "A")]
+        odd_buy[is_odd & (side == MBOSide.BID)] = size[
+            is_odd & (side == MBOSide.BID)
+        ]
+        odd_sell[is_odd & (side == MBOSide.ASK)] = size[
+            is_odd & (side == MBOSide.ASK)
+        ]
         rb = odd_buy.rolling(window=window, min_periods=1).sum()
         rs = odd_sell.rolling(window=window, min_periods=1).sum()
         return safe_divide(rb - rs, rb + rs)
@@ -105,7 +110,7 @@ class LargeTradeRatioFeature(LOBFeature):
         threshold = float(self._p("threshold", 500))
         action = df[action_col].astype(str)
         size = df[size_col].astype(float)
-        is_trade = (action == "T").astype(float)
+        is_trade = (action == MBOAction.TRADE).astype(float)
         is_large = is_trade * (size >= threshold).astype(float)
         rolling_large = is_large.rolling(window=window, min_periods=1).sum()
         rolling_trades = is_trade.rolling(window=window, min_periods=1).sum()
