@@ -54,6 +54,14 @@ class StreamingTradingEnv(TradingEnv):
         self._symbol_queue: list[int] = []
         self._symbol_rng = np.random.default_rng(seed)
 
+        for mp in memmap_paths:
+            if mp.n_rows < episode_length:
+                logger.warning(
+                    "symbol file %s has %d rows < episode_length %d; "
+                    "it will be skipped at reset time",
+                    mp.data_path, mp.n_rows, episode_length,
+                )
+
         # Bootstrap with a concrete window so the parent can set observation_space.
         bootstrap_df = self._load_window(0, 0)
         super().__init__(df=bootstrap_df, max_episode_duration="max", **gym_kwargs)
@@ -102,11 +110,28 @@ class StreamingTradingEnv(TradingEnv):
         if seed is not None:
             self._symbol_rng = np.random.default_rng(seed)
             self._symbol_queue = []
-        file_idx = self._next_symbol_idx()
-        mp = self._memmap_paths[file_idx]
+
+        # Skip files that are too short to fill a full episode window.
+        _attempts = 0
+        while True:
+            file_idx = self._next_symbol_idx()
+            mp = self._memmap_paths[file_idx]
+            if mp.n_rows >= self._episode_length:
+                break
+            logger.warning(
+                "StreamingTradingEnv: skipping symbol %d (%d rows < episode_length %d)",
+                file_idx, mp.n_rows, self._episode_length,
+            )
+            _attempts += 1
+            if _attempts >= len(self._memmap_paths):
+                raise RuntimeError(
+                    f"No symbol files have enough rows for episode_length={self._episode_length}. "
+                    "Reduce episode_length or provide longer data files."
+                )
+
         max_start = mp.n_rows - self._episode_length
-        # Use max_start + 1 to include final valid start position (numpy.integers is exclusive)
-        start = int(self._symbol_rng.integers(0, max(1, max_start + 1)))
+        # max_start + 1 because numpy integers() upper bound is exclusive
+        start = int(self._symbol_rng.integers(0, max_start + 1))
 
         window_df = self._load_window(file_idx, start)
         self._set_df(window_df)
