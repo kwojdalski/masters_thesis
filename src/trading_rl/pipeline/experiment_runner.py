@@ -98,6 +98,7 @@ def _configure_periodic_hooks(
     configured_splits: list[str] = list(
         getattr(config.training, "temp_eval_splits", ["train"])
     )
+    temp_eval_max_steps: int = getattr(config.training, "temp_eval_max_steps", 20000)
 
     split_contexts: list[SplitEvalContext] = []
     for split_name in configured_splits:
@@ -113,7 +114,7 @@ def _configure_periodic_hooks(
             SplitEvalContext(
                 split=split_name,
                 df=ctx.df,
-                max_steps=ctx.max_steps,
+                max_steps=min(ctx.max_steps, temp_eval_max_steps),
                 eval_env=ctx.env,
             )
         )
