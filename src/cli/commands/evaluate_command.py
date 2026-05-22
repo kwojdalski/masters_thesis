@@ -227,7 +227,7 @@ class EvaluateCommand(BaseCommand):
                                 },
                             }
                         split_output["benchmarks"] = bench_out
-                        self._print_benchmark_table(split, bench_out)
+                        self._print_benchmark_table(split, bench_out, result.metrics)
                         if mlflow_run_id:
                             self._log_benchmarks_to_mlflow(bench_out, split)
 
@@ -513,21 +513,31 @@ class EvaluateCommand(BaseCommand):
         self.console.print(table)
 
     def _print_benchmark_table(
-        self, split: str, bench_out: dict[str, Any]
+        self, split: str, bench_out: dict[str, Any], strategy_metrics: dict[str, Any] | None = None
     ) -> None:
+        _rel_cols = [
+            ("alpha", "Alpha", ".4f"),
+            ("beta", "Beta", ".3f"),
+            ("information_ratio", "Info Ratio", ".3f"),
+            ("tracking_error", "Track. Error", ".4f"),
+        ]
         table = Table(
             title=f"Benchmark performance ({split})", show_header=True, header_style="bold"
         )
         table.add_column("Benchmark", style="cyan")
         for _, label, _ in _PERF_ROWS:
             table.add_column(label, justify="right")
-        for _, label, _ in [
-            ("alpha", "Alpha", ".4f"),
-            ("beta", "Beta", ".3f"),
-            ("information_ratio", "Info Ratio", ".3f"),
-            ("tracking_error", "Track. Error", ".4f"),
-        ]:
+        for _, label, _ in _rel_cols:
             table.add_column(label, justify="right")
+
+        if strategy_metrics:
+            row = ["[bold green]Strategy[/bold green]"]
+            for key, _, fmt in _PERF_ROWS:
+                val = strategy_metrics.get(key)
+                row.append(f"[bold green]{val:{fmt}}[/bold green]" if val is not None else "—")
+            row += ["—"] * len(_rel_cols)
+            table.add_row(*row)
+
         for bench_name, entry in bench_out.items():
             bench_metrics = entry.get("benchmark_metrics", entry)
             rel_metrics = entry.get("relative_metrics", {})
@@ -535,12 +545,7 @@ class EvaluateCommand(BaseCommand):
             for key, _, fmt in _PERF_ROWS:
                 val = bench_metrics.get(key)
                 row.append(f"{val:{fmt}}" if val is not None else "—")
-            for key, _, fmt in [
-                ("alpha", "", ".4f"),
-                ("beta", "", ".3f"),
-                ("information_ratio", "", ".3f"),
-                ("tracking_error", "", ".4f"),
-            ]:
+            for key, _, fmt in _rel_cols:
                 val = rel_metrics.get(key)
                 row.append(f"{val:{fmt}}" if val is not None else "—")
             table.add_row(*row)
