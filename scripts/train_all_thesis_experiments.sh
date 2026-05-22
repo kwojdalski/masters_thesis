@@ -40,7 +40,7 @@ for ALGO in td3 ddpg ppo; do
     fi
 
     PIDS+=($!)
-    echo "  PID: ${PIDS[-1]}"
+    echo "  PID: $!"
 done
 
 echo ""
