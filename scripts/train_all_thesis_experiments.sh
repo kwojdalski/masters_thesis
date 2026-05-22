@@ -16,7 +16,22 @@ mkdir -p "$LOG_DIR"
 
 EXTRA_ARGS="${EXTRA_ARGS:-}"
 
+PID_FILE="$LOG_DIR/train_pids"
 PIDS=()
+
+_kill_all() {
+    echo ""
+    echo "Killing all experiments..."
+    if [[ -f "$PID_FILE" ]]; then
+        while IFS= read -r pid; do
+            kill "$pid" 2>/dev/null && echo "  Killed $pid" || true
+        done < "$PID_FILE"
+        rm -f "$PID_FILE"
+    fi
+    kill "$MULTITAIL_PID" 2>/dev/null || true
+    exit 1
+}
+trap _kill_all INT TERM
 
 for ALGO in td3 ddpg ppo; do
     case "$ALGO" in
@@ -43,8 +58,11 @@ for ALGO in td3 ddpg ppo; do
     echo "  PID: $!"
 done
 
+printf '%s\n' "${PIDS[@]}" > "$PID_FILE"
+
 echo ""
 echo "All three experiments running. PIDs: ${PIDS[*]}"
+echo "To kill all: bash scripts/kill_experiments.sh"
 echo ""
 
 if command -v multitail &>/dev/null; then
@@ -73,6 +91,7 @@ for i in "${!PIDS[@]}"; do
 done
 
 kill "$MULTITAIL_PID" 2>/dev/null || true
+rm -f "$PID_FILE"
 
 if [[ $FAILED -eq 1 ]]; then
     echo "One or more experiments failed. Check logs in $LOG_DIR/" >&2
