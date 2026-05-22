@@ -34,7 +34,7 @@ class EvaluateParams:
 
     config_file: Path | None = None
     checkpoint: Path | None = None
-    split: str = "test"
+    split: str = "all"
     only: list[str] | None = None
     output_dir: Path = field(default_factory=lambda: Path("./eval_results"))
     config_overrides: list[str] | None = None

@@ -484,7 +484,7 @@ def evaluate(
         ),
     ),
     split: str = typer.Option(
-        "test",
+        "all",
         "--split",
         "-s",
         help="Data split(s) to evaluate: train, val, test, or all",
@@ -547,11 +547,11 @@ def evaluate(
     Use --no-mlflow to skip MLflow logging.
 
     Examples:
-        # Evaluate the latest checkpoint on the test split (default)
+        # Evaluate the latest checkpoint on val and test splits (default)
         python src/cli.py evaluate --config sine_wave/ppo_no_trend
 
-        # Evaluate all splits
-        python src/cli.py evaluate -c sine_wave/ppo_no_trend --split all
+        # Evaluate only one split
+        python src/cli.py evaluate -c sine_wave/ppo_no_trend --split test
 
         # Only compute metrics and plots, skip benchmarks and stats
         python src/cli.py evaluate -c sine_wave/ppo_no_trend --only metrics --only plots
