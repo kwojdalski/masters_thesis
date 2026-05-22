@@ -172,7 +172,7 @@ This makes DDPG the cleanest way to isolate the effect of TD3's three stability 
 ## Training Loop
 - Collect batch → extend replay buffer → sample minibatches.
 - Critic and actor updates each step (no delay).
-- Soft-update target networks with `tau=0.001`.
+- Soft-update target networks with `tau=0.005`.
 
 ## See Also
 

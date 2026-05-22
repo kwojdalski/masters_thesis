@@ -302,7 +302,7 @@ for reference configurations.
 | **Critic type** | 1 Q-network Q(s,a) | 2 Q-networks (twin) | 1 V-network V(s) |
 | **Critic hidden dims** | [128, 64] | [128, 64] | [128, 64] |
 | **Update strategy** | Simultaneous actor-critic | Delayed actor (every 2 critic steps) | Clipped policy updates |
-| **Exploration** | Additive Gaussian σ=0.1 | Additive Gaussian σ=0.1 + target smoothing σ=0.2 | Entropy bonus c=0.01 |
+| **Exploration** | Additive Gaussian σ=0.1 | Additive Gaussian σ=0.3 + target smoothing σ=0.2 | Entropy bonus c=0.01 |
 | **Evaluation action** | μ_θ(s) | μ_θ(s) | tanh(μ_θ(s)) (mode) |
 | **Replay buffer** | Yes | Yes | No (on-policy) |
 | **Stability** | Prone to Q-overestimation | Conservative Q-targets via min | Clipped objective |

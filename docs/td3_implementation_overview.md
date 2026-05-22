@@ -154,14 +154,15 @@ Key hyperparameters used in the comparison:
 | Actor hidden activation | ReLU |
 | Output activation | Tanh |
 | Actor lr / Critic lr | 1e-4 / 1e-4 |
-| Weight decay (both) | 2e-6 |
-| Exploration noise σ | 0.1 |
+| Actor weight decay | 0.0 |
+| Critic weight decay | 2e-6 |
+| Exploration noise σ | 0.3 |
 | Target smoothing σ | 0.2 (clipped ±0.3) |
 | Policy delay | 2 |
-| Soft update τ | 0.001 |
+| Soft update τ | 0.005 |
 | Replay buffer size | 100,000 |
 | Batch size | 128 |
-| γ | 0.995 |
+| γ | 0.9 |
 | Loss function | Smooth L1 (Huber) |
 
 ## Components
@@ -174,7 +175,7 @@ Key hyperparameters used in the comparison:
 - Collect batch → replay buffer → sample minibatches.
 - Critic update every step; actor update delayed by `policy_delay=2`.
 - Target policy smoothing via `policy_noise=0.2` and `noise_clip=0.3`.
-- Soft-update target params with `tau=0.001`.
+- Soft-update target params with `tau=0.005`.
 
 ## See Also
 

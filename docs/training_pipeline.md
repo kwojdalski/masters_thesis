@@ -152,7 +152,7 @@ flowchart LR
     ENV --> AGENT
 ```
 
-With `train_size=200_000` and `episode_length=50_000` there are at most 150k possible start offsets, giving a sliding window of episode positions. With 2M training steps at 200 frames/batch, the agent visits many overlapping windows across the full 200k training rows.
+In the primary pooled scenario `streaming_episode_length=10_000` and each training file contains ~50k rows after the warmup skip, giving ~40k possible start offsets per file (18 files total). With 3M training steps at 200 frames/batch, the agent visits many overlapping windows across all 18 symbol-day files. The single-symbol chronological path uses `train_size=50_000` and the same episode length.
 
 Each symbol produces three files in `memmap_dir/`:
 

@@ -34,7 +34,7 @@ flowchart TD
         COLLECT["SyncDataCollector\nframes_per_batch transitions"]
         BUFFER["Replay Buffer\nbuffer_size transitions"]
         TD3["TD3Loss\ntwin critics · delayed actor update\ntarget policy smoothing"]
-        SOFT["Soft target network update\nτ = 0.001"]
+        SOFT["Soft target network update\nτ = 0.005"]
         CKPT["Checkpoint\nactor + critic weights\noptimizer state"]
 
         ENV --> COLLECT --> BUFFER --> TD3 --> SOFT
@@ -75,9 +75,10 @@ flowchart TD
 | Parameter | Value | Meaning |
 |---|---|---|
 | Raw rows per symbol | ~7M | ~4 trading days of MBP-10 tick data |
-| `train_size` | 200 000 | ~2.7 hours of tick events used for training |
-| `episode_length` | 50 000 | ~41 minutes per episode window |
-| Max start offsets | 150 000 | sliding window within the 200k train block |
+| Training files | 18 | 6 symbols × 3 days (2026-02-25 to -02-27); full files used in per-day pooled path |
+| `train_size` | 50 000 | row cap applied in single-symbol chronological path only |
+| `streaming_episode_length` | 10 000 | ~8 minutes per episode window in the primary pooled TD3 scenario |
+| Max start offsets per file | 40 000 | sliding window within each 50k training file |
 | Symbols | 6 | AAPL, MSFT, TSLA, META, AMZN, AVGO |
 
 See [training_pipeline.md](./training_pipeline.md) for detailed per-step diagrams.

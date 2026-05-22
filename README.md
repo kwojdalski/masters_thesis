@@ -45,7 +45,8 @@ Common commands:
 | `uv run python src/cli.py train --scenario sine_wave/ppo_no_trend` | Train a single agent |
 | `uv run python src/cli.py train --scenario sine_wave/ppo_no_trend --trials 3` | Run multiple trials |
 | `uv run python src/cli.py train --config sine_wave/ppo_no_trend --from-last-checkpoint --additional-steps 5000` | Resume from last checkpoint |
-| `uv run python src/cli.py validate --scenario aapl_td3_hft_lob` | Validate scenario config and data dependencies |
+| `uv run python src/cli.py validate config --scenario <name>` | Validate scenario config and data dependencies |
+| `uv run python src/cli.py validate data --scenario <name>` | Validate prepared dataset (NaN, inf, duplicate index, zero-variance features, LOB delta checks) |
 | `uv run python src/cli.py feature-research --scenario sine_wave/ppo_no_trend` | Run offline feature scoring |
 | `uv run python src/cli.py dashboard` | Launch the MLflow UI |
 | `uv run python src/cli.py checkpoints` | List checkpoints; supports `--delete <regex>`, `--delete-all`, `--dry-run` |
