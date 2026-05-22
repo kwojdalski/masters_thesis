@@ -55,7 +55,7 @@ $$a_t^{\text{noisy}} = \operatorname{clip}(a_t + \epsilon, -1, 1)$$ {#eq-explora
 where:
 
 - $\epsilon \sim \mathcal{N}(0, \sigma^2)$ — Gaussian exploration noise
-- $\sigma$ — exploration noise standard deviation^[The main experiment uses $\sigma = 0.1$. The range 0.1–0.3 reflects common practice in continuous-action TD3 applications; values above 0.3 tend to destabilize learning in low-signal environments such as tick-frequency returns.]
+- $\sigma$ — exploration noise standard deviation^[The main experiment uses $\sigma = 0.3$. This value is at the upper end of the 0.1--0.3 range commonly used in continuous-action TD3 applications and was chosen to maintain sufficient action diversity in the low-signal tick-level setting.]
 
 This exploration mechanism is used by DDPG and TD3, as shown in
 @eq-ddpg-exploration and @eq-td3-exploration. It contrasts with PPO's

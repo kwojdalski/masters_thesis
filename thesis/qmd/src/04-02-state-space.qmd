@@ -68,7 +68,7 @@ additional signal sources materially improve out-of-sample results.
 
 ### Feature Groups and Selection Rationale
 
-The state vector organises twenty-five LOB-derived features into five groups,
+The feature registry organises the LOB candidate pool into five groups,
 each targeting a distinct microstructure mechanism. **Imbalance features** measure
 the relative weight of resting liquidity on each side of the book — at individual
 levels (levels 0–2) and in a three-level volume-weighted aggregate — together with
@@ -96,7 +96,11 @@ https://databento.com/docs/schemas-and-data-formats/mbp-10] **Regime and tempora
 features** condition the agent on activity
 rate via log inter-event time [@Engle2000], on price momentum via mid-price
 acceleration, and on the intraday seasonal pattern via cyclical sine and cosine
-hour encodings [@Wood1985]. The observation vector is additionally extended at
+hour encodings [@Wood1985]. The final selected TD3 configuration uses a reduced
+subset of this candidate pool: best-level book pressure, three-level order-book
+imbalance, best-level order-count imbalance, microprice, microprice divergence,
+bid and ask depth slopes, instantaneous OFI, 50-event rolling OFI, and 50-event
+signed trade flow. The observation vector is additionally extended at
 runtime with the agent's current portfolio exposure $a_{t-1} \in [-1, 1]$, making
 the state partially Markovian with respect to inventory and allowing the agent to
 condition position changes on the transaction cost they would incur; this feature
@@ -129,11 +133,11 @@ the complete specification including all parameter values is in Appendix A.
 ### Observation Space and Normalization
 
 The complete observation vector $s_t \in \mathbb{R}^d$ is formed by concatenating
-all engineered features. The exact dimensionality $d$ is scenario-dependent and
-specified by the feature set used in each experiment.
+all engineered features. The main selected-feature TD3 experiment uses ten
+static LOB-derived features plus the runtime position feature, giving $d = 11$.
 
-All features except cyclical time encodings and the position feature are
-standardized with causal running statistics:
+The ten static features selected in the main TD3 configuration are standardized
+with causal running statistics:
 
 $$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sqrt{\sigma_{i,t}^2 + \varepsilon}}$$ {#eq-z-score}
 
@@ -148,10 +152,11 @@ The mean $\mu_{i,t}$ and variance $\sigma_{i,t}^2$ are updated online
 from observations available up to timestep $t$ within the current chronological
 split and trading session. The running statistics are reset at detected session
 boundaries, preventing previous-day market conditions from contaminating the
-opening representation of the next session. Cyclical encodings are inherently
-bounded in $[-1, 1]$ and require no normalization. The position feature is
-likewise not standardized; it is already bounded in $[-1, 1]$ and its bimodal
-distribution makes z-score normalization counterproductive.
+opening representation of the next session. When cyclical encodings are used in
+other feature specifications, they are already bounded in $[-1, 1]$ and require
+no normalization. The position feature is likewise not standardized; it is
+already bounded in $[-1, 1]$ and its bimodal distribution makes z-score
+normalization counterproductive.
 
 The formal observation space is:
 
@@ -237,13 +242,14 @@ The selection is operationalized through a registry-driven feature pipeline.
 Feature names resolve to computation functions at runtime; adding, removing, or
 reordering features therefore changes the experimental specification without
 rewriting the feature implementations. The active feature set for the main
-experiment is the causal LOB set summarized in Appendix A: imbalance, fair-value,
-spread and cost, order-flow, and regime features derived from the ten-level
-order book.
+experiment is the selected causal LOB set summarized in Appendix A: three
+imbalance features, two fair-value features, two depth-slope features, three
+order-flow features, and the runtime position feature. Regime and temporal
+features remain part of the implemented candidate registry but are not used in
+the selected TD3 specification.
 
-The final state vector has dimensionality $d = 26$: 25 LOB-derived features
-across five groups (5 imbalance, 3 fair value, 6 spread and cost, 7 order flow,
-4 regime and temporal) plus the current portfolio exposure appended at runtime.
-All features except the cyclical hour encodings are normalized using causal
-session-aware running statistics as described in the preceding section. The complete feature
-specification with parameter values is listed in Appendix A.
+The final state vector has dimensionality $d = 11$: ten LOB-derived features
+plus the current portfolio exposure appended at runtime. The ten static features
+are normalized using causal session-aware running statistics as described in the
+preceding section, while the position feature remains in its raw bounded scale.
+The complete feature specification with parameter values is listed in Appendix A.

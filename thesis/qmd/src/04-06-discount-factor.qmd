@@ -1,16 +1,18 @@
 ## Discount Factor
 
-The discount factor $\gamma = 0.995$ is used throughout this thesis. The role
+The discount factor $\gamma = 0.9$ is used in the main TD3 HFT experiment. The role
 of $\gamma$ in the value function is defined in Chapter 3; this section
 justifies the specific value chosen.
 
-With $\gamma = 0.995$ the effective planning horizon is approximately
-$1/(1-\gamma) = 200$ steps. On the HFT data used here — where each step
-corresponds to a short intraday interval — this horizon covers a meaningful
-window of market activity without extending so far that value estimates
-accumulate excessive variance from stochastic rewards.
+With $\gamma = 0.9$ the effective planning horizon is approximately
+$1/(1-\gamma) = 10$ steps. On the event-time HFT data used here, this short
+horizon intentionally emphasizes local order-book dynamics rather than distant
+price movements. This is appropriate for a Differential Sharpe Ratio reward
+computed from noisy tick-level portfolio changes, where long bootstrap horizons
+can make critic targets unstable.
 
-$\gamma = 0.995$ is held constant across all experiments to isolate the effect
-of other design choices (state representation, reward function). Sensitivity
-to $\gamma$ is a natural direction for future work, particularly whether lower
-values (0.9–0.95) improve performance in choppy, mean-reverting regimes.
+$\gamma = 0.9$ is held constant for the main selected-feature TD3 specification
+to isolate the effect of the state representation and reward design. Sensitivity
+to $\gamma$ remains a natural direction for future work, particularly whether
+higher values such as 0.95--0.995 improve performance when the objective is less
+local than the present HFT setup.
