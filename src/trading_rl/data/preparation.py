@@ -400,7 +400,12 @@ def _build_per_day_splits(
     if memmap_dir:
         memmap_dir.mkdir(parents=True, exist_ok=True)
 
-    n_workers = min(len(all_symbols), os.cpu_count() or 1)
+    _cfg_workers = getattr(getattr(config, "data", None), "n_workers", 0)
+    n_workers = (
+        min(len(all_symbols), os.cpu_count() or 1)
+        if _cfg_workers <= 0
+        else min(_cfg_workers, len(all_symbols))
+    )
     logger.info(
         "per-day mode: processing %d symbols with %d workers", len(all_symbols), n_workers
     )
