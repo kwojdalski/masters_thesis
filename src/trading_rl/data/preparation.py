@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import gc
 import json
+import os
 import random
 import shutil
 import tempfile
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -184,6 +186,159 @@ def _build_single_symbol_splits(
     return _finalize_splits(train_df, val_df, test_df, config, logger)
 
 
+def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[str, str] | None, int | None]:
+    """Process one symbol: fit pipeline, transform train files, transform val file.
+
+    Runs in a subprocess — all imports are local and config is passed as plain types.
+
+    Returns
+    -------
+    symbol : str
+    train_results : list of (original_train_index, memmap_paths_dict | None)
+        memmap_paths_dict keys: data_path, index_path, n_rows, columns
+    val_entry : {val_str: path_str, test_str: path_str} | None
+    val_index : int | None
+    """
+    (
+        symbol,
+        train_indices,        # list[int] — original positions in train_paths
+        train_paths_sym,      # list[str] — paths for this symbol
+        val_path,             # str | None
+        val_index,            # int | None
+        feature_config,       # str | None
+        mode,
+        backend,
+        filter_lob_levels,    # int | None
+        warmup_rows,
+        memmap_dir_str,       # str | None
+        tmp_dir_str,          # str
+    ) = args
+
+    import gc as _gc
+    import json as _json
+    from pathlib import Path as _Path
+
+    import numpy as _np
+    import pandas as _pd
+
+    from logger import get_logger as _get_logger
+    from trading_rl.constants import EnvBackend, EnvMode
+    from trading_rl.data.hft import _deduplicate_hft_index_single, _derive_close_hft_single
+    from trading_rl.data.loading import load_trading_data
+    from trading_rl.data_loading import MemmapPaths, save_symbol_memmap
+    from trading_rl.features import FeaturePipeline
+    from trading_rl.features.base import NormalizationMethod
+
+    _logger = _get_logger(__name__)
+    memmap_dir = _Path(memmap_dir_str) if memmap_dir_str else None
+    tmp_dir = _Path(tmp_dir_str)
+
+    def _load(path: str) -> _pd.DataFrame:
+        df = load_trading_data(path).dropna()
+        if filter_lob_levels is not None:
+            from trading_rl.data.lob_filters import filter_unchanged_lob
+            df = filter_unchanged_lob(df, levels=filter_lob_levels)
+        return df
+
+    # ── 1. Fit pipeline ───────────────────────────────────────────────────────
+    pipeline = FeaturePipeline.from_yaml(feature_config)
+    needs_full_concat = any(
+        fc.normalize and fc.normalization_method == NormalizationMethod.GLOBAL
+        for fc in pipeline.feature_configs
+    )
+    _logger.info("fit pipeline symbol=%s n_days=%d incremental=%s", symbol, len(train_paths_sym), not needs_full_concat)
+    if needs_full_concat:
+        raw_parts = [_load(p) for p in train_paths_sym]
+        combined = _pd.concat(raw_parts)
+        del raw_parts
+        pipeline.fit(combined)
+        del combined
+        _gc.collect()
+    else:
+        for p in train_paths_sym:
+            raw_df = _load(p)
+            pipeline.fit(raw_df)
+            del raw_df
+            _gc.collect()
+
+    # ── 2. Transform training files ───────────────────────────────────────────
+    train_results: list[tuple[int, Any]] = []
+    for orig_idx, train_path in zip(train_indices, train_paths_sym):
+        _logger.info("transform train path=%s", train_path)
+        raw_df = _load(train_path)
+        feats = pipeline.transform(raw_df)
+        train_df_i = _pd.concat([raw_df, feats], axis=1)
+        del raw_df, feats
+
+        if mode == EnvMode.HFT:
+            train_df_i = _derive_close_hft_single(train_df_i, f"train_{orig_idx}", _logger)
+        if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
+            train_df_i = _deduplicate_hft_index_single(train_df_i, f"train_{orig_idx}", _logger)
+
+        if warmup_rows > 0 and warmup_rows < len(train_df_i):
+            train_df_i = train_df_i.iloc[warmup_rows:]
+
+        memmap_entry = None
+        if memmap_dir:
+            prefix = str(orig_idx)
+            memmap_marker = memmap_dir / f"{prefix}_train_data.npy"
+            expected_cols = list(train_df_i.select_dtypes(include=[_np.number]).columns)
+            if memmap_marker.exists():
+                cached_data = _np.load(memmap_marker, mmap_mode="r")
+                cached_cols = _json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
+                if cached_data.shape[0] == len(train_df_i) and cached_cols == expected_cols:
+                    memmap_entry = {
+                        "data_path": str(memmap_marker),
+                        "index_path": str(memmap_dir / f"{prefix}_train_index.npy"),
+                        "n_rows": cached_data.shape[0],
+                        "columns": cached_cols,
+                    }
+                else:
+                    mp = save_symbol_memmap(train_df_i, memmap_dir, prefix)
+                    memmap_entry = {
+                        "data_path": str(mp.data_path),
+                        "index_path": str(mp.index_path),
+                        "n_rows": mp.n_rows,
+                        "columns": mp.columns,
+                    }
+            else:
+                mp = save_symbol_memmap(train_df_i, memmap_dir, prefix)
+                memmap_entry = {
+                    "data_path": str(mp.data_path),
+                    "index_path": str(mp.index_path),
+                    "n_rows": mp.n_rows,
+                    "columns": mp.columns,
+                }
+        train_results.append((orig_idx, memmap_entry))
+        del train_df_i
+        _gc.collect()
+
+    # ── 3. Transform val file ─────────────────────────────────────────────────
+    val_entry: dict[str, str] | None = None
+    if val_path is not None and val_index is not None:
+        _logger.info("transform val path=%s symbol=%s", val_path, symbol)
+        raw_val = _load(val_path)
+        val_feats = pipeline.transform(raw_val)
+        val_df_j = _pd.concat([raw_val, val_feats], axis=1)
+        del raw_val, val_feats
+
+        if mode == EnvMode.HFT:
+            val_df_j = _derive_close_hft_single(val_df_j, f"val_{val_index}", _logger)
+        if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
+            val_df_j = _deduplicate_hft_index_single(val_df_j, f"val_{val_index}", _logger)
+
+        mid = len(val_df_j) // 2
+        val_p = tmp_dir / f"{val_index}_val.parquet"
+        test_p = tmp_dir / f"{val_index}_test.parquet"
+        val_df_j.iloc[:mid].to_parquet(val_p)
+        val_df_j.iloc[mid:].to_parquet(test_p)
+        val_entry = {"val": str(val_p), "test": str(test_p)}
+        del val_df_j
+        _gc.collect()
+
+    return symbol, train_results, val_entry, val_index
+
+
 def _build_per_day_splits(
     config: Any,
     logger: Any,
@@ -209,156 +364,121 @@ def _build_per_day_splits(
     """
     from collections import defaultdict
 
-    from trading_rl.features import FeaturePipeline
-
     feature_config = getattr(config.data, "feature_config", None)
     mode = str(getattr(config.env, "mode", "mft")).lower().strip()
     backend = str(getattr(config.env, "backend", "")).lower().strip()
     filter_lob_levels = getattr(config.data, "filter_lob_levels", None)
-
-    def _load(path: str) -> pd.DataFrame:
-        df = load_trading_data(path).dropna()
-        if filter_lob_levels is not None:
-            from trading_rl.data.lob_filters import filter_unchanged_lob
-            df = filter_unchanged_lob(df, levels=filter_lob_levels)
-        return df
+    warmup_rows = getattr(config.data, "warmup_rows", 0)
 
     def _symbol_of(path: str) -> str:
         return Path(path).name.split("_")[0]
 
-    # Group training paths by symbol (order within each group preserved)
+    # Group training paths by symbol, preserving original indices
     symbol_train_paths: dict[str, list[str]] = defaultdict(list)
-    for p in train_paths:
-        symbol_train_paths[_symbol_of(p)].append(p)
+    symbol_train_indices: dict[str, list[int]] = defaultdict(list)
+    for i, p in enumerate(train_paths):
+        sym = _symbol_of(p)
+        symbol_train_paths[sym].append(p)
+        symbol_train_indices[sym].append(i)
 
-    # Fit one FeaturePipeline per symbol on training days.
-    # Running/rolling scalers accumulate incrementally so we can fit file-by-file.
-    # Global (StandardScaler) requires the full concatenation.
-    logger.info("per-day mode: fitting per-symbol pipelines n_symbols=%d", len(symbol_train_paths))
-    symbol_pipelines: dict[str, Any] = {}
-    for symbol, sym_paths in sorted(symbol_train_paths.items()):
-        pipeline = FeaturePipeline.from_yaml(feature_config)
-        from trading_rl.features.base import NormalizationMethod
-        needs_full_concat = any(
-            fc.normalize and fc.normalization_method == NormalizationMethod.GLOBAL
-            for fc in pipeline.feature_configs
-        )
-        logger.info(
-            "fit pipeline symbol=%s n_days=%d incremental=%s",
-            symbol, len(sym_paths), not needs_full_concat,
-        )
-        if needs_full_concat:
-            raw_parts = [_load(p) for p in sym_paths]
-            combined = pd.concat(raw_parts)
-            del raw_parts
-            pipeline.fit(combined)
-            del combined
-            gc.collect()
-        else:
-            for p in sym_paths:
-                raw_df = _load(p)
-                pipeline.fit(raw_df)
-                del raw_df
-                gc.collect()
-        symbol_pipelines[symbol] = pipeline
-        if progress_callback:
-            progress_callback(f"fit {symbol}")
+    # Map val paths to their symbol and original index
+    symbol_val_path: dict[str, tuple[str, int]] = {}
+    for j, vp in enumerate(val_paths):
+        sym = _symbol_of(vp)
+        symbol_val_path[sym] = (vp, j)
 
-    # Transform each training file → save memmap
-    tmp_dir = Path(tempfile.mkdtemp(prefix="per_day_splits_"))
-    collected_memmap_paths: list[MemmapPaths] = []
-    first_train_df: pd.DataFrame | None = None
-
-    for i, train_path in enumerate(train_paths):
-        symbol = _symbol_of(train_path)
-        pipeline = symbol_pipelines[symbol]
-        logger.info("transform train idx=%d/%d path=%s", i + 1, len(train_paths), train_path)
-
-        raw_df = _load(train_path)
-        train_features = pipeline.transform(raw_df)
-        train_df_i = pd.concat([raw_df, train_features], axis=1)
-        del raw_df, train_features
-
-        if mode == EnvMode.HFT:
-            train_df_i = _derive_close_hft_single(train_df_i, f"train_{i}", logger)
-        if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
-            train_df_i = _deduplicate_hft_index_single(train_df_i, f"train_{i}", logger)
-
-        warmup_rows = getattr(config.data, "warmup_rows", 0)
-        train_df_i = _apply_warmup_skip(train_df_i, warmup_rows, logger, label=Path(train_path).name)
-
-        if first_train_df is None:
-            first_train_df = train_df_i.copy()
-
-        if memmap_dir:
-            prefix = str(i)
-            memmap_marker = memmap_dir / f"{prefix}_train_data.npy"
-            expected_cols = list(train_df_i.select_dtypes(include=[np.number]).columns)
-            if memmap_marker.exists():
-                cached_data = np.load(memmap_marker, mmap_mode="r")
-                cached_cols = json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
-                if cached_data.shape[0] == len(train_df_i) and cached_cols == expected_cols:
-                    collected_memmap_paths.append(
-                        MemmapPaths(
-                            data_path=memmap_marker,
-                            index_path=memmap_dir / f"{prefix}_train_index.npy",
-                            n_rows=cached_data.shape[0],
-                            columns=cached_cols,
-                        )
-                    )
-                else:
-                    logger.info(
-                        "memmap cache mismatch prefix=%s expected_rows=%d actual_rows=%d",
-                        prefix, len(train_df_i), cached_data.shape[0],
-                    )
-                    collected_memmap_paths.append(
-                        save_symbol_memmap(train_df_i, memmap_dir, prefix)
-                    )
-            else:
-                collected_memmap_paths.append(save_symbol_memmap(train_df_i, memmap_dir, prefix))
-
-        del train_df_i
-        gc.collect()
-        if progress_callback:
-            progress_callback(f"train {Path(train_path).name}")
-
-    # Transform val files: split each 50/50 into val and test halves
-    val_tmp: list[dict[str, Path]] = []
-    for j, val_path in enumerate(val_paths):
-        symbol = _symbol_of(val_path)
-        pipeline = symbol_pipelines.get(symbol)
-        if pipeline is None:
+    # Validate all val symbols have a fitted pipeline available
+    all_symbols = sorted(symbol_train_paths.keys())
+    for sym in [_symbol_of(vp) for vp in val_paths]:
+        if sym not in symbol_train_paths:
             raise ValueError(
-                f"No fitted pipeline for symbol '{symbol}' (from val path {val_path}). "
-                f"Known symbols: {sorted(symbol_pipelines)}"
+                f"No training paths for symbol '{sym}' (needed to fit pipeline for val). "
+                f"Known symbols: {all_symbols}"
             )
-        logger.info("transform val idx=%d/%d path=%s symbol=%s", j + 1, len(val_paths), val_path, symbol)
 
-        raw_val = _load(val_path)
-        val_features = pipeline.transform(raw_val)
-        val_df_j = pd.concat([raw_val, val_features], axis=1)
-        del raw_val, val_features
+    tmp_dir = Path(tempfile.mkdtemp(prefix="per_day_splits_"))
+    if memmap_dir:
+        memmap_dir.mkdir(parents=True, exist_ok=True)
 
-        if mode == EnvMode.HFT:
-            val_df_j = _derive_close_hft_single(val_df_j, f"val_{j}", logger)
-        if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
-            val_df_j = _deduplicate_hft_index_single(val_df_j, f"val_{j}", logger)
+    n_workers = min(len(all_symbols), os.cpu_count() or 1)
+    logger.info(
+        "per-day mode: processing %d symbols with %d workers", len(all_symbols), n_workers
+    )
 
-        mid = len(val_df_j) // 2
-        sym_paths: dict[str, Path] = {}
-        for split, df_part in [("val", val_df_j.iloc[:mid]), ("test", val_df_j.iloc[mid:])]:
-            p = tmp_dir / f"{j}_{split}.parquet"
-            df_part.to_parquet(p)
-            sym_paths[split] = p
-        val_tmp.append(sym_paths)
-        del val_df_j
-        gc.collect()
-        if progress_callback:
-            progress_callback(f"val {Path(val_path).name}")
+    worker_args = []
+    for sym in all_symbols:
+        val_p, val_j = symbol_val_path.get(sym, (None, None))
+        worker_args.append((
+            sym,
+            symbol_train_indices[sym],
+            symbol_train_paths[sym],
+            val_p,
+            val_j,
+            feature_config,
+            mode,
+            backend,
+            filter_lob_levels,
+            warmup_rows,
+            str(memmap_dir) if memmap_dir else None,
+            str(tmp_dir),
+        ))
+
+    # Collect results keyed by original index so ordering is preserved
+    train_memmap_by_idx: dict[int, Any] = {}
+    val_entries_by_idx: dict[int, dict[str, str]] = {}
+
+    with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        futures = {executor.submit(_per_symbol_worker, args): args[0] for args in worker_args}
+        for future in as_completed(futures):
+            sym = futures[future]
+            try:
+                _sym, train_results, val_entry, val_idx = future.result()
+            except Exception as exc:
+                raise RuntimeError(f"Worker for symbol '{sym}' failed: {exc}") from exc
+            for orig_idx, memmap_entry in train_results:
+                train_memmap_by_idx[orig_idx] = memmap_entry
+            if val_entry is not None and val_idx is not None:
+                val_entries_by_idx[val_idx] = val_entry
+            if progress_callback:
+                progress_callback(f"done {sym}")
+
+    # Reconstruct ordered memmap list
+    collected_memmap_paths: list[MemmapPaths] = []
+    if memmap_dir:
+        for i in range(len(train_paths)):
+            entry = train_memmap_by_idx.get(i)
+            if entry is None:
+                raise RuntimeError(f"Missing memmap result for train_paths[{i}]")
+            collected_memmap_paths.append(MemmapPaths(
+                data_path=Path(entry["data_path"]),
+                index_path=Path(entry["index_path"]),
+                n_rows=entry["n_rows"],
+                columns=entry["columns"],
+            ))
+
+    # Reconstruct ordered val_tmp list
+    val_tmp: list[dict[str, Path]] = []
+    for j in range(len(val_paths)):
+        entry = val_entries_by_idx.get(j)
+        if entry is None:
+            raise RuntimeError(f"Missing val result for val_paths[{j}]")
+        val_tmp.append({"val": Path(entry["val"]), "test": Path(entry["test"])})
+
+    # first_train_df: load the first training file (index 0) directly from its
+    # already-written memmap or re-transform from tmp parquet — cheapest is to
+    # just read the first memmap back as a DataFrame if it exists, otherwise
+    # read from the tmp val parquet of the first symbol.
+    first_train_df: pd.DataFrame | None = None
+    if memmap_dir and collected_memmap_paths:
+        mp0 = collected_memmap_paths[0]
+        data = np.load(mp0.data_path, mmap_mode="r")
+        idx_arr = np.load(mp0.index_path, allow_pickle=True)
+        first_train_df = pd.DataFrame(data, index=idx_arr, columns=mp0.columns)
+    elif val_tmp:
+        # Fallback: use the representative val slice as a surrogate
+        first_train_df = pd.read_parquet(val_tmp[0]["val"])
 
     if memmap_dir:
-        # Mirror the first-symbol convention used for train_df: a single
-        # contiguous price series prevents spurious cross-symbol returns.
         _si = min(symbol_index, len(val_tmp) - 1)
         val_df  = pd.read_parquet(val_tmp[_si]["val"])
         test_df = pd.read_parquet(val_tmp[_si]["test"])
@@ -371,14 +491,12 @@ def _build_per_day_splits(
         test_df = pd.concat([pd.read_parquet(p["test"]) for p in val_tmp])
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
-    # Re-run index deduplication on the concatenated val/test to fix any
-    # cross-symbol timestamp collisions introduced by pd.concat.
     if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
-        val_df = _deduplicate_hft_index_single(val_df, "val_concat", logger)
+        val_df  = _deduplicate_hft_index_single(val_df,  "val_concat",  logger)
         test_df = _deduplicate_hft_index_single(test_df, "test_concat", logger)
 
     validation_size = getattr(config.data, "validation_size", None)
-    test_size_cfg = getattr(config.data, "test_size", None)
+    test_size_cfg   = getattr(config.data, "test_size", None)
     if validation_size is not None:
         val_df = val_df.iloc[:validation_size]
     if test_size_cfg is not None:
