@@ -129,13 +129,17 @@ class StrategyEvaluator:
         Returns:
             Rollout TensorDict
         """
+        import time as _time
+
         from tensordict.nn import InteractionType
         from torchrl.envs.utils import set_exploration_type
 
+        logger.debug("rollout start max_steps=%d", max_steps)
+        _t = _time.monotonic()
         with torch.no_grad():
             try:
                 with set_exploration_type(InteractionType.MODE):
-                    return env.rollout(max_steps=max_steps, policy=self.policy)
+                    rollout = env.rollout(max_steps=max_steps, policy=self.policy)
             except (NotImplementedError, RuntimeError) as exc:
                 if not (
                     isinstance(exc, NotImplementedError)
@@ -145,7 +149,13 @@ class StrategyEvaluator:
                     raise
                 # Fallback for distributions without analytical mode
                 with set_exploration_type(InteractionType.DETERMINISTIC):
-                    return env.rollout(max_steps=max_steps, policy=self.policy)
+                    rollout = env.rollout(max_steps=max_steps, policy=self.policy)
+        actual_steps = rollout.shape[0] if rollout.ndim > 0 else 1
+        logger.debug(
+            "rollout done requested=%d actual=%d elapsed=%.2fs",
+            max_steps, actual_steps, _time.monotonic() - _t,
+        )
+        return rollout
 
     def _extract_return_series(
         self, env: Any, rollout: Any, max_steps: int

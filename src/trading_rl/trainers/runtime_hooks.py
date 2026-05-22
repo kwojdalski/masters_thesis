@@ -182,7 +182,7 @@ class TrainerRuntimeHooks:
                     algorithm=hook.algorithm,
                     eval_env=split_ctx.eval_env,
                 )
-                logger.debug(
+                logger.info(
                     "temp eval: trainer.evaluate split=%s elapsed=%.2fs",
                     split_ctx.split, time.monotonic() - _t,
                 )
