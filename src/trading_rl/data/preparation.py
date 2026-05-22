@@ -527,8 +527,13 @@ def _build_per_day_splits(
     if memmap_dir and collected_memmap_paths:
         mp0 = collected_memmap_paths[0]
         data = np.load(mp0.data_path, mmap_mode="r")
-        idx_arr = np.load(mp0.index_path, allow_pickle=True)
-        first_train_df = pd.DataFrame(data, index=idx_arr, columns=mp0.columns)
+        idx_ns = np.load(mp0.index_path, allow_pickle=True)
+        # Index is stored as int64 nanosecond timestamps — restore as DatetimeIndex.
+        first_train_df = pd.DataFrame(
+            data,
+            index=pd.DatetimeIndex(idx_ns.astype("int64"), dtype="datetime64[ns]"),
+            columns=mp0.columns,
+        )
     elif val_tmp:
         # Fallback: use the representative val slice as a surrogate
         first_train_df = pd.read_parquet(val_tmp[0]["val"])
