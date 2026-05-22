@@ -171,7 +171,7 @@ def compare_rollouts(
     reward_runs = list(df_rewards["Run"].unique())
     reward_plot = (
         ggplot(df_rewards, aes(x="Steps", y="Cumulative_Reward", color="Run"))
-        + geom_line(size=0.4)
+        + geom_line(size=0.32)
         + labs(
             title="Cumulative Rewards",
             x="Steps",
@@ -200,7 +200,7 @@ def compare_rollouts(
 
     action_plot = (
         ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
-        + geom_line(size=0.4)
+        + geom_line(size=0.32)
         + labs(
             title=title,
             x="Steps",
@@ -387,7 +387,7 @@ def create_actual_returns_plot(
         caption_prefix = f"{caption_prefix}\n{pooled_note}"
     plot = (
         ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run"))
-        + geom_line(size=0.4)
+        + geom_line(size=0.32)
         + labs(
             title=full_title,
             x="Steps",
