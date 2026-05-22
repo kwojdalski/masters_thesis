@@ -175,6 +175,19 @@ The notation follows the conventions established in Chapter 3:
 
 Concrete values are listed in Appendix B.
 
+### Synthetic Sine-Wave Sanity Check
+
+Before running the empirical order-book experiments, the RL pipeline was tested
+on a synthetic sine-wave scenario with deliberately learnable structure.^[The
+sanity-check run can be reproduced from the project root with:
+`uv run python src/cli.py train -c src/configs/scenarios/sine_wave/td3_hft_lob_future_oracle_combined/`.]
+The purpose of this check was not to evaluate trading performance, but to verify
+that the environment, reward computation, replay buffer, neural networks, and
+training loop were capable of recovering a known pattern when one was present.
+In this setting, the TD3 agent learned behavior consistent with the imposed
+sine-wave structure, providing a basic implementation sanity check before moving
+to noisy tick-level order-book data.
+
 ### Evaluation
 
 Final performance is reported on the held-out test split using a dedicated
