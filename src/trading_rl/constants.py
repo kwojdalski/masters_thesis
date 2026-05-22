@@ -91,6 +91,17 @@ class SplitName(StrEnum):
     TEST = "test"
 
 
+class BenchmarkName(StrEnum):
+    """Evaluation benchmark names used in reports and artifacts."""
+
+    BUY_AND_HOLD = "buy_and_hold"
+    SHORT_AND_HOLD = "short_and_hold"
+    TWAP = "twap"
+    VWAP = "vwap"
+    MAX_PROFIT = "max_profit"
+    RANDOM_ACTIONS = "random_actions"
+
+
 class TradePosition(IntEnum):
     """Discrete trading position values used by the trading environment.
 

@@ -11,6 +11,7 @@ import pandas as pd
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.statistical_benchmarks import (
     compute_buy_and_hold_returns,
     compute_short_and_hold_returns,
@@ -66,7 +67,7 @@ class BenchmarkEngine:
     @staticmethod
     def buy_and_hold(prices: pd.Series) -> BenchmarkSpec:
         return BenchmarkSpec(
-            name="buy_and_hold",
+            name=BenchmarkName.BUY_AND_HOLD,
             compute_returns=lambda steps: _benchmark_returns(
                 compute_buy_and_hold_returns(prices, steps),
                 benchmark_position_side=1.0,
@@ -76,7 +77,7 @@ class BenchmarkEngine:
     @staticmethod
     def short_and_hold(prices: pd.Series) -> BenchmarkSpec:
         return BenchmarkSpec(
-            name="short_and_hold",
+            name=BenchmarkName.SHORT_AND_HOLD,
             compute_returns=lambda steps: _benchmark_returns(
                 compute_short_and_hold_returns(prices, steps),
                 benchmark_position_side=-1.0,
@@ -86,7 +87,7 @@ class BenchmarkEngine:
     @staticmethod
     def twap(prices: pd.Series) -> BenchmarkSpec:
         return BenchmarkSpec(
-            name="twap",
+            name=BenchmarkName.TWAP,
             compute_returns=lambda steps: _benchmark_returns(
                 compute_twap_returns(prices, steps),
                 benchmark_position_side=1.0,
@@ -104,7 +105,7 @@ class BenchmarkEngine:
         if volume_source:
             meta["volume_source"] = volume_source
         return BenchmarkSpec(
-            name="vwap",
+            name=BenchmarkName.VWAP,
             compute_returns=lambda steps: _benchmark_returns(
                 compute_vwap_returns(prices, volumes, steps),
                 benchmark_position_side=1.0,
@@ -175,7 +176,7 @@ class BenchmarkEngine:
 
 def calculate_benchmark_dsr(
     df_prices,
-    strategy="buy_and_hold",
+    strategy: str | BenchmarkName = BenchmarkName.BUY_AND_HOLD,
     eta=0.01,
     epsilon=1e-8,
     max_steps=None,
@@ -183,6 +184,11 @@ def calculate_benchmark_dsr(
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
 ):
     """Calculate differential Sharpe ratio for a benchmark trading strategy."""
+    try:
+        benchmark_name = BenchmarkName(strategy)
+    except ValueError as exc:
+        raise ValueError(f"Unknown strategy: {strategy}") from exc
+
     if price_column not in df_prices.columns:
         if "close" in df_prices.columns:
             logger.warning(
@@ -204,9 +210,9 @@ def calculate_benchmark_dsr(
     portfolio_values = [initial_portfolio_value]
     price_returns = np.diff(prices[: max_steps + 1]) / prices[:max_steps]
 
-    if strategy == "buy_and_hold":
+    if benchmark_name == BenchmarkName.BUY_AND_HOLD:
         positions = np.ones(len(price_returns))
-    elif strategy == "max_profit":
+    elif benchmark_name == BenchmarkName.MAX_PROFIT:
         positions = np.sign(price_returns)
         positions[positions == 0] = 1
     else:

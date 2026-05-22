@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 
 from logger import get_logger
+from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.benchmarks import BenchmarkEngine, BenchmarkSpec
 from trading_rl.evaluation.statistical_benchmarks import (
     build_benchmark_comparison_table,
@@ -106,18 +107,23 @@ def run_all_statistical_tests(
     if random_baseline_trials is not None:
         try:
             idx = n_baselines
-            _status(f"  [{idx}/{n_baselines}] random_actions ...")
+            _status(f"  [{idx}/{n_baselines}] {BenchmarkName.RANDOM_ACTIONS} ...")
             random_returns_mean = np.mean(random_baseline_trials, axis=0)
             random_results = run_statistical_tests(
-                strategy_returns, random_returns_mean, "random_actions", config
+                strategy_returns,
+                random_returns_mean,
+                BenchmarkName.RANDOM_ACTIONS,
+                config,
             )
             random_results.update(summarize_random_baseline_trials(random_baseline_trials))
-            benchmark_returns_map["random_actions"] = random_returns_mean
+            benchmark_returns_map[BenchmarkName.RANDOM_ACTIONS] = random_returns_mean
             all_results["baselines"].append(random_results)
-            _status(f"  [{idx}/{n_baselines}] random_actions done")
+            _status(f"  [{idx}/{n_baselines}] {BenchmarkName.RANDOM_ACTIONS} done")
         except Exception as e:
             logger.error("random baseline comparison failed err=%s", e)
-            all_results["baselines"].append({"baseline": "random_actions", "error": str(e)})
+            all_results["baselines"].append(
+                {"baseline": BenchmarkName.RANDOM_ACTIONS, "error": str(e)}
+            )
 
     all_results["benchmark_comparison_table"] = build_benchmark_comparison_table(
         strategy_returns=strategy_returns,
