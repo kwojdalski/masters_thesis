@@ -60,7 +60,7 @@ class EvaluateCommand(BaseCommand):
     # ------------------------------------------------------------------
 
     def _run(self, params: EvaluateParams) -> None:
-        from trading_rl.constants import EnvBackend
+        from trading_rl.constants import EnvBackend, SplitName
         from trading_rl.data_utils import build_prepared_dataset
         from trading_rl.evaluation import (
             EvaluationConfig,
@@ -109,7 +109,10 @@ class EvaluateCommand(BaseCommand):
             split_dfs = {split_name: arbitrary_df}
         else:
             val_data_paths = getattr(config.data, "val_data_paths", None)
-            if val_data_paths and params.split in ("val", "test", "all"):
+            if val_data_paths and (
+                params.split == "all"
+                or params.split in {SplitName.VAL, SplitName.TEST}
+            ):
                 # Pooled multi-symbol scenario: evaluate each val file separately.
                 # Concatenated test_df causes spurious cross-symbol price jumps that
                 # trigger broker bankruptcy — per-symbol eval avoids this entirely.
@@ -122,12 +125,14 @@ class EvaluateCommand(BaseCommand):
             else:
                 dataset = build_prepared_dataset(config, self.logger)
                 splits_to_eval = (
-                    ["train", "val", "test"] if params.split == "all" else [params.split]
+                    list(SplitName)
+                    if params.split == "all"
+                    else [SplitName(params.split)]
                 )
                 split_dfs = {
-                    "train": dataset.train_df,
-                    "val": dataset.val_df,
-                    "test": dataset.test_df,
+                    SplitName.TRAIN: dataset.train_df,
+                    SplitName.VAL: dataset.val_df,
+                    SplitName.TEST: dataset.test_df,
                 }
 
         all_results: dict[str, Any] = {}
@@ -296,7 +301,7 @@ class EvaluateCommand(BaseCommand):
         """
         import hashlib
         import pandas as pd
-        from trading_rl.constants import EnvBackend, EnvMode
+        from trading_rl.constants import EnvBackend, EnvMode, SplitName
         from trading_rl.data.hft import (
             _deduplicate_hft_index_single,
             _derive_close_hft_single,
@@ -366,7 +371,11 @@ class EvaluateCommand(BaseCommand):
         """
         from pathlib import Path
 
-        requested: set[str] = {"val", "test"} if params.split == "all" else {params.split}
+        requested: set[str] = (
+            {SplitName.VAL, SplitName.TEST}
+            if params.split == "all"
+            else {SplitName(params.split)}
+        )
         splits_to_eval: list[str] = []
         split_dfs: dict[str, Any] = {}
 
@@ -376,11 +385,11 @@ class EvaluateCommand(BaseCommand):
             self.console.print(f"[dim]  Preparing {symbol} ({Path(val_path).name})[/dim]")
             df = self._prepare_arbitrary_df(Path(val_path), config)
             mid = len(df) // 2
-            if "val" in requested:
+            if SplitName.VAL in requested:
                 key = f"val_{symbol}"
                 split_dfs[key] = df.iloc[:mid].copy()
                 splits_to_eval.append(key)
-            if "test" in requested:
+            if SplitName.TEST in requested:
                 key = f"test_{symbol}"
                 split_dfs[key] = df.iloc[mid:].copy()
                 splits_to_eval.append(key)

@@ -11,6 +11,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from trading_rl.constants import SplitName
+
 logger = logging.getLogger(__name__)
 
 
@@ -133,7 +135,11 @@ def save_prepared_splits(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     paths = {}
-    for split_name, df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+    for split_name, df in [
+        (SplitName.TRAIN, train_df),
+        (SplitName.VAL, val_df),
+        (SplitName.TEST, test_df),
+    ]:
         output_path = output_dir / f"{split_name}_prepared.parquet"
         df.to_parquet(output_path)
         paths[split_name] = output_path
@@ -156,7 +162,7 @@ def load_prepared_splits(
     output_dir = Path(output_dir)
     paths = {}
 
-    for split_name in ["train", "val", "test"]:
+    for split_name in SplitName:
         file_path = output_dir / f"{split_name}_prepared.parquet"
         if not file_path.exists():
             raise FileNotFoundError(f"Prepared split file not found: {file_path}")

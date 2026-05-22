@@ -11,6 +11,7 @@ from rich.table import Table
 
 from cli.services import validate_experiment_config
 from trading_rl import ExperimentConfig, run_single_experiment
+from trading_rl.constants import SplitName
 
 from .base_command import BaseCommand
 
@@ -324,9 +325,13 @@ class TrainingCommand(BaseCommand):
         ]
 
         split_results = final_metrics.get("split_results", {})
-        split_label = {"train": "Train", "val": "Val", "test": "Test"}
+        split_label = {
+            SplitName.TRAIN: "Train",
+            SplitName.VAL: "Val",
+            SplitName.TEST: "Test",
+        }
         perf_tables = []
-        for split in ("train", "val", "test"):
+        for split in SplitName:
             report = split_results.get(split, {}).get("evaluation_report", {})
             if not report:
                 continue

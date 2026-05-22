@@ -13,7 +13,7 @@ import torch
 
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
-from trading_rl.constants import EnvBackend, RewardType
+from trading_rl.constants import EnvBackend, RewardType, SplitName
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import (
     EvaluationContext,
@@ -333,7 +333,11 @@ def evaluate_all_splits(
     logs: dict[str, Any],
     logger: logging.Logger,
 ) -> dict[str, dict[str, Any]]:
-    split_frames = {"train": train_df, "val": val_df, "test": test_df}
+    split_frames = {
+        SplitName.TRAIN: train_df,
+        SplitName.VAL: val_df,
+        SplitName.TEST: test_df,
+    }
     split_results: dict[str, dict[str, Any]] = {}
 
     for split, split_df in split_frames.items():
@@ -361,7 +365,11 @@ def resolve_primary_split_result(
     split_results: dict[str, dict[str, Any]],
 ) -> tuple[str | None, float, list[Any], dict[str, float]]:
     primary_split = next(
-        (split for split in ("test", "val", "train") if split in split_results),
+        (
+            split
+            for split in (SplitName.TEST, SplitName.VAL, SplitName.TRAIN)
+            if split in split_results
+        ),
         None,
     )
     final_reward = (
@@ -390,7 +398,11 @@ def run_primary_split_explainability(
         return
 
 
-    split_frames = {"train": train_df, "val": val_df, "test": test_df}
+    split_frames = {
+        SplitName.TRAIN: train_df,
+        SplitName.VAL: val_df,
+        SplitName.TEST: test_df,
+    }
     explainability_ctx = build_evaluation_context_for_split(
         split=primary_split,
         df=split_frames[primary_split],
