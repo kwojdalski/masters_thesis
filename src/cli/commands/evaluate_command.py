@@ -40,6 +40,7 @@ class EvaluateParams:
     config_overrides: list[str] | None = None
     tracking_uri: str = "sqlite:///mlflow.db"
     no_mlflow: bool = False
+    data_path: Path | None = None
 
 
 class EvaluateCommand(BaseCommand):
@@ -85,11 +86,7 @@ class EvaluateCommand(BaseCommand):
         )
 
         self.console.print("[dim]Loading data...[/dim]")
-        dataset = build_prepared_dataset(config, self.logger)
 
-        splits_to_eval = (
-            ["train", "val", "test"] if params.split == "all" else [params.split]
-        )
         params.output_dir.mkdir(parents=True, exist_ok=True)
 
         price_column = getattr(config.env, "price_column", None) or "close"
@@ -98,11 +95,24 @@ class EvaluateCommand(BaseCommand):
         timeframe = getattr(config.data, "timeframe", "1d")
         periods_py = periods_per_year_from_timeframe(timeframe)
 
-        split_dfs = {
-            "train": dataset.train_df,
-            "val": dataset.val_df,
-            "test": dataset.test_df,
-        }
+        if params.data_path is not None:
+            if not params.data_path.exists():
+                raise FileNotFoundError(f"--data-path not found: {params.data_path}")
+            self.console.print(f"[dim]Preparing arbitrary data: {params.data_path}[/dim]")
+            arbitrary_df = self._prepare_arbitrary_df(params.data_path, config)
+            split_name = params.data_path.stem
+            splits_to_eval = [split_name]
+            split_dfs = {split_name: arbitrary_df}
+        else:
+            dataset = build_prepared_dataset(config, self.logger)
+            splits_to_eval = (
+                ["train", "val", "test"] if params.split == "all" else [params.split]
+            )
+            split_dfs = {
+                "train": dataset.train_df,
+                "val": dataset.val_df,
+                "test": dataset.test_df,
+            }
 
         all_results: dict[str, Any] = {}
 
@@ -237,6 +247,50 @@ class EvaluateCommand(BaseCommand):
                 mlflow.log_artifact(str(out_json), "evaluation_summary")
                 run_url = self._mlflow_run_url(params.tracking_uri, mlflow_run_id)
                 self.console.print(f"[green]MLflow run: {run_url}[/green]")
+
+    # ------------------------------------------------------------------
+    # Arbitrary data preparation
+    # ------------------------------------------------------------------
+
+    def _prepare_arbitrary_df(self, data_path: Path, config: Any) -> "pd.DataFrame":
+        """Load a raw parquet file, apply the scenario's feature pipeline, and return a prepared DataFrame."""
+        import pandas as pd
+        from trading_rl.constants import EnvMode
+        from trading_rl.data.hft import (
+            _deduplicate_hft_index_single,
+            _derive_close_hft_single,
+        )
+        from trading_rl.data.loading import load_trading_data
+
+        df = load_trading_data(str(data_path)).dropna()
+        self.console.print(f"[dim]Loaded {len(df):,} rows from {data_path.name}[/dim]")
+
+        filter_lob_levels = getattr(config.data, "filter_lob_levels", None)
+        if filter_lob_levels is not None:
+            from trading_rl.data.lob_filters import filter_unchanged_lob
+            before = len(df)
+            df = filter_unchanged_lob(df, levels=filter_lob_levels)
+            self.console.print(f"[dim]LOB filter: {before:,} → {len(df):,} rows[/dim]")
+
+        feature_config = getattr(config.data, "feature_config", None)
+        if feature_config:
+            from trading_rl.features import FeaturePipeline
+            pipeline = FeaturePipeline.from_yaml(feature_config)
+            pipeline.fit(df)
+            features = pipeline.transform(df)
+            df = pd.concat([df, features], axis=1)
+            self.console.print(f"[dim]Features computed: {len(features.columns)} columns[/dim]")
+
+        mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+        backend = str(getattr(config.env, "backend", "")).lower().strip()
+        stem = data_path.stem
+
+        if mode == EnvMode.HFT:
+            df = _derive_close_hft_single(df, stem, self.logger)
+        if mode == EnvMode.HFT and backend == "tradingenv":
+            df = _deduplicate_hft_index_single(df, stem, self.logger)
+
+        return df
 
     # ------------------------------------------------------------------
     # MLflow helpers

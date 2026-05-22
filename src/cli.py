@@ -518,6 +518,15 @@ def evaluate(
         "--no-mlflow",
         help="Skip MLflow logging entirely (results only written to --output-dir)",
     ),
+    data_path: Path | None = typer.Option(  # noqa: B008
+        None,
+        "--data-path",
+        help=(
+            "Path to an arbitrary raw parquet file to evaluate on. "
+            "When provided, --split is ignored and the feature pipeline from "
+            "the scenario config is applied to this file before evaluation."
+        ),
+    ),
 ):
     """Evaluate a trained policy from a checkpoint without re-running training.
 
@@ -549,6 +558,12 @@ def evaluate(
         # Use a remote MLflow server
         python src/cli.py evaluate -c sine_wave/ppo_no_trend \\
             --tracking-uri http://localhost:5000
+
+        # Evaluate on an arbitrary parquet file (feature pipeline applied automatically)
+        python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected \\
+            --checkpoint logs/my_exp/checkpoint.pt \\
+            --data-path data/raw/stocks/daily/AAPL/AAPL_2026-03-10_raw_mbp-10_us_hours.parquet \\
+            --no-mlflow
     """
     params = EvaluateParams(
         config_file=config_file,
@@ -559,6 +574,7 @@ def evaluate(
         config_overrides=config_override,
         tracking_uri=tracking_uri,
         no_mlflow=no_mlflow,
+        data_path=data_path,
     )
     evaluate_cmd.execute(params)
 
