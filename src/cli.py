@@ -13,6 +13,8 @@ from rich.console import Console
 from rich.table import Table
 
 from cli.commands import (
+    CollectResultsCommand,
+    CollectResultsParams,
     DashboardCommand,
     DashboardParams,
     DataGenerationParams,
@@ -586,6 +588,44 @@ def evaluate(
         save_rollout=save_rollout,
     )
     evaluate_cmd.execute(params)
+
+
+_collect_results_cmd = CollectResultsCommand(console)
+
+
+@app.command(name="collect-results")
+def collect_results(
+    algorithms: list[str] = typer.Option(
+        ..., "--algorithm", "-a",
+        help="Algorithm name (repeat for each, e.g. -a TD3 -a DDPG -a PPO)",
+    ),
+    dirs: list[str] = typer.Option(
+        ..., "--dir", "-d",
+        help="Path to eval_results directory for the corresponding algorithm (same order as --algorithm)",
+    ),
+    output_dir: Path = typer.Option(  # noqa: B008
+        Path("masters_thesis_results"), "--output-dir", "-o",
+        help="Destination directory for aggregated thesis results",
+    ),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing output"),
+) -> None:
+    """Merge per-algorithm evaluation results into a single thesis results directory.
+
+    Example:
+
+        python src/cli.py collect-results \\
+            -a TD3 -d ./eval_results/td3 \\
+            -a DDPG -d ./eval_results/ddpg \\
+            -a PPO -d ./eval_results/ppo \\
+            -o masters_thesis_results/
+    """
+    params = CollectResultsParams(
+        algorithms=algorithms,
+        dirs=dirs,
+        output_dir=output_dir,
+        overwrite=overwrite,
+    )
+    _collect_results_cmd.execute(params)
 
 
 @app.command(name="prepare-data")

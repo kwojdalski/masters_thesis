@@ -1,6 +1,7 @@
 """Command classes for CLI interface."""
 
 from .base_command import BaseCommand
+from .collect_results_command import CollectResultsCommand, CollectResultsParams
 from .dashboard_command import DashboardCommand, DashboardParams
 from .data_generator_command import (
     DataGenerationParams,
@@ -18,6 +19,8 @@ from .validation_command import ValidationCommand, ValidationParams
 
 __all__ = [
     "BaseCommand",
+    "CollectResultsCommand",
+    "CollectResultsParams",
     "DashboardCommand",
     "DashboardParams",
     "DataGenerationParams",
