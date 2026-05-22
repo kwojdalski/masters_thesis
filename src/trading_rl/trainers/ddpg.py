@@ -177,13 +177,18 @@ class DDPGTrainer(BaseTrainer):
             # Compute losses with error handling
             try:
                 loss_vals = self.ddpg_loss(sample)
-                # If we get here, the batch was successful
                 self.successful_batches += 1
+                self._consecutive_skips = 0
             except RuntimeError as e:
-                if "All input tensors" in str(e) and "must share a unique shape" in str(
-                    e
-                ):
+                if "All input tensors" in str(e) and "must share a unique shape" in str(e):
                     self.skipped_batches += 1
+                    self._consecutive_skips = getattr(self, "_consecutive_skips", 0) + 1
+                    if self._consecutive_skips >= 10 and self.successful_batches == 0:
+                        raise RuntimeError(
+                            f"DDPG: {self._consecutive_skips} consecutive optimization "
+                            "batches skipped due to tensor shape errors with zero successful "
+                            "updates. Training cannot proceed — check environment or replay buffer."
+                        ) from e
                     logger.warning("ddpg tensor shape error skipping batch err=%s", e)
                     continue
                 else:
