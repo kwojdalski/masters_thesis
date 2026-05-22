@@ -364,6 +364,9 @@ class DDPGTrainer(BaseTrainer):
             buffer_dir = buffer_dir.with_name(f"{buffer_dir.name}_buffer")
             try:
                 self.replay_buffer.dumps(buffer_dir)
+            except Exception:
+                logger.exception("failed to save replay buffer; checkpoint will not include buffer")
+            else:
                 checkpoint["replay_buffer_path"] = str(buffer_dir)
                 checkpoint["buffer_metadata"] = {
                     "buffer_size": len(self.replay_buffer),
@@ -374,8 +377,6 @@ class DDPGTrainer(BaseTrainer):
                     buffer_dir,
                     len(self.replay_buffer),
                 )
-            except Exception:
-                logger.exception("failed to save replay buffer")
 
         torch.save(checkpoint, path)
         logger.info("save checkpoint path=%s", path)
