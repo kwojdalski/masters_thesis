@@ -42,9 +42,12 @@ def _build_run_caption(
     runs: list[str],
     training_steps: int | None = None,
     training_episodes: int | None = None,
+    date_range: str = "",
 ) -> str:
     """Build a caption line per run present in the plot."""
     lines = [prefix]
+    if date_range:
+        lines.append(f"Period: {date_range}.")
     for run in runs:
         desc = _RUN_DESCRIPTIONS.get(run)
         if desc:
@@ -72,12 +75,26 @@ def _portfolio_values_from_actual_returns(
     return initial_portfolio_value * np.exp(cumulative_log_returns)
 
 
+def _date_range_str(df: pd.DataFrame | None, n_obs: int) -> str:
+    """Return 'May 1, 2025 13:45 – May 22, 2025 09:30' from df.index, or '' if not datetime."""
+    if df is None or not pd.api.types.is_datetime64_any_dtype(df.index):
+        return ""
+    idx = df.index[: n_obs + 1]
+    if len(idx) < 2:
+        return ""
+    fmt = "%b %-d, %Y %H:%M"
+    start_s = idx[0].strftime(fmt)
+    end_s = idx[-1].strftime(fmt)
+    return start_s if start_s == end_s else f"{start_s} – {end_s}"
+
+
 def compare_rollouts(
     rollouts,
     n_obs,
     is_portfolio: bool = False,
     training_steps: int | None = None,
     training_episodes: int | None = None,
+    df: pd.DataFrame | None = None,
 ):
     """Compare multiple rollouts and visualize their actions and rewards."""
     all_actions = []
@@ -137,6 +154,8 @@ def compare_rollouts(
         )
     df_actions = pd.DataFrame(actions_data)
 
+    date_str = _date_range_str(df, n_obs)
+
     reward_runs = list(df_rewards["Run"].unique())
     reward_plot = (
         ggplot(df_rewards, aes(x="Steps", y="Cumulative_Reward", color="Run"))
@@ -150,6 +169,7 @@ def compare_rollouts(
                 reward_runs,
                 training_steps=training_steps,
                 training_episodes=training_episodes,
+                date_range=date_str,
             ),
         )
         + thesis_theme()
@@ -178,6 +198,7 @@ def compare_rollouts(
                 action_runs,
                 training_steps=training_steps,
                 training_episodes=training_episodes,
+                date_range=date_str,
             ),
         )
         + thesis_theme()
@@ -328,20 +349,10 @@ def create_actual_returns_plot(
         if symbols:
             asset_str = f" — {', '.join(symbols)}"
 
-    date_range_str = ""
-    if df_prices is not None and pd.api.types.is_datetime64_any_dtype(df_prices.index):
-        idx = df_prices.index[: n_obs + 1]
-        if len(idx) >= 2:
-            fmt = "%b %-d, %Y"
-            start_s = idx[0].strftime(fmt)
-            end_s = idx[-1].strftime(fmt)
-            date_range_str = start_s if start_s == end_s else f"{start_s} – {end_s}"
+    date_range_str = _date_range_str(df_prices, n_obs)
 
     title_line1 = f"Portfolio Value{asset_str}"
-    title_line2_parts = [f"Start ${initial_portfolio_value:,.0f}"]
-    if date_range_str:
-        title_line2_parts.append(date_range_str)
-    full_title = f"{title_line1}\n{' | '.join(title_line2_parts)}"
+    full_title = f"{title_line1}\nStart ${initial_portfolio_value:,.0f}"
 
     returns_runs = list(df_returns["Run"].unique())
     logger.debug("constructing ggplot object")
@@ -357,6 +368,7 @@ def create_actual_returns_plot(
                 returns_runs,
                 training_steps=training_steps,
                 training_episodes=training_episodes,
+                date_range=date_range_str,
             ),
         )
         + scale_color_manual(values=PALETTE)
