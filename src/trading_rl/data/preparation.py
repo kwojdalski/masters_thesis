@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import gc
 import json
+import logging
+import logging.handlers
+import multiprocessing
 import os
 import random
 import shutil
@@ -35,6 +38,18 @@ from trading_rl.data.loading import PreparedDataset, download_trading_data, load
 from trading_rl.data.validation import validate_prepared_data
 
 logger = get_logger(__name__)
+
+
+def _worker_log_init(queue: multiprocessing.Queue) -> None:
+    """Install a QueueHandler on the root logger in each worker process.
+
+    Every log record emitted by the worker is forwarded to the parent's
+    QueueListener, which dispatches it through the parent's handlers.
+    """
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(logging.handlers.QueueHandler(queue))
+    root.setLevel(logging.DEBUG)
 
 
 def _resolve_symbol_index(strategy: str, n_symbols: int, memmap_dir: Path | None) -> int:
@@ -432,20 +447,32 @@ def _build_per_day_splits(
     train_memmap_by_idx: dict[int, Any] = {}
     val_entries_by_idx: dict[int, dict[str, str]] = {}
 
-    with ProcessPoolExecutor(max_workers=n_workers) as executor:
-        futures = {executor.submit(_per_symbol_worker, args): args[0] for args in worker_args}
-        for future in as_completed(futures):
-            sym = futures[future]
-            try:
-                _sym, train_results, val_entry, val_idx = future.result()
-            except Exception as exc:
-                raise RuntimeError(f"Worker for symbol '{sym}' failed: {exc}") from exc
-            for orig_idx, memmap_entry in train_results:
-                train_memmap_by_idx[orig_idx] = memmap_entry
-            if val_entry is not None and val_idx is not None:
-                val_entries_by_idx[val_idx] = val_entry
-            if progress_callback:
-                progress_callback(f"done {sym}")
+    # Forward worker log records to the parent's handlers via a shared queue.
+    log_queue: multiprocessing.Queue = multiprocessing.Queue()
+    parent_handlers = logging.getLogger().handlers or [logging.StreamHandler()]
+    listener = logging.handlers.QueueListener(log_queue, *parent_handlers, respect_handler_level=True)
+    listener.start()
+    try:
+        with ProcessPoolExecutor(
+            max_workers=n_workers,
+            initializer=_worker_log_init,
+            initargs=(log_queue,),
+        ) as executor:
+            futures = {executor.submit(_per_symbol_worker, args): args[0] for args in worker_args}
+            for future in as_completed(futures):
+                sym = futures[future]
+                try:
+                    _sym, train_results, val_entry, val_idx = future.result()
+                except Exception as exc:
+                    raise RuntimeError(f"Worker for symbol '{sym}' failed: {exc}") from exc
+                for orig_idx, memmap_entry in train_results:
+                    train_memmap_by_idx[orig_idx] = memmap_entry
+                if val_entry is not None and val_idx is not None:
+                    val_entries_by_idx[val_idx] = val_entry
+                if progress_callback:
+                    progress_callback(f"done {sym}")
+    finally:
+        listener.stop()
 
     # Reconstruct ordered memmap list
     collected_memmap_paths: list[MemmapPaths] = []
