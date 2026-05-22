@@ -40,6 +40,18 @@ from trading_rl.data.validation import validate_prepared_data
 logger = get_logger(__name__)
 
 
+class _WorkerLogFilter(logging.Filter):
+    """Append [worker X/N] to every log record emitted from a worker process."""
+
+    def __init__(self, tag: str) -> None:
+        super().__init__()
+        self.tag = tag
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = f"{record.msg} [{self.tag}]"
+        return True
+
+
 def _worker_log_init(queue: multiprocessing.Queue) -> None:
     """Install a QueueHandler on the root logger in each worker process.
 
@@ -227,10 +239,13 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
         warmup_rows,
         memmap_dir_str,       # str | None
         tmp_dir_str,          # str
+        worker_idx,           # int — 1-based index for log tag
+        n_workers_total,      # int
     ) = args
 
     import gc as _gc
     import json as _json
+    import logging as _logging
     from pathlib import Path as _Path
 
     import numpy as _np
@@ -238,6 +253,12 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
 
     from logger import get_logger as _get_logger
     from trading_rl.constants import EnvBackend, EnvMode
+
+    # Attach worker tag to every log record from this process.
+    _tag = f"worker {worker_idx}/{n_workers_total}"
+    _root = _logging.getLogger()
+    for _h in _root.handlers:
+        _h.addFilter(_WorkerLogFilter(_tag))
     from trading_rl.data.hft import _deduplicate_hft_index_single, _derive_close_hft_single
     from trading_rl.data.loading import load_trading_data
     from trading_rl.data_loading import MemmapPaths, save_symbol_memmap
@@ -426,7 +447,7 @@ def _build_per_day_splits(
     )
 
     worker_args = []
-    for sym in all_symbols:
+    for worker_idx, sym in enumerate(all_symbols, start=1):
         val_p, val_j = symbol_val_path.get(sym, (None, None))
         worker_args.append((
             sym,
@@ -441,6 +462,8 @@ def _build_per_day_splits(
             warmup_rows,
             str(memmap_dir) if memmap_dir else None,
             str(tmp_dir),
+            worker_idx,
+            n_workers,
         ))
 
     # Collect results keyed by original index so ordering is preserved
