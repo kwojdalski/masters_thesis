@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gc
 import json
+import random
 import shutil
 import tempfile
 from collections.abc import Callable
@@ -32,6 +33,34 @@ from trading_rl.data.loading import PreparedDataset, download_trading_data, load
 from trading_rl.data.validation import validate_prepared_data
 
 logger = get_logger(__name__)
+
+
+def _resolve_symbol_index(strategy: str, n_symbols: int, memmap_dir: Path | None) -> int:
+    """Return the index of the representative symbol for streaming-mode splits.
+
+    "first"   — always 0
+    "random"  — uniform random pick each call
+    "rotated" — increments a per-run counter stored in memmap_dir/.eval_symbol_counter
+    """
+    if strategy == "random":
+        idx = random.randrange(n_symbols)
+        logger.info("eval_symbol_selection=random picked idx=%d of %d", idx, n_symbols)
+        return idx
+    if strategy == "rotated":
+        counter_path = (memmap_dir / ".eval_symbol_counter") if memmap_dir else None
+        count = 0
+        if counter_path and counter_path.exists():
+            try:
+                count = int(counter_path.read_text().strip())
+            except ValueError:
+                count = 0
+        idx = count % n_symbols
+        if counter_path:
+            counter_path.write_text(str(count + 1))
+        logger.info("eval_symbol_selection=rotated counter=%d idx=%d of %d", count, idx, n_symbols)
+        return idx
+    # "first" or unrecognised
+    return 0
 
 
 @dataclass
@@ -161,6 +190,7 @@ def _build_per_day_splits(
     train_paths: list[str],
     val_paths: list[str],
     memmap_dir: Path | None,
+    symbol_index: int = 0,
     progress_callback: Callable[[str], None] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
     """Process per-(symbol, day) training files with separate validation files.
@@ -329,11 +359,12 @@ def _build_per_day_splits(
     if memmap_dir:
         # Mirror the first-symbol convention used for train_df: a single
         # contiguous price series prevents spurious cross-symbol returns.
-        val_df  = pd.read_parquet(val_tmp[0]["val"])
-        test_df = pd.read_parquet(val_tmp[0]["test"])
+        _si = min(symbol_index, len(val_tmp) - 1)
+        val_df  = pd.read_parquet(val_tmp[_si]["val"])
+        test_df = pd.read_parquet(val_tmp[_si]["test"])
         logger.info(
-            "streaming mode (per-day): using first val symbol as representative sample"
-            " val=%d test=%d", len(val_df), len(test_df),
+            "streaming mode (per-day): representative sample symbol_index=%d val=%d test=%d",
+            _si, len(val_df), len(test_df),
         )
     else:
         val_df  = pd.concat([pd.read_parquet(p["val"])  for p in val_tmp])
@@ -367,6 +398,7 @@ def _build_pooled_splits(
     logger: Any,
     data_paths: list[str],
     memmap_dir: Path | None,
+    symbol_index: int = 0,
     progress_callback: Callable[[str], None] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
     """Process each symbol independently then concatenate from disk.
@@ -386,7 +418,7 @@ def _build_pooled_splits(
     """
     val_data_paths = getattr(config.data, "val_data_paths", None)
     if val_data_paths:
-        return _build_per_day_splits(config, logger, data_paths, list(val_data_paths), memmap_dir, progress_callback)
+        return _build_per_day_splits(config, logger, data_paths, list(val_data_paths), memmap_dir, symbol_index, progress_callback)
 
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
@@ -455,12 +487,13 @@ def _build_pooled_splits(
     # price series contiguous and prevents spurious cross-symbol returns that
     # corrupt the NLV/portfolio calculation in periodic evaluation.
     if memmap_dir:
-        train_df = pd.read_parquet(tmp_paths[0]["train"])
-        val_df   = pd.read_parquet(tmp_paths[0]["val"])
-        test_df  = pd.read_parquet(tmp_paths[0]["test"])
+        _si = min(symbol_index, len(tmp_paths) - 1)
+        train_df = pd.read_parquet(tmp_paths[_si]["train"])
+        val_df   = pd.read_parquet(tmp_paths[_si]["val"])
+        test_df  = pd.read_parquet(tmp_paths[_si]["test"])
         logger.info(
-            "streaming mode: using first symbol as representative sample for all splits"
-            " train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df),
+            "streaming mode: representative sample symbol_index=%d of %d"
+            " train=%d val=%d test=%d", _si, len(tmp_paths), len(train_df), len(val_df), len(test_df),
         )
     else:
         train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths])
@@ -514,8 +547,10 @@ def build_prepared_dataset(
             "which set memmap_dir and use StreamingTradingEnvXY for correct per-symbol episode resets."
         )
     if data_paths:
+        _strategy = getattr(getattr(config, "data", None), "eval_symbol_selection", "first")
+        _symbol_index = _resolve_symbol_index(_strategy, len(data_paths), memmap_dir)
         train_df, val_df, test_df, memmap_paths = _build_pooled_splits(
-            config, logger, data_paths, memmap_dir, progress_callback
+            config, logger, data_paths, memmap_dir, _symbol_index, progress_callback
         )
     else:
         train_df, val_df, test_df = _build_single_symbol_splits(config, logger)

@@ -59,6 +59,11 @@ class DataConfig:
     filter_lob_levels: int | None = None
     # When True, feature_selection.yaml in the scenario dir overrides feature_columns.
     automated_selection: bool = False
+    # Which symbol to use as the representative sample in streaming/memmap mode.
+    # "first"   — always index 0 (deterministic, default)
+    # "random"  — uniform random pick each run
+    # "rotated" — cycles 0, 1, 2, … across runs (counter stored in memmap_dir)
+    eval_symbol_selection: str = "first"
     # Drop first N rows from the training split after feature engineering.
     # Running scalers (RunningMeanStd) produce valid-but-extreme values for the
     # first N ticks before their statistics converge; discarding those rows
