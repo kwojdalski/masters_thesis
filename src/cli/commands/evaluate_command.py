@@ -620,6 +620,13 @@ class EvaluateCommand(BaseCommand):
                 self.console.print(f"[dim]Saved plot: {out_path}[/dim]")
             except Exception as exc:
                 self.logger.warning("save plot failed name=%s err=%s", name, exc)
+                continue
+            if hasattr(fig, "data") and fig.data is not None:
+                data_path = output_dir / f"{split}_{name}.csv"
+                try:
+                    fig.data.to_csv(data_path, index=False)
+                except Exception as exc:
+                    self.logger.warning("save plot data failed name=%s err=%s", name, exc)
 
 
 # ------------------------------------------------------------------
