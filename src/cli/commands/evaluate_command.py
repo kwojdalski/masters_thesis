@@ -228,6 +228,9 @@ class EvaluateCommand(BaseCommand):
                             }
                         split_output["benchmarks"] = bench_out
                         self._print_benchmark_table(split, bench_out, result.metrics)
+                        self._save_benchmark_table_artifact(
+                            split, split_df, bench_out, result.metrics, params.output_dir
+                        )
                         if mlflow_run_id:
                             self._log_benchmarks_to_mlflow(bench_out, split)
 
@@ -550,6 +553,142 @@ class EvaluateCommand(BaseCommand):
                 row.append(f"{val:{fmt}}" if val is not None else "—")
             table.add_row(*row)
         self.console.print(table)
+
+    def _save_benchmark_table_artifact(
+        self,
+        split: str,
+        split_df: "pd.DataFrame",
+        bench_out: dict[str, Any],
+        strategy_metrics: dict[str, Any] | None,
+        output_dir: Path,
+    ) -> None:
+        import matplotlib
+        import pandas as pd
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        _rel_cols = [
+            ("alpha", "Alpha", ".4f"),
+            ("beta", "Beta", ".3f"),
+            ("information_ratio", "Info Ratio", ".3f"),
+            ("tracking_error", "Track. Error", ".4f"),
+        ]
+
+        n_obs = len(split_df)
+        start_dt: str | None = None
+        end_dt: str | None = None
+        if pd.api.types.is_datetime64_any_dtype(split_df.index) and len(split_df):
+            start_dt = split_df.index[0].isoformat()
+            end_dt = split_df.index[-1].isoformat()
+
+        def _row_data(name: str, perf: dict, rel: dict, is_strategy: bool) -> dict:
+            d: dict[str, Any] = {
+                "name": name,
+                "is_strategy": is_strategy,
+            }
+            for key, _, _ in _PERF_ROWS:
+                d[key] = perf.get(key)
+            for key, _, _ in _rel_cols:
+                d[key] = rel.get(key)
+            return d
+
+        rows: list[dict] = []
+        if strategy_metrics:
+            rows.append(_row_data("Strategy", strategy_metrics, {}, is_strategy=True))
+        for bench_name, entry in bench_out.items():
+            rows.append(_row_data(
+                bench_name,
+                entry.get("benchmark_metrics", entry),
+                entry.get("relative_metrics", {}),
+                is_strategy=False,
+            ))
+
+        artifact: dict[str, Any] = {
+            "split": split,
+            "n_obs": n_obs,
+            "start_datetime": start_dt,
+            "end_datetime": end_dt,
+            "columns": (
+                [label for _, label, _ in _PERF_ROWS]
+                + [label for _, label, _ in _rel_cols]
+            ),
+            "rows": rows,
+        }
+
+        json_path = output_dir / f"{split}_benchmark_table.json"
+        with json_path.open("w") as f:
+            json.dump(artifact, f, indent=2, default=_json_default)
+        self.console.print(f"[dim]  Benchmark table JSON → {json_path}[/dim]")
+
+        # --- rendered PNG ---
+        all_cols = [("name", "Name", "")] + list(_PERF_ROWS) + list(_rel_cols)
+        col_labels = [label for _, label, _ in all_cols]
+        cell_data = []
+        for row in rows:
+            cells = []
+            for key, _, fmt in all_cols:
+                val = row.get(key)
+                if key == "name":
+                    cells.append(str(val))
+                elif val is None:
+                    cells.append("—")
+                else:
+                    try:
+                        cells.append(f"{val:{fmt}}")
+                    except (ValueError, TypeError):
+                        cells.append(str(val))
+            cell_data.append(cells)
+
+        n_rows = len(cell_data)
+        n_cols = len(col_labels)
+        fig_w = max(18, n_cols * 1.3)
+        fig_h = max(2.5, 0.55 * (n_rows + 2))
+        fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+        ax.axis("off")
+
+        meta_parts = [f"split: {split}", f"n_obs: {n_obs:,}"]
+        if start_dt:
+            meta_parts.append(f"from: {start_dt}")
+        if end_dt:
+            meta_parts.append(f"to: {end_dt}")
+        ax.set_title("  |  ".join(meta_parts), fontsize=8, loc="left", pad=6)
+
+        tbl = ax.table(
+            cellText=cell_data,
+            colLabels=col_labels,
+            cellLoc="center",
+            loc="center",
+        )
+        tbl.auto_set_font_size(False)
+        tbl.set_fontsize(7.5)
+        tbl.auto_set_column_width(col=list(range(n_cols)))
+
+        # Header row styling
+        for col_idx in range(n_cols):
+            tbl[0, col_idx].set_facecolor("#343a40")
+            tbl[0, col_idx].set_text_props(color="white", fontweight="bold")
+
+        # Strategy row highlighting (row 1 when present, after header at row 0)
+        strategy_row_idx = next(
+            (i + 1 for i, r in enumerate(rows) if r.get("is_strategy")), None
+        )
+        if strategy_row_idx is not None:
+            for col_idx in range(n_cols):
+                tbl[strategy_row_idx, col_idx].set_facecolor("#d4edda")
+
+        # Alternating row shading for benchmark rows
+        for row_idx, row in enumerate(rows):
+            if row.get("is_strategy"):
+                continue
+            shade = "#f8f9fa" if row_idx % 2 == 0 else "#ffffff"
+            for col_idx in range(n_cols):
+                tbl[row_idx + 1, col_idx].set_facecolor(shade)
+
+        png_path = output_dir / f"{split}_benchmark_table.png"
+        fig.savefig(str(png_path), dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        self.console.print(f"[dim]  Benchmark table PNG → {png_path}[/dim]")
 
     def _save_rollout_data(
         self,
