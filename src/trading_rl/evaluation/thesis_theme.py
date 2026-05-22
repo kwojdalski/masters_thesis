@@ -22,6 +22,11 @@ PALETTE: dict[str, str] = {
 FIGURE_WIDTH = 6.0   # inches
 FIGURE_HEIGHT = 3.5  # inches — 16:9-ish aspect, comfortable for line plots
 
+# Latin Modern Roman matches the LaTeX Computer Modern body font exactly.
+# The four OTF files are copied from TeX Live into ~/Library/Fonts so that
+# matplotlib can discover them (see thesis_theme.py setup notes).
+FONT_FAMILY = "Latin Modern Roman"
+
 
 def thesis_theme(
     base_size: int = 11,
@@ -39,19 +44,21 @@ def thesis_theme(
         theme_classic(base_size=base_size)
         + theme(
             figure_size=figure_size,
+            # Font — matches LaTeX Computer Modern body text
+            text=element_text(family=FONT_FAMILY),
             # Axes
-            axis_title=element_text(size=base_size),
-            axis_text=element_text(size=base_size - 1),
+            axis_title=element_text(size=base_size, family=FONT_FAMILY),
+            axis_text=element_text(size=base_size - 1, family=FONT_FAMILY),
             axis_ticks=element_line(color="#444444", size=0.4),
             # Legend
             legend_position="bottom",
-            legend_title=element_text(size=base_size - 1, face="bold"),
-            legend_text=element_text(size=base_size - 1),
+            legend_title=element_text(size=base_size - 1, face="bold", family=FONT_FAMILY),
+            legend_text=element_text(size=base_size - 1, family=FONT_FAMILY),
             legend_background=element_blank(),
             legend_key=element_blank(),
             # Title and caption
-            plot_title=element_text(size=base_size + 1, face="bold"),
-            plot_caption=element_text(size=base_size - 2, ha="left", color="#555555"),
+            plot_title=element_text(size=base_size + 1, face="bold", family=FONT_FAMILY),
+            plot_caption=element_text(size=base_size - 2, ha="left", color="#555555", family=FONT_FAMILY),
             # Panel
             panel_border=element_blank(),
         )
