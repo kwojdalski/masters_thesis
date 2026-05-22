@@ -105,15 +105,27 @@ class EvaluateCommand(BaseCommand):
             splits_to_eval = [split_name]
             split_dfs = {split_name: arbitrary_df}
         else:
-            dataset = build_prepared_dataset(config, self.logger)
-            splits_to_eval = (
-                ["train", "val", "test"] if params.split == "all" else [params.split]
-            )
-            split_dfs = {
-                "train": dataset.train_df,
-                "val": dataset.val_df,
-                "test": dataset.test_df,
-            }
+            val_data_paths = getattr(config.data, "val_data_paths", None)
+            if val_data_paths and params.split in ("val", "test", "all"):
+                # Pooled multi-symbol scenario: evaluate each val file separately.
+                # Concatenated test_df causes spurious cross-symbol price jumps that
+                # trigger broker bankruptcy — per-symbol eval avoids this entirely.
+                self.console.print(
+                    "[dim]Multi-symbol scenario — evaluating per symbol to avoid cross-symbol price artefacts[/dim]"
+                )
+                splits_to_eval, split_dfs = self._resolve_per_symbol_splits(
+                    config, params, [str(p) for p in val_data_paths]
+                )
+            else:
+                dataset = build_prepared_dataset(config, self.logger)
+                splits_to_eval = (
+                    ["train", "val", "test"] if params.split == "all" else [params.split]
+                )
+                split_dfs = {
+                    "train": dataset.train_df,
+                    "val": dataset.val_df,
+                    "test": dataset.test_df,
+                }
 
         all_results: dict[str, Any] = {}
 
@@ -257,7 +269,13 @@ class EvaluateCommand(BaseCommand):
     # ------------------------------------------------------------------
 
     def _prepare_arbitrary_df(self, data_path: Path, config: Any) -> "pd.DataFrame":
-        """Load a raw parquet file, apply the scenario's feature pipeline, and return a prepared DataFrame."""
+        """Load a raw parquet file, apply the scenario's feature pipeline, and return a prepared DataFrame.
+
+        Results are cached under ``config.data.feature_cache_dir`` keyed by the file's
+        modification time and all preparation settings, so repeated calls on the
+        same file are cheap after the first run.
+        """
+        import hashlib
         import pandas as pd
         from trading_rl.constants import EnvMode
         from trading_rl.data.hft import (
@@ -266,35 +284,89 @@ class EvaluateCommand(BaseCommand):
         )
         from trading_rl.data.loading import load_trading_data
 
-        df = load_trading_data(str(data_path)).dropna()
-        self.console.print(f"[dim]Loaded {len(df):,} rows from {data_path.name}[/dim]")
-
         filter_lob_levels = getattr(config.data, "filter_lob_levels", None)
+        feature_config = getattr(config.data, "feature_config", None)
+        feature_cache_dir = getattr(config.data, "feature_cache_dir", None)
+        mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+        backend = str(getattr(config.env, "backend", "")).lower().strip()
+        stem = data_path.stem
+
+        # --- Cache check ---
+        cache_path: Path | None = None
+        if feature_cache_dir and feature_config:
+            sig = hashlib.md5(
+                f"{data_path}:{data_path.stat().st_mtime_ns}:{filter_lob_levels}:{feature_config}:{mode}:{backend}".encode()
+            ).hexdigest()
+            cache_path = Path(feature_cache_dir) / f"eval_{sig}.parquet"
+
+        if cache_path is not None and cache_path.exists():
+            self.console.print(f"[dim]  Loading from cache ({data_path.name})[/dim]")
+            return pd.read_parquet(cache_path)
+
+        # --- Compute from scratch ---
+        df = load_trading_data(str(data_path)).dropna()
+        self.console.print(f"[dim]  Loaded {len(df):,} rows from {data_path.name}[/dim]")
+
         if filter_lob_levels is not None:
             from trading_rl.data.lob_filters import filter_unchanged_lob
             before = len(df)
             df = filter_unchanged_lob(df, levels=filter_lob_levels)
-            self.console.print(f"[dim]LOB filter: {before:,} → {len(df):,} rows[/dim]")
+            self.console.print(f"[dim]  LOB filter: {before:,} → {len(df):,} rows[/dim]")
 
-        feature_config = getattr(config.data, "feature_config", None)
         if feature_config:
             from trading_rl.features import FeaturePipeline
             pipeline = FeaturePipeline.from_yaml(feature_config)
             pipeline.fit(df)
             features = pipeline.transform(df)
             df = pd.concat([df, features], axis=1)
-            self.console.print(f"[dim]Features computed: {len(features.columns)} columns[/dim]")
-
-        mode = str(getattr(config.env, "mode", "mft")).lower().strip()
-        backend = str(getattr(config.env, "backend", "")).lower().strip()
-        stem = data_path.stem
+            self.console.print(f"[dim]  Features computed: {len(features.columns)} columns[/dim]")
 
         if mode == EnvMode.HFT:
             df = _derive_close_hft_single(df, stem, self.logger)
         if mode == EnvMode.HFT and backend == "tradingenv":
             df = _deduplicate_hft_index_single(df, stem, self.logger)
 
+        if cache_path is not None:
+            Path(feature_cache_dir).mkdir(parents=True, exist_ok=True)
+            df.to_parquet(cache_path)
+            self.console.print(f"[dim]  Cached → {cache_path.name}[/dim]")
+
         return df
+
+    def _resolve_per_symbol_splits(
+        self,
+        config: Any,
+        params: EvaluateParams,
+        val_data_paths: list[str],
+    ) -> tuple[list[str], dict[str, "pd.DataFrame"]]:
+        """Prepare each val file as an independent single-symbol DataFrame.
+
+        Mirrors _build_per_day_splits: splits each file 50/50 so "val" is the
+        first half and "test" is the second half. Returns a list of split-keys
+        (e.g. ``["test_AAPL", "test_AMZN", ...]``) and the corresponding map.
+        """
+        from pathlib import Path
+
+        requested: set[str] = {"val", "test"} if params.split == "all" else {params.split}
+        splits_to_eval: list[str] = []
+        split_dfs: dict[str, Any] = {}
+
+        for val_path in val_data_paths:
+            stem = Path(val_path).stem
+            symbol = stem.split("_")[0]
+            self.console.print(f"[dim]  Preparing {symbol} ({Path(val_path).name})[/dim]")
+            df = self._prepare_arbitrary_df(Path(val_path), config)
+            mid = len(df) // 2
+            if "val" in requested:
+                key = f"val_{symbol}"
+                split_dfs[key] = df.iloc[:mid].copy()
+                splits_to_eval.append(key)
+            if "test" in requested:
+                key = f"test_{symbol}"
+                split_dfs[key] = df.iloc[mid:].copy()
+                splits_to_eval.append(key)
+
+        return splits_to_eval, split_dfs
 
     # ------------------------------------------------------------------
     # MLflow helpers

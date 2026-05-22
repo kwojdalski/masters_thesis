@@ -163,12 +163,19 @@ class StrategyEvaluator:
 
         return None
 
-    def _compute_metrics(self, simple_returns: np.ndarray, df: pd.DataFrame) -> dict[str, float]:
+    def _compute_metrics(
+        self,
+        simple_returns: np.ndarray,
+        df: pd.DataFrame,
+        positions: list[Any] | None = None,
+    ) -> dict[str, float]:
         """Compute financial metrics from strategy returns.
 
         Args:
             simple_returns: Strategy simple returns
             df: DataFrame with price column for benchmark
+            positions: Per-step position values (portfolio weights or discrete
+                actions) used to compute pct_long / pct_short.
 
         Returns:
             Dictionary of metrics (same as build_metric_report output)
@@ -191,11 +198,13 @@ class StrategyEvaluator:
         else:
             benchmark_simple_returns = np.array([])
 
+        actions_array = np.asarray(positions, dtype=float) if positions else None
+
         # Build full metric report
         return build_metric_report(
             strategy_simple_returns=simple_returns,
             benchmark_simple_returns=benchmark_simple_returns,
-            actions=None,
+            actions=actions_array,
             periods_per_year=self.config.periods_per_year,
             risk_free_rate_annual=0.0,
         )
@@ -275,8 +284,16 @@ class StrategyEvaluator:
             simple_returns = return_series.to_simple().values
             cumulative_returns = return_series.to_cumulative_log(include_initial=True).values
 
-        # Compute metrics
-        metrics = self._compute_metrics(simple_returns, df) if self.config.enable_metrics else None
+        # Extract last positions before metrics so we can pass them in
+        actions = rollout.get("action", None)
+        last_positions = self._extract_last_positions(actions, max_steps) if actions is not None else []
+
+        # Compute metrics (pass positions for pct_long / pct_short)
+        metrics = (
+            self._compute_metrics(simple_returns, df, last_positions)
+            if self.config.enable_metrics
+            else None
+        )
 
         # Generate plots
         plots = None
@@ -287,10 +304,6 @@ class StrategyEvaluator:
                 "reward_plot": reward_plot,
                 "action_plot": action_plot,
             }
-
-        # Extract last positions
-        actions = rollout.get("action", None)
-        last_positions = self._extract_last_positions(actions, max_steps) if actions is not None else []
 
         return SplitEvaluationResult(
             final_reward=float(rollout["next", "reward"].sum().item()),
