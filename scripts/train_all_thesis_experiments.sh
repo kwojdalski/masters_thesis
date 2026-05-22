@@ -16,16 +16,14 @@ mkdir -p "$LOG_DIR"
 
 EXTRA_ARGS="${EXTRA_ARGS:-}"
 
-declare -A SCENARIOS=(
-    [td3]="pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
-    [ddpg]="pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr"
-    [ppo]="pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr"
-)
-
 PIDS=()
 
 for ALGO in td3 ddpg ppo; do
-    SCENARIO="${SCENARIOS[$ALGO]}"
+    case "$ALGO" in
+        td3)  SCENARIO="pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr" ;;
+        ddpg) SCENARIO="pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr" ;;
+        ppo)  SCENARIO="pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr" ;;
+    esac
     LOG_FILE="$LOG_DIR/${ALGO}.log"
 
     echo "Starting $ALGO → $LOG_FILE"
