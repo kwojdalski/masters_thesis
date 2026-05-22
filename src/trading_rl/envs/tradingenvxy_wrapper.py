@@ -80,8 +80,8 @@ class GymnasiumTradingEnvWrapper(gym.Env):
         return self._env.render()
 
     def close(self):
-        """Close the environment."""
-        pass
+        if hasattr(self._env, "close"):
+            self._env.close()
 
 
 class CustomFeature(Feature):
