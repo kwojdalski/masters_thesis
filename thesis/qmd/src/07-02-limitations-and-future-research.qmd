@@ -97,6 +97,28 @@ the more complex sequence architecture. If it does not, the aliasing problem
 may be less binding than the missing information sources discussed in the
 following section.
 
+### Training Stability and Policy Collapse
+
+During experimentation, some TD3 runs entered unstable policy regimes in which
+the learned actor produced visibly degenerate behavior, such as persistent
+action saturation or collapse to a narrow range of exposures. These runs were
+not used for the main empirical comparison, which was based on completed runs
+that produced stable evaluation behavior. This manual exclusion is a limitation
+of the present workflow: although it prevents obviously failed optimization
+trajectories from contaminating the comparison, it does not provide an automated
+or statistically principled criterion for distinguishing transient exploration
+noise from genuine policy collapse.
+
+Future work should make this stability filter explicit. A natural extension is
+to add validation-based checkpoint selection and early-stopping rules for
+off-policy actor-critic training, using diagnostics such as validation Sharpe or
+Differential Sharpe Ratio, action saturation rate, action variance, critic-value
+magnitude, drawdown, and NaN or infinite-value checks. In this setup, training
+would retain the best validation checkpoint rather than the final checkpoint and
+terminate runs that satisfy predefined collapse criteria. Such a procedure would
+reduce manual intervention and make the comparison between TD3, DDPG, PPO, and
+benchmark strategies more reproducible.
+
 ### Partial Observability and the Limits of the Spot Order Book
 <!-- [PLACEHOLDER] -->
 
