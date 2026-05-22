@@ -7,13 +7,16 @@ import os
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.table import Table
 
 from trading_rl.evaluation.benchmark_table import save_benchmark_table_artifact
 
 from .base_command import BaseCommand
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 _ALL_COMPONENTS = frozenset({"metrics", "benchmarks", "plots", "stats"})
 
@@ -301,7 +304,7 @@ class EvaluateCommand(BaseCommand):
         """
         import hashlib
         import pandas as pd
-        from trading_rl.constants import EnvBackend, EnvMode, SplitName
+        from trading_rl.constants import EnvBackend, EnvMode
         from trading_rl.data.hft import (
             _deduplicate_hft_index_single,
             _derive_close_hft_single,
@@ -370,6 +373,8 @@ class EvaluateCommand(BaseCommand):
         (e.g. ``["test_AAPL", "test_AMZN", ...]``) and the corresponding map.
         """
         from pathlib import Path
+
+        from trading_rl.constants import SplitName
 
         requested: set[str] = (
             {SplitName.VAL, SplitName.TEST}
