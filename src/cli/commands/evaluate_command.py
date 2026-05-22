@@ -672,6 +672,8 @@ def _json_default(obj: Any) -> Any:
         return float(obj)
     if isinstance(obj, np.integer):
         return int(obj)
+    if isinstance(obj, np.bool_):
+        return bool(obj)
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     raise TypeError(f"Not JSON serializable: {type(obj)}")
