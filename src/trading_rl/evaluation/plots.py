@@ -349,18 +349,14 @@ def create_actual_returns_plot(
         symbols = sorted(df_prices["symbol"].dropna().unique().tolist())
 
     is_sample = n_total_symbols is not None and n_total_symbols > len(symbols) and len(symbols) > 0
-    if symbols:
-        if is_sample:
-            asset_str = f" — {', '.join(symbols)} (sample, {len(symbols)} of {n_total_symbols})"
-        else:
-            asset_str = f" — {', '.join(symbols)}"
+    if symbols and not is_sample:
+        asset_str = f" — {', '.join(symbols)}"
     else:
         asset_str = ""
 
     date_range_str = _date_range_str(df_prices, n_obs)
 
-    title_line1 = f"Portfolio Value{asset_str}"
-    full_title = f"{title_line1}\nStart ${initial_portfolio_value:,.0f}"
+    full_title = f"Portfolio Value{asset_str}"
 
     pooled_note = (
         f"Evaluation shown on {len(symbols)} representative symbol(s) ({', '.join(symbols)}); "
@@ -371,7 +367,10 @@ def create_actual_returns_plot(
 
     returns_runs = list(df_returns["Run"].unique())
     logger.debug("constructing ggplot object")
-    caption_prefix = "Portfolio value in $ reconstructed from broker NLV (Net Liquidation Value) at each step."
+    caption_prefix = (
+        f"Portfolio value in $ reconstructed from broker NLV at each step."
+        f" Initial capital: ${initial_portfolio_value:,.0f}."
+    )
     if pooled_note:
         caption_prefix = f"{caption_prefix}\n{pooled_note}"
     plot = (
