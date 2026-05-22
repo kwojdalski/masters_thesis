@@ -527,6 +527,14 @@ def evaluate(
             "the scenario config is applied to this file before evaluation."
         ),
     ),
+    save_rollout: bool = typer.Option(
+        False,
+        "--save-rollout",
+        help=(
+            "Save per-step rollout data (action, simple_return, cumulative_log_return) "
+            "to <output-dir>/<split>_rollout.parquet for offline plotting or analysis."
+        ),
+    ),
 ):
     """Evaluate a trained policy from a checkpoint without re-running training.
 
@@ -575,6 +583,7 @@ def evaluate(
         tracking_uri=tracking_uri,
         no_mlflow=no_mlflow,
         data_path=data_path,
+        save_rollout=save_rollout,
     )
     evaluate_cmd.execute(params)
 

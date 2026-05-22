@@ -41,6 +41,7 @@ class EvaluateParams:
     tracking_uri: str = "sqlite:///mlflow.db"
     no_mlflow: bool = False
     data_path: Path | None = None
+    save_rollout: bool = False
 
 
 class EvaluateCommand(BaseCommand):
@@ -223,6 +224,9 @@ class EvaluateCommand(BaseCommand):
                                 log_statistical_tests,
                             )
                             log_statistical_tests(stat_results, split_prefix=split)
+
+                if params.save_rollout:
+                    self._save_rollout_data(result, split, split_df, params.output_dir)
 
                 if "plots" in components and result.plots:
                     self._save_plots(result.plots, split, params.output_dir)
@@ -458,6 +462,38 @@ class EvaluateCommand(BaseCommand):
                 row.append(f"{val:{fmt}}" if val is not None else "—")
             table.add_row(*row)
         self.console.print(table)
+
+    def _save_rollout_data(
+        self,
+        result: Any,
+        split: str,
+        split_df: "pd.DataFrame",
+        output_dir: Path,
+    ) -> None:
+        import numpy as np
+        import pandas as pd
+
+        n = min(len(result.last_positions), len(result.simple_returns), len(split_df))
+        if n == 0:
+            self.console.print(f"[yellow]No rollout data to save for {split}[/yellow]")
+            return
+
+        index = split_df.index[:n]
+        data: dict[str, Any] = {
+            "action": np.array(result.last_positions[:n], dtype=np.float32),
+            "simple_return": result.simple_returns[:n].astype(np.float32),
+        }
+        if result.cumulative_returns is not None:
+            cum = result.cumulative_returns
+            # cumulative_returns is built with include_initial=True → length n+1
+            if len(cum) == n + 1:
+                cum = cum[1:]
+            data["cumulative_log_return"] = cum[:n].astype(np.float32)
+
+        out_df = pd.DataFrame(data, index=index)
+        out_path = output_dir / f"{split}_rollout.parquet"
+        out_df.to_parquet(out_path)
+        self.console.print(f"[dim]Rollout data ({n:,} steps) → {out_path}[/dim]")
 
     def _save_plots(
         self, plots: dict[str, Any], split: str, output_dir: Path
