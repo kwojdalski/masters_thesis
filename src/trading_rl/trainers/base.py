@@ -491,6 +491,8 @@ class BaseTrainer(ABC):
         with profiler.stage("plot_actual_returns", 2):
             _t = time.monotonic()
             logger.debug("create_actual_returns_plot start n_steps=%d", max_steps)
+            _data_paths = getattr(getattr(config, "data", None), "data_paths", None) if config else None
+            _n_total_symbols = len(_data_paths) if _data_paths else None
             actual_returns_plot = create_actual_returns_plot(
                 None,
                 max_steps,
@@ -506,6 +508,7 @@ class BaseTrainer(ABC):
                 show_max_profit=config.benchmarks.show_max_profit if config else True,
                 training_steps=self.total_count,
                 training_episodes=self.total_episodes,
+                n_total_symbols=_n_total_symbols,
             )
             logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
 

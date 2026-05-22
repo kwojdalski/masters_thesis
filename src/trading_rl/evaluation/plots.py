@@ -220,6 +220,7 @@ def create_actual_returns_plot(
     show_max_profit: bool = False,
     training_steps: int | None = None,
     training_episodes: int | None = None,
+    n_total_symbols: int | None = None,
 ):
     """Create a plot showing actual portfolio returns, not training rewards."""
     if initial_capital is not None:
@@ -343,19 +344,36 @@ def create_actual_returns_plot(
     logger.debug("DataFrame built elapsed=%.2fs", time.monotonic() - t0)
 
     # Build title components: asset composition and datetime range.
-    asset_str = ""
+    symbols: list[str] = []
     if df_prices is not None and "symbol" in df_prices.columns:
         symbols = sorted(df_prices["symbol"].dropna().unique().tolist())
-        if symbols:
+
+    is_sample = n_total_symbols is not None and n_total_symbols > len(symbols) and len(symbols) > 0
+    if symbols:
+        if is_sample:
+            asset_str = f" — {', '.join(symbols)} (sample, {len(symbols)} of {n_total_symbols})"
+        else:
             asset_str = f" — {', '.join(symbols)}"
+    else:
+        asset_str = ""
 
     date_range_str = _date_range_str(df_prices, n_obs)
 
     title_line1 = f"Portfolio Value{asset_str}"
     full_title = f"{title_line1}\nStart ${initial_portfolio_value:,.0f}"
 
+    pooled_note = (
+        f"Evaluation shown on {len(symbols)} representative symbol(s) ({', '.join(symbols)}); "
+        f"model trained on {n_total_symbols} symbols."
+        if is_sample
+        else ""
+    )
+
     returns_runs = list(df_returns["Run"].unique())
     logger.debug("constructing ggplot object")
+    caption_prefix = "Portfolio value in $ reconstructed from broker NLV (Net Liquidation Value) at each step."
+    if pooled_note:
+        caption_prefix = f"{caption_prefix}\n{pooled_note}"
     plot = (
         ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run"))
         + geom_line(size=0.4)
@@ -364,7 +382,7 @@ def create_actual_returns_plot(
             x="Steps",
             y="Portfolio Value ($)",
             caption=_build_run_caption(
-                "Portfolio value in $ reconstructed from broker NLV (Net Liquidation Value) at each step.",
+                caption_prefix,
                 returns_runs,
                 training_steps=training_steps,
                 training_episodes=training_episodes,
