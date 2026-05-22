@@ -28,7 +28,6 @@ _kill_all() {
         done < "$PID_FILE"
         rm -f "$PID_FILE"
     fi
-    kill "$MULTITAIL_PID" 2>/dev/null || true
     exit 1
 }
 trap _kill_all INT TERM
@@ -66,17 +65,13 @@ echo "To kill all: bash scripts/kill_experiments.sh"
 echo ""
 
 if command -v multitail &>/dev/null; then
-    multitail -s 3 \
-        -l "tail -f $LOG_DIR/td3.log" \
-        -l "tail -f $LOG_DIR/ddpg.log" \
-        -l "tail -f $LOG_DIR/ppo.log" &
-    MULTITAIL_PID=$!
+    echo "Monitor logs in a new terminal:"
+    echo "  multitail -s 3 $LOG_DIR/td3.log $LOG_DIR/ddpg.log $LOG_DIR/ppo.log"
 else
-    echo "multitail not found — falling back to tail -f"
-    tail -f "$LOG_DIR/td3.log" "$LOG_DIR/ddpg.log" "$LOG_DIR/ppo.log" &
-    MULTITAIL_PID=$!
+    echo "Monitor logs in a new terminal:"
+    echo "  tail -f $LOG_DIR/td3.log $LOG_DIR/ddpg.log $LOG_DIR/ppo.log"
 fi
-
+echo ""
 echo "Waiting for all to finish..."
 
 FAILED=0
@@ -90,7 +85,6 @@ for i in "${!PIDS[@]}"; do
     fi
 done
 
-kill "$MULTITAIL_PID" 2>/dev/null || true
 rm -f "$PID_FILE"
 
 if [[ $FAILED -eq 1 ]]; then
