@@ -47,7 +47,7 @@ def _build_run_caption(
     """Build a caption line per run present in the plot."""
     lines = [prefix]
     if date_range:
-        lines.append(f"Period: {date_range}.")
+        lines.append(f"Date range: {date_range}.")
     for run in runs:
         desc = _RUN_DESCRIPTIONS.get(run)
         if desc:
@@ -414,7 +414,7 @@ def create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot=
     else:
         merged_plot = reward_plot / action_plot
     n_panels = 3 if actual_returns_plot is not None else 2
-    merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH, round(FIGURE_HEIGHT * n_panels, 1)))
+    merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH * 2, round(FIGURE_HEIGHT * n_panels, 1)))
     if save_path:
         logger.info("save merged comparison plot path=%s", save_path)
         merged_plot.save(save_path, dpi=150, verbose=False)
