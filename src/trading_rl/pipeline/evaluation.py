@@ -22,6 +22,7 @@ from trading_rl.evaluation import (
     periods_per_year_from_timeframe,
     run_all_statistical_tests,
 )
+from trading_rl.evaluation.benchmark_table import build_bench_out, save_benchmark_table_artifact
 from trading_rl.evaluation.benchmarks import BenchmarkEngine
 from trading_rl.pipeline.explainability import run_explainability_analysis
 from trading_rl.profiler import get_profiler
@@ -173,6 +174,56 @@ def run_statistical_tests_for_split(
         logger.error("statistical tests failed split=%s err=%s", split_ctx.split, error)
 
 
+def _save_benchmark_table_for_split(
+    *,
+    split: str,
+    split_ctx: EvaluationContext,
+    config: ExperimentConfig,
+    evaluation_report: dict[str, float],
+    logger: logging.Logger,
+) -> None:
+    """Build benchmarks and save the benchmark comparison table artifact."""
+    from trading_rl.evaluation.returns import extract_tradingenv_return_series
+
+    price_column = getattr(config.env, "price_column", None) or "close"
+    periods_per_year = periods_per_year_from_timeframe(
+        getattr(config.data, "timeframe", "1d")
+    )
+    benchmarks, _ = BenchmarkEngine.build(split_ctx.df, config.benchmarks, price_column)
+    if not benchmarks:
+        return
+
+    # Extract strategy simple returns from broker track record (already populated by the
+    # rollout inside build_evaluation_report_for_trainer — no extra rollout needed).
+    from trading_rl.evaluation.returns import extract_tradingenv_return_series
+
+    return_series = extract_tradingenv_return_series(split_ctx.env, split_ctx.max_steps)
+    if return_series is None:
+        logger.warning("benchmark table: no strategy returns available for split=%s", split)
+        return
+    strategy_simple_returns = return_series.to_simple().values
+    if strategy_simple_returns.size == 0:
+        logger.warning("benchmark table: empty strategy returns for split=%s", split)
+        return
+
+    bench_out = build_bench_out(
+        strategy_simple_returns=strategy_simple_returns,
+        benchmarks=benchmarks,
+        max_steps=split_ctx.max_steps,
+        periods_per_year=periods_per_year,
+    )
+
+    output_dir = Path(config.logging.log_dir) / "benchmark_tables"
+    save_benchmark_table_artifact(
+        split=split,
+        split_df=split_ctx.df,
+        bench_out=bench_out,
+        strategy_metrics=evaluation_report,
+        output_dir=output_dir,
+    )
+    logger.info("benchmark table saved split=%s dir=%s", split, output_dir)
+
+
 def evaluate_split(
     *,
     split: str,
@@ -234,6 +285,18 @@ def evaluate_split(
             eval_env=split_ctx.env,
         )
         MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
+
+    try:
+        with profiler.stage(f"eval_benchmark_table_{split}"):
+            _save_benchmark_table_for_split(
+                split=split,
+                split_ctx=split_ctx,
+                config=config,
+                evaluation_report=split_evaluation_report,
+                logger=logger,
+            )
+    except Exception as _bt_err:
+        logger.warning("benchmark table artifact failed split=%s err=%s", split, _bt_err)
 
     if config.statistical_testing.enabled:
         try:
