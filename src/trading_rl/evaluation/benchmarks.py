@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -35,6 +36,30 @@ class BenchmarkSpec:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+class BenchmarkReturnArray(np.ndarray):
+    """Return array carrying benchmark position direction metadata."""
+
+    benchmark_position_side: float | None
+
+    def __new__(
+        cls, values: np.ndarray, benchmark_position_side: float | None
+    ) -> BenchmarkReturnArray:
+        obj = np.asarray(values, dtype=float).view(cls)
+        obj.benchmark_position_side = benchmark_position_side
+        return obj
+
+    def __array_finalize__(self, obj: Any) -> None:
+        if obj is None:
+            return
+        self.benchmark_position_side = getattr(obj, "benchmark_position_side", None)
+
+
+def _benchmark_returns(
+    values: np.ndarray, benchmark_position_side: float | None
+) -> BenchmarkReturnArray:
+    return BenchmarkReturnArray(values, benchmark_position_side)
+
+
 class BenchmarkEngine:
     """Factory for pure price-data benchmarks — no environment coupling."""
 
@@ -42,21 +67,30 @@ class BenchmarkEngine:
     def buy_and_hold(prices: pd.Series) -> BenchmarkSpec:
         return BenchmarkSpec(
             name="buy_and_hold",
-            compute_returns=lambda steps: compute_buy_and_hold_returns(prices, steps),
+            compute_returns=lambda steps: _benchmark_returns(
+                compute_buy_and_hold_returns(prices, steps),
+                benchmark_position_side=1.0,
+            ),
         )
 
     @staticmethod
     def short_and_hold(prices: pd.Series) -> BenchmarkSpec:
         return BenchmarkSpec(
             name="short_and_hold",
-            compute_returns=lambda steps: compute_short_and_hold_returns(prices, steps),
+            compute_returns=lambda steps: _benchmark_returns(
+                compute_short_and_hold_returns(prices, steps),
+                benchmark_position_side=-1.0,
+            ),
         )
 
     @staticmethod
     def twap(prices: pd.Series) -> BenchmarkSpec:
         return BenchmarkSpec(
             name="twap",
-            compute_returns=lambda steps: compute_twap_returns(prices, steps),
+            compute_returns=lambda steps: _benchmark_returns(
+                compute_twap_returns(prices, steps),
+                benchmark_position_side=1.0,
+            ),
         )
 
     @staticmethod
@@ -71,7 +105,10 @@ class BenchmarkEngine:
             meta["volume_source"] = volume_source
         return BenchmarkSpec(
             name="vwap",
-            compute_returns=lambda steps: compute_vwap_returns(prices, volumes, steps),
+            compute_returns=lambda steps: _benchmark_returns(
+                compute_vwap_returns(prices, volumes, steps),
+                benchmark_position_side=1.0,
+            ),
             metadata=meta,
         )
 

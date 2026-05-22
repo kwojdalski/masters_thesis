@@ -5,8 +5,9 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from trading_rl.evaluation.benchmarks import BenchmarkEngine
 from trading_rl.config import StatisticalTestingConfig
+from trading_rl.evaluation.benchmarks import BenchmarkEngine
+from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.statistical_benchmarks import (
     build_benchmark_comparison_table,
     compute_buy_and_hold_returns,
@@ -67,6 +68,41 @@ def test_vwap_returns_use_volume_schedule() -> None:
     assert len(vwap) == 10
     assert np.isfinite(vwap).all()
     assert not np.allclose(vwap, twap)
+
+
+def test_benchmark_metric_report_fills_direction_percentages() -> None:
+    prices = pd.Series(np.linspace(100.0, 105.0, 8))
+    volumes = pd.Series(np.arange(1.0, 9.0))
+    config = SimpleNamespace(
+        buy_and_hold=True,
+        short_and_hold=True,
+        twap=True,
+        vwap=True,
+    )
+
+    benchmarks, _ = BenchmarkEngine.build(
+        pd.DataFrame({"close": prices, "volume": volumes}),
+        config,
+        price_column="close",
+    )
+    metrics_by_name = {
+        spec.name: build_metric_report(
+            strategy_simple_returns=spec.compute_returns(7),
+            benchmark_simple_returns=None,
+            actions=None,
+            periods_per_year=252,
+        )
+        for spec in benchmarks
+    }
+
+    assert metrics_by_name["buy_and_hold"]["pct_long"] == 1.0
+    assert metrics_by_name["buy_and_hold"]["pct_short"] == 0.0
+    assert metrics_by_name["short_and_hold"]["pct_long"] == 0.0
+    assert metrics_by_name["short_and_hold"]["pct_short"] == 1.0
+    assert metrics_by_name["twap"]["pct_long"] == 1.0
+    assert metrics_by_name["twap"]["pct_short"] == 0.0
+    assert metrics_by_name["vwap"]["pct_long"] == 1.0
+    assert metrics_by_name["vwap"]["pct_short"] == 0.0
 
 
 def test_benchmark_table_captures_initial_drawdown() -> None:

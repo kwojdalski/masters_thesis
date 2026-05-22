@@ -101,6 +101,11 @@ def build_metric_report(
     risk_free_rate_annual: float = 0.0,
 ) -> dict[str, float]:
     """Compute 25 standard quantitative finance metrics."""
+    benchmark_position_side = (
+        getattr(strategy_simple_returns, "benchmark_position_side", None)
+        if actions is None
+        else None
+    )
     if isinstance(strategy_simple_returns, ReturnSeries):
         strategy_simple_returns = strategy_simple_returns.to_simple().values
     r = np.asarray(strategy_simple_returns, dtype=float)
@@ -140,11 +145,12 @@ def build_metric_report(
     payoff_ratio = _safe_div(float(np.mean(wins)) if wins.size else 0.0, abs(float(np.mean(losses))) if losses.size else 0.0)
     expectancy = float(mu)
 
-    actions_arr = (
-        np.asarray(actions, dtype=float)
-        if actions is not None and len(actions) > 0
-        else np.array([])
-    )
+    if actions is not None and len(actions) > 0:
+        actions_arr = np.asarray(actions, dtype=float)
+    elif benchmark_position_side is not None and r.size > 0:
+        actions_arr = np.full(r.size, float(benchmark_position_side), dtype=float)
+    else:
+        actions_arr = np.array([])
     turnover = _turnover(actions_arr)
     avg_holding = _holding_period(actions_arr)
     pct_long = float(np.mean(actions_arr > 0)) if actions_arr.size > 0 else np.nan
