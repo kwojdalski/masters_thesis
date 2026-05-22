@@ -326,7 +326,7 @@ def create_actual_returns_plot(
     if df_prices is not None and "symbol" in df_prices.columns:
         symbols = sorted(df_prices["symbol"].dropna().unique().tolist())
         if symbols:
-            asset_str = f" — {', '.join(symbols)} + Cash"
+            asset_str = f" — {', '.join(symbols)}"
 
     date_range_str = ""
     if df_prices is not None and pd.api.types.is_datetime64_any_dtype(df_prices.index):
@@ -337,7 +337,7 @@ def create_actual_returns_plot(
             end_s = idx[-1].strftime(fmt)
             date_range_str = start_s if start_s == end_s else f"{start_s} – {end_s}"
 
-    title_line1 = f"Actual Portfolio Value{asset_str}"
+    title_line1 = f"Portfolio Value{asset_str}"
     title_line2_parts = [f"Start ${initial_portfolio_value:,.0f}"]
     if date_range_str:
         title_line2_parts.append(date_range_str)
