@@ -326,8 +326,18 @@ def _build_per_day_splits(
         if progress_callback:
             progress_callback(f"val {Path(val_path).name}")
 
-    val_df = pd.concat([pd.read_parquet(p["val"]) for p in val_tmp])
-    test_df = pd.concat([pd.read_parquet(p["test"]) for p in val_tmp])
+    if memmap_dir:
+        # Mirror the first-symbol convention used for train_df: a single
+        # contiguous price series prevents spurious cross-symbol returns.
+        val_df  = pd.read_parquet(val_tmp[0]["val"])
+        test_df = pd.read_parquet(val_tmp[0]["test"])
+        logger.info(
+            "streaming mode (per-day): using first val symbol as representative sample"
+            " val=%d test=%d", len(val_df), len(test_df),
+        )
+    else:
+        val_df  = pd.concat([pd.read_parquet(p["val"])  for p in val_tmp])
+        test_df = pd.concat([pd.read_parquet(p["test"]) for p in val_tmp])
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
     # Re-run index deduplication on the concatenated val/test to fix any
@@ -441,17 +451,21 @@ def _build_pooled_splits(
     # When streaming via memmap the training env never reads train_df, so
     # avoid loading all symbols — use the first symbol as a representative
     # sample for validation, logging, and train-split evaluation.
+    # val/test follow the same convention: a single-symbol slice keeps the
+    # price series contiguous and prevents spurious cross-symbol returns that
+    # corrupt the NLV/portfolio calculation in periodic evaluation.
     if memmap_dir:
         train_df = pd.read_parquet(tmp_paths[0]["train"])
+        val_df   = pd.read_parquet(tmp_paths[0]["val"])
+        test_df  = pd.read_parquet(tmp_paths[0]["test"])
         logger.info(
-            "streaming mode: skipping full train concat, using first symbol as sample"
-            " n_rows=%d", len(train_df),
+            "streaming mode: using first symbol as representative sample for all splits"
+            " train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df),
         )
     else:
         train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths])
-
-    val_df  = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths])
-    test_df = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths])
+        val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths])
+        test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths])
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
     logger.info("pooled splits train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df))
