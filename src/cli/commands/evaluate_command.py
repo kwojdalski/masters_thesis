@@ -149,7 +149,7 @@ class EvaluateCommand(BaseCommand):
                     df=split_df,
                     config=config,
                 )
-
+                self.console.print(f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]")
                 eval_config = EvaluationConfig(
                     reward_type=reward_type,
                     backend=backend,
@@ -166,7 +166,12 @@ class EvaluateCommand(BaseCommand):
                     config=eval_config,
                 )
 
+                self.console.print("[dim]  Running policy rollout...[/dim]")
                 result = evaluator.evaluate_split(split, split_df, env=split_ctx.env)
+                self.console.print(
+                    f"[dim]  Rollout done: {len(result.simple_returns):,} steps, "
+                    f"final reward {result.final_reward:.4f}[/dim]"
+                )
 
                 split_output: dict[str, Any] = {
                     "split": split,
@@ -175,6 +180,7 @@ class EvaluateCommand(BaseCommand):
                 }
 
                 if "metrics" in components and result.metrics:
+                    self.console.print("[dim]  Computing metrics...[/dim]")
                     split_output["metrics"] = result.metrics
                     self._print_metrics_table(split, result.metrics)
                     if mlflow_run_id:
@@ -183,13 +189,16 @@ class EvaluateCommand(BaseCommand):
 
                 bench_returns_map: dict[str, Any] = {}
                 if "benchmarks" in components or "stats" in components:
+                    self.console.print("[dim]  Building benchmarks...[/dim]")
                     benchmarks, _ = BenchmarkEngine.build(
                         split_df, config.benchmarks, price_column
                     )
+                    self.console.print(f"[dim]  {len(benchmarks)} benchmark(s) ready[/dim]")
 
                     if "benchmarks" in components and benchmarks:
                         bench_out: dict[str, Any] = {}
                         for spec in benchmarks:
+                            self.console.print(f"[dim]  Benchmark metrics: {spec.name}...[/dim]")
                             bench_returns = spec.compute_returns(split_ctx.max_steps)
                             bench_returns_map[spec.name] = bench_returns
                             n = min(len(result.simple_returns), len(bench_returns))
@@ -229,7 +238,7 @@ class EvaluateCommand(BaseCommand):
                             max_steps=split_ctx.max_steps,
                             config=config.statistical_testing,
                             periods_per_year=periods_py,
-                            status_fn=lambda msg: self.console.print(f"[dim]{msg}[/dim]"),
+                            status_fn=lambda msg: self.console.print(f"[dim]  {msg}[/dim]"),
                         )
                         split_output["statistical_tests"] = stat_results
                         if mlflow_run_id:
@@ -242,6 +251,7 @@ class EvaluateCommand(BaseCommand):
                     self._save_rollout_data(result, split, split_df, params.output_dir)
 
                 if "plots" in components and result.plots:
+                    self.console.print("[dim]  Saving plots...[/dim]")
                     self._save_plots(result.plots, split, params.output_dir)
                     if mlflow_run_id:
                         from trading_rl.callbacks.artifacts import log_evaluation_plots
