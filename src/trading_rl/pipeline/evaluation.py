@@ -115,7 +115,14 @@ def _run_rollout(trainer: Any, split_ctx: EvaluationContext) -> Any:
                     max_steps=split_ctx.max_steps,
                     policy=trainer.actor,
                 )
-        except RuntimeError:
+        except (NotImplementedError, RuntimeError) as exc:
+            if not (
+                isinstance(exc, NotImplementedError)
+                or "does not have a mode" in str(exc)
+                or "analytical mode" in str(exc).lower()
+            ):
+                raise
+            # Fallback for distributions without analytical mode
             with set_exploration_type(InteractionType.DETERMINISTIC):
                 return split_ctx.env.rollout(
                     max_steps=split_ctx.max_steps,
