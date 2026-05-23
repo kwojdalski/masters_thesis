@@ -139,6 +139,7 @@ def build_metric_report(
     wins = r[r > 0]
     losses = r[r < 0]
     hit_rate = float(np.mean(r > 0))
+    lose_rate = float(np.mean(r < 0))
     gross_profit = float(np.sum(wins)) if wins.size else 0.0
     gross_loss = float(np.sum(np.abs(losses))) if losses.size else 0.0
     profit_factor = _safe_div(gross_profit, gross_loss)
@@ -195,6 +196,7 @@ def build_metric_report(
         "return_kurtosis": kurt,
         "win_rate": hit_rate,
         "hit_rate": hit_rate,
+        "lose_rate": lose_rate,
         "profit_factor": profit_factor,
         "payoff_ratio": payoff_ratio,
         "expectancy_per_period": expectancy,
@@ -228,6 +230,7 @@ def _metric_keys() -> list[str]:
         "return_kurtosis",
         "win_rate",
         "hit_rate",
+        "lose_rate",
         "profit_factor",
         "payoff_ratio",
         "expectancy_per_period",

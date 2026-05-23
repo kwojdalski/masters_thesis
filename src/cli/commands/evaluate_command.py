@@ -28,6 +28,7 @@ _PERF_ROWS = [
     ("sortino_ratio", "Sortino Ratio", ".3f"),
     ("max_drawdown", "Max Drawdown", ".2%"),
     ("win_rate", "Win Rate", ".2%"),
+    ("lose_rate", "Lose Rate", ".2%"),
     ("profit_factor", "Profit Factor", ".3f"),
     ("pct_long", "% Long", ".2%"),
     ("pct_short", "% Short", ".2%"),
