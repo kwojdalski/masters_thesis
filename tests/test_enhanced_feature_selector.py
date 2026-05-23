@@ -196,6 +196,22 @@ class TestEnsembleSelection:
         # feat_a should have best average rank (always first)
         assert ensemble[0] == "feat_a"
 
+    def test_rank_averaging_penalizes_missing_splits(self):
+        """A one-fold top rank should not beat a consistently selected feature."""
+        split_selections = [
+            ["rare_spike", "stable"],
+            ["stable", "other_a"],
+            ["stable", "other_b"],
+        ]
+
+        ensemble = _ensemble_select_features(
+            split_selections=split_selections,
+            ensemble_method="rank_average",
+        )
+
+        assert ensemble[0] == "stable"
+        assert ensemble.index("stable") < ensemble.index("rare_spike")
+
     def test_weighted_ensemble(self):
         """Test weighted ensemble using ICIR scores."""
         split_selections = [

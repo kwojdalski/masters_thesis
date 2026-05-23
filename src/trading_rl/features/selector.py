@@ -723,17 +723,23 @@ def _ensemble_select_features(
     elif ensemble_method == EnsembleMethod.RANK_AVERAGE:
         # Average rankings across splits
         feature_ranks: dict[str, list[int]] = {}
-        for split_idx, split_selected in enumerate(split_selections):
+        for split_selected in split_selections:
             for rank, feat in enumerate(split_selected):
                 if feat not in feature_ranks:
                     feature_ranks[feat] = []
                 feature_ranks[feat].append(rank)
 
-        # Compute average rank and sort
-        feature_avg_ranks = {
-            feat: sum(ranks) / len(ranks)
-            for feat, ranks in feature_ranks.items()
-        }
+        # Compute average rank across all splits. Missing features receive a
+        # last-rank penalty so one lucky top rank does not beat consistent picks.
+        missing_rank_penalty = max(
+            (len(split_selected) for split_selected in split_selections),
+            default=1,
+        )
+        feature_avg_ranks = {}
+        for feat, ranks in feature_ranks.items():
+            n_missing = n_splits - len(ranks)
+            total_rank = sum(ranks) + missing_rank_penalty * n_missing
+            feature_avg_ranks[feat] = total_rank / n_splits
 
         ensemble_selected = sorted(
             feature_avg_ranks.keys(), key=lambda f: feature_avg_ranks[f]
