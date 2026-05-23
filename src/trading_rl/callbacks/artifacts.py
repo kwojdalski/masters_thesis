@@ -397,7 +397,7 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
         "Transformed Data (all)",
         n_plot_samples=1000,
         max_features=None,
-        plots_subdir="plots/all_vars",
+        plots_subdir="plots/all_features",
     )
 
     # Only the features actually selected for the observation space
@@ -412,7 +412,7 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
             "Transformed Data (selected)",
             n_plot_samples=1000,
             max_features=None,
-            plots_subdir="plots/selected_vars",
+            plots_subdir="plots/selected_features",
         )
 
     _log_feature_vs_return_scatter(df, config)
