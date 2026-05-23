@@ -18,6 +18,8 @@ from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
 
 logger = get_logger(__name__)
 
+_MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
+
 
 class DDPGTrainer(BaseTrainer):
     """Trainer for DDPG algorithm on trading environments."""
@@ -97,6 +99,7 @@ class DDPGTrainer(BaseTrainer):
         # Counters for tracking successful vs skipped batches
         self.successful_batches = 0
         self.skipped_batches = 0
+        self._consecutive_skips = 0
 
         logger.info(
             "init ddpg trainer actor_lr=%s value_lr=%s buffer_size=%d tau=%s exploration_noise_std=%.3f",
@@ -169,8 +172,9 @@ class DDPGTrainer(BaseTrainer):
             done = sample["next", "done"]
             terminated = sample["next", "terminated"]
             if done.shape != terminated.shape:
-                logger.warning(
-                    f"Shape mismatch: done {done.shape} vs terminated {terminated.shape}"
+                self._record_skipped_batch(
+                    "done/terminated shape mismatch "
+                    f"done={done.shape} terminated={terminated.shape}"
                 )
                 continue
 
@@ -181,15 +185,7 @@ class DDPGTrainer(BaseTrainer):
                 self._consecutive_skips = 0
             except RuntimeError as e:
                 if "All input tensors" in str(e) and "must share a unique shape" in str(e):
-                    self.skipped_batches += 1
-                    self._consecutive_skips = getattr(self, "_consecutive_skips", 0) + 1
-                    if self._consecutive_skips >= 10 and self.successful_batches == 0:
-                        raise RuntimeError(
-                            f"DDPG: {self._consecutive_skips} consecutive optimization "
-                            "batches skipped due to tensor shape errors with zero successful "
-                            "updates. Training cannot proceed — check environment or replay buffer."
-                        ) from e
-                    logger.warning("ddpg tensor shape error skipping batch err=%s", e)
+                    self._record_skipped_batch("tensor shape error", exc=e)
                     continue
                 else:
                     raise e
@@ -234,6 +230,29 @@ class DDPGTrainer(BaseTrainer):
             # Periodic evaluation
             if self._should_eval_step(current_step):
                 self._evaluate()
+
+    def _record_skipped_batch(self, reason: str, exc: RuntimeError | None = None) -> None:
+        """Track skipped DDPG optimization batches and fail fast if none succeed."""
+        self.skipped_batches += 1
+        self._consecutive_skips = getattr(self, "_consecutive_skips", 0) + 1
+
+        if exc is None:
+            logger.warning("ddpg skipping batch reason=%s", reason)
+        else:
+            logger.warning("ddpg skipping batch reason=%s err=%s", reason, exc)
+
+        if (
+            self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
+            and self.successful_batches == 0
+        ):
+            error = RuntimeError(
+                f"DDPG: {self._consecutive_skips} consecutive optimization batches "
+                "skipped with zero successful updates. Training cannot proceed - "
+                "check environment or replay buffer tensor shapes."
+            )
+            if exc is not None:
+                raise error from exc
+            raise error
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
         """Log training progress.
