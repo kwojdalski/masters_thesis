@@ -458,18 +458,34 @@ def build_final_metrics(
     else:
         unique_symbols = list(config.data.symbols) if config.data.symbols else []
 
+    if getattr(config.data, "val_data_paths", None):
+        val_test_symbols = sorted({Path(p).parent.name for p in config.data.val_data_paths})
+    else:
+        val_test_symbols = unique_symbols
+
+    def _fmt_ts(ts: Any) -> str:
+        if hasattr(ts, "strftime"):
+            return ts.strftime("%Y-%m-%d %H:%M:%S UTC")
+        return str(ts)[:19]
+
     split_frames = {
         SplitName.TRAIN: train_df,
         SplitName.VAL: val_df,
         SplitName.TEST: test_df,
+    }
+    split_symbols = {
+        SplitName.TRAIN: unique_symbols,
+        SplitName.VAL: val_test_symbols,
+        SplitName.TEST: val_test_symbols,
     }
     enriched_split_results: dict[str, dict[str, Any]] = {}
     for split, result in split_results.items():
         df = split_frames.get(split)
         entry = dict(result)
         if df is not None and not df.empty:
-            entry["date_start"] = str(df.index[0])[:10]
-            entry["date_end"] = str(df.index[-1])[:10]
+            entry["date_start"] = _fmt_ts(df.index[0])
+            entry["date_end"] = _fmt_ts(df.index[-1])
+        entry["symbols"] = split_symbols.get(split, unique_symbols)
         enriched_split_results[split] = entry
 
     return {

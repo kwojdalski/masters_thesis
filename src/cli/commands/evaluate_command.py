@@ -107,11 +107,15 @@ class EvaluateCommand(BaseCommand):
 
         from pathlib import Path as _Path
         if getattr(config.data, "data_paths", None):
-            _unique_symbols = sorted({_Path(p).parent.name for p in config.data.data_paths})
+            _train_symbols = sorted({_Path(p).parent.name for p in config.data.data_paths})
         elif getattr(config.data, "symbols", None):
-            _unique_symbols = list(config.data.symbols)
+            _train_symbols = list(config.data.symbols)
         else:
-            _unique_symbols = []
+            _train_symbols = []
+        if getattr(config.data, "val_data_paths", None):
+            _val_symbols = sorted({_Path(p).parent.name for p in config.data.val_data_paths})
+        else:
+            _val_symbols = _train_symbols
 
         if params.data_path is not None:
             if not params.data_path.exists():
@@ -212,7 +216,8 @@ class EvaluateCommand(BaseCommand):
                 if "metrics" in components and result.metrics:
                     self.console.print("[dim]  Computing metrics...[/dim]")
                     split_output["metrics"] = result.metrics
-                    self._print_metrics_table(split, result.metrics, split_df=split_df, symbols=_unique_symbols)
+                    _split_symbols = _train_symbols if str(split).startswith("train") else _val_symbols
+                    self._print_metrics_table(split, result.metrics, split_df=split_df, symbols=_split_symbols)
                     if mlflow_run_id:
                         from trading_rl.callbacks.artifacts import log_evaluation_report
                         log_evaluation_report(result.metrics, split_prefix=split)
@@ -557,7 +562,9 @@ class EvaluateCommand(BaseCommand):
         table.add_column("Metric", style="cyan")
         table.add_column("Value", style="green", justify="right")
         if split_df is not None and not split_df.empty:
-            table.add_row("Date Range", f"{str(split_df.index[0])[:10]} – {str(split_df.index[-1])[:10]}")
+            def _fmt(ts):
+                return ts.strftime("%Y-%m-%d %H:%M:%S UTC") if hasattr(ts, "strftime") else str(ts)[:19]
+            table.add_row("Date Range", f"{_fmt(split_df.index[0])} – {_fmt(split_df.index[-1])}")
         if symbols:
             table.add_row("Symbols", ", ".join(symbols))
         for key, label, fmt in _PERF_ROWS:
