@@ -9,11 +9,9 @@ from trading_rl.features.selector import (
     FeatureSelector,
     FeatureSelectorConfig,
     FeatureSelectionResult,
+    _build_multi_horizon_score_table,
     _build_time_series_cv_splits,
     _ensemble_select_features,
-    _build_multi_horizon_score_table,
-    _resolve_price_series,
-    _build_proxy_target,
 )
 
 
@@ -121,7 +119,7 @@ class TestMultiHorizonScoring:
         train_df = sample_ohlcv_data.iloc[:train_size].copy()
         val_df = sample_ohlcv_data.iloc[train_size:train_size + val_size].copy()
 
-        scores, ic_series = _build_multi_horizon_score_table(
+        scores, _ic_series = _build_multi_horizon_score_table(
             train_frame=train_df,
             val_frame=val_df,
             feature_configs=sample_features,
@@ -150,7 +148,7 @@ class TestMultiHorizonScoring:
         train_df = sample_ohlcv_data.iloc[:train_size].copy()
         val_df = sample_ohlcv_data.iloc[train_size:train_size + val_size].copy()
 
-        scores, ic_series = _build_multi_horizon_score_table(
+        scores, _ic_series = _build_multi_horizon_score_table(
             train_frame=train_df,
             val_frame=val_df,
             feature_configs=sample_features,
