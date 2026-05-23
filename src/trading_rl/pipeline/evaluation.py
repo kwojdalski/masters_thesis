@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import torch
 
+from logger import log_banner
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.constants import EnvBackend, RewardType, SplitName
@@ -22,11 +23,14 @@ from trading_rl.evaluation import (
     periods_per_year_from_timeframe,
     run_all_statistical_tests,
 )
-from trading_rl.evaluation.benchmark_table import build_bench_out, save_benchmark_table_artifact
+from trading_rl.evaluation.benchmark_table import (
+    build_bench_out,
+    save_benchmark_table_artifact,
+)
 from trading_rl.evaluation.benchmarks import BenchmarkEngine
+from trading_rl.evaluation.returns import extract_tradingenv_return_series
 from trading_rl.pipeline.explainability import run_explainability_analysis
 from trading_rl.profiler import get_profiler
-from logger import log_banner
 
 
 @dataclass(frozen=True)
@@ -183,8 +187,6 @@ def _save_benchmark_table_for_split(
     logger: logging.Logger,
 ) -> None:
     """Build benchmarks and save the benchmark comparison table artifact."""
-    from trading_rl.evaluation.returns import extract_tradingenv_return_series
-
     price_column = getattr(config.env, "price_column", None) or "close"
     periods_per_year = periods_per_year_from_timeframe(
         getattr(config.data, "timeframe", "1d")
@@ -195,8 +197,6 @@ def _save_benchmark_table_for_split(
 
     # Extract strategy simple returns from broker track record (already populated by the
     # rollout inside build_evaluation_report_for_trainer — no extra rollout needed).
-    from trading_rl.evaluation.returns import extract_tradingenv_return_series
-
     return_series = extract_tradingenv_return_series(split_ctx.env, split_ctx.max_steps)
     if return_series is None:
         logger.warning("benchmark table: no strategy returns available for split=%s", split)
@@ -247,6 +247,17 @@ def evaluate_split(
 
     with profiler.stage(f"eval_env_build_{split}"):
         split_ctx = build_evaluation_context_for_split(split=split, df=split_df, config=config)
+
+    try:
+        with profiler.stage(f"eval_observation_sample_{split}"):
+            sample_path = MLflowTrainingCallback.save_observation_sample_artifact(
+                split=split,
+                df=split_ctx.df,
+                output_dir=Path(config.logging.log_dir) / "evaluation_data",
+            )
+            logger.info("observation sample saved split=%s path=%s", split, sample_path)
+    except Exception as sample_error:
+        logger.warning("observation sample artifact failed split=%s err=%s", split, sample_error)
 
     with profiler.stage(f"eval_rollout_{split}"):
         (

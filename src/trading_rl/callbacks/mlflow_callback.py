@@ -13,8 +13,6 @@ import mlflow
 import numpy as np
 import torch
 
-from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
-
 from trading_rl.callbacks.artifacts import (
     log_config_artifact,
     log_evaluation_plots,
@@ -26,7 +24,9 @@ from trading_rl.callbacks.artifacts import (
     log_statistical_tests,
     log_training_parameters,
     log_transformed_data_overview,
+    save_observation_sample_artifact,
 )
+from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 
 _POSITION_CHANGE_TOLERANCE = 0.1
 _POSITION_CHANGE_WINDOW = 100
@@ -58,6 +58,7 @@ class MLflowTrainingCallback:
     log_parameter_faq_artifact = staticmethod(log_parameter_faq_artifact)
     log_statistical_tests = staticmethod(log_statistical_tests)
     log_training_parameters = staticmethod(log_training_parameters)
+    save_observation_sample_artifact = staticmethod(save_observation_sample_artifact)
 
     def __init__(
         self,

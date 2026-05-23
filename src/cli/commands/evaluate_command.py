@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from rich.table import Table
 
+from trading_rl.callbacks.artifacts import save_observation_sample_artifact
 from trading_rl.evaluation.benchmark_table import save_benchmark_table_artifact
 
 from .base_command import BaseCommand
@@ -160,6 +161,12 @@ class EvaluateCommand(BaseCommand):
                     df=split_df,
                     config=config,
                 )
+                sample_path = save_observation_sample_artifact(
+                    split=split,
+                    df=split_ctx.df,
+                    output_dir=params.output_dir / "evaluation_data",
+                )
+                self.console.print(f"[dim]  Observation sample parquet → {sample_path}[/dim]")
                 self.console.print(f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]")
                 eval_config = EvaluationConfig(
                     reward_type=reward_type,
@@ -172,7 +179,7 @@ class EvaluateCommand(BaseCommand):
                 )
 
                 evaluator = StrategyEvaluator(
-                    env_factory=lambda df, cfg: split_ctx.env,
+                    env_factory=lambda df, cfg, env=split_ctx.env: env,
                     policy=policy,
                     config=eval_config,
                 )
@@ -303,7 +310,9 @@ class EvaluateCommand(BaseCommand):
         same file are cheap after the first run.
         """
         import hashlib
+
         import pandas as pd
+
         from trading_rl.constants import EnvBackend, EnvMode
         from trading_rl.data.hft import (
             _deduplicate_hft_index_single,

@@ -146,6 +146,28 @@ def log_training_parameters(config) -> None:
         get_project_logger(__name__).warning(f"Failed to log some training parameters: {e}")
 
 
+def save_observation_sample_artifact(
+    *,
+    split: str,
+    df: pd.DataFrame,
+    output_dir: str | Path,
+    max_rows: int = 5000,
+    artifact_path_prefix: str = "evaluation_data",
+) -> Path:
+    """Save and optionally log the first rows used for split evaluation."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    safe_split = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in split)
+    n_rows = min(max_rows, len(df))
+    out_path = output_dir / f"{safe_split}_observations_head_{n_rows}.parquet"
+    df.head(max_rows).to_parquet(out_path)
+
+    if mlflow.active_run() is not None:
+        mlflow.log_artifact(str(out_path), artifact_path_prefix)
+
+    return out_path
+
+
 def log_parameter_faq_artifact() -> None:
     """Log parameter FAQ as both markdown and HTML artifacts."""
     logger = get_project_logger(__name__)
@@ -412,9 +434,18 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
         return
 
     try:
-        import numpy as np
         import tempfile
-        from plotnine import aes, element_text, geom_point, geom_smooth, ggplot, labs, theme
+
+        import numpy as np
+        from plotnine import (
+            aes,
+            element_text,
+            geom_point,
+            geom_smooth,
+            ggplot,
+            labs,
+            theme,
+        )
 
         prices = df[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -480,7 +511,16 @@ def _log_oracle_vs_reward_alignment(
         return
 
     try:
-        from plotnine import aes, annotate, element_text, geom_point, geom_smooth, ggplot, labs, theme
+        from plotnine import (
+            aes,
+            annotate,
+            element_text,
+            geom_point,
+            geom_smooth,
+            ggplot,
+            labs,
+            theme,
+        )
 
         prices = df[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):

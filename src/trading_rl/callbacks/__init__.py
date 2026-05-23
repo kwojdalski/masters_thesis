@@ -11,6 +11,7 @@ from trading_rl.callbacks.artifacts import (
     log_statistical_tests,
     log_training_parameters,
     log_transformed_data_overview,
+    save_observation_sample_artifact,
 )
 from trading_rl.callbacks.mlflow_callback import MLflowTrainingCallback
 
@@ -26,4 +27,5 @@ __all__ = [
     "log_statistical_tests",
     "log_training_parameters",
     "log_transformed_data_overview",
+    "save_observation_sample_artifact",
 ]
