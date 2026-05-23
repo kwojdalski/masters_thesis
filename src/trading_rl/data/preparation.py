@@ -322,28 +322,34 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
             if memmap_marker.exists():
                 cached_data = _np.load(memmap_marker, mmap_mode="r")
                 cached_cols = _json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
+                symbol_file = memmap_dir / f"{prefix}_symbol.txt"
+                if not symbol_file.exists() and symbol:
+                    symbol_file.write_text(symbol)
                 if cached_data.shape[0] == len(train_df_i) and cached_cols == expected_cols:
                     memmap_entry = {
                         "data_path": str(memmap_marker),
                         "index_path": str(memmap_dir / f"{prefix}_train_index.npy"),
                         "n_rows": cached_data.shape[0],
                         "columns": cached_cols,
+                        "symbol": symbol,
                     }
                 else:
-                    mp = save_symbol_memmap(train_df_i, memmap_dir, prefix)
+                    mp = save_symbol_memmap(train_df_i, memmap_dir, prefix, symbol=symbol)
                     memmap_entry = {
                         "data_path": str(mp.data_path),
                         "index_path": str(mp.index_path),
                         "n_rows": mp.n_rows,
                         "columns": mp.columns,
+                        "symbol": mp.symbol,
                     }
             else:
-                mp = save_symbol_memmap(train_df_i, memmap_dir, prefix)
+                mp = save_symbol_memmap(train_df_i, memmap_dir, prefix, symbol=symbol)
                 memmap_entry = {
                     "data_path": str(mp.data_path),
                     "index_path": str(mp.index_path),
                     "n_rows": mp.n_rows,
                     "columns": mp.columns,
+                    "symbol": mp.symbol,
                 }
         train_results.append((orig_idx, memmap_entry))
         del train_df_i
@@ -509,6 +515,7 @@ def _build_per_day_splits(
                 index_path=Path(entry["index_path"]),
                 n_rows=entry["n_rows"],
                 columns=entry["columns"],
+                symbol=entry.get("symbol", ""),
             ))
 
     # Reconstruct ordered val_tmp list
@@ -622,6 +629,7 @@ def _build_pooled_splits(
         warmup_rows = getattr(config.data, "warmup_rows", 0)
         train_i = _apply_warmup_skip(train_i, warmup_rows, logger, label=Path(data_path).name)
 
+        sym_name = Path(data_path).stem.split("_")[0]
         if memmap_dir:
             memmap_marker = memmap_dir / f"{i}_train_data.npy"
             expected_columns = list(train_i.select_dtypes(include=[np.number]).columns)
@@ -629,6 +637,8 @@ def _build_pooled_splits(
                 prefix = str(i)
                 cols = json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
                 data = np.load(memmap_marker, mmap_mode="r")
+                symbol_file = memmap_dir / f"{prefix}_symbol.txt"
+                cached_symbol = symbol_file.read_text().strip() if symbol_file.exists() else ""
                 if data.shape[0] == len(train_i) and cols == expected_columns:
                     collected_memmap_paths.append(
                         MemmapPaths(
@@ -636,6 +646,7 @@ def _build_pooled_splits(
                             index_path=memmap_dir / f"{prefix}_train_index.npy",
                             n_rows=data.shape[0],
                             columns=cols,
+                            symbol=cached_symbol or sym_name,
                         )
                     )
                 else:
@@ -645,9 +656,9 @@ def _build_pooled_splits(
                         len(train_i),
                         data.shape[0],
                     )
-                    collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=prefix))
+                    collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=prefix, symbol=sym_name))
             else:
-                collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=str(i)))
+                collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=str(i), symbol=sym_name))
 
         sym: dict[str, Path] = {}
         for split, df in [("train", train_i), ("val", val_i), ("test", test_i)]:

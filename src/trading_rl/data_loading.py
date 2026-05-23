@@ -180,12 +180,14 @@ class MemmapPaths:
     index_path: Path  # int64 nanosecond timestamps, shape (n_rows,)
     n_rows: int
     columns: list[str]
+    symbol: str = ""  # human-readable ticker, e.g. "AAPL"; empty for legacy caches
 
 
 def save_symbol_memmap(
     df: pd.DataFrame,
     output_dir: Path,
     prefix: str,
+    symbol: str = "",
 ) -> MemmapPaths:
     """Save a single DataFrame as numpy memmap files for streaming access.
 
@@ -224,9 +226,11 @@ def save_symbol_memmap(
     np.save(index_path, index_ns)
 
     (output_dir / f"{prefix}_columns.json").write_text(json.dumps(columns))
+    if symbol:
+        (output_dir / f"{prefix}_symbol.txt").write_text(symbol)
 
-    logger.info("save memmap prefix=%s dir=%s n_rows=%d", prefix, output_dir, len(df))
-    return MemmapPaths(data_path=data_path, index_path=index_path, n_rows=len(df), columns=columns)
+    logger.info("save memmap prefix=%s symbol=%s dir=%s n_rows=%d", prefix, symbol or "?", output_dir, len(df))
+    return MemmapPaths(data_path=data_path, index_path=index_path, n_rows=len(df), columns=columns, symbol=symbol)
 
 
 def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
@@ -252,12 +256,15 @@ def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
             continue
         data = np.load(data_file, mmap_mode="r")
         columns = json.loads(cols_file.read_text())
+        symbol_file = output_dir / f"{prefix}_symbol.txt"
+        symbol = symbol_file.read_text().strip() if symbol_file.exists() else ""
         results.append(
             MemmapPaths(
                 data_path=data_file,
                 index_path=index_file,
                 n_rows=data.shape[0],
                 columns=columns,
+                symbol=symbol,
             )
         )
 
