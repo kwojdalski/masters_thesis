@@ -54,7 +54,7 @@ class EvaluationConfig:
     for evaluating a policy on price data.
     """
 
-    reward_type: str = "log_return"
+    reward_type: str = RewardType.LOG_RETURN
     backend: str = EnvBackend.TRADINGENV
     max_steps: int | None = None  # Resolve from DF if None
     price_column: str = "close"

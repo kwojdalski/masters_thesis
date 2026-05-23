@@ -85,7 +85,7 @@ def build_evaluation_report_for_trainer(
             with set_exploration_type(InteractionType.DETERMINISTIC):
                 rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
 
-    reward_type = getattr(getattr(config, "env", None), "reward_type", "log_return")
+    reward_type = getattr(getattr(config, "env", None), "reward_type", RewardType.LOG_RETURN)
     backend = getattr(getattr(config, "env", None), "backend", None)
     benchmark_price_column = getattr(
         getattr(config, "env", None), "price_column", None

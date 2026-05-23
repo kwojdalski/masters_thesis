@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from trading_rl.constants import RewardType
 from trading_rl.evaluation.returns import (
     ReturnSeries,
     RewardSeries,
@@ -185,7 +186,7 @@ def compute_random_baseline_returns(
     max_steps: int,
     n_trials: int = 100,
     seed: int | None = None,
-    reward_type: str = "log_return",
+    reward_type: str = RewardType.LOG_RETURN,
 ) -> list[np.ndarray]:
     """Generate random action baseline returns via Monte Carlo sampling."""
     import signal
@@ -194,7 +195,6 @@ def compute_random_baseline_returns(
     from tensordict.nn import InteractionType
     from torchrl.envs.utils import set_exploration_type
 
-    from trading_rl.constants import RewardType
     use_nlv = reward_type != RewardType.LOG_RETURN
 
     if seed is not None:

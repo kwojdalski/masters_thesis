@@ -27,6 +27,7 @@ from trading_rl.callbacks.artifacts import (
     save_observation_sample_artifact,
 )
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+from trading_rl.constants import RewardType
 
 _POSITION_CHANGE_TOLERANCE = 0.1
 _POSITION_CHANGE_WINDOW = 100
@@ -69,7 +70,7 @@ class MLflowTrainingCallback:
         price_series=None,
         start_run: bool = True,
         initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
-        reward_type: str = "log_return",
+        reward_type: str = RewardType.LOG_RETURN,
         config_for_run_name: Any | None = None,
     ):
         self.step_count = 0

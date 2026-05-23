@@ -262,7 +262,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         # Extract environment parameters from config if available
         initial_cash = DEFAULT_INITIAL_PORTFOLIO_VALUE
         fee = 0.0
-        reward_type = "log_return"
+        reward_type = RewardType.LOG_RETURN
         reward_eta = 0.01
         reward_scale = 1.0
         if config is not None:
@@ -270,7 +270,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             if env_config is not None:
                 initial_cash = getattr(env_config, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)
                 fee = getattr(env_config, "trading_fees", 0.0)
-                reward_type = getattr(env_config, "reward_type", "log_return")
+                reward_type = getattr(env_config, "reward_type", RewardType.LOG_RETURN)
                 reward_eta = getattr(env_config, "reward_eta", 0.01)
                 reward_scale = getattr(env_config, "reward_scale", 1.0)
 
@@ -395,7 +395,7 @@ class StreamingTradingEnvXY(gym.Env):
         price_column: str,
         initial_cash: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
         fee: float = 0.0,
-        reward_type: str = "log_return",
+        reward_type: str = RewardType.LOG_RETURN,
         reward_eta: float = 0.01,
         reward_scale: float = 1.0,
         runtime_feature_columns: list[str] | None = None,

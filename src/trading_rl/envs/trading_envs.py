@@ -223,7 +223,7 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
 
         # Apply DSR wrapper if configured
         if self.config is not None:
-            reward_type = getattr(self.config.env, "reward_type", "log_return")
+            reward_type = getattr(self.config.env, "reward_type", RewardType.LOG_RETURN)
             if reward_type == RewardType.DIFFERENTIAL_SHARPE:
                 from trading_rl.rewards.dsr_wrapper import (
                     DifferentialSharpeRatioAnyTrading,
@@ -236,7 +236,7 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
                 logger.info(
                     f"Applied DSR reward to forex-v0 environment (eta={reward_eta})"
                 )
-            elif reward_type != "log_return":
+            elif reward_type != RewardType.LOG_RETURN:
                 raise ValueError(
                     f"Unknown reward type: {reward_type}. "
                     "Supported types: 'log_return', 'differential_sharpe'"
@@ -275,7 +275,7 @@ class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
 
         # Apply DSR wrapper if configured
         if self.config is not None:
-            reward_type = getattr(self.config.env, "reward_type", "log_return")
+            reward_type = getattr(self.config.env, "reward_type", RewardType.LOG_RETURN)
             if reward_type == RewardType.DIFFERENTIAL_SHARPE:
                 from trading_rl.rewards.dsr_wrapper import (
                     DifferentialSharpeRatioAnyTrading,
@@ -286,7 +286,7 @@ class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
                 dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta)
                 base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
                 logger.info("apply dsr reward to stocks-v0 environment eta=%s", reward_eta)
-            elif reward_type != "log_return":
+            elif reward_type != RewardType.LOG_RETURN:
                 raise ValueError(
                     f"Unknown reward type: {reward_type}. "
                     "Supported types: 'log_return', 'differential_sharpe'"

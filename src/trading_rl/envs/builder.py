@@ -11,7 +11,7 @@ from torchrl.envs import GymWrapper, TransformedEnv
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
-from trading_rl.constants import Algorithm, EnvBackend
+from trading_rl.constants import Algorithm, EnvBackend, RewardType
 from trading_rl.data_loading import MemmapPaths, load_memmap_paths
 from trading_rl.envs.trading_envs import Backend, create_environment as build_backend_env
 
@@ -189,7 +189,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         price_column = getattr(config.env, "price_column", None) or "close"
         initial_cash = getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)
         fee = getattr(config.env, "trading_fees", 0.0)
-        reward_type = getattr(config.env, "reward_type", "log_return")
+        reward_type = getattr(config.env, "reward_type", RewardType.LOG_RETURN)
         reward_eta = getattr(config.env, "reward_eta", 0.01)
         reward_scale = getattr(config.env, "reward_scale", 1.0)
         include_position = getattr(config.env, "include_position_feature", False)

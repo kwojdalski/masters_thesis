@@ -12,7 +12,7 @@ Usage::
     evaluator = StrategyEvaluator(
         env_factory=my_env_factory,
         policy=policy,
-        config=EvaluationConfig(reward_type="log_return", max_steps=500),
+        config=EvaluationConfig(reward_type=RewardType.LOG_RETURN, max_steps=500),
     )
     result = evaluator.evaluate_split("test", test_df)
 """

@@ -300,7 +300,7 @@ class BaseTrainer(ABC):
         episode_reward = data["next", "reward"].sum().item()
         # Reset portfolio value to starting amount at the beginning of each episode
         initial_val = getattr(callback, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)
-        reward_type = getattr(callback, "reward_type", "log_return")
+        reward_type = getattr(callback, "reward_type", RewardType.LOG_RETURN)
 
         # Determine actual portfolio valuation based on reward type
         episode_steps: int | None = None
@@ -495,7 +495,7 @@ class BaseTrainer(ABC):
         eval_config_kwargs = {}
         if config:
             eval_config_kwargs = {
-                "reward_type": getattr(config.env, "reward_type", "log_return"),
+                "reward_type": getattr(config.env, "reward_type", RewardType.LOG_RETURN),
                 "backend": getattr(config.env, "backend", EnvBackend.TRADINGENV),
                 "price_column": getattr(config.env, "price_column", None),
                 "max_steps": max_steps,
