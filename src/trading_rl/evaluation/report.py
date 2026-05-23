@@ -170,8 +170,8 @@ def build_evaluation_report_for_trainer(
     is_portfolio = backend == EnvBackend.TRADINGENV
     actions = _extract_action_array(rollout, is_portfolio=is_portfolio)
     timeframe = getattr(getattr(config, "data", None), "timeframe", "1d")
-    periods_per_year = periods_per_year_from_timeframe(timeframe)
-    logger.debug("periods_per_year from timeframe '%s': %d", timeframe, periods_per_year)
+    periods_per_year = _periods_per_year_from_index(df_prices) or periods_per_year_from_timeframe(timeframe)
+    logger.debug("periods_per_year=%d (timeframe='%s', index-derived=%s)", periods_per_year, timeframe, _periods_per_year_from_index(df_prices) is not None)
 
     return build_metric_report(
         strategy_simple_returns=strategy_simple_returns,

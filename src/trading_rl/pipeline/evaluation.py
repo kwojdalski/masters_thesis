@@ -23,6 +23,7 @@ from trading_rl.evaluation import (
     periods_per_year_from_timeframe,
     run_all_statistical_tests,
 )
+from trading_rl.evaluation.report import _periods_per_year_from_index
 from trading_rl.evaluation.benchmark_table import (
     build_bench_out,
     save_benchmark_table_artifact,
@@ -156,7 +157,7 @@ def run_statistical_tests_for_split(
                 reward_type=config.env.reward_type,
             )
 
-        periods_per_year = periods_per_year_from_timeframe(
+        periods_per_year = _periods_per_year_from_index(split_ctx.df) or periods_per_year_from_timeframe(
             getattr(config.data, "timeframe", "1d")
         )
         statistical_test_results = run_all_statistical_tests(
@@ -188,7 +189,7 @@ def _save_benchmark_table_for_split(
 ) -> None:
     """Build benchmarks and save the benchmark comparison table artifact."""
     price_column = getattr(config.env, "price_column", None) or "close"
-    periods_per_year = periods_per_year_from_timeframe(
+    periods_per_year = _periods_per_year_from_index(split_ctx.df) or periods_per_year_from_timeframe(
         getattr(config.data, "timeframe", "1d")
     )
     benchmarks, _ = BenchmarkEngine.build(split_ctx.df, config.benchmarks, price_column)
