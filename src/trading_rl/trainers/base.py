@@ -194,21 +194,22 @@ class BaseTrainer(ABC):
         """Algorithm-specific exploration metric."""
         return 0.0
 
-    def _get_last_episode_final_nlv(self) -> float | None:
-        """Return the final NLV of the most recently completed training episode.
+    def _get_last_episode_final_nlv(self) -> tuple[float | None, int | None]:
+        """Return (final_nlv, n_steps) of the most recently completed training episode.
 
-        Traverses the env stack looking for _last_episode_final_nlv, which
-        StreamingTradingEnvXY snapshots on every reset() before replacing the
-        inner env.  Returns None if not found (e.g. non-streaming envs).
+        Traverses the env stack looking for _last_episode_final_nlv and
+        _last_episode_steps, which StreamingTradingEnvXY snapshots on every
+        reset() before replacing the inner env.  Returns (None, None) if not
+        found (e.g. non-streaming envs).
         """
         obj = self.env
         for _ in range(10):
             if hasattr(obj, "_last_episode_final_nlv"):
-                return obj._last_episode_final_nlv
+                return obj._last_episode_final_nlv, getattr(obj, "_last_episode_steps", None)
             obj = getattr(obj, "_env", None) or getattr(obj, "env", None)
             if obj is None:
                 break
-        return None
+        return None, None
 
     def create_action_probabilities_plot(
         self, max_steps: int, df: Any = None, config: Any = None
@@ -292,6 +293,7 @@ class BaseTrainer(ABC):
         reward_type = getattr(callback, "reward_type", "log_return")
 
         # Determine actual portfolio valuation based on reward type
+        episode_steps: int | None = None
         if reward_type == RewardType.LOG_RETURN:
             # For log_return, reward matches portfolio growth
             portfolio_valuation = initial_val * np.exp(episode_reward)
@@ -299,10 +301,11 @@ class BaseTrainer(ABC):
             # For DSR the RL reward is a shaped signal, not a return.
             # Read the final NLV snapshotted on the last reset() — this is the
             # completed episode's value, not the partial new episode's broker.
-            final_nlv = self._get_last_episode_final_nlv()
+            final_nlv, episode_steps = self._get_last_episode_final_nlv()
             if final_nlv is not None:
                 portfolio_valuation = final_nlv
             else:
+                episode_steps = None
                 # Fallback: live broker (acceptable on the very first episode
                 # before any reset has occurred).
                 from trading_rl.evaluation.returns import extract_tradingenv_return_series
@@ -347,9 +350,10 @@ class BaseTrainer(ABC):
         # Use initial_val from callback and portfolio_valuation calculated above
         portfolio_return = 100 * (portfolio_valuation / initial_val - 1)
 
+        steps_label = f" nlv_steps={episode_steps}" if episode_steps is not None else f" batch_steps={data.numel()}"
         logger.info(
-            "n_episode=%d portfolio_return_pct=%.2f portfolio_value=%.2f",
-            callback._episode_count, portfolio_return, portfolio_valuation,
+            "n_episode=%d portfolio_return_pct=%.2f portfolio_value=%.2f%s",
+            callback._episode_count, portfolio_return, portfolio_valuation, steps_label,
         )
 
     def _log_sample_transitions(self, data: Any, n: int = 3) -> None:

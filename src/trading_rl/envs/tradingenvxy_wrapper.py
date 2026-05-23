@@ -429,6 +429,7 @@ class StreamingTradingEnvXY(gym.Env):
         # before reset() replaces _inner_env.  Used by _log_episode_stats to
         # report per-episode portfolio value without reading a partial broker.
         self._last_episode_final_nlv: float | None = None
+        self._last_episode_steps: int | None = None
 
         # Persistent DSR object so A_t/B_t survive across episode boundaries.
         # Only _prev_nlv is cleared on reset (new episode = new NLV reference).
@@ -516,6 +517,7 @@ class StreamingTradingEnvXY(gym.Env):
                 last_record = broker.track_record[-1]
                 if hasattr(last_record, "context_post") and hasattr(last_record.context_post, "nlv"):
                     self._last_episode_final_nlv = float(last_record.context_post.nlv)
+                    self._last_episode_steps = len(broker.track_record)
         # Clear only _prev_nlv so the new episode's first step is handled
         # correctly, while A_t/B_t carry over from the previous episode.
         if self._persistent_dsr is not None:
