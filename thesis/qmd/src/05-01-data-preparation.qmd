@@ -348,6 +348,7 @@ continuous-control RL on financial microstructure data.
 import subprocess
 from pathlib import Path
 import pandas as pd
+from IPython.display import HTML
 
 _repo_root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
 _PEEK_DIR = _repo_root / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
@@ -374,10 +375,7 @@ if _feat_path.exists():
         "nulls": "Nulls",
     })
 
-    try:
-        display(feat_df.style.hide(axis="index"))
-    except AttributeError:
-        display(feat_df)
+    display(HTML(feat_df.to_html(index=False)))
 else:
     print("feature_stats.csv not found — run: uv run python src/cli.py peek "
           "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
