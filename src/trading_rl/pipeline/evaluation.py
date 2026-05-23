@@ -287,6 +287,8 @@ def evaluate_split(
         logger.warning("observation sample artifact failed split=%s err=%s", split, sample_error)
 
     with profiler.stage(f"eval_rollout_{split}"):
+        if hasattr(trainer, "_last_evaluation_result"):
+            trainer._last_evaluation_result = None
         (
             reward_plot,
             action_plot,
