@@ -408,7 +408,7 @@ def _build_per_day_splits(
     from collections import defaultdict
 
     feature_config = getattr(config.data, "feature_config", None)
-    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+    mode = getattr(config.env, "mode", EnvMode.MFT)
     backend = str(getattr(config.env, "backend", "")).lower().strip()
     filter_lob_levels = getattr(config.data, "filter_lob_levels", None)
     warmup_rows = getattr(config.data, "warmup_rows", 0)

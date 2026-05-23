@@ -110,7 +110,7 @@ def ensure_close_column_for_hft(
     logger: logging.Logger,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Ensure raw `close` exists in HFT mode by deriving mid-price from L1 book."""
-    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+    mode = getattr(config.env, "mode", EnvMode.MFT)
     if mode != EnvMode.HFT:
         return train_df, val_df, test_df
     return (
@@ -128,7 +128,7 @@ def ensure_unique_index_for_hft_tradingenv(
     logger: logging.Logger,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Ensure unique, monotonic timestamps for HFT data used with TradingEnv."""
-    mode = str(getattr(config.env, "mode", "mft")).lower().strip()
+    mode = getattr(config.env, "mode", EnvMode.MFT)
     backend = str(getattr(config.env, "backend", "")).lower().strip()
     if mode != EnvMode.HFT or backend != EnvBackend.TRADINGENV:
         return train_df, val_df, test_df

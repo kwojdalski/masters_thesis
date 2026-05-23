@@ -21,7 +21,7 @@ import pandas as pd
 import torch
 
 from logger import get_logger
-from trading_rl.constants import EnvBackend, RewardType
+from trading_rl.constants import EnvBackend, EnvMode, RewardType
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.plots import compare_rollouts
 from trading_rl.evaluation.returns import (
@@ -39,7 +39,7 @@ class EnvConfig:
 
     name: str = ""  # Environment name
     positions: list[int] | None = None  # Will use TradePosition default if None
-    mode: str = "mft"  # Feature regime mode
+    mode: EnvMode = EnvMode.MFT
     trading_fees: float = 0.0
     borrow_interest_rate: float = 0.0
     initial_portfolio_value: float = 10000.0

@@ -20,7 +20,7 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 from logger import get_logger, log_banner
 from trading_rl.profiler import get_profiler
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
-from trading_rl.constants import EnvBackend, RewardType
+from trading_rl.constants import EnvBackend, EnvMode, RewardType
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.trainers.checkpointing import CheckpointManager
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
@@ -323,12 +323,19 @@ class BaseTrainer(ABC):
                 if actual_returns is not None and actual_returns.values.size > 0:
                     portfolio_valuation = float(actual_returns.values[-1])
                 else:
-                    logger.warning("failed to extract actual returns for dsr, falling back to reward sum")
-                    portfolio_valuation = initial_val * np.exp(episode_reward)
+                    logger.warning(
+                        "failed to extract actual returns for dsr; "
+                        "portfolio_valuation logged as initial capital (not a return)"
+                    )
+                    portfolio_valuation = initial_val
         else:
-            # Fallback for any other custom reward types
-            logger.debug("unrecognized reward_type=%s assuming log-return for valuation", reward_type)
-            portfolio_valuation = initial_val * np.exp(episode_reward)
+            # For any reward type that is neither LOG_RETURN nor DIFFERENTIAL_SHARPE,
+            # episode_reward is a shaped signal and must not be treated as a log return.
+            logger.debug(
+                "unrecognized reward_type=%s; portfolio_valuation logged as initial capital",
+                reward_type,
+            )
+            portfolio_valuation = initial_val
 
         callback._portfolio_value = portfolio_valuation
         actions_tensor = data.get("action")
@@ -515,7 +522,7 @@ class BaseTrainer(ABC):
             eval_config_kwargs["env"] = EnvConfig(
                 name=getattr(config.env, "name", ""),
                 positions=getattr(config.env, "positions", None),
-                mode=getattr(config.env, "mode", "mft"),
+                mode=getattr(config.env, "mode", EnvMode.MFT),
                 trading_fees=getattr(config.env, "trading_fees", 0.0),
                 borrow_interest_rate=getattr(config.env, "borrow_interest_rate", 0.0),
                 initial_portfolio_value=getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE),
