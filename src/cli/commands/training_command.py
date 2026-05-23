@@ -319,6 +319,7 @@ class TrainingCommand(BaseCommand):
             ("sortino_ratio", "Sortino Ratio", ".3f"),
             ("max_drawdown", "Max Drawdown", ".2%"),
             ("win_rate", "Win Rate", ".2%"),
+            ("lose_rate", "Lose Rate", ".2%"),
             ("profit_factor", "Profit Factor", ".3f"),
             ("pct_long", "% Long", ".2%"),
             ("pct_short", "% Short", ".2%"),
@@ -357,6 +358,7 @@ class TrainingCommand(BaseCommand):
             "[cyan]Sortino Ratio[/cyan]      Like Sharpe but penalises only downside deviation.",
             "[cyan]Max Drawdown[/cyan]       Largest peak-to-trough decline in portfolio value.",
             "[cyan]Win Rate[/cyan]           Fraction of steps where the portfolio return was positive.",
+            "[cyan]Lose Rate[/cyan]          Fraction of steps where the portfolio return was negative.",
             "[cyan]Profit Factor[/cyan]      Gross profit divided by gross loss (> 1 means net profitable).",
         ]
         self.console.print()
