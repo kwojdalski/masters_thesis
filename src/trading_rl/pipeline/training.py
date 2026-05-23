@@ -25,6 +25,7 @@ from trading_rl.data_utils import PreparedDataset, build_prepared_dataset
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.envs.trading_envs import EnvBackend
 from trading_rl.trainers.ppo import PPOTrainerContinuous
+from trading_rl.trainers.random_trainer import RandomTrainer
 from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
 
 
@@ -108,6 +109,8 @@ def _select_trainer_class(algorithm: str, backend: str):
         return TD3Trainer
     if algorithm_upper == Algorithm.DDPG:
         return DDPGTrainer
+    if algorithm_upper == Algorithm.RANDOM:
+        return RandomTrainer
     raise ValueError(f"Unsupported algorithm: {algorithm}")
 
 

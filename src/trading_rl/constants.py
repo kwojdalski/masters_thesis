@@ -16,6 +16,7 @@ class Algorithm(StrEnum):
     PPO = "PPO"
     TD3 = "TD3"
     DDPG = "DDPG"
+    RANDOM = "RANDOM"
 
 
 class RewardType(StrEnum):
