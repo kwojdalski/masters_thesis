@@ -27,10 +27,7 @@ from thesis_mlflow_results import (
 
 
 def display_table(frame: pd.DataFrame) -> None:
-    try:
-        display(frame.style.hide(axis="index"))
-    except AttributeError:
-        display(frame)
+    display(HTML(frame.to_html(index=False)))
 
 
 EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected"
@@ -124,7 +121,8 @@ All annualized metrics use **trading-time periods** as the annualization factor 
 <!-- [PLACEHOLDER] -->
 
 ```{python}
-#| label: eval_metadata_snapshot
+#| label: tbl-eval-run-metadata
+#| tbl-cap: "Evaluation run metadata: experiment identifiers, configuration, and final training metrics for the reported run."
 #| echo: false
 
 if finished is not None:
