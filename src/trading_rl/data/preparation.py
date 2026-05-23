@@ -22,7 +22,7 @@ import pandas as pd
 
 from logger import get_logger
 from trading_rl.constants import EnvBackend, EnvMode, SplitName
-from trading_rl.data_loading import MemmapPaths, load_memmap_paths, load_prepared_splits, save_prepared_splits, save_symbol_memmap
+from trading_rl.data_loading import LazyDataFrame, MemmapPaths, load_memmap_paths, load_prepared_splits, save_prepared_splits, save_symbol_memmap
 from trading_rl.data.cache import (
     _feature_cache_key,
     _prepared_cache_compatible,
@@ -389,6 +389,7 @@ def _build_per_day_splits(
     memmap_dir: Path | None,
     symbol_index: int = 0,
     progress_callback: Callable[[str], None] | None = None,
+    prepared_dir: Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
     """Process per-(symbol, day) training files with separate validation files.
 
@@ -556,6 +557,21 @@ def _build_per_day_splits(
     else:
         val_df  = pd.concat([pd.read_parquet(p["val"])  for p in val_tmp])
         test_df = pd.concat([pd.read_parquet(p["test"]) for p in val_tmp])
+
+    # Before cleaning up tmp_dir, persist per-symbol val/test for rotation support
+    if prepared_dir is not None and memmap_dir and val_tmp:
+        prepared_dir.mkdir(parents=True, exist_ok=True)
+        for j, vpath in enumerate(val_paths):
+            sym = _symbol_of(vpath)
+            sym_val  = pd.read_parquet(val_tmp[j]["val"])
+            sym_test = pd.read_parquet(val_tmp[j]["test"])
+            if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
+                sym_val  = _deduplicate_hft_index_single(sym_val,  f"val_{sym}",  logger)
+                sym_test = _deduplicate_hft_index_single(sym_test, f"test_{sym}", logger)
+            sym_val.to_parquet(prepared_dir / f"val_{sym}_prepared.parquet")
+            sym_test.to_parquet(prepared_dir / f"test_{sym}_prepared.parquet")
+            logger.info("save per-symbol val/test sym=%s n_val=%d n_test=%d", sym, len(sym_val), len(sym_test))
+
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
     if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
@@ -591,6 +607,7 @@ def _build_pooled_splits(
     memmap_dir: Path | None,
     symbol_index: int = 0,
     progress_callback: Callable[[str], None] | None = None,
+    prepared_dir: Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
     """Process each symbol independently then concatenate from disk.
 
@@ -609,7 +626,7 @@ def _build_pooled_splits(
     """
     val_data_paths = getattr(config.data, "val_data_paths", None)
     if val_data_paths:
-        return _build_per_day_splits(config, logger, data_paths, list(val_data_paths), memmap_dir, symbol_index, progress_callback)
+        return _build_per_day_splits(config, logger, data_paths, list(val_data_paths), memmap_dir, symbol_index, progress_callback, prepared_dir)
 
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
@@ -755,6 +772,23 @@ def build_prepared_dataset(
         if test_size_cfg is not None:
             test_df = test_df.iloc[:test_size_cfg]
 
+        # Rotation support on cache hit: swap val/test for the correct symbol.
+        _val_paths_cfg = getattr(config.data, "val_data_paths", None)
+        _strategy = getattr(config.data, "eval_symbol_selection", "first")
+        if _val_paths_cfg and _strategy != "first" and memmap_dir and prepared_dir:
+            _syms = [Path(p).parent.name for p in _val_paths_cfg]
+            _per_sym_val = [prepared_dir / f"val_{s}_prepared.parquet" for s in _syms]
+            if all(p.exists() for p in _per_sym_val):
+                _idx = _resolve_symbol_index(_strategy, len(_val_paths_cfg), memmap_dir)
+                _sym = _syms[_idx]
+                _val_ldf  = LazyDataFrame(prepared_dir / f"val_{_sym}_prepared.parquet")
+                _test_ldf = LazyDataFrame(prepared_dir / f"test_{_sym}_prepared.parquet")
+                val_df  = _val_ldf.iloc[:validation_size]  if validation_size  is not None else _val_ldf
+                test_df = _test_ldf.iloc[:test_size_cfg]   if test_size_cfg    is not None else _test_ldf
+                memmap_dir.mkdir(parents=True, exist_ok=True)
+                (memmap_dir / ".eval_symbol_used").write_text(_sym)
+                logger.info("cache-hit rotated val/test sym=%s idx=%d", _sym, _idx)
+
         return _make_dataset(
             train_df, val_df, test_df,
             config, memmap_paths or None,
@@ -777,7 +811,7 @@ def build_prepared_dataset(
             memmap_dir.mkdir(parents=True, exist_ok=True)
             (memmap_dir / ".eval_symbol_used").write_text(_eval_symbol)
         train_df, val_df, test_df, memmap_paths = _build_pooled_splits(
-            config, logger, data_paths, memmap_dir, _symbol_index, progress_callback
+            config, logger, data_paths, memmap_dir, _symbol_index, progress_callback, prepared_dir
         )
     else:
         train_df, val_df, test_df = _build_single_symbol_splits(config, logger)
