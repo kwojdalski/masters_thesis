@@ -331,12 +331,20 @@ class TrainingCommand(BaseCommand):
             SplitName.VAL: "Val",
             SplitName.TEST: "Test",
         }
+        symbols = final_metrics.get("unique_symbols", [])
         perf_tables = []
         for split in SplitName:
-            report = split_results.get(split, {}).get("evaluation_report", {})
+            split_meta = split_results.get(split, {})
+            report = split_meta.get("evaluation_report", {})
             if not report:
                 continue
             t = make_table(f"Performance ({split_label[split]})")
+            date_start = split_meta.get("date_start")
+            date_end = split_meta.get("date_end")
+            if date_start and date_end:
+                t.add_row("Date Range", f"{date_start} – {date_end}")
+            if symbols:
+                t.add_row("Symbols", ", ".join(symbols))
             for key, display_name, fmt in _perf_metrics:
                 if key in report:
                     t.add_row(display_name, f"{report[key]:{fmt}}")

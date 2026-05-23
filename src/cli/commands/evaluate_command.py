@@ -105,6 +105,14 @@ class EvaluateCommand(BaseCommand):
         timeframe = getattr(config.data, "timeframe", "1d")
         _timeframe_ppy = periods_per_year_from_timeframe(timeframe)
 
+        from pathlib import Path as _Path
+        if getattr(config.data, "data_paths", None):
+            _unique_symbols = sorted({_Path(p).parent.name for p in config.data.data_paths})
+        elif getattr(config.data, "symbols", None):
+            _unique_symbols = list(config.data.symbols)
+        else:
+            _unique_symbols = []
+
         if params.data_path is not None:
             if not params.data_path.exists():
                 raise FileNotFoundError(f"--data-path not found: {params.data_path}")
@@ -204,7 +212,7 @@ class EvaluateCommand(BaseCommand):
                 if "metrics" in components and result.metrics:
                     self.console.print("[dim]  Computing metrics...[/dim]")
                     split_output["metrics"] = result.metrics
-                    self._print_metrics_table(split, result.metrics)
+                    self._print_metrics_table(split, result.metrics, split_df=split_df, symbols=_unique_symbols)
                     if mlflow_run_id:
                         from trading_rl.callbacks.artifacts import log_evaluation_report
                         log_evaluation_report(result.metrics, split_prefix=split)
@@ -538,10 +546,20 @@ class EvaluateCommand(BaseCommand):
     # Display helpers
     # ------------------------------------------------------------------
 
-    def _print_metrics_table(self, split: str, metrics: dict[str, float]) -> None:
+    def _print_metrics_table(
+        self,
+        split: str,
+        metrics: dict[str, float],
+        split_df: "pd.DataFrame | None" = None,
+        symbols: list[str] | None = None,
+    ) -> None:
         table = Table(title=f"Metrics ({split})", show_header=True, header_style="bold")
         table.add_column("Metric", style="cyan")
         table.add_column("Value", style="green", justify="right")
+        if split_df is not None and not split_df.empty:
+            table.add_row("Date Range", f"{str(split_df.index[0])[:10]} – {str(split_df.index[-1])[:10]}")
+        if symbols:
+            table.add_row("Symbols", ", ".join(symbols))
         for key, label, fmt in _PERF_ROWS:
             if key in metrics:
                 table.add_row(label, f"{metrics[key]:{fmt}}")

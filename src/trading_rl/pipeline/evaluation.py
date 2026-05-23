@@ -458,6 +458,20 @@ def build_final_metrics(
     else:
         unique_symbols = list(config.data.symbols) if config.data.symbols else []
 
+    split_frames = {
+        SplitName.TRAIN: train_df,
+        SplitName.VAL: val_df,
+        SplitName.TEST: test_df,
+    }
+    enriched_split_results: dict[str, dict[str, Any]] = {}
+    for split, result in split_results.items():
+        df = split_frames.get(split)
+        entry = dict(result)
+        if df is not None and not df.empty:
+            entry["date_start"] = str(df.index[0])[:10]
+            entry["date_end"] = str(df.index[-1])[:10]
+        enriched_split_results[split] = entry
+
     return {
         "final_reward": final_reward,
         "optimizer_steps": len(logs.get("loss_value", [])),
@@ -495,5 +509,5 @@ def build_final_metrics(
         "value_lr": config.training.value_lr,
         "buffer_size": config.training.buffer_size,
         "evaluation_report": evaluation_report,
-        "split_results": split_results,
+        "split_results": enriched_split_results,
     }
