@@ -159,7 +159,7 @@ class TestPipelineSmoke:
                 None,
             )
             trainer.save_checkpoint = (
-                lambda path: Path(path).write_text("stub checkpoint", encoding="utf-8")
+                lambda path, **_kw: Path(path).write_text("stub checkpoint", encoding="utf-8")
             )
             return runtime
 

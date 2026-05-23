@@ -248,11 +248,12 @@ class PPOTrainer(BaseTrainer):
             completion_prefix="PPO Training complete",
         )
 
-    def save_checkpoint(self, path: str) -> None:
+    def save_checkpoint(self, path: str, feature_pipeline_state: dict | None = None) -> None:
         """Save PPO training checkpoint.
 
         Args:
             path: Path to save checkpoint
+            feature_pipeline_state: Optional fitted scaler states keyed by feature output name.
         """
         import mlflow
 
@@ -285,6 +286,7 @@ class PPOTrainer(BaseTrainer):
             "mlflow_tracking_uri": tracking_uri,
             "mlflow_experiment_id": run.info.experiment_id if run else None,
             "mlflow_experiment_name": experiment_name,
+            "feature_pipeline_state": feature_pipeline_state,
         }
         torch.save(checkpoint, path)
         logger.info("save checkpoint path=%s", path)

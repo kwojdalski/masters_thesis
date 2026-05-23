@@ -28,6 +28,33 @@ class PreparedDataset:
     # Per-symbol memmap paths for StreamingTradingEnv. None when memmap_dir is
     # not configured; set by _build_pooled_dataset / build_prepared_dataset.
     memmap_train_paths: list[MemmapPaths] | None = None
+    # Fitted scaler states keyed by feature output name, saved with checkpoints
+    # so evaluation can use training-time normalization statistics.
+    feature_pipeline_state: dict[str, dict[str, float]] | None = None
+
+
+def restore_pipeline_state(pipeline: Any, state: dict[str, dict[str, float]]) -> None:
+    """Restore training-time scaler statistics into a FeaturePipeline.
+
+    The pipeline must already be fitted (or fit on a small init sample) so
+    scaler objects exist before their state is overwritten.
+
+    Args:
+        pipeline: A fitted FeaturePipeline instance.
+        state: Mapping from feature output names to scaler state dicts, as
+            saved by save_checkpoint under "feature_pipeline_state".
+    """
+    restored = 0
+    for feature in pipeline.features:
+        name = feature.get_output_name()
+        feature_state = state.get(name)
+        if feature_state is None:
+            continue
+        scaler = getattr(feature, "scaler", None)
+        if scaler is not None and hasattr(scaler, "load_state_dict"):
+            scaler.load_state_dict(feature_state)
+            restored += 1
+    logger.debug("restore pipeline state restored=%d total=%d", restored, len(pipeline.features))
 
 
 def download_trading_data(

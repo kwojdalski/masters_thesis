@@ -229,7 +229,6 @@ def _metric_keys() -> list[str]:
         "return_skewness",
         "return_kurtosis",
         "win_rate",
-        "hit_rate",
         "lose_rate",
         "profit_factor",
         "payoff_ratio",
