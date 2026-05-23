@@ -50,7 +50,8 @@ def _cache_config(tmp_path: Path, data_path: Path) -> ExperimentConfig:
     )
 
 
-def test_prepared_cache_rejects_stale_memmap_rows(tmp_path: Path) -> None:
+def test_prepared_cache_rejects_insufficient_memmap_rows(tmp_path: Path) -> None:
+    """A memmap with fewer rows than requested must be rejected."""
     data_path = tmp_path / "raw.parquet"
     _priced_frame(12).to_parquet(data_path)
     config = _cache_config(tmp_path, data_path)
@@ -63,9 +64,33 @@ def test_prepared_cache_rejects_stale_memmap_rows(tmp_path: Path) -> None:
         _priced_frame(2),
         prepared_dir,
     )
-    save_symbol_memmap(_priced_frame(10), memmap_dir, prefix="0")
+    save_symbol_memmap(_priced_frame(3), memmap_dir, prefix="0")  # 3 < train_size=5
 
     assert not _prepared_cache_compatible(
+        config,
+        prepared_dir,
+        memmap_dir,
+        logger=logging.getLogger(__name__),
+    )
+
+
+def test_prepared_cache_accepts_larger_memmap_rows(tmp_path: Path) -> None:
+    """A memmap with more rows than requested is valid; caller slices to train_size."""
+    data_path = tmp_path / "raw.parquet"
+    _priced_frame(12).to_parquet(data_path)
+    config = _cache_config(tmp_path, data_path)
+    prepared_dir = Path(config.data.prepared_data_dir)
+    memmap_dir = Path(config.data.memmap_dir)
+
+    save_prepared_splits(
+        _priced_frame(5),
+        _priced_frame(2),
+        _priced_frame(2),
+        prepared_dir,
+    )
+    save_symbol_memmap(_priced_frame(10), memmap_dir, prefix="0")  # 10 >= train_size=5
+
+    assert _prepared_cache_compatible(
         config,
         prepared_dir,
         memmap_dir,

@@ -639,12 +639,12 @@ def _build_pooled_splits(
                 data = np.load(memmap_marker, mmap_mode="r")
                 symbol_file = memmap_dir / f"{prefix}_symbol.txt"
                 cached_symbol = symbol_file.read_text().strip() if symbol_file.exists() else ""
-                if data.shape[0] == len(train_i) and cols == expected_columns:
+                if data.shape[0] >= len(train_i) and cols == expected_columns:
                     collected_memmap_paths.append(
                         MemmapPaths(
                             data_path=memmap_marker,
                             index_path=memmap_dir / f"{prefix}_train_index.npy",
-                            n_rows=data.shape[0],
+                            n_rows=len(train_i),  # cap to requested size
                             columns=cols,
                             symbol=cached_symbol or sym_name,
                         )
@@ -722,8 +722,31 @@ def build_prepared_dataset(
         logger.info("load prepared splits cache_dir=%s", prepared_dir)
         lazy_splits = load_prepared_splits(prepared_dir)
         memmap_paths = load_memmap_paths(memmap_dir) if memmap_dir and memmap_dir.exists() else None
+
+        # In non-per-day mode the cache may have more rows than requested.
+        # Cap n_rows so the streaming env only sees the configured train_size.
+        if memmap_paths and not getattr(config.data, "val_data_paths", None):
+            req = getattr(config.data, "train_size", None)
+            if req is not None:
+                req = int(req)
+                memmap_paths = [
+                    MemmapPaths(mp.data_path, mp.index_path, min(mp.n_rows, req), mp.columns, mp.symbol)
+                    if mp.n_rows > req else mp
+                    for mp in memmap_paths
+                ]
+
+        # Re-apply size slicing: a larger cache must not leak extra rows.
+        val_df = lazy_splits["val"]
+        test_df = lazy_splits["test"]
+        validation_size = getattr(config.data, "validation_size", None)
+        test_size_cfg = getattr(config.data, "test_size", None)
+        if validation_size is not None:
+            val_df = val_df.iloc[:validation_size]
+        if test_size_cfg is not None:
+            test_df = test_df.iloc[:test_size_cfg]
+
         return _make_dataset(
-            lazy_splits["train"], lazy_splits["val"], lazy_splits["test"],
+            lazy_splits["train"], val_df, test_df,
             config, memmap_paths or None,
         )
 
