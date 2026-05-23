@@ -17,6 +17,7 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image
+from IPython.display import HTML
 
 from thesis_mlflow_results import (
     format_benchmark_comparison_table,
@@ -69,7 +70,7 @@ if key_metrics_df is None or key_metrics_df.empty:
 #| label: tbl-key-metrics
 #| tbl-cap: "Trading Strategy Performance Metrics"
 
-key_metrics_df.style.hide(axis="index")
+HTML(key_metrics_df.to_html(index=False))
 ```
 
 The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
@@ -112,7 +113,7 @@ if benchmark_df is None or benchmark_df.empty:
 #| label: tbl-benchmark-comparison
 #| tbl-cap: "Benchmark Strategy Performance Comparison"
 
-benchmark_df.style.hide(axis="index")
+HTML(benchmark_df.to_html(index=False))
 ```
 
 *TR: Total Return. CAGR: Compound Annual Growth Rate. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
