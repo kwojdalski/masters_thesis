@@ -160,6 +160,41 @@ class TestMultiHorizonScoring:
         assert len(scores) > 0
         assert "icir" in scores.columns
 
+    def test_multi_horizon_ic_series_uses_training_split(self):
+        """Returned IC series should use train data, matching single-horizon mode."""
+
+        class SignalPipeline:
+            def transform(self, df):
+                return df[["feature_signal"]]
+
+        train_df = pd.DataFrame(
+            {
+                "close": np.linspace(100.0, 130.0, 30),
+                "feature_signal": np.arange(30, dtype=float),
+            },
+            index=pd.date_range("2024-01-01", periods=30, freq="min"),
+        )
+        val_df = pd.DataFrame(
+            {
+                "close": np.linspace(200.0, 230.0, 30),
+                "feature_signal": np.arange(30, dtype=float)[::-1],
+            },
+            index=pd.date_range("2024-02-01", periods=30, freq="min"),
+        )
+
+        _scores, ic_series = _build_multi_horizon_score_table(
+            train_frame=train_df,
+            val_frame=val_df,
+            feature_pipeline=SignalPipeline(),
+            window_size=None,
+            horizons=[1],
+            horizon_weights=[1.0],
+        )
+
+        first_ic_index = ic_series["feature_signal"].index[0]
+        assert first_ic_index == train_df.index[0]
+        assert first_ic_index != val_df.index[0]
+
 
 class TestEnsembleSelection:
     """Tests for ensemble selection across CV splits."""

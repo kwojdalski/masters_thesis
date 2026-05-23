@@ -662,14 +662,12 @@ def _build_multi_horizon_score_table(
     primary_horizon = horizons[0]
     ic_series_dict = {}
     train_target = _build_proxy_target(train_frame, primary_horizon)
-    val_target = _build_proxy_target(val_frame, primary_horizon)
     train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
-    val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
 
-    target_col = val_aligned.columns[-1]
+    target_col = train_aligned.columns[-1]
     for feat in feature_cols:
         ic_series_dict[feat] = _compute_ic_series(
-            val_aligned[feat], val_aligned[target_col], window_size
+            train_aligned[feat], train_aligned[target_col], window_size
         )
 
     return scores, ic_series_dict
