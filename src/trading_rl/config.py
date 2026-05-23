@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, RewardType, StatisticalTest, TradePosition
+from trading_rl.constants import Algorithm, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, RewardType, SplitName, StatisticalTest, TradePosition
 
 
 @dataclass
@@ -184,7 +184,7 @@ class TrainingConfig:
     eval_fraction: float | None = None  # Fraction of val data to use per eval rollout; overrides eval_steps when set
     log_interval: int = 1000
     temp_eval_interval: int | None = None  # Run temporary evaluation every N steps (None = disabled)
-    temp_eval_splits: list[str] = field(default_factory=lambda: ["train", "val"])  # Which splits to evaluate; options: train, val, test
+    temp_eval_splits: list[SplitName] = field(default_factory=lambda: [SplitName.TRAIN, SplitName.VAL])  # Which splits to evaluate
     temp_eval_max_steps: int = 50000  # Cap rollout length for periodic eval
     max_plot_points: int | None = 50_000  # Cap the number of plotted points per series; None = plot all
     show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
@@ -226,7 +226,7 @@ class ExplainabilityConfig:
 
     enabled: bool = False
     n_steps: int = 500
-    methods: list[str] = field(default_factory=lambda: [ExplainabilityMethod.PERMUTATION, ExplainabilityMethod.INTEGRATED_GRADIENTS])
+    methods: list[ExplainabilityMethod] = field(default_factory=lambda: [ExplainabilityMethod.PERMUTATION, ExplainabilityMethod.INTEGRATED_GRADIENTS])
     temp_explainability_interval: int | None = None  # Run temporary explainability every N steps (None = disabled)
 
 
@@ -267,7 +267,7 @@ class StatisticalTestingConfig:
     research_artifact_subdir: str = "research_artifacts/statistical_tests"
 
     # Statistical tests to perform
-    tests: list[str] = field(default_factory=lambda: [
+    tests: list[StatisticalTest] = field(default_factory=lambda: [
         StatisticalTest.T_TEST,
         StatisticalTest.SHARPE_BOOTSTRAP,
         StatisticalTest.SORTINO_BOOTSTRAP,
