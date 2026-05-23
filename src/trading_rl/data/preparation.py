@@ -562,16 +562,22 @@ def _build_per_day_splits(
         val_df  = _deduplicate_hft_index_single(val_df,  "val_concat",  logger)
         test_df = _deduplicate_hft_index_single(test_df, "test_concat", logger)
 
+    train_size_cfg  = getattr(config.data, "train_size", None)
     validation_size = getattr(config.data, "validation_size", None)
     test_size_cfg   = getattr(config.data, "test_size", None)
+    if train_size_cfg is not None and first_train_df is not None:
+        first_train_df = first_train_df.iloc[:train_size_cfg]
     if validation_size is not None:
         val_df = val_df.iloc[:validation_size]
     if test_size_cfg is not None:
         test_df = test_df.iloc[:test_size_cfg]
 
     logger.info(
-        "per-day splits: n_train_memmaps=%d val=%d test=%d",
-        len(collected_memmap_paths), len(val_df), len(test_df),
+        "per-day splits: n_train_memmaps=%d train_sample=%d val=%d test=%d",
+        len(collected_memmap_paths),
+        len(first_train_df) if first_train_df is not None else 0,
+        len(val_df),
+        len(test_df),
     )
     validate_prepared_data(first_train_df, val_df, test_df, config)
 
@@ -736,17 +742,21 @@ def build_prepared_dataset(
                 ]
 
         # Re-apply size slicing: a larger cache must not leak extra rows.
+        train_df = lazy_splits["train"]
         val_df = lazy_splits["val"]
         test_df = lazy_splits["test"]
+        train_size_cfg = getattr(config.data, "train_size", None)
         validation_size = getattr(config.data, "validation_size", None)
         test_size_cfg = getattr(config.data, "test_size", None)
+        if train_size_cfg is not None:
+            train_df = train_df.iloc[:train_size_cfg]
         if validation_size is not None:
             val_df = val_df.iloc[:validation_size]
         if test_size_cfg is not None:
             test_df = test_df.iloc[:test_size_cfg]
 
         return _make_dataset(
-            lazy_splits["train"], val_df, test_df,
+            train_df, val_df, test_df,
             config, memmap_paths or None,
         )
 
