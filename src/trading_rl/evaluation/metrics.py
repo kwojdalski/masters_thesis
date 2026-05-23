@@ -195,7 +195,6 @@ def build_metric_report(
         "return_skewness": skew,
         "return_kurtosis": kurt,
         "win_rate": hit_rate,
-        "hit_rate": hit_rate,
         "lose_rate": lose_rate,
         "profit_factor": profit_factor,
         "payoff_ratio": payoff_ratio,
