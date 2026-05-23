@@ -20,6 +20,7 @@ from plotnine import (
 )
 
 from logger import get_logger
+from trading_rl.evaluation.thesis_theme import thesis_theme
 
 logger = get_logger(__name__)
 
@@ -63,6 +64,7 @@ def visualize_training(logs: dict, save_path: str | None = None):
         ggplot(loss_df.melt(id_vars=["step"], var_name="Loss Type", value_name="Loss"))
         + geom_line(aes(x="step", y="Loss", color="Loss Type"))
         + facet_wrap("Loss Type", ncol=1, scales="free")
+        + thesis_theme()
     )
 
     if save_path:
@@ -120,12 +122,8 @@ def create_mlflow_comparison_plots(experiment_name: str, results: list):
             x="Trial Number",
             y="Value",
         )
-        + theme(
-            plot_title=element_text(size=16, face="bold"),
-            strip_text=element_text(size=12, face="bold"),
-            axis_title=element_text(size=11),
-            figure_size=(10, 8),
-        )
+        + thesis_theme(figure_size=(10, 8))
+        + theme(strip_text=element_text(size=12, face="bold"))
     )
 
     # Save plot with output suppression

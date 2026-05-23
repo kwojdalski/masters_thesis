@@ -8,7 +8,6 @@ import torch
 import torch.nn.functional as F
 from plotnine import (
     aes,
-    element_text,
     geom_area,
     geom_line,
     geom_ribbon,
@@ -18,6 +17,8 @@ from plotnine import (
     scale_x_continuous,
     theme,
 )
+
+from trading_rl.evaluation.thesis_theme import FIGURE_HEIGHT, FIGURE_WIDTH, thesis_theme
 from tensordict import TensorDict
 from tensordict.nn import InteractionType
 from torch.optim import Adam
@@ -546,11 +547,8 @@ class PPOTrainer(BaseTrainer):
                     },
                 )
                 + scale_x_continuous(expand=(0, 0))
-                + theme(
-                    figure_size=(12, 6),
-                    axis_title=element_text(size=11),
-                    legend_position="right",
-                )
+                + thesis_theme(figure_size=(FIGURE_WIDTH * 2, FIGURE_HEIGHT))
+                + theme(legend_position="right")
             )
 
             return plot
@@ -716,10 +714,7 @@ class PPOTrainerContinuous(PPOTrainer):
                     x="Time Step",
                     y="Action Value",
                 )
-                + theme(
-                    figure_size=(12, 6),
-                    axis_title=element_text(size=11),
-                )
+                + thesis_theme(figure_size=(FIGURE_WIDTH * 2, FIGURE_HEIGHT))
             )
             return plot
 

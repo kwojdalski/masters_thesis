@@ -15,10 +15,9 @@ from plotnine import (
     geom_col,
     ggplot,
     labs,
-    theme_minimal,
-    theme,
-    element_text,
 )
+
+from trading_rl.evaluation.thesis_theme import thesis_theme
 from tensordict import TensorDict
 
 from logger import get_logger
@@ -153,13 +152,7 @@ class RLInterpretabilityAnalyzer:
             + geom_col(fill=color)
             + coord_flip()
             + labs(title=title, x="Feature", y="Importance Score")
-            + theme_minimal()
-            + theme(
-                figure_size=(24, 20),  # 2x taller: was (24, 10), originally (12, 5)
-                plot_title=element_text(size=16, weight="bold"),
-                axis_title=element_text(size=14),
-                axis_text=element_text(size=12)
-            )
+            + thesis_theme(figure_size=(24, 20), base_size=13)
         )
         return plot
 

@@ -293,7 +293,8 @@ def _log_overview_impl(
         return
 
     try:
-        from plotnine import aes, element_text, geom_step, ggplot, labs, theme
+        from plotnine import aes, geom_step, ggplot, labs
+        from trading_rl.evaluation.thesis_theme import thesis_theme
 
         param_prefix = artifact_dir.replace("/", "_")
         mlflow.log_param(f"{param_prefix}_shape", f"{df.shape[0]}x{df.shape[1]}")
@@ -335,7 +336,7 @@ def _log_overview_impl(
                         x="Time Index",
                         y=column.title(),
                     )
-                    + theme(plot_title=element_text(size=14, face="bold"))
+                    + thesis_theme()
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), f"{column}.png")
                 p.save(temp_path, width=16, height=10, dpi=150)
@@ -363,7 +364,7 @@ def _log_overview_impl(
                         y="Price",
                         color="Price Type",
                     )
-                    + theme(plot_title=element_text(size=14, face="bold"))
+                    + thesis_theme()
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), "ohlc_combined.png")
                 p_combined.save(temp_path, width=20, height=10, dpi=150)
@@ -451,13 +452,12 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
         import numpy as np
         from plotnine import (
             aes,
-            element_text,
             geom_point,
             geom_smooth,
             ggplot,
             labs,
-            theme,
         )
+        from trading_rl.evaluation.thesis_theme import thesis_theme
 
         prices = df[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -484,7 +484,7 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
                         x=feat,
                         y="Log Return (t+1)",
                     )
-                    + theme(plot_title=element_text(size=13, face="bold"))
+                    + thesis_theme()
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), f"{feat}_vs_log_return.png")
                 p.save(temp_path, width=12, height=8, dpi=150)
@@ -526,13 +526,12 @@ def _log_oracle_vs_reward_alignment(
         from plotnine import (
             aes,
             annotate,
-            element_text,
             geom_point,
             geom_smooth,
             ggplot,
             labs,
-            theme,
         )
+        from trading_rl.evaluation.thesis_theme import thesis_theme
 
         prices = df[price_col].to_numpy(dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -563,7 +562,7 @@ def _log_oracle_vs_reward_alignment(
                     x=x_label,
                     y="Log Return [t+1]",
                 )
-                + theme(plot_title=element_text(size=12, face="bold"))
+                + thesis_theme()
             )
             temp_path = os.path.join(tempfile.gettempdir(), filename)
             p.save(temp_path, width=12, height=8, dpi=150)
@@ -948,6 +947,7 @@ def log_evaluation_plots(
 
         if logs and (logs.get("loss_value") or logs.get("loss_actor")):
             from plotnine import aes, facet_wrap, geom_line, ggplot, labs
+            from trading_rl.evaluation.thesis_theme import thesis_theme
 
             loss_data = []
             if logs.get("loss_value"):
@@ -967,6 +967,7 @@ def log_evaluation_plots(
                     + geom_line(size=1.2)
                     + facet_wrap("type", ncol=1, scales="free")
                     + labs(title="Training Losses", x="Training Step", y="Loss Value", color="Loss Type")
+                    + thesis_theme()
                 )
                 _save(loss_plot, f"{timestamp}_training_losses.png", None, "training_plots", 16, 10)
 
