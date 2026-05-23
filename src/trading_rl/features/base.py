@@ -9,13 +9,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-
-class FeatureDomain(StrEnum):
-    """Domain tag controlling which experiment modes a feature is eligible for."""
-
-    SHARED = "shared"
-    MFT = "mft"
-    HFT = "hft"
+from trading_rl.constants import EnvMode
 
 
 class NormalizationMethod(StrEnum):
@@ -472,7 +466,7 @@ class FeatureConfig:
     session_break_threshold_hours: float = 1.0  # 1 hour gap = session break
     use_time_weights: bool = False  # Default: event-based
     output_name: str | None = None
-    domain: str = FeatureDomain.SHARED
+    domain: str = EnvMode.SHARED
 
     def __post_init__(self):
         if self.params is None:
@@ -481,10 +475,10 @@ class FeatureConfig:
             self.output_name = f"feature_{self.name}"
         self.domain = str(self.domain).lower().strip()
         self.normalization_method = str(self.normalization_method).lower().strip()
-        if self.domain not in set(FeatureDomain):
+        if self.domain not in set(EnvMode):
             raise ValueError(
                 f"Invalid feature domain '{self.domain}'. "
-                f"Supported values: {sorted(FeatureDomain)}"
+                f"Supported values: {sorted(EnvMode)}"
             )
         if self.normalization_method not in set(NormalizationMethod):
             raise ValueError(

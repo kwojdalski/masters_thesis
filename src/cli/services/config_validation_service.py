@@ -9,7 +9,7 @@ from trading_rl import ExperimentConfig
 from trading_rl.constants import EnvMode, Severity
 from trading_rl.data_utils import load_trading_data
 from trading_rl.features import FeaturePipeline, create_default_pipeline
-from trading_rl.features.base import FeatureDomain
+from trading_rl.constants import EnvMode
 
 
 @dataclass
@@ -252,7 +252,7 @@ def _validate_feature_domains(
         domain = _feature_domain(feature_cfg)
         output_name = _feature_output_name(feature_cfg)
 
-        if domain not in set(FeatureDomain):
+        if domain not in set(EnvMode):
             invalid_domain_features.append(f"{output_name}({domain})")
             continue
         if domain == EnvMode.HFT:

@@ -27,8 +27,12 @@ class RewardType(StrEnum):
 
 
 class EnvMode(StrEnum):
-    """Experiment mode controlling which features are eligible."""
+    """Experiment mode controlling which features are eligible.
 
+    SHARED features are eligible in both MFT and HFT modes.
+    """
+
+    SHARED = "shared"
     MFT = "mft"
     HFT = "hft"
 
