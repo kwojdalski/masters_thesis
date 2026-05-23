@@ -160,6 +160,10 @@ runs_df = runs_overview_table(EXPERIMENT_NAME)
 ## Experiment Snapshot
 <!-- [PLACEHOLDER] -->
 
+\newpage
+
+\begin{landscape}
+
 ```{python}
 #| label: runs_snapshot
 #| echo: false
@@ -173,6 +177,10 @@ else:
             view[col] = view[col].astype(str).str.replace("NaT", "", regex=False)
     display(view)
 ```
+
+\end{landscape}
+
+\newpage
 
 ```{python}
 #| label: active_run_metrics
