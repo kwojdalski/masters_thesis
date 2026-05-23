@@ -263,6 +263,7 @@ def create_actual_returns_plot(
     n_total_symbols: int | None = None,
     policy_mode: str = "deterministic",
     max_plot_points: int | None = None,
+    reward_type: str | None = None,
 ):
     """Create a plot showing actual portfolio returns, not training rewards."""
     if initial_capital is not None:
@@ -320,13 +321,20 @@ def create_actual_returns_plot(
                     initial_portfolio_value,
                     n_obs,
                 )
-            else:
+                _extend_with_stride(run_name, portfolio_values)
+            elif reward_type in (None, "log_return"):
                 rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
                 cumulative_log_returns = np.cumsum(rewards)
-                logger.debug("%s: Using rollout rewards as fallback", run_name)
+                logger.debug("%s: Using rollout rewards as log-return fallback", run_name)
                 portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
-
-            _extend_with_stride(run_name, portfolio_values)
+                _extend_with_stride(run_name, portfolio_values)
+            else:
+                logger.warning(
+                    "%s: Cannot derive portfolio values — reward_type='%s' rewards are not "
+                    "log returns and no broker NLV is available. Skipping series.",
+                    run_name,
+                    reward_type,
+                )
 
     logger.debug("returns_data built n_points=%d elapsed=%.2fs", len(returns_data), time.monotonic() - t0)
 

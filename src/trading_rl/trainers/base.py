@@ -576,6 +576,7 @@ class BaseTrainer(ABC):
                 training_episodes=self.total_episodes,
                 n_total_symbols=_n_total_symbols,
                 max_plot_points=getattr(getattr(config, "training", None), "max_plot_points", None) if config else None,
+                reward_type=str(getattr(config.env, "reward_type", "log_return")) if config else None,
             )
             logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
 
