@@ -69,7 +69,7 @@ if key_metrics_df is None or key_metrics_df.empty:
 #| label: tbl-key-metrics
 #| tbl-cap: "Trading Strategy Performance Metrics"
 
-display_table(key_metrics_df)
+key_metrics_df.style.hide(axis="index")
 ```
 
 The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
@@ -112,7 +112,7 @@ if benchmark_df is None or benchmark_df.empty:
 #| label: tbl-benchmark-comparison
 #| tbl-cap: "Benchmark Strategy Performance Comparison"
 
-display_table(benchmark_df)
+benchmark_df.style.hide(axis="index")
 ```
 
 *TR: Total Return. CAGR: Compound Annual Growth Rate. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
