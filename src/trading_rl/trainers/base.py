@@ -351,9 +351,18 @@ class BaseTrainer(ABC):
         portfolio_return = 100 * (portfolio_valuation / initial_val - 1)
 
         steps_label = f" nlv_steps={episode_steps}" if episode_steps is not None else f" batch_steps={data.numel()}"
+        if actions:
+            arr = np.asarray(actions, dtype=float)
+            n_act = len(arr)
+            long_pct = 100.0 * np.sum(arr > 0) / n_act
+            short_pct = 100.0 * np.sum(arr < 0) / n_act
+            mean_exposure = float(np.mean(np.abs(arr)))
+            position_str = f" long_pct={long_pct:.1f} short_pct={short_pct:.1f} mean_exposure={mean_exposure:.3f}"
+        else:
+            position_str = ""
         logger.info(
-            "n_episode=%d portfolio_return_pct=%.2f portfolio_value=%.2f%s",
-            callback._episode_count, portfolio_return, portfolio_valuation, steps_label,
+            "n_episode=%d portfolio_return_pct=%.2f portfolio_value=%.2f%s%s",
+            callback._episode_count, portfolio_return, portfolio_valuation, steps_label, position_str,
         )
 
     def _log_sample_transitions(self, data: Any, n: int = 3) -> None:
