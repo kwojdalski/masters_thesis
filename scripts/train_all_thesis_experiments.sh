@@ -42,16 +42,14 @@ for ALGO in td3 ddpg ppo; do
 
     echo "Starting $ALGO → $LOG_FILE"
 
-    if [[ -n "$EXTRA_ARGS" ]]; then
-        uv run python "$REPO_ROOT/src/cli.py" train \
-            -c "$SCENARIO" \
-            --config-override "$EXTRA_ARGS" \
-            > "$LOG_FILE" 2>&1 &
-    else
-        uv run python "$REPO_ROOT/src/cli.py" train \
-            -c "$SCENARIO" \
-            > "$LOG_FILE" 2>&1 &
-    fi
+    # Each algo gets its own SQLite file to avoid concurrent write conflicts.
+    DB_OVERRIDE="tracking.tracking_uri=sqlite:///mlflow_${ALGO}.db"
+    FULL_OVERRIDE="${DB_OVERRIDE}${EXTRA_ARGS:+ $EXTRA_ARGS}"
+
+    uv run python "$REPO_ROOT/src/cli.py" train \
+        -c "$SCENARIO" \
+        --config-override "$FULL_OVERRIDE" \
+        > "$LOG_FILE" 2>&1 &
 
     PIDS+=($!)
     echo "  PID: $!"
