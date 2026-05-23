@@ -282,6 +282,7 @@ training days across the six instruments.
 import subprocess
 from pathlib import Path
 import pandas as pd
+from IPython.display import HTML
 
 _repo_root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
 _PEEK_DIR = _repo_root / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
@@ -299,10 +300,7 @@ if _splits_path.exists():
         "last_timestamp": "Last timestamp (UTC)",
     })
     display_df = display_df.drop(columns=["Columns"])
-    try:
-        display(display_df.style.hide(axis="index"))
-    except AttributeError:
-        display(display_df)
+    display(HTML(display_df.to_html(index=False)))
 else:
     print("splits.csv not found — run: uv run python src/cli.py peek "
           "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
