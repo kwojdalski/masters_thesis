@@ -186,7 +186,7 @@ class TrainingConfig:
     temp_eval_interval: int | None = None  # Run temporary evaluation every N steps (None = disabled)
     temp_eval_splits: list[str] = field(default_factory=lambda: ["train", "val"])  # Which splits to evaluate; options: train, val, test
     temp_eval_max_steps: int = 20000  # Cap rollout length for periodic eval
-    max_plot_points: int | None = None  # Cap the number of plotted points per series; None = plot all
+    max_plot_points: int | None = 50_000  # Cap the number of plotted points per series; None = plot all
 
     def resolve_eval_steps(self, val_len: int) -> int:
         """Return the number of eval steps to use given the validation data length.
