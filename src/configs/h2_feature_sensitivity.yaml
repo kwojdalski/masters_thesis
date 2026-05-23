@@ -1,0 +1,33 @@
+# H2 Feature Specification Configuration
+#
+# H2: Extending the state representation from basic snapshot features to a
+# broader microstructure-aware feature set leads to improved out-of-sample
+# performance under identical training and evaluation conditions.
+#
+# Three ordered feature levels, all using the same algorithm (TD3), data,
+# reward function, and transaction cost. Only env.feature_columns differs.
+#
+# Run order (all share the same prepared cache — first run rebuilds it):
+#   uv run python src/cli.py train --scenario pooled/td3_h3_features_minimal
+#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected
+#   uv run python src/cli.py train --scenario pooled/td3_h3_features_full
+#
+# For multi-seed robustness add --seed 42 / 123 / 456 to each command and
+# re-run; the script aggregates results.json files from all seed subdirs.
+
+scenarios:
+  - label: "Minimal (3 features)"
+    log_dir: logs/td3_h3_features_minimal
+    n_features: 3
+    description: "spread_bps, book_pressure_l0, microprice"
+    baseline: false
+  - label: "Selected (10 features)"
+    log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
+    n_features: 10
+    description: "IC-selected microstructure features"
+    baseline: true
+  - label: "Full (33 features)"
+    log_dir: logs/td3_h3_features_full
+    n_features: 33
+    description: "All LOB microstructure features"
+    baseline: false

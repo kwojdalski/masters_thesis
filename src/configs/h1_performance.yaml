@@ -1,0 +1,43 @@
+# H1 Performance vs Benchmarks Configuration
+#
+# H1: A TD3-based trading agent using order-book-derived high-frequency features
+# can achieve stronger out-of-sample risk-adjusted performance than selected
+# benchmark strategies under the assumptions of the simulated environment.
+#
+# List the trained agents to evaluate. Each must have a completed
+# `cli.py evaluate` run that produced results.json in log_dir.
+#
+# Run order:
+#   uv run python src/cli.py evaluate --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected \
+#       --output-dir logs/td3_hft_lob_state_space_pooled_streaming_selected --components metrics benchmarks
+#   (repeat for ddpg / ppo when trained)
+
+agents:
+  - label: "TD3"
+    log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
+    algorithm: TD3
+    primary: true
+  - label: "DDPG"
+    log_dir: logs/ddpg_hft_lob_state_space_pooled_streaming_selected
+    algorithm: DDPG
+    primary: false
+  - label: "PPO"
+    log_dir: logs/ppo_hft_lob_state_space_pooled_streaming
+    algorithm: PPO
+    primary: false
+  - label: "Random"
+    log_dir: logs/random_hft_lob_state_space_pooled_streaming_5k
+    algorithm: RANDOM
+    primary: false
+
+benchmarks:
+  - name: buy_and_hold
+    label: "Buy & Hold"
+  - name: short_and_hold
+    label: "Short & Hold"
+  - name: twap
+    label: "TWAP"
+  - name: vwap
+    label: "VWAP"
+  - name: random
+    label: "Random"
