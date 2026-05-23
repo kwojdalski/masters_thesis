@@ -160,9 +160,10 @@ runs_df = runs_overview_table(EXPERIMENT_NAME)
 ## Experiment Snapshot
 <!-- [PLACEHOLDER] -->
 
+```{=latex}
 \newpage
-
 \begin{landscape}
+```
 
 ```{python}
 #| label: runs_snapshot
@@ -178,7 +179,10 @@ else:
     display(view)
 ```
 
+```{=latex}
 \end{landscape}
+\newpage
+```
 
 \newpage
 
