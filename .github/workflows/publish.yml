@@ -47,27 +47,30 @@ jobs:
         with:
           tinytex: ${{ steps.changes.outputs.qmd_changed == 'true' || github.event.inputs.render_pdf == 'true' }}
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Install LaTeX packages
         if: steps.changes.outputs.qmd_changed == 'true' || github.event.inputs.render_pdf == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-latex-extra texlive-science pdf2svg
 
-      - name: Cache pip packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ hashFiles('.github/workflows/publish.yml') }}
-          restore-keys: pip-${{ runner.os }}-
-
       - name: Install Python dependencies
         run: |
-          pip install pandas numpy matplotlib pillow ipython jupyter scipy scikit-learn jinja2
-          python -m ipykernel install --user --name masters_thesis --display-name "Masters Thesis"
+          uv sync --extra dev
+          uv run python -m ipykernel install --user --name masters_thesis --display-name "Masters Thesis"
 
       - name: Render thesis to HTML
         run: |
-          quarto render thesis/qmd/src/masters-thesis.qmd --to html
+          uv run quarto render thesis/qmd/src/masters-thesis.qmd --to html
           mkdir -p _site
           cp thesis/qmd/src/masters-thesis.html _site/index.html
           cp -r thesis/qmd/src/masters-thesis_files _site/
@@ -81,7 +84,7 @@ jobs:
         if: steps.changes.outputs.qmd_changed == 'true' || github.event.inputs.render_pdf == 'true'
         timeout-minutes: 30
         run: |
-          quarto render thesis/qmd/src/masters-thesis.qmd --to pdf
+          uv run quarto render thesis/qmd/src/masters-thesis.qmd --to pdf
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
           QUARTO_NO_CHROME: "1"
