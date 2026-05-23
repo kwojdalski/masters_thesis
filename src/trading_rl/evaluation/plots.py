@@ -103,6 +103,8 @@ def compare_rollouts(
     df: pd.DataFrame | None = None,
     reward_type: str | None = None,
     max_plot_points: int | None = None,
+    show_allocation_ma: bool = True,
+    allocation_ma_window: int = 500,
 ):
     """Compare multiple rollouts and visualize their actions and rewards."""
     all_actions = []
@@ -223,6 +225,25 @@ def compare_rollouts(
         + thesis_theme()
         + guides(color=guide_legend(title="Strategy"))
     )
+
+    if is_portfolio and show_allocation_ma:
+        ma_rows = []
+        for run_name, grp in df_actions.groupby("Run", sort=False):
+            ma_vals = grp["Actions"].rolling(window=allocation_ma_window, min_periods=1).mean()
+            ma_rows.append(pd.DataFrame({
+                "Steps": grp["Steps"].values,
+                "MA": ma_vals.values,
+                "Run": run_name,
+            }))
+        df_ma = pd.concat(ma_rows, ignore_index=True)
+        action_plot = action_plot + geom_line(
+            data=df_ma,
+            mapping=aes(x="Steps", y="MA", group="Run"),
+            color="black",
+            linetype="dashed",
+            size=0.7,
+            inherit_aes=False,
+        )
 
     return reward_plot, action_plot
 
