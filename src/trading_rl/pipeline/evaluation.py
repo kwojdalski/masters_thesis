@@ -459,16 +459,17 @@ def build_final_metrics(
         unique_symbols = list(config.data.symbols) if config.data.symbols else []
 
     val_data_paths = getattr(config.data, "val_data_paths", None) or []
-    memmap_dir_set = bool(getattr(config.data, "memmap_dir", None))
-    if val_data_paths and memmap_dir_set:
-        # Streaming mode: val/test come from a single representative symbol.
-        # Strategy "first" (the default) always picks index 0.
-        strategy = getattr(config.data, "eval_symbol_selection", "first")
-        if strategy == "first" and val_data_paths:
-            val_test_symbols = [Path(val_data_paths[0]).parent.name]
+    memmap_dir_cfg = getattr(config.data, "memmap_dir", None)
+    if val_data_paths and memmap_dir_cfg:
+        symbol_file = Path(memmap_dir_cfg) / ".eval_symbol_used"
+        if symbol_file.exists():
+            val_test_symbols = [symbol_file.read_text().strip()]
         else:
-            # random/rotated — we don't know which symbol was picked at dataset build time
-            val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
+            strategy = getattr(config.data, "eval_symbol_selection", "first")
+            if strategy == "first":
+                val_test_symbols = [Path(val_data_paths[0]).parent.name]
+            else:
+                val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
     elif val_data_paths:
         val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
     else:

@@ -771,6 +771,11 @@ def build_prepared_dataset(
     if data_paths:
         _strategy = getattr(getattr(config, "data", None), "eval_symbol_selection", "first")
         _symbol_index = _resolve_symbol_index(_strategy, len(data_paths), memmap_dir)
+        _val_paths = getattr(config.data, "val_data_paths", None) or data_paths
+        _eval_symbol = Path(_val_paths[min(_symbol_index, len(_val_paths) - 1)]).parent.name
+        if memmap_dir:
+            memmap_dir.mkdir(parents=True, exist_ok=True)
+            (memmap_dir / ".eval_symbol_used").write_text(_eval_symbol)
         train_df, val_df, test_df, memmap_paths = _build_pooled_splits(
             config, logger, data_paths, memmap_dir, _symbol_index, progress_callback
         )
