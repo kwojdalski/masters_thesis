@@ -22,12 +22,12 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
-  cli_train: "train\nuv run python src/cli.py train\n  --scenario <name>  [--checkpoint-path <ckpt>]\n  [--config-override key=value]" {
+  cli_train: "train\nuv run python src/cli.py train\n  --scenario <name>  [--checkpoint-path <ckpt>]\n  [--config-override key=value]\n  [--trials <n>]  [--from-last-checkpoint]  [--additional-steps <n>]" {
     shape: step
     style.fill: "#e0f2fe"
   }
 
-  cli_evaluate: "evaluate\nuv run python src/cli.py evaluate\n  --scenario <name> | --config <yaml>\n  [--split train|val|test|all]  (default: all)\n  [--data-path <arbitrary.parquet>]\n  [--save-rollout]  → {split}_rollout.parquet" {
+  cli_evaluate: "evaluate\nuv run python src/cli.py evaluate\n  --scenario <name> | --config <yaml>\n  [--split train|val|test|all]  (default: all)\n  [--data-path <arbitrary.parquet>]\n  [--checkpoint <ckpt>]  [--only metrics|benchmarks|plots|stats]\n  [--save-rollout]  [--no-mlflow]\n  → {split}_rollout.parquet" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -42,7 +42,32 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
-  cli_validate_data: "validate data\nuv run python src/cli.py validate data\n  --scenario <name>  [--verbose] [--transpose]\n  checks: NaN · Inf · duplicate index · zero-variance features\n          LOB delta (unchanged order books across levels)" {
+  cli_validate_data: "validate data\nuv run python src/cli.py validate data\n  --scenario <name>  [--verbose] [--transpose]\n  checks: NaN · Inf · duplicate index · zero-variance features\n          LOB delta (unchanged order books across levels)\n          temporal order · index overlap · split-size vs config" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_collect_results: "collect-results\nuv run python src/cli.py collect-results\n  --algorithm <algo> --dir <eval_dir>\n  Merge per-algorithm evaluation results into unified thesis directory" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_checkpoints: "checkpoints\nuv run python src/cli.py checkpoints\n  [--delete <regex>]  [--delete-all]  [--dry-run]\n  List/delete checkpoints by experiment · size · mtime · step" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_experiments: "experiments\nuv run python src/cli.py experiments\n  [--delete <regex>]  [--delete-all]  [--dry-run]\n  List/delete MLflow experiments" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_scenarios: "scenarios\nuv run python src/cli.py scenarios\n  [--delete <regex>]  [--delete-all]  [--dry-run]\n  List/delete scenario configurations" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_artifacts: "artifacts\nuv run python src/cli.py artifacts\n  [--experiment <regex>]  [--run-id <id>]\n  [--delete <regex>]  [--delete-all]  [--dry-run]\n  List/delete MLflow artifacts by experiment · run · prefix" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -55,7 +80,7 @@ acquire: Data Acquisition {
   style.fill: "#dbeafe"
   style.stroke: "#3b82f6"
 
-  source: "DataBento\nMBP-10 (market-by-price, 10 levels)\nus_hours filter (14:30–21:00 UTC)" {
+  source: "DataBento\nMBP-10 (market-by-price, hybrid L2/L3, 10 levels)\nus_hours filter (14:30–21:00 UTC)" {
     shape: step
     style.fill: "#bfdbfe"
   }
@@ -404,7 +429,7 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    ppo_update: "Update  (ppo_epochs=4 passes over fresh batch)\nOn-policy: fresh batch only — no replay buffer\nnormalize_advantage = True\n\nClipPPOLoss:\n  r_t = π(a|s) / π_old(a|s)  (probability ratio)\n  loss_objective = −min(r_t·A_t, clip(r_t, 1±ε)·A_t)  ε=0.2\n  loss_critic    = L2(V(s) − V_target)\n  loss_entropy   = −H[π]  (entropy bonus = 0.01)\n\n  total = loss_objective\n        + vf_coef × loss_critic   (vf_coef = 0.5)\n        + entropy_bonus × loss_entropy" {
+    ppo_update: "Update  (ppo_epochs=4 passes over fresh batch)\nOn-policy: fresh batch only — no replay buffer\nSamplerWithoutReplacement ensures each transition seen exactly once\n  per epoch (RandomSampler default allows duplicates and skips)\nnormalize_advantage = True\n\nClipPPOLoss:\n  r_t = π(a|s) / π_old(a|s)  (probability ratio)\n  loss_objective = −min(r_t·A_t, clip(r_t, 1±ε)·A_t)  ε=0.2\n  loss_critic    = loss_fn(V(s) − V_target)  loss_fn via loss_function config\n                   (LossFunction.L2/L1/SMOOTH_L1/HUBER)\n  loss_entropy   = −H[π]  (entropy bonus = 0.01)\n\n  total = loss_objective\n        + vf_coef × loss_critic   (vf_coef = 0.5)\n        + entropy_bonus × loss_entropy" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -485,7 +510,7 @@ eval: Post-Training Evaluation {
   style.fill: "#f3e8ff"
   style.stroke: "#9333ea"
 
-  rollout: "Deterministic rollout  (no exploration noise)\nfull val split  (eval_fraction = 0.2 of total)\nfull test split (eval_fraction = 0.2 of total)\nactor in deterministic / MODE interaction type" {
+  rollout: "Deterministic rollout  (no exploration noise)\nfull val split  (eval_fraction = 0.2 of total)\nfull test split (eval_fraction = 0.2 of total)\nactor in deterministic / MODE interaction type\nSymbol selection (streaming/memmap mode):\n  EvalSymbolSelection.FIRST   → first symbol from pool\n  EvalSymbolSelection.RANDOM  → random symbol per run\n  EvalSymbolSelection.ROTATED → rotating selection\n Eval symbol persisted to .eval_symbol_used" {
     shape: step
     style.fill: "#e9d5ff"
   }
@@ -524,7 +549,7 @@ eval: Post-Training Evaluation {
       style.fill: "#e9d5ff"
     }
 
-    eval_plots: "Evaluation plots  (per split)\nevaluation_plots/\n  reward_comparison.png   (agent vs benchmarks)\n  actions_plot.png        (portfolio weights over time)\n  actual_returns_plot.png (realised P&L)\n  merged_plot.png         (reward + actions combined)" {
+    eval_plots: "Evaluation plots  (per split)\nevaluation_plots/\n  reward_comparison.png   (agent vs benchmarks)\n  actions_plot.png        (portfolio weights over time)\n  actual_returns_plot.png (realised P&L)\n  merged_plot.png         (reward + actions combined)\nPortfolio Allocation includes optional moving average overlay\n  (allocation_ma_window config; 500-step window typical)" {
       shape: document
       style.fill: "#e9d5ff"
     }
@@ -606,4 +631,46 @@ cli.cli_validate_config -> prep.dp_prepared: "validates config wiring" {
 cli.cli_validate_data -> prep.dp_prepared: "validates prepared dataset" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
+}
+cli.cli_collect_results -> eval.eval_artifacts: "merges per-algo results" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+
+# ─────────────────────────────────────────────
+# Enums and Type Safety
+# ─────────────────────────────────────────────
+enums: Type-Safe Enums  (StrEnum for YAML compatibility) {
+  style.fill: "#f5f5f5"
+  style.stroke: "#666666"
+
+  algorithm: "Algorithm\nPPO · TD3 · DDPG · RANDOM" {
+    shape: document
+    style.fill: "#e5e5e5"
+  }
+
+  reward_type: "RewardType\nLOG_RETURN · DIFFERENTIAL_SHARPE" {
+    shape: document
+    style.fill: "#e5e5e5"
+  }
+
+  env_mode: "EnvMode\nSHARED · MFT · HFT\n  (consolidated from FeatureDomain)" {
+    shape: document
+    style.fill: "#e5e5e5"
+  }
+
+  loss_function: "LossFunction\nL1 · L2 · SMOOTH_L1 · HUBER\n  (critic loss variant)" {
+    shape: document
+    style.fill: "#e5e5e5"
+  }
+
+  eval_symbol_selection: "EvalSymbolSelection\nFIRST · RANDOM · ROTATED\n  (streaming/memmap eval symbol choice)" {
+    shape: document
+    style.fill: "#e5e5e5"
+  }
+
+  other_enums: "Other Enums\nExplainabilityMethod · StatisticalTest · DataFormat\n  EnsembleMethod · SplitName · BenchmarkName" {
+    shape: document
+    style.fill: "#e5e5e5"
+  }
 }
