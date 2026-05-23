@@ -4,6 +4,7 @@ This module provides a wrapper around the tradingenv.TradingEnv environment
 from XAI Asset Management, making it compatible with TorchRL training pipelines.
 """
 
+from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
@@ -430,6 +431,11 @@ class StreamingTradingEnvXY(gym.Env):
         # report per-episode portfolio value without reading a partial broker.
         self._last_episode_final_nlv: float | None = None
         self._last_episode_steps: int | None = None
+        # Symbol name and timestamp range of the episode that just started.
+        # Snapshotted on reset() so _log_episode_stats can report them.
+        self._current_episode_symbol: str | None = None
+        self._current_episode_start_ts: str | None = None
+        self._current_episode_end_ts: str | None = None
 
         # Persistent DSR object so A_t/B_t survive across episode boundaries.
         # Only _prev_nlv is cleared on reset (new episode = new NLV reference).
@@ -528,6 +534,15 @@ class StreamingTradingEnvXY(gym.Env):
         # Use max_start + 1 to include final valid start position (numpy.integers is exclusive)
         start = int(self._symbol_rng.integers(0, max(1, max_start + 1)))
         window_df = self._load_window(file_idx, start)
+        # Snapshot symbol and date range for the new episode.
+        self._current_episode_symbol = Path(mp.data_path).stem.split("_")[0]
+        if isinstance(window_df.index, pd.DatetimeIndex) and len(window_df) > 0:
+            fmt = "%Y-%m-%d %H:%M:%S"
+            self._current_episode_start_ts = window_df.index[0].strftime(fmt)
+            self._current_episode_end_ts = window_df.index[-1].strftime(fmt)
+        else:
+            self._current_episode_start_ts = None
+            self._current_episode_end_ts = None
         self._inner_env = self._build_inner_env(window_df)
         obs = self._inner_env.reset()
         return self._extract_obs(obs), {}
