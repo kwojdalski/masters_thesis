@@ -242,7 +242,9 @@ To illustrate how the raw order book data is transformed into the input features
 | 14:30:00.028 | 271.45 | 271.85 | 600 | 656 | -1.39 | -0.73 | -0.944 | -0.39 |
 | 14:30:00.028 | 271.54 | 271.85 | 100 | 656 | -3.11 | -0.02 | -2.313 | -3.05 |
 
-: Sample of raw order book data and corresponding transformed microstructure features. The raw columns show the best bid/ask prices and sizes, while the transformed features capture order book pressure, imbalance, and flow dynamics. The features are normalized using causal running statistics and serve as the input to the RL agent's policy network. {#tbl-transformed-features}
+: Sample of raw order book data and corresponding transformed microstructure features. {#tbl-transformed-features}
+
+*The raw columns show the best bid/ask prices and sizes, while the transformed features capture order book pressure, imbalance, and flow dynamics. The features are normalized using causal running statistics and serve as the input to the RL agent's policy network.*
 
 The transformed features in @tbl-transformed-features demonstrate several key properties of the feature engineering approach. First, the **Book Pressure** and **Order Imbalance** columns capture the instantaneous state of order book liquidity and directional pressure. Large positive values (e.g., 76.63 at 14:30:00.024) indicate strong buying pressure, while negative values (e.g., -3.11 at 14:30:00.028) signal selling pressure. Second, the **Microprice Deviation** shows how far the current microprice lies from the mid-price, providing a refined estimate of the transaction price that accounts for order book depth. Third, the **Order Flow Imbalance** tracks the net signed trade flow over a short window, capturing momentum in the order flow direction.
 
