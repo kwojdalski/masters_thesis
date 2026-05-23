@@ -176,7 +176,7 @@ def run_statistical_tests_for_split(
         )
         logger.info("statistical significance tests complete split=%s", split_ctx.split)
     except Exception as error:
-        logger.error("statistical tests failed split=%s err=%s", split_ctx.split, error)
+        logger.error("statistical tests failed split=%s", split_ctx.split, exc_info=True)
 
 
 def _save_benchmark_table_for_split(

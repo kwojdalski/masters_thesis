@@ -224,8 +224,9 @@ class TrainerRuntimeHooks:
                     )
             except Exception as exc:
                 logger.error(
-                    "temp eval failed split=%s step=%s elapsed=%.2fs err=%s",
-                    split_ctx.split, step_number, time.monotonic() - _t_split, exc,
+                    "temp eval failed split=%s step=%s elapsed=%.2fs",
+                    split_ctx.split, step_number, time.monotonic() - _t_split,
+                    exc_info=True,
                 )
 
         logger.info(
@@ -271,7 +272,7 @@ class TrainerRuntimeHooks:
             )
         except Exception as exc:
             logger.error(
-                "Temporary explainability failed at step %s: %s",
+                "Temporary explainability failed at step %s",
                 step_number,
-                exc,
+                exc_info=True,
             )
