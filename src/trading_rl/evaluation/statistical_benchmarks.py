@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from trading_rl.constants import RewardType
 from trading_rl.evaluation.returns import (
@@ -222,7 +225,11 @@ def compute_random_baseline_returns(
                 series = extract_tradingenv_return_series(env, max_steps)
                 if series is not None:
                     random_returns.append(series.to_simple().values)
-                    continue
+                else:
+                    logger.warning(
+                        "random baseline trial %d: NLV extraction failed; trial skipped", trial
+                    )
+                continue
 
             rewards = (
                 rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
