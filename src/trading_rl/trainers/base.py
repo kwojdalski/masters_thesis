@@ -194,6 +194,22 @@ class BaseTrainer(ABC):
         """Algorithm-specific exploration metric."""
         return 0.0
 
+    def _get_last_episode_final_nlv(self) -> float | None:
+        """Return the final NLV of the most recently completed training episode.
+
+        Traverses the env stack looking for _last_episode_final_nlv, which
+        StreamingTradingEnvXY snapshots on every reset() before replacing the
+        inner env.  Returns None if not found (e.g. non-streaming envs).
+        """
+        obj = self.env
+        for _ in range(10):
+            if hasattr(obj, "_last_episode_final_nlv"):
+                return obj._last_episode_final_nlv
+            obj = getattr(obj, "_env", None) or getattr(obj, "env", None)
+            if obj is None:
+                break
+        return None
+
     def create_action_probabilities_plot(
         self, max_steps: int, df: Any = None, config: Any = None
     ) -> Any:
@@ -280,17 +296,22 @@ class BaseTrainer(ABC):
             # For log_return, reward matches portfolio growth
             portfolio_valuation = initial_val * np.exp(episode_reward)
         elif reward_type == RewardType.DIFFERENTIAL_SHARPE:
-            # For DSR, extract actual dollar returns from environment broker
-            from trading_rl.evaluation.returns import extract_tradingenv_return_series
-
-            # Extract the broker equity path (ignores the DSR RL reward).
-            actual_returns = extract_tradingenv_return_series(self.env, data.numel())
-            if actual_returns is not None and actual_returns.values.size > 0:
-                portfolio_valuation = float(actual_returns.values[-1])
+            # For DSR the RL reward is a shaped signal, not a return.
+            # Read the final NLV snapshotted on the last reset() — this is the
+            # completed episode's value, not the partial new episode's broker.
+            final_nlv = self._get_last_episode_final_nlv()
+            if final_nlv is not None:
+                portfolio_valuation = final_nlv
             else:
-                # Fallback to cumulative reward if extraction fails
-                logger.warning("failed to extract actual returns for dsr, falling back to reward sum")
-                portfolio_valuation = initial_val * np.exp(episode_reward)
+                # Fallback: live broker (acceptable on the very first episode
+                # before any reset has occurred).
+                from trading_rl.evaluation.returns import extract_tradingenv_return_series
+                actual_returns = extract_tradingenv_return_series(self.env, data.numel())
+                if actual_returns is not None and actual_returns.values.size > 0:
+                    portfolio_valuation = float(actual_returns.values[-1])
+                else:
+                    logger.warning("failed to extract actual returns for dsr, falling back to reward sum")
+                    portfolio_valuation = initial_val * np.exp(episode_reward)
         else:
             # Fallback for any other custom reward types
             logger.debug("unrecognized reward_type=%s assuming log-return for valuation", reward_type)

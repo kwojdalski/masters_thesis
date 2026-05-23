@@ -425,6 +425,10 @@ class StreamingTradingEnvXY(gym.Env):
             low=-np.inf, high=np.inf, shape=(n_obs,), dtype=np.float32
         )
         self._inner_env: TradingEnv | None = None
+        # NLV at the end of the most recently completed episode, snapshotted
+        # before reset() replaces _inner_env.  Used by _log_episode_stats to
+        # report per-episode portfolio value without reading a partial broker.
+        self._last_episode_final_nlv: float | None = None
 
         # Persistent DSR object so A_t/B_t survive across episode boundaries.
         # Only _prev_nlv is cleared on reset (new episode = new NLV reference).
@@ -503,6 +507,15 @@ class StreamingTradingEnvXY(gym.Env):
         if seed is not None:
             self._symbol_rng = np.random.default_rng(seed)
             self._symbol_queue = []
+        # Snapshot the final NLV of the episode that just ended before we
+        # replace _inner_env.  _log_episode_stats reads this attribute so it
+        # always sees the completed episode's value, not the new episode's.
+        if self._inner_env is not None:
+            broker = self._inner_env.broker
+            if broker is not None and hasattr(broker, "track_record") and broker.track_record:
+                last_record = broker.track_record[-1]
+                if hasattr(last_record, "context_post") and hasattr(last_record.context_post, "nlv"):
+                    self._last_episode_final_nlv = float(last_record.context_post.nlv)
         # Clear only _prev_nlv so the new episode's first step is handled
         # correctly, while A_t/B_t carry over from the previous episode.
         if self._persistent_dsr is not None:
