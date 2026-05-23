@@ -84,6 +84,15 @@ class EnsembleMethod(StrEnum):
     WEIGHTED = "weighted"
 
 
+class LossFunction(StrEnum):
+    """Critic loss function variants accepted by TorchRL loss modules."""
+
+    L1 = "l1"
+    L2 = "l2"
+    SMOOTH_L1 = "smooth_l1"
+    HUBER = "huber"
+
+
 class EvalSymbolSelection(StrEnum):
     """Strategy for choosing the representative symbol in streaming/memmap eval mode."""
 

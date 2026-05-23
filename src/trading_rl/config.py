@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, RewardType, StatisticalTest, TradePosition
+from trading_rl.constants import Algorithm, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, RewardType, StatisticalTest, TradePosition
 
 
 @dataclass
@@ -176,7 +176,7 @@ class TrainingConfig:
     delay_qvalue: bool = True
 
     # Loss function
-    loss_function: str = "l2"
+    loss_function: LossFunction = LossFunction.L2
 
     # Evaluation
     eval_interval: int = 1000

@@ -15,7 +15,7 @@ from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
-from trading_rl.constants import RewardType
+from trading_rl.constants import LossFunction, RewardType
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
 from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
 
@@ -96,7 +96,7 @@ class TD3Trainer(BaseTrainer):
             num_qvalue_nets=2,
             policy_noise=getattr(config, "policy_noise", 0.2),
             noise_clip=getattr(config, "noise_clip", 0.5),
-            loss_function=getattr(config, "loss_function", "smooth_l1"),
+            loss_function=getattr(config, "loss_function", LossFunction.L2),
             delay_actor=getattr(config, "delay_actor", True),
             delay_qvalue=getattr(config, "delay_qvalue", True),
         )

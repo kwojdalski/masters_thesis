@@ -27,7 +27,7 @@ from torchrl.objectives import ClipPPOLoss
 
 from logger import get_logger
 from trading_rl.config import TrainingConfig
-from trading_rl.constants import TradePosition
+from trading_rl.constants import LossFunction, TradePosition
 from trading_rl.models import (
     create_continuous_ppo_actor,
     create_ppo_actor,
@@ -78,7 +78,7 @@ class PPOTrainer(BaseTrainer):
             clip_epsilon=getattr(config, "clip_epsilon", 0.2),
             entropy_bonus=getattr(config, "entropy_bonus", 0.01),
             critic_coeff=getattr(config, "vf_coef", 0.5),
-            loss_critic_type=getattr(config, "loss_function", "l2"),
+            loss_critic_type=getattr(config, "loss_function", LossFunction.L2),
             normalize_advantage=True,
         )
 
