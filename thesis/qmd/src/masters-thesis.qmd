@@ -139,7 +139,6 @@ claims.
 \newpage
 {{< include ./06-00-results.qmd >}}
 {{< include ./06-01-statistical-validation.qmd >}}
-{{< include ./06-02-robustness-assessment.qmd >}}
 {{< include ./06-03-performance-evaluation.qmd >}}
 
 \newpage
