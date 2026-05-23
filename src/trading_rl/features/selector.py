@@ -1100,13 +1100,20 @@ class FeatureSelector:
         for feat in ensemble_selected:
             if feat in feature_scores and feature_scores[feat]["icir_values"]:
                 scores = feature_scores[feat]
+                # Average ic_positive_ratio from each split's scores_df
+                ic_pos_ratios = []
+                for scores_df in split_scores:
+                    if not scores_df.empty:
+                        match = scores_df.loc[scores_df["feature"] == feat, "ic_positive_ratio"]
+                        if not match.empty:
+                            ic_pos_ratios.append(float(match.iloc[0]))
                 rows.append({
                     "feature": feat,
                     "mean_ic": np.mean(scores["mean_ic_values"]),
                     "ic_std": np.std(scores["mean_ic_values"]) if len(scores["mean_ic_values"]) > 1 else 0.0,
                     "icir": np.mean(scores["icir_values"]),
                     "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
-                    "ic_positive_ratio": len([v for v in split_selections if feat in v]) / len(split_selections),
+                    "ic_positive_ratio": np.mean(ic_pos_ratios) if ic_pos_ratios else 0.0,
                     "val_mean_ic": np.mean(scores["mean_ic_values"]),
                     "ic_stability": np.std(scores["icir_values"]) if len(scores["icir_values"]) > 1 else 0.0,
                 })
@@ -1126,13 +1133,20 @@ class FeatureSelector:
             for feat in all_scored_features:
                 if feat in feature_scores and feature_scores[feat]["icir_values"]:
                     scores = feature_scores[feat]
+                    # Average ic_positive_ratio from each split's scores_df
+                    ic_pos_ratios = []
+                    for scores_df in split_scores:
+                        if not scores_df.empty:
+                            match = scores_df.loc[scores_df["feature"] == feat, "ic_positive_ratio"]
+                            if not match.empty:
+                                ic_pos_ratios.append(float(match.iloc[0]))
                     rows.append({
                         "feature": feat,
                         "mean_ic": np.mean(scores["mean_ic_values"]),
                         "ic_std": np.std(scores["mean_ic_values"]) if len(scores["mean_ic_values"]) > 1 else 0.0,
                         "icir": np.mean(scores["icir_values"]),
                         "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
-                        "ic_positive_ratio": len([v for v in split_selections if feat in v]) / len(split_selections),
+                        "ic_positive_ratio": np.mean(ic_pos_ratios) if ic_pos_ratios else 0.0,
                         "val_mean_ic": np.mean(scores["mean_ic_values"]),
                         "ic_stability": np.std(scores["icir_values"]) if len(scores["icir_values"]) > 1 else 0.0,
                     })
