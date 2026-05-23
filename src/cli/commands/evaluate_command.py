@@ -75,6 +75,7 @@ class EvaluateCommand(BaseCommand):
         )
         from trading_rl.evaluation.benchmarks import BenchmarkEngine
         from trading_rl.evaluation.metrics import build_metric_report
+        from trading_rl.evaluation.report import _periods_per_year_from_index
         from trading_rl.pipeline.evaluation import build_evaluation_context_for_split
 
         components = frozenset(params.only) if params.only else _ALL_COMPONENTS
@@ -101,7 +102,7 @@ class EvaluateCommand(BaseCommand):
         backend = str(getattr(config.env, "backend", EnvBackend.TRADINGENV)).lower()
         reward_type = str(getattr(config.env, "reward_type", "log_return"))
         timeframe = getattr(config.data, "timeframe", "1d")
-        periods_py = periods_per_year_from_timeframe(timeframe)
+        _timeframe_ppy = periods_per_year_from_timeframe(timeframe)
 
         if params.data_path is not None:
             if not params.data_path.exists():
@@ -155,6 +156,8 @@ class EvaluateCommand(BaseCommand):
                 self.console.print(
                     f"[bold]Evaluating {split} split ({len(split_df):,} rows)...[/bold]"
                 )
+
+                periods_py = _periods_per_year_from_index(split_df) or _timeframe_ppy
 
                 split_ctx = build_evaluation_context_for_split(
                     split=split,
