@@ -11,6 +11,9 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
+_C = "\033[36m"   # cyan — used to highlight log values
+_R = "\033[0m"    # reset
+
 
 @dataclass
 class SplitEvalContext:
@@ -212,10 +215,14 @@ class TrainerRuntimeHooks:
                         final_reward,
                         step=step_number,
                     )
+                    _elapsed = time.monotonic() - _t_split
                     logger.info(
-                        "temp eval complete split=%s reward=%.4f artifacts=%s elapsed=%.2fs",
-                        split_ctx.split, final_reward, artifact_prefix,
-                        time.monotonic() - _t_split,
+                        "temp eval complete split=%s%s%s reward=%s%.4f%s"
+                        " artifacts=%s%s%s elapsed_s=%s%.2f%s",
+                        _C, split_ctx.split, _R,
+                        _C, final_reward, _R,
+                        _C, artifact_prefix, _R,
+                        _C, _elapsed, _R,
                     )
                 else:
                     logger.warning(
