@@ -9,7 +9,6 @@ from trading_rl import ExperimentConfig
 from trading_rl.constants import EnvMode, Severity
 from trading_rl.data_utils import load_trading_data
 from trading_rl.features import FeaturePipeline, create_default_pipeline
-from trading_rl.constants import EnvMode
 
 
 @dataclass
