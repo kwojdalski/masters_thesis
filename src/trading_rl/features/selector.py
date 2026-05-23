@@ -1246,9 +1246,16 @@ class FeatureSelector:
                 result = search_selector.select(feature_configs, train_df, val_df, df)
 
                 # Score this configuration
-                # Use mean ICIR of selected features as the objective
+                # Use mean ICIR of *selected* features as the objective so
+                # icir_threshold and top_k actually influence the score.
                 if len(result.scores) > 0 and "icir" in result.scores.columns:
-                    config_score = result.scores["icir"].mean()
+                    selected_mask = result.scores["feature"].isin(result.selected_names)
+                    selected_scores = result.scores[selected_mask]
+                    config_score = (
+                        selected_scores["icir"].mean()
+                        if not selected_scores.empty
+                        else float("-inf")
+                    )
 
                     logger.info(
                         "Config %s: score=%.4f, n_selected=%d",
