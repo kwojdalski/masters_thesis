@@ -38,7 +38,7 @@ data:
   filter_lob_levels: 5
 env:
   backend: tradingenv
-  trading_fees: 0.0001
+  trading_fees: 0.00001
   price_column: close
   include_position_feature: true
   streaming_episode_length: 5000
