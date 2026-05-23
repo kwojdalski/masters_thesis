@@ -18,10 +18,10 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
 
 from logger import get_logger, log_banner
-from trading_rl.profiler import get_profiler
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.constants import EnvBackend, EnvMode, RewardType
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
+from trading_rl.profiler import get_profiler
 from trading_rl.trainers.checkpointing import CheckpointManager
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 
@@ -136,6 +136,7 @@ class BaseTrainer(ABC):
         # calls use this env instead of self.env, preventing SyncDataCollector
         # state corruption.  Set by the pipeline after construction.
         self._eval_env: Any | None = None
+        self._last_evaluation_result: Any | None = None
 
         # Training state
         self.total_count = 0
@@ -318,7 +319,9 @@ class BaseTrainer(ABC):
                 episode_steps = None
                 # Fallback: live broker (acceptable on the very first episode
                 # before any reset has occurred).
-                from trading_rl.evaluation.returns import extract_tradingenv_return_series
+                from trading_rl.evaluation.returns import (
+                    extract_tradingenv_return_series,
+                )
                 actual_returns = extract_tradingenv_return_series(self.env, data.numel())
                 if actual_returns is not None and actual_returns.values.size > 0:
                     portfolio_valuation = float(actual_returns.values[-1])
@@ -545,6 +548,7 @@ class BaseTrainer(ABC):
         _t = time.monotonic()
         with profiler.stage("agent_rollout", 2):
             result = evaluator.evaluate_split("eval", df, env=env_to_use)
+        self._last_evaluation_result = result
         logger.debug("evaluate.rollout_and_metrics elapsed=%.2fs", time.monotonic() - _t)
 
         reward_plot = result.plots["reward_plot"] if result.plots else None

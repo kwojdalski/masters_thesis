@@ -129,3 +129,31 @@ def test_report_converts_log_return_rewards_when_no_broker_returns_exist() -> No
     )
 
     assert report["total_return"] == pytest.approx(1.10 * 0.95 - 1.0)
+
+
+def test_report_reuses_supplied_rollout_without_rerunning_env() -> None:
+    rollout = _FakeRollout(
+        rewards=[float(np.log1p(0.10)), float(np.log1p(-0.05))],
+        actions=[1.0, 1.0],
+    )
+
+    class NoRolloutEnv:
+        def rollout(self, *, max_steps: int, policy):
+            raise AssertionError("report should reuse the rollout from trainer.evaluate")
+
+    env = NoRolloutEnv()
+    prices = pd.DataFrame({"close": [100.0, 110.0, 104.5]})
+
+    report = build_evaluation_report_for_trainer(
+        trainer=_trainer(env),
+        df_prices=prices,
+        max_steps=2,
+        config=_config(
+            reward_type=RewardType.LOG_RETURN,
+            backend="gym_trading_env.continuous",
+        ),
+        eval_env=env,
+        rollout=rollout,
+    )
+
+    assert report["total_return"] == pytest.approx(1.10 * 0.95 - 1.0)

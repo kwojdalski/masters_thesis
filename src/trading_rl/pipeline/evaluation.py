@@ -23,12 +23,12 @@ from trading_rl.evaluation import (
     periods_per_year_from_timeframe,
     run_all_statistical_tests,
 )
-from trading_rl.evaluation.report import _periods_per_year_from_index
 from trading_rl.evaluation.benchmark_table import (
     build_bench_out,
     save_benchmark_table_artifact,
 )
 from trading_rl.evaluation.benchmarks import BenchmarkEngine
+from trading_rl.evaluation.report import _periods_per_year_from_index
 from trading_rl.evaluation.returns import extract_tradingenv_return_series
 from trading_rl.pipeline.explainability import run_explainability_analysis
 from trading_rl.profiler import get_profiler
@@ -130,21 +130,37 @@ def _run_rollout(trainer: Any, split_ctx: EvaluationContext) -> Any:
                 )
 
 
+def _last_strategy_returns(trainer: Any) -> np.ndarray | None:
+    result = getattr(trainer, "_last_evaluation_result", None)
+    simple_returns = getattr(result, "simple_returns", None)
+    if simple_returns is None:
+        return None
+    return np.asarray(simple_returns, dtype=float)
+
+
+def _last_evaluation_rollout(trainer: Any) -> Any | None:
+    return getattr(getattr(trainer, "_last_evaluation_result", None), "rollout", None)
+
+
 def run_statistical_tests_for_split(
     *,
     trainer: Any,
     split_ctx: EvaluationContext,
     config: ExperimentConfig,
     logger: logging.Logger,
+    strategy_simple_returns: np.ndarray | None = None,
 ) -> None:
     logger.info("run statistical significance tests split=%s", split_ctx.split)
     try:
-        rollout = _run_rollout(trainer, split_ctx)
-        strategy_simple_returns = compute_strategy_simple_returns_for_split(
-            rollout=rollout,
-            split_ctx=split_ctx,
-            config=config,
-        )
+        if strategy_simple_returns is None:
+            rollout = _run_rollout(trainer, split_ctx)
+            strategy_simple_returns = compute_strategy_simple_returns_for_split(
+                rollout=rollout,
+                split_ctx=split_ctx,
+                config=config,
+            )
+        else:
+            strategy_simple_returns = np.asarray(strategy_simple_returns, dtype=float)
 
         price_column = config.env.price_column or "close"
         benchmarks, _bench_meta = BenchmarkEngine.build(
@@ -182,7 +198,7 @@ def run_statistical_tests_for_split(
             research_artifact_subdir=config.statistical_testing.research_artifact_subdir,
         )
         logger.info("statistical significance tests complete split=%s", split_ctx.split)
-    except Exception as error:
+    except Exception:
         logger.error("statistical tests failed split=%s", split_ctx.split, exc_info=True)
 
 
@@ -193,6 +209,7 @@ def _save_benchmark_table_for_split(
     config: ExperimentConfig,
     evaluation_report: dict[str, float],
     logger: logging.Logger,
+    strategy_simple_returns: np.ndarray | None = None,
 ) -> None:
     """Build benchmarks and save the benchmark comparison table artifact."""
     price_column = getattr(config.env, "price_column", None) or "close"
@@ -203,13 +220,15 @@ def _save_benchmark_table_for_split(
     if not benchmarks:
         return
 
-    # Extract strategy simple returns from broker track record (already populated by the
-    # rollout inside build_evaluation_report_for_trainer — no extra rollout needed).
-    return_series = extract_tradingenv_return_series(split_ctx.env, split_ctx.max_steps)
-    if return_series is None:
-        logger.warning("benchmark table: no strategy returns available for split=%s", split)
-        return
-    strategy_simple_returns = return_series.to_simple().values
+    if strategy_simple_returns is None:
+        return_series = extract_tradingenv_return_series(split_ctx.env, split_ctx.max_steps)
+        if return_series is None:
+            logger.warning("benchmark table: no strategy returns available for split=%s", split)
+            return
+        strategy_simple_returns = return_series.to_simple().values
+    else:
+        strategy_simple_returns = np.asarray(strategy_simple_returns, dtype=float)
+
     if strategy_simple_returns.size == 0:
         logger.warning("benchmark table: empty strategy returns for split=%s", split)
         return
@@ -283,6 +302,8 @@ def evaluate_split(
             algorithm=algorithm,
             eval_env=split_ctx.env,
         )
+    strategy_simple_returns = _last_strategy_returns(trainer)
+    rollout = _last_evaluation_rollout(trainer)
 
     with profiler.stage(f"eval_mlflow_plots_{split}"):
         MLflowTrainingCallback.log_evaluation_plots(
@@ -302,6 +323,8 @@ def evaluate_split(
             max_steps=split_ctx.max_steps,
             config=config,
             eval_env=split_ctx.env,
+            rollout=rollout,
+            strategy_simple_returns=strategy_simple_returns,
         )
         MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
 
@@ -313,6 +336,7 @@ def evaluate_split(
                 config=config,
                 evaluation_report=split_evaluation_report,
                 logger=logger,
+                strategy_simple_returns=strategy_simple_returns,
             )
     except Exception as _bt_err:
         logger.warning("benchmark table artifact failed split=%s err=%s", split, _bt_err)
@@ -325,6 +349,7 @@ def evaluate_split(
                     split_ctx=split_ctx,
                     config=config,
                     logger=logger,
+                    strategy_simple_returns=strategy_simple_returns,
                 )
         except KeyboardInterrupt:
             logger.warning(

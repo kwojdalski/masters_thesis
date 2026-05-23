@@ -77,6 +77,7 @@ class SplitEvaluationResult:
     final_reward: float
     last_positions: list[Any]
     simple_returns: np.ndarray
+    rollout: Any | None = None
     cumulative_returns: np.ndarray | None = None  # For debugging
     return_series: ReturnSeries | None = None
     metrics: dict[str, float] | None = None
@@ -347,6 +348,7 @@ class StrategyEvaluator:
             final_reward=float(rollout["next", "reward"].sum().item()),
             last_positions=last_positions,
             simple_returns=simple_returns,
+            rollout=rollout,
             cumulative_returns=cumulative_returns,
             return_series=return_series,
             metrics=metrics,

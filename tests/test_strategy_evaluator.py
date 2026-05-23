@@ -50,6 +50,7 @@ def test_evaluate_split_uses_provided_environment_without_rebuilding() -> None:
     )
 
     assert env.rollout_calls == 1
+    assert result.rollout is not None
     assert result.return_series is not None
     assert result.return_series.kind == ReturnKind.LOG
     np.testing.assert_allclose(result.simple_returns, np.zeros(2))

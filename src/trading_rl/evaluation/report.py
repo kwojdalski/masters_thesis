@@ -74,16 +74,25 @@ def build_evaluation_report_for_trainer(
     config: Any,
     eval_env: Any | None = None,
     cross_validate: bool = False,
+    rollout: Any | None = None,
+    strategy_simple_returns: np.ndarray | None = None,
 ) -> dict[str, float]:
     """Build the 25-metric evaluation report for deterministic policy rollout."""
     env_to_use = eval_env or trainer.env
-    with torch.no_grad():
-        try:
-            with set_exploration_type(InteractionType.MODE):
-                rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
-        except RuntimeError:
-            with set_exploration_type(InteractionType.DETERMINISTIC):
-                rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
+    if rollout is None:
+        with torch.no_grad():
+            try:
+                with set_exploration_type(InteractionType.MODE):
+                    rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
+            except (NotImplementedError, RuntimeError) as exc:
+                if not (
+                    isinstance(exc, NotImplementedError)
+                    or "does not have a mode" in str(exc)
+                    or "analytical mode" in str(exc).lower()
+                ):
+                    raise
+                with set_exploration_type(InteractionType.DETERMINISTIC):
+                    rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
 
     reward_type = getattr(getattr(config, "env", None), "reward_type", RewardType.LOG_RETURN)
     backend = getattr(getattr(config, "env", None), "backend", None)
@@ -112,7 +121,9 @@ def build_evaluation_report_for_trainer(
 
     # Reward can be a shaped signal (e.g., differential Sharpe), so only interpret
     # rollout reward as log-return when reward_type explicitly says so.
-    if reward_type == RewardType.LOG_RETURN:
+    if strategy_simple_returns is not None:
+        strategy_simple_returns = np.asarray(strategy_simple_returns, dtype=float)
+    elif reward_type == RewardType.LOG_RETURN:
         strategy_log_returns = (
             rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
         )
