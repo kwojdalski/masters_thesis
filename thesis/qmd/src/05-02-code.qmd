@@ -188,6 +188,14 @@ In this setting, the TD3 agent learned behavior consistent with the imposed
 sine-wave structure, providing a basic implementation sanity check before moving
 to noisy tick-level order-book data.
 
+A complementary check was conducted using a random policy — one that selects
+actions uniformly at random with no learned component. This tests the opposite
+question: whether the environment, reward function, and accounting logic are
+free of structural bias that would generate returns even without a signal.
+The random policy produced approximately zero return, consistent with an
+unbiased implementation. Results for the random policy on the empirical
+dataset are reported in Chapter 6.
+
 ### Evaluation
 
 Final performance is reported on the held-out test split using a dedicated
