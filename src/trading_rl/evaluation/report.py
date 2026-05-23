@@ -87,11 +87,28 @@ def build_evaluation_report_for_trainer(
 
     reward_type = getattr(getattr(config, "env", None), "reward_type", RewardType.LOG_RETURN)
     backend = getattr(getattr(config, "env", None), "backend", None)
-    benchmark_price_column = getattr(
+    _configured_price_column = getattr(
         getattr(config, "env", None), "price_column", None
     )
-    if not benchmark_price_column:
-        benchmark_price_column = "close"
+    price_column_explicit = bool(_configured_price_column)
+    benchmark_price_column = _configured_price_column or "close"
+
+    # Resolve benchmark_series early so it is available inside the cross_validate
+    # block below, which executes before this assignment would otherwise appear.
+    if benchmark_price_column in df_prices.columns:
+        benchmark_series = df_prices[benchmark_price_column]
+    elif price_column_explicit:
+        raise ValueError(
+            f"env.price_column '{benchmark_price_column}' is explicitly configured "
+            f"but not present in the evaluation dataframe. "
+            f"Available columns: {list(df_prices.columns)}"
+        )
+    elif "close" in df_prices.columns:
+        benchmark_series = df_prices["close"]
+    else:
+        raise ValueError(
+            "Evaluation report: no price_column configured and 'close' not in dataframe."
+        )
 
     # Reward can be a shaped signal (e.g., differential Sharpe), so only interpret
     # rollout reward as log-return when reward_type explicitly says so.
@@ -148,19 +165,6 @@ def build_evaluation_report_for_trainer(
                 reward_type,
             )
             # strategy_simple_returns stays empty; build_metric_report returns all-NaN.
-
-    if benchmark_price_column in df_prices.columns:
-        benchmark_series = df_prices[benchmark_price_column]
-    elif "close" in df_prices.columns:
-        benchmark_series = df_prices["close"]
-        logger.warning(
-            "Evaluation report price column '%s' missing; falling back to 'close'.",
-            benchmark_price_column,
-        )
-    else:
-        raise ValueError(
-            "Evaluation report requires env.price_column or 'close' in dataframe."
-        )
 
     benchmark_window = benchmark_series.iloc[: max_steps + 1]
     benchmark_simple_returns = (

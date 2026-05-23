@@ -333,16 +333,16 @@ def create_actual_returns_plot(
     if df_prices is not None:
         benchmark_col = benchmark_price_column
         if benchmark_col not in df_prices.columns:
-            if "close" in df_prices.columns:
-                logger.warning(
-                    "Benchmark price column '%s' not found; falling back to 'close'.",
-                    benchmark_col,
+            if benchmark_col != "close":
+                raise ValueError(
+                    f"Benchmark price column '{benchmark_col}' not found in df_prices. "
+                    f"Available columns: {list(df_prices.columns)}"
                 )
+            elif "close" in df_prices.columns:
                 benchmark_col = "close"
             else:
                 logger.warning(
-                    "Benchmark price column '%s' missing and no 'close' fallback available; skipping benchmarks.",
-                    benchmark_col,
+                    "No benchmark price column available; skipping benchmarks.",
                 )
                 benchmark_col = ""
 
