@@ -6,9 +6,9 @@ import pytest
 
 from trading_rl.features.base import FeatureConfig
 from trading_rl.features.selector import (
+    FeatureSelectionResult,
     FeatureSelector,
     FeatureSelectorConfig,
-    FeatureSelectionResult,
     _build_multi_horizon_score_table,
     _build_time_series_cv_splits,
     _ensemble_select_features,
