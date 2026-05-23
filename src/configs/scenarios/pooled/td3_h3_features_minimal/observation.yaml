@@ -1,0 +1,9 @@
+data:
+  feature_config: src/configs/feature_sets/hft_lob_features_all.yaml
+env:
+  mode: hft
+  feature_columns:
+  - feature_hft_spread_bps
+  - feature_hft_book_pressure_l0
+  - feature_hft_microprice
+  - feature_position

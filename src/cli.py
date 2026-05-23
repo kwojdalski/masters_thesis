@@ -27,6 +27,8 @@ from cli.commands import (
     FeatureResearchParams,
     PeekCommand,
     PeekParams,
+    SensitivityReportCommand,
+    SensitivityReportParams,
     SineWaveParams,
     TrainingCommand,
     TrainingParams,
@@ -591,6 +593,29 @@ def evaluate(
 
 
 _collect_results_cmd = CollectResultsCommand(console)
+_sensitivity_report_cmd = SensitivityReportCommand(console)
+
+
+@app.command(name="sensitivity-report")
+def sensitivity_report(
+    config: Path = typer.Option(  # noqa: B008
+        Path("src/configs/h3_sensitivity.yaml"),
+        "--config", "-c",
+        help="Path to H3 sensitivity config YAML",
+    ),
+    split: str = typer.Option("test", "--split", help="Data split to report on (train/val/test)"),
+) -> None:
+    """Print H3 sensitivity analysis: feature spec, reward design, and transaction cost axes.
+
+    Reads results.json from each scenario's log directory and displays a
+    side-by-side comparison table for every sensitivity axis.
+
+    Example:
+        python src/cli.py sensitivity-report
+        python src/cli.py sensitivity-report --split val
+    """
+    params = SensitivityReportParams(config=config, split=split)
+    _sensitivity_report_cmd.execute(params)
 
 
 @app.command(name="collect-results")
