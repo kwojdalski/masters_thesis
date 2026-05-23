@@ -228,8 +228,8 @@ class PPOTrainer(BaseTrainer):
 
             eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
-                "ppo eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
-                mean_reward, sum_reward, max_steps, eval_data_len,
+                "ppo eval mean_reward=%s%.4f%s sum_reward=%s%.4f%s eval_steps=%s%d%s eval_data_len=%s%s%s",
+                _C, mean_reward, _R, _C, sum_reward, _R, _C, max_steps, _R, _C, eval_data_len, _R,
             )
 
             del eval_rollout
