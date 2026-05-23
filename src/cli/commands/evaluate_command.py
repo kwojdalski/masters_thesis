@@ -121,7 +121,7 @@ class EvaluateCommand(BaseCommand):
             if not params.data_path.exists():
                 raise FileNotFoundError(f"--data-path not found: {params.data_path}")
             self.console.print(f"[dim]Preparing arbitrary data: {params.data_path}[/dim]")
-            arbitrary_df = self._prepare_arbitrary_df(params.data_path, config)
+            arbitrary_df = self._prepare_arbitrary_df(params.data_path, config, checkpoint_path)
             split_name = params.data_path.stem
             splits_to_eval = [split_name]
             split_dfs = {split_name: arbitrary_df}
@@ -138,7 +138,7 @@ class EvaluateCommand(BaseCommand):
                     "[dim]Multi-symbol scenario — evaluating per symbol to avoid cross-symbol price artefacts[/dim]"
                 )
                 splits_to_eval, split_dfs = self._resolve_per_symbol_splits(
-                    config, params, [str(p) for p in val_data_paths]
+                    config, params, [str(p) for p in val_data_paths], checkpoint_path
                 )
             else:
                 dataset = build_prepared_dataset(config, self.logger)
@@ -319,12 +319,17 @@ class EvaluateCommand(BaseCommand):
     # Arbitrary data preparation
     # ------------------------------------------------------------------
 
-    def _prepare_arbitrary_df(self, data_path: Path, config: Any) -> "pd.DataFrame":
+    def _prepare_arbitrary_df(self, data_path: Path, config: Any, checkpoint_path: Path | None = None) -> "pd.DataFrame":
         """Load a raw parquet file, apply the scenario's feature pipeline, and return a prepared DataFrame.
 
         Results are cached under ``config.data.feature_cache_dir`` keyed by the file's
         modification time and all preparation settings, so repeated calls on the
         same file are cheap after the first run.
+
+        Args:
+            data_path: Path to the eval data file
+            config: Experiment config
+            checkpoint_path: Path to checkpoint (used to restore training pipeline state)
         """
         import hashlib
 
@@ -368,8 +373,40 @@ class EvaluateCommand(BaseCommand):
 
         if feature_config:
             from trading_rl.features import FeaturePipeline
+            from trading_rl.data.loading import restore_pipeline_state
+
             pipeline = FeaturePipeline.from_yaml(feature_config)
-            pipeline.fit(df)
+
+            # Try to restore training-time pipeline state from checkpoint
+            state_restored = False
+            if checkpoint_path is not None and checkpoint_path.exists():
+                try:
+                    import torch
+                    checkpoint = torch.load(checkpoint_path, weights_only=False)
+                    pipeline_state = checkpoint.get("feature_pipeline_state")
+                    if pipeline_state:
+                        # First fit on a small sample to initialize scalers
+                        init_sample = df.iloc[:min(100, len(df))]
+                        pipeline.fit(init_sample)
+                        # Then restore training statistics
+                        restore_pipeline_state(pipeline, pipeline_state)
+                        state_restored = True
+                        self.console.print(
+                            f"[dim]  Restored training pipeline state from checkpoint ({len(pipeline_state)} features)[/dim]"
+                        )
+                except Exception as exc:
+                    self.logger.warning(
+                        "failed to restore pipeline state from checkpoint: %s", exc
+                    )
+
+            if not state_restored:
+                self.logger.warning(
+                    "Pipeline state not available in checkpoint — normalizing eval data with eval statistics. "
+                    "Metrics may not reflect true out-of-sample performance. Use --data-path mode only for "
+                    "sanity checks; production eval should use prepared splits from training time."
+                )
+                pipeline.fit(df)
+
             features = pipeline.transform(df)
             df = pd.concat([df, features], axis=1)
             self.console.print(f"[dim]  Features computed: {len(features.columns)} columns[/dim]")
@@ -391,6 +428,7 @@ class EvaluateCommand(BaseCommand):
         config: Any,
         params: EvaluateParams,
         val_data_paths: list[str],
+        checkpoint_path: Path | None,
     ) -> tuple[list[str], dict[str, "pd.DataFrame"]]:
         """Prepare each val file as an independent single-symbol DataFrame.
 
@@ -414,7 +452,7 @@ class EvaluateCommand(BaseCommand):
             stem = Path(val_path).stem
             symbol = stem.split("_")[0]
             self.console.print(f"[dim]  Preparing {symbol} ({Path(val_path).name})[/dim]")
-            df = self._prepare_arbitrary_df(Path(val_path), config)
+            df = self._prepare_arbitrary_df(Path(val_path), config, checkpoint_path)
             mid = len(df) // 2
             if SplitName.VAL in requested:
                 key = f"val_{symbol}"

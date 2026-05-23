@@ -301,7 +301,7 @@ class DDPGTrainer(BaseTrainer):
     def _compute_exploration_ratio(self) -> float:
         return getattr(self.config, "exploration_noise_std", 0.1)
 
-    def save_checkpoint(self, path: str) -> None:
+    def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
         """Save training checkpoint.
 
         Args:
@@ -378,6 +378,7 @@ class DDPGTrainer(BaseTrainer):
             "mlflow_tracking_uri": tracking_uri,
             "mlflow_experiment_id": run.info.experiment_id if run else None,
             "mlflow_experiment_name": experiment_name,
+            "feature_pipeline_state": feature_pipeline_state,
         }
 
         # Optionally save replay buffer (can be very large)

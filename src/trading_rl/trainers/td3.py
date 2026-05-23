@@ -471,7 +471,7 @@ class TD3Trainer(BaseTrainer):
     def _compute_exploration_ratio(self) -> float:
         return getattr(self.config, "policy_noise", 0.2)
 
-    def save_checkpoint(self, path: str) -> None:
+    def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
         from pathlib import Path
 
         import mlflow
@@ -514,6 +514,7 @@ class TD3Trainer(BaseTrainer):
             "mlflow_tracking_uri": tracking_uri,
             "mlflow_experiment_id": run.info.experiment_id if run else None,
             "mlflow_experiment_name": experiment_name,
+            "feature_pipeline_state": feature_pipeline_state,
         }
 
         # Optionally save replay buffer (can be very large)

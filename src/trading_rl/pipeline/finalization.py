@@ -43,6 +43,7 @@ def save_final_checkpoint(
     effective_experiment_name: str,
     trainer: Any,
     checkpoint_path: str | None,
+    feature_pipeline_state: dict[str, dict[str, float]] | None = None,
 ) -> Path:
     """Persist the final checkpoint and return its path."""
     final_checkpoint_path = build_final_checkpoint_path(
@@ -51,7 +52,7 @@ def save_final_checkpoint(
         trainer=trainer,
         checkpoint_path=checkpoint_path,
     )
-    trainer.save_checkpoint(str(final_checkpoint_path))
+    trainer.save_checkpoint(str(final_checkpoint_path), feature_pipeline_state=feature_pipeline_state)
     return final_checkpoint_path
 
 

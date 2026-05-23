@@ -197,6 +197,7 @@ def execute_single_experiment(
             effective_experiment_name=runtime.effective_experiment_name,
             trainer=trainer,
             checkpoint_path=checkpoint_path,
+            feature_pipeline_state=prepared_dataset.feature_pipeline_state,
         )
 
     split_results = {}
