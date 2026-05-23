@@ -13,7 +13,6 @@ from .evaluate_command import EvaluateCommand, EvaluateParams
 from .experiment_command import ExperimentCommand, ExperimentParams
 from .feature_research_command import FeatureResearchCommand, FeatureResearchParams
 from .training_command import TrainingCommand, TrainingParams
-from .sensitivity_report_command import SensitivityReportCommand, SensitivityReportParams
 from .peek_command import PeekCommand, PeekParams
 from .validate_data_command import ValidateDataCommand, ValidateDataParams
 from .validation_command import ValidationCommand, ValidationParams
@@ -32,8 +31,6 @@ __all__ = [
     "ExperimentParams",
     "FeatureResearchCommand",
     "FeatureResearchParams",
-    "SensitivityReportCommand",
-    "SensitivityReportParams",
     "SineWaveParams",
     "TrainingCommand",
     "TrainingParams",
