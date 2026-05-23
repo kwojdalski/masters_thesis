@@ -347,7 +347,11 @@ class TrainingCommand(BaseCommand):
                 t.add_row("Symbols", ", ".join(symbols))
             for key, display_name, fmt in _perf_metrics:
                 if key in report:
-                    t.add_row(display_name, f"{report[key]:{fmt}}")
+                    val = report[key]
+                    if key == "annualized_return_cagr" and (not isinstance(val, float) or not (val == val) or abs(val) > 1000.0):
+                        t.add_row(display_name, "—")
+                    else:
+                        t.add_row(display_name, f"{val:{fmt}}")
             perf_tables.append(t)
 
         self.console.print(Columns([run_table, steps_table, *perf_tables]))

@@ -569,7 +569,11 @@ class EvaluateCommand(BaseCommand):
             table.add_row("Symbols", ", ".join(symbols))
         for key, label, fmt in _PERF_ROWS:
             if key in metrics:
-                table.add_row(label, f"{metrics[key]:{fmt}}")
+                val = metrics[key]
+                if key == "annualized_return_cagr" and (not isinstance(val, float) or not (val == val) or abs(val) > 1000.0):
+                    table.add_row(label, "—")
+                else:
+                    table.add_row(label, f"{val:{fmt}}")
         self.console.print(table)
 
     def _print_benchmark_table(
