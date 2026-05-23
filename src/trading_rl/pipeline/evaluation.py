@@ -14,7 +14,7 @@ import torch
 from logger import log_banner
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
-from trading_rl.constants import EnvBackend, RewardType, SplitName
+from trading_rl.constants import EnvBackend, EvalSymbolSelection, RewardType, SplitName
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import (
     EvaluationContext,
@@ -465,10 +465,10 @@ def build_final_metrics(
         if symbol_file.exists():
             val_test_symbols = [symbol_file.read_text().strip()]
         else:
-            strategy = getattr(config.data, "eval_symbol_selection", "first")
-            if strategy == "first":
+            strategy = getattr(config.data, "eval_symbol_selection", EvalSymbolSelection.FIRST)
+            if strategy == EvalSymbolSelection.FIRST:
                 val_test_symbols = [Path(val_data_paths[0]).parent.name]
-            elif strategy == "rotated":
+            elif strategy == EvalSymbolSelection.ROTATED:
                 counter_path = Path(memmap_dir_cfg) / ".eval_symbol_counter"
                 try:
                     count = int(counter_path.read_text().strip()) if counter_path.exists() else 1

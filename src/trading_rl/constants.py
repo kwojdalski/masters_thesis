@@ -84,6 +84,14 @@ class EnsembleMethod(StrEnum):
     WEIGHTED = "weighted"
 
 
+class EvalSymbolSelection(StrEnum):
+    """Strategy for choosing the representative symbol in streaming/memmap eval mode."""
+
+    FIRST = "first"
+    RANDOM = "random"
+    ROTATED = "rotated"
+
+
 class SplitName(StrEnum):
     """Dataset split names."""
 

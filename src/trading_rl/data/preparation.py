@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 
 from logger import get_logger
-from trading_rl.constants import EnvBackend, EnvMode, SplitName
+from trading_rl.constants import EnvBackend, EnvMode, EvalSymbolSelection, SplitName
 from trading_rl.data_loading import LazyDataFrame, MemmapPaths, load_memmap_paths, load_prepared_splits, save_prepared_splits, save_symbol_memmap
 from trading_rl.data.cache import (
     _feature_cache_key,
@@ -71,11 +71,11 @@ def _resolve_symbol_index(strategy: str, n_symbols: int, memmap_dir: Path | None
     "random"  — uniform random pick each call
     "rotated" — increments a per-run counter stored in memmap_dir/.eval_symbol_counter
     """
-    if strategy == "random":
+    if strategy == EvalSymbolSelection.RANDOM:
         idx = random.randrange(n_symbols)
         logger.info("eval_symbol_selection=random picked idx=%d of %d", idx, n_symbols)
         return idx
-    if strategy == "rotated":
+    if strategy == EvalSymbolSelection.ROTATED:
         counter_path = (memmap_dir / ".eval_symbol_counter") if memmap_dir else None
         count = 0
         if counter_path and counter_path.exists():
@@ -88,7 +88,7 @@ def _resolve_symbol_index(strategy: str, n_symbols: int, memmap_dir: Path | None
             counter_path.write_text(str(count + 1))
         logger.info("eval_symbol_selection=rotated counter=%d idx=%d of %d", count, idx, n_symbols)
         return idx
-    # "first" or unrecognised
+    # EvalSymbolSelection.FIRST or unrecognised
     return 0
 
 
@@ -774,8 +774,8 @@ def build_prepared_dataset(
 
         # Rotation support on cache hit: swap val/test for the correct symbol.
         _val_paths_cfg = getattr(config.data, "val_data_paths", None)
-        _strategy = getattr(config.data, "eval_symbol_selection", "first")
-        if _val_paths_cfg and _strategy != "first" and memmap_dir and prepared_dir:
+        _strategy = getattr(config.data, "eval_symbol_selection", EvalSymbolSelection.FIRST)
+        if _val_paths_cfg and _strategy != EvalSymbolSelection.FIRST and memmap_dir and prepared_dir:
             _syms = [Path(p).parent.name for p in _val_paths_cfg]
             _per_sym_val = [prepared_dir / f"val_{s}_prepared.parquet" for s in _syms]
             if all(p.exists() for p in _per_sym_val):
@@ -803,7 +803,7 @@ def build_prepared_dataset(
             "which set memmap_dir and use StreamingTradingEnvXY for correct per-symbol episode resets."
         )
     if data_paths:
-        _strategy = getattr(getattr(config, "data", None), "eval_symbol_selection", "first")
+        _strategy = getattr(getattr(config, "data", None), "eval_symbol_selection", EvalSymbolSelection.FIRST)
         _symbol_index = _resolve_symbol_index(_strategy, len(data_paths), memmap_dir)
         _val_paths = getattr(config.data, "val_data_paths", None) or data_paths
         _eval_symbol = Path(_val_paths[min(_symbol_index, len(_val_paths) - 1)]).parent.name

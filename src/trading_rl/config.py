@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, EnvBackend, EnvMode, ExplainabilityMethod, RewardType, StatisticalTest, TradePosition
+from trading_rl.constants import Algorithm, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, RewardType, StatisticalTest, TradePosition
 
 
 @dataclass
@@ -63,7 +63,7 @@ class DataConfig:
     # "first"   — always index 0 (deterministic, default)
     # "random"  — uniform random pick each run
     # "rotated" — cycles 0, 1, 2, … across runs (counter stored in memmap_dir)
-    eval_symbol_selection: str = "first"
+    eval_symbol_selection: EvalSymbolSelection = EvalSymbolSelection.FIRST
     # Number of parallel worker processes for per-symbol feature engineering.
     # 0 = auto (min(n_symbols, cpu_count)), 1 = sequential (useful for debugging).
     n_workers: int = 0
