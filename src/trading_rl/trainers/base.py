@@ -491,6 +491,7 @@ class BaseTrainer(ABC):
                 "max_steps": max_steps,
                 "enable_plots": True,
                 "enable_metrics": False,  # Metrics computed separately
+                "max_plot_points": getattr(getattr(config, "training", None), "max_plot_points", None),
             }
 
         from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
@@ -555,6 +556,7 @@ class BaseTrainer(ABC):
                 training_steps=self.total_count,
                 training_episodes=self.total_episodes,
                 n_total_symbols=_n_total_symbols,
+                max_plot_points=getattr(getattr(config, "training", None), "max_plot_points", None) if config else None,
             )
             logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
 

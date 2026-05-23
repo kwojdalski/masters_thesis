@@ -62,6 +62,7 @@ class EvaluationConfig:
     enable_metrics: bool = True
     periods_per_year: int = 252
     env: EnvConfig = field(default_factory=EnvConfig)  # Environment configuration
+    max_plot_points: int | None = None  # Cap the number of plotted points per series; None = plot all
 
 
 @dataclass(frozen=True)
@@ -330,6 +331,7 @@ class StrategyEvaluator:
             reward_plot, action_plot = compare_rollouts(
                 [rollout], max_steps, is_portfolio=is_portfolio, df=df,
                 reward_type=self.config.reward_type,
+                max_plot_points=self.config.max_plot_points,
             )
             logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
             plots = {

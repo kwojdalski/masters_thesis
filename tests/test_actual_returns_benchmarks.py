@@ -41,6 +41,7 @@ def test_actual_returns_plot_includes_benchmarks():
         df_prices=df_prices,
         env=None,
         actual_returns_list=None,
+        show_max_profit=True,
     )
 
     # Check that plot data includes benchmarks
@@ -120,6 +121,7 @@ def test_benchmark_calculations():
         df_prices=df_prices,
         env=None,
         actual_returns_list=None,
+        show_max_profit=True,
     )
 
     # Extract benchmark data

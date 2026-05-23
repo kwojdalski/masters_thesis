@@ -102,6 +102,7 @@ def compare_rollouts(
     training_episodes: int | None = None,
     df: pd.DataFrame | None = None,
     reward_type: str | None = None,
+    max_plot_points: int | None = None,
 ):
     """Compare multiple rollouts and visualize their actions and rewards."""
     all_actions = []
@@ -131,17 +132,22 @@ def compare_rollouts(
                 rewards_equal,
             )
 
+    stride = max(1, n_obs // max_plot_points) if max_plot_points and max_plot_points < n_obs else 1
+
     rewards_data = []
     for i, rewards in enumerate(all_rewards):
         rewards_np = rewards.detach().cpu().numpy()
+        cumsum = np.cumsum(rewards_np)
+        # Downsample after cumsum so in-between steps still contribute.
+        idx = np.arange(len(cumsum))[::stride]
         rewards_data.extend(
             [
                 {
-                    "Steps": step,
-                    "Cumulative_Reward": val,
+                    "Steps": int(step),
+                    "Cumulative_Reward": float(val),
                     "Run": "Deterministic" if i == 0 else "Random",
                 }
-                for step, val in enumerate(np.cumsum(rewards_np))
+                for step, val in zip(idx, cumsum[::stride])
             ]
         )
     df_rewards = pd.DataFrame(rewards_data)
@@ -149,14 +155,15 @@ def compare_rollouts(
     actions_data = []
     for i, actions in enumerate(all_actions):
         actions_np = actions.detach().cpu().numpy()
+        idx = np.arange(len(actions_np))[::stride]
         actions_data.extend(
             [
                 {
-                    "Steps": step,
-                    "Actions": val,
+                    "Steps": int(step),
+                    "Actions": float(val),
                     "Run": "Deterministic" if i == 0 else "Random",
                 }
-                for step, val in enumerate(actions_np)
+                for step, val in zip(idx, actions_np[::stride])
             ]
         )
     df_actions = pd.DataFrame(actions_data)
@@ -234,6 +241,7 @@ def create_actual_returns_plot(
     training_episodes: int | None = None,
     n_total_symbols: int | None = None,
     policy_mode: str = "deterministic",
+    max_plot_points: int | None = None,
 ):
     """Create a plot showing actual portfolio returns, not training rewards."""
     if initial_capital is not None:
@@ -245,7 +253,15 @@ def create_actual_returns_plot(
 
     t0 = time.monotonic()
     returns_data = []
-    logger.debug("create_actual_returns_plot start n_obs=%d", n_obs)
+    stride = max(1, n_obs // max_plot_points) if max_plot_points and max_plot_points < n_obs else 1
+    logger.debug("create_actual_returns_plot start n_obs=%d stride=%d", n_obs, stride)
+
+    def _extend_with_stride(run_name: str, values: np.ndarray) -> None:
+        idx = np.arange(len(values))[::stride]
+        returns_data.extend(
+            {"Steps": int(s), "Portfolio_Value": float(v), "Run": run_name}
+            for s, v in zip(idx, values[::stride])
+        )
 
     # Handle case where rollouts is None but actual_returns_list is provided
     if rollouts is None and actual_returns_list:
@@ -263,12 +279,7 @@ def create_actual_returns_plot(
                     initial_portfolio_value,
                     n_obs,
                 )
-                returns_data.extend(
-                    [
-                        {"Steps": step, "Portfolio_Value": val, "Run": run_name}
-                        for step, val in enumerate(portfolio_values)
-                    ]
-                )
+                _extend_with_stride(run_name, portfolio_values)
     else:
         # Original logic for when rollouts are provided
         for i, rollout in enumerate(rollouts):
@@ -294,12 +305,7 @@ def create_actual_returns_plot(
                 logger.debug("%s: Using rollout rewards as fallback", run_name)
                 portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
 
-            returns_data.extend(
-                [
-                    {"Steps": step, "Portfolio_Value": val, "Run": run_name}
-                    for step, val in enumerate(portfolio_values)
-                ]
-            )
+            _extend_with_stride(run_name, portfolio_values)
 
     logger.debug("returns_data built n_points=%d elapsed=%.2fs", len(returns_data), time.monotonic() - t0)
 
@@ -347,18 +353,9 @@ def create_actual_returns_plot(
                 )
 
     if df_prices is not None:
-        for step, bh_val in enumerate(buy_and_hold_values):
-            returns_data.append(
-                {"Steps": step, "Portfolio_Value": bh_val, "Run": "Buy-and-Hold"}
-            )
-            if show_max_profit:
-                returns_data.append(
-                    {
-                        "Steps": step,
-                        "Portfolio_Value": max_profit_values[step],
-                        "Run": "Max Profit (Unleveraged)",
-                    }
-                )
+        _extend_with_stride("Buy-and-Hold", buy_and_hold_values)
+        if show_max_profit:
+            _extend_with_stride("Max Profit (Unleveraged)", max_profit_values)
 
     logger.debug("benchmark data appended total_points=%d elapsed=%.2fs", len(returns_data), time.monotonic() - t0)
 
