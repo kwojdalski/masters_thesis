@@ -73,6 +73,7 @@ def build_evaluation_report_for_trainer(
     max_steps: int,
     config: Any,
     eval_env: Any | None = None,
+    cross_validate: bool = False,
 ) -> dict[str, float]:
     """Build the 25-metric evaluation report for deterministic policy rollout."""
     env_to_use = eval_env or trainer.env
@@ -116,21 +117,22 @@ def build_evaluation_report_for_trainer(
                     reward_type,
                     len(strategy_simple_returns),
                 )
-                prices_for_xval = benchmark_series.iloc[: max_steps + 1].to_numpy(dtype=float)
-                xval_err, _ = cross_validate_nlv(rollout, return_series.values, prices_for_xval)
-                if np.isfinite(xval_err):
-                    logger.info(
-                        "NLV cross-validation: max |broker_nlv - recomputed_nlv| = %.6f "
-                        "(tolerance ~0.01 for no-fee envs)",
-                        xval_err,
-                    )
-                    if xval_err > 1.0:
-                        logger.warning(
-                            "NLV cross-validation FAILED: broker NLV diverges from "
-                            "manually-recomputed NLV by %.4f. Check broker fees, "
-                            "position sizing, or weight scaling.",
+                if cross_validate:
+                    prices_for_xval = benchmark_series.iloc[: max_steps + 1].to_numpy(dtype=float)
+                    xval_err, _ = cross_validate_nlv(rollout, return_series.values, prices_for_xval)
+                    if np.isfinite(xval_err):
+                        logger.info(
+                            "NLV cross-validation: max |broker_nlv - recomputed_nlv| = %.6f "
+                            "(tolerance ~0.01 for no-fee envs)",
                             xval_err,
                         )
+                        if xval_err > 1.0:
+                            logger.warning(
+                                "NLV cross-validation FAILED: broker NLV diverges from "
+                                "manually-recomputed NLV by %.4f. Check broker fees, "
+                                "position sizing, or weight scaling.",
+                                xval_err,
+                            )
             else:
                 logger.warning(
                     "Could not extract TradingEnv broker returns for evaluation "
