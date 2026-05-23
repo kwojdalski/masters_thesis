@@ -13,7 +13,11 @@ from torchrl.envs.utils import set_exploration_type
 from logger import get_logger
 from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.evaluation.metrics import build_metric_report
-from trading_rl.evaluation.returns import RewardSeries, extract_tradingenv_return_series
+from trading_rl.evaluation.returns import (
+    RewardSeries,
+    cross_validate_nlv,
+    extract_tradingenv_return_series,
+)
 
 logger = get_logger(__name__)
 
@@ -112,6 +116,21 @@ def build_evaluation_report_for_trainer(
                     reward_type,
                     len(strategy_simple_returns),
                 )
+                prices_for_xval = benchmark_series.iloc[: max_steps + 1].to_numpy(dtype=float)
+                xval_err, _ = cross_validate_nlv(rollout, return_series.values, prices_for_xval)
+                if np.isfinite(xval_err):
+                    logger.info(
+                        "NLV cross-validation: max |broker_nlv - recomputed_nlv| = %.6f "
+                        "(tolerance ~0.01 for no-fee envs)",
+                        xval_err,
+                    )
+                    if xval_err > 1.0:
+                        logger.warning(
+                            "NLV cross-validation FAILED: broker NLV diverges from "
+                            "manually-recomputed NLV by %.4f. Check broker fees, "
+                            "position sizing, or weight scaling.",
+                            xval_err,
+                        )
             else:
                 logger.warning(
                     "Could not extract TradingEnv broker returns for evaluation "

@@ -239,6 +239,45 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
         return None
 
 
+def cross_validate_nlv(
+    rollout,
+    broker_nlv: np.ndarray,
+    prices: np.ndarray,
+    price_column: str = "close",
+) -> tuple[float, np.ndarray]:
+    """Compare broker NLV against NLV recomputed from rollout actions and prices.
+
+    Uses the formula:
+      NLV[0] = broker_nlv[0]    (initial cash)
+      NLV[1] = broker_nlv[0]    (entry step — no P&L at entry price)
+      NLV[t+1] = NLV[t] * (1 + w[t-1] * (price[t] / price[t-1] - 1))  for t >= 1
+
+    Returns:
+        max_abs_error: max absolute difference between broker and recomputed NLV.
+        recomputed: the manually-computed NLV array (length = n_steps + 1).
+    """
+    import torch
+
+    action_tensor = rollout.get("action", None)
+    if not isinstance(action_tensor, torch.Tensor):
+        return float("nan"), np.array([])
+
+    actions = action_tensor.detach().cpu().numpy().reshape(-1)  # [n_steps]
+    n = len(actions)
+    initial_cash = float(broker_nlv[0])
+
+    recomputed = np.empty(n + 1, dtype=float)
+    recomputed[0] = initial_cash
+    recomputed[1] = initial_cash
+    for t in range(1, n):
+        price_return = prices[t] / prices[t - 1] - 1.0
+        recomputed[t + 1] = recomputed[t] * (1.0 + float(actions[t - 1]) * price_return)
+
+    actual = np.asarray(broker_nlv[: n + 1], dtype=float)
+    max_err = float(np.max(np.abs(actual - recomputed)))
+    return max_err, recomputed
+
+
 def extract_tradingenv_returns(env, n_steps):
     """Extract cumulative log returns from TradingEnv broker.
 
