@@ -8,6 +8,7 @@ from trading_rl.features.base import FeatureConfig
 from trading_rl.features.selector import (
     FeatureSelector,
     FeatureSelectorConfig,
+    FeatureSelectionResult,
     _build_time_series_cv_splits,
     _ensemble_select_features,
     _build_multi_horizon_score_table,
@@ -303,6 +304,41 @@ class TestFeatureSelector:
 
         assert len(result.selected_configs) <= 3
         assert len(result.selected_configs) >= 0
+
+    def test_hyperparameter_search_scores_only_selected_features(self, monkeypatch):
+        """Grid search objective should ignore unselected candidate scores."""
+        weak = FeatureConfig(name="weak", feature_type="close")
+        strong = FeatureConfig(name="strong", feature_type="close")
+        score_table = pd.DataFrame(
+            {
+                "feature": ["weak", "strong"],
+                "icir": [0.1, 0.9],
+            }
+        )
+
+        def fake_select(self, feature_configs, train_df=None, val_df=None, df=None):
+            selected = [weak] if self.config.top_k == 1 else [strong]
+            return FeatureSelectionResult(
+                selected_configs=selected,
+                scores=score_table,
+                ic_series={},
+                correlation_matrix=pd.DataFrame(),
+                selected_names=[selected[0].name],
+                top_k=self.config.top_k,
+                icir_threshold=self.config.icir_threshold,
+            )
+
+        monkeypatch.setattr(FeatureSelector, "select", fake_select)
+        selector = FeatureSelector(
+            FeatureSelectorConfig(
+                enable_hyperparameter_search=True,
+                hyperparameter_grid={"top_k": [1, 2]},
+            )
+        )
+
+        result = selector._hyperparameter_search([weak, strong])
+
+        assert result.selected_names == ["strong"]
 
     def test_combined_cv_and_multi_horizon(self, sample_ohlcv_data, sample_features):
         """Test combining CV and multi-horizon."""
