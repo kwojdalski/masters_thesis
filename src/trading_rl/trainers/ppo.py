@@ -124,11 +124,16 @@ class PPOTrainer(BaseTrainer):
                 target_params=getattr(self.ppo_loss, "target_critic_network_params", None),
             )
 
-        # PPO is on-policy: create temporary buffer from fresh batch only
+        # PPO is on-policy: create temporary buffer from fresh batch only.
+        # SamplerWithoutReplacement ensures each transition is seen exactly once
+        # per epoch — RandomSampler (the default) allows duplicates and skips
+        # some transitions, violating the on-policy assumption.
         from torchrl.data import LazyTensorStorage, ReplayBuffer
+        from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 
         fresh_buffer = ReplayBuffer(
-            storage=LazyTensorStorage(self.config.frames_per_batch)
+            storage=LazyTensorStorage(self.config.frames_per_batch),
+            sampler=SamplerWithoutReplacement(),
         )
         fresh_buffer.extend(ppo_batch)
 
