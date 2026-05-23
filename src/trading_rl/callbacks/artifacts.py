@@ -386,6 +386,7 @@ def log_raw_data_overview(df: pd.DataFrame, config: Any) -> None:
 
 def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
     """Log transformed (feature-engineered) dataset overview, sample, and visuals to MLflow."""
+    logger = get_project_logger(__name__)
     all_feat_cols = [c for c in df.columns if str(c).startswith("feature_")]
     feat_df = df[all_feat_cols] if all_feat_cols else df
 
@@ -393,26 +394,37 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
     _log_overview_impl(
         feat_df,
         config,
-        "transformed_data_overview",
-        "Transformed Data (all)",
+        "transformed_data_overview/all_features",
+        "Transformed Data (all features)",
         n_plot_samples=1000,
         max_features=None,
-        plots_subdir="plots/all_features",
+        plots_subdir="plots",
     )
 
     # Only the features actually selected for the observation space
     selected_cols = getattr(getattr(config, "env", None), "feature_columns", None) or []
     selected_feat_cols = [c for c in selected_cols if c in df.columns and c != "feature_position"]
+    logger.debug(
+        "log_transformed_data_overview: selected_cols=%d in_df=%d",
+        len(selected_cols),
+        len(selected_feat_cols),
+    )
     if selected_feat_cols:
         sel_df = df[selected_feat_cols]
         _log_overview_impl(
             sel_df,
             config,
-            "transformed_data_overview",
-            "Transformed Data (selected)",
+            "transformed_data_overview/selected_features",
+            "Transformed Data (selected features)",
             n_plot_samples=1000,
             max_features=None,
-            plots_subdir="plots/selected_features",
+            plots_subdir="plots",
+        )
+    else:
+        logger.warning(
+            "log_transformed_data_overview: no selected features found — "
+            "env.feature_columns=%s; selected_features folder will not be created.",
+            selected_cols or "not set",
         )
 
     _log_feature_vs_return_scatter(df, config)
