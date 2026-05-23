@@ -8,7 +8,6 @@ from typing import Any
 import mlflow
 
 from logger import get_logger
-from logger.utils import _CYAN as _C, _RESET as _R
 
 logger = get_logger(__name__)
 
@@ -215,12 +214,8 @@ class TrainerRuntimeHooks:
                     )
                     _elapsed = time.monotonic() - _t_split
                     logger.info(
-                        "temp eval complete split=%s%s%s reward=%s%.4f%s"
-                        " artifacts=%s%s%s elapsed_s=%s%.2f%s",
-                        _C, split_ctx.split, _R,
-                        _C, final_reward, _R,
-                        _C, artifact_prefix, _R,
-                        _C, _elapsed, _R,
+                        "temp eval complete split=%s reward=%.4f artifacts=%s elapsed_s=%.2f",
+                        split_ctx.split, final_reward, artifact_prefix, _elapsed,
                     )
                 else:
                     logger.warning(

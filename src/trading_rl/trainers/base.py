@@ -18,7 +18,6 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
 
 from logger import get_logger, log_banner
-from logger.utils import _CYAN as _C, _RESET as _R
 from trading_rl.profiler import get_profiler
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.constants import EnvBackend, RewardType
@@ -363,10 +362,10 @@ class BaseTrainer(ABC):
 
         steps_key = "nlv_steps" if episode_steps is not None else "batch_steps"
         steps_val = episode_steps if episode_steps is not None else data.numel()
-        steps_label = f" {steps_key}={_C}{steps_val}{_R}"
+        steps_label = f" {steps_key}={steps_val}"
         symbol, start_ts, end_ts = self._get_current_episode_context()
         episode_ctx = (
-            f" symbol={_C}{symbol}{_R} date_range=[{_C}{start_ts}{_R} {_C}{end_ts}{_R}]"
+            f" symbol={symbol} date_range=[{start_ts} {end_ts}]"
             if symbol else ""
         )
         if actions:
@@ -376,17 +375,15 @@ class BaseTrainer(ABC):
             short_pct = 100.0 * np.sum(arr < 0) / n_act
             mean_exposure = float(np.mean(np.abs(arr)))
             position_str = (
-                f" long_pct={_C}{long_pct:.1f}{_R}"
-                f" short_pct={_C}{short_pct:.1f}{_R}"
-                f" mean_exposure={_C}{mean_exposure:.3f}{_R}"
+                f" long_pct={long_pct:.1f}"
+                f" short_pct={short_pct:.1f}"
+                f" mean_exposure={mean_exposure:.3f}"
             )
         else:
             position_str = ""
         logger.info(
-            "n_episode=%s%d%s portfolio_return_pct=%s%.2f%s portfolio_value=%s%.2f%s%s%s%s",
-            _C, callback._episode_count, _R,
-            _C, portfolio_return, _R,
-            _C, portfolio_valuation, _R,
+            "n_episode=%d portfolio_return_pct=%.2f portfolio_value=%.2f%s%s%s",
+            callback._episode_count, portfolio_return, portfolio_valuation,
             steps_label, position_str, episode_ctx,
         )
 

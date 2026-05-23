@@ -14,7 +14,6 @@ from torchrl.objectives import SoftUpdate
 from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
-from logger.utils import _CYAN as _C, _RESET as _R
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.constants import RewardType
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
@@ -405,8 +404,8 @@ class TD3Trainer(BaseTrainer):
         curr_loss_actor = loss_vals["loss_actor"].item()
 
         logger.info(
-            "td3 step max_steps=%s%d%s buffer_size=%s%d%s loss_value=%s%.4f%s loss_actor=%s%.4f%s",
-            _C, max_length, _R, _C, buffer_len, _R, _C, curr_loss_value, _R, _C, curr_loss_actor, _R,
+            "td3 step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f",
+            max_length, buffer_len, curr_loss_value, curr_loss_actor,
         )
 
     def _evaluate(self) -> None:
@@ -463,8 +462,8 @@ class TD3Trainer(BaseTrainer):
 
             eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
-                "td3 eval mean_reward=%s%.4f%s sum_reward=%s%.4f%s eval_steps=%s%d%s eval_data_len=%s%s%s",
-                _C, mean_reward, _R, _C, sum_reward, _R, _C, max_steps, _R, _C, eval_data_len, _R,
+                "td3 eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
+                mean_reward, sum_reward, max_steps, eval_data_len,
             )
 
             del eval_rollout

@@ -25,7 +25,6 @@ from torchrl.envs.utils import set_exploration_type
 from torchrl.objectives import ClipPPOLoss
 
 from logger import get_logger
-from logger.utils import _CYAN as _C, _RESET as _R
 from trading_rl.config import TrainingConfig
 from trading_rl.constants import TradePosition
 from trading_rl.models import (
@@ -191,10 +190,8 @@ class PPOTrainer(BaseTrainer):
         curr_loss_entropy = loss_vals["loss_entropy"].item()
 
         logger.info(
-            "ppo step max_steps=%s%d%s buffer_size=%s%d%s"
-            " loss_value=%s%.4f%s loss_actor=%s%.4f%s loss_entropy=%s%.4f%s",
-            _C, max_length, _R, _C, buffer_len, _R,
-            _C, curr_loss_value, _R, _C, curr_loss_actor, _R, _C, curr_loss_entropy, _R,
+            "ppo step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f loss_entropy=%.4f",
+            max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
         )
 
     def _evaluate(self) -> None:
@@ -228,8 +225,8 @@ class PPOTrainer(BaseTrainer):
 
             eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
-                "ppo eval mean_reward=%s%.4f%s sum_reward=%s%.4f%s eval_steps=%s%d%s eval_data_len=%s%s%s",
-                _C, mean_reward, _R, _C, sum_reward, _R, _C, max_steps, _R, _C, eval_data_len, _R,
+                "ppo eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
+                mean_reward, sum_reward, max_steps, eval_data_len,
             )
 
             del eval_rollout
