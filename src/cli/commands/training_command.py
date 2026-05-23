@@ -281,9 +281,9 @@ class TrainingCommand(BaseCommand):
         start = final_metrics.get("data_start_date", "")
         end = final_metrics.get("data_end_date", "")
         if start:
-            run_table.add_row("Data Start", str(start)[:10])
+            run_table.add_row("Date Start", str(start)[:10])
         if end:
-            run_table.add_row("Data End", str(end)[:10])
+            run_table.add_row("Date End", str(end)[:10])
         unique_symbols = final_metrics.get("unique_symbols", [])
         if unique_symbols:
             run_table.add_row("Unique Symbols", str(len(unique_symbols)))
