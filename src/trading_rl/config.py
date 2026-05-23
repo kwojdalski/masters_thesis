@@ -187,6 +187,8 @@ class TrainingConfig:
     temp_eval_splits: list[str] = field(default_factory=lambda: ["train", "val"])  # Which splits to evaluate; options: train, val, test
     temp_eval_max_steps: int = 50000  # Cap rollout length for periodic eval
     max_plot_points: int | None = 50_000  # Cap the number of plotted points per series; None = plot all
+    show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
+    allocation_ma_window: int = 500  # Rolling window size for the allocation MA
 
     def resolve_eval_steps(self, val_len: int) -> int:
         """Return the number of eval steps to use given the validation data length.

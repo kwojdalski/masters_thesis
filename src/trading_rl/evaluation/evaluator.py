@@ -63,6 +63,8 @@ class EvaluationConfig:
     periods_per_year: int = 252
     env: EnvConfig = field(default_factory=EnvConfig)  # Environment configuration
     max_plot_points: int | None = None  # Cap the number of plotted points per series; None = plot all
+    show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
+    allocation_ma_window: int = 500  # Rolling window size for the allocation MA
 
 
 @dataclass(frozen=True)
@@ -332,6 +334,8 @@ class StrategyEvaluator:
                 [rollout], max_steps, is_portfolio=is_portfolio, df=df,
                 reward_type=self.config.reward_type,
                 max_plot_points=self.config.max_plot_points,
+                show_allocation_ma=self.config.show_allocation_ma,
+                allocation_ma_window=self.config.allocation_ma_window,
             )
             logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
             plots = {

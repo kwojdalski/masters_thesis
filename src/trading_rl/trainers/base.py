@@ -502,6 +502,8 @@ class BaseTrainer(ABC):
                 "enable_plots": True,
                 "enable_metrics": False,  # Metrics computed separately
                 "max_plot_points": getattr(getattr(config, "training", None), "max_plot_points", None),
+                "show_allocation_ma": getattr(getattr(config, "training", None), "show_allocation_ma", True),
+                "allocation_ma_window": getattr(getattr(config, "training", None), "allocation_ma_window", 500),
             }
 
         from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
