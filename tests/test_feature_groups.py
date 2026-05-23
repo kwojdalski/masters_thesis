@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from trading_rl.features.base import FeatureDomain
+from trading_rl.constants import EnvMode
 from trading_rl.features.groups import FeatureGroupResolver
 
 
@@ -70,7 +70,7 @@ def test_get_group_features_converts_defaults() -> None:
     assert configs[1].name == "ofi"
     assert configs[1].normalize is False
     assert configs[1].output_name == "feature_ofi"
-    assert configs[1].domain == FeatureDomain.SHARED
+    assert configs[1].domain == EnvMode.SHARED
 
 
 def test_get_group_features_preserves_params_output_and_domain() -> None:
@@ -80,7 +80,7 @@ def test_get_group_features_preserves_params_output_and_domain() -> None:
 
     assert config.params == {"level": 0}
     assert config.output_name == "feature_book_pressure_l0"
-    assert config.domain == FeatureDomain.HFT
+    assert config.domain == EnvMode.HFT
 
 
 def test_resolve_deduplicates_by_output_name() -> None:
