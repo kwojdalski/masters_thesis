@@ -548,7 +548,6 @@ class PPOTrainer(BaseTrainer):
                 )
                 + scale_x_continuous(expand=(0, 0))
                 + thesis_theme(figure_size=(FIGURE_WIDTH * 2, FIGURE_HEIGHT))
-                + theme(legend_position="right")
             )
 
             return plot
