@@ -24,8 +24,9 @@ _PATH_EXTENSIONS = frozenset({
 })
 
 # Matches standalone numbers in an already-interpolated plain-text message.
-# Only runs after getMessage(), so the text is guaranteed ANSI-free.
 _NUMBER_RE = re.compile(r'(?<![.\d\w])([+-]?\d[\d,]*(?:\.\d+)?%?)(?![.\d\w])')
+# Matches a complete ANSI escape sequence so we can skip over already-colored segments.
+_ANSI_RE = re.compile(r'\033\[[0-9;]*m')
 
 
 def _is_path_like(value: str) -> bool:
@@ -58,10 +59,27 @@ def _colorize_path_args(args: object) -> object:
 
 
 def _colorize_numbers_in_text(text: str) -> str:
-    """Highlight standalone numbers in an already-interpolated plain-text string."""
-    if "\033[" in text:
-        return text  # already contains ANSI — don't corrupt it
-    return _NUMBER_RE.sub(lambda m: f"{_COLOR_NUMBER}{m.group()}{_COLOR_RESET}", text)
+    """Highlight standalone numbers in an already-interpolated plain-text string.
+
+    Applies number coloring only to plain-text segments between existing ANSI
+    sequences, so messages that already have path-colored args still get their
+    numeric values highlighted.
+    """
+    def _color_numbers(segment: str) -> str:
+        return _NUMBER_RE.sub(lambda m: f"{_COLOR_NUMBER}{m.group()}{_COLOR_RESET}", segment)
+
+    if "\033[" not in text:
+        return _color_numbers(text)
+
+    # Colorize numbers in each plain-text segment between existing ANSI codes.
+    result = []
+    last = 0
+    for m in _ANSI_RE.finditer(text):
+        result.append(_color_numbers(text[last:m.start()]))
+        result.append(m.group())
+        last = m.end()
+    result.append(_color_numbers(text[last:]))
+    return "".join(result)
 
 
 def _supports_color() -> bool:
