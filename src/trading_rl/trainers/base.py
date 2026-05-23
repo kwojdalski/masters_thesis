@@ -18,6 +18,7 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
 
 from logger import get_logger, log_banner
+from logger.utils import _CYAN as _C, _RESET as _R
 from trading_rl.profiler import get_profiler
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
 from trading_rl.constants import EnvBackend, RewardType
@@ -27,8 +28,6 @@ from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 
 _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
 
-_C = "\033[36m"   # cyan — highlight log values
-_R = "\033[0m"    # reset
 
 
 class _LocalTrajectoryPool:

@@ -25,6 +25,7 @@ from torchrl.envs.utils import set_exploration_type
 from torchrl.objectives import ClipPPOLoss
 
 from logger import get_logger
+from logger.utils import _CYAN as _C, _RESET as _R
 from trading_rl.config import TrainingConfig
 from trading_rl.constants import TradePosition
 from trading_rl.models import (
@@ -190,8 +191,10 @@ class PPOTrainer(BaseTrainer):
         curr_loss_entropy = loss_vals["loss_entropy"].item()
 
         logger.info(
-            "ppo step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f loss_entropy=%.4f",
-            max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
+            "ppo step max_steps=%s%d%s buffer_size=%s%d%s"
+            " loss_value=%s%.4f%s loss_actor=%s%.4f%s loss_entropy=%s%.4f%s",
+            _C, max_length, _R, _C, buffer_len, _R,
+            _C, curr_loss_value, _R, _C, curr_loss_actor, _R, _C, curr_loss_entropy, _R,
         )
 
     def _evaluate(self) -> None:

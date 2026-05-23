@@ -19,6 +19,7 @@ from rich.table import Table
 
 _GREEN = "\033[32m"
 _RESET = "\033[0m"
+_CYAN = "\033[96m"   # bright cyan — used to highlight log values
 _BANNER_WIDTH = 100
 
 

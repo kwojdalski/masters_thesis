@@ -8,11 +8,9 @@ from typing import Any
 import mlflow
 
 from logger import get_logger
+from logger.utils import _CYAN as _C, _RESET as _R
 
 logger = get_logger(__name__)
-
-_C = "\033[36m"   # cyan — used to highlight log values
-_R = "\033[0m"    # reset
 
 
 @dataclass

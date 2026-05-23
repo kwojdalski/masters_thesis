@@ -12,6 +12,7 @@ from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import DDPGLoss, SoftUpdate
 
 from logger import get_logger
+from logger.utils import _CYAN as _C, _RESET as _R
 from trading_rl.config import TrainingConfig
 from trading_rl.models import create_ddpg_actor, create_value_network
 from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
@@ -247,8 +248,8 @@ class DDPGTrainer(BaseTrainer):
         curr_loss_actor = loss_vals["loss_actor"].item()
 
         logger.info(
-            "ddpg step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f",
-            max_length, buffer_len, curr_loss_value, curr_loss_actor,
+            "ddpg step max_steps=%s%d%s buffer_size=%s%d%s loss_value=%s%.4f%s loss_actor=%s%.4f%s",
+            _C, max_length, _R, _C, buffer_len, _R, _C, curr_loss_value, _R, _C, curr_loss_actor, _R,
         )
 
     def _evaluate(self) -> None:
