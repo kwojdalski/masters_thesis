@@ -284,6 +284,7 @@ def _log_overview_impl(
     n_plot_samples: int = 200,
     max_features: int | None = 5,
     plots_subdir: str = "plots",
+    obs_clip: float | None = None,
 ) -> None:
     """Shared implementation for raw and transformed data overview logging."""
     logger = get_project_logger(__name__)
@@ -293,7 +294,7 @@ def _log_overview_impl(
         return
 
     try:
-        from plotnine import aes, geom_step, ggplot, labs
+        from plotnine import aes, geom_hline, geom_step, ggplot, labs
         from trading_rl.evaluation.thesis_theme import thesis_theme
 
         param_prefix = artifact_dir.replace("/", "_")
@@ -338,6 +339,12 @@ def _log_overview_impl(
                     )
                     + thesis_theme()
                 )
+                if obs_clip is not None:
+                    p = (
+                        p
+                        + geom_hline(yintercept=obs_clip, linetype="dashed", color="red", size=0.6)
+                        + geom_hline(yintercept=-obs_clip, linetype="dashed", color="red", size=0.6)
+                    )
                 temp_path = os.path.join(tempfile.gettempdir(), f"{column}.png")
                 p.save(temp_path, width=16, height=10, dpi=150)
                 mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
@@ -391,6 +398,8 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
     all_feat_cols = [c for c in df.columns if str(c).startswith("feature_")]
     feat_df = df[all_feat_cols] if all_feat_cols else df
 
+    obs_clip: float | None = getattr(getattr(config, "env", None), "obs_clip", None)
+
     # All computed features
     _log_overview_impl(
         feat_df,
@@ -400,6 +409,7 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
         n_plot_samples=1000,
         max_features=None,
         plots_subdir="plots",
+        obs_clip=obs_clip,
     )
 
     # Only the features actually selected for the observation space
@@ -420,6 +430,7 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
             n_plot_samples=1000,
             max_features=None,
             plots_subdir="plots",
+            obs_clip=obs_clip,
         )
     else:
         logger.warning(
