@@ -233,6 +233,7 @@ def create_actual_returns_plot(
     training_steps: int | None = None,
     training_episodes: int | None = None,
     n_total_symbols: int | None = None,
+    policy_mode: str = "deterministic",
 ):
     """Create a plot showing actual portfolio returns, not training rewards."""
     if initial_capital is not None:
@@ -389,9 +390,14 @@ def create_actual_returns_plot(
 
     returns_runs = list(df_returns["Run"].unique())
     logger.debug("constructing ggplot object")
+    _policy_label = {
+        "deterministic": "deterministic (no exploration noise)",
+        "stochastic": "stochastic (exploration noise active)",
+    }.get(policy_mode, policy_mode)
     caption_prefix = (
         f"Portfolio value in \\$ reconstructed from broker NLV at each step."
         f" Initial capital: \\${initial_portfolio_value:,.0f}."
+        f" Policy: {_policy_label}."
     )
     if pooled_note:
         caption_prefix = f"{caption_prefix}\n{pooled_note}"
