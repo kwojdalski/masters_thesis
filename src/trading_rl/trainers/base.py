@@ -27,6 +27,9 @@ from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 
 _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
 
+_C = "\033[36m"   # cyan — highlight log values
+_R = "\033[0m"    # reset
+
 
 class _LocalTrajectoryPool:
     """Minimal trajectory pool that avoids shared memory requirements."""
@@ -359,21 +362,32 @@ class BaseTrainer(ABC):
         # Use initial_val from callback and portfolio_valuation calculated above
         portfolio_return = 100 * (portfolio_valuation / initial_val - 1)
 
-        steps_label = f" nlv_steps={episode_steps}" if episode_steps is not None else f" batch_steps={data.numel()}"
+        steps_key = "nlv_steps" if episode_steps is not None else "batch_steps"
+        steps_val = episode_steps if episode_steps is not None else data.numel()
+        steps_label = f" {steps_key}={_C}{steps_val}{_R}"
         symbol, start_ts, end_ts = self._get_current_episode_context()
-        episode_ctx = f" symbol={symbol} date_range=[{start_ts} {end_ts}]" if symbol else ""
+        episode_ctx = (
+            f" symbol={_C}{symbol}{_R} date_range=[{_C}{start_ts}{_R} {_C}{end_ts}{_R}]"
+            if symbol else ""
+        )
         if actions:
             arr = np.asarray(actions, dtype=float)
             n_act = len(arr)
             long_pct = 100.0 * np.sum(arr > 0) / n_act
             short_pct = 100.0 * np.sum(arr < 0) / n_act
             mean_exposure = float(np.mean(np.abs(arr)))
-            position_str = f" long_pct={long_pct:.1f} short_pct={short_pct:.1f} mean_exposure={mean_exposure:.3f}"
+            position_str = (
+                f" long_pct={_C}{long_pct:.1f}{_R}"
+                f" short_pct={_C}{short_pct:.1f}{_R}"
+                f" mean_exposure={_C}{mean_exposure:.3f}{_R}"
+            )
         else:
             position_str = ""
         logger.info(
-            "n_episode=%d portfolio_return_pct=%.2f portfolio_value=%.2f%s%s%s",
-            callback._episode_count, portfolio_return, portfolio_valuation,
+            "n_episode=%s%d%s portfolio_return_pct=%s%.2f%s portfolio_value=%s%.2f%s%s%s%s",
+            _C, callback._episode_count, _R,
+            _C, portfolio_return, _R,
+            _C, portfolio_valuation, _R,
             steps_label, position_str, episode_ctx,
         )
 
