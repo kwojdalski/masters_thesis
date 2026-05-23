@@ -361,7 +361,7 @@ class BaseTrainer(ABC):
 
         steps_label = f" nlv_steps={episode_steps}" if episode_steps is not None else f" batch_steps={data.numel()}"
         symbol, start_ts, end_ts = self._get_current_episode_context()
-        episode_ctx = f" symbol={symbol} date_range=[{start_ts} – {end_ts}]" if symbol else ""
+        episode_ctx = f" symbol={symbol} date_range=[{start_ts} {end_ts}]" if symbol else ""
         if actions:
             arr = np.asarray(actions, dtype=float)
             n_act = len(arr)
