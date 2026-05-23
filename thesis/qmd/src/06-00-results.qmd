@@ -198,24 +198,3 @@ else:
     print("No active run detected for the selected experiment.")
 ```
 
-```{python}
-#| label: eval_comparison_plot
-#| echo: false
-#| warning: false
-
-import matplotlib.pyplot as plt
-from PIL import Image
-
-run_for_plot = snapshot.latest_running or snapshot.latest_finished
-plot_path = None if run_for_plot is None else run_for_plot.get("evaluation_plots", {}).get("merged_comparison")
-
-if plot_path and Path(plot_path).exists():
-    img = Image.open(plot_path)
-    fig, ax = plt.subplots(figsize=(10, 8))
-    ax.imshow(img)
-    ax.axis("off")
-    ax.set_title("Latest available evaluation comparison plot")
-    plt.show()
-else:
-    print("No evaluation comparison plot artifact available yet.")
-```

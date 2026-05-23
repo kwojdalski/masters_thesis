@@ -158,7 +158,6 @@ if finished is None:
 else:
     plots = finished.get("evaluation_plots", {})
     ordered = [
-        ("Merged comparison", "merged_comparison"),
         ("Actual returns", "actual_returns"),
         ("Rewards", "rewards"),
         ("Positions", "positions"),
