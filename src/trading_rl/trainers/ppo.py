@@ -557,8 +557,8 @@ class PPOTrainer(BaseTrainer):
 
             return plot
 
-        except Exception as exc:  # pragma: no cover - logged for diagnostics
-            logger.exception("action probabilities plot failed", exc_info=exc)
+        except Exception:  # pragma: no cover - logged for diagnostics
+            logger.exception("action probabilities plot failed")
             return None
 
 
@@ -722,6 +722,6 @@ class PPOTrainerContinuous(PPOTrainer):
             )
             return plot
 
-        except Exception as exc:  # pragma: no cover - logged for diagnostics
-            logger.exception("continuous action plot failed", exc_info=exc)
+        except Exception:  # pragma: no cover - logged for diagnostics
+            logger.exception("continuous action plot failed")
             return None
