@@ -537,7 +537,7 @@ class StreamingTradingEnvXY(gym.Env):
         # Snapshot symbol and date range for the new episode.
         self._current_episode_symbol = mp.symbol or Path(mp.data_path).stem.split("_")[0]
         if isinstance(window_df.index, pd.DatetimeIndex) and len(window_df) > 0:
-            fmt = "%Y-%m-%d %H:%M:%S"
+            fmt = "%Y-%m-%dT%H:%M:%S"
             self._current_episode_start_ts = window_df.index[0].strftime(fmt)
             self._current_episode_end_ts = window_df.index[-1].strftime(fmt)
         else:
