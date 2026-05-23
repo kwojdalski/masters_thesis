@@ -124,7 +124,6 @@ class DifferentialSharpeRatioAnyTrading:
         self.A_t = 0.0
         self.B_t = 0.0
         self._prev_nlv = None
-        self._missing_key_warned = False
 
     def __call__(self, history: dict) -> float:
         """Calculate DSR reward from trading history.
@@ -145,17 +144,12 @@ class DifferentialSharpeRatioAnyTrading:
             if "portfolio_valuation" in history:
                 nlv_now = history["portfolio_valuation"][-1]
             else:
-                if not getattr(self, "_missing_key_warned", False):
-                    import logging
-                    logging.getLogger(__name__).warning(
-                        "DifferentialSharpeRatioAnyTrading: 'portfolio_valuation' not found "
-                        "in history (type=%s, keys=%s). All rewards will be 0. "
-                        "Check environment history format.",
-                        type(history).__name__,
-                        list(history.keys()) if hasattr(history, "keys") else "N/A",
-                    )
-                    self._missing_key_warned = True
-                return 0.0
+                keys = list(history.keys()) if hasattr(history, "keys") else "N/A"
+                raise KeyError(
+                    f"DifferentialSharpeRatioAnyTrading: 'portfolio_valuation' not found "
+                    f"in history (type={type(history).__name__}, keys={keys}). "
+                    "Cannot compute DSR reward. Check environment history format."
+                )
 
         # First step: just store initial value
         if self._prev_nlv is None:
