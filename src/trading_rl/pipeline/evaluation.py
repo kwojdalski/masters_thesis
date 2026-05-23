@@ -468,6 +468,14 @@ def build_final_metrics(
             strategy = getattr(config.data, "eval_symbol_selection", "first")
             if strategy == "first":
                 val_test_symbols = [Path(val_data_paths[0]).parent.name]
+            elif strategy == "rotated":
+                counter_path = Path(memmap_dir_cfg) / ".eval_symbol_counter"
+                try:
+                    count = int(counter_path.read_text().strip()) if counter_path.exists() else 1
+                    idx = (count - 1) % len(val_data_paths)
+                    val_test_symbols = [Path(val_data_paths[idx]).parent.name]
+                except (ValueError, ZeroDivisionError):
+                    val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
             else:
                 val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
     elif val_data_paths:
