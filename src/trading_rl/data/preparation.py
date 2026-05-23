@@ -183,6 +183,7 @@ def _make_dataset(
     test_df: pd.DataFrame,
     config: Any,
     memmap_paths: list[MemmapPaths] | None = None,
+    feature_pipeline_state: dict[str, dict[str, float]] | None = None,
 ) -> PreparedDataset:
     """Detect feature/price columns and construct a PreparedDataset."""
     feature_columns = [col for col in train_df.columns if str(col).startswith("feature_")]
@@ -200,6 +201,7 @@ def _make_dataset(
         price_column=price_column,
         raw_columns=list(train_df.columns),
         memmap_train_paths=memmap_paths,
+        feature_pipeline_state=feature_pipeline_state,
     )
 
 
@@ -916,7 +918,7 @@ def prepare_data(
         )
     remaining = len(df) - train_size
     if validation_size is None:
-        validation_size = remaining // 2 if test_size is None else (remaining - test_size) // 2
+        validation_size = remaining // 2 if test_size is None else max(0, remaining - test_size)
     if validation_size < 0:
         raise ValueError(f"validation_size must be >= 0, got {validation_size}")
     if validation_size >= remaining:
