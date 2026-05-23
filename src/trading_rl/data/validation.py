@@ -32,6 +32,9 @@ class DataValidator:
         check_duplicates: bool = True,
         check_zero_variance: bool = True,
         check_lob_deltas: bool = True,
+        check_temporal_order: bool = True,
+        check_overlap: bool = True,
+        check_sizes: bool = True,
         lob_levels: int = 5,
     ) -> None:
         self.check_nan = check_nan
@@ -39,6 +42,9 @@ class DataValidator:
         self.check_duplicates = check_duplicates
         self.check_zero_variance = check_zero_variance
         self.check_lob_deltas = check_lob_deltas
+        self.check_temporal_order = check_temporal_order
+        self.check_overlap = check_overlap
+        self.check_sizes = check_sizes
         self.lob_levels = lob_levels
 
     # ------------------------------------------------------------------
@@ -168,6 +174,84 @@ class DataValidator:
                         f"These carry no signal and will produce NaN/inf during normalization."
                     )
 
+    def check_temporal_ordering(
+        self,
+        train_df: pd.DataFrame,
+        val_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+    ) -> None:
+        """Raise ValueError if splits are not in strict temporal order.
+
+        Checks train < val < test using the min/max of each split's index.
+        Only runs when all three splits have a DatetimeIndex.
+        """
+        frames = {"train": train_df, "val": val_df, "test": test_df}
+        if not all(isinstance(df.index, pd.DatetimeIndex) for df in frames.values()):
+            return
+        train_max = train_df.index.max()
+        val_min = val_df.index.min()
+        val_max = val_df.index.max()
+        test_min = test_df.index.min()
+        if train_max >= val_min:
+            raise ValueError(
+                f"Temporal ordering violated: train ends at {train_max} but val "
+                f"starts at {val_min}. Val data must come after train data."
+            )
+        if val_max >= test_min:
+            raise ValueError(
+                f"Temporal ordering violated: val ends at {val_max} but test "
+                f"starts at {test_min}. Test data must come after val data."
+            )
+
+    def check_no_index_overlap(
+        self,
+        train_df: pd.DataFrame,
+        val_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+    ) -> None:
+        """Raise ValueError if any two splits share index values (data leakage)."""
+        train_idx = set(train_df.index)
+        val_idx = set(val_df.index)
+        test_idx = set(test_df.index)
+        tv = train_idx & val_idx
+        if tv:
+            raise ValueError(
+                f"Data leakage: {len(tv)} index values shared between train and val splits."
+            )
+        tt = train_idx & test_idx
+        if tt:
+            raise ValueError(
+                f"Data leakage: {len(tt)} index values shared between train and test splits."
+            )
+        vt = val_idx & test_idx
+        if vt:
+            raise ValueError(
+                f"Data leakage: {len(vt)} index values shared between val and test splits."
+            )
+
+    def check_split_sizes(
+        self,
+        val_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        expected_val_size: int | None,
+        expected_test_size: int | None,
+    ) -> None:
+        """Raise ValueError if val or test row count doesn't match config sizes.
+
+        This catches stale prepared-data caches written before validation_size /
+        test_size were added to the config (e.g. 969 K rows instead of 50 K).
+        """
+        if expected_val_size is not None and len(val_df) != expected_val_size:
+            raise ValueError(
+                f"Val split has {len(val_df):,} rows but config validation_size="
+                f"{expected_val_size:,}. Delete the prepared-data cache and rerun."
+            )
+        if expected_test_size is not None and len(test_df) != expected_test_size:
+            raise ValueError(
+                f"Test split has {len(test_df):,} rows but config test_size="
+                f"{expected_test_size:,}. Delete the prepared-data cache and rerun."
+            )
+
     def check_lob_delta(
         self,
         train_df: pd.DataFrame,
@@ -248,6 +332,14 @@ class DataValidator:
             self.check_zero_variance_features(train_df, val_df, test_df, selected_columns)
         if self.check_lob_deltas:
             self.check_lob_delta(train_df, val_df, test_df)
+        if self.check_temporal_order:
+            self.check_temporal_ordering(train_df, val_df, test_df)
+        if self.check_overlap:
+            self.check_no_index_overlap(train_df, val_df, test_df)
+        if self.check_sizes:
+            expected_val_size = getattr(getattr(config, "data", None), "validation_size", None)
+            expected_test_size = getattr(getattr(config, "data", None), "test_size", None)
+            self.check_split_sizes(val_df, test_df, expected_val_size, expected_test_size)
 
 
 def validate_prepared_data(

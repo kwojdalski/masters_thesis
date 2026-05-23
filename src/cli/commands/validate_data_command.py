@@ -20,6 +20,9 @@ _CHECK_DESCRIPTIONS: dict[str, str] = {
     "duplicate index":       "No two rows may share the same timestamp index — duplicates indicate a data pipeline bug.",
     "zero-variance features":"No feature column may be constant across a split — std=0 causes division-by-zero in z-score normalisation.",
     "LOB deltas":            "Every row must differ from the previous row in at least one price or size field across the tracked LOB levels — fully unchanged books are stale ticks that filter_unchanged_lob() should have removed.",
+    "temporal order":        "Splits must be in strict chronological order: train < val < test. Violation means future data leaked into training.",
+    "index overlap":         "No timestamp may appear in more than one split — shared indices are direct data leakage between train/val/test.",
+    "split sizes":           "Val and test row counts must match config validation_size / test_size. A mismatch means a stale prepared-data cache is being used.",
 }
 
 
@@ -33,6 +36,9 @@ class ValidateDataParams:
     check_duplicates: bool = True
     check_zero_variance: bool = True
     check_lob_deltas: bool = True
+    check_temporal_order: bool = True
+    check_overlap: bool = True
+    check_sizes: bool = True
     lob_levels: int = 5
     verbose: bool = False
     transpose: bool = False
@@ -65,6 +71,9 @@ class ValidateDataCommand(BaseCommand):
             check_duplicates=params.check_duplicates,
             check_zero_variance=params.check_zero_variance,
             check_lob_deltas=params.check_lob_deltas,
+            check_temporal_order=params.check_temporal_order,
+            check_overlap=params.check_overlap,
+            check_sizes=params.check_sizes,
             lob_levels=params.lob_levels,
         )
 
@@ -91,6 +100,16 @@ class ValidateDataCommand(BaseCommand):
             checks.append(("zero-variance features", "zero-variance features", lambda: validator.check_zero_variance_features(dataset.train_df, dataset.val_df, dataset.test_df)))
         if params.check_lob_deltas:
             checks.append((lob_label, "LOB deltas", lambda: validator.check_lob_delta(dataset.train_df, dataset.val_df, dataset.test_df)))
+        if params.check_temporal_order:
+            checks.append(("temporal order", "temporal order", lambda: validator.check_temporal_ordering(dataset.train_df, dataset.val_df, dataset.test_df)))
+        if params.check_overlap:
+            checks.append(("index overlap", "index overlap", lambda: validator.check_no_index_overlap(dataset.train_df, dataset.val_df, dataset.test_df)))
+        if params.check_sizes:
+            checks.append(("split sizes", "split sizes", lambda: validator.check_split_sizes(
+                dataset.val_df, dataset.test_df,
+                getattr(getattr(config, "data", None), "validation_size", None),
+                getattr(getattr(config, "data", None), "test_size", None),
+            )))
 
         results: list[tuple[str, str, str, str]] = []
         failures: list[tuple[str, str]] = []
@@ -139,11 +158,14 @@ class ValidateDataCommand(BaseCommand):
         if params.verbose:
             tbl.add_column("Description", style="dim")
         rows = [
-            ("NaN values",                         params.check_nan,          "NaN values"),
-            ("Inf values",                         params.check_inf,          "inf values"),
-            ("Duplicate index",                    params.check_duplicates,   "duplicate index"),
-            ("Zero-variance features",             params.check_zero_variance,"zero-variance features"),
-            (f"LOB deltas (L{params.lob_levels})", params.check_lob_deltas,   "LOB deltas"),
+            ("NaN values",                         params.check_nan,           "NaN values"),
+            ("Inf values",                         params.check_inf,           "inf values"),
+            ("Duplicate index",                    params.check_duplicates,    "duplicate index"),
+            ("Zero-variance features",             params.check_zero_variance, "zero-variance features"),
+            (f"LOB deltas (L{params.lob_levels})", params.check_lob_deltas,    "LOB deltas"),
+            ("Temporal order",                     params.check_temporal_order,"temporal order"),
+            ("Index overlap",                      params.check_overlap,       "index overlap"),
+            ("Split sizes",                        params.check_sizes,         "split sizes"),
         ]
         for name, enabled, desc_key in rows:
             cells = [name, "[green]yes[/green]" if enabled else "[dim]no[/dim]"]
