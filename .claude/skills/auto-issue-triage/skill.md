@@ -78,21 +78,35 @@ gh issue view <number> --json number,title,body,labels,comments,author,createdAt
 - `DUPLICATE` — Issue already exists
 - `NEEDS MORE INFO` — Cannot determine without reproduction steps
 
-### 5. Work Assignment
+### 5. Issue Claiming
+
+Before working on any issue, claim it using the `/claim` skill to coordinate with other Claude Code sessions:
+
+```bash
+/claim <issue_number>
+```
+
+If the issue is already claimed by another session, skip it and try the next one.
+
+### 6. Work Assignment
 
 **Automatic Assignment:**
 - Pick top N issues (default: 5)
-- Add to current work tasks
+- For each issue:
+  1. Check if already claimed with `/claim`
+  2. If available, claim it and add to work queue
+  3. If unavailable, skip and try next
 - Create dedicated branch per issue if needed
 - Link related issues (dependencies, blockers)
 
-### 6. Automatic Updates
+### 7. Automatic Updates
 
 **Progress Tracking:** Update issue labels and status
 - `CONFIRMED` → Add label: `triaged-confirmed`
-- `IN_PROGRESS` → Add label: `in-progress`, assign to current sprint
-- `FIXED` → Remove `in-progress`, add `triaged-fixed`
-- `BLOCKED` → Add `blocked-by-design`, `needs-investigation`
+- `IN_PROGRESS` → Use `/claim <number>` to claim the issue
+- `FIXED` → Use `/release <number> --status resolved`
+- `BLOCKED` → Use `/release <number> --status blocked`
+- `INVALID` → Use `/release <number> --status invalid`
 
 ## Usage Examples
 
@@ -124,11 +138,16 @@ For each issue, the skill generates:
 **Analysis:** This appears to be a real bug.
 
 **Next Steps:**
-1. gh issue edit <number> --add-label "in-progress"
+1. /claim <number>  # Claim the issue before starting work
 2. git checkout -b fix/issue-<number>
 3. Implement fix and test
 4. git push origin fix/issue-<number>
+5. /release <number> --status resolved
 ```
+
+## Integration
+
+This skill uses `/claim` before starting work and `/release` when done. This prevents multiple Claude Code sessions from working on the same issue simultaneously.
 
 ## Important
 

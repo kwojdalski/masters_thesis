@@ -128,6 +128,7 @@ One of:
 
 **Confirming an issue (ok on CONFIRMED verdict):**
 ```
+/claim <number>  # Claim the issue before starting work
 gh issue edit <number> --add-label "confirmed"
 gh issue comment <number> --body "Triaged: confirmed. <one sentence summary of evidence>."
 ```
@@ -156,3 +157,4 @@ gh label create needs-more-info --color "#e4e669" --description "Waiting on repo
 - Do not implement fixes. This skill triages; fixes belong in `/bugfinder` or a direct edit task.
 - If you cannot find the relevant code after a reasonable search, return NEEDS MORE INFO rather than guessing.
 - Do not use emojis.
+- Use `/claim` before starting work and `/release` when done to coordinate with other sessions.

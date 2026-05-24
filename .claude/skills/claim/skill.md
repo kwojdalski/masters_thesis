@@ -1,0 +1,81 @@
+---
+name: claim
+description: Claim a GitHub issue as in-progress to coordinate work across multiple Claude Code sessions. Other skills should call this before starting work on an issue.
+---
+
+# Issue Claim
+
+Claim a GitHub issue as in-progress. This prevents multiple Claude Code sessions from working on the same issue simultaneously.
+
+## Usage
+
+```
+/claim <issue_number>
+```
+
+## What It Does
+
+1. **Check if already claimed**
+   ```bash
+   gh issue list --label in-progress --state open
+   gh issue view <number> --json number,comments --jq '.comments[] | select(.body | contains("Claimed by:")) | .body'
+   ```
+
+2. **If already claimed by another session:**
+   - Show who, when, and hostname
+   - Ask user to confirm before taking over
+   - If confirmed, add new claim comment and add `in-progress` label
+
+3. **If not claimed:**
+   - Add claim comment with session info
+   - Add `in-progress` label
+
+## Claim Comment Format
+
+```markdown
+Claimed by Claude Code session
+Hostname: <hostname>
+Started at: <ISO timestamp>
+Session ID: <random 8-char hex>
+```
+
+## Example
+
+```
+> /claim 87
+Checking if issue #87 is already claimed...
+✓ Issue is available
+
+Claiming issue #87...
+✓ Commented on issue: "Claimed by Claude Code session..."
+✓ Added in-progress label
+
+Issue #87 is now claimed by this session.
+```
+
+## Stale Claims
+
+If an issue has `in-progress` label but the claim is older than 4 hours, treat it as stale and allow re-claiming without confirmation.
+
+## Labels Used
+
+- `in-progress` — Indicates someone is actively working on this issue
+
+## Integration
+
+Other skills should call this before starting work:
+
+```bash
+# In auto-issue-triage or issue-triage
+if ! /claim <issue_number>; then
+  echo "Issue is already claimed. Skipping."
+  return
+fi
+```
+
+## Important
+
+- Always include hostname to differentiate sessions on the same machine
+- Use random session ID to differentiate multiple sessions on the same machine
+- Do not add `in-progress` label without adding a claim comment
+- Check for existing claim comments, not just the label (label could be stale)
