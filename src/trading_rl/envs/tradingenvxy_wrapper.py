@@ -615,7 +615,8 @@ class StreamingTradingEnvXY(gym.Env):
             return self._inner_env.render()
 
     def close(self):
-        pass
+        if self._inner_env is not None:
+            self._inner_env.close()
 
 
 # Alias for backward compatibility
