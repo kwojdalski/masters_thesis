@@ -243,9 +243,11 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
         tmp_dir_str,          # str
         worker_idx,           # int — 1-based index for log tag
         n_workers_total,      # int
+        feature_cache_dir_str,  # str | None
     ) = args
 
     import gc as _gc
+    import hashlib as _hashlib
     import json as _json
     import logging as _logging
     from pathlib import Path as _Path
@@ -278,6 +280,15 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
             df = filter_unchanged_lob(df, levels=filter_lob_levels)
         return df
 
+    def _feat_cache_path(path: str) -> "_Path | None":
+        if not feature_cache_dir_str:
+            return None
+        mtime = _Path(path).stat().st_mtime_ns
+        _cfg = _Path(feature_config) if feature_config else None
+        cfg_sig = _hashlib.md5(_cfg.read_bytes()).hexdigest()[:12] if (_cfg and _cfg.exists()) else "default"
+        key = _hashlib.md5(f"{_Path(path).name}|{mtime}|lob{filter_lob_levels}|{cfg_sig}".encode()).hexdigest()
+        return _Path(feature_cache_dir_str) / key / "full.parquet"
+
     # ── 1. Fit pipeline ───────────────────────────────────────────────────────
     pipeline = FeaturePipeline.from_yaml(feature_config)
     needs_full_concat = any(
@@ -303,10 +314,18 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
     train_results: list[tuple[int, Any]] = []
     for orig_idx, train_path in zip(train_indices, train_paths_sym):
         _logger.info("transform train path=%s", train_path)
-        raw_df = _load(train_path)
-        feats = pipeline.transform(raw_df)
-        train_df_i = _pd.concat([raw_df, feats], axis=1)
-        del raw_df, feats
+        _fcp = _feat_cache_path(train_path) if not needs_full_concat else None
+        if _fcp is not None and _fcp.exists():
+            _logger.info("feature cache hit path=%s", train_path)
+            train_df_i = _pd.read_parquet(_fcp)
+        else:
+            raw_df = _load(train_path)
+            feats = pipeline.transform(raw_df)
+            train_df_i = _pd.concat([raw_df, feats], axis=1)
+            del raw_df, feats
+            if _fcp is not None:
+                _fcp.parent.mkdir(parents=True, exist_ok=True)
+                train_df_i.to_parquet(_fcp)
 
         if mode == EnvMode.HFT:
             train_df_i = _derive_close_hft_single(train_df_i, f"train_{orig_idx}", _logger)
@@ -361,10 +380,18 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
     val_entry: dict[str, str] | None = None
     if val_path is not None and val_index is not None:
         _logger.info("transform val path=%s symbol=%s", val_path, symbol)
-        raw_val = _load(val_path)
-        val_feats = pipeline.transform(raw_val)
-        val_df_j = _pd.concat([raw_val, val_feats], axis=1)
-        del raw_val, val_feats
+        _fcp_val = _feat_cache_path(val_path) if not needs_full_concat else None
+        if _fcp_val is not None and _fcp_val.exists():
+            _logger.info("feature cache hit val path=%s", val_path)
+            val_df_j = _pd.read_parquet(_fcp_val)
+        else:
+            raw_val = _load(val_path)
+            val_feats = pipeline.transform(raw_val)
+            val_df_j = _pd.concat([raw_val, val_feats], axis=1)
+            del raw_val, val_feats
+            if _fcp_val is not None:
+                _fcp_val.parent.mkdir(parents=True, exist_ok=True)
+                val_df_j.to_parquet(_fcp_val)
 
         if mode == EnvMode.HFT:
             val_df_j = _derive_close_hft_single(val_df_j, f"val_{val_index}", _logger)
@@ -414,6 +441,7 @@ def _build_per_day_splits(
     backend = str(getattr(config.env, "backend", "")).lower().strip()
     filter_lob_levels = getattr(config.data, "filter_lob_levels", None)
     warmup_rows = getattr(config.data, "warmup_rows", 0)
+    feature_cache_dir = getattr(config.data, "feature_cache_dir", None)
 
     def _symbol_of(path: str) -> str:
         return Path(path).name.split("_")[0]
@@ -473,6 +501,7 @@ def _build_per_day_splits(
             str(tmp_dir),
             worker_idx,
             n_workers,
+            str(feature_cache_dir) if feature_cache_dir else None,
         ))
 
     # Collect results keyed by original index so ordering is preserved

@@ -216,6 +216,7 @@ def _fake_worker_factory(n_val_rows: int = 10):
             symbol, train_indices, train_paths_sym, val_path, val_index,
             feature_config, mode, backend, filter_lob_levels, warmup_rows,
             memmap_dir_str, tmp_dir_str, worker_idx, n_workers_total,
+            feature_cache_dir_str,
         ) = args
 
         tmp_dir = Path(tmp_dir_str)
@@ -353,7 +354,8 @@ class TestBuildPerDaySplits:
         def _worker_with_memmap(args):
             (symbol, train_indices, train_paths_sym, val_path, val_index,
              feature_config, mode, backend, filter_lob_levels, warmup_rows,
-             memmap_dir_str, tmp_dir_str, worker_idx, n_workers_total) = args
+             memmap_dir_str, tmp_dir_str, worker_idx, n_workers_total,
+             feature_cache_dir_str) = args
 
             from pathlib import Path as P
             import numpy as _np, pandas as _pd
