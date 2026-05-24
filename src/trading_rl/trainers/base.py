@@ -135,7 +135,7 @@ def _run_evaluation(
                 float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
                 if config else DEFAULT_INITIAL_PORTFOLIO_VALUE
             ),
-            benchmark_price_column=getattr(config.env, "price_column", None) if config else "close",
+            benchmark_price_column=getattr(config.env, "price_column", None) or "close" if config else "close",
             show_max_profit=config.benchmarks.show_max_profit if config else True,
             training_steps=trainer.total_count,
             training_episodes=trainer.total_episodes,

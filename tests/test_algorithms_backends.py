@@ -32,6 +32,9 @@ def test_ppo_anytrading_forex():
     params = TrainingParams(
         config_file=config_path,
         max_steps=600,  # Divisible by frames_per_batch (200)
+        # Reduce train_size so val_df gets ~50 rows (data has 500 total).
+        # Without this, val_df = 25 rows → 1-step gym_anytrading episode → IndexError.
+        config_overrides=["data.train_size=400"],
     )
 
     # Initialize Command

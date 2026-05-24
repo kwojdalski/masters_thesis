@@ -218,6 +218,15 @@ class PPOTrainer(BaseTrainer):
                 )
                 with set_exploration_type(InteractionType.DETERMINISTIC):
                     eval_rollout = eval_env.rollout(n_eval, self.actor)
+            except IndexError:
+                # gym_anytrading raises IndexError when the episode (val_df) is too
+                # short relative to window_size, so prices[tick+1] goes out of bounds.
+                # Skip this eval step rather than crashing the training run.
+                logger.warning(
+                    "ppo _evaluate: eval env raised IndexError (episode too short for "
+                    "gym_anytrading window); skipping this eval step"
+                )
+                return
 
             # Log evaluation metrics
             mean_reward = eval_rollout["next", "reward"].mean().item()
