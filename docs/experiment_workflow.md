@@ -374,6 +374,7 @@ The system includes comprehensive error handling for: - **Data Loading**: Missin
 ## See Also
 
 - [Data Download and Generation Guide](./data_guide.md) - How to obtain training data
+- [Thesis Artifact Bridge](./thesis_artifact_bridge.md) - How evaluate output flows into Quarto chapters
 - [PPO Implementation Overview](./ppo_implementation_overview.md) - PPO algorithm details
 - [DDPG Implementation Overview](./ddpg_implementation_overview.md) - DDPG algorithm details
 - [TD3 Implementation Overview](./td3_implementation_overview.md) - TD3 algorithm details
