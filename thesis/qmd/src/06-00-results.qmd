@@ -87,13 +87,16 @@ _H1_AGENTS = [
 ]
 
 _H1_COLS = [
+    ("total_return",          "Return",    ".2%"),
+    ("annualized_volatility", "Ann. Vol",  ".4f"),
+    ("max_drawdown",          "Max DD",    ".2%"),
     ("sharpe_ratio",          "Sharpe",    ".3f"),
     ("sortino_ratio",         "Sortino",   ".3f"),
-    ("total_return",          "Return",    ".2%"),
-    ("max_drawdown",          "Max DD",    ".2%"),
     ("win_rate",              "Win Rate",  ".2%"),
+    ("lose_rate",             "Lose Rate", ".2%"),
     ("profit_factor",         "PF",        ".3f"),
-    ("annualized_volatility", "Ann. Vol",  ".3f"),
+    ("pct_long",              "% Long",    ".2%"),
+    ("pct_short",             "% Short",   ".2%"),
 ]
 
 def _fmtv(val, fmt):
