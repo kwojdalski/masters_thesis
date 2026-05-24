@@ -751,6 +751,59 @@ def peek(
     ))
 
 
+@app.command(name="peek-configs")
+def peek_configs(
+    n: int = typer.Option(20, "--top", "-n", help="Number of configs to show"),
+    search_dir: Path | None = typer.Option(  # noqa: B008
+        None, "--dir", "-d", help="Directory to search (default: src/configs)"
+    ),
+    pattern: str | None = typer.Option(
+        None, "--filter", "-f", help="Filter by substring in path"
+    ),
+) -> None:
+    """List config YAML files sorted by most recently modified.
+
+    Shows algorithm, reward type, and other key fields so you know which
+    scenario to run next.
+    """
+    import yaml
+
+    base = search_dir or Path("src/configs")
+    yamls = sorted(base.rglob("*.yaml"), key=lambda p: p.stat().st_mtime, reverse=True)
+
+    if pattern:
+        yamls = [p for p in yamls if pattern in str(p)]
+
+    yamls = yamls[:n]
+
+    tbl = Table(title=f"Recent configs (top {len(yamls)} of {base})", show_header=True, header_style="bold")
+    tbl.add_column("modified", style="dim")
+    tbl.add_column("scenario")
+    tbl.add_column("algorithm")
+    tbl.add_column("reward")
+    tbl.add_column("backend")
+
+    for p in yamls:
+        mtime = datetime.fromtimestamp(p.stat().st_mtime).strftime("%m-%d %H:%M")
+        rel = p.relative_to(base)
+        # For train.yaml show just the parent dir; strip leading scenarios/ prefix
+        label = rel.parent if p.name == "train.yaml" else rel
+        parts = label.parts
+        scenario_label = str(Path(*parts[1:])) if parts and parts[0] == "scenarios" else str(label)
+        try:
+            with p.open() as f:
+                cfg = yaml.safe_load(f) or {}
+        except Exception:
+            cfg = {}
+
+        algorithm = (cfg.get("training") or {}).get("algorithm", "")
+        reward = (cfg.get("env") or {}).get("reward_type", "")
+        backend = (cfg.get("env") or {}).get("backend", "")
+        tbl.add_row(mtime, scenario_label, algorithm, reward, backend)
+
+    console.print(tbl)
+
+
 @validate_app.command(name="config")
 def validate_config(
     config_file: Path | None = typer.Option(  # noqa: B008
