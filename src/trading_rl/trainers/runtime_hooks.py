@@ -46,10 +46,14 @@ class PeriodicExplainabilityHook:
 class TrainerRuntimeHooks:
     """Manage optional periodic work triggered from the training loop."""
 
+    _MAX_HOOK_FAILURES = 3
+
     def __init__(self, trainer: Any):
         self.trainer = trainer
         self._evaluation: PeriodicEvaluationHook | None = None
         self._explainability: PeriodicExplainabilityHook | None = None
+        self._eval_consecutive_failures = 0
+        self._explainability_consecutive_failures = 0
 
     def configure_periodic_evaluation(
         self,
@@ -222,12 +226,21 @@ class TrainerRuntimeHooks:
                         "no active mlflow run, skip temp evaluation logging split=%s",
                         split_ctx.split,
                     )
-            except Exception as exc:
+            except Exception:
+                self._eval_consecutive_failures += 1
                 logger.error(
-                    "temp eval failed split=%s step=%s elapsed=%.2fs",
+                    "temp eval failed split=%s step=%s elapsed=%.2fs (failure %d/%d)",
                     split_ctx.split, step_number, time.monotonic() - _t_split,
+                    self._eval_consecutive_failures, self._MAX_HOOK_FAILURES,
                     exc_info=True,
                 )
+                if self._eval_consecutive_failures >= self._MAX_HOOK_FAILURES:
+                    raise RuntimeError(
+                        f"Periodic eval hook failed {self._MAX_HOOK_FAILURES} consecutive times; "
+                        "aborting training. Check logs above for the root cause."
+                    )
+            else:
+                self._eval_consecutive_failures = 0
 
         logger.info(
             "temp eval all splits done step=%s total_elapsed=%.2fs",
@@ -270,9 +283,18 @@ class TrainerRuntimeHooks:
                 "Temporary explainability complete: plots saved to %s",
                 artifact_prefix,
             )
-        except Exception as exc:
+        except Exception:
+            self._explainability_consecutive_failures += 1
             logger.error(
-                "Temporary explainability failed at step %s",
+                "Temporary explainability failed at step %s (failure %d/%d)",
                 step_number,
+                self._explainability_consecutive_failures, self._MAX_HOOK_FAILURES,
                 exc_info=True,
             )
+            if self._explainability_consecutive_failures >= self._MAX_HOOK_FAILURES:
+                raise RuntimeError(
+                    f"Periodic explainability hook failed {self._MAX_HOOK_FAILURES} consecutive times; "
+                    "aborting training. Check logs above for the root cause."
+                )
+        else:
+            self._explainability_consecutive_failures = 0
