@@ -15,7 +15,6 @@ from plotnine import (
     labs,
     scale_fill_manual,
     scale_x_continuous,
-    theme,
 )
 
 from trading_rl.evaluation.thesis_theme import FIGURE_HEIGHT, FIGURE_WIDTH, thesis_theme

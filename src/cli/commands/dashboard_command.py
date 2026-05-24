@@ -5,7 +5,6 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 
-import typer
 
 from .base_command import BaseCommand
 

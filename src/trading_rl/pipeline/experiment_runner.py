@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -24,7 +23,7 @@ from trading_rl.pipeline.training import (
     build_experiment_runtime,
     setup_mlflow_experiment,
 )
-from trading_rl.profiler import get_profiler, init_profiler
+from trading_rl.profiler import init_profiler
 
 
 @dataclass(frozen=True)

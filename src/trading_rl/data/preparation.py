@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 
 from logger import get_logger
-from trading_rl.constants import EnvBackend, EnvMode, EvalSymbolSelection, SplitName
+from trading_rl.constants import EnvBackend, EnvMode, EvalSymbolSelection
 from trading_rl.data_loading import LazyDataFrame, MemmapPaths, load_memmap_paths, load_prepared_splits, save_prepared_splits, save_symbol_memmap
 from trading_rl.data.cache import (
     _feature_cache_key,
@@ -261,9 +261,9 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
     _root = _logging.getLogger()
     for _h in _root.handlers:
         _h.addFilter(_WorkerLogFilter(_tag))
-    from trading_rl.data.hft import _deduplicate_hft_index_single, _derive_close_hft_single
+    from trading_rl.data.hft import _deduplicate_hft_index_single
     from trading_rl.data.loading import load_trading_data
-    from trading_rl.data_loading import MemmapPaths, save_symbol_memmap
+    from trading_rl.data_loading import save_symbol_memmap
     from trading_rl.features import FeaturePipeline
     from trading_rl.features.base import NormalizationMethod
 

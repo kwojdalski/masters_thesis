@@ -304,7 +304,6 @@ def _compute_ic_decay(
     pipeline.fit(train_df)
 
     train_features = pipeline.transform(train_df)
-    val_features = pipeline.transform(val_df)
 
     results: list[dict] = []
 

@@ -8,14 +8,14 @@ import torch
 from tensordict.nn import InteractionType, TensorDictSequential
 from torch.optim import Adam
 from torchrl.data import Bounded
-from torchrl.envs.utils import RandomPolicy, set_exploration_type
+from torchrl.envs.utils import set_exploration_type
 from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import SoftUpdate
 from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
-from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
-from trading_rl.constants import LossFunction, RewardType
+from trading_rl.config import TrainingConfig
+from trading_rl.constants import LossFunction
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
 from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
 

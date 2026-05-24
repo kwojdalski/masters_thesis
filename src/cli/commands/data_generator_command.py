@@ -111,8 +111,7 @@ class DataGeneratorCommand(BaseCommand):
         config_path = self._resolve_config_path(scenario)
         self.logger.info("read scenario defaults path=%s", config_path)
 
-        with config_path.open("r", encoding="utf-8") as handle:
-            scenario_config = self.load_config(config_path)
+        scenario_config = self.load_config(config_path)
 
         pattern_defaults = scenario_config.get("data_generator") or {}
         data_defaults = scenario_config.get("data") or {}

@@ -38,7 +38,7 @@ class ExperimentCommand(BaseCommand):
             self._display_experiment_info(config, params, base_seed)
             
             # Run experiments
-            experiment_result = self._run_experiments_with_progress(
+            self._run_experiments_with_progress(
                 config, params, base_seed
             )
             

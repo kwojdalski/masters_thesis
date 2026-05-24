@@ -3,7 +3,6 @@
 import torch
 from torchrl.data import Bounded
 from torchrl.envs import EnvBase
-from tensordict import TensorDict
 
 from logger import get_logger
 from trading_rl.constants import TradePosition

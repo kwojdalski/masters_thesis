@@ -11,7 +11,6 @@ from typing import Any
 
 import mlflow
 import numpy as np
-import pandas as pd
 import torch
 from logger import get_logger as get_project_logger
 from logger import log_banner

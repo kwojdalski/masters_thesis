@@ -9,8 +9,6 @@ Functions for filtering order book data to remove:
 from __future__ import annotations
 
 import pandas as pd
-import numpy as np
-from typing import List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
