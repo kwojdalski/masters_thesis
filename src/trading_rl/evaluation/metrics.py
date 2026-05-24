@@ -2,9 +2,93 @@
 
 from __future__ import annotations
 
+import dataclasses
+import math
+from dataclasses import dataclass, field
+
 import numpy as np
 
 from trading_rl.evaluation.returns import ReturnSeries
+
+_NAN = float("nan")
+
+
+@dataclass
+class MetricReport:
+    """Typed container for the 29 standard quantitative finance metrics.
+
+    All fields default to NaN so that callers can safely access any metric
+    even when computation was skipped (e.g. empty returns).
+    """
+
+    # Return / growth
+    total_return: float = _NAN
+    annualized_return_cagr: float = _NAN
+    annualized_volatility: float = _NAN
+
+    # Risk-adjusted ratios
+    sharpe_ratio: float = _NAN
+    sortino_ratio: float = _NAN
+    calmar_ratio: float = _NAN
+    omega_ratio: float = _NAN
+
+    # Drawdown
+    max_drawdown: float = _NAN
+    average_drawdown: float = _NAN
+    max_drawdown_duration: float = _NAN
+    recovery_time_from_max_drawdown: float = _NAN
+
+    # Tail risk
+    var_95: float = _NAN
+    cvar_95: float = _NAN
+    downside_deviation: float = _NAN
+
+    # Distribution shape
+    return_skewness: float = _NAN
+    return_kurtosis: float = _NAN
+
+    # Trade statistics
+    win_rate: float = _NAN
+    lose_rate: float = _NAN
+    profit_factor: float = _NAN
+    payoff_ratio: float = _NAN
+    expectancy_per_period: float = _NAN
+
+    # Execution / position
+    turnover: float = _NAN
+    average_holding_period: float = _NAN
+    pct_long: float = _NAN
+    pct_short: float = _NAN
+
+    # Benchmark-relative (NaN when no benchmark provided)
+    beta: float = _NAN
+    alpha: float = _NAN
+    information_ratio: float = _NAN
+    tracking_error: float = _NAN
+
+    # ------------------------------------------------------------------
+    def to_dict(self) -> dict[str, float]:
+        """Return a plain dict representation (keys identical to field names)."""
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def all_nan(cls) -> "MetricReport":
+        """Return a MetricReport with every field set to NaN."""
+        return cls()
+
+    def __contains__(self, key: object) -> bool:
+        """Support `key in report` — checks field names, mirrors dict behaviour."""
+        return isinstance(key, str) and hasattr(self, key) and key in {f.name for f in dataclasses.fields(self)}
+
+    def __getitem__(self, key: str) -> float:
+        """Support `report[key]` — mirrors dict behaviour."""
+        if key not in self:
+            raise KeyError(key)
+        return getattr(self, key)
+
+    def __bool__(self) -> bool:
+        """True when at least one field is finite (i.e. not all NaN)."""
+        return any(math.isfinite(v) for v in dataclasses.asdict(self).values())
 
 
 def _safe_div(numerator: float, denominator: float) -> float:
@@ -99,8 +183,8 @@ def build_metric_report(
     actions: np.ndarray | None,
     periods_per_year: int,
     risk_free_rate_annual: float = 0.0,
-) -> dict[str, float]:
-    """Compute 25 standard quantitative finance metrics."""
+) -> MetricReport:
+    """Compute 29 standard quantitative finance metrics."""
     benchmark_position_side = (
         getattr(strategy_simple_returns, "benchmark_position_side", None)
         if actions is None
@@ -112,7 +196,7 @@ def build_metric_report(
     r = r_all[np.isfinite(r_all)]
 
     if r.size == 0:
-        return dict.fromkeys(_metric_keys(), np.nan)
+        return MetricReport.all_nan()
 
     rf_per_period = risk_free_rate_annual / periods_per_year
     mu = float(np.mean(r))
@@ -143,7 +227,10 @@ def build_metric_report(
     gross_profit = float(np.sum(wins)) if wins.size else 0.0
     gross_loss = float(np.sum(np.abs(losses))) if losses.size else 0.0
     profit_factor = _safe_div(gross_profit, gross_loss)
-    payoff_ratio = _safe_div(float(np.mean(wins)) if wins.size else 0.0, abs(float(np.mean(losses))) if losses.size else 0.0)
+    payoff_ratio = _safe_div(
+        float(np.mean(wins)) if wins.size else 0.0,
+        abs(float(np.mean(losses))) if losses.size else 0.0,
+    )
     expectancy = float(mu)
 
     # Omega ratio at the risk-free threshold: E[max(r - rf, 0)] / E[max(rf - r, 0)]
@@ -188,68 +275,34 @@ def build_metric_report(
                 tracking_error = active_std * np.sqrt(periods_per_year)
                 info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
 
-    return {
-        "total_return": total_return,
-        "annualized_return_cagr": cagr,
-        "annualized_volatility": annual_vol,
-        "sharpe_ratio": sharpe,
-        "sortino_ratio": sortino,
-        "calmar_ratio": calmar,
-        "max_drawdown": max_dd,
-        "average_drawdown": avg_dd,
-        "max_drawdown_duration": float(max_dd_duration),
-        "recovery_time_from_max_drawdown": float(recovery_time) if np.isfinite(recovery_time) else np.nan,
-        "var_95": var_95,
-        "cvar_95": cvar_95,
-        "downside_deviation": downside_dev,
-        "return_skewness": skew,
-        "return_kurtosis": kurt,
-        "win_rate": hit_rate,
-        "lose_rate": lose_rate,
-        "profit_factor": profit_factor,
-        "payoff_ratio": payoff_ratio,
-        "omega_ratio": omega_ratio,
-        "expectancy_per_period": expectancy,
-        "turnover": turnover,
-        "average_holding_period": avg_holding,
-        "pct_long": pct_long,
-        "pct_short": pct_short,
-        "beta": beta,
-        "alpha": float(alpha) if np.isfinite(alpha) else np.nan,
-        "information_ratio": info_ratio,
-        "tracking_error": tracking_error,
-    }
-
-
-def _metric_keys() -> list[str]:
-    return [
-        "total_return",
-        "annualized_return_cagr",
-        "annualized_volatility",
-        "sharpe_ratio",
-        "sortino_ratio",
-        "calmar_ratio",
-        "max_drawdown",
-        "average_drawdown",
-        "max_drawdown_duration",
-        "recovery_time_from_max_drawdown",
-        "var_95",
-        "cvar_95",
-        "downside_deviation",
-        "return_skewness",
-        "return_kurtosis",
-        "win_rate",
-        "lose_rate",
-        "profit_factor",
-        "payoff_ratio",
-        "omega_ratio",
-        "expectancy_per_period",
-        "turnover",
-        "average_holding_period",
-        "pct_long",
-        "pct_short",
-        "beta",
-        "alpha",
-        "information_ratio",
-        "tracking_error",
-    ]
+    return MetricReport(
+        total_return=total_return,
+        annualized_return_cagr=cagr,
+        annualized_volatility=annual_vol,
+        sharpe_ratio=sharpe,
+        sortino_ratio=sortino,
+        calmar_ratio=calmar,
+        omega_ratio=omega_ratio,
+        max_drawdown=max_dd,
+        average_drawdown=avg_dd,
+        max_drawdown_duration=float(max_dd_duration),
+        recovery_time_from_max_drawdown=float(recovery_time) if np.isfinite(recovery_time) else np.nan,
+        var_95=var_95,
+        cvar_95=cvar_95,
+        downside_deviation=downside_dev,
+        return_skewness=skew,
+        return_kurtosis=kurt,
+        win_rate=hit_rate,
+        lose_rate=lose_rate,
+        profit_factor=profit_factor,
+        payoff_ratio=payoff_ratio,
+        expectancy_per_period=expectancy,
+        turnover=turnover,
+        average_holding_period=avg_holding,
+        pct_long=pct_long,
+        pct_short=pct_short,
+        beta=beta,
+        alpha=float(alpha) if np.isfinite(alpha) else np.nan,
+        information_ratio=info_ratio,
+        tracking_error=tracking_error,
+    )
