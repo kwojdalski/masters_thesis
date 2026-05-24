@@ -68,7 +68,9 @@ flowchart TD
 | Feature research | `cli.py feature-research --scenario <name>` | `data.train_size`, `research.horizons`, `research.top_k` |
 | Data preparation | runs automatically inside `train` | `data.prepared_data_dir`, `data.memmap_dir` |
 | Training | `cli.py train --scenario <name>` | `training.max_steps`, `training.algorithm` |
-| Evaluation | runs automatically at end of `train` | `statistical_testing.enabled` |
+| Evaluation (inline) | runs automatically at end of `train` | `statistical_testing.enabled` |
+| Evaluation (standalone) | `cli.py evaluate -c <scenario> --only metrics --only plots` | `--split`, `--output-dir`, `--checkpoint` |
+| Thesis export | `scripts/export_all_to_thesis.py --hypothesis h1 h2 h3` | scenario dirs under `thesis/qmd/results/` |
 
 ## Key numbers (pooled HFT scenario)
 

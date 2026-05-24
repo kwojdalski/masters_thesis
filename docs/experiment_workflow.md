@@ -214,7 +214,7 @@ uv run python src/cli.py train \
   --config-override training.max_steps=50000
 ```
 
-### CLI Options
+### CLI Options — `train`
 
 -   `--trials N`: Run N independent trials (default 1); checkpoint resume is only available for single runs
 -   `--clear-cache`: Clear data processing cache before running
@@ -225,20 +225,140 @@ uv run python src/cli.py train \
 -   `--mlflow-run-id <id>`: Append metrics into an existing MLflow run
 -   `--verbose/-v` / `--log-regex`: Control console log verbosity
 
+## Standalone Evaluation
+
+Training automatically calls `evaluate_all_splits()` at the end of each run. For post-hoc evaluation (e.g. using a different split, re-running just plots, or running benchmarks on an existing checkpoint without retraining) use the dedicated `evaluate` command:
+
+``` bash
+uv run python src/cli.py evaluate \
+  -c pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr \
+  --output-dir logs/my_eval \
+  --split test \
+  --only metrics \
+  --only benchmarks \
+  --only plots
+```
+
+### CLI Options — `evaluate`
+
+| Option | Description |
+|---|---|
+| `-c / --scenario <scenario>` | Scenario identifier (e.g. `pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr`) |
+| `--output-dir <path>` | Directory for results and plots (default: `./eval_results`) |
+| `--split all\|train\|val\|test` | Which data split to evaluate (default: `all`) |
+| `--only <component>` | Restrict to specific components: `metrics`, `benchmarks`, `plots`, `stats`. Repeatable. |
+| `--no-mlflow` | Skip MLflow logging |
+| `--checkpoint <path>` | Explicit checkpoint path; auto-discovered when omitted |
+| `--verbose / -v` | Enable DEBUG logging |
+
+After evaluation, `--output-dir` contains:
+
+- `results.json` — per-split metrics for all symbols
+- `benchmark_tables/test_benchmark_table.json` and `.png`
+- `evaluation_data/test_observations_head_5000.parquet`
+- `<split>_<symbol>_reward_plot.png` — one plot per split/symbol combination
+
+### Experiment Batch Scripts
+
+Three shell scripts in `scripts/` automate the full train → evaluate → report → thesis-export pipeline for each hypothesis:
+
+| Script | Coverage |
+|---|---|
+| `scripts/run_h1_experiments.sh` | TD3 / DDPG / PPO / Random, all with DSR reward |
+| `scripts/run_h2_experiments.sh` | Minimal / selected / full feature variants |
+| `scripts/run_h3_experiments.sh` | All sensitivity axes (feature / reward / cost) |
+
+All three scripts accept the same flags:
+
+``` bash
+--skip-train      # evaluate only (checkpoints must already exist)
+--skip-eval       # train only, skip evaluate + report + export
+--parallel        # run all variants concurrently (background jobs)
+--verbose / -v    # enable DEBUG logging
+```
+
+Ad-hoc hyperparameter overrides can be injected via the environment variable `EXTRA_TRAIN_ARGS`:
+
+``` bash
+EXTRA_TRAIN_ARGS="training.max_steps=5000 training.checkpoint_interval=4000" \
+  bash scripts/run_h1_experiments.sh
+```
+
+### Thesis Export
+
+After evaluation, export results as Quarto thesis snapshots with:
+
+``` bash
+# Single scenario
+uv run python scripts/export_eval_to_thesis.py \
+  --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
+
+# All scenarios for one or more hypotheses
+uv run python scripts/export_all_to_thesis.py                     # all hypotheses
+uv run python scripts/export_all_to_thesis.py --hypothesis h1     # H1 only
+uv run python scripts/export_all_to_thesis.py --hypothesis h1 h2  # H1 and H2
+```
+
+Snapshots land in `thesis/qmd/results/{experiment_name}/latest_finished/` and contain `evaluation_report.json`, `statistical_tests.json`, `run.json`, and a `plots/` subdirectory.
+
+## Experiments Command
+
+The `experiments` command lists, soft-deletes, and permanently purges MLflow experiments stored in the local SQLite DB.
+
+``` bash
+# List all experiments
+uv run python src/cli.py experiments
+
+# Soft-delete experiments whose name contains the given substring
+uv run python src/cli.py experiments --delete "selected_dsr"
+
+# Permanently remove already-soft-deleted experiments (shows confirmation prompt)
+uv run python src/cli.py experiments --purge
+uv run python src/cli.py experiments --purge --delete "selected_dsr"  # filtered
+uv run python src/cli.py experiments --purge --dry-run               # preview only
+uv run python src/cli.py experiments --purge --force                 # skip prompt
+```
+
+Use case: MLflow raises `Cannot set a deleted experiment as the active experiment`. Soft-deleting blocks name reuse for new runs; `--purge` frees the name permanently.
+
 ## Output Structure
 
-```         
-logs/
-├── <log_dir>/
-│   ├── <experiment>_checkpoint.pt
-│   ├── <experiment>_checkpoint_step_<N>.pt
-│   └── <experiment>_checkpoint_step_<N>_buffer/  (optional replay buffer dump)
-└── mlruns/
-    └── experiment_id/
-        ├── run_id_1/
-        ├── run_id_2/
-        └── ...
 ```
+logs/
+├── <experiment>_train.log              # training stdout (parallel mode)
+├── <experiment>_eval.log              # evaluate stdout (parallel mode)
+├── <experiment>/                       # evaluate --output-dir target
+│   ├── results.json                    # per-split metrics for all symbols
+│   ├── benchmark_tables/
+│   │   ├── test_benchmark_table.json
+│   │   └── test_benchmark_table.png
+│   ├── evaluation_data/
+│   │   └── test_observations_head_5000.parquet
+│   └── <split>_<symbol>_reward_plot.png
+└── pooled_<experiment>/                # training working dir
+    ├── <experiment>_checkpoint_step_<N>.pt
+    └── <experiment>_checkpoint_step_<N>_buffer/  (optional replay buffer dump)
+```
+
+MLflow artifacts are stored separately under `mlruns/`:
+
+```
+mlruns/
+└── <experiment_id>/
+    ├── <run_id_1>/
+    ├── <run_id_2>/
+    └── ...
+```
+
+### Dashboard
+
+The MLflow UI is launched with:
+
+``` bash
+uv run python src/cli.py dashboard --port 5001
+```
+
+Note: on macOS, port 5000 is claimed by AirPlay / ControlCenter. Always use port 5001 (or any other free port) to avoid a bind error.
 
 ## Error Handling
 
