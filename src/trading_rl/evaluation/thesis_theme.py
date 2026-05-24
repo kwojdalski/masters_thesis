@@ -141,7 +141,7 @@ def thesis_theme(
             legend_key=element_blank(),
             # Title and caption
             plot_title=element_text(size=base_size + 1, face="bold", family=FONT_FAMILY),
-            plot_caption=element_text(size=base_size - 2, ha="left", color="#555555", family=FONT_FAMILY),
+            plot_caption=element_text(size=round(base_size * 0.85), ha="left", color="#000000", family=FONT_FAMILY),
             # Panel
             panel_border=element_blank(),
         )
