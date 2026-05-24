@@ -8,6 +8,7 @@ from typing import Any
 import mlflow
 
 from logger import get_logger
+from trading_rl.callbacks.artifacts import ArtifactPaths
 
 logger = get_logger(__name__)
 
@@ -215,9 +216,7 @@ class TrainerRuntimeHooks:
                 if mlflow.active_run():
                     from trading_rl.callbacks import MLflowTrainingCallback
 
-                    artifact_prefix = (
-                        f"evaluation_plots_temp/{split_ctx.split}/step_{step_number:08d}"
-                    )
+                    artifact_prefix = ArtifactPaths.eval_plots_temp(split_ctx.split, step_number)
                     _t = time.monotonic()
                     MLflowTrainingCallback.log_evaluation_plots(
                         reward_plot=reward_plot,
@@ -258,8 +257,8 @@ class TrainerRuntimeHooks:
                                     simple_returns=getattr(last_result, "simple_returns", _np.array([])),
                                     cumulative_returns=getattr(last_result, "cumulative_returns", None),
                                     df_index=split_ctx.df.index,
-                                    output_dir=_Path(hook.config.logging.log_dir) / "evaluation_data",
-                                    artifact_path_prefix=f"evaluation_data_temp/{split_ctx.split}/step_{step_number:08d}",
+                                    output_dir=_Path(hook.config.logging.log_dir) / ArtifactPaths.EVAL_DATA_TEMP,
+                                    artifact_path_prefix=ArtifactPaths.eval_data_temp(split_ctx.split, step_number),
                                 )
                             except Exception:
                                 logger.warning("temp eval: rollout data artifact failed split=%s step=%s", split_ctx.split, step_number, exc_info=True)

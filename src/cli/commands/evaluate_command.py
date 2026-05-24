@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from rich.table import Table
 
-from trading_rl.callbacks.artifacts import save_observation_sample_artifact
+from trading_rl.callbacks.artifacts import ArtifactPaths, save_observation_sample_artifact
 from trading_rl.evaluation.benchmark_table import save_benchmark_table_artifact
 
 from .base_command import BaseCommand
@@ -181,7 +181,7 @@ class EvaluateCommand(BaseCommand):
                 sample_path = save_observation_sample_artifact(
                     split=split,
                     df=split_ctx.df,
-                    output_dir=params.output_dir / "evaluation_data",
+                    output_dir=params.output_dir / ArtifactPaths.EVAL_DATA,
                 )
                 self.console.print(f"[dim]  Observation sample parquet → {sample_path}[/dim]")
                 self.console.print(f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]")
@@ -299,7 +299,7 @@ class EvaluateCommand(BaseCommand):
                         log_evaluation_plots(
                             reward_plot=result.plots.get("reward_plot"),
                             action_plot=result.plots.get("action_plot"),
-                            artifact_path_prefix=f"evaluation_plots/{split}",
+                            artifact_path_prefix=ArtifactPaths.eval_plots(split),
                         )
 
                 all_results[split] = split_output

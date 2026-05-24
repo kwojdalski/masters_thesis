@@ -28,6 +28,40 @@ import pandas as pd
 from logger import get_logger as get_project_logger
 from trading_rl.evaluation.metrics import MetricReport
 
+
+class ArtifactPaths:
+    """Central registry of MLflow artifact folder names.
+
+    Root constants are used as default argument values in artifact functions.
+    Builder staticmethods produce the full parameterised path for each use case.
+    """
+
+    EVAL_PLOTS = "evaluation_plots"
+    EVAL_DATA = "evaluation_data"
+    EVAL_PLOTS_TEMP = "evaluation_plots_temp"
+    EVAL_DATA_TEMP = "evaluation_data_temp"
+    EXPLAINABILITY = "explainability"
+
+    @staticmethod
+    def eval_plots(split: str) -> str:
+        return f"evaluation_plots/{split}"
+
+    @staticmethod
+    def eval_plots_temp(split: str, step: int) -> str:
+        return f"evaluation_plots_temp/{split}/step_{step:08d}"
+
+    @staticmethod
+    def eval_data(split: str) -> str:
+        return f"evaluation_data/{split}"
+
+    @staticmethod
+    def eval_data_temp(split: str, step: int) -> str:
+        return f"evaluation_data_temp/{split}/step_{step:08d}"
+
+    @staticmethod
+    def explainability(split: str) -> str:
+        return f"explainability/{split}"
+
 if TYPE_CHECKING:
     from trading_rl.callbacks.mlflow_callback import MLflowTrainingCallback
 
@@ -153,7 +187,7 @@ def save_observation_sample_artifact(
     df: pd.DataFrame,
     output_dir: str | Path,
     max_rows: int = 5000,
-    artifact_path_prefix: str = "evaluation_data",
+    artifact_path_prefix: str = ArtifactPaths.EVAL_DATA,
 ) -> Path:
     """Save and optionally log the first rows used for split evaluation."""
     output_dir = Path(output_dir)
@@ -177,7 +211,7 @@ def save_eval_rollout_artifact(
     cumulative_returns: "np.ndarray | None",
     df_index: "pd.Index",
     output_dir: "str | Path",
-    artifact_path_prefix: str = "evaluation_data",
+    artifact_path_prefix: str = ArtifactPaths.EVAL_DATA,
 ) -> "Path":
     """Serialize per-step rollout data to parquet and log as an MLflow artifact.
 
@@ -886,7 +920,7 @@ def log_explainability_results(
     if not mlflow.active_run():
         return
 
-    artifact_dir = artifact_path_prefix if artifact_path_prefix else "explainability"
+    artifact_dir = artifact_path_prefix if artifact_path_prefix else ArtifactPaths.EXPLAINABILITY
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = Path(tmp_dir)
@@ -944,7 +978,7 @@ def log_evaluation_plots(
         ):
             yield
 
-    artifact_dir = artifact_path_prefix if artifact_path_prefix else "evaluation_plots"
+    artifact_dir = artifact_path_prefix if artifact_path_prefix else ArtifactPaths.EVAL_PLOTS
     saved_paths: dict[str, str] = {}
     batch_temp_dir = tempfile.mkdtemp()
     timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")

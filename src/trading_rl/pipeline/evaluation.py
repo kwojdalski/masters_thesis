@@ -12,7 +12,7 @@ import pandas as pd
 import torch
 
 from logger import log_banner
-from trading_rl.callbacks import MLflowTrainingCallback
+from trading_rl.callbacks import ArtifactPaths, MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.constants import EnvBackend, EvalSymbolSelection, RewardType, SplitName
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
@@ -281,7 +281,7 @@ def evaluate_split(
             sample_path = MLflowTrainingCallback.save_observation_sample_artifact(
                 split=split,
                 df=split_ctx.df,
-                output_dir=Path(config.logging.log_dir) / "evaluation_data",
+                output_dir=Path(config.logging.log_dir) / ArtifactPaths.EVAL_DATA,
             )
             logger.info("observation sample saved split=%s path=%s", split, sample_path)
     except Exception as sample_error:
@@ -318,8 +318,8 @@ def evaluate_split(
                 simple_returns=getattr(last_eval_result, "simple_returns", np.array([])),
                 cumulative_returns=getattr(last_eval_result, "cumulative_returns", None),
                 df_index=split_ctx.df.index,
-                output_dir=Path(config.logging.log_dir) / "evaluation_data",
-                artifact_path_prefix=f"evaluation_data/{split}",
+                output_dir=Path(config.logging.log_dir) / ArtifactPaths.EVAL_DATA,
+                artifact_path_prefix=ArtifactPaths.eval_data(split),
             )
         except Exception as _rd_err:
             logger.warning("rollout data artifact failed split=%s err=%s", split, _rd_err)
@@ -332,7 +332,7 @@ def evaluate_split(
             actual_returns_plot=actual_returns_plot,
             logs=logs,
             merged_plot=merged_plot,
-            artifact_path_prefix=f"evaluation_plots/{split}",
+            artifact_path_prefix=ArtifactPaths.eval_plots(split),
         )
 
     with profiler.stage(f"eval_report_{split}"):
@@ -477,7 +477,7 @@ def run_primary_split_explainability(
         eval_ctx=explainability_ctx,
         train_df=train_df,
         logger=logger,
-        artifact_path_prefix=f"explainability/{primary_split}",
+        artifact_path_prefix=ArtifactPaths.explainability(primary_split),
     )
 
 

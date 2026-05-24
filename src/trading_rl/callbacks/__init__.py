@@ -1,6 +1,7 @@
 """Callbacks for trading RL training."""
 
 from trading_rl.callbacks.artifacts import (
+    ArtifactPaths,
     log_config_artifact,
     log_evaluation_plots,
     log_evaluation_report,
@@ -16,6 +17,7 @@ from trading_rl.callbacks.artifacts import (
 from trading_rl.callbacks.mlflow_callback import MLflowTrainingCallback
 
 __all__ = [
+    "ArtifactPaths",
     "MLflowTrainingCallback",
     "log_config_artifact",
     "log_evaluation_plots",
