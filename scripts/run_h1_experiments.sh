@@ -42,6 +42,18 @@ VERBOSE_FLAG=""
 EXTRA_TRAIN_ARGS="${EXTRA_TRAIN_ARGS:-}"
 EXTRA_EVAL_ARGS="${EXTRA_EVAL_ARGS:-}"
 
+# Build repeated --config-override flags from a space-separated override string.
+# e.g. "evaluation.eval_fraction=null evaluation.eval_steps=500"
+#   → --config-override evaluation.eval_fraction=null --config-override evaluation.eval_steps=500
+_override_flags() {
+    local args="$1"
+    local flags=()
+    for kv in $args; do
+        flags+=(--config-override "$kv")
+    done
+    echo "${flags[@]}"
+}
+
 # Print a multitail (or tail -f) hint for monitoring parallel log files.
 _watch_hint() {
     local label="$1"; shift
@@ -82,7 +94,7 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
             echo "Training $SCENARIO  →  $LOG_FILE  (background)"
             NO_COLOR=1 uv run python "$REPO_ROOT/src/cli.py" train \
                 -c "$SCENARIO" \
-                ${EXTRA_TRAIN_ARGS:+--config-override "$EXTRA_TRAIN_ARGS"} \
+                ${EXTRA_TRAIN_ARGS:+$(_override_flags "$EXTRA_TRAIN_ARGS")} \
                 ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
                 >"$LOG_FILE" 2>&1 &
             TRAIN_PIDS+=($!)
@@ -101,7 +113,7 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
             echo "Training $SCENARIO  →  $LOG_FILE"
             uv run python "$REPO_ROOT/src/cli.py" train \
                 -c "$SCENARIO" \
-                ${EXTRA_TRAIN_ARGS:+--config-override "$EXTRA_TRAIN_ARGS"} \
+                ${EXTRA_TRAIN_ARGS:+$(_override_flags "$EXTRA_TRAIN_ARGS")} \
                 ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
                 2>&1 | tee "$LOG_FILE"
             echo "  done."
@@ -131,7 +143,7 @@ if [[ $PARALLEL -eq 1 ]]; then
             --only metrics \
             --only benchmarks \
             --only plots \
-            ${EXTRA_EVAL_ARGS:+--config-override "$EXTRA_EVAL_ARGS"} \
+            ${EXTRA_EVAL_ARGS:+$(_override_flags "$EXTRA_EVAL_ARGS")} \
             ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
             >"$LOG_FILE" 2>&1 &
         EVAL_PIDS+=($!)
@@ -155,7 +167,7 @@ else
             --only metrics \
             --only benchmarks \
             --only plots \
-            ${EXTRA_EVAL_ARGS:+--config-override "$EXTRA_EVAL_ARGS"} \
+            ${EXTRA_EVAL_ARGS:+$(_override_flags "$EXTRA_EVAL_ARGS")} \
             ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
             2>&1 | tee "$LOG_FILE"
         echo "  done."

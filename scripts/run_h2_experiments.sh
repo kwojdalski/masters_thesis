@@ -47,6 +47,15 @@ VERBOSE_FLAG=""
 EXTRA_TRAIN_ARGS="${EXTRA_TRAIN_ARGS:-}"
 EXTRA_EVAL_ARGS="${EXTRA_EVAL_ARGS:-}"
 
+_override_flags() {
+    local args="$1"
+    local flags=()
+    for kv in $args; do
+        flags+=(--config-override "$kv")
+    done
+    echo "${flags[@]}"
+}
+
 _watch_hint() {
     local label="$1"; shift
     local logs=("$@")
@@ -84,7 +93,7 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
             echo "Training $SCENARIO  →  $LOG_FILE  (background)"
             NO_COLOR=1 uv run python "$REPO_ROOT/src/cli.py" train \
                 -c "$SCENARIO" \
-                ${EXTRA_TRAIN_ARGS:+--config-override "$EXTRA_TRAIN_ARGS"} \
+                ${EXTRA_TRAIN_ARGS:+$(_override_flags "$EXTRA_TRAIN_ARGS")} \
                 ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
                 >"$LOG_FILE" 2>&1 &
             TRAIN_PIDS+=($!)
@@ -103,7 +112,7 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
             echo "Training $SCENARIO  →  $LOG_FILE"
             uv run python "$REPO_ROOT/src/cli.py" train \
                 -c "$SCENARIO" \
-                ${EXTRA_TRAIN_ARGS:+--config-override "$EXTRA_TRAIN_ARGS"} \
+                ${EXTRA_TRAIN_ARGS:+$(_override_flags "$EXTRA_TRAIN_ARGS")} \
                 ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
                 2>&1 | tee "$LOG_FILE"
             echo "  done."
@@ -132,7 +141,7 @@ if [[ $PARALLEL -eq 1 ]]; then
             --output-dir "$OUTPUT_DIR" \
             --only metrics \
             --only plots \
-            ${EXTRA_EVAL_ARGS:+--config-override "$EXTRA_EVAL_ARGS"} \
+            ${EXTRA_EVAL_ARGS:+$(_override_flags "$EXTRA_EVAL_ARGS")} \
             ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
             >"$LOG_FILE" 2>&1 &
         EVAL_PIDS+=($!)
@@ -155,7 +164,7 @@ else
             --output-dir "$OUTPUT_DIR" \
             --only metrics \
             --only plots \
-            ${EXTRA_EVAL_ARGS:+--config-override "$EXTRA_EVAL_ARGS"} \
+            ${EXTRA_EVAL_ARGS:+$(_override_flags "$EXTRA_EVAL_ARGS")} \
             ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
             2>&1 | tee "$LOG_FILE"
         echo "  done."
