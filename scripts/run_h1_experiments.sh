@@ -8,6 +8,7 @@
 # Usage:
 #   bash scripts/run_h1_experiments.sh
 #   bash scripts/run_h1_experiments.sh --skip-train          # evaluate only (checkpoints must exist)
+#   bash scripts/run_h1_experiments.sh --skip-eval           # train only (quick smoke run)
 #   bash scripts/run_h1_experiments.sh --parallel            # train all agents concurrently
 #   bash scripts/run_h1_experiments.sh --skip-train --parallel
 #   EXTRA_TRAIN_ARGS="training.max_steps=50000" bash scripts/run_h1_experiments.sh
@@ -22,9 +23,11 @@ LOG_DIR="$REPO_ROOT/logs"
 mkdir -p "$LOG_DIR"
 
 SKIP_TRAIN=0
+SKIP_EVAL=0
 PARALLEL=0
 for arg in "$@"; do
     [[ "$arg" == "--skip-train" ]] && SKIP_TRAIN=1
+    [[ "$arg" == "--skip-eval"  ]] && SKIP_EVAL=1
     [[ "$arg" == "--parallel"   ]] && PARALLEL=1
 done
 
@@ -99,6 +102,9 @@ fi
 # ---------------------------------------------------------------------------
 # Step 2: Evaluate (metrics + benchmarks → results.json in log_dir)
 # ---------------------------------------------------------------------------
+if [[ $SKIP_EVAL -eq 1 ]]; then
+    echo "=== H1: Skipping evaluate (--skip-eval) ==="
+else
 echo "=== H1: Evaluating ==="
 if [[ $PARALLEL -eq 1 ]]; then
     declare -a EVAL_PIDS=() EVAL_LOGS=()
@@ -160,3 +166,4 @@ for SCENARIO in "${SCENARIOS[@]}"; do
         --scenario "$SCENARIO"
 done
 echo "Thesis snapshots updated."
+fi  # end SKIP_EVAL gate
