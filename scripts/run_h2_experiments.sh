@@ -35,6 +35,20 @@ done
 
 EXTRA_TRAIN_ARGS="${EXTRA_TRAIN_ARGS:-}"
 
+_watch_hint() {
+    local label="$1"; shift
+    local logs=("$@")
+    echo ""
+    if command -v multitail &>/dev/null; then
+        echo "Monitor $label logs:"
+        echo "  multitail -s ${#logs[@]} ${logs[*]}"
+    else
+        echo "Monitor $label logs (install multitail for split-pane view):"
+        echo "  tail -f ${logs[*]}"
+    fi
+    echo ""
+}
+
 # ---------------------------------------------------------------------------
 # Scenarios: must produce log dirs matching src/configs/h2_feature_sensitivity.yaml
 # ---------------------------------------------------------------------------
@@ -50,10 +64,11 @@ declare -a SCENARIOS=(
 if [[ $SKIP_TRAIN -eq 0 ]]; then
     echo "=== H2: Training ==="
     if [[ $PARALLEL -eq 1 ]]; then
-        declare -a TRAIN_PIDS=()
+        declare -a TRAIN_PIDS=() TRAIN_LOGS=()
         for SCENARIO in "${SCENARIOS[@]}"; do
             LOG_NAME="${SCENARIO##*/}"
             LOG_FILE="$LOG_DIR/${LOG_NAME}_train.log"
+            TRAIN_LOGS+=("$LOG_FILE")
             echo "Training $SCENARIO  →  $LOG_FILE  (background)"
             uv run python "$REPO_ROOT/src/cli.py" train \
                 -c "$SCENARIO" \
@@ -61,6 +76,7 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
                 >"$LOG_FILE" 2>&1 &
             TRAIN_PIDS+=($!)
         done
+        _watch_hint "training" "${TRAIN_LOGS[@]}"
         echo "Waiting for ${#TRAIN_PIDS[@]} training jobs..."
         TRAIN_FAILED=0
         for PID in "${TRAIN_PIDS[@]}"; do
@@ -87,11 +103,12 @@ fi
 # ---------------------------------------------------------------------------
 echo "=== H2: Evaluating ==="
 if [[ $PARALLEL -eq 1 ]]; then
-    declare -a EVAL_PIDS=()
+    declare -a EVAL_PIDS=() EVAL_LOGS=()
     for SCENARIO in "${SCENARIOS[@]}"; do
         LOG_NAME="${SCENARIO##*/}"
         OUTPUT_DIR="$LOG_DIR/$LOG_NAME"
         LOG_FILE="$LOG_DIR/${LOG_NAME}_eval.log"
+        EVAL_LOGS+=("$LOG_FILE")
         echo "Evaluating $SCENARIO  →  $OUTPUT_DIR  (background)"
         uv run python "$REPO_ROOT/src/cli.py" evaluate \
             -c "$SCENARIO" \
@@ -100,6 +117,7 @@ if [[ $PARALLEL -eq 1 ]]; then
             >"$LOG_FILE" 2>&1 &
         EVAL_PIDS+=($!)
     done
+    _watch_hint "evaluation" "${EVAL_LOGS[@]}"
     echo "Waiting for ${#EVAL_PIDS[@]} evaluation jobs..."
     EVAL_FAILED=0
     for PID in "${EVAL_PIDS[@]}"; do
