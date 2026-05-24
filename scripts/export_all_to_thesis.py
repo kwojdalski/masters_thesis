@@ -16,9 +16,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
+
+from logger import get_logger, setup_logging
+
+logger = get_logger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -54,6 +59,7 @@ def _export_scenario(scenario: str) -> bool:
     result = subprocess.run(
         [sys.executable, str(_EXPORT_SCRIPT), "--scenario", scenario],
         cwd=_REPO_ROOT,
+        env=os.environ,
     )
     return result.returncode == 0
 
@@ -72,7 +78,19 @@ def main() -> int:
         metavar="HYP",
         help="Which hypotheses to export (h1 h2 h3). Defaults to all.",
     )
+    p.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Enable DEBUG logging.",
+    )
     args = p.parse_args()
+
+    env_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    if env_level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+        env_level = "INFO"
+    level = "DEBUG" if args.verbose else env_level
+    setup_logging(level=level)
+    os.environ["LOG_LEVEL"] = level
 
     # Deduplicate while preserving order.
     seen: set[str] = set()
@@ -83,27 +101,33 @@ def main() -> int:
                 seen.add(s)
                 scenarios.append((hyp, s))
 
+    hypotheses_label = " ".join(h.upper() for h in args.hypothesis)
+    logger.info("exporting %d scenario(s) for %s", len(scenarios), hypotheses_label)
+
     ok: list[str] = []
     skipped: list[str] = []
 
     for hyp, scenario in scenarios:
-        print(f"\n[{hyp.upper()}] {scenario}")
-        print("-" * 60)
+        logger.info("[%s] %s", hyp.upper(), scenario)
         if _export_scenario(scenario):
             ok.append(scenario)
         else:
             skipped.append(scenario)
+            logger.warning("[%s] export failed or skipped: %s", hyp.upper(), scenario)
 
-    print("\n" + "=" * 60)
-    print(f"Exported: {len(ok)}   Skipped/failed: {len(skipped)}")
+    logger.info(
+        "export complete  exported=%d  skipped/failed=%d",
+        len(ok), len(skipped),
+    )
+
     if skipped:
-        print("\nSkipped (results.json missing or evaluate not yet run):")
+        logger.warning("skipped scenarios (results.json missing or evaluate not yet run):")
         for s in skipped:
-            print(f"  {s}")
-        print(
-            "\nTo evaluate a missing scenario:\n"
-            "  uv run python src/cli.py evaluate -c <scenario> "
-            "--output-dir logs/<log-name> --only metrics --only plots"
+            logger.warning("  %s", s)
+        logger.warning(
+            "to evaluate a missing scenario: "
+            "uv run python src/cli.py evaluate -c <scenario> "
+            "--output-dir logs/<log-name> --only metrics --only benchmarks --only plots"
         )
 
     return 0 if not skipped else 1

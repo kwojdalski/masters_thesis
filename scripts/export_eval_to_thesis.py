@@ -26,10 +26,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
+
+from logger import get_logger, setup_logging
+
+logger = get_logger(__name__)
 
 
 def _repo_root() -> Path:
@@ -55,7 +60,6 @@ def _write_json(path: Path, payload: object) -> None:
 def _load_results_json(path: Path) -> dict:
     """Load results.json, tolerating Python-style NaN/Infinity tokens."""
     raw = path.read_text(encoding="utf-8")
-    # Python's json module writes bare NaN/Infinity which is not valid JSON.
     raw = re.sub(r"\bNaN\b", "null", raw)
     raw = re.sub(r"\bInfinity\b", "null", raw)
     raw = re.sub(r"\b-Infinity\b", "null", raw)
@@ -240,11 +244,24 @@ def _parse_args() -> argparse.Namespace:
         metavar="DIR",
         help="Override the thesis/qmd/results root directory.",
     )
+    p.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Enable DEBUG logging.",
+    )
     return p.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
+
+    env_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    if env_level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+        env_level = "INFO"
+    level = "DEBUG" if args.verbose else env_level
+    setup_logging(level=level)
+    os.environ["LOG_LEVEL"] = level
+
     repo_root = _repo_root()
 
     # --------------------------------------------------------------------------
@@ -260,6 +277,8 @@ def main() -> int:
         assert args.output_dir is not None
         experiment_name = primary_dir.name
 
+    logger.info("exporting scenario=%s experiment=%s", args.scenario or args.output_dir, experiment_name)
+
     # --------------------------------------------------------------------------
     # Locate results.json
     # --------------------------------------------------------------------------
@@ -271,23 +290,24 @@ def main() -> int:
             break
 
     if results_file is None:
-        print(f"ERROR: results.json not found.")
-        print(f"  Checked: {primary_dir / 'results.json'}")
+        logger.error("results.json not found")
+        logger.error("  checked: %s", primary_dir / "results.json")
         if fallback_dir != primary_dir:
-            print(f"  Checked: {fallback_dir / 'results.json'}")
-        print(
-            "\nRun evaluate first:\n"
-            f"  uv run python src/cli.py evaluate -c {args.scenario or args.output_dir} "
-            f"--output-dir {primary_dir}"
+            logger.error("  checked: %s", fallback_dir / "results.json")
+        logger.error(
+            "run evaluate first:  uv run python src/cli.py evaluate -c %s "
+            "--output-dir %s --only metrics --only benchmarks --only plots",
+            args.scenario or args.output_dir,
+            primary_dir,
         )
         return 1
 
-    print(f"Reading results from: {results_file}")
+    logger.info("reading results from %s", results_file)
 
     try:
         results = _load_results_json(results_file)
     except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse results.json: {e}")
+        logger.error("failed to parse results.json: %s", e)
         return 1
 
     # --------------------------------------------------------------------------
@@ -295,9 +315,10 @@ def main() -> int:
     # --------------------------------------------------------------------------
     metrics = _aggregate_test_metrics(results)
     if not metrics:
-        print("WARNING: No metrics found in results.json")
+        logger.warning("no metrics found in results.json")
     else:
-        print(f"  Aggregated {len(metrics)} metrics across {sum(1 for k in results if k.startswith('test'))} test split(s)")
+        n_test = sum(1 for k in results if k.startswith("test"))
+        logger.info("aggregated %d metrics across %d test split(s)", len(metrics), n_test)
 
     # --------------------------------------------------------------------------
     # Find plots
@@ -309,12 +330,12 @@ def main() -> int:
 
     plots = _find_plots(plot_search_dirs)
     if plots:
-        print(f"  Found plots: {list(plots)}")
+        logger.info("found plots: %s", list(plots))
     else:
-        print(
-            "  WARNING: No plots found. To include plots, run evaluate without --only:\n"
-            f"    uv run python src/cli.py evaluate -c {args.scenario or args.output_dir}\n"
-            "  (writes to eval_results/ which is automatically picked up)"
+        logger.warning(
+            "no plots found — run evaluate without --only to include them: "
+            "uv run python src/cli.py evaluate -c %s",
+            args.scenario or args.output_dir,
         )
 
     # --------------------------------------------------------------------------
@@ -331,28 +352,23 @@ def main() -> int:
 
     now = datetime.now(timezone.utc).isoformat()
 
-    # evaluation_report.json — aggregated flat metrics consumed by format_key_metrics()
     _write_json(snapshot_dir / "evaluation_report.json", metrics)
 
-    # params.json and latest_metrics.json — not available from eval-only output
     if not (snapshot_dir / "params.json").exists():
         _write_json(snapshot_dir / "params.json", {})
     if not (snapshot_dir / "latest_metrics.json").exists():
         _write_json(snapshot_dir / "latest_metrics.json", {})
 
-    # Copy plots into snapshot
     plot_relpaths = _copy_plots(plots, snapshot_dir) if plots else {}
 
-    # Benchmark comparison table (written as statistical_tests.json for format_benchmark_comparison_table)
     benchmark_table = _load_benchmark_table(eval_dir)
     statistical_tests_file: str | None = None
     if benchmark_table is not None:
         _write_json(snapshot_dir / "statistical_tests.json", benchmark_table)
         statistical_tests_file = "statistical_tests.json"
         n_rows = len(benchmark_table.get("benchmark_comparison_table", []))
-        print(f"  Benchmark table: {n_rows} strategies")
+        logger.info("benchmark table: %d strategies", n_rows)
 
-    # run.json — standard snapshot format read by _load_run_from_export()
     run_json: dict = {
         "run_id": None,
         "run_name": experiment_name,
@@ -379,7 +395,6 @@ def main() -> int:
     }
     _write_json(snapshot_dir / "run.json", run_json)
 
-    # manifest.json at experiment level (keeps manifest schema consistent)
     manifest: dict = {
         "schema_version": 1,
         "experiment_name": experiment_name,
@@ -396,12 +411,7 @@ def main() -> int:
     }
     _write_json(experiment_dir / "manifest.json", manifest)
 
-    print(f"\nExported thesis snapshot for '{experiment_name}'")
-    print(f"  Location: {snapshot_dir}")
-    print(
-        "  QMD chapters will use this snapshot as fallback when MLflow has no data "
-        "for this experiment."
-    )
+    logger.info("exported thesis snapshot  experiment=%s  location=%s", experiment_name, snapshot_dir)
     return 0
 
 
