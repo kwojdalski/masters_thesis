@@ -175,7 +175,7 @@ The notation follows the conventions established in Chapter 3:
 
 Concrete values are listed in Appendix B.
 
-### Synthetic Sine-Wave Sanity Check
+### Sanity Checks
 
 Before running the empirical order-book experiments, the RL pipeline was tested
 on a synthetic sine-wave scenario with deliberately learnable structure.^[The

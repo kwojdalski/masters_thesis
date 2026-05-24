@@ -157,19 +157,20 @@ if finished is None:
 else:
     plots = finished.get("evaluation_plots", {})
     ordered = [
-        ("Actual returns", "actual_returns"),
-        ("Rewards", "rewards"),
-        ("Positions", "positions"),
+        ("Actual returns", "actual_returns", True),
+        ("Rewards", "rewards", False),
+        ("Positions", "positions", False),
     ]
 
-    for title, key in ordered:
+    for title, key, show_title in ordered:
         plot_path = plots.get(key)
         if plot_path and Path(plot_path).exists():
             img = Image.open(plot_path)
             fig, ax = plt.subplots(figsize=(10, 6))
             ax.imshow(img)
             ax.axis("off")
-            ax.set_title(title)
+            if show_title:
+                ax.set_title(title)
             plt.show()
             plt.close(fig)
         else:
