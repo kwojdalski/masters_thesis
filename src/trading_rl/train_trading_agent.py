@@ -13,6 +13,7 @@ checkpoint management, explainability) lives in trading_rl/pipeline/.
 # %%
 import contextlib
 import warnings
+from pathlib import Path
 from typing import Any
 
 import gym_trading_env  # noqa: F401
@@ -201,7 +202,8 @@ def run_experiment_from_config(config_path: str, n_trials: int = 1) -> str:
     Returns:
         MLflow experiment name.
     """
-    config = ExperimentConfig.from_yaml(config_path)
+    p = Path(config_path)
+    config = ExperimentConfig.from_scenario(p) if p.is_dir() else ExperimentConfig.from_yaml(p)
     setup_mlflow_experiment(config)
 
     if n_trials == 1:

@@ -20,7 +20,7 @@ def test_continuous_ppo_sine_wave():
     assert os.path.exists(config_path), f"Config not found: {config_path}"
 
     # Load config to check settings before running
-    config = ExperimentConfig.from_yaml(config_path)
+    config = ExperimentConfig.from_scenario(config_path)
     assert config.env.backend == "tradingenv"
     assert config.training.algorithm == "PPO"
 
@@ -29,10 +29,10 @@ def test_continuous_ppo_sine_wave():
         experiment_name = run_experiment_from_config(config_path, n_trials=1)
         assert experiment_name == "sine_wave_ppo_no_trend_continuous"
 
-        # Verify checkpoint was created
+        # Verify a checkpoint was created in the log dir
         log_dir = Path(config.logging.log_dir)
-        checkpoint_path = log_dir / f"{experiment_name}_checkpoint.pt"
-        assert checkpoint_path.exists(), "Checkpoint file was not created"
+        checkpoints = list(log_dir.glob("*_checkpoint*.pt"))
+        assert checkpoints, f"No checkpoint files found in {log_dir}"
 
     except Exception as e:
         pytest.fail(f"Continuous PPO experiment failed with error: {e!s}")

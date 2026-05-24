@@ -1224,6 +1224,7 @@ class FeatureSelector:
 
         best_result = None
         best_score = float("-inf")
+        fallback_result = None  # best result when all selected-feature scores are -inf
 
         for combination in all_combinations:
             param_dict = dict(zip(param_names, combination))
@@ -1255,6 +1256,7 @@ class FeatureSelector:
                 # Use mean ICIR of *selected* features as the objective so
                 # icir_threshold and top_k actually influence the score.
                 if len(result.scores) > 0 and "icir" in result.scores.columns:
+                    fallback_result = fallback_result or result
                     selected_mask = result.scores["feature"].isin(result.selected_names)
                     selected_scores = result.scores[selected_mask]
                     config_score = (
@@ -1287,6 +1289,15 @@ class FeatureSelector:
                     param_dict, str(e)
                 )
                 continue
+
+        # Fall back to the first valid result when no config selected any features
+        # (e.g., all ICs near zero on low-signal data).
+        if best_result is None and fallback_result is not None:
+            logger.warning(
+                "No configuration selected features above the IC threshold; "
+                "returning first valid result as fallback."
+            )
+            best_result = fallback_result
 
         if best_result is None:
             raise RuntimeError("Hyperparameter search failed for all configurations")

@@ -135,14 +135,18 @@ class DifferentialSharpeRatioAnyTrading:
         Returns:
             Differential Sharpe Ratio for current step
         """
-        # Extract current portfolio value
-        # gym_anytrading uses 'portfolio_valuation' key with tuple indexing
+        # Extract current portfolio value.
+        # gym_anytrading (stocks/forex) doesn't track portfolio_valuation; it
+        # exposes total_profit (a wealth-factor starting at 1.0) which serves
+        # as a NLV proxy. Fall back to that before raising.
         try:
             nlv_now = history["portfolio_valuation", -1]
         except (KeyError, TypeError):
-            # Fallback for different history formats
             if "portfolio_valuation" in history:
                 nlv_now = history["portfolio_valuation"][-1]
+            elif "total_profit" in history:
+                val = history["total_profit"]
+                nlv_now = val[-1] if isinstance(val, (list, tuple)) else float(val)
             else:
                 keys = list(history.keys()) if hasattr(history, "keys") else "N/A"
                 raise KeyError(
