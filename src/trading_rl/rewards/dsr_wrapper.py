@@ -97,18 +97,19 @@ class DifferentialSharpeRatioAnyTrading:
         self,
         eta: float = 0.01,
         epsilon: float = 1e-8,
-        clip_reward: float | None = None,
+        clip_reward: float | None = 10.0,
     ):
         """Initialize DSR reward function.
 
         Args:
             eta: EMA learning rate (controls adaptation speed)
             epsilon: Small constant for numerical stability
-            clip_reward: If set, clamp the DSR output to [-clip_reward, clip_reward]
-                before returning. Useful early in training when variance is near
-                zero and the denominator (epsilon) is tiny, which can produce
-                very large reward spikes. Set to e.g. 10.0 to match the
-                DifferentialSharpeRatio (tradingenv) behaviour.
+            clip_reward: Clamp the DSR output to [-clip_reward, clip_reward] before
+                returning. Defaults to 10.0 to match the tradingenv backend's
+                DifferentialSharpeRatio behaviour. Early in each episode the
+                variance EMA is near zero, so the denominator collapses to
+                epsilon and raw DSR can reach O(1e6); clipping prevents
+                gradient explosions. Set to None to disable.
         """
         self.eta = eta
         self.epsilon = epsilon
