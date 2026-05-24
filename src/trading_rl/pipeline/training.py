@@ -185,6 +185,7 @@ def _build_mlflow_callback(
         price_series=price_series,
         initial_portfolio_value=config.env.initial_portfolio_value,
         reward_type=config.env.reward_type,
+        action_positions=config.env.positions,
         config_for_run_name=config,
     )
 

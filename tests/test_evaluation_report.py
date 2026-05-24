@@ -9,6 +9,7 @@ import torch
 
 from trading_rl.constants import RewardType
 from trading_rl.evaluation.report import (
+    _extract_action_array,
     _periods_per_year_from_index,
     build_evaluation_report_for_trainer,
     periods_per_year_from_timeframe,
@@ -64,6 +65,7 @@ def _config(*, reward_type: str, backend: str = "tradingenv"):
             reward_type=reward_type,
             backend=backend,
             price_column="close",
+            positions=[-1, 0, 1],
         ),
         data=SimpleNamespace(timeframe="1d"),
     )
@@ -157,3 +159,30 @@ def test_report_reuses_supplied_rollout_without_rerunning_env() -> None:
     )
 
     assert report["total_return"] == pytest.approx(1.10 * 0.95 - 1.0)
+
+
+def test_extract_action_array_maps_one_hot_actions_to_positions() -> None:
+    rollout = _FakeRollout(
+        rewards=[0.0, 0.0, 0.0],
+        actions=[
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ],
+    )
+
+    actions = _extract_action_array(
+        rollout,
+        is_portfolio=False,
+        positions=[-1, 0, 1],
+    )
+
+    np.testing.assert_array_equal(actions, np.array([-1.0, 0.0, 1.0]))
+
+    single_action = _extract_action_array(
+        _FakeRollout(rewards=[0.0], actions=[[0.0, 0.0, 1.0]]),
+        is_portfolio=False,
+        positions=[-1, 0, 1],
+    )
+
+    np.testing.assert_array_equal(single_action, np.array([1.0]))

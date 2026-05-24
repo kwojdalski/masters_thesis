@@ -248,20 +248,26 @@ class StrategyEvaluator:
         if actions is None:
             return []
 
-        action_tensor = actions.squeeze()
+        action_tensor = actions.detach().cpu() if hasattr(actions, "detach") else actions
+        is_portfolio = str(self.config.backend).lower() == EnvBackend.TRADINGENV
 
         # Handle continuous portfolio actions
-        if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
-            # Multi-asset: return mean allocation per asset
-            return action_tensor.mean(dim=0).tolist()
-        else:
-            # Single-asset or discrete
-            flat_actions = (
-                action_tensor.flatten().numpy()
-                if hasattr(action_tensor, "flatten")
-                else np.array([action_tensor])
-            )
+        if is_portfolio:
+            flat_actions = np.asarray(action_tensor, dtype=float).reshape(-1)
             return flat_actions[:max_steps].tolist()
+
+        if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
+            action_tensor = action_tensor.argmax(dim=-1)
+
+        flat_actions = np.asarray(action_tensor, dtype=float).reshape(-1)[:max_steps]
+        positions = self.config.env.positions
+        if positions and flat_actions.size:
+            indices = flat_actions.astype(int)
+            if np.allclose(flat_actions, indices) and np.all(
+                (0 <= indices) & (indices < len(positions))
+            ):
+                return [positions[int(i)] for i in indices]
+        return flat_actions.tolist()
 
     def evaluate_split(
         self,

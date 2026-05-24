@@ -57,14 +57,26 @@ def _periods_per_year_from_index(df: pd.DataFrame) -> int | None:
     return max(1, round(len(df) / elapsed * trading_seconds_per_year))
 
 
-def _extract_action_array(rollout, is_portfolio: bool) -> np.ndarray:
+def _extract_action_array(
+    rollout,
+    is_portfolio: bool,
+    positions: list[int] | None = None,
+) -> np.ndarray:
     action_tensor = rollout.get("action", None)
     if not isinstance(action_tensor, torch.Tensor):
         return np.array([])
-    action_tensor = action_tensor.detach().cpu().squeeze()
+    action_tensor = action_tensor.detach().cpu()
     if not is_portfolio and action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
         action_tensor = action_tensor.argmax(dim=-1)
-    return action_tensor.numpy()
+        actions = action_tensor.numpy().reshape(-1)
+        if positions:
+            indices = actions.astype(int)
+            if np.allclose(actions, indices) and np.all(
+                (0 <= indices) & (indices < len(positions))
+            ):
+                return np.asarray([positions[int(i)] for i in indices], dtype=float)
+        return actions
+    return action_tensor.squeeze().numpy()
 
 
 def build_evaluation_report_for_trainer(
@@ -183,7 +195,12 @@ def build_evaluation_report_for_trainer(
     )
 
     is_portfolio = backend == EnvBackend.TRADINGENV
-    actions = _extract_action_array(rollout, is_portfolio=is_portfolio)
+    positions = getattr(getattr(config, "env", None), "positions", None)
+    actions = _extract_action_array(
+        rollout,
+        is_portfolio=is_portfolio,
+        positions=positions,
+    )
     timeframe = getattr(getattr(config, "data", None), "timeframe", "1d")
     periods_per_year = _periods_per_year_from_index(df_prices) or periods_per_year_from_timeframe(timeframe)
     logger.debug("periods_per_year=%d (timeframe='%s', index-derived=%s)", periods_per_year, timeframe, _periods_per_year_from_index(df_prices) is not None)

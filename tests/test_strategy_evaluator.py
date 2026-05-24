@@ -5,7 +5,11 @@ import pandas as pd
 import torch
 from tensordict import TensorDict
 
-from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
+from trading_rl.evaluation.evaluator import (
+    EnvConfig,
+    EvaluationConfig,
+    StrategyEvaluator,
+)
 from trading_rl.evaluation.returns import ReturnKind
 
 
@@ -81,3 +85,32 @@ def test_shaped_rewards_without_broker_do_not_become_returns() -> None:
 
     assert env.rollout_calls == 1
     assert result.simple_returns.size == 0
+
+
+def test_extract_last_positions_maps_one_hot_actions_to_configured_positions() -> None:
+    evaluator = StrategyEvaluator(
+        env_factory=lambda _df, _config: object(),
+        policy=object(),
+        config=EvaluationConfig(
+            backend="gym_trading_env.discrete",
+            env=EnvConfig(positions=[-1, 0, 1]),
+        ),
+    )
+    actions = torch.tensor(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+
+    positions = evaluator._extract_last_positions(actions, max_steps=3)
+
+    assert positions == [-1, 0, 1]
+
+    single_position = evaluator._extract_last_positions(
+        torch.tensor([[0.0, 0.0, 1.0]]),
+        max_steps=1,
+    )
+
+    assert single_position == [1]

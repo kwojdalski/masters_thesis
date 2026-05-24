@@ -19,7 +19,7 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 
 from logger import get_logger, log_banner
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, TrainingConfig
-from trading_rl.constants import EnvBackend, EnvMode, RewardType
+from trading_rl.constants import EnvBackend, EnvMode, RewardType, TradePosition
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.profiler import get_profiler
 from trading_rl.trainers.checkpointing import CheckpointManager
@@ -306,7 +306,7 @@ class BaseTrainer(ABC):
         done_flags = (
             data["next", "done"].detach().cpu().reshape(-1).to(torch.bool).tolist()
         )
-        actions = self._extract_logged_actions(data.get("action"))
+        actions = self._extract_logged_actions(data.get("action"), callback)
 
         pending_rewards = getattr(self, "_pending_episode_rewards", [])
         pending_actions = getattr(self, "_pending_episode_actions", [])
@@ -330,12 +330,20 @@ class BaseTrainer(ABC):
         self._pending_episode_rewards = [*pending_rewards, *rewards[segment_start:]]
         self._pending_episode_actions = [*pending_actions, *actions[segment_start:]]
 
-    def _extract_logged_actions(self, actions_tensor: Any) -> list[Any]:
+    def _extract_logged_actions(
+        self, actions_tensor: Any, callback: Any | None = None
+    ) -> list[Any]:
         """Flatten action tensors into one logged action per transition."""
         if not isinstance(actions_tensor, torch.Tensor):
             return []
         if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
-            return actions_tensor.argmax(dim=-1).reshape(-1).tolist()
+            indices = actions_tensor.argmax(dim=-1).reshape(-1).tolist()
+            positions = getattr(callback, "action_positions", None)
+            if positions is None and actions_tensor.shape[-1] == len(TradePosition):
+                positions = list(TradePosition)
+            if positions and all(0 <= int(i) < len(positions) for i in indices):
+                return [int(positions[int(i)]) for i in indices]
+            return indices
         return actions_tensor.reshape(-1).tolist()
 
     def _log_completed_episode_stats(
