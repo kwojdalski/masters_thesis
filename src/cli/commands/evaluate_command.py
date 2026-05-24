@@ -761,6 +761,10 @@ def _noop_context() -> _NoopContext:
 def _json_default(obj: Any) -> Any:
     import numpy as np
 
+    from trading_rl.evaluation.metrics import MetricReport
+
+    if isinstance(obj, MetricReport):
+        return obj.to_dict()
     if isinstance(obj, np.floating):
         return float(obj)
     if isinstance(obj, np.integer):
