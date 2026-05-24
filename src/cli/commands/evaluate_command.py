@@ -90,6 +90,8 @@ class EvaluateCommand(BaseCommand):
 
         if is_random:
             policy = None  # built per-split from the env action spec
+            checkpoint_path = None
+            meta = {}
             self.console.print("[dim]Algorithm: RANDOM (no checkpoint needed)[/dim]")
         else:
             checkpoint_path = self._resolve_checkpoint(config, params)
