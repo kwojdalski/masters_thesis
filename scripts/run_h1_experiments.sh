@@ -14,6 +14,7 @@
 #   bash scripts/run_h1_experiments.sh --skip-train --parallel
 #   EXTRA_TRAIN_ARGS="training.max_steps=50000" bash scripts/run_h1_experiments.sh
 #   EXTRA_EVAL_ARGS="evaluation.eval_steps=500" bash scripts/run_h1_experiments.sh
+#   EXTRA_TRAIN_ARGS="logging.debug_plots=true" EXTRA_EVAL_ARGS="logging.debug_plots=true" bash scripts/run_h1_experiments.sh
 #
 # After completion, view results:
 #   uv run python scripts/h1_performance_report.py
