@@ -13,6 +13,7 @@
 #   bash scripts/run_h1_experiments.sh --verbose / -v        # enable debug logging
 #   bash scripts/run_h1_experiments.sh --skip-train --parallel
 #   EXTRA_TRAIN_ARGS="training.max_steps=50000" bash scripts/run_h1_experiments.sh
+#   EXTRA_EVAL_ARGS="evaluation.eval_steps=500" bash scripts/run_h1_experiments.sh
 #
 # After completion, view results:
 #   uv run python scripts/h1_performance_report.py
@@ -39,6 +40,7 @@ VERBOSE_FLAG=""
 [[ $VERBOSE -eq 1 ]] && VERBOSE_FLAG="--verbose"
 
 EXTRA_TRAIN_ARGS="${EXTRA_TRAIN_ARGS:-}"
+EXTRA_EVAL_ARGS="${EXTRA_EVAL_ARGS:-}"
 
 # Print a multitail (or tail -f) hint for monitoring parallel log files.
 _watch_hint() {
@@ -129,6 +131,7 @@ if [[ $PARALLEL -eq 1 ]]; then
             --only metrics \
             --only benchmarks \
             --only plots \
+            ${EXTRA_EVAL_ARGS:+--config-override "$EXTRA_EVAL_ARGS"} \
             ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
             >"$LOG_FILE" 2>&1 &
         EVAL_PIDS+=($!)
@@ -152,6 +155,7 @@ else
             --only metrics \
             --only benchmarks \
             --only plots \
+            ${EXTRA_EVAL_ARGS:+--config-override "$EXTRA_EVAL_ARGS"} \
             ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
             2>&1 | tee "$LOG_FILE"
         echo "  done."
