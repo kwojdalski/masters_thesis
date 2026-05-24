@@ -30,7 +30,7 @@ def display_table(frame: pd.DataFrame) -> None:
     display(HTML(frame.to_html(index=False)))
 
 
-EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected"
+EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 ```

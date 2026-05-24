@@ -65,25 +65,58 @@ tests are performed to determine whether observed differences are meaningful.
 
 ### Performance Comparison
 
-[Insert actual experimental results here comparing PPO, DDPG, and TD3 on the
-same dataset and evaluation protocol. Include metrics such as:
-- Sharpe ratio and Sortino ratio
-- Maximum drawdown and drawdown duration
-- Return volatility and tail risk measures
-- Training stability (variance across seeds)
-- Sample efficiency (performance vs. training steps)
-- Computational efficiency (training time, memory usage)]
+The table below reports test-split metrics for each algorithm, all trained on
+identical data, features, reward function, and evaluation protocol.
 
 ```{python}
-#| label: algo_comparison_setup
+#| label: h1_algo_comparison
 #| echo: false
 #| warning: false
+#| tbl-cap: "H1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random."
 
-# TODO: Load algorithm comparison results
-# This section will be populated with actual experimental results
-# comparing PPO, DDPG, and TD3 performance
+import math
+import pandas as pd
+from IPython.display import HTML
+from thesis_mlflow_results import load_scenario_metrics
 
-print("Algorithm comparison results will be added here after experiments are run.")
+_H1_AGENTS = [
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr",    "TD3"),
+    ("pooled_ddpg_hft_lob_state_space_pooled_streaming_selected_dsr",   "DDPG"),
+    ("pooled_ppo_hft_lob_state_space_pooled_streaming_selected_dsr",    "PPO"),
+    ("pooled_random_hft_lob_state_space_pooled_streaming_selected_dsr", "Random"),
+]
+
+_H1_COLS = [
+    ("sharpe_ratio",          "Sharpe",    ".3f"),
+    ("sortino_ratio",         "Sortino",   ".3f"),
+    ("total_return",          "Return",    ".2%"),
+    ("max_drawdown",          "Max DD",    ".2%"),
+    ("win_rate",              "Win Rate",  ".2%"),
+    ("profit_factor",         "PF",        ".3f"),
+    ("annualized_volatility", "Ann. Vol",  ".3f"),
+]
+
+def _fmtv(val, fmt):
+    if val is None or (isinstance(val, float) and not math.isfinite(val)):
+        return "—"
+    try:
+        return f"{val:{fmt}}"
+    except Exception:
+        return str(val)
+
+rows = []
+for exp_name, label in _H1_AGENTS:
+    m = load_scenario_metrics(exp_name)
+    row = {"Algorithm": label}
+    for key, col, fmt in _H1_COLS:
+        row[col] = _fmtv(m.get(key), fmt)
+    rows.append(row)
+
+h1_df = pd.DataFrame(rows)
+if h1_df.iloc[:, 1:].isin(["—"]).all().all():
+    print("No H1 results available. Run: bash scripts/run_h1_experiments.sh")
+else:
+    display(HTML(h1_df.to_html(index=False)))
 ```
 
 ### Key Empirical Questions
@@ -152,7 +185,7 @@ import pandas as pd
 
 from thesis_mlflow_results import load_experiment_snapshot, runs_overview_table
 
-EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected"
+EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 runs_df = runs_overview_table(EXPERIMENT_NAME)
 ```

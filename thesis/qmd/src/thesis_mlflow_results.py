@@ -8,6 +8,8 @@ to read-only queries against the local MLflow SQLite backend and artifact store.
 from __future__ import annotations
 
 import json
+import math
+import re
 import sqlite3
 from datetime import datetime, timezone
 from dataclasses import dataclass
@@ -746,3 +748,94 @@ def runs_overview_table(experiment_name: str) -> pd.DataFrame:
     if parquet_path.exists():
         return pd.read_parquet(parquet_path)
     return pd.DataFrame()
+
+
+# ---------------------------------------------------------------------------
+# Multi-scenario comparison helpers
+# ---------------------------------------------------------------------------
+
+def _load_results_json_tolerant(path: Path) -> dict:
+    """Parse results.json that may contain bare NaN/Infinity tokens."""
+    raw = path.read_text(encoding="utf-8")
+    raw = re.sub(r"\bNaN\b", "null", raw)
+    raw = re.sub(r"\bInfinity\b", "null", raw)
+    raw = re.sub(r"\b-Infinity\b", "null", raw)
+    return json.loads(raw)
+
+
+def _aggregate_from_results_json(results: dict, split: str = "test") -> dict[str, Any]:
+    """Average metrics across all {split}_* entries in a results.json dict."""
+    for prefix in (split, "val", "train"):
+        entries = {
+            k: v
+            for k, v in results.items()
+            if k.startswith(prefix) and isinstance(v.get("metrics"), dict)
+        }
+        if entries:
+            break
+    else:
+        return {}
+
+    all_keys: set[str] = set()
+    for entry in entries.values():
+        all_keys.update(entry["metrics"].keys())
+
+    aggregated: dict[str, Any] = {}
+    for key in sorted(all_keys):
+        vals = [
+            entry["metrics"][key]
+            for entry in entries.values()
+            if key in entry["metrics"]
+            and isinstance(entry["metrics"][key], (int, float))
+            and entry["metrics"][key] is not None
+            and math.isfinite(entry["metrics"][key])
+        ]
+        aggregated[key] = (sum(vals) / len(vals)) if vals else None
+    return aggregated
+
+
+def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[str, Any]:
+    """Load aggregated evaluation metrics for a scenario.
+
+    Preference order:
+    1. Thesis snapshot: thesis/qmd/results/{scenario_name}/latest_finished/evaluation_report.json
+    2. MLflow artifact store (if experiment exists in the tracking DB)
+    3. logs/{log_name}/results.json read directly (strips first '_'-delimited component
+       so "pooled_td3_..." maps to logs/td3_.../results.json)
+    """
+    # 1. Thesis snapshot (fastest — no DB round-trip)
+    snap_path = thesis_results_root() / scenario_name / "latest_finished" / "evaluation_report.json"
+    if snap_path.exists():
+        try:
+            data = json.loads(snap_path.read_text())
+            if isinstance(data, dict) and data:
+                return data
+        except Exception:
+            pass
+
+    # 2. MLflow
+    try:
+        live = _load_experiment_snapshot_from_mlflow(scenario_name)
+        if live.latest_finished is not None:
+            report = live.latest_finished.get("evaluation_report")
+            if isinstance(report, dict) and report:
+                return report
+    except Exception:
+        pass
+
+    # 3. logs/{log_name}/results.json
+    logs_root = _repo_root() / "logs"
+    parts = scenario_name.split("_", 1)
+    log_name = parts[1] if len(parts) == 2 else scenario_name
+    for candidate in (log_name, scenario_name):
+        results_path = logs_root / candidate / "results.json"
+        if results_path.exists():
+            try:
+                results = _load_results_json_tolerant(results_path)
+                aggregated = _aggregate_from_results_json(results, split)
+                if aggregated:
+                    return aggregated
+            except Exception:
+                pass
+
+    return {}

@@ -19,7 +19,7 @@ import pandas as pd
 
 from thesis_mlflow_results import load_experiment_snapshot, runs_overview_table
 
-EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected"
+EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 runs_df = runs_overview_table(EXPERIMENT_NAME)
@@ -168,3 +168,157 @@ For this reason, robustness findings in the final thesis should be framed only
 to the extent supported by repeated runs and matched comparison settings. The
 framework in this section provides the structure for that interpretation and
 helps prevent post-hoc emphasis on isolated favorable outcomes.
+
+## H2: Feature Specification Sensitivity
+<!-- [PLACEHOLDER] -->
+
+This section compares three feature-specification levels under otherwise
+identical conditions (same algorithm, data, reward, and transaction cost) to
+assess whether richer microstructure-aware state representations improve
+out-of-sample performance.
+
+```{python}
+#| label: h2_feature_comparison
+#| echo: false
+#| warning: false
+#| tbl-cap: "H2 feature sensitivity: test-split metrics for minimal (3), selected (10), and full (33) feature sets."
+
+import math
+import pandas as pd
+from IPython.display import HTML
+from thesis_mlflow_results import load_scenario_metrics
+
+_H2_SCENARIOS = [
+    ("pooled_td3_h3_features_minimal",                           "Minimal (3 features)",   False),
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "Selected (10 features)", True),
+    ("pooled_td3_h3_features_full",                              "Full (33 features)",     False),
+]
+
+_H2_COLS = [
+    ("sharpe_ratio",          "Sharpe",    ".3f"),
+    ("sortino_ratio",         "Sortino",   ".3f"),
+    ("total_return",          "Return",    ".2%"),
+    ("max_drawdown",          "Max DD",    ".2%"),
+    ("win_rate",              "Win Rate",  ".2%"),
+    ("profit_factor",         "PF",        ".3f"),
+    ("annualized_volatility", "Ann. Vol",  ".3f"),
+]
+
+_HIGHER_BETTER = {
+    "sharpe_ratio": True, "sortino_ratio": True, "total_return": True,
+    "max_drawdown": False, "win_rate": True, "profit_factor": True, "annualized_volatility": False,
+}
+
+def _fmtv(val, fmt):
+    if val is None or (isinstance(val, float) and not math.isfinite(val)):
+        return "—"
+    try:
+        return f"{val:{fmt}}"
+    except Exception:
+        return str(val)
+
+def _fmtd(val, baseline, fmt, higher_better=True):
+    if not isinstance(val, (int, float)) or not isinstance(baseline, (int, float)):
+        return ""
+    if not math.isfinite(val) or not math.isfinite(baseline):
+        return ""
+    delta = val - baseline
+    try:
+        s = f"{delta:+{fmt}}"
+    except Exception:
+        return ""
+    return s
+
+scenario_metrics = [(label, load_scenario_metrics(exp), is_base) for exp, label, is_base in _H2_SCENARIOS]
+baseline_m = next((m for _, m, is_base in scenario_metrics if is_base), {})
+
+rows = []
+for label, m, is_base in scenario_metrics:
+    row = {"Feature Set": label}
+    for key, col, fmt in _H2_COLS:
+        row[col] = _fmtv(m.get(key), fmt)
+        if not is_base and baseline_m:
+            bval = baseline_m.get(key)
+            row[f"Δ {col}"] = _fmtd(m.get(key), bval, fmt, _HIGHER_BETTER.get(key, True))
+        elif is_base:
+            row[f"Δ {col}"] = "(baseline)"
+    rows.append(row)
+
+h2_df = pd.DataFrame(rows)
+if h2_df.iloc[:, 1:len(_H2_COLS)+1].isin(["—"]).all().all():
+    print("No H2 results available. Run: bash scripts/run_h2_experiments.sh")
+else:
+    display(HTML(h2_df.to_html(index=False)))
+```
+
+## H3: Sensitivity Analysis
+<!-- [PLACEHOLDER] -->
+
+This section reports three sensitivity axes: feature specification, reward
+design, and transaction cost. Each axis holds all other design choices constant.
+The shared baseline across all axes is the selected (10-feature) set with log
+return reward and zero transaction cost.
+
+```{python}
+#| label: h3_sensitivity_tables
+#| echo: false
+#| warning: false
+
+import math
+import pandas as pd
+from IPython.display import HTML, display
+from thesis_mlflow_results import load_scenario_metrics
+
+_H3_AXES = [
+    {
+        "label": "Reward Design",
+        "col": "Variant",
+        "scenarios": [
+            ("pooled_td3_hft_lob_state_space_pooled_streaming_selected",     "Log Return (baseline)", True),
+            ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr", "Differential Sharpe (DSR)", False),
+        ],
+    },
+    {
+        "label": "Transaction Cost",
+        "col": "Fees",
+        "scenarios": [
+            ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "0 bp (baseline)", True),
+            ("pooled_td3_h3_fees_1e6",                                   "0.01 bp",         False),
+            ("pooled_td3_h3_fees_1e5",                                   "0.1 bp",          False),
+            ("pooled_td3_h3_fees_1e4",                                   "1 bp",            False),
+        ],
+    },
+]
+
+_H3_COLS = [
+    ("sharpe_ratio",  "Sharpe",   ".3f"),
+    ("sortino_ratio", "Sortino",  ".3f"),
+    ("total_return",  "Return",   ".2%"),
+    ("max_drawdown",  "Max DD",   ".2%"),
+    ("win_rate",      "Win Rate", ".2%"),
+    ("profit_factor", "PF",       ".3f"),
+]
+
+def _fmtv(val, fmt):
+    if val is None or (isinstance(val, float) and not math.isfinite(val)):
+        return "—"
+    try:
+        return f"{val:{fmt}}"
+    except Exception:
+        return str(val)
+
+for axis in _H3_AXES:
+    rows = []
+    for exp, label, _ in axis["scenarios"]:
+        m = load_scenario_metrics(exp)
+        row = {axis["col"]: label}
+        for key, col, fmt in _H3_COLS:
+            row[col] = _fmtv(m.get(key), fmt)
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    if df.iloc[:, 1:].isin(["—"]).all().all():
+        print(f"{axis['label']}: no results yet. Run: bash scripts/run_h3_experiments.sh")
+    else:
+        print(f"\n**{axis['label']}**")
+        display(HTML(df.to_html(index=False)))
+```

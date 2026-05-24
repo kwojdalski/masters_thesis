@@ -109,6 +109,39 @@ def _per_symbol_summary(results: dict) -> dict:
     }
 
 
+def _load_benchmark_table(eval_dir: Path) -> dict | None:
+    """Load benchmark_tables/test_benchmark_table.json in the statistical_tests format.
+
+    The evaluate CLI writes rows with a 'name' key; format_benchmark_comparison_table()
+    expects a 'strategy' key and a top-level 'benchmark_comparison_table' list.
+    """
+    for split in ("test", "val", "train"):
+        bench_path = eval_dir / "benchmark_tables" / f"{split}_benchmark_table.json"
+        if bench_path.exists():
+            break
+    else:
+        return None
+    try:
+        raw = bench_path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except Exception:
+        return None
+
+    rows = data.get("rows", [])
+    if not rows:
+        return None
+
+    converted = []
+    for row in rows:
+        new_row = {"strategy": row.get("name", "?")}
+        for k, v in row.items():
+            if k not in ("name", "is_strategy"):
+                new_row[k] = v
+        converted.append(new_row)
+
+    return {"benchmark_comparison_table": converted}
+
+
 def _find_plots(search_dirs: list[Path]) -> dict[str, Path]:
     """Find reward and position (action) plots in the given directories.
 
@@ -310,6 +343,15 @@ def main() -> int:
     # Copy plots into snapshot
     plot_relpaths = _copy_plots(plots, snapshot_dir) if plots else {}
 
+    # Benchmark comparison table (written as statistical_tests.json for format_benchmark_comparison_table)
+    benchmark_table = _load_benchmark_table(eval_dir)
+    statistical_tests_file: str | None = None
+    if benchmark_table is not None:
+        _write_json(snapshot_dir / "statistical_tests.json", benchmark_table)
+        statistical_tests_file = "statistical_tests.json"
+        n_rows = len(benchmark_table.get("benchmark_comparison_table", []))
+        print(f"  Benchmark table: {n_rows} strategies")
+
     # run.json — standard snapshot format read by _load_run_from_export()
     run_json: dict = {
         "run_id": None,
@@ -330,7 +372,7 @@ def main() -> int:
             "params": "params.json",
             "latest_metrics": "latest_metrics.json",
             "evaluation_report": "evaluation_report.json",
-            "statistical_tests": None,
+            "statistical_tests": statistical_tests_file,
         },
         "evaluation_plots": plot_relpaths,
         "per_symbol_results": _per_symbol_summary(results),

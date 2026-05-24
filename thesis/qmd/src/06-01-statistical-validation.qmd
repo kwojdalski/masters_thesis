@@ -26,7 +26,7 @@ from thesis_mlflow_results import (
     runs_overview_table,
 )
 
-EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected"
+EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 runs_df = runs_overview_table(EXPERIMENT_NAME)
 finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.empty else pd.DataFrame()
 ```
