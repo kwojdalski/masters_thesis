@@ -5,7 +5,7 @@ from XAI Asset Management, making it compatible with TorchRL training pipelines.
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import gymnasium as gym
 import numpy as np
@@ -385,7 +385,7 @@ class StreamingTradingEnvXY(gym.Env):
             ``"feature_position"``).
     """
 
-    metadata = {"render_modes": []}
+    metadata: ClassVar[dict[str, list[str]]] = {"render_modes": []}
 
     def __init__(
         self,
@@ -528,11 +528,27 @@ class StreamingTradingEnvXY(gym.Env):
         # correctly, while A_t/B_t carry over from the previous episode.
         if self._persistent_dsr is not None:
             self._persistent_dsr.reset(persist_moments=True)
-        file_idx = self._next_symbol_idx()
-        mp = self._memmap_paths[file_idx]
+        attempts = 0
+        while True:
+            file_idx = self._next_symbol_idx()
+            mp = self._memmap_paths[file_idx]
+            if mp.n_rows >= self._episode_length:
+                break
+            logger.warning(
+                "StreamingTradingEnvXY: skipping symbol %d (%d rows < episode_length %d)",
+                file_idx,
+                mp.n_rows,
+                self._episode_length,
+            )
+            attempts += 1
+            if attempts >= len(self._memmap_paths):
+                raise RuntimeError(
+                    f"No symbol files have enough rows for episode_length={self._episode_length}. "
+                    "Reduce episode_length or provide longer data files."
+                )
         max_start = mp.n_rows - self._episode_length
         # Use max_start + 1 to include final valid start position (numpy.integers is exclusive)
-        start = int(self._symbol_rng.integers(0, max(1, max_start + 1)))
+        start = int(self._symbol_rng.integers(0, max_start + 1))
         window_df = self._load_window(file_idx, start)
         # Snapshot symbol and date range for the new episode.
         self._current_episode_symbol = mp.symbol or Path(mp.data_path).stem.split("_")[0]

@@ -12,6 +12,7 @@ import pytest
 
 from trading_rl.data_loading import MemmapPaths, save_symbol_memmap
 from trading_rl.envs.streaming_env import StreamingTradingEnv
+from trading_rl.envs.tradingenvxy_wrapper import StreamingTradingEnvXY
 
 
 def _make_memmap(
@@ -42,6 +43,31 @@ def _bare_env(memmap_paths: list[MemmapPaths], episode_length: int) -> Streaming
     env._symbol_queue: list[int] = []
     env._symbol_rng = np.random.default_rng(0)
     return env
+
+
+def _bare_xy_env(memmap_paths: list[MemmapPaths], episode_length: int) -> StreamingTradingEnvXY:
+    """Construct StreamingTradingEnvXY with no TradingEnv constructor side effects."""
+    env = object.__new__(StreamingTradingEnvXY)
+    env._memmap_paths = memmap_paths
+    env._episode_length = episode_length
+    env._symbol_queue = []
+    env._symbol_rng = np.random.default_rng(0)
+    env._inner_env = None
+    env._persistent_dsr = None
+    env._last_episode_final_nlv = None
+    env._last_episode_steps = None
+    env._current_episode_symbol = None
+    env._current_episode_start_ts = None
+    env._current_episode_end_ts = None
+    env._obs_clip = None
+    return env
+
+
+class _FakeInnerEnv:
+    broker = None
+
+    def reset(self):
+        return {"CustomFeature": np.array([1.0], dtype=np.float32)}
 
 
 class TestLoadWindow:
@@ -139,3 +165,42 @@ class TestNextSymbolIdx:
         counts = Counter(all_draws)
         for sym in range(N):
             assert counts[sym] == 2, f"symbol {sym} appeared {counts[sym]} times"
+
+
+class TestStreamingTradingEnvXYReset:
+    def test_reset_skips_short_symbol_files(self, tmp_path, monkeypatch):
+        short_mp = _make_memmap(tmp_path, n_rows=3, n_cols=2, prefix="0")
+        long_mp = _make_memmap(tmp_path, n_rows=8, n_cols=2, prefix="1")
+        env = _bare_xy_env([short_mp, long_mp], episode_length=5)
+        env._symbol_queue = [1, 0]
+        loaded: list[tuple[int, int]] = []
+
+        def fake_load_window(file_idx: int, start: int) -> pd.DataFrame:
+            loaded.append((file_idx, start))
+            return pd.DataFrame(
+                np.ones((5, 2), dtype=np.float32),
+                columns=["col_0", "col_1"],
+                index=pd.date_range("2024-01-01", periods=5, freq="s"),
+            )
+
+        monkeypatch.setattr(env, "_load_window", fake_load_window)
+        monkeypatch.setattr(env, "_build_inner_env", lambda window_df: _FakeInnerEnv())
+
+        obs, info = env.reset()
+
+        assert info == {}
+        np.testing.assert_allclose(obs, [1.0])
+        assert len(loaded) == 1
+        assert loaded[0][0] == 1
+        assert 0 <= loaded[0][1] <= 3
+
+    def test_reset_raises_when_all_symbol_files_are_short(self, tmp_path):
+        memmaps = [
+            _make_memmap(tmp_path, n_rows=3, n_cols=2, prefix="0"),
+            _make_memmap(tmp_path, n_rows=4, n_cols=2, prefix="1"),
+        ]
+        env = _bare_xy_env(memmaps, episode_length=5)
+        env._symbol_queue = [1, 0]
+
+        with pytest.raises(RuntimeError, match="No symbol files have enough rows"):
+            env.reset()
