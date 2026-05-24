@@ -155,6 +155,7 @@ class TrainerRuntimeHooks:
         hook: PeriodicEvaluationHook,
     ) -> None:
         """Run evaluation during training and log artifacts without affecting control flow."""
+        import math
         import time
         _t_total = time.monotonic()
         split_names = [s.split for s in hook.splits]
@@ -191,11 +192,31 @@ class TrainerRuntimeHooks:
                     split_ctx.split, time.monotonic() - _t,
                 )
 
+                # Compute full MetricReport from the completed rollout
+                try:
+                    from trading_rl.evaluation.report import build_evaluation_report_for_trainer
+                    from trading_rl.pipeline.evaluation import (
+                        _last_evaluation_rollout,
+                        _last_strategy_returns,
+                    )
+                    metric_report = build_evaluation_report_for_trainer(
+                        trainer=self.trainer,
+                        df_prices=split_ctx.df,
+                        max_steps=split_ctx.max_steps,
+                        config=hook.config,
+                        eval_env=split_ctx.eval_env,
+                        rollout=_last_evaluation_rollout(self.trainer),
+                        strategy_simple_returns=_last_strategy_returns(self.trainer),
+                    )
+                except Exception:
+                    logger.warning("temp eval: MetricReport failed split=%s", split_ctx.split, exc_info=True)
+                    metric_report = None
+
                 if mlflow.active_run():
                     from trading_rl.callbacks import MLflowTrainingCallback
 
                     artifact_prefix = (
-                        f"evaluation_plots_temp/step_{step_number:08d}/{split_ctx.split}"
+                        f"evaluation_plots/{split_ctx.split}/step_{step_number:08d}"
                     )
                     _t = time.monotonic()
                     MLflowTrainingCallback.log_evaluation_plots(
@@ -212,10 +233,18 @@ class TrainerRuntimeHooks:
                         split_ctx.split, time.monotonic() - _t,
                     )
                     mlflow.log_metric(
-                        f"temp_eval_reward_{split_ctx.split}",
+                        f"eval_{split_ctx.split}_reward",
                         final_reward,
                         step=step_number,
                     )
+                    if metric_report is not None:
+                        for key, value in metric_report.to_dict().items():
+                            if isinstance(value, float) and math.isfinite(value):
+                                mlflow.log_metric(
+                                    f"eval_{split_ctx.split}_{key}",
+                                    value,
+                                    step=step_number,
+                                )
                     _elapsed = time.monotonic() - _t_split
                     logger.info(
                         "temp eval complete split=%s reward=%.4f artifacts=%s elapsed_s=%.2f",
@@ -243,7 +272,7 @@ class TrainerRuntimeHooks:
                 self._eval_consecutive_failures = 0
 
         logger.info(
-            "temp eval all splits done step=%s total_elapsed=%.2fs",
+            "temp eval all splits done step=%s total_elapsed_s=%.2f",
             step_number, time.monotonic() - _t_total,
         )
 
