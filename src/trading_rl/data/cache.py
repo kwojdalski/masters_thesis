@@ -90,13 +90,16 @@ def _expected_cached_split_rows(config: Any, memmap_dir: Path | None) -> dict[st
 
     data_paths = getattr(config.data, "data_paths", None) or []
     n_symbols = len(data_paths) if data_paths else 1
+    # In streaming mode (memmap_dir set) the val/test parquet holds one symbol only;
+    # non-streaming pooled mode concatenates all symbols so the full multiplier applies.
+    val_test_multiplier = 1 if memmap_dir else n_symbols
     train_rows = getattr(config.data, "train_size", None)
     validation_size = getattr(config.data, "validation_size", None)
     test_size = getattr(config.data, "test_size", None)
     return {
         SplitName.TRAIN: train_rows,
-        SplitName.VAL: validation_size * n_symbols if validation_size is not None else None,
-        SplitName.TEST: test_size * n_symbols if test_size is not None else None,
+        SplitName.VAL: validation_size * val_test_multiplier if validation_size is not None else None,
+        SplitName.TEST: test_size * val_test_multiplier if test_size is not None else None,
     }
 
 
