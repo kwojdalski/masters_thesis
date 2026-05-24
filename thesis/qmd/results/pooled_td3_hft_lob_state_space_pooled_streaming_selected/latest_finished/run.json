@@ -1,17 +1,88 @@
 {
-  "run_id": "298ddbea51da48ab9a4eb1a0ffe5bae5",
-  "run_name": "hidden-matrix-delta",
+  "run_id": null,
+  "run_name": "pooled_td3_hft_lob_state_space_pooled_streaming_selected",
   "status": "FINISHED",
-  "start_time": "2026-05-15T23:10:52.198000",
-  "end_time": "2026-05-15T23:21:53.449000",
-  "artifact_uri": "/Users/krzysztofwojdalski/github_projects/masters_thesis/mlruns/27/298ddbea51da48ab9a4eb1a0ffe5bae5/artifacts",
+  "start_time": "2026-05-24T23:14:33.405724+00:00",
+  "end_time": "2026-05-24T23:14:33.405724+00:00",
+  "artifact_uri": null,
   "experiment_name": "pooled_td3_hft_lob_state_space_pooled_streaming_selected",
-  "experiment_id": 27,
+  "experiment_id": null,
+  "source": {
+    "type": "evaluate_cli",
+    "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_hft_lob_state_space_pooled_streaming_selected",
+    "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_hft_lob_state_space_pooled_streaming_selected/results.json",
+    "exported_at_utc": "2026-05-24T23:14:33.405724+00:00"
+  },
   "files": {
     "params": "params.json",
     "latest_metrics": "latest_metrics.json",
-    "evaluation_report": null,
+    "evaluation_report": "evaluation_report.json",
     "statistical_tests": null
   },
-  "evaluation_plots": {}
+  "evaluation_plots": {
+    "rewards": "plots/rewards.png",
+    "positions": "plots/positions.png"
+  },
+  "per_symbol_results": {
+    "val_AAPL": {
+      "split": "val_AAPL",
+      "final_reward": -4.01830959617655e-08,
+      "n_steps": 100
+    },
+    "test_AAPL": {
+      "split": "test_AAPL",
+      "final_reward": -4.9669246493522223e-08,
+      "n_steps": 100
+    },
+    "val_AMZN": {
+      "split": "val_AMZN",
+      "final_reward": 5.238518951955484e-06,
+      "n_steps": 100
+    },
+    "test_AMZN": {
+      "split": "test_AMZN",
+      "final_reward": -1.4478331422651536e-07,
+      "n_steps": 100
+    },
+    "val_AVGO": {
+      "split": "val_AVGO",
+      "final_reward": -3.5100213153782533e-06,
+      "n_steps": 100
+    },
+    "test_AVGO": {
+      "split": "test_AVGO",
+      "final_reward": -2.5163393502225517e-07,
+      "n_steps": 100
+    },
+    "val_META": {
+      "split": "val_META",
+      "final_reward": -4.1339288259223395e-07,
+      "n_steps": 100
+    },
+    "test_META": {
+      "split": "test_META",
+      "final_reward": 1.4073904708311602e-08,
+      "n_steps": 100
+    },
+    "val_MSFT": {
+      "split": "val_MSFT",
+      "final_reward": -3.0572116429539165e-06,
+      "n_steps": 100
+    },
+    "test_MSFT": {
+      "split": "test_MSFT",
+      "final_reward": -1.0232612623894966e-07,
+      "n_steps": 100
+    },
+    "val_TSLA": {
+      "split": "val_TSLA",
+      "final_reward": -2.169215122194146e-06,
+      "n_steps": 100
+    },
+    "test_TSLA": {
+      "split": "test_TSLA",
+      "final_reward": -4.1177202092512744e-08,
+      "n_steps": 100
+    }
+  }
 }
