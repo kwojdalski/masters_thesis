@@ -205,6 +205,23 @@ def find_evaluation_plots(artifact_uri: str | None) -> dict[str, Path]:
     return found
 
 
+def _find_static_export_plots(experiment_name: str) -> dict[str, Path]:
+    """Return plots from a previously exported thesis snapshot, if any."""
+    snap_dir = _experiment_snapshot_dir(experiment_name) / "latest_finished"
+    run_json_path = snap_dir / "run.json"
+    if not run_json_path.exists():
+        return {}
+    try:
+        raw = json.loads(run_json_path.read_text())
+        return {
+            key: (snap_dir / rel_path)
+            for key, rel_path in (raw.get("evaluation_plots") or {}).items()
+            if (snap_dir / rel_path).exists()
+        }
+    except Exception:
+        return {}
+
+
 def latest_run_for_experiment(experiment_name: str, status: str | None = None) -> dict[str, Any] | None:
     exp = get_experiment_by_name(experiment_name)
     if exp is None:
@@ -224,6 +241,10 @@ def latest_run_for_experiment(experiment_name: str, status: str | None = None) -
     row["evaluation_report"] = load_latest_evaluation_report(row["artifact_uri"])
     row["statistical_tests"] = load_latest_statistical_tests(row["artifact_uri"])
     row["evaluation_plots"] = find_evaluation_plots(row["artifact_uri"])
+    # Supplement with static export plots when the MLflow run has none
+    # (e.g. when evaluate was run with --only metrics and plots were not logged).
+    if not row["evaluation_plots"]:
+        row["evaluation_plots"] = _find_static_export_plots(experiment_name)
     return row
 
 

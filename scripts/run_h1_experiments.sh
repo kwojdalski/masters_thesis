@@ -145,3 +145,16 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== H1: Report ==="
 uv run python "$REPO_ROOT/scripts/h1_performance_report.py"
+
+# ---------------------------------------------------------------------------
+# Step 4: Export to thesis snapshot
+# Writes thesis/qmd/results/{experiment_name}/latest_finished/ so Quarto
+# chapters can render metrics and plots without querying the MLflow database.
+# ---------------------------------------------------------------------------
+echo "=== H1: Export to thesis ==="
+for SCENARIO in "${SCENARIOS[@]}"; do
+    echo "  Exporting $SCENARIO ..."
+    uv run python "$REPO_ROOT/scripts/export_eval_to_thesis.py" \
+        --scenario "$SCENARIO"
+done
+echo "Thesis snapshots updated."

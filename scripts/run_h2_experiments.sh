@@ -145,3 +145,14 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== H2: Report ==="
 uv run python "$REPO_ROOT/scripts/h2_feature_sensitivity_report.py"
+
+# ---------------------------------------------------------------------------
+# Step 4: Export to thesis snapshot
+# ---------------------------------------------------------------------------
+echo "=== H2: Export to thesis ==="
+for SCENARIO in "${SCENARIOS[@]}"; do
+    echo "  Exporting $SCENARIO ..."
+    uv run python "$REPO_ROOT/scripts/export_eval_to_thesis.py" \
+        --scenario "$SCENARIO"
+done
+echo "Thesis snapshots updated."
