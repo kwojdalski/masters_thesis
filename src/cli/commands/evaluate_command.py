@@ -428,7 +428,7 @@ class EvaluateCommand(BaseCommand):
         config: Any,
         params: EvaluateParams,
         val_data_paths: list[str],
-        checkpoint_path: Path | None,
+        checkpoint_path: "Path | None" = None,
     ) -> tuple[list[str], dict[str, "pd.DataFrame"]]:
         """Prepare each val file as an independent single-symbol DataFrame.
 

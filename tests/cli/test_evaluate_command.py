@@ -35,7 +35,7 @@ def test_resolve_per_symbol_splits_keeps_each_symbol_separate(monkeypatch) -> No
         "MSFT_2026-03-02_raw.parquet": _df(200.0),
     }
 
-    def fake_prepare(path, config):
+    def fake_prepare(path, config, checkpoint_path=None):
         return frames[path.name]
 
     monkeypatch.setattr(command, "_prepare_arbitrary_df", fake_prepare)
@@ -63,7 +63,7 @@ def test_resolve_per_symbol_splits_can_select_test_only(monkeypatch) -> None:
     monkeypatch.setattr(
         command,
         "_prepare_arbitrary_df",
-        lambda path, config: frames[path.name],
+        lambda path, config, checkpoint_path=None: frames[path.name],
     )
 
     splits, split_dfs = command._resolve_per_symbol_splits(

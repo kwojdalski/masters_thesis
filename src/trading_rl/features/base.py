@@ -299,12 +299,12 @@ class TimeWeightedRunningMeanStd:
                 f"Length mismatch: data ({len(x)}) and time_weights ({len(time_weights)})"
             )
 
-        batch_mean = np.average(x, weights=time_weights)
         batch_weight = np.sum(time_weights)
-        batch_var = np.average((x - batch_mean) ** 2, weights=time_weights)
-
         if batch_weight == 0:
             return self
+
+        batch_mean = np.average(x, weights=time_weights)
+        batch_var = np.average((x - batch_mean) ** 2, weights=time_weights)
 
         delta = batch_mean - self.mean
         total_weight_new = self.total_weight + batch_weight

@@ -8,6 +8,24 @@ from cli.commands import TrainingCommand, TrainingParams
 from logger import configure_logging
 
 
+@pytest.fixture(autouse=True)
+def _end_mlflow_run():
+    """Ensure any active MLflow run from a previous test is closed before each test."""
+    try:
+        import mlflow
+        if mlflow.active_run():
+            mlflow.end_run()
+    except ImportError:
+        pass
+    yield
+    try:
+        import mlflow
+        if mlflow.active_run():
+            mlflow.end_run()
+    except ImportError:
+        pass
+
+
 # @pytest.mark.skip(reason="Long running training test for manual debugging")
 def test_sine_wave_ppo_training_debug():
     """
@@ -23,13 +41,12 @@ def test_sine_wave_ppo_training_debug():
 
     # 2. Setup Parameters (equivalent to CLI args)
     # Note: paths should be relative to project root where pytest is run
-    config_path = Path("src/configs/scenarios/sine_wave/ppo_no_trend.yaml")
+    config_path = Path("src/configs/scenarios/sine_wave/ppo_no_trend_continuous")
 
     params = TrainingParams(
         config_file=config_path,
         max_steps=600,  # Divisible by frames_per_batch (200)
-        # experiment_name="debug_repro_test", # Optional: set a name if desired
-        # log_dir=Path("logs/debug_test"),    # Optional: override log dir
+        experiment_name="test_repro_ppo_sine",
     )
 
     # 3. Initialize Command
@@ -58,11 +75,13 @@ def test_upward_trend_td3_training_debug():
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_repro", level="DEBUG")
 
-    config_path = Path("src/configs/scenarios/synthetic/upward_trend_td3_tradingenv.yaml")
+    config_path = Path("src/configs/scenarios/synthetic/upward_trend_td3_tradingenv")
 
     params = TrainingParams(
         config_file=config_path,
         max_steps=2000,  # shorter than full run for test
+        config_overrides=["data.train_size=400"],
+        experiment_name="test_repro_td3_uptrend",
     )
 
     console = Console(force_terminal=True)
@@ -85,11 +104,12 @@ def test_upward_trend_ddpg_training_debug():
     os.environ["LOG_LEVEL"] = "DEBUG"
     configure_logging(component="test_repro", level="DEBUG")
 
-    config_path = Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv.yaml")
+    config_path = Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv")
 
     params = TrainingParams(
         config_file=config_path,
         max_steps=2000,  # shorten for test
+        experiment_name="test_repro_ddpg_uptrend",
     )
 
     console = Console(force_terminal=True)

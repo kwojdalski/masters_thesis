@@ -176,10 +176,9 @@ def test_report_prefers_configured_timeframe_for_annualization() -> None:
     env = _FakeEnv(rollout)
     prices = pd.DataFrame(
         {"close": np.arange(len(returns) + 1, dtype=float) + 100.0},
-        index=pd.date_range(
-            "2024-01-01 09:30:00",
+        index=pd.bdate_range(
+            "2024-01-01",
             periods=len(returns) + 1,
-            freq="1s",
         ),
     )
 

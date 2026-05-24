@@ -34,7 +34,6 @@ _EXTENDED_REPORT_KEYS = (
     "cvar_95",
     "downside_deviation",
     "win_rate",
-    "hit_rate",
     "turnover",
     "average_holding_period",
     "expectancy_per_period",
@@ -47,7 +46,6 @@ _EXTENDED_FINITE_REPORT_KEYS = (
     "cvar_95",
     "downside_deviation",
     "win_rate",
-    "hit_rate",
     "turnover",
     "average_holding_period",
     "expectancy_per_period",
@@ -253,7 +251,7 @@ def _assert_split_result_extended(split: str, split_result: dict) -> None:
             f"split '{split}' {key} is not finite: {report[key]}"
         )
 
-    for key in ("win_rate", "hit_rate"):
+    for key in ("win_rate",):
         assert 0.0 <= report[key] <= 1.0, (
             f"split '{split}' {key} must be in [0, 1]: {report[key]}"
         )

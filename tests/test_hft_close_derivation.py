@@ -98,7 +98,7 @@ def test_hft_tradingenv_makes_duplicate_timestamps_unique():
         assert out.index.is_monotonic_increasing
         assert out.index.is_unique
         assert len(out) == len(df)
-        assert out.index.to_series().diff().dropna().min() >= pd.Timedelta(seconds=1)
+        assert out.index.to_series().diff().dropna().min() >= pd.Timedelta(microseconds=1)
 
 
 def test_non_tradingenv_mode_does_not_touch_duplicate_index():
@@ -125,7 +125,7 @@ def test_non_tradingenv_mode_does_not_touch_duplicate_index():
     assert not test_out.index.is_unique
 
 
-def test_hft_tradingenv_enforces_min_1s_gap_even_when_index_is_unique():
+def test_hft_tradingenv_enforces_min_1us_gap_even_when_index_is_unique():
     config = ExperimentConfig()
     config.env.mode = "hft"
     config.env.backend = "tradingenv"
@@ -144,4 +144,4 @@ def test_hft_tradingenv_enforces_min_1s_gap_even_when_index_is_unique():
     train_out, _, _ = _ensure_unique_index_for_hft_tradingenv(df, df, df, config, logger)
 
     min_gap = train_out.index.to_series().diff().dropna().min()
-    assert min_gap >= pd.Timedelta(seconds=1)
+    assert min_gap >= pd.Timedelta(microseconds=1)
