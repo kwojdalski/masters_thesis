@@ -245,6 +245,24 @@ class TrainerRuntimeHooks:
                                     value,
                                     step=step_number,
                                 )
+                    if getattr(hook.config.training, "temp_eval_log_data", False):
+                        last_result = getattr(self.trainer, "_last_evaluation_result", None)
+                        if last_result is not None:
+                            try:
+                                import numpy as _np
+                                from pathlib import Path as _Path
+                                from trading_rl.callbacks.artifacts import save_eval_rollout_artifact
+                                save_eval_rollout_artifact(
+                                    split=f"{split_ctx.split}_step_{step_number:08d}",
+                                    last_positions=getattr(last_result, "last_positions", []),
+                                    simple_returns=getattr(last_result, "simple_returns", _np.array([])),
+                                    cumulative_returns=getattr(last_result, "cumulative_returns", None),
+                                    df_index=split_ctx.df.index,
+                                    output_dir=_Path(hook.config.logging.log_dir) / "evaluation_data",
+                                    artifact_path_prefix=f"evaluation_data/{split_ctx.split}/step_{step_number:08d}",
+                                )
+                            except Exception:
+                                logger.warning("temp eval: rollout data artifact failed split=%s step=%s", split_ctx.split, step_number, exc_info=True)
                     _elapsed = time.monotonic() - _t_split
                     logger.info(
                         "temp eval complete split=%s reward=%.4f artifacts=%s elapsed_s=%.2f",

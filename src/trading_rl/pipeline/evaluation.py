@@ -307,6 +307,22 @@ def evaluate_split(
         )
     strategy_simple_returns = _last_strategy_returns(trainer)
     rollout = _last_evaluation_rollout(trainer)
+    last_eval_result = getattr(trainer, "_last_evaluation_result", None)
+
+    if getattr(config.logging, "log_eval_rollout_data", True) and last_eval_result is not None:
+        try:
+            from trading_rl.callbacks.artifacts import save_eval_rollout_artifact
+            save_eval_rollout_artifact(
+                split=split,
+                last_positions=getattr(last_eval_result, "last_positions", []),
+                simple_returns=getattr(last_eval_result, "simple_returns", np.array([])),
+                cumulative_returns=getattr(last_eval_result, "cumulative_returns", None),
+                df_index=split_ctx.df.index,
+                output_dir=Path(config.logging.log_dir) / "evaluation_data",
+                artifact_path_prefix=f"evaluation_data/{split}",
+            )
+        except Exception as _rd_err:
+            logger.warning("rollout data artifact failed split=%s err=%s", split, _rd_err)
 
     with profiler.stage(f"eval_mlflow_plots_{split}"):
         MLflowTrainingCallback.log_evaluation_plots(

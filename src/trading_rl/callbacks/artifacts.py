@@ -169,6 +169,47 @@ def save_observation_sample_artifact(
     return out_path
 
 
+def save_eval_rollout_artifact(
+    *,
+    split: str,
+    last_positions: "list[Any]",
+    simple_returns: "np.ndarray",
+    cumulative_returns: "np.ndarray | None",
+    df_index: "pd.Index",
+    output_dir: "str | Path",
+    artifact_path_prefix: str = "evaluation_data",
+) -> "Path":
+    """Serialize per-step rollout data to parquet and log as an MLflow artifact.
+
+    Columns: action, simple_return, cumulative_log_return (when available).
+    """
+    import numpy as np
+    import pandas as pd
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    n = min(len(last_positions), len(simple_returns), len(df_index))
+    data: dict = {
+        "action": np.array(last_positions[:n], dtype=np.float32),
+        "simple_return": np.asarray(simple_returns[:n], dtype=np.float32),
+    }
+    if cumulative_returns is not None:
+        cum = np.asarray(cumulative_returns)
+        if len(cum) == n + 1:
+            cum = cum[1:]
+        data["cumulative_log_return"] = cum[:n].astype(np.float32)
+
+    safe_split = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in split)
+    out_path = output_dir / f"{safe_split}_rollout.parquet"
+    pd.DataFrame(data, index=df_index[:n]).to_parquet(out_path)
+
+    if mlflow.active_run() is not None:
+        mlflow.log_artifact(str(out_path), artifact_path_prefix)
+
+    return out_path
+
+
 def log_parameter_faq_artifact() -> None:
     """Log parameter FAQ as both markdown and HTML artifacts."""
     logger = get_project_logger(__name__)
