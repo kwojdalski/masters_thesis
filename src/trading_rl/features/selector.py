@@ -1094,10 +1094,12 @@ class FeatureSelector:
                         "icir_values": [],
                         "mean_ic_values": [],
                         "ic_tstat_values": [],
+                        "val_mean_ic_values": [],
                     }
                 feature_scores[feat]["icir_values"].append(row["icir"])
                 feature_scores[feat]["mean_ic_values"].append(row["mean_ic"])
                 feature_scores[feat]["ic_tstat_values"].append(row.get("ic_tstat", 0))
+                feature_scores[feat]["val_mean_ic_values"].append(row.get("val_mean_ic", 0.0))
 
         # Build composite score DataFrame
         rows: list[dict] = []
@@ -1118,8 +1120,8 @@ class FeatureSelector:
                     "icir": np.mean(scores["icir_values"]),
                     "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
                     "ic_positive_ratio": np.mean(ic_pos_ratios) if ic_pos_ratios else 0.0,
-                    "val_mean_ic": np.mean(scores["mean_ic_values"]),
-                    "ic_stability": np.std(scores["icir_values"]) if len(scores["icir_values"]) > 1 else 0.0,
+                    "val_mean_ic": np.mean(scores["val_mean_ic_values"]),
+                    "ic_stability": abs(np.mean(scores["mean_ic_values"]) - np.mean(scores["val_mean_ic_values"])),
                 })
 
         # If no features with valid scores, use all features that appear in any split scores
@@ -1151,8 +1153,8 @@ class FeatureSelector:
                         "icir": np.mean(scores["icir_values"]),
                         "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
                         "ic_positive_ratio": np.mean(ic_pos_ratios) if ic_pos_ratios else 0.0,
-                        "val_mean_ic": np.mean(scores["mean_ic_values"]),
-                        "ic_stability": np.std(scores["icir_values"]) if len(scores["icir_values"]) > 1 else 0.0,
+                        "val_mean_ic": np.mean(scores["val_mean_ic_values"]),
+                        "ic_stability": abs(np.mean(scores["mean_ic_values"]) - np.mean(scores["val_mean_ic_values"])),
                     })
 
         if not rows:
