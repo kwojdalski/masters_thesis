@@ -428,10 +428,11 @@ def _build_time_series_cv_splits(
     total_cv_samples = min_train_size + (n_splits - 1) * (gap + test_size) + test_size
 
     if total_cv_samples > n_samples:
+        original_n_splits = n_splits
         n_splits = (n_samples - min_train_size - test_size) // (gap + test_size) + 1
         logger.warning(
             "Reducing n_splits to %d due to insufficient data for %d splits",
-            n_splits, n_splits + (total_cv_samples - n_samples) // (gap + test_size) + 1
+            n_splits, original_n_splits
         )
 
     # Generate splits using expanding window
