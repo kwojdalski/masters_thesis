@@ -216,7 +216,7 @@ class TrainerRuntimeHooks:
                     from trading_rl.callbacks import MLflowTrainingCallback
 
                     artifact_prefix = (
-                        f"evaluation_plots/{split_ctx.split}/step_{step_number:08d}"
+                        f"evaluation_plots_temp/{split_ctx.split}/step_{step_number:08d}"
                     )
                     _t = time.monotonic()
                     MLflowTrainingCallback.log_evaluation_plots(
@@ -259,7 +259,7 @@ class TrainerRuntimeHooks:
                                     cumulative_returns=getattr(last_result, "cumulative_returns", None),
                                     df_index=split_ctx.df.index,
                                     output_dir=_Path(hook.config.logging.log_dir) / "evaluation_data",
-                                    artifact_path_prefix=f"evaluation_data/{split_ctx.split}/step_{step_number:08d}",
+                                    artifact_path_prefix=f"evaluation_data_temp/{split_ctx.split}/step_{step_number:08d}",
                                 )
                             except Exception:
                                 logger.warning("temp eval: rollout data artifact failed split=%s step=%s", split_ctx.split, step_number, exc_info=True)
