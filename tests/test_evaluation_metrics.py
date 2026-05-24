@@ -291,6 +291,17 @@ class TestBenchmarkMetrics:
         report = _report(b, benchmark=b)
         assert np.isnan(report["information_ratio"])
 
+    def test_benchmark_metrics_align_after_filtering_non_finite_returns(self):
+        strategy = [0.01, np.nan, 0.03]
+        benchmark = [0.01, 0.02, 0.03]
+
+        report = _report(strategy, benchmark=benchmark)
+
+        assert report["beta"] == pytest.approx(1.0, abs=1e-12)
+        assert report["alpha"] == pytest.approx(0.0, abs=1e-12)
+        assert report["tracking_error"] == pytest.approx(0.0, abs=1e-12)
+        assert np.isnan(report["information_ratio"])
+
 
 # ---------------------------------------------------------------------------
 # Edge cases

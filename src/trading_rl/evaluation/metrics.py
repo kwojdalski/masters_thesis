@@ -108,8 +108,8 @@ def build_metric_report(
     )
     if isinstance(strategy_simple_returns, ReturnSeries):
         strategy_simple_returns = strategy_simple_returns.to_simple().values
-    r = np.asarray(strategy_simple_returns, dtype=float)
-    r = r[np.isfinite(r)]
+    r_all = np.asarray(strategy_simple_returns, dtype=float)
+    r = r_all[np.isfinite(r_all)]
 
     if r.size == 0:
         return dict.fromkeys(_metric_keys(), np.nan)
@@ -165,18 +165,22 @@ def build_metric_report(
         if isinstance(benchmark_simple_returns, ReturnSeries):
             benchmark_simple_returns = benchmark_simple_returns.to_simple().values
         b = np.asarray(benchmark_simple_returns, dtype=float)
-        n = min(r.size, b.size)
+        n = min(r_all.size, b.size)
         if n > 1:
-            rs = r[:n]
-            bs = b[:n]
-            cov = np.cov(rs, bs, ddof=1)
-            var_b = cov[1, 1]
-            beta = _safe_div(cov[0, 1], var_b)
-            alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * periods_per_year
-            active = rs - bs
-            active_std = float(np.std(active, ddof=1))
-            tracking_error = active_std * np.sqrt(periods_per_year)
-            info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
+            rs_all = r_all[:n]
+            bs_all = b[:n]
+            paired_mask = np.isfinite(rs_all) & np.isfinite(bs_all)
+            rs = rs_all[paired_mask]
+            bs = bs_all[paired_mask]
+            if rs.size > 1:
+                cov = np.cov(rs, bs, ddof=1)
+                var_b = cov[1, 1]
+                beta = _safe_div(cov[0, 1], var_b)
+                alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * periods_per_year
+                active = rs - bs
+                active_std = float(np.std(active, ddof=1))
+                tracking_error = active_std * np.sqrt(periods_per_year)
+                info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
 
     return {
         "total_return": total_return,
