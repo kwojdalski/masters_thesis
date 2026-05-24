@@ -91,3 +91,5 @@ This is a master's thesis project focusing on trading strategies and reinforceme
 # Package Manager
 
 This project uses uv. Run commands with `uv run <command>` (e.g., `uv run python src/cli.py ...`, `uv run pytest`). Do not activate the venv manually.
+
+The package is installed in editable mode (`uv pip install -e .`) with `where = ["src"]`, so `import trading_rl` works directly — no `sys.path` manipulation or `PYTHONPATH=src` prefix is needed.
