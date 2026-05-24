@@ -24,7 +24,7 @@ agents:
     algorithm: PPO
     primary: false
   - label: "Random"
-    log_dir: logs/random_hft_lob_state_space_pooled_streaming_5k
+    log_dir: logs/random_hft_lob_state_space_pooled_streaming_selected_dsr
     algorithm: RANDOM
     primary: false
 

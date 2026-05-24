@@ -34,7 +34,7 @@ declare -a SCENARIOS=(
     "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
     "pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr"
     "pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr"
-    "pooled/random_hft_lob_state_space_pooled_streaming_5k"
+    "pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr"
 )
 
 # ---------------------------------------------------------------------------
