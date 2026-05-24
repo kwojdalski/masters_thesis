@@ -401,6 +401,7 @@ class StreamingTradingEnvXY(gym.Env):
         runtime_feature_columns: list[str] | None = None,
         obs_clip: float | None = None,
         seed: int | None = None,
+        dsr_persist_across_symbols: bool = False,
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -418,6 +419,7 @@ class StreamingTradingEnvXY(gym.Env):
         self._reward_scale = reward_scale
         self._runtime_feature_columns = runtime_feature_columns or []
         self._obs_clip = obs_clip
+        self._dsr_persist_across_symbols = dsr_persist_across_symbols
 
         stocks = [Stock(price_column)]
         self.action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
@@ -437,23 +439,40 @@ class StreamingTradingEnvXY(gym.Env):
         self._current_episode_start_ts: str | None = None
         self._current_episode_end_ts: str | None = None
 
-        # Persistent DSR object so A_t/B_t survive across episode boundaries.
-        # Only _prev_nlv is cleared on reset (new episode = new NLV reference).
-        self._persistent_dsr: DifferentialSharpeRatio | None = (
-            DifferentialSharpeRatio(eta=reward_eta, scale=reward_scale)
-            if RewardType(reward_type) == RewardType.DIFFERENTIAL_SHARPE
-            else None
-        )
+        # DSR state management.
+        # dsr_persist_across_symbols=False (default): one DifferentialSharpeRatio
+        #   per symbol so A_t/B_t only accumulate within a single asset's episodes.
+        # dsr_persist_across_symbols=True (legacy): a single shared object whose
+        #   moments carry over even when the symbol changes between episodes.
+        _is_dsr = RewardType(reward_type) == RewardType.DIFFERENTIAL_SHARPE
+        if _is_dsr and dsr_persist_across_symbols:
+            self._persistent_dsr: DifferentialSharpeRatio | None = (
+                DifferentialSharpeRatio(eta=reward_eta, scale=reward_scale)
+            )
+            self._dsr_per_symbol: dict[str, DifferentialSharpeRatio] = {}
+        elif _is_dsr:
+            self._persistent_dsr = None
+            self._dsr_per_symbol = {}
+        else:
+            self._persistent_dsr = None
+            self._dsr_per_symbol = {}
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _make_reward(self):
+    def _make_reward(self, symbol: str = ""):
         if self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
-            # Return the same object every episode — moments persist, NLV is
-            # cleared by reset(persist_moments=True) called in self.reset().
-            return self._persistent_dsr
+            if self._dsr_persist_across_symbols:
+                # Legacy: single shared object, moments persist across all symbols.
+                return self._persistent_dsr
+            # Default: per-symbol object so A_t/B_t only reflect that asset.
+            # Created on first encounter; moments cleared only at _prev_nlv reset.
+            if symbol not in self._dsr_per_symbol:
+                self._dsr_per_symbol[symbol] = DifferentialSharpeRatio(
+                    eta=self._reward_eta, scale=self._reward_scale
+                )
+            return self._dsr_per_symbol[symbol]
         if self._reward_type == RewardType.LOG_RETURN:
             return LogReturn(scale=self._reward_scale)
         raise ValueError(
@@ -478,7 +497,7 @@ class StreamingTradingEnvXY(gym.Env):
             index = pd.RangeIndex(len(window_data))
         return pd.DataFrame(window_data, columns=mp.columns, index=index)
 
-    def _build_inner_env(self, window_df: pd.DataFrame) -> TradingEnv:
+    def _build_inner_env(self, window_df: pd.DataFrame, symbol: str = "") -> TradingEnv:
         stocks = [Stock(self._price_column)]
         prices = window_df[[self._price_column]].copy()
         prices.columns = pd.Index(stocks)
@@ -493,7 +512,7 @@ class StreamingTradingEnvXY(gym.Env):
         return TradingEnv(
             action_space=BoxPortfolio(stocks, low=-1.0, high=1.0),
             state=features,
-            reward=self._make_reward(),
+            reward=self._make_reward(symbol),
             prices=prices,
             initial_cash=self._initial_cash,
             broker_fees=BrokerFees(proportional=self._fee, fixed=0.0),
@@ -524,9 +543,8 @@ class StreamingTradingEnvXY(gym.Env):
                 if hasattr(last_record, "context_post") and hasattr(last_record.context_post, "nlv"):
                     self._last_episode_final_nlv = float(last_record.context_post.nlv)
                     self._last_episode_steps = len(broker.track_record)
-        # Clear only _prev_nlv so the new episode's first step is handled
-        # correctly, while A_t/B_t carry over from the previous episode.
-        if self._persistent_dsr is not None:
+        if self._dsr_persist_across_symbols and self._persistent_dsr is not None:
+            # Legacy mode: shared object — clear only _prev_nlv.
             self._persistent_dsr.reset(persist_moments=True)
         attempts = 0
         while True:
@@ -559,7 +577,13 @@ class StreamingTradingEnvXY(gym.Env):
         else:
             self._current_episode_start_ts = None
             self._current_episode_end_ts = None
-        self._inner_env = self._build_inner_env(window_df)
+        # Per-symbol mode: clear _prev_nlv on the symbol's DSR object so the
+        # new episode starts with a fresh NLV reference while moments persist.
+        if not self._dsr_persist_across_symbols and self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
+            sym = self._current_episode_symbol
+            if sym in self._dsr_per_symbol:
+                self._dsr_per_symbol[sym].reset(persist_moments=True)
+        self._inner_env = self._build_inner_env(window_df, symbol=self._current_episode_symbol)
         obs = self._inner_env.reset()
         return self._extract_obs(obs), {}
 

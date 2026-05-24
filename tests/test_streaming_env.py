@@ -54,6 +54,9 @@ def _bare_xy_env(memmap_paths: list[MemmapPaths], episode_length: int) -> Stream
     env._symbol_rng = np.random.default_rng(0)
     env._inner_env = None
     env._persistent_dsr = None
+    env._dsr_per_symbol = {}
+    env._dsr_persist_across_symbols = False
+    env._reward_type = "log_return"
     env._last_episode_final_nlv = None
     env._last_episode_steps = None
     env._current_episode_symbol = None
@@ -184,7 +187,7 @@ class TestStreamingTradingEnvXYReset:
             )
 
         monkeypatch.setattr(env, "_load_window", fake_load_window)
-        monkeypatch.setattr(env, "_build_inner_env", lambda window_df: _FakeInnerEnv())
+        monkeypatch.setattr(env, "_build_inner_env", lambda window_df, symbol="": _FakeInnerEnv())
 
         obs, info = env.reset()
 
