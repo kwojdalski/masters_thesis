@@ -49,10 +49,29 @@ class _LocalTrajectoryPool:
         return out
 
 
-# Monkey patch TorchRL to avoid torch_shm_manager in sandboxed environments
-torchrl_collectors._TrajectoryPool = _LocalTrajectoryPool
-
 logger = get_logger(__name__)
+
+
+def _patch_torchrl_trajectory_pool() -> None:
+    """Replace TorchRL's _TrajectoryPool with a shared-memory-free implementation.
+
+    Called lazily from BaseTrainer.__init__ so importing this module does not
+    mutate TorchRL's global state.  The patch is idempotent — applying it
+    twice is safe.
+
+    TorchRL ≤0.11 exposed _TrajectoryPool on torchrl.collectors.collectors;
+    TorchRL 0.12+ moved it to torchrl.collectors.utils.  We patch whichever
+    module currently owns the name.
+    """
+    import torchrl.collectors.utils as _tc_utils
+
+    patched = False
+    for _mod in (torchrl_collectors, _tc_utils):
+        if hasattr(_mod, "_TrajectoryPool") and _mod._TrajectoryPool is not _LocalTrajectoryPool:
+            _mod._TrajectoryPool = _LocalTrajectoryPool
+            patched = True
+    if patched:
+        logger.debug("patched torchrl _TrajectoryPool -> _LocalTrajectoryPool")
 
 
 def _run_evaluation(
@@ -234,6 +253,7 @@ class BaseTrainer(ABC):
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
     ):
+        _patch_torchrl_trajectory_pool()
         self.actor = actor
         self.value_net = value_net
         self.env = env
