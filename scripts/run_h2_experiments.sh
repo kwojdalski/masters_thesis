@@ -70,7 +70,7 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
             LOG_FILE="$LOG_DIR/${LOG_NAME}_train.log"
             TRAIN_LOGS+=("$LOG_FILE")
             echo "Training $SCENARIO  →  $LOG_FILE  (background)"
-            uv run python "$REPO_ROOT/src/cli.py" train \
+            NO_COLOR=1 uv run python "$REPO_ROOT/src/cli.py" train \
                 -c "$SCENARIO" \
                 ${EXTRA_TRAIN_ARGS:+--config-override "$EXTRA_TRAIN_ARGS"} \
                 >"$LOG_FILE" 2>&1 &
@@ -110,7 +110,7 @@ if [[ $PARALLEL -eq 1 ]]; then
         LOG_FILE="$LOG_DIR/${LOG_NAME}_eval.log"
         EVAL_LOGS+=("$LOG_FILE")
         echo "Evaluating $SCENARIO  →  $OUTPUT_DIR  (background)"
-        uv run python "$REPO_ROOT/src/cli.py" evaluate \
+        NO_COLOR=1 uv run python "$REPO_ROOT/src/cli.py" evaluate \
             -c "$SCENARIO" \
             --output-dir "$OUTPUT_DIR" \
             --only metrics \
