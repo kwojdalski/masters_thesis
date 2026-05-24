@@ -337,8 +337,15 @@ class PPOTrainer(BaseTrainer):
         config=None,
         eval_env: Any | None = None,
     ):
+        env_for_plot = eval_env or self._eval_env
+        if env_for_plot is None:
+            logger.warning(
+                "skipping action probabilities plot: no eval env provided "
+                "and using the training env risks corrupting SyncDataCollector state"
+            )
+            return None
         return self._build_action_probabilities_plot(
-            eval_env or self.env, self.actor, max_steps, df, config
+            env_for_plot, self.actor, max_steps, df, config
         )
 
     def evaluate(
