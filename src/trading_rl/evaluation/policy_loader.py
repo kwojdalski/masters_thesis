@@ -19,6 +19,7 @@ Usage::
 
 from __future__ import annotations
 
+import re
 from types import SimpleNamespace
 from typing import Any
 
@@ -87,10 +88,39 @@ class PolicyLoader:
                 "Expected one of: ppo, td3, ddpg."
             )
 
+        state_dict = PolicyLoader._migrate_state_dict(state_dict, algorithm)
         actor.load_state_dict(state_dict)
         actor.to(device)
         actor.eval()
         return actor
+
+    @staticmethod
+    def _migrate_state_dict(state_dict: dict, algorithm: str) -> dict:
+        """Remap old checkpoint keys to the current architecture naming.
+
+        PPO DiscreteNet migration: before _FlattenObs was prepended the inner
+        Sequential was unnamed (accessed as index 0), so keys looked like
+        ``module.0.module.0.{0,2,4}.weight``.  After the refactor the
+        Sequential is stored as ``self.network`` and _FlattenObs sits at
+        index 0, shifting linear layers to indices 1, 3, 5 → keys become
+        ``module.0.module.network.{1,3,5}.weight``.
+        """
+        if algorithm != "ppo":
+            return state_dict
+
+        # Detect old format by checking for the unnamed sequential prefix
+        old_pattern = re.compile(r"^(module\.0\.module\.)0\.(\d+)(\.(?:weight|bias))$")
+        if not any(old_pattern.match(k) for k in state_dict):
+            return state_dict
+
+        migrated = {}
+        for key, value in state_dict.items():
+            m = old_pattern.match(key)
+            if m:
+                new_idx = int(m.group(2)) + 1  # shift by 1 for prepended _FlattenObs
+                key = f"{m.group(1)}network.{new_idx}{m.group(3)}"
+            migrated[key] = value
+        return migrated
 
     @staticmethod
     def _build_ppo_actor(n_obs: int, n_act: int, hidden_dims: list[int] | None) -> Any:
