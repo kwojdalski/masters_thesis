@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""Export all hypothesis scenarios to thesis result snapshots.
+
+Calls export_eval_to_thesis.py for every scenario in the specified hypothesis
+(or all hypotheses).  Skips scenarios whose results.json is missing and prints
+a summary at the end.
+
+Usage:
+    uv run python scripts/export_all_to_thesis.py              # all hypotheses
+    uv run python scripts/export_all_to_thesis.py --hypothesis h1
+    uv run python scripts/export_all_to_thesis.py --hypothesis h2
+    uv run python scripts/export_all_to_thesis.py --hypothesis h3
+    uv run python scripts/export_all_to_thesis.py --hypothesis h1 h2
+"""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Canonical scenario lists per hypothesis (order matches the run scripts).
+SCENARIOS: dict[str, list[str]] = {
+    "h1": [
+        "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
+        "pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr",
+        "pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr",
+        "pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr",
+    ],
+    "h2": [
+        "pooled/td3_h3_features_minimal",
+        "pooled/td3_hft_lob_state_space_pooled_streaming_selected",
+        "pooled/td3_h3_features_full",
+    ],
+    "h3": [
+        "pooled/td3_h3_features_minimal",
+        "pooled/td3_hft_lob_state_space_pooled_streaming_selected",
+        "pooled/td3_h3_features_full",
+        "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
+        "pooled/td3_h3_fees_1e6",
+        "pooled/td3_h3_fees_1e5",
+        "pooled/td3_h3_fees_1e4",
+    ],
+}
+
+_EXPORT_SCRIPT = _REPO_ROOT / "scripts" / "export_eval_to_thesis.py"
+
+
+def _export_scenario(scenario: str) -> bool:
+    """Run export_eval_to_thesis.py for one scenario. Returns True on success."""
+    result = subprocess.run(
+        [sys.executable, str(_EXPORT_SCRIPT), "--scenario", scenario],
+        cwd=_REPO_ROOT,
+    )
+    return result.returncode == 0
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(
+        description="Export all hypothesis scenarios to thesis snapshots.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    p.add_argument(
+        "--hypothesis",
+        nargs="+",
+        choices=["h1", "h2", "h3"],
+        default=["h1", "h2", "h3"],
+        metavar="HYP",
+        help="Which hypotheses to export (h1 h2 h3). Defaults to all.",
+    )
+    args = p.parse_args()
+
+    # Deduplicate while preserving order.
+    seen: set[str] = set()
+    scenarios: list[tuple[str, str]] = []
+    for hyp in args.hypothesis:
+        for s in SCENARIOS[hyp]:
+            if s not in seen:
+                seen.add(s)
+                scenarios.append((hyp, s))
+
+    ok: list[str] = []
+    skipped: list[str] = []
+
+    for hyp, scenario in scenarios:
+        print(f"\n[{hyp.upper()}] {scenario}")
+        print("-" * 60)
+        if _export_scenario(scenario):
+            ok.append(scenario)
+        else:
+            skipped.append(scenario)
+
+    print("\n" + "=" * 60)
+    print(f"Exported: {len(ok)}   Skipped/failed: {len(skipped)}")
+    if skipped:
+        print("\nSkipped (results.json missing or evaluate not yet run):")
+        for s in skipped:
+            print(f"  {s}")
+        print(
+            "\nTo evaluate a missing scenario:\n"
+            "  uv run python src/cli.py evaluate -c <scenario> "
+            "--output-dir logs/<log-name> --only metrics --only plots"
+        )
+
+    return 0 if not skipped else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
