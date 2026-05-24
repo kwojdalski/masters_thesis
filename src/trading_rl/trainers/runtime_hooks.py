@@ -226,6 +226,7 @@ class TrainerRuntimeHooks:
                         logs=None,
                         merged_plot=merged_plot,
                         artifact_path_prefix=artifact_prefix,
+                        debug=getattr(hook.config.logging, "debug_plots", False),
                     )
                     logger.debug(
                         "temp eval: mlflow upload split=%s elapsed=%.2fs",

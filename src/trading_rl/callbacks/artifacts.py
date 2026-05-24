@@ -946,6 +946,7 @@ def log_evaluation_plots(
     logs=None,
     merged_plot=None,
     artifact_path_prefix=None,
+    debug: bool = False,
 ) -> None:
     """Save evaluation/training plots as MLflow artifacts.
 
@@ -984,19 +985,16 @@ def log_evaluation_plots(
     timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
 
     try:
+        from trading_rl.evaluation.thesis_theme import save_plot as _save_plot
+
         def _save(plot_obj, filename, key, dir_, width=8, height=5):
             tmp_path = os.path.join(batch_temp_dir, filename)
             try:
                 t_render = time.monotonic()
-                logger.debug("render plot filename=%s", filename)
+                logger.debug("render plot filename=%s debug=%s", filename, debug)
                 with warnings.catch_warnings(), _suppress_plotnine():
                     warnings.simplefilter("ignore", PlotnineWarning)
-                    if hasattr(plot_obj, "save"):
-                        plot_obj.save(tmp_path, width=width, height=height, dpi=150)
-                    elif hasattr(plot_obj, "savefig"):
-                        plot_obj.savefig(tmp_path, dpi=150)
-                    else:
-                        raise RuntimeError("Unsupported plot object for saving")
+                    _save_plot(plot_obj, tmp_path, width=width, height=height, dpi=150, debug=debug)
                 logger.debug("render done filename=%s elapsed=%.2fs", filename, time.monotonic() - t_render)
 
                 pil_logger = logging.getLogger("PIL.PngImagePlugin")

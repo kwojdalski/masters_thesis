@@ -215,6 +215,7 @@ class LoggingConfig:
     tensorboard_dir: str = "runs"
     save_plots: bool = False  # Save training plots to disk in addition to MLflow
     log_oracle_alignment_plot: bool = False  # Scatter plot of feature_future_close_vel vs next-step log return
+    debug_plots: bool = False  # Stamp build hash, date, size, and font in bottom-right corner of every evaluation plot
 
 
 @dataclass

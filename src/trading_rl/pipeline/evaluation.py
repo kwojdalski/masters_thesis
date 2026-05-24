@@ -333,6 +333,7 @@ def evaluate_split(
             logs=logs,
             merged_plot=merged_plot,
             artifact_path_prefix=ArtifactPaths.eval_plots(split),
+            debug=getattr(config.logging, "debug_plots", False),
         )
 
     with profiler.stage(f"eval_report_{split}"):
