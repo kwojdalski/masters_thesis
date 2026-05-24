@@ -10,6 +10,7 @@
 #   bash scripts/run_h1_experiments.sh --skip-train          # evaluate only (checkpoints must exist)
 #   bash scripts/run_h1_experiments.sh --skip-eval           # train only (quick smoke run)
 #   bash scripts/run_h1_experiments.sh --parallel            # train all agents concurrently
+#   bash scripts/run_h1_experiments.sh --verbose / -v        # enable debug logging
 #   bash scripts/run_h1_experiments.sh --skip-train --parallel
 #   EXTRA_TRAIN_ARGS="training.max_steps=50000" bash scripts/run_h1_experiments.sh
 #
@@ -25,11 +26,17 @@ mkdir -p "$LOG_DIR"
 SKIP_TRAIN=0
 SKIP_EVAL=0
 PARALLEL=0
+VERBOSE=0
 for arg in "$@"; do
     [[ "$arg" == "--skip-train" ]] && SKIP_TRAIN=1
     [[ "$arg" == "--skip-eval"  ]] && SKIP_EVAL=1
     [[ "$arg" == "--parallel"   ]] && PARALLEL=1
+    [[ "$arg" == "--verbose"    ]] && VERBOSE=1
+    [[ "$arg" == "-v"           ]] && VERBOSE=1
 done
+
+VERBOSE_FLAG=""
+[[ $VERBOSE -eq 1 ]] && VERBOSE_FLAG="--verbose"
 
 EXTRA_TRAIN_ARGS="${EXTRA_TRAIN_ARGS:-}"
 
@@ -74,6 +81,7 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
             NO_COLOR=1 uv run python "$REPO_ROOT/src/cli.py" train \
                 -c "$SCENARIO" \
                 ${EXTRA_TRAIN_ARGS:+--config-override "$EXTRA_TRAIN_ARGS"} \
+                ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
                 >"$LOG_FILE" 2>&1 &
             TRAIN_PIDS+=($!)
         done
@@ -92,6 +100,7 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
             uv run python "$REPO_ROOT/src/cli.py" train \
                 -c "$SCENARIO" \
                 ${EXTRA_TRAIN_ARGS:+--config-override "$EXTRA_TRAIN_ARGS"} \
+                ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
                 2>&1 | tee "$LOG_FILE"
             echo "  done."
         done
@@ -120,6 +129,7 @@ if [[ $PARALLEL -eq 1 ]]; then
             --only metrics \
             --only benchmarks \
             --only plots \
+            ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
             >"$LOG_FILE" 2>&1 &
         EVAL_PIDS+=($!)
     done
@@ -142,6 +152,7 @@ else
             --only metrics \
             --only benchmarks \
             --only plots \
+            ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
             2>&1 | tee "$LOG_FILE"
         echo "  done."
     done
