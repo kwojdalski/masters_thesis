@@ -141,32 +141,6 @@ class RewardSeries:
         return ReturnSeries(self.values, ReturnKind.LOG, self.name)
 
 
-def calculate_actual_returns(rollout, env=None):
-    """Calculate actual portfolio returns (log returns) from a rollout."""
-    obs = rollout["next"]["observation"]
-    n_steps = obs.shape[0]
-
-    if hasattr(env, "_env") and hasattr(env._env, "_env"):
-        try:
-            trading_env = env._env._env._env
-            if hasattr(trading_env, "broker"):
-                pass
-        except (AttributeError, IndexError):
-            pass
-
-    actions = rollout["action"].squeeze()
-    if actions.ndim > 1 and actions.shape[-1] > 1:
-        actions = actions.argmax(dim=-1) - 1
-
-    rewards = rollout["next"]["reward"][:n_steps].detach().cpu().numpy()
-    cumulative_returns = np.cumsum(rewards)
-    logger.debug(
-        "Calculated actual returns from rollout: %s steps, final return: %.4f",
-        n_steps,
-        cumulative_returns[-1],
-    )
-    return cumulative_returns
-
 
 def _find_broker(env, max_depth: int = 8):
     """Traverse a TorchRL env stack to find the tradingenv broker.

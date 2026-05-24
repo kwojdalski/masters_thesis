@@ -10,7 +10,6 @@ from trading_rl.evaluation.returns import (
     ReturnKind,
     ReturnSeries,
     RewardSeries,
-    calculate_actual_returns,
     extract_tradingenv_return_series,
     extract_tradingenv_returns,
 )
@@ -19,7 +18,6 @@ __all__ = [
     "ReturnKind",
     "ReturnSeries",
     "RewardSeries",
-    "calculate_actual_returns",
     "calculate_benchmark_dsr",
     "compare_rollouts",
     "create_actual_returns_plot",

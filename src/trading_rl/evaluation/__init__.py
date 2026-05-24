@@ -27,7 +27,6 @@ from trading_rl.evaluation.returns import (
     ReturnKind,
     ReturnSeries,
     RewardSeries,
-    calculate_actual_returns,
     extract_tradingenv_return_series,
     extract_tradingenv_returns,
 )
@@ -89,7 +88,6 @@ __all__ = [
     "build_benchmark_comparison_table",
     "build_evaluation_report_for_trainer",
     "build_metric_report",
-    "calculate_actual_returns",
     "calculate_benchmark_dsr",
     "compare_rollouts",
     "compute_buy_and_hold_returns",
