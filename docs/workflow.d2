@@ -17,7 +17,12 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
-  cli_peek: "peek\nuv run python src/cli.py peek\n  --scenario <name>\n  [--corr]    feature vs log-return correlation table\n  [--export]  write splits/feature_stats/correlations to reports/peek/\n  Inspect prepared dataset: shapes · splits · columns" {
+  cli_peek_dataset: "peek dataset\nuv run python src/cli.py peek dataset\n  --scenario <name>\n  [--corr]    feature vs log-return correlation table\n  [--export]  write splits/feature_stats/correlations to reports/peek/\n  Inspect prepared dataset: shapes · splits · columns" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_peek_configs: "peek configs\nuv run python src/cli.py peek configs\n  [--top <n>]    number of configs to show (default 20)\n  [--filter <s>] substring filter on path\n  [--dir <path>] search directory (default src/configs)\n  Lists YAML configs sorted by mtime: algorithm · reward · backend" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -612,7 +617,11 @@ cli.cli_prepare -> prep: "drives" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
 }
-cli.cli_peek -> prep.dp_prepared: "reads" {
+cli.cli_peek_dataset -> prep.dp_prepared: "reads" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+cli.cli_peek_configs -> prep: "reads YAML files from src/configs/" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
 }
