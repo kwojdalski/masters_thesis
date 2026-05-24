@@ -733,6 +733,13 @@ class ExperimentConfig:
                 if hasattr(config.training, key):
                     setattr(config.training, key, value)
 
+        # Update evaluation config
+        if "evaluation" in config_dict:
+            eval_dict = config_dict["evaluation"]
+            for key, value in eval_dict.items():
+                if hasattr(config.evaluation, key):
+                    setattr(config.evaluation, key, value)
+
         # Update logging config
         if "logging" in config_dict:
             log_dict = config_dict["logging"]

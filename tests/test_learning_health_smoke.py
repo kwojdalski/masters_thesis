@@ -105,8 +105,10 @@ def _make_health_config(tmp_path: Path) -> ExperimentConfig:
                 "sample_size": 4,
                 "init_rand_steps": 0,
                 "ppo_epochs": 1,
-                "eval_steps": 4,
                 "log_interval": 1000,
+            },
+            "evaluation": {
+                "eval_steps": 4,
             },
             "logging": {
                 "log_dir": str(tmp_path / "logs"),

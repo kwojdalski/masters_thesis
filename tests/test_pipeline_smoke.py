@@ -73,8 +73,10 @@ def _make_config(tmp_path: Path) -> ExperimentConfig:
                 "max_steps": 8,
                 "frames_per_batch": 4,
                 "init_rand_steps": 0,
-                "eval_steps": 4,
                 "log_interval": 4,
+            },
+            "evaluation": {
+                "eval_steps": 4,
             },
             "logging": {
                 "log_dir": str(tmp_path / "logs"),

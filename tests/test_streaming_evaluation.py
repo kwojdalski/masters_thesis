@@ -44,6 +44,8 @@ def _cache_config(tmp_path: Path, data_path: Path) -> ExperimentConfig:
                 "algorithm": "TD3",
                 "max_steps": 10,
                 "frames_per_batch": 5,
+            },
+            "evaluation": {
                 "eval_steps": 3,
             },
             "logging": {"log_dir": str(tmp_path / "logs")},
@@ -95,6 +97,8 @@ def _multi_symbol_cache_config(
                 "algorithm": "TD3",
                 "max_steps": 10,
                 "frames_per_batch": 5,
+            },
+            "evaluation": {
                 "eval_steps": 3,
             },
             "logging": {"log_dir": str(tmp_path / "logs")},
