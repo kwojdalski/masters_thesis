@@ -89,13 +89,12 @@ declare -a SCENARIOS=(
 )
 
 # Build a deduplicated ordered list (preserves first occurrence).
-# Uses a plain string sentinel compatible with bash 3 (macOS default).
-UNIQUE_SCENARIOS=()
-_SEEN_LIST=""
+declare -a UNIQUE_SCENARIOS=()
+declare -A _SEEN=()
 for _s in "${SCENARIOS[@]}"; do
     _key="${_s##*/}"
-    if [[ ":${_SEEN_LIST}:" != *":${_key}:"* ]]; then
-        _SEEN_LIST="${_SEEN_LIST}:${_key}"
+    if [[ -z "${_SEEN[$_key]+_}" ]]; then
+        _SEEN[$_key]=1
         UNIQUE_SCENARIOS+=("$_s")
     fi
 done
