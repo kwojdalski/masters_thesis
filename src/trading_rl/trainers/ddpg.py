@@ -12,7 +12,7 @@ from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import DDPGLoss, SoftUpdate
 
 from logger import get_logger
-from trading_rl.config import TrainingConfig
+from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.models import create_ddpg_actor, create_value_network
 from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
 
@@ -30,6 +30,7 @@ class DDPGTrainer(BaseTrainer):
         value_net: Any,
         env: Any,
         config: TrainingConfig,
+        eval_config: "EvaluationConfig | None" = None,
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
     ):
@@ -40,12 +41,14 @@ class DDPGTrainer(BaseTrainer):
             value_net: Value network
             env: Trading environment
             config: Training configuration
+            eval_config: Evaluation configuration (eval_steps, eval_fraction, log_data)
         """
         super().__init__(
             actor=actor,
             value_net=value_net,
             env=env,
             config=config,
+            eval_config=eval_config,
             enable_composite_lp=True,
             checkpoint_dir=checkpoint_dir,
             checkpoint_prefix=checkpoint_prefix,
@@ -257,7 +260,7 @@ class DDPGTrainer(BaseTrainer):
     def _evaluate(self) -> None:
         """Evaluate current policy."""
         with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
-            n_eval = self.config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.config.eval_steps
+            n_eval = self.eval_config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.eval_config.eval_steps
             if self._eval_env is None:
                 logger.warning(
                     "ddpg _evaluate: no dedicated eval env set; using training env "

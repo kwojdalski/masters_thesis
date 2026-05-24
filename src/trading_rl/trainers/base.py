@@ -18,7 +18,7 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
 
 from logger import get_logger, log_banner
-from trading_rl.config import TrainingConfig
+from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import EnvBackend, EnvMode, RewardType
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.profiler import get_profiler
@@ -249,6 +249,7 @@ class BaseTrainer(ABC):
         env: Any,
         config: TrainingConfig,
         *,
+        eval_config: EvaluationConfig | None = None,
         enable_composite_lp: bool = False,
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
@@ -258,6 +259,7 @@ class BaseTrainer(ABC):
         self.value_net = value_net
         self.env = env
         self.config = config
+        self.eval_config = eval_config or EvaluationConfig()
         self.callback = None
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_prefix = checkpoint_prefix

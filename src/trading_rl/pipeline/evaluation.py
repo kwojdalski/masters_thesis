@@ -58,7 +58,7 @@ def build_evaluation_context_for_split(
         config: Experiment configuration.
     """
     eval_env = AlgorithmicEnvironmentBuilder().create(df, config, use_memmap=False)
-    eval_max_steps = min(config.training.resolve_eval_steps(len(df)), len(df) - 1)
+    eval_max_steps = min(config.evaluation.resolve_eval_steps(len(df)), len(df) - 1)
     return EvaluationContext(
         split=split,
         df=df,
@@ -309,7 +309,7 @@ def evaluate_split(
     rollout = _last_evaluation_rollout(trainer)
     last_eval_result = getattr(trainer, "_last_evaluation_result", None)
 
-    if getattr(config.training, "eval_log_data", True) and last_eval_result is not None:
+    if config.evaluation.log_data and last_eval_result is not None:
         try:
             from trading_rl.callbacks.artifacts import save_eval_rollout_artifact
             save_eval_rollout_artifact(
@@ -565,7 +565,7 @@ def build_final_metrics(
         "total_env_steps": total_env_steps,
         "total_episodes": int(total_episodes),
         "training_duration_s": training_duration_s,
-        "eval_steps": config.training.resolve_eval_steps(len(val_df)),
+        "eval_steps": config.evaluation.resolve_eval_steps(len(val_df)),
         "episode_length": getattr(config.env, "streaming_episode_length", len(train_df) if not train_df.empty else 0),
         "interrupted": interrupted,
         (

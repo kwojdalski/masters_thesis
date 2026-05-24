@@ -124,9 +124,9 @@ def log_training_parameters(config) -> None:
             int(getattr(config.training, "checkpoint_interval", 0)),
         )
         mlflow.log_param("training_loss_function", str(config.training.loss_function))
-        mlflow.log_param("training_eval_steps", int(config.training.eval_steps))
-        if config.training.eval_fraction is not None:
-            mlflow.log_param("training_eval_fraction", float(config.training.eval_fraction))
+        mlflow.log_param("eval_steps", int(config.evaluation.eval_steps))
+        if config.evaluation.eval_fraction is not None:
+            mlflow.log_param("eval_fraction", float(config.evaluation.eval_fraction))
         mlflow.log_param("training_eval_interval", int(config.training.eval_interval))
         mlflow.log_param("training_log_interval", int(config.training.log_interval))
 

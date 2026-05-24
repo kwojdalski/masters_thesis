@@ -14,7 +14,7 @@ from torchrl.objectives import SoftUpdate
 from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
-from trading_rl.config import TrainingConfig
+from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
 from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
@@ -46,6 +46,7 @@ class TD3Trainer(BaseTrainer):
         qvalue_net: Any,
         env: Any,
         config: TrainingConfig,
+        eval_config: "EvaluationConfig | None" = None,
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
     ):
@@ -54,6 +55,7 @@ class TD3Trainer(BaseTrainer):
             value_net=qvalue_net,
             env=env,
             config=config,
+            eval_config=eval_config,
             enable_composite_lp=True,
             checkpoint_dir=checkpoint_dir,
             checkpoint_prefix=checkpoint_prefix,
@@ -397,7 +399,7 @@ class TD3Trainer(BaseTrainer):
 
     def _evaluate(self) -> None:
         with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
-            n_eval = self.config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.config.eval_steps
+            n_eval = self.eval_config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.eval_config.eval_steps
             if self._eval_env is None:
                 logger.warning(
                     "td3 _evaluate: no dedicated eval env set; using training env "

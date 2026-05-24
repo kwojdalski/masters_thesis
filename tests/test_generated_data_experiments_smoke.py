@@ -188,7 +188,7 @@ def _make_smoke_config(
             f"training.optim_steps_per_batch={case.optim_steps_per_batch}",
             f"training.sample_size={case.sample_size}",
             f"training.buffer_size={case.buffer_size}",
-            f"training.eval_steps={case.eval_steps}",
+            f"evaluation.eval_steps={case.eval_steps}",
             f"training.eval_interval={case.eval_interval}",
             "training.log_interval=1000",
             "training.checkpoint_interval=0",

@@ -178,26 +178,28 @@ class TrainingConfig:
     # Loss function
     loss_function: LossFunction = LossFunction.L2
 
-    # Evaluation
+    # Evaluation cadence (training-loop concerns)
     eval_interval: int = 1000
-    eval_steps: int = 500
-    eval_fraction: float | None = None  # Fraction of val data to use per eval rollout; overrides eval_steps when set
     log_interval: int = 1000
     temp_eval_interval: int | None = None  # Run temporary evaluation every N steps (None = disabled)
     temp_eval_splits: list[SplitName] = field(default_factory=lambda: [SplitName.TRAIN, SplitName.VAL])  # Which splits to evaluate
     temp_eval_max_steps: int = 50000  # Cap rollout length for periodic eval
     temp_eval_log_data: bool = False  # Log rollout parquet artifact during periodic eval (disabled by default)
-    eval_log_data: bool = True  # Log rollout parquet artifact (action, returns) during final evaluation
     max_plot_points: int | None = 50_000  # Cap the number of plotted points per series; None = plot all
     show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
 
-    def resolve_eval_steps(self, val_len: int) -> int:
-        """Return the number of eval steps to use given the validation data length.
 
-        If eval_fraction is set, returns int(val_len * eval_fraction), floored
-        at 1.  Otherwise falls back to eval_steps.
-        """
+@dataclass
+class EvaluationConfig:
+    """Evaluation configuration shared by training and the evaluate CLI."""
+
+    eval_steps: int = 500
+    eval_fraction: float | None = None  # Fraction of val data; overrides eval_steps when set
+    log_data: bool = True  # Log per-step rollout parquet (action, returns) as an MLflow artifact
+
+    def resolve_eval_steps(self, val_len: int) -> int:
+        """Return the number of eval steps, honouring eval_fraction when set."""
         if self.eval_fraction is not None:
             return max(1, int(val_len * self.eval_fraction))
         return self.eval_steps
@@ -291,6 +293,7 @@ class ExperimentConfig:
     env: EnvConfig = field(default_factory=EnvConfig)
     network: NetworkConfig = field(default_factory=NetworkConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
+    evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
     explainability: ExplainabilityConfig = field(default_factory=ExplainabilityConfig)
@@ -339,13 +342,13 @@ class ExperimentConfig:
             errors.append(
                 f"training.buffer_size must be > 0, got {self.training.buffer_size}"
             )
-        if self.training.eval_steps <= 0:
+        if self.evaluation.eval_steps <= 0:
             errors.append(
-                f"training.eval_steps must be > 0, got {self.training.eval_steps}"
+                f"evaluation.eval_steps must be > 0, got {self.evaluation.eval_steps}"
             )
-        if self.training.eval_fraction is not None and not (0.0 < self.training.eval_fraction <= 1.0):
+        if self.evaluation.eval_fraction is not None and not (0.0 < self.evaluation.eval_fraction <= 1.0):
             errors.append(
-                f"training.eval_fraction must be in (0, 1], got {self.training.eval_fraction}"
+                f"evaluation.eval_fraction must be in (0, 1], got {self.evaluation.eval_fraction}"
             )
         if self.training.checkpoint_interval < 0:
             errors.append(

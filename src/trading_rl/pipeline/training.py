@@ -148,6 +148,7 @@ def _build_trainer(
             qvalue_net=qvalue_net,
             env=env,
             config=config.training,
+            eval_config=config.evaluation,
             checkpoint_dir=config.logging.log_dir,
             checkpoint_prefix=effective_experiment_name,
         )
@@ -158,6 +159,7 @@ def _build_trainer(
             value_net=value_net,
             env=env,
             config=config.training,
+            eval_config=config.evaluation,
             checkpoint_dir=config.logging.log_dir,
             checkpoint_prefix=effective_experiment_name,
         )

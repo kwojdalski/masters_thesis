@@ -271,7 +271,7 @@ def test_evaluation_context_disables_training_memmaps(monkeypatch) -> None:
 
     monkeypatch.setattr(evaluation_module, "AlgorithmicEnvironmentBuilder", BuilderProbe)
     config = ExperimentConfig()
-    config.training.eval_steps = 3
+    config.evaluation.eval_steps = 3
 
     ctx = evaluation_module.build_evaluation_context_for_split(
         split="val",
