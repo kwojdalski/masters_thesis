@@ -6,33 +6,85 @@ This document describes how experiment artifacts (metrics, benchmark tables, plo
 
 ## Overview
 
-The bridge is a one-way data pipeline:
+```mermaid
+flowchart TD
+    subgraph TRAIN["Training"]
+        T["cli.py train\n--scenario <name>"]
+        CKPT["logs/pooled_<exp>/\n<exp>_checkpoint_step_N.pt"]
+        T --> CKPT
+    end
 
-```
-cli.py evaluate
-      │
-      ▼
-logs/<log_name>/                  ← evaluate CLI output
-  results.json
-  benchmark_tables/
-  <split>_<symbol>_reward_plot.png
-      │
-      ▼
-scripts/export_eval_to_thesis.py  ← export script
-      │
-      ▼
-thesis/qmd/results/<experiment>/  ← thesis snapshot
-  latest_finished/
-    run.json
-    evaluation_report.json
-    statistical_tests.json
-    plots/
-      │
-      ▼
-thesis_mlflow_results.py          ← Python module used in QMD cells
-      │
-      ▼
-thesis/qmd/src/06-*.qmd           ← Quarto chapters
+    subgraph EVAL["Stage 1 — Evaluate CLI"]
+        E["cli.py evaluate\n-c <scenario>\n--output-dir logs/<log_name>\n--only metrics --only benchmarks --only plots"]
+        RJ["logs/<log_name>/results.json\n(per-symbol, per-split metrics)"]
+        BT["logs/<log_name>/benchmark_tables/\ntest_benchmark_table.json"]
+        PL["logs/<log_name>/\n<split>_<symbol>_reward_plot.png\n<split>_<symbol>_action_plot.png"]
+        E --> RJ
+        E --> BT
+        E --> PL
+    end
+
+    subgraph EXPORT["Stage 2 — Export Script"]
+        EX["scripts/export_eval_to_thesis.py\n--scenario <name>\n\nOR\n\nscripts/export_all_to_thesis.py\n--hypothesis h1 h2 h3"]
+        ER["thesis/qmd/results/<exp>/\nlatest_finished/evaluation_report.json\n(aggregated flat metrics)"]
+        ST["thesis/qmd/results/<exp>/\nlatest_finished/statistical_tests.json\n(benchmark_comparison_table list)"]
+        RUN["thesis/qmd/results/<exp>/\nlatest_finished/run.json + plots/"]
+        EX --> ER
+        EX --> ST
+        EX --> RUN
+    end
+
+    subgraph MLFLOW["MLflow (live — preferred at render time)"]
+        MF["mlflow.db\nSQLite tracking store"]
+        ART["mlruns/ artifact store\nevaluation_plots/\nevaluation_metrics/\nstatistical_tests/"]
+    end
+
+    subgraph BRIDGE["Stage 3 — Python Bridge (thesis_mlflow_results.py)"]
+        LSM["load_scenario_metrics(name)\n→ flat metrics dict"]
+        LES["load_experiment_snapshot(name)\n→ ExperimentSnapshot\n.latest_finished / .latest_running"]
+        FKM["format_key_metrics(report)\n→ DataFrame"]
+        FBT["format_benchmark_comparison_table(stat_tests)\n→ DataFrame"]
+        FEP["find_evaluation_plots(uri, log_dirs)\n→ dict[str, Path]"]
+    end
+
+    subgraph QMD["Stage 4 — Quarto Chapters"]
+        Q0["06-00-results.qmd\nH1 four-agent comparison table"]
+        Q1["06-01-statistical-validation.qmd\nRun-level statistics"]
+        Q2["06-02-robustness-assessment.qmd\nH2 feature table\nH3 reward / cost tables"]
+        Q3["06-03-performance-evaluation.qmd\nKey metrics table\nBenchmark comparison table\nEvaluation plots"]
+    end
+
+    CKPT --> E
+    RJ --> EX
+    BT --> EX
+    PL --> EX
+
+    MF -->|"1st choice\n(live query)"| LES
+    ER -->|"2nd choice\n(static snapshot)"| LES
+    ER -->|"1st choice"| LSM
+    MF -->|"2nd choice"| LSM
+    RJ -->|"3rd choice\n(direct read)"| LSM
+    ART --> FEP
+    PL -->|"live fallback"| FEP
+    ST --> LES
+    RUN --> LES
+
+    LES --> FKM
+    LES --> FBT
+    LES --> FEP
+    LSM --> Q0
+    LSM --> Q2
+    LES --> Q1
+    FKM --> Q3
+    FBT --> Q3
+    FEP --> Q3
+
+    style TRAIN fill:#e3f2fd,color:#000
+    style EVAL fill:#fff3e0,color:#000
+    style EXPORT fill:#f3e5f5,color:#000
+    style MLFLOW fill:#fce4ec,color:#000
+    style BRIDGE fill:#e8f5e9,color:#000
+    style QMD fill:#e0f7fa,color:#000
 ```
 
 MLflow is queried first at render time; the static snapshot is the fallback.
