@@ -711,8 +711,12 @@ def prepare_data(
     )
 
 
-@app.command()
-def peek(
+peek_app = typer.Typer(help="Peek utilities: dataset summaries and config listings")
+app.add_typer(peek_app, name="peek")
+
+
+@peek_app.command(name="dataset")
+def peek_dataset(
     scenario: str | None = typer.Option(
         None, "--scenario", "-s", help="Scenario name or path under src/configs/scenarios"
     ),
@@ -751,7 +755,7 @@ def peek(
     ))
 
 
-@app.command(name="peek-configs")
+@peek_app.command(name="configs")
 def peek_configs(
     n: int = typer.Option(20, "--top", "-n", help="Number of configs to show"),
     search_dir: Path | None = typer.Option(  # noqa: B008
