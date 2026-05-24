@@ -42,25 +42,25 @@ class ArtifactPaths:
     EVAL_DATA_TEMP = "evaluation_data_temp"
     EXPLAINABILITY = "explainability"
 
-    @staticmethod
-    def eval_plots(split: str) -> str:
-        return f"evaluation_plots/{split}"
+    @classmethod
+    def eval_plots(cls, split: str) -> str:
+        return f"{cls.EVAL_PLOTS}/{split}"
 
-    @staticmethod
-    def eval_plots_temp(split: str, step: int) -> str:
-        return f"evaluation_plots_temp/{split}/step_{step:08d}"
+    @classmethod
+    def eval_plots_temp(cls, split: str, step: int) -> str:
+        return f"{cls.EVAL_PLOTS_TEMP}/{split}/step_{step:08d}"
 
-    @staticmethod
-    def eval_data(split: str) -> str:
-        return f"evaluation_data/{split}"
+    @classmethod
+    def eval_data(cls, split: str) -> str:
+        return f"{cls.EVAL_DATA}/{split}"
 
-    @staticmethod
-    def eval_data_temp(split: str, step: int) -> str:
-        return f"evaluation_data_temp/{split}/step_{step:08d}"
+    @classmethod
+    def eval_data_temp(cls, split: str, step: int) -> str:
+        return f"{cls.EVAL_DATA_TEMP}/{split}/step_{step:08d}"
 
-    @staticmethod
-    def explainability(split: str) -> str:
-        return f"explainability/{split}"
+    @classmethod
+    def explainability(cls, split: str) -> str:
+        return f"{cls.EXPLAINABILITY}/{split}"
 
 if TYPE_CHECKING:
     from trading_rl.callbacks.mlflow_callback import MLflowTrainingCallback
