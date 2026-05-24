@@ -85,16 +85,22 @@ class EvaluateCommand(BaseCommand):
         config = self._load_config(params)
         self.console.print(f"[blue]Experiment: {config.experiment_name}[/blue]")
 
-        checkpoint_path = self._resolve_checkpoint(config, params)
-        self.console.print(f"[blue]Checkpoint: {checkpoint_path}[/blue]")
+        algorithm = getattr(config.training, "algorithm", "").upper()
+        is_random = algorithm == "RANDOM"
 
-        self.console.print("[dim]Loading policy...[/dim]")
-        policy = PolicyLoader.from_checkpoint(str(checkpoint_path))
-        meta = PolicyLoader.inspect(str(checkpoint_path))
-        self.console.print(
-            f"[dim]Algorithm: {meta.get('algorithm')}  "
-            f"n_obs={meta.get('n_obs')}  n_act={meta.get('n_act')}[/dim]"
-        )
+        if is_random:
+            policy = None  # built per-split from the env action spec
+            self.console.print("[dim]Algorithm: RANDOM (no checkpoint needed)[/dim]")
+        else:
+            checkpoint_path = self._resolve_checkpoint(config, params)
+            self.console.print(f"[blue]Checkpoint: {checkpoint_path}[/blue]")
+            self.console.print("[dim]Loading policy...[/dim]")
+            policy = PolicyLoader.from_checkpoint(str(checkpoint_path))
+            meta = PolicyLoader.inspect(str(checkpoint_path))
+            self.console.print(
+                f"[dim]Algorithm: {meta.get('algorithm')}  "
+                f"n_obs={meta.get('n_obs')}  n_act={meta.get('n_act')}[/dim]"
+            )
 
         self.console.print("[dim]Loading data...[/dim]")
 
@@ -195,9 +201,14 @@ class EvaluateCommand(BaseCommand):
                     periods_per_year=periods_py,
                 )
 
+                if is_random:
+                    from torchrl.envs.utils import RandomPolicy
+                    split_policy = RandomPolicy(split_ctx.env.action_spec)
+                else:
+                    split_policy = policy
                 evaluator = StrategyEvaluator(
                     env_factory=lambda df, cfg, env=split_ctx.env: env,
-                    policy=policy,
+                    policy=split_policy,
                     config=eval_config,
                 )
 
