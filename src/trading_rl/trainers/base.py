@@ -142,6 +142,8 @@ class BaseTrainer(ABC):
         self.total_count = 0
         self.total_episodes = 0
         self.logs = defaultdict(list)
+        self._pending_episode_rewards: list[float] = []
+        self._pending_episode_actions: list[Any] = []
         self.checkpoint_manager = CheckpointManager(self)
         self.runtime_hooks = TrainerRuntimeHooks(self)
 
@@ -298,7 +300,55 @@ class BaseTrainer(ABC):
 
     def _log_episode_stats(self, data: Any, callback: Any) -> None:
         """Log episode statistics to provided callback."""
-        episode_reward = data["next", "reward"].sum().item()
+        rewards = (
+            data["next", "reward"].detach().cpu().reshape(-1).to(torch.float64).tolist()
+        )
+        done_flags = (
+            data["next", "done"].detach().cpu().reshape(-1).to(torch.bool).tolist()
+        )
+        actions = self._extract_logged_actions(data.get("action"))
+
+        pending_rewards = getattr(self, "_pending_episode_rewards", [])
+        pending_actions = getattr(self, "_pending_episode_actions", [])
+        segment_start = 0
+
+        for idx, is_done in enumerate(done_flags):
+            if not is_done:
+                continue
+
+            episode_rewards = [*pending_rewards, *rewards[segment_start : idx + 1]]
+            episode_actions = [*pending_actions, *actions[segment_start : idx + 1]]
+            self._log_completed_episode_stats(
+                episode_rewards=episode_rewards,
+                actions=episode_actions,
+                callback=callback,
+            )
+            pending_rewards = []
+            pending_actions = []
+            segment_start = idx + 1
+
+        self._pending_episode_rewards = [*pending_rewards, *rewards[segment_start:]]
+        self._pending_episode_actions = [*pending_actions, *actions[segment_start:]]
+
+    def _extract_logged_actions(self, actions_tensor: Any) -> list[Any]:
+        """Flatten action tensors into one logged action per transition."""
+        if not isinstance(actions_tensor, torch.Tensor):
+            return []
+        if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
+            return actions_tensor.argmax(dim=-1).reshape(-1).tolist()
+        return actions_tensor.reshape(-1).tolist()
+
+    def _log_completed_episode_stats(
+        self,
+        *,
+        episode_rewards: list[float],
+        actions: list[Any],
+        callback: Any,
+    ) -> None:
+        """Log one completed episode assembled from one or more collector batches."""
+        if not episode_rewards:
+            return
+        episode_reward = float(np.sum(episode_rewards))
         # Reset portfolio value to starting amount at the beginning of each episode
         initial_val = getattr(callback, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)
         reward_type = getattr(callback, "reward_type", RewardType.LOG_RETURN)
@@ -322,7 +372,10 @@ class BaseTrainer(ABC):
                 from trading_rl.evaluation.returns import (
                     extract_tradingenv_return_series,
                 )
-                actual_returns = extract_tradingenv_return_series(self.env, data.numel())
+                actual_returns = extract_tradingenv_return_series(
+                    self.env,
+                    len(episode_rewards),
+                )
                 if actual_returns is not None and actual_returns.values.size > 0:
                     portfolio_valuation = float(actual_returns.values[-1])
                 else:
@@ -341,14 +394,6 @@ class BaseTrainer(ABC):
             portfolio_valuation = initial_val
 
         callback._portfolio_value = portfolio_valuation
-        actions_tensor = data.get("action")
-        if isinstance(actions_tensor, torch.Tensor):
-            if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
-                actions = actions_tensor.argmax(dim=-1).reshape(-1).tolist()
-            else:
-                actions = actions_tensor.reshape(-1).tolist()
-        else:
-            actions = []
 
         exploration_ratio = self._compute_exploration_ratio()
 
@@ -370,8 +415,8 @@ class BaseTrainer(ABC):
         # Use initial_val from callback and portfolio_valuation calculated above
         portfolio_return = 100 * (portfolio_valuation / initial_val - 1)
 
-        steps_key = "nlv_steps" if episode_steps is not None else "batch_steps"
-        steps_val = episode_steps if episode_steps is not None else data.numel()
+        steps_key = "nlv_steps" if episode_steps is not None else "episode_steps"
+        steps_val = episode_steps if episode_steps is not None else len(episode_rewards)
         steps_label = f" {steps_key}={steps_val}"
         symbol, start_ts, end_ts = self._get_current_episode_context()
         episode_ctx = (
@@ -710,7 +755,7 @@ class BaseTrainer(ABC):
                 with _profiler.stage("periodic_hooks", 2):
                     self.runtime_hooks.maybe_run(self.total_count)
 
-                if self.callback and hasattr(self.callback, "log_episode_stats") and episodes_in_batch > 0:
+                if self.callback and hasattr(self.callback, "log_episode_stats"):
                     self._log_episode_stats(data, self.callback)
 
                 if on_batch_end is not None:
