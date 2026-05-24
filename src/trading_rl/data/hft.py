@@ -92,7 +92,7 @@ def _deduplicate_hft_index_single(
     df.index = adjusted_index
     if not df.index.is_unique:
         raise ValueError(f"Failed to enforce unique index for {split_name} HFT split.")
-    duplicate_count = int(index.duplicated().sum())
+    duplicate_count = int(df.index.duplicated().sum())
     max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
     new_min_gap_ns = int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
     logger.info(
