@@ -37,8 +37,10 @@ training:
   delay_actor: true
   delay_qvalue: true
   loss_function: l2
-  eval_steps: 350
   eval_interval: 120
   log_interval: 40
+evaluation:
+  eval_steps: 350
+
 logging:
   log_level: INFO

@@ -38,9 +38,11 @@ training:
   buffer_size: 100000
   tau: 0.005
   loss_function: "l2"
-  eval_steps: 500
   eval_interval: 200
   log_interval: 50
+
+evaluation:
+  eval_steps: 500
 
 logging:
   log_level: "INFO"

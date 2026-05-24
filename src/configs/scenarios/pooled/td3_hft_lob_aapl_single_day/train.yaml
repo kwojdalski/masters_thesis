@@ -54,9 +54,11 @@ training:
   delay_qvalue: true
   exploration_noise_std: 0.1
   loss_function: smooth_l1
-  eval_fraction: 0.2
   eval_interval: 1000
   log_interval: 100
+evaluation:
+  eval_fraction: 0.2
+
 logging:
   log_level: INFO
   save_plots: false

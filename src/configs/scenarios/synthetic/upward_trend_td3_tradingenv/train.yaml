@@ -44,8 +44,10 @@ training:
   delay_qvalue: true
   exploration_noise_std: 0.05
   loss_function: smooth_l1
-  eval_steps: 440
   eval_interval: 500
   log_interval: 100
+evaluation:
+  eval_steps: 440
+
 logging:
   log_level: INFO

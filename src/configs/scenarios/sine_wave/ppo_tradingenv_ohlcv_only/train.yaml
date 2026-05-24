@@ -41,9 +41,11 @@ training:
   vf_coef: 0.5
   ppo_epochs: 4
   loss_function: l2
-  eval_steps: 440
   eval_interval: 500
   log_interval: 100
+evaluation:
+  eval_steps: 440
+
 logging:
   log_level: INFO
   save_plots: false
