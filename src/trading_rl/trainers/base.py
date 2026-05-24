@@ -55,6 +55,27 @@ torchrl_collectors._TrajectoryPool = _LocalTrajectoryPool
 logger = get_logger(__name__)
 
 
+@contextlib.contextmanager
+def _signal_guard():
+    """Context manager that installs a clean SIGINT handler and restores the original on exit.
+
+    Converts Ctrl-C into a plain KeyboardInterrupt so callers can catch it and
+    save a checkpoint before re-raising.
+    """
+    original = signal.getsignal(signal.SIGINT)
+
+    def _handler(sig, frame):
+        logger.info("sigint received raising KeyboardInterrupt")
+        signal.signal(signal.SIGINT, original)
+        raise KeyboardInterrupt()
+
+    signal.signal(signal.SIGINT, _handler)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, original)
+
+
 def _build_sync_data_collector(
     *,
     env: Any,
@@ -161,13 +182,6 @@ class BaseTrainer(ABC):
 
         if enable_composite_lp:
             set_composite_lp_aggregate(True).set()
-
-    def _maybe_save_checkpoint(self) -> None:
-        self.checkpoint_manager.maybe_save_checkpoint()
-
-    def _save_interrupt_checkpoint(self) -> str | None:
-        """Persist an emergency checkpoint when training is interrupted."""
-        return self.checkpoint_manager.save_interrupt_checkpoint()
 
     def _global_optimization_step(
         self, batch_idx: int, inner_idx: int, steps_per_batch: int
@@ -577,66 +591,55 @@ class BaseTrainer(ABC):
             len(self.logs.get("loss_value", [])),
         )
 
-        # Set up explicit signal handling to ensure interrupts are processed
-        original_sigint_handler = signal.getsignal(signal.SIGINT)
-
-        def signal_handler(sig, frame):
-            logger.info("sigint received raising KeyboardInterrupt")
-            signal.signal(signal.SIGINT, original_sigint_handler)
-            raise KeyboardInterrupt()
-
-        signal.signal(signal.SIGINT, signal_handler)
-
         _profiler = get_profiler()
-        try:
-            for i, data in enumerate(self.collector):
-                if on_batch_start is not None:
-                    on_batch_start(i, data)
+        with _signal_guard():
+            try:
+                for i, data in enumerate(self.collector):
+                    if on_batch_start is not None:
+                        on_batch_start(i, data)
 
-                self._current_batch = data
+                    self._current_batch = data
 
-                with _profiler.stage("buffer_extend", 2):
-                    if self._use_replay_buffer:
-                        self.replay_buffer.extend(data)
-                        max_length = self.replay_buffer[:]["next", "step_count"].max()
-                        buffer_len = len(self.replay_buffer)
-                    else:
-                        max_length = data["next", "step_count"].max()
-                        buffer_len = data.numel()
+                    with _profiler.stage("buffer_extend", 2):
+                        if self._use_replay_buffer:
+                            self.replay_buffer.extend(data)
+                            max_length = self.replay_buffer[:]["next", "step_count"].max()
+                            buffer_len = len(self.replay_buffer)
+                        else:
+                            max_length = data["next", "step_count"].max()
+                            buffer_len = data.numel()
 
-                self.total_count += data.numel()
+                    self.total_count += data.numel()
 
-                collected_steps = self.total_count if not self._use_replay_buffer else buffer_len
-                if collected_steps > self.config.init_rand_steps:
-                    with _profiler.stage("optimization", 2):
-                        self._optimization_step(i, max_length, buffer_len)
+                    collected_steps = self.total_count if not self._use_replay_buffer else buffer_len
+                    if collected_steps > self.config.init_rand_steps:
+                        with _profiler.stage("optimization", 2):
+                            self._optimization_step(i, max_length, buffer_len)
 
-                episodes_in_batch = int(data["next", "done"].sum().item())
-                self.total_episodes += episodes_in_batch
+                    episodes_in_batch = int(data["next", "done"].sum().item())
+                    self.total_episodes += episodes_in_batch
 
-                with _profiler.stage("checkpoint", 2):
-                    self._maybe_save_checkpoint()
+                    with _profiler.stage("checkpoint", 2):
+                        self.checkpoint_manager.maybe_save_checkpoint()
 
-                with _profiler.stage("periodic_hooks", 2):
-                    self.runtime_hooks.maybe_run(self.total_count)
+                    with _profiler.stage("periodic_hooks", 2):
+                        self.runtime_hooks.maybe_run(self.total_count)
 
-                if self.callback and hasattr(self.callback, "log_episode_stats"):
-                    self._log_episode_stats(data, self.callback)
+                    if self.callback and hasattr(self.callback, "log_episode_stats"):
+                        self._log_episode_stats(data, self.callback)
 
-                if on_batch_end is not None:
-                    on_batch_end(i, data)
+                    if on_batch_end is not None:
+                        on_batch_end(i, data)
 
-                if self.total_count >= self.config.max_steps:
-                    logger.info("training stopped max_steps=%d", self.config.max_steps)
-                    break
-        except KeyboardInterrupt:
-            logger.warning("training interrupted by user saving checkpoint")
-            checkpoint_path = self._save_interrupt_checkpoint()
-            if checkpoint_path:
-                logger.info("interrupt checkpoint saved path=%s", checkpoint_path)
-            raise
-        finally:
-            signal.signal(signal.SIGINT, original_sigint_handler)
+                    if self.total_count >= self.config.max_steps:
+                        logger.info("training stopped max_steps=%d", self.config.max_steps)
+                        break
+            except KeyboardInterrupt:
+                logger.warning("training interrupted by user saving checkpoint")
+                checkpoint_path = self.checkpoint_manager.save_interrupt_checkpoint()
+                if checkpoint_path:
+                    logger.info("interrupt checkpoint saved path=%s", checkpoint_path)
+                raise
 
         if on_train_end is not None:
             on_train_end()
