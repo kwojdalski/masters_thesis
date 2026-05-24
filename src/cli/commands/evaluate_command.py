@@ -30,6 +30,7 @@ _PERF_ROWS = [
     ("win_rate", "Win Rate", ".2%"),
     ("lose_rate", "Lose Rate", ".2%"),
     ("profit_factor", "Profit Factor", ".3f"),
+    ("omega_ratio", "Omega Ratio", ".3f"),
     ("pct_long", "% Long", ".2%"),
     ("pct_short", "% Short", ".2%"),
 ]

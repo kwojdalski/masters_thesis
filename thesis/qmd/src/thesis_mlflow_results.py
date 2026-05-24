@@ -156,38 +156,49 @@ def find_evaluation_plots(artifact_uri: str | None) -> dict[str, Path]:
     """Return latest available evaluation plots for a run.
 
     Preference order:
-    1. final evaluation_plots/*
-    2. temporary evaluation_plots_temp/**/*
+    1. final evaluation_plots/* inside the MLflow artifact directory
+    2. temporary evaluation_plots_temp/**/* inside the MLflow artifact directory
+    3. eval_results/ at the repo root (stable output dir of the evaluate CLI command)
     """
-    artifact_dir = _artifact_dir_from_uri(artifact_uri)
-    if artifact_dir is None:
-        return {}
-
     plot_keys = {
         "merged_comparison": "*_merged_comparison.png",
         "rewards": "*_rewards.png",
         "positions": "*_positions.png",
         "actual_returns": "*_actual_returns.png",
     }
+    # Patterns used by the evaluate CLI command in eval_results/
+    eval_results_patterns = {
+        "rewards": "*_reward_plot.png",
+        "positions": "*_action_plot.png",
+    }
     found: dict[str, Path] = {}
 
-    final_dir = artifact_dir / "evaluation_plots"
-    if final_dir.exists():
-        for key, pattern in plot_keys.items():
-            p = _latest_file(list(final_dir.glob(pattern)))
-            if p is not None:
-                found[key] = p
+    artifact_dir = _artifact_dir_from_uri(artifact_uri)
+    if artifact_dir is not None:
+        final_dir = artifact_dir / "evaluation_plots"
+        if final_dir.exists():
+            for key, pattern in plot_keys.items():
+                p = _latest_file(list(final_dir.glob(pattern)))
+                if p is not None:
+                    found[key] = p
 
-    if len(found) == len(plot_keys):
-        return found
+        if len(found) < len(plot_keys):
+            temp_dir = artifact_dir / "evaluation_plots_temp"
+            if temp_dir.exists():
+                for key, pattern in plot_keys.items():
+                    if key in found:
+                        continue
+                    p = _latest_file(list(temp_dir.glob(f"**/{pattern}")))
+                    if p is not None:
+                        found[key] = p
 
-    # Fallback to temp periodic eval plots
-    temp_dir = artifact_dir / "evaluation_plots_temp"
-    if temp_dir.exists():
-        for key, pattern in plot_keys.items():
+    # Final fallback: eval_results/ at the repo root (evaluate CLI output)
+    eval_results_dir = _repo_root() / "eval_results"
+    if eval_results_dir.exists():
+        for key, pattern in eval_results_patterns.items():
             if key in found:
                 continue
-            p = _latest_file(list(temp_dir.glob(f"**/{pattern}")))
+            p = _latest_file(list(eval_results_dir.glob(pattern)))
             if p is not None:
                 found[key] = p
 
@@ -257,6 +268,7 @@ def format_key_metrics(report: dict[str, Any] | None) -> pd.DataFrame:
         ("max_drawdown", "Max Drawdown"),
         ("win_rate", "Win Rate"),
         ("profit_factor", "Profit Factor"),
+        ("omega_ratio", "Omega Ratio"),
         ("var_95", "VaR (95%)"),
         ("cvar_95", "CVaR (95%)"),
     ]
@@ -391,9 +403,21 @@ def _load_experiment_snapshot_from_mlflow(experiment_name: str) -> ExperimentSna
     )
 
 
+def _sanitise_for_json(obj: Any) -> Any:
+    """Recursively replace NaN/Inf floats with None so json.dumps produces valid JSON."""
+    import math
+    if isinstance(obj, float):
+        return None if not math.isfinite(obj) else obj
+    if isinstance(obj, dict):
+        return {k: _sanitise_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitise_for_json(v) for v in obj]
+    return obj
+
+
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, default=str))
+    path.write_text(json.dumps(_sanitise_for_json(payload), indent=2, default=str))
 
 
 def _iso_or_none(value: Any) -> str | None:

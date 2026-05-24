@@ -146,6 +146,12 @@ def build_metric_report(
     payoff_ratio = _safe_div(float(np.mean(wins)) if wins.size else 0.0, abs(float(np.mean(losses))) if losses.size else 0.0)
     expectancy = float(mu)
 
+    # Omega ratio at the risk-free threshold: E[max(r - rf, 0)] / E[max(rf - r, 0)]
+    # Generalises profit_factor (equal to it when rf_per_period == 0).
+    _gains = np.mean(np.maximum(r - rf_per_period, 0.0))
+    _losses_omega = np.mean(np.maximum(rf_per_period - r, 0.0))
+    omega_ratio = _safe_div(float(_gains), float(_losses_omega))
+
     if actions is not None and len(actions) > 0:
         actions_arr = np.asarray(actions, dtype=float)
     elif benchmark_position_side is not None and r.size > 0:
@@ -202,6 +208,7 @@ def build_metric_report(
         "lose_rate": lose_rate,
         "profit_factor": profit_factor,
         "payoff_ratio": payoff_ratio,
+        "omega_ratio": omega_ratio,
         "expectancy_per_period": expectancy,
         "turnover": turnover,
         "average_holding_period": avg_holding,
@@ -235,6 +242,7 @@ def _metric_keys() -> list[str]:
         "lose_rate",
         "profit_factor",
         "payoff_ratio",
+        "omega_ratio",
         "expectancy_per_period",
         "turnover",
         "average_holding_period",
