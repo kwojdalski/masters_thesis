@@ -792,97 +792,31 @@ class ExperimentConfig:
     def to_dict(self) -> dict:
         """Convert configuration to dictionary.
 
+        Includes every field from every sub-config dataclass so that
+        ``ExperimentConfig.from_dict(config.to_dict())`` round-trips without
+        data loss.  Sub-configs are serialised under their canonical field
+        names (e.g. ``"env"``); ``from_dict`` already accepts both ``"env"``
+        and the legacy ``"environment"`` key.
+
         Returns:
             Dictionary representation of the config
         """
-        return {
-            "experiment_name": self.experiment_name,
-            "seed": self.seed,
-            "device": self.device,
-            "data": {
-                "data_path": self.data.data_path,
-                "download_data": self.data.download_data,
-                "exchange_names": self.data.exchange_names,
-                "symbols": self.data.symbols,
-                "timeframe": self.data.timeframe,
-                "data_dir": self.data.data_dir,
-                "download_since": self.data.download_since.isoformat(),
-                "train_size": self.data.train_size,
-                "validation_size": self.data.validation_size,
-                "feature_config": self.data.feature_config,
-                "feature_groups": self.data.feature_groups,
-            },
-            "environment": {
-                "name": self.env.name,
-                "mode": self.env.mode,
-                "positions": self.env.positions,
-                "trading_fees": self.env.trading_fees,
-                "borrow_interest_rate": self.env.borrow_interest_rate,
-                "initial_portfolio_value": self.env.initial_portfolio_value,
-                "backend": self.env.backend,
-                # TradingEnv-specific fields (only include if set)
-                **(
-                    {"price_column": self.env.price_column}
-                    if self.env.price_column is not None
-                    else {}
-                ),
-                **(
-                    {"feature_columns": self.env.feature_columns}
-                    if self.env.feature_columns is not None
-                    else {}
-                ),
-                "reward_type": self.env.reward_type,
-                "reward_eta": self.env.reward_eta,
-            },
-            "network": {
-                "actor_hidden_dims": self.network.actor_hidden_dims,
-                "value_hidden_dims": self.network.value_hidden_dims,
-            },
-            "training": {
-                "actor_lr": self.training.actor_lr,
-                "value_lr": self.training.value_lr,
-                "value_weight_decay": self.training.value_weight_decay,
-                "max_steps": self.training.max_steps,
-                "init_rand_steps": self.training.init_rand_steps,
-                "frames_per_batch": self.training.frames_per_batch,
-                "optim_steps_per_batch": self.training.optim_steps_per_batch,
-                "sample_size": self.training.sample_size,
-                "buffer_size": self.training.buffer_size,
-                "checkpoint_interval": self.training.checkpoint_interval,
-                "tau": self.training.tau,
-                "loss_function": self.training.loss_function,
-                "eval_steps": self.training.eval_steps,
-                "eval_fraction": self.training.eval_fraction,
-                "eval_interval": self.training.eval_interval,
-                "log_interval": self.training.log_interval,
-            },
-            "logging": {
-                "log_dir": self.logging.log_dir,
-                "log_file": self.logging.log_file,
-                "log_level": self.logging.log_level,
-                "tensorboard_dir": self.logging.tensorboard_dir,
-            },
-            "explainability": {
-                "enabled": self.explainability.enabled,
-                "n_steps": self.explainability.n_steps,
-                "methods": self.explainability.methods,
-            },
-            "benchmarks": {
-                "buy_and_hold": self.benchmarks.buy_and_hold,
-                "short_and_hold": self.benchmarks.short_and_hold,
-                "twap": self.benchmarks.twap,
-                "vwap": self.benchmarks.vwap,
-                "random": self.benchmarks.random,
-                "n_random_trials": self.benchmarks.n_random_trials,
-                "random_seed": self.benchmarks.random_seed,
-            },
-            "statistical_testing": {
-                "enabled": self.statistical_testing.enabled,
-                "log_to_research_artifacts": self.statistical_testing.log_to_research_artifacts,
-                "research_artifact_subdir": self.statistical_testing.research_artifact_subdir,
-                "tests": self.statistical_testing.tests,
-                "n_bootstrap_samples": self.statistical_testing.n_bootstrap_samples,
-                "n_permutations": self.statistical_testing.n_permutations,
-                "confidence_level": self.statistical_testing.confidence_level,
-            },
-        }
+        import dataclasses as _dc
+        import enum
+
+        def _ser(obj):
+            if _dc.is_dataclass(obj) and not isinstance(obj, type):
+                return {f.name: _ser(getattr(obj, f.name)) for f in _dc.fields(obj)}
+            if isinstance(obj, datetime.datetime):
+                return obj.isoformat()
+            if isinstance(obj, enum.Enum):
+                return obj.value
+            if isinstance(obj, list):
+                return [_ser(v) for v in obj]
+            if isinstance(obj, dict):
+                return {k: _ser(v) for k, v in obj.items()}
+            return obj
+
+        d = _ser(self)
+        # Preserve "env" key name — from_dict accepts it directly.
+        return d
