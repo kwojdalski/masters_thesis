@@ -309,7 +309,7 @@ def evaluate_split(
     rollout = _last_evaluation_rollout(trainer)
     last_eval_result = getattr(trainer, "_last_evaluation_result", None)
 
-    if getattr(config.logging, "log_eval_rollout_data", True) and last_eval_result is not None:
+    if getattr(config.training, "eval_log_data", True) and last_eval_result is not None:
         try:
             from trading_rl.callbacks.artifacts import save_eval_rollout_artifact
             save_eval_rollout_artifact(

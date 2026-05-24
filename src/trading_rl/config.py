@@ -187,6 +187,7 @@ class TrainingConfig:
     temp_eval_splits: list[SplitName] = field(default_factory=lambda: [SplitName.TRAIN, SplitName.VAL])  # Which splits to evaluate
     temp_eval_max_steps: int = 50000  # Cap rollout length for periodic eval
     temp_eval_log_data: bool = False  # Log rollout parquet artifact during periodic eval (disabled by default)
+    eval_log_data: bool = True  # Log rollout parquet artifact (action, returns) during final evaluation
     max_plot_points: int | None = 50_000  # Cap the number of plotted points per series; None = plot all
     show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
@@ -212,7 +213,6 @@ class LoggingConfig:
     tensorboard_dir: str = "runs"
     save_plots: bool = False  # Save training plots to disk in addition to MLflow
     log_oracle_alignment_plot: bool = False  # Scatter plot of feature_future_close_vel vs next-step log return
-    log_eval_rollout_data: bool = True  # Log rollout parquet artifact (action, returns) during final evaluation
 
 
 @dataclass
