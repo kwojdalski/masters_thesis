@@ -113,6 +113,7 @@ if [[ $PARALLEL -eq 1 ]]; then
             --output-dir "$OUTPUT_DIR" \
             --only metrics \
             --only benchmarks \
+            --only plots \
             >"$LOG_FILE" 2>&1 &
         EVAL_PIDS+=($!)
     done
@@ -134,6 +135,7 @@ else
             --output-dir "$OUTPUT_DIR" \
             --only metrics \
             --only benchmarks \
+            --only plots \
             2>&1 | tee "$LOG_FILE"
         echo "  done."
     done

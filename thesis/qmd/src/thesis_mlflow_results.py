@@ -152,13 +152,35 @@ def load_latest_statistical_tests(artifact_uri: str | None) -> dict[str, Any] | 
     return _load_latest_json_artifact(artifact_uri, "statistical_tests")
 
 
-def find_evaluation_plots(artifact_uri: str | None) -> dict[str, Path]:
+def _scenario_log_dirs(experiment_name: str) -> list[Path]:
+    """Candidate log directories for a given experiment name.
+
+    The run scripts use LOG_NAME="${SCENARIO##*/}" which strips the group prefix
+    (e.g. "pooled/td3_..." → "td3_...").  To cover both the training dir
+    (pooled_td3_...) and the evaluate output dir (td3_...) we probe both.
+    """
+    logs_root = _repo_root() / "logs"
+    candidates: list[Path] = [logs_root / experiment_name]
+    # Strip the first underscore-delimited component to derive the LOG_NAME.
+    parts = experiment_name.split("_", 1)
+    if len(parts) == 2:
+        candidates.append(logs_root / parts[1])
+    return [p for p in candidates if p.exists()]
+
+
+def find_evaluation_plots(
+    artifact_uri: str | None,
+    *,
+    log_dirs: list[Path] | None = None,
+) -> dict[str, Path]:
     """Return latest available evaluation plots for a run.
 
     Preference order:
     1. final evaluation_plots/* inside the MLflow artifact directory
     2. temporary evaluation_plots_temp/**/* inside the MLflow artifact directory
-    3. eval_results/ at the repo root (stable output dir of the evaluate CLI command)
+    3. scenario-specific log dirs (logs/{log_name}/) — written by the evaluate CLI
+       when --only plots is included; checked live on every render
+    4. eval_results/ at the repo root (non-scenario-specific fallback)
     """
     plot_keys = {
         "merged_comparison": "*_merged_comparison.png",
@@ -166,8 +188,8 @@ def find_evaluation_plots(artifact_uri: str | None) -> dict[str, Path]:
         "positions": "*_positions.png",
         "actual_returns": "*_actual_returns.png",
     }
-    # Patterns used by the evaluate CLI command in eval_results/
-    eval_results_patterns = {
+    # Patterns used by the evaluate CLI command in its --output-dir
+    cli_plot_patterns = {
         "rewards": "*_reward_plot.png",
         "positions": "*_action_plot.png",
     }
@@ -192,10 +214,21 @@ def find_evaluation_plots(artifact_uri: str | None) -> dict[str, Path]:
                     if p is not None:
                         found[key] = p
 
-    # Final fallback: eval_results/ at the repo root (evaluate CLI output)
+    # Scenario-specific log dirs (checked live — always reflects the latest evaluate run)
+    for log_dir in (log_dirs or []):
+        if not log_dir.exists():
+            continue
+        for key, pattern in cli_plot_patterns.items():
+            if key in found:
+                continue
+            p = _latest_file(list(log_dir.glob(pattern)))
+            if p is not None:
+                found[key] = p
+
+    # Non-scenario-specific fallback: eval_results/ at the repo root
     eval_results_dir = _repo_root() / "eval_results"
     if eval_results_dir.exists():
-        for key, pattern in eval_results_patterns.items():
+        for key, pattern in cli_plot_patterns.items():
             if key in found:
                 continue
             p = _latest_file(list(eval_results_dir.glob(pattern)))
@@ -240,9 +273,10 @@ def latest_run_for_experiment(experiment_name: str, status: str | None = None) -
     row["params"] = get_params(row["run_id"])
     row["evaluation_report"] = load_latest_evaluation_report(row["artifact_uri"])
     row["statistical_tests"] = load_latest_statistical_tests(row["artifact_uri"])
-    row["evaluation_plots"] = find_evaluation_plots(row["artifact_uri"])
-    # Supplement with static export plots when the MLflow run has none
-    # (e.g. when evaluate was run with --only metrics and plots were not logged).
+    log_dirs = _scenario_log_dirs(experiment_name)
+    row["evaluation_plots"] = find_evaluation_plots(row["artifact_uri"], log_dirs=log_dirs)
+    # Supplement with static export plots when neither MLflow nor log dirs have any
+    # (e.g. evaluate was run with --only metrics before plots were ever generated).
     if not row["evaluation_plots"]:
         row["evaluation_plots"] = _find_static_export_plots(experiment_name)
     return row
