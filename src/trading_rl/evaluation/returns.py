@@ -164,53 +164,48 @@ def _find_broker(env, max_depth: int = 8):
 
 def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | None:
     """Extract the TradingEnv broker NLV path as an equity ReturnSeries."""
-    try:
-        broker = _find_broker(env)
-        if broker is None:
-            logger.debug("cannot find tradingenv broker in env stack")
-            return None
-        if not hasattr(broker, "track_record") or len(broker.track_record) == 0:
-            logger.debug("broker has no track_record or it's empty")
-            return None
-
-        nlv_values = []
-        max_records = min(n_steps, len(broker.track_record))
-        for i in range(max_records):
-            record = broker.track_record[i]
-            if i == 0 and hasattr(record, "context_pre") and hasattr(record.context_pre, "nlv"):
-                nlv_values.append(float(record.context_pre.nlv))
-            if hasattr(record, "context_post") and hasattr(record.context_post, "nlv"):
-                nlv_values.append(float(record.context_post.nlv))
-            else:
-                logger.warning("track record missing context_post.nlv")
-                return None
-
-        if len(nlv_values) < 2:
-            logger.debug("insufficient nlv values count=%s", len(nlv_values))
-            return None
-
-        nlv_array = np.asarray(nlv_values, dtype=float)
-        if np.any(nlv_array <= 0):
-            logger.warning("nlv path contains non-positive values; dropping series")
-            return None
-        if not np.all(np.isfinite(nlv_array)):
-            n_inf = int(np.sum(~np.isfinite(nlv_array)))
-            logger.warning(
-                "nlv path contains %d non-finite value(s) (likely cross-symbol price jump in val_df); dropping series",
-                n_inf,
-            )
-            return None
-
-        series = ReturnSeries(
-            np.asarray(nlv_values, dtype=float),
-            ReturnKind.EQUITY,
-            name="strategy",
-            includes_initial=True,
-        )
-        return series
-    except Exception as exc:
-        logger.warning("failed to extract TradingEnv returns: %s", exc)
+    broker = _find_broker(env)
+    if broker is None:
+        logger.debug("cannot find tradingenv broker in env stack")
         return None
+    if not hasattr(broker, "track_record") or len(broker.track_record) == 0:
+        logger.debug("broker has no track_record or it's empty")
+        return None
+
+    nlv_values = []
+    max_records = min(n_steps, len(broker.track_record))
+    for i in range(max_records):
+        record = broker.track_record[i]
+        if i == 0 and hasattr(record, "context_pre") and hasattr(record.context_pre, "nlv"):
+            nlv_values.append(float(record.context_pre.nlv))
+        if hasattr(record, "context_post") and hasattr(record.context_post, "nlv"):
+            nlv_values.append(float(record.context_post.nlv))
+        else:
+            logger.warning("track record missing context_post.nlv")
+            return None
+
+    if len(nlv_values) < 2:
+        logger.debug("insufficient nlv values count=%s", len(nlv_values))
+        return None
+
+    nlv_array = np.asarray(nlv_values, dtype=float)
+    if np.any(nlv_array <= 0):
+        logger.warning("nlv path contains non-positive values; dropping series")
+        return None
+    if not np.all(np.isfinite(nlv_array)):
+        n_inf = int(np.sum(~np.isfinite(nlv_array)))
+        logger.warning(
+            "nlv path contains %d non-finite value(s) (likely cross-symbol price jump in val_df); dropping series",
+            n_inf,
+        )
+        return None
+
+    return ReturnSeries(
+        np.asarray(nlv_values, dtype=float),
+        ReturnKind.EQUITY,
+        name="strategy",
+        includes_initial=True,
+    )
 
 
 def cross_validate_nlv(
