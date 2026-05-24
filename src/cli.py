@@ -680,7 +680,7 @@ def prepare_data(
         TimeElapsedColumn,
     )
 
-    config = ExperimentConfig.from_yaml(config_path, overrides=config_override)
+    config = ExperimentConfig.load(config_path, overrides=config_override)
     console.print(f"[blue]Config loaded: {config_path}[/blue]")
 
     data_paths = getattr(config.data, "data_paths", None) or []

@@ -203,7 +203,7 @@ def run_experiment_from_config(config_path: str, n_trials: int = 1) -> str:
         MLflow experiment name.
     """
     p = Path(config_path)
-    config = ExperimentConfig.from_scenario(p) if p.is_dir() else ExperimentConfig.from_yaml(p)
+    config = ExperimentConfig.load(p)
     setup_mlflow_experiment(config)
 
     if n_trials == 1:

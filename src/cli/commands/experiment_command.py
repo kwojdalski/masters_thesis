@@ -54,30 +54,21 @@ class ExperimentCommand(BaseCommand):
     
     def _load_experiment_config(self, params: ExperimentParams):
         """Load and configure experiment parameters."""
-        from trading_rl import ExperimentConfig
-        
         # Validate that only one of config_file or scenario is provided
         if params.config_file and params.scenario:
             raise typer.BadParameter("Cannot specify both --config and --scenario. Use one or the other.")
         
         # Create config and override with CLI parameters
         if params.config_file:
-            config_path = (
-                params.config_file
-                if params.config_file.exists()
-                else self._resolve_scenario_config_path(str(params.config_file))
+            config = super()._load_experiment_config(
+                params.config_file, command="train", overrides=params.config_overrides
             )
-            config = ExperimentConfig.from_yaml(
-                config_path, overrides=params.config_overrides
-            )
-            self.console.print(f"[blue]Loaded config from file: {config_path}[/blue]")
+            self.console.print(f"[blue]Loaded config from file: {params.config_file}[/blue]")
         elif params.scenario:
-            # Resolve scenario to config file
-            config_file = self._resolve_scenario_config_path(params.scenario)
-            config = ExperimentConfig.from_yaml(
-                config_file, overrides=params.config_overrides
+            config = super()._load_experiment_config(
+                params.scenario, command="train", overrides=params.config_overrides
             )
-            self.console.print(f"[blue]Loaded config from scenario: {params.scenario} -> {config_file}[/blue]")
+            self.console.print(f"[blue]Loaded config from scenario: {params.scenario}[/blue]")
         else:
             if params.config_overrides:
                 raise typer.BadParameter(

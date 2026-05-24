@@ -634,6 +634,31 @@ class ExperimentConfig:
         return cls.from_dict(config_dict)
 
     @classmethod
+    def load(
+        cls,
+        path: str | Path,
+        command: str = "train",
+        overrides: list[str] | None = None,
+    ) -> "ExperimentConfig":
+        """Load configuration from a file or scenario directory.
+
+        Dispatches to :meth:`from_scenario` when *path* is a directory and to
+        :meth:`from_yaml` when it is a file, so callers never need to branch on
+        the path type themselves.
+
+        Args:
+            path: Path to a YAML file **or** a scenario directory.
+            command: Command-specific overlay to load from the directory
+                (e.g. ``"evaluate"`` merges ``evaluate.yaml`` on top of
+                ``train.yaml``). Ignored when *path* is a file.
+            overrides: Optional OmegaConf dotlist overrides applied last.
+        """
+        path = Path(path)
+        if path.is_dir():
+            return cls.from_scenario(path, command=command, overrides=overrides)
+        return cls.from_yaml(path, overrides=overrides)
+
+    @classmethod
     def from_dict(cls, config_dict: dict) -> "ExperimentConfig":
         """Create config from dictionary.
 

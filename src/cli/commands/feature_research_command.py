@@ -6,7 +6,6 @@ from pathlib import Path
 import typer
 from rich.table import Table
 
-from trading_rl import ExperimentConfig
 from trading_rl.feature_research import FeatureResearchConfig, run_feature_research
 
 from .base_command import BaseCommand
@@ -106,22 +105,15 @@ class FeatureResearchCommand(BaseCommand):
                 overrides=params.config_overrides,
             )
         if params.experiment_config_file:
-            exp_path = (
-                params.experiment_config_file
-                if params.experiment_config_file.exists()
-                else self._resolve_scenario_config_path(str(params.experiment_config_file))
-            )
-            experiment_config = ExperimentConfig.from_yaml(
-                exp_path,
-                overrides=params.config_overrides,
+            experiment_config = self._load_experiment_config(
+                params.experiment_config_file, command="train", overrides=params.config_overrides
             )
             return FeatureResearchConfig.from_experiment_config(
                 experiment_config, overrides=params.config_overrides
             )
         if params.scenario:
-            scenario_path = self._resolve_scenario_config_path(params.scenario)
-            experiment_config = ExperimentConfig.from_yaml(
-                scenario_path, overrides=params.config_overrides
+            experiment_config = self._load_experiment_config(
+                params.scenario, command="train", overrides=params.config_overrides
             )
             return FeatureResearchConfig.from_experiment_config(
                 experiment_config, overrides=params.config_overrides
@@ -130,21 +122,3 @@ class FeatureResearchCommand(BaseCommand):
             "Provide --config, --experiment-config, or --scenario for feature research."
         )
 
-    def _resolve_scenario_config_path(self, scenario: str) -> Path:
-        """Resolve scenario name to config file path."""
-        candidate_path = Path(scenario)
-        if candidate_path.is_dir():
-            candidate_path = candidate_path / "config.yaml"
-
-        search_paths = [
-            candidate_path,
-            Path("src/configs/scenarios") / scenario,
-            Path("src/configs/scenarios") / f"{scenario}.yaml",
-        ]
-        for path in search_paths:
-            if path.exists():
-                return path.resolve()
-
-        raise typer.BadParameter(
-            f"Scenario '{scenario}' not found. Provide a valid path or scenario name."
-        )
