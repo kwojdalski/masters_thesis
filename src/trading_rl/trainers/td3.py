@@ -135,6 +135,10 @@ class TD3Trainer(BaseTrainer):
             self.policy_delay,
         )
 
+    def _should_update_actor(self, current_step: int) -> bool:
+        """Return True after policy_delay critic updates have completed."""
+        return current_step > 0 and current_step % self.policy_delay == 0
+
     def evaluate(
         self,
         df,
@@ -257,7 +261,7 @@ class TD3Trainer(BaseTrainer):
             self.logs["loss_value"].append(value_loss)
 
             # 2. Delayed actor update
-            update_actor = current_step % self.policy_delay == 0
+            update_actor = self._should_update_actor(current_step)
 
             extra_metrics = None
             if update_actor:
