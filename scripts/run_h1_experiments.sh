@@ -31,7 +31,7 @@ EXTRA_TRAIN_ARGS="${EXTRA_TRAIN_ARGS:-}"
 # log_dir_name must match what src/configs/h1_performance.yaml declares.
 # ---------------------------------------------------------------------------
 declare -a SCENARIOS=(
-    "pooled/td3_hft_lob_state_space_pooled_streaming_selected"
+    "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
     "pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr"
     "pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr"
     "pooled/random_hft_lob_state_space_pooled_streaming_5k"

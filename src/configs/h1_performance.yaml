@@ -12,7 +12,7 @@
 
 agents:
   - label: "TD3"
-    log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
+    log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected_dsr
     algorithm: TD3
     primary: true
   - label: "DDPG"
