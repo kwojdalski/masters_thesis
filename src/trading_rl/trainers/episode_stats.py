@@ -208,4 +208,4 @@ class EpisodeStatsTracker:
                     _fmt(next_obs),
                 )
         except Exception as exc:
-            logger.debug("log_sample_transitions failed: %s", exc)
+            logger.warning("log_sample_transitions failed: %s", exc)
