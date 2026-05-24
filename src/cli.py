@@ -924,6 +924,93 @@ def dashboard(
     dashboard_cmd.execute(params)
 
 
+def _resolve_sqlite_path(tracking_uri: str | None) -> str:
+    uri = tracking_uri or "sqlite:///mlflow.db"
+    if uri.startswith("sqlite:///"):
+        return uri[len("sqlite:///"):]
+    raise typer.BadParameter(
+        f"--purge only supports sqlite:/// tracking URIs, got: {uri}"
+    )
+
+
+def _purge_experiments_sqlite(
+    db_path: str,
+    pattern: re.Pattern | None,
+    delete_all: bool,
+    dry_run: bool,
+    force: bool,
+) -> None:
+    import sqlite3
+
+    con = sqlite3.connect(db_path)
+    rows = con.execute(
+        "SELECT experiment_id, name FROM experiments WHERE lifecycle_stage = 'deleted'"
+    ).fetchall()
+
+    targets = [
+        (exp_id, name)
+        for exp_id, name in rows
+        if delete_all or (pattern and pattern.search(name))
+    ]
+
+    if not targets:
+        console.print(
+            "[yellow]No soft-deleted experiments matched. "
+            "Use `experiments` (without --purge) to soft-delete active ones first.[/yellow]"
+        )
+        con.close()
+        raise typer.Exit(0)
+
+    if dry_run:
+        console.print("[yellow]Dry run: experiments to permanently delete[/yellow]")
+        for exp_id, name in targets:
+            run_count = con.execute(
+                "SELECT COUNT(*) FROM runs WHERE experiment_id = ?", (exp_id,)
+            ).fetchone()[0]
+            console.print(f"  [{exp_id}] {name}  ({run_count} run(s))")
+        con.close()
+        raise typer.Exit(0)
+
+    labels = [f"[{exp_id}] {name}" for exp_id, name in targets]
+    console.print(
+        "[bold red]This will PERMANENTLY remove the following experiments "
+        "and all their runs from the database:[/bold red]"
+    )
+    for label in labels:
+        console.print(f"  {label}")
+
+    if not _confirm_delete(labels, force):
+        console.print("[yellow]Purge cancelled.[/yellow]")
+        con.close()
+        raise typer.Exit(0)
+
+    _RUN_CHILD_TABLES = (
+        "params", "metrics", "latest_metrics", "tags",
+        "inputs", "input_tags",
+    )
+    n_purged = 0
+    for exp_id, name in targets:
+        run_ids = [
+            r[0]
+            for r in con.execute(
+                "SELECT run_uuid FROM runs WHERE experiment_id = ?", (exp_id,)
+            ).fetchall()
+        ]
+        for run_uuid in run_ids:
+            for tbl in _RUN_CHILD_TABLES:
+                try:
+                    con.execute(f"DELETE FROM {tbl} WHERE run_uuid = ?", (run_uuid,))  # noqa: S608
+                except sqlite3.OperationalError:
+                    pass  # table may not exist in all schema versions
+            con.execute("DELETE FROM runs WHERE run_uuid = ?", (run_uuid,))
+        con.execute("DELETE FROM experiments WHERE experiment_id = ?", (exp_id,))
+        n_purged += 1
+
+    con.commit()
+    con.close()
+    console.print(f"[green]Permanently deleted {n_purged} experiment(s).[/green]")
+
+
 @app.command(name="experiments")
 def experiments(
     tracking_uri: str | None = typer.Option(
@@ -933,15 +1020,30 @@ def experiments(
         show_default=False,
     ),
     delete: str | None = typer.Option(
-        None, "--delete", help="Delete experiments matching regex"
+        None, "--delete", help="Soft-delete experiments matching regex"
     ),
     delete_all: bool = typer.Option(
-        False, "--delete-all", help="Delete all experiments"
+        False, "--delete-all", help="Soft-delete all experiments"
     ),
-    force: bool = typer.Option(False, "--force", help="Delete without confirmation"),
+    purge: bool = typer.Option(
+        False,
+        "--purge",
+        help=(
+            "Permanently remove soft-deleted experiments from the SQLite DB. "
+            "Combine with --delete <regex> or --delete-all to select targets. "
+            "Requires sqlite:/// tracking URI."
+        ),
+    ),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation prompt"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
 ):
-    """List available MLflow experiments."""
+    """List available MLflow experiments, soft-delete, or permanently purge them."""
+    if purge:
+        db_path = _resolve_sqlite_path(tracking_uri)
+        pattern = re.compile(delete) if delete else None
+        _purge_experiments_sqlite(db_path, pattern, delete_all or not delete, dry_run, force)
+        return
+
     if not delete and not delete_all:
         dashboard_cmd.list_experiments(tracking_uri)
         return
@@ -961,7 +1063,7 @@ def experiments(
         console.print("[yellow]No experiments matched for deletion.[/yellow]")
         raise typer.Exit(0)
     if dry_run:
-        console.print("[yellow]Dry run: experiments to delete[/yellow]")
+        console.print("[yellow]Dry run: experiments to soft-delete[/yellow]")
         for exp in targets:
             console.print(f"  {exp.name}")
         raise typer.Exit(0)
@@ -970,7 +1072,7 @@ def experiments(
         raise typer.Exit(0)
     for exp in targets:
         mlflow.delete_experiment(exp.experiment_id)
-    console.print(f"[green]Deleted {len(targets)} experiments.[/green]")
+    console.print(f"[green]Soft-deleted {len(targets)} experiments.[/green]")
 
 
 @app.command(name="scenarios")
