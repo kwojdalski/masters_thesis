@@ -209,8 +209,9 @@ def build_evaluation_report_for_trainer(
         positions=positions,
     )
     timeframe = getattr(getattr(config, "data", None), "timeframe", "1d")
-    periods_per_year = periods_per_year_from_timeframe(timeframe)
+    timeframe_periods_per_year = periods_per_year_from_timeframe(timeframe)
     index_periods_per_year = _periods_per_year_from_index(df_prices)
+    periods_per_year = index_periods_per_year or timeframe_periods_per_year
     logger.debug(
         "periods_per_year=%d (timeframe='%s', index-derived=%s)",
         periods_per_year,
