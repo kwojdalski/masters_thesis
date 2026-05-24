@@ -8,8 +8,16 @@ parts: statistical validation of repeated-run variability, robustness
 assessment under nearby design changes, and final performance evaluation on the
 held-out split.
 
-## Benchmark Strategies
+## Algorithm Comparison Results
 <!-- [PLACEHOLDER] -->
+
+Beyond the benchmark strategies, a key empirical question is how the different
+algorithmic choices discussed in Chapter 3 translate to trading performance.
+This section compares PPO, DDPG, and TD3 on identical data, features, and
+evaluation protocols to assess the practical implications of their theoretical
+differences.
+
+### Benchmark Strategies
 
 Performance is assessed relative to five benchmark strategies. These
 benchmarks span passive exposure, execution-style references, and a
@@ -45,15 +53,6 @@ and reports aggregate performance to obtain a stable stochastic baseline.
 Failure to consistently outperform a random policy would indicate that the
 agent has not learned a meaningful relationship between observations and
 actions.
-
-## Algorithm Comparison Results
-<!-- [PLACEHOLDER] -->
-
-Beyond the benchmark strategies, a key empirical question is how the different
-algorithmic choices discussed in Chapter 3 translate to trading performance.
-This section compares PPO, DDPG, and TD3 on identical data, features, and
-evaluation protocols to assess the practical implications of their theoretical
-differences.
 
 ### Comparison Methodology
 
