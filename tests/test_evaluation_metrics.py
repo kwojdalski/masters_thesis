@@ -310,7 +310,7 @@ class TestBenchmarkMetrics:
 class TestEdgeCases:
     def test_empty_returns_all_nan(self):
         report = _report([])
-        assert all(np.isnan(v) for v in report.values())
+        assert all(np.isnan(v) for v in report.to_dict().values())
 
     def test_single_return(self):
         report = _report([0.05])

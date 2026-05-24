@@ -19,6 +19,6 @@ def test_to_dict_emits_price_column_only():
     config.env.price_column = "close"
 
     config_dict = config.to_dict()
-    env = config_dict["environment"]
+    env = config_dict["env"]
     assert env["price_column"] == "close"
     assert "price_columns" not in env

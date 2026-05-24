@@ -28,8 +28,8 @@ class TestBuildMetricReportEdgeCases:
         """Empty returns should return all NaN."""
         report = _report([])
 
-        assert all(np.isnan(v) for v in report.values())
-        assert len(report) == 28  # All metric keys should be present
+        assert all(np.isnan(v) for v in report.to_dict().values())
+        assert len(report.to_dict()) == 29  # All metric keys should be present
 
     def test_single_return(self):
         """Single return should work correctly."""
@@ -289,6 +289,7 @@ class TestBuildMetricReportEdgeCases:
             "sharpe_ratio",
             "sortino_ratio",
             "calmar_ratio",
+            "omega_ratio",
             "max_drawdown",
             "average_drawdown",
             "max_drawdown_duration",
@@ -313,7 +314,7 @@ class TestBuildMetricReportEdgeCases:
             "tracking_error",
         }
 
-        assert set(report.keys()) == expected_keys
+        assert set(report.to_dict().keys()) == expected_keys
 
     def test_no_benchmark_alpha_beta_are_nan(self):
         """Without benchmark, alpha and beta should be NaN."""
