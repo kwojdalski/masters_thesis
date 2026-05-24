@@ -422,7 +422,7 @@ def _log_overview_impl(
                         + geom_hline(yintercept=-obs_clip, linetype="dashed", color="red", size=0.6)
                     )
                 temp_path = os.path.join(tempfile.gettempdir(), f"{column}.png")
-                p.save(temp_path, width=16, height=10, dpi=150)
+                p.save(temp_path, width=16, height=10, dpi=225)
                 mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
                 os.unlink(temp_path)
             except Exception as plot_error:  # pragma: no cover
@@ -450,7 +450,7 @@ def _log_overview_impl(
                     + thesis_theme()
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), "ohlc_combined.png")
-                p_combined.save(temp_path, width=20, height=10, dpi=150)
+                p_combined.save(temp_path, width=20, height=10, dpi=225)
                 mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
                 os.unlink(temp_path)
             except Exception as combined_error:  # pragma: no cover
@@ -574,7 +574,7 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
                     + thesis_theme()
                 )
                 temp_path = os.path.join(tempfile.gettempdir(), f"{feat}_vs_log_return.png")
-                p.save(temp_path, width=12, height=8, dpi=150)
+                p.save(temp_path, width=12, height=8, dpi=225)
                 mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
                 os.unlink(temp_path)
             except Exception as e:  # pragma: no cover
@@ -652,7 +652,7 @@ def _log_oracle_vs_reward_alignment(
                 + thesis_theme()
             )
             temp_path = os.path.join(tempfile.gettempdir(), filename)
-            p.save(temp_path, width=12, height=8, dpi=150)
+            p.save(temp_path, width=12, height=8, dpi=225)
             mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
             os.unlink(temp_path)
             logger.info("log oracle alignment plot filename=%s corr=%.4f n=%d", filename, corr, len(plot_df))
@@ -994,7 +994,7 @@ def log_evaluation_plots(
                 logger.debug("render plot filename=%s debug=%s", filename, debug)
                 with warnings.catch_warnings(), _suppress_plotnine():
                     warnings.simplefilter("ignore", PlotnineWarning)
-                    _save_plot(plot_obj, tmp_path, width=width, height=height, dpi=150, debug=debug)
+                    _save_plot(plot_obj, tmp_path, width=width, height=height, dpi=225, debug=debug)
                 logger.debug("render done filename=%s elapsed=%.2fs", filename, time.monotonic() - t_render)
 
                 pil_logger = logging.getLogger("PIL.PngImagePlugin")

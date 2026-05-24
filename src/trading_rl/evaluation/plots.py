@@ -461,5 +461,6 @@ def create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot=
     merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH * 2, round(FIGURE_HEIGHT * n_panels, 1)))
     if save_path:
         logger.info("save merged comparison plot path=%s", save_path)
-        merged_plot.save(save_path, dpi=150, verbose=False)
+        from trading_rl.evaluation.thesis_theme import PLOT_DPI
+        merged_plot.save(save_path, dpi=PLOT_DPI, verbose=False)
     return merged_plot

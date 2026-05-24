@@ -25,6 +25,7 @@ PALETTE: dict[str, str] = {
 # Single figure width that fits inside A4 / US-Letter thesis margins
 FIGURE_WIDTH = 6.0   # inches
 FIGURE_HEIGHT = 3.5  # inches — 16:9-ish aspect, comfortable for line plots
+PLOT_DPI = 225       # pixels per inch — higher DPI without changing physical size
 
 # Latin Modern Roman matches the LaTeX Computer Modern body font exactly.
 # The four OTF files are copied from TeX Live into ~/Library/Fonts so that
@@ -76,7 +77,7 @@ def save_plot(
     *,
     width: float,
     height: float,
-    dpi: int = 150,
+    dpi: int = PLOT_DPI,
     debug: bool = False,
     base_size: int = 11,
 ) -> None:

@@ -708,9 +708,9 @@ class EvaluateCommand(BaseCommand):
             out_path = output_dir / f"{split}_{name}.png"
             try:
                 if hasattr(fig, "save"):
-                    fig.save(str(out_path), dpi=150, verbose=False)
+                    fig.save(str(out_path), dpi=225, verbose=False)
                 else:
-                    fig.savefig(out_path, bbox_inches="tight", dpi=150)
+                    fig.savefig(out_path, bbox_inches="tight", dpi=225)
                 self.console.print(f"[dim]Saved plot: {out_path}[/dim]")
             except Exception as exc:
                 self.logger.warning("save plot failed name=%s err=%s", name, exc)

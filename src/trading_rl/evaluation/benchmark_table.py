@@ -197,7 +197,8 @@ def save_benchmark_table_artifact(
             tbl[row_idx + 1, col_idx].set_facecolor(shade)
 
     png_path = output_dir / f"{split}_benchmark_table.png"
-    fig.savefig(str(png_path), dpi=150, bbox_inches="tight")
+    from trading_rl.evaluation.thesis_theme import PLOT_DPI
+    fig.savefig(str(png_path), dpi=PLOT_DPI, bbox_inches="tight")
     plt.close(fig)
 
     return json_path, png_path
