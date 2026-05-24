@@ -139,23 +139,6 @@ class TD3Trainer(BaseTrainer):
         """Return True after policy_delay critic updates have completed."""
         return current_step > 0 and current_step % self.policy_delay == 0
 
-    def evaluate(
-        self,
-        df,
-        max_steps: int,
-        config=None,
-        algorithm: str | None = None,
-        eval_env: Any | None = None,
-    ):
-        """Delegated evaluation - uses StrategyEvaluator from BaseTrainer."""
-        return super().evaluate(
-            df=df,
-            max_steps=max_steps,
-            config=config,
-            algorithm=algorithm,
-            eval_env=eval_env,
-        )
-
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):
         """Factory for TD3 actor and Q-value networks."""

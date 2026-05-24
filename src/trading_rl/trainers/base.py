@@ -55,6 +55,112 @@ torchrl_collectors._TrajectoryPool = _LocalTrajectoryPool
 logger = get_logger(__name__)
 
 
+def _run_evaluation(
+    trainer: Any,
+    df: Any,
+    max_steps: int,
+    config: Any = None,
+    algorithm: str | None = None,  # noqa: ARG001 — kept for API symmetry
+    eval_env: Any | None = None,
+) -> tuple[Any, ...]:
+    """Run a policy evaluation rollout and build result plots.
+
+    Extracted from BaseTrainer.evaluate() so the logic is testable without
+    subclassing and so subclass overrides remain thin.
+
+    Returns:
+        (reward_plot, action_plot, None, final_reward, last_positions,
+         actual_returns_plot, merged_plot)
+    """
+    from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+    from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
+    from trading_rl.utils import create_actual_returns_plot, create_merged_comparison_plot
+
+    env_to_use = eval_env or trainer.env
+    eval_config_kwargs: dict[str, Any] = {}
+
+    if config:
+        from trading_rl.evaluation.evaluator import EnvConfig
+        eval_config_kwargs = {
+            "reward_type": getattr(config.env, "reward_type", RewardType.LOG_RETURN),
+            "backend": getattr(config.env, "backend", EnvBackend.TRADINGENV),
+            "price_column": getattr(config.env, "price_column", None),
+            "max_steps": max_steps,
+            "enable_plots": True,
+            "enable_metrics": False,
+            "max_plot_points": getattr(getattr(config, "training", None), "max_plot_points", None),
+            "show_allocation_ma": getattr(getattr(config, "training", None), "show_allocation_ma", True),
+            "allocation_ma_window": getattr(getattr(config, "training", None), "allocation_ma_window", 500),
+            "env": EnvConfig(
+                name=getattr(config.env, "name", ""),
+                positions=getattr(config.env, "positions", None),
+                mode=getattr(config.env, "mode", EnvMode.MFT),
+                trading_fees=getattr(config.env, "trading_fees", 0.0),
+                borrow_interest_rate=getattr(config.env, "borrow_interest_rate", 0.0),
+                initial_portfolio_value=getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE),
+                price_column=getattr(config.env, "price_column", "close"),
+            ),
+        }
+
+    eval_config = EvaluationConfig(**eval_config_kwargs)
+    profiler = get_profiler()
+
+    evaluator = StrategyEvaluator(
+        env_factory=lambda _df, _cfg: env_to_use,
+        policy=trainer.actor,
+        config=eval_config,
+    )
+
+    _t = time.monotonic()
+    with profiler.stage("agent_rollout", 2):
+        result = evaluator.evaluate_split("eval", df, env=env_to_use)
+    trainer._last_evaluation_result = result
+    logger.debug("evaluate.rollout_and_metrics elapsed=%.2fs", time.monotonic() - _t)
+
+    reward_plot = result.plots["reward_plot"] if result.plots else None
+    action_plot = result.plots["action_plot"] if result.plots else None
+    plot_series = result.return_series or ReturnSeries(result.simple_returns, ReturnKind.SIMPLE)
+
+    with profiler.stage("plot_actual_returns", 2):
+        _t = time.monotonic()
+        logger.debug("create_actual_returns_plot start n_steps=%d", max_steps)
+        _data_paths = getattr(getattr(config, "data", None), "data_paths", None) if config else None
+        actual_returns_plot = create_actual_returns_plot(
+            None,
+            max_steps,
+            df_prices=df,
+            env=env_to_use,
+            actual_returns_list=[plot_series],
+            initial_portfolio_value=(
+                float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
+                if config else DEFAULT_INITIAL_PORTFOLIO_VALUE
+            ),
+            benchmark_price_column=getattr(config.env, "price_column", None) if config else "close",
+            show_max_profit=config.benchmarks.show_max_profit if config else True,
+            training_steps=trainer.total_count,
+            training_episodes=trainer.total_episodes,
+            n_total_symbols=len(_data_paths) if _data_paths else None,
+            max_plot_points=getattr(getattr(config, "training", None), "max_plot_points", None) if config else None,
+            reward_type=str(getattr(config.env, "reward_type", "log_return")) if config else None,
+        )
+        logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
+
+    with profiler.stage("plot_merged", 2):
+        _t = time.monotonic()
+        merged_plot = create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot)
+        logger.debug("evaluate.plot_merged elapsed=%.2fs", time.monotonic() - _t)
+
+    return (
+        reward_plot,
+        action_plot,
+        None,  # action_probs_plot — PPO-specific, filled in by PPOTrainer.evaluate()
+        float(result.final_reward),
+        result.last_positions,
+        actual_returns_plot,
+        merged_plot,
+    )
+
+
 @contextlib.contextmanager
 def _signal_guard():
     """Context manager that installs a clean SIGINT handler and restores the original on exit.
@@ -349,49 +455,6 @@ class BaseTrainer(ABC):
     def _log_sample_transitions(self, data: Any, n: int = 3) -> None:
         self.episode_stats.log_sample_transitions(data, n)
 
-    def _is_portfolio_backend(self, config: Any) -> bool:
-        """Detect if backend uses continuous portfolio weights.
-
-        Args:
-            config: Experiment configuration
-
-        Returns:
-            True if backend is portfolio-based (continuous weights), False otherwise
-        """
-        if config is None:
-            return False
-        backend = getattr(config.env, "backend", None)
-        return backend == EnvBackend.TRADINGENV
-
-    def _extract_actions(self, rollout: Any, is_portfolio: bool) -> Any:
-        """Extract actions from rollout based on backend type.
-
-        Args:
-            rollout: TensorDict containing rollout data
-            is_portfolio: Whether backend uses portfolio weights
-
-        Returns:
-            Tensor of actions (continuous weights or discrete positions)
-        """
-        action_tensor = rollout["action"].squeeze()
-
-        if is_portfolio:
-            # Portfolio weights: keep continuous values as-is
-            if action_tensor.ndim > 1:
-                # Multi-asset: return all weights [batch, n_assets]
-                return action_tensor
-            else:
-                # Single asset: return weights [batch]
-                return action_tensor
-        else:
-            # Discrete positions: convert to position indices
-            if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
-                # One-hot encoded -> argmax
-                return action_tensor.argmax(dim=-1)
-            else:
-                # Already discrete
-                return action_tensor
-
     def evaluate(
         self,
         df: Any,
@@ -400,132 +463,8 @@ class BaseTrainer(ABC):
         algorithm: str | None = None,
         eval_env: Any | None = None,
     ) -> tuple[Any, ...]:
-        """Delegated evaluation - creates plots and results using StrategyEvaluator.
-
-        This method now delegates to StrategyEvaluator for evaluation logic,
-        decoupling training from evaluation. The original implementation
-        remains for backward compatibility during transition.
-
-        Args:
-            df: Price/OHLCV data for evaluation
-            max_steps: Maximum steps to evaluate
-            config: Experiment configuration (optional, uses default if None)
-            algorithm: Algorithm name (for logging only)
-            eval_env: Optional dedicated evaluation environment
-
-        Returns:
-            Tuple of (reward_plot, action_plot, action_probs_plot, final_reward,
-                     last_positions, actual_returns_plot, merged_plot)
-        """
-        from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
-        from trading_rl.utils import (
-            create_actual_returns_plot,
-            create_merged_comparison_plot,
-        )
-
-        env_to_use = eval_env or self.env
-
-        # Build evaluation config from training config (or use defaults)
-        eval_config_kwargs = {}
-        if config:
-            eval_config_kwargs = {
-                "reward_type": getattr(config.env, "reward_type", RewardType.LOG_RETURN),
-                "backend": getattr(config.env, "backend", EnvBackend.TRADINGENV),
-                "price_column": getattr(config.env, "price_column", None),
-                "max_steps": max_steps,
-                "enable_plots": True,
-                "enable_metrics": False,  # Metrics computed separately
-                "max_plot_points": getattr(getattr(config, "training", None), "max_plot_points", None),
-                "show_allocation_ma": getattr(getattr(config, "training", None), "show_allocation_ma", True),
-                "allocation_ma_window": getattr(getattr(config, "training", None), "allocation_ma_window", 500),
-            }
-
-        from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
-
-        # Add environment configuration to eval_config_kwargs
-        if config:
-            from trading_rl.evaluation.evaluator import EnvConfig
-
-            eval_config_kwargs["env"] = EnvConfig(
-                name=getattr(config.env, "name", ""),
-                positions=getattr(config.env, "positions", None),
-                mode=getattr(config.env, "mode", EnvMode.MFT),
-                trading_fees=getattr(config.env, "trading_fees", 0.0),
-                borrow_interest_rate=getattr(config.env, "borrow_interest_rate", 0.0),
-                initial_portfolio_value=getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE),
-                price_column=getattr(config.env, "price_column", "close"),
-            )
-
-        eval_config = EvaluationConfig(**eval_config_kwargs)
-
-        def env_factory(_df: Any, _config: Any) -> Any:
-            return env_to_use
-
-        profiler = get_profiler()
-
-        evaluator = StrategyEvaluator(
-            env_factory=env_factory,
-            policy=self.actor,
-            config=eval_config,
-        )
-
-        _t = time.monotonic()
-        with profiler.stage("agent_rollout", 2):
-            result = evaluator.evaluate_split("eval", df, env=env_to_use)
-        self._last_evaluation_result = result
-        logger.debug("evaluate.rollout_and_metrics elapsed=%.2fs", time.monotonic() - _t)
-
-        reward_plot = result.plots["reward_plot"] if result.plots else None
-        action_plot = result.plots["action_plot"] if result.plots else None
-        plot_series = result.return_series or ReturnSeries(
-            result.simple_returns,
-            ReturnKind.SIMPLE,
-        )
-
-        with profiler.stage("plot_actual_returns", 2):
-            _t = time.monotonic()
-            logger.debug("create_actual_returns_plot start n_steps=%d", max_steps)
-            _data_paths = getattr(getattr(config, "data", None), "data_paths", None) if config else None
-            _n_total_symbols = len(_data_paths) if _data_paths else None
-            actual_returns_plot = create_actual_returns_plot(
-                None,
-                max_steps,
-                df_prices=df,
-                env=env_to_use,
-                actual_returns_list=[plot_series],
-                initial_portfolio_value=(
-                    float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
-                    if config
-                    else DEFAULT_INITIAL_PORTFOLIO_VALUE
-                ),
-                benchmark_price_column=getattr(config.env, "price_column", None) if config else "close",
-                show_max_profit=config.benchmarks.show_max_profit if config else True,
-                training_steps=self.total_count,
-                training_episodes=self.total_episodes,
-                n_total_symbols=_n_total_symbols,
-                max_plot_points=getattr(getattr(config, "training", None), "max_plot_points", None) if config else None,
-                reward_type=str(getattr(config.env, "reward_type", "log_return")) if config else None,
-            )
-            logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
-
-        with profiler.stage("plot_merged", 2):
-            _t = time.monotonic()
-            merged_plot = create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot)
-            logger.debug("evaluate.plot_merged elapsed=%.2fs", time.monotonic() - _t)
-
-        # Use final_reward and last_positions from SplitEvaluationResult
-        final_reward = float(result.final_reward)
-        last_positions = result.last_positions
-
-        return (
-            reward_plot,
-            action_plot,
-            None,  # Third plot (action_probs_plot) - PPO-specific
-            final_reward,
-            last_positions,
-            actual_returns_plot,
-            merged_plot,
-        )
+        """Run policy evaluation and return result plots and metrics."""
+        return _run_evaluation(self, df, max_steps, config, algorithm, eval_env)
 
     def setup_periodic_evaluation(
         self,
