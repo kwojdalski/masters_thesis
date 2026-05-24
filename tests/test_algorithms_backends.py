@@ -8,6 +8,24 @@ from cli.commands import TrainingCommand, TrainingParams
 from logger import configure_logging
 
 
+@pytest.fixture(autouse=True)
+def _end_mlflow_run():
+    """Ensure any active MLflow run from a previous test is closed before each test."""
+    try:
+        import mlflow
+        if mlflow.active_run():
+            mlflow.end_run()
+    except ImportError:
+        pass
+    yield
+    try:
+        import mlflow
+        if mlflow.active_run():
+            mlflow.end_run()
+    except ImportError:
+        pass
+
+
 @pytest.mark.slow
 def test_ppo_anytrading_forex():
     """
@@ -66,7 +84,7 @@ def test_ppo_tradingenv():
     configure_logging(component="test_ppo_tradingenv", level="DEBUG")
 
     # Setup Parameters (override config in code for shorter runs)
-    config_path = Path("src/configs/scenarios/sine_wave/ppo_no_trend_tradingenv.yaml")
+    config_path = Path("src/configs/scenarios/sine_wave/ppo_no_trend_tradingenv")
 
     params = TrainingParams(
         config_file=config_path,
