@@ -76,7 +76,7 @@ def test_policy_loader_build_actor_uses_ppo_builder(monkeypatch) -> None:
     actor = FakeActor()
     calls = []
 
-    def fake_builder(n_obs, n_act, hidden_dims):
+    def fake_builder(n_obs, n_act, hidden_dims, state_dict):
         calls.append((n_obs, n_act, hidden_dims))
         return actor
 

@@ -19,7 +19,6 @@ Usage::
 
 from __future__ import annotations
 
-import re
 from types import SimpleNamespace
 from typing import Any
 
@@ -71,7 +70,7 @@ class PolicyLoader:
         state_dict: dict = checkpoint["actor_state_dict"]
 
         if algorithm == "ppo":
-            actor = PolicyLoader._build_ppo_actor(n_obs, n_act, hidden_dims)
+            actor = PolicyLoader._build_ppo_actor(n_obs, n_act, hidden_dims, state_dict)
         elif algorithm in ("td3", "ddpg"):
             action_low = checkpoint.get("action_low")
             action_high = checkpoint.get("action_high")
@@ -88,42 +87,32 @@ class PolicyLoader:
                 "Expected one of: ppo, td3, ddpg."
             )
 
-        state_dict = PolicyLoader._migrate_state_dict(state_dict, algorithm)
         actor.load_state_dict(state_dict)
         actor.to(device)
         actor.eval()
         return actor
 
     @staticmethod
-    def _migrate_state_dict(state_dict: dict, algorithm: str) -> dict:
-        """Remap old checkpoint keys to the current architecture naming.
+    def _is_continuous_ppo(state_dict: dict) -> bool:
+        """Detect continuous PPO from state dict key structure.
 
-        PPO DiscreteNet migration: before _FlattenObs was prepended the inner
-        Sequential was unnamed (accessed as index 0), so keys looked like
-        ``module.0.module.0.{0,2,4}.weight``.  After the refactor the
-        Sequential is stored as ``self.network`` and _FlattenObs sits at
-        index 0, shifting linear layers to indices 1, 3, 5 → keys become
-        ``module.0.module.network.{1,3,5}.weight``.
+        Continuous PPO wraps a TorchRL MLP (index-based keys) inside
+        nn.Sequential, giving keys like ``module.0.module.0.{N}.weight``.
+        Discrete PPO uses DiscreteNet with a named ``self.network`` attribute,
+        giving keys like ``module.0.module.network.{N}.weight``.
         """
-        if algorithm != "ppo":
-            return state_dict
-
-        # Detect old format by checking for the unnamed sequential prefix
-        old_pattern = re.compile(r"^(module\.0\.module\.)0\.(\d+)(\.(?:weight|bias))$")
-        if not any(old_pattern.match(k) for k in state_dict):
-            return state_dict
-
-        migrated = {}
-        for key, value in state_dict.items():
-            m = old_pattern.match(key)
-            if m:
-                new_idx = int(m.group(2)) + 1  # shift by 1 for prepended _FlattenObs
-                key = f"{m.group(1)}network.{new_idx}{m.group(3)}"
-            migrated[key] = value
-        return migrated
+        return any(k.startswith("module.0.module.0.") for k in state_dict)
 
     @staticmethod
-    def _build_ppo_actor(n_obs: int, n_act: int, hidden_dims: list[int] | None) -> Any:
+    def _build_ppo_actor(
+        n_obs: int,
+        n_act: int,
+        hidden_dims: list[int] | None,
+        state_dict: dict,
+    ) -> Any:
+        if PolicyLoader._is_continuous_ppo(state_dict):
+            from trading_rl.models import create_continuous_ppo_actor
+            return create_continuous_ppo_actor(n_obs, n_act, hidden_dims=hidden_dims, spec=None)
         from trading_rl.models import create_ppo_actor
         return create_ppo_actor(n_obs, n_act, hidden_dims=hidden_dims, spec=None)
 
