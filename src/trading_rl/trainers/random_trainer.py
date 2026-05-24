@@ -33,13 +33,14 @@ class RandomTrainer(BaseTrainer):
         """Skip training — random policy requires no learning."""
         return dict(self.logs)
 
-    def save_checkpoint(self, path: str) -> None:
+    def save_checkpoint(self, path: str, feature_pipeline_state: dict | None = None) -> None:
         import torch
         torch.save(
             {
                 "algorithm": "RANDOM",
                 "n_obs": self.n_obs,
                 "n_act": self.n_act,
+                "feature_pipeline_state": feature_pipeline_state,
             },
             path,
         )
