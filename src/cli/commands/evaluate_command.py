@@ -588,8 +588,7 @@ class EvaluateCommand(BaseCommand):
             return params.checkpoint
 
         log_dir = Path(config.logging.log_dir)
-        pattern = f"{config.experiment_name}_checkpoint*.pt"
-        matches = list(log_dir.rglob(pattern))
+        matches = list(log_dir.rglob("*_checkpoint*.pt"))
         if not matches:
             raise FileNotFoundError(
                 f"No checkpoints found for '{config.experiment_name}' in {log_dir}. "
