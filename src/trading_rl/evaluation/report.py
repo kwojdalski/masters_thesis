@@ -44,17 +44,24 @@ def periods_per_year_from_timeframe(timeframe: str) -> int:
 def _periods_per_year_from_index(df: pd.DataFrame) -> int | None:
     """Derive annualization factor from a DataFrame's DatetimeIndex.
 
-    Computes the observed event rate (events/second) and projects it to one
-    full US trading year (252 days x 6.5 hours). Returns None when the index
-    is not a DatetimeIndex or contains fewer than two timestamps.
+    Uses the median positive timestamp delta so overnight/weekend gaps do not
+    dilute the inferred bar frequency. Returns None when the index is not a
+    DatetimeIndex or contains fewer than two usable timestamps.
     """
     if not isinstance(df.index, pd.DatetimeIndex) or len(df) < 2:
         return None
-    elapsed = (df.index[-1] - df.index[0]).total_seconds()
-    if elapsed <= 0:
+    deltas = df.index.to_series().diff().dropna().dt.total_seconds().to_numpy()
+    positive_deltas = deltas[deltas > 0]
+    if positive_deltas.size == 0:
         return None
+    median_delta = float(np.median(positive_deltas))
+    seconds_per_day = 24 * 3600
+    if median_delta >= 5 * seconds_per_day:
+        return 52
+    if median_delta >= seconds_per_day:
+        return 252
     trading_seconds_per_year = 252 * 6.5 * 3600  # 5,896,800
-    return max(1, round(len(df) / elapsed * trading_seconds_per_year))
+    return max(1, round(trading_seconds_per_year / median_delta))
 
 
 def _extract_action_array(
@@ -202,8 +209,14 @@ def build_evaluation_report_for_trainer(
         positions=positions,
     )
     timeframe = getattr(getattr(config, "data", None), "timeframe", "1d")
-    periods_per_year = _periods_per_year_from_index(df_prices) or periods_per_year_from_timeframe(timeframe)
-    logger.debug("periods_per_year=%d (timeframe='%s', index-derived=%s)", periods_per_year, timeframe, _periods_per_year_from_index(df_prices) is not None)
+    periods_per_year = periods_per_year_from_timeframe(timeframe)
+    index_periods_per_year = _periods_per_year_from_index(df_prices)
+    logger.debug(
+        "periods_per_year=%d (timeframe='%s', index-derived=%s)",
+        periods_per_year,
+        timeframe,
+        index_periods_per_year,
+    )
 
     return build_metric_report(
         strategy_simple_returns=strategy_simple_returns,

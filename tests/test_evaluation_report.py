@@ -85,7 +85,16 @@ def test_periods_per_year_from_index_uses_observed_event_rate() -> None:
 
     periods = _periods_per_year_from_index(df)
 
-    assert periods == round(10 / 9 * 252 * 6.5 * 3600)
+    assert periods == 252 * 6.5 * 3600
+
+
+def test_periods_per_year_from_index_handles_business_day_bars() -> None:
+    df = pd.DataFrame(
+        {"close": np.arange(252, dtype=float)},
+        index=pd.bdate_range("2024-01-01", periods=252),
+    )
+
+    assert _periods_per_year_from_index(df) == 252
 
 
 def test_periods_per_year_from_index_returns_none_for_non_datetime_index() -> None:
@@ -159,6 +168,36 @@ def test_report_reuses_supplied_rollout_without_rerunning_env() -> None:
     )
 
     assert report["total_return"] == pytest.approx(1.10 * 0.95 - 1.0)
+
+
+def test_report_prefers_configured_timeframe_for_annualization() -> None:
+    returns = np.array([0.01, -0.02, 0.015, -0.005, 0.02], dtype=float)
+    rollout = _FakeRollout(rewards=[0.0] * len(returns), actions=[0.0] * len(returns))
+    env = _FakeEnv(rollout)
+    prices = pd.DataFrame(
+        {"close": np.arange(len(returns) + 1, dtype=float) + 100.0},
+        index=pd.date_range(
+            "2024-01-01 09:30:00",
+            periods=len(returns) + 1,
+            freq="1s",
+        ),
+    )
+
+    report = build_evaluation_report_for_trainer(
+        trainer=_trainer(env),
+        df_prices=prices,
+        max_steps=len(returns),
+        config=_config(
+            reward_type=RewardType.LOG_RETURN,
+            backend="gym_trading_env.continuous",
+        ),
+        eval_env=env,
+        rollout=rollout,
+        strategy_simple_returns=returns,
+    )
+
+    expected_vol = float(np.std(returns, ddof=1) * np.sqrt(252))
+    assert report["annualized_volatility"] == pytest.approx(expected_vol)
 
 
 def test_extract_action_array_maps_one_hot_actions_to_positions() -> None:
