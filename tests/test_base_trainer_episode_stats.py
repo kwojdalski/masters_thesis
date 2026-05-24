@@ -9,6 +9,7 @@ from tensordict import TensorDict
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 from trading_rl.constants import RewardType
 from trading_rl.trainers.base import BaseTrainer
+from trading_rl.trainers.episode_stats import EpisodeStatsTracker
 
 
 class _DummyTrainer(BaseTrainer):
@@ -52,6 +53,13 @@ def _trainer() -> _DummyTrainer:
     trainer = object.__new__(_DummyTrainer)
     trainer.logs = defaultdict(list)
     trainer.env = object()
+    trainer.episode_stats = EpisodeStatsTracker(
+        env=trainer.env,
+        logs=trainer.logs,
+        compute_exploration_ratio=lambda: 0.0,
+        get_last_episode_final_nlv=lambda: (None, None),
+        get_current_episode_context=lambda: (None, None, None),
+    )
     return trainer
 
 
