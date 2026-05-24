@@ -114,36 +114,86 @@ def _per_symbol_summary(results: dict) -> dict:
 
 
 def _load_benchmark_table(eval_dir: Path) -> dict | None:
-    """Load benchmark_tables/test_benchmark_table.json in the statistical_tests format.
+    """Load benchmark table(s) and convert to the statistical_tests format.
 
-    The evaluate CLI writes rows with a 'name' key; format_benchmark_comparison_table()
-    expects a 'strategy' key and a top-level 'benchmark_comparison_table' list.
+    Handles two layouts produced by different versions of the evaluate CLI:
+
+    Old (aggregated):  eval_dir/benchmark_tables/test_benchmark_table.json
+    New (per-symbol):  eval_dir/test_AAPL_benchmark_table.json
+                       eval_dir/test_AMZN_benchmark_table.json  …
+
+    For the per-symbol layout, numeric metrics are averaged across all symbols.
+    format_benchmark_comparison_table() expects a 'strategy' key and a top-level
+    'benchmark_comparison_table' list.
     """
+    def _convert_rows(rows: list[dict]) -> list[dict]:
+        converted = []
+        for row in rows:
+            new_row = {"strategy": row.get("name", "?")}
+            for k, v in row.items():
+                if k not in ("name", "is_strategy"):
+                    new_row[k] = v
+            converted.append(new_row)
+        return converted
+
+    def _load_json(path: Path) -> dict | None:
+        try:
+            raw = path.read_text(encoding="utf-8")
+            raw = re.sub(r"\bNaN\b", "null", raw)
+            raw = re.sub(r"\bInfinity\b", "null", raw)
+            raw = re.sub(r"\b-Infinity\b", "null", raw)
+            return json.loads(raw)
+        except Exception:
+            return None
+
+    # --- Try old aggregated layout first ---
     for split in ("test", "val", "train"):
         bench_path = eval_dir / "benchmark_tables" / f"{split}_benchmark_table.json"
         if bench_path.exists():
-            break
-    else:
-        return None
-    try:
-        raw = bench_path.read_text(encoding="utf-8")
-        data = json.loads(raw)
-    except Exception:
-        return None
+            data = _load_json(bench_path)
+            if data:
+                rows = data.get("rows", [])
+                if rows:
+                    return {"benchmark_comparison_table": _convert_rows(rows)}
 
-    rows = data.get("rows", [])
-    if not rows:
-        return None
+    # --- Try new per-symbol layout (test_AAPL_benchmark_table.json, …) ---
+    for split_prefix in ("test", "val", "train"):
+        per_symbol_files = sorted(eval_dir.glob(f"{split_prefix}_*_benchmark_table.json"))
+        if not per_symbol_files:
+            continue
 
-    converted = []
-    for row in rows:
-        new_row = {"strategy": row.get("name", "?")}
-        for k, v in row.items():
-            if k not in ("name", "is_strategy"):
-                new_row[k] = v
-        converted.append(new_row)
+        # Collect rows keyed by strategy name, accumulating numeric values
+        strategy_accum: dict[str, dict[str, list[float]]] = {}
+        strategy_order: list[str] = []
 
-    return {"benchmark_comparison_table": converted}
+        for path in per_symbol_files:
+            data = _load_json(path)
+            if not data:
+                continue
+            for row in data.get("rows", []):
+                name = row.get("name", "?")
+                if name not in strategy_accum:
+                    strategy_accum[name] = {}
+                    strategy_order.append(name)
+                for k, v in row.items():
+                    if k in ("name", "is_strategy"):
+                        continue
+                    if isinstance(v, (int, float)) and v is not None and math.isfinite(v):
+                        strategy_accum[name].setdefault(k, []).append(float(v))
+
+        if not strategy_accum:
+            continue
+
+        converted = []
+        for name in strategy_order:
+            row_out: dict = {"strategy": name}
+            for k, vals in strategy_accum[name].items():
+                row_out[k] = sum(vals) / len(vals) if vals else None
+            converted.append(row_out)
+
+        return {"benchmark_comparison_table": converted}
+
+    return None
 
 
 def _find_plots(search_dirs: list[Path]) -> dict[str, Path]:
