@@ -202,6 +202,8 @@ def compare_rollouts(
         y_label = "Portfolio Weight"
         title = "Portfolio Allocation Comparison"
         action_prefix = "Portfolio weight output by the agent at each step.\nRange [-1, 1]: -1 = fully short, 0 = flat, +1 = fully long."
+        if show_allocation_ma:
+            action_prefix += f"\nDashed line represents the mean position over {allocation_ma_window} steps."
     else:
         y_label = "Actions"
         title = "Actions Comparison"
