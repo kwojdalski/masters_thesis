@@ -98,6 +98,7 @@ class DifferentialSharpeRatioAnyTrading:
         eta: float = 0.01,
         epsilon: float = 1e-8,
         clip_reward: float | None = 10.0,
+        persist_moments: bool = False,
     ):
         """Initialize DSR reward function.
 
@@ -110,10 +111,16 @@ class DifferentialSharpeRatioAnyTrading:
                 variance EMA is near zero, so the denominator collapses to
                 epsilon and raw DSR can reach O(1e6); clipping prevents
                 gradient explosions. Set to None to disable.
+            persist_moments: If True, keep A_t and B_t across episode boundaries
+                (only _prev_nlv is cleared on reset). Useful for streaming
+                training where episodes are short windows of continuous market
+                data and zeroing the EMA every reset forces unnecessary re-warmup.
+                Mirrors the same parameter on DifferentialSharpeRatio (tradingenv).
         """
         self.eta = eta
         self.epsilon = epsilon
         self.clip_reward = clip_reward
+        self.persist_moments = persist_moments
 
         # Internal state - reset on each episode
         self.A_t = 0.0  # EMA of returns (mean)
@@ -122,8 +129,9 @@ class DifferentialSharpeRatioAnyTrading:
 
     def reset(self):
         """Reset state for new episode."""
-        self.A_t = 0.0
-        self.B_t = 0.0
+        if not self.persist_moments:
+            self.A_t = 0.0
+            self.B_t = 0.0
         self._prev_nlv = None
 
     def __call__(self, history: dict) -> float:
