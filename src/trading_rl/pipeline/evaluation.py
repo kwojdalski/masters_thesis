@@ -18,6 +18,7 @@ from trading_rl.constants import EnvBackend, EvalSymbolSelection, RewardType, Sp
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.evaluation import (
     EvaluationContext,
+    MetricReport,
     build_evaluation_report_for_trainer,
     compute_random_baseline_returns,
     periods_per_year_from_timeframe,
@@ -40,7 +41,7 @@ class SplitEvaluationResult:
 
     final_reward: float
     last_positions: list[Any]
-    evaluation_report: dict[str, float]
+    evaluation_report: MetricReport
 
 
 def build_evaluation_context_for_split(
@@ -207,7 +208,7 @@ def _save_benchmark_table_for_split(
     split: str,
     split_ctx: EvaluationContext,
     config: ExperimentConfig,
-    evaluation_report: dict[str, float],
+    evaluation_report: MetricReport,
     logger: logging.Logger,
     strategy_simple_returns: np.ndarray | None = None,
 ) -> None:
@@ -245,7 +246,7 @@ def _save_benchmark_table_for_split(
         split=split,
         split_df=split_ctx.df,
         bench_out=bench_out,
-        strategy_metrics=evaluation_report,
+        strategy_metrics=evaluation_report.to_dict(),
         output_dir=output_dir,
     )
     logger.info("benchmark table saved split=%s dir=%s", split, output_dir)
@@ -409,7 +410,7 @@ def evaluate_all_splits(
 
 def resolve_primary_split_result(
     split_results: dict[str, dict[str, Any]],
-) -> tuple[str | None, float, list[Any], dict[str, float]]:
+) -> tuple[str | None, float, list[Any], MetricReport]:
     primary_split = next(
         (
             split
@@ -425,7 +426,7 @@ def resolve_primary_split_result(
         split_results[primary_split]["last_positions"] if primary_split else []
     )
     evaluation_report = (
-        split_results[primary_split]["evaluation_report"] if primary_split else {}
+        split_results[primary_split]["evaluation_report"] if primary_split else MetricReport.all_nan()
     )
     return primary_split, final_reward, last_positions, evaluation_report
 
@@ -478,7 +479,7 @@ def build_final_metrics(
     primary_split: str | None,
     final_reward: float,
     last_positions: list[Any],
-    evaluation_report: dict[str, float],
+    evaluation_report: MetricReport,
     split_results: dict[str, dict[str, Any]],
     total_env_steps: int = 0,
     total_episodes: int = 0,

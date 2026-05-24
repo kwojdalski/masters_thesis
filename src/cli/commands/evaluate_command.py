@@ -255,17 +255,17 @@ class EvaluateCommand(BaseCommand):
                                 risk_free_rate_annual=0.0,
                             )
                             bench_out[spec.name] = {
-                                "benchmark_metrics": bench_own,
+                                "benchmark_metrics": bench_own.to_dict(),
                                 "relative_metrics": {
-                                    k: bench_rel[k]
+                                    k: getattr(bench_rel, k)
                                     for k in ("alpha", "beta", "information_ratio", "tracking_error")
-                                    if k in bench_rel
                                 },
                             }
                         split_output["benchmarks"] = bench_out
-                        self._print_benchmark_table(split, bench_out, result.metrics)
+                        strategy_dict = result.metrics.to_dict() if result.metrics else None
+                        self._print_benchmark_table(split, bench_out, strategy_dict)
                         json_p, png_p = save_benchmark_table_artifact(
-                            split, split_df, bench_out, result.metrics, params.output_dir
+                            split, split_df, bench_out, strategy_dict, params.output_dir
                         )
                         self.console.print(f"[dim]  Benchmark table JSON → {json_p}[/dim]")
                         self.console.print(f"[dim]  Benchmark table PNG  → {png_p}[/dim]")

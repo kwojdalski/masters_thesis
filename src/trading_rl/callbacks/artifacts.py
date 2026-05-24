@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 
 from logger import get_logger as get_project_logger
+from trading_rl.evaluation.metrics import MetricReport
 
 if TYPE_CHECKING:
     from trading_rl.callbacks.mlflow_callback import MLflowTrainingCallback
@@ -670,7 +671,7 @@ def log_final_metrics(
 
 
 def log_evaluation_report(
-    report: dict[str, float],
+    report: MetricReport | dict[str, float],
     split_prefix: str | None = None,
 ) -> None:
     """Log evaluation report metrics and JSON artifact to MLflow.
@@ -686,8 +687,9 @@ def log_evaluation_report(
 
     artifact_dir = f"evaluation_metrics/{split_prefix}" if split_prefix else "evaluation_metrics"
 
+    report_dict = report.to_dict() if isinstance(report, MetricReport) else report
     clean_report: dict[str, float] = {}
-    for key, value in report.items():
+    for key, value in report_dict.items():
         try:
             metric_value = float(value)
         except (TypeError, ValueError):

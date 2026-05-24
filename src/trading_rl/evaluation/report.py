@@ -12,7 +12,7 @@ from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
 from trading_rl.constants import EnvBackend, RewardType
-from trading_rl.evaluation.metrics import build_metric_report
+from trading_rl.evaluation.metrics import MetricReport, build_metric_report
 from trading_rl.evaluation.returns import (
     RewardSeries,
     cross_validate_nlv,
@@ -95,7 +95,7 @@ def build_evaluation_report_for_trainer(
     cross_validate: bool = False,
     rollout: Any | None = None,
     strategy_simple_returns: np.ndarray | None = None,
-) -> dict[str, float]:
+) -> MetricReport:
     """Build the 25-metric evaluation report for deterministic policy rollout."""
     env_to_use = eval_env or trainer.env
     if rollout is None:

@@ -87,11 +87,10 @@ def build_bench_out(
             risk_free_rate_annual=0.0,
         )
         bench_out[spec.name] = {
-            "benchmark_metrics": bench_own,
+            "benchmark_metrics": bench_own.to_dict(),
             "relative_metrics": {
-                k: bench_rel[k]
+                k: getattr(bench_rel, k)
                 for k in ("alpha", "beta", "information_ratio", "tracking_error")
-                if k in bench_rel
             },
         }
     return bench_out

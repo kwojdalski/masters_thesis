@@ -334,9 +334,10 @@ class TrainingCommand(BaseCommand):
         perf_tables = []
         for split in SplitName:
             split_meta = split_results.get(split, {})
-            report = split_meta.get("evaluation_report", {})
+            report = split_meta.get("evaluation_report")
             if not report:
                 continue
+            report_dict = report
             t = make_table(f"Performance ({split_label[split]})")
             date_start = split_meta.get("date_start")
             date_end = split_meta.get("date_end")
@@ -346,8 +347,8 @@ class TrainingCommand(BaseCommand):
             if symbols:
                 t.add_row("Symbols", ", ".join(symbols))
             for key, display_name, fmt in _perf_metrics:
-                if key in report:
-                    val = report[key]
+                if key in report_dict:
+                    val = report_dict[key]
                     if key == "annualized_return_cagr" and (not isinstance(val, float) or not (val == val) or abs(val) > 1000.0):
                         t.add_row(display_name, "—")
                     else:

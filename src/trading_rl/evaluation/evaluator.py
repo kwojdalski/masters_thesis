@@ -22,7 +22,7 @@ import torch
 
 from logger import get_logger
 from trading_rl.constants import EnvBackend, EnvMode, RewardType
-from trading_rl.evaluation.metrics import build_metric_report
+from trading_rl.evaluation.metrics import MetricReport, build_metric_report
 from trading_rl.evaluation.plots import compare_rollouts
 from trading_rl.evaluation.returns import (
     ReturnSeries,
@@ -80,7 +80,7 @@ class SplitEvaluationResult:
     rollout: Any | None = None
     cumulative_returns: np.ndarray | None = None  # For debugging
     return_series: ReturnSeries | None = None
-    metrics: dict[str, float] | None = None
+    metrics: MetricReport | None = None
     plots: dict[str, Any] | None = None  # Raw plot objects
 
 
@@ -192,7 +192,7 @@ class StrategyEvaluator:
         simple_returns: np.ndarray,
         df: pd.DataFrame,
         positions: list[Any] | None = None,
-    ) -> dict[str, float]:
+    ) -> MetricReport:
         """Compute financial metrics from strategy returns.
 
         Args:
@@ -202,7 +202,7 @@ class StrategyEvaluator:
                 actions) used to compute pct_long / pct_short.
 
         Returns:
-            Dictionary of metrics (same as build_metric_report output)
+            MetricReport with all computed metrics.
         """
         # Get price column for benchmark comparison
         price_column = self.config.price_column
@@ -210,7 +210,7 @@ class StrategyEvaluator:
             price_column = "close"
 
         if price_column not in df.columns:
-            return {}  # No benchmark possible
+            return MetricReport.all_nan()
 
         price_series = df[price_column]
 

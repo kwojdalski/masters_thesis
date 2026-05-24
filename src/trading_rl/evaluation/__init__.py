@@ -12,7 +12,7 @@ from trading_rl.evaluation.evaluator import (
     SplitEvaluationResult,
     StrategyEvaluator,
 )
-from trading_rl.evaluation.metrics import build_metric_report
+from trading_rl.evaluation.metrics import MetricReport, build_metric_report
 from trading_rl.evaluation.plots import (
     compare_rollouts,
     create_actual_returns_plot,
@@ -87,6 +87,7 @@ __all__ = [
     "TTest",
     "build_benchmark_comparison_table",
     "build_evaluation_report_for_trainer",
+    "MetricReport",
     "build_metric_report",
     "calculate_benchmark_dsr",
     "compare_rollouts",
