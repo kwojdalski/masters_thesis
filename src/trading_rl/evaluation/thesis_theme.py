@@ -25,16 +25,18 @@ PALETTE: dict[str, str] = {
 }
 
 # Line-type mapping for equity-curve plots.
-# Agent runs use solid lines; each benchmark gets a distinct dash pattern so
-# the plot remains readable in greyscale and when printed.
+# Agent runs use solid lines; benchmarks use dash patterns so the plot stays
+# readable in greyscale and when printed.  Matplotlib supports only four
+# named patterns (solid, dashed, dotted, dashdot), so some benchmarks share
+# a pattern — they remain distinguishable by colour.
 LINETYPE: dict[str, str] = {
-    "Deterministic":          "solid",
-    "Random":                 "solid",
-    "Buy-and-Hold":           "dashed",
-    "Short-and-Hold":         "dotted",
-    "Max Profit (Unleveraged)": "dotdash",
-    "TWAP":                   "longdash",
-    "VWAP":                   "twodash",
+    "Deterministic":            "solid",
+    "Random":                   "solid",
+    "Buy-and-Hold":             "dashed",
+    "Short-and-Hold":           "dotted",
+    "Max Profit (Unleveraged)": "dashdot",
+    "TWAP":                     "dashdot",
+    "VWAP":                     "dashed",
 }
 
 # Single figure width that fits inside A4 / US-Letter thesis margins
