@@ -112,6 +112,8 @@ def _run_evaluation(
             "show_allocation_ma": getattr(getattr(config, "training", None), "show_allocation_ma", True),
             "allocation_ma_window": getattr(getattr(config, "training", None), "allocation_ma_window", 500),
             "eval_plots": tuple(getattr(getattr(config, "evaluation", None), "eval_plots", _default_eval_plots)),
+            "training_steps": int(trainer.total_count) if trainer is not None else None,
+            "training_episodes": int(trainer.total_episodes) if trainer is not None else None,
             "env": EnvConfig(
                 name=getattr(config.env, "name", ""),
                 positions=getattr(config.env, "positions", None),

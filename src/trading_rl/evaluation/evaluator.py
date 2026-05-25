@@ -67,6 +67,8 @@ class EvaluationConfig:
     show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
     eval_plots: tuple[str, ...] = ("rewards", "positions", "portfolio_value")  # Which plots to generate
+    training_steps: int | None = None  # Steps the policy was trained for (shown in captions)
+    training_episodes: int | None = None  # Episodes the policy was trained for (shown in captions)
 
 
 @dataclass(frozen=True)
@@ -349,6 +351,8 @@ class StrategyEvaluator:
                     max_plot_points=self.config.max_plot_points,
                     show_allocation_ma=self.config.show_allocation_ma,
                     allocation_ma_window=self.config.allocation_ma_window,
+                    training_steps=self.config.training_steps,
+                    training_episodes=self.config.training_episodes,
                 )
                 logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
                 if "rewards" in enabled:
@@ -372,6 +376,8 @@ class StrategyEvaluator:
                             benchmark_price_column=self.config.price_column,
                             reward_type=self.config.reward_type,
                             max_plot_points=self.config.max_plot_points,
+                            training_steps=self.config.training_steps,
+                            training_episodes=self.config.training_episodes,
                         )
                         logger.debug("evaluate_split: portfolio_value_plot elapsed=%.2fs", time.monotonic() - _t)
                     except Exception:

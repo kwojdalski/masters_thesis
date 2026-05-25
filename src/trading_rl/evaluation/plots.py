@@ -48,14 +48,14 @@ def _build_run_caption(
     lines = [prefix]
     if date_range:
         lines.append(f"Date range: {date_range}.")
+    if training_steps is not None and training_episodes is not None:
+        lines.append(f"Policy trained for {training_steps:,} steps ({training_episodes:,} episodes).")
+    elif training_steps is not None:
+        lines.append(f"Policy trained for {training_steps:,} steps.")
     for run in runs:
         desc = _RUN_DESCRIPTIONS.get(run)
         if desc:
             lines.append(f"{run}: {desc}.")
-    if training_steps is not None and training_episodes is not None:
-        lines.append(f"Agent performance after {training_steps:,} steps and {training_episodes:,} episodes.")
-    elif training_steps is not None:
-        lines.append(f"Agent performance after {training_steps:,} steps.")
     return "\n".join(lines)
 
 

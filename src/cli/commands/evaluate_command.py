@@ -202,6 +202,8 @@ class EvaluateCommand(BaseCommand):
                     enable_metrics="metrics" in components,
                     periods_per_year=periods_py,
                     eval_plots=tuple(getattr(config.evaluation, "eval_plots", ("rewards", "positions", "portfolio_value"))),
+                    training_steps=int(meta["total_count"]) if meta.get("total_count") is not None else None,
+                    training_episodes=int(meta["total_episodes"]) if meta.get("total_episodes") is not None else None,
                 )
 
                 if is_random:
