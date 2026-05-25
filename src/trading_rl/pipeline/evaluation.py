@@ -353,6 +353,25 @@ def evaluate_split(
         MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
 
     try:
+        from trading_rl.evaluation.plots import create_metrics_table_figure
+        import tempfile, os, mlflow as _mlflow
+        if _mlflow.active_run():
+            fig = create_metrics_table_figure(
+                split_evaluation_report,
+                split=split,
+                df=split_ctx.df,
+                max_steps=split_ctx.max_steps,
+            )
+            with tempfile.TemporaryDirectory() as _td:
+                _tbl_path = os.path.join(_td, "metrics_table.png")
+                fig.savefig(_tbl_path, dpi=150, bbox_inches="tight")
+                import matplotlib.pyplot as plt
+                plt.close(fig)
+                _mlflow.log_artifact(_tbl_path, ArtifactPaths.eval_plots(split))
+    except Exception as _mt_err:
+        logger.warning("metrics table artifact failed split=%s err=%s", split, _mt_err)
+
+    try:
         with profiler.stage(f"eval_benchmark_table_{split}"):
             _save_benchmark_table_for_split(
                 split=split,
