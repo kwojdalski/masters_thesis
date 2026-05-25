@@ -2,7 +2,6 @@ statistical_testing:
   enabled: true
   log_to_research_artifacts: true
   compare_to_buy_and_hold: true
-  compare_to_short_and_hold: true
   compare_to_twap: true
   compare_to_vwap: true
   compare_to_random: true

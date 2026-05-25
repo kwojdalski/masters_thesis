@@ -11,7 +11,6 @@ env:
 benchmarks:
   enabled:
     - buy_and_hold
-    - short_and_hold
     - random_actions
   n_random_trials: 10
 statistical_testing:

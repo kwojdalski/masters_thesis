@@ -87,7 +87,6 @@ explainability:
 benchmarks:
   enabled:
     - buy_and_hold
-    - short_and_hold
     - twap
     - vwap
     - random_actions
