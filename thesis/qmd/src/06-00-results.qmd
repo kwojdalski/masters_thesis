@@ -124,6 +124,8 @@ else:
     display(HTML(h1_df.to_html(index=False)))
 ```
 
+*Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe/Sortino: risk-adjusted ratios. Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. % Long/Short: fraction of steps with positive/negative position.*
+
 ### Key Empirical Questions
 
 The comparison addresses three empirical questions motivated by the theoretical
@@ -319,7 +321,7 @@ else:
 The learning progression plot shows how the agent's cumulative return on the train split evolved across training checkpoints. A stable upward trend indicates successful learning.
 
 ```{python}
-#| label: learning_progression
+#| label: fig-learning-progression
 #| echo: false
 #| fig-cap: "Learning progression: cumulative return on train split across training checkpoints for the baseline TD3-DSR experiment."
 
