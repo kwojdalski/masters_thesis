@@ -11,6 +11,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 from trading_rl.constants import RewardType
+from trading_rl.evaluation.metrics import aggregate_to_reporting_frequency
 from trading_rl.evaluation.returns import (
     ReturnSeries,
     RewardSeries,
@@ -144,6 +145,7 @@ def _performance_summary(
         simple_returns = simple_returns.to_simple().values
     r = np.asarray(simple_returns, dtype=float)
     r = r[np.isfinite(r)]
+    r, periods_per_year = aggregate_to_reporting_frequency(r, periods_per_year)
     if r.size == 0:
         return {
             "total_return": np.nan,

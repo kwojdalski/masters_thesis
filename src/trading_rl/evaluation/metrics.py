@@ -10,6 +10,54 @@ import numpy as np
 
 from trading_rl.evaluation.returns import ReturnSeries
 
+# (min_bars, periods_per_year, label) — ordered coarsest-first so we pick the
+# largest bar size that still yields ≥ MIN_BARS observations.
+_FREQUENCY_LADDER: list[tuple[int, int, str]] = [
+    (50, 252,   "1d"),
+    (50, 1638,  "1h"),
+    (50, 6552,  "15m"),
+    (50, 98280, "1m"),
+]
+_MIN_SR_OBSERVATIONS = 50
+
+
+def aggregate_to_reporting_frequency(
+    simple_returns: np.ndarray,
+    periods_per_year: int,
+) -> tuple[np.ndarray, int]:
+    """Compound sub-daily returns to the coarsest bar size giving ≥ 50 observations.
+
+    At tick/second frequency the return series is ~90% zeros (no trade between
+    consecutive LOB events). This collapses σ faster than μ, inflating the
+    annualised Sharpe ratio by √N. Compounding to a coarser bar eliminates the
+    zero-inflation and restores the GBM scaling assumption.
+
+    Returns the aggregated return array and the corresponding periods_per_year.
+    If the raw series already has a daily-or-lower frequency, it is returned
+    unchanged. If no bar size in the ladder yields ≥ 50 bars, the finest ladder
+    entry (1-minute) is used as a best-effort fallback.
+    """
+    if periods_per_year <= 252:
+        return simple_returns, periods_per_year
+
+    for _min_bars, target_ppy, _label in _FREQUENCY_LADDER:
+        steps_per_bar = round(periods_per_year / target_ppy)
+        if steps_per_bar < 1:
+            steps_per_bar = 1
+        n_bars = len(simple_returns) // steps_per_bar
+        if n_bars >= _min_bars:
+            trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
+            daily = np.prod(1.0 + trimmed, axis=1) - 1.0
+            return daily, target_ppy
+
+    # Fallback: use finest ladder entry even if < 50 bars.
+    steps_per_bar = max(1, round(periods_per_year / _FREQUENCY_LADDER[-1][1]))
+    n_bars = len(simple_returns) // steps_per_bar
+    if n_bars < 2:
+        return simple_returns, periods_per_year
+    trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
+    return np.prod(1.0 + trimmed, axis=1) - 1.0, _FREQUENCY_LADDER[-1][1]
+
 _NAN = float("nan")
 
 
@@ -208,8 +256,12 @@ def build_metric_report(
     )
     if isinstance(strategy_simple_returns, ReturnSeries):
         strategy_simple_returns = strategy_simple_returns.to_simple().values
-    r_all = np.asarray(strategy_simple_returns, dtype=float)
-    r = r_all[np.isfinite(r_all)]
+    _r_orig = np.asarray(strategy_simple_returns, dtype=float)  # kept with NaNs for position-aligned benchmark pairing
+    _orig_ppy = periods_per_year
+    r_all, periods_per_year = aggregate_to_reporting_frequency(
+        _r_orig[np.isfinite(_r_orig)], periods_per_year
+    )
+    r = r_all
 
     if r.size == 0:
         return MetricReport.all_nan()
@@ -276,23 +328,32 @@ def build_metric_report(
     if benchmark_simple_returns is not None:
         if isinstance(benchmark_simple_returns, ReturnSeries):
             benchmark_simple_returns = benchmark_simple_returns.to_simple().values
-        b = np.asarray(benchmark_simple_returns, dtype=float)
-        n = min(r_all.size, b.size)
-        if n > 1:
-            rs_all = r_all[:n]
-            bs_all = b[:n]
-            paired_mask = np.isfinite(rs_all) & np.isfinite(bs_all)
-            rs = rs_all[paired_mask]
-            bs = bs_all[paired_mask]
-            if rs.size > 1:
-                cov = np.cov(rs, bs, ddof=1)
-                var_b = cov[1, 1]
-                beta = _safe_div(cov[0, 1], var_b)
-                alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * periods_per_year
-                active = rs - bs
-                active_std = float(np.std(active, ddof=1))
-                tracking_error = active_std * np.sqrt(periods_per_year)
-                info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
+        b_raw = np.asarray(benchmark_simple_returns, dtype=float)
+        if _orig_ppy > 252:
+            # Sub-daily data: both series were aggregated to a common bar size.
+            # Align on the aggregated, finite-filtered arrays — no NaN masking needed.
+            b, _ = aggregate_to_reporting_frequency(b_raw[np.isfinite(b_raw)], _orig_ppy)
+            n = min(r_all.size, b.size)
+            if n > 1:
+                rs, bs = r_all[:n], b[:n]
+        else:
+            # Daily-or-lower: use original arrays so the paired NaN mask aligns
+            # strategy and benchmark by position before dropping missing values.
+            n = min(_r_orig.size, b_raw.size)
+            if n > 1:
+                paired_mask = np.isfinite(_r_orig[:n]) & np.isfinite(b_raw[:n])
+                rs, bs = _r_orig[:n][paired_mask], b_raw[:n][paired_mask]
+            else:
+                rs, bs = np.array([]), np.array([])
+        if n > 1 and rs.size > 1:
+            cov = np.cov(rs, bs, ddof=1)
+            var_b = cov[1, 1]
+            beta = _safe_div(cov[0, 1], var_b)
+            alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * periods_per_year
+            active = rs - bs
+            active_std = float(np.std(active, ddof=1))
+            tracking_error = active_std * np.sqrt(periods_per_year)
+            info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
 
     return MetricReport(
         total_return=total_return,
