@@ -297,7 +297,7 @@ class StrategyEvaluator:
                 final_reward=float("nan"),
                 last_positions=[],
                 simple_returns=np.array([]),
-                metrics={},
+                metrics=MetricReport.all_nan(),
                 plots=None,
             )
 
