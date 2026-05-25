@@ -35,39 +35,6 @@ snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 ```
 
-```{python}
-#| label: key_metrics_data
-#| echo: false
-
-# Try real data first
-key_metrics_df = None
-if finished is not None:
-    key_metrics_df = format_key_metrics(finished.get("evaluation_report"))
-    if key_metrics_df.empty:
-        key_metrics_df = None
-
-if key_metrics_df is None or key_metrics_df.empty:
-    print("Placeholder values shown — run full experiment pipeline to populate.")
-    key_metrics_df = pd.DataFrame([
-        ("Total Return", "0.28%"),
-        ("Annualized Volatility", "12.34%"),
-        ("Sharpe Ratio", "1.8234"),
-        ("Sortino Ratio", "2.4123"),
-        ("Max Drawdown", "-0.16%"),
-        ("Win Rate", "56.21%"),
-        ("Profit Factor", "1.3845"),
-        ("VaR (95%)", "-0.0021"),
-        ("CVaR (95%)", "-0.0034"),
-    ], columns=["Metric", "Value"])
-```
-
-```{python}
-#| echo: false
-#| label: tbl-key-metrics
-#| tbl-cap: "Trading Strategy Performance Metrics"
-
-HTML(key_metrics_df.to_html(index=False))
-```
 
 The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
 
@@ -114,24 +81,12 @@ HTML(benchmark_df.to_html(index=False))
 *TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
 
 **Return aggregation for ratio metrics.**
-Raw tick-level LOB data produces a return series in which roughly 80–90\% of
-consecutive entries are exactly zero: the mid-price does not change between
-most order-book events.  A zero-inflated return series violates the
-independent, identically distributed (i.i.d.) assumption underlying
-$\text{SR} = \bar{r}/\hat{\sigma}\times\sqrt{N}$: because $\hat{\sigma}$
-collapses toward zero faster than $\bar{r}$, the naive per-tick Sharpe ratio
-inflates by $\sqrt{N}$ even when the underlying strategy has no edge.
-
-To restore the GBM scaling assumption, the metric pipeline aggregates
-per-tick returns into bar-level returns by compounding before computing any
-ratio metric.^[Compounding $k$ consecutive simple returns
-$r_1, \ldots, r_k$ into one bar return:
-$R = \prod_{i=1}^{k}(1+r_i) - 1$.
-This preserves all portfolio value changes; only the granularity of the
-observation window changes.]  The bar size is chosen as the coarsest
-frequency that still yields at least 50 observations—a minimum sufficient
-for Sharpe ratio estimates to have a standard error below approximately 0.14
-at $\text{SR}=1$:
+Roughly 80–90\% of consecutive LOB returns are zero — the mid-price does not
+move between most order-book events. This causes $\hat{\sigma}$ to collapse
+faster than $\bar{r}$, inflating the naive per-tick Sharpe by $\sqrt{N}$
+without any real edge. The pipeline therefore compounds per-tick returns into
+bars before computing any ratio metric, selecting the coarsest frequency with
+at least 50 observations:
 
 | Minimum bars available | Reporting frequency | $N_\text{periods/year}$ |
 |:---|:---|---:|
@@ -140,12 +95,8 @@ at $\text{SR}=1$:
 | $\geq 50$ 15-min bars | 15-minute | 6{,}552 |
 | $\geq 50$ 1-min bars | 1-minute | 98{,}280 |
 
-Annualized volatility, Sharpe, Sortino, and downside deviation are all
-computed on the aggregated series using the corresponding
-$N_\text{periods/year}$.  Metrics that do not involve annualization—total
-return, maximum drawdown, win rate, profit factor, and turnover—are computed
-directly on the original per-step return series and are unaffected by the
-aggregation.
+Metrics that do not require annualization — total return, max drawdown, win
+rate, profit factor, and turnover — are computed on the raw per-step series.
 
 ### Evaluation Metadata Snapshot
 <!-- [PLACEHOLDER] -->
