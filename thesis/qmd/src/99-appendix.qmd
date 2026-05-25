@@ -209,6 +209,7 @@ rows = [
     ("Replay buffer size", f"{buffer_size:,}"),
     ("Loss function", _fmt_loss(_get("loss_function", "smooth_l1"))),
     ("Evaluation random seed", "42"),
+    ("Compute environment", "Apple M3 MacBook (November 2023) with 18 GB unified memory"),
 ]
 
 spec_df = pd.DataFrame(rows, columns=["Component", "Specification"])
