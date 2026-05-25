@@ -128,16 +128,19 @@ _H2_SCENARIOS = [
     ("pooled_td3_h3_features_full",                              "Full (33 features)",     False),
 ]
 
-_H2_COLS = [
-    ("sharpe_ratio",          "Sharpe",    ".3f"),
-    ("sortino_ratio",         "Sortino",   ".3f"),
-    ("total_return",          "Return",    ".2e"),
-    ("max_drawdown",          "Max DD",    ".2e"),
-    ("win_rate",              "Win Rate",  ".2%"),
-    ("profit_factor",         "PF",        ".3f"),
-    ("turnover",              "Turnover",  ".4f"),
-    ("annualized_volatility", "Ann. Vol",  ".3f"),
+_H2_COLS_G1 = [
+    ("sharpe_ratio",  "Sharpe",  ".3f"),
+    ("sortino_ratio", "Sortino", ".3f"),
+    ("total_return",  "Return",  ".2e"),
+    ("max_drawdown",  "Max DD",  ".2e"),
 ]
+_H2_COLS_G2 = [
+    ("win_rate",              "Win Rate", ".2%"),
+    ("profit_factor",         "PF",       ".3f"),
+    ("turnover",              "Turnover", ".4f"),
+    ("annualized_volatility", "Ann. Vol", ".3f"),
+]
+_H2_COLS = _H2_COLS_G1 + _H2_COLS_G2
 
 _HIGHER_BETTER = {
     "sharpe_ratio": True, "sortino_ratio": True, "total_return": True,
@@ -164,6 +167,34 @@ def _fmtd(val, baseline, fmt, higher_better=True):
         return ""
     return s
 
+def _two_row_html(rows, g1, g2):
+    def th(label, rowspan=1):
+        rs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
+        return f"<th{rs}>{label}</th>"
+    def td(val, rowspan=1):
+        rs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
+        return f"<td{rs}>{val}</td>"
+    hdr = (
+        "<thead><tr>"
+        + th("Feature Set", rowspan=2)
+        + "".join(th(col) + th(f"Δ {col}") for _, col, _ in g1)
+        + "</tr><tr>"
+        + "".join(th(col) + th(f"Δ {col}") for _, col, _ in g2)
+        + "</tr></thead>"
+    )
+    body = "<tbody>"
+    for row in rows:
+        body += (
+            "<tr>"
+            + td(row["Feature Set"], rowspan=2)
+            + "".join(td(row.get(col, "—")) + td(row.get(f"Δ {col}", "")) for _, col, _ in g1)
+            + "</tr><tr>"
+            + "".join(td(row.get(col, "—")) + td(row.get(f"Δ {col}", "")) for _, col, _ in g2)
+            + "</tr>"
+        )
+    body += "</tbody>"
+    return f'<table border="1" class="dataframe">{hdr}{body}</table>'
+
 scenario_metrics = [(label, load_scenario_metrics(exp), is_base) for exp, label, is_base in _H2_SCENARIOS]
 baseline_m = next((m for _, m, is_base in scenario_metrics if is_base), {})
 
@@ -179,11 +210,10 @@ for label, m, is_base in scenario_metrics:
             row[f"Δ {col}"] = "(baseline)"
     rows.append(row)
 
-h2_df = pd.DataFrame(rows)
-if h2_df.iloc[:, 1:len(_H2_COLS)+1].isin(["—"]).all().all():
+if all(row.get("Sharpe", "—") == "—" for row in rows):
     print("No H2 results available. Run: bash scripts/run_h2_experiments.sh")
 else:
-    display(HTML(h2_df.to_html(index=False)))
+    display(HTML(_two_row_html(rows, _H2_COLS_G1, _H2_COLS_G2)))
 ```
 
 ::: {.content-visible when-format="pdf"}
