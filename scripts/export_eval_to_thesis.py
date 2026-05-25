@@ -197,10 +197,10 @@ def _load_benchmark_table(eval_dir: Path) -> dict | None:
 
 
 def _find_plots(search_dirs: list[Path]) -> dict[str, Path]:
-    """Find reward and position (action) plots in the given directories.
+    """Find reward, position, and portfolio value plots in the given directories.
 
     Checks directories in order, preferring test_* files.  Returns as soon
-    as both 'rewards' and 'positions' are found.
+    as both mandatory plots ('rewards' and 'positions') are found.
     """
     found: dict[str, Path] = {}
     for d in search_dirs:
@@ -214,7 +214,11 @@ def _find_plots(search_dirs: list[Path]) -> dict[str, Path]:
             candidates = sorted(d.glob("test_*_action_plot.png"))
             if candidates:
                 found["positions"] = candidates[0]
-        if len(found) == 2:
+        if "portfolio_value" not in found:
+            candidates = sorted(d.glob("test_*_portfolio_value_plot.png"))
+            if candidates:
+                found["portfolio_value"] = candidates[0]
+        if "rewards" in found and "positions" in found:
             break
     return found
 

@@ -23,8 +23,9 @@ import torch
 from logger import get_logger
 from trading_rl.constants import EnvBackend, EnvMode, RewardType
 from trading_rl.evaluation.metrics import MetricReport, build_metric_report
-from trading_rl.evaluation.plots import compare_rollouts
+from trading_rl.evaluation.plots import compare_rollouts, create_actual_returns_plot
 from trading_rl.evaluation.returns import (
+    ReturnKind,
     ReturnSeries,
     RewardSeries,
     extract_tradingenv_return_series,
@@ -345,9 +346,32 @@ class StrategyEvaluator:
                 allocation_ma_window=self.config.allocation_ma_window,
             )
             logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
+
+            plot_series = return_series or (
+                ReturnSeries(simple_returns, ReturnKind.SIMPLE) if simple_returns.size else None
+            )
+            portfolio_value_plot = None
+            if plot_series is not None:
+                try:
+                    _t = time.monotonic()
+                    portfolio_value_plot = create_actual_returns_plot(
+                        None,
+                        max_steps,
+                        df_prices=df,
+                        actual_returns_list=[plot_series],
+                        initial_portfolio_value=self.config.env.initial_portfolio_value,
+                        benchmark_price_column=self.config.price_column,
+                        reward_type=self.config.reward_type,
+                        max_plot_points=self.config.max_plot_points,
+                    )
+                    logger.debug("evaluate_split: portfolio_value_plot elapsed=%.2fs", time.monotonic() - _t)
+                except Exception:
+                    logger.warning("evaluate_split: portfolio value plot failed", exc_info=True)
+
             plots = {
                 "reward_plot": reward_plot,
                 "action_plot": action_plot,
+                "portfolio_value_plot": portfolio_value_plot,
             }
 
         return SplitEvaluationResult(
