@@ -183,6 +183,9 @@ def compare_rollouts(
     reward_prefix = "Cumulative sum of per-step rewards received by the agent."
     if reward_label:
         reward_prefix += f" Reward function: {reward_label}."
+    if stride > 1:
+        n_plotted = len(range(0, n_obs, stride))
+        reward_prefix += f"\nRollout: {n_obs:,} steps total; showing {n_plotted:,} points (every {stride}th step)."
 
     reward_runs = list(df_rewards["Run"].unique())
     reward_plot = (
@@ -468,6 +471,9 @@ def create_equity_curve_plot(
     )
     if pooled_note:
         caption_prefix = f"{caption_prefix}\n{pooled_note}"
+    if stride > 1:
+        n_plotted = len(range(0, n_obs, stride))
+        caption_prefix += f"\nRollout: {n_obs:,} steps total; showing {n_plotted:,} points (every {stride}th step)."
     plot = (
         ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run", linetype="Run"))
         + geom_line(size=0.32)
