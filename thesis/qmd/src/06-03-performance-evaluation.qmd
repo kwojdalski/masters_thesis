@@ -117,6 +117,12 @@ HTML(benchmark_df.to_html(index=False))
 
 All annualized metrics use **trading-time periods** as the annualization factor derived from the observed event rate in the evaluation data. For tick-level US equity data, the pipeline computes the events-per-second rate over the evaluation window and projects it to one full trading year ($252 \text{ days} \times 6.5 \text{ hours} = 5{,}896{,}800 \text{ seconds}$). Sharpe and Sortino are scaled by $\sqrt{\text{periods per year}}$ and CAGR is annualized by raising $(1 + R_{\text{total}})$ to the power $\tfrac{\text{periods per year}}{n}$, where $n$ is the number of steps in the evaluation horizon.
 
+Because the evaluation horizon is short and the return increments are measured
+at tick frequency, annualized ratios can become numerically extreme. They are
+reported for consistency with the metric pipeline, but the economic
+interpretation in this chapter relies primarily on non-annualized cumulative
+return, drawdown, turnover, position exposure, and profit factor.
+
 ### Evaluation Metadata Snapshot
 <!-- [PLACEHOLDER] -->
 
@@ -219,3 +225,8 @@ passive long exposure over this evaluation window. Whether a richer feature
 representation, longer training horizon, or alternative reward specification
 can close that gap is the question addressed directly in the H2 and H3
 comparisons.
+
+The final performance verdict is therefore deliberately narrow. The TD3 agent
+passes a feasibility test for learning conservative, low-drawdown behavior from
+LOB-derived features, but the exported results do not show a deployable or
+benchmark-dominating trading strategy.
