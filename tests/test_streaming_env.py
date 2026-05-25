@@ -170,6 +170,57 @@ class TestNextSymbolIdx:
             assert counts[sym] == 2, f"symbol {sym} appeared {counts[sym]} times"
 
 
+class TestStreamingTradingEnvReset:
+    def test_reset_skips_short_files_loads_window_and_calls_parent_reset(
+        self, tmp_path, monkeypatch
+    ):
+        short_mp = _make_memmap(tmp_path, n_rows=3, n_cols=2, prefix="0")
+        long_mp = _make_memmap(tmp_path, n_rows=8, n_cols=2, prefix="1")
+        env = _bare_env([short_mp, long_mp], episode_length=5)
+        env._symbol_queue = [1, 0]
+        loaded: list[tuple[int, int]] = []
+        set_frames: list[pd.DataFrame] = []
+
+        def fake_load_window(file_idx: int, start: int) -> pd.DataFrame:
+            loaded.append((file_idx, start))
+            return pd.DataFrame(
+                np.full((5, 2), fill_value=float(file_idx), dtype=np.float32),
+                columns=["col_0", "col_1"],
+                index=pd.date_range("2024-01-01", periods=5, freq="s"),
+            )
+
+        def fake_parent_reset(self, seed=None, options=None, **kwargs):
+            return np.array([42.0], dtype=np.float32), {"seed": seed, "options": options}
+
+        monkeypatch.setattr(env, "_load_window", fake_load_window)
+        monkeypatch.setattr(env, "_set_df", lambda frame: set_frames.append(frame))
+        monkeypatch.setattr(
+            "trading_rl.envs.streaming_env.TradingEnv.reset",
+            fake_parent_reset,
+        )
+
+        obs, info = env.reset(options={"mode": "test"})
+
+        np.testing.assert_allclose(obs, [42.0])
+        assert info == {"seed": None, "options": {"mode": "test"}}
+        assert len(loaded) == 1
+        assert loaded[0][0] == 1
+        assert 0 <= loaded[0][1] <= 3
+        assert len(set_frames) == 1
+        np.testing.assert_allclose(set_frames[0].to_numpy(), 1.0)
+
+    def test_reset_raises_when_all_symbol_files_are_short(self, tmp_path):
+        memmaps = [
+            _make_memmap(tmp_path, n_rows=3, n_cols=2, prefix="0"),
+            _make_memmap(tmp_path, n_rows=4, n_cols=2, prefix="1"),
+        ]
+        env = _bare_env(memmaps, episode_length=5)
+        env._symbol_queue = [1, 0]
+
+        with pytest.raises(RuntimeError, match="No symbol files have enough rows"):
+            env.reset()
+
+
 class TestStreamingTradingEnvXYReset:
     def test_reset_skips_short_symbol_files(self, tmp_path, monkeypatch):
         short_mp = _make_memmap(tmp_path, n_rows=3, n_cols=2, prefix="0")
