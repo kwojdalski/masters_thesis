@@ -17,6 +17,7 @@ _REPORTING_LADDER: list[ReportingFrequency] = [
     ReportingFrequency.HOURLY,
     ReportingFrequency.MIN_15,
     ReportingFrequency.MIN_1,
+    ReportingFrequency.SEC_15,
 ]
 _MIN_SR_OBSERVATIONS = 50
 
@@ -35,7 +36,7 @@ def aggregate_to_reporting_frequency(
     Returns the aggregated return array and the corresponding periods_per_year.
     If the raw series already has a daily-or-lower frequency, it is returned
     unchanged. If no bar size in the ladder yields ≥ 50 bars, the finest ladder
-    entry (1-minute) is used as a best-effort fallback.
+    entry (15-second) is used as a best-effort fallback.
     """
     if periods_per_year <= ReportingFrequency.DAILY.periods_per_year:
         return simple_returns, periods_per_year
@@ -47,16 +48,16 @@ def aggregate_to_reporting_frequency(
             trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
             return np.prod(1.0 + trimmed, axis=1) - 1.0, freq.periods_per_year
 
-    # Fallback: finest ladder entry even if < 50 bars.
+    # Fallback: finest ladder entry (15-second) even if < 50 bars.
     finest = _REPORTING_LADDER[-1]
     steps_per_bar = max(1, round(periods_per_year / finest.periods_per_year))
     n_bars = len(simple_returns) // steps_per_bar
     if n_bars < 2:
         # The eval window covers less than one bar at the finest supported
-        # resolution (1-minute). We cannot aggregate, so we keep the raw tick
+        # resolution (15-second). We cannot aggregate, so we keep the raw tick
         # series and cap ppy at finest.periods_per_year. This understates
-        # annualised vol (each tick is treated as a 1-minute bar) but avoids
-        # both the NaN problem and the astronomical 2600% from using ppy_tick.
+        # annualised vol but avoids both the NaN problem and the astronomical
+        # inflation from using the raw tick ppy.
         return simple_returns, finest.periods_per_year
     trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
     return np.prod(1.0 + trimmed, axis=1) - 1.0, finest.periods_per_year

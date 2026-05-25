@@ -94,6 +94,7 @@ at least 50 observations:
 | $\geq 50$ hourly bars | hourly | 1{,}638 |
 | $\geq 50$ 15-min bars | 15-minute | 6{,}552 |
 | $\geq 50$ 1-min bars | 1-minute | 98{,}280 |
+| $\geq 50$ 15-sec bars | 15-second | 393{,}120 |
 
 Metrics that do not require annualization — total return, max drawdown, win
 rate, profit factor, and turnover — are computed on the raw per-step series.
