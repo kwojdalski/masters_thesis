@@ -196,6 +196,21 @@ The random policy produced approximately zero return, consistent with an
 unbiased implementation. Results for the random policy on the empirical
 dataset are reported in Chapter 6.
 
+Beyond the ad-hoc checks above, a suite of automated tests guards the
+implementation against the failure modes most common in RL codebases.
+Learning health checks verify, after a single gradient update, that
+observations and rewards are finite, that every feature dimension varies
+across the batch (i.e., no collapsed or constant-valued feature), that
+the loss is finite, and that actor and critic parameters both change and
+remain finite — four conditions that are individually obvious but together
+rule out the silent errors most likely to produce plausible-looking
+training curves without genuine learning. Pipeline integration tests run a
+short end-to-end training loop to detect regressions in data loading,
+environment construction, or replay buffer interactions. These tests
+execute automatically as part of the development workflow, ensuring that
+changes to any component of the pipeline do not silently invalidate the
+experimental conditions that produced the reported results.
+
 ### Evaluation
 
 Final performance is reported on the held-out test split using a dedicated
