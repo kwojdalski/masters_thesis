@@ -198,6 +198,7 @@ class TD3Trainer(BaseTrainer):
                 or torch.isinf(sample["next", "reward"]).any()
             ):
                 logger.warning("nan/inf in reward, skip optimization step")
+                self.skipped_batches += 1
                 continue
 
             # Ensure done and terminated have consistent shapes
@@ -207,6 +208,7 @@ class TD3Trainer(BaseTrainer):
                 logger.warning(
                     "shape mismatch done=%s terminated=%s", done.shape, terminated.shape
                 )
+                self.skipped_batches += 1
                 continue
 
             # 1. Update critics
