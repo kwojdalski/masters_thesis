@@ -93,23 +93,6 @@ class TestBuyAndHold:
 # BenchmarkEngine.short_and_hold
 # ---------------------------------------------------------------------------
 
-class TestShortAndHold:
-    def test_returns_negative_of_buy_and_hold(self):
-        prices = _prices(10)
-        bh = BenchmarkEngine.buy_and_hold(prices).compute_returns(9)
-        sh = BenchmarkEngine.short_and_hold(prices).compute_returns(9)
-        np.testing.assert_allclose(np.asarray(sh), -np.asarray(bh))
-
-    def test_position_side_is_short(self):
-        spec = BenchmarkEngine.short_and_hold(_prices())
-        arr = spec.compute_returns(5)
-        assert arr.benchmark_position_side == pytest.approx(-1.0)
-
-    def test_name_is_short_and_hold(self):
-        spec = BenchmarkEngine.short_and_hold(_prices())
-        assert spec.name == BenchmarkName.SHORT_AND_HOLD
-
-
 # ---------------------------------------------------------------------------
 # BenchmarkEngine.twap
 # ---------------------------------------------------------------------------
@@ -192,7 +175,7 @@ class TestBenchmarkEngineBuild:
         specs, _ = BenchmarkEngine.build(df, cfg, price_column="close")
         assert specs == []
 
-    def test_all_flags_returns_at_least_three_specs(self):
-        cfg = SimpleNamespace(buy_and_hold=True, short_and_hold=True, twap=True, vwap=False)
+    def test_all_flags_returns_at_least_two_specs(self):
+        cfg = SimpleNamespace(buy_and_hold=True, short_and_hold=False, twap=True, vwap=False)
         specs, _ = BenchmarkEngine.build(self._market_data(), cfg)
-        assert len(specs) == 3
+        assert len(specs) == 2

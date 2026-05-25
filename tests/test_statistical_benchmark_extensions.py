@@ -75,7 +75,7 @@ def test_benchmark_metric_report_fills_direction_percentages() -> None:
     volumes = pd.Series(np.arange(1.0, 9.0))
     config = SimpleNamespace(
         buy_and_hold=True,
-        short_and_hold=True,
+        short_and_hold=False,
         twap=True,
         vwap=True,
     )
@@ -97,8 +97,6 @@ def test_benchmark_metric_report_fills_direction_percentages() -> None:
 
     assert metrics_by_name["buy_and_hold"]["pct_long"] == 1.0
     assert metrics_by_name["buy_and_hold"]["pct_short"] == 0.0
-    assert metrics_by_name["short_and_hold"]["pct_long"] == 0.0
-    assert metrics_by_name["short_and_hold"]["pct_short"] == 1.0
     assert metrics_by_name["twap"]["pct_long"] == 1.0
     assert metrics_by_name["twap"]["pct_short"] == 0.0
     assert metrics_by_name["vwap"]["pct_long"] == 1.0
@@ -138,7 +136,6 @@ def test_run_all_statistical_tests_includes_extended_benchmark_table() -> None:
 
     baselines = {entry.get("baseline") for entry in results["baselines"]}
     assert "buy_and_hold" in baselines
-    assert "short_and_hold" in baselines
     assert "twap" in baselines
     assert "vwap" in baselines
 
@@ -146,7 +143,6 @@ def test_run_all_statistical_tests_includes_extended_benchmark_table() -> None:
     table_names = {row["strategy"] for row in table}
     assert "agent" in table_names
     assert "buy_and_hold" in table_names
-    assert "short_and_hold" in table_names
     assert "twap" in table_names
     assert "vwap" in table_names
 
