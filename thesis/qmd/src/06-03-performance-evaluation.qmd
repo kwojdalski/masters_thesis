@@ -180,23 +180,42 @@ else:
 ### Discussion: Reading Performance in the Context of State Design
 <!-- [PLACEHOLDER] -->
 
-The key interpretive issue is not whether the agent attains a
-single high metric, but whether the reported behavior is consistent with the
-order-book-informed state design proposed in Chapter 4. Because the current
-work studies it, performance should be
-read jointly with turnover, drawdown, and action patterns rather than through
-return metrics alone.
+The benchmark comparison places the TD3 agent's held-out behavior in direct
+relation to the five reference strategies. Several features of the comparison
+are worth stating explicitly.
 
-This matters especially when comparing simpler snapshot-heavy feature sets with
-broader state representations that also encode flow, timing, and spread-regime
-information. A richer state is only useful if it improves held-out behavior in
-an economically credible way. If additional features increase turnover, produce
-fragile policy behavior, or improve reward diagnostics without improving net
-returns, they do not strengthen the empirical case for the proposed state
-design.
+On cumulative return, the agent does not outperform buy-and-hold
+($7.68 \times 10^{-5}$) or the TWAP and VWAP execution references
+($2.33 \times 10^{-5}$ and $2.50 \times 10^{-5}$ respectively). The agent's
+cumulative return of $2.28 \times 10^{-7}$ is substantially smaller in absolute
+terms. This is the direct consequence of its behavioral profile: with a turnover
+of 0.054% per step and a near-neutral position distribution (49.8% long,
+50.2% short), the agent accumulates position-weighted returns at a rate well
+below what a sustained directional exposure would achieve in a market that
+drifted upward during the evaluation window.
 
-For that reason, the performance tables in this section reflect the quality of the overall decision pipeline: state
-representation, reward specification, and policy learning together. The central
-question is whether the broader microstructure-aware feature design yields more
-stable and more interpretable out-of-sample behavior than simpler alternatives,
-not whether any single metric is maximized in isolation.
+Where the agent does compare favorably is in drawdown and trade quality.
+Maximum drawdown is $-1.05 \times 10^{-7}$, effectively zero, against
+$-1.06 \times 10^{-4}$ for buy-and-hold and $-6.4$ to $-6.6 \times 10^{-5}$
+for the execution benchmarks. The profit factor — gross profit divided by gross
+loss — is 5.70 for the agent, higher than the 2.84 achieved by buy-and-hold
+and the 2.41 achieved by TWAP and VWAP. These two observations together suggest
+that the agent's infrequent position adjustments tend to occur in the
+correct direction relative to short-horizon price movement: when it does trade,
+the resulting returns are substantially larger than its losses. The difficulty
+is that with near-zero turnover, the total capital deployed through these
+selective trades is negligible, and the aggregate return reflects that scale.
+
+Short-and-hold is the only benchmark the agent clearly dominates on return
+($-7.68 \times 10^{-5}$ versus $+2.28 \times 10^{-7}$). This reflects the
+agent's near-neutral positioning against the directional losses accumulated by
+a sustained short position in an upward-drifting market.
+
+Taken together, the benchmark comparison confirms that the agent has learned to
+avoid systematic mispositioning — it does not commit capital to a sustained
+wrong-direction bet and carries essentially no drawdown — but it has not
+translated its demonstrated trade selectivity into a return rate comparable to
+passive long exposure over this evaluation window. Whether a richer feature
+representation, longer training horizon, or alternative reward specification
+can close that gap is the question addressed directly in the H2 and H3
+comparisons.
