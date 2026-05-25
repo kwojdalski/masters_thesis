@@ -74,7 +74,20 @@ class GymnasiumTradingEnvWrapper(gym.Env):
                     for k, v in self.observation_space.spaces.items()
                 }
             return obs, -1.0, True, False, {"bankrupt": True}
-        return self._clip_obs(obs), reward, bool(done), False, info
+        # Distinguish bankruptcy (terminated) from data exhaustion (truncated).
+        # When done because the transmitter ran out of data, the state is not
+        # truly terminal — value should bootstrap from the final observation.
+        # Bankruptcy is signaled by EndOfEpisodeError (caught above) or by
+        # the broker's net liquidation value dropping to zero or below.
+        if done:
+            broker = getattr(self._env, "broker", None)
+            is_bankrupt = broker is not None and broker.net_liquidation_value() <= 0
+            terminated = is_bankrupt
+            truncated = not is_bankrupt
+        else:
+            terminated = False
+            truncated = False
+        return self._clip_obs(obs), reward, terminated, truncated, info
 
     def render(self):
         """Render the environment."""
@@ -605,7 +618,16 @@ class StreamingTradingEnvXY(gym.Env):
         except EndOfEpisodeError:
             obs = np.zeros(self.observation_space.shape, dtype=np.float32)
             return obs, -1.0, True, False, {"bankrupt": True}
-        return self._extract_obs(obs), reward, bool(done), False, info
+        # Distinguish bankruptcy (terminated) from data exhaustion (truncated).
+        if done:
+            broker = getattr(self._inner_env, "broker", None)
+            is_bankrupt = broker is not None and broker.net_liquidation_value() <= 0
+            terminated = is_bankrupt
+            truncated = not is_bankrupt
+        else:
+            terminated = False
+            truncated = False
+        return self._extract_obs(obs), reward, terminated, truncated, info
 
     def _extract_obs(self, obs) -> np.ndarray:
         # TradingEnv returns {"CustomFeature": array}; unwrap to flat array
