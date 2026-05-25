@@ -11,6 +11,7 @@ Analyzes:
 """
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -165,6 +166,50 @@ def check_learning_criteria(significance: dict[str, Any]) -> dict[str, bool]:
     return criteria
 
 
+def fetch_progression_plot(experiment_name: str, dest_dir: Path) -> str | None:
+    """Fetch learning progression plot from MLflow artifacts.
+
+    Looks for evaluation_plots_temp/train/progression.png in the most recent
+    finished run and copies it to the destination directory.
+    """
+    client = mlflow.tracking.MlflowClient()
+    experiment = client.get_experiment_by_name(experiment_name)
+
+    if not experiment:
+        return None
+
+    runs = client.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        order_by=["start_time DESC"],
+        max_results=10,
+    )
+
+    for run in runs:
+        if run.info.status != "FINISHED":
+            continue
+
+        try:
+            artifacts = client.list_artifacts(run.info.run_id, "evaluation_plots_temp/train")
+            for artifact in artifacts:
+                if artifact.path.endswith("progression.png"):
+                    # Download to temp file then copy to destination
+                    with dest_dir / "plots" as plots_dir:
+                        plots_dir.mkdir(parents=True, exist_ok=True)
+                        dest_path = plots_dir / "progression.png"
+                        if not dest_path.exists():
+                            client.download_artifacts(
+                                run.info.run_id,
+                                artifact.path,
+                                plots_dir,
+                            )
+                            console.print(f"[green]Fetched progression plot from {run.info.run_id[:8]}[/green]")
+                    return "plots/progression.png"
+        except Exception:
+            continue
+
+    return None
+
+
 def main() -> None:
     from argparse import ArgumentParser
 
@@ -313,6 +358,13 @@ def main() -> None:
     snapshot_dir = experiment_dir / "latest_finished"
     snapshot_dir.mkdir(parents=True, exist_ok=True)
 
+    # Fetch learning progression plot from MLflow
+    plot_relpaths = {}
+    mlflow_experiment_name = args.scenario.replace("/", "_")
+    progression_path = fetch_progression_plot(mlflow_experiment_name, snapshot_dir)
+    if progression_path:
+        plot_relpaths["progression"] = progression_path
+
     # Write evaluation_report.json (key metrics for thesis)
     evaluation_report = {
         "sharpe_ratio": significance.get("mean_sharpe"),
@@ -343,6 +395,7 @@ def main() -> None:
         "h4_experiment": True,
         "n_trials": args.n_trials,
         "max_steps_per_trial": args.max_steps,
+        "evaluation_plots": plot_relpaths,
     }
     (snapshot_dir / "run.json").write_text(json.dumps(run_json, indent=2))
 
