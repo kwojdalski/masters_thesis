@@ -579,12 +579,24 @@ class StreamingTradingEnvXY(gym.Env):
             self._current_episode_end_ts = None
         # Per-symbol mode: clear _prev_nlv on the symbol's DSR object so the
         # new episode starts with a fresh NLV reference while moments persist.
+        _dsr_to_restore: object | None = None
         if not self._dsr_persist_across_symbols and self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
             sym = self._current_episode_symbol
             if sym in self._dsr_per_symbol:
                 self._dsr_per_symbol[sym].reset(persist_moments=True)
+                _dsr_to_restore = self._dsr_per_symbol[sym]
+        elif self._dsr_persist_across_symbols and self._persistent_dsr is not None:
+            _dsr_to_restore = self._persistent_dsr
+        # Snapshot moments before inner_env.reset(), which calls reward.reset()
+        # with no persist_moments argument (defaults to False), zeroing A_t/B_t.
+        _saved_A = getattr(_dsr_to_restore, "A_t", None)
+        _saved_B = getattr(_dsr_to_restore, "B_t", None)
         self._inner_env = self._build_inner_env(window_df, symbol=self._current_episode_symbol)
         obs = self._inner_env.reset()
+        # Restore moments that TradingEnv.reset() unconditionally zeroed.
+        if _dsr_to_restore is not None and _saved_A is not None:
+            _dsr_to_restore.A_t = _saved_A
+            _dsr_to_restore.B_t = _saved_B
         return self._extract_obs(obs), {}
 
     def step(self, action):
