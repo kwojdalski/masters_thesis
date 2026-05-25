@@ -1050,7 +1050,7 @@ def log_evaluation_plots(
                 loss_df = pd.DataFrame(loss_data)
                 loss_plot = (
                     ggplot(loss_df, aes(x="step", y="loss", color="type"))
-                    + geom_line(size=1.2)
+                    + geom_line(size=0.72)
                     + facet_wrap("type", ncol=1, scales="free")
                     + labs(title="Training Losses", x="Training Step", y="Loss Value", color="Loss Type")
                     + thesis_theme()

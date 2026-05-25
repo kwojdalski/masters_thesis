@@ -56,7 +56,7 @@ def visualize_training(logs: dict, save_path: str | None = None):
     # Create plot
     plot = (
         ggplot(loss_df.melt(id_vars=["step"], var_name="Loss Type", value_name="Loss"))
-        + geom_line(aes(x="step", y="Loss", color="Loss Type"))
+        + geom_line(aes(x="step", y="Loss", color="Loss Type"), size=0.3)
         + facet_wrap("Loss Type", ncol=1, scales="free")
         + thesis_theme()
     )
