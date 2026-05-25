@@ -91,11 +91,25 @@ def compute_vwap_returns(
 def resolve_vwap_volume_series(
     market_data: pd.DataFrame | None,
 ) -> tuple[pd.Series | None, str | None]:
-    """Resolve volume input for VWAP with explicit provenance."""
+    """Resolve volume input for VWAP with explicit provenance.
+
+    Order: action+size T-events (true traded volume) → dedicated volume
+    columns → top-of-book size proxy.
+    """
     if market_data is None or market_data.empty:
         return None, None
 
-    direct_candidates = ["volume", "trade_volume", "last_size", "size", "qty"]
+    # Preferred: filter to trade events only using the MBO action column.
+    # 'volume' in the raw MBP-10 data equals 'size' for every event type, so
+    # using it unfiltered would weight add/cancel events equally with trades.
+    if "action" in market_data.columns and "size" in market_data.columns:
+        trade_mask = market_data["action"].astype(str) == "T"
+        trade_volume = market_data["size"].where(trade_mask, other=0.0).astype(float)
+        return trade_volume, "size[action=='T'] (traded volume)"
+
+    # 'volume' here means a pre-aggregated bar-level volume (e.g. OHLCV data),
+    # not the raw per-event size field that appears in MBP-10 LOB data.
+    direct_candidates = ["trade_volume", "volume", "last_size", "qty"]
     for col in direct_candidates:
         if col in market_data.columns:
             return market_data[col], col

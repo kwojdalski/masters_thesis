@@ -158,8 +158,8 @@ class BenchmarkEngine:
             if volumes is None:
                 logger.warning(
                     "VWAP benchmark skipped: no usable volume column found. "
-                    "Expected one of: volume, trade_volume, last_size, size, qty, "
-                    "or bid_sz_00/ask_sz_00 for proxy."
+                    "Expected action+size (MBP-10 T-events), or one of: "
+                    "trade_volume, volume, last_size, qty, or bid_sz_00/ask_sz_00 for proxy."
                 )
             else:
                 if volume_source and "proxy" in str(volume_source):
