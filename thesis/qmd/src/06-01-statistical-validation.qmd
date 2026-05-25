@@ -9,12 +9,6 @@ validation here is therefore narrower than overall evaluation: it quantifies
 run-to-run dispersion and tests whether observed benchmark differences are
 consistent rather than accidental.
 
-The analysis operates on exported thesis result snapshots so that the rendered
-chapter stays tied to recorded experiment artifacts. In the current export set,
-the thesis-facing comparisons are primarily single completed runs per
-configuration. This makes the statistical validation section a transparency
-check on the available evidence rather than a full multi-seed uncertainty
-analysis.
 
 ```{python}
 #| label: stat_validation_setup
@@ -35,28 +29,6 @@ runs_df = runs_overview_table(EXPERIMENT_NAME)
 finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.empty else pd.DataFrame()
 ```
 
-### Run-Level Sample Summary
-<!-- [PLACEHOLDER] -->
-
-The following table summarizes currently available finished runs for the
-selected experiment. These values should be interpreted as a sample of outcomes
-under the configured workflow rather than as definitive performance estimates.
-Where only one finished run is available for a configuration, the table
-identifies the reported run but cannot estimate seed-level dispersion.
-
-```{python}
-#| label: run_sample_summary
-#| echo: false
-
-if finished_runs.empty:
-    print(f"No finished runs available for experiment: {EXPERIMENT_NAME}")
-else:
-    view = finished_runs.copy()
-    for col in ["start_time", "end_time"]:
-        if col in view.columns:
-            view[col] = view[col].astype(str).str.replace("NaT", "", regex=False)
-    display(view)
-```
 
 ### Descriptive Statistics and Uncertainty Estimates
 <!-- [PLACEHOLDER] -->
