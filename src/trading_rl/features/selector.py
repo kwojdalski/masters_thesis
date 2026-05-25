@@ -355,38 +355,43 @@ def _select_features_conditional_ic(
 
     selected: list[str] = []
     remaining_features = list(scores["feature"])
-    # Work on a copy of the feature matrix to avoid mutation
     residual_data = feature_data.copy()
+    original_scores = scores.set_index("feature")["icir"].to_dict()
 
-    for candidate in scores["feature"]:
+    def _candidate_score(candidate: str) -> float:
+        if not selected:
+            return float(original_scores.get(candidate, 0.0))
+        ic_series = _compute_ic_series(residual_data[candidate], target, window_size=None)
+        if len(ic_series) == 0:
+            return 0.0
+        score = float(ic_series.mean())
+        return score if np.isfinite(score) else 0.0
+
+    while len(selected) < top_k and remaining_features:
+        scored_candidates: list[tuple[str, float]] = []
+        for candidate in remaining_features:
+            score = _candidate_score(candidate)
+            if abs(score) >= icir_threshold:
+                scored_candidates.append((candidate, abs(score)))
+
+        if not scored_candidates:
+            break
+
+        candidate = max(scored_candidates, key=lambda item: item[1])[0]
+        selected.append(candidate)
+        remaining_features.remove(candidate)
+
         if len(selected) >= top_k:
             break
-        if candidate not in remaining_features:
-            continue
 
-        # Check ICIR threshold
-        row = scores[scores["feature"] == candidate].iloc[0]
-        if abs(float(row["icir"])) < icir_threshold:
-            continue
-
-        selected.append(candidate)
-
-        # Regress out the selected feature's signal from remaining candidates
-        if len(selected) < top_k and len(remaining_features) > len(selected):
-            selected_matrix = residual_data[selected].values
+        if remaining_features:
+            selected_matrix = feature_data[selected].values
             regressor = LinearRegression(fit_intercept=False)
             regressor.fit(selected_matrix, residual_data[remaining_features].values)
-
-            # Residualize remaining features
             predicted = regressor.predict(selected_matrix)
-            remaining_idx = [
-                i for i, f in enumerate(remaining_features) if f not in selected
-            ]
-            if remaining_idx:
-                remaining_names = [remaining_features[i] for i in remaining_idx]
-                residual_data[remaining_names] = (
-                    residual_data[remaining_names].values - predicted[:, remaining_idx]
-                )
+            residual_data[remaining_features] = (
+                residual_data[remaining_features].values - predicted
+            )
 
     return selected
 
