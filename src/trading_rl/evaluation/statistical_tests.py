@@ -108,7 +108,21 @@ def run_all_statistical_tests(
         try:
             idx = n_baselines
             _status(f"  [{idx}/{n_baselines}] {BenchmarkName.RANDOM_ACTIONS} ...")
-            random_returns_mean = np.mean(random_baseline_trials, axis=0)
+            trial_lens = [len(t) for t in random_baseline_trials]
+            min_len = min(trial_lens)
+            max_len = max(trial_lens)
+            if min_len < max_len:
+                n_short = sum(1 for n in trial_lens if n < max_len)
+                logger.warning(
+                    "random baseline: %d/%d trials shorter than max_len=%d; truncating to min_len=%d",
+                    n_short,
+                    len(random_baseline_trials),
+                    max_len,
+                    min_len,
+                )
+            random_returns_mean = np.mean(
+                [t[:min_len] for t in random_baseline_trials], axis=0
+            )
             random_results = run_statistical_tests(
                 strategy_returns,
                 random_returns_mean,
