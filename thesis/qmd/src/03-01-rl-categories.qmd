@@ -7,6 +7,7 @@ equation through the key algorithmic relaxations that lead to TD3. It is
 intended as an orientation before the detailed treatment that follows.
 
 ```{mermaid}
+%%| label: fig-rl-taxonomy
 %%| fig-cap: "RL algorithm taxonomy from Bellman equation to TD3"
 %%| fig-align: center
 %%| fig-width: 6.4
