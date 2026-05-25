@@ -623,7 +623,7 @@ def create_metrics_table_figure(
             rows.append((sec_label, meta.label, fmt_metric(meta.key, val)))
 
     BASE_SIZE = 11
-    fig_height = max(4.0, len(rows) * 0.30 + 1.2)
+    fig_height = max(4.0, len(rows) * 0.30 + 1.2) * 1.3
     fig, ax = plt.subplots(figsize=(6.0, fig_height))
     ax.axis("off")
 
