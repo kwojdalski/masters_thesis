@@ -1020,10 +1020,10 @@ def experiments(
         show_default=False,
     ),
     delete: str | None = typer.Option(
-        None, "--delete", help="Soft-delete experiments matching regex"
+        None, "--delete", help="Permanently delete experiments matching regex"
     ),
     delete_all: bool = typer.Option(
-        False, "--delete-all", help="Soft-delete all experiments"
+        False, "--delete-all", help="Permanently delete all experiments"
     ),
     purge: bool = typer.Option(
         False,
@@ -1037,7 +1037,7 @@ def experiments(
     force: bool = typer.Option(False, "--force", help="Skip confirmation prompt"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
 ):
-    """List available MLflow experiments, soft-delete, or permanently purge them."""
+    """List available MLflow experiments or permanently delete them."""
     if purge:
         db_path = _resolve_sqlite_path(tracking_uri)
         pattern = re.compile(delete) if delete else None
@@ -1072,7 +1072,10 @@ def experiments(
         raise typer.Exit(0)
     for exp in targets:
         mlflow.delete_experiment(exp.experiment_id)
-    console.print(f"[green]Soft-deleted {len(targets)} experiments.[/green]")
+    db_path = _resolve_sqlite_path(tracking_uri)
+    pattern = re.compile(delete) if delete else None
+    _purge_experiments_sqlite(db_path, pattern, delete_all or not delete, dry_run=False, force=True)
+    console.print(f"[green]Permanently deleted {len(targets)} experiment(s).[/green]")
 
 
 @app.command(name="scenarios")
