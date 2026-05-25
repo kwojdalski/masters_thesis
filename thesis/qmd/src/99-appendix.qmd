@@ -218,124 +218,6 @@ HTML(spec_df.to_html(index=False))
 
 ---
 
-# TD3 Training Workflow Diagram
-
-The diagram below summarizes the structured training workflow described in
-Chapter 5.
-
-```{=latex}
-\begin{center}
-```
-
-```{mermaid}
-%%| fig-align: center
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'fontSize': '11px',
-    'primaryColor': '#f5f4ff',
-    'primaryBorderColor': '#a78bfa',
-    'lineColor': '#6b7280'
-  },
-  'flowchart': {
-    'nodeSpacing': 18,
-    'rankSpacing': 20,
-    'padding': 4,
-    'useMaxWidth': false
-  }
-}}%%
-flowchart TD
-    A[Experiment specification + feature set] --> B[Pre-run validation]
-    B --> C[build_prepared_dataset]
-    C --> D[PreparedDataset<br/>train / val / test + metadata]
-    D --> E[build_training_bundle]
-    E --> F[TrainingBundle<br/>train env + trainer + callback]
-    F --> G[Train TD3]
-    G --> H[Checkpoint + MLflow log]
-    H --> I[evaluate_all_splits]
-    I --> J[Resolve primary split<br/>test -> val -> train]
-    J --> K[Primary-split explainability]
-    K --> L[Metrics + robustness outputs]
-```
-
-```{=latex}
-\end{center}
-```
-
----
-
-# TD3 Update Mechanics Diagram
-
-The diagram below summarizes the core TD3 update mechanics used in the thesis
-implementation, abstracting away from project-specific plumbing.
-
-```{=latex}
-\begin{center}
-```
-
-```{mermaid}
-%%| fig-align: center
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'fontSize': '10px',
-    'primaryColor': '#f5f4ff',
-    'primaryBorderColor': '#a78bfa',
-    'lineColor': '#6b7280'
-  },
-  'flowchart': {
-    'nodeSpacing': 18,
-    'rankSpacing': 18,
-    'padding': 4,
-    'useMaxWidth': false
-  }
-}}%%
-{{< include ./diagrams/td3_update.mmd >}}
-```
-
-```{=latex}
-\end{center}
-```
-
----
-
-# TD3 Network Architecture
-
-The diagram below shows how the actor, twin critics, and replay buffer interact
-in the TD3 architecture used here.
-
-```{=latex}
-\begin{center}
-```
-
-```{mermaid}
-%%| fig-align: center
-%%| fig-width: 3.5
-%%| fig-height: 3.5
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '9px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 3, 'useMaxWidth': true}}}%%
-graph TD
-    S[State s] --> A1[Actor mu_theta]
-    A1 --> A2[Action a]
-    A2 --> N1[Gaussian Noise added]
-    N1 --> A3[Noisy Action]
-    S --> C1[Critic Q_phi1]
-    S --> C2[Critic Q_phi2]
-    A2 --> C1
-    A2 --> C2
-    C1 --> MIN[min]
-    C2 --> MIN
-    MIN --> T1[Target Value]
-    RB[Replay Buffer<br/>100k transitions] --> C1
-    RB --> C2
-    RB --> A1
-```
-
-```{=latex}
-\end{center}
-```
-
----
-
 # Data Preparation Pipeline
 
 The diagram below shows the feature pipeline design that ensures no information
@@ -371,119 +253,24 @@ of that procedure. It takes a theory-defined candidate pool as input, scores eac
 feature against a forward return proxy, and stores the selected feature
 specification used by the training pipeline.
 
-## Feature Group Registry
+The procedure scores each candidate feature against a forward return proxy and applies a greedy redundancy filter to produce the reduced set used by the training pipeline.
 
-Features are organized into named groups that mirror the state-space design in
-Section 4.2. Each group corresponds to a distinct microstructure mechanism:
-
-```{python}
-#| label: tbl-feature-groups
-#| tbl-cap: "Feature groups used by the state-space design. The imbalance, fair value, spread, and flow groups correspond to the four signal categories in Section 4.2; the regime group provides temporal context."
-#| echo: false
-#| warning: false
-
-import pandas as pd
-from IPython.display import HTML
-from thesis_mlflow_results import load_scenario_feature_info
-
-_FULL_SCENARIO = "pooled/td3_h3_features_full"
-_fi = load_scenario_feature_info(_FULL_SCENARIO)
-_gc = _fi.get("group_counts", {})
-
-_GROUP_META = [
-    ("imbalance",  "Order book imbalance signals"),
-    ("fair_value", "Fair value and microprice estimates"),
-    ("spread",     "Spread and cost features"),
-    ("flow",       "Order flow and trade flow features"),
-    ("regime",     "Regime and temporal features"),
-]
-
-_rows = [
-    (f"`{g}`", desc, _gc.get(g, "—"))
-    for g, desc in _GROUP_META
-]
-_fg_df = pd.DataFrame(_rows, columns=["Group", "Description", "Features"])
-HTML(_fg_df.to_html(index=False))
-```
-
-The group registry lists the full specification (name, type, parameters,
-normalization flag, domain tag) for each feature within each group. Groups can
-be composed by name, and individual features can be excluded, without editing
-the feature source code.
-
-## Selection Procedure
-
-The offline selection procedure takes a candidate pool of features, scores
-each one against a proxy target, and applies a greedy redundancy filter to
-produce a reduced set. The procedure is run once before training; the resulting
-feature list is stored as the selected feature specification used by the
-training pipeline. This ensures that feature selection is not repeated on every
-training run and that the reduced specification is reproducible.
-
-**Step 1: Theory-constrained candidate pool construction.** The user specifies
-which feature groups to include. Each group corresponds to a distinct
-microstructure mechanism (see Section 4.2); only groups with a theoretical prior
-are eligible for inclusion. The feature resolver expands group names into a flat
-list of feature specifications. Individual features can be excluded at this
-stage, but no feature from outside the theory-defined groups can be added. This
-constraint is enforced by the group registry structure, not by post-hoc
-filtering.
-
-**Step 2: Proxy target.** Each feature is scored against a forward log-return
-target at horizon $h$:
+**Proxy target.** Features are scored against the forward log-return at horizon $h$:
 $$y_t = \log \frac{P_{t+h}}{P_t}$$ {#eq-app-forward-return}
 
-where:
-
-- $y_t$ — forward log-return at horizon $h$
-- $P_t$ — price at time $t$
-- $h$ — look-ahead horizon
-
-This proxy is a cheap, model-free measure of directional predictability; it is
-not the reward function used during training, but it provides a consistent
-benchmark for comparing feature informativeness.
-
-**Step 3: Scoring.** Each feature is evaluated using the Information Coefficient
-(IC) framework standard in quantitative factor research. The IC of feature $f_i$
-at time $t$ is its Spearman rank correlation with the forward return target:
+**Scoring.** The Information Coefficient (IC) of feature $f_i$ is its Spearman rank correlation with the forward return:
 $$\text{IC}_{i,t} = \rho_{\text{Sp}}\!\left(f_{i,t},\, y_t\right)$$ {#eq-app-ic}
 
-where:
-
-- $f_{i,t}$ — value of feature $i$ at time $t$
-- $y_t$ — forward return target at time $t$
-- $\rho_{\text{Sp}}$ — Spearman rank correlation
-
-computed over rolling windows on the validation split. The primary ranking
-criterion is the Information Coefficient Information Ratio (ICIR):
+computed over rolling windows on the validation split. Features are ranked by the IC Information Ratio (ICIR):
 $$\text{ICIR}_i = \frac{\overline{\text{IC}}_i}{\sigma(\text{IC}_i)}$$ {#eq-app-icir}
-where:
 
-- $\overline{\text{IC}}_i$ — mean IC of feature $i$ across rolling windows
-- $\sigma(\text{IC}_i)$ — standard deviation of IC across rolling windows
+which jointly rewards signal strength and consistency; features with $|\text{ICIR}_i| < 0.02$ are dropped.
 
-ICIR captures both signal strength (the numerator) and
-signal consistency across time (the denominator); a feature with a high mean IC
-but erratic sign is penalized relative to one with a modest but stable IC.
-Features with $|\text{ICIR}_i| < 0.02$ are removed before the redundancy step.
-The t-statistic $t_i = \overline{\text{IC}}_i / (\sigma(\text{IC}_i) / \sqrt{n})$
-is reported alongside ICIR as a measure of statistical significance.
+**Redundancy filter.** Features are selected greedily in ICIR order. Each candidate is included only if its ICIR on residuals — after regressing out already-selected features — remains above the threshold. This conditional IC criterion is more principled than pairwise correlation thresholding: two correlated features can both be retained if each explains a distinct component of the forward return.
 
-**Step 4: Redundancy filter.** Features are ranked by ICIR. Starting from the
-highest-ranked, each candidate's residual signal is evaluated: the linear
-component attributable to already-selected features is regressed out of the
-candidate, and its ICIR is recomputed on the residuals. A candidate is included
-in the selected set only if it retains meaningful incremental predictability
-after conditioning on the features already chosen. This conditional IC approach
-is a principled alternative to pairwise correlation thresholding: two features
-can be highly correlated yet both informative if each predicts a distinct
-component of the forward return.
+**Output.** The selected feature specification is stored and read by the training pipeline at runtime; no selection logic runs during training.
 
-**Step 5: Output.** The selected feature specifications are stored as the
-feature set used by the training pipeline. The training run reads this fixed
-feature set at runtime; no selection logic runs during training.
-
-The diagram below summarizes the offline feature selection pipeline.
+The diagram below summarizes the pipeline.
 
 ```{=latex}
 \begin{center}
