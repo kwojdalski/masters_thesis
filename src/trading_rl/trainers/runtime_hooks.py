@@ -214,13 +214,25 @@ class TrainerRuntimeHooks:
                     logger.warning("temp eval: MetricReport failed split=%s", split_ctx.split, exc_info=True)
                     metric_report = None
 
-                # Collect returns for the equity progression plot
+                # Collect a ReturnSeries for the equity progression plot
                 try:
-                    from trading_rl.pipeline.evaluation import _last_strategy_returns
-                    _returns = _last_strategy_returns(self.trainer)
-                    if _returns is not None:
-                        _hist = self._progression_history.setdefault(split_ctx.split, [])
-                        _hist.append((step_number, _returns))
+                    from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
+                    _eval_result = getattr(self.trainer, "_last_evaluation_result", None)
+                    if _eval_result is not None:
+                        _rs = getattr(_eval_result, "return_series", None)
+                        if _rs is None:
+                            _simple = getattr(_eval_result, "simple_returns", None)
+                            if _simple is not None and len(_simple) > 0:
+                                _rs = ReturnSeries(_simple, ReturnKind.SIMPLE)
+                        if _rs is not None:
+                            self._progression_history.setdefault(split_ctx.split, []).append(
+                                (step_number, _rs)
+                            )
+                            logger.debug(
+                                "temp eval: progression history appended split=%s step=%s n=%d",
+                                split_ctx.split, step_number,
+                                len(self._progression_history[split_ctx.split]),
+                            )
                 except Exception:
                     logger.debug(
                         "temp eval: progression history collect failed split=%s",
@@ -278,7 +290,7 @@ class TrainerRuntimeHooks:
                                     split_ctx.split, len(_prog_history),
                                 )
                         except Exception:
-                            logger.warning(
+                            logger.error(
                                 "temp eval: progression plot failed split=%s",
                                 split_ctx.split, exc_info=True,
                             )
