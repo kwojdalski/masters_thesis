@@ -279,6 +279,7 @@ training days across the six instruments.
 #| echo: false
 #| warning: false
 
+import json
 import subprocess
 from pathlib import Path
 import pandas as pd
@@ -286,23 +287,35 @@ from IPython.display import HTML
 
 _repo_root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
 _PEEK_DIR = _repo_root / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
-_splits_path = _PEEK_DIR / "splits.csv"
+_splits_path = _PEEK_DIR / "splits.json"
+
+def _fmt_delta(s):
+    if s is None or (isinstance(s, float) and pd.isna(s)):
+        return ""
+    if s < 1e-3:
+        return f"{s * 1e6:.1f} µs"
+    if s < 1.0:
+        return f"{s * 1e3:.2f} ms"
+    return f"{s:.3f} s"
 
 if _splits_path.exists():
-    splits_df = pd.read_csv(_splits_path)
+    splits_df = pd.DataFrame(json.loads(_splits_path.read_text()))
     display_df = splits_df.copy()
     display_df["rows"] = display_df["rows"].apply(lambda x: f"{int(x):,}")
+    display_df["mean_delta_s"] = display_df["mean_delta_s"].apply(_fmt_delta)
+    display_df["median_delta_s"] = display_df["median_delta_s"].apply(_fmt_delta)
     display_df = display_df.rename(columns={
         "split": "Split",
         "rows": "Events",
-        "columns": "Columns",
         "first_timestamp": "First timestamp (UTC)",
         "last_timestamp": "Last timestamp (UTC)",
+        "mean_delta_s": "Mean Δt",
+        "median_delta_s": "Median Δt",
     })
-    display_df = display_df.drop(columns=["Columns"])
+    display_df = display_df.drop(columns=["columns"])
     display(HTML(display_df.to_html(index=False)))
 else:
-    print("splits.csv not found — run: uv run python src/cli.py peek "
+    print("splits.json not found — run: uv run python src/cli.py peek "
           "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
           "--skip 500 --export")
 ```

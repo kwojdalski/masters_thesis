@@ -74,7 +74,11 @@ class PeekCommand(BaseCommand):
         self._print_memmaps(dataset)
 
         if export_dir is not None:
-            splits_df.to_csv(export_dir / "splits.csv", index=False)
+            import json
+            splits_records = splits_df.to_dict(orient="records")
+            (export_dir / "splits.json").write_text(
+                json.dumps(splits_records, indent=2, default=str), encoding="utf-8"
+            )
             feat_df.to_csv(export_dir / "feature_stats.csv", index=False)
             if ret_df is not None:
                 ret_df.to_csv(export_dir / "log_return_stats.csv", index=False)
@@ -103,7 +107,17 @@ class PeekCommand(BaseCommand):
         return detected
 
     def _print_splits(self, dataset) -> "pd.DataFrame":
+        import numpy as np
         import pandas as pd
+
+        def _delta_stats(df: "pd.DataFrame") -> tuple[float | None, float | None]:
+            if not isinstance(df.index, pd.DatetimeIndex) or len(df) < 2:
+                return None, None
+            deltas = df.index.to_series().diff().dropna().dt.total_seconds().to_numpy()
+            positive = deltas[deltas > 0]
+            if positive.size == 0:
+                return None, None
+            return float(np.mean(positive)), float(np.median(positive))
 
         rows = []
         tbl = Table(title="Splits", show_header=True, header_style="bold")
@@ -112,11 +126,32 @@ class PeekCommand(BaseCommand):
         tbl.add_column("columns", justify="right")
         tbl.add_column("first timestamp")
         tbl.add_column("last timestamp")
+        tbl.add_column("mean Δt", justify="right")
+        tbl.add_column("median Δt", justify="right")
         for name, df in [("train", dataset.train_df), ("val", dataset.val_df), ("test", dataset.test_df)]:
             first = str(df.index[0]) if len(df) else ""
             last = str(df.index[-1]) if len(df) else ""
-            tbl.add_row(name, f"{len(df):,}", str(df.shape[1]), first, last)
-            rows.append({"split": name, "rows": len(df), "columns": df.shape[1], "first_timestamp": first, "last_timestamp": last})
+            mean_s, median_s = _delta_stats(df)
+
+            def _fmt(s: float | None) -> str:
+                if s is None:
+                    return ""
+                if s < 1e-3:
+                    return f"{s * 1e6:.1f} µs"
+                if s < 1.0:
+                    return f"{s * 1e3:.2f} ms"
+                return f"{s:.3f} s"
+
+            tbl.add_row(name, f"{len(df):,}", str(df.shape[1]), first, last, _fmt(mean_s), _fmt(median_s))
+            rows.append({
+                "split": name,
+                "rows": int(len(df)),
+                "columns": int(df.shape[1]),
+                "first_timestamp": first,
+                "last_timestamp": last,
+                "mean_delta_s": mean_s,
+                "median_delta_s": median_s,
+            })
         self.console.print(tbl)
         return pd.DataFrame(rows)
 
