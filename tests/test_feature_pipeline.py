@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from trading_rl.features.pipeline import create_default_pipeline
+from trading_rl.features.pipeline import FeaturePipeline, create_default_pipeline
 
 
 def _ohlcv(n_rows: int, price_start: float = 100.0) -> pd.DataFrame:
@@ -71,6 +71,81 @@ class TestNoLeakage:
         result1 = pipeline.transform(train_df)
         result2 = pipeline.transform(train_df)
         pd.testing.assert_frame_equal(result1, result2)
+
+
+class TestConfigLoading:
+    def test_from_yaml_preserves_configured_feature_order_and_outputs(self, tmp_path):
+        path = tmp_path / "features.yaml"
+        path.write_text(
+            "features:\n"
+            "  - name: px\n"
+            "    feature_type: column_value\n"
+            "    output_name: feature_px\n"
+            "    normalize: false\n"
+            "    params:\n"
+            "      column: close\n"
+            "  - name: volume_raw\n"
+            "    feature_type: column_value\n"
+            "    normalize: false\n"
+            "    params:\n"
+            "      column: volume\n",
+            encoding="utf-8",
+        )
+        df = _ohlcv(5)
+
+        pipeline = FeaturePipeline.from_yaml(str(path))
+        pipeline.fit(df)
+        result = pipeline.transform(df)
+
+        assert pipeline.get_feature_names() == ["feature_px", "feature_volume_raw"]
+        assert list(result.columns) == ["feature_px", "feature_volume_raw"]
+        pd.testing.assert_series_equal(result["feature_px"], df["close"], check_names=False)
+        pd.testing.assert_series_equal(
+            result["feature_volume_raw"], df["volume"], check_names=False
+        )
+
+    def test_from_yaml_rejects_missing_features_key(self, tmp_path):
+        path = tmp_path / "features.yaml"
+        path.write_text("not_features: []\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="missing 'features'"):
+            FeaturePipeline.from_yaml(str(path))
+
+    def test_from_groups_resolves_and_excludes_feature_outputs(self, tmp_path):
+        path = tmp_path / "groups.yaml"
+        path.write_text(
+            "groups:\n"
+            "  raw:\n"
+            "    features:\n"
+            "      - name: close_raw\n"
+            "        feature_type: column_value\n"
+            "        output_name: feature_close_raw\n"
+            "        normalize: false\n"
+            "        params:\n"
+            "          column: close\n"
+            "      - name: volume_raw\n"
+            "        feature_type: column_value\n"
+            "        output_name: feature_volume_raw\n"
+            "        normalize: false\n"
+            "        params:\n"
+            "          column: volume\n",
+            encoding="utf-8",
+        )
+        df = _ohlcv(5)
+
+        pipeline = FeaturePipeline.from_groups(
+            str(path),
+            group_names=["raw"],
+            exclude=["feature_volume_raw"],
+        )
+        pipeline.fit(df)
+        result = pipeline.transform(df)
+
+        assert pipeline.get_feature_names() == ["feature_close_raw"]
+        assert list(result.columns) == ["feature_close_raw"]
+        pd.testing.assert_series_equal(
+            result["feature_close_raw"], df["close"], check_names=False
+        )
 
     def test_transforming_val_does_not_change_train_result(self):
         """transform(val) must not mutate the fitted scaler state."""
