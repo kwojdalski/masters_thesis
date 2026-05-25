@@ -19,6 +19,8 @@ PALETTE: dict[str, str] = {
     "Buy-and-Hold":  "#E69F00",       # orange
     "Random":        "#999999",       # grey
     "Max Profit (Unleveraged)": "#009E73",  # green
+    "TWAP":          "#56B4E9",       # sky blue
+    "VWAP":          "#D55E00",       # vermillion
     "accent":        "#CC79A7",       # pink — spare accent colour
 }
 

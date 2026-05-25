@@ -34,6 +34,8 @@ _RUN_DESCRIPTIONS: dict[str, str] = {
     "Random": "uniformly sampled actions used as a baseline",
     "Buy-and-Hold": "buy at step 0 and hold for the full evaluation horizon",
     "Max Profit (Unleveraged)": "perfect-foresight upper bound — always trades in the correct direction",
+    "TWAP": "equal-time execution — builds a long position uniformly over the evaluation horizon",
+    "VWAP": "volume-weighted execution — builds a long position proportionally to market volume",
 }
 
 
@@ -260,6 +262,8 @@ def create_actual_returns_plot(
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
     show_max_profit: bool = False,
+    show_twap: bool = False,
+    show_vwap: bool = False,
     training_steps: int | None = None,
     training_episodes: int | None = None,
     n_total_symbols: int | None = None,
@@ -383,10 +387,32 @@ def create_actual_returns_plot(
                     np.asarray(max_profit, dtype=float)
                 )
 
+            if show_twap or show_vwap:
+                from trading_rl.evaluation.statistical_benchmarks import (
+                    compute_twap_returns,
+                    compute_vwap_returns,
+                    resolve_vwap_volume_series,
+                )
+                if show_twap:
+                    twap_simple = compute_twap_returns(price_series, n_obs)
+                    twap_values = initial_portfolio_value * np.cumprod(1.0 + twap_simple)
+                if show_vwap:
+                    volumes, vol_source = resolve_vwap_volume_series(df_prices)
+                    if volumes is None:
+                        logger.warning("VWAP benchmark skipped: no usable volume column in df_prices")
+                        show_vwap = False
+                    else:
+                        vwap_simple = compute_vwap_returns(price_series, volumes, n_obs)
+                        vwap_values = initial_portfolio_value * np.cumprod(1.0 + vwap_simple)
+
     if df_prices is not None:
         _extend_with_stride("Buy-and-Hold", buy_and_hold_values)
         if show_max_profit:
             _extend_with_stride("Max Profit (Unleveraged)", max_profit_values)
+        if show_twap:
+            _extend_with_stride("TWAP", twap_values)
+        if show_vwap:
+            _extend_with_stride("VWAP", vwap_values)
 
     logger.debug("benchmark data appended total_points=%d elapsed=%.2fs", len(returns_data), time.monotonic() - t0)
 

@@ -69,6 +69,8 @@ class EvaluationConfig:
     eval_plots: tuple[str, ...] = ("rewards", "positions", "portfolio_value")  # Which plots to generate
     training_steps: int | None = None  # Steps the policy was trained for (shown in captions)
     training_episodes: int | None = None  # Episodes the policy was trained for (shown in captions)
+    show_twap: bool = False  # Include TWAP benchmark in portfolio value plot
+    show_vwap: bool = False  # Include VWAP benchmark in portfolio value plot
 
 
 @dataclass(frozen=True)
@@ -378,6 +380,8 @@ class StrategyEvaluator:
                             max_plot_points=self.config.max_plot_points,
                             training_steps=self.config.training_steps,
                             training_episodes=self.config.training_episodes,
+                            show_twap=self.config.show_twap,
+                            show_vwap=self.config.show_vwap,
                         )
                         logger.debug("evaluate_split: portfolio_value_plot elapsed=%.2fs", time.monotonic() - _t)
                     except Exception:
