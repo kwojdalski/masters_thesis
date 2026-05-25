@@ -87,7 +87,7 @@ HTML(pd.DataFrame(_rows).to_html(index=False))
 
 **Exploration.** Because deterministic policies do not generate action diversity on their own, DDPG and TD3 inject additive Gaussian noise during data collection and clip the perturbed action to the valid interval. The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\phi(s_t)$. The specific exploration formulations for DDPG and TD3 are given in @eq-ddpg-exploration and @eq-td3-exploration.
 
-**Deterministic Policy: DDPG {#sec-policy-deterministic}**
+#### Deterministic Policy: DDPG {#sec-policy-deterministic}
 
 DDPG implements a deterministic policy:
 
@@ -110,7 +110,7 @@ critic updates, as shown in @eq-td3-exploration.
 
 The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\phi(s_t)$.
 
-**Deterministic Policy: TD3 {#sec-policy-deterministic-td3}**
+#### Deterministic Policy: TD3 {#sec-policy-deterministic-td3}
 
 TD3 implements a deterministic policy:
 
