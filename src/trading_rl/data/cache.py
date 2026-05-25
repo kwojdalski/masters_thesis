@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
+import yaml
 
 from logger import get_logger
 from trading_rl.constants import SplitName
@@ -226,24 +226,55 @@ def _write_prepared_cache_metadata(
     )
 
 
+def _pipeline_uses_global(feature_pipeline: Any) -> bool:
+    """Return True if any normalised feature in the pipeline uses GLOBAL normalization."""
+    return any(
+        fc.normalize and fc.normalization_method == "global"
+        for fc in feature_pipeline.feature_configs
+    )
+
+
+def _yaml_uses_global(feature_config_path: str) -> bool:
+    """Return True if any normalised feature in the yaml config uses GLOBAL normalization."""
+    try:
+        with open(feature_config_path) as f:
+            cfg = yaml.safe_load(f)
+        global_default = cfg.get("normalization_method", "running") == "global"
+        for fc in cfg.get("features", []):
+            if not fc.get("normalize", False):
+                continue
+            method = fc.get("normalization_method", "global" if global_default else "running")
+            if method == "global":
+                return True
+    except Exception as exc:
+        logger.debug("could not parse feature config for GLOBAL detection: %s", exc)
+    return False
+
+
 def _feature_cache_key(
     data_path: str,
     feature_config_path: str | None,
     feature_pipeline: Any | None,
     filter_lob_levels: int | None = None,
+    train_size: int | None = None,
 ) -> str:
     """Compute a cache key that changes whenever feature inputs change.
 
-    Split sizes (train/val/test) are intentionally excluded: all normalizers
-    in the active config are session-aware causal (running mean resets at each
-    intraday session boundary), so the feature value at tick t depends only on
-    prior ticks within the same session — not on where the train/val split falls.
-    The full transformed dataset is cached once and sliced at load time.
+    For session-aware causal normalizers (RUNNING with reset_on_session_break=True),
+    split sizes are excluded: the feature value at tick t depends only on prior ticks
+    within the same session, not on where the train/val boundary falls. The full
+    transformed dataset is cached once and sliced at load time.
+
+    For GLOBAL normalization (StandardScaler fit on training data only), train_size
+    is included in the key because the scaler statistics change when the training
+    boundary moves — omitting it would cause stale cached features to be returned
+    after a train_size change, encoding lookahead bias into val/test rows.
 
     filter_lob_levels is included because it changes the raw row set before
     feature computation.
     """
     file_mtime = Path(data_path).stat().st_mtime_ns
+    uses_global = False
 
     if feature_pipeline is not None:
         pipeline_repr = [
@@ -265,10 +296,13 @@ def _feature_cache_key(
         config_sig = hashlib.md5(
             json.dumps(pipeline_repr, sort_keys=True).encode()
         ).hexdigest()[:12]
+        uses_global = _pipeline_uses_global(feature_pipeline)
     elif feature_config_path and Path(feature_config_path).exists():
         config_sig = hashlib.md5(Path(feature_config_path).read_bytes()).hexdigest()[:12]
+        uses_global = _yaml_uses_global(feature_config_path)
     else:
         config_sig = "default"
 
-    raw = f"{Path(data_path).name}|{file_mtime}|lob{filter_lob_levels}|{config_sig}"
+    train_suffix = f"|train{train_size}" if (uses_global and train_size is not None) else ""
+    raw = f"{Path(data_path).name}|{file_mtime}|lob{filter_lob_levels}|{config_sig}{train_suffix}"
     return hashlib.md5(raw.encode()).hexdigest()

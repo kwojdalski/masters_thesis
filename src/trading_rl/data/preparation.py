@@ -901,7 +901,8 @@ def prepare_data(
     _cache_key: str | None = None
     if cfg.feature_cache_dir and Path(data_path).exists():
         _cache_key = _feature_cache_key(
-            data_path, cfg.feature_config_path, feature_pipeline, cfg.filter_lob_levels
+            data_path, cfg.feature_config_path, feature_pipeline, cfg.filter_lob_levels,
+            train_size=cfg.train_size,
         )
         _cache_entry = Path(cfg.feature_cache_dir) / _cache_key
         _full_cache = _cache_entry / "full.parquet"
