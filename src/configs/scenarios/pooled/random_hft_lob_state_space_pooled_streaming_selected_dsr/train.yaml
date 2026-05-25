@@ -66,5 +66,8 @@ evaluation:
 logging:
   log_level: INFO
   save_plots: false
+benchmarks:
+  twap: true
+  vwap: true
 explainability:
   enabled: false

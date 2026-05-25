@@ -84,4 +84,7 @@ explainability:
   n_steps: 500
   methods:
   - permutation
+benchmarks:
+  twap: true
+  vwap: true
   temp_explainability_interval: 100000
