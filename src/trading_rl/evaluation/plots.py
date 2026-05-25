@@ -672,7 +672,19 @@ def create_metrics_table_figure(
         for row_idx in range(len(rows) + 1):
             tbl[row_idx, col].set_width(w)
 
-    fig.tight_layout()
+    # Legend footer
+    from trading_rl.evaluation.metric_meta import METRIC_LEGEND
+    legend_text = "Legend:  " + "   ".join(f"{k}: {v}" for k, v in METRIC_LEGEND.items())
+    fig.text(
+        0.01, 0.01, legend_text,
+        fontsize=BASE_SIZE - 3,
+        color="#555555",
+        wrap=True,
+        verticalalignment="bottom",
+        horizontalalignment="left",
+    )
+
+    fig.tight_layout(rect=[0, 0.06, 1, 1])
     return fig
 
 

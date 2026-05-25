@@ -67,6 +67,23 @@ METRIC_SECTIONS: dict[str, list[MetricMeta]] = {}
 for _m in METRIC_META:
     METRIC_SECTIONS.setdefault(_m.section, []).append(_m)
 
+# Plain-text descriptions — single source of truth for console legend and PNG footer.
+METRIC_LEGEND: dict[str, str] = {
+    "Env Steps":       "Total environment steps collected during training.",
+    "Episode Length":  "Steps per episode (streaming window or full dataset). Episodes = Env Steps / Episode Length.",
+    "Episodes":        "Number of full episodes completed (resets) during training.",
+    "Optimizer Steps": "Number of gradient update steps taken.",
+    "Eval Horizon":    "Number of steps used for each evaluation rollout.",
+    "Final Reward":    "Raw reward signal at the last training step.",
+    "Total Return":    "Cumulative portfolio return over the evaluation horizon.",
+    "Sharpe Ratio":    "Mean excess return divided by its standard deviation, annualised.",
+    "Sortino Ratio":   "Like Sharpe but penalises only downside deviation.",
+    "Max Drawdown":    "Largest peak-to-trough decline in portfolio value.",
+    "Win Rate":        "Fraction of steps where the portfolio return was positive.",
+    "Lose Rate":       "Fraction of steps where the portfolio return was negative.",
+    "Profit Factor":   "Gross profit divided by gross loss (> 1 means net profitable).",
+}
+
 
 def fmt_metric(key: str, val: float) -> str:
     """Format a metric value using the registered format spec.

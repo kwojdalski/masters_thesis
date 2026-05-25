@@ -12,7 +12,7 @@ from rich.table import Table
 from cli.services import validate_experiment_config
 from trading_rl import ExperimentConfig, run_single_experiment
 from trading_rl.constants import SplitName
-from trading_rl.evaluation.metric_meta import METRIC_META_BY_KEY
+from trading_rl.evaluation.metric_meta import METRIC_LEGEND, METRIC_META_BY_KEY
 
 from .base_command import BaseCommand
 
@@ -351,21 +351,9 @@ class TrainingCommand(BaseCommand):
 
         self.console.print(Columns([run_table, steps_table, *perf_tables]))
 
-        legend_lines = [
-            "[bold]Legend[/bold]",
-            "[cyan]Env Steps[/cyan]          Total environment steps collected during training.",
-            "[cyan]Episode Length[/cyan]     Steps per episode (streaming window or full dataset). Episodes = Env Steps / Episode Length.",
-            "[cyan]Episodes[/cyan]           Number of full episodes completed (resets) during training.",
-            "[cyan]Optimizer Steps[/cyan]    Number of gradient update steps taken.",
-            "[cyan]Eval Horizon[/cyan]       Number of steps used for each evaluation rollout.",
-            "[cyan]Final Reward[/cyan]       Raw reward signal at the last training step.",
-            "[cyan]Total Return[/cyan]       Cumulative portfolio return over the evaluation horizon.",
-            "[cyan]Sharpe Ratio[/cyan]       Mean excess return divided by its standard deviation, annualised.",
-            "[cyan]Sortino Ratio[/cyan]      Like Sharpe but penalises only downside deviation.",
-            "[cyan]Max Drawdown[/cyan]       Largest peak-to-trough decline in portfolio value.",
-            "[cyan]Win Rate[/cyan]           Fraction of steps where the portfolio return was positive.",
-            "[cyan]Lose Rate[/cyan]          Fraction of steps where the portfolio return was negative.",
-            "[cyan]Profit Factor[/cyan]      Gross profit divided by gross loss (> 1 means net profitable).",
+        legend_lines = ["[bold]Legend[/bold]"] + [
+            f"[cyan]{name}[/cyan]  {desc}"
+            for name, desc in METRIC_LEGEND.items()
         ]
         self.console.print()
         for line in legend_lines:
