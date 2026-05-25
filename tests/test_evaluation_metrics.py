@@ -131,6 +131,12 @@ class TestCAGR:
         report = _report(returns)
         assert report["annualized_return_cagr"] == pytest.approx(0.05, rel=1e-4)
 
+    def test_intraday_periods_skip_cagr_and_calmar(self):
+        returns = [1e-6] * 1_000
+        report = _report(returns, ppy=252 * 390)
+        assert np.isnan(report["annualized_return_cagr"])
+        assert np.isnan(report["calmar_ratio"])
+
 
 # ---------------------------------------------------------------------------
 # Max drawdown

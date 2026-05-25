@@ -166,9 +166,12 @@ def _performance_summary(
 
     equity = np.cumprod(1.0 + r)
     total_return = float(equity[-1] - 1.0)
-    years = max(r.size / periods_per_year, 1e-12)
-    log_eq = np.log(max(float(equity[-1]), 1e-12))
-    cagr = float(np.expm1(np.clip(log_eq / years, -50.0, 50.0)))
+    if periods_per_year <= 252:
+        years = max(r.size / periods_per_year, 1e-12)
+        log_eq = np.log(max(float(equity[-1]), 1e-12))
+        cagr = float(np.expm1(np.clip(log_eq / years, -50.0, 50.0)))
+    else:
+        cagr = np.nan
 
     return {
         "total_return": total_return,

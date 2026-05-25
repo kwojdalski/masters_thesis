@@ -125,6 +125,11 @@ def _annualized_return_from_equity(equity_final: float, years: float) -> float:
     return float(np.expm1(np.clip(exponent, a_min=None, a_max=max_exponent)))
 
 
+def _should_compute_annualized_growth(periods_per_year: int) -> bool:
+    """CAGR/Calmar are meaningful for daily-or-lower frequencies, not HFT."""
+    return periods_per_year <= 252
+
+
 def _drawdown_series(equity: np.ndarray) -> np.ndarray:
     running_max = np.maximum.accumulate(equity)
     return equity / running_max - 1.0
@@ -221,8 +226,11 @@ def build_metric_report(
 
     equity = _equity_curve(r)
     total_return = float(equity[-1] - 1.0)
-    years = max(r.size / periods_per_year, 1e-12)
-    cagr = _annualized_return_from_equity(float(equity[-1]), years)
+    if _should_compute_annualized_growth(periods_per_year):
+        years = max(r.size / periods_per_year, 1e-12)
+        cagr = _annualized_return_from_equity(float(equity[-1]), years)
+    else:
+        cagr = np.nan
     drawdowns = _drawdown_series(equity)
     max_dd, avg_dd, max_dd_duration, recovery_time = _drawdown_stats(drawdowns)
     calmar = _safe_div(cagr, abs(max_dd))
