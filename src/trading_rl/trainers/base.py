@@ -611,6 +611,16 @@ class BaseTrainer(ABC):
                     if self.total_count >= self.config.max_steps:
                         logger.info("training stopped max_steps=%d", self.config.max_steps)
                         break
+                    if (
+                        self.config.max_train_seconds is not None
+                        and (time.time() - t0) >= self.config.max_train_seconds
+                    ):
+                        logger.info(
+                            "training stopped max_train_seconds=%d elapsed=%.1fs",
+                            self.config.max_train_seconds,
+                            time.time() - t0,
+                        )
+                        break
             except KeyboardInterrupt:
                 logger.warning("training interrupted by user saving checkpoint")
                 checkpoint_path = self.checkpoint_manager.save_interrupt_checkpoint()
