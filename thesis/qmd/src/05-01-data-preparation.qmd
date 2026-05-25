@@ -78,14 +78,10 @@ an order-book event with multi-level bid/ask prices, sizes, and order counts,
 plus trade descriptors used for order-flow features. The core column groups
 are summarized below.
 
-| Column group | Description | Role |
-|---|---|---|
-| `timestamp` | Chronological event index | Ordering, temporal features |
-| `bid_px_NN`, `ask_px_NN` | Bid/ask prices at level `NN` | Spread, mid-price, slope, valuation |
-| `bid_sz_NN`, `ask_sz_NN` | Resting size at level `NN` | Imbalance, depth, OFI, queue features |
-| `bid_ct_NN`, `ask_ct_NN` | Order count at level `NN` | Order count imbalance |
-| `action`, `side`, `size` | Event type, aggressor side, size | Signed trade flow features |
-| `close` (auxiliary) | Mid-price-like pricing series | Reward and portfolio valuation |
+| | `timestamp` | `bid/ask_px_NN` | `bid/ask_sz_NN` | `bid/ask_ct_NN` | `action`, `side`, `size` | `close` |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Description** | Chronological event index | Bid/ask prices at level `NN` | Resting size at level `NN` | Order count at level `NN` | Event type, aggressor side, size | Mid-price-like series (auxiliary) |
+| **Role** | Ordering, temporal features | Spread, mid-price, slope, valuation | Imbalance, depth, OFI, queue features | Order count imbalance | Signed trade flow features | Reward and portfolio valuation |
 
 : Input schema used in the empirical pipeline. {#tbl-input-schema}
 
