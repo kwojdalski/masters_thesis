@@ -125,6 +125,48 @@ The dataset is organized as one parquet file per security per trading day,
 yielding 24 files in total (6 symbols × 4 trading days). The four days cover
 February 25–27, 2026 (days 1–3, training) and March 2, 2026 (day 4,
 evaluation). All files are filtered to US regular market hours (09:30–16:00 ET).
+@tbl-raw-file-inventory shows the raw event counts per symbol and day before
+the level-0–4 filter is applied.
+
+```{python}
+#| label: tbl-raw-file-inventory
+#| tbl-cap: "Raw MBP-10 event counts per symbol and trading day. The first three days are used for training; March 2 is the held-out evaluation day (validation and test)."
+#| echo: false
+#| warning: false
+
+import json
+import subprocess
+from pathlib import Path
+import pandas as pd
+from IPython.display import HTML
+
+_repo_root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
+_inv_path = _repo_root / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/raw_file_inventory.json"
+
+if _inv_path.exists():
+    flat_df = pd.DataFrame(json.loads(_inv_path.read_text()))
+    pivot = flat_df.pivot_table(index="symbol", columns="date", values="rows", aggfunc="sum")
+    pivot = pivot.sort_index()
+    pivot["Total"] = pivot.sum(axis=1)
+    totals = pivot.sum().rename("Total")
+    pivot = pd.concat([pivot, totals.to_frame().T])
+
+    date_cols = [c for c in pivot.columns if c != "Total"]
+    split_labels = {
+        row["date"]: row["split"] for _, row in flat_df.drop_duplicates("date").iterrows()
+    }
+    pivot.columns = [
+        f"{c} ({split_labels.get(c, '')})" if c != "Total" else "Total"
+        for c in pivot.columns
+    ]
+    pivot.index.name = "Symbol"
+    for col in pivot.columns:
+        pivot[col] = pivot[col].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "—")
+    display(HTML(pivot.to_html()))
+else:
+    print("raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
+          "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export")
+```
 
 **Training data.** The 18 files from days 1–3 are used exclusively for
 training. Each daily file is treated as a complete, independent training unit:

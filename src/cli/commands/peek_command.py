@@ -71,7 +71,7 @@ class PeekCommand(BaseCommand):
         corr_df: pd.DataFrame | None = None
         if params.show_correlations:
             corr_df = self._print_reward_correlations(dataset, config, effective_skip)
-        self._print_memmaps(dataset)
+        inventory_df = self._print_raw_file_inventory(config)
 
         if export_dir is not None:
             import json
@@ -79,6 +79,10 @@ class PeekCommand(BaseCommand):
             (export_dir / "splits.json").write_text(
                 json.dumps(splits_records, indent=2, default=str), encoding="utf-8"
             )
+            if inventory_df is not None:
+                (export_dir / "raw_file_inventory.json").write_text(
+                    json.dumps(inventory_df.to_dict(orient="records"), indent=2), encoding="utf-8"
+                )
             feat_df.to_csv(export_dir / "feature_stats.csv", index=False)
             if ret_df is not None:
                 ret_df.to_csv(export_dir / "log_return_stats.csv", index=False)
@@ -341,16 +345,55 @@ class PeekCommand(BaseCommand):
         self.console.print(tbl)
         return pd.DataFrame([{"feature": col, "pearson": p, "spearman": s} for col, p, s in rows])
 
-    def _print_memmaps(self, dataset) -> None:
-        if not dataset.memmap_train_paths:
-            return
-        tbl = Table(title="Memmap files", show_header=True, header_style="bold")
-        tbl.add_column("idx", justify="right")
-        tbl.add_column("rows", justify="right")
-        tbl.add_column("cols", justify="right")
-        tbl.add_column("size")
-        tbl.add_column("file")
-        for idx, mp in enumerate(dataset.memmap_train_paths):
-            size_mb = mp.data_path.stat().st_size / 1_048_576
-            tbl.add_row(str(idx), f"{mp.n_rows:,}", str(len(mp.columns)), f"{size_mb:.1f} MB", mp.data_path.name)
+    def _print_raw_file_inventory(self, config) -> "pd.DataFrame | None":
+        """Build and print a symbol × day event-count table from raw parquet files."""
+        import re
+        import pandas as pd
+
+        train_paths = list(getattr(config.data, "data_paths", None) or [])
+        val_paths = list(getattr(config.data, "val_data_paths", None) or [])
+        all_paths = [(p, "train") for p in train_paths] + [(p, "eval") for p in val_paths]
+        if not all_paths:
+            return None
+
+        rows = []
+        for path_str, split in all_paths:
+            path = Path(path_str)
+            m = re.match(r"([A-Z]+)_(\d{4}-\d{2}-\d{2})_", path.name)
+            if not m:
+                continue
+            symbol, date = m.group(1), m.group(2)
+            try:
+                import pyarrow.parquet as pq
+                n_rows = pq.read_metadata(path).num_rows
+            except Exception:
+                n_rows = None
+            rows.append({"symbol": symbol, "date": date, "split": split, "rows": n_rows})
+
+        if not rows:
+            return None
+
+        flat_df = pd.DataFrame(rows)
+        pivot = flat_df.pivot_table(index="symbol", columns="date", values="rows", aggfunc="sum")
+        pivot = pivot.sort_index()
+        pivot["Total"] = pivot.sum(axis=1)
+        totals = pivot.sum().rename("Total")
+        pivot = pd.concat([pivot, totals.to_frame().T])
+
+        tbl = Table(title="Raw file inventory (events per symbol per day)", show_header=True, header_style="bold")
+        tbl.add_column("Symbol")
+        date_cols = [c for c in pivot.columns if c != "Total"]
+        for col in date_cols:
+            split_label = flat_df.loc[flat_df["date"] == col, "split"].iloc[0] if col in flat_df["date"].values else ""
+            tbl.add_column(f"{col}\n[dim]{split_label}[/dim]", justify="right")
+        tbl.add_column("Total", justify="right")
+        for symbol, row in pivot.iterrows():
+            tbl.add_row(
+                str(symbol),
+                *[f"{int(row[c]):,}" if pd.notna(row[c]) else "—" for c in date_cols],
+                f"{int(row['Total']):,}",
+            )
         self.console.print(tbl)
+
+        # Return flat records (easier to pivot in QMD with full flexibility)
+        return flat_df

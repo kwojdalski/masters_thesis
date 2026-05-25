@@ -1,0 +1,146 @@
+[
+  {
+    "symbol": "AAPL",
+    "date": "2026-02-25",
+    "split": "train",
+    "rows": 1098966
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-02-26",
+    "split": "train",
+    "rows": 1686078
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-02-27",
+    "split": "train",
+    "rows": 1790800
+  },
+  {
+    "symbol": "AMZN",
+    "date": "2026-02-25",
+    "split": "train",
+    "rows": 1409673
+  },
+  {
+    "symbol": "AMZN",
+    "date": "2026-02-26",
+    "split": "train",
+    "rows": 2880716
+  },
+  {
+    "symbol": "AMZN",
+    "date": "2026-02-27",
+    "split": "train",
+    "rows": 2811053
+  },
+  {
+    "symbol": "AVGO",
+    "date": "2026-02-25",
+    "split": "train",
+    "rows": 473853
+  },
+  {
+    "symbol": "AVGO",
+    "date": "2026-02-26",
+    "split": "train",
+    "rows": 707404
+  },
+  {
+    "symbol": "AVGO",
+    "date": "2026-02-27",
+    "split": "train",
+    "rows": 455116
+  },
+  {
+    "symbol": "META",
+    "date": "2026-02-25",
+    "split": "train",
+    "rows": 356163
+  },
+  {
+    "symbol": "META",
+    "date": "2026-02-26",
+    "split": "train",
+    "rows": 348071
+  },
+  {
+    "symbol": "META",
+    "date": "2026-02-27",
+    "split": "train",
+    "rows": 401006
+  },
+  {
+    "symbol": "MSFT",
+    "date": "2026-02-25",
+    "split": "train",
+    "rows": 1141154
+  },
+  {
+    "symbol": "MSFT",
+    "date": "2026-02-26",
+    "split": "train",
+    "rows": 1165401
+  },
+  {
+    "symbol": "MSFT",
+    "date": "2026-02-27",
+    "split": "train",
+    "rows": 1283891
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2026-02-25",
+    "split": "train",
+    "rows": 1810799
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2026-02-26",
+    "split": "train",
+    "rows": 1817611
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2026-02-27",
+    "split": "train",
+    "rows": 1983019
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-03-02",
+    "split": "eval",
+    "rows": 2414196
+  },
+  {
+    "symbol": "AMZN",
+    "date": "2026-03-02",
+    "split": "eval",
+    "rows": 2709460
+  },
+  {
+    "symbol": "AVGO",
+    "date": "2026-03-02",
+    "split": "eval",
+    "rows": 593811
+  },
+  {
+    "symbol": "META",
+    "date": "2026-03-02",
+    "split": "eval",
+    "rows": 376149
+  },
+  {
+    "symbol": "MSFT",
+    "date": "2026-03-02",
+    "split": "eval",
+    "rows": 981220
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2026-03-02",
+    "split": "eval",
+    "rows": 1999735
+  }
+]
