@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -8,6 +10,8 @@ import pytest
 
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import PreparedDataset
+from trading_rl.evaluation.metrics import MetricReport
+from trading_rl.pipeline.experiment_runner import save_training_results_json
 from trading_rl.train_trading_agent import (
     build_experiment_runtime,
     build_training_context,
@@ -204,3 +208,124 @@ class TestPipelineSmoke:
         assert set(result["final_metrics"]["split_results"]) == {"train", "val", "test"}
         checkpoint_paths = list(Path(config.logging.log_dir).glob("*_checkpoint*.pt"))
         assert checkpoint_paths
+
+
+class TestTrainingResultsExport:
+    def _config(self, tmp_path: Path) -> SimpleNamespace:
+        return SimpleNamespace(logging=SimpleNamespace(log_dir=str(tmp_path / "logs")))
+
+    def test_save_training_results_json_writes_split_schema_and_filters_nonfinite_metrics(
+        self, tmp_path: Path
+    ) -> None:
+        config = self._config(tmp_path)
+        final_metrics = {
+            "split_results": {
+                "test": {
+                    "final_reward": 0.25,
+                    "last_positions": [1.0, -1.0, 0.0],
+                    "evaluation_report": MetricReport(
+                        total_return=0.12,
+                        sharpe_ratio=1.5,
+                        annualized_return_cagr=float("nan"),
+                        calmar_ratio=float("inf"),
+                    ),
+                },
+                "val": {
+                    "split": "validation",
+                    "final_reward": -0.1,
+                    "last_positions": [],
+                    "evaluation_report": MetricReport(total_return=-0.02),
+                },
+            }
+        }
+
+        out_path = save_training_results_json(config, final_metrics)
+
+        assert out_path == Path(config.logging.log_dir) / "results.json"
+        payload = json.loads(out_path.read_text(encoding="utf-8"))
+        assert set(payload) == {"test", "val"}
+        assert payload["test"] == {
+            "split": "test",
+            "final_reward": 0.25,
+            "n_steps": 3,
+            "metrics": {
+                "total_return": 0.12,
+                "sharpe_ratio": 1.5,
+            },
+        }
+        assert payload["val"]["split"] == "validation"
+        assert payload["val"]["n_steps"] == 0
+        assert payload["val"]["metrics"] == {"total_return": -0.02}
+
+    def test_save_training_results_json_sanitises_nan_and_infinity_for_valid_json(
+        self, tmp_path: Path
+    ) -> None:
+        config = self._config(tmp_path)
+        final_metrics = {
+            "split_results": {
+                "test": {
+                    "final_reward": float("nan"),
+                    "last_positions": [0.0],
+                    "evaluation_report": {
+                        "total_return": float("inf"),
+                        "sharpe_ratio": float("-inf"),
+                    },
+                }
+            }
+        }
+
+        out_path = save_training_results_json(config, final_metrics)
+
+        raw_json = out_path.read_text(encoding="utf-8")
+        assert "NaN" not in raw_json
+        assert "Infinity" not in raw_json
+        payload = json.loads(raw_json)
+        assert payload["test"]["final_reward"] is None
+        assert payload["test"]["metrics"] == {
+            "total_return": None,
+            "sharpe_ratio": None,
+        }
+
+    def test_save_training_results_json_omits_hft_cagr_and_calmar_when_not_computed(
+        self, tmp_path: Path
+    ) -> None:
+        config = self._config(tmp_path)
+        hft_report = MetricReport(
+            total_return=0.031,
+            annualized_volatility=0.42,
+            sharpe_ratio=2.1,
+            max_drawdown=-0.015,
+            annualized_return_cagr=float("nan"),
+            calmar_ratio=float("nan"),
+        )
+        final_metrics = {
+            "split_results": {
+                "test": {
+                    "final_reward": 0.0,
+                    "last_positions": [0.2, 0.4],
+                    "evaluation_report": hft_report,
+                }
+            }
+        }
+
+        out_path = save_training_results_json(config, final_metrics)
+
+        metrics = json.loads(out_path.read_text(encoding="utf-8"))["test"]["metrics"]
+        assert metrics == {
+            "total_return": 0.031,
+            "annualized_volatility": 0.42,
+            "sharpe_ratio": 2.1,
+            "max_drawdown": -0.015,
+        }
+        assert "annualized_return_cagr" not in metrics
+        assert "calmar_ratio" not in metrics
+
+    def test_save_training_results_json_returns_none_without_split_results(
+        self, tmp_path: Path
+    ) -> None:
+        config = self._config(tmp_path)
+
+        out_path = save_training_results_json(config, {"split_results": {}})
+
+        assert out_path is None
+        assert not (Path(config.logging.log_dir) / "results.json").exists()
