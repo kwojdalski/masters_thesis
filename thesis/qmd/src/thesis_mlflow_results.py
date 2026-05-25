@@ -861,3 +861,19 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
                 pass
 
     return {}
+
+
+def load_experiment_hyperparams(experiment_name: str) -> dict[str, Any]:
+    """Load training hyperparameters from the static export snapshot.
+
+    Reads hyperparams.json written by export_eval_to_thesis.py, which reflects
+    the scenario train.yaml used for the run. Returns an empty dict when no
+    snapshot is available.
+    """
+    hp_path = thesis_results_root() / experiment_name / "latest_finished" / "hyperparams.json"
+    if hp_path.exists():
+        try:
+            return json.loads(hp_path.read_text())
+        except Exception:
+            pass
+    return {}

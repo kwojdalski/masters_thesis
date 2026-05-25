@@ -1,0 +1,33 @@
+{
+  "algorithm": "TD3",
+  "actor_hidden_dims": [
+    128,
+    64
+  ],
+  "value_hidden_dims": [
+    128,
+    64
+  ],
+  "actor_lr": 0.0001,
+  "value_lr": 0.0001,
+  "actor_weight_decay": 0.0,
+  "value_weight_decay": 2e-06,
+  "loss_function": "smooth_l1",
+  "gamma": 0.9,
+  "tau": 0.005,
+  "policy_delay": 2,
+  "policy_noise": 0.2,
+  "noise_clip": 0.3,
+  "exploration_noise_std": 0.3,
+  "max_steps": 3000000,
+  "init_rand_steps": 5000,
+  "frames_per_batch": 200,
+  "optim_steps_per_batch": 5,
+  "sample_size": 128,
+  "buffer_size": 100000,
+  "reward_type": "differential_sharpe",
+  "reward_eta": 0.01,
+  "trading_fees": 0.0,
+  "streaming_episode_length": 10000,
+  "train_size": 50000
+}

@@ -32,6 +32,8 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 from logger import get_logger, setup_logging
 
 logger = get_logger(__name__)
@@ -237,6 +239,56 @@ def _copy_plots(plots: dict[str, Path], dest_dir: Path) -> dict[str, str]:
     return copied
 
 
+def _load_scenario_hyperparams(scenario: str | None, repo_root: Path) -> dict | None:
+    """Extract training hyperparameters from the scenario train.yaml.
+
+    Returns a flat dict of the key parameters used in the main experiment table,
+    or None if the YAML cannot be found or read.
+    """
+    if scenario is None:
+        return None
+    yaml_path = repo_root / "src" / "configs" / "scenarios" / scenario / "train.yaml"
+    if not yaml_path.exists():
+        return None
+    try:
+        raw = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+    training = raw.get("training", {})
+    env = raw.get("env", {})
+    network = raw.get("network", {})
+    data = raw.get("data", {})
+
+    return {
+        "algorithm": training.get("algorithm"),
+        "actor_hidden_dims": network.get("actor_hidden_dims"),
+        "value_hidden_dims": network.get("value_hidden_dims"),
+        "actor_lr": training.get("actor_lr"),
+        "value_lr": training.get("value_lr"),
+        "actor_weight_decay": training.get("actor_weight_decay"),
+        "value_weight_decay": training.get("value_weight_decay"),
+        "loss_function": training.get("loss_function"),
+        "gamma": training.get("gamma"),
+        "tau": training.get("tau"),
+        "policy_delay": training.get("policy_delay"),
+        "policy_noise": training.get("policy_noise"),
+        "noise_clip": training.get("noise_clip"),
+        "exploration_noise_std": training.get("exploration_noise_std"),
+        "max_steps": training.get("max_steps"),
+        "init_rand_steps": training.get("init_rand_steps"),
+        "frames_per_batch": training.get("frames_per_batch"),
+        "optim_steps_per_batch": training.get("optim_steps_per_batch"),
+        "sample_size": training.get("sample_size"),
+        "buffer_size": training.get("buffer_size"),
+        "reward_type": env.get("reward_type"),
+        "reward_eta": env.get("reward_eta"),
+        "trading_fees": env.get("trading_fees"),
+        "streaming_episode_length": env.get("streaming_episode_length"),
+        "train_size": data.get("train_size"),
+    }
+
+
 def _resolve_eval_dir(scenario: str | None, output_dir: Path | None, repo_root: Path) -> tuple[Path, Path]:
     """Return (primary_eval_dir, fallback_eval_dir) for locating results.json.
 
@@ -413,6 +465,13 @@ def main() -> int:
     if not (snapshot_dir / "latest_metrics.json").exists():
         _write_json(snapshot_dir / "latest_metrics.json", {})
 
+    hyperparams = _load_scenario_hyperparams(args.scenario, repo_root)
+    hyperparams_file: str | None = None
+    if hyperparams is not None:
+        _write_json(snapshot_dir / "hyperparams.json", hyperparams)
+        hyperparams_file = "hyperparams.json"
+        logger.info("exported hyperparams from train.yaml")
+
     plot_relpaths = _copy_plots(plots, snapshot_dir) if plots else {}
 
     benchmark_table = _load_benchmark_table(eval_dir)
@@ -443,6 +502,7 @@ def main() -> int:
             "latest_metrics": "latest_metrics.json",
             "evaluation_report": "evaluation_report.json",
             "statistical_tests": statistical_tests_file,
+            "hyperparams": hyperparams_file,
         },
         "evaluation_plots": plot_relpaths,
         "per_symbol_results": _per_symbol_summary(results),
