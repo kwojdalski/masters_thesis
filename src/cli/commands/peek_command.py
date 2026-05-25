@@ -358,8 +358,8 @@ class PeekCommand(BaseCommand):
         def _symbol_of(p: str) -> str:
             return Path(p).name.split("_")[0]
 
-        def _read_index(p: str) -> "pd.DatetimeIndex":
-            return pd.read_parquet(p, columns=[]).index
+        def _read_file(p: str) -> "pd.DataFrame":
+            return pd.read_parquet(p, columns=["action"])
 
         def _delta_stats(deltas_s: np.ndarray) -> tuple[float | None, float | None]:
             pos = deltas_s[deltas_s > 0]
@@ -376,36 +376,39 @@ class PeekCommand(BaseCommand):
 
         for sym in sorted(by_sym):
             total_rows = 0
+            total_trades = 0
             all_deltas: list[np.ndarray] = []
             for p in by_sym[sym]:
                 try:
-                    idx = _read_index(p)
-                    total_rows += len(idx)
-                    if len(idx) >= 2:
-                        d = np.diff(idx.view(np.int64)) / 1e9
+                    df = _read_file(p)
+                    total_rows += len(df)
+                    total_trades += int((df["action"] == "T").sum())
+                    if len(df) >= 2:
+                        d = np.diff(df.index.view(np.int64)) / 1e9
                         all_deltas.append(d)
                 except Exception:
                     pass
             combined = np.concatenate(all_deltas) if all_deltas else np.array([])
             mean_s, median_s = _delta_stats(combined)
             rows.append({"symbol": sym, "split": "train", "rows": total_rows,
-                         "mean_delta_s": mean_s, "median_delta_s": median_s})
+                         "trades": total_trades, "mean_delta_s": mean_s, "median_delta_s": median_s})
 
         # Val + test: each val file split 50/50 at midpoint
         for p in sorted(val_paths, key=_symbol_of):
             sym = _symbol_of(p)
             try:
-                idx = _read_index(p)
+                df = _read_file(p)
             except Exception:
                 continue
-            mid = len(idx) // 2
-            for split_name, split_idx in [("val", idx[:mid]), ("test", idx[mid:])]:
-                if len(split_idx) >= 2:
-                    d = np.diff(split_idx.view(np.int64)) / 1e9
+            mid = len(df) // 2
+            for split_name, split_df in [("val", df.iloc[:mid]), ("test", df.iloc[mid:])]:
+                if len(split_df) >= 2:
+                    d = np.diff(split_df.index.view(np.int64)) / 1e9
                     mean_s, median_s = _delta_stats(d)
                 else:
                     mean_s, median_s = None, None
-                rows.append({"symbol": sym, "split": split_name, "rows": len(split_idx),
+                rows.append({"symbol": sym, "split": split_name, "rows": len(split_df),
+                             "trades": int((split_df["action"] == "T").sum()),
                              "mean_delta_s": mean_s, "median_delta_s": median_s})
 
         if not rows:
@@ -425,10 +428,12 @@ class PeekCommand(BaseCommand):
         tbl.add_column("Symbol")
         tbl.add_column("Split")
         tbl.add_column("Events", justify="right")
+        tbl.add_column("Trades", justify="right")
         tbl.add_column("Mean Δt", justify="right")
         tbl.add_column("Median Δt", justify="right")
         for _, r in flat_df.iterrows():
             tbl.add_row(r["symbol"], r["split"], f"{int(r['rows']):,}",
+                        f"{int(r['trades']):,}",
                         _fmt(r["mean_delta_s"]), _fmt(r["median_delta_s"]))
         self.console.print(tbl)
         return flat_df

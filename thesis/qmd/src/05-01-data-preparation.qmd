@@ -158,9 +158,10 @@ if _inv_path.exists():
     df = pd.DataFrame(json.loads(_inv_path.read_text()))
     df["Split"] = df["split"].str.capitalize()
     df["Events"] = df["rows"].apply(lambda x: f"{int(x):,}")
+    df["Trades"] = df["trades"].apply(lambda x: f"{int(x):,}")
     df["Mean Δt"] = df["mean_delta_s"].apply(_fmt_delta)
     df["Median Δt"] = df["median_delta_s"].apply(_fmt_delta)
-    display_df = df[["symbol", "Split", "Events", "Mean Δt", "Median Δt"]].rename(
+    display_df = df[["symbol", "Split", "Events", "Trades", "Mean Δt", "Median Δt"]].rename(
         columns={"symbol": "Symbol"}
     )
     display(HTML(display_df.to_html(index=False)))
