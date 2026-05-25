@@ -113,13 +113,39 @@ HTML(benchmark_df.to_html(index=False))
 
 *TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
 
-All annualized metrics use **trading-time periods** as the annualization factor derived from the observed event rate in the evaluation data. For tick-level US equity data, the pipeline computes the events-per-second rate over the evaluation window and projects it to one full trading year ($252 \text{ days} \times 6.5 \text{ hours} = 5{,}896{,}800 \text{ seconds}$). Sharpe and Sortino are scaled by $\sqrt{\text{periods per year}}$.
+**Return aggregation for ratio metrics.**
+Raw tick-level LOB data produces a return series in which roughly 80–90\% of
+consecutive entries are exactly zero: the mid-price does not change between
+most order-book events.  A zero-inflated return series violates the
+independent, identically distributed (i.i.d.) assumption underlying
+$\text{SR} = \bar{r}/\hat{\sigma}\times\sqrt{N}$: because $\hat{\sigma}$
+collapses toward zero faster than $\bar{r}$, the naive per-tick Sharpe ratio
+inflates by $\sqrt{N}$ even when the underlying strategy has no edge.
 
-Because the evaluation horizon is short and the return increments are measured
-at tick frequency, annualized ratios can become numerically extreme. They are
-reported for consistency with the metric pipeline, but the economic
-interpretation in this chapter relies primarily on non-annualized cumulative
-return, drawdown, turnover, position exposure, and profit factor.
+To restore the GBM scaling assumption, the metric pipeline aggregates
+per-tick returns into bar-level returns by compounding before computing any
+ratio metric.^[Compounding $k$ consecutive simple returns
+$r_1, \ldots, r_k$ into one bar return:
+$R = \prod_{i=1}^{k}(1+r_i) - 1$.
+This preserves all portfolio value changes; only the granularity of the
+observation window changes.]  The bar size is chosen as the coarsest
+frequency that still yields at least 50 observations—a minimum sufficient
+for Sharpe ratio estimates to have a standard error below approximately 0.14
+at $\text{SR}=1$:
+
+| Minimum bars available | Reporting frequency | $N_\text{periods/year}$ |
+|:---|:---|---:|
+| $\geq 50$ daily bars | daily | 252 |
+| $\geq 50$ hourly bars | hourly | 1{,}638 |
+| $\geq 50$ 15-min bars | 15-minute | 6{,}552 |
+| $\geq 50$ 1-min bars | 1-minute | 98{,}280 |
+
+Annualized volatility, Sharpe, Sortino, and downside deviation are all
+computed on the aggregated series using the corresponding
+$N_\text{periods/year}$.  Metrics that do not involve annualization—total
+return, maximum drawdown, win rate, profit factor, and turnover—are computed
+directly on the original per-step return series and are unaffected by the
+aggregation.
 
 ### Evaluation Metadata Snapshot
 <!-- [PLACEHOLDER] -->
