@@ -369,3 +369,123 @@ Overall, the robustness evidence is strongest for feature specification,
 reward-design sensitivity, and transaction-cost sensitivity. It is not yet
 strong evidence of robustness across market regimes, longer samples, alternative
 chronological splits, or repeated random seeds.
+
+## H4: Learning Progression Check
+
+This section addresses a more fundamental robustness question: whether the
+algorithm is actually learning at all, rather than converging to a policy that
+merely appears competent due to favorable initialization or dataset quirks. The
+approach is to run multiple short trials (200k steps each) and test whether the
+agent reliably outperforms a dummy strategy.
+
+### Experimental Design
+
+The H4 experiment runs $N$ independent trials of the baseline TD3 configuration
+(selected 10 features, DSR reward, zero fees) with limited training steps.
+Each trial is initialized with a different random seed and evaluated on the same
+held-out test split. The key question is whether the distribution of trial
+outcomes shows systematic learning rather than random variation around zero.
+
+```{python}
+#| label: h4_learning_progression
+#| echo: false
+#| warning: false
+#| tbl-cap: "H4 learning progression: performance statistics across multiple short trials."
+
+import math
+import pandas as pd
+from pathlib import Path
+from IPython.display import HTML, display
+
+_H4_SCENARIO = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_n5"
+
+# Load H4 learning report
+h4_report_path = Path("thesis/qmd/results") / _H4_SCENARIO / "latest_finished" / "h4_learning_report.json"
+h4_data = {}
+if h4_report_path.exists():
+    import json
+    try:
+        h4_data = json.loads(h4_report_path.read_text())
+    except Exception:
+        pass
+
+if h4_data:
+    stats = h4_data.get("statistics", {})
+    criteria = h4_data.get("criteria", {})
+    trials = h4_data.get("trials", [])
+
+    # Summary statistics table
+    summary_rows = [
+        ("N Trials", stats.get("n_trials", len(trials))),
+        ("Mean Return", f"{stats.get('mean_return', 0):.2e}"),
+        ("Std Return", f"{stats.get('std_return', 0):.2e}"),
+        ("Mean Sharpe Ratio", f"{stats.get('mean_sharpe', 0):.3f}"),
+        ("Mean Win Rate", f"{stats.get('mean_win_rate', 0):.1%}"),
+    ]
+
+    if "p_value_return" in stats:
+        p_val = stats.get("p_value_return", 1)
+        p_str = f"{p_val:.4f}"
+        p_sig = "*" if p_val < 0.05 else ""
+        summary_rows.append(("Return p-value (vs zero)", f"{p_str}{p_sig}"))
+
+    summary_df = pd.DataFrame(summary_rows, columns=["Metric", "Value"])
+    display(summary_df)
+
+    # Criteria table
+    criteria_rows = [
+        ("Positive mean return", criteria.get("positive_return", False)),
+        ("Positive mean Sharpe", criteria.get("positive_sharpe", False)),
+        ("Significant return (p<0.05)", criteria.get("significant_return", False)),
+        ("Win rate > 50%", criteria.get("win_rate_above_baseline", False)),
+    ]
+
+    criteria_display = [
+        (label, "[green]PASS[/green]" if passed else "[red]FAIL[/red]")
+        for label, passed in criteria_rows
+    ]
+    criteria_df = pd.DataFrame(criteria_display, columns=["Criterion", "Status"])
+
+    criteria_met = criteria.get("criteria_met", "0/0")
+    overall = criteria.get("overall", False)
+    verdict = "[green]PASS[/green]" if overall else "[yellow]FAIL[/yellow]"
+
+    print(f"\n**Learning Criteria Check:** {criteria_met} met")
+    display(HTML(criteria_df.to_html(index=False)))
+    print(f"**Overall Verdict:** {verdict}")
+
+    # Individual trials table
+    if trials:
+        trial_df = pd.DataFrame(trials)
+        display_cols = ["trial", "total_return", "sharpe_ratio", "win_rate", "profit_factor", "vs_dummy_return"]
+        if all(c in trial_df.columns for c in display_cols):
+            view = trial_df[display_cols].copy()
+            view["vs_dummy_return"] = view["vs_dummy_return"].apply(
+                lambda x: f"{x:.2e}" if isinstance(x, (int, float)) else x
+            )
+            view["win_rate"] = view["win_rate"].apply(lambda x: f"{x:.1%}")
+            view.columns = ["Trial", "Return", "Sharpe", "Win Rate", "Profit Factor", "vs Dummy"]
+            display(HTML(view.to_html(index=False)))
+else:
+    print("No H4 results available. Run: bash scripts/run_h4_experiments.sh")
+```
+
+### Interpretation of H4 Results
+
+The H4 design complements the single-run evidence reported in H1-H3 by
+directly testing learning capability. A positive result here would mean that the
+algorithm, when given a relatively short training budget (200k steps versus
+several million in the main experiments), consistently produces policies that
+outperform a random baseline. This addresses the concern that the reported
+H1-H3 edge might reflect favorable initialization rather than genuine learning.
+
+A negative result — where the agent fails to demonstrate statistically
+significant improvement across trials — would not invalidate H1-H3, but it would
+temper the interpretation. It would suggest that the observed performance
+requires either longer training, more favorable initialization conditions, or
+that the learned edge is smaller than the single-run results imply.
+
+For the current experimental package, H4 provides the seed-level robustness
+check identified as a gap in the robustness matrix above. When combined with the
+H2 and H3 sensitivities, it offers a more complete picture of whether the
+TD3 agent's performance is structural or artifact-dependent.
