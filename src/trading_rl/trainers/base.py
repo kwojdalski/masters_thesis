@@ -320,7 +320,8 @@ class BaseTrainer(ABC):
         # On-policy vs off-policy handling
         # Off-policy algorithms (TD3, DDPG) accumulate experiences in replay buffer
         # On-policy algorithms (PPO) only train on fresh data
-        self._use_replay_buffer = True  # Default for off-policy algorithms
+        if not hasattr(self, "_use_replay_buffer"):
+            self._use_replay_buffer = True  # Default for off-policy algorithms
         self._current_batch = None  # Stores fresh batch for on-policy algorithms
 
         if enable_composite_lp:
