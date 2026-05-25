@@ -106,6 +106,7 @@ configuration without manual updates.
 #| warning: false
 
 import math
+import textwrap
 import pandas as pd
 from IPython.display import HTML
 from thesis_mlflow_results import load_experiment_hyperparams
@@ -212,8 +213,12 @@ rows = [
     ("Compute environment", "Apple M3 MacBook (November 2023) with 18 GB unified memory"),
 ]
 
+def _wrap(text, width=38):
+    return "<br>".join(textwrap.wrap(str(text), width=width))
+
 spec_df = pd.DataFrame(rows, columns=["Component", "Specification"])
-HTML(spec_df.to_html(index=False))
+spec_df["Specification"] = spec_df["Specification"].apply(_wrap)
+HTML(spec_df.to_html(index=False, escape=False))
 ```
 
 ---
