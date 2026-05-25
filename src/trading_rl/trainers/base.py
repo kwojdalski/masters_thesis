@@ -148,7 +148,7 @@ def _run_evaluation(
 
     equity_curve_plot = None
     if "portfolio_value" in _enabled_plots:
-        with profiler.stage("plot_actual_returns", 2):
+        with profiler.stage("plot_equity_curve", 2):
             _t = time.monotonic()
             logger.debug("create_equity_curve_plot start n_steps=%d", max_steps)
             _data_paths = getattr(getattr(config, "data", None), "data_paths", None) if config else None
@@ -171,7 +171,7 @@ def _run_evaluation(
                 max_plot_points=getattr(getattr(config, "training", None), "max_plot_points", None) if config else None,
                 reward_type=str(getattr(config.env, "reward_type", "log_return")) if config else None,
             )
-            logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
+            logger.debug("evaluate.plot_equity_curve elapsed=%.2fs", time.monotonic() - _t)
 
     merged_plot = None
     if reward_plot is not None and action_plot is not None:

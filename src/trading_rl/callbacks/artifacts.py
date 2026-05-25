@@ -1022,9 +1022,9 @@ def log_evaluation_plots(
             logger.info("action probability plot missing skipping artifact")
 
         if equity_curve_plot is not None:
-            _save(equity_curve_plot, f"{timestamp}_actual_returns.png", "actual_returns", artifact_dir, 16, 10)
+            _save(equity_curve_plot, f"{timestamp}_equity_curve.png", "equity_curve", artifact_dir, 16, 10)
         else:
-            logger.warning("actual returns plot missing skipping artifact")
+            logger.warning("equity curve plot missing skipping artifact")
 
         if merged_plot is not None:
             _save(merged_plot, f"{timestamp}_merged_comparison.png", "merged_comparison", artifact_dir, 16, 16)
