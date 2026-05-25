@@ -331,3 +331,14 @@ class TestEdgeCases:
         returns = [0.01, np.nan, 0.02, np.inf, -0.01]
         report = _report(returns)
         assert np.isfinite(report["total_return"])
+
+    def test_flat_equity_curve_gives_nan_sharpe(self):
+        # Constant tiny returns → annualised vol << 0.1% → Sharpe/Sortino must be NaN
+        # to avoid the inflated-ratio bug (4000+) from near-zero sigma.
+        tiny = 1e-7
+        returns = [tiny] * 200
+        report = _report(returns, ppy=98_280)
+        assert np.isnan(report["sharpe_ratio"]), "flat equity curve should produce NaN Sharpe"
+        assert np.isnan(report["sortino_ratio"]), "flat equity curve should produce NaN Sortino"
+        # But total_return and max_drawdown should still be finite
+        assert np.isfinite(report["total_return"])

@@ -271,8 +271,16 @@ def build_metric_report(
 
     downside = np.minimum(r - rf_per_period, 0.0)
     downside_dev = np.sqrt(np.mean(np.square(downside))) * np.sqrt(periods_per_year)
-    sharpe = _safe_div((mu - rf_per_period) * np.sqrt(periods_per_year), sigma)
-    sortino = _safe_div((mu - rf_per_period) * periods_per_year, downside_dev)
+    # When annualised vol is negligibly small the equity curve is essentially flat
+    # (e.g. an untrained agent with near-constant actions). mu/sigma is then
+    # dominated by numerical noise, not signal, producing absurd ratios like 4000+.
+    _MIN_ANNUAL_VOL = 1e-3
+    if annual_vol >= _MIN_ANNUAL_VOL:
+        sharpe = _safe_div((mu - rf_per_period) * np.sqrt(periods_per_year), sigma)
+        sortino = _safe_div((mu - rf_per_period) * periods_per_year, downside_dev)
+    else:
+        sharpe = np.nan
+        sortino = np.nan
 
     equity = _equity_curve(r)
     total_return = float(equity[-1] - 1.0)

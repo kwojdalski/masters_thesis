@@ -544,6 +544,41 @@ def create_equity_progression_plot(
     )
 
 
+def create_price_plot(
+    df: pd.DataFrame,
+    price_column: str = "close",
+    max_points: int = 5_000,
+) -> "ggplot | None":
+    """Line plot of the underlying close price for an evaluation split.
+
+    Downsampled to at most *max_points* rows so the PNG stays small.
+    Returns None when *price_column* is not present in *df*.
+    """
+    if price_column not in df.columns:
+        return None
+
+    prices = df[price_column]
+    n = len(prices)
+    if n > max_points:
+        step = max(1, n // max_points)
+        prices = prices.iloc[::step]
+
+    use_datetime = isinstance(df.index, pd.DatetimeIndex)
+    if use_datetime:
+        plot_df = pd.DataFrame({"x": prices.index, "price": prices.values})
+        x_label = "Time"
+    else:
+        plot_df = pd.DataFrame({"x": range(len(prices)), "price": prices.values})
+        x_label = "Step"
+
+    return (
+        ggplot(plot_df, aes(x="x", y="price"))
+        + geom_line(color=PALETTE.get("Deterministic", "#0072B2"), size=0.4)
+        + labs(x=x_label, y=f"Price ({price_column})")
+        + thesis_theme()
+    )
+
+
 _MERGED_PANEL_HEIGHT = 9.0  # inches per panel — sized for 22pt base font
 
 

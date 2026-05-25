@@ -93,44 +93,49 @@ class TestBuildMetricReportEdgeCases:
         assert report["sharpe_ratio"] > 0.5  # Reasonable positive Sharpe
 
     def test_zero_std_returns_natural_sharpe(self):
-        """Constant returns → std=0 should produce natural behavior."""
-        # Returns are constant 0.01 (small noise would give std>0, but exact constant)
-        returns = [0.01] * 50
+        """Near-constant returns → annualised vol below minimum threshold → Sharpe NaN.
 
-        # Add tiny noise to make std non-zero (exact constant std=0 is edge case)
+        Previously this test expected a large finite Sharpe, but the minimum-vol
+        guard (_MIN_ANNUAL_VOL = 1e-3) intentionally returns NaN when the equity
+        curve is essentially flat — which prevents absurdly inflated values like
+        4000+ from appearing in training output tables.
+        """
+        returns = [0.01] * 50
         rng = np.random.default_rng(42)
         noisy_returns = [r + rng.normal(0, 1e-10) for r in returns]
 
         report = _report(noisy_returns)
 
-        # Sharpe should be finite (not blow up due to division by tiny std)
-        assert np.isfinite(report["sharpe_ratio"])
-        # Sharpe should be very large (tiny std relative to mean)
-        assert abs(report["sharpe_ratio"]) > 1000
+        # annual_vol ≈ 1e-10 * sqrt(252) << 1e-3 threshold → Sharpe must be NaN
+        assert np.isnan(report["sharpe_ratio"]), (
+            "near-constant returns should produce NaN Sharpe (flat equity guard)"
+        )
 
     def test_with_risk_free_rate_excess_correct(self):
         """With positive risk-free rate, excess returns should be calculated."""
-        returns = [0.05] * 50  # 5% constant return
+        # Use stochastic returns with sufficient variance to pass the min-vol gate.
+        rng = np.random.default_rng(7)
+        returns = rng.normal(loc=0.05, scale=0.02, size=200).tolist()
         rf_annual = 0.02  # 2% annual risk-free rate
 
         report = _report(returns, rf=rf_annual)
 
-        # Sharpe with RF should be positive (5% - 2% > 0)
+        # Sharpe with RF should be positive (mean ~5% > 2% RF)
         assert report["sharpe_ratio"] > 0
 
-        # Sharpe with RF should be different from without RF
+        # Sharpe with RF should be lower than without RF (positive RF reduces excess)
         report_no_rf = _report(returns, rf=0.0)
-        assert report["sharpe_ratio"] != report_no_rf["sharpe_ratio"]
+        assert report["sharpe_ratio"] < report_no_rf["sharpe_ratio"]
 
     def test_negative_risk_free_rate_excess_correct(self):
-        """Negative risk-free rate should flip excess return calculation."""
-        returns = [0.05] * 50  # 5% constant return
+        """Negative risk-free rate should increase excess returns vs RF=0."""
+        rng = np.random.default_rng(11)
+        returns = rng.normal(loc=0.05, scale=0.02, size=200).tolist()
         rf_annual = -0.01  # -1% annual risk-free rate
 
         report = _report(returns, rf=rf_annual)
 
-        # With negative RF, excess returns are higher: 0.05 - (-0.01) = 0.06
-        # Sharpe should be higher than with RF=0
+        # With negative RF, excess return = 0.05 - (-0.01) = 0.06 > 0.05 → higher Sharpe
         report_rf_zero = _report(returns, rf=0.0)
         assert report["sharpe_ratio"] > report_rf_zero["sharpe_ratio"]
 

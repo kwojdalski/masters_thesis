@@ -22,7 +22,7 @@ SCENARIO_PATHS = (
     Path("src/configs/scenarios/synthetic/upward_trend_ddpg_tradingenv"),
 )
 
-_CORE_REPORT_KEYS = ("total_return", "sharpe_ratio", "max_drawdown")
+_CORE_REPORT_KEYS = ("total_return", "max_drawdown")  # sharpe_ratio may be NaN for flat equity curves
 _EXTENDED_REPORT_KEYS = (
     "annualized_return_cagr",
     "annualized_volatility",

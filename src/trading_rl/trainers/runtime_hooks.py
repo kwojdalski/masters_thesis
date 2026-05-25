@@ -56,6 +56,7 @@ class TrainerRuntimeHooks:
         self._eval_consecutive_failures = 0
         self._explainability_consecutive_failures = 0
         self._progression_history: dict[str, list[tuple[int, Any]]] = {}
+        self._price_plots_logged: set[str] = set()
 
     def configure_periodic_evaluation(
         self,
@@ -150,6 +151,42 @@ class TrainerRuntimeHooks:
 
         self._run_temporary_explainability(step_number, hook)
         hook.last_step = step_number
+
+    def _log_price_plot_once(self, split_ctx: "SplitEvalContext", hook: "PeriodicEvaluationHook") -> None:
+        """Save the underlying close price plot to evaluation_plots_temp/{split}/ once."""
+        import os
+        import tempfile
+
+        import mlflow
+
+        if not mlflow.active_run():
+            return
+        try:
+            from trading_rl.callbacks.artifacts import ArtifactPaths
+            from trading_rl.evaluation.plots import create_price_plot
+            from trading_rl.evaluation.thesis_theme import (
+                FIGURE_HEIGHT,
+                FIGURE_WIDTH,
+                PLOT_DPI,
+                save_plot as _save_plot,
+            )
+
+            price_column = getattr(getattr(hook.config, "env", None), "price_column", None) or "close"
+            plot = create_price_plot(split_ctx.df, price_column=price_column)
+            if plot is None:
+                logger.warning(
+                    "price plot: column %r not found in split=%s df (columns=%s)",
+                    price_column, split_ctx.split, list(split_ctx.df.columns)[:10],
+                )
+                return
+            artifact_dir = f"{ArtifactPaths.EVAL_PLOTS_TEMP}/{split_ctx.split}"
+            with tempfile.TemporaryDirectory() as tmpdir:
+                path = os.path.join(tmpdir, "close_price.png")
+                _save_plot(plot, path, width=FIGURE_WIDTH * 2, height=FIGURE_HEIGHT * 1.5, dpi=PLOT_DPI)
+                mlflow.log_artifact(path, artifact_dir)
+            logger.info("price plot logged split=%s column=%s", split_ctx.split, price_column)
+        except Exception:
+            logger.warning("price plot failed split=%s", split_ctx.split, exc_info=True)
 
     def _run_temporary_evaluation(
         self,
@@ -258,6 +295,11 @@ class TrainerRuntimeHooks:
 
                 if mlflow.active_run():
                     from trading_rl.callbacks import MLflowTrainingCallback
+
+                    # Log the underlying close price plot once per split (not per step).
+                    if split_ctx.split not in self._price_plots_logged:
+                        self._log_price_plot_once(split_ctx, hook)
+                        self._price_plots_logged.add(split_ctx.split)
 
                     artifact_prefix = ArtifactPaths.eval_plots_temp(split_ctx.split, step_number)
                     _t = time.monotonic()
