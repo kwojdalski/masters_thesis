@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from plotnine import (
     aes,
+    element_text,
     geom_line,
     ggplot,
     guide_legend,
@@ -15,6 +16,7 @@ from plotnine import (
     scale_color_gradient,
     scale_color_manual,
     scale_linetype_manual,
+    scale_x_datetime,
     theme,
 )
 
@@ -571,12 +573,16 @@ def create_price_plot(
         plot_df = pd.DataFrame({"x": range(len(prices)), "price": prices.values})
         x_label = "Step"
 
-    return (
+    plot = (
         ggplot(plot_df, aes(x="x", y="price"))
         + geom_line(color=PALETTE.get("Deterministic", "#0072B2"), size=0.4)
         + labs(x=x_label, y=f"Price ({price_column})")
         + thesis_theme()
+        + theme(axis_text_x=element_text(angle=90, hjust=1))
     )
+    if use_datetime:
+        plot = plot + scale_x_datetime(date_labels="%H:%M:%S")
+    return plot
 
 
 _MERGED_PANEL_HEIGHT = 9.0  # inches per panel — sized for 22pt base font
