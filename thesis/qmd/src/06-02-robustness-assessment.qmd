@@ -180,6 +180,12 @@ identical conditions (same algorithm, data, reward, and transaction cost) to
 assess whether richer microstructure-aware state representations improve
 out-of-sample performance.
 
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\begin{landscape}
+```
+:::
+
 ```{python}
 #| label: h2_feature_comparison
 #| echo: false
@@ -254,6 +260,12 @@ if h2_df.iloc[:, 1:len(_H2_COLS)+1].isin(["—"]).all().all():
 else:
     display(HTML(h2_df.to_html(index=False)))
 ```
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\end{landscape}
+```
+:::
 
 *Sharpe: risk-adjusted return ratio. Sortino: downside-adjusted return ratio. Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. Ann. Vol: annualized volatility.*
 
