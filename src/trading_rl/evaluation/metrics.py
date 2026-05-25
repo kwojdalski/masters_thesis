@@ -52,13 +52,12 @@ def aggregate_to_reporting_frequency(
     steps_per_bar = max(1, round(periods_per_year / finest.periods_per_year))
     n_bars = len(simple_returns) // steps_per_bar
     if n_bars < 2:
-        # The eval window is shorter than one bar at the finest supported
-        # resolution (1-minute). Annualising per-tick sigma × √(ppy_tick)
-        # produces astronomically large values (e.g. 2600%) that are
-        # mathematically correct but meaningless for a sub-second window.
-        # Return sentinel ppy=0 so build_metric_report skips all
-        # annualised metrics (vol, Sharpe, Sortino, CAGR) for this series.
-        return simple_returns, 0
+        # The eval window covers less than one bar at the finest supported
+        # resolution (1-minute). We cannot aggregate, so we keep the raw tick
+        # series and cap ppy at finest.periods_per_year. This understates
+        # annualised vol (each tick is treated as a 1-minute bar) but avoids
+        # both the NaN problem and the astronomical 2600% from using ppy_tick.
+        return simple_returns, finest.periods_per_year
     trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
     return np.prod(1.0 + trimmed, axis=1) - 1.0, finest.periods_per_year
 
@@ -266,10 +265,10 @@ def build_metric_report(
         _r_orig[np.isfinite(_r_orig)], periods_per_year
     )
     r = r_all
-    # ppy=0 is the sentinel from aggregate_to_reporting_frequency meaning the
-    # eval window is shorter than one bar at the finest supported resolution.
-    # Annualised metrics (vol, Sharpe, Sortino) are not meaningful and are
-    # left as NaN; per-step metrics (total_return, drawdown, etc.) still work.
+    # ppy > 0 after aggregation; annualised metrics (vol, Sharpe, Sortino) use
+    # the effective ppy returned by aggregate_to_reporting_frequency.  When the
+    # window is sub-minute, aggregate_to_reporting_frequency caps ppy at
+    # finest.periods_per_year (98 280) so the result is finite but understated.
     _can_annualize = periods_per_year > 0
 
     if r.size == 0:
