@@ -292,7 +292,13 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
     # ── 1. Fit pipeline ───────────────────────────────────────────────────────
     pipeline = FeaturePipeline.from_yaml(feature_config)
     needs_full_concat = any(
-        fc.normalize and fc.normalization_method == NormalizationMethod.GLOBAL
+        fc.normalize and (
+            fc.normalization_method == NormalizationMethod.GLOBAL
+            or (
+                fc.normalization_method == NormalizationMethod.RUNNING
+                and not fc.reset_on_session_break
+            )
+        )
         for fc in pipeline.feature_configs
     )
     _logger.info("fit pipeline symbol=%s n_days=%d incremental=%s", symbol, len(train_paths_sym), not needs_full_concat)
