@@ -130,7 +130,7 @@ def save_plot(
 
 
 def thesis_theme(
-    base_size: int = 11,
+    base_size: int = 22,
     figure_size: tuple[float, float] = (FIGURE_WIDTH, FIGURE_HEIGHT),
 ) -> theme:
     """Return a thesis-ready plotnine theme based on theme_classic.
