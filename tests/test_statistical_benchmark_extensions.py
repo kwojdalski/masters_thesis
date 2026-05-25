@@ -4,9 +4,12 @@ from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from trading_rl.config import StatisticalTestingConfig
-from trading_rl.evaluation.benchmarks import BenchmarkEngine
+from trading_rl.constants import BenchmarkName
+from trading_rl.evaluation import statistical_tests as statistical_tests_module
+from trading_rl.evaluation.benchmarks import BenchmarkEngine, BenchmarkSpec
 from trading_rl.evaluation.metrics import build_metric_report
 from trading_rl.evaluation.statistical_benchmarks import (
     build_benchmark_comparison_table,
@@ -172,3 +175,72 @@ def test_statistical_tests_run_with_real_config_without_random_seed() -> None:
     baseline = results["baselines"][0]
     assert "error" not in baseline["t_test"]
     assert "t_statistic" in baseline["t_test"]
+
+
+def test_run_all_statistical_tests_returns_disabled_payload_without_status() -> None:
+    status_messages: list[str] = []
+
+    results = run_all_statistical_tests(
+        strategy_returns=np.array([0.01, -0.02]),
+        benchmarks=[],
+        max_steps=2,
+        config=SimpleNamespace(enabled=False),
+        status_fn=status_messages.append,
+    )
+
+    assert results == {"enabled": False}
+    assert status_messages == []
+
+
+def test_run_all_statistical_tests_records_benchmark_compute_errors() -> None:
+    def failing_returns(_max_steps: int) -> np.ndarray:
+        raise RuntimeError("benchmark failed")
+
+    results = run_all_statistical_tests(
+        strategy_returns=np.array([0.01, 0.02]),
+        benchmarks=[BenchmarkSpec("broken", failing_returns)],
+        max_steps=2,
+        config=_make_test_config(),
+    )
+
+    assert results["baselines"] == [
+        {"baseline": "broken", "error": "benchmark failed"}
+    ]
+    assert [row["strategy"] for row in results["benchmark_comparison_table"]] == ["agent"]
+
+
+def test_run_all_statistical_tests_truncates_uneven_random_baseline_trials(
+    monkeypatch,
+) -> None:
+    captured: dict[str, np.ndarray] = {}
+
+    def fake_run_statistical_tests(
+        strategy_returns, baseline_returns, baseline_name, config
+    ):
+        captured["strategy"] = strategy_returns
+        captured["baseline"] = baseline_returns
+        return {"baseline": baseline_name}
+
+    monkeypatch.setattr(
+        statistical_tests_module,
+        "run_statistical_tests",
+        fake_run_statistical_tests,
+    )
+    trials = [
+        np.array([0.01, 0.03, 0.99]),
+        np.array([0.05, 0.07]),
+    ]
+
+    results = run_all_statistical_tests(
+        strategy_returns=np.array([0.02, 0.04, 0.06]),
+        benchmarks=[],
+        max_steps=3,
+        config=_make_test_config(),
+        random_baseline_trials=trials,
+    )
+
+    assert results["baselines"][0]["baseline"] == BenchmarkName.RANDOM_ACTIONS
+    assert captured["baseline"] == pytest.approx(np.array([0.03, 0.05]))
+    assert captured["strategy"] == pytest.approx(np.array([0.02, 0.04, 0.06]))
+    table = {row["strategy"]: row for row in results["benchmark_comparison_table"]}
+    assert set(table) == {"agent", BenchmarkName.RANDOM_ACTIONS}
