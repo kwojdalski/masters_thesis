@@ -214,6 +214,23 @@ class TrainerRuntimeHooks:
                     logger.warning("temp eval: MetricReport failed split=%s", split_ctx.split, exc_info=True)
                     metric_report = None
 
+                if metric_report is not None:
+                    _sharpe = metric_report.sharpe_ratio
+                    _sortino = metric_report.sortino_ratio
+                    _tot_ret = metric_report.total_return
+                    logger.info(
+                        "temp eval metrics split=%s sharpe=%.3f sortino=%.3f total_return=%.4f",
+                        split_ctx.split,
+                        _sharpe if math.isfinite(_sharpe) else float("nan"),
+                        _sortino if math.isfinite(_sortino) else float("nan"),
+                        _tot_ret if math.isfinite(_tot_ret) else float("nan"),
+                    )
+                else:
+                    logger.warning(
+                        "temp eval: metric report unavailable split=%s (Sharpe/Sortino will not be logged)",
+                        split_ctx.split,
+                    )
+
                 # Collect a ReturnSeries for the equity progression plot
                 try:
                     from trading_rl.evaluation.returns import ReturnKind, ReturnSeries

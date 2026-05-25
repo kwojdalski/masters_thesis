@@ -136,7 +136,11 @@ def _last_strategy_returns(trainer: Any) -> np.ndarray | None:
     simple_returns = getattr(result, "simple_returns", None)
     if simple_returns is None:
         return None
-    return np.asarray(simple_returns, dtype=float)
+    arr = np.asarray(simple_returns, dtype=float)
+    # Return None for empty arrays so build_evaluation_report_for_trainer falls
+    # through to TradingEnv broker extraction instead of using an empty array
+    # that would produce all-NaN metrics.
+    return arr if arr.size > 0 else None
 
 
 def _last_evaluation_rollout(trainer: Any) -> Any | None:
