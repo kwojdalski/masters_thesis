@@ -315,7 +315,8 @@ def format_key_metrics(report: dict[str, Any] | None) -> pd.DataFrame:
         return pd.DataFrame(columns=["Metric", "Value"])
 
     rows: list[tuple[str, str]] = []
-    pct_keys = {"total_return", "annualized_return_cagr", "annualized_volatility", "max_drawdown", "win_rate"}
+    pct_keys = {"annualized_return_cagr", "annualized_volatility", "win_rate"}
+    small_return_keys = {"total_return", "max_drawdown"}
     key_order = [
         ("total_return", "Total Return"),
         ("annualized_return_cagr", "CAGR"),
@@ -334,7 +335,9 @@ def format_key_metrics(report: dict[str, Any] | None) -> pd.DataFrame:
             continue
         val = report[key]
         if isinstance(val, (int, float)):
-            if key in pct_keys:
+            if key in small_return_keys:
+                rows.append((label, f"{val:.2e}"))
+            elif key in pct_keys:
                 rows.append((label, f"{val*100:.2f}%"))
             else:
                 rows.append((label, f"{val:.4f}"))
@@ -355,13 +358,8 @@ def format_benchmark_comparison_table(
 
     frame = pd.DataFrame(benchmark_table)
     display_frame = frame.copy()
-    pct_columns = {
-        "total_return",
-        "annualized_return_cagr",
-        "annualized_volatility",
-        "max_drawdown",
-        "win_rate",
-    }
+    pct_columns = {"annualized_return_cagr", "annualized_volatility", "win_rate"}
+    small_return_columns = {"total_return", "max_drawdown"}
     ratio_columns = {"sharpe_ratio", "sortino_ratio", "turnover"}
     ordered_columns = [
         "strategy",
@@ -390,7 +388,11 @@ def format_benchmark_comparison_table(
     for column in display_frame.columns:
         if column == "strategy":
             continue
-        if column in pct_columns:
+        if column in small_return_columns:
+            display_frame[column] = display_frame[column].apply(
+                lambda x: f"{float(x):.2e}" if pd.notna(x) else "N/A"
+            )
+        elif column in pct_columns:
             display_frame[column] = display_frame[column].apply(
                 lambda x: f"{float(x) * 100:.2f}%" if pd.notna(x) else "N/A"
             )
