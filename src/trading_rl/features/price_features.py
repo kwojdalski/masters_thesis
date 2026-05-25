@@ -100,7 +100,7 @@ class RSIFeature(Feature):
         return ["close"]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        """Compute RSI with configurable period."""
+        """Compute RSI with configurable period using Wilder's exponential smoothing."""
         period = self.config.params.get("period", 14)
 
         # Calculate price changes
@@ -110,9 +110,9 @@ class RSIFeature(Feature):
         gain = (delta.where(delta > 0, 0)).fillna(0)
         loss = (-delta.where(delta < 0, 0)).fillna(0)
 
-        # Calculate average gain and loss
-        avg_gain = gain.rolling(window=period, min_periods=1).mean()
-        avg_loss = loss.rolling(window=period, min_periods=1).mean()
+        # Wilder's smoothing: alpha = 1/period
+        avg_gain = gain.ewm(alpha=1 / period, adjust=False).mean()
+        avg_loss = loss.ewm(alpha=1 / period, adjust=False).mean()
 
         # Calculate RS and RSI
         rs = avg_gain / (avg_loss + 1e-8)

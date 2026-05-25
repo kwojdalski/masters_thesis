@@ -367,13 +367,10 @@ class TimeWeightedRunningMeanStd:
             Normalized data with same shape as input.
         """
         if not self._fitted:
-            # First time: use raw data as-is, then update stats
-            if isinstance(data, pd.Series):
-                self.fit(data, time_weights)
-                return data
-            else:
-                self.fit(data, time_weights)
-                return data.copy()
+            raise RuntimeError(
+                "TimeWeightedRunningMeanStd.transform() called before fit(). "
+                "Call fit() first."
+            )
 
         if isinstance(data, pd.Series):
             s = data

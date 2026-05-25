@@ -204,9 +204,11 @@ class DifferentialSharpeRatio(AbstractReward):
         # Update previous NLV for next step
         self._prev_nlv = nlv_now
 
+        # Apply scale before clipping so output bounds are respected
+        dsr = dsr * self.scale
         if self.clip_rewards:
             dsr = float(np.clip(dsr, -10.0, 10.0))
-        return float(dsr * self.scale)
+        return float(dsr)
 
     def reset(self, persist_moments: bool = False) -> None:
         """Reset DSR state for new episode.

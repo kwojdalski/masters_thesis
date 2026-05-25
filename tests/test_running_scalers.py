@@ -166,7 +166,8 @@ class TestTimeWeightedRunningMeanStd:
         scaler = TimeWeightedRunningMeanStd()
         values = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
 
-        # Transform without session awareness (uses all cumulative history)
+        # Fit first - transform must be called after fit
+        scaler.fit(values)
         result = scaler.transform(values)
 
         # All values should normalize using cumulative history
