@@ -9,11 +9,10 @@ env:
   reward_type: differential_sharpe
   reward_eta: 0.01
 benchmarks:
-  buy_and_hold: true
-  short_and_hold: true
-  twap: false
-  vwap: false
-  random: true
+  enabled:
+    - buy_and_hold
+    - short_and_hold
+    - random_actions
   n_random_trials: 10
 statistical_testing:
   enabled: true

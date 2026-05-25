@@ -87,12 +87,12 @@ explainability:
   methods:
   - permutation
 benchmarks:
-  buy_and_hold: true
-  short_and_hold: true
-  twap: true
-  vwap: true
-  show_max_profit: false
-  temp_explainability_interval: 100000
+  enabled:
+    - buy_and_hold
+    - short_and_hold
+    - twap
+    - vwap
+    - random_actions
 
 metrics:
   enabled:

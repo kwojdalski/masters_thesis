@@ -24,19 +24,15 @@ logger = get_logger(__name__)
 
 
 def benchmarks_from_config(benchmarks_config: Any) -> frozenset[BenchmarkName]:
-    """Build a frozenset of enabled BenchmarkName values from a BenchmarksConfig object."""
-    enabled: set[BenchmarkName] = set()
-    if getattr(benchmarks_config, "buy_and_hold", True):
-        enabled.add(BenchmarkName.BUY_AND_HOLD)
-    if getattr(benchmarks_config, "short_and_hold", False):
-        enabled.add(BenchmarkName.SHORT_AND_HOLD)
-    if getattr(benchmarks_config, "twap", False):
-        enabled.add(BenchmarkName.TWAP)
-    if getattr(benchmarks_config, "vwap", False):
-        enabled.add(BenchmarkName.VWAP)
-    if getattr(benchmarks_config, "show_max_profit", False):
-        enabled.add(BenchmarkName.MAX_PROFIT)
-    return frozenset(enabled)
+    """Build a frozenset of plot-relevant BenchmarkName values from a BenchmarksConfig.
+
+    Returns only the names relevant to equity-curve plots (excludes RANDOM_ACTIONS,
+    which is handled separately via statistical tests, not plotted as an equity line).
+    """
+    enabled_set = getattr(benchmarks_config, "enabled_set", None)
+    if enabled_set is None:
+        enabled_set = frozenset(getattr(benchmarks_config, "enabled", []))
+    return frozenset(b for b in enabled_set if b != BenchmarkName.RANDOM_ACTIONS)
 
 
 @dataclass
@@ -159,17 +155,34 @@ class BenchmarkEngine:
         prices = market_data[price_column]
         specs: list[BenchmarkSpec] = []
         result_meta: dict[str, str] = {}
+        _enabled_set = getattr(config, "enabled_set", None)
+        _enabled_list = getattr(config, "enabled", None)
+        if _enabled_set is not None:
+            enabled = frozenset(_enabled_set)
+        elif isinstance(_enabled_list, list):
+            enabled = frozenset(BenchmarkName(v) for v in _enabled_list)
+        else:
+            # Backward compat: SimpleNamespace / old BenchmarksConfig with individual booleans.
+            _flag_map = {
+                "buy_and_hold":   BenchmarkName.BUY_AND_HOLD,
+                "short_and_hold": BenchmarkName.SHORT_AND_HOLD,
+                "twap":           BenchmarkName.TWAP,
+                "vwap":           BenchmarkName.VWAP,
+            }
+            enabled = frozenset(
+                bname for attr, bname in _flag_map.items() if getattr(config, attr, False)
+            )
 
-        if getattr(config, "buy_and_hold", False):
+        if BenchmarkName.BUY_AND_HOLD in enabled:
             specs.append(BenchmarkEngine.buy_and_hold(prices))
 
-        if getattr(config, "short_and_hold", False):
+        if BenchmarkName.SHORT_AND_HOLD in enabled:
             specs.append(BenchmarkEngine.short_and_hold(prices))
 
-        if getattr(config, "twap", False):
+        if BenchmarkName.TWAP in enabled:
             specs.append(BenchmarkEngine.twap(prices))
 
-        if getattr(config, "vwap", False):
+        if BenchmarkName.VWAP in enabled:
             volumes, volume_source = resolve_vwap_volume_series(market_data)
             if volumes is None:
                 logger.warning(

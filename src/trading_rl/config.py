@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, MetricName, RewardType, SplitName, StatisticalTest, TradePosition
+from trading_rl.constants import Algorithm, BenchmarkName, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, MetricName, RewardType, SplitName, StatisticalTest, TradePosition
 
 # HFT-appropriate metric set: excludes CAGR and Calmar, which annualise
 # intra-session tick returns and produce misleading values on sub-day horizons.
@@ -285,18 +285,28 @@ class ProfilingConfig:
 
 @dataclass
 class BenchmarksConfig:
-    """Which baseline strategies to compute returns for during evaluation."""
+    """Which baseline strategies to compute returns for during evaluation.
 
-    buy_and_hold: bool = True
-    short_and_hold: bool = False
-    twap: bool = False
-    vwap: bool = False
-    random: bool = True  # Random-action baseline
-    show_max_profit: bool = False  # Perfect-foresight upper bound in actual returns plot
+    Use ``enabled`` to list the strategies by name.  Random-action baseline
+    parameters (``n_random_trials``, ``random_seed``) remain separate because
+    they control how the random baseline is computed, not just whether it runs.
+    """
 
-    # Random baseline parameters
+    enabled: list[BenchmarkName] = field(
+        default_factory=lambda: [BenchmarkName.BUY_AND_HOLD, BenchmarkName.RANDOM_ACTIONS]
+    )
     n_random_trials: int = 10
     random_seed: int | None = None
+
+    @property
+    def enabled_set(self) -> frozenset[BenchmarkName]:
+        """Frozenset of enabled BenchmarkName values for fast membership tests."""
+        return frozenset(self.enabled)
+
+    @property
+    def random(self) -> bool:
+        """True when RANDOM_ACTIONS is in the enabled list."""
+        return BenchmarkName.RANDOM_ACTIONS in self.enabled_set
 
 
 @dataclass
@@ -836,9 +846,29 @@ class ExperimentConfig:
                 if key not in _LEGACY_BENCHMARK_KEYS and hasattr(config.statistical_testing, key):
                     setattr(config.statistical_testing, key, value)
 
+        # Map old single-boolean keys to BenchmarkName for backward compat.
+        _BOOL_TO_BENCHMARK = {
+            "buy_and_hold":   BenchmarkName.BUY_AND_HOLD,
+            "short_and_hold": BenchmarkName.SHORT_AND_HOLD,
+            "twap":           BenchmarkName.TWAP,
+            "vwap":           BenchmarkName.VWAP,
+            "random":         BenchmarkName.RANDOM_ACTIONS,
+        }
         bench_dict = {**bench_overrides, **config_dict.get("benchmarks", {})}
+        if "enabled" in bench_dict:
+            config.benchmarks.enabled = [BenchmarkName(v) for v in bench_dict["enabled"]]
+        else:
+            # Backward compat: reconstruct enabled list from individual booleans.
+            enabled: set[BenchmarkName] = set(config.benchmarks.enabled)
+            for old_key, bname in _BOOL_TO_BENCHMARK.items():
+                if old_key in bench_dict:
+                    if bench_dict[old_key]:
+                        enabled.add(bname)
+                    else:
+                        enabled.discard(bname)
+            config.benchmarks.enabled = sorted(enabled, key=lambda b: list(BenchmarkName).index(b))
         for key, value in bench_dict.items():
-            if hasattr(config.benchmarks, key):
+            if key not in _BOOL_TO_BENCHMARK and key != "enabled" and hasattr(config.benchmarks, key):
                 setattr(config.benchmarks, key, value)
 
         if "metrics" in config_dict:
