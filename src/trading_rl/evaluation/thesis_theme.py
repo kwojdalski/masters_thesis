@@ -24,6 +24,19 @@ PALETTE: dict[str, str] = {
     "Short-and-Hold": "#CC79A7",      # pink
 }
 
+# Line-type mapping for equity-curve plots.
+# Agent runs use solid lines; each benchmark gets a distinct dash pattern so
+# the plot remains readable in greyscale and when printed.
+LINETYPE: dict[str, str] = {
+    "Deterministic":          "solid",
+    "Random":                 "solid",
+    "Buy-and-Hold":           "dashed",
+    "Short-and-Hold":         "dotted",
+    "Max Profit (Unleveraged)": "dotdash",
+    "TWAP":                   "longdash",
+    "VWAP":                   "twodash",
+}
+
 # Single figure width that fits inside A4 / US-Letter thesis margins
 FIGURE_WIDTH = 6.0   # inches
 FIGURE_HEIGHT = 3.5  # inches — 16:9-ish aspect, comfortable for line plots

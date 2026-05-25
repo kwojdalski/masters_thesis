@@ -13,10 +13,11 @@ from plotnine import (
     guides,
     labs,
     scale_color_manual,
+    scale_linetype_manual,
     theme,
 )
 
-from trading_rl.evaluation.thesis_theme import FIGURE_HEIGHT, FIGURE_WIDTH, PALETTE, thesis_theme
+from trading_rl.evaluation.thesis_theme import FIGURE_HEIGHT, FIGURE_WIDTH, LINETYPE, PALETTE, thesis_theme
 from torch import allclose
 
 from logger import get_logger
@@ -474,7 +475,7 @@ def create_equity_curve_plot(
     if pooled_note:
         caption_prefix = f"{caption_prefix}\n{pooled_note}"
     plot = (
-        ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run"))
+        ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run", linetype="Run"))
         + geom_line(size=0.32)
         + labs(
             title=full_title,
@@ -488,7 +489,8 @@ def create_equity_curve_plot(
                 date_range=date_range_str,
             ),
         )
-        + scale_color_manual(values=PALETTE)
+        + scale_color_manual(values=PALETTE, name="Strategy")
+        + scale_linetype_manual(values=LINETYPE, name="Strategy")
         + thesis_theme()
     )
     logger.debug("ggplot object constructed elapsed=%.2fs", time.monotonic() - t0)

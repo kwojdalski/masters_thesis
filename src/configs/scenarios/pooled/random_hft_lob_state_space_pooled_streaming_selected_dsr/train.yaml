@@ -71,7 +71,7 @@ benchmarks:
   short_and_hold: true
   twap: true
   vwap: true
-  show_max_profit: true
+  show_max_profit: false
 explainability:
   enabled: false
 
