@@ -1027,7 +1027,7 @@ def log_evaluation_plots(
             logger.warning("equity curve plot missing skipping artifact")
 
         if merged_plot is not None:
-            _save(merged_plot, f"{timestamp}_merged_comparison.png", "merged_comparison", artifact_dir, 16, 16)
+            _save(merged_plot, f"{timestamp}_merged_comparison.png", "merged_comparison", artifact_dir, 16, 27)
         else:
             logger.info("merged comparison plot missing skipping artifact")
 

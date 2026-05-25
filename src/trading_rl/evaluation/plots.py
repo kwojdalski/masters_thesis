@@ -544,6 +544,9 @@ def create_equity_progression_plot(
     )
 
 
+_MERGED_PANEL_HEIGHT = 9.0  # inches per panel — sized for 22pt base font
+
+
 def create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot=None, save_path=None):
     """Merge reward, action, and (optionally) equity curve plots into a vertical layout."""
     if equity_curve_plot is not None:
@@ -551,7 +554,7 @@ def create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot=No
     else:
         merged_plot = reward_plot / action_plot
     n_panels = 3 if equity_curve_plot is not None else 2
-    merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH * 2, round(FIGURE_HEIGHT * n_panels, 1)))
+    merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH * 2, round(_MERGED_PANEL_HEIGHT * n_panels, 1)))
     if save_path:
         logger.info("save merged comparison plot path=%s", save_path)
         from trading_rl.evaluation.thesis_theme import PLOT_DPI
