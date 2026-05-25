@@ -877,3 +877,111 @@ def load_experiment_hyperparams(experiment_name: str) -> dict[str, Any]:
         except Exception:
             pass
     return {}
+
+
+# ---------------------------------------------------------------------------
+# Scenario observation config helpers
+# ---------------------------------------------------------------------------
+
+_FEATURE_GROUP_PATTERNS: list[tuple[str, str]] = [
+    ("book_pressure", "imbalance"),
+    ("order_book_imbalance", "imbalance"),
+    ("order_count_imbalance", "imbalance"),
+    ("microprice", "fair_value"),
+    ("vwmp_skew", "fair_value"),
+    ("price_vamp", "fair_value"),
+    ("spread", "spread"),
+    ("bid_convexity", "spread"),
+    ("ask_convexity", "spread"),
+    ("bid_slope", "spread"),
+    ("ask_slope", "spread"),
+    ("depth_ratio", "spread"),
+    ("ofi", "flow"),
+    ("queue_depletion", "flow"),
+    ("signed_trade_flow", "flow"),
+    ("vpin", "flow"),
+    ("large_trade_ratio", "flow"),
+    ("cancel_to_trade", "flow"),
+    ("trade_arrival_rate", "flow"),
+    ("odd_lot", "flow"),
+    ("inter_event_time", "regime"),
+    ("mid_price_acceleration", "regime"),
+    ("hour_sin", "regime"),
+    ("hour_cos", "regime"),
+]
+
+
+def _classify_feature_group(feature_name: str) -> str:
+    """Map a feature column name to its microstructure group.
+
+    Uses ordered substring matching against _FEATURE_GROUP_PATTERNS.
+    Returns "other" if no pattern matches.
+    """
+    lower = feature_name.lower()
+    for pattern, group in _FEATURE_GROUP_PATTERNS:
+        if pattern in lower:
+            return group
+    return "other"
+
+
+def load_scenario_feature_info(scenario_path: str) -> dict[str, Any]:
+    """Load feature metadata from a scenario's observation.yaml.
+
+    ``scenario_path`` is relative to ``src/configs/scenarios/``, e.g.
+    ``"pooled/td3_h3_features_full"``.
+
+    Returns a dict with:
+      - ``feature_columns`` — full list of feature column names
+      - ``n_lob_features`` — count of non-position LOB features
+      - ``n_total_features`` — total observation dimension (LOB + position)
+      - ``has_position`` — whether a runtime position feature is included
+      - ``group_counts`` — mapping of group name → feature count (LOB features only)
+    """
+    obs_yaml = _repo_root() / "src" / "configs" / "scenarios" / scenario_path / "observation.yaml"
+    if not obs_yaml.exists():
+        return {}
+    try:
+        import yaml
+        raw = yaml.safe_load(obs_yaml.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+    feature_columns: list[str] = raw.get("env", {}).get("feature_columns", [])
+    position_cols = [f for f in feature_columns if "position" in f.lower()]
+    lob_cols = [f for f in feature_columns if "position" not in f.lower()]
+
+    group_counts: dict[str, int] = {}
+    for col in lob_cols:
+        group = _classify_feature_group(col)
+        group_counts[group] = group_counts.get(group, 0) + 1
+
+    return {
+        "feature_columns": feature_columns,
+        "n_lob_features": len(lob_cols),
+        "n_total_features": len(feature_columns),
+        "has_position": len(position_cols) > 0,
+        "group_counts": group_counts,
+    }
+
+
+def compute_mlp_parameter_count(
+    input_dim: int,
+    hidden_dims: list[int],
+    output_dim: int = 1,
+) -> dict[str, Any]:
+    """Compute the trainable parameter count for a fully-connected MLP.
+
+    Each Linear layer has (in_features + 1) * out_features parameters
+    (weights + bias). Returns a dict with per-layer counts and a total.
+    """
+    layers = []
+    in_dim = input_dim
+    for h in hidden_dims:
+        params = (in_dim + 1) * h
+        layers.append({"in": in_dim, "out": h, "params": params})
+        in_dim = h
+    # Output layer
+    params = (in_dim + 1) * output_dim
+    layers.append({"in": in_dim, "out": output_dim, "params": params})
+    total = sum(layer["params"] for layer in layers)
+    return {"layers": layers, "total": total}

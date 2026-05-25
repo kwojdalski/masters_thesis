@@ -376,15 +376,35 @@ specification used by the training pipeline.
 Features are organized into named groups that mirror the state-space design in
 Section 4.2. Each group corresponds to a distinct microstructure mechanism:
 
-| Group | Description | Features |
-|---|---|:---:|
-| `imbalance` | Order book imbalance signals | 5 |
-| `fair_value` | Fair value and microprice estimates | 4 |
-| `spread` | Spread and cost features | 7 |
-| `flow` | Order flow and trade flow features | 13 |
-| `regime` | Regime and temporal features | 4 |
+```{python}
+#| label: tbl-feature-groups
+#| tbl-cap: "Feature groups used by the state-space design. The imbalance, fair value, spread, and flow groups correspond to the four signal categories in Section 4.2; the regime group provides temporal context."
+#| echo: false
+#| warning: false
 
-: Feature groups used by the state-space design. The imbalance, fair value, spread, and flow groups correspond to the four signal categories in Section 4.2; the regime group provides temporal context. {#tbl-feature-groups}
+import pandas as pd
+from IPython.display import HTML
+from thesis_mlflow_results import load_scenario_feature_info
+
+_FULL_SCENARIO = "pooled/td3_h3_features_full"
+_fi = load_scenario_feature_info(_FULL_SCENARIO)
+_gc = _fi.get("group_counts", {})
+
+_GROUP_META = [
+    ("imbalance",  "Order book imbalance signals"),
+    ("fair_value", "Fair value and microprice estimates"),
+    ("spread",     "Spread and cost features"),
+    ("flow",       "Order flow and trade flow features"),
+    ("regime",     "Regime and temporal features"),
+]
+
+_rows = [
+    (f"`{g}`", desc, _gc.get(g, "—"))
+    for g, desc in _GROUP_META
+]
+_fg_df = pd.DataFrame(_rows, columns=["Group", "Description", "Features"])
+HTML(_fg_df.to_html(index=False))
+```
 
 The group registry lists the full specification (name, type, parameters,
 normalization flag, domain tag) for each feature within each group. Groups can

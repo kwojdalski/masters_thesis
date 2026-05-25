@@ -37,16 +37,53 @@ everywhere: the policy gradient passes through the output non-linearity without
 discontinuity, and the smooth saturation near the action boundaries provides an
 implicit regularizer against extreme position changes.
 
-The actor network contains approximately 9,900 trainable parameters:
+The layer-by-layer parameter count is shown below; totals are computed from
+the experiment's hidden-layer widths and input dimension $d$.
 
-| Layer | Input dim | Output dim | Parameters |
-|-------|-----------|------------|------------|
-| Linear + ReLU | 11 | 128 | 1,536 |
-| Linear + ReLU | 128 | 64 | 8,256 |
-| Linear + Tanh | 64 | 1 | 65 |
-| **Total** | | | **9,857** |
+```{python}
+#| label: tbl-actor-arch
+#| tbl-cap: "Actor network architecture. Input dimension $d$ and hidden layer widths are loaded from the experiment snapshot; parameter counts are computed from those values."
+#| echo: false
+#| warning: false
 
-: Actor network architecture ($d=11$ input features). {#tbl-actor-arch}
+import pandas as pd
+from IPython.display import HTML
+from thesis_mlflow_results import (
+    load_experiment_hyperparams,
+    load_scenario_feature_info,
+    compute_mlp_parameter_count,
+)
+
+_EXPERIMENT = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+_SCENARIO   = "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+
+_hp   = load_experiment_hyperparams(_EXPERIMENT)
+_fi   = load_scenario_feature_info(_SCENARIO)
+
+_hidden = _hp.get("actor_hidden_dims", [128, 64])
+_d      = _fi.get("n_total_features", 11)
+_params = compute_mlp_parameter_count(_d, _hidden, output_dim=1)
+
+_layers     = _params["layers"]
+_activations = ["ReLU"] * (len(_hidden)) + ["Tanh"]
+
+_rows = []
+for i, (layer, act) in enumerate(zip(_layers, _activations)):
+    _rows.append({
+        "Layer": f"Linear + {act}",
+        "Input dim": layer["in"],
+        "Output dim": layer["out"],
+        "Parameters": f"{layer['params']:,}",
+    })
+_rows.append({
+    "Layer": "**Total**",
+    "Input dim": "",
+    "Output dim": "",
+    "Parameters": f"**{_params['total']:,}**",
+})
+
+HTML(pd.DataFrame(_rows).to_html(index=False))
+```
 
 **Exploration.** Because deterministic policies do not generate action diversity on their own, DDPG and TD3 inject additive Gaussian noise during data collection and clip the perturbed action to the valid interval. The noise is removed at evaluation time: $a_t^{\text{eval}} = \mu_\phi(s_t)$. The specific exploration formulations for DDPG and TD3 are given in @eq-ddpg-exploration and @eq-td3-exploration.
 
