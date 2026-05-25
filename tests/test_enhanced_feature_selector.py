@@ -12,6 +12,7 @@ from trading_rl.features.selector import (
     _build_multi_horizon_score_table,
     _build_time_series_cv_splits,
     _ensemble_select_features,
+    _select_features_conditional_ic,
 )
 
 
@@ -274,6 +275,42 @@ class TestEnsembleSelection:
 
         # feat_a should be first due to higher ICIR
         assert ensemble[0] == "feat_a"
+
+
+class TestConditionalICSelection:
+    def test_linear_duplicate_is_skipped_after_residualization(self):
+        rng = np.random.default_rng(123)
+        n = 200
+        primary = rng.standard_normal(n)
+        incremental = rng.standard_normal(n)
+        target = pd.Series(primary + incremental, name="target")
+        feature_data = pd.DataFrame(
+            {
+                "feature_primary": primary,
+                "feature_duplicate": primary * 3.0,
+                "feature_incremental": incremental,
+            }
+        )
+        scores = pd.DataFrame(
+            {
+                "feature": [
+                    "feature_primary",
+                    "feature_duplicate",
+                    "feature_incremental",
+                ],
+                "icir": [3.0, 2.9, 2.0],
+            }
+        )
+
+        selected = _select_features_conditional_ic(
+            scores=scores,
+            feature_data=feature_data,
+            target=target,
+            top_k=2,
+            icir_threshold=0.05,
+        )
+
+        assert selected == ["feature_primary", "feature_incremental"]
 
 
 class TestFeatureSelector:
