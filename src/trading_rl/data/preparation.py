@@ -8,7 +8,6 @@ import logging
 import logging.handlers
 import multiprocessing
 import os
-import random
 import shutil
 import tempfile
 from collections.abc import Callable
@@ -64,16 +63,18 @@ def _worker_log_init(queue: multiprocessing.Queue) -> None:
     root.setLevel(logging.DEBUG)
 
 
-def _resolve_symbol_index(strategy: str, n_symbols: int, memmap_dir: Path | None) -> int:
+def _resolve_symbol_index(
+    strategy: str, n_symbols: int, memmap_dir: Path | None, seed: int | None = None
+) -> int:
     """Return the index of the representative symbol for streaming-mode splits.
 
     "first"   — always 0
-    "random"  — uniform random pick each call
+    "random"  — uniform random pick; seeded from `seed` for reproducibility
     "rotated" — increments a per-run counter stored in memmap_dir/.eval_symbol_counter
     """
     if strategy == EvalSymbolSelection.RANDOM:
-        idx = random.randrange(n_symbols)
-        logger.info("eval_symbol_selection=random picked idx=%d of %d", idx, n_symbols)
+        idx = int(np.random.default_rng(seed).integers(n_symbols))
+        logger.info("eval_symbol_selection=random seed=%s picked idx=%d of %d", seed, idx, n_symbols)
         return idx
     if strategy == EvalSymbolSelection.ROTATED:
         counter_path = (memmap_dir / ".eval_symbol_counter") if memmap_dir else None
@@ -816,7 +817,7 @@ def build_prepared_dataset(
             _syms = [Path(p).parent.name for p in _val_paths_cfg]
             _per_sym_val = [prepared_dir / f"val_{s}_prepared.parquet" for s in _syms]
             if all(p.exists() for p in _per_sym_val):
-                _idx = _resolve_symbol_index(_strategy, len(_val_paths_cfg), memmap_dir)
+                _idx = _resolve_symbol_index(_strategy, len(_val_paths_cfg), memmap_dir, seed=getattr(config, "seed", None))
                 _sym = _syms[_idx]
                 _val_ldf  = LazyDataFrame(prepared_dir / f"val_{_sym}_prepared.parquet")
                 _test_ldf = LazyDataFrame(prepared_dir / f"test_{_sym}_prepared.parquet")
@@ -841,7 +842,7 @@ def build_prepared_dataset(
         )
     if data_paths:
         _strategy = getattr(getattr(config, "data", None), "eval_symbol_selection", EvalSymbolSelection.FIRST)
-        _symbol_index = _resolve_symbol_index(_strategy, len(data_paths), memmap_dir)
+        _symbol_index = _resolve_symbol_index(_strategy, len(data_paths), memmap_dir, seed=getattr(config, "seed", None))
         _val_paths = getattr(config.data, "val_data_paths", None) or data_paths
         _eval_symbol = Path(_val_paths[min(_symbol_index, len(_val_paths) - 1)]).parent.name
         if memmap_dir:
