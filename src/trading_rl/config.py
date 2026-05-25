@@ -178,7 +178,7 @@ class TrainingConfig:
     actor_weight_decay: float = 1e-4
     # Training loop
     max_steps: int = 5_000  # _000
-    max_train_seconds: int | None = 300  # wall-clock budget in seconds; None = unlimited
+    max_train_seconds: int | None = None  # wall-clock budget in seconds; None = unlimited
     init_rand_steps: int = 50
     frames_per_batch: int = 200
     optim_steps_per_batch: int = 50
