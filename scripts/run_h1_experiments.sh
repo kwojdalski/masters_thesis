@@ -11,6 +11,7 @@
 #   bash scripts/run_h1_experiments.sh --skip-eval           # train only (quick smoke run)
 #   bash scripts/run_h1_experiments.sh --parallel            # train all agents concurrently
 #   bash scripts/run_h1_experiments.sh --verbose / -v        # enable debug logging
+#   bash scripts/run_h1_experiments.sh --max-train-seconds=300  # cap training wall-clock time
 #   bash scripts/run_h1_experiments.sh --skip-train --parallel
 #   EXTRA_TRAIN_ARGS="training.max_steps=50000" bash scripts/run_h1_experiments.sh
 #   EXTRA_EVAL_ARGS="evaluation.eval_steps=500" bash scripts/run_h1_experiments.sh
@@ -29,12 +30,14 @@ SKIP_TRAIN=0
 SKIP_EVAL=0
 PARALLEL=0
 VERBOSE=0
+MAX_TRAIN_SECONDS=""
 for arg in "$@"; do
     [[ "$arg" == "--skip-train" ]] && SKIP_TRAIN=1
     [[ "$arg" == "--skip-eval"  ]] && SKIP_EVAL=1
     [[ "$arg" == "--parallel"   ]] && PARALLEL=1
     [[ "$arg" == "--verbose"    ]] && VERBOSE=1
     [[ "$arg" == "-v"           ]] && VERBOSE=1
+    [[ "$arg" == --max-train-seconds=* ]] && MAX_TRAIN_SECONDS="${arg#--max-train-seconds=}"
 done
 
 VERBOSE_FLAG=""
@@ -42,6 +45,7 @@ VERBOSE_FLAG=""
 
 EXTRA_TRAIN_ARGS="${EXTRA_TRAIN_ARGS:-}"
 EXTRA_EVAL_ARGS="${EXTRA_EVAL_ARGS:-}"
+[[ -n "$MAX_TRAIN_SECONDS" ]] && EXTRA_TRAIN_ARGS="training.max_train_seconds=${MAX_TRAIN_SECONDS}${EXTRA_TRAIN_ARGS:+ $EXTRA_TRAIN_ARGS}"
 
 # Build repeated --config-override flags from a space-separated override string.
 # e.g. "evaluation.eval_fraction=null evaluation.eval_steps=500"
