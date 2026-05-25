@@ -241,6 +241,8 @@ def calculate_benchmark_dsr(
 
     if benchmark_name == BenchmarkName.BUY_AND_HOLD:
         positions = np.ones(len(price_returns))
+    elif benchmark_name == BenchmarkName.SHORT_AND_HOLD:
+        positions = -np.ones(len(price_returns))
     elif benchmark_name == BenchmarkName.MAX_PROFIT:
         positions = np.sign(price_returns)
         positions[positions == 0] = 1
