@@ -52,7 +52,13 @@ def aggregate_to_reporting_frequency(
     steps_per_bar = max(1, round(periods_per_year / finest.periods_per_year))
     n_bars = len(simple_returns) // steps_per_bar
     if n_bars < 2:
-        return simple_returns, periods_per_year
+        # The eval window is shorter than one bar at the finest supported
+        # resolution (1-minute). Annualising per-tick sigma × √(ppy_tick)
+        # produces astronomically large values (e.g. 2600%) that are
+        # mathematically correct but meaningless for a sub-second window.
+        # Return sentinel ppy=0 so build_metric_report skips all
+        # annualised metrics (vol, Sharpe, Sortino, CAGR) for this series.
+        return simple_returns, 0
     trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
     return np.prod(1.0 + trimmed, axis=1) - 1.0, finest.periods_per_year
 
@@ -173,7 +179,7 @@ def _annualized_return_from_equity(equity_final: float, years: float) -> float:
 
 def _should_compute_annualized_growth(periods_per_year: int) -> bool:
     """CAGR/Calmar are meaningful for daily-or-lower frequencies, not HFT."""
-    return periods_per_year <= 252
+    return 0 < periods_per_year <= 252
 
 
 def _drawdown_series(equity: np.ndarray) -> np.ndarray:
@@ -260,25 +266,36 @@ def build_metric_report(
         _r_orig[np.isfinite(_r_orig)], periods_per_year
     )
     r = r_all
+    # ppy=0 is the sentinel from aggregate_to_reporting_frequency meaning the
+    # eval window is shorter than one bar at the finest supported resolution.
+    # Annualised metrics (vol, Sharpe, Sortino) are not meaningful and are
+    # left as NaN; per-step metrics (total_return, drawdown, etc.) still work.
+    _can_annualize = periods_per_year > 0
 
     if r.size == 0:
         return MetricReport.all_nan()
 
-    rf_per_period = risk_free_rate_annual / periods_per_year
+    rf_per_period = risk_free_rate_annual / max(periods_per_year, 1)
     mu = float(np.mean(r))
     sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
-    annual_vol = sigma * np.sqrt(periods_per_year)
 
-    downside = np.minimum(r - rf_per_period, 0.0)
-    downside_dev = np.sqrt(np.mean(np.square(downside))) * np.sqrt(periods_per_year)
-    # When annualised vol is negligibly small the equity curve is essentially flat
-    # (e.g. an untrained agent with near-constant actions). mu/sigma is then
-    # dominated by numerical noise, not signal, producing absurd ratios like 4000+.
-    _MIN_ANNUAL_VOL = 1e-3
-    if annual_vol >= _MIN_ANNUAL_VOL:
-        sharpe = _safe_div((mu - rf_per_period) * np.sqrt(periods_per_year), sigma)
-        sortino = _safe_div((mu - rf_per_period) * periods_per_year, downside_dev)
+    if _can_annualize:
+        annual_vol = sigma * np.sqrt(periods_per_year)
+        downside = np.minimum(r - rf_per_period, 0.0)
+        downside_dev = np.sqrt(np.mean(np.square(downside))) * np.sqrt(periods_per_year)
+        # When annualised vol is negligibly small the equity curve is essentially flat
+        # (e.g. an untrained agent with near-constant actions). mu/sigma is then
+        # dominated by numerical noise, not signal, producing absurd ratios like 4000+.
+        _MIN_ANNUAL_VOL = 1e-3
+        if annual_vol >= _MIN_ANNUAL_VOL:
+            sharpe = _safe_div((mu - rf_per_period) * np.sqrt(periods_per_year), sigma)
+            sortino = _safe_div((mu - rf_per_period) * periods_per_year, downside_dev)
+        else:
+            sharpe = np.nan
+            sortino = np.nan
     else:
+        annual_vol = np.nan
+        downside_dev = np.nan
         sharpe = np.nan
         sortino = np.nan
 
@@ -355,11 +372,12 @@ def build_metric_report(
             cov = np.cov(rs, bs, ddof=1)
             var_b = cov[1, 1]
             beta = _safe_div(cov[0, 1], var_b)
-            alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * periods_per_year
-            active = rs - bs
-            active_std = float(np.std(active, ddof=1))
-            tracking_error = active_std * np.sqrt(periods_per_year)
-            info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
+            if _can_annualize:
+                alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * periods_per_year
+                active = rs - bs
+                active_std = float(np.std(active, ddof=1))
+                tracking_error = active_std * np.sqrt(periods_per_year)
+                info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
 
     return MetricReport(
         total_return=total_return,

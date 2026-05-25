@@ -146,6 +146,7 @@ def _performance_summary(
     r = np.asarray(simple_returns, dtype=float)
     r = r[np.isfinite(r)]
     r, periods_per_year = aggregate_to_reporting_frequency(r, periods_per_year)
+    _can_annualize = periods_per_year > 0
     if r.size == 0:
         return {
             "total_return": np.nan,
@@ -156,19 +157,25 @@ def _performance_summary(
             "max_drawdown": np.nan,
         }
 
-    rf_per_period = risk_free_rate_annual / periods_per_year
+    rf_per_period = risk_free_rate_annual / max(periods_per_year, 1)
     excess_returns = r - rf_per_period
     mu_excess = float(np.mean(excess_returns))
     sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
-    annualized_vol = sigma * np.sqrt(periods_per_year)
-    downside = np.minimum(excess_returns, 0.0)
-    downside_dev = float(np.sqrt(np.mean(np.square(downside))))
-    sharpe = _safe_div(mu_excess * np.sqrt(periods_per_year), sigma)
-    sortino = _safe_div(mu_excess * np.sqrt(periods_per_year), downside_dev)
+
+    if _can_annualize:
+        annualized_vol = sigma * np.sqrt(periods_per_year)
+        downside = np.minimum(excess_returns, 0.0)
+        downside_dev = float(np.sqrt(np.mean(np.square(downside))))
+        sharpe = _safe_div(mu_excess * np.sqrt(periods_per_year), sigma)
+        sortino = _safe_div(mu_excess * np.sqrt(periods_per_year), downside_dev)
+    else:
+        annualized_vol = np.nan
+        sharpe = np.nan
+        sortino = np.nan
 
     equity = np.cumprod(1.0 + r)
     total_return = float(equity[-1] - 1.0)
-    if periods_per_year <= 252:
+    if 0 < periods_per_year <= 252:
         years = max(r.size / periods_per_year, 1e-12)
         log_eq = np.log(max(float(equity[-1]), 1e-12))
         cagr = float(np.expm1(np.clip(log_eq / years, -50.0, 50.0)))

@@ -376,6 +376,8 @@ class TrainerRuntimeHooks:
                                 metric_report,
                                 step=step_number,
                                 split=split_ctx.split,
+                                df=split_ctx.df,
+                                max_steps=split_ctx.max_steps,
                             )
                             with tempfile.TemporaryDirectory() as _tmpdir:
                                 _tbl_path = os.path.join(_tmpdir, "metrics_table.png")

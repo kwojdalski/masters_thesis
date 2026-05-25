@@ -595,6 +595,8 @@ def create_metrics_table_figure(
     metric_report: "MetricReport",
     step: int | None = None,
     split: str | None = None,
+    df: "pd.DataFrame | None" = None,
+    max_steps: int | None = None,
 ) -> "matplotlib.figure.Figure":
     """Render a MetricReport as a matplotlib table figure.
 
@@ -630,6 +632,9 @@ def create_metrics_table_figure(
         title_parts.append(f"Split: {split}")
     if step is not None:
         title_parts.append(f"Step: {step:,}")
+    date_str = _date_range_str(df, max_steps or (len(df) - 1 if df is not None else 0))
+    if date_str:
+        title_parts.append(date_str)
     if title_parts:
         ax.set_title("  |  ".join(title_parts), fontsize=BASE_SIZE + 1, pad=8)
 
