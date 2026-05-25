@@ -59,6 +59,8 @@ class PPOTrainer(BaseTrainer):
             config: Training configuration
             eval_config: Evaluation configuration (eval_steps, eval_fraction, log_data)
         """
+        # Must be set before super().__init__() so BaseTrainer skips buffer allocation.
+        self._use_replay_buffer = False
         super().__init__(
             actor=actor,
             value_net=value_net,
@@ -69,9 +71,6 @@ class PPOTrainer(BaseTrainer):
             checkpoint_dir=checkpoint_dir,
             checkpoint_prefix=checkpoint_prefix,
         )
-
-        # PPO is on-policy: train only on fresh data, don't accumulate in replay buffer
-        self._use_replay_buffer = False
 
         # Initialize PPO loss module
         self.ppo_loss = ClipPPOLoss(
@@ -356,9 +355,13 @@ class PPOTrainer(BaseTrainer):
                 "and using the training env risks corrupting SyncDataCollector state"
             )
             return None
-        return self._build_action_probabilities_plot(
-            env_for_plot, self.actor, max_steps, df, config
-        )
+        try:
+            return self._build_action_probabilities_plot(
+                env_for_plot, self.actor, max_steps, df, config
+            )
+        except Exception:
+            logger.exception("action probabilities plot failed")
+            return None
 
     def evaluate(
         self,
@@ -399,187 +402,182 @@ class PPOTrainer(BaseTrainer):
     @staticmethod
     def _build_action_probabilities_plot(env, actor, max_steps, df=None, config=None):
         """Create a plot showing action probability distributions over time steps for PPO."""
-        try:
-            max_viz_steps = max_steps
-            max_episode_length = 20
+        max_viz_steps = max_steps
+        max_episode_length = 20
 
-            with torch.no_grad():
-                env_to_use = env
-                obs = env_to_use.reset()
-                action_names = {i: pos.name.capitalize() for i, pos in enumerate(TradePosition)}
-                action_probs_data = []
-                current_episode_steps = 0
+        with torch.no_grad():
+            env_to_use = env
+            obs = env_to_use.reset()
+            action_names = {i: pos.name.capitalize() for i, pos in enumerate(TradePosition)}
+            action_probs_data = []
+            current_episode_steps = 0
 
-                for step in range(max_viz_steps):
-                    if current_episode_steps >= max_episode_length:
-                        obs = env_to_use.reset()
-                        current_episode_steps = 0
+            for step in range(max_viz_steps):
+                if current_episode_steps >= max_episode_length:
+                    obs = env_to_use.reset()
+                    current_episode_steps = 0
 
-                    if hasattr(obs, "get") and "observation" in obs:
-                        current_obs = obs["observation"]
-                    else:
-                        current_obs = obs
+                if hasattr(obs, "get") and "observation" in obs:
+                    current_obs = obs["observation"]
+                else:
+                    current_obs = obs
 
-                    if isinstance(obs, TensorDict):
-                        actor_input = obs.clone()
-                    else:
-                        batch_size = (
-                            [current_obs.shape[0]]
-                            if hasattr(current_obs, "shape")
-                            and len(getattr(current_obs, "shape", [])) > 0
-                            else [1]
-                        )
-                        actor_input = TensorDict(
-                            {"observation": torch.as_tensor(current_obs)},
-                            batch_size=batch_size,
-                        )
+                if isinstance(obs, TensorDict):
+                    actor_input = obs.clone()
+                else:
+                    batch_size = (
+                        [current_obs.shape[0]]
+                        if hasattr(current_obs, "shape")
+                        and len(getattr(current_obs, "shape", [])) > 0
+                        else [1]
+                    )
+                    actor_input = TensorDict(
+                        {"observation": torch.as_tensor(current_obs)},
+                        batch_size=batch_size,
+                    )
 
-                    actor_output = actor(actor_input)
+                actor_output = actor(actor_input)
 
-                    probs = None
-                    if isinstance(actor_output, TensorDict):
-                        if "probs" in actor_output.keys():
-                            probs = actor_output.get("probs")
-                        elif "logits" in actor_output.keys():
-                            logits = actor_output.get("logits")
-                            probs = torch.softmax(logits, dim=-1)
-
-                    if probs is None and hasattr(actor_output, "logits"):
-                        logits = actor_output.logits
+                probs = None
+                if isinstance(actor_output, TensorDict):
+                    if "probs" in actor_output.keys():
+                        probs = actor_output.get("probs")
+                    elif "logits" in actor_output.keys():
+                        logits = actor_output.get("logits")
                         probs = torch.softmax(logits, dim=-1)
-                    elif (
-                        probs is None
-                        and isinstance(actor_output, tuple)
-                        and len(actor_output) >= 1
-                    ):
-                        probs = actor_output[0]
-                    elif probs is None and hasattr(actor_output, "loc"):
-                        action_val = torch.clamp(actor_output.loc, -1, 1)
-                        if action_val < -0.33:
-                            probs = torch.tensor([0.7, 0.2, 0.1])
-                        elif action_val > 0.33:
-                            probs = torch.tensor([0.1, 0.2, 0.7])
-                        else:
-                            probs = torch.tensor([0.2, 0.6, 0.2])
 
-                    if probs is None:
-                        probs = torch.tensor([0.33, 0.34, 0.33])
-
-                    probs = torch.as_tensor(probs).squeeze()
-                    if probs.dim() == 0 or len(probs) != 3:
-                        probs = torch.tensor([0.33, 0.34, 0.33])
-                    probs = probs / probs.sum()
-
-                    for action_idx, action_name in action_names.items():
-                        action_probs_data.append(
-                            {
-                                "Step": step,
-                                "Action": action_name,
-                                "Probability": float(probs[action_idx]),
-                            }
-                        )
-
-                    if (
-                        isinstance(actor_output, TensorDict)
-                        and "action" in actor_output.keys()
-                    ):
-                        action = actor_output.get("action")
-                    elif hasattr(actor_output, "sample"):
-                        action = actor_output.sample()
-                    elif isinstance(actor_output, tuple) and len(actor_output) >= 2:
-                        action = actor_output[1]
+                if probs is None and hasattr(actor_output, "logits"):
+                    logits = actor_output.logits
+                    probs = torch.softmax(logits, dim=-1)
+                elif (
+                    probs is None
+                    and isinstance(actor_output, tuple)
+                    and len(actor_output) >= 1
+                ):
+                    probs = actor_output[0]
+                elif probs is None and hasattr(actor_output, "loc"):
+                    action_val = torch.clamp(actor_output.loc, -1, 1)
+                    if action_val < -0.33:
+                        probs = torch.tensor([0.7, 0.2, 0.1])
+                    elif action_val > 0.33:
+                        probs = torch.tensor([0.1, 0.2, 0.7])
                     else:
-                        action_idx = torch.multinomial(probs, 1).item()
-                        action = F.one_hot(
-                            torch.tensor(action_idx), num_classes=len(action_names)
-                        ).to(torch.float32)
+                        probs = torch.tensor([0.2, 0.6, 0.2])
 
-                    action_tensor = torch.as_tensor(action)
-                    if action_tensor.dim() == 0:
-                        action_tensor = F.one_hot(
-                            action_tensor.long(), num_classes=len(action_names)
-                        ).to(torch.float32)
-                    elif action_tensor.dim() == 1 and action_tensor.shape[0] != len(
-                        action_names
-                    ):
-                        action_tensor = F.one_hot(
-                            action_tensor.long(), num_classes=len(action_names)
-                        ).to(torch.float32)
+                if probs is None:
+                    probs = torch.tensor([0.33, 0.34, 0.33])
 
-                    if action_tensor.dim() == 1 and action_tensor.shape[0] == len(
-                        action_names
-                    ):
-                        action_tensor = action_tensor.unsqueeze(0)
+                probs = torch.as_tensor(probs).squeeze()
+                if probs.dim() == 0 or len(probs) != 3:
+                    probs = torch.tensor([0.33, 0.34, 0.33])
+                probs = probs / probs.sum()
 
-                    if hasattr(obs, "batch_size") and obs.batch_size:
-                        expected_batch = obs.batch_size[0]
-                    else:
-                        expected_batch = 1
+                for action_idx, action_name in action_names.items():
+                    action_probs_data.append(
+                        {
+                            "Step": step,
+                            "Action": action_name,
+                            "Probability": float(probs[action_idx]),
+                        }
+                    )
 
-                    if action_tensor.shape[0] != expected_batch:
-                        action_tensor = action_tensor.expand(
-                            expected_batch, action_tensor.shape[1]
-                        )
+                if (
+                    isinstance(actor_output, TensorDict)
+                    and "action" in actor_output.keys()
+                ):
+                    action = actor_output.get("action")
+                elif hasattr(actor_output, "sample"):
+                    action = actor_output.sample()
+                elif isinstance(actor_output, tuple) and len(actor_output) >= 2:
+                    action = actor_output[1]
+                else:
+                    action_idx = torch.multinomial(probs, 1).item()
+                    action = F.one_hot(
+                        torch.tensor(action_idx), num_classes=len(action_names)
+                    ).to(torch.float32)
 
-                    if action_tensor.shape[-1] == len(action_names):
-                        action_tensor = action_tensor.argmax(dim=-1)
+                action_tensor = torch.as_tensor(action)
+                if action_tensor.dim() == 0:
+                    action_tensor = F.one_hot(
+                        action_tensor.long(), num_classes=len(action_names)
+                    ).to(torch.float32)
+                elif action_tensor.dim() == 1 and action_tensor.shape[0] != len(
+                    action_names
+                ):
+                    action_tensor = F.one_hot(
+                        action_tensor.long(), num_classes=len(action_names)
+                    ).to(torch.float32)
 
-                    action = action_tensor.to(torch.long)
+                if action_tensor.dim() == 1 and action_tensor.shape[0] == len(
+                    action_names
+                ):
+                    action_tensor = action_tensor.unsqueeze(0)
 
-                    if hasattr(obs, "clone") and hasattr(obs, "set"):
-                        action_td = obs.clone()
-                        action_td.set("action", action)
-                        step_result = env_to_use.step(action_td)
-                    else:
-                        raise RuntimeError(
-                            "Environment observation is not a TensorDict"
-                        )
+                if hasattr(obs, "batch_size") and obs.batch_size:
+                    expected_batch = obs.batch_size[0]
+                else:
+                    expected_batch = 1
 
-                    if "next" in step_result.keys():
-                        next_obs = step_result.get("next").clone()
-                    else:
-                        next_obs = step_result.clone()
-                    obs = next_obs
-                    current_episode_steps += 1
+                if action_tensor.shape[0] != expected_batch:
+                    action_tensor = action_tensor.expand(
+                        expected_batch, action_tensor.shape[1]
+                    )
 
-                    done_tensor = None
-                    if hasattr(obs, "get"):
-                        done_tensor = obs.get("done", torch.tensor([False]))
-                    if done_tensor is not None and torch.as_tensor(done_tensor).any():
-                        break
+                if action_tensor.shape[-1] == len(action_names):
+                    action_tensor = action_tensor.argmax(dim=-1)
 
-            df_probs = pd.DataFrame(action_probs_data)
-            action_order = [pos.name.capitalize() for pos in TradePosition]
-            df_probs["Action"] = pd.Categorical(
-                df_probs["Action"], categories=action_order, ordered=True
+                action = action_tensor.to(torch.long)
+
+                if hasattr(obs, "clone") and hasattr(obs, "set"):
+                    action_td = obs.clone()
+                    action_td.set("action", action)
+                    step_result = env_to_use.step(action_td)
+                else:
+                    raise RuntimeError(
+                        "Environment observation is not a TensorDict"
+                    )
+
+                if "next" in step_result.keys():
+                    next_obs = step_result.get("next").clone()
+                else:
+                    next_obs = step_result.clone()
+                obs = next_obs
+                current_episode_steps += 1
+
+                done_tensor = None
+                if hasattr(obs, "get"):
+                    done_tensor = obs.get("done", torch.tensor([False]))
+                if done_tensor is not None and torch.as_tensor(done_tensor).any():
+                    break
+
+        df_probs = pd.DataFrame(action_probs_data)
+        action_order = [pos.name.capitalize() for pos in TradePosition]
+        df_probs["Action"] = pd.Categorical(
+            df_probs["Action"], categories=action_order, ordered=True
+        )
+
+        plot = (
+            ggplot(df_probs, aes(x="Step", y="Probability", fill="Action"))
+            + geom_area(position="stack", alpha=0.8)
+            + labs(
+                title="Action Probability Distributions Over Time",
+                x="Time Step",
+                y="Probability",
+                fill="Action",
             )
-
-            plot = (
-                ggplot(df_probs, aes(x="Step", y="Probability", fill="Action"))
-                + geom_area(position="stack", alpha=0.8)
-                + labs(
-                    title="Action Probability Distributions Over Time",
-                    x="Time Step",
-                    y="Probability",
-                    fill="Action",
-                )
-                + scale_fill_manual(
-                    name="Action",
-                    values={
-                        "Short": "#F8766D",
-                        "Hold": "#C0C0C0",
-                        "Long": "#00BFC4",
-                    },
-                )
-                + scale_x_continuous(expand=(0, 0))
-                + thesis_theme(figure_size=(FIGURE_WIDTH * 2, FIGURE_HEIGHT))
+            + scale_fill_manual(
+                name="Action",
+                values={
+                    "Short": "#F8766D",
+                    "Hold": "#C0C0C0",
+                    "Long": "#00BFC4",
+                },
             )
+            + scale_x_continuous(expand=(0, 0))
+            + thesis_theme(figure_size=(FIGURE_WIDTH * 2, FIGURE_HEIGHT))
+        )
 
-            return plot
-
-        except Exception:  # pragma: no cover - logged for diagnostics
-            logger.exception("action probabilities plot failed")
-            return None
+        return plot
 
 
 class PPOTrainerContinuous(PPOTrainer):
@@ -603,145 +601,140 @@ class PPOTrainerContinuous(PPOTrainer):
     @staticmethod
     def _build_action_probabilities_plot(env, actor, max_steps, df=None, config=None):
         """Create a plot showing action distributions over time steps."""
-        try:
-            max_viz_steps = max_steps
-            max_episode_length = 20
+        max_viz_steps = max_steps
+        max_episode_length = 20
 
-            # Data collection containers
-            continuous_data = []  # List of dicts: {Step, Mean, Std_Upper, Std_Lower}
+        # Data collection containers
+        continuous_data = []  # List of dicts: {Step, Mean, Std_Upper, Std_Lower}
 
-            with torch.no_grad():
-                env_to_use = env
-                obs = env_to_use.reset()
-                current_episode_steps = 0
+        with torch.no_grad():
+            env_to_use = env
+            obs = env_to_use.reset()
+            current_episode_steps = 0
 
-                for step in range(max_viz_steps):
-                    if current_episode_steps >= max_episode_length:
-                        obs = env_to_use.reset()
-                        current_episode_steps = 0
+            for step in range(max_viz_steps):
+                if current_episode_steps >= max_episode_length:
+                    obs = env_to_use.reset()
+                    current_episode_steps = 0
 
-                    if hasattr(obs, "get") and "observation" in obs:
-                        current_obs = obs["observation"]
-                    else:
-                        current_obs = obs
+                if hasattr(obs, "get") and "observation" in obs:
+                    current_obs = obs["observation"]
+                else:
+                    current_obs = obs
 
-                    if isinstance(obs, TensorDict):
-                        actor_input = obs.clone()
-                    else:
-                        batch_size = (
-                            [current_obs.shape[0]]
-                            if hasattr(current_obs, "shape")
-                            and len(getattr(current_obs, "shape", [])) > 0
-                            else [1]
-                        )
-                        actor_input = TensorDict(
-                            {"observation": torch.as_tensor(current_obs)},
-                            batch_size=batch_size,
-                        )
+                if isinstance(obs, TensorDict):
+                    actor_input = obs.clone()
+                else:
+                    batch_size = (
+                        [current_obs.shape[0]]
+                        if hasattr(current_obs, "shape")
+                        and len(getattr(current_obs, "shape", [])) > 0
+                        else [1]
+                    )
+                    actor_input = TensorDict(
+                        {"observation": torch.as_tensor(current_obs)},
+                        batch_size=batch_size,
+                    )
 
-                    actor_output = actor(actor_input)
+                actor_output = actor(actor_input)
 
-                    # --- Continuous Output Handling ---
-                    if hasattr(actor_output, "loc"):
-                        mean = actor_output.loc.squeeze()
-                        scale = getattr(
-                            actor_output, "scale", torch.zeros_like(mean)
-                        ).squeeze()
+                # --- Continuous Output Handling ---
+                if hasattr(actor_output, "loc"):
+                    mean = actor_output.loc.squeeze()
+                    scale = getattr(
+                        actor_output, "scale", torch.zeros_like(mean)
+                    ).squeeze()
 
-                        # Handle multi-dimensional continuous actions (take first dim)
-                        if mean.ndim > 0:
-                            mean = mean[0]
-                            scale = scale[0]
+                    # Handle multi-dimensional continuous actions (take first dim)
+                    if mean.ndim > 0:
+                        mean = mean[0]
+                        scale = scale[0]
 
-                        mean_val = float(mean.item())
-                        std_val = float(scale.item())
+                    mean_val = float(mean.item())
+                    std_val = float(scale.item())
 
-                        continuous_data.append(
-                            {
-                                "Step": step,
-                                "Mean": mean_val,
-                                "Upper": mean_val + std_val,
-                                "Lower": mean_val - std_val,
-                            }
-                        )
+                    continuous_data.append(
+                        {
+                            "Step": step,
+                            "Mean": mean_val,
+                            "Upper": mean_val + std_val,
+                            "Lower": mean_val - std_val,
+                        }
+                    )
 
-                        # Sample action for simulation
-                        action = (
-                            actor_output.sample()
-                            if hasattr(actor_output, "sample")
-                            else actor_output.loc
-                        )
-                    else:
-                        # Fallback for unexpected output format
-                        continue
+                    # Sample action for simulation
+                    action = (
+                        actor_output.sample()
+                        if hasattr(actor_output, "sample")
+                        else actor_output.loc
+                    )
+                else:
+                    # Fallback for unexpected output format
+                    continue
 
-                    # --- Environment Step ---
-                    # Ensure action tensor is correctly shaped for the environment
-                    action_tensor = torch.as_tensor(action)
+                # --- Environment Step ---
+                # Ensure action tensor is correctly shaped for the environment
+                action_tensor = torch.as_tensor(action)
 
-                    if hasattr(obs, "batch_size") and obs.batch_size:
-                        expected_batch = obs.batch_size[0]
-                    else:
-                        expected_batch = 1
+                if hasattr(obs, "batch_size") and obs.batch_size:
+                    expected_batch = obs.batch_size[0]
+                else:
+                    expected_batch = 1
 
-                    # Ensure batch dimension
-                    if action_tensor.dim() == 0:
-                        action_tensor = action_tensor.unsqueeze(0)
+                # Ensure batch dimension
+                if action_tensor.dim() == 0:
+                    action_tensor = action_tensor.unsqueeze(0)
 
-                    # Fix batch size mismatch if necessary
-                    if action_tensor.shape[0] != expected_batch:
-                        if action_tensor.shape[0] == 1:
-                            # Broadcast to batch size
-                            if action_tensor.dim() == 1:
-                                action_tensor = action_tensor.expand(expected_batch)
-                            else:
-                                action_tensor = action_tensor.expand(expected_batch, -1)
+                # Fix batch size mismatch if necessary
+                if action_tensor.shape[0] != expected_batch:
+                    if action_tensor.shape[0] == 1:
+                        # Broadcast to batch size
+                        if action_tensor.dim() == 1:
+                            action_tensor = action_tensor.expand(expected_batch)
                         else:
-                            # Just take the first one if we have too many
-                            action_tensor = action_tensor[:expected_batch]
-
-                    if hasattr(obs, "clone") and hasattr(obs, "set"):
-                        action_td = obs.clone()
-                        action_td.set("action", action_tensor)
-                        step_result = env_to_use.step(action_td)
+                            action_tensor = action_tensor.expand(expected_batch, -1)
                     else:
-                        raise RuntimeError(
-                            "Environment observation is not a TensorDict"
-                        )
+                        # Just take the first one if we have too many
+                        action_tensor = action_tensor[:expected_batch]
 
-                    if "next" in step_result.keys():
-                        next_obs = step_result.get("next").clone()
-                    else:
-                        next_obs = step_result.clone()
-                    obs = next_obs
-                    current_episode_steps += 1
+                if hasattr(obs, "clone") and hasattr(obs, "set"):
+                    action_td = obs.clone()
+                    action_td.set("action", action_tensor)
+                    step_result = env_to_use.step(action_td)
+                else:
+                    raise RuntimeError(
+                        "Environment observation is not a TensorDict"
+                    )
 
-                    done_tensor = None
-                    if hasattr(obs, "get"):
-                        done_tensor = obs.get("done", torch.tensor([False]))
-                    if done_tensor is not None and torch.as_tensor(done_tensor).any():
-                        break
+                if "next" in step_result.keys():
+                    next_obs = step_result.get("next").clone()
+                else:
+                    next_obs = step_result.clone()
+                obs = next_obs
+                current_episode_steps += 1
 
-            # --- Plotting ---
-            df_cont = pd.DataFrame(continuous_data)
-            if df_cont.empty:
-                return None
+                done_tensor = None
+                if hasattr(obs, "get"):
+                    done_tensor = obs.get("done", torch.tensor([False]))
+                if done_tensor is not None and torch.as_tensor(done_tensor).any():
+                    break
 
-            plot = (
-                ggplot(df_cont, aes(x="Step"))
-                + geom_ribbon(
-                    aes(ymin="Lower", ymax="Upper"), fill="#00BFC4", alpha=0.3
-                )
-                + geom_line(aes(y="Mean"), color="#00BFC4", size=1)
-                + labs(
-                    title="Continuous Action Distribution (Mean ± Std)",
-                    x="Time Step",
-                    y="Action Value",
-                )
-                + thesis_theme(figure_size=(FIGURE_WIDTH * 2, FIGURE_HEIGHT))
-            )
-            return plot
-
-        except Exception:  # pragma: no cover - logged for diagnostics
-            logger.exception("continuous action plot failed")
+        # --- Plotting ---
+        df_cont = pd.DataFrame(continuous_data)
+        if df_cont.empty:
             return None
+
+        plot = (
+            ggplot(df_cont, aes(x="Step"))
+            + geom_ribbon(
+                aes(ymin="Lower", ymax="Upper"), fill="#00BFC4", alpha=0.3
+            )
+            + geom_line(aes(y="Mean"), color="#00BFC4", size=1)
+            + labs(
+                title="Continuous Action Distribution (Mean ± Std)",
+                x="Time Step",
+                y="Action Value",
+            )
+            + thesis_theme(figure_size=(FIGURE_WIDTH * 2, FIGURE_HEIGHT))
+        )
+        return plot

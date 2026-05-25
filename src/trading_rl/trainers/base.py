@@ -275,8 +275,12 @@ class BaseTrainer(ABC):
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_prefix = checkpoint_prefix
 
-        # Replay buffer and data collector shared by both algorithms
-        self.replay_buffer = ReplayBuffer(storage=LazyTensorStorage(config.buffer_size))
+        # Replay buffer — skipped for on-policy algorithms (e.g. PPO) that set
+        # _use_replay_buffer = False before calling super().__init__().
+        if getattr(self, "_use_replay_buffer", True):
+            self.replay_buffer = ReplayBuffer(storage=LazyTensorStorage(config.buffer_size))
+        else:
+            self.replay_buffer = None
         self.collector = _build_sync_data_collector(
             env=env,
             actor=actor,
