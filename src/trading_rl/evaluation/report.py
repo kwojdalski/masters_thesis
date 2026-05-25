@@ -11,7 +11,7 @@ from tensordict.nn import InteractionType
 from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger
-from trading_rl.constants import EnvBackend, RewardType
+from trading_rl.constants import EnvBackend, ReportingFrequency, RewardType
 from trading_rl.evaluation.metrics import MetricReport, build_metric_report
 from trading_rl.evaluation.returns import (
     RewardSeries,
@@ -23,22 +23,15 @@ logger = get_logger(__name__)
 
 
 def periods_per_year_from_timeframe(timeframe: str) -> int:
-    """Convert timeframe strings to annualization factor.
+    """Convert a timeframe label to its annualisation factor.
 
-    Uses US equity trading calendar: 252 trading days, 6.5 trading hours,
-    390 trading minutes per day.
+    Delegates to ReportingFrequency; falls back to 252 (daily) for
+    unrecognised labels so existing callers remain safe.
     """
-    mapping = {
-        "1m":  252 * 390,   # 98,280
-        "5m":  252 * 78,    # 19,656
-        "15m": 252 * 26,    # 6,552
-        "30m": 252 * 13,    # 3,276
-        "1h":  1638,        # 252 * 6.5
-        "4h":  504,         # 252 * 2
-        "1d":  252,
-        "1w":  52,
-    }
-    return mapping.get(str(timeframe).lower(), 252)
+    try:
+        return ReportingFrequency.from_label(timeframe).periods_per_year
+    except ValueError:
+        return ReportingFrequency.DAILY.periods_per_year
 
 
 def _periods_per_year_from_index(df: pd.DataFrame) -> int | None:

@@ -277,7 +277,6 @@ def create_equity_curve_plot(
     if benchmarks is None:
         benchmarks = frozenset({BenchmarkName.BUY_AND_HOLD})
     show_buy_and_hold   = BenchmarkName.BUY_AND_HOLD   in benchmarks
-    show_short_and_hold = BenchmarkName.SHORT_AND_HOLD  in benchmarks
     show_max_profit     = BenchmarkName.MAX_PROFIT      in benchmarks
     show_twap           = BenchmarkName.TWAP            in benchmarks
     show_vwap           = BenchmarkName.VWAP            in benchmarks
@@ -392,12 +391,6 @@ def create_equity_curve_plot(
                     np.asarray(buy_and_hold, dtype=float)
                 )
 
-            if show_short_and_hold:
-                short_and_hold = np.log1p(-benchmark_returns).cumsum()
-                short_and_hold_values = initial_portfolio_value * np.exp(
-                    np.asarray(short_and_hold, dtype=float)
-                )
-
             if show_max_profit:
                 max_profit = np.log1p(np.abs(benchmark_returns)).cumsum()
                 max_profit_values = initial_portfolio_value * np.exp(
@@ -425,8 +418,6 @@ def create_equity_curve_plot(
     if df_prices is not None:
         if show_buy_and_hold:
             _extend_with_stride("Buy-and-Hold", buy_and_hold_values)
-        if show_short_and_hold:
-            _extend_with_stride("Short-and-Hold", short_and_hold_values)
         if show_max_profit:
             _extend_with_stride("Max Profit (Unleveraged)", max_profit_values)
         if show_twap:

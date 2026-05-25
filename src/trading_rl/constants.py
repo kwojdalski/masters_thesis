@@ -7,7 +7,46 @@ YAML-loaded strings keep working in comparisons without any conversion:
     reward_type == RewardType.LOG_RETURN                 # True when value is "log_return"
 """
 
-from enum import IntEnum, StrEnum
+from enum import Enum, IntEnum, StrEnum
+
+
+class ReportingFrequency(Enum):
+    """Bar frequencies used for annualisation and Sharpe/Sortino computation.
+
+    Each member carries the timeframe label and the corresponding
+    periods-per-year count based on the US equity trading calendar
+    (252 days, 6.5 hours/day, 390 minutes/day).
+    """
+
+    WEEKLY  = ("1w",  52)
+    DAILY   = ("1d",  252)
+    HOUR_4  = ("4h",  504)
+    HOURLY  = ("1h",  1_638)
+    MIN_30  = ("30m", 3_276)
+    MIN_15  = ("15m", 6_552)
+    MIN_5   = ("5m",  19_656)
+    MIN_1   = ("1m",  98_280)
+
+    def __init__(self, label: str, periods_per_year: int) -> None:
+        self.label = label
+        self.periods_per_year = periods_per_year
+
+    @classmethod
+    def from_label(cls, label: str) -> "ReportingFrequency":
+        """Return the member whose label matches (case-insensitive)."""
+        target = label.lower()
+        for member in cls:
+            if member.label == target:
+                return member
+        raise ValueError(f"Unknown timeframe label: {label!r}")
+
+    @classmethod
+    def from_periods_per_year(cls, ppy: int) -> "ReportingFrequency | None":
+        """Return the member with an exact periods_per_year match, or None."""
+        for member in cls:
+            if member.periods_per_year == ppy:
+                return member
+        return None
 
 
 class Algorithm(StrEnum):
@@ -117,7 +156,6 @@ class BenchmarkName(StrEnum):
     """Evaluation benchmark names used in reports and artifacts."""
 
     BUY_AND_HOLD = "buy_and_hold"
-    SHORT_AND_HOLD = "short_and_hold"
     TWAP = "twap"
     VWAP = "vwap"
     MAX_PROFIT = "max_profit"

@@ -829,7 +829,6 @@ class ExperimentConfig:
         # inside statistical_testing. Migrate them to benchmarks on the fly.
         _LEGACY_BENCHMARK_KEYS = {
             "compare_to_buy_and_hold": "buy_and_hold",
-            "compare_to_short_and_hold": "short_and_hold",
             "compare_to_twap": "twap",
             "compare_to_vwap": "vwap",
             "compare_to_random": "random",
@@ -849,7 +848,6 @@ class ExperimentConfig:
         # Map old single-boolean keys to BenchmarkName for backward compat.
         _BOOL_TO_BENCHMARK = {
             "buy_and_hold":   BenchmarkName.BUY_AND_HOLD,
-            "short_and_hold": BenchmarkName.SHORT_AND_HOLD,
             "twap":           BenchmarkName.TWAP,
             "vwap":           BenchmarkName.VWAP,
             "random":         BenchmarkName.RANDOM_ACTIONS,

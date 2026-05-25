@@ -36,7 +36,7 @@ _METRIC_KEYS = [
     "cvar_95",
 ]
 
-_BENCHMARK_NAMES = ["buy_and_hold", "short_and_hold", "twap", "vwap", "random"]
+_BENCHMARK_NAMES = ["buy_and_hold", "twap", "vwap", "random"]
 
 
 class CollectResultsCommand(BaseCommand):

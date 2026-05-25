@@ -8,15 +8,15 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from trading_rl.constants import ReportingFrequency
 from trading_rl.evaluation.returns import ReturnSeries
 
-# (min_bars, periods_per_year, label) — ordered coarsest-first so we pick the
-# largest bar size that still yields ≥ MIN_BARS observations.
-_FREQUENCY_LADDER: list[tuple[int, int, str]] = [
-    (50, 252,   "1d"),
-    (50, 1638,  "1h"),
-    (50, 6552,  "15m"),
-    (50, 98280, "1m"),
+# Ordered coarsest-first: pick the largest bar size still yielding ≥ _MIN_SR_OBSERVATIONS.
+_REPORTING_LADDER: list[ReportingFrequency] = [
+    ReportingFrequency.DAILY,
+    ReportingFrequency.HOURLY,
+    ReportingFrequency.MIN_15,
+    ReportingFrequency.MIN_1,
 ]
 _MIN_SR_OBSERVATIONS = 50
 
@@ -37,26 +37,24 @@ def aggregate_to_reporting_frequency(
     unchanged. If no bar size in the ladder yields ≥ 50 bars, the finest ladder
     entry (1-minute) is used as a best-effort fallback.
     """
-    if periods_per_year <= 252:
+    if periods_per_year <= ReportingFrequency.DAILY.periods_per_year:
         return simple_returns, periods_per_year
 
-    for _min_bars, target_ppy, _label in _FREQUENCY_LADDER:
-        steps_per_bar = round(periods_per_year / target_ppy)
-        if steps_per_bar < 1:
-            steps_per_bar = 1
+    for freq in _REPORTING_LADDER:
+        steps_per_bar = max(1, round(periods_per_year / freq.periods_per_year))
         n_bars = len(simple_returns) // steps_per_bar
-        if n_bars >= _min_bars:
+        if n_bars >= _MIN_SR_OBSERVATIONS:
             trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
-            daily = np.prod(1.0 + trimmed, axis=1) - 1.0
-            return daily, target_ppy
+            return np.prod(1.0 + trimmed, axis=1) - 1.0, freq.periods_per_year
 
-    # Fallback: use finest ladder entry even if < 50 bars.
-    steps_per_bar = max(1, round(periods_per_year / _FREQUENCY_LADDER[-1][1]))
+    # Fallback: finest ladder entry even if < 50 bars.
+    finest = _REPORTING_LADDER[-1]
+    steps_per_bar = max(1, round(periods_per_year / finest.periods_per_year))
     n_bars = len(simple_returns) // steps_per_bar
     if n_bars < 2:
         return simple_returns, periods_per_year
     trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
-    return np.prod(1.0 + trimmed, axis=1) - 1.0, _FREQUENCY_LADDER[-1][1]
+    return np.prod(1.0 + trimmed, axis=1) - 1.0, finest.periods_per_year
 
 _NAN = float("nan")
 

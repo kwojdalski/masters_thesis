@@ -255,6 +255,8 @@ else:
     display(HTML(h2_df.to_html(index=False)))
 ```
 
+*Sharpe: risk-adjusted return ratio. Sortino: downside-adjusted return ratio. Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. Ann. Vol: annualized volatility.*
+
 The feature comparison supports a qualified version of H2. The minimal
 three-feature representation produces a negative cumulative return
 ($-3.45 \times 10^{-8}$), a profit factor below one, and a short-biased policy

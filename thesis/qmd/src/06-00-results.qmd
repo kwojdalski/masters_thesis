@@ -30,12 +30,6 @@ asset. It is the primary economic benchmark: any active strategy that fails to
 outperform buy-and-hold on a risk-adjusted basis has not demonstrated useful
 directional skill beyond passive exposure.
 
-**Short-and-hold** maintains a constant fully short position ($a_t = -1.0$).
-Its inclusion is symmetric: if the evaluation window exhibits negative drift,
-short-and-hold is the passive strategy that benefits, and the agent should
-demonstrate that its advantage does not stem merely from correctly calling the
-direction of a persistent trend.
-
 **TWAP (Time-Weighted Average Price)** distributes position changes uniformly
 across time. **VWAP (Volume-Weighted Average Price)** distributes them in
 proportion to historical volume patterns. Both are standard execution
@@ -227,8 +221,7 @@ in this study and offers guidance for algorithm selection in similar
 continuous-action trading applications.
 
 The H1 evidence is therefore mixed rather than unambiguously supportive. TD3
-clearly improves on DDPG and dominates the short-and-hold benchmark, while also
-showing substantially better drawdown control than the high-turnover random
+clearly improves on DDPG, while also showing substantially better drawdown control than the high-turnover random
 policy. It does not, however, dominate PPO or passive long exposure on
 cumulative return in the zero-fee evaluation window. The defensible H1 verdict is
 that TD3 learns a conservative, economically coherent policy with strong

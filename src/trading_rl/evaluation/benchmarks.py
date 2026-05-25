@@ -14,7 +14,7 @@ from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.statistical_benchmarks import (
     compute_buy_and_hold_returns,
-    compute_short_and_hold_returns,
+
     compute_twap_returns,
     compute_vwap_returns,
     resolve_vwap_volume_series,
@@ -87,16 +87,6 @@ class BenchmarkEngine:
         )
 
     @staticmethod
-    def short_and_hold(prices: pd.Series) -> BenchmarkSpec:
-        return BenchmarkSpec(
-            name=BenchmarkName.SHORT_AND_HOLD,
-            compute_returns=lambda steps: _benchmark_returns(
-                compute_short_and_hold_returns(prices, steps),
-                benchmark_position_side=-1.0,
-            ),
-        )
-
-    @staticmethod
     def twap(prices: pd.Series) -> BenchmarkSpec:
         return BenchmarkSpec(
             name=BenchmarkName.TWAP,
@@ -165,7 +155,6 @@ class BenchmarkEngine:
             # Backward compat: SimpleNamespace / old BenchmarksConfig with individual booleans.
             _flag_map = {
                 "buy_and_hold":   BenchmarkName.BUY_AND_HOLD,
-                "short_and_hold": BenchmarkName.SHORT_AND_HOLD,
                 "twap":           BenchmarkName.TWAP,
                 "vwap":           BenchmarkName.VWAP,
             }
@@ -175,9 +164,6 @@ class BenchmarkEngine:
 
         if BenchmarkName.BUY_AND_HOLD in enabled:
             specs.append(BenchmarkEngine.buy_and_hold(prices))
-
-        if BenchmarkName.SHORT_AND_HOLD in enabled:
-            specs.append(BenchmarkEngine.short_and_hold(prices))
 
         if BenchmarkName.TWAP in enabled:
             specs.append(BenchmarkEngine.twap(prices))
@@ -241,8 +227,6 @@ def calculate_benchmark_dsr(
 
     if benchmark_name == BenchmarkName.BUY_AND_HOLD:
         positions = np.ones(len(price_returns))
-    elif benchmark_name == BenchmarkName.SHORT_AND_HOLD:
-        positions = -np.ones(len(price_returns))
     elif benchmark_name == BenchmarkName.MAX_PROFIT:
         positions = np.sign(price_returns)
         positions[positions == 0] = 1
