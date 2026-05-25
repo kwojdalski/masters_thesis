@@ -81,13 +81,13 @@ A Twin Delayed DDPG (TD3) agent is trained on tick-level order book snapshots fr
 Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO), covering three
 consecutive trading sessions in February 2026, and evaluated against benchmark
 strategies under explicit simulation assumptions.
-The agent achieves positive out-of-sample risk-adjusted returns that exceed the
-evaluated benchmarks, and a microstructure-aware state representation
-constructed from order flow, spread regime, and book shape features demonstrates
-measurable performance improvement over a simpler snapshot-based baseline.
-Statistical validation and transaction-cost sensitivity analysis are used to
-separate genuine policy quality from favorable training stochasticity and to
-bound the conditions under which the observed edge persists.
+The agent achieves positive held-out returns with very low drawdown and a high
+profit factor, but does not dominate passive long exposure on cumulative return
+over the upward-drifting evaluation window. A microstructure-aware state
+representation constructed from order flow, spread regime, and book shape
+features improves policy behavior relative to simpler snapshot-based variants,
+while transaction-cost sensitivity analysis shows that the observed edge is
+fragile once fees increase.
 
 The main contribution is an end-to-end, reproducible pipeline linking LOB
 feature engineering, Differential Sharpe Ratio reward design, TD3 training, and
@@ -139,6 +139,7 @@ claims.
 \newpage
 {{< include ./06-00-results.qmd >}}
 {{< include ./06-01-statistical-validation.qmd >}}
+{{< include ./06-02-robustness-assessment.qmd >}}
 {{< include ./06-03-performance-evaluation.qmd >}}
 
 \newpage
