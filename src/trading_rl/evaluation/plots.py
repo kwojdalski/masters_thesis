@@ -33,6 +33,7 @@ _RUN_DESCRIPTIONS: dict[str, str] = {
     "Deterministic": "greedy policy with no exploration noise",
     "Random": "uniformly sampled actions used as a baseline",
     "Buy-and-Hold": "buy at step 0 and hold for the full evaluation horizon",
+    "Short-and-Hold": "short at step 0 and hold for the full evaluation horizon",
     "Max Profit (Unleveraged)": "perfect-foresight upper bound — always trades in the correct direction",
     "TWAP": "equal-time execution — builds a long position uniformly over the evaluation horizon",
     "VWAP": "volume-weighted execution — builds a long position proportionally to market volume",
@@ -261,6 +262,8 @@ def create_actual_returns_plot(
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
+    show_buy_and_hold: bool = True,
+    show_short_and_hold: bool = False,
     show_max_profit: bool = False,
     show_twap: bool = False,
     show_vwap: bool = False,
@@ -376,10 +379,17 @@ def create_actual_returns_plot(
             )
             df_prices = None
         else:
-            buy_and_hold = np.log1p(benchmark_returns).cumsum()
-            buy_and_hold_values = initial_portfolio_value * np.exp(
-                np.asarray(buy_and_hold, dtype=float)
-            )
+            if show_buy_and_hold:
+                buy_and_hold = np.log1p(benchmark_returns).cumsum()
+                buy_and_hold_values = initial_portfolio_value * np.exp(
+                    np.asarray(buy_and_hold, dtype=float)
+                )
+
+            if show_short_and_hold:
+                short_and_hold = np.log1p(-benchmark_returns).cumsum()
+                short_and_hold_values = initial_portfolio_value * np.exp(
+                    np.asarray(short_and_hold, dtype=float)
+                )
 
             if show_max_profit:
                 max_profit = np.log1p(np.abs(benchmark_returns)).cumsum()
@@ -406,7 +416,10 @@ def create_actual_returns_plot(
                         vwap_values = initial_portfolio_value * np.cumprod(1.0 + vwap_simple)
 
     if df_prices is not None:
-        _extend_with_stride("Buy-and-Hold", buy_and_hold_values)
+        if show_buy_and_hold:
+            _extend_with_stride("Buy-and-Hold", buy_and_hold_values)
+        if show_short_and_hold:
+            _extend_with_stride("Short-and-Hold", short_and_hold_values)
         if show_max_profit:
             _extend_with_stride("Max Profit (Unleveraged)", max_profit_values)
         if show_twap:

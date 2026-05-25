@@ -204,6 +204,8 @@ class EvaluateCommand(BaseCommand):
                     eval_plots=tuple(getattr(config.evaluation, "eval_plots", ("rewards", "positions", "portfolio_value"))),
                     training_steps=int(meta["total_count"]) if meta.get("total_count") is not None else None,
                     training_episodes=int(meta["total_episodes"]) if meta.get("total_episodes") is not None else None,
+                    show_buy_and_hold=getattr(getattr(config, "benchmarks", None), "buy_and_hold", True),
+                    show_short_and_hold=getattr(getattr(config, "benchmarks", None), "short_and_hold", False),
                     show_twap=getattr(getattr(config, "benchmarks", None), "twap", False),
                     show_vwap=getattr(getattr(config, "benchmarks", None), "vwap", False),
                 )

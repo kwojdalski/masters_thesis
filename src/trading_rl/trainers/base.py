@@ -114,6 +114,8 @@ def _run_evaluation(
             "eval_plots": tuple(getattr(getattr(config, "evaluation", None), "eval_plots", _default_eval_plots)),
             "training_steps": int(trainer.total_count) if trainer is not None else None,
             "training_episodes": int(trainer.total_episodes) if trainer is not None else None,
+            "show_buy_and_hold": getattr(getattr(config, "benchmarks", None), "buy_and_hold", True),
+            "show_short_and_hold": getattr(getattr(config, "benchmarks", None), "short_and_hold", False),
             "show_twap": getattr(getattr(config, "benchmarks", None), "twap", False),
             "show_vwap": getattr(getattr(config, "benchmarks", None), "vwap", False),
             "env": EnvConfig(
@@ -164,6 +166,8 @@ def _run_evaluation(
                     if config else DEFAULT_INITIAL_PORTFOLIO_VALUE
                 ),
                 benchmark_price_column=getattr(config.env, "price_column", None) or "close" if config else "close",
+                show_buy_and_hold=config.benchmarks.buy_and_hold if config else True,
+                show_short_and_hold=config.benchmarks.short_and_hold if config else False,
                 show_max_profit=config.benchmarks.show_max_profit if config else True,
                 show_twap=config.benchmarks.twap if config else False,
                 show_vwap=config.benchmarks.vwap if config else False,

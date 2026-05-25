@@ -21,7 +21,7 @@ PALETTE: dict[str, str] = {
     "Max Profit (Unleveraged)": "#009E73",  # green
     "TWAP":          "#56B4E9",       # sky blue
     "VWAP":          "#D55E00",       # vermillion
-    "accent":        "#CC79A7",       # pink — spare accent colour
+    "Short-and-Hold": "#CC79A7",      # pink
 }
 
 # Single figure width that fits inside A4 / US-Letter thesis margins
