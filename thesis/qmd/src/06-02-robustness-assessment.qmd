@@ -86,7 +86,10 @@ directly connected to the current empirical design:
    changes in the chronological split or training-window length.
 
 These dimensions are sufficient to test if the conclusions here are
-specific to one narrow setup or remain credible under nearby variations.
+specific to one narrow setup or remain credible under nearby variations. The
+exported results cover feature specification, reward design, and transaction
+cost directly. Random-seed and data-split sensitivity remain limitations rather
+than completed robustness checks in the current empirical package.
 
 ### Robustness Matrix for Experimental Reporting
 <!-- [PLACEHOLDER] -->
@@ -197,10 +200,11 @@ _H2_SCENARIOS = [
 _H2_COLS = [
     ("sharpe_ratio",          "Sharpe",    ".3f"),
     ("sortino_ratio",         "Sortino",   ".3f"),
-    ("total_return",          "Return",    ".2%"),
-    ("max_drawdown",          "Max DD",    ".2%"),
+    ("total_return",          "Return",    ".2e"),
+    ("max_drawdown",          "Max DD",    ".2e"),
     ("win_rate",              "Win Rate",  ".2%"),
     ("profit_factor",         "PF",        ".3f"),
+    ("turnover",              "Turnover",  ".4f"),
     ("annualized_volatility", "Ann. Vol",  ".3f"),
 ]
 
@@ -251,13 +255,30 @@ else:
     display(HTML(h2_df.to_html(index=False)))
 ```
 
+The feature comparison supports a qualified version of H2. The minimal
+three-feature representation produces a negative cumulative return
+($-3.45 \times 10^{-8}$), a profit factor below one, and a short-biased policy
+that spends 77.2% of the evaluation window short. The selected 10-feature
+microstructure representation improves the result to a positive cumulative
+return ($1.29 \times 10^{-7}$), a profit factor of 2.01, and a materially
+stronger Sortino ratio under the same data and evaluation protocol.
+
+The full 33-feature representation does not improve further. It remains
+positive on cumulative return ($2.68 \times 10^{-8}$), but underperforms the
+selected representation on return, drawdown, profit factor, and turnover. This
+suggests that the benefit comes from adding relevant microstructure information,
+not from maximizing feature count. For this thesis, H2 is therefore supported
+for the transition from a minimal snapshot representation to the selected
+microstructure-aware state, but not for the claim that every broader feature set
+is better.
+
 ## H3: Sensitivity Analysis
 <!-- [PLACEHOLDER] -->
 
-This section reports three sensitivity axes: feature specification, reward
-design, and transaction cost. Each axis holds all other design choices constant.
-The shared baseline across all axes is the selected (10-feature) set with log
-return reward and zero transaction cost.
+This section reports reward-design and transaction-cost sensitivity. Feature
+specification is reported separately in H2 above. Each axis holds all other
+design choices constant. The shared baseline across both H3 axes is the selected
+10-feature set with log return reward and zero transaction cost.
 
 ```{python}
 #| label: h3_sensitivity_tables
@@ -293,10 +314,11 @@ _H3_AXES = [
 _H3_COLS = [
     ("sharpe_ratio",  "Sharpe",   ".3f"),
     ("sortino_ratio", "Sortino",  ".3f"),
-    ("total_return",  "Return",   ".2%"),
-    ("max_drawdown",  "Max DD",   ".2%"),
+    ("total_return",  "Return",   ".2e"),
+    ("max_drawdown",  "Max DD",   ".2e"),
     ("win_rate",      "Win Rate", ".2%"),
     ("profit_factor", "PF",       ".3f"),
+    ("turnover",      "Turnover", ".4f"),
 ]
 
 def _fmtv(val, fmt):
@@ -322,3 +344,28 @@ for axis in _H3_AXES:
         print(f"\n**{axis['label']}**")
         display(HTML(df.to_html(index=False)))
 ```
+
+The reward-design comparison shows that Differential Sharpe Ratio optimization
+changes the learned policy in an economically meaningful direction. Relative to
+the log-return baseline, the DSR run increases cumulative return from
+$1.29 \times 10^{-7}$ to $2.28 \times 10^{-7}$, improves profit factor from
+2.01 to 5.70, and reduces maximum drawdown from $-1.93 \times 10^{-7}$ to
+$-1.05 \times 10^{-7}$. The DSR policy is also more balanced in exposure,
+moving from an 86.7% long policy under log-return reward to an approximately
+neutral 49.8% long and 50.2% short distribution. This supports the reward-design
+part of H3: the reward objective materially affects both performance and policy
+behavior.
+
+The transaction-cost comparison places a sharper bound on the economic claim.
+At 0.01 basis points the TD3 policy remains marginally positive
+($2.28 \times 10^{-7}$) but with a weaker profit factor than the zero-fee DSR
+run. At 0.1 basis points, cumulative return turns negative
+($-7.60 \times 10^{-7}$), and at 1 basis point the loss increases to
+$-5.89 \times 10^{-6}$. The direction of the result is unambiguous: the
+observed edge exists only under very low transaction-cost assumptions. This
+supports H3 and also limits the practical interpretation of H1.
+
+Overall, the robustness evidence is strongest for feature specification,
+reward-design sensitivity, and transaction-cost sensitivity. It is not yet
+strong evidence of robustness across market regimes, longer samples, alternative
+chronological splits, or repeated random seeds.
