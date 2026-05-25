@@ -124,6 +124,48 @@ class BenchmarkName(StrEnum):
     RANDOM_ACTIONS = "random_actions"
 
 
+class MetricName(StrEnum):
+    """Financial performance metric identifiers.
+
+    Values match MetricReport field names exactly, enabling dict-based
+    filtering without string literals scattered through calling code.
+
+    Excluded from HFT configs: ANNUALIZED_RETURN_CAGR, CALMAR_RATIO —
+    both annualise intra-session tick returns, producing misleading numbers
+    on a data horizon of hours rather than years.
+    """
+
+    TOTAL_RETURN = "total_return"
+    ANNUALIZED_RETURN_CAGR = "annualized_return_cagr"
+    ANNUALIZED_VOLATILITY = "annualized_volatility"
+    SHARPE_RATIO = "sharpe_ratio"
+    SORTINO_RATIO = "sortino_ratio"
+    CALMAR_RATIO = "calmar_ratio"
+    OMEGA_RATIO = "omega_ratio"
+    MAX_DRAWDOWN = "max_drawdown"
+    AVERAGE_DRAWDOWN = "average_drawdown"
+    MAX_DRAWDOWN_DURATION = "max_drawdown_duration"
+    RECOVERY_TIME_FROM_MAX_DRAWDOWN = "recovery_time_from_max_drawdown"
+    VAR_95 = "var_95"
+    CVAR_95 = "cvar_95"
+    DOWNSIDE_DEVIATION = "downside_deviation"
+    RETURN_SKEWNESS = "return_skewness"
+    RETURN_KURTOSIS = "return_kurtosis"
+    WIN_RATE = "win_rate"
+    LOSE_RATE = "lose_rate"
+    PROFIT_FACTOR = "profit_factor"
+    PAYOFF_RATIO = "payoff_ratio"
+    EXPECTANCY_PER_PERIOD = "expectancy_per_period"
+    TURNOVER = "turnover"
+    AVERAGE_HOLDING_PERIOD = "average_holding_period"
+    PCT_LONG = "pct_long"
+    PCT_SHORT = "pct_short"
+    BETA = "beta"
+    ALPHA = "alpha"
+    INFORMATION_RATIO = "information_ratio"
+    TRACKING_ERROR = "tracking_error"
+
+
 class MBOSide(StrEnum):
     """Order book side codes used in Databento MBO records."""
 

@@ -222,7 +222,7 @@ class TrainerRuntimeHooks:
                         reward_plot=reward_plot,
                         action_plot=action_plot,
                         action_probs_plot=action_probs_plot,
-                        actual_returns_plot=equity_curve_plot,
+                        equity_curve_plot=equity_curve_plot,
                         logs=None,
                         merged_plot=merged_plot,
                         artifact_path_prefix=artifact_prefix,

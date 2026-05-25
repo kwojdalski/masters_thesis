@@ -11,7 +11,39 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, RewardType, SplitName, StatisticalTest, TradePosition
+from trading_rl.constants import Algorithm, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, MetricName, RewardType, SplitName, StatisticalTest, TradePosition
+
+# HFT-appropriate metric set: excludes CAGR and Calmar, which annualise
+# intra-session tick returns and produce misleading values on sub-day horizons.
+_HFT_DEFAULT_METRICS: list[MetricName] = [
+    MetricName.TOTAL_RETURN,
+    MetricName.ANNUALIZED_VOLATILITY,
+    MetricName.SHARPE_RATIO,
+    MetricName.SORTINO_RATIO,
+    MetricName.OMEGA_RATIO,
+    MetricName.MAX_DRAWDOWN,
+    MetricName.AVERAGE_DRAWDOWN,
+    MetricName.MAX_DRAWDOWN_DURATION,
+    MetricName.RECOVERY_TIME_FROM_MAX_DRAWDOWN,
+    MetricName.VAR_95,
+    MetricName.CVAR_95,
+    MetricName.DOWNSIDE_DEVIATION,
+    MetricName.RETURN_SKEWNESS,
+    MetricName.RETURN_KURTOSIS,
+    MetricName.WIN_RATE,
+    MetricName.LOSE_RATE,
+    MetricName.PROFIT_FACTOR,
+    MetricName.PAYOFF_RATIO,
+    MetricName.EXPECTANCY_PER_PERIOD,
+    MetricName.TURNOVER,
+    MetricName.AVERAGE_HOLDING_PERIOD,
+    MetricName.PCT_LONG,
+    MetricName.PCT_SHORT,
+    MetricName.BETA,
+    MetricName.ALPHA,
+    MetricName.INFORMATION_RATIO,
+    MetricName.TRACKING_ERROR,
+]
 
 
 @dataclass
@@ -268,6 +300,24 @@ class BenchmarksConfig:
 
 
 @dataclass
+class MetricsConfig:
+    """Controls which financial metrics are included in evaluation reports.
+
+    The default set omits annualised-return metrics (CAGR, Calmar) because
+    this project evaluates HFT strategies on intra-session tick data where
+    annualisation produces misleading values.  Set ``enabled`` to
+    ``list(MetricName)`` if you need all 29 metrics.
+    """
+
+    enabled: list[MetricName] = field(default_factory=lambda: list(_HFT_DEFAULT_METRICS))
+
+    @property
+    def enabled_set(self) -> frozenset[str]:
+        """Return enabled metric names as a frozenset of strings for fast lookup."""
+        return frozenset(self.enabled)
+
+
+@dataclass
 class StatisticalTestingConfig:
     """Statistical significance testing configuration for equity curves."""
 
@@ -303,6 +353,7 @@ class ExperimentConfig:
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
     explainability: ExplainabilityConfig = field(default_factory=ExplainabilityConfig)
     benchmarks: BenchmarksConfig = field(default_factory=BenchmarksConfig)
+    metrics: MetricsConfig = field(default_factory=MetricsConfig)
     statistical_testing: StatisticalTestingConfig = field(default_factory=StatisticalTestingConfig)
     profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
 
@@ -789,6 +840,12 @@ class ExperimentConfig:
         for key, value in bench_dict.items():
             if hasattr(config.benchmarks, key):
                 setattr(config.benchmarks, key, value)
+
+        if "metrics" in config_dict:
+            metrics_dict = config_dict["metrics"]
+            if "enabled" in metrics_dict:
+                raw = metrics_dict["enabled"]
+                config.metrics.enabled = [MetricName(v) for v in raw]
 
         return config
 

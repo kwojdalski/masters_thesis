@@ -71,6 +71,17 @@ class MetricReport:
         """Return a plain dict representation (keys identical to field names)."""
         return dataclasses.asdict(self)
 
+    def to_filtered_dict(self, enabled: "frozenset[str] | None") -> dict[str, float]:
+        """Return a dict containing only the specified metric names.
+
+        Args:
+            enabled: Set of field names to include.  None means return all fields.
+        """
+        full = dataclasses.asdict(self)
+        if enabled is None:
+            return full
+        return {k: v for k, v in full.items() if k in enabled}
+
     @classmethod
     def all_nan(cls) -> "MetricReport":
         """Return a MetricReport with every field set to NaN."""

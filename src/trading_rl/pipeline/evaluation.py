@@ -329,7 +329,7 @@ def evaluate_split(
             reward_plot=reward_plot,
             action_plot=action_plot,
             action_probs_plot=action_probs_plot,
-            actual_returns_plot=equity_curve_plot,
+            equity_curve_plot=equity_curve_plot,
             logs=logs,
             merged_plot=merged_plot,
             artifact_path_prefix=ArtifactPaths.eval_plots(split),

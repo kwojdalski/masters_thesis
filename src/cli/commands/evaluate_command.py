@@ -271,15 +271,17 @@ class EvaluateCommand(BaseCommand):
                                 periods_per_year=periods_py,
                                 risk_free_rate_annual=0.0,
                             )
+                            _enabled = getattr(getattr(config, "metrics", None), "enabled_set", None)
                             bench_out[spec.name] = {
-                                "benchmark_metrics": bench_own.to_dict(),
+                                "benchmark_metrics": bench_own.to_filtered_dict(_enabled),
                                 "relative_metrics": {
                                     k: getattr(bench_rel, k)
                                     for k in ("alpha", "beta", "information_ratio", "tracking_error")
                                 },
                             }
                         split_output["benchmarks"] = bench_out
-                        strategy_dict = result.metrics.to_dict() if result.metrics else None
+                        _enabled = getattr(getattr(config, "metrics", None), "enabled_set", None)
+                        strategy_dict = result.metrics.to_filtered_dict(_enabled) if result.metrics else None
                         self._print_benchmark_table(split, bench_out, strategy_dict)
                         json_p, png_p = save_benchmark_table_artifact(
                             split, split_df, bench_out, strategy_dict, params.output_dir

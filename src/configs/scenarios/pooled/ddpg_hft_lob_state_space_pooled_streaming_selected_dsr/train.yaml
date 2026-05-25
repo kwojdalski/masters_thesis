@@ -91,3 +91,33 @@ benchmarks:
   vwap: true
   show_max_profit: true
   temp_explainability_interval: 100000
+
+metrics:
+  enabled:
+    - total_return
+    - annualized_volatility
+    - sharpe_ratio
+    - sortino_ratio
+    - omega_ratio
+    - max_drawdown
+    - average_drawdown
+    - max_drawdown_duration
+    - recovery_time_from_max_drawdown
+    - var_95
+    - cvar_95
+    - downside_deviation
+    - return_skewness
+    - return_kurtosis
+    - win_rate
+    - lose_rate
+    - profit_factor
+    - payoff_ratio
+    - expectancy_per_period
+    - turnover
+    - average_holding_period
+    - pct_long
+    - pct_short
+    - beta
+    - alpha
+    - information_ratio
+    - tracking_error
