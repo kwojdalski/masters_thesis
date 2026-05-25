@@ -108,6 +108,14 @@ class ReturnSeries:
         if initial_value <= 0:
             raise ValueError(f"initial_value must be > 0, got {initial_value}")
         if self.kind == ReturnKind.EQUITY:
+            if self.includes_initial and self.values.size > 0 and self.values[0] != 0:
+                scale = initial_value / self.values[0]
+                return ReturnSeries(
+                    self.values * scale,
+                    ReturnKind.EQUITY,
+                    self.name,
+                    includes_initial=self.includes_initial,
+                )
             return self
         cumulative = self.to_cumulative_log(include_initial=True).values
         return ReturnSeries(

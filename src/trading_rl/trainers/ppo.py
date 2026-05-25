@@ -83,13 +83,19 @@ class PPOTrainer(BaseTrainer):
             normalize_advantage=True,
         )
 
-        # Single optimizer for both actor and critic (PPO style)
-        self.optimizer = Adam(
-            list(self.ppo_loss.actor_network_params.values(True, True))
-            + list(self.ppo_loss.critic_network_params.values(True, True)),
-            lr=config.actor_lr,  # Use actor_lr as base learning rate
-            weight_decay=getattr(config, "value_weight_decay", 0.0),
-        )
+        # Separate optimizers with distinct weight decay for actor vs critic
+        self.optimizer = Adam([
+            {
+                "params": list(self.ppo_loss.actor_network_params.values(True, True)),
+                "lr": config.actor_lr,
+                "weight_decay": getattr(config, "actor_weight_decay", 0.0),
+            },
+            {
+                "params": list(self.ppo_loss.critic_network_params.values(True, True)),
+                "lr": getattr(config, "value_lr", config.actor_lr),
+                "weight_decay": getattr(config, "value_weight_decay", 0.0),
+            },
+        ])
 
         # Note: Don't set composite LP aggregate for PPO to avoid conflicts
         # with log_prob_key property
@@ -548,7 +554,9 @@ class PPOTrainer(BaseTrainer):
                 if hasattr(obs, "get"):
                     done_tensor = obs.get("done", torch.tensor([False]))
                 if done_tensor is not None and torch.as_tensor(done_tensor).any():
-                    break
+                    obs = env_to_use.reset()
+                    current_episode_steps = 0
+                    continue
 
         df_probs = pd.DataFrame(action_probs_data)
         action_order = [pos.name.capitalize() for pos in TradePosition]
@@ -717,7 +725,9 @@ class PPOTrainerContinuous(PPOTrainer):
                 if hasattr(obs, "get"):
                     done_tensor = obs.get("done", torch.tensor([False]))
                 if done_tensor is not None and torch.as_tensor(done_tensor).any():
-                    break
+                    obs = env_to_use.reset()
+                    current_episode_steps = 0
+                    continue
 
         # --- Plotting ---
         df_cont = pd.DataFrame(continuous_data)
