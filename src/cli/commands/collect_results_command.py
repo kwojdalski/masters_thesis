@@ -24,11 +24,9 @@ class CollectResultsParams:
 
 _METRIC_KEYS = [
     "total_return",
-    "annualized_return_cagr",
     "annualized_volatility",
     "sharpe_ratio",
     "sortino_ratio",
-    "calmar_ratio",
     "max_drawdown",
     "win_rate",
     "profit_factor",

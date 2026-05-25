@@ -23,7 +23,6 @@ _ALL_COMPONENTS = frozenset({"metrics", "benchmarks", "plots", "stats"})
 
 _PERF_ROWS = [
     ("total_return", "Total Return", ".2%"),
-    ("annualized_return_cagr", "CAGR", ".2%"),
     ("sharpe_ratio", "Sharpe Ratio", ".3f"),
     ("sortino_ratio", "Sortino Ratio", ".3f"),
     ("max_drawdown", "Max Drawdown", ".2%"),
@@ -627,10 +626,7 @@ class EvaluateCommand(BaseCommand):
         for key, label, fmt in _PERF_ROWS:
             if key in metrics:
                 val = metrics[key]
-                if key == "annualized_return_cagr" and (not isinstance(val, float) or not (val == val) or abs(val) > 1000.0):
-                    table.add_row(label, "—")
-                else:
-                    table.add_row(label, f"{val:{fmt}}")
+                table.add_row(label, f"{val:{fmt}}")
         self.console.print(table)
 
     def _print_benchmark_table(

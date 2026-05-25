@@ -68,8 +68,6 @@ def load_results(log_dir: Path, split: str) -> dict[str, Any]:
 def fmt(key: str, val: Any, fmt_str: str) -> str:
     if val is None or not isinstance(val, (int, float)):
         return "—"
-    if key in ("annualized_return_cagr",) and abs(val) > 1000.0:
-        return "—"
     try:
         return f"{val:{fmt_str}}"
     except (ValueError, TypeError):

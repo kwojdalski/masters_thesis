@@ -29,7 +29,6 @@ _METRICS: list[tuple[str, str, str]] = [
     ("sharpe_ratio",           "Sharpe",    ".3f"),
     ("sortino_ratio",          "Sortino",   ".3f"),
     ("total_return",           "Return",    ".2%"),
-    ("annualized_return_cagr", "CAGR",      ".2%"),
     ("max_drawdown",           "Max DD",    ".2%"),
     ("win_rate",               "Win Rate",  ".2%"),
     ("profit_factor",          "PF",        ".3f"),
@@ -55,8 +54,6 @@ def load_metrics(log_dir: Path, split: str) -> dict[str, float]:
 
 def fmt_val(key: str, val: Any, fmt: str) -> str:
     if val is None or not isinstance(val, (int, float)):
-        return "—"
-    if key == "annualized_return_cagr" and abs(val) > 1000.0:
         return "—"
     try:
         return f"{val:{fmt}}"
@@ -144,7 +141,6 @@ def main() -> None:
         "[cyan]Sharpe[/cyan]    Annualised Sharpe ratio (higher is better).",
         "[cyan]Sortino[/cyan]   Annualised Sortino ratio (downside-only penalty).",
         "[cyan]Return[/cyan]    Cumulative portfolio return over the evaluation horizon.",
-        "[cyan]CAGR[/cyan]      Compound annual growth rate; shown as — when horizon too short.",
         "[cyan]Max DD[/cyan]    Maximum peak-to-trough drawdown (lower magnitude is better).",
         "[cyan]Win Rate[/cyan]  Fraction of steps with positive return.",
         "[cyan]PF[/cyan]        Profit factor: gross profit / gross loss (> 1 = profitable).",

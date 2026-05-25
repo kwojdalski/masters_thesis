@@ -13,10 +13,8 @@ import pandas as pd
 # Columns shown in both JSON and the rendered PNG.
 PERF_COLS: list[tuple[str, str, str]] = [
     ("total_return",           "Total Return",  ".2%"),
-    ("annualized_return_cagr", "CAGR",          ".2%"),
     ("sharpe_ratio",           "Sharpe",        ".3f"),
     ("sortino_ratio",          "Sortino",       ".3f"),
-    ("calmar_ratio",           "Calmar",        ".3f"),
     ("max_drawdown",           "Max DD",        ".2%"),
     ("win_rate",               "Win Rate",      ".2%"),
     ("profit_factor",          "Profit Factor", ".3f"),

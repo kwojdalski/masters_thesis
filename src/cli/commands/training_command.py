@@ -314,7 +314,6 @@ class TrainingCommand(BaseCommand):
 
         _perf_metrics = [
             ("total_return", "Total Return", ".2%"),
-            ("annualized_return_cagr", "CAGR", ".2%"),
             ("sharpe_ratio", "Sharpe Ratio", ".3f"),
             ("sortino_ratio", "Sortino Ratio", ".3f"),
             ("max_drawdown", "Max Drawdown", ".2%"),
@@ -349,10 +348,7 @@ class TrainingCommand(BaseCommand):
             for key, display_name, fmt in _perf_metrics:
                 if key in report_dict:
                     val = report_dict[key]
-                    if key == "annualized_return_cagr" and (not isinstance(val, float) or not (val == val) or abs(val) > 1000.0):
-                        t.add_row(display_name, "—")
-                    else:
-                        t.add_row(display_name, f"{val:{fmt}}")
+                    t.add_row(display_name, f"{val:{fmt}}")
             perf_tables.append(t)
 
         self.console.print(Columns([run_table, steps_table, *perf_tables]))
@@ -366,7 +362,6 @@ class TrainingCommand(BaseCommand):
             "[cyan]Eval Horizon[/cyan]       Number of steps used for each evaluation rollout.",
             "[cyan]Final Reward[/cyan]       Raw reward signal at the last training step.",
             "[cyan]Total Return[/cyan]       Cumulative portfolio return over the evaluation horizon.",
-            "[cyan]CAGR[/cyan]               Compound Annual Growth Rate — total return annualised.",
             "[cyan]Sharpe Ratio[/cyan]       Mean excess return divided by its standard deviation, annualised.",
             "[cyan]Sortino Ratio[/cyan]      Like Sharpe but penalises only downside deviation.",
             "[cyan]Max Drawdown[/cyan]       Largest peak-to-trough decline in portfolio value.",
