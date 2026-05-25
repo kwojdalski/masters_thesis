@@ -58,9 +58,11 @@ actions.
 
 All three algorithms are trained on the same training split with identical
 hyperparameter tuning procedures, evaluated on the same held-out test split, and
-assessed using the same financial metrics. Multiple random seeds are used for
-each algorithm to account for training variability, and statistical significance
-tests are performed to determine whether observed differences are meaningful.
+assessed using the same financial metrics. The exported thesis snapshots report
+one completed evaluation run per algorithm for the final comparison. The
+comparison should therefore be read as matched experimental evidence on the
+available exports, not as a multi-seed estimate of the population distribution
+of outcomes.
 
 ### Performance Comparison
 
@@ -86,14 +88,15 @@ _H1_AGENTS = [
 ]
 
 _H1_COLS = [
-    ("total_return",          "Return",    ".2%"),
+    ("total_return",          "Return",    ".2e"),
     ("annualized_volatility", "Ann. Vol",  ".4f"),
-    ("max_drawdown",          "Max DD",    ".2%"),
+    ("max_drawdown",          "Max DD",    ".2e"),
     ("sharpe_ratio",          "Sharpe",    ".3f"),
     ("sortino_ratio",         "Sortino",   ".3f"),
     ("win_rate",              "Win Rate",  ".2%"),
     ("lose_rate",             "Lose Rate", ".2%"),
     ("profit_factor",         "PF",        ".3f"),
+    ("turnover",              "Turnover",  ".4f"),
     ("pct_long",              "% Long",    ".2%"),
     ("pct_short",             "% Short",   ".2%"),
 ]
@@ -221,6 +224,15 @@ This comparison provides empirical grounding for the algorithmic choices made
 in this study and offers guidance for algorithm selection in similar
 continuous-action trading applications.
 
+The H1 evidence is therefore mixed rather than unambiguously supportive. TD3
+clearly improves on DDPG and dominates the short-and-hold benchmark, while also
+showing substantially better drawdown control than the high-turnover random
+policy. It does not, however, dominate PPO or passive long exposure on
+cumulative return in the zero-fee evaluation window. The defensible H1 verdict is
+that TD3 learns a conservative, economically coherent policy with strong
+drawdown control and trade quality, but the exported results do not establish
+general benchmark dominance on absolute return.
+
 ## Evaluation Protocol
 <!-- [PLACEHOLDER] -->
 
@@ -301,4 +313,3 @@ if snapshot.latest_running:
 else:
     print("No active run detected for the selected experiment.")
 ```
-
