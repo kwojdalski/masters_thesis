@@ -79,7 +79,7 @@ training:
   eval_interval: 1000
   log_interval: 100
 evaluation:
-  eval_fraction: 0.2
+  eval_fraction: 1.0
 
 logging:
   log_level: INFO
