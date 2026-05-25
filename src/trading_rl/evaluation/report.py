@@ -37,24 +37,43 @@ def periods_per_year_from_timeframe(timeframe: str) -> int:
 def _periods_per_year_from_index(df: pd.DataFrame) -> int | None:
     """Derive annualization factor from a DataFrame's DatetimeIndex.
 
-    Uses the median positive timestamp delta so overnight/weekend gaps do not
-    dilute the inferred bar frequency. Returns None when the index is not a
-    DatetimeIndex or contains fewer than two usable timestamps.
+    For daily-or-lower frequency data we use the median positive delta (so
+    overnight/weekend gaps do not dilute the inferred bar frequency).
+    For sub-daily data we use total_time_span / n_rows instead of the median
+    delta, because LOB / tick data is bursty: events cluster at microsecond
+    intervals separated by multi-millisecond quiet periods.  The median
+    captures the burst rate (e.g. 17µs) rather than the typical observation
+    rate (e.g. 7.5ms), overstating ppy by ~150× and making the bar-aggregation
+    think 50k ticks cover 1-2 seconds rather than the actual 5-6 minutes.
+
+    Returns None when the index is not a DatetimeIndex or contains fewer than
+    two usable timestamps.
     """
     if not isinstance(df.index, pd.DatetimeIndex) or len(df) < 2:
         return None
+    seconds_per_day = 24 * 3600
+    trading_seconds_per_year = 252 * 6.5 * 3600  # 5,896,800
+
+    # Use median positive delta only to determine the coarse regime (weekly/daily).
     deltas = df.index.to_series().diff().dropna().dt.total_seconds().to_numpy()
     positive_deltas = deltas[deltas > 0]
     if positive_deltas.size == 0:
         return None
     median_delta = float(np.median(positive_deltas))
-    seconds_per_day = 24 * 3600
+
     if median_delta >= 5 * seconds_per_day:
         return 52
     if median_delta >= seconds_per_day:
         return 252
-    trading_seconds_per_year = 252 * 6.5 * 3600  # 5,896,800
-    return max(1, round(trading_seconds_per_year / median_delta))
+
+    # Sub-daily: use time-span / n_rows to get the effective observation rate.
+    # This is robust to burstiness — it measures how many rows actually exist
+    # per second of market time, regardless of how they cluster within that time.
+    total_seconds = (df.index[-1] - df.index[0]).total_seconds()
+    if total_seconds <= 0:
+        return max(1, round(trading_seconds_per_year / median_delta))
+    effective_delta = total_seconds / (len(df) - 1)
+    return max(1, round(trading_seconds_per_year / effective_delta))
 
 
 def _extract_action_array(
