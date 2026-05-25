@@ -17,7 +17,7 @@ from logger import get_logger
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
-from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
+from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _log_network_stats, BaseTrainer
 
 logger = get_logger(__name__)
 
@@ -396,6 +396,9 @@ class TD3Trainer(BaseTrainer):
             "td3 step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f",
             max_length, buffer_len, curr_loss_value, curr_loss_actor,
         )
+
+        if logger.isEnabledFor(logging.DEBUG):
+            _log_network_stats(logger, "td3", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
         with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():

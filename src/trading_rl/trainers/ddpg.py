@@ -14,7 +14,7 @@ from torchrl.objectives import DDPGLoss, SoftUpdate
 from logger import get_logger
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.models import create_ddpg_actor, create_value_network
-from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, BaseTrainer
+from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _log_network_stats, BaseTrainer
 
 logger = get_logger(__name__)
 
@@ -242,13 +242,6 @@ class DDPGTrainer(BaseTrainer):
             raise error
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
-        """Log training progress.
-
-        Args:
-            max_length: Maximum episode length
-            buffer_len: Replay buffer size
-            loss_vals: Current loss values
-        """
         curr_loss_value = loss_vals["loss_value"].item()
         curr_loss_actor = loss_vals["loss_actor"].item()
 
@@ -256,6 +249,9 @@ class DDPGTrainer(BaseTrainer):
             "ddpg step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f",
             max_length, buffer_len, curr_loss_value, curr_loss_actor,
         )
+
+        if logger.isEnabledFor(logging.DEBUG):
+            _log_network_stats(logger, "ddpg", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
         """Evaluate current policy."""

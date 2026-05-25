@@ -32,7 +32,7 @@ from trading_rl.models import (
     create_ppo_actor,
     create_ppo_value_network,
 )
-from trading_rl.trainers.base import BaseTrainer
+from trading_rl.trainers.base import _log_network_stats, BaseTrainer
 
 logger = get_logger(__name__)
 
@@ -191,13 +191,6 @@ class PPOTrainer(BaseTrainer):
                 self._evaluate()
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
-        """Log PPO training progress.
-
-        Args:
-            max_length: Maximum episode length
-            buffer_len: Replay buffer size
-            loss_vals: Current loss values
-        """
         curr_loss_actor = loss_vals["loss_objective"].item()
         curr_loss_value = loss_vals["loss_critic"].item()
         curr_loss_entropy = loss_vals["loss_entropy"].item()
@@ -206,6 +199,9 @@ class PPOTrainer(BaseTrainer):
             "ppo step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f loss_entropy=%.4f",
             max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
         )
+
+        if logger.isEnabledFor(logging.DEBUG):
+            _log_network_stats(logger, "ppo", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
         """Evaluate current PPO policy."""

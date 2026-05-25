@@ -30,6 +30,38 @@ from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
 
 
+def _log_network_stats(log, algo: str, actor: torch.nn.Module, critic: torch.nn.Module) -> None:
+    """Emit a DEBUG line with parameter and gradient statistics for actor and critic.
+
+    Logged metrics per network:
+      - param_abs_sum  : sum of |w| across all parameters
+      - param_norm     : L2 norm of all parameters concatenated
+      - grad_norm      : L2 norm of all *gradients* (0.0 if no backward pass yet)
+      - n_params       : total scalar parameter count
+    """
+    def _stats(net: torch.nn.Module) -> tuple[float, float, float, int]:
+        params = list(net.parameters())
+        abs_sum = sum(p.detach().abs().sum().item() for p in params)
+        norm = sum(p.detach().pow(2).sum().item() for p in params) ** 0.5
+        grad_norm = sum(
+            p.grad.detach().pow(2).sum().item()
+            for p in params if p.grad is not None
+        ) ** 0.5
+        n = sum(p.numel() for p in params)
+        return abs_sum, norm, grad_norm, n
+
+    a_abs, a_norm, a_gnorm, a_n = _stats(actor)
+    c_abs, c_norm, c_gnorm, c_n = _stats(critic)
+    log.debug(
+        "%s network_stats "
+        "actor_abs_sum=%.4f actor_norm=%.4f actor_grad_norm=%.4f actor_n_params=%d "
+        "critic_abs_sum=%.4f critic_norm=%.4f critic_grad_norm=%.4f critic_n_params=%d",
+        algo,
+        a_abs, a_norm, a_gnorm, a_n,
+        c_abs, c_norm, c_gnorm, c_n,
+    )
+
+
 
 class _LocalTrajectoryPool:
     """Minimal trajectory pool that avoids shared memory requirements."""
