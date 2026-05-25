@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
+import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
+from logger import get_logger as _get_logger
 from trading_rl.pipeline.checkpoint import setup_checkpoint_resumption
 from trading_rl.pipeline.evaluation import (
     build_evaluation_context_for_split,
@@ -24,6 +28,82 @@ from trading_rl.pipeline.training import (
     setup_mlflow_experiment,
 )
 from trading_rl.profiler import init_profiler
+
+_logger = _get_logger(__name__)
+
+
+def _json_default(obj: Any) -> Any:
+    import numpy as np
+    from trading_rl.evaluation.metrics import MetricReport
+    if isinstance(obj, MetricReport):
+        return obj.to_dict()
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f"Not JSON serializable: {type(obj)}")
+
+
+def _sanitise(obj: Any) -> Any:
+    """Replace NaN/Inf with None so json.dumps produces valid JSON."""
+    if isinstance(obj, float):
+        return None if not math.isfinite(obj) else obj
+    if isinstance(obj, dict):
+        return {k: _sanitise(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitise(v) for v in obj]
+    return obj
+
+
+def save_training_results_json(config: Any, final_metrics: dict[str, Any]) -> Path | None:
+    """Write results.json to log_dir in the same format the evaluate command produces.
+
+    This lets export_eval_to_thesis.py work after a training run without
+    needing a separate evaluate step.
+    """
+    try:
+        from trading_rl.evaluation.metrics import MetricReport
+
+        split_results: dict[str, Any] = final_metrics.get("split_results", {})
+        if not split_results:
+            _logger.debug("save_training_results_json: no split_results, skipping")
+            return None
+
+        payload: dict[str, Any] = {}
+        for split_key, entry in split_results.items():
+            evaluation_report = entry.get("evaluation_report")
+            last_positions = entry.get("last_positions") or []
+            metrics_dict: dict[str, Any] | None = None
+            if isinstance(evaluation_report, MetricReport):
+                metrics_dict = {
+                    k: v for k, v in evaluation_report.to_dict().items()
+                    if isinstance(v, (int, float)) and math.isfinite(float(v))
+                }
+            elif isinstance(evaluation_report, dict):
+                metrics_dict = evaluation_report
+
+            payload[split_key] = {
+                "split": entry.get("split", split_key),
+                "final_reward": entry.get("final_reward"),
+                "n_steps": len(last_positions),
+                "metrics": metrics_dict or {},
+            }
+
+        out_path = Path(config.logging.log_dir) / "results.json"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(
+            json.dumps(_sanitise(payload), indent=2, default=_json_default),
+            encoding="utf-8",
+        )
+        _logger.info("results.json written path=%s", out_path)
+        return out_path
+    except Exception:
+        _logger.warning("save_training_results_json failed", exc_info=True)
+        return None
 
 
 @dataclass(frozen=True)
@@ -294,6 +374,8 @@ def execute_single_experiment(
         logger.info("training complete")
     logger.info("final reward=%.4f", final_reward)
     logger.info("save checkpoint path=%s", final_checkpoint_path)
+
+    save_training_results_json(config, final_metrics)
 
     profiler.print_table()
 
