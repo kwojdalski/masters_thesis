@@ -4,13 +4,17 @@
 This thesis examined if a continuous-control deep RL agent
 using order-book-derived microstructure features can achieve economically
 meaningful held-out performance in a high-frequency single-asset setting.
-Within the specified experimental design, the answer is affirmative. The TD3
-agent outperformed the evaluated benchmark strategies on risk-adjusted return
-metrics, and the richer microstructure-aware state representation produced a
-clear improvement over the simpler snapshot-based baseline. These findings
-support the central claim of the thesis: the informational content of the limit
-order book can be translated into state features that materially improve the
-behavior of an RL trading agent.
+Within the specified experimental design, the answer is qualified but
+affirmative. The TD3 agent learned a conservative policy with positive held-out
+return, very low drawdown, and a high profit factor, but it did not dominate
+passive long exposure or PPO on cumulative return in the upward-drifting
+evaluation window. The selected microstructure-aware state representation
+improved policy behavior relative to the minimal snapshot-based baseline, while
+the full 33-feature variant did not improve further. These findings support a
+narrow central claim: the informational content of the limit order book can be
+translated into state features that improve an RL trading agent's behavior under
+controlled simulation assumptions, but the exported results do not establish a
+benchmark-dominating trading strategy.
 
 The empirical contribution is accompanied by a methodological one. The thesis
 developed an end-to-end and reproducible pipeline covering feature engineering
@@ -25,9 +29,10 @@ discipline.
 At the same time, the conclusions must be interpreted within the limits of the
 experimental setup. The simulation uses a mid-price execution proxy rather than
 executable bid/ask fills, assumes zero market impact and zero latency, and is
-evaluated on a narrow three-day window of data from six instruments with a single random seed. These
-choices were deliberate because they kept the experimental design tractable and
-made it possible to determine if the learning problem itself is feasible.
+evaluated on a narrow four-day dataset from six instruments, with the final
+comparisons based on one completed exported run per configuration. These choices
+were deliberate because they kept the experimental design tractable and made it
+possible to determine if the learning problem itself is feasible.
 They also place a clear boundary on the claim being made. The thesis
 demonstrates feasibility, not deployability. The observed edge cannot yet be
 treated as evidence of a production-ready trading strategy, because realistic
@@ -43,7 +48,9 @@ in model architecture, because the results suggest that policy quality is driven
 primarily by the predictive content of the state representation. Third,
 stronger claims about generalization require broader temporal and cross-market
 evaluation, including longer windows, walk-forward validation, multiple random
-seeds, and eventually cross-asset testing.
+seeds, and eventually cross-asset testing. The transaction-cost experiments
+already show why this boundary matters: the TD3 result remains marginally
+positive only under very low fee assumptions and becomes negative as costs rise.
 
 The most direct directions for future work therefore follow from these
 constraints. The same agents should be re-evaluated under explicit bid/ask
@@ -82,6 +89,7 @@ feature engineering, and continuous-action actor-critic learning is a productive
 research direction for high-frequency trading. The defensible conclusion is a
 narrow one: under the conditions studied here, the learning problem is
 tractable and the chosen representation carries enough signal to produce a
-measurably superior policy in a controlled setting. That result provides a
-foundation for subsequent work aimed at testing whether the same approach
-survives under more realistic assumptions.
+measurably more coherent policy in a controlled setting. That result provides a
+foundation for subsequent work aimed at testing whether the same approach can
+survive under more realistic execution, broader market coverage, and repeated
+seed validation.
