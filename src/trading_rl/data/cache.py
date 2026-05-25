@@ -12,6 +12,7 @@ import yaml
 
 from logger import get_logger
 from trading_rl.constants import SplitName
+from trading_rl.features.base import NormalizationMethod
 from trading_rl.data_loading import MemmapPaths, load_memmap_paths
 
 logger = get_logger(__name__)
@@ -229,7 +230,7 @@ def _write_prepared_cache_metadata(
 def _pipeline_uses_global(feature_pipeline: Any) -> bool:
     """Return True if any normalised feature in the pipeline uses GLOBAL normalization."""
     return any(
-        fc.normalize and fc.normalization_method == "global"
+        fc.normalize and fc.normalization_method == NormalizationMethod.GLOBAL
         for fc in feature_pipeline.feature_configs
     )
 
@@ -239,12 +240,12 @@ def _yaml_uses_global(feature_config_path: str) -> bool:
     try:
         with open(feature_config_path) as f:
             cfg = yaml.safe_load(f)
-        global_default = cfg.get("normalization_method", "running") == "global"
+        global_default = cfg.get("normalization_method", NormalizationMethod.RUNNING) == NormalizationMethod.GLOBAL
         for fc in cfg.get("features", []):
             if not fc.get("normalize", False):
                 continue
-            method = fc.get("normalization_method", "global" if global_default else "running")
-            if method == "global":
+            method = fc.get("normalization_method", NormalizationMethod.GLOBAL if global_default else NormalizationMethod.RUNNING)
+            if method == NormalizationMethod.GLOBAL:
                 return True
     except Exception as exc:
         logger.debug("could not parse feature config for GLOBAL detection: %s", exc)
