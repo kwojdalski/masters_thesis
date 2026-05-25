@@ -27,6 +27,7 @@ class ReportingFrequency(Enum):
     MIN_5   = ("5m",  19_656)
     MIN_1   = ("1m",  98_280)
     SEC_15  = ("15s", 393_120)
+    SEC_5   = ("5s",  1_179_360)
 
     def __init__(self, label: str, periods_per_year: int) -> None:
         self.label = label
