@@ -623,7 +623,15 @@ def create_metrics_table_figure(
             rows.append((sec_label, meta.label, fmt_metric(meta.key, val)))
 
     BASE_SIZE = 11
-    fig_height = max(4.0, len(rows) * 0.30 + 1.2) * 1.3
+    LEGEND_FONT = BASE_SIZE - 3  # 8pt
+    from trading_rl.evaluation.metric_meta import METRIC_LEGEND
+    legend_lines = ["Legend:"] + [f"  {k}: {v}" for k, v in METRIC_LEGEND.items()]
+    n_legend_lines = len(legend_lines)
+    # Compute legend height in inches so it is always enough regardless of table size
+    legend_height_in = n_legend_lines * LEGEND_FONT * 1.4 / 72 + 0.35
+    table_height_in = max(3.5, len(rows) * 0.30 + 1.2) * 1.3
+    fig_height = table_height_in + legend_height_in
+    bottom_fraction = legend_height_in / fig_height
     fig, ax = plt.subplots(figsize=(6.0, fig_height))
     ax.axis("off")
 
@@ -672,19 +680,18 @@ def create_metrics_table_figure(
         for row_idx in range(len(rows) + 1):
             tbl[row_idx, col].set_width(w)
 
-    # Legend footer
-    from trading_rl.evaluation.metric_meta import METRIC_LEGEND
-    legend_text = "Legend:  " + "   ".join(f"{k}: {v}" for k, v in METRIC_LEGEND.items())
+    # Legend footer — placed in the reserved bottom strip (figure coordinates)
+    legend_text = "\n".join(legend_lines)
     fig.text(
         0.01, 0.01, legend_text,
-        fontsize=BASE_SIZE - 3,
+        fontsize=LEGEND_FONT,
         color="#555555",
-        wrap=True,
         verticalalignment="bottom",
         horizontalalignment="left",
+        linespacing=1.4,
     )
 
-    fig.tight_layout(rect=[0, 0.06, 1, 1])
+    fig.tight_layout(rect=[0, bottom_fraction, 1, 1])
     return fig
 
 
