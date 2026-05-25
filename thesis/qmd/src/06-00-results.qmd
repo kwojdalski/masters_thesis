@@ -139,26 +139,83 @@ trading task.
 PPO may achieve more stable convergence due to its clipped objective and lack of
 replay buffer, but its on-policy nature requires more data to achieve comparable
 performance. In high-frequency trading applications where data is limited, this
-trade-off is particularly relevant. The empirical results will show whether
-PPO's stability advantages outweigh its sample efficiency disadvantages in this
-domain.
+trade-off is particularly relevant. The results show whether PPO's stability
+advantages outweigh its sample efficiency disadvantages in this domain.
 
 **3. Which algorithm best balances risk-adjusted return, training stability,
 and computational efficiency under the evaluation constraints?** Different
 applications may prioritize different aspects of algorithm performance. A
 production trading system might value stability and deterministic execution,
 while a research setting might prioritize sample efficiency for rapid
-experimentation. The results will inform algorithm selection for specific use
+experimentation. The results inform algorithm selection for specific use
 cases within the broader trading system design.
 
 ### Discussion of Algorithmic Trade-offs
 
-[Insert discussion of the empirical findings, addressing:
-- Which algorithm achieved the best risk-adjusted performance and by what margin
-- Whether theoretical advantages (TD3's double Q-learning, PPO's stability) translated to practical benefits
-- Training dynamics: convergence speed, stability, sensitivity to hyperparameters
-- Computational trade-offs: training time, memory requirements, scalability
-- Robustness across different market conditions (if multiple test periods are evaluated)]
+The comparison reveals qualitatively distinct behavioral profiles across the
+three algorithms, even though all three were trained on identical data, features,
+and reward specification.
+
+**DDPG** produces the weakest result. It develops a systematic short bias during
+evaluation — spending 63.5% of steps short against 36.5% long — with a profit
+factor of 0.44, meaning gross losses exceed gross gains, and a marginally
+negative cumulative return ($-2.67 \times 10^{-7}$). In the evaluation window
+the pooled market drifted upward, so a persistent short bias is doubly
+penalising: it misaligns directional exposure with realized price movement and
+accumulates losses from that misalignment. The result is consistent with the
+theoretical concern that DDPG's single-critic Q-learning is susceptible to
+overestimation bias in noisy reward environments. Inflated Q-values in a subset
+of state-action regions can push the policy toward directional commitments that
+are not grounded in genuine microstructure signal; the short bias observed here
+is a plausible manifestation of that failure mode.
+
+**TD3** achieves a positive but very small cumulative return ($2.28 \times
+10^{-7}$), with a near-neutral position distribution (49.8% long, 50.2% short)
+and extremely low turnover (0.054% per step). A profit factor of 5.70 indicates
+that winning trades are substantially larger than losing ones, but the win rate
+of 18.8% — combined with near-zero turnover — implies that the agent spends most
+evaluation steps holding a near-flat position, with infrequent and selective
+position changes. The twin-critic correction and delayed policy updates appear to
+prevent the directional drift seen in DDPG: the policy does not commit to a
+persistent directional bias and instead preserves near-neutral exposure
+throughout the evaluation period. The consequence is the lowest maximum drawdown
+of any algorithm ($-1.05 \times 10^{-7}$), effectively zero, at the cost of
+generating negligible absolute return.
+
+**PPO** generates the highest cumulative return ($4.95 \times 10^{-5}$) but with
+a qualitatively different behavioral profile. It spends 65.3% of steps long,
+has a turnover of 8.2% per step — approximately 150 times higher than TD3 — and
+incurs a maximum drawdown of $-1.35 \times 10^{-5}$, several orders of magnitude
+larger than TD3's. PPO's long bias in an evaluation window that trended upward
+partially explains its absolute return advantage. Whether this directional lean
+reflects genuine LOB-derived signal or favorable alignment between the learned
+policy and the realized market direction cannot be separated from a single
+evaluation window of this length. Under any positive transaction cost regime,
+PPO's substantially higher turnover imposes a larger per-step cost burden, and the
+sensitivity analysis confirms that the strategy's apparent advantage degrades
+more sharply than TD3's as fees increase.
+
+The **random baseline** achieves a positive return ($2.58 \times 10^{-5}$) with
+the highest turnover (67.5% per step) and drawdown ($-5.60 \times 10^{-5}$) of
+any strategy. Its profit factor of 1.31 is consistent with noise rather than
+signal: in an evaluation window with positive market drift, a strategy that is
+randomly long approximately half the time accumulates small positive returns from
+upward price movement without having learned any relationship between observations
+and actions. That TD3 and PPO both exceed the random baseline on profit factor —
+while DDPG does not — is consistent with TD3 and PPO having learned some
+structure in the state-action mapping that goes beyond randomness, even if the
+absolute magnitude of that advantage is modest at the zero-fee evaluation horizon
+studied here.
+
+Taken together, these results support preferring TD3 over DDPG for
+continuous-action LOB trading under DSR reward optimization: TD3 avoids the
+systematic mispositioning that characterizes DDPG and achieves a positive profit
+factor with minimal drawdown. The TD3 versus PPO comparison is better
+characterized as a turnover-versus-return tradeoff than as a dominance relation:
+PPO generates more absolute return under zero-cost assumptions, while TD3's
+near-passive approach is more robust to transaction costs. Which algorithm is
+preferable depends on the fee regime of the target execution environment, a
+question addressed directly in the sensitivity analysis.
 
 This comparison provides empirical grounding for the algorithmic choices made
 in this study and offers guidance for algorithm selection in similar
