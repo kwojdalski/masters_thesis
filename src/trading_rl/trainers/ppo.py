@@ -374,7 +374,7 @@ class PPOTrainer(BaseTrainer):
             _,
             final_reward,
             last_positions,
-            actual_returns_plot,
+            equity_curve_plot,
             merged_plot,
         ) = super().evaluate(
             df,
@@ -392,7 +392,7 @@ class PPOTrainer(BaseTrainer):
             action_probs_plot,
             final_reward,
             last_positions,
-            actual_returns_plot,
+            equity_curve_plot,
             merged_plot,
         )
 

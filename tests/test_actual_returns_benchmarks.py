@@ -9,7 +9,7 @@ from tensordict import TensorDict
 from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.trainers.base import _cumulative_log_returns_for_plot
-from trading_rl.utils import calculate_benchmark_dsr, create_actual_returns_plot
+from trading_rl.utils import calculate_benchmark_dsr, create_equity_curve_plot
 
 
 def test_actual_returns_plot_includes_benchmarks():
@@ -36,7 +36,7 @@ def test_actual_returns_plot_includes_benchmarks():
         rollouts.append(rollout)
 
     # Create plot with benchmarks
-    plot = create_actual_returns_plot(
+    plot = create_equity_curve_plot(
         rollouts=rollouts,
         n_obs=n_steps,
         df_prices=df_prices,
@@ -79,7 +79,7 @@ def test_actual_returns_plot_without_benchmarks():
         rollouts.append(rollout)
 
     # Create plot without benchmarks (df_prices=None)
-    plot = create_actual_returns_plot(
+    plot = create_equity_curve_plot(
         rollouts=rollouts,
         n_obs=n_steps,
         df_prices=None,  # No price data
@@ -116,7 +116,7 @@ def test_benchmark_calculations():
         rollouts.append(rollout)
 
     # Create plot
-    plot = create_actual_returns_plot(
+    plot = create_equity_curve_plot(
         rollouts=rollouts,
         n_obs=n_steps,
         df_prices=df_prices,
@@ -157,7 +157,7 @@ def test_actual_returns_plot_uses_custom_initial_capital():
         }, batch_size=[n_steps])
         rollouts.append(rollout)
 
-    plot = create_actual_returns_plot(
+    plot = create_equity_curve_plot(
         rollouts=rollouts,
         n_obs=n_steps,
         df_prices=None,
@@ -192,7 +192,7 @@ def test_actual_returns_plot_uses_requested_benchmark_price_column():
         }, batch_size=[n_steps])
         rollouts.append(rollout)
 
-    plot = create_actual_returns_plot(
+    plot = create_equity_curve_plot(
         rollouts=rollouts,
         n_obs=n_steps,
         df_prices=df_prices,
@@ -228,7 +228,7 @@ def test_simple_returns_are_converted_before_actual_returns_plot():
     """Simple per-step returns must compound before being plotted as equity."""
     simple_returns = np.array([0.01, 0.02])
 
-    plot = create_actual_returns_plot(
+    plot = create_equity_curve_plot(
         rollouts=None,
         n_obs=2,
         df_prices=None,

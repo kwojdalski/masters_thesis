@@ -23,7 +23,7 @@ import torch
 from logger import get_logger
 from trading_rl.constants import BenchmarkName, EnvBackend, EnvMode, RewardType
 from trading_rl.evaluation.metrics import MetricReport, build_metric_report
-from trading_rl.evaluation.plots import compare_rollouts, create_actual_returns_plot
+from trading_rl.evaluation.plots import compare_rollouts, create_equity_curve_plot
 from trading_rl.evaluation.returns import (
     ReturnKind,
     ReturnSeries,
@@ -368,7 +368,7 @@ class StrategyEvaluator:
                 if plot_series is not None:
                     try:
                         _t = time.monotonic()
-                        plots["portfolio_value_plot"] = create_actual_returns_plot(
+                        plots["portfolio_value_plot"] = create_equity_curve_plot(
                             None,
                             max_steps,
                             df_prices=df,

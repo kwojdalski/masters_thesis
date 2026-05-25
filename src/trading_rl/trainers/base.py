@@ -90,11 +90,11 @@ def _run_evaluation(
 
     Returns:
         (reward_plot, action_plot, None, final_reward, last_positions,
-         actual_returns_plot, merged_plot)
+         equity_curve_plot, merged_plot)
     """
     from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
     from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
-    from trading_rl.utils import create_actual_returns_plot, create_merged_comparison_plot
+    from trading_rl.utils import create_equity_curve_plot, create_merged_comparison_plot
 
     env_to_use = eval_env or trainer.env
     eval_config_kwargs: dict[str, Any] = {}
@@ -146,14 +146,14 @@ def _run_evaluation(
     reward_plot = result.plots.get("reward_plot") if result.plots else None
     action_plot = result.plots.get("action_plot") if result.plots else None
 
-    actual_returns_plot = None
+    equity_curve_plot = None
     if "portfolio_value" in _enabled_plots:
         with profiler.stage("plot_actual_returns", 2):
             _t = time.monotonic()
-            logger.debug("create_actual_returns_plot start n_steps=%d", max_steps)
+            logger.debug("create_equity_curve_plot start n_steps=%d", max_steps)
             _data_paths = getattr(getattr(config, "data", None), "data_paths", None) if config else None
             plot_series = result.return_series or ReturnSeries(result.simple_returns, ReturnKind.SIMPLE)
-            actual_returns_plot = create_actual_returns_plot(
+            equity_curve_plot = create_equity_curve_plot(
                 None,
                 max_steps,
                 df_prices=df,
@@ -177,7 +177,7 @@ def _run_evaluation(
     if reward_plot is not None and action_plot is not None:
         with profiler.stage("plot_merged", 2):
             _t = time.monotonic()
-            merged_plot = create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot)
+            merged_plot = create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot)
             logger.debug("evaluate.plot_merged elapsed=%.2fs", time.monotonic() - _t)
 
     return (
@@ -186,7 +186,7 @@ def _run_evaluation(
         None,  # action_probs_plot — PPO-specific, filled in by PPOTrainer.evaluate()
         float(result.final_reward),
         result.last_positions,
-        actual_returns_plot,
+        equity_curve_plot,
         merged_plot,
     )
 

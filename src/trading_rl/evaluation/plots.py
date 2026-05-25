@@ -253,7 +253,7 @@ def compare_rollouts(
     return reward_plot, action_plot
 
 
-def create_actual_returns_plot(
+def create_equity_curve_plot(
     rollouts,
     n_obs,
     df_prices=None,
@@ -290,7 +290,7 @@ def create_actual_returns_plot(
     t0 = time.monotonic()
     returns_data = []
     stride = max(1, n_obs // max_plot_points) if max_plot_points and max_plot_points < n_obs else 1
-    logger.debug("create_actual_returns_plot start n_obs=%d stride=%d", n_obs, stride)
+    logger.debug("create_equity_curve_plot start n_obs=%d stride=%d", n_obs, stride)
 
     def _extend_with_stride(run_name: str, values: np.ndarray) -> None:
         idx = np.arange(len(values))[::stride]
@@ -495,13 +495,13 @@ def create_actual_returns_plot(
     return plot
 
 
-def create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot=None, save_path=None):
-    """Merge reward, action, and (optionally) actual returns plots into a vertical layout."""
-    if actual_returns_plot is not None:
-        merged_plot = reward_plot / action_plot / actual_returns_plot
+def create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot=None, save_path=None):
+    """Merge reward, action, and (optionally) equity curve plots into a vertical layout."""
+    if equity_curve_plot is not None:
+        merged_plot = reward_plot / action_plot / equity_curve_plot
     else:
         merged_plot = reward_plot / action_plot
-    n_panels = 3 if actual_returns_plot is not None else 2
+    n_panels = 3 if equity_curve_plot is not None else 2
     merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH * 2, round(FIGURE_HEIGHT * n_panels, 1)))
     if save_path:
         logger.info("save merged comparison plot path=%s", save_path)

@@ -296,7 +296,7 @@ def evaluate_split(
             action_probs_plot,
             split_final_reward,
             split_last_positions,
-            actual_returns_plot,
+            equity_curve_plot,
             merged_plot,
         ) = trainer.evaluate(
             split_ctx.df,
@@ -329,7 +329,7 @@ def evaluate_split(
             reward_plot=reward_plot,
             action_plot=action_plot,
             action_probs_plot=action_probs_plot,
-            actual_returns_plot=actual_returns_plot,
+            actual_returns_plot=equity_curve_plot,
             logs=logs,
             merged_plot=merged_plot,
             artifact_path_prefix=ArtifactPaths.eval_plots(split),

@@ -942,7 +942,7 @@ def log_evaluation_plots(
     reward_plot,
     action_plot,
     action_probs_plot=None,
-    actual_returns_plot=None,
+    equity_curve_plot=None,
     logs=None,
     merged_plot=None,
     artifact_path_prefix=None,
@@ -954,7 +954,7 @@ def log_evaluation_plots(
         reward_plot: Cumulative rewards comparison plot.
         action_plot: Actions/portfolio weights plot.
         action_probs_plot: Optional action probabilities plot.
-        actual_returns_plot: Actual portfolio returns plot.
+        equity_curve_plot: Portfolio equity curve plot.
         logs: Optional training logs for loss plots.
         merged_plot: Optional merged comparison plot (rewards + actions).
         artifact_path_prefix: Optional path prefix for MLflow artifacts.
@@ -1021,8 +1021,8 @@ def log_evaluation_plots(
         else:
             logger.info("action probability plot missing skipping artifact")
 
-        if actual_returns_plot is not None:
-            _save(actual_returns_plot, f"{timestamp}_actual_returns.png", "actual_returns", artifact_dir, 16, 10)
+        if equity_curve_plot is not None:
+            _save(equity_curve_plot, f"{timestamp}_actual_returns.png", "actual_returns", artifact_dir, 16, 10)
         else:
             logger.warning("actual returns plot missing skipping artifact")
 
