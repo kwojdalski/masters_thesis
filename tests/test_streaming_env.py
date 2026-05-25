@@ -1,8 +1,4 @@
-"""Tests for StreamingTradingEnv._load_window() and _next_symbol_idx().
-
-Uses object.__new__ to bypass the TradingEnv constructor so we can test
-the two private methods in isolation without launching a full RL environment.
-"""
+"""Tests for streaming environments backed by per-symbol memmaps."""
 
 from __future__ import annotations
 
@@ -71,6 +67,22 @@ class _FakeInnerEnv:
 
     def reset(self):
         return {"CustomFeature": np.array([1.0], dtype=np.float32)}
+
+
+def _make_trading_memmap(tmp_path) -> MemmapPaths:
+    prices = np.array([100.0, 101.0, 102.0, 103.0], dtype=np.float32)
+    df = pd.DataFrame(
+        {
+            "open": prices,
+            "high": prices + 1.0,
+            "low": prices - 1.0,
+            "close": prices,
+            "volume": np.full(len(prices), 1000.0, dtype=np.float32),
+            "feature_signal": np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32),
+        },
+        index=pd.date_range("2024-01-01", periods=len(prices), freq="s"),
+    )
+    return save_symbol_memmap(df, tmp_path, "tradable")
 
 
 class TestLoadWindow:
@@ -171,6 +183,29 @@ class TestNextSymbolIdx:
 
 
 class TestStreamingTradingEnvReset:
+    def test_real_constructor_reset_and_step_use_memmap_window(self, tmp_path):
+        memmap = _make_trading_memmap(tmp_path)
+        env = StreamingTradingEnv(
+            memmap_paths=[memmap],
+            episode_length=4,
+            positions=[0, 1],
+            initial_position=1,
+            trading_fees=0.0,
+            borrow_interest_rate=0.0,
+            seed=0,
+        )
+
+        obs, info = env.reset(seed=0)
+        next_obs, reward, terminated, truncated, step_info = env.step(1)
+
+        np.testing.assert_allclose(obs, [0.1, 1.0, 1.0], rtol=1e-6)
+        np.testing.assert_allclose(next_obs, [0.2, 1.0, 1.0], rtol=1e-6)
+        assert info["data_close"] == pytest.approx(100.0)
+        assert step_info["data_close"] == pytest.approx(101.0)
+        assert reward == pytest.approx(np.log(101.0 / 100.0), abs=1e-7)
+        assert terminated is False
+        assert truncated is False
+
     def test_reset_skips_short_files_loads_window_and_calls_parent_reset(
         self, tmp_path, monkeypatch
     ):
