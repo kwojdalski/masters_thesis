@@ -10,7 +10,7 @@ required to switch between experimental variants. A pre-training validation stag
 feature definitions, split feasibility, and column compatibility before any
 computation begins, preventing wasted runs from invalid experimental
 specifications. A condensed summary of the main specification is provided in
-Appendix C.
+Appendix B.
 
 ### Feature Pipeline
 

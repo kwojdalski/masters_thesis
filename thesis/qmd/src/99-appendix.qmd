@@ -91,49 +91,6 @@ Feature & Group & Formula & Param & In model & Citation \\
 
 ---
 
-# TD3 Hyperparameters
-
-The table below lists the key hyperparameters for the main state-space
-experiment.
-
-| Parameter | Value | Notes |
-|---|---|---|
-| **Architecture** | | |
-| Actor hidden dims | [128, 64] | ReLU activations |
-| Critic hidden dims | [128, 64] | ReLU activations |
-| **Optimization** | | |
-| Actor learning rate | 0.0001 | Adam |
-| Critic learning rate | 0.0001 | Adam |
-| Actor weight decay | 0.0 | No actor L2 regularization |
-| Critic weight decay | 0.000002 | |
-| Loss function | Smooth L1 (Huber) | |
-| **TD3 mechanisms** | | |
-| Discount factor $\gamma$ | 0.9 | |
-| Target update $\tau$ | 0.005 | Soft update |
-| Policy delay | 2 | Critic updates per actor update |
-| Target policy noise $\sigma$ | 0.2 | Added to target action |
-| Noise clip | 0.3 | |
-| Exploration noise std | 0.3 | During training only |
-| **Training** | | |
-| Total steps | 3,000,000 | |
-| Initial random steps | 5,000 | Warm-up before learning |
-| Frames per batch | 200 | |
-| Optimisation steps per batch | 5 | |
-| Mini-batch size | 128 | |
-| Replay buffer size | 100,000 | |
-| **Data** | | |
-| Training data | 18 pooled symbol-day files | 6 symbols over February 25--27, 2026 |
-| Validation data | 6 pooled symbol-day files | March 2, 2026 |
-| Rows per split | 50,000 | Cap used for train, validation, and test |
-| Streaming episode length | 10,000 | Event-time steps |
-| Reward type | Differential Sharpe | $\eta = 0.01$ |
-| Transaction fee | 0.000 | Baseline setting |
-| Evaluation random seed | 42 | Statistical tests and random baselines |
-
-: TD3 hyperparameters for the main state-space experiment. {#tbl-td3-hyperparams longtable=true tbl-colwidths="[36,18,46]"}
-
----
-
 # Main Experiment Specification
 
 The table below condenses the main experiment into a self-contained
@@ -147,18 +104,23 @@ the experiment without exposing implementation-specific file names.
 | Validation/test data | March 2, 2026 symbol-day files, capped at 50,000 rows per split |
 | Feature set | Selected causal LOB microstructure set: book pressure L0, three-level OBI, order-count imbalance L0, microprice, microprice divergence, bid/ask slope, OFI, 50-event rolling OFI, 50-event signed trade flow, and runtime position |
 | Environment backend | Continuous single-asset trading environment |
+| Episode length | 10,000 event-time steps (streaming) |
 | Action | Target portfolio exposure $a_t \in [-1, 1]$ |
 | Reward | Differential Sharpe Ratio with $\eta = 0.01$ |
 | Transaction fee | 0.000 in the baseline setting |
 | Algorithm | TD3 |
 | Network widths | Actor and critic hidden layers [128, 64] |
 | Learning rates | Actor 0.0001; critic 0.0001 |
+| Weight decay | Actor $0.0$; critic $2 \times 10^{-6}$ |
 | Discount factor | $\gamma = 0.9$ |
 | Target update | $\tau = 0.005$ |
 | Policy delay | 2 critic updates per actor update |
 | Target policy noise | $\sigma = 0.2$, clipped at $\pm 0.3$ |
 | Exploration noise | $\sigma = 0.3$ during training |
 | Total training steps | 3,000,000 |
+| Initial random steps | 5,000 |
+| Frames per batch | 200 |
+| Optimisation steps per batch | 5 |
 | Mini-batch size | 128 |
 | Replay buffer size | 100,000 |
 | Loss function | Smooth L1 (Huber) |
