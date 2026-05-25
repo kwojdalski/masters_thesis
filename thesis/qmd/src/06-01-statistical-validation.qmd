@@ -10,7 +10,11 @@ run-to-run dispersion and tests whether observed benchmark differences are
 consistent rather than accidental.
 
 The analysis operates on exported thesis result snapshots so that the rendered
-chapter stays tied to recorded experiment artifacts.
+chapter stays tied to recorded experiment artifacts. In the current export set,
+the thesis-facing comparisons are primarily single completed runs per
+configuration. This makes the statistical validation section a transparency
+check on the available evidence rather than a full multi-seed uncertainty
+analysis.
 
 ```{python}
 #| label: stat_validation_setup
@@ -37,6 +41,8 @@ finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.e
 The following table summarizes currently available finished runs for the
 selected experiment. These values should be interpreted as a sample of outcomes
 under the configured workflow rather than as definitive performance estimates.
+Where only one finished run is available for a configuration, the table
+identifies the reported run but cannot estimate seed-level dispersion.
 
 ```{python}
 #| label: run_sample_summary
@@ -61,6 +67,12 @@ mean, standard deviation, and range are summaries of variability
 under the reported protocol, not as universal claims about future market
 performance. Repeated backtests quantify sensitivity to training randomness more
 than they resolve uncertainty about the underlying market process.
+
+For the exported thesis results, these statistics should be treated as
+diagnostic when the run count is small. The main empirical tables in this
+chapter therefore emphasize matched effect sizes and economic behavior
+— cumulative return, drawdown, turnover, position bias, and profit factor —
+rather than formal significance claims.
 
 ```{python}
 #| label: descriptive_stats
@@ -148,4 +160,7 @@ return.
 Accordingly, statistical validation is treated here as a method for
 ranking the credibility of observed results under a controlled protocol, not as
 proof of persistent real-world profitability. Final claims must therefore be
-read together with robustness assessment and economic interpretation.
+read together with robustness assessment and economic interpretation. A stronger
+future version of the empirical design would repeat each configuration across at
+least five seeds and report confidence intervals for the same held-out financial
+metrics used in the main comparison.
