@@ -23,6 +23,22 @@ from trading_rl.evaluation.statistical_benchmarks import (
 logger = get_logger(__name__)
 
 
+def benchmarks_from_config(benchmarks_config: Any) -> frozenset[BenchmarkName]:
+    """Build a frozenset of enabled BenchmarkName values from a BenchmarksConfig object."""
+    enabled: set[BenchmarkName] = set()
+    if getattr(benchmarks_config, "buy_and_hold", True):
+        enabled.add(BenchmarkName.BUY_AND_HOLD)
+    if getattr(benchmarks_config, "short_and_hold", False):
+        enabled.add(BenchmarkName.SHORT_AND_HOLD)
+    if getattr(benchmarks_config, "twap", False):
+        enabled.add(BenchmarkName.TWAP)
+    if getattr(benchmarks_config, "vwap", False):
+        enabled.add(BenchmarkName.VWAP)
+    if getattr(benchmarks_config, "show_max_profit", False):
+        enabled.add(BenchmarkName.MAX_PROFIT)
+    return frozenset(enabled)
+
+
 @dataclass
 class BenchmarkSpec:
     """A benchmark defined by a name and a pure return-computation callable.

@@ -6,6 +6,7 @@ import pytest
 import torch
 from tensordict import TensorDict
 
+from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.trainers.base import _cumulative_log_returns_for_plot
 from trading_rl.utils import calculate_benchmark_dsr, create_actual_returns_plot
@@ -41,7 +42,7 @@ def test_actual_returns_plot_includes_benchmarks():
         df_prices=df_prices,
         env=None,
         actual_returns_list=None,
-        show_max_profit=True,
+        benchmarks=frozenset({BenchmarkName.BUY_AND_HOLD, BenchmarkName.MAX_PROFIT}),
     )
 
     # Check that plot data includes benchmarks
@@ -121,7 +122,7 @@ def test_benchmark_calculations():
         df_prices=df_prices,
         env=None,
         actual_returns_list=None,
-        show_max_profit=True,
+        benchmarks=frozenset({BenchmarkName.BUY_AND_HOLD, BenchmarkName.MAX_PROFIT}),
     )
 
     # Extract benchmark data

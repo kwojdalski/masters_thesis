@@ -262,11 +262,7 @@ def create_actual_returns_plot(
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
-    show_buy_and_hold: bool = True,
-    show_short_and_hold: bool = False,
-    show_max_profit: bool = False,
-    show_twap: bool = False,
-    show_vwap: bool = False,
+    benchmarks: "frozenset | None" = None,
     training_steps: int | None = None,
     training_episodes: int | None = None,
     n_total_symbols: int | None = None,
@@ -275,6 +271,15 @@ def create_actual_returns_plot(
     reward_type: str | None = None,
 ):
     """Create a plot showing actual portfolio returns, not training rewards."""
+    from trading_rl.constants import BenchmarkName
+    if benchmarks is None:
+        benchmarks = frozenset({BenchmarkName.BUY_AND_HOLD})
+    show_buy_and_hold   = BenchmarkName.BUY_AND_HOLD   in benchmarks
+    show_short_and_hold = BenchmarkName.SHORT_AND_HOLD  in benchmarks
+    show_max_profit     = BenchmarkName.MAX_PROFIT      in benchmarks
+    show_twap           = BenchmarkName.TWAP            in benchmarks
+    show_vwap           = BenchmarkName.VWAP            in benchmarks
+
     if initial_capital is not None:
         initial_portfolio_value = initial_capital
     if initial_portfolio_value <= 0:

@@ -75,7 +75,7 @@ class EvaluateCommand(BaseCommand):
             periods_per_year_from_timeframe,
             run_all_statistical_tests,
         )
-        from trading_rl.evaluation.benchmarks import BenchmarkEngine
+        from trading_rl.evaluation.benchmarks import BenchmarkEngine, benchmarks_from_config
         from trading_rl.evaluation.metrics import build_metric_report
         from trading_rl.evaluation.report import _periods_per_year_from_index
         from trading_rl.pipeline.evaluation import build_evaluation_context_for_split
@@ -204,10 +204,7 @@ class EvaluateCommand(BaseCommand):
                     eval_plots=tuple(getattr(config.evaluation, "eval_plots", ("rewards", "positions", "portfolio_value"))),
                     training_steps=int(meta["total_count"]) if meta.get("total_count") is not None else None,
                     training_episodes=int(meta["total_episodes"]) if meta.get("total_episodes") is not None else None,
-                    show_buy_and_hold=getattr(getattr(config, "benchmarks", None), "buy_and_hold", True),
-                    show_short_and_hold=getattr(getattr(config, "benchmarks", None), "short_and_hold", False),
-                    show_twap=getattr(getattr(config, "benchmarks", None), "twap", False),
-                    show_vwap=getattr(getattr(config, "benchmarks", None), "vwap", False),
+                    benchmarks=benchmarks_from_config(config.benchmarks) if getattr(config, "benchmarks", None) else None,
                 )
 
                 if is_random:
