@@ -346,54 +346,89 @@ class PeekCommand(BaseCommand):
         return pd.DataFrame([{"feature": col, "pearson": p, "spearman": s} for col, p, s in rows])
 
     def _print_raw_file_inventory(self, config) -> "pd.DataFrame | None":
-        """Build and print a symbol × day event-count table from raw parquet files."""
-        import re
+        """Build and print a symbol × split table with event counts and delta stats."""
+        import numpy as np
         import pandas as pd
 
         train_paths = list(getattr(config.data, "data_paths", None) or [])
         val_paths = list(getattr(config.data, "val_data_paths", None) or [])
-        all_paths = [(p, "train") for p in train_paths] + [(p, "eval") for p in val_paths]
-        if not all_paths:
+        if not train_paths and not val_paths:
             return None
 
+        def _symbol_of(p: str) -> str:
+            return Path(p).name.split("_")[0]
+
+        def _read_index(p: str) -> "pd.DatetimeIndex":
+            return pd.read_parquet(p, columns=[]).index
+
+        def _delta_stats(deltas_s: np.ndarray) -> tuple[float | None, float | None]:
+            pos = deltas_s[deltas_s > 0]
+            if pos.size == 0:
+                return None, None
+            return float(np.mean(pos)), float(np.median(pos))
+
         rows = []
-        for path_str, split in all_paths:
-            path = Path(path_str)
-            m = re.match(r"([A-Z]+)_(\d{4}-\d{2}-\d{2})_", path.name)
-            if not m:
-                continue
-            symbol, date = m.group(1), m.group(2)
+
+        # Train: pool within-file deltas per symbol (exclude overnight gaps)
+        by_sym: dict[str, list[str]] = {}
+        for p in train_paths:
+            by_sym.setdefault(_symbol_of(p), []).append(p)
+
+        for sym in sorted(by_sym):
+            total_rows = 0
+            all_deltas: list[np.ndarray] = []
+            for p in by_sym[sym]:
+                try:
+                    idx = _read_index(p)
+                    total_rows += len(idx)
+                    if len(idx) >= 2:
+                        d = np.diff(idx.view(np.int64)) / 1e9
+                        all_deltas.append(d)
+                except Exception:
+                    pass
+            combined = np.concatenate(all_deltas) if all_deltas else np.array([])
+            mean_s, median_s = _delta_stats(combined)
+            rows.append({"symbol": sym, "split": "train", "rows": total_rows,
+                         "mean_delta_s": mean_s, "median_delta_s": median_s})
+
+        # Val + test: each val file split 50/50 at midpoint
+        for p in sorted(val_paths, key=_symbol_of):
+            sym = _symbol_of(p)
             try:
-                import pyarrow.parquet as pq
-                n_rows = pq.read_metadata(path).num_rows
+                idx = _read_index(p)
             except Exception:
-                n_rows = None
-            rows.append({"symbol": symbol, "date": date, "split": split, "rows": n_rows})
+                continue
+            mid = len(idx) // 2
+            for split_name, split_idx in [("val", idx[:mid]), ("test", idx[mid:])]:
+                if len(split_idx) >= 2:
+                    d = np.diff(split_idx.view(np.int64)) / 1e9
+                    mean_s, median_s = _delta_stats(d)
+                else:
+                    mean_s, median_s = None, None
+                rows.append({"symbol": sym, "split": split_name, "rows": len(split_idx),
+                             "mean_delta_s": mean_s, "median_delta_s": median_s})
 
         if not rows:
             return None
 
+        def _fmt(s: float | None) -> str:
+            if s is None:
+                return "—"
+            if s < 1e-3:
+                return f"{s * 1e6:.1f} µs"
+            if s < 1.0:
+                return f"{s * 1e3:.2f} ms"
+            return f"{s:.3f} s"
+
         flat_df = pd.DataFrame(rows)
-        pivot = flat_df.pivot_table(index="symbol", columns="date", values="rows", aggfunc="sum")
-        pivot = pivot.sort_index()
-        pivot["Total"] = pivot.sum(axis=1)
-        totals = pivot.sum().rename("Total")
-        pivot = pd.concat([pivot, totals.to_frame().T])
-
-        tbl = Table(title="Raw file inventory (events per symbol per day)", show_header=True, header_style="bold")
+        tbl = Table(title="Raw data inventory (events per symbol per split)", show_header=True, header_style="bold")
         tbl.add_column("Symbol")
-        date_cols = [c for c in pivot.columns if c != "Total"]
-        for col in date_cols:
-            split_label = flat_df.loc[flat_df["date"] == col, "split"].iloc[0] if col in flat_df["date"].values else ""
-            tbl.add_column(f"{col}\n[dim]{split_label}[/dim]", justify="right")
-        tbl.add_column("Total", justify="right")
-        for symbol, row in pivot.iterrows():
-            tbl.add_row(
-                str(symbol),
-                *[f"{int(row[c]):,}" if pd.notna(row[c]) else "—" for c in date_cols],
-                f"{int(row['Total']):,}",
-            )
+        tbl.add_column("Split")
+        tbl.add_column("Events", justify="right")
+        tbl.add_column("Mean Δt", justify="right")
+        tbl.add_column("Median Δt", justify="right")
+        for _, r in flat_df.iterrows():
+            tbl.add_row(r["symbol"], r["split"], f"{int(r['rows']):,}",
+                        _fmt(r["mean_delta_s"]), _fmt(r["median_delta_s"]))
         self.console.print(tbl)
-
-        # Return flat records (easier to pivot in QMD with full flexibility)
         return flat_df

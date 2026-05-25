@@ -1,146 +1,128 @@
 [
   {
     "symbol": "AAPL",
-    "date": "2026-02-25",
     "split": "train",
-    "rows": 1098966
+    "rows": 4575844,
+    "mean_delta_s": 0.016568602999762327,
+    "median_delta_s": 3.9097e-05
+  },
+  {
+    "symbol": "AMZN",
+    "split": "train",
+    "rows": 7101442,
+    "mean_delta_s": 0.010356361411122618,
+    "median_delta_s": 6.4711e-05
+  },
+  {
+    "symbol": "AVGO",
+    "split": "train",
+    "rows": 1636373,
+    "mean_delta_s": 0.04938410047802548,
+    "median_delta_s": 0.000145936
+  },
+  {
+    "symbol": "META",
+    "split": "train",
+    "rows": 1105240,
+    "mean_delta_s": 0.0712199555139376,
+    "median_delta_s": 0.000242185
+  },
+  {
+    "symbol": "MSFT",
+    "split": "train",
+    "rows": 3590446,
+    "mean_delta_s": 0.022017591060908153,
+    "median_delta_s": 5.0370999999999996e-05
+  },
+  {
+    "symbol": "TSLA",
+    "split": "train",
+    "rows": 5611429,
+    "mean_delta_s": 0.013894243744275352,
+    "median_delta_s": 3.8892e-05
   },
   {
     "symbol": "AAPL",
-    "date": "2026-02-26",
-    "split": "train",
-    "rows": 1686078
+    "split": "val",
+    "rows": 1207098,
+    "mean_delta_s": 0.007513736536116814,
+    "median_delta_s": 2.8116e-05
   },
   {
     "symbol": "AAPL",
-    "date": "2026-02-27",
-    "split": "train",
-    "rows": 1790800
+    "split": "test",
+    "rows": 1207098,
+    "mean_delta_s": 0.013069926830737993,
+    "median_delta_s": 3.8808e-05
   },
   {
     "symbol": "AMZN",
-    "date": "2026-02-25",
-    "split": "train",
-    "rows": 1409673
+    "split": "val",
+    "rows": 1354730,
+    "mean_delta_s": 0.006441633994829706,
+    "median_delta_s": 6.0091e-05
   },
   {
     "symbol": "AMZN",
-    "date": "2026-02-26",
-    "split": "train",
-    "rows": 2880716
-  },
-  {
-    "symbol": "AMZN",
-    "date": "2026-02-27",
-    "split": "train",
-    "rows": 2811053
+    "split": "test",
+    "rows": 1354730,
+    "mean_delta_s": 0.011526542523846675,
+    "median_delta_s": 8.2526e-05
   },
   {
     "symbol": "AVGO",
-    "date": "2026-02-25",
-    "split": "train",
-    "rows": 473853
+    "split": "val",
+    "rows": 296905,
+    "mean_delta_s": 0.03462452266627612,
+    "median_delta_s": 0.0001360585
   },
   {
     "symbol": "AVGO",
-    "date": "2026-02-26",
-    "split": "train",
-    "rows": 707404
-  },
-  {
-    "symbol": "AVGO",
-    "date": "2026-02-27",
-    "split": "train",
-    "rows": 455116
+    "split": "test",
+    "rows": 296906,
+    "mean_delta_s": 0.05320736246978057,
+    "median_delta_s": 0.000148673
   },
   {
     "symbol": "META",
-    "date": "2026-02-25",
-    "split": "train",
-    "rows": 356163
+    "split": "val",
+    "rows": 188074,
+    "mean_delta_s": 0.058988325667511395,
+    "median_delta_s": 0.000318186
   },
   {
     "symbol": "META",
-    "date": "2026-02-26",
-    "split": "train",
-    "rows": 348071
-  },
-  {
-    "symbol": "META",
-    "date": "2026-02-27",
-    "split": "train",
-    "rows": 401006
+    "split": "test",
+    "rows": 188075,
+    "mean_delta_s": 0.07894918753168781,
+    "median_delta_s": 0.00030455300000000005
   },
   {
     "symbol": "MSFT",
-    "date": "2026-02-25",
-    "split": "train",
-    "rows": 1141154
+    "split": "val",
+    "rows": 490610,
+    "mean_delta_s": 0.021871406471867257,
+    "median_delta_s": 5.5356e-05
   },
   {
     "symbol": "MSFT",
-    "date": "2026-02-26",
-    "split": "train",
-    "rows": 1165401
-  },
-  {
-    "symbol": "MSFT",
-    "date": "2026-02-27",
-    "split": "train",
-    "rows": 1283891
+    "split": "test",
+    "rows": 490610,
+    "mean_delta_s": 0.03103988200119102,
+    "median_delta_s": 6.537350000000001e-05
   },
   {
     "symbol": "TSLA",
-    "date": "2026-02-25",
-    "split": "train",
-    "rows": 1810799
+    "split": "val",
+    "rows": 999867,
+    "mean_delta_s": 0.009682793931824883,
+    "median_delta_s": 3.1538e-05
   },
   {
     "symbol": "TSLA",
-    "date": "2026-02-26",
-    "split": "train",
-    "rows": 1817611
-  },
-  {
-    "symbol": "TSLA",
-    "date": "2026-02-27",
-    "split": "train",
-    "rows": 1983019
-  },
-  {
-    "symbol": "AAPL",
-    "date": "2026-03-02",
-    "split": "eval",
-    "rows": 2414196
-  },
-  {
-    "symbol": "AMZN",
-    "date": "2026-03-02",
-    "split": "eval",
-    "rows": 2709460
-  },
-  {
-    "symbol": "AVGO",
-    "date": "2026-03-02",
-    "split": "eval",
-    "rows": 593811
-  },
-  {
-    "symbol": "META",
-    "date": "2026-03-02",
-    "split": "eval",
-    "rows": 376149
-  },
-  {
-    "symbol": "MSFT",
-    "date": "2026-03-02",
-    "split": "eval",
-    "rows": 981220
-  },
-  {
-    "symbol": "TSLA",
-    "date": "2026-03-02",
-    "split": "eval",
-    "rows": 1999735
+    "split": "test",
+    "rows": 999868,
+    "mean_delta_s": 0.016097282734076835,
+    "median_delta_s": 4.2166e-05
   }
 ]
