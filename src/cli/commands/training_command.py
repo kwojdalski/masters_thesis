@@ -12,6 +12,7 @@ from rich.table import Table
 from cli.services import validate_experiment_config
 from trading_rl import ExperimentConfig, run_single_experiment
 from trading_rl.constants import SplitName
+from trading_rl.evaluation.metric_meta import METRIC_META_BY_KEY
 
 from .base_command import BaseCommand
 
@@ -312,16 +313,13 @@ class TrainingCommand(BaseCommand):
                 steps_table.add_row(label, f"{final_metrics[key]:{fmt}}")
         steps_table.add_row("Final Reward", f"{final_metrics.get('final_reward', float('nan')):.4f}")
 
+        _perf_keys = [
+            "total_return", "sharpe_ratio", "sortino_ratio", "max_drawdown",
+            "win_rate", "lose_rate", "profit_factor", "pct_long", "pct_short",
+        ]
         _perf_metrics = [
-            ("total_return", "Total Return", ".2%"),
-            ("sharpe_ratio", "Sharpe Ratio", ".3f"),
-            ("sortino_ratio", "Sortino Ratio", ".3f"),
-            ("max_drawdown", "Max Drawdown", ".2%"),
-            ("win_rate", "Win Rate", ".2%"),
-            ("lose_rate", "Lose Rate", ".2%"),
-            ("profit_factor", "Profit Factor", ".3f"),
-            ("pct_long", "% Long", ".2%"),
-            ("pct_short", "% Short", ".2%"),
+            (key, METRIC_META_BY_KEY[key].label, METRIC_META_BY_KEY[key].fmt)
+            for key in _perf_keys
         ]
 
         split_results = final_metrics.get("split_results", {})

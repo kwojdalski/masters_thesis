@@ -10,28 +10,40 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-# Columns shown in both JSON and the rendered PNG.
-PERF_COLS: list[tuple[str, str, str]] = [
-    ("total_return",           "Total Return",  ".2%"),
-    ("sharpe_ratio",           "Sharpe",        ".3f"),
-    ("sortino_ratio",          "Sortino",       ".3f"),
-    ("max_drawdown",           "Max DD",        ".2%"),
-    ("win_rate",               "Win Rate",      ".2%"),
-    ("profit_factor",          "Profit Factor", ".3f"),
-    ("expectancy_per_period",  "Mean/Step",     ".6f"),
-    ("annualized_volatility",  "Ann. Vol",      ".4f"),
-    ("return_skewness",        "Skewness",      ".3f"),
-    ("return_kurtosis",        "Kurtosis",      ".3f"),
-    ("pct_long",               "% Long",        ".2%"),
-    ("pct_short",              "% Short",       ".2%"),
-]
+from trading_rl.evaluation.metric_meta import METRIC_META_BY_KEY
 
-REL_COLS: list[tuple[str, str, str]] = [
-    ("alpha",             "Alpha",      ".4f"),
-    ("beta",              "Beta",       ".3f"),
-    ("information_ratio", "Info Ratio", ".3f"),
-    ("tracking_error",    "Track. Err", ".4f"),
+# Columns shown in both JSON and the rendered PNG — derived from the shared registry.
+_PERF_KEYS = [
+    "total_return", "sharpe_ratio", "sortino_ratio", "max_drawdown",
+    "win_rate", "profit_factor", "expectancy_per_period", "annualized_volatility",
+    "return_skewness", "return_kurtosis", "pct_long", "pct_short",
 ]
+_REL_KEYS = ["alpha", "beta", "information_ratio", "tracking_error"]
+
+# Abbreviated labels for the wide benchmark table (space is tight).
+_BENCH_LABEL_OVERRIDE: dict[str, str] = {
+    "sharpe_ratio": "Sharpe",
+    "sortino_ratio": "Sortino",
+    "max_drawdown": "Max DD",
+    "expectancy_per_period": "Mean/Step",
+    "annualized_volatility": "Ann. Vol",
+    "tracking_error": "Track. Err",
+}
+
+
+def _bench_cols(keys: list[str]) -> list[tuple[str, str, str]]:
+    result = []
+    for key in keys:
+        meta = METRIC_META_BY_KEY.get(key)
+        if meta is None:
+            continue
+        label = _BENCH_LABEL_OVERRIDE.get(key, meta.label)
+        result.append((key, label, meta.fmt))
+    return result
+
+
+PERF_COLS: list[tuple[str, str, str]] = _bench_cols(_PERF_KEYS)
+REL_COLS: list[tuple[str, str, str]] = _bench_cols(_REL_KEYS)
 
 
 def _fmt(val: Any, fmt: str) -> str:

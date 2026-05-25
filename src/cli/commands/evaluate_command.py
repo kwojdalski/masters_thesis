@@ -13,6 +13,7 @@ from rich.table import Table
 
 from trading_rl.callbacks.artifacts import ArtifactPaths, save_observation_sample_artifact
 from trading_rl.evaluation.benchmark_table import save_benchmark_table_artifact
+from trading_rl.evaluation.metric_meta import METRIC_META_BY_KEY
 
 from .base_command import BaseCommand
 
@@ -21,17 +22,14 @@ if TYPE_CHECKING:
 
 _ALL_COMPONENTS = frozenset({"metrics", "benchmarks", "plots", "stats"})
 
+_PERF_ROW_KEYS = [
+    "total_return", "sharpe_ratio", "sortino_ratio", "max_drawdown",
+    "win_rate", "lose_rate", "profit_factor", "omega_ratio",
+    "pct_long", "pct_short",
+]
 _PERF_ROWS = [
-    ("total_return", "Total Return", ".2%"),
-    ("sharpe_ratio", "Sharpe Ratio", ".3f"),
-    ("sortino_ratio", "Sortino Ratio", ".3f"),
-    ("max_drawdown", "Max Drawdown", ".2%"),
-    ("win_rate", "Win Rate", ".2%"),
-    ("lose_rate", "Lose Rate", ".2%"),
-    ("profit_factor", "Profit Factor", ".3f"),
-    ("omega_ratio", "Omega Ratio", ".3f"),
-    ("pct_long", "% Long", ".2%"),
-    ("pct_short", "% Short", ".2%"),
+    (key, METRIC_META_BY_KEY[key].label, METRIC_META_BY_KEY[key].fmt)
+    for key in _PERF_ROW_KEYS
 ]
 
 

@@ -599,112 +599,20 @@ def create_metrics_table_figure(
     import math
     import matplotlib
     import matplotlib.pyplot as plt
-    import matplotlib.font_manager as fm
-
-    _SECTIONS: list[tuple[str, list[str]]] = [
-        ("Return", [
-            "total_return",
-            "annualized_return_cagr",
-            "annualized_volatility",
-        ]),
-        ("Risk-adjusted", [
-            "sharpe_ratio",
-            "sortino_ratio",
-            "calmar_ratio",
-            "omega_ratio",
-        ]),
-        ("Drawdown", [
-            "max_drawdown",
-            "average_drawdown",
-            "max_drawdown_duration",
-            "recovery_time_from_max_drawdown",
-        ]),
-        ("Risk", [
-            "var_95",
-            "cvar_95",
-            "downside_deviation",
-            "return_skewness",
-            "return_kurtosis",
-        ]),
-        ("Trading", [
-            "win_rate",
-            "lose_rate",
-            "profit_factor",
-            "payoff_ratio",
-            "expectancy_per_period",
-            "turnover",
-            "average_holding_period",
-            "pct_long",
-            "pct_short",
-        ]),
-        ("Benchmark", [
-            "beta",
-            "alpha",
-            "information_ratio",
-            "tracking_error",
-        ]),
-    ]
-
-    _LABELS: dict[str, str] = {
-        "total_return": "Total Return",
-        "annualized_return_cagr": "Ann. Return (CAGR)",
-        "annualized_volatility": "Ann. Volatility",
-        "sharpe_ratio": "Sharpe Ratio",
-        "sortino_ratio": "Sortino Ratio",
-        "calmar_ratio": "Calmar Ratio",
-        "omega_ratio": "Omega Ratio",
-        "max_drawdown": "Max Drawdown",
-        "average_drawdown": "Avg Drawdown",
-        "max_drawdown_duration": "Max DD Duration",
-        "recovery_time_from_max_drawdown": "Recovery Time",
-        "var_95": "VaR 95%",
-        "cvar_95": "CVaR 95%",
-        "downside_deviation": "Downside Dev",
-        "return_skewness": "Skewness",
-        "return_kurtosis": "Kurtosis",
-        "win_rate": "Win Rate",
-        "lose_rate": "Lose Rate",
-        "profit_factor": "Profit Factor",
-        "payoff_ratio": "Payoff Ratio",
-        "expectancy_per_period": "Expectancy / Period",
-        "turnover": "Turnover",
-        "average_holding_period": "Avg Hold Period",
-        "pct_long": "% Long",
-        "pct_short": "% Short",
-        "beta": "Beta",
-        "alpha": "Alpha",
-        "information_ratio": "Info Ratio",
-        "tracking_error": "Tracking Error",
-    }
-
-    _PCT_KEYS = {
-        "total_return", "annualized_return_cagr", "annualized_volatility",
-        "max_drawdown", "average_drawdown", "var_95", "cvar_95",
-        "downside_deviation", "win_rate", "lose_rate", "pct_long", "pct_short",
-        "tracking_error",
-    }
-
-    def _fmt(key: str, val: float) -> str:
-        if not math.isfinite(val):
-            return "N/A"
-        if key in _PCT_KEYS:
-            return f"{val * 100:.2f}%"
-        if key in ("max_drawdown_duration", "recovery_time_from_max_drawdown", "average_holding_period"):
-            return f"{val:.1f}"
-        return f"{val:.4f}"
+    from trading_rl.evaluation.metric_meta import METRIC_SECTIONS, fmt_metric
 
     report_dict = metric_report.to_dict()
 
     rows: list[tuple[str, str, str]] = []
-    for section, keys in _SECTIONS:
+    for section, metas in METRIC_SECTIONS.items():
         first = True
-        for key in keys:
-            if key not in report_dict:
+        for meta in metas:
+            if meta.key not in report_dict:
                 continue
-            val = report_dict[key]
+            val = report_dict[meta.key]
             sec_label = section if first else ""
             first = False
-            rows.append((sec_label, _LABELS.get(key, key), _fmt(key, val)))
+            rows.append((sec_label, meta.label, fmt_metric(meta.key, val)))
 
     BASE_SIZE = 11
     fig_height = max(4.0, len(rows) * 0.30 + 1.2)
