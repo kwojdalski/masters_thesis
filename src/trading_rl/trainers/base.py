@@ -138,38 +138,43 @@ def _run_evaluation(
     trainer._last_evaluation_result = result
     logger.debug("evaluate.rollout_and_metrics elapsed=%.2fs", time.monotonic() - _t)
 
-    reward_plot = result.plots["reward_plot"] if result.plots else None
-    action_plot = result.plots["action_plot"] if result.plots else None
-    plot_series = result.return_series or ReturnSeries(result.simple_returns, ReturnKind.SIMPLE)
+    _enabled_plots = set(eval_config.eval_plots)
+    reward_plot = result.plots.get("reward_plot") if result.plots else None
+    action_plot = result.plots.get("action_plot") if result.plots else None
 
-    with profiler.stage("plot_actual_returns", 2):
-        _t = time.monotonic()
-        logger.debug("create_actual_returns_plot start n_steps=%d", max_steps)
-        _data_paths = getattr(getattr(config, "data", None), "data_paths", None) if config else None
-        actual_returns_plot = create_actual_returns_plot(
-            None,
-            max_steps,
-            df_prices=df,
-            env=env_to_use,
-            actual_returns_list=[plot_series],
-            initial_portfolio_value=(
-                float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
-                if config else DEFAULT_INITIAL_PORTFOLIO_VALUE
-            ),
-            benchmark_price_column=getattr(config.env, "price_column", None) or "close" if config else "close",
-            show_max_profit=config.benchmarks.show_max_profit if config else True,
-            training_steps=trainer.total_count,
-            training_episodes=trainer.total_episodes,
-            n_total_symbols=len(_data_paths) if _data_paths else None,
-            max_plot_points=getattr(getattr(config, "training", None), "max_plot_points", None) if config else None,
-            reward_type=str(getattr(config.env, "reward_type", "log_return")) if config else None,
-        )
-        logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
+    actual_returns_plot = None
+    if "portfolio_value" in _enabled_plots:
+        with profiler.stage("plot_actual_returns", 2):
+            _t = time.monotonic()
+            logger.debug("create_actual_returns_plot start n_steps=%d", max_steps)
+            _data_paths = getattr(getattr(config, "data", None), "data_paths", None) if config else None
+            plot_series = result.return_series or ReturnSeries(result.simple_returns, ReturnKind.SIMPLE)
+            actual_returns_plot = create_actual_returns_plot(
+                None,
+                max_steps,
+                df_prices=df,
+                env=env_to_use,
+                actual_returns_list=[plot_series],
+                initial_portfolio_value=(
+                    float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
+                    if config else DEFAULT_INITIAL_PORTFOLIO_VALUE
+                ),
+                benchmark_price_column=getattr(config.env, "price_column", None) or "close" if config else "close",
+                show_max_profit=config.benchmarks.show_max_profit if config else True,
+                training_steps=trainer.total_count,
+                training_episodes=trainer.total_episodes,
+                n_total_symbols=len(_data_paths) if _data_paths else None,
+                max_plot_points=getattr(getattr(config, "training", None), "max_plot_points", None) if config else None,
+                reward_type=str(getattr(config.env, "reward_type", "log_return")) if config else None,
+            )
+            logger.debug("evaluate.plot_actual_returns elapsed=%.2fs", time.monotonic() - _t)
 
-    with profiler.stage("plot_merged", 2):
-        _t = time.monotonic()
-        merged_plot = create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot)
-        logger.debug("evaluate.plot_merged elapsed=%.2fs", time.monotonic() - _t)
+    merged_plot = None
+    if reward_plot is not None and action_plot is not None:
+        with profiler.stage("plot_merged", 2):
+            _t = time.monotonic()
+            merged_plot = create_merged_comparison_plot(reward_plot, action_plot, actual_returns_plot)
+            logger.debug("evaluate.plot_merged elapsed=%.2fs", time.monotonic() - _t)
 
     return (
         reward_plot,
