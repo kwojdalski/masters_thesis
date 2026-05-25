@@ -535,7 +535,10 @@ def create_equity_progression_plot(
     return (
         ggplot(df, aes(x="Steps", y="Portfolio_Value", color="Training_Step", group="Training_Step"))
         + geom_line(size=0.32)
-        + scale_color_gradient(low="#cce0f5", high="#0072B2", name="Training Step")
+        + scale_color_gradient(
+            low="#cce0f5", high="#0072B2", name="Training Step",
+            labels=lambda vals: [f"{int(v / 1_000)}k" for v in vals],
+        )
         + labs(
             title="Equity Curve Progression",
             x="Steps",
