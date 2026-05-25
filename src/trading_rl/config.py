@@ -216,6 +216,7 @@ class LoggingConfig:
     log_file: str = "trading_env_debug.log"
     log_level: str = "INFO"
     tensorboard_dir: str = "runs"
+    log_to_file: bool = False  # Write logs to log_dir/log_file (disabled by default)
     save_plots: bool = False  # Save training plots to disk in addition to MLflow
     log_oracle_alignment_plot: bool = False  # Scatter plot of feature_future_close_vel vs next-step log return
     debug_plots: bool = False  # Stamp build hash, date, size, and font in bottom-right corner of every evaluation plot

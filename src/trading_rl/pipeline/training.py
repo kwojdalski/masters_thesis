@@ -54,12 +54,17 @@ class ExperimentRuntime:
 
 def setup_logging(config: ExperimentConfig) -> logging.Logger:
     """Setup logging configuration."""
-    log_file_path = Path(config.logging.log_dir) / config.logging.log_file
     log_level = os.getenv("LOG_LEVEL") or config.logging.log_level
+    Path(config.logging.log_dir).mkdir(parents=True, exist_ok=True)
+    log_file_path = (
+        str(Path(config.logging.log_dir) / config.logging.log_file)
+        if config.logging.log_to_file
+        else None
+    )
 
     configure_root_logging(
         level=log_level,
-        log_file=str(log_file_path),
+        log_file=log_file_path,
         console_output=True,
         colored_output=True,
     )
