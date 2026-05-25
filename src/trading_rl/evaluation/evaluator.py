@@ -66,6 +66,7 @@ class EvaluationConfig:
     max_plot_points: int | None = None  # Cap the number of plotted points per series; None = plot all
     show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
+    eval_plots: tuple[str, ...] = ("rewards", "positions", "portfolio_value")  # Which plots to generate
 
 
 @dataclass(frozen=True)
@@ -336,43 +337,45 @@ class StrategyEvaluator:
         # Generate plots
         plots = None
         if self.config.enable_plots:
-            _t = time.monotonic()
-            is_portfolio = self.config.backend.lower() == EnvBackend.TRADINGENV
-            reward_plot, action_plot = compare_rollouts(
-                [rollout], max_steps, is_portfolio=is_portfolio, df=df,
-                reward_type=self.config.reward_type,
-                max_plot_points=self.config.max_plot_points,
-                show_allocation_ma=self.config.show_allocation_ma,
-                allocation_ma_window=self.config.allocation_ma_window,
-            )
-            logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
+            enabled = set(self.config.eval_plots)
+            plots = {}
 
-            plot_series = return_series or (
-                ReturnSeries(simple_returns, ReturnKind.SIMPLE) if simple_returns.size else None
-            )
-            portfolio_value_plot = None
-            if plot_series is not None:
-                try:
-                    _t = time.monotonic()
-                    portfolio_value_plot = create_actual_returns_plot(
-                        None,
-                        max_steps,
-                        df_prices=df,
-                        actual_returns_list=[plot_series],
-                        initial_portfolio_value=self.config.env.initial_portfolio_value,
-                        benchmark_price_column=self.config.price_column,
-                        reward_type=self.config.reward_type,
-                        max_plot_points=self.config.max_plot_points,
-                    )
-                    logger.debug("evaluate_split: portfolio_value_plot elapsed=%.2fs", time.monotonic() - _t)
-                except Exception:
-                    logger.warning("evaluate_split: portfolio value plot failed", exc_info=True)
+            if "rewards" in enabled or "positions" in enabled:
+                _t = time.monotonic()
+                is_portfolio = self.config.backend.lower() == EnvBackend.TRADINGENV
+                reward_plot, action_plot = compare_rollouts(
+                    [rollout], max_steps, is_portfolio=is_portfolio, df=df,
+                    reward_type=self.config.reward_type,
+                    max_plot_points=self.config.max_plot_points,
+                    show_allocation_ma=self.config.show_allocation_ma,
+                    allocation_ma_window=self.config.allocation_ma_window,
+                )
+                logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
+                if "rewards" in enabled:
+                    plots["reward_plot"] = reward_plot
+                if "positions" in enabled:
+                    plots["action_plot"] = action_plot
 
-            plots = {
-                "reward_plot": reward_plot,
-                "action_plot": action_plot,
-                "portfolio_value_plot": portfolio_value_plot,
-            }
+            if "portfolio_value" in enabled:
+                plot_series = return_series or (
+                    ReturnSeries(simple_returns, ReturnKind.SIMPLE) if simple_returns.size else None
+                )
+                if plot_series is not None:
+                    try:
+                        _t = time.monotonic()
+                        plots["portfolio_value_plot"] = create_actual_returns_plot(
+                            None,
+                            max_steps,
+                            df_prices=df,
+                            actual_returns_list=[plot_series],
+                            initial_portfolio_value=self.config.env.initial_portfolio_value,
+                            benchmark_price_column=self.config.price_column,
+                            reward_type=self.config.reward_type,
+                            max_plot_points=self.config.max_plot_points,
+                        )
+                        logger.debug("evaluate_split: portfolio_value_plot elapsed=%.2fs", time.monotonic() - _t)
+                    except Exception:
+                        logger.warning("evaluate_split: portfolio value plot failed", exc_info=True)
 
         return SplitEvaluationResult(
             final_reward=float(rollout["next", "reward"].sum().item()),

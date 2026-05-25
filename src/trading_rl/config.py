@@ -197,6 +197,9 @@ class EvaluationConfig:
     eval_steps: int = 500
     eval_fraction: float | None = None  # Fraction of val data; overrides eval_steps when set
     log_data: bool = True  # Log per-step rollout parquet (action, returns) as an MLflow artifact
+    eval_plots: list[str] = field(
+        default_factory=lambda: ["rewards", "positions", "portfolio_value"]
+    )  # Which plots to generate: any subset of "rewards", "positions", "portfolio_value"
 
     def resolve_eval_steps(self, val_len: int) -> int:
         """Return the number of eval steps, honouring eval_fraction when set."""

@@ -201,6 +201,7 @@ class EvaluateCommand(BaseCommand):
                     enable_plots="plots" in components,
                     enable_metrics="metrics" in components,
                     periods_per_year=periods_py,
+                    eval_plots=tuple(getattr(config.evaluation, "eval_plots", ("rewards", "positions", "portfolio_value"))),
                 )
 
                 if is_random:

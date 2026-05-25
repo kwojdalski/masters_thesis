@@ -100,6 +100,7 @@ def _run_evaluation(
 
     if config:
         from trading_rl.evaluation.evaluator import EnvConfig
+        _default_eval_plots = ("rewards", "positions", "portfolio_value")
         eval_config_kwargs = {
             "reward_type": getattr(config.env, "reward_type", RewardType.LOG_RETURN),
             "backend": getattr(config.env, "backend", EnvBackend.TRADINGENV),
@@ -110,6 +111,7 @@ def _run_evaluation(
             "max_plot_points": getattr(getattr(config, "training", None), "max_plot_points", None),
             "show_allocation_ma": getattr(getattr(config, "training", None), "show_allocation_ma", True),
             "allocation_ma_window": getattr(getattr(config, "training", None), "allocation_ma_window", 500),
+            "eval_plots": tuple(getattr(getattr(config, "evaluation", None), "eval_plots", _default_eval_plots)),
             "env": EnvConfig(
                 name=getattr(config.env, "name", ""),
                 positions=getattr(config.env, "positions", None),
