@@ -12,6 +12,7 @@ from plotnine import (
     guide_legend,
     guides,
     labs,
+    scale_color_gradient,
     scale_color_manual,
     scale_linetype_manual,
     theme,
@@ -495,6 +496,58 @@ def create_equity_curve_plot(
     )
     logger.debug("ggplot object constructed elapsed=%.2fs", time.monotonic() - t0)
     return plot
+
+
+def create_equity_progression_plot(
+    history: "list[tuple[int, ReturnSeries]]",
+    initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
+    max_plot_points: int | None = None,
+):
+    """Equity curve at each training checkpoint with a single blue hue gradient.
+
+    Args:
+        history: List of (training_step, ReturnSeries) pairs, ordered by step.
+        initial_portfolio_value: Starting portfolio value for equity reconstruction.
+        max_plot_points: Downsample each series to at most this many points.
+
+    Returns:
+        A plotnine ggplot, or None if fewer than two checkpoints are available.
+    """
+    if len(history) < 2:
+        return None
+
+    rows = []
+    for training_step, returns in history:
+        equity = returns.to_equity(initial_portfolio_value).values
+        n = len(equity)
+        stride = max(1, n // max_plot_points) if max_plot_points and max_plot_points < n else 1
+        idx = np.arange(n)[::stride]
+        for s, v in zip(idx, equity[::stride]):
+            rows.append({
+                "Steps": int(s),
+                "Portfolio_Value": float(v),
+                "Training_Step": int(training_step),
+            })
+
+    df = pd.DataFrame(rows)
+    n_checkpoints = df["Training_Step"].nunique()
+
+    return (
+        ggplot(df, aes(x="Steps", y="Portfolio_Value", color="Training_Step", group="Training_Step"))
+        + geom_line(size=0.32)
+        + scale_color_gradient(low="#cce0f5", high="#0072B2", name="Training Step")
+        + labs(
+            title="Equity Curve Progression",
+            x="Steps",
+            y="Portfolio Value (\\$)",
+            caption=(
+                f"Each line shows the deterministic policy at a training checkpoint"
+                f" ({n_checkpoints} checkpoints).\n"
+                "Lighter blue = earlier in training; darker blue = later."
+            ),
+        )
+        + thesis_theme()
+    )
 
 
 def create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot=None, save_path=None):

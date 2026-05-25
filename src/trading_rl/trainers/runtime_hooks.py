@@ -55,6 +55,7 @@ class TrainerRuntimeHooks:
         self._explainability: PeriodicExplainabilityHook | None = None
         self._eval_consecutive_failures = 0
         self._explainability_consecutive_failures = 0
+        self._progression_history: dict[str, list[tuple[int, Any]]] = {}
 
     def configure_periodic_evaluation(
         self,
@@ -213,6 +214,19 @@ class TrainerRuntimeHooks:
                     logger.warning("temp eval: MetricReport failed split=%s", split_ctx.split, exc_info=True)
                     metric_report = None
 
+                # Collect returns for the equity progression plot
+                try:
+                    from trading_rl.pipeline.evaluation import _last_strategy_returns
+                    _returns = _last_strategy_returns(self.trainer)
+                    if _returns is not None:
+                        _hist = self._progression_history.setdefault(split_ctx.split, [])
+                        _hist.append((step_number, _returns))
+                except Exception:
+                    logger.debug(
+                        "temp eval: progression history collect failed split=%s",
+                        split_ctx.split, exc_info=True,
+                    )
+
                 if mlflow.active_run():
                     from trading_rl.callbacks import MLflowTrainingCallback
 
@@ -232,6 +246,43 @@ class TrainerRuntimeHooks:
                         "temp eval: mlflow upload split=%s elapsed=%.2fs",
                         split_ctx.split, time.monotonic() - _t,
                     )
+                    # Upload equity progression plot (all checkpoints so far)
+                    _prog_history = self._progression_history.get(split_ctx.split, [])
+                    if len(_prog_history) >= 2:
+                        try:
+                            import os
+                            import tempfile
+                            from trading_rl.evaluation.plots import create_equity_progression_plot
+                            from trading_rl.evaluation.thesis_theme import (
+                                FIGURE_HEIGHT,
+                                FIGURE_WIDTH,
+                                PLOT_DPI,
+                                save_plot as _save_plot,
+                            )
+                            _prog_plot = create_equity_progression_plot(_prog_history)
+                            if _prog_plot is not None:
+                                with tempfile.TemporaryDirectory() as _tmpdir:
+                                    _tmp_path = os.path.join(_tmpdir, "progression.png")
+                                    _save_plot(
+                                        _prog_plot, _tmp_path,
+                                        width=FIGURE_WIDTH * 1.5,
+                                        height=FIGURE_HEIGHT * 1.5,
+                                        dpi=PLOT_DPI,
+                                    )
+                                    mlflow.log_artifact(
+                                        _tmp_path,
+                                        f"evaluation_plots_temp/{split_ctx.split}",
+                                    )
+                                logger.debug(
+                                    "temp eval: progression plot uploaded split=%s checkpoints=%d",
+                                    split_ctx.split, len(_prog_history),
+                                )
+                        except Exception:
+                            logger.warning(
+                                "temp eval: progression plot failed split=%s",
+                                split_ctx.split, exc_info=True,
+                            )
+
                     mlflow.log_metric(
                         f"eval_{split_ctx.split}_reward",
                         final_reward,

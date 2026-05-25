@@ -16,6 +16,7 @@ from trading_rl.evaluation.metrics import MetricReport, build_metric_report
 from trading_rl.evaluation.plots import (
     compare_rollouts,
     create_equity_curve_plot,
+    create_equity_progression_plot,
     create_merged_comparison_plot,
 )
 from trading_rl.evaluation.policy_loader import PolicyLoader
@@ -97,6 +98,7 @@ __all__ = [
     "compute_twap_returns",
     "compute_vwap_returns",
     "create_equity_curve_plot",
+    "create_equity_progression_plot",
     "create_merged_comparison_plot",
     "extract_tradingenv_return_series",
     "extract_tradingenv_returns",
