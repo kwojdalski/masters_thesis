@@ -379,9 +379,7 @@ mechanisms a strong fit for the thesis design.
 | **Suitability for Limited Data** | Lower | Moderate$^a$ | High |
 | **Interpretability** | Lower (stochastic) | High (deterministic) | High (deterministic) |
 
-: Algorithm properties for trading applications. {#tbl-algo-comparison}
-
-Author's own synthesis based on [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024]. $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited.
+: Algorithm properties for trading applications. Source: Author's own synthesis based on [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024]. $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited. {#tbl-algo-comparison}
 
 This comparison framework guides the experimental design in Chapter 6, where
 PPO, DDPG, and TD3 are evaluated on identical trading tasks to empirically
