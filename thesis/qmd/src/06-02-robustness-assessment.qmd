@@ -401,21 +401,12 @@ _H4_SCENARIO = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_
 
 # Load H4 learning report
 h4_report_path = Path("thesis/qmd/results") / _H4_SCENARIO / "latest_finished" / "h4_learning_report.json"
-h4_run_path = Path("thesis/qmd/results") / _H4_SCENARIO / "latest_finished" / "run.json"
 
 h4_data = {}
-h4_plots = {}
 if h4_report_path.exists():
     import json
     try:
         h4_data = json.loads(h4_report_path.read_text())
-    except Exception:
-        pass
-
-if h4_run_path.exists():
-    try:
-        run_data = json.loads(h4_run_path.read_text())
-        h4_plots = run_data.get("evaluation_plots", {})
     except Exception:
         pass
 
@@ -476,15 +467,6 @@ if h4_data:
             view["win_rate"] = view["win_rate"].apply(lambda x: f"{x:.1%}")
             view.columns = ["Trial", "Return", "Sharpe", "Win Rate", "Profit Factor", "vs Dummy"]
             display(HTML(view.to_html(index=False)))
-
-    # Learning progression plot
-    if h4_plots:
-        progression_path = h4_plots.get("progression")
-        if progression_path:
-            full_path = Path("thesis/qmd/results") / _H4_SCENARIO / "latest_finished" / progression_path
-            if full_path.exists():
-                print("\n**Learning Progression Plot:**")
-                display(Image(filename=str(full_path)))
 else:
     print("No H4 results available. Run: bash scripts/run_h4_experiments.sh")
 ```

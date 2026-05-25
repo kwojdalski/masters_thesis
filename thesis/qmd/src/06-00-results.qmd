@@ -313,3 +313,50 @@ if snapshot.latest_running:
 else:
     print("No active run detected for the selected experiment.")
 ```
+
+### Learning Progression
+
+The learning progression plot shows how the agent's cumulative return on the train split evolved across training checkpoints. A stable upward trend indicates successful learning.
+
+```{python}
+#| label: learning_progression
+#| echo: false
+#| fig-cap: "Learning progression: cumulative return on train split across training checkpoints for the baseline TD3-DSR experiment."
+
+import mlflow
+from pathlib import Path
+from IPython.display import Image
+
+# Fetch progression plot from MLflow
+client = mlflow.tracking.MlflowClient()
+experiment = client.get_experiment_by_name(EXPERIMENT_NAME)
+
+progression_shown = False
+if experiment:
+    runs = client.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        order_by=["start_time DESC"],
+        max_results=5,
+    )
+    for run in runs:
+        if run.info.status != "FINISHED":
+            continue
+        try:
+            artifacts = client.list_artifacts(run.info.run_id, "evaluation_plots_temp/train")
+            for artifact in artifacts:
+                if artifact.path.endswith("progression.png"):
+                    # Download to temp
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                        client.download_artifacts(run.info.run_id, artifact.path, tmp.name)
+                        display(Image(filename=tmp.name))
+                        progression_shown = True
+                        break
+        except Exception:
+            continue
+        if progression_shown:
+            break
+
+if not progression_shown:
+    print("Learning progression plot not available in MLflow artifacts.")
+```
