@@ -585,6 +585,178 @@ def create_price_plot(
     return plot
 
 
+def create_metrics_table_figure(
+    metric_report: "MetricReport",
+    step: int | None = None,
+    split: str | None = None,
+) -> "matplotlib.figure.Figure":
+    """Render a MetricReport as a matplotlib table figure.
+
+    Returns a Figure with a single table showing metric name / value pairs,
+    grouped into logical sections.  Uses the thesis font size so the PNG
+    looks consistent with other evaluation plots.
+    """
+    import math
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import matplotlib.font_manager as fm
+
+    _SECTIONS: list[tuple[str, list[str]]] = [
+        ("Return", [
+            "total_return",
+            "annualized_return_cagr",
+            "annualized_volatility",
+        ]),
+        ("Risk-adjusted", [
+            "sharpe_ratio",
+            "sortino_ratio",
+            "calmar_ratio",
+            "omega_ratio",
+        ]),
+        ("Drawdown", [
+            "max_drawdown",
+            "average_drawdown",
+            "max_drawdown_duration",
+            "recovery_time_from_max_drawdown",
+        ]),
+        ("Risk", [
+            "var_95",
+            "cvar_95",
+            "downside_deviation",
+            "return_skewness",
+            "return_kurtosis",
+        ]),
+        ("Trading", [
+            "win_rate",
+            "lose_rate",
+            "profit_factor",
+            "payoff_ratio",
+            "expectancy_per_period",
+            "turnover",
+            "average_holding_period",
+            "pct_long",
+            "pct_short",
+        ]),
+        ("Benchmark", [
+            "beta",
+            "alpha",
+            "information_ratio",
+            "tracking_error",
+        ]),
+    ]
+
+    _LABELS: dict[str, str] = {
+        "total_return": "Total Return",
+        "annualized_return_cagr": "Ann. Return (CAGR)",
+        "annualized_volatility": "Ann. Volatility",
+        "sharpe_ratio": "Sharpe Ratio",
+        "sortino_ratio": "Sortino Ratio",
+        "calmar_ratio": "Calmar Ratio",
+        "omega_ratio": "Omega Ratio",
+        "max_drawdown": "Max Drawdown",
+        "average_drawdown": "Avg Drawdown",
+        "max_drawdown_duration": "Max DD Duration",
+        "recovery_time_from_max_drawdown": "Recovery Time",
+        "var_95": "VaR 95%",
+        "cvar_95": "CVaR 95%",
+        "downside_deviation": "Downside Dev",
+        "return_skewness": "Skewness",
+        "return_kurtosis": "Kurtosis",
+        "win_rate": "Win Rate",
+        "lose_rate": "Lose Rate",
+        "profit_factor": "Profit Factor",
+        "payoff_ratio": "Payoff Ratio",
+        "expectancy_per_period": "Expectancy / Period",
+        "turnover": "Turnover",
+        "average_holding_period": "Avg Hold Period",
+        "pct_long": "% Long",
+        "pct_short": "% Short",
+        "beta": "Beta",
+        "alpha": "Alpha",
+        "information_ratio": "Info Ratio",
+        "tracking_error": "Tracking Error",
+    }
+
+    _PCT_KEYS = {
+        "total_return", "annualized_return_cagr", "annualized_volatility",
+        "max_drawdown", "average_drawdown", "var_95", "cvar_95",
+        "downside_deviation", "win_rate", "lose_rate", "pct_long", "pct_short",
+        "tracking_error",
+    }
+
+    def _fmt(key: str, val: float) -> str:
+        if not math.isfinite(val):
+            return "N/A"
+        if key in _PCT_KEYS:
+            return f"{val * 100:.2f}%"
+        if key in ("max_drawdown_duration", "recovery_time_from_max_drawdown", "average_holding_period"):
+            return f"{val:.1f}"
+        return f"{val:.4f}"
+
+    report_dict = metric_report.to_dict()
+
+    rows: list[tuple[str, str, str]] = []
+    for section, keys in _SECTIONS:
+        first = True
+        for key in keys:
+            if key not in report_dict:
+                continue
+            val = report_dict[key]
+            sec_label = section if first else ""
+            first = False
+            rows.append((sec_label, _LABELS.get(key, key), _fmt(key, val)))
+
+    BASE_SIZE = 11
+    fig_height = max(4.0, len(rows) * 0.30 + 1.2)
+    fig, ax = plt.subplots(figsize=(6.0, fig_height))
+    ax.axis("off")
+
+    title_parts = []
+    if split:
+        title_parts.append(f"Split: {split}")
+    if step is not None:
+        title_parts.append(f"Step: {step:,}")
+    if title_parts:
+        ax.set_title("  |  ".join(title_parts), fontsize=BASE_SIZE + 1, pad=8)
+
+    col_labels = ["", "Metric", "Value"]
+    table_data = [(r[0], r[1], r[2]) for r in rows]
+
+    tbl = ax.table(
+        cellText=table_data,
+        colLabels=col_labels,
+        cellLoc="left",
+        loc="center",
+        bbox=[0, 0, 1, 1],
+    )
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(BASE_SIZE)
+
+    # Style header row
+    for col in range(3):
+        cell = tbl[0, col]
+        cell.set_facecolor("#2c3e50")
+        cell.set_text_props(color="white", fontweight="bold")
+
+    # Alternate row shading; bold section labels
+    for row_idx, (sec, _, _) in enumerate(rows, start=1):
+        bg = "#f0f4f8" if row_idx % 2 == 0 else "white"
+        for col in range(3):
+            cell = tbl[row_idx, col]
+            cell.set_facecolor(bg)
+            if col == 0 and sec:
+                cell.set_text_props(fontweight="bold", color="#2c3e50")
+
+    # Column widths: section 18%, metric 52%, value 30%
+    tbl.auto_set_column_width([0, 1, 2])
+    for col, w in zip(range(3), [0.18, 0.52, 0.30]):
+        for row_idx in range(len(rows) + 1):
+            tbl[row_idx, col].set_width(w)
+
+    fig.tight_layout()
+    return fig
+
+
 _MERGED_PANEL_HEIGHT = 9.0  # inches per panel — sized for 22pt base font
 
 

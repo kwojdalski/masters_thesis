@@ -367,6 +367,31 @@ class TrainerRuntimeHooks:
                                     value,
                                     step=step_number,
                                 )
+                    if metric_report is not None:
+                        try:
+                            import os
+                            import tempfile
+                            from trading_rl.evaluation.plots import create_metrics_table_figure
+                            fig = create_metrics_table_figure(
+                                metric_report,
+                                step=step_number,
+                                split=split_ctx.split,
+                            )
+                            with tempfile.TemporaryDirectory() as _tmpdir:
+                                _tbl_path = os.path.join(_tmpdir, "metrics_table.png")
+                                fig.savefig(_tbl_path, dpi=150, bbox_inches="tight")
+                                import matplotlib.pyplot as _plt
+                                _plt.close(fig)
+                                mlflow.log_artifact(_tbl_path, artifact_prefix)
+                            logger.debug(
+                                "temp eval: metrics table saved split=%s step=%s",
+                                split_ctx.split, step_number,
+                            )
+                        except Exception:
+                            logger.warning(
+                                "temp eval: metrics table failed split=%s step=%s",
+                                split_ctx.split, step_number, exc_info=True,
+                            )
                     if getattr(hook.config.training, "temp_eval_log_data", False):
                         last_result = getattr(self.trainer, "_last_evaluation_result", None)
                         if last_result is not None:
