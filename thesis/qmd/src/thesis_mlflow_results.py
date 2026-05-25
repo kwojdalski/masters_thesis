@@ -709,12 +709,35 @@ def _load_experiment_snapshot_from_export(experiment_name: str) -> ExperimentSna
     )
 
 
+def _supplement_run_from_export(live_run: dict[str, Any], export_run: dict[str, Any]) -> None:
+    """Fill gaps in a live-MLflow run dict using a static-export run dict.
+
+    The live MLflow path may be missing artifacts that were only written to the
+    thesis snapshot (e.g. statistical_tests, final evaluation plots).  Supplement
+    rather than replace so live data always takes precedence.
+    """
+    if live_run.get("statistical_tests") is None and export_run.get("statistical_tests") is not None:
+        live_run["statistical_tests"] = export_run["statistical_tests"]
+    if not live_run.get("evaluation_plots") and export_run.get("evaluation_plots"):
+        live_run["evaluation_plots"] = export_run["evaluation_plots"]
+
+
 def load_experiment_snapshot(experiment_name: str) -> ExperimentSnapshot:
     # Prefer live MLflow so renders always reflect the latest finished run.
     # Fall back to the static export when the database is unavailable (CI, offline).
     try:
         live = _load_experiment_snapshot_from_mlflow(experiment_name)
         if live.latest_finished is not None or live.latest_running is not None:
+            # Supplement any missing artifacts (e.g. statistical_tests) from the
+            # static export, which may contain data not stored in the MLflow
+            # artifact directory.
+            exported = _load_experiment_snapshot_from_export(experiment_name)
+            if exported is not None:
+                for slot in ("latest_finished", "latest_running"):
+                    live_run = getattr(live, slot)
+                    exp_run = getattr(exported, slot)
+                    if live_run is not None and exp_run is not None:
+                        _supplement_run_from_export(live_run, exp_run)
             return live
     except Exception:
         pass
