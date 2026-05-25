@@ -11,8 +11,10 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
+from trading_rl.constants import EnvBackend
 from trading_rl.envs import builder as builder_module
 from trading_rl.envs.builder import AlgorithmicEnvironmentBuilder
+from trading_rl.rewards import reward_function
 
 
 def _cfg(algorithm: str = "PPO", backend: str | None = None) -> SimpleNamespace:
@@ -22,10 +24,14 @@ def _cfg(algorithm: str = "PPO", backend: str | None = None) -> SimpleNamespace:
             backend=backend,
             positions=[-1, 0, 1],
             trading_fees=0.0,
+            borrow_interest_rate=0.0,
             name="test-env",
+            streaming_episode_length=12,
+            continuous_action_thresholds=[-0.25, 0.25],
         ),
-        training=SimpleNamespace(algorithm=algorithm),
+        training=SimpleNamespace(algorithm=algorithm, device="cpu"),
         data=SimpleNamespace(memmap_dir=None),
+        seed=123,
     )
 
 
@@ -153,3 +159,126 @@ class TestCreate:
 
         assert env == "streaming-env"
         assert streaming_calls == [(memmap_paths, config)]
+
+
+class TestCreateStreamingEnv:
+    def test_create_streaming_env_builds_gym_streaming_env(self, monkeypatch):
+        import torchrl.envs.transforms as transforms_module
+
+        import trading_rl.envs.streaming_env as streaming_module
+
+        calls = {"streaming": [], "gym": [], "transformed": [], "step_counter": 0}
+
+        class FakeStreamingTradingEnv:
+            def __init__(self, **kwargs):
+                calls["streaming"].append(kwargs)
+
+        class FakeStepCounter:
+            def __init__(self):
+                calls["step_counter"] += 1
+
+        def fake_gym_wrapper(env):
+            calls["gym"].append(env)
+            return ("gym", env)
+
+        def fake_transformed_env(env, transform):
+            calls["transformed"].append((env, transform))
+            return ("transformed", env, transform)
+
+        monkeypatch.setattr(streaming_module, "StreamingTradingEnv", FakeStreamingTradingEnv)
+        monkeypatch.setattr(transforms_module, "StepCounter", FakeStepCounter)
+        monkeypatch.setattr(builder_module, "GymWrapper", fake_gym_wrapper)
+        monkeypatch.setattr(builder_module, "TransformedEnv", fake_transformed_env)
+
+        config = _cfg("PPO", EnvBackend.GYM_TRADING_DISCRETE)
+        result = AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], config)
+
+        assert result[0] == "transformed"
+        assert calls["streaming"] == [
+            {
+                "memmap_paths": ["memmap"],
+                "episode_length": 12,
+                "seed": 123,
+                "name": "test-env",
+                "positions": [-1, 0, 1],
+                "trading_fees": 0.0,
+                "borrow_interest_rate": 0.0,
+                "reward_function": reward_function,
+            }
+        ]
+        assert len(calls["gym"]) == 1
+        assert calls["step_counter"] == 1
+        assert len(calls["transformed"]) == 1
+
+    def test_create_streaming_env_adds_continuous_action_mapping(self, monkeypatch):
+        import torchrl.envs.transforms as transforms_module
+
+        import trading_rl.continuous_action_wrapper as continuous_module
+        import trading_rl.envs.streaming_env as streaming_module
+
+        transforms = []
+        action_maps = []
+
+        class FakeStreamingTradingEnv:
+            def __init__(self, **_kwargs):
+                pass
+
+        class FakeStepCounter:
+            pass
+
+        class FakeContinuousToDiscreteAction:
+            def __init__(self, **kwargs):
+                action_maps.append(kwargs)
+
+        def fake_transformed_env(env, transform):
+            transforms.append(transform)
+            return ("transformed", env, transform)
+
+        monkeypatch.setattr(streaming_module, "StreamingTradingEnv", FakeStreamingTradingEnv)
+        monkeypatch.setattr(transforms_module, "StepCounter", FakeStepCounter)
+        monkeypatch.setattr(
+            continuous_module,
+            "ContinuousToDiscreteAction",
+            FakeContinuousToDiscreteAction,
+        )
+        monkeypatch.setattr(builder_module, "GymWrapper", lambda env: ("gym", env))
+        monkeypatch.setattr(builder_module, "TransformedEnv", fake_transformed_env)
+
+        config = _cfg("TD3", EnvBackend.GYM_TRADING_CONTINUOUS)
+        AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], config)
+
+        assert action_maps == [
+            {
+                "discrete_actions": [-1, 0, 1],
+                "thresholds": [-0.25, 0.25],
+                "device": "cpu",
+            }
+        ]
+        assert isinstance(transforms[0], FakeContinuousToDiscreteAction)
+        assert isinstance(transforms[1], FakeStepCounter)
+
+    def test_create_streaming_env_delegates_tradingenv_backend(self, monkeypatch):
+        builder = AlgorithmicEnvironmentBuilder()
+        config = _cfg("TD3", EnvBackend.TRADINGENV)
+        calls = []
+
+        def fake_create_streaming_tradingenv(paths, episode_length, cfg):
+            calls.append((paths, episode_length, cfg))
+            return "streaming-tradingenv"
+
+        monkeypatch.setattr(
+            builder,
+            "_create_streaming_tradingenv",
+            fake_create_streaming_tradingenv,
+        )
+
+        result = builder._create_streaming_env(["memmap"], config)
+
+        assert result == "streaming-tradingenv"
+        assert calls == [(["memmap"], 12, config)]
+
+    def test_create_streaming_env_rejects_unsupported_backend(self):
+        config = _cfg("PPO", EnvBackend.GYM_ANYTRADING_FOREX)
+
+        with pytest.raises(ValueError, match="memmap streaming is not supported"):
+            AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], config)
