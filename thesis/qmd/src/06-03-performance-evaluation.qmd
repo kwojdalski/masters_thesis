@@ -50,7 +50,6 @@ if key_metrics_df is None or key_metrics_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.")
     key_metrics_df = pd.DataFrame([
         ("Total Return", "0.28%"),
-        ("CAGR", "22.36%"),
         ("Annualized Volatility", "12.34%"),
         ("Sharpe Ratio", "1.8234"),
         ("Sortino Ratio", "2.4123"),
@@ -86,16 +85,15 @@ if finished is not None:
 if benchmark_df is None or benchmark_df.empty:
     print("Placeholder values shown — run full experiment pipeline to populate.")
     benchmark_df = pd.DataFrame([
-        ("TD3 Agent", "0.28%", "22.36%", "12.34%", "1.8234", "2.4123", "-0.16%", "56.21%", "0.6400"),
-        ("Buy & Hold", "-0.12%", "-9.80%", "14.40%", "-0.6800", "-0.8100", "-0.34%", "N/A", "0.0000"),
-        ("Short & Hold", "0.12%", "9.80%", "14.40%", "0.6800", "0.9100", "-0.22%", "N/A", "0.0000"),
-        ("TWAP", "-0.08%", "-6.50%", "14.80%", "-0.4400", "-0.5200", "-0.29%", "N/A", "0.0200"),
-        ("VWAP", "-0.07%", "-5.70%", "15.00%", "-0.3800", "-0.4500", "-0.27%", "N/A", "0.0200"),
-        ("Random", "0.01%", "0.80%", "16.80%", "0.0500", "0.0600", "-0.43%", "50.10%", "0.9800"),
+        ("TD3 Agent", "0.28%", "12.34%", "1.8234", "2.4123", "-0.16%", "56.21%", "0.6400"),
+        ("Buy & Hold", "-0.12%", "14.40%", "-0.6800", "-0.8100", "-0.34%", "N/A", "0.0000"),
+        ("Short & Hold", "0.12%", "14.40%", "0.6800", "0.9100", "-0.22%", "N/A", "0.0000"),
+        ("TWAP", "-0.08%", "14.80%", "-0.4400", "-0.5200", "-0.29%", "N/A", "0.0200"),
+        ("VWAP", "-0.07%", "15.00%", "-0.3800", "-0.4500", "-0.27%", "N/A", "0.0200"),
+        ("Random", "0.01%", "16.80%", "0.0500", "0.0600", "-0.43%", "50.10%", "0.9800"),
     ], columns=[
         "Strategy",
         "TR",
-        "CAGR",
         "Volatility",
         "SR",
         "Sortino",
@@ -113,9 +111,9 @@ if benchmark_df is None or benchmark_df.empty:
 HTML(benchmark_df.to_html(index=False))
 ```
 
-*TR: Total Return. CAGR: Compound Annual Growth Rate. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
+*TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
 
-All annualized metrics use **trading-time periods** as the annualization factor derived from the observed event rate in the evaluation data. For tick-level US equity data, the pipeline computes the events-per-second rate over the evaluation window and projects it to one full trading year ($252 \text{ days} \times 6.5 \text{ hours} = 5{,}896{,}800 \text{ seconds}$). Sharpe and Sortino are scaled by $\sqrt{\text{periods per year}}$ and CAGR is annualized by raising $(1 + R_{\text{total}})$ to the power $\tfrac{\text{periods per year}}{n}$, where $n$ is the number of steps in the evaluation horizon.
+All annualized metrics use **trading-time periods** as the annualization factor derived from the observed event rate in the evaluation data. For tick-level US equity data, the pipeline computes the events-per-second rate over the evaluation window and projects it to one full trading year ($252 \text{ days} \times 6.5 \text{ hours} = 5{,}896{,}800 \text{ seconds}$). Sharpe and Sortino are scaled by $\sqrt{\text{periods per year}}$.
 
 Because the evaluation horizon is short and the return increments are measured
 at tick frequency, annualized ratios can become numerically extreme. They are
