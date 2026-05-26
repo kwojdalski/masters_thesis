@@ -288,7 +288,7 @@ class PPOTrainer(BaseTrainer):
             "actor_state_dict": self.actor.state_dict(),
             "value_net_state_dict": self.value_net.state_dict(),
             "actor_params_state": self.ppo_loss.actor_network_params.state_dict(),
-            "critic_params_state": self.ppo_loss.critic_network_params.state_dict(),
+            "value_params_state": self.ppo_loss.critic_network_params.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
             "total_count": self.total_count,
             "total_episodes": self.total_episodes,
@@ -317,14 +317,14 @@ class PPOTrainer(BaseTrainer):
         # Load checkpoint with weights_only=False for TorchRL compatibility
         # TensorDict objects require custom unpickling that isn't in PyTorch's safe allowlist
         checkpoint = torch.load(path, weights_only=False)
-        if "actor_params_state" not in checkpoint or "critic_params_state" not in checkpoint:
+        if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
             raise KeyError(
                 "PPO checkpoint is missing functional parameter states "
-                "(actor_params_state/critic_params_state). "
+                "(actor_params_state/value_params_state). "
                 "Legacy module-only checkpoints are no longer supported."
             )
         self.ppo_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
-        self.ppo_loss.critic_network_params.load_state_dict(checkpoint["critic_params_state"])
+        self.ppo_loss.critic_network_params.load_state_dict(checkpoint["value_params_state"])
         self.ppo_loss.actor_network_params.to_module(self.actor)
         self.ppo_loss.critic_network_params.to_module(self.value_net)
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
