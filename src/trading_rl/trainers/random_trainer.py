@@ -33,6 +33,13 @@ class RandomTrainer(BaseTrainer):
         """Skip training — random policy requires no learning."""
         return dict(self.logs)
 
+    def load_checkpoint(self, path: str) -> None:
+        """No-op — random policy has no learnable state to restore."""
+        from logger import get_logger
+        get_logger(__name__).warning(
+            "load_checkpoint called on RandomTrainer; no state to restore path=%s", path
+        )
+
     def save_checkpoint(self, path: str, feature_pipeline_state: dict | None = None) -> None:
         import torch
         torch.save(
