@@ -545,20 +545,20 @@ class TD3Trainer(BaseTrainer):
 
         # Optionally save replay buffer (can be very large)
         if getattr(self.config, "save_buffer", False):
-            logger.info("save replay buffer path=%s", path)
             path_obj = Path(path)
             buffer_dir = path_obj.with_suffix("")
             buffer_dir = buffer_dir.with_name(f"{buffer_dir.name}_buffer")
             try:
                 self.replay_buffer.dumps(buffer_dir)
+            except Exception:
+                logger.exception("failed to save replay buffer; checkpoint will not include buffer")
+            else:
                 checkpoint["replay_buffer_path"] = str(buffer_dir)
                 checkpoint["buffer_metadata"] = {
                     "buffer_size": len(self.replay_buffer),
                     "max_size": self.replay_buffer._storage.max_size,
                 }
                 logger.info("save replay buffer path=%s n_experiences=%s", buffer_dir, len(self.replay_buffer))
-            except Exception:
-                logger.exception("failed to save replay buffer")
 
         torch.save(checkpoint, path)
         logger.info("save checkpoint path=%s", path)
