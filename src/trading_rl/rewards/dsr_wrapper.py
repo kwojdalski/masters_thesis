@@ -96,7 +96,7 @@ class DifferentialSharpeRatioAnyTrading:
     def __init__(
         self,
         eta: float = 0.01,
-        epsilon: float = 1e-8,
+        epsilon: float = 1e-20,
         clip_reward: float | None = 10.0,
         persist_moments: bool = False,
         scale: float = 1.0,

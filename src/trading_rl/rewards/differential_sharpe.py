@@ -119,19 +119,23 @@ class DifferentialSharpeRatio(AbstractReward):
         eta: Learning rate for exponential moving averages (default: 0.01)
             - Higher values (0.1): Fast adaptation, higher variance
             - Lower values (0.001): Slow adaptation, smoother signal
-        epsilon: Small constant for numerical stability (default: 1e-8)
+        epsilon: Small constant for numerical stability (default: 1e-20)
 
     Attributes:
         A_t: Current EMA of returns (mean estimate)
         B_t: Current EMA of squared returns (second moment estimate)
     """
 
-    def __init__(self, eta: float = 0.01, epsilon: float = 1e-8, clip_rewards: bool = True, scale: float = 1.0):
+    def __init__(self, eta: float = 0.01, epsilon: float = 1e-20, clip_rewards: bool = True, scale: float = 1.0):
         """Initialize DSR reward calculator.
 
         Args:
             eta: Learning rate for EMAs (0.001 to 0.1, default: 0.01)
-            epsilon: Stability constant (default: 1e-8)
+            epsilon: Stability constant (default: 1e-20).
+                Must be smaller than Var(R)^1.5 once the EMA warms up.
+                HFT tick-level portfolio returns have Var ~ 1e-10, so
+                Var^1.5 ~ 1e-15 — epsilon=1e-8 would dominate the denominator
+                permanently, collapsing DSR to a scaled return signal.
             clip_rewards: Clamp output to [-10, 10] to prevent gradient explosion
                 when variance collapses near zero (default: True)
             scale: Multiplicative constant applied after clipping (default: 1.0)
