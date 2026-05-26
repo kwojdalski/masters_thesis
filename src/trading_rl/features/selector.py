@@ -18,7 +18,7 @@ YAML, and the training pipeline loads that file directly.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -1225,7 +1225,11 @@ class FeatureSelector:
 
         if not cfg.hyperparameter_grid:
             logger.warning("enable_hyperparameter_search=True but grid is empty, using default config")
-            return self.select(feature_configs, train_df, val_df, df)
+            fallback_cfg = FeatureSelectorConfig(
+                **{k: v for k, v in asdict(cfg).items() if k != "enable_hyperparameter_search"},
+                enable_hyperparameter_search=False,
+            )
+            return FeatureSelector(fallback_cfg).select(feature_configs, train_df, val_df, df)
 
         logger.info(
             "Starting hyperparameter search with grid: %s",
