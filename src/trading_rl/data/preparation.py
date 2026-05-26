@@ -455,7 +455,15 @@ def _build_per_day_splits(
     feature_cache_dir = getattr(config.data, "feature_cache_dir", None)
 
     def _symbol_of(path: str) -> str:
-        return Path(path).name.split("_")[0]
+        name = Path(path).name
+        sym = name.split("_")[0]
+        if not sym or sym[0].isdigit():
+            raise ValueError(
+                f"Cannot extract symbol from '{name}': expected SYMBOL_YYYY-MM-DD_*.parquet "
+                f"but first '_'-delimited token is '{sym}'. "
+                "Rename the file so it starts with the ticker symbol."
+            )
+        return sym
 
     # Group training paths by symbol, preserving original indices
     symbol_train_paths: dict[str, list[str]] = defaultdict(list)
