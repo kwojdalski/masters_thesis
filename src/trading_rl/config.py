@@ -227,6 +227,10 @@ class TrainingConfig:
     show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
 
+    # Runtime early stopping
+    es_stale_policy_min_ratio: float = 0.0  # Min mean position-change ratio; 0 = disabled
+    es_stale_policy_window: int = 20        # Rolling window in completed episodes
+
 
 @dataclass
 class EvaluationConfig:

@@ -1225,6 +1225,26 @@ def _check_positions_high_leverage(config: ExperimentConfig) -> Finding | None:
     return None
 
 
+def _check_es_stale_policy_config(config: ExperimentConfig) -> Finding | None:
+    """WARN: stale-policy early stopping enabled but window is too small to be reliable."""
+    ratio = getattr(config.training, "es_stale_policy_min_ratio", 0.0)
+    window = getattr(config.training, "es_stale_policy_window", 20)
+    if ratio <= 0.0:
+        return None
+    if window < 5:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.es_stale_policy_window",
+            message=(
+                f"es_stale_policy_window={window} with es_stale_policy_min_ratio={ratio}: "
+                "a window smaller than 5 episodes is too noisy — early stopping may fire "
+                "spuriously during the random warm-up or after a single degenerate episode."
+            ),
+            suggestion="Set es_stale_policy_window >= 10 for a stable signal.",
+        )
+    return None
+
+
 def _check_off_policy_too_few_total_updates(config: ExperimentConfig) -> Finding | None:
     """WARN (off-policy): total gradient updates < 500 → too few weight updates for convergence."""
     if not _is_off_policy(config.training.algorithm):
@@ -1315,6 +1335,7 @@ _ALL_CHECKS = [
     _check_val_test_imbalance,
     _check_positions_high_leverage,
     _check_off_policy_too_few_total_updates,
+    _check_es_stale_policy_config,
 ]
 
 

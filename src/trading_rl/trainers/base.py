@@ -25,6 +25,7 @@ from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.profiler import get_profiler
 from trading_rl.trainers.checkpointing import CheckpointManager
 from trading_rl.trainers.episode_stats import EpisodeStatsTracker
+from trading_rl.trainers.health_monitor import TrainingHealthMonitor
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 
 _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
@@ -340,12 +341,17 @@ class BaseTrainer(ABC):
         self.logs = defaultdict(list)
         self.checkpoint_manager = CheckpointManager(self)
         self.runtime_hooks = TrainerRuntimeHooks(self)
+        self.health_monitor = TrainingHealthMonitor(
+            stale_policy_min_ratio=getattr(config, "es_stale_policy_min_ratio", 0.0),
+            stale_policy_window=getattr(config, "es_stale_policy_window", 20),
+        )
         self.episode_stats = EpisodeStatsTracker(
             env=env,
             logs=self.logs,
             compute_exploration_ratio=self._compute_exploration_ratio,
             get_last_episode_final_nlv=self._get_last_episode_final_nlv,
             get_current_episode_context=self._get_current_episode_context,
+            health_monitor=self.health_monitor,
         )
 
         # On-policy vs off-policy handling
@@ -635,6 +641,11 @@ class BaseTrainer(ABC):
 
                     if self.callback and hasattr(self.callback, "log_episode_stats"):
                         self._log_episode_stats(data, self.callback)
+
+                    stop_reason = self.health_monitor.check()
+                    if stop_reason:
+                        logger.warning("early stopping: %s", stop_reason)
+                        break
 
                     if on_batch_end is not None:
                         on_batch_end(i, data)

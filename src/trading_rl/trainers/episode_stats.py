@@ -39,12 +39,14 @@ class EpisodeStatsTracker:
         compute_exploration_ratio: Callable[[], float],
         get_last_episode_final_nlv: Callable[[], tuple[float | None, int | None]],
         get_current_episode_context: Callable[[], tuple[str | None, str | None, str | None]],
+        health_monitor: Any = None,
     ) -> None:
         self._env = env
         self._logs = logs
         self._compute_exploration_ratio = compute_exploration_ratio
         self._get_last_episode_final_nlv = get_last_episode_final_nlv
         self._get_current_episode_context = get_current_episode_context
+        self._health_monitor = health_monitor
         self._pending_rewards: list[float] = []
         self._pending_actions: list[Any] = []
 
@@ -182,6 +184,9 @@ class EpisodeStatsTracker:
             callback._episode_count, portfolio_return, portfolio_valuation,
             steps_label, position_str, episode_ctx,
         )
+
+        if self._health_monitor is not None:
+            self._health_monitor.record_episode(actions)
 
     def log_sample_transitions(self, data: Any, n: int = 3) -> None:
         """Log n sample (s, a, r, s') tuples from a collected batch at DEBUG level."""
