@@ -369,8 +369,11 @@ class EvaluateCommand(BaseCommand):
         # --- Cache check ---
         cache_path: Path | None = None
         if feature_cache_dir and feature_config:
+            ckpt_id = ""
+            if checkpoint_path is not None and checkpoint_path.exists():
+                ckpt_id = str(checkpoint_path.stat().st_mtime_ns)
             sig = hashlib.md5(
-                f"{data_path}:{data_path.stat().st_mtime_ns}:{filter_lob_levels}:{feature_config}:{mode}:{backend}".encode()
+                f"{data_path}:{data_path.stat().st_mtime_ns}:{filter_lob_levels}:{feature_config}:{mode}:{backend}:{ckpt_id}".encode()
             ).hexdigest()
             cache_path = Path(feature_cache_dir) / f"eval_{sig}.parquet"
 
