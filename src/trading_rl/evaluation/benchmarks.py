@@ -250,6 +250,10 @@ def calculate_benchmark_dsr(
                 portfolio_values[i],
             )
             dsr_values.append(0.0)
+            # Decay EMAs so they don't remain frozen at pre-gap values,
+            # which would cause a spike when the portfolio recovers.
+            a_t = (1 - eta) * a_t
+            b_t = (1 - eta) * b_t
             continue
 
         r_t = float(np.log(portfolio_values[i] / portfolio_values[i - 1]))
