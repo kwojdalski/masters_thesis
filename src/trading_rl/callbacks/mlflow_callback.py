@@ -18,6 +18,7 @@ from trading_rl.callbacks.artifacts import (
     log_evaluation_plots,
     log_evaluation_report,
     log_explainability_results,
+    log_feature_descriptive_stats,
     log_final_metrics,
     log_parameter_faq_artifact,
     log_raw_data_overview,
@@ -50,6 +51,7 @@ class MLflowTrainingCallback:
     # Re-export artifact helpers so callers using
     # ``MLflowTrainingCallback.log_*(…)`` continue to work unchanged.
     log_config_artifact = staticmethod(log_config_artifact)
+    log_feature_descriptive_stats = staticmethod(log_feature_descriptive_stats)
     log_raw_data_overview = staticmethod(log_raw_data_overview)
     log_transformed_data_overview = staticmethod(log_transformed_data_overview)
     log_evaluation_plots = staticmethod(log_evaluation_plots)

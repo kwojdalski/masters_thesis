@@ -515,9 +515,118 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
             selected_cols or "not set",
         )
 
+    log_feature_descriptive_stats(df, config)
     _log_feature_vs_return_scatter(df, config)
     if getattr(getattr(config, "logging", None), "log_oracle_alignment_plot", False):
         _log_oracle_vs_reward_alignment(df, config)
+
+
+def log_feature_descriptive_stats(df: pd.DataFrame, config: Any) -> None:
+    """Log per-feature descriptive statistics for all training variables.
+
+    Computes min, max, mean, median, std, percentiles, skewness, kurtosis, and
+    null counts for every feature column in *df* and logs the result as
+    ``transformed_data_overview/stats/feature_stats.json`` and ``.csv``.
+    """
+    logger = get_project_logger(__name__)
+
+    if not mlflow.active_run():
+        logger.warning("no active mlflow run skipping feature descriptive stats")
+        return
+
+    feat_cols = [c for c in df.columns if str(c).startswith("feature_")]
+    if not feat_cols:
+        logger.warning("log_feature_descriptive_stats: no feature_ columns found, skipping")
+        return
+
+    feat_df = df[feat_cols]
+    n_total = len(feat_df)
+
+    rows: list[dict] = []
+    percentiles = [0.01, 0.05, 0.25, 0.50, 0.75, 0.95, 0.99]
+
+    for col in feat_cols:
+        s = feat_df[col].dropna().astype(float)
+        non_null = len(s)
+        null_count = n_total - non_null
+
+        row: dict = {
+            "feature": col,
+            "count_total": n_total,
+            "count_non_null": non_null,
+            "count_null": null_count,
+            "null_pct": round(null_count / n_total * 100, 4) if n_total > 0 else None,
+        }
+
+        if non_null == 0:
+            for stat in ("mean", "std", "min", "p01", "p05", "p25", "p50", "p75", "p95", "p99", "max",
+                         "skewness", "kurtosis", "range", "iqr", "cv"):
+                row[stat] = None
+        else:
+            q = s.quantile(percentiles).to_dict()
+            mean_val = float(s.mean())
+            std_val = float(s.std(ddof=1)) if non_null > 1 else 0.0
+            min_val = float(s.min())
+            max_val = float(s.max())
+            p25 = float(q[0.25])
+            p75 = float(q[0.75])
+
+            row.update({
+                "mean": round(mean_val, 8),
+                "std": round(std_val, 8),
+                "min": round(min_val, 8),
+                "p01": round(float(q[0.01]), 8),
+                "p05": round(float(q[0.05]), 8),
+                "p25": round(p25, 8),
+                "p50": round(float(q[0.50]), 8),
+                "p75": round(p75, 8),
+                "p95": round(float(q[0.95]), 8),
+                "p99": round(float(q[0.99]), 8),
+                "max": round(max_val, 8),
+                "skewness": round(float(s.skew()), 6) if non_null > 2 else None,
+                "kurtosis": round(float(s.kurt()), 6) if non_null > 3 else None,
+                "range": round(max_val - min_val, 8),
+                "iqr": round(p75 - p25, 8),
+                "cv": round(std_val / abs(mean_val), 6) if abs(mean_val) > 1e-12 else None,
+            })
+
+        rows.append(row)
+
+    stats_df = pd.DataFrame(rows)
+    artifact_dir = "transformed_data_overview/stats"
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = os.path.join(tmpdir, "feature_stats.csv")
+            json_path = os.path.join(tmpdir, "feature_stats.json")
+
+            stats_df.to_csv(csv_path, index=False)
+            mlflow.log_artifact(csv_path, artifact_dir)
+
+            # Serialize NaN as null in JSON
+            serializable = []
+            for row in rows:
+                clean_row = {}
+                for k, v in row.items():
+                    if v is None:
+                        clean_row[k] = None
+                    elif isinstance(v, float) and not np.isfinite(v):
+                        clean_row[k] = None
+                    else:
+                        clean_row[k] = v
+                serializable.append(clean_row)
+
+            with open(json_path, "w") as fh:
+                json.dump(serializable, fh, indent=2)
+            mlflow.log_artifact(json_path, artifact_dir)
+
+        logger.info(
+            "log_feature_descriptive_stats: logged stats for %d features to %s",
+            len(feat_cols),
+            artifact_dir,
+        )
+    except Exception as e:  # pragma: no cover
+        logger.warning("log_feature_descriptive_stats failed err=%s", e)
 
 
 def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
