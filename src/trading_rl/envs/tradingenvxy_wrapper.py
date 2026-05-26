@@ -510,7 +510,7 @@ class StreamingTradingEnvXY(gym.Env):
             index = pd.RangeIndex(len(window_data))
         return pd.DataFrame(window_data, columns=mp.columns, index=index)
 
-    def _build_inner_env(self, window_df: pd.DataFrame, symbol: str = "") -> TradingEnv:
+    def _build_inner_env(self, window_df: pd.DataFrame, symbol: str = "", reward: Any = None) -> TradingEnv:
         stocks = [Stock(self._price_column)]
         prices = window_df[[self._price_column]].copy()
         prices.columns = pd.Index(stocks)
@@ -525,7 +525,7 @@ class StreamingTradingEnvXY(gym.Env):
         return TradingEnv(
             action_space=BoxPortfolio(stocks, low=-1.0, high=1.0),
             state=features,
-            reward=self._make_reward(symbol),
+            reward=reward or self._make_reward(symbol),
             prices=prices,
             initial_cash=self._initial_cash,
             broker_fees=BrokerFees(proportional=self._fee, fixed=0.0),
@@ -596,20 +596,16 @@ class StreamingTradingEnvXY(gym.Env):
         if not self._dsr_persist_across_symbols and self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
             sym = self._current_episode_symbol
             if sym in self._dsr_per_symbol:
+                # Reset only _prev_nlv; A_t/B_t are preserved and will be passed
+                # to the new TradingEnv instance, avoiding fragile manual restoration.
                 self._dsr_per_symbol[sym].reset(persist_moments=True)
                 _dsr_to_restore = self._dsr_per_symbol[sym]
         elif self._dsr_persist_across_symbols and self._persistent_dsr is not None:
+            # Legacy mode: reset _prev_nlv on the shared DSR object.
+            self._persistent_dsr.reset(persist_moments=True)
             _dsr_to_restore = self._persistent_dsr
-        # Snapshot moments before inner_env.reset(), which calls reward.reset()
-        # with no persist_moments argument (defaults to False), zeroing A_t/B_t.
-        _saved_A = getattr(_dsr_to_restore, "A_t", None)
-        _saved_B = getattr(_dsr_to_restore, "B_t", None)
-        self._inner_env = self._build_inner_env(window_df, symbol=self._current_episode_symbol)
+        self._inner_env = self._build_inner_env(window_df, symbol=self._current_episode_symbol, reward=_dsr_to_restore)
         obs = self._inner_env.reset()
-        # Restore moments that TradingEnv.reset() unconditionally zeroed.
-        if _dsr_to_restore is not None and _saved_A is not None:
-            _dsr_to_restore.A_t = _saved_A
-            _dsr_to_restore.B_t = _saved_B
         return self._extract_obs(obs), {}
 
     def step(self, action):
