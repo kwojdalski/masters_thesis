@@ -146,13 +146,11 @@ class DDPGTrainer(BaseTrainer):
                 batch_idx, j, self.config.optim_steps_per_batch
             )
 
-            # Ensure sample has consistent shapes for DDPG Loss
-            # Check for any NaN or inf values that could cause shape issues
             if (
                 torch.isnan(sample["next", "reward"]).any()
                 or torch.isinf(sample["next", "reward"]).any()
             ):
-                logger.warning("nan/inf in reward, skip optimization step")
+                self._record_skipped_batch("nan/inf in reward")
                 continue
 
             # Ensure done and terminated have consistent shapes
