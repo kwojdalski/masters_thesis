@@ -204,7 +204,8 @@ class DifferentialSharpeRatio(AbstractReward):
         # Update previous NLV for next step
         self._prev_nlv = nlv_now
 
-        # Apply scale before clipping so output bounds are respected
+        # Scale before clip: output is always in [-10, 10] regardless of scale.
+        # scale controls sensitivity — the gradient saturates when |raw_dsr| > 10/scale.
         dsr = dsr * self.scale
         if self.clip_rewards:
             dsr = float(np.clip(dsr, -10.0, 10.0))
