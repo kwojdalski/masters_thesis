@@ -936,7 +936,10 @@ def prepare_data(
                         restore_pipeline_state(feature_pipeline, _saved_state)
                         logger.debug("cache hit: restored pipeline state from %s", _state_path)
                 except Exception as _exc:
-                    logger.warning("could not restore pipeline state from cache: %s", _exc)
+                    raise RuntimeError(
+                        f"Feature cache pipeline state at {_state_path} is corrupted. "
+                        "Delete the cache directory to rebuild."
+                    ) from _exc
             # Resolve split sizes against the cached row count
             _n = len(full_df)
             _train = min(cfg.train_size, _n)
