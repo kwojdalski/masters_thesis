@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -17,16 +18,16 @@ from trading_rl.envs.trading_envs import Backend, create_environment as build_ba
 
 
 @dataclass
-class BaseEnvironmentBuilder:
+class BaseEnvironmentBuilder(ABC):
     """Base class for environment builders."""
 
     logger: logging.Logger = field(
         default_factory=lambda: get_logger(__name__), init=False, repr=False
     )
 
+    @abstractmethod
     def create(self, df: pd.DataFrame, config: ExperimentConfig) -> TransformedEnv:
         """Create environment instance for given data and config."""
-        raise NotImplementedError
 
 
 class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
