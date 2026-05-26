@@ -21,6 +21,8 @@ from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _log_network_stats
 
 logger = get_logger(__name__)
 
+_MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
+
 
 class TD3Loss(TorchRLTd3Loss):
     """Thin wrapper around TorchRL's TD3 loss to ensure consistent behavior."""
@@ -126,6 +128,7 @@ class TD3Trainer(BaseTrainer):
         # Counters for tracking successful vs skipped batches
         self.successful_batches = 0
         self.skipped_batches = 0
+        self._consecutive_skips = 0
 
         logger.info(
             "init td3 trainer actor_lr=%s value_lr=%s exploration_noise_std=%.3f policy_noise=%.3f noise_clip=%.3f policy_delay=%d",
@@ -197,18 +200,16 @@ class TD3Trainer(BaseTrainer):
                 torch.isnan(sample["next", "reward"]).any()
                 or torch.isinf(sample["next", "reward"]).any()
             ):
-                logger.warning("nan/inf in reward, skip optimization step")
-                self.skipped_batches += 1
+                self._record_skipped_batch("nan/inf in reward")
                 continue
 
             # Ensure done and terminated have consistent shapes
             done = sample["next", "done"]
             terminated = sample["next", "terminated"]
             if done.shape != terminated.shape:
-                logger.warning(
-                    "shape mismatch done=%s terminated=%s", done.shape, terminated.shape
+                self._record_skipped_batch(
+                    f"done/terminated shape mismatch done={done.shape} terminated={terminated.shape}"
                 )
-                self.skipped_batches += 1
                 continue
 
             # 1. Update critics
@@ -216,6 +217,7 @@ class TD3Trainer(BaseTrainer):
                 loss_vals = self.td3_loss(sample)
                 # If we get here, the batch was successful
                 self.successful_batches += 1
+                self._consecutive_skips = 0
 
                 # DEBUG: Log loss values
                 if logger.isEnabledFor(logging.DEBUG):
@@ -225,11 +227,8 @@ class TD3Trainer(BaseTrainer):
                     )
 
             except RuntimeError as e:
-                if "All input tensors" in str(e) and "must share a unique shape" in str(
-                    e
-                ):
-                    self.skipped_batches += 1
-                    logger.warning("td3 tensor shape error skipping batch err=%s", e)
+                if "All input tensors" in str(e) and "must share a unique shape" in str(e):
+                    self._record_skipped_batch("tensor shape error", exc=e)
                     continue
                 else:
                     raise e
@@ -385,6 +384,29 @@ class TD3Trainer(BaseTrainer):
             on_batch_end=on_batch_end,
             on_train_end=self._log_batch_summary,
         )
+
+    def _record_skipped_batch(self, reason: str, exc: RuntimeError | None = None) -> None:
+        """Track skipped TD3 optimization batches and fail fast if none succeed."""
+        self.skipped_batches += 1
+        self._consecutive_skips += 1
+
+        if exc is None:
+            logger.warning("td3 skipping batch reason=%s", reason)
+        else:
+            logger.warning("td3 skipping batch reason=%s err=%s", reason, exc)
+
+        if (
+            self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
+            and self.successful_batches == 0
+        ):
+            error = RuntimeError(
+                f"TD3: {self._consecutive_skips} consecutive optimization batches "
+                "skipped with zero successful updates. Training cannot proceed - "
+                "check environment or replay buffer tensor shapes."
+            )
+            if exc is not None:
+                raise error from exc
+            raise error
 
     def _log_batch_summary(self) -> None:
         """Log successful vs skipped optimization batch summary."""
