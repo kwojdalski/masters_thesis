@@ -27,6 +27,7 @@ from trading_rl.pipeline.training import (
     build_experiment_runtime,
     setup_mlflow_experiment,
 )
+from trading_rl.config_guardrails import run_guardrail_check
 from trading_rl.profiler import init_profiler
 
 _logger = _get_logger(__name__)
@@ -250,6 +251,8 @@ def execute_single_experiment(
     build_experiment_runtime_fn: Any = build_experiment_runtime,
 ) -> dict[str, Any]:
     """Run the end-to-end experiment flow and return the public result payload."""
+    run_guardrail_check(config)
+
     profiler = init_profiler(level=config.profiling.level if getattr(config, "profiling", None) else 0)
 
     with profiler.stage("runtime_build"):

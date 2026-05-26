@@ -76,8 +76,10 @@ def _make_config(tmp_path: Path) -> ExperimentConfig:
                 "algorithm": "PPO",
                 "max_steps": 8,
                 "frames_per_batch": 4,
+                "sample_size": 4,
                 "init_rand_steps": 0,
                 "log_interval": 4,
+                "skip_guardrail_prompts": True,
             },
             "evaluation": {
                 "eval_steps": 4,

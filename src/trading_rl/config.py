@@ -201,6 +201,9 @@ class TrainingConfig:
     vf_coef: float = 0.5  # Value function loss coefficient
     ppo_epochs: int = 4  # Number of PPO epochs per batch
 
+    # Pre-flight guardrail checks
+    skip_guardrail_prompts: bool = False  # Set True in scripts to suppress the y/N prompt; warnings still logged
+
     # TD3-specific parameters
     policy_noise: float = 0.2
     noise_clip: float = 0.5
