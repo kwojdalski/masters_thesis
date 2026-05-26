@@ -27,7 +27,7 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
-  cli_train: "train\nuv run python src/cli.py train\n  --scenario <name>  [--checkpoint-path <ckpt>]\n  [--config-override key=value]\n  [--trials <n>]  [--from-last-checkpoint]  [--additional-steps <n>]" {
+  cli_train: "train\nuv run python src/cli.py train\n  [--config <yaml>]  [--config-override key=value]\n  [--trials <n>]  [--name <experiment>]\n  [--from-checkpoint <ckpt>]  [--from-last-checkpoint]\n  [--mlflow-run-id <id>]  [--additional-steps <n>]\n  [--interactive]" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -73,6 +73,11 @@ cli: CLI Entry Points {
   }
 
   cli_artifacts: "artifacts\nuv run python src/cli.py artifacts\n  [--experiment <regex>]  [--run-id <id>]\n  [--delete <regex>]  [--delete-all]  [--dry-run]\n  List/delete MLflow artifacts by experiment · run · prefix" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_data_generate: "data generate\nuv run python src/cli.py data generate\n  [--scenario <name>]  [--source-dir <dir>]  [--output-dir <dir>]\n  [--source-file <f>]  [--output-file <f>]\n  [--sine-wave]  [--upward-drift]  [--copy]\n  [--start-date YYYY-MM-DD]  [--end-date YYYY-MM-DD]\n  Generate or copy synthetic price data from parquets" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -348,7 +353,7 @@ train: RL Training {
       style.fill: "#fecaca"
     }
 
-    reward: "Reward  (per step) — configured via reward_type\n\nBase signal: R_t = log return of portfolio value  (NLV path, includes fees)\n\n─── reward_type = log_return  (primary pooled scenario) ───\n  reward = R_t × reward_scale      (scale = 10000 in pooled config)\n\n─── reward_type = differential_sharpe  (DSR scenarios) ───\n  EMA updates (η = 0.01):\n    A_t = (1−η)·A_{t−1} + η·R_t\n    B_t = (1−η)·B_{t−1} + η·R_t²\n  D_t = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n         / (B_{t−1} − A_{t−1}²)^(3/2) + ε   (ε = 1e−16)\n  clip_rewards = True: clamp to [−10, 10]\n  reward = D_t × scale  (scale configurable via reward_scale)\n  persist_moments: A_t, B_t optionally kept across episode boundaries\n    (default True in StreamingTradingEnv for cross-episode continuity)\n\nReset: A_t, B_t, prev_nlv to zero at each episode start\n  (unless persist_moments = True)" {
+    reward: "Reward  (per step) — configured via reward_type\n\nBase signal: R_t = log return of portfolio value  (NLV path, includes fees)\n\n─── reward_type = log_return  (primary pooled scenario) ───\n  reward = R_t × reward_scale      (scale = 10000 in pooled config)\n\n─── reward_type = differential_sharpe  (DSR scenarios) ───\n  EMA updates (η = 0.01):\n    A_t = (1−η)·A_{t−1} + η·R_t\n    B_t = (1−η)·B_{t−1} + η·R_t²\n  D_t = (B_{t−1}·ΔA_t − A_{t−1}·ΔB_t/2)\n         / max(B_{t−1} − A_{t−1}², 0)^(3/2) + ε   (ε = 1e−20)\n  clip_reward = 10.0: clamp to [−10, 10]  (float | None; None = no clip)\n  reward = D_t × scale  (scale configurable via reward_scale)\n  persist_moments: A_t, B_t optionally kept across episode boundaries\n    (default True in StreamingTradingEnv for cross-episode continuity)\n\nReset: A_t, B_t, prev_nlv to zero at each episode start\n  (unless persist_moments = True)" {
       shape: step
       style.fill: "#fecaca"
     }
@@ -413,6 +418,16 @@ train: RL Training {
     }
 
     ddpg_net -> ddpg_explore -> ddpg_buffer -> ddpg_update
+  }
+
+  random: RandomTrainer  (Uniform Random Baseline) {
+    style.fill: "#fff1f2"
+    style.stroke: "#991b1b"
+
+    random_policy: "RandomPolicy  (TorchRL)\nSamples actions uniformly from action spec [−1, 1]\nNo learning, no replay buffer, no optimizer\nRuns same data loading + env setup as real trainers\nUsed as lower-bound reference for comparison\n\nsave_checkpoint: saves algorithm=RANDOM + n_obs + n_act\nload_checkpoint: no-op  (no learnable state)" {
+      shape: step
+      style.fill: "#fecaca"
+    }
   }
 
   ppo: PPO  (Proximal Policy Optimisation) {
@@ -490,9 +505,11 @@ train: RL Training {
   shared_env -> td3
   shared_env -> ddpg
   shared_env -> ppo
+  shared_env -> random
   td3.td3_update -> ckpt
   ddpg.ddpg_update -> ckpt
   ppo.ppo_update -> ckpt
+  random.random_policy -> ckpt
   td3.td3_update -> periodic_eval
   ddpg.ddpg_update -> periodic_eval
   ppo.ppo_update -> periodic_eval
@@ -506,6 +523,7 @@ train: RL Training {
   resume -> td3.td3_net: "restore weights + optimizer"
   resume -> ddpg.ddpg_net: "restore weights + optimizer"
   resume -> ppo.ppo_net: "restore weights + optimizer"
+  resume -> random.random_policy: "no-op (load_checkpoint is a no-op)"
 }
 
 # ─────────────────────────────────────────────

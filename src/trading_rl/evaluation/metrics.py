@@ -416,9 +416,10 @@ def build_metric_report(
         n_trades = 0.0
 
     # Ex-post Sharpe: sharpe_raw × √n_bars — has t-statistic interpretation for H0: μ=0
+    # Use the same _MIN_ANNUAL_VOL guard as sharpe_ratio for consistency
     sharpe_expost_val = (
         sharpe_raw(mu - rf_per_period, sigma) * np.sqrt(r.size)
-        if sigma > 0 and r.size > 1
+        if _can_annualize and annual_vol >= _MIN_ANNUAL_VOL and sigma > 0 and r.size > 1
         else np.nan
     )
 
