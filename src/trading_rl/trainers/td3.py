@@ -551,32 +551,26 @@ class TD3Trainer(BaseTrainer):
             logger.debug("td3 checkpoint keys=%s", sorted(checkpoint.keys()))
 
         # Restore functional params and sync modules
-        if "actor_params_state" in checkpoint:
-            self.td3_loss.actor_network_params.load_state_dict(
-                checkpoint["actor_params_state"]
+        if "actor_params_state" not in checkpoint or "qvalue_params_state" not in checkpoint:
+            raise KeyError(
+                "TD3 checkpoint is missing functional parameter states "
+                "(actor_params_state/qvalue_params_state). "
+                "Legacy module-only checkpoints are no longer supported."
             )
-            self.td3_loss.qvalue_network_params.load_state_dict(
-                checkpoint["qvalue_params_state"]
-            )
-            self.td3_loss.target_actor_network_params.load_state_dict(
-                checkpoint["target_actor_params_state"]
-            )
-            self.td3_loss.target_qvalue_network_params.load_state_dict(
-                checkpoint["target_qvalue_params_state"]
-            )
-            # Sync back to modules for evaluation
-            self.td3_loss.actor_network_params.to_module(self.actor)
-            self.td3_loss.qvalue_network_params.to_module(self.value_net)
-            # For modern checkpoints, functional params are the source of truth.
-            # Do not overwrite the synced critic module with qvalue_state_dict.
-        else:
-            self.actor.load_state_dict(checkpoint["actor_state_dict"])
-            qvalue_state = checkpoint.get("qvalue_state_dict")
-            if isinstance(qvalue_state, list):
-                if qvalue_state:
-                    self.value_net.load_state_dict(qvalue_state[0])
-            elif qvalue_state is not None:
-                self.value_net.load_state_dict(qvalue_state)
+        self.td3_loss.actor_network_params.load_state_dict(
+            checkpoint["actor_params_state"]
+        )
+        self.td3_loss.qvalue_network_params.load_state_dict(
+            checkpoint["qvalue_params_state"]
+        )
+        self.td3_loss.target_actor_network_params.load_state_dict(
+            checkpoint["target_actor_params_state"]
+        )
+        self.td3_loss.target_qvalue_network_params.load_state_dict(
+            checkpoint["target_qvalue_params_state"]
+        )
+        self.td3_loss.actor_network_params.to_module(self.actor)
+        self.td3_loss.qvalue_network_params.to_module(self.value_net)
 
         self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
         self.optimizer_value.load_state_dict(checkpoint["optimizer_value_state_dict"])
