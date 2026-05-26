@@ -229,7 +229,7 @@ class RunningMeanStd:
             "count": self.count,
         }
 
-    def load_state_dict(self, state_dict: dict) -> None:
+    def load_state_dict(self, state_dict: dict) -> "RunningMeanStd":
         """Load state from dictionary.
 
         Args:
@@ -239,6 +239,7 @@ class RunningMeanStd:
         self.var = state_dict["var"]
         self.count = state_dict["count"]
         self._fitted = self.count > 0
+        return self
 
 
 class TimeWeightedRunningMeanStd:
@@ -414,7 +415,7 @@ class TimeWeightedRunningMeanStd:
             "total_weight": self.total_weight,
         }
 
-    def load_state_dict(self, state_dict: dict) -> None:
+    def load_state_dict(self, state_dict: dict) -> "TimeWeightedRunningMeanStd":
         """Load state from dictionary.
 
         Args:
@@ -424,6 +425,7 @@ class TimeWeightedRunningMeanStd:
         self.var = state_dict["var"]
         self.total_weight = state_dict["total_weight"]
         self._fitted = self.total_weight > 0
+        return self
 
 
 @dataclass
