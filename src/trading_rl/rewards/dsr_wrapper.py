@@ -131,9 +131,15 @@ class DifferentialSharpeRatioAnyTrading:
         self.B_t = 0.0  # EMA of squared returns (second moment)
         self._prev_nlv = None
 
-    def reset(self) -> "DifferentialSharpeRatioAnyTrading":
-        """Reset state for new episode."""
-        if not self.persist_moments:
+    def reset(self, persist_moments: bool | None = None) -> "DifferentialSharpeRatioAnyTrading":
+        """Reset state for new episode.
+
+        Args:
+            persist_moments: If True, keep A_t and B_t across episode boundaries.
+                If None (default), falls back to the value set at construction time.
+        """
+        keep = self.persist_moments if persist_moments is None else persist_moments
+        if not keep:
             self.A_t = 0.0
             self.B_t = 0.0
         self._prev_nlv = None
