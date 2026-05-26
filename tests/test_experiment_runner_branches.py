@@ -199,3 +199,79 @@ def test_execute_single_experiment_resume_uses_checkpoint_callback_and_name(
     assert resume_kwargs["additional_steps"] == 50
     assert calls["metrics"][0]["effective_experiment_name"] == "resumed"
     assert calls["checkpoints"][0]["checkpoint_path"] == "checkpoint.pt"
+
+
+def test_configure_periodic_hooks_filters_splits_and_clamps_eval_steps(
+    monkeypatch,
+) -> None:
+    class _HookTrainer:
+        def __init__(self) -> None:
+            self.eval_kwargs: dict[str, Any] | None = None
+            self.explain_kwargs: dict[str, Any] | None = None
+
+        def setup_periodic_evaluation(self, **kwargs: Any) -> None:
+            self.eval_kwargs = kwargs
+
+        def setup_periodic_explainability(self, **kwargs: Any) -> None:
+            self.explain_kwargs = kwargs
+
+    train_df = pd.DataFrame({"close": [100.0, 101.0, 102.0, 103.0]})
+    val_df = pd.DataFrame({"close": [200.0]})
+    test_df = pd.DataFrame({"close": [300.0, 301.0, 302.0]})
+    dataset = PreparedDataset(
+        train_df=train_df,
+        val_df=val_df,
+        test_df=test_df,
+        feature_columns=["close"],
+        price_column="close",
+        raw_columns=["close"],
+        feature_pipeline_state={},
+    )
+    trainer = _HookTrainer()
+    runtime = ExperimentRuntime(
+        logger=_Logger(),
+        effective_experiment_name="hooks",
+        prepared_dataset=dataset,
+        training_bundle=TrainingBundle(
+            train_env=object(),
+            trainer=trainer,
+            mlflow_callback=None,
+            algorithm="TD3",
+            n_obs=1,
+            n_act=1,
+        ),
+    )
+    config = SimpleNamespace(
+        training=SimpleNamespace(
+            temp_eval_splits=["train", "val", "missing", "test"],
+            temp_eval_max_steps=2,
+        ),
+        explainability=SimpleNamespace(n_steps=7),
+    )
+    built: list[str] = []
+
+    def fake_build_context_for_split(*, split, df, config):
+        built.append(split)
+        return SimpleNamespace(split=split, df=df, max_steps=len(df) + 10, env=f"env-{split}")
+
+    monkeypatch.setattr(
+        runner,
+        "build_evaluation_context_for_split",
+        fake_build_context_for_split,
+    )
+
+    runner._configure_periodic_hooks(runtime=runtime, config=config)
+
+    assert built == ["train", "test", "train"]
+    assert trainer.eval_kwargs is not None
+    assert trainer.eval_kwargs["algorithm"] == "TD3"
+    eval_splits = trainer.eval_kwargs["splits"]
+    assert [ctx.split for ctx in eval_splits] == ["train", "test"]
+    assert [ctx.max_steps for ctx in eval_splits] == [2, 2]
+    assert [ctx.eval_env for ctx in eval_splits] == ["env-train", "env-test"]
+    assert trainer.explain_kwargs == {
+        "df": train_df,
+        "max_steps": 7,
+        "config": config,
+        "eval_env": "env-train",
+    }
