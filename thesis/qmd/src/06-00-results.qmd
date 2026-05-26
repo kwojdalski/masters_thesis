@@ -122,7 +122,7 @@ else:
 ```
 :::
 
-*Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe/Sortino: risk-adjusted ratios. Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. % Long/Short: fraction of steps with positive/negative position.*
+*Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. % Long/Short: fraction of steps with positive/negative position.*
 
 ### Key Empirical Questions
 

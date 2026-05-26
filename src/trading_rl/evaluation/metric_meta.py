@@ -76,7 +76,7 @@ METRIC_LEGEND: dict[str, str] = {
     "Eval Horizon":    "Number of steps used for each evaluation rollout.",
     "Final Reward":    "Raw reward signal at the last training step.",
     "Total Return":    "Cumulative portfolio return over the evaluation horizon.",
-    "Sharpe Ratio":    "Mean excess return divided by its standard deviation, annualised.",
+    "Sharpe Ratio":    "Mean excess return divided by its standard deviation (raw, not annualised).",
     "Sortino Ratio":   "Like Sharpe but penalises only downside deviation.",
     "Max Drawdown":    "Largest peak-to-trough decline in portfolio value.",
     "Win Rate":        "Fraction of steps where the portfolio return was positive.",

@@ -70,7 +70,7 @@ if benchmark_df is None or benchmark_df.empty:
 HTML(benchmark_df.to_html(index=False))
 ```
 
-*TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (excess return over annualized volatility). Sortino: Sortino Ratio (excess return over downside deviation). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
+*TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (mean excess return divided by standard deviation, not annualized). Sortino: Sortino Ratio (mean excess return divided by downside deviation, not annualized). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
 
 **Return aggregation for ratio metrics.**
 Roughly 80–90\% of consecutive LOB returns are zero — the mid-price does not
@@ -80,16 +80,18 @@ without any real edge. The pipeline therefore compounds per-tick returns into
 bars before computing any ratio metric, selecting the coarsest frequency with
 at least 50 observations:
 
-| Minimum bars available | Reporting frequency | $N_\text{periods/year}$ |
-|:---|:---|---:|
-| $\geq 50$ daily bars | daily | 252 |
-| $\geq 50$ hourly bars | hourly | 1{,}638 |
-| $\geq 50$ 15-min bars | 15-minute | 6{,}552 |
-| $\geq 50$ 1-min bars | 1-minute | 98{,}280 |
-| $\geq 50$ 15-sec bars | 15-second | 393{,}120 |
+| Minimum bars available | Reporting frequency |
+|:---|:---|
+| $\geq 50$ daily bars | daily |
+| $\geq 50$ hourly bars | hourly |
+| $\geq 50$ 15-min bars | 15-minute |
+| $\geq 50$ 1-min bars | 1-minute |
+| $\geq 50$ 15-sec bars | 15-second |
 
-Metrics that do not require annualization — total return, max drawdown, win
-rate, profit factor, and turnover — are computed on the raw per-step series.
+The Sharpe and Sortino ratios are then computed as $\mu/\sigma$ and
+$\mu/\sigma_{\text{down}}$ on the aggregated bar series, with no further
+annualization. Total return, max drawdown, win rate, profit factor, and
+turnover are computed on the raw per-step series.
 
 ### Evaluation Metadata Snapshot
 <!-- [PLACEHOLDER] -->
