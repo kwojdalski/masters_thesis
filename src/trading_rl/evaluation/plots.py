@@ -43,6 +43,29 @@ _RUN_DESCRIPTIONS: dict[str, str] = {
     "VWAP": "volume-weighted execution — builds a long position proportionally to market volume",
 }
 
+# Canonical display order for legend entries; Deterministic always first.
+_RUN_ORDER: list[str] = [
+    "Deterministic",
+    "Random",
+    "Buy-and-Hold",
+    "Short-and-Hold",
+    "TWAP",
+    "VWAP",
+    "Max Profit (Unleveraged)",
+]
+
+
+def _as_ordered_run_categorical(series: "pd.Series") -> "pd.Categorical":
+    """Convert a Run string column to an ordered Categorical with Deterministic first.
+
+    Any run name not in _RUN_ORDER is appended after the known entries in the
+    order they were first encountered, so unknown names don't get dropped.
+    """
+    present = list(series.unique())
+    known = [r for r in _RUN_ORDER if r in present]
+    unknown = [r for r in present if r not in known]
+    return pd.Categorical(series, categories=known + unknown, ordered=True)
+
 
 def _build_run_caption(
     prefix: str,
@@ -160,6 +183,7 @@ def compare_rollouts(
             ]
         )
     df_rewards = pd.DataFrame(rewards_data)
+    df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
 
     actions_data = []
     for i, actions in enumerate(all_actions):
@@ -176,6 +200,7 @@ def compare_rollouts(
             ]
         )
     df_actions = pd.DataFrame(actions_data)
+    df_actions["Run"] = _as_ordered_run_categorical(df_actions["Run"])
 
     date_str = _date_range_str(df, n_obs)
 
@@ -434,6 +459,7 @@ def create_equity_curve_plot(
 
     logger.debug("building DataFrame for plot n_rows=%d", len(returns_data))
     df_returns = pd.DataFrame(returns_data)
+    df_returns["Run"] = _as_ordered_run_categorical(df_returns["Run"])
     logger.debug("DataFrame built elapsed=%.2fs", time.monotonic() - t0)
 
     # Build title components: asset composition and datetime range.
