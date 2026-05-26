@@ -7,7 +7,7 @@ from tensordict import TensorDict
 
 from trading_rl.evaluation.evaluator import (
     EnvConfig,
-    EvaluationConfig,
+    StrategyEvaluatorConfig,
     StrategyEvaluator,
 )
 from trading_rl.evaluation.returns import ReturnKind
@@ -32,14 +32,14 @@ class _RolloutEnv:
 
 
 def test_evaluate_split_uses_provided_environment_without_rebuilding() -> None:
-    def forbidden_factory(_df: pd.DataFrame, _config: EvaluationConfig) -> object:
+    def forbidden_factory(_df: pd.DataFrame, _config: StrategyEvaluatorConfig) -> object:
         raise AssertionError("evaluation should use the already-built split env")
 
     env = _RolloutEnv()
     evaluator = StrategyEvaluator(
         env_factory=forbidden_factory,
         policy=object(),
-        config=EvaluationConfig(
+        config=StrategyEvaluatorConfig(
             backend="tradingenv",
             max_steps=2,
             enable_plots=False,
@@ -61,14 +61,14 @@ def test_evaluate_split_uses_provided_environment_without_rebuilding() -> None:
 
 
 def test_shaped_rewards_without_broker_do_not_become_returns() -> None:
-    def forbidden_factory(_df: pd.DataFrame, _config: EvaluationConfig) -> object:
+    def forbidden_factory(_df: pd.DataFrame, _config: StrategyEvaluatorConfig) -> object:
         raise AssertionError("evaluation should use the already-built split env")
 
     env = _RolloutEnv()
     evaluator = StrategyEvaluator(
         env_factory=forbidden_factory,
         policy=object(),
-        config=EvaluationConfig(
+        config=StrategyEvaluatorConfig(
             reward_type="differential_sharpe",
             backend="tradingenv",
             max_steps=2,
@@ -91,7 +91,7 @@ def test_extract_last_positions_maps_one_hot_actions_to_configured_positions() -
     evaluator = StrategyEvaluator(
         env_factory=lambda _df, _config: object(),
         policy=object(),
-        config=EvaluationConfig(
+        config=StrategyEvaluatorConfig(
             backend="gym_trading_env.discrete",
             env=EnvConfig(positions=[-1, 0, 1]),
         ),
