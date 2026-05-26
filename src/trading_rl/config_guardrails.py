@@ -220,30 +220,58 @@ def _check_eval_interval(config: ExperimentConfig) -> Finding | None:
 
 
 def _check_dsr_reward_scale(config: ExperimentConfig) -> Finding | None:
-    """WARN: DSR + high reward_scale → reward magnitudes may destabilise training."""
+    """WARN: DSR + high reward_scale → large reward magnitudes; advice depends on grad clipping."""
     from trading_rl.constants import RewardType
     if config.env.reward_type != RewardType.DIFFERENTIAL_SHARPE:
         return None
     scale = config.env.reward_scale
-    if scale > 100:
-        clip = 10.0  # default clip in DifferentialSharpeRatio
-        max_reward = clip * scale
+    if scale <= 100:
+        return None
+
+    clip = 10.0  # default clip in DifferentialSharpeRatio
+    max_reward = clip * scale
+    grad_norm = getattr(config.training, "max_grad_norm", 0.0)
+    clipping_active = grad_norm > 0
+
+    if clipping_active:
+        # Gradient clipping provides a safety net, but if the norm is clipped on
+        # nearly every step the effective learning rate is reduced and training
+        # may be sluggish.  This is a softer concern than no clipping at all.
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.reward_scale / training.max_grad_norm",
+            message=(
+                f"reward_scale={scale} with DSR clip=±{clip} produces rewards up to "
+                f"±{max_reward:,.0f}. Gradient clipping (max_grad_norm={grad_norm}) is "
+                "active and will prevent explosions, but if the norm is clipped on most "
+                "steps the effective learning rate is reduced and convergence may be slow."
+            ),
+            suggestion=(
+                f"Monitor the fraction of steps where gradients are clipped. "
+                f"If it exceeds ~50%, consider reducing reward_scale or increasing "
+                f"max_grad_norm (currently {grad_norm})."
+            ),
+        )
+    else:
+        # No gradient clipping — large reward magnitudes flow directly into the
+        # parameter updates and can cause divergence.
         return Finding(
             severity=Severity.WARN,
             parameter="env.reward_scale / training.actor_lr",
             message=(
                 f"reward_scale={scale} with DSR clip=±{clip} produces rewards up to "
-                f"±{max_reward:,.0f}. Actor and critic gradients will be correspondingly "
-                f"large. Current actor_lr={config.training.actor_lr} may be too high."
+                f"±{max_reward:,.0f}. Gradient clipping is disabled (max_grad_norm=0), "
+                "so large reward magnitudes flow directly into parameter updates and "
+                f"may cause divergence. Current actor_lr={config.training.actor_lr}."
             ),
             suggestion=(
-                f"Consider scaling learning rates down proportionally, e.g. "
+                f"Enable gradient clipping (e.g. training.max_grad_norm=1.0), or "
+                f"scale learning rates down proportionally: "
                 f"actor_lr={config.training.actor_lr / scale:.2e}, "
                 f"value_lr={config.training.value_lr / scale:.2e}. "
                 "Or reduce reward_scale."
             ),
         )
-    return None
 
 
 def _check_ppo_updates_per_rollout(config: ExperimentConfig) -> Finding | None:
