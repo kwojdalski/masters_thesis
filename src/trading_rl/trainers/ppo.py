@@ -381,12 +381,12 @@ class PPOTrainer(BaseTrainer):
 
     def evaluate(
         self,
-        df,
+        df: Any,
         max_steps: int,
-        config=None,
+        config: Any = None,
         algorithm: str | None = None,
         eval_env: Any | None = None,
-    ):
+    ) -> tuple[Any, ...]:
         (
             reward_plot,
             action_plot,
