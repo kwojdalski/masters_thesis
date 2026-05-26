@@ -738,6 +738,284 @@ def _check_ppo_vf_coef(config: ExperimentConfig) -> Finding | None:
 
 
 # ---------------------------------------------------------------------------
+# New checks
+# ---------------------------------------------------------------------------
+
+def _check_buffer_never_full(config: ExperimentConfig) -> Finding | None:
+    """WARN (off-policy): buffer_size > total transitions collected → buffer always partially empty."""
+    if not _is_off_policy(config.training.algorithm):
+        return None
+    total = config.training.max_steps
+    b = config.training.buffer_size
+    if b > total:
+        fill_pct = total / b * 100
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.buffer_size / training.max_steps",
+            message=(
+                f"buffer_size={b:,} > max_steps={total:,}: the replay buffer can never "
+                f"be filled — training ends with only {fill_pct:.0f}% utilisation. "
+                "Sampling from a partially filled buffer skews the replay distribution "
+                "toward earlier, less-trained transitions and wastes memory."
+            ),
+            suggestion=(
+                f"Reduce buffer_size to at most max_steps={total:,}, "
+                f"or increase max_steps to {b:,}."
+            ),
+        )
+    return None
+
+
+def _check_grad_norm_too_tight(config: ExperimentConfig) -> Finding | None:
+    """WARN: max_grad_norm enabled but < 0.01 → gradients nearly zeroed; network stalls."""
+    gn = getattr(config.training, "max_grad_norm", 0.0)
+    if gn <= 0:
+        return None  # clipping disabled
+    if gn < 0.01:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.max_grad_norm",
+            message=(
+                f"max_grad_norm={gn}: gradient clipping is so aggressive that nearly "
+                "all parameter updates are scaled to near-zero. The network can receive "
+                "gradients orders of magnitude smaller than needed for any meaningful "
+                "weight update, causing training to stall."
+            ),
+            suggestion=(
+                "Typical values are 0.5–10.0. A value < 0.01 suggests a misconfiguration. "
+                "Consider max_grad_norm=1.0, or set max_grad_norm=0 to disable clipping."
+            ),
+        )
+    return None
+
+
+def _check_exploration_noise_too_large(config: ExperimentConfig) -> Finding | None:
+    """WARN (DDPG/TD3): exploration_noise_std > 1.0 → noise overwhelms policy output."""
+    if not _is_off_policy(config.training.algorithm):
+        return None
+    noise = config.training.exploration_noise_std
+    if noise > 1.0:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.exploration_noise_std",
+            message=(
+                f"exploration_noise_std={noise}: the actor output is bounded to [-1, 1] "
+                "(via tanh), but the exploration noise standard deviation exceeds that "
+                "range. Actions are dominated by noise rather than policy, making the "
+                "exploration essentially random regardless of what the network learns."
+            ),
+            suggestion=(
+                "Typical values are 0.05–0.3. With std > 1.0 the effective policy signal "
+                "is buried under noise. Consider exploration_noise_std=0.1."
+            ),
+        )
+    return None
+
+
+def _check_actor_lr_dominates_value_lr(config: ExperimentConfig) -> Finding | None:
+    """WARN: actor_lr > value_lr × 10 → unusually large actor step relative to critic."""
+    alr = config.training.actor_lr
+    vlr = config.training.value_lr
+    if alr > vlr * 10:
+        ratio = alr / vlr
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.actor_lr / training.value_lr",
+            message=(
+                f"actor_lr={alr:.2e} is {ratio:.0f}× value_lr={vlr:.2e}. "
+                "In actor-critic methods the critic is the bootstrap target for policy "
+                "updates. When the actor learns faster than the critic, the policy "
+                "updates chase a rapidly-changing, noisy baseline and training destabilises."
+            ),
+            suggestion=(
+                "Typical practice is value_lr >= actor_lr. Consider "
+                f"actor_lr={vlr:.2e} or value_lr={alr:.2e}."
+            ),
+        )
+    return None
+
+
+def _check_streaming_episode_too_long(config: ExperimentConfig) -> Finding | None:
+    """WARN (streaming): episode_length > 50% of train_size → very few distinct episodes."""
+    if not getattr(config.data, "memmap_dir", None):
+        return None
+    ep = config.env.streaming_episode_length
+    ts = config.data.train_size
+    half = ts // 2
+    if ep > half:
+        episodes_per_pass = ts / ep
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.streaming_episode_length / data.train_size",
+            message=(
+                f"streaming_episode_length={ep:,} is more than half of "
+                f"train_size={ts:,} ({ep / ts * 100:.0f}%). Each pass through the "
+                f"training data produces only ~{episodes_per_pass:.1f} episodes, giving "
+                "the agent very few episode resets and limiting its exposure to diverse "
+                "starting conditions within the training window."
+            ),
+            suggestion=(
+                f"Set streaming_episode_length <= train_size // 4 = {ts // 4:,} "
+                "for at least 4 starting positions per data pass."
+            ),
+        )
+    return None
+
+
+def _check_positions_one_sided(config: ExperimentConfig) -> Finding | None:
+    """WARN: all positions non-negative or non-positive → agent cannot take the other side."""
+    positions = config.env.positions
+    if not positions or len(set(positions)) < 2:
+        return None  # already caught by _check_single_position
+    all_non_neg = all(p >= 0 for p in positions)
+    all_non_pos = all(p <= 0 for p in positions)
+    if all_non_neg:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.positions",
+            message=(
+                f"env.positions={list(positions)} contains no negative values. "
+                "The agent cannot short the asset. In trending or mean-reverting markets "
+                "this limits returns to only one market direction."
+            ),
+            suggestion="Add at least one negative position (e.g. -1) to enable shorting.",
+        )
+    if all_non_pos:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.positions",
+            message=(
+                f"env.positions={list(positions)} contains no positive values. "
+                "The agent cannot go long. Returns are limited to short positions only."
+            ),
+            suggestion="Add at least one positive position (e.g. 1) to enable going long.",
+        )
+    return None
+
+
+def _check_effective_training_steps(config: ExperimentConfig) -> Finding | None:
+    """WARN: max_steps - init_rand_steps < 1000 → almost no gradient updates will occur."""
+    effective = config.training.max_steps - config.training.init_rand_steps
+    if effective < 1000:
+        approx_updates = effective // config.training.frames_per_batch
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.max_steps - training.init_rand_steps",
+            message=(
+                f"After the random warm-up (init_rand_steps={config.training.init_rand_steps:,}), "
+                f"only {effective:,} steps remain for gradient training "
+                f"(~{approx_updates} collection iterations). This is unlikely to be "
+                "sufficient for any meaningful policy learning."
+            ),
+            suggestion=(
+                f"Increase max_steps to at least init_rand_steps + 10,000 = "
+                f"{config.training.init_rand_steps + 10_000:,}."
+            ),
+        )
+    return None
+
+
+def _check_val_size_much_smaller_than_train(config: ExperimentConfig) -> Finding | None:
+    """WARN: validation_size < train_size // 10 → model selection signal is very noisy."""
+    vs = config.data.validation_size
+    ts = config.data.train_size
+    if vs is None:
+        return None
+    threshold = ts // 10
+    if vs < threshold:
+        ratio = ts / vs if vs > 0 else float("inf")
+        return Finding(
+            severity=Severity.WARN,
+            parameter="data.validation_size / data.train_size",
+            message=(
+                f"validation_size={vs:,} is only {vs / ts * 100:.1f}% of "
+                f"train_size={ts:,} (ratio {ratio:.0f}:1). Validation metrics computed "
+                "on a very small set have high variance, making it unreliable for "
+                "checkpoint selection and early stopping."
+            ),
+            suggestion=(
+                f"Set validation_size >= train_size // 10 = {threshold:,} for a "
+                "reasonably stable evaluation signal."
+            ),
+        )
+    return None
+
+
+def _check_log_interval_too_coarse(config: ExperimentConfig) -> Finding | None:
+    """WARN: fewer than 4 log entries over the entire run → nearly blind training."""
+    li = config.training.log_interval
+    ms = config.training.max_steps
+    if li > 0 and ms // li < 4:
+        n = ms // li
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.log_interval / training.max_steps",
+            message=(
+                f"log_interval={li:,} against max_steps={ms:,} produces only "
+                f"{n} log entr{'ies' if n != 1 else 'y'} for the entire run. "
+                "Without frequent loss logging it is nearly impossible to detect "
+                "divergence, instability, or a flat loss early enough to intervene."
+            ),
+            suggestion=f"Set log_interval <= max_steps // 20 = {ms // 20:,}.",
+        )
+    return None
+
+
+def _check_action_thresholds_invalid(config: ExperimentConfig) -> Finding | None:
+    """WARN: continuous_action_thresholds not ordered or outside tanh output range."""
+    thresholds = config.env.continuous_action_thresholds
+    if not thresholds or len(thresholds) < 2:
+        return None
+    lo, hi = thresholds[0], thresholds[1]
+    if lo >= hi:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.continuous_action_thresholds",
+            message=(
+                f"continuous_action_thresholds=[{lo}, {hi}]: lower threshold >= upper "
+                f"threshold. The middle bucket (neutral position) has zero width or is "
+                "inverted, so the bucketing logic maps most or all actor outputs to the "
+                "same position regardless of what the network outputs."
+            ),
+            suggestion=(
+                "Thresholds must satisfy thresholds[0] < thresholds[1]. "
+                "Typical values: [-0.33, 0.33]."
+            ),
+        )
+    # Tanh output is in (-1, 1); thresholds outside this range are unreachable.
+    if hi >= 1.0:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.continuous_action_thresholds",
+            message=(
+                f"continuous_action_thresholds upper bound {hi} >= 1.0. The actor "
+                "output passes through tanh and is bounded to (-1, 1), so the upper "
+                "threshold is unreachable. The highest position bucket can never be "
+                "selected — the agent effectively has only two actions."
+            ),
+            suggestion=(
+                "Set upper threshold < 1.0 (e.g. 0.33). "
+                f"Current value {hi} is at or above the tanh ceiling."
+            ),
+        )
+    if lo <= -1.0:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.continuous_action_thresholds",
+            message=(
+                f"continuous_action_thresholds lower bound {lo} <= -1.0. The actor "
+                "output is bounded to (-1, 1) via tanh, so the lower threshold is "
+                "unreachable. The lowest position bucket can never be selected."
+            ),
+            suggestion=(
+                "Set lower threshold > -1.0 (e.g. -0.33). "
+                f"Current value {lo} is at or below the tanh floor."
+            ),
+        )
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -774,6 +1052,17 @@ _ALL_CHECKS = [
     _check_streaming_episode_vs_warmup_rows,
     _check_no_exploration,
     _check_seed_none,
+    # New checks
+    _check_buffer_never_full,
+    _check_grad_norm_too_tight,
+    _check_exploration_noise_too_large,
+    _check_actor_lr_dominates_value_lr,
+    _check_streaming_episode_too_long,
+    _check_positions_one_sided,
+    _check_effective_training_steps,
+    _check_val_size_much_smaller_than_train,
+    _check_log_interval_too_coarse,
+    _check_action_thresholds_invalid,
 ]
 
 
