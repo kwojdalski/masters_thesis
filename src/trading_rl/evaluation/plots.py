@@ -209,6 +209,17 @@ def compare_rollouts(
                         }
                         for i, s in enumerate(idx) if i < len(cumsum)
                     )
+                # TWAP: position grows linearly from 0 to 1
+                twap_positions = np.arange(1, len(log_returns) + 1, dtype=float) / len(log_returns)
+                twap_cumsum = (twap_positions * log_returns).cumsum()
+                rewards_data.extend(
+                    {
+                        "Steps": int(s),
+                        "Cumulative_Reward": float(twap_cumsum[i]),
+                        "Run": "TWAP",
+                    }
+                    for i, s in enumerate(idx) if i < len(twap_cumsum)
+                )
                 df_rewards = pd.DataFrame(rewards_data)
                 df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
             else:
@@ -216,6 +227,48 @@ def compare_rollouts(
                     "Benchmark reward curves skipped: %d non-finite returns in price series",
                     n_bad,
                 )
+
+    # Add DSR benchmark curves if requested and reward_type is differential_sharpe
+    if show_benchmarks and df is not None and reward_type == "differential_sharpe":
+        from trading_rl.evaluation.benchmarks import calculate_benchmark_dsr, calculate_twap_dsr
+        from trading_rl.constants import BenchmarkName
+
+        price_col = benchmark_price_column
+        if price_col not in df.columns and "close" in df.columns:
+            price_col = "close"
+        if price_col in df.columns:
+            eta = 0.01  # DSR smoothing parameter
+            for bench_name, strategy in [
+                ("Buy-and-Hold", BenchmarkName.BUY_AND_HOLD),
+                ("Short-and-Hold", BenchmarkName.SHORT_AND_HOLD),
+            ]:
+                dsr_cumsum, _ = calculate_benchmark_dsr(
+                    df, strategy=strategy, eta=eta, max_steps=n_obs, price_column=price_col,
+                )
+                idx = np.arange(len(dsr_cumsum))[::stride]
+                rewards_data.extend(
+                    {
+                        "Steps": int(s),
+                        "Cumulative_Reward": float(dsr_cumsum[i]),
+                        "Run": bench_name,
+                    }
+                    for i, s in enumerate(idx) if i < len(dsr_cumsum)
+                )
+            # TWAP DSR
+            twap_dsr_cumsum, _ = calculate_twap_dsr(
+                df, eta=eta, max_steps=n_obs, price_column=price_col,
+            )
+            idx = np.arange(len(twap_dsr_cumsum))[::stride]
+            rewards_data.extend(
+                {
+                    "Steps": int(s),
+                    "Cumulative_Reward": float(twap_dsr_cumsum[i]),
+                    "Run": "TWAP",
+                }
+                for i, s in enumerate(idx) if i < len(twap_dsr_cumsum)
+            )
+            df_rewards = pd.DataFrame(rewards_data)
+            df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
 
     actions_data = []
     for i, actions in enumerate(all_actions):
