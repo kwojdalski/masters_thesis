@@ -534,7 +534,7 @@ def evaluate(
         "--save-rollout",
         help=(
             "Save per-step rollout data (action, simple_return, cumulative_log_return) "
-            "to <output-dir>/<split>_rollout.parquet for offline plotting or analysis."
+            "to <output-dir>/<split>_rollout.csv for offline plotting or analysis."
         ),
     ),
 ):

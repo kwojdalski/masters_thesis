@@ -194,8 +194,8 @@ def save_observation_sample_artifact(
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_split = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in split)
     n_rows = min(max_rows, len(df))
-    out_path = output_dir / f"{safe_split}_observations_head_{n_rows}.parquet"
-    df.head(max_rows).to_parquet(out_path)
+    out_path = output_dir / f"{safe_split}_observations_head_{n_rows}.csv"
+    df.head(max_rows).to_csv(out_path)
 
     if mlflow.active_run() is not None:
         mlflow.log_artifact(str(out_path), artifact_path_prefix)
@@ -213,7 +213,7 @@ def save_eval_rollout_artifact(
     output_dir: "str | Path",
     artifact_path_prefix: str = ArtifactPaths.EVAL_DATA,
 ) -> "Path":
-    """Serialize per-step rollout data to parquet and log as an MLflow artifact.
+    """Serialize per-step rollout data to CSV and log as an MLflow artifact.
 
     Columns: action, simple_return, cumulative_log_return (when available).
     """
@@ -235,8 +235,8 @@ def save_eval_rollout_artifact(
         data["cumulative_log_return"] = cum[:n].astype(np.float32)
 
     safe_split = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in split)
-    out_path = output_dir / f"{safe_split}_rollout.parquet"
-    pd.DataFrame(data, index=df_index[:n]).to_parquet(out_path)
+    out_path = output_dir / f"{safe_split}_rollout.csv"
+    pd.DataFrame(data, index=df_index[:n]).to_csv(out_path)
 
     if mlflow.active_run() is not None:
         mlflow.log_artifact(str(out_path), artifact_path_prefix)
