@@ -10,8 +10,10 @@ from trading_rl.features.selector import (
     FeatureSelector,
     FeatureSelectorConfig,
     _build_multi_horizon_score_table,
+    _build_proxy_target,
     _build_time_series_cv_splits,
     _ensemble_select_features,
+    _resolve_price_series,
     _select_features_conditional_ic,
 )
 
@@ -107,6 +109,28 @@ class TestTimeSeriesCV:
         # Should generate fewer splits than requested
         assert len(splits) < 10
         assert len(splits) > 0
+
+
+class TestProxyTargetPriceResolution:
+    def test_bid_ask_midpoint_is_used_when_close_is_absent(self):
+        df = pd.DataFrame(
+            {
+                "bid_px_00": [99.0, 100.0, 102.0],
+                "ask_px_00": [101.0, 102.0, 104.0],
+            }
+        )
+
+        price = _resolve_price_series(df)
+        target = _build_proxy_target(df, horizon=1)
+
+        np.testing.assert_allclose(price.to_numpy(), [100.0, 101.0, 103.0])
+        assert target.iloc[0] == pytest.approx(np.log(101.0 / 100.0))
+        assert target.iloc[1] == pytest.approx(np.log(103.0 / 101.0))
+        assert np.isnan(target.iloc[2])
+
+    def test_missing_price_columns_raise_clear_error(self):
+        with pytest.raises(ValueError, match="close"):
+            _resolve_price_series(pd.DataFrame({"feature_x": [1.0, 2.0]}))
 
 
 class TestMultiHorizonScoring:
