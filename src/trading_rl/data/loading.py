@@ -36,13 +36,14 @@ class PreparedDataset:
 def restore_pipeline_state(pipeline: Any, state: dict[str, dict[str, float]]) -> None:
     """Restore training-time scaler statistics into a FeaturePipeline.
 
-    The pipeline must already be fitted (or fit on a small init sample) so
-    scaler objects exist before their state is overwritten.
+    Unlike the checkpoint-restore path in evaluate_command, this can be called
+    on an unfitted pipeline — load_state_dict writes directly into the scaler
+    attributes without requiring a prior fit() call.
 
     Args:
-        pipeline: A fitted FeaturePipeline instance.
+        pipeline: A FeaturePipeline instance (fitted or not).
         state: Mapping from feature output names to scaler state dicts, as
-            saved by save_checkpoint under "feature_pipeline_state".
+            saved by dump_pipeline_state / save_checkpoint.
     """
     restored = 0
     for feature in pipeline.features:
@@ -55,6 +56,29 @@ def restore_pipeline_state(pipeline: Any, state: dict[str, dict[str, float]]) ->
             scaler.load_state_dict(feature_state)
             restored += 1
     logger.debug("restore pipeline state restored=%d total=%d", restored, len(pipeline.features))
+
+
+def dump_pipeline_state(pipeline: Any) -> dict[str, dict] | None:
+    """Extract scaler state from a fitted FeaturePipeline for checkpointing.
+
+    Symmetric counterpart to restore_pipeline_state.  Returns None when the
+    pipeline has no features with serialisable scaler state.
+
+    Args:
+        pipeline: A fitted FeaturePipeline instance.
+
+    Returns:
+        Mapping from feature output names to scaler state dicts, or None.
+    """
+    if pipeline is None:
+        return None
+    state: dict[str, dict] = {}
+    for feature in pipeline.features:
+        name = feature.get_output_name()
+        scaler = getattr(feature, "scaler", None)
+        if scaler is not None and hasattr(scaler, "state_dict"):
+            state[name] = scaler.state_dict()
+    return state if state else None
 
 
 def download_trading_data(

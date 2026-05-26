@@ -33,7 +33,7 @@ from trading_rl.data.hft import (
     ensure_close_column_for_hft,
     ensure_unique_index_for_hft_tradingenv,
 )
-from trading_rl.data.loading import PreparedDataset, download_trading_data, load_trading_data
+from trading_rl.data.loading import PreparedDataset, download_trading_data, dump_pipeline_state, load_trading_data, restore_pipeline_state
 from trading_rl.data.validation import validate_prepared_data
 
 logger = get_logger(__name__)
@@ -208,12 +208,14 @@ def _make_dataset(
 
 def _build_single_symbol_splits(
     config: Any, logger: Any
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict | None]:
     """Load and process one symbol through the full feature engineering pipeline."""
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
     train_df, val_df, test_df = prepare_data(config.data.data_path, prep_cfg, pipeline)
-    return _finalize_splits(train_df, val_df, test_df, config, logger)
+    pipeline_state = dump_pipeline_state(pipeline)
+    train_df, val_df, test_df = _finalize_splits(train_df, val_df, test_df, config, logger)
+    return train_df, val_df, test_df, pipeline_state
 
 
 def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[str, str] | None, int | None]:
@@ -414,7 +416,9 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
         del val_df_j
         _gc.collect()
 
-    return symbol, train_results, val_entry, val_index
+    from trading_rl.data.loading import dump_pipeline_state as _dump_pipeline_state
+    pipeline_state = _dump_pipeline_state(pipeline)
+    return symbol, train_results, val_entry, val_index, pipeline_state
 
 
 def _build_per_day_splits(
@@ -426,7 +430,7 @@ def _build_per_day_splits(
     symbol_index: int = 0,
     progress_callback: Callable[[str], None] | None = None,
     prepared_dir: Path | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None, dict | None]:
     """Process per-(symbol, day) training files with separate validation files.
 
     Training files are used in full (no internal split).  One feature pipeline
@@ -511,9 +515,13 @@ def _build_per_day_splits(
             str(feature_cache_dir) if feature_cache_dir else None,
         ))
 
+    # The eval symbol is the one at symbol_index (capped to available val_paths).
+    target_val_idx = min(symbol_index, len(val_paths) - 1)
+
     # Collect results keyed by original index so ordering is preserved
     train_memmap_by_idx: dict[int, Any] = {}
     val_entries_by_idx: dict[int, dict[str, str]] = {}
+    pipeline_states_by_val_idx: dict[int, dict | None] = {}
 
     # Forward worker log records to the parent's handlers via a shared queue.
     log_queue: multiprocessing.Queue = multiprocessing.Queue()
@@ -530,13 +538,14 @@ def _build_per_day_splits(
             for future in as_completed(futures):
                 sym = futures[future]
                 try:
-                    _sym, train_results, val_entry, val_idx = future.result()
+                    _sym, train_results, val_entry, val_idx, worker_pipeline_state = future.result()
                 except Exception as exc:
                     raise RuntimeError(f"Worker for symbol '{sym}' failed: {exc}") from exc
                 for orig_idx, memmap_entry in train_results:
                     train_memmap_by_idx[orig_idx] = memmap_entry
                 if val_entry is not None and val_idx is not None:
                     val_entries_by_idx[val_idx] = val_entry
+                    pipeline_states_by_val_idx[val_idx] = worker_pipeline_state
                 if progress_callback:
                     progress_callback(f"done {sym}")
     finally:
@@ -635,7 +644,8 @@ def _build_per_day_splits(
     )
     validate_prepared_data(first_train_df, val_df, test_df, config)
 
-    return first_train_df, val_df, test_df, collected_memmap_paths or None
+    eval_pipeline_state = pipeline_states_by_val_idx.get(target_val_idx)
+    return first_train_df, val_df, test_df, collected_memmap_paths or None, eval_pipeline_state
 
 
 def _build_pooled_splits(
@@ -646,7 +656,7 @@ def _build_pooled_splits(
     symbol_index: int = 0,
     progress_callback: Callable[[str], None] | None = None,
     prepared_dir: Path | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None, dict | None]:
     """Process each symbol independently then concatenate from disk.
 
     When ``config.data.val_data_paths`` is set the function delegates to
@@ -673,6 +683,8 @@ def _build_pooled_splits(
     tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
     tmp_paths: list[dict[str, Path]] = []
     collected_memmap_paths: list[MemmapPaths] = []
+    target_si = min(symbol_index, len(data_paths) - 1)
+    eval_pipeline_state: dict | None = None
 
     for i, data_path in enumerate(data_paths):
         logger.info("process symbol idx=%d/%d path=%s", i + 1, len(data_paths), data_path)
@@ -682,6 +694,8 @@ def _build_pooled_splits(
         if pipeline is not None:
             pipeline.reset()
         train_i, val_i, test_i = prepare_data(data_path, prep_cfg, pipeline)
+        if i == target_si:
+            eval_pipeline_state = dump_pipeline_state(pipeline)
         # Apply close-column derivation per-symbol so each memmap is self-contained.
         train_i, val_i, test_i = ensure_close_column_for_hft(train_i, val_i, test_i, config, logger)
         # Deduplicate timestamps before saving to memmap so the streaming env
@@ -759,7 +773,7 @@ def _build_pooled_splits(
     train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(train_df, val_df, test_df, config, logger)
     validate_prepared_data(train_df, val_df, test_df, config)
 
-    return train_df, val_df, test_df, collected_memmap_paths or None
+    return train_df, val_df, test_df, collected_memmap_paths or None, eval_pipeline_state
 
 
 def build_prepared_dataset(
@@ -848,11 +862,11 @@ def build_prepared_dataset(
         if memmap_dir:
             memmap_dir.mkdir(parents=True, exist_ok=True)
             (memmap_dir / ".eval_symbol_used").write_text(_eval_symbol)
-        train_df, val_df, test_df, memmap_paths = _build_pooled_splits(
+        train_df, val_df, test_df, memmap_paths, pipeline_state = _build_pooled_splits(
             config, logger, data_paths, memmap_dir, _symbol_index, progress_callback, prepared_dir
         )
     else:
-        train_df, val_df, test_df = _build_single_symbol_splits(config, logger)
+        train_df, val_df, test_df, pipeline_state = _build_single_symbol_splits(config, logger)
         memmap_paths = [save_symbol_memmap(train_df, memmap_dir, "0")] if memmap_dir else None
 
     if lazy_load and prepared_dir:
@@ -868,7 +882,7 @@ def build_prepared_dataset(
             memmap_paths,
         )
 
-    return _make_dataset(train_df, val_df, test_df, config, memmap_paths)
+    return _make_dataset(train_df, val_df, test_df, config, memmap_paths, pipeline_state)
 
 
 def prepare_data(
@@ -910,6 +924,19 @@ def prepare_data(
         if _full_cache.exists():
             logger.info("feature cache hit key=%s path=%s", _cache_key[:8], _cache_entry)
             full_df = pd.read_parquet(_full_cache)
+            # Restore pipeline state from the companion file so callers always
+            # get a pipeline that reflects training-time scaler statistics,
+            # even when the feature cache was populated in a previous run.
+            _state_path = _cache_entry / "pipeline_state.pkl"
+            if feature_pipeline is not None and _state_path.exists():
+                import pickle
+                try:
+                    _saved_state = pickle.loads(_state_path.read_bytes())
+                    if _saved_state:
+                        restore_pipeline_state(feature_pipeline, _saved_state)
+                        logger.debug("cache hit: restored pipeline state from %s", _state_path)
+                except Exception as _exc:
+                    logger.warning("could not restore pipeline state from cache: %s", _exc)
             # Resolve split sizes against the cached row count
             _n = len(full_df)
             _train = min(cfg.train_size, _n)
@@ -1030,6 +1057,10 @@ def prepare_data(
     if _cache_entry is not None:
         _cache_entry.mkdir(parents=True, exist_ok=True)
         full_df.to_parquet(_cache_entry / "full.parquet")
+        _pstate = dump_pipeline_state(pipeline)
+        if _pstate:
+            import pickle
+            (_cache_entry / "pipeline_state.pkl").write_bytes(pickle.dumps(_pstate))
         logger.info("save feature cache key=%s path=%s", _cache_key[:8], _cache_entry)
 
     return train_df, val_df, test_df
