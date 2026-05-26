@@ -132,7 +132,7 @@ def _run_evaluation(
     eval_config_kwargs: dict[str, Any] = {}
 
     if config:
-        from trading_rl.evaluation.evaluator import EnvConfig
+        from trading_rl.evaluation.evaluator import EvaluatorEnvConfig
         eval_config_kwargs = {
             "reward_type": config.env.reward_type,
             "backend": config.env.backend,
@@ -147,7 +147,7 @@ def _run_evaluation(
             "training_steps": int(trainer.total_count) if trainer is not None else None,
             "training_episodes": int(trainer.total_episodes) if trainer is not None else None,
             "benchmarks": benchmarks_from_config(config.benchmarks),
-            "env": EnvConfig(
+            "env": EvaluatorEnvConfig(
                 name=config.env.name,
                 positions=config.env.positions,
                 mode=config.env.mode,

@@ -35,7 +35,7 @@ logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
-class EnvConfig:
+class EvaluatorEnvConfig:
     """Environment configuration for evaluation."""
 
     name: str = ""  # Environment name
@@ -62,7 +62,7 @@ class StrategyEvaluatorConfig:
     enable_plots: bool = True
     enable_metrics: bool = True
     periods_per_year: int = 252
-    env: EnvConfig = field(default_factory=EnvConfig)  # Environment configuration
+    env: EvaluatorEnvConfig = field(default_factory=EvaluatorEnvConfig)  # Environment configuration
     max_plot_points: int | None = None  # Cap the number of plotted points per series; None = plot all
     show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
