@@ -985,3 +985,122 @@ def compute_mlp_parameter_count(
     layers.append({"in": in_dim, "out": output_dim, "params": params})
     total = sum(layer["params"] for layer in layers)
     return {"layers": layers, "total": total}
+
+
+# ---------------------------------------------------------------------------
+# Public repo root accessor
+# ---------------------------------------------------------------------------
+
+def repo_root() -> Path:
+    """Return the repository root as an absolute Path."""
+    return _repo_root()
+
+
+# ---------------------------------------------------------------------------
+# H4 learning report loader
+# ---------------------------------------------------------------------------
+
+def load_h4_report(scenario_name: str) -> dict[str, Any]:
+    """Load the H4 learning report JSON for a given scenario.
+
+    Looks for ``thesis/qmd/results/<scenario_name>/latest_finished/h4_learning_report.json``.
+    Returns an empty dict when the file is missing or unparseable.
+    """
+    path = thesis_results_root() / scenario_name / "latest_finished" / "h4_learning_report.json"
+    if path.exists():
+        try:
+            return json.loads(path.read_text())
+        except Exception:
+            pass
+    return {}
+
+
+# ---------------------------------------------------------------------------
+# Experiment specification row builder (appendix table)
+# ---------------------------------------------------------------------------
+
+def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str, str]]:
+    """Build (Component, Specification) rows for the appendix experiment spec table.
+
+    Loads hyperparameters from the exported snapshot and assembles human-readable
+    rows describing the full experimental configuration. Returns an empty list when
+    no snapshot is available.
+    """
+    from thesis_tables import fmt_scientific, fmt_network_dims, fmt_reward_type, fmt_loss_fn
+
+    hp = load_experiment_hyperparams(experiment_name)
+    if not hp:
+        return []
+
+    def _get(key: str, default: Any) -> Any:
+        val = hp.get(key)
+        return val if val is not None else default
+
+    actor_dims = fmt_network_dims(_get("actor_hidden_dims", [128, 64]))
+    value_dims = fmt_network_dims(_get("value_hidden_dims", [128, 64]))
+    network_dims = (
+        f"Actor and critic hidden layers {actor_dims}"
+        if actor_dims == value_dims
+        else f"Actor {actor_dims}; critic {value_dims}"
+    )
+
+    actor_lr = _get("actor_lr", 0.0001)
+    value_lr = _get("value_lr", 0.0001)
+    lr_str = (
+        f"Actor and critic {actor_lr}"
+        if actor_lr == value_lr
+        else f"Actor {actor_lr}; critic {value_lr}"
+    )
+
+    actor_wd = _get("actor_weight_decay", 0.0)
+    value_wd = _get("value_weight_decay", 2e-6)
+    wd_str = f"Actor 0.0; critic {fmt_scientific(value_wd)}" if value_wd else "0.0"
+
+    episode_len   = _get("streaming_episode_length", 10_000)
+    reward_type   = _get("reward_type", "differential_sharpe")
+    reward_eta    = _get("reward_eta", 0.01)
+    trading_fees  = _get("trading_fees", 0.0)
+    algorithm     = _get("algorithm", "TD3")
+    gamma         = _get("gamma", 0.9)
+    tau           = _get("tau", 0.005)
+    policy_delay  = _get("policy_delay", 2)
+    policy_noise  = _get("policy_noise", 0.2)
+    noise_clip    = _get("noise_clip", 0.3)
+    exploration   = _get("exploration_noise_std", 0.3)
+    max_steps     = _get("max_steps", 3_000_000)
+    init_rand     = _get("init_rand_steps", 5_000)
+    fpb           = _get("frames_per_batch", 200)
+    optim_steps   = _get("optim_steps_per_batch", 5)
+    sample_size   = _get("sample_size", 128)
+    buffer_size   = _get("buffer_size", 100_000)
+    loss_fn       = _get("loss_function", "smooth_l1")
+
+    return [
+        ("Asset and data",               "AAPL, MSFT, TSLA, META, AMZN, and AVGO; ten-level limit order book observations during regular U.S. trading hours"),
+        ("Training data",                "18 pooled symbol-day files: AAPL, AMZN, AVGO, META, MSFT, and TSLA over February 25–27, 2026"),
+        ("Validation/test data",         "March 2, 2026 symbol-day files, capped at 50,000 rows per split"),
+        ("Feature set",                  "Selected causal LOB microstructure set: book pressure L0, three-level OBI, order-count imbalance L0, microprice, microprice divergence, bid/ask slope, OFI, 50-event rolling OFI, 50-event signed trade flow, and runtime position"),
+        ("Environment backend",          "Continuous single-asset trading environment"),
+        ("Episode length",               f"{episode_len:,} event-time steps (streaming)"),
+        ("Action",                       "Target portfolio exposure in [-1, 1]"),
+        ("Reward",                       f"{fmt_reward_type(reward_type)} with eta = {reward_eta}"),
+        ("Transaction fee",              f"{trading_fees:.3f} in the baseline setting"),
+        ("Algorithm",                    algorithm),
+        ("Network widths",               network_dims),
+        ("Learning rates",               lr_str),
+        ("Weight decay",                 wd_str),
+        ("Discount factor",              f"gamma = {gamma}"),
+        ("Target update",                f"tau = {tau}"),
+        ("Policy delay",                 f"{policy_delay} critic updates per actor update"),
+        ("Target policy noise",          f"sigma = {policy_noise}, clipped at +/-{noise_clip}"),
+        ("Exploration noise",            f"sigma = {exploration} during training"),
+        ("Total training steps",         f"{max_steps:,}"),
+        ("Initial random steps",         f"{init_rand:,}"),
+        ("Frames per batch",             f"{fpb:,}"),
+        ("Optimisation steps per batch", str(optim_steps)),
+        ("Mini-batch size",              f"{sample_size:,}"),
+        ("Replay buffer size",           f"{buffer_size:,}"),
+        ("Loss function",                fmt_loss_fn(loss_fn)),
+        ("Evaluation random seed",       "42"),
+        ("Compute environment",          "Apple M3 MacBook (November 2023) with 18 GB unified memory"),
+    ]

@@ -13,17 +13,13 @@ that the rendered chapter stays tied to recorded evaluation artifacts.
 #| echo: false
 #| warning: false
 
-from pathlib import Path
 import pandas as pd
-import matplotlib.pyplot as plt
-from PIL import Image
-
 from thesis_mlflow_results import (
     format_benchmark_comparison_table,
     format_key_metrics,
     load_experiment_snapshot,
 )
-from thesis_tables import display_df as display_table
+from thesis_tables import display_df as display_table, display_image_from_path
 
 
 EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
@@ -141,18 +137,10 @@ else:
     ]
 
     for title, key, show_title in ordered:
-        plot_path = plots.get(key)
-        if plot_path and Path(plot_path).exists():
-            img = Image.open(plot_path)
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.imshow(img)
-            ax.axis("off")
-            if show_title:
-                ax.set_title(title)
-            plt.show()
-            plt.close(fig)
-        else:
-            print(f"{title}: artifact not found")
+        display_image_from_path(
+            plots.get(key, ""),
+            title=title if show_title else None,
+        )
 ```
 
 ### Discussion: Reading Performance in the Context of State Design

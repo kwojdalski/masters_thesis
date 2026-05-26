@@ -230,22 +230,13 @@ outcomes shows systematic learning rather than random variation around zero.
 #| tbl-cap: "H4 learning progression: performance statistics across multiple short trials."
 
 import pandas as pd
-from pathlib import Path
-from IPython.display import HTML, Image, display
+from IPython.display import Image, display
+from thesis_mlflow_results import load_h4_report
 from thesis_tables import display_df
 
 _H4_SCENARIO = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_n5"
 
-# Load H4 learning report
-h4_report_path = Path("thesis/qmd/results") / _H4_SCENARIO / "latest_finished" / "h4_learning_report.json"
-
-h4_data = {}
-if h4_report_path.exists():
-    import json
-    try:
-        h4_data = json.loads(h4_report_path.read_text())
-    except Exception:
-        pass
+h4_data = load_h4_report(_H4_SCENARIO)
 
 if h4_data:
     stats = h4_data.get("statistics", {})

@@ -105,120 +105,21 @@ configuration without manual updates.
 #| echo: false
 #| warning: false
 
-import math
-import textwrap
 import pandas as pd
 from IPython.display import HTML
-from thesis_mlflow_results import load_experiment_hyperparams
+from thesis_mlflow_results import build_experiment_specification_rows
+from thesis_tables import wrap_html
 
 _EXPERIMENT = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
-_HP = load_experiment_hyperparams(_EXPERIMENT)
 
-
-def _get(key, default):
-    val = _HP.get(key)
-    return val if val is not None else default
-
-
-def _fmt_dims(dims):
-    if isinstance(dims, list):
-        return "[" + ", ".join(str(d) for d in dims) + "]"
-    return str(dims)
-
-
-def _fmt_sci(v):
-    if v == 0.0:
-        return "0.0"
-    exp = math.floor(math.log10(abs(v)))
-    mantissa = v / (10 ** exp)
-    m = f"{mantissa:g}" if abs(mantissa - round(mantissa)) > 1e-9 else str(int(round(mantissa)))
-    return f"{m} x 10^{exp}" if m != "1" else f"10^{exp}"
-
-
-def _fmt_reward(rt):
-    mapping = {"differential_sharpe": "Differential Sharpe Ratio"}
-    return mapping.get(str(rt), str(rt).replace("_", " ").title()) if rt else "—"
-
-
-def _fmt_loss(loss):
-    mapping = {"smooth_l1": "Smooth L1 (Huber)"}
-    return mapping.get(str(loss), str(loss)) if loss else "—"
-
-
-actor_dims = _fmt_dims(_get("actor_hidden_dims", [128, 64]))
-value_dims = _fmt_dims(_get("value_hidden_dims", [128, 64]))
-network_dims = (
-    f"Actor and critic hidden layers {actor_dims}"
-    if actor_dims == value_dims
-    else f"Actor {actor_dims}; critic {value_dims}"
-)
-
-actor_lr = _get("actor_lr", 0.0001)
-value_lr = _get("value_lr", 0.0001)
-lr_str = (
-    f"Actor and critic {actor_lr}"
-    if actor_lr == value_lr
-    else f"Actor {actor_lr}; critic {value_lr}"
-)
-
-actor_wd = _get("actor_weight_decay", 0.0)
-value_wd = _get("value_weight_decay", 2e-6)
-wd_str = f"Actor 0.0; critic {_fmt_sci(value_wd)}" if value_wd else "0.0"
-
-episode_len = _get("streaming_episode_length", 10_000)
-reward_type = _get("reward_type", "differential_sharpe")
-reward_eta = _get("reward_eta", 0.01)
-trading_fees = _get("trading_fees", 0.0)
-algorithm = _get("algorithm", "TD3")
-gamma = _get("gamma", 0.9)
-tau = _get("tau", 0.005)
-policy_delay = _get("policy_delay", 2)
-policy_noise = _get("policy_noise", 0.2)
-noise_clip = _get("noise_clip", 0.3)
-exploration_noise = _get("exploration_noise_std", 0.3)
-max_steps = _get("max_steps", 3_000_000)
-init_rand = _get("init_rand_steps", 5_000)
-fpb = _get("frames_per_batch", 200)
-optim_steps = _get("optim_steps_per_batch", 5)
-sample_size = _get("sample_size", 128)
-buffer_size = _get("buffer_size", 100_000)
-
-rows = [
-    ("Asset and data", "AAPL, MSFT, TSLA, META, AMZN, and AVGO; ten-level limit order book observations during regular U.S. trading hours"),
-    ("Training data", "18 pooled symbol-day files: AAPL, AMZN, AVGO, META, MSFT, and TSLA over February 25--27, 2026"),
-    ("Validation/test data", "March 2, 2026 symbol-day files, capped at 50,000 rows per split"),
-    ("Feature set", "Selected causal LOB microstructure set: book pressure L0, three-level OBI, order-count imbalance L0, microprice, microprice divergence, bid/ask slope, OFI, 50-event rolling OFI, 50-event signed trade flow, and runtime position"),
-    ("Environment backend", "Continuous single-asset trading environment"),
-    ("Episode length", f"{episode_len:,} event-time steps (streaming)"),
-    ("Action", "Target portfolio exposure in [-1, 1]"),
-    ("Reward", f"{_fmt_reward(reward_type)} with eta = {reward_eta}"),
-    ("Transaction fee", f"{trading_fees:.3f} in the baseline setting"),
-    ("Algorithm", algorithm),
-    ("Network widths", network_dims),
-    ("Learning rates", lr_str),
-    ("Weight decay", wd_str),
-    ("Discount factor", f"gamma = {gamma}"),
-    ("Target update", f"tau = {tau}"),
-    ("Policy delay", f"{policy_delay} critic updates per actor update"),
-    ("Target policy noise", f"sigma = {policy_noise}, clipped at +/-{noise_clip}"),
-    ("Exploration noise", f"sigma = {exploration_noise} during training"),
-    ("Total training steps", f"{max_steps:,}"),
-    ("Initial random steps", f"{init_rand:,}"),
-    ("Frames per batch", f"{fpb:,}"),
-    ("Optimisation steps per batch", str(optim_steps)),
-    ("Mini-batch size", f"{sample_size:,}"),
-    ("Replay buffer size", f"{buffer_size:,}"),
-    ("Loss function", _fmt_loss(_get("loss_function", "smooth_l1"))),
-    ("Evaluation random seed", "42"),
-    ("Compute environment", "Apple M3 MacBook (November 2023) with 18 GB unified memory"),
-]
-
-def _wrap(text, width=38):
-    return "<br>".join(textwrap.wrap(str(text), width=width))
-
-spec_df = pd.DataFrame(rows, columns=["Component", "Specification"])
-spec_df["Specification"] = spec_df["Specification"].apply(_wrap)
-HTML(spec_df.to_html(index=False, escape=False))
+rows = build_experiment_specification_rows(_EXPERIMENT)
+if rows:
+    spec_df = pd.DataFrame(rows, columns=["Component", "Specification"])
+    spec_df["Specification"] = spec_df["Specification"].apply(wrap_html)
+    HTML(spec_df.to_html(index=False, escape=False))
+else:
+    print("Experiment hyperparameters not found — run: uv run python src/cli.py export-eval "
+          f"--experiment {_EXPERIMENT}")
 ```
 
 ---

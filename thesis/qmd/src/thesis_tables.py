@@ -1,16 +1,29 @@
-"""Shared HTML table rendering helpers for thesis QMD chapters.
+"""Shared display and rendering helpers for thesis QMD chapters.
 
-All table-building logic lives here so QMD cells only handle data loading
-and a single display() call.
+All formatting, HTML rendering, and display logic lives here so QMD cells
+only handle data loading and a single display() call.
+
+Sections
+--------
+Value formatters     fmt_val, fmt_delta, fmt_duration, fmt_scientific
+Hyperparameter fmts  fmt_network_dims, fmt_reward_type, fmt_loss_fn, wrap_html
+Display helpers      display_df, display_image_from_path
+Comparison tables    comparison_table_html, build_comparison_rows
 """
 
 from __future__ import annotations
 
 import math
+import textwrap
+from pathlib import Path
 
 import pandas as pd
 from IPython.display import HTML, display
 
+
+# ---------------------------------------------------------------------------
+# Value formatters
+# ---------------------------------------------------------------------------
 
 def fmt_val(val: object, fmt: str) -> str:
     """Format a metric value; return '—' for None or non-finite floats."""
@@ -35,19 +48,99 @@ def fmt_delta(val: object, baseline: object, fmt: str, higher_better: bool = Tru
         return ""
 
 
-def simple_html_table(rows: list[dict], index_col: str | None = None) -> HTML:
-    """Render a list of dicts as a plain HTML table."""
-    df = pd.DataFrame(rows)
-    return HTML(df.to_html(index=index_col is not None))
+def fmt_duration(s: float | None, na: str = "—") -> str:
+    """Format a duration in seconds as µs / ms / s depending on magnitude."""
+    if s is None or (isinstance(s, float) and (math.isnan(s) or math.isinf(s))):
+        return na
+    if s < 1e-3:
+        return f"{s * 1e6:.1f} µs"
+    if s < 1.0:
+        return f"{s * 1e3:.2f} ms"
+    return f"{s:.3f} s"
 
+
+def fmt_scientific(v: float) -> str:
+    """Format a float as a compact scientific-notation string (e.g. '1.5 x 10^-4')."""
+    if v == 0.0:
+        return "0.0"
+    exp = math.floor(math.log10(abs(v)))
+    mantissa = v / (10 ** exp)
+    m = f"{mantissa:g}" if abs(mantissa - round(mantissa)) > 1e-9 else str(int(round(mantissa)))
+    return f"{m} x 10^{exp}" if m != "1" else f"10^{exp}"
+
+
+# ---------------------------------------------------------------------------
+# Hyperparameter display formatters
+# ---------------------------------------------------------------------------
+
+def fmt_network_dims(dims: object) -> str:
+    """Format a list of hidden layer widths, e.g. [128, 64] -> '[128, 64]'."""
+    if isinstance(dims, list):
+        return "[" + ", ".join(str(d) for d in dims) + "]"
+    return str(dims)
+
+
+def fmt_reward_type(rt: object) -> str:
+    """Convert a reward_type key to a human-readable label."""
+    mapping = {"differential_sharpe": "Differential Sharpe Ratio"}
+    return mapping.get(str(rt), str(rt).replace("_", " ").title()) if rt else "—"
+
+
+def fmt_loss_fn(loss: object) -> str:
+    """Convert a loss_function key to a human-readable label."""
+    mapping = {"smooth_l1": "Smooth L1 (Huber)"}
+    return mapping.get(str(loss), str(loss)) if loss else "—"
+
+
+def wrap_html(text: object, width: int = 38) -> str:
+    """Wrap text at word boundaries and join with <br> for HTML table cells."""
+    return "<br>".join(textwrap.wrap(str(text), width=width))
+
+
+# ---------------------------------------------------------------------------
+# Display helpers
+# ---------------------------------------------------------------------------
 
 def display_df(frame: pd.DataFrame) -> None:
     """Display a DataFrame as an HTML table without the row index."""
     display(HTML(frame.to_html(index=False)))
 
 
+def simple_html_table(rows: list[dict], index_col: str | None = None) -> HTML:
+    """Render a list of dicts as a plain HTML table."""
+    df = pd.DataFrame(rows)
+    return HTML(df.to_html(index=index_col is not None))
+
+
+def display_image_from_path(
+    path: str | Path,
+    title: str | None = None,
+    figsize: tuple[float, float] = (10, 6),
+) -> None:
+    """Open an image file and display it via matplotlib.
+
+    Prints a warning instead of raising if the file is missing.
+    """
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    p = Path(path)
+    if not p.exists():
+        label = title or str(path)
+        print(f"{label}: artifact not found")
+        return
+    img = Image.open(p)
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.imshow(img)
+    ax.axis("off")
+    if title:
+        ax.set_title(title)
+    plt.show()
+    plt.close(fig)
+
+
 # ---------------------------------------------------------------------------
-# Two-sub-row table (value row + delta row per group)
+# Comparison tables (value row + delta row per group)
 # ---------------------------------------------------------------------------
 
 def comparison_table_html(
@@ -65,9 +158,6 @@ def comparison_table_html(
         rows: list of dicts produced by build_comparison_rows().
         cols: list of (metric_key, display_label, fmt) tuples — column order.
         index_col: name of the column used as the row label (rowspan=2).
-
-    Returns:
-        IPython HTML object ready for display().
     """
     def _th(label: str, rowspan: int = 1) -> str:
         rs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
@@ -87,14 +177,12 @@ def comparison_table_html(
 
     body = "<tbody>"
     for row in rows:
-        # Value row
         body += (
             "<tr>"
             + _td(row.get(index_col, ""), rowspan=2)
             + "".join(_td(row.get(label, "—")) for _, label, _ in cols)
             + "</tr>"
         )
-        # Delta row (dimmed)
         body += (
             "<tr style='color:#666;font-size:0.9em'>"
             + "".join(_td(row.get(f"Δ {label}", "")) for _, label, _ in cols)
@@ -118,9 +206,6 @@ def build_comparison_rows(
         cols: list of (metric_key, display_label, fmt).
         index_col: label key in the output dict (e.g. "Feature Set").
         higher_better: mapping from metric_key to bool for delta sign convention.
-
-    Returns:
-        list of row dicts suitable for comparison_table_html().
     """
     hb = higher_better or {}
     baseline_m = next((m for _, m, is_base in scenarios if is_base), {})
