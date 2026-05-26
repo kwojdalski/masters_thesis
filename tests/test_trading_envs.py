@@ -7,13 +7,20 @@ import pandas as pd
 import pytest
 import torch
 
-from trading_rl.constants import EnvBackend
+from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.envs import trading_envs
 from trading_rl.envs.trading_envs import (
+    CustomTradingEnvironmentFactory,
     DiscreteActionWrapper,
+    ForexEnvironmentFactory,
     create_environment,
     validate_actions,
     validate_backend,
+)
+from trading_rl.rewards import reward_function
+from trading_rl.rewards.dsr_wrapper import (
+    DifferentialSharpeRatioAnyTrading,
+    StatefulRewardWrapper,
 )
 
 
@@ -34,8 +41,13 @@ def _config(backend: str, positions: list[int] | None = None) -> SimpleNamespace
         env=SimpleNamespace(
             backend=backend,
             positions=positions,
+            name="unit-test-env",
+            trading_fees=0.001,
+            borrow_interest_rate=0.0001,
             price_column="close",
             feature_columns=["feature_a", "feature_b"],
+            reward_type=RewardType.LOG_RETURN,
+            reward_eta=0.01,
         )
     )
 
@@ -166,3 +178,84 @@ def test_create_environment_routes_anytrading_backend_with_kwargs(monkeypatch) -
     assert len(factory.calls) == 1
     assert factory.calls[0]["args"] == (df,)
     assert factory.calls[0]["kwargs"] == {"window_size": 12}
+
+
+def test_custom_factory_passes_reward_function_to_gym_trading_env(monkeypatch) -> None:
+    calls: list[dict] = []
+    df = _df()
+    config = _config("gym_trading_env.discrete", positions=[-1, 0, 1])
+
+    def fake_make(env_id, **kwargs):
+        calls.append({"env_id": env_id, "kwargs": kwargs})
+        return "base-env"
+
+    monkeypatch.setattr(trading_envs.gym, "make", fake_make)
+
+    env = CustomTradingEnvironmentFactory(config)._create_base_environment(df, config)
+
+    assert env == "base-env"
+    assert calls == [
+        {
+            "env_id": "TradingEnv",
+            "kwargs": {
+                "name": "unit-test-env",
+                "df": df,
+                "positions": [-1, 0, 1],
+                "trading_fees": 0.001,
+                "borrow_interest_rate": 0.0001,
+                "reward_function": reward_function,
+            },
+        }
+    ]
+
+
+def test_anytrading_dsr_reward_wiring_wraps_base_env(monkeypatch) -> None:
+    import gymnasium as gym
+
+    class FakeAnyTradingEnv(gym.Env):
+        action_space = gym.spaces.Discrete(2)
+        observation_space = gym.spaces.Box(
+            low=-1.0,
+            high=1.0,
+            shape=(2,),
+            dtype=np.float32,
+        )
+
+        @property
+        def unwrapped(self):
+            return self
+
+    calls: list[dict] = []
+    base_env = FakeAnyTradingEnv()
+
+    def fake_make(env_id, **kwargs):
+        calls.append({"env_id": env_id, "kwargs": kwargs})
+        return base_env
+
+    monkeypatch.setattr(trading_envs.gym, "make", fake_make)
+    monkeypatch.setattr(trading_envs, "GymWrapper", lambda env: env)
+    monkeypatch.setattr(
+        trading_envs.ForexEnvironmentFactory,
+        "_wrap_with_step_counter",
+        lambda self, env: env,
+    )
+
+    config = _config("gym_anytrading.forex", positions=[0, 1])
+    config.env.reward_type = RewardType.DIFFERENTIAL_SHARPE
+    config.env.reward_eta = 0.123
+
+    env = ForexEnvironmentFactory(config).make(_df(), window_size=1, frame_bound=(1, 2))
+
+    assert isinstance(env, DiscreteActionWrapper)
+    assert isinstance(env.env, StatefulRewardWrapper)
+    assert env.env.env is base_env
+    assert isinstance(env.env.reward_fn, DifferentialSharpeRatioAnyTrading)
+    assert env.env.reward_fn.eta == pytest.approx(0.123)
+    assert calls[0]["env_id"] == "forex-v0"
+    assert list(calls[0]["kwargs"]["df"].columns) == [
+        "Open",
+        "High",
+        "Low",
+        "Close",
+        "Volume",
+    ]
