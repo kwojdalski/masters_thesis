@@ -842,7 +842,6 @@ def create_metrics_table_figure(
     to the midpoint.  Uses the thesis font size so the PNG looks consistent with
     other evaluation plots.
     """
-    import matplotlib
     import matplotlib.pyplot as plt
     from trading_rl.evaluation.metric_meta import METRIC_SECTIONS, METRIC_LEGEND, fmt_metric
 
