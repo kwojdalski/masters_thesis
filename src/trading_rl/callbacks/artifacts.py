@@ -760,27 +760,28 @@ def log_evaluation_report(
         logger.warning("no active mlflow run skipping evaluation report logging")
         return
 
-    artifact_dir = f"evaluation_metrics/{split_prefix}" if split_prefix else "evaluation_metrics"
+    artifact_dir = f"evaluation_data/{split_prefix}" if split_prefix else "evaluation_data"
 
     report_dict = report.to_dict() if isinstance(report, MetricReport) else report
-    clean_report: dict[str, float] = {}
+
+    # Convert NaN/inf → null so every field always appears in the JSON.
+    serializable: dict[str, float | None] = {}
     for key, value in report_dict.items():
         try:
-            metric_value = float(value)
+            fv = float(value)
+            serializable[key] = None if not np.isfinite(fv) else fv
         except (TypeError, ValueError):
-            continue
-        if np.isfinite(metric_value):
-            clean_report[key] = metric_value
+            serializable[key] = None
 
-    if not clean_report:
+    if not any(v is not None for v in serializable.values()):
         logger.warning("no finite evaluation metrics to log")
         return
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as handle:
-        json.dump(clean_report, handle, indent=2, sort_keys=True)
-        handle.flush()
-        mlflow.log_artifact(handle.name, artifact_dir)
-        os.unlink(handle.name)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "metrics.json")
+        with open(path, "w") as fh:
+            json.dump(serializable, fh, indent=2, sort_keys=True)
+        mlflow.log_artifact(path, artifact_dir)
 
 
 def log_statistical_tests(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -67,19 +67,27 @@ _NAN = float("nan")
 
 @dataclass
 class MetricReport:
-    """Typed container for the 29 standard quantitative finance metrics.
+    """Typed container for the 43 standard quantitative finance metrics.
 
     All fields default to NaN so that callers can safely access any metric
     even when computation was skipped (e.g. empty returns).
     """
 
+    # Metadata / scale
+    n_periods: float = _NAN             # number of raw return observations
+    n_bars: float = _NAN                # number of bars after frequency aggregation
+    periods_per_year_used: float = _NAN  # effective ppy used for annualised ratios
+
     # Return / growth
     total_return: float = _NAN
     annualized_return_cagr: float = _NAN
     annualized_volatility: float = _NAN
+    mean_return: float = _NAN           # per-bar mean return (μ)
+    std_return: float = _NAN            # per-bar standard deviation (σ)
 
     # Risk-adjusted ratios
     sharpe_ratio: float = _NAN
+    sharpe_expost: float = _NAN         # sharpe_raw × √n_bars; t-stat interpretation
     sortino_ratio: float = _NAN
     calmar_ratio: float = _NAN
     omega_ratio: float = _NAN
@@ -89,11 +97,15 @@ class MetricReport:
     average_drawdown: float = _NAN
     max_drawdown_duration: float = _NAN
     recovery_time_from_max_drawdown: float = _NAN
+    ulcer_index: float = _NAN           # sqrt(mean(drawdown²)); RMS drawdown pain
 
     # Tail risk
     var_95: float = _NAN
     cvar_95: float = _NAN
+    var_99: float = _NAN
+    cvar_99: float = _NAN
     downside_deviation: float = _NAN
+    tail_ratio: float = _NAN            # 95th-pctile return / |5th-pctile return|
 
     # Distribution shape
     return_skewness: float = _NAN
@@ -105,12 +117,16 @@ class MetricReport:
     profit_factor: float = _NAN
     payoff_ratio: float = _NAN
     expectancy_per_period: float = _NAN
+    gross_profit: float = _NAN          # sum of all positive returns
+    gross_loss: float = _NAN            # absolute sum of all negative returns
 
     # Execution / position
     turnover: float = _NAN
     average_holding_period: float = _NAN
+    n_trades: float = _NAN              # number of position changes
     pct_long: float = _NAN
     pct_short: float = _NAN
+    pct_neutral: float = _NAN           # fraction of periods with zero position
 
     # Benchmark-relative (NaN when no benchmark provided)
     beta: float = _NAN
@@ -294,7 +310,7 @@ def build_metric_report(
     periods_per_year: int,
     risk_free_rate_annual: float = 0.0,
 ) -> MetricReport:
-    """Compute 29 standard quantitative finance metrics."""
+    """Compute 43 standard quantitative finance metrics."""
     benchmark_position_side = (
         getattr(strategy_simple_returns, "benchmark_position_side", None)
         if actions is None
@@ -352,8 +368,13 @@ def build_metric_report(
     drawdowns = _drawdown_series(equity)
     max_dd, avg_dd, max_dd_duration, recovery_time = _drawdown_stats(drawdowns)
     calmar = _safe_div(cagr, abs(max_dd))
+    ulcer_idx = float(np.sqrt(np.mean(drawdowns ** 2))) if drawdowns.size else np.nan
 
     var_95, cvar_95 = _tail_risk(r, alpha=0.05)
+    var_99, cvar_99 = _tail_risk(r, alpha=0.01)
+    p95 = float(np.quantile(r, 0.95)) if r.size else np.nan
+    p05 = float(np.quantile(r, 0.05)) if r.size else np.nan
+    tail_ratio = _safe_div(p95, abs(p05))
     skew = float(np.mean(((r - mu) / sigma) ** 3)) if sigma > 0 else np.nan
     kurt = float(np.mean(((r - mu) / sigma) ** 4) - 3) if sigma > 0 else np.nan
 
@@ -388,6 +409,18 @@ def build_metric_report(
     avg_holding = _holding_period(actions_arr)
     pct_long = float(np.mean(actions_arr > 0)) if actions_arr.size > 0 else np.nan
     pct_short = float(np.mean(actions_arr < 0)) if actions_arr.size > 0 else np.nan
+    pct_neutral = float(np.mean(actions_arr == 0.0)) if actions_arr.size > 0 else np.nan
+    if actions_arr.size > 1:
+        n_trades = float(np.sum(np.diff(actions_arr) != 0))
+    else:
+        n_trades = 0.0
+
+    # Ex-post Sharpe: sharpe_raw × √n_bars — has t-statistic interpretation for H0: μ=0
+    sharpe_expost_val = (
+        sharpe_raw(mu - rf_per_period, sigma) * np.sqrt(r.size)
+        if sigma > 0 and r.size > 1
+        else np.nan
+    )
 
     beta = np.nan
     alpha = np.nan
@@ -425,10 +458,16 @@ def build_metric_report(
                 info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
 
     return MetricReport(
+        n_periods=float(_r_orig.size),
+        n_bars=float(r.size),
+        periods_per_year_used=float(periods_per_year),
         total_return=total_return,
         annualized_return_cagr=cagr,
         annualized_volatility=annual_vol,
+        mean_return=mu,
+        std_return=sigma,
         sharpe_ratio=sharpe,
+        sharpe_expost=sharpe_expost_val,
         sortino_ratio=sortino,
         calmar_ratio=calmar,
         omega_ratio=omega_ratio,
@@ -436,9 +475,13 @@ def build_metric_report(
         average_drawdown=avg_dd,
         max_drawdown_duration=float(max_dd_duration),
         recovery_time_from_max_drawdown=float(recovery_time) if np.isfinite(recovery_time) else np.nan,
+        ulcer_index=ulcer_idx,
         var_95=var_95,
         cvar_95=cvar_95,
+        var_99=var_99,
+        cvar_99=cvar_99,
         downside_deviation=downside_dev,
+        tail_ratio=tail_ratio,
         return_skewness=skew,
         return_kurtosis=kurt,
         win_rate=hit_rate,
@@ -446,10 +489,14 @@ def build_metric_report(
         profit_factor=profit_factor,
         payoff_ratio=payoff_ratio,
         expectancy_per_period=expectancy,
+        gross_profit=gross_profit,
+        gross_loss=gross_loss,
         turnover=turnover,
         average_holding_period=avg_holding,
+        n_trades=n_trades,
         pct_long=pct_long,
         pct_short=pct_short,
+        pct_neutral=pct_neutral,
         beta=beta,
         alpha=float(alpha) if np.isfinite(alpha) else np.nan,
         information_ratio=info_ratio,

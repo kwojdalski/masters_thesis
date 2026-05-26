@@ -147,7 +147,11 @@ def _load_latest_json_artifact(
 
 
 def load_latest_evaluation_report(artifact_uri: str | None) -> dict[str, Any] | None:
-    return _load_latest_json_artifact(artifact_uri, "evaluation_metrics")
+    result = _load_latest_json_artifact(artifact_uri, "evaluation_data")
+    if result is None:
+        # Fall back to old path for runs logged before the rename.
+        result = _load_latest_json_artifact(artifact_uri, "evaluation_metrics")
+    return result
 
 
 def load_latest_statistical_tests(artifact_uri: str | None) -> dict[str, Any] | None:
