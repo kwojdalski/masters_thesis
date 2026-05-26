@@ -269,12 +269,12 @@ class TestBuildMetricReportEdgeCases:
         """Test skewness and kurtosis calculations."""
         rng = np.random.default_rng(42)
 
-        # Normal distribution: skewness ≈ 0, kurtosis ≈ 0 (excess kurtosis = 3)
+        # Normal distribution: skewness ≈ 0, excess kurtosis ≈ 0
         normal_returns = rng.normal(loc=0.01, scale=0.02, size=200).tolist()
         report_normal = _report(normal_returns)
 
         assert abs(report_normal["return_skewness"]) < 0.5  # Near-zero skewness for normal
-        assert 2.5 < report_normal["return_kurtosis"] < 4.0  # Near-3 excess kurtosis for normal
+        assert abs(report_normal["return_kurtosis"]) < 1.0  # Near-zero excess kurtosis for normal
 
         # Highly positive skewed: many small gains, few big losses
         skewed_returns = [0.01] * 95 + [-0.5] * 5

@@ -312,7 +312,7 @@ def build_metric_report(
 
     var_95, cvar_95 = _tail_risk(r, alpha=0.05)
     skew = float(np.mean(((r - mu) / sigma) ** 3)) if sigma > 0 else np.nan
-    kurt = float(np.mean(((r - mu) / sigma) ** 4)) if sigma > 0 else np.nan
+    kurt = float(np.mean(((r - mu) / sigma) ** 4) - 3) if sigma > 0 else np.nan
 
     wins = r[r > 0]
     losses = r[r < 0]
