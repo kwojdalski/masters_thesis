@@ -94,9 +94,6 @@ trainer.save_checkpoint(str(checkpoint_path))
 logger.info("create visualizations")
 loss_plot = visualize_training(
     logs
-    # save_path=str(
-    #     Path(config.logging.log_dir) / f"{config.experiment_name}_losses.png"
-    # ),
 )
 # %%
 loss_plot
@@ -106,7 +103,6 @@ reward_plot, action_plot, action_probs_plot, final_reward, last_positions = eval
     actor,
     train_df,
     max_steps=1000,
-    # save_path=str(Path(config.logging.log_dir) / f"{config.experiment_name}_eval"),
 )
 # %%
 reward_plot
@@ -117,22 +113,4 @@ logger.info("training complete")
 logger.info("checkpoint saved path=%s", checkpoint_path)
 
 # %%
-# Example usage for multiple experiments:
-# study = run_multiple_experiments("trading_rl_experiments", n_trials=10)
-# print(f"Best trial: {study.best_trial}")
-# print(f"Best reward: {study.best_value}")
-
-# To access stored metrics from all trials:
-# for trial in study.trials:
-#     print(f"Trial {trial.number}: reward={trial.user_attrs['final_reward']}")
-
-# return {
-#     "trainer": trainer,
-#     "logs": logs,
-#     "plots": {
-#         "loss": loss_plot,
-#         "reward": reward_plot,
-#         "action": action_plot,
-#     },
-# }
 run_multiple_experiments("trading_rl_experiments", n_trials=1)
