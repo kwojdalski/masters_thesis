@@ -124,8 +124,8 @@ def display_image_from_path(
     import matplotlib.pyplot as plt
     from PIL import Image
 
-    p = Path(path)
-    if not p.exists():
+    p = Path(path) if path else None
+    if not p or not p.is_file():
         label = title or str(path)
         print(f"{label}: artifact not found")
         return
