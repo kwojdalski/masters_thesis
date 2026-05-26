@@ -173,7 +173,7 @@ def run_statistical_tests_for_split(
         )
 
         random_trials = None
-        if config.benchmarks.random:
+        if config.benchmarks.is_random:
             logger.info(
                 "compute random baseline n_trials=%d", config.benchmarks.n_random_trials
             )

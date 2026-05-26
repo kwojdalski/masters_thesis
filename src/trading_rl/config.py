@@ -311,7 +311,7 @@ class BenchmarksConfig:
         return frozenset(self.enabled)
 
     @property
-    def random(self) -> bool:
+    def is_random(self) -> bool:
         """True when RANDOM_ACTIONS is in the enabled list."""
         return BenchmarkName.RANDOM_ACTIONS in self.enabled_set
 
