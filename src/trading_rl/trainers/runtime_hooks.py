@@ -470,7 +470,7 @@ class TrainerRuntimeHooks:
                             )
                             mlflow.log_artifact(
                                 _tmp_path,
-                                "evaluation_plots_temp/train_val",
+                                "evaluation_plots_temp",
                             )
                         logger.debug(
                             "temp eval: train/val progression plot uploaded train_checkpoints=%d val_checkpoints=%d",

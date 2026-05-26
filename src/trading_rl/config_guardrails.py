@@ -1016,11 +1016,253 @@ def _check_action_thresholds_invalid(config: ExperimentConfig) -> Finding | None
 
 
 # ---------------------------------------------------------------------------
+# Round 3 checks
+# ---------------------------------------------------------------------------
+
+def _check_reward_scale_zero(config: ExperimentConfig) -> Finding | None:
+    """FATAL: reward_scale=0 → all rewards are identically zero; no learning signal."""
+    if config.env.reward_scale == 0.0:
+        return Finding(
+            severity=Severity.FATAL,
+            parameter="env.reward_scale",
+            message=(
+                "reward_scale=0: every reward produced by the environment is multiplied "
+                "by zero, making the learning signal exactly zero at every step. The "
+                "policy gradient / TD error will always be zero and no learning can occur."
+            ),
+            suggestion="Set reward_scale to a non-zero value (default: 1.0).",
+        )
+    return None
+
+
+def _check_eval_steps_too_small(config: ExperimentConfig) -> Finding | None:
+    """WARN: eval_steps < 10 → evaluation metrics computed on fewer than 10 steps are noise."""
+    es = config.evaluation.eval_steps
+    if es < 10:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="evaluation.eval_steps",
+            message=(
+                f"eval_steps={es}: evaluation metrics (Sharpe, drawdown, win-rate, etc.) "
+                "computed over fewer than 10 steps have very high variance and are "
+                "essentially random. They cannot reliably distinguish good policies from "
+                "bad ones."
+            ),
+            suggestion="Set eval_steps >= 50 for minimally useful metrics.",
+        )
+    return None
+
+
+def _check_ppo_frames_too_small(config: ExperimentConfig) -> Finding | None:
+    """WARN (PPO): frames_per_batch < 32 → advantage estimates across too few steps are very noisy."""
+    if not _is_ppo(config.training.algorithm):
+        return None
+    f = config.training.frames_per_batch
+    if f < 32:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.frames_per_batch",
+            message=(
+                f"frames_per_batch={f} for PPO: advantage estimates computed over "
+                f"only {f} steps have very high variance. PPO's clipped objective "
+                "assumes a reasonably large batch to form stable advantage baselines; "
+                "with so few steps the update direction is dominated by noise."
+            ),
+            suggestion="Set frames_per_batch >= 64, ideally 256–2048 for PPO.",
+        )
+    return None
+
+
+def _check_actor_network_bottleneck(config: ExperimentConfig) -> Finding | None:
+    """WARN: narrowest actor layer < 8 → almost certainly too small to learn non-trivial policies."""
+    min_dim = min(config.network.actor_hidden_dims)
+    if min_dim < 8:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="network.actor_hidden_dims",
+            message=(
+                f"network.actor_hidden_dims={config.network.actor_hidden_dims}: "
+                f"the narrowest layer has only {min_dim} units. "
+                "With fewer than 8 neurons in a layer the actor almost certainly lacks "
+                "the representational capacity to learn non-trivial trading policies, "
+                "regardless of how long training runs."
+            ),
+            suggestion=(
+                "Use at least 16 units in every hidden layer. "
+                "A common baseline for trading is [64, 32] or [128, 64]."
+            ),
+        )
+    return None
+
+
+def _check_no_neutral_position(config: ExperimentConfig) -> Finding | None:
+    """WARN: 0 not in positions → agent is always invested; cannot go flat."""
+    positions = config.env.positions
+    if positions is None or len(positions) < 2:
+        return None  # already caught by _check_single_position
+    if 0 not in positions:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.positions",
+            message=(
+                f"env.positions={list(positions)}: the neutral (flat) position 0 is "
+                "absent. The agent is always invested and can never exit the market. "
+                "This forces the agent to choose between Long and Short at every step, "
+                "which may be intentional but eliminates one important degree of freedom "
+                "and increases exposure during adverse conditions."
+            ),
+            suggestion=(
+                "Add 0 to positions if a flat position is meaningful for this strategy, "
+                "e.g. positions=[-1, 0, 1]."
+            ),
+        )
+    return None
+
+
+def _check_temp_eval_shorter_than_final(config: ExperimentConfig) -> Finding | None:
+    """WARN: temp_eval_max_steps < eval_steps → periodic eval runs fewer steps than final eval."""
+    temp_max = config.training.temp_eval_max_steps
+    final_steps = config.evaluation.eval_steps
+    if temp_max < final_steps:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.temp_eval_max_steps / evaluation.eval_steps",
+            message=(
+                f"temp_eval_max_steps={temp_max:,} < eval_steps={final_steps:,}: "
+                "periodic evaluation during training is capped at fewer steps than the "
+                "final post-training evaluation. The best-checkpoint selection signal "
+                "(from periodic eval) is noisier than the evaluation it is supposed to "
+                "predict, making checkpoint selection less reliable."
+            ),
+            suggestion=(
+                f"Set temp_eval_max_steps >= eval_steps={final_steps:,}, "
+                "or reduce eval_steps."
+            ),
+        )
+    return None
+
+
+def _check_value_network_underpowered_ppo(config: ExperimentConfig) -> Finding | None:
+    """WARN (PPO): value network narrower than actor → critic can't accurately evaluate what actor learns."""
+    if not _is_ppo(config.training.algorithm):
+        return None
+    min_actor = min(config.network.actor_hidden_dims)
+    min_value = min(config.network.value_hidden_dims)
+    if min_value < min_actor:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="network.value_hidden_dims / network.actor_hidden_dims",
+            message=(
+                f"PPO value network bottleneck ({min_value} units) is narrower than "
+                f"actor bottleneck ({min_actor} units). "
+                "In PPO the value function is the baseline used to compute advantages. "
+                "An underpowered critic produces high-variance advantage estimates, "
+                "making actor updates noisy even when the actor has sufficient capacity."
+            ),
+            suggestion=(
+                "Set value_hidden_dims so its narrowest layer >= actor's narrowest layer. "
+                f"Consider value_hidden_dims with min >= {min_actor}."
+            ),
+        )
+    return None
+
+
+def _check_val_test_imbalance(config: ExperimentConfig) -> Finding | None:
+    """WARN: val_size and test_size both set but differ by more than 5×."""
+    vs = config.data.validation_size
+    ts = config.data.test_size
+    if vs is None or ts is None or ts == 0:
+        return None
+    ratio = max(vs, ts) / min(vs, ts)
+    if ratio > 5:
+        bigger, bigger_val, smaller, smaller_val = (
+            ("validation_size", vs, "test_size", ts)
+            if vs > ts
+            else ("test_size", ts, "validation_size", vs)
+        )
+        return Finding(
+            severity=Severity.WARN,
+            parameter="data.validation_size / data.test_size",
+            message=(
+                f"{bigger}={bigger_val:,} is {ratio:.0f}× {smaller}={smaller_val:,}. "
+                "A strongly imbalanced val/test split means that either model selection "
+                "signal is noisier than holdout evaluation, or the final out-of-sample "
+                "estimate is less reliable than the validation score. "
+                "Either way, the split does not represent the real deployment scenario."
+            ),
+            suggestion=(
+                "Keep validation_size and test_size within 2–3× of each other. "
+                f"Consider {smaller}={bigger_val:,} or {bigger}={smaller_val:,}."
+            ),
+        )
+    return None
+
+
+def _check_positions_high_leverage(config: ExperimentConfig) -> Finding | None:
+    """WARN: any position magnitude > 2 → more than 2× leverage, high bankruptcy risk."""
+    positions = config.env.positions
+    if not positions:
+        return None
+    max_lev = max(abs(p) for p in positions)
+    if max_lev > 2:
+        large = [p for p in positions if abs(p) > 2]
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.positions",
+            message=(
+                f"env.positions contains values with |position| > 2: {large}. "
+                f"At {max_lev}× leverage an adverse move of {1 / max_lev * 100:.0f}% "
+                "is sufficient to wipe the entire portfolio. Combined with trading fees "
+                "and realistic market volatility, the agent is at high risk of broker "
+                "bankruptcy during evaluation, producing -100% return cliffs in the "
+                "equity curve."
+            ),
+            suggestion=(
+                "Use position magnitudes of 1 or less unless leverage is explicitly "
+                "supported by the environment and your research goal requires it."
+            ),
+        )
+    return None
+
+
+def _check_off_policy_too_few_total_updates(config: ExperimentConfig) -> Finding | None:
+    """WARN (off-policy): total gradient updates < 500 → too few weight updates for convergence."""
+    if not _is_off_policy(config.training.algorithm):
+        return None
+    effective_steps = config.training.max_steps - config.training.init_rand_steps
+    if effective_steps <= 0:
+        return None
+    batches = effective_steps // max(config.training.frames_per_batch, 1)
+    total_updates = batches * config.training.optim_steps_per_batch
+    if total_updates < 500:
+        return Finding(
+            severity=Severity.WARN,
+            parameter=(
+                "(training.max_steps - training.init_rand_steps) "
+                "/ training.frames_per_batch * training.optim_steps_per_batch"
+            ),
+            message=(
+                f"Total gradient updates = {total_updates} "
+                f"({batches} batches × {config.training.optim_steps_per_batch} optim steps). "
+                "Fewer than 500 weight updates is generally not enough for an off-policy "
+                "algorithm to converge on any meaningful signal, even in simple environments."
+            ),
+            suggestion=(
+                f"Increase max_steps or reduce frames_per_batch so that "
+                f"(max_steps - init_rand_steps) / frames_per_batch × optim_steps_per_batch >= 500. "
+                f"E.g. max_steps >= {config.training.init_rand_steps + 500 * config.training.frames_per_batch // max(config.training.optim_steps_per_batch, 1):,}."
+            ),
+        )
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 _ALL_CHECKS = [
     # FATAL first
+    _check_reward_scale_zero,
     _check_sample_size_vs_init_rand,
     _check_sample_size_vs_buffer,
     _check_ppo_minibatch_vs_batch,
@@ -1063,6 +1305,16 @@ _ALL_CHECKS = [
     _check_val_size_much_smaller_than_train,
     _check_log_interval_too_coarse,
     _check_action_thresholds_invalid,
+    # Round 3
+    _check_eval_steps_too_small,
+    _check_ppo_frames_too_small,
+    _check_actor_network_bottleneck,
+    _check_no_neutral_position,
+    _check_temp_eval_shorter_than_final,
+    _check_value_network_underpowered_ppo,
+    _check_val_test_imbalance,
+    _check_positions_high_leverage,
+    _check_off_policy_too_few_total_updates,
 ]
 
 
