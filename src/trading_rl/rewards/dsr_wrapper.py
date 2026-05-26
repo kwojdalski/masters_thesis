@@ -131,12 +131,13 @@ class DifferentialSharpeRatioAnyTrading:
         self.B_t = 0.0  # EMA of squared returns (second moment)
         self._prev_nlv = None
 
-    def reset(self):
+    def reset(self) -> "DifferentialSharpeRatioAnyTrading":
         """Reset state for new episode."""
         if not self.persist_moments:
             self.A_t = 0.0
             self.B_t = 0.0
         self._prev_nlv = None
+        return self
 
     def __call__(self, history: dict) -> float:
         """Calculate DSR reward from trading history.
