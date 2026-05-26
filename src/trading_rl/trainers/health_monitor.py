@@ -7,6 +7,7 @@ from collections import deque
 import numpy as np
 
 from logger import get_logger
+from trading_rl.config_guardrails import Finding, Severity
 
 logger = get_logger(__name__)
 
@@ -76,36 +77,50 @@ class TrainingHealthMonitor:
                 pct_extreme, len(self._saturation_rates), self._saturation_window,
             )
 
-    def check(self) -> str | None:
-        """Return a stop-reason string if a guardrail fires, else None."""
+    def check(self) -> Finding | None:
+        """Return a Finding if a guardrail fires, else None."""
         return self._check_stale_policy() or self._check_saturation()
 
-    def _check_stale_policy(self) -> str | None:
+    def _check_stale_policy(self) -> Finding | None:
         if self._stale_ratio <= 0.0:
             return None
         if len(self._change_ratios) < self._stale_window:
             return None
         mean_ratio = float(np.mean(list(self._change_ratios)))
         if mean_ratio < self._stale_ratio:
-            return (
-                f"stale_policy: mean position-change ratio {mean_ratio:.4f} "
-                f"< threshold {self._stale_ratio} "
-                f"over last {self._stale_window} episodes — "
-                "agent is not changing positions; no learning signal."
+            return Finding(
+                severity=Severity.WARN,
+                parameter="training.es_stale_policy_min_ratio",
+                message=(
+                    f"mean position-change ratio {mean_ratio:.4f} < threshold "
+                    f"{self._stale_ratio} over last {self._stale_window} episodes — "
+                    "agent is not changing positions; no learning signal."
+                ),
+                suggestion=(
+                    "Increase exploration (exploration_noise_std or entropy_bonus), "
+                    "lower actor_lr, or disable with es_stale_policy_min_ratio=0."
+                ),
             )
         return None
 
-    def _check_saturation(self) -> str | None:
+    def _check_saturation(self) -> Finding | None:
         if self._saturation_max <= 0.0:
             return None
         if len(self._saturation_rates) < self._saturation_window:
             return None
         mean_sat = float(np.mean(list(self._saturation_rates)))
         if mean_sat > self._saturation_max:
-            return (
-                f"policy_saturation: mean extreme-position rate {mean_sat:.4f} "
-                f"> threshold {self._saturation_max} "
-                f"over last {self._saturation_window} episodes — "
-                "agent is stuck at full long/short exposure, never going flat."
+            return Finding(
+                severity=Severity.WARN,
+                parameter="training.es_saturation_max_rate",
+                message=(
+                    f"mean extreme-position rate {mean_sat:.4f} > threshold "
+                    f"{self._saturation_max} over last {self._saturation_window} episodes — "
+                    "agent is stuck at full long/short exposure, never going flat."
+                ),
+                suggestion=(
+                    "Increase entropy_bonus (PPO) or exploration_noise_std (TD3/DDPG) "
+                    "to encourage neutrality, or disable with es_saturation_max_rate=0."
+                ),
             )
         return None

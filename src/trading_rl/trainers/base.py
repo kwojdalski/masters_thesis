@@ -644,9 +644,13 @@ class BaseTrainer(ABC):
                     if self.callback and hasattr(self.callback, "log_episode_stats"):
                         self._log_episode_stats(data, self.callback)
 
-                    stop_reason = self.health_monitor.check()
-                    if stop_reason:
-                        logger.warning("early stopping: %s", stop_reason)
+                    finding = self.health_monitor.check()
+                    if finding is not None:
+                        logger.warning(
+                            "runtime guardrail %s [%s] %s | suggestion: %s",
+                            finding.severity.value, finding.parameter,
+                            finding.message, finding.suggestion,
+                        )
                         break
 
                     if on_batch_end is not None:
