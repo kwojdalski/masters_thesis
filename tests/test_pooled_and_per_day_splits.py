@@ -412,7 +412,6 @@ class TestBuildPerDaySplits:
         assert memmaps is not None
         assert len(memmaps) == 3
         # Verify ordering: memmap[0] has close values near 100, memmap[2] near 300
-        from trading_rl.data_loading import MemmapPaths
         data0 = np.load(memmaps[0].data_path, mmap_mode="r")
         data2 = np.load(memmaps[2].data_path, mmap_mode="r")
         close_col_0 = list(memmaps[0].columns).index("close")
