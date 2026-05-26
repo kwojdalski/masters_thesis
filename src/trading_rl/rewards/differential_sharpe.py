@@ -126,7 +126,7 @@ class DifferentialSharpeRatio(AbstractReward):
         B_t: Current EMA of squared returns (second moment estimate)
     """
 
-    def __init__(self, eta: float = 0.01, epsilon: float = 1e-20, clip_rewards: bool = True, scale: float = 1.0):
+    def __init__(self, eta: float = 0.01, epsilon: float = 1e-20, clip_reward: float | None = 10.0, scale: float = 1.0):
         """Initialize DSR reward calculator.
 
         Args:
@@ -136,8 +136,9 @@ class DifferentialSharpeRatio(AbstractReward):
                 HFT tick-level portfolio returns have Var ~ 1e-10, so
                 Var^1.5 ~ 1e-15 — epsilon=1e-8 would dominate the denominator
                 permanently, collapsing DSR to a scaled return signal.
-            clip_rewards: Clamp output to [-10, 10] to prevent gradient explosion
-                when variance collapses near zero (default: True)
+            clip_reward: Clamp output to [-clip_reward, clip_reward] to prevent
+                gradient explosion when variance collapses near zero. Set to None
+                to disable clipping (default: 10.0)
             scale: Multiplicative constant applied after clipping (default: 1.0)
         """
         if not 0 < eta <= 1:
@@ -147,7 +148,7 @@ class DifferentialSharpeRatio(AbstractReward):
 
         self.eta = eta
         self.epsilon = epsilon
-        self.clip_rewards = clip_rewards
+        self.clip_reward = clip_reward
         self.scale = scale
 
         # Initialize EMAs
@@ -213,8 +214,8 @@ class DifferentialSharpeRatio(AbstractReward):
         # Update previous NLV for next step
         self._prev_nlv = nlv_now
 
-        if self.clip_rewards:
-            dsr = float(np.clip(dsr, -10.0, 10.0))
+        if self.clip_reward is not None:
+            dsr = float(np.clip(dsr, -self.clip_reward, self.clip_reward))
         return float(dsr * self.scale)
 
     def reset(self, persist_moments: bool = False) -> "DifferentialSharpeRatio":
