@@ -120,6 +120,10 @@ class BaseTradingEnvironmentFactory:
         """Abstract method to be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement make")
 
+    def create(self, *args, **kwargs) -> TransformedEnv:
+        """Alias for make() — matches BaseEnvironmentBuilder.create() vocabulary."""
+        return self.make(*args, **kwargs)
+
 
 class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
     """Factory for custom TradingEnv environments with config-based setup."""
