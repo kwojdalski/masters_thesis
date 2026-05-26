@@ -242,16 +242,25 @@ def _build_icir_score_table(
         ic_series = _compute_ic_series(train_frame[feat], train_target, window_size)
         ic_series_dict[feat] = ic_series
 
-        if len(ic_series) == 0 or ic_series.std() == 0:
+        ic_std_raw = ic_series.std()  # NaN when n=1 (window_size=None)
+        if len(ic_series) == 0:
             mean_ic = 0.0
-            ic_std = 1e-10  # avoid division by zero
+            ic_std = 1e-10
             icir = 0.0
             ic_tstat = 0.0
             ic_positive_ratio = 0.0
+        elif not (ic_std_raw > 1e-10):
+            # Single observation (window_size=None) or zero variance: ICIR is
+            # undefined; use mean_ic directly so the feature is not silently zeroed.
+            mean_ic = float(ic_series.mean())
+            ic_std = 1e-10
+            icir = mean_ic
+            ic_tstat = 0.0
+            ic_positive_ratio = float(ic_series.gt(0).mean())
         else:
             mean_ic = float(ic_series.mean())
-            ic_std = float(ic_series.std())
-            icir = mean_ic / ic_std if ic_std > 1e-10 else 0.0
+            ic_std = float(ic_std_raw)
+            icir = mean_ic / ic_std
             n = len(ic_series)
             ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
             ic_positive_ratio = float((ic_series > 0).mean())
