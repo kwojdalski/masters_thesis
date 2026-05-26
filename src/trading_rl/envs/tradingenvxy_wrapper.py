@@ -593,19 +593,26 @@ class StreamingTradingEnvXY(gym.Env):
         # Per-symbol mode: clear _prev_nlv on the symbol's DSR object so the
         # new episode starts with a fresh NLV reference while moments persist.
         _dsr_to_restore: object | None = None
+        _saved_moments: tuple[float, float] | None = None
         if not self._dsr_persist_across_symbols and self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
             sym = self._current_episode_symbol
             if sym in self._dsr_per_symbol:
-                # Reset only _prev_nlv; A_t/B_t are preserved and will be passed
-                # to the new TradingEnv instance, avoiding fragile manual restoration.
-                self._dsr_per_symbol[sym].reset(persist_moments=True)
-                _dsr_to_restore = self._dsr_per_symbol[sym]
+                dsr = self._dsr_per_symbol[sym]
+                _saved_moments = (dsr.A_t, dsr.B_t)
+                dsr.reset(persist_moments=True)  # clear only _prev_nlv
+                _dsr_to_restore = dsr
         elif self._dsr_persist_across_symbols and self._persistent_dsr is not None:
-            # Legacy mode: reset _prev_nlv on the shared DSR object.
-            self._persistent_dsr.reset(persist_moments=True)
-            _dsr_to_restore = self._persistent_dsr
+            dsr = self._persistent_dsr
+            _saved_moments = (dsr.A_t, dsr.B_t)
+            dsr.reset(persist_moments=True)  # clear only _prev_nlv
+            _dsr_to_restore = dsr
         self._inner_env = self._build_inner_env(window_df, symbol=self._current_episode_symbol, reward=_dsr_to_restore)
         obs = self._inner_env.reset()
+        # TradingEnv.reset() calls self._reward.reset() with no arguments, which
+        # resets A_t/B_t to 0 regardless of persist_moments. Restore the saved
+        # moments explicitly so cross-episode EMA continuity is preserved.
+        if _dsr_to_restore is not None and _saved_moments is not None:
+            _dsr_to_restore.A_t, _dsr_to_restore.B_t = _saved_moments
         return self._extract_obs(obs), {}
 
     def step(self, action):
