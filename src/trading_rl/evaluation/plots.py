@@ -561,7 +561,7 @@ def create_equity_progression_plot(
         ggplot(df, aes(x="Steps", y="Portfolio_Value", color="Training_Step", group="Training_Step"))
         + geom_line(size=0.32)
         + scale_color_gradient(
-            low="#cce0f5", high="#0072B2", name="Training Step",
+            low="#f5cccc", high="#CC0000", name="Training Step",
             labels=lambda vals: [f"{int(v / 1_000)}k" for v in vals],
         )
         + labs(
@@ -607,7 +607,7 @@ def create_price_plot(
 
     plot = (
         ggplot(plot_df, aes(x="x", y="price"))
-        + geom_line(color=PALETTE.get("Deterministic", "#0072B2"), size=0.4)
+        + geom_line(color=PALETTE.get("Deterministic", "#CC0000"), size=0.4)
         + labs(x=x_label, y=f"Price ({price_column})")
         + thesis_theme()
         + theme(axis_text_x=element_text(angle=90, hjust=1))

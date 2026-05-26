@@ -15,7 +15,7 @@ from plotnine import element_blank, element_line, element_text, theme, theme_cla
 
 # Wong (2011) colorblind-safe palette — ordered by intended use
 PALETTE: dict[str, str] = {
-    "Deterministic": "#0072B2",       # blue
+    "Deterministic": "#CC0000",       # red
     "Buy-and-Hold":  "#E69F00",       # orange
     "Random":        "#999999",       # grey
     "Max Profit (Unleveraged)": "#009E73",  # green
