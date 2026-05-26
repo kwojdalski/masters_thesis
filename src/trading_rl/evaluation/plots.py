@@ -663,6 +663,81 @@ def create_equity_progression_plot(
     )
 
 
+def create_train_val_progression_plot(
+    train_history: "list[tuple[int, ReturnSeries]] | None",
+    val_history: "list[tuple[int, ReturnSeries]] | None",
+    initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
+    metric: str = "total_return",
+):
+    """Train vs val progression at checkpoints — shows overfitting/learning.
+
+    Args:
+        train_history: List of (training_step, ReturnSeries) for train split.
+        val_history: List of (training_step, ReturnSeries) for val split.
+        initial_portfolio_value: Starting portfolio value.
+        metric: "total_return" or "final_portfolio_value".
+
+    Returns:
+        A plotnine ggplot, or None if fewer than two checkpoints total.
+    """
+    train_history = train_history or []
+    val_history = val_history or []
+
+    if len(train_history) + len(val_history) < 2:
+        return None
+
+    rows = []
+
+    for training_step, returns in train_history:
+        if metric == "total_return":
+            y = float(returns.to_cumulative_log(include_initial=False).values[-1])
+        elif metric == "final_portfolio_value":
+            equity = returns.to_equity(initial_portfolio_value)
+            y = float(equity.values[-1])
+        else:
+            raise ValueError(f"Unknown metric: {metric}")
+        rows.append({
+            "Training_Step": int(training_step),
+            "Value": y,
+            "Split": "Train",
+        })
+
+    for training_step, returns in val_history:
+        if metric == "total_return":
+            y = float(returns.to_cumulative_log(include_initial=False).values[-1])
+        elif metric == "final_portfolio_value":
+            equity = returns.to_equity(initial_portfolio_value)
+            y = float(equity.values[-1])
+        else:
+            raise ValueError(f"Unknown metric: {metric}")
+        rows.append({
+            "Training_Step": int(training_step),
+            "Value": y,
+            "Split": "Val",
+        })
+
+    df = pd.DataFrame(rows)
+
+    y_label = "Total Return (log)" if metric == "total_return" else "Final Portfolio Value (\\$)"
+    title = "Learning Progression: Train vs Val"
+
+    return (
+        ggplot(df, aes(x="Training_Step", y="Value", color="Split", linetype="Split"))
+        + geom_line(size=0.7)
+        + labs(
+            title=title,
+            x="Training Step",
+            y=y_label,
+            caption=(
+                f"Each point shows the deterministic policy evaluated on {metric.replace('_', ' ')} "
+                "at that training checkpoint."
+            ),
+        )
+        + thesis_theme()
+        + guides(color=guide_legend(title="Split"), linetype=guide_legend(title="Split"))
+    )
+
+
 def create_price_plot(
     df: pd.DataFrame,
     price_column: str = "close",

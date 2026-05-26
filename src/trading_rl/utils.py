@@ -6,6 +6,7 @@ from trading_rl.evaluation.plots import (
     create_equity_curve_plot,
     create_equity_progression_plot,
     create_merged_comparison_plot,
+    create_train_val_progression_plot,
 )
 from trading_rl.evaluation.returns import (
     ReturnKind,
@@ -24,6 +25,7 @@ __all__ = [
     "create_equity_curve_plot",
     "create_equity_progression_plot",
     "create_merged_comparison_plot",
+    "create_train_val_progression_plot",
     "extract_tradingenv_return_series",
     "extract_tradingenv_returns",
 ]

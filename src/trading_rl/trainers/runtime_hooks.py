@@ -438,6 +438,50 @@ class TrainerRuntimeHooks:
             else:
                 self._eval_consecutive_failures = 0
 
+        # Create and upload train/val progression plot (if we have both splits)
+        if mlflow.active_run():
+            train_history = self._progression_history.get("train", [])
+            val_history = self._progression_history.get("val", [])
+            if len(train_history) + len(val_history) >= 2:
+                try:
+                    import os
+                    import tempfile
+                    from trading_rl.evaluation.plots import create_train_val_progression_plot
+                    from trading_rl.evaluation.thesis_theme import (
+                        FIGURE_HEIGHT,
+                        FIGURE_WIDTH,
+                        PLOT_DPI,
+                        save_plot as _save_plot,
+                    )
+                    _prog_plot = create_train_val_progression_plot(
+                        train_history,
+                        val_history,
+                        initial_portfolio_value=hook.config.env.initial_portfolio_value,
+                        metric="total_return",
+                    )
+                    if _prog_plot is not None:
+                        with tempfile.TemporaryDirectory() as _tmpdir:
+                            _tmp_path = os.path.join(_tmpdir, "train_val_progression.png")
+                            _save_plot(
+                                _prog_plot, _tmp_path,
+                                width=FIGURE_WIDTH * 2,
+                                height=FIGURE_HEIGHT * 1.5,
+                                dpi=PLOT_DPI,
+                            )
+                            mlflow.log_artifact(
+                                _tmp_path,
+                                "evaluation_plots_temp/train_val",
+                            )
+                        logger.debug(
+                            "temp eval: train/val progression plot uploaded train_checkpoints=%d val_checkpoints=%d",
+                            len(train_history), len(val_history),
+                        )
+                except Exception:
+                    logger.error(
+                        "temp eval: train/val progression plot failed",
+                        exc_info=True,
+                    )
+
         logger.info(
             "temp eval all splits done step=%s total_elapsed_s=%.2f",
             step_number, time.monotonic() - _t_total,
