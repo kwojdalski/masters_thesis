@@ -309,35 +309,10 @@ class DDPGTrainer(BaseTrainer):
         if run:
             experiment = mlflow.get_experiment(run.info.experiment_id)
             experiment_name = experiment.name if experiment else None
-        actor_params_state = None
-        value_params_state = None
-        target_actor_params_state = None
-        target_value_params_state = None
-        if hasattr(self, "ddpg_loss"):
-            actor_params = getattr(self.ddpg_loss, "actor_network_params", None)
-            value_params = getattr(self.ddpg_loss, "value_network_params", None)
-            target_actor_params = getattr(
-                self.ddpg_loss, "target_actor_network_params", None
-            )
-            target_value_params = getattr(
-                self.ddpg_loss, "target_value_network_params", None
-            )
-            actor_params_state = (
-                actor_params.state_dict() if actor_params is not None else None
-            )
-            value_params_state = (
-                value_params.state_dict() if value_params is not None else None
-            )
-            target_actor_params_state = (
-                target_actor_params.state_dict()
-                if target_actor_params is not None
-                else None
-            )
-            target_value_params_state = (
-                target_value_params.state_dict()
-                if target_value_params is not None
-                else None
-            )
+        actor_params_state = self.ddpg_loss.actor_network_params.state_dict()
+        value_params_state = self.ddpg_loss.value_network_params.state_dict()
+        target_actor_params_state = self.ddpg_loss.target_actor_network_params.state_dict()
+        target_value_params_state = self.ddpg_loss.target_value_network_params.state_dict()
         from trading_rl.models import _extract_action_bounds_from_spec
         _bounds = _extract_action_bounds_from_spec(getattr(self.env, "action_spec", None))
         checkpoint = {
