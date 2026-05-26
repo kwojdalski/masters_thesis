@@ -192,6 +192,21 @@ class TestQueueDepletion:
         assert result.iloc[0] == 0.0
 
 
+class TestMidPriceFutureVelocity:
+    def test_uses_next_mid_price_difference_shifted_back(self):
+        mid = np.array([100.0, 101.0, 99.0, 102.0])
+        df = pd.DataFrame(
+            {
+                "bid_px_00": mid - 0.05,
+                "ask_px_00": mid + 0.05,
+            }
+        )
+
+        result = _compute("mid_price_future_velocity", df)
+
+        np.testing.assert_allclose(result.to_numpy(), [1.0, -2.0, 3.0, 0.0])
+
+
 class TestMidPriceAcceleration:
     def test_first_two_rows_zero(self, lob_df):
         result = _compute("mid_price_acceleration", lob_df)
