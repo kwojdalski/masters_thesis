@@ -364,7 +364,11 @@ def _select_features_conditional_ic(
         ic_series = _compute_ic_series(residual_data[candidate], target, window_size=None)
         if len(ic_series) == 0:
             return 0.0
-        score = float(ic_series.mean())
+        mean_ic = float(ic_series.mean())
+        ic_std = float(ic_series.std())
+        # With window_size=None there is only one IC observation so std is NaN;
+        # fall back to |mean_ic| as the criterion to stay consistent with icir_threshold.
+        score = mean_ic / ic_std if (ic_std > 1e-10 and len(ic_series) > 1) else mean_ic
         return score if np.isfinite(score) else 0.0
 
     while len(selected) < top_k and remaining_features:
