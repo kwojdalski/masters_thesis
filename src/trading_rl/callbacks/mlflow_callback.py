@@ -162,6 +162,8 @@ class MLflowTrainingCallback:
 
         episode_length = len(actions)
         position_change_ratio = position_changes / episode_length if episode_length > 0 else 0.0
+        actions_arr = np.asarray(actions, dtype=float) if actions else np.array([])
+        saturation_rate = float(np.mean(actions_arr != 0)) if actions_arr.size > 0 else 0.0
 
         # Calculate next episode number: current episode count + 1
         episode_num = int(self._episode_count) + 1
@@ -174,6 +176,7 @@ class MLflowTrainingCallback:
         mlflow.log_metric("episode_position_change_ratio", position_change_ratio, step=episode_num)
         mlflow.log_metric("episode_sum_position", episode_sum_position, step=episode_num)
         mlflow.log_metric("episode_exploration_ratio", exploration_ratio, step=episode_num)
+        mlflow.log_metric("episode_saturation_rate", saturation_rate, step=episode_num)
 
         if self.progress_bar and self.progress_task is not None:
             self.progress_bar.update(

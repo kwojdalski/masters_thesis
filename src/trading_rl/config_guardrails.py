@@ -1245,6 +1245,38 @@ def _check_es_stale_policy_config(config: ExperimentConfig) -> Finding | None:
     return None
 
 
+def _check_es_saturation_config(config: ExperimentConfig) -> Finding | None:
+    """WARN: saturation early stopping enabled but window is too small or threshold implausible."""
+    rate = getattr(config.training, "es_saturation_max_rate", 0.0)
+    window = getattr(config.training, "es_saturation_window", 20)
+    if rate <= 0.0:
+        return None
+    if window < 5:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.es_saturation_window",
+            message=(
+                f"es_saturation_window={window} with es_saturation_max_rate={rate}: "
+                "a window smaller than 5 episodes is too noisy — saturation early stopping "
+                "may fire spuriously during warm-up."
+            ),
+            suggestion="Set es_saturation_window >= 10 for a stable signal.",
+        )
+    if rate < 0.5:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.es_saturation_max_rate",
+            message=(
+                f"es_saturation_max_rate={rate} is very low. The saturation rate measures "
+                "the fraction of steps at non-neutral positions. A threshold below 0.5 "
+                "would fire even when the agent spends less than half its time invested, "
+                "which is probably not the intent."
+            ),
+            suggestion="Typical values are 0.85–0.99 (fire when agent is almost always invested).",
+        )
+    return None
+
+
 def _check_off_policy_too_few_total_updates(config: ExperimentConfig) -> Finding | None:
     """WARN (off-policy): total gradient updates < 500 → too few weight updates for convergence."""
     if not _is_off_policy(config.training.algorithm):
@@ -1336,6 +1368,7 @@ _ALL_CHECKS = [
     _check_positions_high_leverage,
     _check_off_policy_too_few_total_updates,
     _check_es_stale_policy_config,
+    _check_es_saturation_config,
 ]
 
 

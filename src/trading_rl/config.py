@@ -230,6 +230,8 @@ class TrainingConfig:
     # Runtime early stopping
     es_stale_policy_min_ratio: float = 0.0  # Min mean position-change ratio; 0 = disabled
     es_stale_policy_window: int = 20        # Rolling window in completed episodes
+    es_saturation_max_rate: float = 0.0    # Max mean extreme-position rate; 0 = disabled
+    es_saturation_window: int = 20         # Rolling window in completed episodes
 
 
 @dataclass

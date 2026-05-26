@@ -344,6 +344,8 @@ class BaseTrainer(ABC):
         self.health_monitor = TrainingHealthMonitor(
             stale_policy_min_ratio=getattr(config, "es_stale_policy_min_ratio", 0.0),
             stale_policy_window=getattr(config, "es_stale_policy_window", 20),
+            saturation_max_rate=getattr(config, "es_saturation_max_rate", 0.0),
+            saturation_window=getattr(config, "es_saturation_window", 20),
         )
         self.episode_stats = EpisodeStatsTracker(
             env=env,

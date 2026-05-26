@@ -18,10 +18,13 @@ class TrainingHealthMonitor:
     check() each batch to get a stop reason (or None if training should
     continue).
 
-    Controlled by two TrainingConfig fields (all default to disabled):
+    Controlled by TrainingConfig fields (all default to disabled):
       es_stale_policy_min_ratio  — minimum acceptable mean position-change
-                                   ratio over the rolling window; 0 = disabled.
-      es_stale_policy_window     — number of episodes in the rolling window.
+                                   ratio; 0 = disabled.
+      es_stale_policy_window     — rolling window in episodes.
+      es_saturation_max_rate     — maximum acceptable fraction of steps at
+                                   extreme positions (|pos| > 0); 0 = disabled.
+      es_saturation_window       — rolling window in episodes.
     """
 
     def __init__(
@@ -29,33 +32,56 @@ class TrainingHealthMonitor:
         *,
         stale_policy_min_ratio: float = 0.0,
         stale_policy_window: int = 20,
+        saturation_max_rate: float = 0.0,
+        saturation_window: int = 20,
     ) -> None:
         self._stale_ratio = stale_policy_min_ratio
         self._stale_window = max(1, stale_policy_window)
+        self._saturation_max = saturation_max_rate
+        self._saturation_window = max(1, saturation_window)
         self._change_ratios: deque[float] = deque(maxlen=self._stale_window)
+        self._saturation_rates: deque[float] = deque(maxlen=self._saturation_window)
 
     @property
     def enabled(self) -> bool:
-        return self._stale_ratio > 0.0
+        return self._stale_ratio > 0.0 or self._saturation_max > 0.0
 
-    def record_episode(self, actions: list) -> None:
-        """Compute and store the position-change ratio for one completed episode."""
-        if not self.enabled or not actions:
+    def record_episode(self, actions: list, pct_extreme: float | None = None) -> None:
+        """Compute and store per-episode behavioral signals.
+
+        Args:
+            actions: Flat list of per-step action values for the episode.
+            pct_extreme: Fraction of steps at full exposure (|pos| > 0),
+                pre-computed by EpisodeStatsTracker. Computed from actions
+                when not provided.
+        """
+        if not actions:
             return
         arr = np.asarray(actions, dtype=float)
-        if arr.size <= 1:
-            ratio = 0.0
-        else:
-            ratio = float(np.sum(np.diff(arr) != 0)) / (arr.size - 1)
-        self._change_ratios.append(ratio)
-        logger.debug(
-            "health_monitor episode_change_ratio=%.4f window_size=%d/%d",
-            ratio, len(self._change_ratios), self._stale_window,
-        )
+
+        if self._stale_ratio > 0.0:
+            ratio = float(np.sum(np.diff(arr) != 0)) / (arr.size - 1) if arr.size > 1 else 0.0
+            self._change_ratios.append(ratio)
+            logger.debug(
+                "health_monitor episode_change_ratio=%.4f window=%d/%d",
+                ratio, len(self._change_ratios), self._stale_window,
+            )
+
+        if self._saturation_max > 0.0:
+            if pct_extreme is None:
+                pct_extreme = float(np.mean(arr != 0)) if arr.size > 0 else 0.0
+            self._saturation_rates.append(pct_extreme)
+            logger.debug(
+                "health_monitor episode_saturation=%.4f window=%d/%d",
+                pct_extreme, len(self._saturation_rates), self._saturation_window,
+            )
 
     def check(self) -> str | None:
         """Return a stop-reason string if a guardrail fires, else None."""
-        if not self.enabled:
+        return self._check_stale_policy() or self._check_saturation()
+
+    def _check_stale_policy(self) -> str | None:
+        if self._stale_ratio <= 0.0:
             return None
         if len(self._change_ratios) < self._stale_window:
             return None
@@ -66,5 +92,20 @@ class TrainingHealthMonitor:
                 f"< threshold {self._stale_ratio} "
                 f"over last {self._stale_window} episodes — "
                 "agent is not changing positions; no learning signal."
+            )
+        return None
+
+    def _check_saturation(self) -> str | None:
+        if self._saturation_max <= 0.0:
+            return None
+        if len(self._saturation_rates) < self._saturation_window:
+            return None
+        mean_sat = float(np.mean(list(self._saturation_rates)))
+        if mean_sat > self._saturation_max:
+            return (
+                f"policy_saturation: mean extreme-position rate {mean_sat:.4f} "
+                f"> threshold {self._saturation_max} "
+                f"over last {self._saturation_window} episodes — "
+                "agent is stuck at full long/short exposure, never going flat."
             )
         return None
