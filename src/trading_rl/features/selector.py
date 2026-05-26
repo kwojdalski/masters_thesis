@@ -583,18 +583,25 @@ def _build_multi_horizon_score_table(
             # Compute IC series on training split (primary scoring)
             ic_series = _compute_ic_series(train_aligned[feat], train_target_series, window_size)
 
-            if len(ic_series) == 0 or ic_series.std() == 0:
+            ic_std_raw = ic_series.std()  # NaN when n=1 (window_size=None)
+            if len(ic_series) == 0:
                 mean_ic = 0.0
                 ic_std = 1e-10
                 icir = 0.0
                 ic_tstat = 0.0
                 ic_positive_ratio = 0.0
+            elif not (ic_std_raw > 1e-10):  # catches NaN (single obs) and zero
+                mean_ic = float(ic_series.mean())
+                ic_std = 1e-10
+                icir = mean_ic  # mean IC as proxy when std is degenerate
+                ic_tstat = 0.0
+                ic_positive_ratio = float((ic_series > 0).mean())
             else:
                 mean_ic = float(ic_series.mean())
-                ic_std = float(ic_series.std())
-                icir = mean_ic / ic_std if ic_std > 1e-10 else 0.0
+                ic_std = float(ic_std_raw)
+                icir = mean_ic / ic_std
                 n = len(ic_series)
-                ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
+                ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 else 0.0
                 ic_positive_ratio = float((ic_series > 0).mean())
 
             # Compute validation IC for out-of-sample stability reporting only
