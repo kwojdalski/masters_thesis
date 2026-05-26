@@ -11,10 +11,6 @@ from trading_rl.rewards import DifferentialSharpeRatio
 class _Env:
     """Minimal mock env with a configurable NLV sequence."""
 
-    def __init__(self, nlvs: list[float]) -> None:
-        self._nlvs = nlvs
-        self._step = 0
-
     def net_liquidation_value(self) -> float:
         return self._nlvs[self._step]
 
