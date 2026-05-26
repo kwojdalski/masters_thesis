@@ -245,9 +245,6 @@ class TD3Trainer(BaseTrainer):
             # Sync functional critic params back to critic module used for collection/eval
             self.td3_loss.qvalue_network_params.to_module(self.value_net)
 
-            # for name, param in list(self.value_net.named_parameters())[:3]:
-            #     logger.debug(f"{name}, {param.view(-1)[:5]}")
-
             value_loss = loss_vals["loss_qvalue"].item()
             self.logs["loss_value"].append(value_loss)
 
