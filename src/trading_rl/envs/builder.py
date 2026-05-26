@@ -66,12 +66,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
 
         backend: Backend = explicit_backend or algo_backend or self.default_backend
         self.logger.debug(
-            "Resolved backend",
-            extra={
-                "backend": backend,
-                "explicit_backend": explicit_backend,
-                "algorithm": algorithm,
-            },
+            "resolved backend=%s explicit_backend=%s algorithm=%s",
+            backend, explicit_backend, algorithm,
         )
         return backend
 
@@ -87,23 +83,17 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         if memmap_paths:
             env = self._create_streaming_env(memmap_paths, config)
             self.logger.info(
-                "Created StreamingTradingEnv",
-                extra={
-                    "n_symbols": len(memmap_paths),
-                    "episode_length": getattr(config.env, "streaming_episode_length", 10_000),
-                },
+                "created StreamingTradingEnv n_symbols=%d episode_length=%d",
+                len(memmap_paths),
+                getattr(config.env, "streaming_episode_length", 10_000),
             )
             return env
 
         backend = self._resolve_backend(config)
         env = build_backend_env(df=df, config=config, backend=backend)
         self.logger.info(
-            "Created environment",
-            extra={
-                "backend": backend,
-                "positions": config.env.positions,
-                "trading_fees": config.env.trading_fees,
-            },
+            "created environment backend=%s positions=%s trading_fees=%s",
+            backend, config.env.positions, config.env.trading_fees,
         )
         return env
 

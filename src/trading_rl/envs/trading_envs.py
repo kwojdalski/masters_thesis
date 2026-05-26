@@ -186,17 +186,10 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
         validate_backend(backend, log_backend=False)
 
         continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
-        logger.info(
-            "Creating trading environment",
-            extra={"backend": backend, "continuous": continuous},
-        )
+        logger.info("creating trading environment backend=%s continuous=%s", backend, continuous)
         logger.debug(
-            "Env settings",
-            extra={
-                "positions": config.env.positions,
-                "trading_fees": config.env.trading_fees,
-                "borrow_interest_rate": config.env.borrow_interest_rate,
-            },
+            "env settings positions=%s trading_fees=%s borrow_interest_rate=%s",
+            config.env.positions, config.env.trading_fees, config.env.borrow_interest_rate,
         )
 
         return self._build_env(df, config, continuous=continuous)
@@ -372,10 +365,7 @@ def create_environment(
         else kwargs.get("positions")
     )
     validate_actions(backend, positions)
-    logger.debug(
-        "Environment validation passed",
-        extra={"backend": backend, "positions": positions},
-    )
+    logger.debug("environment validation passed backend=%s positions=%s", backend, positions)
 
     if backend in {EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS}:
         if config is None:
