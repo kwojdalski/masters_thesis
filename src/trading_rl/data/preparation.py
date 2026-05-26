@@ -454,7 +454,7 @@ def _build_per_day_splits(
     warmup_rows = getattr(config.data, "warmup_rows", 0)
     feature_cache_dir = getattr(config.data, "feature_cache_dir", None)
 
-    def _symbol_of(path: str) -> str:
+    def _symbol_of(path: str, known_symbols: set[str] | None = None) -> str:
         name = Path(path).name
         sym = name.split("_")[0]
         if not sym or sym[0].isdigit():
@@ -463,25 +463,35 @@ def _build_per_day_splits(
                 f"but first '_'-delimited token is '{sym}'. "
                 "Rename the file so it starts with the ticker symbol."
             )
+        if known_symbols is not None and sym not in known_symbols:
+            raise ValueError(
+                f"Extracted symbol '{sym}' from '{name}' is not in the expected symbol list "
+                f"{sorted(known_symbols)}. "
+                "Check filename convention: expected SYMBOL_YYYY-MM-DD_*.parquet"
+            )
         return sym
+
+    # Build known symbols from config for validation
+    config_symbols = getattr(getattr(config, "data", None), "symbols", None)
+    known_symbols = set(config_symbols) if config_symbols else None
 
     # Group training paths by symbol, preserving original indices
     symbol_train_paths: dict[str, list[str]] = defaultdict(list)
     symbol_train_indices: dict[str, list[int]] = defaultdict(list)
     for i, p in enumerate(train_paths):
-        sym = _symbol_of(p)
+        sym = _symbol_of(p, known_symbols)
         symbol_train_paths[sym].append(p)
         symbol_train_indices[sym].append(i)
 
     # Map val paths to their symbol and original index
     symbol_val_path: dict[str, tuple[str, int]] = {}
     for j, vp in enumerate(val_paths):
-        sym = _symbol_of(vp)
+        sym = _symbol_of(vp, known_symbols)
         symbol_val_path[sym] = (vp, j)
 
     # Validate all val symbols have a fitted pipeline available
     all_symbols = sorted(symbol_train_paths.keys())
-    for sym in [_symbol_of(vp) for vp in val_paths]:
+    for sym in [_symbol_of(vp, known_symbols) for vp in val_paths]:
         if sym not in symbol_train_paths:
             raise ValueError(
                 f"No training paths for symbol '{sym}' (needed to fit pipeline for val). "
@@ -617,7 +627,7 @@ def _build_per_day_splits(
     if prepared_dir is not None and memmap_dir and val_tmp:
         prepared_dir.mkdir(parents=True, exist_ok=True)
         for j, vpath in enumerate(val_paths):
-            sym = _symbol_of(vpath)
+            sym = _symbol_of(vpath, known_symbols)
             sym_val  = pd.read_parquet(val_tmp[j]["val"])
             sym_test = pd.read_parquet(val_tmp[j]["test"])
             if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:

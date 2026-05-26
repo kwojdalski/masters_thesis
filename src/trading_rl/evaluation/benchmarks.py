@@ -283,7 +283,7 @@ def calculate_benchmark_dsr(
 def calculate_twap_dsr(
     df_prices,
     eta=0.01,
-    epsilon=1e-8,
+    epsilon=1e-20,
     max_steps=None,
     price_column: str = "close",
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
