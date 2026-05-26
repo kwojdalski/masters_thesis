@@ -77,21 +77,11 @@ Roughly 80–90\% of consecutive LOB returns are zero — the mid-price does not
 move between most order-book events. This causes $\hat{\sigma}$ to collapse
 faster than $\bar{r}$, inflating the naive per-tick Sharpe by $\sqrt{N}$
 without any real edge. The pipeline therefore compounds per-tick returns into
-bars before computing any ratio metric, selecting the coarsest frequency with
-at least 50 observations:
-
-| Minimum bars available | Reporting frequency |
-|:---|:---|
-| $\geq 50$ daily bars | daily |
-| $\geq 50$ hourly bars | hourly |
-| $\geq 50$ 15-min bars | 15-minute |
-| $\geq 50$ 1-min bars | 1-minute |
-| $\geq 50$ 15-sec bars | 15-second |
-
-The Sharpe and Sortino ratios are then computed as $\mu/\sigma$ and
-$\mu/\sigma_{\text{down}}$ on the aggregated bar series, with no further
-annualization. Total return, max drawdown, win rate, profit factor, and
-turnover are computed on the raw per-step series.
+the coarsest bar size with at least 50 observations before computing Sharpe
+and Sortino, which are then reported as $\mu/\sigma$ and
+$\mu/\sigma_{\text{down}}$ on the aggregated series with no annualization.
+Total return, max drawdown, win rate, profit factor, and turnover are computed
+on the raw per-step series.
 
 ### Evaluation Metadata Snapshot
 <!-- [PLACEHOLDER] -->
