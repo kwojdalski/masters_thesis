@@ -339,7 +339,8 @@ class TrainingCommand(BaseCommand):
             date_start = split_meta.get("date_start")
             date_end = split_meta.get("date_end")
             if date_start and date_end:
-                t.add_row("Date Range", f"{date_start} – {date_end}")
+                t.add_row("Start Datetime", date_start)
+                t.add_row("End Datetime",   date_end)
             symbols = split_meta.get("symbols", [])
             if symbols:
                 t.add_row("Symbols", ", ".join(symbols))

@@ -621,7 +621,8 @@ class EvaluateCommand(BaseCommand):
         if split_df is not None and not split_df.empty:
             def _fmt(ts):
                 return ts.strftime("%Y-%m-%d %H:%M:%S UTC") if hasattr(ts, "strftime") else str(ts)[:19]
-            table.add_row("Date Range", f"{_fmt(split_df.index[0])} – {_fmt(split_df.index[-1])}")
+            table.add_row("Start Datetime", _fmt(split_df.index[0]))
+            table.add_row("End Datetime",   _fmt(split_df.index[-1]))
         if symbols:
             table.add_row("Symbols", ", ".join(symbols))
         for key, label, fmt in _PERF_ROWS:
