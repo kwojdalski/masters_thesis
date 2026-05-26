@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gc
+import hashlib
 import json
 import logging
 import logging.handlers
@@ -948,8 +949,27 @@ def prepare_data(
             _state_path = _cache_entry / "pipeline_state.pkl"
             if feature_pipeline is not None and _state_path.exists():
                 import pickle
+                # Verify checksum before loading pickle for security
+                _checksum_path = _cache_entry / "pipeline_state.pkl.sha256"
+                _state_bytes = _state_path.read_bytes()
+                _actual_checksum = hashlib.sha256(_state_bytes).hexdigest()
+                if _checksum_path.exists():
+                    _stored_checksum = _checksum_path.read_text().strip()
+                    if _actual_checksum != _stored_checksum:
+                        raise RuntimeError(
+                            f"Feature cache pipeline state at {_state_path} has invalid checksum. "
+                            f"Expected {_stored_checksum}, got {_actual_checksum}. "
+                            "The file may have been corrupted or tampered with. "
+                            "Delete the cache directory to rebuild."
+                        )
+                else:
+                    logger.warning(
+                        "Missing checksum file for %s; loading without verification. "
+                        "Delete the cache directory to force rebuild with checksum.",
+                        _state_path,
+                    )
                 try:
-                    _saved_state = pickle.loads(_state_path.read_bytes())
+                    _saved_state = pickle.loads(_state_bytes)
                     if _saved_state:
                         restore_pipeline_state(feature_pipeline, _saved_state)
                         logger.debug("cache hit: restored pipeline state from %s", _state_path)
@@ -1081,7 +1101,9 @@ def prepare_data(
         _pstate = dump_pipeline_state(pipeline)
         if _pstate:
             import pickle
-            (_cache_entry / "pipeline_state.pkl").write_bytes(pickle.dumps(_pstate))
+            _pkl_bytes = pickle.dumps(_pstate)
+            (_cache_entry / "pipeline_state.pkl").write_bytes(_pkl_bytes)
+            (_cache_entry / "pipeline_state.pkl.sha256").write_text(hashlib.sha256(_pkl_bytes).hexdigest())
         logger.info("save feature cache key=%s path=%s", _cache_key[:8], _cache_entry)
 
     return train_df, val_df, test_df
