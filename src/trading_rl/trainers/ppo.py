@@ -285,6 +285,8 @@ class PPOTrainer(BaseTrainer):
             "value_hidden_dims": self.value_hidden_dims,
             "actor_state_dict": self.actor.state_dict(),
             "value_net_state_dict": self.value_net.state_dict(),
+            "actor_params_state": self.ppo_loss.actor_network_params.state_dict(),
+            "critic_params_state": self.ppo_loss.critic_network_params.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
             "total_count": self.total_count,
             "total_episodes": self.total_episodes,
@@ -315,6 +317,11 @@ class PPOTrainer(BaseTrainer):
         checkpoint = torch.load(path, weights_only=False)
         self.actor.load_state_dict(checkpoint["actor_state_dict"])
         self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
+        if "actor_params_state" in checkpoint:
+            self.ppo_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
+            self.ppo_loss.critic_network_params.load_state_dict(checkpoint["critic_params_state"])
+            self.ppo_loss.actor_network_params.to_module(self.actor)
+            self.ppo_loss.critic_network_params.to_module(self.value_net)
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.total_count = checkpoint["total_count"]
         self.total_episodes = checkpoint["total_episodes"]
