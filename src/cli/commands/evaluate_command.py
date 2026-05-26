@@ -66,7 +66,7 @@ class EvaluateCommand(BaseCommand):
         from trading_rl.constants import EnvBackend, SplitName
         from trading_rl.data_utils import build_prepared_dataset
         from trading_rl.evaluation import (
-            EvaluationConfig,
+            StrategyEvaluatorConfig,
             PolicyLoader,
             StrategyEvaluator,
             periods_per_year_from_timeframe,
@@ -190,7 +190,7 @@ class EvaluateCommand(BaseCommand):
                 )
                 self.console.print(f"[dim]  Observation sample parquet → {sample_path}[/dim]")
                 self.console.print(f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]")
-                eval_config = EvaluationConfig(
+                eval_config = StrategyEvaluatorConfig(
                     reward_type=reward_type,
                     backend=backend,
                     max_steps=split_ctx.max_steps,

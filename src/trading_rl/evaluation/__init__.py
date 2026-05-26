@@ -8,7 +8,7 @@ from trading_rl.evaluation.benchmarks import (
 from trading_rl.evaluation.context import EvaluationContext
 from trading_rl.evaluation.evaluator import (
     EnvConfig,
-    EvaluationConfig,
+    StrategyEvaluatorConfig,
     SplitEvaluationResult,
     StrategyEvaluator,
 )
@@ -80,7 +80,7 @@ __all__ = [
     "BenchmarkSpec",
     "BootstrapTest",
     "EnvConfig",
-    "EvaluationConfig",
+    "StrategyEvaluatorConfig",
     "EvaluationContext",
     "MannWhitneyTest",
     "PermutationMeanTest",

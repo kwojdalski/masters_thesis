@@ -125,7 +125,7 @@ def _run_evaluation(
          equity_curve_plot, merged_plot)
     """
     from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
-    from trading_rl.evaluation.evaluator import EvaluationConfig, StrategyEvaluator
+    from trading_rl.evaluation.evaluator import StrategyEvaluatorConfig, StrategyEvaluator
     from trading_rl.utils import create_equity_curve_plot, create_merged_comparison_plot
 
     env_to_use = eval_env or trainer.env
@@ -158,7 +158,7 @@ def _run_evaluation(
             ),
         }
 
-    eval_config = EvaluationConfig(**eval_config_kwargs)
+    eval_config = StrategyEvaluatorConfig(**eval_config_kwargs)
     profiler = get_profiler()
 
     evaluator = StrategyEvaluator(

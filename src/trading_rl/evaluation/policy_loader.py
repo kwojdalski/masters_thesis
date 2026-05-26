@@ -7,12 +7,12 @@ Usage::
     policy = PolicyLoader.from_checkpoint("path/to/checkpoint.pt")
     # policy is a ready-to-use actor (no trainer needed)
 
-    from trading_rl.evaluation import EvaluationConfig, StrategyEvaluator
+    from trading_rl.evaluation import StrategyEvaluatorConfig, StrategyEvaluator
 
     evaluator = StrategyEvaluator(
         env_factory=my_env_factory,
         policy=policy,
-        config=EvaluationConfig(reward_type=RewardType.LOG_RETURN, max_steps=500),
+        config=StrategyEvaluatorConfig(reward_type=RewardType.LOG_RETURN, max_steps=500),
     )
     result = evaluator.evaluate_split("test", test_df)
 """

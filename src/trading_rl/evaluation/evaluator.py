@@ -48,8 +48,8 @@ class EnvConfig:
 
 
 @dataclass(frozen=True)
-class EvaluationConfig:
-    """Simplified configuration for evaluation.
+class StrategyEvaluatorConfig:
+    """Configuration for StrategyEvaluator.
 
     Decoupled from full ExperimentConfig - contains only what's needed
     for evaluating a policy on price data.
@@ -102,15 +102,15 @@ class StrategyEvaluator:
 
     def __init__(
         self,
-        env_factory: Callable[[pd.DataFrame, EvaluationConfig], Any],
+        env_factory: Callable[[pd.DataFrame, StrategyEvaluatorConfig], Any],
         policy: Any,
-        config: EvaluationConfig,
+        config: StrategyEvaluatorConfig,
     ):
         """Initialize evaluator.
 
         Args:
             env_factory: Function that creates environments from dataframes.
-                Signature: (df: pd.DataFrame, config: EvaluationConfig) -> env
+                Signature: (df: pd.DataFrame, config: StrategyEvaluatorConfig) -> env
             policy: The trained policy to evaluate (actor, Q-network, etc.)
             config: Evaluation configuration
         """
