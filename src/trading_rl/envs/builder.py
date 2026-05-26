@@ -26,7 +26,7 @@ class BaseEnvironmentBuilder(ABC):
     )
 
     @abstractmethod
-    def create(self, df: pd.DataFrame, config: ExperimentConfig) -> TransformedEnv:
+    def create(self, df: pd.DataFrame, config: ExperimentConfig, *, use_memmap: bool = True) -> TransformedEnv:
         """Create environment instance for given data and config."""
 
 
