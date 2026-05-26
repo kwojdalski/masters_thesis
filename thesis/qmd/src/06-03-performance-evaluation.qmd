@@ -17,17 +17,13 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image
-from IPython.display import HTML
 
 from thesis_mlflow_results import (
     format_benchmark_comparison_table,
     format_key_metrics,
     load_experiment_snapshot,
 )
-
-
-def display_table(frame: pd.DataFrame) -> None:
-    display(HTML(frame.to_html(index=False)))
+from thesis_tables import display_df as display_table
 
 
 EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"

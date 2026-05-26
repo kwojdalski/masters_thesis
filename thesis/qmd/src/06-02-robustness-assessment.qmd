@@ -58,10 +58,8 @@ out-of-sample performance.
 #| warning: false
 #| tbl-cap: "H2 feature sensitivity: test-split metrics for minimal (3), selected (10), and full (33) feature sets."
 
-import math
-import pandas as pd
-from IPython.display import HTML
 from thesis_mlflow_results import load_scenario_metrics
+from thesis_tables import build_comparison_rows, comparison_table_html
 
 _H2_SCENARIOS = [
     ("pooled_td3_h3_features_minimal",                           "Minimal (3 features)",   False),
@@ -69,97 +67,29 @@ _H2_SCENARIOS = [
     ("pooled_td3_h3_features_full",                              "Full (33 features)",     False),
 ]
 
-_H2_COLS_G1 = [
-    ("sharpe_ratio",  "Sharpe",  ".3f"),
-    ("sortino_ratio", "Sortino", ".3f"),
-    ("total_return",  "Return",  ".2e"),
-    ("max_drawdown",  "Max DD",  ".2e"),
-]
-_H2_COLS_G2 = [
+_H2_COLS = [
+    ("sharpe_ratio",          "Sharpe",   ".3f"),
+    ("sortino_ratio",         "Sortino",  ".3f"),
+    ("total_return",          "Return",   ".2e"),
+    ("max_drawdown",          "Max DD",   ".2e"),
     ("win_rate",              "Win Rate", ".2%"),
     ("profit_factor",         "PF",       ".3f"),
     ("turnover",              "Turnover", ".4f"),
     ("annualized_volatility", "Ann. Vol", ".3f"),
 ]
-_H2_COLS = _H2_COLS_G1 + _H2_COLS_G2
 
 _HIGHER_BETTER = {
     "sharpe_ratio": True, "sortino_ratio": True, "total_return": True,
     "max_drawdown": False, "win_rate": True, "profit_factor": True, "annualized_volatility": False,
 }
 
-def _fmtv(val, fmt):
-    if val is None or (isinstance(val, float) and not math.isfinite(val)):
-        return "—"
-    try:
-        return f"{val:{fmt}}"
-    except Exception:
-        return str(val)
-
-def _fmtd(val, baseline, fmt, higher_better=True):
-    if not isinstance(val, (int, float)) or not isinstance(baseline, (int, float)):
-        return ""
-    if not math.isfinite(val) or not math.isfinite(baseline):
-        return ""
-    delta = val - baseline
-    try:
-        s = f"{delta:+{fmt}}"
-    except Exception:
-        return ""
-    return s
-
-def _two_row_html(rows, g1, g2):
-    all_cols = g1 + g2
-    def th(label, rowspan=1):
-        rs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
-        return f"<th{rs}>{label}</th>"
-    def td(val, rowspan=1, style=""):
-        rs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
-        st = f' style="{style}"' if style else ""
-        return f"<td{rs}{st}>{val}</td>"
-    hdr = (
-        "<thead><tr>"
-        + th("Feature Set", rowspan=2)
-        + "".join(th(col) for _, col, _ in all_cols)
-        + "</tr></thead>"
-    )
-    body = "<tbody>"
-    for row in rows:
-        # Value row — Feature Set label spans both rows
-        body += (
-            "<tr>"
-            + td(row["Feature Set"], rowspan=2)
-            + "".join(td(row.get(col, "—")) for _, col, _ in all_cols)
-            + "</tr>"
-        )
-        # Delta row
-        body += (
-            "<tr style='color:#666;font-size:0.9em'>"
-            + "".join(td(row.get(f"Δ {col}", "")) for _, col, _ in all_cols)
-            + "</tr>"
-        )
-    body += "</tbody>"
-    return f'<table border="1" class="dataframe">{hdr}{body}</table>'
-
 scenario_metrics = [(label, load_scenario_metrics(exp), is_base) for exp, label, is_base in _H2_SCENARIOS]
-baseline_m = next((m for _, m, is_base in scenario_metrics if is_base), {})
-
-rows = []
-for label, m, is_base in scenario_metrics:
-    row = {"Feature Set": label}
-    for key, col, fmt in _H2_COLS:
-        row[col] = _fmtv(m.get(key), fmt)
-        if not is_base and baseline_m:
-            bval = baseline_m.get(key)
-            row[f"Δ {col}"] = _fmtd(m.get(key), bval, fmt, _HIGHER_BETTER.get(key, True))
-        elif is_base:
-            row[f"Δ {col}"] = "(baseline)"
-    rows.append(row)
+rows = build_comparison_rows(scenario_metrics, _H2_COLS, index_col="Feature Set", higher_better=_HIGHER_BETTER)
 
 if all(row.get("Sharpe", "—") == "—" for row in rows):
     print("No H2 results available. Run: bash scripts/run_h2_experiments.sh")
 else:
-    display(HTML(_two_row_html(rows, _H2_COLS_G1, _H2_COLS_G2)))
+    display(comparison_table_html(rows, _H2_COLS, index_col="Feature Set"))
 ```
 
 ::: {.content-visible when-format="pdf"}
@@ -200,10 +130,10 @@ design choices constant. The shared baseline across both H3 axes is the selected
 #| echo: false
 #| warning: false
 
-import math
 import pandas as pd
-from IPython.display import HTML, display
+from IPython.display import display
 from thesis_mlflow_results import load_scenario_metrics
+from thesis_tables import fmt_val, display_df
 
 _H3_AXES = [
     {
@@ -236,28 +166,20 @@ _H3_COLS = [
     ("turnover",      "Turnover", ".4f"),
 ]
 
-def _fmtv(val, fmt):
-    if val is None or (isinstance(val, float) and not math.isfinite(val)):
-        return "—"
-    try:
-        return f"{val:{fmt}}"
-    except Exception:
-        return str(val)
-
 for axis in _H3_AXES:
     rows = []
     for exp, label, _ in axis["scenarios"]:
         m = load_scenario_metrics(exp)
         row = {axis["col"]: label}
         for key, col, fmt in _H3_COLS:
-            row[col] = _fmtv(m.get(key), fmt)
+            row[col] = fmt_val(m.get(key), fmt)
         rows.append(row)
     df = pd.DataFrame(rows)
     if df.iloc[:, 1:].isin(["—"]).all().all():
         print(f"{axis['label']}: no results yet. Run: bash scripts/run_h3_experiments.sh")
     else:
         print(f"\n**{axis['label']}**")
-        display(HTML(df.to_html(index=False)))
+        display_df(df)
 ```
 
 The reward-design comparison shows that Differential Sharpe Ratio optimization
@@ -307,10 +229,10 @@ outcomes shows systematic learning rather than random variation around zero.
 #| warning: false
 #| tbl-cap: "H4 learning progression: performance statistics across multiple short trials."
 
-import math
 import pandas as pd
 from pathlib import Path
 from IPython.display import HTML, Image, display
+from thesis_tables import display_df
 
 _H4_SCENARIO = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_n5"
 
@@ -367,7 +289,7 @@ if h4_data:
     verdict = "[green]PASS[/green]" if overall else "[yellow]FAIL[/yellow]"
 
     print(f"\n**Learning Criteria Check:** {criteria_met} met")
-    display(HTML(criteria_df.to_html(index=False)))
+    display_df(criteria_df)
     print(f"**Overall Verdict:** {verdict}")
 
     # Individual trials table
@@ -381,7 +303,7 @@ if h4_data:
             )
             view["win_rate"] = view["win_rate"].apply(lambda x: f"{x:.1%}")
             view.columns = ["Trial", "Return", "Sharpe", "Win Rate", "Profit Factor", "vs Dummy"]
-            display(HTML(view.to_html(index=False)))
+            display_df(view)
 else:
     print("No H4 results available. Run: bash scripts/run_h4_experiments.sh")
 ```

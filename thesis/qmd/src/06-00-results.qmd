@@ -75,10 +75,10 @@ identical data, features, reward function, and evaluation protocol.
 #| warning: false
 #| tbl-cap: "H1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random."
 
-import math
 import pandas as pd
 from IPython.display import HTML
 from thesis_mlflow_results import load_scenario_metrics
+from thesis_tables import fmt_val, display_df
 
 _H1_AGENTS = [
     ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr",    "TD3"),
@@ -101,27 +101,19 @@ _H1_COLS = [
     ("pct_short",             "% Short",   ".2%"),
 ]
 
-def _fmtv(val, fmt):
-    if val is None or (isinstance(val, float) and not math.isfinite(val)):
-        return "—"
-    try:
-        return f"{val:{fmt}}"
-    except Exception:
-        return str(val)
-
 rows = []
 for exp_name, label in _H1_AGENTS:
     m = load_scenario_metrics(exp_name)
     row = {"Algorithm": label}
     for key, col, fmt in _H1_COLS:
-        row[col] = _fmtv(m.get(key), fmt)
+        row[col] = fmt_val(m.get(key), fmt)
     rows.append(row)
 
 h1_df = pd.DataFrame(rows)
 if h1_df.iloc[:, 1:].isin(["—"]).all().all():
     print("No H1 results available. Run: bash scripts/run_h1_experiments.sh")
 else:
-    display(HTML(h1_df.to_html(index=False)))
+    display_df(h1_df)
 ```
 
 ::: {.content-visible when-format="pdf"}
