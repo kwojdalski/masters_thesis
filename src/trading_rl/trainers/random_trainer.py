@@ -40,7 +40,7 @@ class RandomTrainer(BaseTrainer):
             "load_checkpoint called on RandomTrainer; no state to restore path=%s", path
         )
 
-    def save_checkpoint(self, path: str, feature_pipeline_state: dict | None = None) -> None:
+    def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
         import torch
         torch.save(
             {

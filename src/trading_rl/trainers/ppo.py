@@ -263,7 +263,7 @@ class PPOTrainer(BaseTrainer):
             completion_prefix="PPO Training complete",
         )
 
-    def save_checkpoint(self, path: str, feature_pipeline_state: dict | None = None) -> None:
+    def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
         """Save PPO training checkpoint.
 
         Args:
