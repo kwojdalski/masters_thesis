@@ -135,6 +135,20 @@ def test_volatility_ratio_rejects_invalid_windows() -> None:
         feature.compute(_priced_frame())
 
 
+def test_volatility_ratio_matches_short_over_long_rolling_volatility() -> None:
+    df = pd.DataFrame({"close": [100.0, 102.0, 101.0, 104.0, 108.0]})
+    log_returns = np.log(df["close"] / df["close"].shift(1)).fillna(0.0)
+    rv_short = log_returns.rolling(window=2, min_periods=1).std()
+    rv_long = log_returns.rolling(window=4, min_periods=1).std()
+    expected = (rv_short / (rv_long + 1e-8)).fillna(0.0)
+
+    result = VolatilityRatioFeature(
+        _cfg("volatility_ratio", short_window=2, long_window=4)
+    ).compute(df)
+
+    np.testing.assert_allclose(result.to_numpy(), expected.to_numpy(), rtol=1e-10)
+
+
 def test_trend_is_relative_to_first_close() -> None:
     result = TrendFeature(_cfg("trend")).compute(_priced_frame())
 
@@ -152,3 +166,21 @@ def test_rsi_is_normalized_to_minus_one_one_range() -> None:
 
     assert np.all(result >= -1.0)
     assert np.all(result <= 1.0)
+
+
+def test_rsi_matches_wilder_ewm_formula_exactly() -> None:
+    df = pd.DataFrame({"close": [100.0, 103.0, 101.0, 105.0, 104.0]})
+    period = 3
+    delta = df["close"].diff()
+    gain = delta.where(delta > 0, 0).fillna(0)
+    loss = (-delta.where(delta < 0, 0)).fillna(0)
+    avg_gain = gain.ewm(alpha=1 / period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / period, adjust=False).mean()
+    rs = avg_gain / (avg_loss + 1e-8)
+    expected = (100 - (100 / (1 + rs)) - 50) / 50
+
+    result = RSIFeature(_cfg("rsi", period=period)).compute(df)
+
+    np.testing.assert_allclose(result.to_numpy(), expected.to_numpy(), rtol=1e-10)
+    assert result.iloc[1] == pytest.approx(1.0, abs=3e-8)
+    assert result.iloc[2] < result.iloc[1]

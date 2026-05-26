@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import yaml
 
 from trading_rl.features.base import FeatureConfig
 from trading_rl.features.selector import (
@@ -517,3 +518,83 @@ class TestConfigurationValidation:
                     "invalid_param": [1, 2, 3],  # Invalid parameter name
                 },
             )
+
+
+class TestWriteSelectedYaml:
+    def test_write_selected_yaml_preserves_selected_config_fields(self, tmp_path):
+        selected = [
+            FeatureConfig(
+                name="log_return",
+                feature_type="log_return",
+                normalize=False,
+                normalization_method="none",
+                params={"column": "close"},
+                output_name="feature_lr_custom",
+                domain="mft",
+            ),
+            FeatureConfig(
+                name="rsi",
+                feature_type="rsi",
+                normalize=True,
+                params={"period": 3},
+            ),
+        ]
+        result = FeatureSelectionResult(
+            selected_configs=selected,
+            scores=pd.DataFrame(),
+            ic_series={},
+            correlation_matrix=pd.DataFrame(),
+            selected_names=["feature_lr_custom", "feature_rsi"],
+            top_k=2,
+            icir_threshold=0.02,
+        )
+        output_path = tmp_path / "selected_features.yaml"
+
+        written = FeatureSelector.write_selected_yaml(result, output_path)
+
+        assert written == output_path
+        payload = yaml.safe_load(output_path.read_text(encoding="utf-8"))
+        assert payload == {
+            "features": [
+                {
+                    "name": "log_return",
+                    "feature_type": "log_return",
+                    "normalize": False,
+                    "domain": "mft",
+                    "params": {"column": "close"},
+                    "output_name": "feature_lr_custom",
+                },
+                {
+                    "name": "rsi",
+                    "feature_type": "rsi",
+                    "normalize": True,
+                    "domain": "shared",
+                    "params": {"period": 3},
+                },
+            ]
+        }
+
+    def test_write_selected_yaml_omits_empty_params_and_default_output_name(self, tmp_path):
+        result = FeatureSelectionResult(
+            selected_configs=[FeatureConfig(name="high", feature_type="high", params={})],
+            scores=pd.DataFrame(),
+            ic_series={},
+            correlation_matrix=pd.DataFrame(),
+            selected_names=["feature_high"],
+            top_k=1,
+            icir_threshold=0.02,
+        )
+
+        FeatureSelector.write_selected_yaml(result, tmp_path / "selected.yaml")
+
+        payload = yaml.safe_load((tmp_path / "selected.yaml").read_text(encoding="utf-8"))
+        assert payload == {
+            "features": [
+                {
+                    "name": "high",
+                    "feature_type": "high",
+                    "normalize": True,
+                    "domain": "shared",
+                }
+            ]
+        }
