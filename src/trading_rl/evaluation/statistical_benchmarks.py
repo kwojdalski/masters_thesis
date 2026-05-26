@@ -166,8 +166,9 @@ def _performance_summary(
         annualized_vol = sigma * np.sqrt(periods_per_year)
         downside = np.minimum(excess_returns, 0.0)
         downside_dev = float(np.sqrt(np.mean(np.square(downside))))
-        sharpe = _safe_div(mu_excess * np.sqrt(periods_per_year), sigma)
-        sortino = _safe_div(mu_excess * np.sqrt(periods_per_year), downside_dev)
+        _ann = min(r.size, periods_per_year)
+        sharpe = _safe_div(mu_excess * np.sqrt(_ann), sigma)
+        sortino = _safe_div(mu_excess * np.sqrt(_ann), downside_dev)
     else:
         annualized_vol = np.nan
         sharpe = np.nan

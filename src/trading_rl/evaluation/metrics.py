@@ -288,8 +288,17 @@ def build_metric_report(
         # dominated by numerical noise, not signal, producing absurd ratios like 4000+.
         _MIN_ANNUAL_VOL = 1e-3
         if annual_vol >= _MIN_ANNUAL_VOL:
-            sharpe = _safe_div((mu - rf_per_period) * np.sqrt(periods_per_year), sigma)
-            sortino = _safe_div((mu - rf_per_period) * periods_per_year, downside_dev)
+            # Cap annualisation at the actual number of observed bars.  For short HFT
+            # windows (e.g. 73 five-second bars from 6 minutes of LOB data) the raw
+            # sqrt(ppy) factor is ~1086, which amplifies any tiny bar-level drift into
+            # Sharpe values of 100+.  Using min(n_bars, ppy) gives the standard
+            # annualised Sharpe when observations span ≥ 1 full year, and the ex-post
+            # in-sample Sharpe for shorter windows — preventing statistical explosion
+            # without changing the formula for long-horizon evaluations.
+            _ann = min(r.size, periods_per_year)
+            _dd_raw = float(np.sqrt(np.mean(np.square(downside))))
+            sharpe = _safe_div((mu - rf_per_period) * np.sqrt(_ann), sigma)
+            sortino = _safe_div((mu - rf_per_period) * _ann, _dd_raw * np.sqrt(_ann))
         else:
             sharpe = np.nan
             sortino = np.nan
