@@ -89,7 +89,7 @@ class DDPGTrainer(BaseTrainer):
                 dtype=torch.float32,
             )
             logger.warning(
-                "Environment action_spec is not a Bounded spec; falling back to DDPG default [-1, 1] bounds."
+                "action_spec not Bounded spec fallback bounds=[-1, 1]"
             )
         self.ddpg_action_spec = ddpg_action_spec
 
