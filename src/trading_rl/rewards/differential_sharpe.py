@@ -217,7 +217,7 @@ class DifferentialSharpeRatio(AbstractReward):
             dsr = float(np.clip(dsr, -10.0, 10.0))
         return float(dsr * self.scale)
 
-    def reset(self, persist_moments: bool = False) -> None:
+    def reset(self, persist_moments: bool = False) -> "DifferentialSharpeRatio":
         """Reset DSR state for new episode.
 
         Args:
@@ -230,6 +230,7 @@ class DifferentialSharpeRatio(AbstractReward):
             self.B_t = 0.0
         self._prev_nlv = None
         logger.debug("dsr state reset persist_moments=%s", persist_moments)
+        return self
 
     def __repr__(self) -> str:
         """String representation of DSR state."""
