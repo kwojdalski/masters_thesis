@@ -335,6 +335,8 @@ def build_metric_report(
 
     if actions is not None and len(actions) > 0:
         actions_arr = np.asarray(actions, dtype=float)
+        if actions_arr.size == _r_orig.size:
+            actions_arr = actions_arr[np.isfinite(_r_orig)]
     elif benchmark_position_side is not None and r.size > 0:
         actions_arr = np.full(r.size, float(benchmark_position_side), dtype=float)
     else:
