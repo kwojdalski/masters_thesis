@@ -6,7 +6,7 @@ import torch
 from tensordict import TensorDict
 
 from trading_rl.evaluation.evaluator import (
-    EnvConfig,
+    EvaluatorEnvConfig,
     StrategyEvaluatorConfig,
     StrategyEvaluator,
 )
@@ -93,7 +93,7 @@ def test_extract_last_positions_maps_one_hot_actions_to_configured_positions() -
         policy=object(),
         config=StrategyEvaluatorConfig(
             backend="gym_trading_env.discrete",
-            env=EnvConfig(positions=[-1, 0, 1]),
+            env=EvaluatorEnvConfig(positions=[-1, 0, 1]),
         ),
     )
     actions = torch.tensor(
