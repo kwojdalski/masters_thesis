@@ -292,50 +292,6 @@ def _build_icir_score_table(
     return scores, ic_series_dict
 
 
-def _compute_ic_decay(
-    train_df: pd.DataFrame,
-    val_df: pd.DataFrame,
-    feature_configs: list[FeatureConfig],
-    horizons: list[int],
-) -> pd.DataFrame:
-    """Compute IC at multiple forward return horizons for IC decay analysis.
-
-    Args:
-        train_df: Raw training DataFrame.
-        val_df: Raw validation DataFrame.
-        feature_configs: Feature configurations to evaluate.
-        horizons: List of forward return horizons.
-
-    Returns:
-        DataFrame with columns: feature, horizon, ic.
-    """
-    pipeline = FeaturePipeline(feature_configs)
-    pipeline.fit(train_df)
-
-    train_features = pipeline.transform(train_df)
-
-    results: list[dict] = []
-
-    for h in horizons:
-        train_target = _build_proxy_target(train_df, h)
-        train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
-
-        if train_aligned.empty:
-            continue
-
-        target_col = train_aligned.columns[-1]
-        feature_cols = [c for c in train_aligned.columns if c != target_col]
-
-        for feat in feature_cols:
-            ic = _compute_ic_series(train_aligned[feat], train_aligned[target_col])
-            mean_ic = float(ic.mean()) if len(ic) > 0 else 0.0
-            results.append(
-                {"feature": feat, "horizon": h, "ic": mean_ic}
-            )
-
-    return pd.DataFrame(results)
-
-
 def _select_features_conditional_ic(
     scores: pd.DataFrame,
     feature_data: pd.DataFrame,
