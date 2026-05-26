@@ -5,7 +5,7 @@ from trading_rl.pipeline.checkpoint import (
     setup_checkpoint_resumption,
 )
 from trading_rl.pipeline.evaluation import (
-    SplitEvaluationResult,
+    PipelineSplitResult,
     build_evaluation_context_for_split,
     build_final_metrics,
     evaluate_all_splits,
@@ -36,7 +36,7 @@ __all__ = [
     "CheckpointResumptionResult",
     "setup_checkpoint_resumption",
     # evaluation
-    "SplitEvaluationResult",
+    "PipelineSplitResult",
     "build_evaluation_context_for_split",
     "build_final_metrics",
     "evaluate_all_splits",

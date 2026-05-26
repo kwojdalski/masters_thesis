@@ -36,7 +36,7 @@ from trading_rl.profiler import get_profiler
 
 
 @dataclass(frozen=True)
-class SplitEvaluationResult:
+class PipelineSplitResult:
     """Evaluation outputs for one data split."""
 
     final_reward: float
@@ -265,7 +265,7 @@ def evaluate_split(
     algorithm: str,
     logs: dict[str, Any],
     logger: logging.Logger,
-) -> SplitEvaluationResult | None:
+) -> PipelineSplitResult | None:
     if len(split_df) < 2:
         logger.warning(
             "Skipping %s split evaluation: insufficient data (%d rows)",
@@ -402,7 +402,7 @@ def evaluate_split(
             )
 
     log_banner(logger, f"EVALUATION END  split={split.upper()}  reward={split_final_reward:.4f}")
-    return SplitEvaluationResult(
+    return PipelineSplitResult(
         final_reward=split_final_reward,
         last_positions=split_last_positions,
         evaluation_report=split_evaluation_report,
