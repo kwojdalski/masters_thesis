@@ -75,6 +75,24 @@ class TestDifferentialSharpeRatioAnyTrading:
         assert dsr.B_t == 0.0
         assert dsr._prev_nlv is None
 
+    def test_reset_persist_moments_keeps_ema_but_clears_previous_nlv(self):
+        """Streaming resets should keep EMA moments but restart NLV linkage."""
+        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1, persist_moments=True)
+        dsr({("portfolio_valuation", -1): 10000.0})
+        dsr({("portfolio_valuation", -1): 10100.0})
+        dsr({("portfolio_valuation", -1): 10050.0})
+        moment_state = (dsr.A_t, dsr.B_t)
+
+        dsr.reset()
+
+        assert (dsr.A_t, dsr.B_t) == moment_state
+        assert dsr._prev_nlv is None
+
+        reward = dsr({("portfolio_valuation", -1): 10300.0})
+        assert reward == 0.0
+        assert (dsr.A_t, dsr.B_t) == moment_state
+        assert dsr._prev_nlv == 10300.0
+
     def test_first_step_returns_zero(self):
         """Test first step (no previous value) returns 0."""
         dsr = DifferentialSharpeRatioAnyTrading(eta=0.01)
