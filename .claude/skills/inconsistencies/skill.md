@@ -1,0 +1,120 @@
+---
+name: inconsistencies
+description: Scan the Python source code for interface and naming inconsistencies — mismatched function signatures, conflicting naming conventions, asymmetric return types, and structural patterns that are inconsistent across similar modules. Use when the user wants a structured, consistent codebase.
+---
+
+# Interface and Naming Consistency Scanner
+
+You are a senior software engineer reviewing this Python codebase for structural inconsistencies. Your goal is to surface cases where similar things are done differently — not stylistic preferences, but real inconsistencies that make the codebase harder to understand, extend, and maintain.
+
+## Commands
+
+```
+Commands: ok — fix it | s/skip — skip | done — stop
+```
+
+## What to Look For
+
+### 1. Function and Method Naming
+- Same operation named differently across modules (e.g. `build_X`, `create_X`, `make_X` used interchangeably for the same concept)
+- `get_` vs no prefix for accessors used inconsistently
+- Boolean predicates not starting with `is_`, `has_`, `should_`, `can_`
+- Methods that reset state named `reset` in some classes and `clear` or `reinit` in others
+- Private helpers prefixed `_` in some modules but not in others for equivalent visibility
+
+### 2. Function Signatures and Parameter Ordering
+- Same logical parameter (e.g. `config`, `logger`, `df`) appearing in different positions across similar functions that are often called together
+- Required vs optional (defaulted) arguments ordered inconsistently compared to equivalent functions in the same module
+- Some functions accept `config: ExperimentConfig`, others accept `config: Any` — inconsistent typing for the same argument
+- Some functions take `data_path: str`, others take `data_path: Path` for the same concept
+- Keyword-only arguments (`*`) used in some functions but not their siblings
+
+### 3. Return Types and Return Conventions
+- Some functions return `None` on failure, others raise, others return a sentinel — inconsistent error propagation for the same class of error
+- Tuple return vs dataclass return used inconsistently for multi-value results of the same complexity
+- Some factory functions return a concrete type, sibling factories return `Any`
+- Functions that can return `None` not annotated `X | None`, creating implicit optionality
+
+### 4. Class and Module Structure
+- `__init__` methods that perform heavy work in some classes (data loading, network construction) but defer it to a separate `setup()` or `build()` in sibling classes
+- Some classes expose state via properties, others via direct attribute access, for equivalent state
+- `reset()` methods that return `self` in some classes (for chaining) but `None` in others
+- Factory methods (`from_yaml`, `from_dict`, `from_config`) present on some classes but missing on equivalent classes that also need them
+
+### 5. Logging and Error Handling
+- Some modules use `logger.info(...)` with structured key=value pairs, others use f-strings — inconsistent log format in the same codebase
+- Some errors are raised with full context (`raise ValueError(f"... got {val}")`), others with bare messages (`raise ValueError("invalid")`)
+- Some functions log before raising, others raise silently — inconsistent observability
+
+### 6. Config Access Patterns
+- Some code accesses config via `config.section.field`, others via `getattr(config.section, "field", default)` for fields that are always present
+- Hard-coded defaults duplicated across multiple `getattr(config, "x", DEFAULT)` calls instead of being defined once in the config dataclass
+- Some optional config fields checked with `if config is not None and hasattr(config, "x")`, others with simple `getattr(..., None)` — inconsistent defensive style
+
+## Steps
+
+1. Print the commands reference above.
+
+2. Read the key source files in `src/`. Focus on:
+   - `trading_rl/trainers/` — TD3, DDPG, PPO, base trainer
+   - `trading_rl/envs/` — environment builders and wrappers
+   - `trading_rl/features/` — feature base class and pipeline
+   - `trading_rl/data/` — preparation and loading
+   - `trading_rl/evaluation/` — evaluator, metrics, benchmarks
+   - `trading_rl/rewards/` — DSR implementations
+   - `trading_rl/config.py` — config dataclasses
+   - `cli/commands/` — CLI command handlers
+
+   Read enough of each file to understand its interface, not just its surface. Look at function signatures, return types, naming patterns, and how config/logger/df are passed.
+
+3. For each inconsistency found, record:
+   - Category (from the list above)
+   - File paths and line numbers on both sides of the inconsistency
+   - The two conflicting patterns, shown as concrete code excerpts
+   - Why the inconsistency makes the code harder to use or maintain
+   - A concrete proposed resolution (pick one pattern, apply it everywhere)
+
+4. Rank findings by impact:
+   - Inconsistencies in public interfaces / factory methods — hardest to use correctly
+   - Inconsistencies in return types / error handling — silent bugs
+   - Inconsistencies in logging / config access — maintenance burden
+   - Naming inconsistencies — confusion, but lower risk
+
+5. Output a summary table:
+
+```
+INCONSISTENCY REPORT
+====================
+ # | Cat | Impact | Inconsistency (truncated)                          | Files
+---|-----|--------|-----------------------------------------------------|------------------------------
+ 1 |  2  | HIGH   | make() returns TransformedEnv, build() returns Any  | envs/builder.py vs envs/...
+ 2 |  1  | HIGH   | reset() returns self in Feature, None in DSR        | features/base.py vs rewards/
+...
+```
+
+6. Say: "Found N inconsistencies across M files. Starting review — reply ok to fix, s to skip, done to stop."
+
+## Interactive Review
+
+Work through the ranked list one item at a time. For each:
+
+- Print the item number, category, impact, and file locations.
+- Show both sides of the inconsistency with enough context to understand the pattern.
+- Explain concisely why this matters — what goes wrong or what gets harder.
+- Show the proposed fix: which pattern to standardise on, and what needs to change.
+- Wait for user reply: `ok` to apply, `s`/`skip` to move on, `done` to stop, or any text as a custom instruction.
+
+## After Review
+
+When the user types `done` or all items are reviewed:
+- Apply any pending edits.
+- Commit each changed file: `Fix: standardise <what> across <modules>`
+- Report: how many reviewed, how many fixed, which files changed.
+
+## Important
+
+- Only flag real inconsistencies — two things that genuinely do the same job but differently. Do not flag cases where different names reflect different semantics.
+- Do not refactor working code just to make it uniform. Focus on interfaces, signatures, and naming — not internals.
+- If fixing an inconsistency requires changing a public API used in many places, flag it clearly and let the user decide scope before applying.
+- Do not use emojis.
+- Cite exact line numbers for both sides of every finding.
