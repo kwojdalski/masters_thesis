@@ -37,65 +37,6 @@ consistent under reasonable changes in seed, state representation, reward
 specification, and cost assumptions, while preserving interpretable turnover and
 drawdown behavior.
 
-### Current Evaluation Context
-<!-- [PLACEHOLDER] -->
-
-The following snapshot provides the current experiment context used in the
-automated Chapter 6 result wiring. It is included to make the robustness
-discussion explicit about which experimental setup the displayed results refer to.
-
-```{python}
-#| label: robustness_eval_context
-#| echo: false
-
-if finished is None:
-    print(f"No finished runs available for experiment: {EXPERIMENT_NAME}")
-else:
-    params = finished.get("params", {})
-    latest = finished.get("latest_metrics")
-    rows = [
-        ("Experiment", EXPERIMENT_NAME),
-        ("Run Name", finished.get("run_name")),
-        ("Seed", params.get("seed")),
-        ("Algorithm", params.get("training_algorithm")),
-        ("Reward Type", params.get("env_reward_type")),
-        ("Train Size", params.get("data_train_size")),
-        ("Feature Set", "Causal LOB microstructure feature set"),
-        ("Finished Runs in Snapshot", 0 if runs_df.empty else int((runs_df["status"] == "FINISHED").sum())),
-        ("Latest Training Steps", None if latest is None else latest.get("training_steps")),
-    ]
-    display(pd.DataFrame(rows, columns=["Field", "Value"]))
-```
-
-
-### Interpreting Noisy Training Curves in Robustness Terms
-<!-- [PLACEHOLDER] -->
-
-Noisy training curves are common in actor-critic methods and should not be
-treated as the primary robustness criterion. In the present workflow, the more
-informative question is whether the same setup produces similar
-evaluation outcomes across repeated runs and whether qualitative behavior, such
-as persistent overtrading or directional bias, changes systematically when the
-feature set, reward, or cost assumptions are varied.
-
-This matters in the current work because one of the central comparisons
-concerns simpler versus broader order-book-derived state representations. If the richer feature set improves returns but materially
-increases instability or turnover, the result is weaker than a modest but more
-stable improvement.
-
-### Methodological Limits of the Current Robustness Snapshot
-<!-- [PLACEHOLDER] -->
-
-The current snapshot-based Chapter 6 integration supports reproducible loading
-of run summaries and evaluation artifacts, but robustness conclusions remain
-conditional on the set of experiments already executed and exported. A single
-finished run can illustrate workflow behavior, but it cannot support strong
-claims about robustness across seeds, feature sets, or cost regimes.
-
-For this reason, robustness findings in the final thesis should be framed only
-to the extent supported by repeated runs and matched comparison settings. The
-framework in this section provides the structure for that interpretation and
-helps prevent post-hoc emphasis on isolated favorable outcomes.
 
 ## H2: Feature Specification Sensitivity
 <!-- [PLACEHOLDER] -->
