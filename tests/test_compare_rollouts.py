@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import torch
-import pytest
 
 from trading_rl.evaluation.plots import compare_rollouts
 
