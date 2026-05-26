@@ -229,7 +229,7 @@ class DDPGTrainer(BaseTrainer):
     def _record_skipped_batch(self, reason: str, exc: RuntimeError | None = None) -> None:
         """Track skipped DDPG optimization batches and fail fast if none succeed."""
         self.skipped_batches += 1
-        self._consecutive_skips = getattr(self, "_consecutive_skips", 0) + 1
+        self._consecutive_skips += 1
 
         if exc is None:
             logger.warning("ddpg skipping batch reason=%s", reason)
