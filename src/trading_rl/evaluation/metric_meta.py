@@ -6,7 +6,7 @@ should import from here rather than defining its own dicts or tuples.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
