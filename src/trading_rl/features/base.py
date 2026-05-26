@@ -713,29 +713,34 @@ class Feature(ABC):
 
     def _transform_running_session_online(self, session_data: pd.Series) -> pd.Series:
         """Normalize one session using cumulative stats within that session."""
-        normalized_values: list[float] = []
+        vals = session_data.to_numpy(dtype=float)
+        n = len(vals)
+        if n == 0:
+            return pd.Series([], index=session_data.index, dtype=float)
 
-        for value in session_data.astype(float):
-            if pd.isna(value):
-                normalized_values.append(0.0)
-                continue
+        nan_mask = ~np.isfinite(vals)
+        clean = np.where(nan_mask, 0.0, vals)
 
-            # Normalize using pre-update stats so x_t is not included in its own
-            # mean/std estimate. Update after to keep the estimator causal.
-            count = getattr(self.scaler, "count", 0)
-            if count < 1:
-                normalized = 0.0
-            else:
-                normalized = (value - self.scaler.mean) / np.sqrt(
-                    self.scaler.var + self.scaler.epsilon
-                )
-                if not np.isfinite(normalized):
-                    normalized = 0.0
+        # Causal cumulative sums: stats at index t use only vals[0..t-1].
+        running_sum = np.zeros(n)
+        running_sum_sq = np.zeros(n)
+        running_sum[1:] = np.cumsum(clean[:-1])
+        running_sum_sq[1:] = np.cumsum(clean[:-1] ** 2)
+        counts = np.arange(n, dtype=float)
 
-            self.scaler.update(np.asarray([value], dtype=float))
-            normalized_values.append(float(normalized))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            mean = np.where(counts > 0, running_sum / counts, 0.0)
+            var = np.where(counts > 0, running_sum_sq / counts - mean ** 2, 0.0)
+            var = np.maximum(var, 0.0)
+            epsilon = self.scaler.epsilon
+            normalized = np.where(
+                (counts > 0) & ~nan_mask,
+                (vals - mean) / np.sqrt(var + epsilon),
+                0.0,
+            )
 
-        return pd.Series(normalized_values, index=session_data.index, dtype=float)
+        normalized = np.where(np.isfinite(normalized), normalized, 0.0)
+        return pd.Series(normalized, index=session_data.index, dtype=float)
 
     def _transform_time_weighted_session_online(
         self, session_data: pd.Series
