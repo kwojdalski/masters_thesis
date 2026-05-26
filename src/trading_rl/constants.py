@@ -10,24 +10,35 @@ YAML-loaded strings keep working in comparisons without any conversion:
 from enum import Enum, IntEnum, StrEnum
 
 
+# US equity market calendar assumptions used to derive periods-per-year below.
+# 252 trading days, 6.5-hour session (09:30–16:00 ET).
+_US_TRADING_DAYS: int = 252
+_US_TRADING_HOURS: float = 6.5  # hours per trading day
+
+
+def _ppy(bars_per_day: float) -> int:
+    """Periods per year for a given bar size under the US equity calendar."""
+    return round(_US_TRADING_DAYS * bars_per_day)
+
+
 class ReportingFrequency(Enum):
     """Bar frequencies used for annualisation and Sharpe/Sortino computation.
 
     Each member carries the timeframe label and the corresponding
-    periods-per-year count based on the US equity trading calendar
-    (252 days, 6.5 hours/day, 390 minutes/day).
+    periods-per-year count derived from the US equity trading calendar
+    (_US_TRADING_DAYS days, _US_TRADING_HOURS hours/day).
     """
 
-    WEEKLY  = ("1w",  52)
-    DAILY   = ("1d",  252)
-    HOUR_4  = ("4h",  504)
-    HOURLY  = ("1h",  1_638)
-    MIN_30  = ("30m", 3_276)
-    MIN_15  = ("15m", 6_552)
-    MIN_5   = ("5m",  19_656)
-    MIN_1   = ("1m",  98_280)
-    SEC_15  = ("15s", 393_120)
-    SEC_5   = ("5s",  1_179_360)
+    WEEKLY  = ("1w",  52)                                          # calendar weeks
+    DAILY   = ("1d",  _US_TRADING_DAYS)                            # 252
+    HOUR_4  = ("4h",  _ppy(_US_TRADING_HOURS / 4))                 # 410
+    HOURLY  = ("1h",  _ppy(_US_TRADING_HOURS))                     # 1_638
+    MIN_30  = ("30m", _ppy(_US_TRADING_HOURS * 2))                 # 3_276
+    MIN_15  = ("15m", _ppy(_US_TRADING_HOURS * 4))                 # 6_552
+    MIN_5   = ("5m",  _ppy(_US_TRADING_HOURS * 12))                # 19_656
+    MIN_1   = ("1m",  _ppy(_US_TRADING_HOURS * 60))                # 98_280
+    SEC_15  = ("15s", _ppy(_US_TRADING_HOURS * 60 * 4))            # 393_120
+    SEC_5   = ("5s",  _ppy(_US_TRADING_HOURS * 60 * 12))           # 1_179_360
 
     def __init__(self, label: str, periods_per_year: int) -> None:
         self.label = label
