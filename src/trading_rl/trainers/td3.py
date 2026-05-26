@@ -333,7 +333,7 @@ class TD3Trainer(BaseTrainer):
             if self._should_eval_step(current_step):
                 self._evaluate()
 
-    def train(self, callback=None) -> dict[str, list]:
+    def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for RL agent, with exploration for TD3."""
         logger.debug(
             "td3 train config max_steps=%d init_rand_steps=%d frames_per_batch=%d buffer_size=%d",

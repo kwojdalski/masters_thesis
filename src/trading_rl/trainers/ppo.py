@@ -255,7 +255,7 @@ class PPOTrainer(BaseTrainer):
     def _compute_exploration_ratio(self) -> float:
         return getattr(self.config, "entropy_bonus", 0.01)
 
-    def train(self, callback=None) -> dict[str, list]:
+    def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for PPO agent."""
         return self._run_training_loop(
             callback,

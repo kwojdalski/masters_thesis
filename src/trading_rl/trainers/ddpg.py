@@ -442,7 +442,7 @@ class DDPGTrainer(BaseTrainer):
 
         logger.info("load checkpoint path=%s", path)
 
-    def train(self, callback=None) -> dict[str, list]:
+    def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for DDPG agent with batch summary."""
         self.noisy_policy = TensorDictSequential(self.actor, self.exploration_module)
         self._initialize_offpolicy_collection_policy(
