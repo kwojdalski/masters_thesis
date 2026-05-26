@@ -109,28 +109,33 @@ def _fmtd(val, baseline, fmt, higher_better=True):
     return s
 
 def _two_row_html(rows, g1, g2):
+    all_cols = g1 + g2
     def th(label, rowspan=1):
         rs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
         return f"<th{rs}>{label}</th>"
-    def td(val, rowspan=1):
+    def td(val, rowspan=1, style=""):
         rs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
-        return f"<td{rs}>{val}</td>"
+        st = f' style="{style}"' if style else ""
+        return f"<td{rs}{st}>{val}</td>"
     hdr = (
         "<thead><tr>"
         + th("Feature Set", rowspan=2)
-        + "".join(th(col) + th(f"Δ {col}") for _, col, _ in g1)
-        + "</tr><tr>"
-        + "".join(th(col) + th(f"Δ {col}") for _, col, _ in g2)
+        + "".join(th(col) for _, col, _ in all_cols)
         + "</tr></thead>"
     )
     body = "<tbody>"
     for row in rows:
+        # Value row — Feature Set label spans both rows
         body += (
             "<tr>"
             + td(row["Feature Set"], rowspan=2)
-            + "".join(td(row.get(col, "—")) + td(row.get(f"Δ {col}", "")) for _, col, _ in g1)
-            + "</tr><tr>"
-            + "".join(td(row.get(col, "—")) + td(row.get(f"Δ {col}", "")) for _, col, _ in g2)
+            + "".join(td(row.get(col, "—")) for _, col, _ in all_cols)
+            + "</tr>"
+        )
+        # Delta row
+        body += (
+            "<tr style='color:#666;font-size:0.9em'>"
+            + "".join(td(row.get(f"Δ {col}", "")) for _, col, _ in all_cols)
             + "</tr>"
         )
     body += "</tbody>"
