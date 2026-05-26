@@ -173,8 +173,8 @@ class DifferentialSharpeRatioAnyTrading:
         if self._prev_nlv > 0 and nlv_now > 0:
             R_t = float(np.log(nlv_now / self._prev_nlv))
         else:
-            # Invalid values - return 0
-            self._prev_nlv = nlv_now
+            if nlv_now > 0:
+                self._prev_nlv = nlv_now
             return 0.0
 
         # Calculate DSR using OLD EMA values (t-1)

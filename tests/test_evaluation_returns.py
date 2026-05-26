@@ -228,7 +228,11 @@ def test_cross_validate_nlv_recomputes_weighted_price_path() -> None:
             return default
 
     prices = np.array([100.0, 110.0, 99.0, 120.0])
-    broker_nlv = np.array([100.0, 100.0, 110.0, 115.5])
+    # Correct NLV: actions[t] applied to prices[t+1]/prices[t] - 1
+    #   step 0: 100 * (1 + 1.0 * 0.10) = 110.0
+    #   step 1: 110 * (1 + -0.5 * -0.10) = 115.5
+    #   step 2: 115.5 * (1 + 0.0 * ...) = 115.5
+    broker_nlv = np.array([100.0, 110.0, 115.5, 115.5])
 
     max_err, recomputed = cross_validate_nlv(Rollout(), broker_nlv, prices)
 
