@@ -11,7 +11,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 from trading_rl.constants import RewardType
-from trading_rl.evaluation.metrics import aggregate_to_reporting_frequency
+from trading_rl.evaluation.metrics import aggregate_to_reporting_frequency, sharpe_raw, sortino_raw
 from trading_rl.evaluation.returns import (
     ReturnSeries,
     RewardSeries,
@@ -166,9 +166,8 @@ def _performance_summary(
         annualized_vol = sigma * np.sqrt(periods_per_year)
         downside = np.minimum(excess_returns, 0.0)
         downside_dev = float(np.sqrt(np.mean(np.square(downside))))
-        _ann = min(r.size, periods_per_year)
-        sharpe = _safe_div(mu_excess * np.sqrt(_ann), sigma)
-        sortino = _safe_div(mu_excess * np.sqrt(_ann), downside_dev)
+        sharpe = sharpe_raw(mu_excess, sigma)
+        sortino = sortino_raw(mu_excess, downside_dev)
     else:
         annualized_vol = np.nan
         sharpe = np.nan

@@ -160,6 +160,48 @@ def _safe_div(numerator: float, denominator: float) -> float:
     return numerator / denominator
 
 
+# ---------------------------------------------------------------------------
+# Three Sharpe / Sortino variants
+# ---------------------------------------------------------------------------
+
+def sharpe_raw(mu_excess: float, sigma: float) -> float:
+    """Raw per-period Sharpe: μ_excess / σ.  No frequency scaling."""
+    return _safe_div(mu_excess, sigma)
+
+
+def sharpe_expost(mu_excess: float, sigma: float, n_bars: int) -> float:
+    """Ex-post Sharpe scaled by √n: (μ_excess / σ) × √n_bars.
+
+    Equals the t-statistic for H0: μ = 0 (up to a constant).  Valid for any
+    window length; coincides with the annualised Sharpe when n_bars = ppy.
+    """
+    return _safe_div(mu_excess * np.sqrt(n_bars), sigma)
+
+
+def sharpe_annualized(mu_excess: float, sigma: float, periods_per_year: int) -> float:
+    """Annualised Sharpe: (μ_excess / σ) × √periods_per_year.
+
+    Standard industry formula.  Unreliable when the observation window is much
+    shorter than one year (standard error ≈ √(ppy / n_bars)).
+    """
+    return _safe_div(mu_excess * np.sqrt(periods_per_year), sigma)
+
+
+def sortino_raw(mu_excess: float, downside_dev_per_bar: float) -> float:
+    """Raw per-period Sortino: μ_excess / downside_deviation.  No scaling."""
+    return _safe_div(mu_excess, downside_dev_per_bar)
+
+
+def sortino_expost(mu_excess: float, downside_dev_per_bar: float, n_bars: int) -> float:
+    """Ex-post Sortino scaled by √n: (μ_excess / downside_dev) × √n_bars."""
+    return _safe_div(mu_excess * np.sqrt(n_bars), downside_dev_per_bar)
+
+
+def sortino_annualized(mu_excess: float, downside_dev_per_bar: float, periods_per_year: int) -> float:
+    """Annualised Sortino: (μ_excess / downside_dev) × √periods_per_year."""
+    return _safe_div(mu_excess * np.sqrt(periods_per_year), downside_dev_per_bar)
+
+
 def _equity_curve(simple_returns: np.ndarray) -> np.ndarray:
     # Prepend 1.0 so the running-max starts at the true initial value (1.0).
     # Without this, drawdown[0] is always 0 and any decline in the first period
@@ -288,17 +330,9 @@ def build_metric_report(
         # dominated by numerical noise, not signal, producing absurd ratios like 4000+.
         _MIN_ANNUAL_VOL = 1e-3
         if annual_vol >= _MIN_ANNUAL_VOL:
-            # Cap annualisation at the actual number of observed bars.  For short HFT
-            # windows (e.g. 73 five-second bars from 6 minutes of LOB data) the raw
-            # sqrt(ppy) factor is ~1086, which amplifies any tiny bar-level drift into
-            # Sharpe values of 100+.  Using min(n_bars, ppy) gives the standard
-            # annualised Sharpe when observations span ≥ 1 full year, and the ex-post
-            # in-sample Sharpe for shorter windows — preventing statistical explosion
-            # without changing the formula for long-horizon evaluations.
-            _ann = min(r.size, periods_per_year)
             _dd_raw = float(np.sqrt(np.mean(np.square(downside))))
-            sharpe = _safe_div((mu - rf_per_period) * np.sqrt(_ann), sigma)
-            sortino = _safe_div((mu - rf_per_period) * _ann, _dd_raw * np.sqrt(_ann))
+            sharpe = sharpe_raw(mu - rf_per_period, sigma)
+            sortino = sortino_raw(mu - rf_per_period, _dd_raw)
         else:
             sharpe = np.nan
             sortino = np.nan

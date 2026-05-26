@@ -12,7 +12,16 @@ from trading_rl.evaluation.evaluator import (
     SplitEvaluationResult,
     StrategyEvaluator,
 )
-from trading_rl.evaluation.metrics import MetricReport, build_metric_report
+from trading_rl.evaluation.metrics import (
+    MetricReport,
+    build_metric_report,
+    sharpe_raw,
+    sharpe_expost,
+    sharpe_annualized,
+    sortino_raw,
+    sortino_expost,
+    sortino_annualized,
+)
 from trading_rl.evaluation.plots import (
     compare_rollouts,
     create_equity_curve_plot,
@@ -89,6 +98,12 @@ __all__ = [
     "build_evaluation_report_for_trainer",
     "MetricReport",
     "build_metric_report",
+    "sharpe_raw",
+    "sharpe_expost",
+    "sharpe_annualized",
+    "sortino_raw",
+    "sortino_expost",
+    "sortino_annualized",
     "calculate_benchmark_dsr",
     "compare_rollouts",
     "compute_buy_and_hold_returns",

@@ -193,12 +193,12 @@ class TestSharpeRatio:
         assert _report(returns)["sharpe_ratio"] < 0
 
     def test_known_value(self):
-        # Sharpe = mean_excess * sqrt(ppy) / std; rf = 0
+        # Raw Sharpe = mean_excess / std; no frequency scaling
         rng = np.random.default_rng(42)
         r = rng.normal(loc=0.001, scale=0.01, size=500)
         mu = np.mean(r)
         sigma = np.std(r, ddof=1)
-        expected = mu * np.sqrt(PPY) / sigma
+        expected = mu / sigma
         assert _report(r)["sharpe_ratio"] == pytest.approx(expected, rel=1e-6)
 
 
