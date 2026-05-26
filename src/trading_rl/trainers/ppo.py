@@ -165,6 +165,8 @@ class PPOTrainer(BaseTrainer):
             total_loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
+            self.ppo_loss.actor_network_params.to_module(self.actor)
+            self.ppo_loss.critic_network_params.to_module(self.value_net)
 
             # Log losses
             actor_loss = loss_vals["loss_objective"].item()
