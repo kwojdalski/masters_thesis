@@ -30,6 +30,7 @@ class DDPGTrainer(BaseTrainer):
         value_net: Any,
         env: Any,
         config: TrainingConfig,
+        *,
         eval_config: "EvaluationConfig | None" = None,
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,

@@ -48,6 +48,7 @@ class TD3Trainer(BaseTrainer):
         value_net: Any,
         env: Any,
         config: TrainingConfig,
+        *,
         eval_config: "EvaluationConfig | None" = None,
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
