@@ -231,10 +231,12 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
                 )
 
                 reward_eta = getattr(self.config.env, "reward_eta", 0.01)
-                dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta)
+                reward_scale = getattr(self.config.env, "reward_scale", 1.0)
+                dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta, scale=reward_scale)
                 base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
                 logger.info(
-                    f"Applied DSR reward to forex-v0 environment (eta={reward_eta})"
+                    "applied dsr reward to forex-v0 environment eta=%s scale=%s",
+                    reward_eta, reward_scale,
                 )
             elif reward_type != RewardType.LOG_RETURN:
                 raise ValueError(
@@ -283,9 +285,10 @@ class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
                 )
 
                 reward_eta = getattr(self.config.env, "reward_eta", 0.01)
-                dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta)
+                reward_scale = getattr(self.config.env, "reward_scale", 1.0)
+                dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta, scale=reward_scale)
                 base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
-                logger.info("apply dsr reward to stocks-v0 environment eta=%s", reward_eta)
+                logger.info("apply dsr reward to stocks-v0 environment eta=%s scale=%s", reward_eta, reward_scale)
             elif reward_type != RewardType.LOG_RETURN:
                 raise ValueError(
                     f"Unknown reward type: {reward_type}. "

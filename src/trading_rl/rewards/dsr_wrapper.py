@@ -99,6 +99,7 @@ class DifferentialSharpeRatioAnyTrading:
         epsilon: float = 1e-8,
         clip_reward: float | None = 10.0,
         persist_moments: bool = False,
+        scale: float = 1.0,
     ):
         """Initialize DSR reward function.
 
@@ -106,21 +107,24 @@ class DifferentialSharpeRatioAnyTrading:
             eta: EMA learning rate (controls adaptation speed)
             epsilon: Small constant for numerical stability
             clip_reward: Clamp the DSR output to [-clip_reward, clip_reward] before
-                returning. Defaults to 10.0 to match the tradingenv backend's
-                DifferentialSharpeRatio behaviour. Early in each episode the
-                variance EMA is near zero, so the denominator collapses to
-                epsilon and raw DSR can reach O(1e6); clipping prevents
-                gradient explosions. Set to None to disable.
+                scaling. Defaults to 10.0. Early in each episode the variance EMA
+                is near zero, so the denominator collapses to epsilon and raw DSR
+                can reach O(1e6); clipping prevents gradient explosions. Set to
+                None to disable.
             persist_moments: If True, keep A_t and B_t across episode boundaries
                 (only _prev_nlv is cleared on reset). Useful for streaming
                 training where episodes are short windows of continuous market
                 data and zeroing the EMA every reset forces unnecessary re-warmup.
                 Mirrors the same parameter on DifferentialSharpeRatio (tradingenv).
+            scale: Multiplicative factor applied after clipping (default 1.0).
+                Use e.g. 1000.0 to amplify the reward signal for optimisers that
+                expect larger gradient magnitudes.
         """
         self.eta = eta
         self.epsilon = epsilon
         self.clip_reward = clip_reward
         self.persist_moments = persist_moments
+        self.scale = scale
 
         # Internal state - reset on each episode
         self.A_t = 0.0  # EMA of returns (mean)
@@ -205,4 +209,4 @@ class DifferentialSharpeRatioAnyTrading:
 
         if self.clip_reward is not None:
             dsr = float(np.clip(dsr, -self.clip_reward, self.clip_reward))
-        return float(dsr)
+        return float(dsr * self.scale)

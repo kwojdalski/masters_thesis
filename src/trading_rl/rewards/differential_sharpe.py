@@ -209,12 +209,9 @@ class DifferentialSharpeRatio(AbstractReward):
         # Update previous NLV for next step
         self._prev_nlv = nlv_now
 
-        # Scale before clip: output is always in [-10, 10] regardless of scale.
-        # scale controls sensitivity — the gradient saturates when |raw_dsr| > 10/scale.
-        dsr = dsr * self.scale
         if self.clip_rewards:
             dsr = float(np.clip(dsr, -10.0, 10.0))
-        return float(dsr)
+        return float(dsr * self.scale)
 
     def reset(self, persist_moments: bool = False) -> None:
         """Reset DSR state for new episode.

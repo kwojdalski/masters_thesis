@@ -151,6 +151,7 @@ class EnvConfig:
     # Reward function configuration (all backends)
     reward_type: str = RewardType.LOG_RETURN  # Reward type: "log_return" or "differential_sharpe"
     reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")
+    reward_scale: float = 1.0  # Multiplicative scale applied to the reward after clipping (e.g. 1000.0 to amplify DSR signals)
 
 
 @dataclass
