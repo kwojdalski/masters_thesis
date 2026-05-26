@@ -616,13 +616,10 @@ class TD3Trainer(BaseTrainer):
                     self.replay_buffer.loads(buffer_path)
                     buffer_size = len(self.replay_buffer)
                     logger.info("load replay buffer path=%s n_experiences=%s", buffer_path, buffer_size)
-                except Exception as exc:
+                except Exception:
                     logger.exception(
                         "Failed to load replay buffer from %s", buffer_path
                     )
-                    raise RuntimeError(
-                        f"Cannot resume training: replay buffer at {buffer_path} failed to load"
-                    ) from exc
             else:
                 logger.info("no replay buffer in checkpoint start_fresh=true")
 
