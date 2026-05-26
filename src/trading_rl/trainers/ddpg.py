@@ -384,17 +384,15 @@ class DDPGTrainer(BaseTrainer):
         from pathlib import Path
 
         checkpoint = torch.load(path, weights_only=False)
-        actor_params_state = checkpoint.get("actor_params_state")
-        value_params_state = checkpoint.get("value_params_state")
-        if actor_params_state is None or value_params_state is None:
+        if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
             raise KeyError(
                 "DDPG checkpoint is missing functional parameter states "
                 "(actor_params_state/value_params_state). "
                 "Legacy module-only checkpoints are no longer supported."
             )
 
-        self.ddpg_loss.actor_network_params.load_state_dict(actor_params_state)
-        self.ddpg_loss.value_network_params.load_state_dict(value_params_state)
+        self.ddpg_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
+        self.ddpg_loss.value_network_params.load_state_dict(checkpoint["value_params_state"])
 
         target_actor_params = getattr(
             self.ddpg_loss, "target_actor_network_params", None
