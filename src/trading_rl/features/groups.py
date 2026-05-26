@@ -184,7 +184,7 @@ class FeatureGroupResolver:
         for group_name in group_names:
             group_configs = self.get_group_features(group_name)
             for cfg in group_configs:
-                output_name = cfg.output_name or f"feature_{cfg.name}"
+                output_name = cfg.get_output_name()
                 if output_name in seen_names:
                     logger.debug(
                         "Skipping duplicate feature '%s' (already added from another group)",

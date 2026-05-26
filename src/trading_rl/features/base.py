@@ -465,6 +465,10 @@ class FeatureConfig:
     output_name: str | None = None
     domain: str = EnvMode.SHARED
 
+    def get_output_name(self) -> str:
+        """Return the output column name, applying the default prefix when not set."""
+        return self.output_name or f"feature_{self.name}"
+
     def __post_init__(self):
         if self.params is None:
             self.params = {}

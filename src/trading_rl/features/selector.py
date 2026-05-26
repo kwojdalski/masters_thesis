@@ -968,7 +968,7 @@ class FeatureSelector:
 
         # Map selected names back to FeatureConfig instances
         output_name_map = {
-            (fc.output_name or f"feature_{fc.name}"): fc
+            fc.get_output_name(): fc
             for fc in feature_configs
         }
         selected_configs = [
@@ -1149,7 +1149,7 @@ class FeatureSelector:
 
         # Map selected names back to FeatureConfig instances
         output_name_map = {
-            (fc.output_name or f"feature_{fc.name}"): fc
+            fc.get_output_name(): fc
             for fc in feature_configs
         }
         selected_configs = [
