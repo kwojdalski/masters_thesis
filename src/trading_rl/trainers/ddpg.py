@@ -483,14 +483,16 @@ class DDPGTrainer(BaseTrainer):
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
                 logger.debug(
-                    f"[Batch {i}] Collected {data.numel()} steps, buffer size: {buffer_len}"
+                    "ddpg batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
                 )
                 logger.debug(
-                    f"  Episode rewards - mean: {episode_rewards.mean():.4f}, std: {episode_rewards.std():.4f}"
+                    "ddpg episode reward stats mean=%.4f std=%.4f",
+                    episode_rewards.mean(), episode_rewards.std(),
                 )
                 collected_actions = data["action"]
                 logger.debug(
-                    f"  Collected actions - mean: {collected_actions.mean():.4f}, std: {collected_actions.std():.4f}"
+                    "ddpg collected action stats mean=%.4f std=%.4f",
+                    collected_actions.mean(), collected_actions.std(),
                 )
 
         def on_batch_end(i, data) -> None:
