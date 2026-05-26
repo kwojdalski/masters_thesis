@@ -180,7 +180,7 @@ class TrainingConfig:
     # Training loop
     max_steps: int = 5_000  # _000
     max_train_seconds: int | None = None  # wall-clock budget in seconds; None = unlimited
-    init_rand_steps: int = 50
+    init_rand_steps: int = 5000
     frames_per_batch: int = 200
     optim_steps_per_batch: int = 50
     sample_size: int = 50
