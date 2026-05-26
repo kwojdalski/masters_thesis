@@ -20,7 +20,7 @@ from plotnine import (
     theme,
 )
 
-from trading_rl.evaluation.thesis_theme import FIGURE_HEIGHT, FIGURE_WIDTH, LINETYPE, PALETTE, thesis_theme
+from trading_rl.evaluation.thesis_theme import FIGURE_WIDTH, LINETYPE, PALETTE, thesis_theme
 from torch import allclose
 
 from logger import get_logger
