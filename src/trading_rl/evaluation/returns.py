@@ -226,8 +226,10 @@ def cross_validate_nlv(
 
     Uses the formula:
       NLV[0] = broker_nlv[0]    (initial cash)
-      NLV[1] = broker_nlv[0]    (entry step — no P&L at entry price)
-      NLV[t+1] = NLV[t] * (1 + w[t-1] * (price[t] / price[t-1] - 1))  for t >= 1
+      NLV[t+1] = NLV[t] * (1 + actions[t] * (prices[t+1] / prices[t] - 1))  for t in [0, n)
+
+    Requires prices to have at least n + 1 elements (the caller provides
+    benchmark_series.iloc[:max_steps + 1]).
 
     Returns:
         max_abs_error: max absolute difference between broker and recomputed NLV.
@@ -245,10 +247,9 @@ def cross_validate_nlv(
 
     recomputed = np.empty(n + 1, dtype=float)
     recomputed[0] = initial_cash
-    recomputed[1] = initial_cash
-    for t in range(1, n):
-        price_return = prices[t] / prices[t - 1] - 1.0
-        recomputed[t + 1] = recomputed[t] * (1.0 + float(actions[t - 1]) * price_return)
+    for t in range(0, n):
+        price_return = prices[t + 1] / prices[t] - 1.0
+        recomputed[t + 1] = recomputed[t] * (1.0 + float(actions[t]) * price_return)
 
     actual = np.asarray(broker_nlv[: n + 1], dtype=float)
     max_err = float(np.max(np.abs(actual - recomputed)))
