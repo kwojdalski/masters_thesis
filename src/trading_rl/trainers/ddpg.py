@@ -180,6 +180,11 @@ class DDPGTrainer(BaseTrainer):
             # Optimize actor
             self.optimizer_actor.zero_grad()
             loss_vals["loss_actor"].backward()
+            if self.config.max_grad_norm > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    self.ddpg_loss.actor_network_params.values(True, True),
+                    self.config.max_grad_norm,
+                )
             self.optimizer_actor.step()
 
             # Sync functional actor params back to the actor module used by the collector/evaluator
@@ -188,6 +193,11 @@ class DDPGTrainer(BaseTrainer):
             # Optimize value network
             self.optimizer_value.zero_grad()
             loss_vals["loss_value"].backward()
+            if self.config.max_grad_norm > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    self.ddpg_loss.value_network_params.values(True, True),
+                    self.config.max_grad_norm,
+                )
             self.optimizer_value.step()
 
             # Sync functional value params back to the value module

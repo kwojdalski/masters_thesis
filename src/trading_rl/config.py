@@ -177,6 +177,7 @@ class TrainingConfig:
     value_lr: float = 1e-3
     value_weight_decay: float = 1e-2
     actor_weight_decay: float = 1e-4
+    max_grad_norm: float = 1.0  # Gradient clipping threshold; set to 0 to disable
     # Training loop
     max_steps: int = 10_000  # _000
     max_train_seconds: int | None = None  # wall-clock budget in seconds; None = unlimited

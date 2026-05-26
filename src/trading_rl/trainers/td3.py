@@ -236,6 +236,11 @@ class TD3Trainer(BaseTrainer):
 
             self.optimizer_value.zero_grad()
             loss_vals["loss_qvalue"].backward()
+            if self.config.max_grad_norm > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    self.td3_loss.qvalue_network_params.values(True, True),
+                    self.config.max_grad_norm,
+                )
             self.optimizer_value.step()
 
             # Sync functional critic params back to critic module used for collection/eval
@@ -257,6 +262,11 @@ class TD3Trainer(BaseTrainer):
 
                 self.optimizer_actor.zero_grad()
                 loss_vals_actor["loss_actor"].backward()
+                if self.config.max_grad_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(
+                        self.td3_loss.actor_network_params.values(True, True),
+                        self.config.max_grad_norm,
+                    )
                 self.optimizer_actor.step()
 
                 # Sync functional actor params back to the actor module the collector uses
