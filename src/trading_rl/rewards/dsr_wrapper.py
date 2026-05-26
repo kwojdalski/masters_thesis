@@ -164,17 +164,24 @@ class DifferentialSharpeRatioAnyTrading:
                     "Cannot compute DSR reward. Check environment history format."
                 )
 
+        valid_prev = self._prev_nlv is None or (
+            np.isfinite(self._prev_nlv) and self._prev_nlv > 0
+        )
+        valid_now = np.isfinite(nlv_now) and nlv_now > 0
+
+        if not valid_now:
+            return 0.0
+
         # First step: just store initial value
         if self._prev_nlv is None:
             self._prev_nlv = nlv_now
             return 0.0
 
         # Calculate log return
-        if self._prev_nlv > 0 and nlv_now > 0:
+        if valid_prev:
             R_t = float(np.log(nlv_now / self._prev_nlv))
         else:
-            if nlv_now > 0:
-                self._prev_nlv = nlv_now
+            self._prev_nlv = nlv_now
             return 0.0
 
         # Calculate DSR using OLD EMA values (t-1)

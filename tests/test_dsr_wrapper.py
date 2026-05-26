@@ -162,6 +162,32 @@ class TestDifferentialSharpeRatioAnyTrading:
         reward = dsr(history)
         assert reward == 0.0
 
+    @pytest.mark.parametrize("invalid_nlv", [np.nan, np.inf, -np.inf])
+    def test_dsr_ignores_nonfinite_values_without_corrupting_state(self, invalid_nlv):
+        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1)
+        dsr({("portfolio_valuation", -1): 10000.0})
+        dsr({("portfolio_valuation", -1): 10100.0})
+        moment_state = (dsr.A_t, dsr.B_t, dsr._prev_nlv)
+
+        reward = dsr({("portfolio_valuation", -1): invalid_nlv})
+
+        assert reward == 0.0
+        assert (dsr.A_t, dsr.B_t, dsr._prev_nlv) == moment_state
+        assert np.isfinite(dsr({("portfolio_valuation", -1): 10200.0}))
+        assert np.isfinite(dsr.A_t)
+        assert np.isfinite(dsr.B_t)
+
+    @pytest.mark.parametrize("invalid_nlv", [np.nan, np.inf, -np.inf])
+    def test_first_nonfinite_value_does_not_become_previous_nlv(self, invalid_nlv):
+        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1)
+
+        reward = dsr({("portfolio_valuation", -1): invalid_nlv})
+
+        assert reward == 0.0
+        assert dsr._prev_nlv is None
+        assert dsr.A_t == 0.0
+        assert dsr.B_t == 0.0
+
 
 class TestStatefulRewardWrapper:
     """Test StatefulRewardWrapper for automatic reset management."""
