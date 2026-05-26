@@ -162,12 +162,17 @@ def _performance_summary(
     mu_excess = float(np.mean(excess_returns))
     sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
 
+    _MIN_ANNUAL_VOL = 1e-3
     if _can_annualize:
         annualized_vol = sigma * np.sqrt(periods_per_year)
-        downside = np.minimum(excess_returns, 0.0)
-        downside_dev = float(np.sqrt(np.mean(np.square(downside))))
-        sharpe = sharpe_raw(mu_excess, sigma)
-        sortino = sortino_raw(mu_excess, downside_dev)
+        if annualized_vol >= _MIN_ANNUAL_VOL:
+            downside = np.minimum(excess_returns, 0.0)
+            downside_dev = float(np.sqrt(np.mean(np.square(downside))))
+            sharpe = sharpe_raw(mu_excess, sigma)
+            sortino = sortino_raw(mu_excess, downside_dev)
+        else:
+            sharpe = np.nan
+            sortino = np.nan
     else:
         annualized_vol = np.nan
         sharpe = np.nan
