@@ -43,7 +43,7 @@ class TD3Trainer(BaseTrainer):
     def __init__(
         self,
         actor: Any,
-        qvalue_net: Any,
+        value_net: Any,
         env: Any,
         config: TrainingConfig,
         eval_config: "EvaluationConfig | None" = None,
@@ -52,7 +52,7 @@ class TD3Trainer(BaseTrainer):
     ):
         super().__init__(
             actor=actor,
-            value_net=qvalue_net,
+            value_net=value_net,
             env=env,
             config=config,
             eval_config=eval_config,
@@ -93,7 +93,7 @@ class TD3Trainer(BaseTrainer):
         # TD3 uses two critics; configure loss and optimizers
         self.td3_loss = TD3Loss(
             actor_network=actor,
-            qvalue_network=qvalue_net,
+            qvalue_network=value_net,
             action_spec=td3_action_spec,
             num_qvalue_nets=2,
             policy_noise=getattr(config, "policy_noise", 0.2),

@@ -146,28 +146,16 @@ def _build_trainer(
     trainer_cls = _select_trainer_class(algorithm, backend)
     logger.info("select trainer cls=%s", trainer_cls.__name__)
 
-    if algorithm == Algorithm.TD3:
-        actor, qvalue_net = trainer_cls.build_models(n_obs, n_act, config, env)
-        trainer = trainer_cls(
-            actor=actor,
-            qvalue_net=qvalue_net,
-            env=env,
-            config=config.training,
-            eval_config=config.evaluation,
-            checkpoint_dir=config.logging.log_dir,
-            checkpoint_prefix=effective_experiment_name,
-        )
-    else:
-        actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
-        trainer = trainer_cls(
-            actor=actor,
-            value_net=value_net,
-            env=env,
-            config=config.training,
-            eval_config=config.evaluation,
-            checkpoint_dir=config.logging.log_dir,
-            checkpoint_prefix=effective_experiment_name,
-        )
+    actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
+    trainer = trainer_cls(
+        actor=actor,
+        value_net=value_net,
+        env=env,
+        config=config.training,
+        eval_config=config.evaluation,
+        checkpoint_dir=config.logging.log_dir,
+        checkpoint_prefix=effective_experiment_name,
+    )
 
     return trainer, n_obs, n_act
 
