@@ -420,7 +420,7 @@ class BaseTrainer(ABC):
         return None, None, None
 
     def create_action_probabilities_plot(
-        self, max_steps: int, df: Any = None, config: Any = None
+        self, max_steps: int, df: Any = None, config: Any = None, eval_env: Any | None = None
     ) -> Any:
         """Optional action-probability visualization; default is not implemented."""
         return None
