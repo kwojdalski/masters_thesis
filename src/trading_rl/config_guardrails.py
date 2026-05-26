@@ -298,6 +298,250 @@ def _check_warmup_rows(config: ExperimentConfig) -> Finding | None:
 
 
 # ---------------------------------------------------------------------------
+# Additional checks
+# ---------------------------------------------------------------------------
+
+def _check_frames_per_batch_vs_train_size(config: ExperimentConfig) -> Finding | None:
+    """WARN: frames_per_batch > train_size → env resets multiple times per batch."""
+    f = config.training.frames_per_batch
+    ts = config.data.train_size
+    if f > ts:
+        resets = math.ceil(f / ts)
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.frames_per_batch / data.train_size",
+            message=(
+                f"frames_per_batch={f:,} > train_size={ts:,}: the collector will reset "
+                f"the environment ~{resets}× per batch. Each reset replays the same "
+                "data from the beginning, increasing temporal correlation within the "
+                "batch and reducing effective data diversity."
+            ),
+            suggestion=f"Set frames_per_batch <= train_size (e.g. {max(1, ts // 4):,}).",
+        )
+    return None
+
+
+def _check_train_size_vs_warmup_rows(config: ExperimentConfig) -> Finding | None:
+    """FATAL: train_size <= warmup_rows → zero effective training rows after warmup."""
+    w = config.data.warmup_rows
+    ts = config.data.train_size
+    if w > 0 and ts <= w:
+        return Finding(
+            severity=Severity.FATAL,
+            parameter="data.train_size / data.warmup_rows",
+            message=(
+                f"train_size={ts:,} <= warmup_rows={w:,}: after discarding warmup rows "
+                "the effective training split is empty — the environment will have no "
+                "data to step through."
+            ),
+            suggestion=(
+                f"Increase train_size to at least warmup_rows + frames_per_batch = "
+                f"{w + config.training.frames_per_batch:,}, or reduce warmup_rows."
+            ),
+        )
+    return None
+
+
+def _check_optim_steps_replay_reuse(config: ExperimentConfig) -> Finding | None:
+    """WARN (off-policy): optim_steps × sample_size > buffer_size → excessive replay reuse."""
+    if not _is_off_policy(config.training.algorithm):
+        return None
+    total_samples = config.training.optim_steps_per_batch * config.training.sample_size
+    b = config.training.buffer_size
+    if total_samples > b:
+        ratio = total_samples / b
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.optim_steps_per_batch * training.sample_size / training.buffer_size",
+            message=(
+                f"optim_steps_per_batch={config.training.optim_steps_per_batch} × "
+                f"sample_size={config.training.sample_size} = {total_samples:,} samples "
+                f"drawn per collection step, but buffer_size={b:,}. Each transition is "
+                f"reused {ratio:.1f}× per batch on average, increasing overfitting risk."
+            ),
+            suggestion=(
+                f"Reduce optim_steps_per_batch (currently {config.training.optim_steps_per_batch}) "
+                f"or increase buffer_size to at least {total_samples:,}."
+            ),
+        )
+    return None
+
+
+def _check_td3_noise_vs_clip(config: ExperimentConfig) -> Finding | None:
+    """WARN (TD3): policy_noise > noise_clip → clip is always active; noise setting has no effect."""
+    if config.training.algorithm.upper() != "TD3":
+        return None
+    pn = config.training.policy_noise
+    nc = config.training.noise_clip
+    if pn > nc:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.policy_noise / training.noise_clip",
+            message=(
+                f"policy_noise={pn} > noise_clip={nc}: TD3 clamps target policy noise "
+                f"to [-{nc}, {nc}] before adding it, so the actual noise standard "
+                f"deviation is always capped at {nc}. policy_noise={pn} is ignored."
+            ),
+            suggestion=(
+                f"Set policy_noise <= noise_clip (e.g. {nc * 0.5:.2f}), "
+                f"or increase noise_clip to {pn}."
+            ),
+        )
+    return None
+
+
+def _check_ppo_clip_epsilon(config: ExperimentConfig) -> Finding | None:
+    """WARN (PPO): clip_epsilon > 0.5 → near-unconstrained policy updates."""
+    if not _is_ppo(config.training.algorithm):
+        return None
+    ce = config.training.clip_epsilon
+    if ce > 0.5:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.clip_epsilon",
+            message=(
+                f"clip_epsilon={ce} is unusually large. PPO clips the probability ratio "
+                "to [1-ε, 1+ε]; above 0.5 the constraint is so loose that updates can "
+                "be as large as unconstrained gradient steps, defeating the purpose of "
+                "the clipping objective."
+            ),
+            suggestion="Typical values are 0.1–0.3. Consider clip_epsilon=0.2.",
+        )
+    return None
+
+
+def _check_tau_too_large(config: ExperimentConfig) -> Finding | None:
+    """WARN (DDPG/TD3): tau > 0.1 → target network updates nearly as fast as online network."""
+    if not _is_off_policy(config.training.algorithm):
+        return None
+    tau = config.training.tau
+    if tau > 0.1:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.tau",
+            message=(
+                f"tau={tau} is high. The target network soft-update θ' ← (1-τ)θ' + τθ "
+                "converges to the online network in ~{:.0f} steps. The stabilising "
+                "effect of a slowly-changing target is largely lost above τ≈0.1.".format(
+                    1 / tau
+                )
+            ),
+            suggestion="Typical values are 0.001–0.01. Consider tau=0.005.",
+        )
+    return None
+
+
+def _check_dsr_eta_range(config: ExperimentConfig) -> Finding | None:
+    """WARN (DSR): reward_eta outside [1e-4, 0.5] → EMA either barely adapts or forgets instantly."""
+    from trading_rl.constants import RewardType
+    if config.env.reward_type != RewardType.DIFFERENTIAL_SHARPE:
+        return None
+    eta = config.env.reward_eta
+    if eta > 0.5:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.reward_eta",
+            message=(
+                f"reward_eta={eta}: with η > 0.5 the DSR EMA discards more than half "
+                "its history at every step. The resulting signal reflects only the most "
+                "recent 1–2 returns and has very high variance."
+            ),
+            suggestion="Typical DSR values are 0.001–0.1. Consider reward_eta=0.01.",
+        )
+    if eta < 1e-4:
+        half_life = math.log(0.5) / math.log(1 - eta)
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.reward_eta",
+            message=(
+                f"reward_eta={eta}: the DSR EMA half-life is ~{half_life:,.0f} steps. "
+                "The signal barely moves within a typical episode and will be nearly "
+                "constant at the start of training when A_t and B_t are cold."
+            ),
+            suggestion="Typical DSR values are 0.001–0.1. Consider reward_eta=0.01.",
+        )
+    return None
+
+
+def _check_obs_clip_none(config: ExperimentConfig) -> Finding | None:
+    """WARN: obs_clip=None → no clipping during running-normalizer cold start."""
+    if config.env.obs_clip is not None:
+        return None
+    return Finding(
+        severity=Severity.WARN,
+        parameter="env.obs_clip",
+        message=(
+            "obs_clip=None: observations are not clipped. Running normalizers "
+            "(RunningMeanStd) produce extreme values for the first ~warmup_rows steps "
+            "before their statistics converge. Without clipping, those spikes pass "
+            "directly into the network and can cause gradient explosions early in training."
+        ),
+        suggestion=(
+            "Set obs_clip to a finite value such as 5.0 or 10.0. "
+            "Alternatively, ensure warmup_rows is large enough to cover the cold-start period."
+        ),
+    )
+
+
+def _check_trading_fees(config: ExperimentConfig) -> Finding | None:
+    """WARN: trading_fees > 0.1% per trade — at typical HFT turnover this dominates returns."""
+    fee = config.env.trading_fees
+    if fee > 0.001:
+        pct = fee * 100
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.trading_fees",
+            message=(
+                f"trading_fees={fee} ({pct:.3f}% per trade). At high-frequency turnover "
+                "fees accumulate rapidly and can easily exceed total gross returns, "
+                "making profitability nearly impossible regardless of signal quality."
+            ),
+            suggestion=(
+                f"Verify the fee is intentional. Typical HFT fees are 0.0–0.0002 "
+                f"(0.0–0.02%). Current value is {pct / 0.02:.0f}× the typical upper bound."
+            ),
+        )
+    return None
+
+
+def _check_learning_rates(config: ExperimentConfig) -> Finding | None:
+    """WARN: actor_lr or value_lr > 1e-2 → likely to diverge with Adam."""
+    findings_parts = []
+    if config.training.actor_lr > 1e-2:
+        findings_parts.append(f"actor_lr={config.training.actor_lr:.2e}")
+    if config.training.value_lr > 1e-2:
+        findings_parts.append(f"value_lr={config.training.value_lr:.2e}")
+    if not findings_parts:
+        return None
+    return Finding(
+        severity=Severity.WARN,
+        parameter="training.actor_lr / training.value_lr",
+        message=(
+            f"{', '.join(findings_parts)} exceed 1e-2. Adam learning rates above 1e-2 "
+            "frequently cause divergence on RL objectives, especially when reward "
+            "magnitudes are large or observations are not well-normalised."
+        ),
+        suggestion="Typical Adam LRs for RL are 1e-4–3e-4 (actor) and 1e-3–3e-3 (critic).",
+    )
+
+
+def _check_seed_none(config: ExperimentConfig) -> Finding | None:
+    """WARN: seed=None → non-reproducible run."""
+    if config.seed is not None:
+        return None
+    return Finding(
+        severity=Severity.WARN,
+        parameter="seed",
+        message=(
+            "seed=None: this run is not reproducible. Network initialisation, data "
+            "shuffling, and random baselines will differ across runs, making it "
+            "impossible to attribute result differences to config changes."
+        ),
+        suggestion="Set seed to a fixed integer (e.g. seed=42).",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -307,14 +551,25 @@ _ALL_CHECKS = [
     _check_sample_size_vs_buffer,
     _check_ppo_minibatch_vs_batch,
     _check_streaming_episode_vs_train_size,
+    _check_train_size_vs_warmup_rows,
     # WARN
+    _check_frames_per_batch_vs_train_size,
     _check_init_rand_overflows_buffer,
     _check_init_rand_too_small,
     _check_frames_per_batch_vs_buffer,
+    _check_optim_steps_replay_reuse,
     _check_eval_interval,
     _check_dsr_reward_scale,
+    _check_dsr_eta_range,
     _check_ppo_updates_per_rollout,
+    _check_ppo_clip_epsilon,
+    _check_td3_noise_vs_clip,
+    _check_tau_too_large,
+    _check_obs_clip_none,
+    _check_trading_fees,
+    _check_learning_rates,
     _check_warmup_rows,
+    _check_seed_none,
 ]
 
 

@@ -193,6 +193,7 @@ def _make_smoke_config(
             "training.log_interval=1000",
             "training.checkpoint_interval=0",
             "training.ppo_epochs=1",
+            "training.skip_guardrail_prompts=true",
             f"network.actor_hidden_dims={_format_int_list(case.actor_hidden_dims)}",
             f"network.value_hidden_dims={_format_int_list(case.value_hidden_dims)}",
             f"logging.log_dir={log_dir}",
