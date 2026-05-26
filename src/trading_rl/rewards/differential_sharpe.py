@@ -172,11 +172,18 @@ class DifferentialSharpeRatio(AbstractReward):
             self._prev_nlv = nlv_now
             return 0.0
 
-        # Calculate log return
-        if self._prev_nlv <= 0 or nlv_now <= 0:
+        # Guard against non-positive and non-finite values before log().
+        # inf or nan would propagate into the EMA update and permanently corrupt
+        # A_t / B_t for the remainder of the episode.
+        if not (
+            np.isfinite(nlv_now)
+            and np.isfinite(self._prev_nlv)
+            and self._prev_nlv > 0
+            and nlv_now > 0
+        ):
             logger.warning(
-                f"Invalid portfolio value: prev={self._prev_nlv}, now={nlv_now}. "
-                "Returning 0 reward."
+                "Invalid portfolio value: prev=%s, now=%s. Returning 0 reward.",
+                self._prev_nlv, nlv_now,
             )
             self._prev_nlv = nlv_now
             return 0.0
