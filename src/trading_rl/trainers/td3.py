@@ -153,12 +153,12 @@ class TD3Trainer(BaseTrainer):
             hidden_dims=config.network.actor_hidden_dims,
             spec=env.action_spec,
         )
-        qvalue_net = create_td3_qvalue_network(
+        value_net = create_td3_qvalue_network(
             n_obs,
             n_act,
             hidden_dims=config.network.value_hidden_dims,
         )
-        return actor, qvalue_net
+        return actor, value_net
 
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int
