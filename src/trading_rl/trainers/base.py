@@ -133,29 +133,28 @@ def _run_evaluation(
 
     if config:
         from trading_rl.evaluation.evaluator import EnvConfig
-        _default_eval_plots = ("rewards", "positions", "portfolio_value")
         eval_config_kwargs = {
-            "reward_type": getattr(config.env, "reward_type", RewardType.LOG_RETURN),
-            "backend": getattr(config.env, "backend", EnvBackend.TRADINGENV),
-            "price_column": getattr(config.env, "price_column", None),
+            "reward_type": config.env.reward_type,
+            "backend": config.env.backend,
+            "price_column": config.env.price_column,
             "max_steps": max_steps,
             "enable_plots": True,
             "enable_metrics": False,
-            "max_plot_points": getattr(getattr(config, "training", None), "max_plot_points", None),
-            "show_allocation_ma": getattr(getattr(config, "training", None), "show_allocation_ma", True),
-            "allocation_ma_window": getattr(getattr(config, "training", None), "allocation_ma_window", 500),
-            "eval_plots": tuple(getattr(getattr(config, "evaluation", None), "eval_plots", _default_eval_plots)),
+            "max_plot_points": config.training.max_plot_points,
+            "show_allocation_ma": config.training.show_allocation_ma,
+            "allocation_ma_window": config.training.allocation_ma_window,
+            "eval_plots": tuple(config.evaluation.eval_plots),
             "training_steps": int(trainer.total_count) if trainer is not None else None,
             "training_episodes": int(trainer.total_episodes) if trainer is not None else None,
-            "benchmarks": benchmarks_from_config(config.benchmarks) if getattr(config, "benchmarks", None) else frozenset({BenchmarkName.BUY_AND_HOLD}),
+            "benchmarks": benchmarks_from_config(config.benchmarks),
             "env": EnvConfig(
-                name=getattr(config.env, "name", ""),
-                positions=getattr(config.env, "positions", None),
-                mode=getattr(config.env, "mode", EnvMode.MFT),
-                trading_fees=getattr(config.env, "trading_fees", 0.0),
-                borrow_interest_rate=getattr(config.env, "borrow_interest_rate", 0.0),
-                initial_portfolio_value=getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE),
-                price_column=getattr(config.env, "price_column", "close"),
+                name=config.env.name,
+                positions=config.env.positions,
+                mode=config.env.mode,
+                trading_fees=config.env.trading_fees,
+                borrow_interest_rate=config.env.borrow_interest_rate,
+                initial_portfolio_value=config.env.initial_portfolio_value,
+                price_column=config.env.price_column or "close",
             ),
         }
 
@@ -183,7 +182,7 @@ def _run_evaluation(
         with profiler.stage("plot_equity_curve", 2):
             _t = time.monotonic()
             logger.debug("create_equity_curve_plot start n_steps=%d", max_steps)
-            _data_paths = getattr(getattr(config, "data", None), "data_paths", None) if config else None
+            _data_paths = config.data.data_paths if config else None
             plot_series = result.return_series or ReturnSeries(result.simple_returns, ReturnKind.SIMPLE)
             equity_curve_plot = create_equity_curve_plot(
                 None,
@@ -192,16 +191,16 @@ def _run_evaluation(
                 env=env_to_use,
                 actual_returns_list=[plot_series],
                 initial_portfolio_value=(
-                    float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE))
+                    float(config.env.initial_portfolio_value)
                     if config else DEFAULT_INITIAL_PORTFOLIO_VALUE
                 ),
-                benchmark_price_column=getattr(config.env, "price_column", None) or "close" if config else "close",
+                benchmark_price_column=config.env.price_column or "close" if config else "close",
                 benchmarks=benchmarks_from_config(config.benchmarks) if config else frozenset({BenchmarkName.BUY_AND_HOLD}),
                 training_steps=trainer.total_count,
                 training_episodes=trainer.total_episodes,
                 n_total_symbols=len(_data_paths) if _data_paths else None,
-                max_plot_points=getattr(getattr(config, "training", None), "max_plot_points", None) if config else None,
-                reward_type=str(getattr(config.env, "reward_type", "log_return")) if config else None,
+                max_plot_points=config.training.max_plot_points if config else None,
+                reward_type=str(config.env.reward_type) if config else None,
             )
             logger.debug("evaluate.plot_equity_curve elapsed=%.2fs", time.monotonic() - _t)
 
