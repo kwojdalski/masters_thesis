@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from trading_rl.data.preparation import _resolve_symbol_index
 
 
