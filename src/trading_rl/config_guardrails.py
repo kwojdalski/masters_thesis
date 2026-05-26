@@ -569,6 +569,174 @@ def _check_seed_none(config: ExperimentConfig) -> Finding | None:
     )
 
 
+def _check_validation_size_vs_eval_steps(config: ExperimentConfig) -> Finding | None:
+    """WARN: validation_size < eval_steps → eval silently runs fewer steps than requested."""
+    vs = config.data.validation_size
+    es = config.evaluation.eval_steps
+    if vs is not None and vs < es:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="data.validation_size / evaluation.eval_steps",
+            message=(
+                f"validation_size={vs:,} < eval_steps={es:,}: the evaluator will run "
+                f"for at most {vs:,} steps (capped by available data) without raising "
+                "an error, so eval metrics represent a shorter horizon than intended."
+            ),
+            suggestion=(
+                f"Set eval_steps <= validation_size (e.g. {vs:,}), "
+                f"or increase validation_size to at least {es:,}."
+            ),
+        )
+    return None
+
+
+def _check_no_checkpoints_long_run(config: ExperimentConfig) -> Finding | None:
+    """WARN: no checkpointing on a long run → a crash loses all progress."""
+    if config.training.checkpoint_interval != 0:
+        return None
+    threshold = 100_000
+    if config.training.max_steps > threshold:
+        hours_estimate = config.training.max_steps / 10_000  # rough: ~10k steps/min
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.checkpoint_interval / training.max_steps",
+            message=(
+                f"checkpoint_interval=0 (disabled) with max_steps={config.training.max_steps:,}. "
+                f"A crash or OOM error loses all training progress "
+                f"(estimated run time: ~{hours_estimate:.0f}+ minutes)."
+            ),
+            suggestion=(
+                f"Set checkpoint_interval to e.g. {config.training.max_steps // 5:,} "
+                "(save 5 checkpoints over the run)."
+            ),
+        )
+    return None
+
+
+def _check_log_interval_vs_eval_interval(config: ExperimentConfig) -> Finding | None:
+    """WARN: log_interval > eval_interval → loss logs are coarser than eval cadence."""
+    li = config.training.log_interval
+    ei = config.training.eval_interval
+    if ei > 0 and li > ei:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.log_interval / training.eval_interval",
+            message=(
+                f"log_interval={li:,} > eval_interval={ei:,}: evaluation fires more "
+                "frequently than loss logging. You will see eval snapshots without "
+                "any loss metrics between them, making it hard to diagnose whether "
+                "a drop in eval performance corresponds to a loss spike."
+            ),
+            suggestion=f"Set log_interval <= eval_interval (e.g. {ei:,}).",
+        )
+    return None
+
+
+def _check_single_position(config: ExperimentConfig) -> Finding | None:
+    """WARN: only one position available → agent has no meaningful choice to learn."""
+    positions = config.env.positions
+    if positions is not None and len(set(positions)) == 1:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.positions",
+            message=(
+                f"env.positions={positions} contains only one unique value. "
+                "The agent has no choice to make at each step — every action produces "
+                "the same outcome. No policy can be learned."
+            ),
+            suggestion="Add at least two distinct positions, e.g. positions=[-1, 1].",
+        )
+    return None
+
+
+def _check_streaming_episode_vs_warmup_rows(config: ExperimentConfig) -> Finding | None:
+    """WARN (streaming): episode_length <= warmup_rows → every episode starts with unconverged stats."""
+    if not getattr(config.data, "memmap_dir", None):
+        return None
+    ep = config.env.streaming_episode_length
+    w = config.data.warmup_rows
+    if w > 0 and ep <= w:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.streaming_episode_length / data.warmup_rows",
+            message=(
+                f"streaming_episode_length={ep:,} <= warmup_rows={w:,}: every episode "
+                "is shorter than the running-normalizer warm-up window. The normalizer "
+                "never converges within an episode, so observations are perpetually "
+                "in the cold-start regime with high variance."
+            ),
+            suggestion=(
+                f"Set streaming_episode_length > warmup_rows "
+                f"(e.g. {w * 5:,}), or reduce warmup_rows."
+            ),
+        )
+    return None
+
+
+def _check_no_exploration(config: ExperimentConfig) -> Finding | None:
+    """WARN (DDPG/TD3): exploration_noise_std=0 and init_rand_steps=0 → no exploration at all."""
+    if not _is_off_policy(config.training.algorithm):
+        return None
+    noise = config.training.exploration_noise_std
+    rand_steps = config.training.init_rand_steps
+    if noise == 0.0 and rand_steps == 0:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.exploration_noise_std / training.init_rand_steps",
+            message=(
+                "exploration_noise_std=0 and init_rand_steps=0: the agent performs "
+                "no exploration whatsoever from step one. The critic is trained "
+                "entirely on deterministic trajectories, severely limiting the "
+                "state-action coverage in the replay buffer."
+            ),
+            suggestion=(
+                "Set init_rand_steps >= sample_size to seed the buffer with random "
+                "transitions, and/or set exploration_noise_std > 0 (e.g. 0.1)."
+            ),
+        )
+    return None
+
+
+def _check_ppo_entropy_bonus(config: ExperimentConfig) -> Finding | None:
+    """WARN (PPO): entropy_bonus > 0.1 → entropy term dominates, policy stays near-uniform."""
+    if not _is_ppo(config.training.algorithm):
+        return None
+    eb = config.training.entropy_bonus
+    if eb > 0.1:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.entropy_bonus",
+            message=(
+                f"entropy_bonus={eb}: the entropy regularisation term is unusually "
+                "large. Above ~0.1 it dominates the policy gradient loss, pushing the "
+                "policy toward a uniform distribution and preventing it from committing "
+                "to high-reward actions."
+            ),
+            suggestion="Typical values are 0.0–0.05. Consider entropy_bonus=0.01.",
+        )
+    return None
+
+
+def _check_ppo_vf_coef(config: ExperimentConfig) -> Finding | None:
+    """WARN (PPO): vf_coef > 1.0 → value loss dominates, actor barely trained."""
+    if not _is_ppo(config.training.algorithm):
+        return None
+    vc = config.training.vf_coef
+    if vc > 1.0:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.vf_coef",
+            message=(
+                f"vf_coef={vc}: the value function loss is weighted {vc}× relative "
+                "to the policy gradient. Above 1.0 the value loss dominates the "
+                "combined objective and the actor receives proportionally smaller "
+                "gradient signal, slowing policy improvement."
+            ),
+            suggestion="Typical values are 0.25–1.0. Consider vf_coef=0.5.",
+        )
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -591,12 +759,20 @@ _ALL_CHECKS = [
     _check_dsr_eta_range,
     _check_ppo_updates_per_rollout,
     _check_ppo_clip_epsilon,
+    _check_ppo_entropy_bonus,
+    _check_ppo_vf_coef,
     _check_td3_noise_vs_clip,
     _check_tau_too_large,
     _check_obs_clip_none,
     _check_trading_fees,
     _check_learning_rates,
     _check_warmup_rows,
+    _check_validation_size_vs_eval_steps,
+    _check_no_checkpoints_long_run,
+    _check_log_interval_vs_eval_interval,
+    _check_single_position,
+    _check_streaming_episode_vs_warmup_rows,
+    _check_no_exploration,
     _check_seed_none,
 ]
 
