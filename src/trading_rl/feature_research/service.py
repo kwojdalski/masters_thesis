@@ -253,6 +253,7 @@ def _select_features(
     selected: list[str] = []
     remaining_features = list(scores["feature"])
     residual_data = feature_data.copy()
+    min_residual_std = 1e-10
 
     for candidate in scores["feature"]:
         if len(selected) >= top_k:
@@ -263,23 +264,21 @@ def _select_features(
         row = scores[scores["feature"] == candidate].iloc[0]
         if abs(float(row["icir"])) < icir_threshold:
             continue
+        if float(residual_data[candidate].std()) <= min_residual_std:
+            continue
 
         selected.append(candidate)
+        remaining_features.remove(candidate)
 
-        if len(selected) < top_k and len(remaining_features) > len(selected):
+        if len(selected) < top_k and remaining_features:
             selected_matrix = residual_data[selected].values
             regressor = LinearRegression(fit_intercept=False)
             regressor.fit(selected_matrix, residual_data[remaining_features].values)
 
             predicted = regressor.predict(selected_matrix)
-            remaining_idx = [
-                i for i, f in enumerate(remaining_features) if f not in selected
-            ]
-            if remaining_idx:
-                remaining_names = [remaining_features[i] for i in remaining_idx]
-                residual_data[remaining_names] = (
-                    residual_data[remaining_names].values - predicted[:, remaining_idx]
-                )
+            residual_data[remaining_features] = (
+                residual_data[remaining_features].values - predicted
+            )
 
     return selected
 

@@ -12,6 +12,7 @@ from trading_rl.feature_research.service import (
     _build_sharpe_proxy_target,
     _compute_ic_series,
     _score_feature_at_horizon,
+    _select_features,
     run_feature_research,
 )
 from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
@@ -202,6 +203,39 @@ class TestTargetAlignment:
         assert scores.loc[0, "best_horizon"] == 1
         assert scores.loc[0, "mean_ic"] > 0.95
         assert scores.loc[0, "val_mean_ic"] > 0.95
+
+
+class TestSelectFeatures:
+    def test_linear_duplicate_is_skipped_after_residualization(self):
+        rng = np.random.default_rng(123)
+        primary = rng.standard_normal(200)
+        incremental = rng.standard_normal(200)
+        feature_data = pd.DataFrame(
+            {
+                "feature_primary": primary,
+                "feature_duplicate": primary * 3.0,
+                "feature_incremental": incremental,
+            }
+        )
+        scores = pd.DataFrame(
+            {
+                "feature": [
+                    "feature_primary",
+                    "feature_duplicate",
+                    "feature_incremental",
+                ],
+                "icir": [3.0, 2.9, 2.0],
+            }
+        )
+
+        selected = _select_features(
+            scores=scores,
+            feature_data=feature_data,
+            top_k=2,
+            icir_threshold=0.05,
+        )
+
+        assert selected == ["feature_primary", "feature_incremental"]
 
 
 # ---------------------------------------------------------------------------
