@@ -29,7 +29,7 @@ class RandomTrainer(BaseTrainer):
     def _evaluate(self) -> None:
         pass
 
-    def train(self, callback: Any = None) -> dict:
+    def train(self, callback: Any = None) -> dict[str, list]:
         """Skip training — random policy requires no learning."""
         return dict(self.logs)
 
