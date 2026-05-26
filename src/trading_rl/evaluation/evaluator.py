@@ -70,6 +70,7 @@ class EvaluationConfig:
     training_steps: int | None = None  # Steps the policy was trained for (shown in captions)
     training_episodes: int | None = None  # Episodes the policy was trained for (shown in captions)
     benchmarks: frozenset[BenchmarkName] = frozenset({BenchmarkName.BUY_AND_HOLD})
+    show_reward_benchmarks: bool = False  # Show benchmark reward curves on the reward plot
 
 
 @dataclass(frozen=True)
@@ -354,6 +355,8 @@ class StrategyEvaluator:
                     allocation_ma_window=self.config.allocation_ma_window,
                     training_steps=self.config.training_steps,
                     training_episodes=self.config.training_episodes,
+                    show_benchmarks=self.config.show_reward_benchmarks,
+                    benchmark_price_column=self.config.price_column,
                 )
                 logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
                 if "rewards" in enabled:

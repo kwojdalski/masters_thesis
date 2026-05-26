@@ -135,6 +135,8 @@ def compare_rollouts(
     max_plot_points: int | None = None,
     show_allocation_ma: bool = True,
     allocation_ma_window: int = 500,
+    show_benchmarks: bool = False,
+    benchmark_price_column: str = "close",
 ):
     """Compare multiple rollouts and visualize their actions and rewards."""
     all_actions = []
@@ -184,6 +186,36 @@ def compare_rollouts(
         )
     df_rewards = pd.DataFrame(rewards_data)
     df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
+
+    # Add benchmark reward curves if requested and reward_type is log_return
+    if show_benchmarks and df is not None and reward_type == "log_return":
+        price_col = benchmark_price_column
+        if price_col not in df.columns and "close" in df.columns:
+            price_col = "close"
+        if price_col in df.columns:
+            price_series = df[price_col].iloc[: n_obs + 1]
+            log_returns = np.log(price_series / price_series.shift(1)).iloc[1:].to_numpy(dtype=float)
+
+            n_bad = int(np.sum(~np.isfinite(log_returns)))
+            if n_bad == 0:
+                idx = np.arange(len(log_returns))[::stride]
+                for bench_name, sign in [("Buy-and-Hold", 1.0), ("Short-and-Hold", -1.0)]:
+                    cumsum = (sign * log_returns).cumsum()
+                    rewards_data.extend(
+                        {
+                            "Steps": int(s),
+                            "Cumulative_Reward": float(cumsum[i]),
+                            "Run": bench_name,
+                        }
+                        for i, s in enumerate(idx) if i < len(cumsum)
+                    )
+                df_rewards = pd.DataFrame(rewards_data)
+                df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
+            else:
+                logger.warning(
+                    "Benchmark reward curves skipped: %d non-finite returns in price series",
+                    n_bad,
+                )
 
     actions_data = []
     for i, actions in enumerate(all_actions):
