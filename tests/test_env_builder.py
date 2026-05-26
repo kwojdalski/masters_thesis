@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from trading_rl.constants import EnvBackend
+from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.envs import builder as builder_module
 from trading_rl.envs.builder import AlgorithmicEnvironmentBuilder
 from trading_rl.rewards import reward_function
@@ -282,3 +282,76 @@ class TestCreateStreamingEnv:
 
         with pytest.raises(ValueError, match="memmap streaming is not supported"):
             AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], config)
+
+    def test_create_streaming_tradingenv_forwards_runtime_and_reward_config(
+        self, monkeypatch
+    ):
+        import torchrl.envs.transforms as transforms_module
+
+        import trading_rl.envs.tradingenvxy_wrapper as xy_module
+
+        calls = {"xy": [], "gym": [], "transformed": []}
+
+        class FakeStreamingTradingEnvXY:
+            def __init__(self, **kwargs):
+                calls["xy"].append(kwargs)
+
+        class FakeStepCounter:
+            pass
+
+        def fake_gym_wrapper(env):
+            calls["gym"].append(env)
+            return ("gym", env)
+
+        def fake_transformed_env(env, transform):
+            calls["transformed"].append((env, transform))
+            return ("transformed", env, transform)
+
+        monkeypatch.setattr(
+            xy_module,
+            "StreamingTradingEnvXY",
+            FakeStreamingTradingEnvXY,
+        )
+        monkeypatch.setattr(transforms_module, "StepCounter", FakeStepCounter)
+        monkeypatch.setattr(builder_module, "GymWrapper", fake_gym_wrapper)
+        monkeypatch.setattr(builder_module, "TransformedEnv", fake_transformed_env)
+
+        memmap = SimpleNamespace(
+            columns=["close", "feature_signal", "feature_position"]
+        )
+        config = _cfg("TD3", EnvBackend.TRADINGENV)
+        config.env.feature_columns = ["feature_signal", "feature_position"]
+        config.env.price_column = "mid_price"
+        config.env.initial_portfolio_value = 25_000.0
+        config.env.trading_fees = 0.0002
+        config.env.reward_type = RewardType.DIFFERENTIAL_SHARPE
+        config.env.reward_eta = 0.07
+        config.env.reward_scale = 2.5
+        config.env.include_position_feature = True
+        config.env.obs_clip = 3.0
+
+        result = AlgorithmicEnvironmentBuilder()._create_streaming_tradingenv(
+            [memmap],
+            episode_length=12,
+            config=config,
+        )
+
+        assert result[0] == "transformed"
+        assert calls["xy"] == [
+            {
+                "memmap_paths": [memmap],
+                "episode_length": 12,
+                "feature_columns": ["feature_signal"],
+                "price_column": "mid_price",
+                "initial_cash": 25_000.0,
+                "fee": 0.0002,
+                "reward_type": RewardType.DIFFERENTIAL_SHARPE,
+                "reward_eta": 0.07,
+                "reward_scale": 2.5,
+                "runtime_feature_columns": ["feature_position"],
+                "obs_clip": 3.0,
+                "seed": 123,
+            }
+        ]
+        assert isinstance(calls["gym"][0], FakeStreamingTradingEnvXY)
+        assert isinstance(calls["transformed"][0][1], FakeStepCounter)
