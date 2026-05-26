@@ -7,11 +7,14 @@ from scipy.stats import spearmanr
 
 from trading_rl.feature_research.service import (
     _aggregate_symbol_scores,
+    _build_return_target,
+    _build_score_table,
+    _build_sharpe_proxy_target,
     _compute_ic_series,
     _score_feature_at_horizon,
     run_feature_research,
 )
-from trading_rl.feature_research.config import FeatureResearchConfig
+from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
 
 
 # ---------------------------------------------------------------------------
@@ -143,6 +146,62 @@ class TestScoreFeatureAtHorizon:
         )
         assert stats["mean_ic"] > 0.8
         assert abs(stats["val_mean_ic"]) < 0.5
+
+
+class TestTargetAlignment:
+    def test_return_target_uses_forward_price_at_requested_horizon(self):
+        df = pd.DataFrame({"close": [100.0, 105.0, 110.0, 99.0]})
+
+        target = _build_return_target(df, horizon=2)
+
+        assert target.iloc[0] == pytest.approx(np.log(110.0 / 100.0))
+        assert target.iloc[1] == pytest.approx(np.log(99.0 / 105.0))
+        assert target.iloc[2:].isna().all()
+
+    def test_sharpe_proxy_target_scales_forward_return_by_current_rolling_vol(self):
+        prices = pd.Series([100.0, 105.0, 115.0, 120.0, 132.0])
+        df = pd.DataFrame({"close": prices})
+        log_returns = np.log(prices / prices.shift(1))
+        rolling_vol = log_returns.rolling(2).std()
+        expected = np.log(prices.shift(-2) / prices) / (rolling_vol + 1e-10)
+
+        target = _build_sharpe_proxy_target(df, horizon=2, vol_window=2)
+
+        assert target.iloc[2] == pytest.approx(expected.iloc[2])
+        assert target.iloc[-2:].isna().all()
+
+    def test_score_table_aligns_feature_with_same_timestamp_forward_target(self):
+        rng = np.random.default_rng(123)
+        n_train, n_val = 160, 80
+        train_returns = rng.normal(loc=0.0, scale=0.01, size=n_train)
+        val_returns = rng.normal(loc=0.0, scale=0.01, size=n_val)
+        train_raw = pd.DataFrame({"close": 100.0 * np.exp(np.cumsum(train_returns))})
+        val_raw = pd.DataFrame({"close": 100.0 * np.exp(np.cumsum(val_returns))})
+
+        train_target = _build_return_target(train_raw, horizon=1)
+        val_target = _build_return_target(val_raw, horizon=1)
+        train_features = pd.DataFrame(
+            {"feature_predictive": train_target + rng.normal(0.0, 1e-4, n_train)}
+        )
+        val_features = pd.DataFrame(
+            {"feature_predictive": val_target + rng.normal(0.0, 1e-4, n_val)}
+        )
+
+        scores = _build_score_table(
+            train_features=train_features,
+            val_features=val_features,
+            train_raw=train_raw,
+            val_raw=val_raw,
+            horizons=[1],
+            vol_window=5,
+            window_size=20,
+            target_type=TargetType.RETURN,
+        )
+
+        assert scores.loc[0, "feature"] == "feature_predictive"
+        assert scores.loc[0, "best_horizon"] == 1
+        assert scores.loc[0, "mean_ic"] > 0.95
+        assert scores.loc[0, "val_mean_ic"] > 0.95
 
 
 # ---------------------------------------------------------------------------
