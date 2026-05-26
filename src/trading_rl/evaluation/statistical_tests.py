@@ -128,7 +128,7 @@ def run_all_statistical_tests(
                 BenchmarkName.RANDOM_ACTIONS,
                 config,
             )
-            random_results.update(summarize_random_baseline_trials(random_baseline_trials))
+            random_results.update(summarize_random_baseline_trials(random_baseline_trials, periods_per_year=periods_per_year))
             benchmark_returns_map[BenchmarkName.RANDOM_ACTIONS] = random_returns_mean
             all_results["baselines"].append(random_results)
             _status(f"  [{idx}/{n_baselines}] {BenchmarkName.RANDOM_ACTIONS} done")

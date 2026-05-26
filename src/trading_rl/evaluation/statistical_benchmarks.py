@@ -279,10 +279,19 @@ def compute_random_baseline_returns(
 
 def summarize_random_baseline_trials(
     random_trials: list[np.ndarray],
+    periods_per_year: int = 252,
 ) -> dict[str, float]:
-    """Compute summary statistics across random baseline trials."""
-    trial_sharpes = [_sharpe_ratio(trial) for trial in random_trials]
+    """Compute summary statistics across random baseline trials.
+
+    Applies the same bar aggregation as build_metric_report so the reported
+    Sharpe is on the same scale as the strategy's sharpe_ratio.
+    """
+    trial_sharpes: list[float] = []
+    for trial in random_trials:
+        r, _ = aggregate_to_reporting_frequency(trial[np.isfinite(trial)], periods_per_year)
+        sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
+        trial_sharpes.append(sharpe_raw(float(np.mean(r)), sigma))
     return {
-        "random_trials_sharpe_mean": float(np.mean(trial_sharpes)),
-        "random_trials_sharpe_std": float(np.std(trial_sharpes)),
+        "random_trials_sharpe_mean": float(np.nanmean(trial_sharpes)) if trial_sharpes else float("nan"),
+        "random_trials_sharpe_std": float(np.nanstd(trial_sharpes)) if trial_sharpes else float("nan"),
     }
