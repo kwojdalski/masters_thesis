@@ -19,7 +19,7 @@ from thesis_mlflow_results import (
     format_key_metrics,
     load_experiment_snapshot,
 )
-from thesis_tables import display_df as display_table, display_image_from_path
+from thesis_tables import display_df as display_table
 
 
 EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
@@ -87,25 +87,22 @@ on the raw per-step series.
 <!-- [PLACEHOLDER] -->
 
 ```{python}
-#| label: eval_plots
+#| label: eval_plots_setup
 #| echo: false
 #| warning: false
 
-if finished is None:
-    print("No finished run available to display evaluation plots.")
-else:
-    plots = finished.get("evaluation_plots", {})
-    ordered = [
-        ("Actual returns", "actual_returns", True),
-        ("Rewards", "rewards", False),
-        ("Positions", "positions", False),
-    ]
+from trading_rl.evaluation.plots import plot_equity_curve, plot_rewards, plot_actions
+from thesis_mlflow_results import find_evaluation_plot_data, show_plot
 
-    for title, key, show_title in ordered:
-        display_image_from_path(
-            plots.get(key, ""),
-            title=title if show_title else None,
-        )
+_plot_data = {}
+if finished is not None:
+    _plot_data = find_evaluation_plot_data(finished.get("artifact_uri"))
+
+_no_data_msg = (
+    "Plot data not available — re-run evaluation to generate parquet artifacts:\n"
+    "uv run python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr "
+    "--output-dir logs/<run> --only metrics --only benchmarks --only plots"
+)
 ```
 
 ```{python}
@@ -113,16 +110,9 @@ else:
 #| echo: false
 #| warning: false
 
-from trading_rl.evaluation.plots import plot_equity_curve
-from thesis_mlflow_results import find_evaluation_plot_data, show_plot
-
-_plot_data = None
-if finished is not None:
-    _plot_data = find_evaluation_plot_data(finished.get("artifact_uri"))
-
-if _plot_data and _plot_data.get("returns") is not None:
+if _plot_data.get("equity") is not None:
     _p = plot_equity_curve(
-        df_returns=_plot_data["returns"],
+        df_returns=_plot_data["equity"],
         initial_portfolio_value=_plot_data["initial_portfolio_value"],
         policy_mode=_plot_data["policy_mode"],
         training_steps=_plot_data.get("training_steps"),
@@ -133,10 +123,54 @@ if _plot_data and _plot_data.get("returns") is not None:
         symbols=_plot_data.get("symbols", []),
         n_total_symbols=_plot_data.get("n_total_symbols"),
     )
-    show_plot(_p, _plot_data, frame="equity", fig_label="fig-equity-curve-test",
-              fig_cap="Portfolio value over the evaluation window for the TD3 agent and benchmark strategies.")
+    show_plot(_p, _plot_data, frame="equity", fig_label="fig-eval-equity",
+              fig_cap="Portfolio value over the held-out evaluation window for the TD3 agent and benchmark strategies.")
 else:
-    print("Equity curve plot data not available — run evaluation with parquet artifact export enabled.")
+    print(_no_data_msg)
+```
+
+```{python}
+#| output: asis
+#| echo: false
+#| warning: false
+
+if _plot_data.get("rewards") is not None:
+    _p = plot_rewards(
+        df_rewards=_plot_data["rewards"],
+        training_steps=_plot_data.get("training_steps"),
+        training_episodes=_plot_data.get("training_episodes"),
+        reward_type=_plot_data.get("reward_type", ""),
+        stride=_plot_data.get("stride", 1),
+        n_obs=_plot_data.get("n_obs", 0),
+        date_str=_plot_data.get("date_str", ""),
+    )
+    show_plot(_p, _plot_data, frame="rewards", fig_label="fig-eval-rewards",
+              fig_cap="Per-step reward signal received by the TD3 agent during the held-out evaluation rollout.")
+else:
+    print(_no_data_msg)
+```
+
+```{python}
+#| output: asis
+#| echo: false
+#| warning: false
+
+if _plot_data.get("actions") is not None:
+    _p = plot_actions(
+        df_actions=_plot_data["actions"],
+        df_ma=_plot_data.get("actions_ma"),
+        is_portfolio=_plot_data.get("is_portfolio", True),
+        training_steps=_plot_data.get("training_steps"),
+        training_episodes=_plot_data.get("training_episodes"),
+        stride=_plot_data.get("stride", 1),
+        n_obs=_plot_data.get("n_obs", 0),
+        date_str=_plot_data.get("date_str", ""),
+        allocation_ma_window=_plot_data.get("allocation_ma_window"),
+    )
+    show_plot(_p, _plot_data, frame="actions", fig_label="fig-eval-positions",
+              fig_cap="Portfolio allocation (position) taken by the TD3 agent at each step of the held-out evaluation rollout.")
+else:
+    print(_no_data_msg)
 ```
 
 ### Discussion: Reading Performance in the Context of State Design
