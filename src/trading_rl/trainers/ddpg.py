@@ -69,6 +69,7 @@ class DDPGTrainer(BaseTrainer):
         self.optimizer_actor = Adam(
             self.ddpg_loss.actor_network_params.values(True, True),
             lr=config.actor_lr,
+            weight_decay=config.actor_weight_decay,
         )
         self.optimizer_value = Adam(
             self.ddpg_loss.value_network_params.values(True, True),
