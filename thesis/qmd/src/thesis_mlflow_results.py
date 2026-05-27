@@ -1178,6 +1178,19 @@ def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str,
     ]
 
 
+def audit_plots_enabled() -> bool:
+    """Return True when AUDIT_PLOTS=1/true/yes is set in the environment.
+
+    Use at the top of a QMD setup chunk:
+        audit = audit_plots_enabled()
+
+    Enable at render time:
+        AUDIT_PLOTS=1 uv run quarto render masters-thesis.qmd --to pdf
+    """
+    import os
+    return os.environ.get("AUDIT_PLOTS", "").lower() in {"1", "true", "yes"}
+
+
 def show_plot(
     plot: Any,
     data: dict[str, Any],
@@ -1197,8 +1210,7 @@ def show_plot(
                existing figure_size in the plot theme. Use instead of #| fig-width.
         height: figure height in inches. Same as width.
         audit: when True, print commit hash and generation datetime below the plot.
-               Pass ``params["audit_plots"]`` from the QMD front matter to control this
-               at render time via ``quarto render -P audit_plots:true``.
+               Pass audit=audit_plots_enabled() or set AUDIT_PLOTS=1 at render time.
     """
     from plotnine import theme
 
