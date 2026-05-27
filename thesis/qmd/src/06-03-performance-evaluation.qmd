@@ -83,33 +83,6 @@ $\mu/\sigma_{\text{down}}$ on the aggregated series with no annualization.
 Total return, max drawdown, win rate, profit factor, and turnover are computed
 on the raw per-step series.
 
-### Evaluation Metadata Snapshot
-<!-- [PLACEHOLDER] -->
-
-```{python}
-#| label: tbl-eval-run-metadata
-#| tbl-cap: "Evaluation run metadata: experiment identifiers, configuration, and final training metrics for the reported run."
-#| echo: false
-
-if finished is not None:
-    params = finished.get("params", {})
-    latest = finished.get("latest_metrics")
-    rows = [
-        ("Run Name", finished.get("run_name")),
-        ("Status", finished.get("status")),
-        ("Start Time", str(finished.get("start_time"))),
-        ("End Time", str(finished.get("end_time"))),
-        ("Seed", params.get("seed")),
-        ("Train Size", params.get("data_train_size")),
-        ("Algorithm", params.get("training_algorithm")),
-        ("Reward Type", params.get("env_reward_type")),
-        ("Training Steps (latest metric)", None if latest is None else latest.get("training_steps")),
-        ("Final Reward (latest metric)", None if latest is None else latest.get("final_reward")),
-    ]
-    meta_df = pd.DataFrame(rows, columns=["Field", "Value"])
-    display_table(meta_df)
-```
-
 ### Evaluation Plots
 <!-- [PLACEHOLDER] -->
 
