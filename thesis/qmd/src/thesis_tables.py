@@ -120,6 +120,7 @@ def display_image_from_path(
     """Open an image file and display it via matplotlib.
 
     Prints a warning instead of raising if the file is missing.
+    In debug mode (THESIS_DEBUG_ASSETS=1) also renders provenance metadata.
     """
     import matplotlib.pyplot as plt
     from PIL import Image
@@ -137,6 +138,12 @@ def display_image_from_path(
         ax.set_title(title)
     plt.show()
     plt.close(fig)
+
+    try:
+        from thesis_asset_debug import show_asset_debug
+        show_asset_debug(p)
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------

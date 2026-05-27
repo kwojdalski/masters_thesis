@@ -510,12 +510,16 @@ def _copy_plots_to_snapshot(plots: dict[str, Path], destination_dir: Path) -> di
     plot_dir = destination_dir / "plots"
     plot_dir.mkdir(parents=True, exist_ok=True)
     for key, src in plots.items():
-        if not Path(src).exists():
+        src = Path(src)
+        if not src.exists():
             continue
-        filename = f"{key}{Path(src).suffix.lower() or '.png'}"
+        filename = f"{key}{src.suffix.lower() or '.png'}"
         dst = plot_dir / filename
         shutil.copy2(src, dst)
         copied[key] = str(dst.relative_to(destination_dir))
+        sidecar = src.with_name(src.name + ".meta.json")
+        if sidecar.exists():
+            shutil.copy2(sidecar, plot_dir / (filename + ".meta.json"))
     return copied
 
 

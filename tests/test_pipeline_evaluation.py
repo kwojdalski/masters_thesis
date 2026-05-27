@@ -27,7 +27,7 @@ def test_statistical_tests_reuse_precomputed_strategy_returns(
     )
     config = SimpleNamespace(
         env=SimpleNamespace(price_column="close", reward_type="log_return"),
-        benchmarks=SimpleNamespace(random=False),
+        benchmarks=SimpleNamespace(is_random=False),
         data=SimpleNamespace(timeframe="1d"),
         statistical_testing=SimpleNamespace(
             log_to_research_artifacts=False,

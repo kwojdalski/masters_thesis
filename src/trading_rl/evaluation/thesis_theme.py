@@ -106,6 +106,7 @@ def save_plot(
     applied directly.  When ``debug=False`` the fast plotnine ``save()`` path is
     used without an intermediate draw step.
     """
+    from trading_rl.evaluation.asset_meta import write_asset_meta
     import matplotlib.pyplot as plt
 
     path = str(Path(path))
@@ -127,6 +128,8 @@ def save_plot(
         plot_obj.savefig(path, dpi=dpi)
     else:
         raise RuntimeError(f"Unsupported plot object type: {type(plot_obj)}")
+
+    write_asset_meta(path, generator="evaluation/thesis_theme.py")
 
 
 def thesis_theme(

@@ -159,6 +159,8 @@ def save_benchmark_table_artifact(
     json_path = output_dir / f"{split}_benchmark_table.json"
     with json_path.open("w") as f:
         json.dump(artifact, f, indent=2, default=_json_default)
+    from trading_rl.evaluation.asset_meta import write_asset_meta
+    write_asset_meta(json_path, generator="evaluation/benchmark_table.py")
 
     # --- PNG ---
     all_cols = [("name", "Name", ""), *PERF_COLS, *REL_COLS]
@@ -208,7 +210,9 @@ def save_benchmark_table_artifact(
 
     png_path = output_dir / f"{split}_benchmark_table.png"
     from trading_rl.evaluation.thesis_theme import PLOT_DPI
+    from trading_rl.evaluation.asset_meta import write_asset_meta
     fig.savefig(str(png_path), dpi=PLOT_DPI, bbox_inches="tight")
     plt.close(fig)
+    write_asset_meta(png_path, generator="evaluation/benchmark_table.py")
 
     return json_path, png_path

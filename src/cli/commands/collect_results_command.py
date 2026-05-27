@@ -12,6 +12,7 @@ from typing import Any
 from rich.console import Console
 
 from .base_command import BaseCommand
+from trading_rl.evaluation.asset_meta import write_asset_meta
 
 
 @dataclass
@@ -129,6 +130,9 @@ class CollectResultsCommand(BaseCommand):
         _write_csv(comp / "metrics_table.csv", all_rows)
         _write_json(comp / "benchmark_table.json", all_benchmarks)
         _write_csv(comp / "benchmark_table.csv", all_benchmarks)
+        for _p in [comp / "metrics_table.json", comp / "metrics_table.csv",
+                   comp / "benchmark_table.json", comp / "benchmark_table.csv"]:
+            write_asset_meta(_p, generator="cli/commands/collect_results_command.py")
 
         # Write manifest
         manifest = {
@@ -141,6 +145,7 @@ class CollectResultsCommand(BaseCommand):
             },
         }
         _write_json(out / "manifest.json", manifest)
+        write_asset_meta(out / "manifest.json", generator="cli/commands/collect_results_command.py")
 
         self.console.print(f"\n[bold green]Results collected → {out}[/bold green]")
         self.console.print(f"  Algorithms : {', '.join(algo_results.keys())}")
@@ -154,6 +159,9 @@ class CollectResultsCommand(BaseCommand):
         plots_dir.mkdir(exist_ok=True)
         for p in pngs:
             shutil.copy2(p, plots_dir / p.name)
+            sidecar = p.with_name(p.name + ".meta.json")
+            if sidecar.exists():
+                shutil.copy2(sidecar, plots_dir / sidecar.name)
 
 
 def _symbol_from_split_key(key: str) -> str:
