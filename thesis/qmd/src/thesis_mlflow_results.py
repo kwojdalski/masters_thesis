@@ -1176,3 +1176,27 @@ def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str,
         ("Evaluation random seed",       "42"),
         ("Compute environment",          "Apple M3 MacBook (November 2023) with 18 GB unified memory"),
     ]
+
+
+def show_plot(plot: Any, data: dict[str, Any], frame: str = "rewards", *, audit: bool = False) -> None:
+    """Draw a plotnine plot and optionally print asset provenance.
+
+    Args:
+        plot: plotnine ggplot object.
+        data: dict returned by find_evaluation_plot_data.
+        frame: which DataFrame key to look up provenance for ("rewards", "actions", "equity").
+        audit: when True, print commit hash and generation datetime below the plot.
+               Pass ``params["audit_plots"]`` from the QMD front matter to control this
+               at render time via ``quarto render -P audit_plots:true``.
+    """
+    plot.draw()
+    if audit:
+        meta = data.get("asset_meta", {}).get(frame, {})
+        if meta:
+            commit = meta.get("commit", "unknown")[:8]
+            dt = meta.get("datetime", "unknown")
+            generator = meta.get("generator", "")
+            parts = [f"commit: {commit}", f"generated: {dt}"]
+            if generator:
+                parts.append(f"source: {generator}")
+            print("  |  ".join(parts))

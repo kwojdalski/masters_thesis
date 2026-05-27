@@ -56,6 +56,8 @@ filters:
 editor_options:
   chunk_output_type: console
   latex_engine: xelatex
+params:
+  audit_plots: false
 jupyter:
   kernelspec:
     display_name: Masters Thesis
