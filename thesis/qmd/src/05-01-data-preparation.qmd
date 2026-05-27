@@ -373,7 +373,7 @@ continuous-control RL on financial microstructure data.
 
 ```{python}
 #| label: tbl-feature-stats
-#| tbl-cap: "Distributional statistics of engineered microstructure features on the training split (skip=500). Selected: included in the agent observation vector."
+#| tbl-cap: "Distributional statistics of engineered microstructure features."
 #| echo: false
 #| warning: false
 
@@ -411,3 +411,5 @@ else:
           "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
           "--skip 500 --export")
 ```
+
+*Computed on the training split. The first 500 events are skipped to allow rolling-window features to reach steady state. Selected (yes): the feature is included in the agent observation vector.*

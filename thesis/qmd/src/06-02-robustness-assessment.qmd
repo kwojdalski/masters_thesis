@@ -119,13 +119,13 @@ design choices constant. The shared baseline across both H3 axes is the selected
 #| warning: false
 
 import pandas as pd
-from IPython.display import display
+from IPython.display import Markdown, display
 from thesis_mlflow_results import load_scenario_metrics
 from thesis_tables import fmt_val, display_df
 
 _H3_AXES = [
     {
-        "label": "Reward Design",
+        "label": "Reward Function Design",
         "col": "Variant",
         "scenarios": [
             ("pooled_td3_hft_lob_state_space_pooled_streaming_selected",     "Log Return (baseline)", True),
@@ -133,7 +133,7 @@ _H3_AXES = [
         ],
     },
     {
-        "label": "Transaction Cost",
+        "label": "Transaction Costs",
         "col": "Fees",
         "scenarios": [
             ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "0 bp (baseline)", True),
@@ -166,7 +166,7 @@ for axis in _H3_AXES:
     if df.iloc[:, 1:].isin(["—"]).all().all():
         print(f"{axis['label']}: no results yet. Run: bash scripts/run_h3_experiments.sh")
     else:
-        print(f"\n**{axis['label']}**")
+        display(Markdown(f"### {axis['label']}"))
         display_df(df)
 ```
 

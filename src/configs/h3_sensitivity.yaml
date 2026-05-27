@@ -36,7 +36,7 @@ axes:
         baseline: false
 
   - name: reward_design
-    label: "Reward Design"
+    label: "Reward Function Design"
     scenarios:
       - label: "Log Return"
         log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
@@ -46,7 +46,7 @@ axes:
         baseline: false
 
   - name: transaction_costs
-    label: "Transaction Cost"
+    label: "Transaction Costs"
     scenarios:
       - label: "0 bp"
         log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
