@@ -314,6 +314,7 @@ def compare_rollouts(
                 date_range=date_str,
             ),
         )
+        + scale_color_manual(values=PALETTE, name="Strategy")
         + thesis_theme()
         + guides(color=guide_legend(title="Strategy"))
     )
@@ -345,6 +346,7 @@ def compare_rollouts(
                 date_range=date_str,
             ),
         )
+        + scale_color_manual(values=PALETTE, name="Strategy")
         + thesis_theme()
         + guides(color=guide_legend(title="Strategy"))
     )
