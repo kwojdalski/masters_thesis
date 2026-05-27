@@ -338,6 +338,34 @@ prep: Data Preparation {
 }
 
 # ─────────────────────────────────────────────
+# Config Guardrails — Pre-Flight
+# ─────────────────────────────────────────────
+guardrails: Config Guardrails  (pre-flight — config_guardrails_checks.py + config_guardrails_runner.py) {
+  style.fill: "#fff7ed"
+  style.stroke: "#ea580c"
+
+  checks: "50 pure-function checks  ((ExperimentConfig) → Finding | None)\nRun at the start of execute_single_experiment() — before runtime build\nFindings sorted FATAL first; WARNs follow\n\n─── FATAL  (raises ValueError; training cannot start) ───────────────\n  reward_scale = 0               → all rewards zeroed; no learning signal\n  sample_size > init_rand_steps  → buffer empty on first sample (off-policy)\n  sample_size > buffer_size      → mini-batch larger than buffer capacity\n  PPO: sample_size > frames_per_batch → empty dataloader; updates skip silently\n  streaming: episode_length > train_size → index error on reset\n  train_size <= warmup_rows      → zero effective training rows after warmup\n\n─── WARN  (logged, then prompt or auto-proceed) ──────────────────────\n  Buffer / replay health:\n    init_rand_steps overflows buffer (early transitions evicted before any update)\n    init_rand_steps < 5% of buffer  (tiny, correlated warm-up pool)\n    frames_per_batch > 25% of buffer (high temporal correlation in batches)\n    optim_steps × sample_size > buffer_size (excessive replay reuse per step)\n    buffer_size > max_steps         (buffer never reaches capacity)\n    total gradient updates < 500    (too few weight updates for convergence)\n  PPO-specific:\n    sample_size > frames_per_batch / 4 (mini-batch too large relative to rollout)\n    ppo_epochs × ⌈frames/sample⌉ > 100 (too many updates; policy collapse risk)\n    clip_epsilon > 0.5              (near-unconstrained policy updates)\n    entropy_bonus > 0.1             (policy stays near-uniform)\n    vf_coef > 1.0                   (value loss dominates; actor starved)\n    frames_per_batch < 32           (advantage estimates too noisy)\n    PPO value network narrower than actor\n  TD3/DDPG-specific:\n    policy_noise > noise_clip       (noise always capped; policy_noise ignored)\n    tau > 0.1                       (target network barely stabilises)\n    exploration_noise_std = 0 AND init_rand_steps = 0 (zero exploration)\n    exploration_noise_std > 1.0     (noise dominates policy output)\n    actor_lr > value_lr × 10        (actor chases noisy baseline)\n  DSR reward:\n    reward_scale > 100 (large reward magnitudes — check grad clipping)\n    reward_eta outside [1e-4, 0.5]  (EMA barely adapts or forgets instantly)\n  Observation / environment:\n    obs_clip = None                 (cold-start spikes pass into network)\n    trading_fees > 0.1%             (fees dominate HFT-frequency returns)\n    positions only one unique value (no meaningful action; cannot learn)\n    positions all non-negative / all non-positive (one-sided market exposure)\n    0 not in positions              (agent can never go flat)\n    any |position| > 2             (>2× leverage; bankruptcy risk)\n  Data splits / streaming:\n    streaming: episode_length <= warmup_rows (perpetual cold-start)\n    streaming: episode_length > 50% of train_size (too few distinct episodes)\n    warmup_rows >= 20% of train_size (large fraction discarded)\n    frames_per_batch > train_size   (env resets multiple times per batch)\n    validation_size < eval_steps    (eval silently runs fewer steps)\n    val_size < train_size // 10     (model selection signal too noisy)\n    validation_size / test_size differ > 5× (imbalanced val/test)\n    eval_steps < 10                 (metrics computed on almost no data)\n    temp_eval_max_steps < eval_steps (checkpoint selection less reliable)\n  Learning rates / clipping:\n    actor_lr or value_lr > 1e-2     (divergence risk with Adam)\n    max_grad_norm < 0.01            (gradients near-zeroed; network stalls)\n  Observability:\n    eval_interval → < 4 checkpoints over run (learning curve too coarse)\n    log_interval > eval_interval    (loss logs coarser than eval cadence)\n    log_interval → < 4 log entries over run (nearly blind training)\n    checkpoint_interval = 0 on long run (crash loses all progress)\n  Reproducibility:\n    seed = None                     (non-reproducible run)\n  Continuous-action bucketing:\n    continuous_action_thresholds not ordered or outside tanh range\n    actor_hidden_dims narrowest layer < 8 (insufficient network capacity)\n  Early-stopping config:\n    es_stale_policy_window < 5 episodes (too noisy; spurious fires)\n    es_saturation_window < 5 episodes / es_saturation_max_rate < 0.5" {
+    shape: step
+    style.fill: "#fed7aa"
+  }
+
+  fatal_path: "FATAL path → ValueError raised\nAll fatal findings printed to stderr\nTraining cannot start\nskip_guardrail_prompts has no effect on fatals" {
+    shape: step
+    style.fill: "#fca5a5"
+    style.stroke: "#dc2626"
+  }
+
+  warn_path: "WARN path → print + prompt\nAll warnings printed to stdout\n\nskip_guardrail_prompts = True  → proceed without prompt\nstdin non-interactive (CI/scripts) → log warning, proceed automatically\nInteractive terminal → 'Proceed anyway? [y/N]'\n  Y / yes → proceed to training\n  N (default) / EOF → SystemExit (user abort)" {
+    shape: step
+    style.fill: "#fef08a"
+    style.stroke: "#ca8a04"
+  }
+
+  checks -> fatal_path: "severity=FATAL"
+  checks -> warn_path: "severity=WARN"
+}
+
+# ─────────────────────────────────────────────
 # Stage 4 – RL Training
 # ─────────────────────────────────────────────
 train: RL Training {
@@ -477,6 +505,29 @@ train: RL Training {
     style.fill: "#fecaca"
   }
 
+  health_monitor: Runtime Health Monitor  (TrainingHealthMonitor — trainers/health_monitor.py) {
+    style.fill: "#fff1f2"
+    style.stroke: "#991b1b"
+
+    hm_stale: "Stale-Policy Guard  (es_stale_policy_min_ratio > 0, default: disabled)\n\nSignal: position-change ratio per episode\n  ratio = #{steps where action changed} / (episode_length − 1)\nRolling deque of length es_stale_policy_window episodes  (default 20)\nFires when:\n  mean(ratios[-window:]) < es_stale_policy_min_ratio\nInterpretation: agent has stopped changing positions;\n  no gradient signal is flowing into the policy\nTypical cause: collapsed policy, over-regularisation,\n  or zero exploration noise (DDPG/TD3)" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    hm_saturation: "Saturation Guard  (es_saturation_max_rate > 0, default: disabled)\n\nSignal: fraction of steps at non-neutral position  (|action| > 0)\n  pct_extreme = mean(|action_t| > 0)  (pre-computed by EpisodeStatsTracker)\nRolling deque of length es_saturation_window episodes  (default 20)\nFires when:\n  mean(pct_extreme[-window:]) > es_saturation_max_rate\nInterpretation: agent is always fully long or fully short,\n  never going flat — stuck at full-exposure saturation\nTypical cause: entropy collapse (PPO) or reward\n  so skewed that always-invested beats neutral" {
+      shape: step
+      style.fill: "#fecaca"
+    }
+
+    hm_action: "Early-Stop Action\nFinding returned to base trainer training loop\ntrainer logs: runtime guardrail WARN [parameter] message | suggestion\nTraining loop breaks immediately (no crash; final checkpoint still saved)\nFinding reuses config_guardrails Finding/Severity dataclasses\n  → same structured format as pre-flight guardrails" {
+      shape: step
+      style.fill: "#fca5a5"
+    }
+
+    hm_stale -> hm_action: "Finding(severity=WARN)"
+    hm_saturation -> hm_action: "Finding(severity=WARN)"
+  }
+
   train_mlflow: MLflow — logged during training {
     style.fill: "#fff1f2"
     style.stroke: "#b91c1c"
@@ -524,6 +575,13 @@ train: RL Training {
   resume -> ddpg.ddpg_net: "restore weights + optimizer"
   resume -> ppo.ppo_net: "restore weights + optimizer"
   resume -> random.random_policy: "no-op (load_checkpoint is a no-op)"
+
+  # Runtime health monitor — checked after every batch
+  td3.td3_update -> health_monitor: "check() after each batch"
+  ddpg.ddpg_update -> health_monitor: "check() after each batch"
+  ppo.ppo_update -> health_monitor: "check() after each batch"
+  random.random_policy -> health_monitor: "check() after each batch"
+  health_monitor.hm_action -> ckpt: "early stop → save final checkpoint"
 }
 
 # ─────────────────────────────────────────────
@@ -643,15 +701,19 @@ cli.cli_peek_configs -> prep: "reads YAML files from src/configs/" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
 }
-cli.cli_train -> train: "drives" {
+cli.cli_train -> guardrails: "invokes before runtime build" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
+}
+guardrails.warn_path -> train: "proceed (WARN acknowledged)" {
+  style.stroke-dash: 4
+  style.stroke: "#ea580c"
 }
 cli.cli_evaluate -> eval: "drives" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
 }
-cli.cli_validate_config -> prep.dp_prepared: "validates config wiring" {
+cli.cli_validate_config -> prep.dp_prepared: "validates config wiring + data dependencies\n(config_validation_service.py — schema · paths · feature pipeline)" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
 }
