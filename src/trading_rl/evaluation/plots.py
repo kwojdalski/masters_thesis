@@ -721,8 +721,15 @@ def create_train_val_progression_plot(
 
     df = pd.DataFrame(rows)
 
-    y_label = "Total Return (log)" if metric == "total_return" else "Final Portfolio Value"
+    y_label = "Total Return" if metric == "total_return" else "Final Portfolio Value"
     title = "Learning Progression: Train vs Val"
+
+    caption_text = (
+        f"Each point shows the deterministic policy evaluated on {metric.replace('_', ' ')} "
+        "at that training checkpoint."
+    )
+    if metric == "total_return":
+        caption_text += " (log scale)"
 
     return (
         ggplot(df, aes(x="Training_Step", y="Value", color="Split", linetype="Split"))
@@ -731,10 +738,7 @@ def create_train_val_progression_plot(
             title=title,
             x="Training Step",
             y=y_label,
-            caption=(
-                f"Each point shows the deterministic policy evaluated on {metric.replace('_', ' ')} "
-                "at that training checkpoint."
-            ),
+            caption=caption_text,
         )
         + thesis_theme()
         + guides(color=guide_legend(title="Split"), linetype=guide_legend(title="Split"))
