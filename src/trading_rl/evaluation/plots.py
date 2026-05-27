@@ -780,19 +780,6 @@ def create_price_plot(
     return plot
 
 
-_METRICS_TWO_COL_THRESHOLD = 20
-
-
-def _split_rows_at_section_boundary(
-    rows: "list[tuple[str, str, str, str]]",
-) -> "tuple[list[tuple[str, str, str, str]], list[tuple[str, str, str, str]]]":
-    """Split rows near the midpoint, preferring a section boundary."""
-    mid = len(rows) // 2
-    # Indices where a new section starts (sec_label non-empty), excluding row 0
-    boundaries = [i for i, (sec, *_) in enumerate(rows) if sec and i > 0]
-    split_at = min(boundaries, key=lambda i: abs(i - mid)) if boundaries else mid
-    return rows[:split_at], rows[split_at:]
-
 
 def _render_table_on_ax(
     ax: "matplotlib.axes.Axes",
@@ -840,10 +827,8 @@ def create_metrics_table_figure(
 ) -> "matplotlib.figure.Figure":
     """Render a MetricReport as a matplotlib table figure.
 
-    When the number of rows exceeds _METRICS_TWO_COL_THRESHOLD the metrics are
-    split across two side-by-side tables, split at the nearest section boundary
-    to the midpoint.  Uses the thesis font size so the PNG looks consistent with
-    other evaluation plots.
+    All metrics are rendered in a single column regardless of row count.
+    Uses the thesis font size so the PNG looks consistent with other evaluation plots.
     """
     import matplotlib.pyplot as plt
     from trading_rl.evaluation.metric_meta import METRIC_SECTIONS, fmt_metric
@@ -863,15 +848,7 @@ def create_metrics_table_figure(
 
     BASE_SIZE = 11
 
-    two_col = len(rows) > _METRICS_TWO_COL_THRESHOLD
-    if two_col:
-        left_rows, right_rows = _split_rows_at_section_boundary(rows)
-        n_display_rows = max(len(left_rows), len(right_rows))
-    else:
-        left_rows, right_rows = rows, []
-        n_display_rows = len(rows)
-
-    fig_height = max(3.5, n_display_rows * 0.30 + 1.2) * 1.3
+    fig_height = max(3.5, len(rows) * 0.30 + 1.2) * 1.3
 
     title_parts = []
     if split:
@@ -883,24 +860,11 @@ def create_metrics_table_figure(
         title_parts.append(date_str)
     title = "  |  ".join(title_parts) if title_parts else None
 
-    if two_col:
-        fig, (ax_left, ax_right) = plt.subplots(
-            1, 2, figsize=(22.0, fig_height),
-            gridspec_kw={"wspace": 0.06},
-        )
-        top_margin = 1.0
-        if title:
-            top_margin = 0.97
-            fig.suptitle(title, fontsize=BASE_SIZE + 1, y=0.99)
-        _render_table_on_ax(ax_left, left_rows, BASE_SIZE)
-        _render_table_on_ax(ax_right, right_rows, BASE_SIZE)
-        fig.subplots_adjust(bottom=0.02, top=top_margin, left=0.01, right=0.99)
-    else:
-        fig, ax = plt.subplots(figsize=(11.0, fig_height))
-        if title:
-            ax.set_title(title, fontsize=BASE_SIZE + 1, pad=8)
-        _render_table_on_ax(ax, left_rows, BASE_SIZE)
-        fig.tight_layout()
+    fig, ax = plt.subplots(figsize=(11.0, fig_height))
+    if title:
+        ax.set_title(title, fontsize=BASE_SIZE + 1, pad=8)
+    _render_table_on_ax(ax, rows, BASE_SIZE)
+    fig.tight_layout()
 
     return fig
 
