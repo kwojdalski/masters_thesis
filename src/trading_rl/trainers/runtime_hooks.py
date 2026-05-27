@@ -268,7 +268,11 @@ class TrainerRuntimeHooks:
                         split_ctx.split,
                     )
 
-                # Collect a ReturnSeries for the equity progression plot
+                # Collect a ReturnSeries for the equity progression plot.
+                # Stage in a local variable — only committed to shared
+                # _progression_history in the else-clause below so that a
+                # failure anywhere in the outer try leaves history unmodified.
+                _staged_prog_entry: tuple | None = None
                 try:
                     from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
                     _eval_result = getattr(self.trainer, "_last_evaluation_result", None)
@@ -279,16 +283,13 @@ class TrainerRuntimeHooks:
                             if _simple is not None and len(_simple) > 0:
                                 _rs = ReturnSeries(_simple, ReturnKind.SIMPLE)
                         if _rs is not None:
-                            self._progression_history.setdefault(split_ctx.split, []).append(
-                                (step_number, _rs)
-                            )
+                            _staged_prog_entry = (step_number, _rs)
                             logger.debug(
-                                "temp eval: progression history appended split=%s step=%s n=%d",
+                                "temp eval: progression entry staged split=%s step=%s",
                                 split_ctx.split, step_number,
-                                len(self._progression_history[split_ctx.split]),
                             )
                 except Exception:
-                    logger.debug(
+                    logger.warning(
                         "temp eval: progression history collect failed split=%s",
                         split_ctx.split, exc_info=True,
                     )
@@ -317,8 +318,11 @@ class TrainerRuntimeHooks:
                         "temp eval: mlflow upload split=%s elapsed=%.2fs",
                         split_ctx.split, time.monotonic() - _t,
                     )
-                    # Upload equity progression plot (all checkpoints so far)
-                    _prog_history = self._progression_history.get(split_ctx.split, [])
+                    # Upload equity progression plot (all committed checkpoints
+                    # plus the staged entry for this step, without mutating history).
+                    _prog_history = self._progression_history.get(split_ctx.split, []) + (
+                        [_staged_prog_entry] if _staged_prog_entry is not None else []
+                    )
                     if len(_prog_history) >= 2:
                         try:
                             import os
@@ -437,6 +441,17 @@ class TrainerRuntimeHooks:
                     )
             else:
                 self._eval_consecutive_failures = 0
+                # Commit the staged progression entry now that the full
+                # evaluation succeeded — history is only modified on success.
+                if _staged_prog_entry is not None:
+                    self._progression_history.setdefault(split_ctx.split, []).append(
+                        _staged_prog_entry
+                    )
+                    logger.debug(
+                        "temp eval: progression entry committed split=%s step=%s n=%d",
+                        split_ctx.split, step_number,
+                        len(self._progression_history[split_ctx.split]),
+                    )
 
         # Create and upload train/val progression plot (if we have both splits)
         if mlflow.active_run():
