@@ -44,6 +44,7 @@ from cli.commands import (
     ValidationParams,
 )
 from logger import setup_logging as _setup_root_logging
+from trading_rl import ExperimentConfig
 
 # Ensure matplotlib can cache fonts to a writable directory
 if "MPLCONFIGDIR" in os.environ:
@@ -801,6 +802,74 @@ def validate_data(
         verbose=verbose,
         transpose=transpose,
     ))
+
+
+@validate_app.command(name="guardrails")
+def validate_guardrails(
+    config_file: Path | None = typer.Option(  # noqa: B008
+        None, "--config", "-c", help="Path to config file"
+    ),
+    scenario: str | None = typer.Option(
+        None, "--scenario", "-s", help="Scenario name or path to scenario file"
+    ),
+    config_override: list[str] | None = typer.Option(
+        None, "--config-override", "-o", help="OmegaConf override in dotlist format (repeatable)"
+    ),
+):
+    """Run pre-flight config guardrails (parameter consistency checks).
+
+    Checks training parameter relationships like sample_size vs buffer_size,
+    sample_size vs init_rand_steps, and algorithm-specific constraints.
+    Reports FATAL and WARN findings without running training.
+    """
+    from trading_rl.config_guardrails_checks import check_config_guardrails, Finding, Severity
+
+    if scenario and config_file:
+        raise typer.BadParameter("Cannot specify both --config and --scenario.")
+    if not scenario and not config_file:
+        raise typer.BadParameter("Provide --scenario or --config.")
+
+    if scenario:
+        search = [
+            Path(scenario),
+            Path("src/configs/scenarios") / scenario,
+            Path("src/configs/scenarios") / f"{scenario}.yaml",
+        ]
+        config_path = next((p for p in search if p.exists()), None)
+        if config_path is None:
+            raise typer.BadParameter(f"Scenario '{scenario}' not found.")
+    else:
+        config_path = config_file
+
+    config = ExperimentConfig.load(config_path, overrides=config_override)
+
+    findings = check_config_guardrails(config)
+
+    if not findings:
+        console.print("[green]Guardrails passed — no issues found[/green]")
+        return
+
+    fatals = [f for f in findings if f.severity == Severity.FATAL]
+    warns = [f for f in findings if f.severity == Severity.WARN]
+
+    if fatals:
+        console.print(f"\n[bold red]CONFIG GUARDRAIL — {len(fatals)} FATAL ERROR(S)[/bold red]")
+        console.print("=" * 50)
+        for i, f in enumerate(fatals, 1):
+            console.print(f"\n[{i}] [yellow]{f.parameter}[/yellow]")
+            console.print(f"    Problem:    {f.message}")
+            console.print(f"    Fix:        [cyan]{f.suggestion}[/cyan]")
+
+    if warns:
+        console.print(f"\n[bold yellow]CONFIG GUARDRAIL — {len(warns)} WARNING(S)[/bold yellow]")
+        console.print("=" * 50)
+        for i, f in enumerate(warns, 1):
+            console.print(f"\n[{i}] [yellow]{f.parameter}[/yellow]")
+            console.print(f"    Problem:    {f.message}")
+            console.print(f"    Suggestion: [cyan]{f.suggestion}[/cyan]")
+
+    if fatals:
+        raise typer.Exit(code=1)
 
 
 @app.command(name="feature-research")

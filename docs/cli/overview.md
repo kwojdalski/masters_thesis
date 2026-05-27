@@ -25,7 +25,7 @@ uv run python src/cli.py train -c my_scenario -o training.max_steps=50000 -o env
 | Category | Commands | Purpose |
 |---|---|---|
 | **Workflow** | `train`, `evaluate`, `prepare-data`, `data generate`, `feature-research`, `dashboard`, `collect-results` | Core ML workflow: data, training, evaluation, experimentation |
-| **Inspection & Validation** | `peek dataset`, `peek configs`, `validate config`, `validate data`, `scenarios` | Inspect datasets, configs, and validate data quality |
+| **Inspection & Validation** | `peek dataset`, `peek configs`, `validate config`, `validate data`, `validate guardrails`, `scenarios` | Inspect datasets, configs, run guardrails, and validate data quality |
 | **MLflow Management** | `checkpoints`, `experiments`, `artifacts` | Manage MLflow experiments, runs, checkpoints, and artifacts |
 
 ## Category Links

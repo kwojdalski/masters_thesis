@@ -16,7 +16,21 @@ These commands form the core ML pipeline: data generation, feature research, tra
 
 ## train
 
-Train trading agents (single run or multiple trials). Supports checkpoint resumption and multi-trial experiments.
+Train trading agents (single run or multiple trials). Supports checkpoint resumption and multi-trial experiments. Pre-flight guardrails run automatically before training.
+
+### Pre-flight Guardrails
+
+Guardrails check config parameter consistency and report issues:
+- `sample_size` vs `buffer_size`, `init_rand_steps`, `frames_per_batch`
+- Algorithm-specific constraints (PPO, TD3, DDPG)
+- Reproducibility (seed), checkpointing, positions configuration
+
+To run guardrails without training:
+```bash
+uv run python src/cli.py validate guardrails --scenario <name>
+```
+
+See [Inspection & Validation](./inspection_validation.md#validate-guardrails) for details.
 
 ### Usage
 

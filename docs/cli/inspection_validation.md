@@ -8,6 +8,7 @@ These commands help you inspect datasets, list configurations, and validate data
 - [peek configs](#peek-configs)
 - [validate config](#validate-config)
 - [validate data](#validate-data)
+- [validate guardrails](#validate-guardrails)
 - [scenarios](#scenarios)
 
 ---
@@ -220,6 +221,58 @@ uv run python src/cli.py validate data -s td3_hft_lob --verbose
 
 # Show all columns in glimpse
 uv run python src/cli.py validate data -s sine_wave/ppo_no_trend --transpose
+```
+
+---
+
+## validate guardrails
+
+Run pre-flight config guardrails (parameter consistency checks). Checks training parameter relationships like sample_size vs buffer_size, sample_size vs init_rand_steps, and algorithm-specific constraints. Reports FATAL and WARN findings without running training.
+
+### Usage
+
+```bash
+uv run python src/cli.py validate guardrails --scenario <name>
+uv run python src/cli.py validate guardrails --config <path>
+```
+
+### Options
+
+| Option | Short | Description |
+|---|---|---|
+| `--scenario` | `-s` | Scenario name or path to scenario file |
+| `--config` | `-c` | Path to config file |
+| `--config-override` | `-o` | OmegaConf override in dotlist format (repeatable) |
+
+### Checks Performed
+
+| Check | Severity | Description |
+|---|---|---|
+| `sample_size > init_rand_steps` | FATAL | Off-policy algorithms crash if buffer has insufficient data on first sample |
+| `sample_size > buffer_size` | FATAL | Buffer can never hold a full mini-batch |
+| `sample_size > frames_per_batch` | FATAL (PPO) | PPO mini-batch larger than rollout |
+| `init_rand_steps vs buffer_size` | WARN | Early gradient updates draw from tiny, correlated pool |
+| `warmup_rows vs train_size` | WARN | Discards too much of training set |
+| `checkpoint_interval vs max_steps` | WARN | No checkpoints — crash loses all progress |
+| `seed` | WARN | Run not reproducible without fixed seed |
+| `positions` | WARN | Neutral position missing — agent always invested |
+
+### Exit Codes
+
+- `0` — Guardrails passed (no findings)
+- `1` — Fatal errors found (training would fail)
+
+### Examples
+
+```bash
+# Run guardrails on a scenario
+uv run python src/cli.py validate guardrails -s sine_wave/td3_no_trend
+
+# Use a specific config file
+uv run python src/cli.py validate guardrails -c src/configs/scenarios/pooled/td3_hft_lob.yaml
+
+# Override config parameters before checking
+uv run python src/cli.py validate guardrails -s sine_wave/td3_no_trend -o training.sample_size=256
 ```
 
 ---
