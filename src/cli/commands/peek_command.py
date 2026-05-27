@@ -10,6 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from .base_command import BaseCommand
 
 
@@ -75,7 +76,6 @@ class PeekCommand(BaseCommand):
 
         if export_dir is not None:
             import json
-            from trading_rl.evaluation.asset_meta import write_asset_meta
             splits_records = splits_df.to_dict(orient="records")
             _splits_path = export_dir / "splits.json"
             _splits_path.write_text(

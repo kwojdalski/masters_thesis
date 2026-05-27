@@ -28,6 +28,7 @@ from torchrl.objectives import ClipPPOLoss
 from logger import get_logger
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction, TradePosition
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.models import (
     create_continuous_ppo_actor,
     create_ppo_actor,
@@ -312,7 +313,6 @@ class PPOTrainer(BaseTrainer):
             "feature_pipeline_state": feature_pipeline_state,
         }
         torch.save(checkpoint, path)
-        from trading_rl.evaluation.asset_meta import write_asset_meta
         write_asset_meta(path, generator="trainers/ppo.py")
         logger.info("save checkpoint path=%s", path)
 

@@ -13,6 +13,7 @@ from torchrl.objectives import DDPGLoss, SoftUpdate
 
 from logger import get_logger
 from trading_rl.config import EvaluationConfig, TrainingConfig
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.models import create_ddpg_actor, create_value_network
 from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _log_network_stats, BaseTrainer
 
@@ -372,7 +373,6 @@ class DDPGTrainer(BaseTrainer):
                 )
 
         torch.save(checkpoint, path)
-        from trading_rl.evaluation.asset_meta import write_asset_meta
         write_asset_meta(path, generator="trainers/ddpg.py")
         logger.info("save checkpoint path=%s", path)
 

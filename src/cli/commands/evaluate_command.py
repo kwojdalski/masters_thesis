@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 from rich.table import Table
 
 from trading_rl.callbacks.artifacts import ArtifactPaths, save_observation_sample_artifact
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.evaluation.benchmark_table import save_benchmark_table_artifact
 from trading_rl.evaluation.metric_meta import METRIC_META_BY_KEY
 
@@ -324,7 +325,6 @@ class EvaluateCommand(BaseCommand):
             out_json = params.output_dir / "results.json"
             with out_json.open("w", encoding="utf-8") as f:
                 json.dump(all_results, f, indent=2, default=_json_default)
-            from trading_rl.evaluation.asset_meta import write_asset_meta
             write_asset_meta(out_json, generator="cli/commands/evaluate_command.py")
             self.console.print(f"[green]Results written to {out_json}[/green]")
 
@@ -702,7 +702,6 @@ class EvaluateCommand(BaseCommand):
         out_df = pd.DataFrame(data, index=index)
         out_path = output_dir / f"{split}_rollout.csv"
         out_df.to_csv(out_path)
-        from trading_rl.evaluation.asset_meta import write_asset_meta
         write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
         self.console.print(f"[dim]Rollout data ({n:,} steps) → {out_path}[/dim]")
 
@@ -718,7 +717,6 @@ class EvaluateCommand(BaseCommand):
                     fig.save(str(out_path), dpi=225, verbose=False)
                 else:
                     fig.savefig(out_path, bbox_inches="tight", dpi=225)
-                from trading_rl.evaluation.asset_meta import write_asset_meta
                 write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
                 self.console.print(f"[dim]Saved plot: {out_path}[/dim]")
             except Exception as exc:

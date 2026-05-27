@@ -15,6 +15,7 @@ from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger
 from trading_rl.config import EvaluationConfig, TrainingConfig
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.constants import LossFunction
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
 from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _log_network_stats, BaseTrainer
@@ -559,7 +560,6 @@ class TD3Trainer(BaseTrainer):
                 logger.info("save replay buffer path=%s n_experiences=%s", buffer_dir, len(self.replay_buffer))
 
         torch.save(checkpoint, path)
-        from trading_rl.evaluation.asset_meta import write_asset_meta
         write_asset_meta(path, generator="trainers/td3.py")
         logger.info("save checkpoint path=%s", path)
 

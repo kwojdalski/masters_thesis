@@ -28,6 +28,7 @@ from trading_rl.pipeline.training import (
     setup_mlflow_experiment,
 )
 from trading_rl.config_guardrails import run_guardrail_check
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.profiler import init_profiler
 
 _logger = _get_logger(__name__)
@@ -100,7 +101,6 @@ def save_training_results_json(config: Any, final_metrics: dict[str, Any]) -> Pa
             json.dumps(_sanitise(payload), indent=2, default=_json_default),
             encoding="utf-8",
         )
-        from trading_rl.evaluation.asset_meta import write_asset_meta
         write_asset_meta(out_path, generator="pipeline/experiment_runner.py")
         _logger.info("results.json written path=%s", out_path)
         return out_path

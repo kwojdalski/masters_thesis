@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from trading_rl.evaluation.asset_meta import write_asset_meta
 import pandas as pd
 import yaml
 
@@ -1334,7 +1335,6 @@ class FeatureSelector:
             yaml.dump(payload, default_flow_style=False, sort_keys=False),
             encoding="utf-8",
         )
-        from trading_rl.evaluation.asset_meta import write_asset_meta
         write_asset_meta(output_path, generator="features/selector.py")
         logger.info("write selected features count=%d path=%s", len(features), output_path)
         return output_path

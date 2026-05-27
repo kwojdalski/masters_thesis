@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 
 from logger import get_logger as get_project_logger
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.evaluation.metrics import MetricReport
 
 
@@ -196,7 +197,6 @@ def save_observation_sample_artifact(
     n_rows = min(max_rows, len(df))
     out_path = output_dir / f"{safe_split}_observations_head_{n_rows}.csv"
     df.head(max_rows).to_csv(out_path)
-    from trading_rl.evaluation.asset_meta import write_asset_meta
     write_asset_meta(out_path, generator="callbacks/artifacts.py")
 
     if mlflow.active_run() is not None:
@@ -239,7 +239,6 @@ def save_eval_rollout_artifact(
     safe_split = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in split)
     out_path = output_dir / f"{safe_split}_rollout.csv"
     pd.DataFrame(data, index=df_index[:n]).to_csv(out_path)
-    from trading_rl.evaluation.asset_meta import write_asset_meta
     write_asset_meta(out_path, generator="callbacks/artifacts.py")
 
     if mlflow.active_run() is not None:

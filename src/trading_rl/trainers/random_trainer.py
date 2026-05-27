@@ -6,6 +6,7 @@ from typing import Any
 
 from torchrl.envs.utils import RandomPolicy
 
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.trainers.base import BaseTrainer
 
 
@@ -42,7 +43,6 @@ class RandomTrainer(BaseTrainer):
 
     def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
         import torch
-        from trading_rl.evaluation.asset_meta import write_asset_meta
         torch.save(
             {
                 "algorithm": "RANDOM",

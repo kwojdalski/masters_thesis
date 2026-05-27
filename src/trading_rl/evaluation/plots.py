@@ -20,6 +20,7 @@ from plotnine import (
     theme,
 )
 
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.evaluation.thesis_theme import FIGURE_WIDTH, LINETYPE, PALETTE, thesis_theme
 from torch import allclose
 
@@ -933,7 +934,6 @@ def create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot=No
     if save_path:
         logger.info("save merged comparison plot path=%s", save_path)
         from trading_rl.evaluation.thesis_theme import PLOT_DPI
-        from trading_rl.evaluation.asset_meta import write_asset_meta
         merged_plot.save(save_path, dpi=PLOT_DPI, verbose=False)
         write_asset_meta(save_path, generator="evaluation/plots.py")
     return merged_plot

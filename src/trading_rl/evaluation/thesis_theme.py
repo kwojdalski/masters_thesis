@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from plotnine import element_blank, element_line, element_text, theme, theme_classic
+from trading_rl.evaluation.asset_meta import write_asset_meta
 
 # Wong (2011) colorblind-safe palette — ordered by intended use
 PALETTE: dict[str, str] = {
@@ -106,7 +107,6 @@ def save_plot(
     applied directly.  When ``debug=False`` the fast plotnine ``save()`` path is
     used without an intermediate draw step.
     """
-    from trading_rl.evaluation.asset_meta import write_asset_meta
     import matplotlib.pyplot as plt
 
     path = str(Path(path))

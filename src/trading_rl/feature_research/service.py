@@ -18,6 +18,7 @@ from sklearn.linear_model import LinearRegression
 
 from logger import get_logger
 from trading_rl.data_utils import load_trading_data
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
 from trading_rl.features import FeaturePipeline
 
@@ -340,7 +341,6 @@ def _write_summary(
             f"{row.ic_tstat:.2f} | {row.ic_positive_ratio:.3f} |"
         )
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    from trading_rl.evaluation.asset_meta import write_asset_meta
     write_asset_meta(summary_path, generator="feature_research/service.py")
 
 
@@ -568,7 +568,7 @@ def run_feature_research(
         if multi_symbol:
             _sym_csv = output_path / f"feature_scores_{symbol}.csv"
             sym_scores.to_csv(_sym_csv, index=False)
-            from trading_rl.evaluation.asset_meta import write_asset_meta
+
             write_asset_meta(_sym_csv, generator="feature_research/service.py")
 
     scores = (
@@ -618,7 +618,6 @@ def run_feature_research(
     selected_yaml = output_path / "selected_features.yaml"
     summary_md = output_path / "summary.md"
 
-    from trading_rl.evaluation.asset_meta import write_asset_meta
     scores.to_csv(scores_csv, index=False)
     write_asset_meta(scores_csv, generator="feature_research/service.py")
     correlation_matrix.to_csv(correlation_csv, index=True)
