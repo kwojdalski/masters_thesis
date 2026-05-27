@@ -168,7 +168,12 @@ When the user types `done`, or all items have been reviewed:
 
 - Apply any pending edits.
 - Create a git commit for each changed file (or one commit per logical fix group): message format `Fix: <short description of bug>`
-- Report: how many bugs reviewed, how many fixed, which files changed.
+- For every bug that was fixed, close its corresponding GitHub issue with a comment that cites the fix commit hash:
+  ```bash
+  gh issue close <number> --comment "Fixed in <commit_hash>: <one-line description of what was changed>."
+  ```
+  Do this for each fixed issue before reporting. Do not close issues that were skipped or left unfixed.
+- Report: how many bugs reviewed, how many fixed, how many issues closed, which files changed.
 
 ## Important
 

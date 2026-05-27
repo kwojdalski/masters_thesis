@@ -37,10 +37,11 @@ Release a GitHub issue that was previously claimed, removing the `in-progress` s
    Session ID: <session_id>  # matches original claim
    ```
 
-3. **Optional: close the issue** if status is `resolved` or `invalid`
+3. **Close the issue** when status is `resolved` or `invalid`
    ```bash
    gh issue close <number> --comment "Resolved by session..."
    ```
+   This step is **mandatory** for `resolved` and `invalid` — do not skip it. For `blocked` or `needs-info`, leave the issue open.
 
 ## Example
 
