@@ -45,6 +45,11 @@ class _RuntimeHooks:
         self.steps.append(total_count)
 
 
+class _FakeHealthMonitor:
+    def check(self) -> None:
+        return None
+
+
 def _batch(n: int, *, done: list[bool] | None = None) -> TensorDict:
     done_values = done if done is not None else [False] * n
     return TensorDict(
@@ -81,6 +86,7 @@ def _trainer(
     trainer._use_replay_buffer = False
     trainer.checkpoint_manager = _CheckpointManager()
     trainer.runtime_hooks = _RuntimeHooks()
+    trainer.health_monitor = _FakeHealthMonitor()
     trainer.optimization_calls = []
     return trainer
 

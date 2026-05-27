@@ -92,7 +92,7 @@ class TestBuildPooledSplits:
     def test_single_symbol_split_sizes(self, tmp_path):
         path = _write_ohlcv(tmp_path, "AAPL", n_rows=150)
         cfg = _make_config(train_size=60, validation_size=30, test_size=30)
-        train_df, val_df, test_df, memmaps = _build_pooled_splits(
+        train_df, val_df, test_df, memmaps, _ = _build_pooled_splits(
             cfg, logging.getLogger(), [path], memmap_dir=None,
         )
         assert len(train_df) == 60
@@ -104,7 +104,7 @@ class TestBuildPooledSplits:
         """Train, val, and test must be strictly chronological — no future leakage."""
         path = _write_ohlcv(tmp_path, "AAPL", n_rows=180)
         cfg = _make_config(train_size=90, validation_size=45, test_size=45)
-        train_df, val_df, test_df, _ = _build_pooled_splits(
+        train_df, val_df, test_df, _, _ = _build_pooled_splits(
             cfg, logging.getLogger(), [path], memmap_dir=None,
         )
         assert train_df.index.max() < val_df.index.min()
@@ -114,7 +114,7 @@ class TestBuildPooledSplits:
         p0 = _write_ohlcv(tmp_path, "SYM0", n_rows=150, price_offset=100.0)
         p1 = _write_ohlcv(tmp_path, "SYM1", n_rows=150, price_offset=200.0)
         cfg = _make_config(train_size=60, validation_size=30, test_size=30)
-        train_df, val_df, test_df, memmaps = _build_pooled_splits(
+        train_df, val_df, test_df, memmaps, _ = _build_pooled_splits(
             cfg, logging.getLogger(), [p0, p1], memmap_dir=None,
         )
         # Each symbol contributes 60/30/30 rows → combined = 120/60/60
@@ -129,7 +129,7 @@ class TestBuildPooledSplits:
         p1 = _write_ohlcv(tmp_path, "SYM1", n_rows=150, price_offset=500.0)
         memmap_dir = tmp_path / "mm"
         cfg = _make_config(train_size=60, validation_size=30, test_size=30)
-        _, val_df, _, memmaps = _build_pooled_splits(
+        _, val_df, _, memmaps, _ = _build_pooled_splits(
             cfg, logging.getLogger(), [p0, p1], memmap_dir=memmap_dir,
         )
         # Default symbol_index=0 → representative sample from SYM0 (close < 300)
@@ -142,7 +142,7 @@ class TestBuildPooledSplits:
         p1 = _write_ohlcv(tmp_path, "SYM1", n_rows=150, price_offset=500.0)
         memmap_dir = tmp_path / "mm"
         cfg = _make_config(train_size=60, validation_size=30, test_size=30)
-        _, val_df, _, _ = _build_pooled_splits(
+        _, val_df, _, _, _ = _build_pooled_splits(
             cfg, logging.getLogger(), [p0, p1],
             memmap_dir=memmap_dir, symbol_index=1,
         )
@@ -236,7 +236,7 @@ def _fake_worker_factory(n_val_rows: int = 10):
             df.iloc[mid:].to_parquet(test_p)
             val_entry = {"val": str(val_p), "test": str(test_p)}
 
-        return symbol, train_results, val_entry, val_index
+        return symbol, train_results, val_entry, val_index, None
 
     return _worker
 
@@ -325,7 +325,7 @@ class TestBuildPerDaySplits:
             _fake_worker_factory(n_val_rows=n_val_rows),
         )
         cfg = _make_config(train_size=1)
-        _, val_df, test_df, _ = _build_per_day_splits(
+        _, val_df, test_df, _, _ = _build_per_day_splits(
             cfg, logging.getLogger(),
             train_paths=[train_path],
             val_paths=[val_path],
@@ -390,7 +390,7 @@ class TestBuildPerDaySplits:
                 df_v.iloc[5:].to_parquet(tp)
                 val_entry = {"val": str(vp), "test": str(tp)}
 
-            return symbol, train_results, val_entry, val_index
+            return symbol, train_results, val_entry, val_index, None
 
         monkeypatch.setattr(
             "trading_rl.data.preparation.ProcessPoolExecutor",
@@ -401,7 +401,7 @@ class TestBuildPerDaySplits:
             _worker_with_memmap,
         )
         cfg = _make_config(train_size=20, validation_size=5, test_size=5)
-        _, _, _, memmaps = _build_per_day_splits(
+        _, _, _, memmaps, _ = _build_per_day_splits(
             cfg, logging.getLogger(),
             train_paths=[sym_a_train1, sym_a_train2, sym_b_train],
             val_paths=[sym_a_val, sym_b_val],
@@ -439,7 +439,7 @@ class TestBuildPerDaySplits:
             _fake_worker_factory(n_val_rows=n_per),
         )
         cfg = _make_config(train_size=1)
-        _, val_df, test_df, _ = _build_per_day_splits(
+        _, val_df, test_df, _, _ = _build_per_day_splits(
             cfg, logging.getLogger(),
             train_paths=[train_a, train_b],
             val_paths=[val_a, val_b],

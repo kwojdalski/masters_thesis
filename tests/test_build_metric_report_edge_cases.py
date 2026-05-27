@@ -29,7 +29,7 @@ class TestBuildMetricReportEdgeCases:
         report = _report([])
 
         assert all(np.isnan(v) for v in report.to_dict().values())
-        assert len(report.to_dict()) == 29  # All metric keys should be present
+        assert len(report.to_dict()) == 43  # All metric keys should be present
 
     def test_single_return(self):
         """Single return should work correctly."""
@@ -288,10 +288,16 @@ class TestBuildMetricReportEdgeCases:
         report = _report(returns)
 
         expected_keys = {
+            "n_periods",
+            "n_bars",
+            "periods_per_year_used",
             "total_return",
             "annualized_return_cagr",
             "annualized_volatility",
+            "mean_return",
+            "std_return",
             "sharpe_ratio",
+            "sharpe_expost",
             "sortino_ratio",
             "calmar_ratio",
             "omega_ratio",
@@ -299,9 +305,13 @@ class TestBuildMetricReportEdgeCases:
             "average_drawdown",
             "max_drawdown_duration",
             "recovery_time_from_max_drawdown",
+            "ulcer_index",
             "var_95",
             "cvar_95",
+            "var_99",
+            "cvar_99",
             "downside_deviation",
+            "tail_ratio",
             "return_skewness",
             "return_kurtosis",
             "win_rate",
@@ -309,10 +319,14 @@ class TestBuildMetricReportEdgeCases:
             "profit_factor",
             "payoff_ratio",
             "expectancy_per_period",
+            "gross_profit",
+            "gross_loss",
             "turnover",
             "average_holding_period",
+            "n_trades",
             "pct_long",
             "pct_short",
+            "pct_neutral",
             "beta",
             "alpha",
             "information_ratio",

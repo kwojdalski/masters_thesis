@@ -138,6 +138,7 @@ def _optimization_trainer(sample: TensorDict) -> DDPGTrainer:
         sample_size=4,
         log_interval=999,
         eval_interval=0,
+        max_grad_norm=0,
     )
     trainer.replay_buffer = _FakeReplayBuffer(sample)
     trainer.ddpg_loss = _FakeDdpgLoss()
@@ -183,7 +184,7 @@ def test_ddpg_optimization_step_skips_nonfinite_rewards_without_updates() -> Non
 
     assert trainer.replay_buffer.sample_sizes == [4, 4]
     assert trainer.successful_batches == 0
-    assert trainer.skipped_batches == 0
+    assert trainer.skipped_batches == 2
     assert trainer.optimizer_actor.step_calls == 0
     assert trainer.optimizer_value.step_calls == 0
     assert trainer.logs["loss_actor"] == []

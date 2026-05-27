@@ -117,6 +117,7 @@ def test_td3_optimization_step_normalizes_shapes_and_delays_actor_update() -> No
         sample_size=4,
         log_interval=999,
         eval_interval=0,
+        max_grad_norm=0,
     )
     trainer.policy_delay = 2
     trainer.replay_buffer = _FakeReplayBuffer(_td3_sample())

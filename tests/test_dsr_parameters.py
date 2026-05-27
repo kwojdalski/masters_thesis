@@ -46,7 +46,7 @@ def _run(nlvs: list[float], **kwargs) -> list[float]:
 class TestClipRewards:
     def test_clip_true_clamps_extreme_positive_value(self):
         """With tiny epsilon and large jump, unclipped DSR would be > 10."""
-        dsr = DifferentialSharpeRatio(eta=0.5, epsilon=1e-16, clip_rewards=True)
+        dsr = DifferentialSharpeRatio(eta=0.5, epsilon=1e-16, clip_reward=10.0)
         env = _Env([1.0, 1e6, 1e6, 1e6, 1e6])
         rewards = []
         for i in range(5):
@@ -55,7 +55,7 @@ class TestClipRewards:
         assert all(r <= 10.0 for r in rewards), f"unclipped: {rewards}"
 
     def test_clip_true_clamps_extreme_negative_value(self):
-        dsr = DifferentialSharpeRatio(eta=0.5, epsilon=1e-16, clip_rewards=True)
+        dsr = DifferentialSharpeRatio(eta=0.5, epsilon=1e-16, clip_reward=10.0)
         env = _Env([1e6, 1.0, 1.0, 1.0, 1.0])
         rewards = []
         for i in range(5):
@@ -68,7 +68,7 @@ class TestClipRewards:
         # Feed a sequence designed to create a variance that collapses to near zero,
         # inflating the denominator's epsilon term and pushing |DSR| >> 10.
         # Use constant returns (variance → 0) then a sudden spike.
-        dsr = DifferentialSharpeRatio(eta=0.01, epsilon=1e-16, clip_rewards=False)
+        dsr = DifferentialSharpeRatio(eta=0.01, epsilon=1e-16, clip_reward=None)
         env = _Env([100.0] * 1)
         # Warm up EMAs with constant returns so variance is essentially 0
         for i in range(200):
@@ -86,10 +86,10 @@ class TestClipRewards:
 
     def test_clip_default_is_true(self):
         dsr = DifferentialSharpeRatio()
-        assert dsr.clip_rewards is True
+        assert dsr.clip_reward == 10.0
 
     def test_clip_boundaries_are_symmetric(self):
-        dsr = DifferentialSharpeRatio(eta=0.5, epsilon=1e-16, clip_rewards=True)
+        dsr = DifferentialSharpeRatio(eta=0.5, epsilon=1e-16, clip_reward=10.0)
         nlvs = [100.0, 100.0, 200.0, 100.0, 200.0]
         env = _Env(nlvs)
         for i in range(len(nlvs)):

@@ -273,7 +273,7 @@ class TestStreamingTradingEnvXYReset:
             )
 
         monkeypatch.setattr(env, "_load_window", fake_load_window)
-        monkeypatch.setattr(env, "_build_inner_env", lambda window_df, symbol="": _FakeInnerEnv())
+        monkeypatch.setattr(env, "_build_inner_env", lambda window_df, symbol="", reward=None: _FakeInnerEnv())
 
         obs, info = env.reset()
 

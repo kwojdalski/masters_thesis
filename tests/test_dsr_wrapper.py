@@ -49,7 +49,7 @@ class TestDifferentialSharpeRatioAnyTrading:
         """Test DSR initializes with correct default values."""
         dsr = DifferentialSharpeRatioAnyTrading(eta=0.01)
         assert dsr.eta == 0.01
-        assert dsr.epsilon == 1e-8
+        assert dsr.epsilon == 1e-20
         assert dsr.A_t == 0.0
         assert dsr.B_t == 0.0
         assert dsr._prev_nlv is None

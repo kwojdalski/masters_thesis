@@ -335,6 +335,10 @@ class PPOTrainer(BaseTrainer):
         self.ppo_loss.critic_network_params.load_state_dict(checkpoint["value_params_state"])
         self.ppo_loss.actor_network_params.to_module(self.actor)
         self.ppo_loss.critic_network_params.to_module(self.value_net)
+        if "actor_state_dict" in checkpoint:
+            self.actor.load_state_dict(checkpoint["actor_state_dict"])
+        if "value_net_state_dict" in checkpoint:
+            self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.total_count = checkpoint["total_count"]
         self.total_episodes = checkpoint["total_episodes"]

@@ -72,8 +72,8 @@ def save_observation_sample_artifact(
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_split = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in split)
     n_rows = min(max_rows, len(df))
-    out_path = output_dir / f"{safe_split}_observations_head_{n_rows}.csv"
-    df.head(max_rows).to_csv(out_path)
+    out_path = output_dir / f"{safe_split}_observations_head_{n_rows}.parquet"
+    df.head(max_rows).to_parquet(out_path)
     write_asset_meta(out_path, generator="callbacks/artifacts_evaluation.py")
 
     if mlflow.active_run() is not None:

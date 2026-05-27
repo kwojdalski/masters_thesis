@@ -32,10 +32,17 @@ class _FakeCallback:
         self.steps.append((step, actor_loss, value_loss))
 
 
+class _FakeNetworkParams:
+    def to_module(self, _module) -> None:
+        pass
+
+
 class _FakePpoLoss:
     def __init__(self) -> None:
         self._cached_critic_network_params_detached = {"critic": "detached"}
         self.target_critic_network_params = {"critic": "target"}
+        self.actor_network_params = _FakeNetworkParams()
+        self.critic_network_params = _FakeNetworkParams()
         self.value_estimator_calls: list[dict] = []
         self.loss_samples: list[dict] = []
 
@@ -86,10 +93,13 @@ def test_ppo_optimization_step_builds_targets_before_sampling_fresh_batch() -> N
         sample_size=4,
         log_interval=999,
         eval_interval=0,
+        max_grad_norm=0,
     )
     trainer._current_batch = _ppo_batch()
     trainer.ppo_loss = _FakePpoLoss()
     trainer.optimizer = _FakeOptimizer()
+    trainer.actor = object()
+    trainer.value_net = object()
     trainer.logs = defaultdict(list)
     trainer.callback = _FakeCallback()
     trainer._log_step_offset = 0

@@ -29,6 +29,12 @@ class _FunctionalParams:
         self.to_module_calls += 1
 
 
+class _PpoLoss:
+    def __init__(self) -> None:
+        self.actor_network_params = _FunctionalParams(0.5)
+        self.critic_network_params = _FunctionalParams(1.5)
+
+
 class _DdpgLoss:
     def __init__(self) -> None:
         self.actor_network_params = _FunctionalParams(1.1)
@@ -73,6 +79,7 @@ def test_ppo_checkpoint_round_trip_restores_module_optimizer_and_counters(
         list(trainer.actor.parameters()) + list(trainer.value_net.parameters()),
         lr=0.01,
     )
+    trainer.ppo_loss = _PpoLoss()
     trainer.total_count = 123
     trainer.total_episodes = 7
     trainer.logs = defaultdict(list, {"loss_actor": [0.1], "episode_log_count": [4]})
@@ -91,6 +98,7 @@ def test_ppo_checkpoint_round_trip_restores_module_optimizer_and_counters(
         list(restored.actor.parameters()) + list(restored.value_net.parameters()),
         lr=0.01,
     )
+    restored.ppo_loss = _PpoLoss()
 
     restored.load_checkpoint(str(path))
 
