@@ -132,7 +132,7 @@ and test each represent one chronological half of the March 2 file.
 
 ```{python}
 #| label: tbl-raw-file-inventory
-#| tbl-cap: "Raw MBP-10 event counts and inter-event timing per symbol and split. Mean and median Δt are computed from positive within-session deltas only (overnight gaps excluded for training). Training aggregates three days per symbol; validation and test each cover one chronological half of the March 2 session."
+#| tbl-cap: "Raw MBP-10 event counts and inter-event timing per symbol and split."
 #| echo: false
 #| warning: false
 
@@ -157,6 +157,8 @@ else:
     print("raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
           "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export")
 ```
+
+*Mean and median Δt are computed from positive within-session inter-event deltas only (overnight gaps excluded for the training split). Training aggregates all three days per symbol (February 25–27, 2026); validation and test each cover one chronological half of the March 2 session.*
 
 **Training data.** The 18 files from days 1–3 are used exclusively for
 training. Each daily file is treated as a complete, independent training unit:
