@@ -294,3 +294,97 @@ class TestDifferentialSharpeRatio:
         # Fast learning should have larger EMA values (closer to recent data)
         assert abs(dsr_fast.B_t) > abs(dsr_slow.B_t)
         assert dsr_fast.A_t > dsr_slow.A_t
+
+
+def _run_dsr_any_episode(dsr, nlv_sequence):
+    """Drive one episode through DifferentialSharpeRatioAnyTrading."""
+    for nlv in nlv_sequence:
+        dsr({"portfolio_valuation": [nlv]})
+
+
+class TestDifferentialSharpeRatioAnyTrading:
+    """Test suite for DifferentialSharpeRatioAnyTrading reward."""
+
+    def test_reset_persist_moments_true_keeps_ema(self):
+        """reset(persist_moments=True) clears _prev_nlv but retains A_t and B_t."""
+        from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading
+
+        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None)
+        _run_dsr_any_episode(dsr, [10000, 10100, 10200, 10300])
+
+        a_before = dsr.A_t
+        b_before = dsr.B_t
+        assert a_before != 0.0, "A_t must be non-zero after episode steps"
+        assert b_before != 0.0, "B_t must be non-zero after episode steps"
+
+        dsr.reset(persist_moments=True)
+
+        assert dsr._prev_nlv is None
+        assert dsr.A_t == a_before
+        assert dsr.B_t == b_before
+
+    def test_reset_persist_moments_false_clears_all(self):
+        """reset(persist_moments=False) clears A_t, B_t, and _prev_nlv."""
+        from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading
+
+        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None)
+        _run_dsr_any_episode(dsr, [10000, 10100, 10200, 10300])
+
+        assert dsr.A_t != 0.0
+        assert dsr.B_t != 0.0
+
+        dsr.reset(persist_moments=False)
+
+        assert dsr.A_t == 0.0
+        assert dsr.B_t == 0.0
+        assert dsr._prev_nlv is None
+
+    def test_reset_none_uses_constructor_default_false(self):
+        """reset() with no argument respects persist_moments=False set at construction."""
+        from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading
+
+        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None, persist_moments=False)
+        _run_dsr_any_episode(dsr, [10000, 10100, 10200])
+
+        dsr.reset()
+
+        assert dsr.A_t == 0.0
+        assert dsr.B_t == 0.0
+        assert dsr._prev_nlv is None
+
+    def test_reset_none_uses_constructor_default_true(self):
+        """reset() with no argument respects persist_moments=True set at construction."""
+        from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading
+
+        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None, persist_moments=True)
+        _run_dsr_any_episode(dsr, [10000, 10100, 10200])
+
+        a_before = dsr.A_t
+        b_before = dsr.B_t
+
+        dsr.reset()
+
+        assert dsr._prev_nlv is None
+        assert dsr.A_t == a_before
+        assert dsr.B_t == b_before
+
+    def test_persist_moments_ema_continuity_across_episodes(self):
+        """With persist_moments=True, EMA warms up across episodes instead of restarting."""
+        from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading
+
+        dsr_persist = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None, persist_moments=True)
+        dsr_reset = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None, persist_moments=False)
+
+        nlv_ep1 = [10000, 10100, 10200]
+        nlv_ep2 = [10200, 10250, 10300]
+
+        _run_dsr_any_episode(dsr_persist, nlv_ep1)
+        dsr_persist.reset()
+        _run_dsr_any_episode(dsr_persist, nlv_ep2)
+
+        _run_dsr_any_episode(dsr_reset, nlv_ep1)
+        dsr_reset.reset()
+        _run_dsr_any_episode(dsr_reset, nlv_ep2)
+
+        # With persist, EMA carries prior history so A_t should differ from cold-start
+        assert dsr_persist.A_t != dsr_reset.A_t or dsr_persist.B_t != dsr_reset.B_t
