@@ -105,7 +105,7 @@ def save_training_results_json(config: Any, final_metrics: dict[str, Any]) -> Pa
         _logger.info("results.json written path=%s", out_path)
         return out_path
     except Exception:
-        _logger.warning("save_training_results_json failed", exc_info=True)
+        _logger.error("save_training_results_json failed — metrics will not be persisted locally", exc_info=True)
         return None
 
 
