@@ -23,11 +23,16 @@ from trading_rl.evaluation.metrics import (
     sortino_annualized,
 )
 from trading_rl.evaluation.plots import (
+    build_equity_plot_data,
+    build_rollout_plot_data,
     compare_rollouts,
     create_equity_curve_plot,
     create_equity_progression_plot,
     create_merged_comparison_plot,
     create_train_val_progression_plot,
+    plot_actions,
+    plot_equity_curve,
+    plot_rewards,
 )
 from trading_rl.evaluation.policy_loader import PolicyLoader
 from trading_rl.evaluation.report import (

@@ -392,6 +392,7 @@ def log_evaluation_plots(
     merged_plot=None,
     artifact_path_prefix=None,
     debug: bool = False,
+    plot_data: "dict | None" = None,
 ) -> None:
     """Save evaluation/training plots as MLflow artifacts.
 
@@ -403,6 +404,10 @@ def log_evaluation_plots(
         logs: Optional training logs for loss plots.
         merged_plot: Optional merged comparison plot (rewards + actions).
         artifact_path_prefix: Optional path prefix for MLflow artifacts.
+        debug: Enable debug mode for plot rendering.
+        plot_data: Optional dict from build_rollout_plot_data / build_equity_plot_data.
+            When provided, DataFrames are saved as parquet so QMD can re-render plots
+            at any figure size without re-running the rollout.
     """
     import contextlib
     import io
@@ -546,6 +551,38 @@ def log_evaluation_plots(
                     mlflow.log_artifact(tmp_combined, artifact_dir)
                 except Exception as combine_error:  # pragma: no cover
                     logger.warning("create combined evaluation plot failed err=%s", combine_error)
+
+        # Save plot DataFrames as parquet so QMD can re-render at any figure size
+        if plot_data:
+            import json
+            frames: dict[str, Any] = {}
+            if "rewards" in plot_data:
+                frames["rewards"] = plot_data["rewards"]
+            if "actions" in plot_data:
+                frames["actions"] = plot_data["actions"]
+            if plot_data.get("actions_ma") is not None:
+                frames["actions_ma"] = plot_data["actions_ma"]
+            if "returns" in plot_data:
+                frames["equity"] = plot_data["returns"]
+
+            meta_keys = {
+                "stride", "date_str", "reward_type", "is_portfolio",
+                "training_steps", "training_episodes", "n_obs",
+                "allocation_ma_window", "initial_portfolio_value",
+                "policy_mode", "symbols", "n_total_symbols",
+            }
+            meta = {k: plot_data[k] for k in meta_keys if k in plot_data}
+
+            for frame_name, df_frame in frames.items():
+                pq_path = os.path.join(batch_temp_dir, f"{timestamp}_{frame_name}_data.parquet")
+                df_frame.assign(Run=df_frame["Run"].astype(str)).to_parquet(pq_path, index=False)
+                mlflow.log_artifact(pq_path, artifact_dir)
+
+            meta_path = os.path.join(batch_temp_dir, f"{timestamp}_plot_meta.json")
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(meta, f, default=str)
+            mlflow.log_artifact(meta_path, artifact_dir)
+            logger.info("saved plot data parquets frames=%s", list(frames))
 
         logger.info("save evaluation and training plots as mlflow artifacts")
     except Exception as e:  # pragma: no cover

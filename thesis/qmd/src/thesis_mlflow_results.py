@@ -179,6 +179,52 @@ def _scenario_log_dirs(experiment_name: str) -> list[Path]:
     return [p for p in candidates if p.exists()]
 
 
+def find_evaluation_plot_data(
+    artifact_uri: str | None,
+    artifact_subdir: str = "evaluation_plots",
+) -> dict[str, Any]:
+    """Return plot DataFrames and metadata saved by log_evaluation_plots.
+
+    Loads parquet files (<timestamp>_{rewards,actions,actions_ma,equity}_data.parquet)
+    and the companion JSON metadata file from the given artifact subdirectory.
+
+    Returns a dict with keys: rewards, actions, actions_ma (optional), equity (optional),
+    plus metadata keys: stride, date_str, reward_type, is_portfolio, training_steps,
+    training_episodes, n_obs, allocation_ma_window, initial_portfolio_value,
+    policy_mode, symbols, n_total_symbols.
+    Returns an empty dict if no parquet files are found.
+    """
+    import json
+
+    artifact_dir = _artifact_dir_from_uri(artifact_uri)
+    if artifact_dir is None:
+        return {}
+
+    plot_dir = artifact_dir / artifact_subdir
+    if not plot_dir.exists():
+        return {}
+
+    result: dict[str, Any] = {}
+
+    for frame_name in ("rewards", "actions", "actions_ma", "equity"):
+        files = sorted(plot_dir.glob(f"*_{frame_name}_data.parquet"))
+        if files:
+            try:
+                result[frame_name] = pd.read_parquet(files[-1])
+            except Exception:
+                pass
+
+    meta_files = sorted(plot_dir.glob("*_plot_meta.json"))
+    if meta_files:
+        try:
+            with open(meta_files[-1], encoding="utf-8") as f:
+                result.update(json.load(f))
+        except Exception:
+            pass
+
+    return result
+
+
 def find_evaluation_plots(
     artifact_uri: str | None,
     *,

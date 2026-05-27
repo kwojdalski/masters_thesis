@@ -304,6 +304,13 @@ class TrainerRuntimeHooks:
 
                     artifact_prefix = ArtifactPaths.eval_plots_temp(split_ctx.split, step_number)
                     _t = time.monotonic()
+                    _plot_data = None
+                    _last_result = getattr(self.trainer, "_last_evaluation_result", None)
+                    if _last_result is not None and _last_result.plots:
+                        _rollout = _last_result.plots.get("_rollout_plot_data")
+                        _equity = _last_result.plots.get("_equity_plot_data")
+                        if _rollout or _equity:
+                            _plot_data = {**(_rollout or {}), **(_equity or {})}
                     MLflowTrainingCallback.log_evaluation_plots(
                         reward_plot=reward_plot,
                         action_plot=action_plot,
@@ -313,6 +320,7 @@ class TrainerRuntimeHooks:
                         merged_plot=merged_plot,
                         artifact_path_prefix=artifact_prefix,
                         debug=getattr(hook.config.logging, "debug_plots", False),
+                        plot_data=_plot_data,
                     )
                     logger.debug(
                         "temp eval: mlflow upload split=%s elapsed=%.2fs",

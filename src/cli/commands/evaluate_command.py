@@ -313,10 +313,14 @@ class EvaluateCommand(BaseCommand):
                     self._save_plots(result.plots, split, params.output_dir)
                     if mlflow_run_id:
                         from trading_rl.callbacks.artifacts import log_evaluation_plots
+                        _rollout = result.plots.get("_rollout_plot_data")
+                        _equity = result.plots.get("_equity_plot_data")
+                        _plot_data = {**(_rollout or {}), **(_equity or {})} if (_rollout or _equity) else None
                         log_evaluation_plots(
                             reward_plot=result.plots.get("reward_plot"),
                             action_plot=result.plots.get("action_plot"),
                             artifact_path_prefix=ArtifactPaths.eval_plots(split),
+                            plot_data=_plot_data,
                         )
 
                 all_results[split] = split_output

@@ -23,7 +23,14 @@ import torch
 from logger import get_logger
 from trading_rl.constants import BenchmarkName, EnvBackend, EnvMode, RewardType
 from trading_rl.evaluation.metrics import MetricReport, build_metric_report
-from trading_rl.evaluation.plots import compare_rollouts, create_equity_curve_plot
+from trading_rl.evaluation.plots import (
+    build_equity_plot_data,
+    build_rollout_plot_data,
+    create_equity_curve_plot,
+    plot_actions,
+    plot_equity_curve,
+    plot_rewards,
+)
 from trading_rl.evaluation.returns import (
     ReturnKind,
     ReturnSeries,
@@ -347,7 +354,7 @@ class StrategyEvaluator:
             if "rewards" in enabled or "positions" in enabled:
                 _t = time.monotonic()
                 is_portfolio = self.config.backend.lower() == EnvBackend.TRADINGENV
-                reward_plot, action_plot = compare_rollouts(
+                rollout_data = build_rollout_plot_data(
                     [rollout], max_steps, is_portfolio=is_portfolio, df=df,
                     reward_type=self.config.reward_type,
                     max_plot_points=self.config.max_plot_points,
@@ -358,11 +365,30 @@ class StrategyEvaluator:
                     show_benchmarks=self.config.show_reward_benchmarks,
                     benchmark_price_column=self.config.price_column,
                 )
-                logger.debug("evaluate_split: compare_rollouts elapsed=%.2fs", time.monotonic() - _t)
+                logger.debug("evaluate_split: build_rollout_plot_data elapsed=%.2fs", time.monotonic() - _t)
+                plots["_rollout_plot_data"] = rollout_data
                 if "rewards" in enabled:
-                    plots["reward_plot"] = reward_plot
+                    plots["reward_plot"] = plot_rewards(
+                        rollout_data["rewards"],
+                        training_steps=rollout_data["training_steps"],
+                        training_episodes=rollout_data["training_episodes"],
+                        reward_type=rollout_data["reward_type"],
+                        stride=rollout_data["stride"],
+                        n_obs=rollout_data["n_obs"],
+                        date_str=rollout_data["date_str"],
+                    )
                 if "positions" in enabled:
-                    plots["action_plot"] = action_plot
+                    plots["action_plot"] = plot_actions(
+                        rollout_data["actions"],
+                        df_ma=rollout_data.get("actions_ma"),
+                        is_portfolio=rollout_data["is_portfolio"],
+                        training_steps=rollout_data["training_steps"],
+                        training_episodes=rollout_data["training_episodes"],
+                        stride=rollout_data["stride"],
+                        n_obs=rollout_data["n_obs"],
+                        date_str=rollout_data["date_str"],
+                        allocation_ma_window=rollout_data.get("allocation_ma_window") or self.config.allocation_ma_window,
+                    )
 
             if "portfolio_value" in enabled:
                 plot_series = return_series or (
@@ -371,7 +397,7 @@ class StrategyEvaluator:
                 if plot_series is not None:
                     try:
                         _t = time.monotonic()
-                        plots["portfolio_value_plot"] = create_equity_curve_plot(
+                        equity_data = build_equity_plot_data(
                             None,
                             max_steps,
                             df_prices=df,
@@ -383,6 +409,19 @@ class StrategyEvaluator:
                             training_steps=self.config.training_steps,
                             training_episodes=self.config.training_episodes,
                             benchmarks=self.config.benchmarks,
+                        )
+                        plots["_equity_plot_data"] = equity_data
+                        plots["portfolio_value_plot"] = plot_equity_curve(
+                            equity_data["returns"],
+                            initial_portfolio_value=equity_data["initial_portfolio_value"],
+                            policy_mode=equity_data["policy_mode"],
+                            training_steps=equity_data["training_steps"],
+                            training_episodes=equity_data["training_episodes"],
+                            date_str=equity_data["date_str"],
+                            n_obs=equity_data["n_obs"],
+                            stride=equity_data["stride"],
+                            symbols=equity_data["symbols"],
+                            n_total_symbols=equity_data["n_total_symbols"],
                         )
                         logger.debug("evaluate_split: portfolio_value_plot elapsed=%.2fs", time.monotonic() - _t)
                     except Exception:
