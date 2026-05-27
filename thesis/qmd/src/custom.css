@@ -1,0 +1,17 @@
+/* Full-width tables for pandas DataFrames and custom comparison tables */
+table.dataframe {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.dataframe th,
+table.dataframe td {
+  padding: 0.4em 0.6em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.dataframe th:first-child,
+table.dataframe td:first-child {
+  text-align: left;
+}
