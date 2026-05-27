@@ -130,7 +130,7 @@ def main() -> int:
             "--output-dir logs/<log-name> --only metrics --only benchmarks --only plots"
         )
 
-    return 0 if not skipped else 1
+    return 0
 
 
 if __name__ == "__main__":
