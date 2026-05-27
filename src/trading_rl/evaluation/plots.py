@@ -1025,7 +1025,7 @@ def create_metrics_table_figure(
 
     BASE_SIZE = 11
 
-    fig_height = max(3.5, len(rows) * 0.30 + 1.2) * 1.3 * 1.25
+    fig_height = max(3.5, len(rows) * 0.30 + 1.2) * 1.3 * 1.25 * 1.15
 
     title_parts = []
     if split:
@@ -1037,7 +1037,7 @@ def create_metrics_table_figure(
         title_parts.append(date_str)
     title = "  |  ".join(title_parts) if title_parts else None
 
-    fig, ax = plt.subplots(figsize=(14.3, fig_height))
+    fig, ax = plt.subplots(figsize=(14.3 * 1.15, fig_height))
     if title:
         ax.set_title(title, fontsize=BASE_SIZE + 1, pad=8)
     _render_table_on_ax(ax, rows, BASE_SIZE)
