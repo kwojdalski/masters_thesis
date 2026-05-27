@@ -195,17 +195,25 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
         return self._build_env(df, config, continuous=continuous)
 
 
-class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
-    """Factory for forex-v0 environments."""
+class _AnyTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
+    """Shared factory for gym-anytrading environments (forex-v0, stocks-v0).
+
+    Both environments require identical setup: lowercase-to-capitalised column
+    renaming, optional DSR reward wrapping, DiscreteActionWrapper, GymWrapper,
+    and StepCounter.  The only variation is the gym environment id.
+    Subclasses supply ``_env_id`` and inherit all logic here.
+    """
+
+    _env_id: str  # set by concrete subclasses
 
     def __init__(self, config: ExperimentConfig | None = None):
         self.config = config
 
     def make(self, df: pd.DataFrame | None = None, **kwargs) -> TransformedEnv:
-        """Create forex trading environment with optional DSR reward."""
+        """Create the gym-anytrading environment with optional DSR reward."""
         env_kwargs = kwargs.copy()
         if df is not None:
-            # Map lowercase columns to Capitalized for gym-anytrading
+            # Map lowercase columns to Capitalised for gym-anytrading
             rename_map = {
                 "open": "Open",
                 "high": "High",
@@ -216,7 +224,7 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
             df = df.rename(columns=rename_map)
             env_kwargs["df"] = df
 
-        base_env = gym.make("forex-v0", **env_kwargs)
+        base_env = gym.make(self._env_id, **env_kwargs)
 
         # Apply DSR wrapper if configured
         if self.config is not None:
@@ -232,8 +240,8 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
                 dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta, scale=reward_scale)
                 base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
                 logger.info(
-                    "applied dsr reward to forex-v0 environment eta=%s scale=%s",
-                    reward_eta, reward_scale,
+                    "applied dsr reward to %s environment eta=%s scale=%s",
+                    self._env_id, reward_eta, reward_scale,
                 )
             elif reward_type != RewardType.LOG_RETURN:
                 raise ValueError(
@@ -245,59 +253,20 @@ class ForexEnvironmentFactory(BaseTradingEnvironmentFactory):
         env = GymWrapper(base_env)
         env = self._wrap_with_step_counter(env)
 
-        logger.info("create forex-v0 environment done")
+        logger.info("create %s environment done", self._env_id)
         return env
 
 
-class StocksEnvironmentFactory(BaseTradingEnvironmentFactory):
+class ForexEnvironmentFactory(_AnyTradingEnvironmentFactory):
+    """Factory for forex-v0 environments."""
+
+    _env_id = "forex-v0"
+
+
+class StocksEnvironmentFactory(_AnyTradingEnvironmentFactory):
     """Factory for stocks-v0 environments."""
 
-    def __init__(self, config: ExperimentConfig | None = None):
-        self.config = config
-
-    def make(self, df: pd.DataFrame | None = None, **kwargs) -> TransformedEnv:
-        """Create stocks trading environment with optional DSR reward."""
-        env_kwargs = kwargs.copy()
-        if df is not None:
-            # Map lowercase columns to Capitalized for gym-anytrading
-            rename_map = {
-                "open": "Open",
-                "high": "High",
-                "low": "Low",
-                "close": "Close",
-                "volume": "Volume",
-            }
-            df = df.rename(columns=rename_map)
-            env_kwargs["df"] = df
-
-        base_env = gym.make("stocks-v0", **env_kwargs)
-
-        # Apply DSR wrapper if configured
-        if self.config is not None:
-            reward_type = getattr(self.config.env, "reward_type", RewardType.LOG_RETURN)
-            if reward_type == RewardType.DIFFERENTIAL_SHARPE:
-                from trading_rl.rewards.dsr_wrapper import (
-                    DifferentialSharpeRatioAnyTrading,
-                    StatefulRewardWrapper,
-                )
-
-                reward_eta = getattr(self.config.env, "reward_eta", 0.01)
-                reward_scale = getattr(self.config.env, "reward_scale", 1.0)
-                dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta, scale=reward_scale)
-                base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
-                logger.info("apply dsr reward to stocks-v0 environment eta=%s scale=%s", reward_eta, reward_scale)
-            elif reward_type != RewardType.LOG_RETURN:
-                raise ValueError(
-                    f"Unknown reward type: {reward_type}. "
-                    "Supported types: 'log_return', 'differential_sharpe'"
-                )
-
-        base_env = DiscreteActionWrapper(base_env)
-        env = GymWrapper(base_env)
-        env = self._wrap_with_step_counter(env)
-
-        logger.info("create stocks-v0 environment done")
-        return env
+    _env_id = "stocks-v0"
 
 
 def get_environment_factory(
