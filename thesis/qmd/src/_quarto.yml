@@ -1,0 +1,2 @@
+project:
+  pre-render: uv run python ../../../scripts/export_all_to_thesis.py
