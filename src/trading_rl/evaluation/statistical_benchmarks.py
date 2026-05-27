@@ -232,7 +232,8 @@ def compute_random_baseline_returns(
     use_nlv = reward_type != RewardType.LOG_RETURN
 
     if seed is not None:
-        np.random.seed(seed)
+        # torch seed for any torch ops inside rollout; each trial is independently
+        # seeded via env.set_seed(seed + trial) so no global numpy seed is needed.
         torch.manual_seed(seed)
 
     # Set up signal handler for interrupting long-running random baseline computation

@@ -84,8 +84,7 @@ class BootstrapTest(StatisticalTest, ABC):
         **params,
     ) -> dict[str, Any]:
         """Run bootstrap test with confidence intervals."""
-        if seed is not None:
-            np.random.seed(seed)
+        rng = np.random.default_rng(seed)
 
         strategy_metric = self.compute_metric(strategy_returns)
         baseline_metric = self.compute_metric(baseline_returns)
@@ -100,10 +99,10 @@ class BootstrapTest(StatisticalTest, ABC):
         n_baseline = len(baseline_returns)
 
         for _ in range(n_bootstrap):
-            strategy_sample = np.random.choice(
+            strategy_sample = rng.choice(
                 strategy_returns, size=n_strategy, replace=True
             )
-            baseline_sample = np.random.choice(
+            baseline_sample = rng.choice(
                 baseline_returns, size=n_baseline, replace=True
             )
 
@@ -182,8 +181,7 @@ class PermutationTest(StatisticalTest, ABC):
         **params,
     ) -> dict[str, Any]:
         """Run permutation test."""
-        if seed is not None:
-            np.random.seed(seed)
+        rng = np.random.default_rng(seed)
 
         observed_stat = self.compute_test_statistic(strategy_returns, baseline_returns)
         pooled = np.concatenate([strategy_returns, baseline_returns])
@@ -191,7 +189,7 @@ class PermutationTest(StatisticalTest, ABC):
 
         perm_stats = []
         for _ in range(n_permutations):
-            np.random.shuffle(pooled)
+            rng.shuffle(pooled)
             perm_strategy = pooled[:n_strategy]
             perm_baseline = pooled[n_strategy:]
             perm_stats.append(
