@@ -249,14 +249,16 @@ def _drawdown_stats(drawdowns: np.ndarray) -> tuple[float, float, int, int]:
     max_dd = float(np.min(drawdowns)) if drawdowns.size else np.nan
     avg_dd = float(np.mean(drawdowns[drawdowns < 0])) if np.any(drawdowns < 0) else 0.0
 
-    max_duration = 0
-    current = 0
-    for d in drawdowns:
-        if d < 0:
-            current += 1
-            max_duration = max(max_duration, current)
-        else:
-            current = 0
+    if drawdowns.size and np.any(drawdowns < 0):
+        is_dd = drawdowns < 0
+        # Assign a unique id to each contiguous run by counting the number of
+        # times the series is *not* in drawdown up to each point.  Elements
+        # within the same drawdown run share the same group_id.
+        group_ids = np.cumsum(~is_dd)
+        run_lengths = np.bincount(group_ids[is_dd])
+        max_duration = int(run_lengths.max())
+    else:
+        max_duration = 0
 
     trough_idx = int(np.argmin(drawdowns)) if drawdowns.size else -1
     recovery_time = np.nan
