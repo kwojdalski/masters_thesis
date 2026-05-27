@@ -829,19 +829,31 @@ def validate_guardrails(
     if not scenario and not config_file:
         raise typer.BadParameter("Provide --scenario or --config.")
 
+    # Resolve scenario path (matching BaseCommand._load_experiment_config logic)
     if scenario:
-        search = [
-            Path(scenario),
-            Path("src/configs/scenarios") / scenario,
-            Path("src/configs/scenarios") / f"{scenario}.yaml",
-        ]
-        config_path = next((p for p in search if p.exists()), None)
-        if config_path is None:
-            raise typer.BadParameter(f"Scenario '{scenario}' not found.")
+        path = Path(scenario)
+        if not path.exists():
+            candidate = Path("src/configs/scenarios") / scenario
+            if candidate.exists():
+                path = candidate
+        if path.exists():
+            config_path = path
+        else:
+            # Try with .yaml suffix
+            search = [
+                Path(scenario),
+                Path("src/configs/scenarios") / scenario,
+                Path("src/configs/scenarios") / f"{scenario}.yaml",
+            ]
+            config_path = next((p for p in search if p.exists()), None)
+            if config_path is None:
+                raise typer.BadParameter(f"Scenario '{scenario}' not found.")
     else:
         config_path = config_file
 
-    config = ExperimentConfig.load(config_path, overrides=config_override)
+    # Use command="train" for scenarios to load train.yaml component
+    command = "train" if scenario else None
+    config = ExperimentConfig.load(config_path, command=command, overrides=config_override)
 
     findings = check_config_guardrails(config)
 

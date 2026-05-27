@@ -12,6 +12,7 @@
 #   bash scripts/run_h1_experiments.sh --parallel            # train all agents concurrently
 #   bash scripts/run_h1_experiments.sh --verbose / -v        # enable debug logging
 #   bash scripts/run_h1_experiments.sh --max-train-seconds=300  # cap training wall-clock time
+#   bash scripts/run_h1_experiments.sh --skip-guardrails     # skip pre-flight guardrails check
 #   bash scripts/run_h1_experiments.sh --skip-train --parallel
 #   EXTRA_TRAIN_ARGS="training.max_steps=50000" bash scripts/run_h1_experiments.sh
 #   EXTRA_EVAL_ARGS="evaluation.eval_steps=500" bash scripts/run_h1_experiments.sh
@@ -31,6 +32,7 @@ SKIP_EVAL=0
 PARALLEL=0
 VERBOSE=0
 MAX_TRAIN_SECONDS=""
+SKIP_GUARDRAILS=0
 for arg in "$@"; do
     [[ "$arg" == "--skip-train" ]] && SKIP_TRAIN=1
     [[ "$arg" == "--skip-eval"  ]] && SKIP_EVAL=1
@@ -38,6 +40,7 @@ for arg in "$@"; do
     [[ "$arg" == "--verbose"    ]] && VERBOSE=1
     [[ "$arg" == "-v"           ]] && VERBOSE=1
     [[ "$arg" == --max-train-seconds=* ]] && MAX_TRAIN_SECONDS="${arg#--max-train-seconds=}"
+    [[ "$arg" == "--skip-guardrails" ]] && SKIP_GUARDRAILS=1
 done
 
 VERBOSE_FLAG=""
@@ -57,6 +60,54 @@ _override_flags() {
         flags+=(--config-override "$kv")
     done
     echo "${flags[@]}"
+}
+
+# ---------------------------------------------------------------------------
+# Pre-flight: Check guardrails for all scenarios
+# ---------------------------------------------------------------------------
+_check_guardrails() {
+    local scenarios=("$@")
+    echo "=== Pre-flight: Checking guardrails for ${#scenarios[@]} scenarios ==="
+    local failed=()
+    local passed=()
+
+    for SCENARIO in "${scenarios[@]}"; do
+        local LOG_NAME="${SCENARIO##*/}"
+        local LOG_FILE="$LOG_DIR/${LOG_NAME}_guardrails.log"
+        echo "  Checking $SCENARIO..."
+        if uv run python "$REPO_ROOT/src/cli.py" validate guardrails \
+            -c "$SCENARIO" \
+            ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
+            >"$LOG_FILE" 2>&1; then
+            echo "    [PASS] $SCENARIO"
+            passed+=("$SCENARIO")
+        else
+            echo "    [FAIL] $SCENARIO (see $LOG_FILE)"
+            failed+=("$SCENARIO")
+        fi
+    done
+
+    echo ""
+    echo "Guardrails summary:"
+    echo "  Passed: ${#passed[@]}"
+    echo "  Failed: ${#failed[@]}"
+
+    if [[ ${#failed[@]} -gt 0 ]]; then
+        echo ""
+        echo "Failed scenarios:"
+        for SCENARIO in "${failed[@]}"; do
+            local LOG_NAME="${SCENARIO##*/}"
+            local LOG_FILE="$LOG_DIR/${LOG_NAME}_guardrails.log"
+            echo "  - $SCENARIO (logs: $LOG_FILE)"
+        done
+        echo ""
+        echo "Fix the guardrail issues or run with --skip-guardrails to proceed anyway."
+        return 1
+    fi
+
+    echo ""
+    echo "All scenarios passed guardrails."
+    return 0
 }
 
 # Print a multitail (or tail -f) hint for monitoring parallel log files.
@@ -84,6 +135,18 @@ declare -a SCENARIOS=(
     "pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr"
     "pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr"
 )
+
+# ---------------------------------------------------------------------------
+# Step 0: Pre-flight guardrails check
+# ---------------------------------------------------------------------------
+if [[ $SKIP_GUARDRAILS -eq 0 ]]; then
+    if ! _check_guardrails "${SCENARIOS[@]}"; then
+        echo ""
+        echo "Guardrails check failed. Exiting."
+        exit 1
+    fi
+    echo ""
+fi
 
 # ---------------------------------------------------------------------------
 # Step 1: Train

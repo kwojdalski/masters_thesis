@@ -4,6 +4,7 @@
 #
 # Usage:
 #   bash scripts/train_all_thesis_experiments.sh
+#   bash scripts/train_all_thesis_experiments.sh --skip-guardrails
 #
 # To override config values for all runs (e.g. shorter training):
 #   EXTRA_ARGS="training.max_steps=100000" bash scripts/train_all_thesis_experiments.sh
@@ -15,6 +16,10 @@ LOG_DIR="$REPO_ROOT/logs"
 mkdir -p "$LOG_DIR"
 
 EXTRA_ARGS="${EXTRA_ARGS:-}"
+SKIP_GUARDRAILS=0
+for arg in "$@"; do
+    [[ "$arg" == "--skip-guardrails" ]] && SKIP_GUARDRAILS=1
+done
 
 PID_FILE="$LOG_DIR/train_pids"
 PIDS=()
@@ -31,6 +36,40 @@ _kill_all() {
     exit 1
 }
 trap _kill_all INT TERM
+
+# ---------------------------------------------------------------------------
+# Pre-flight: Check guardrails for all scenarios
+# ---------------------------------------------------------------------------
+if [[ $SKIP_GUARDRAILS -eq 0 ]]; then
+    echo "=== Pre-flight: Checking guardrails for TD3, DDPG, PPO ==="
+    FAILED=0
+    for ALGO in td3 ddpg ppo; do
+        case "$ALGO" in
+            td3)  SCENARIO="pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr" ;;
+            ddpg) SCENARIO="pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr" ;;
+            ppo)  SCENARIO="pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr" ;;
+        esac
+        LOG_FILE="$LOG_DIR/${ALGO}_guardrails.log"
+        echo "  Checking $SCENARIO..."
+        if uv run python "$REPO_ROOT/src/cli.py" validate guardrails \
+            -c "$SCENARIO" \
+            >"$LOG_FILE" 2>&1; then
+            echo "    [PASS] $SCENARIO"
+        else
+            echo "    [FAIL] $SCENARIO (see $LOG_FILE)"
+            FAILED=1
+        fi
+    done
+
+    if [[ $FAILED -eq 1 ]]; then
+        echo ""
+        echo "Guardrails check failed. Fix the issues or run with --skip-guardrails to proceed anyway."
+        exit 1
+    fi
+    echo ""
+    echo "All scenarios passed guardrails."
+    echo ""
+fi
 
 for ALGO in td3 ddpg ppo; do
     case "$ALGO" in

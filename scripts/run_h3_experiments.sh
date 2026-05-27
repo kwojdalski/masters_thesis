@@ -15,6 +15,7 @@
 #   bash scripts/run_h3_experiments.sh --skip-eval           # train only (quick smoke run)
 #   bash scripts/run_h3_experiments.sh --parallel            # train all variants concurrently
 #   bash scripts/run_h3_experiments.sh --verbose / -v        # enable debug logging
+#   bash scripts/run_h3_experiments.sh --skip-guardrails     # skip pre-flight guardrails check
 #   bash scripts/run_h3_experiments.sh --skip-train --parallel
 #   EXTRA_TRAIN_ARGS="training.max_steps=50000" bash scripts/run_h3_experiments.sh
 #   EXTRA_EVAL_ARGS="evaluation.eval_steps=500" bash scripts/run_h3_experiments.sh
@@ -33,12 +34,14 @@ SKIP_TRAIN=0
 SKIP_EVAL=0
 PARALLEL=0
 VERBOSE=0
+SKIP_GUARDRAILS=0
 for arg in "$@"; do
     [[ "$arg" == "--skip-train" ]] && SKIP_TRAIN=1
     [[ "$arg" == "--skip-eval"  ]] && SKIP_EVAL=1
     [[ "$arg" == "--parallel"   ]] && PARALLEL=1
     [[ "$arg" == "--verbose"    ]] && VERBOSE=1
     [[ "$arg" == "-v"           ]] && VERBOSE=1
+    [[ "$arg" == "--skip-guardrails" ]] && SKIP_GUARDRAILS=1
 done
 
 VERBOSE_FLAG=""
@@ -54,6 +57,54 @@ _override_flags() {
         flags+=(--config-override "$kv")
     done
     echo "${flags[@]}"
+}
+
+# ---------------------------------------------------------------------------
+# Pre-flight: Check guardrails for all scenarios
+# ---------------------------------------------------------------------------
+_check_guardrails() {
+    local scenarios=("$@")
+    echo "=== Pre-flight: Checking guardrails for ${#scenarios[@]} scenarios ==="
+    local failed=()
+    local passed=()
+
+    for SCENARIO in "${scenarios[@]}"; do
+        local LOG_NAME="${SCENARIO##*/}"
+        local LOG_FILE="$LOG_DIR/${LOG_NAME}_guardrails.log"
+        echo "  Checking $SCENARIO..."
+        if uv run python "$REPO_ROOT/src/cli.py" validate guardrails \
+            -c "$SCENARIO" \
+            ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
+            >"$LOG_FILE" 2>&1; then
+            echo "    [PASS] $SCENARIO"
+            passed+=("$SCENARIO")
+        else
+            echo "    [FAIL] $SCENARIO (see $LOG_FILE)"
+            failed+=("$SCENARIO")
+        fi
+    done
+
+    echo ""
+    echo "Guardrails summary:"
+    echo "  Passed: ${#passed[@]}"
+    echo "  Failed: ${#failed[@]}"
+
+    if [[ ${#failed[@]} -gt 0 ]]; then
+        echo ""
+        echo "Failed scenarios:"
+        for SCENARIO in "${failed[@]}"; do
+            local LOG_NAME="${SCENARIO##*/}"
+            local LOG_FILE="$LOG_DIR/${LOG_NAME}_guardrails.log"
+            echo "  - $SCENARIO (logs: $LOG_FILE)"
+        done
+        echo ""
+        echo "Fix the guardrail issues or run with --skip-guardrails to proceed anyway."
+        return 1
+    fi
+
+    echo ""
+    echo "All scenarios passed guardrails."
+    return 0
 }
 
 _watch_hint() {
@@ -99,6 +150,18 @@ for _s in "${SCENARIOS[@]}"; do
         UNIQUE_SCENARIOS+=("$_s")
     fi
 done
+
+# ---------------------------------------------------------------------------
+# Step 0: Pre-flight guardrails check (on deduplicated scenarios)
+# ---------------------------------------------------------------------------
+if [[ $SKIP_GUARDRAILS -eq 0 ]]; then
+    if ! _check_guardrails "${UNIQUE_SCENARIOS[@]}"; then
+        echo ""
+        echo "Guardrails check failed. Exiting."
+        exit 1
+    fi
+    echo ""
+fi
 
 # ---------------------------------------------------------------------------
 # Step 1: Train  (deduplicated — selected baseline trained only once)

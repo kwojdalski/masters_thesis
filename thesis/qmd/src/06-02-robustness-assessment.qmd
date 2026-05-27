@@ -86,7 +86,9 @@ else:
 ```
 :::
 
-*Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. Ann. Vol: annualized volatility.*
+::: {.table-note}
+**Legend:** Sharpe: mean excess return / std (not annualized). Sortino: mean excess return / downside deviation (not annualized). Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of positive-return steps. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. Ann. Vol: annualized volatility.
+:::
 
 The feature comparison supports a qualified version of H2. The minimal
 three-feature representation produces a negative cumulative return

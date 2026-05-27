@@ -7,7 +7,7 @@ Sections
 --------
 Value formatters     fmt_val, fmt_delta, fmt_duration, fmt_scientific
 Hyperparameter fmts  fmt_network_dims, fmt_reward_type, fmt_loss_fn, wrap_html
-Display helpers      display_df, display_image_from_path
+Display helpers      display_df, display_image_from_path, table_note
 Comparison tables    comparison_table_html, build_comparison_rows
 """
 
@@ -18,7 +18,7 @@ import textwrap
 from pathlib import Path
 
 import pandas as pd
-from IPython.display import HTML, display
+from IPython.display import HTML, Markdown, display
 
 
 # ---------------------------------------------------------------------------
@@ -104,6 +104,44 @@ def wrap_html(text: object, width: int = 38) -> str:
 def display_df(frame: pd.DataFrame) -> None:
     """Display a DataFrame as an HTML table without the row index."""
     display(HTML(frame.to_html(index=False)))
+
+
+def table_note(
+    *,
+    source: str | None = None,
+    legend: str | None = None,
+    note: str | None = None,
+) -> None:
+    """Display a standardised Source / Legend / Note block below a table.
+
+    Emits a Markdown ``:::{.table-note}`` fenced div that the ``tablenote.lua``
+    Pandoc filter transforms into appropriately styled output for both HTML
+    and PDF/LaTeX renders.  All three arguments are optional; pass at least one.
+
+    The text supports plain Markdown (bold, italic, inline math) but NOT
+    Pandoc ``[@citation]`` keys — use author-year text for in-note citations.
+
+    Usage::
+
+        table_note(
+            source="Author's own synthesis based on Fujimoto et al. (2018).",
+            legend="yes = included in model; — = not used.",
+            note="First 500 events skipped for rolling-window warm-up.",
+        )
+    """
+    parts: list[str] = []
+    if source:
+        parts.append(f"**Source:** {source}")
+    if legend:
+        parts.append(f"**Legend:** {legend}")
+    if note:
+        parts.append(f"**Note:** {note}")
+    if not parts:
+        return
+    # Two hard-space-separated lines inside the fenced div so the Lua
+    # filter sees them as a single block (one Para per label).
+    inner = "  \n".join(parts)
+    display(Markdown(f"\n::: {{.table-note}}\n{inner}\n:::\n"))
 
 
 def simple_html_table(rows: list[dict], index_col: str | None = None) -> HTML:

@@ -12,6 +12,7 @@
 #   EXTRA_TRAIN_ARGS="training.max_steps=100000" bash scripts/run_h4_experiments.sh
 #   bash scripts/run_h4_experiments.sh --skip-train          # analyze only
 #   bash scripts/run_h4_experiments.sh --verbose / -v        # enable debug logging
+#   bash scripts/run_h4_experiments.sh --skip-guardrails     # skip pre-flight guardrails check
 
 set -euo pipefail
 
@@ -27,11 +28,13 @@ STEPS="${STEPS:-200000}"
 SKIP_TRAIN=0
 SKIP_EVAL=0
 VERBOSE=0
+SKIP_GUARDRAILS=0
 for arg in "$@"; do
     [[ "$arg" == "--skip-train" ]] && SKIP_TRAIN=1
     [[ "$arg" == "--skip-eval"  ]] && SKIP_EVAL=1
     [[ "$arg" == "--verbose"    ]] && VERBOSE=1
     [[ "$arg" == "-v"           ]] && VERBOSE=1
+    [[ "$arg" == "--skip-guardrails" ]] && SKIP_GUARDRAILS=1
 done
 
 VERBOSE_FLAG=""
@@ -48,6 +51,27 @@ _override_flags() {
     done
     echo "${flags[@]}"
 }
+
+# ---------------------------------------------------------------------------
+# Step 0: Pre-flight guardrails check
+# ---------------------------------------------------------------------------
+if [[ $SKIP_GUARDRAILS -eq 0 ]]; then
+    echo "=== Pre-flight: Checking guardrails for $SCENARIO ==="
+    local LOG_NAME="${SCENARIO##*/}"
+    local LOG_FILE="$LOG_DIR/${LOG_NAME}_guardrails.log"
+    if uv run python "$REPO_ROOT/src/cli.py" validate guardrails \
+        -c "$SCENARIO" \
+        ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \
+        >"$LOG_FILE" 2>&1; then
+        echo "  [PASS] $SCENARIO"
+    else
+        echo "  [FAIL] $SCENARIO (see $LOG_FILE)"
+        echo ""
+        echo "Fix the guardrail issues or run with --skip-guardrails to proceed anyway."
+        exit 1
+    fi
+    echo ""
+fi
 
 # ---------------------------------------------------------------------------
 # Step 1: Train (multiple trials)

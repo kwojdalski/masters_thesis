@@ -52,6 +52,7 @@ format:
 bibliography: ../../bibliography/library.bib
 filters:
   - pseudocode
+  - tablenote.lua
 editor_options:
   chunk_output_type: console
   latex_engine: xelatex
