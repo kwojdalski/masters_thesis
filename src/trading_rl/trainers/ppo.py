@@ -164,6 +164,11 @@ class PPOTrainer(BaseTrainer):
                 + loss_vals["loss_entropy"]
             )
             total_loss.backward()
+            if self.config.max_grad_norm > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    [p for group in self.optimizer.param_groups for p in group["params"]],
+                    self.config.max_grad_norm,
+                )
             self.optimizer.step()
             self.optimizer.zero_grad()
             self.ppo_loss.actor_network_params.to_module(self.actor)
