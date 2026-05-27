@@ -49,7 +49,7 @@ class PolicyLoader:
         """
         import torch
 
-        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        checkpoint = torch.load(path, map_location=device, weights_only=True)
         return PolicyLoader._build_actor(checkpoint, device)
 
     @staticmethod
@@ -143,7 +143,7 @@ class PolicyLoader:
         """
         import torch
 
-        checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
         keys = (
             "algorithm",
             "n_obs",

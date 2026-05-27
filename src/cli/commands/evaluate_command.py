@@ -408,7 +408,7 @@ class EvaluateCommand(BaseCommand):
             if checkpoint_path is not None and checkpoint_path.exists():
                 try:
                     import torch
-                    checkpoint = torch.load(checkpoint_path, weights_only=False)
+                    checkpoint = torch.load(checkpoint_path, weights_only=True)
                     pipeline_state = checkpoint.get("feature_pipeline_state")
                     if pipeline_state:
                         # First fit on a small sample to initialize scalers

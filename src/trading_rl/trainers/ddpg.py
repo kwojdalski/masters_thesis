@@ -382,11 +382,9 @@ class DDPGTrainer(BaseTrainer):
         Args:
             path: Path to checkpoint
         """
-        # Load checkpoint with weights_only=False for TorchRL compatibility
-        # TensorDict objects require custom unpickling that isn't in PyTorch's safe allowlist
         from pathlib import Path
 
-        checkpoint = torch.load(path, weights_only=False)
+        checkpoint = torch.load(path, weights_only=True)
         if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
             raise KeyError(
                 "DDPG checkpoint is missing functional parameter states "
