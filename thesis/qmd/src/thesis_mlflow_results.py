@@ -1178,18 +1178,37 @@ def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str,
     ]
 
 
-def show_plot(plot: Any, data: dict[str, Any], frame: str = "rewards", *, audit: bool = False) -> None:
+def show_plot(
+    plot: Any,
+    data: dict[str, Any],
+    frame: str = "rewards",
+    *,
+    width: float | None = None,
+    height: float | None = None,
+    audit: bool = False,
+) -> None:
     """Draw a plotnine plot and optionally print asset provenance.
 
     Args:
         plot: plotnine ggplot object.
         data: dict returned by find_evaluation_plot_data.
         frame: which DataFrame key to look up provenance for ("rewards", "actions", "equity").
+        width: figure width in inches passed to theme(figure_size=...). Overrides any
+               existing figure_size in the plot theme. Use instead of #| fig-width.
+        height: figure height in inches. Same as width.
         audit: when True, print commit hash and generation datetime below the plot.
                Pass ``params["audit_plots"]`` from the QMD front matter to control this
                at render time via ``quarto render -P audit_plots:true``.
     """
+    from plotnine import theme
+
+    if width is not None or height is not None:
+        current = plot.theme.themeables.get("figure_size")
+        cur_w, cur_h = current.properties["value"] if current else (8, 5)
+        plot = plot + theme(figure_size=(width or cur_w, height or cur_h))
+
     plot.draw()
+
     if audit:
         meta = data.get("asset_meta", {}).get(frame, {})
         if meta:
