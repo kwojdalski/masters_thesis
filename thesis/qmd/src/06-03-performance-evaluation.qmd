@@ -108,6 +108,37 @@ else:
         )
 ```
 
+```{python}
+#| output: asis
+#| echo: false
+#| warning: false
+
+from trading_rl.evaluation.plots import plot_equity_curve
+from thesis_mlflow_results import find_evaluation_plot_data, show_plot
+
+_plot_data = None
+if finished is not None:
+    _plot_data = find_evaluation_plot_data(finished.get("artifact_uri"))
+
+if _plot_data and _plot_data.get("returns") is not None:
+    _p = plot_equity_curve(
+        df_returns=_plot_data["returns"],
+        initial_portfolio_value=_plot_data["initial_portfolio_value"],
+        policy_mode=_plot_data["policy_mode"],
+        training_steps=_plot_data.get("training_steps"),
+        training_episodes=_plot_data.get("training_episodes"),
+        date_str=_plot_data.get("date_str", ""),
+        n_obs=_plot_data.get("n_obs", 0),
+        stride=_plot_data.get("stride", 1),
+        symbols=_plot_data.get("symbols", []),
+        n_total_symbols=_plot_data.get("n_total_symbols"),
+    )
+    show_plot(_p, _plot_data, frame="equity", fig_label="fig-equity-curve-test",
+              fig_cap="Portfolio value over the evaluation window for the TD3 agent and benchmark strategies.")
+else:
+    print("Equity curve plot data not available — run evaluation with parquet artifact export enabled.")
+```
+
 ### Discussion: Reading Performance in the Context of State Design
 <!-- [PLACEHOLDER] -->
 
