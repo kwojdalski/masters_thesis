@@ -782,25 +782,25 @@ _METRICS_TWO_COL_THRESHOLD = 20
 
 
 def _split_rows_at_section_boundary(
-    rows: "list[tuple[str, str, str]]",
-) -> "tuple[list[tuple[str, str, str]], list[tuple[str, str, str]]]":
+    rows: "list[tuple[str, str, str, str]]",
+) -> "tuple[list[tuple[str, str, str, str]], list[tuple[str, str, str, str]]]":
     """Split rows near the midpoint, preferring a section boundary."""
     mid = len(rows) // 2
     # Indices where a new section starts (sec_label non-empty), excluding row 0
-    boundaries = [i for i, (sec, _, _) in enumerate(rows) if sec and i > 0]
+    boundaries = [i for i, (sec, *_) in enumerate(rows) if sec and i > 0]
     split_at = min(boundaries, key=lambda i: abs(i - mid)) if boundaries else mid
     return rows[:split_at], rows[split_at:]
 
 
 def _render_table_on_ax(
     ax: "matplotlib.axes.Axes",
-    rows: "list[tuple[str, str, str]]",
+    rows: "list[tuple[str, str, str, str]]",
     base_size: int,
 ) -> None:
     """Draw a styled metrics table onto *ax*."""
     ax.axis("off")
-    col_labels = ["", "Metric", "Value"]
-    table_data = [(r[0], r[1], r[2]) for r in rows]
+    col_labels = ["", "Metric", "Value", "Description"]
+    table_data = [(r[0], r[1], r[2], r[3]) for r in rows]
     tbl = ax.table(
         cellText=table_data,
         colLabels=col_labels,
@@ -811,20 +811,20 @@ def _render_table_on_ax(
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(base_size)
 
-    for col in range(3):
+    for col in range(4):
         cell = tbl[0, col]
         cell.set_facecolor("#2c3e50")
         cell.set_text_props(color="white", fontweight="bold")
 
-    for row_idx, (sec, _, _) in enumerate(rows, start=1):
+    for row_idx, (sec, *_) in enumerate(rows, start=1):
         bg = "#f0f4f8" if row_idx % 2 == 0 else "white"
-        for col in range(3):
+        for col in range(4):
             cell = tbl[row_idx, col]
             cell.set_facecolor(bg)
             if col == 0 and sec:
                 cell.set_text_props(fontweight="bold", color="#2c3e50")
 
-    for col, w in zip(range(3), [0.18, 0.52, 0.30]):
+    for col, w in zip(range(4), [0.12, 0.22, 0.16, 0.50]):
         for row_idx in range(len(rows) + 1):
             tbl[row_idx, col].set_width(w)
 
@@ -844,11 +844,11 @@ def create_metrics_table_figure(
     other evaluation plots.
     """
     import matplotlib.pyplot as plt
-    from trading_rl.evaluation.metric_meta import METRIC_SECTIONS, METRIC_LEGEND, fmt_metric
+    from trading_rl.evaluation.metric_meta import METRIC_SECTIONS, fmt_metric
 
     report_dict = metric_report.to_dict()
 
-    rows: list[tuple[str, str, str]] = []
+    rows: list[tuple[str, str, str, str]] = []
     for section, metas in METRIC_SECTIONS.items():
         first = True
         for meta in metas:
@@ -857,14 +857,9 @@ def create_metrics_table_figure(
             val = report_dict[meta.key]
             sec_label = section if first else ""
             first = False
-            rows.append((sec_label, meta.label, fmt_metric(meta.key, val)))
+            rows.append((sec_label, meta.label, fmt_metric(meta.key, val), meta.description))
 
     BASE_SIZE = 11
-    LEGEND_FONT = BASE_SIZE - 3  # 8pt
-
-    legend_lines = ["Legend:"] + [f"  {k}: {v}" for k, v in METRIC_LEGEND.items()]
-    n_legend_lines = len(legend_lines)
-    legend_height_in = n_legend_lines * LEGEND_FONT * 1.4 / 72 + 0.35
 
     two_col = len(rows) > _METRICS_TWO_COL_THRESHOLD
     if two_col:
@@ -874,9 +869,7 @@ def create_metrics_table_figure(
         left_rows, right_rows = rows, []
         n_display_rows = len(rows)
 
-    table_height_in = max(3.5, n_display_rows * 0.30 + 1.2) * 1.3
-    fig_height = table_height_in + legend_height_in
-    bottom_fraction = legend_height_in / fig_height
+    fig_height = max(3.5, n_display_rows * 0.30 + 1.2) * 1.3
 
     title_parts = []
     if split:
@@ -890,7 +883,7 @@ def create_metrics_table_figure(
 
     if two_col:
         fig, (ax_left, ax_right) = plt.subplots(
-            1, 2, figsize=(15.6, fig_height),
+            1, 2, figsize=(22.0, fig_height),
             gridspec_kw={"wspace": 0.06},
         )
         top_margin = 1.0
@@ -899,23 +892,13 @@ def create_metrics_table_figure(
             fig.suptitle(title, fontsize=BASE_SIZE + 1, y=0.99)
         _render_table_on_ax(ax_left, left_rows, BASE_SIZE)
         _render_table_on_ax(ax_right, right_rows, BASE_SIZE)
-        fig.subplots_adjust(bottom=bottom_fraction, top=top_margin, left=0.01, right=0.99)
+        fig.subplots_adjust(bottom=0.02, top=top_margin, left=0.01, right=0.99)
     else:
-        fig, ax = plt.subplots(figsize=(6.0, fig_height))
+        fig, ax = plt.subplots(figsize=(11.0, fig_height))
         if title:
             ax.set_title(title, fontsize=BASE_SIZE + 1, pad=8)
         _render_table_on_ax(ax, left_rows, BASE_SIZE)
-        fig.tight_layout(rect=[0, bottom_fraction, 1, 1])
-
-    legend_text = "\n".join(legend_lines)
-    fig.text(
-        0.01, 0.01, legend_text,
-        fontsize=LEGEND_FONT,
-        color="#555555",
-        verticalalignment="bottom",
-        horizontalalignment="left",
-        linespacing=1.4,
-    )
+        fig.tight_layout()
 
     return fig
 
