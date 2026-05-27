@@ -120,7 +120,13 @@ class CollectResultsCommand(BaseCommand):
                     for k in _METRIC_KEYS:
                         bench_row[f"strategy_{k}"] = metrics.get(k)
                         bench_row[f"benchmark_{k}"] = bench_metrics.get(k)
-                    bench_row["excess_return"] = relative.get("excess_return")
+                    strat_ret = metrics.get("total_return")
+                    bench_ret = bench_metrics.get("total_return")
+                    bench_row["excess_return"] = (
+                        strat_ret - bench_ret
+                        if strat_ret is not None and bench_ret is not None
+                        else None
+                    )
                     bench_row["information_ratio"] = relative.get("information_ratio")
                     all_benchmarks.append(bench_row)
 
