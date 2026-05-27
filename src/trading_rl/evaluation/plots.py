@@ -990,7 +990,7 @@ def _render_table_on_ax(
             if col == 0 and sec:
                 cell.set_text_props(fontweight="bold", color="#2c3e50")
 
-    for col, w in zip(range(4), [0.12, 0.22, 0.16, 0.50]):
+    for col, w in zip(range(4), [0.10, 0.18, 0.12, 0.60]):
         for row_idx in range(len(rows) + 1):
             tbl[row_idx, col].set_width(w)
 
