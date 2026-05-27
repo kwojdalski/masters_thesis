@@ -112,8 +112,8 @@ def save_eval_rollout_artifact(
         data["cumulative_log_return"] = cum[:n].astype(np.float32)
 
     safe_split = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in split)
-    out_path = output_dir / f"{safe_split}_rollout.csv"
-    pd.DataFrame(data, index=df_index[:n]).to_csv(out_path)
+    out_path = output_dir / f"{safe_split}_rollout.parquet"
+    pd.DataFrame(data, index=df_index[:n]).to_parquet(out_path)
     write_asset_meta(out_path, generator="callbacks/artifacts_evaluation.py")
 
     if mlflow.active_run() is not None:

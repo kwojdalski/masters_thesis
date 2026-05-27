@@ -700,8 +700,8 @@ class EvaluateCommand(BaseCommand):
             data["cumulative_log_return"] = cum[:n].astype(np.float32)
 
         out_df = pd.DataFrame(data, index=index)
-        out_path = output_dir / f"{split}_rollout.csv"
-        out_df.to_csv(out_path)
+        out_path = output_dir / f"{split}_rollout.parquet"
+        out_df.to_parquet(out_path)
         write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
         self.console.print(f"[dim]Rollout data ({n:,} steps) → {out_path}[/dim]")
 
