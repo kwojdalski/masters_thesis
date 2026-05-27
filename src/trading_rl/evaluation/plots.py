@@ -223,7 +223,7 @@ def build_rollout_plot_data(
                         }
                         for i, s in enumerate(idx) if s < len(cumsum)
                     )
-                twap_positions = np.arange(1, len(log_returns) + 1, dtype=float) / len(log_returns)
+                twap_positions = np.arange(0, len(log_returns), dtype=float) / len(log_returns)
                 twap_cumsum = (twap_positions * log_returns).cumsum()
                 rewards_data.extend(
                     {

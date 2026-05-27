@@ -307,10 +307,10 @@ def calculate_twap_dsr(
     else:
         max_steps = min(max_steps, len(prices) - 1)
 
-    # TWAP: linear position buildup from 0 to 1
-    # Position during period t is (t / n_steps)
+    # TWAP: linear position buildup from 0 to 1 (lagged — consistent with compute_twap_returns)
+    # Position during period t is (t / n_steps): 0 at step 0, (n-1)/n at step n-1
     n_steps = max_steps
-    positions = np.arange(1, n_steps + 1, dtype=float) / n_steps
+    positions = np.arange(0, n_steps, dtype=float) / n_steps
 
     price_returns = np.diff(prices[: n_steps + 1]) / prices[:n_steps]
 
