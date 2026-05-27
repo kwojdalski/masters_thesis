@@ -721,7 +721,7 @@ def create_train_val_progression_plot(
 
     df = pd.DataFrame(rows)
 
-    y_label = "Total Return (log)" if metric == "total_return" else "Final Portfolio Value (\\$)"
+    y_label = "Total Return (log)" if metric == "total_return" else "Final Portfolio Value"
     title = "Learning Progression: Train vs Val"
 
     return (
