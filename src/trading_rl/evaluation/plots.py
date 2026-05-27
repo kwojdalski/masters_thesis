@@ -594,7 +594,7 @@ def create_equity_curve_plot(
         + labs(
             title=full_title,
             x="Steps",
-            y="Portfolio Value (\\$)",
+            y="Portfolio Value",
             caption=_build_run_caption(
                 caption_prefix,
                 returns_runs,
@@ -655,7 +655,7 @@ def create_equity_progression_plot(
         + labs(
             title="Equity Curve Progression",
             x="Steps",
-            y="Portfolio Value (\\$)",
+            y="Portfolio Value",
             caption=(
                 f"Each line shows the deterministic policy at a training checkpoint"
                 f" ({n_checkpoints} checkpoints).\n"
@@ -771,7 +771,7 @@ def create_price_plot(
     plot = (
         ggplot(plot_df, aes(x="x", y="price"))
         + geom_line(color=PALETTE.get("Deterministic", "#CC0000"), size=0.4)
-        + labs(x=x_label, y=f"Price ({price_column})")
+        + labs(x=x_label, y="Price")
         + thesis_theme()
         + theme(axis_text_x=element_text(angle=90, hjust=1))
     )
@@ -848,7 +848,7 @@ def create_metrics_table_figure(
 
     BASE_SIZE = 11
 
-    fig_height = max(3.5, len(rows) * 0.30 + 1.2) * 1.3
+    fig_height = max(3.5, len(rows) * 0.30 + 1.2) * 1.3 * 1.25
 
     title_parts = []
     if split:
@@ -860,7 +860,7 @@ def create_metrics_table_figure(
         title_parts.append(date_str)
     title = "  |  ".join(title_parts) if title_parts else None
 
-    fig, ax = plt.subplots(figsize=(11.0, fig_height))
+    fig, ax = plt.subplots(figsize=(14.3, fig_height))
     if title:
         ax.set_title(title, fontsize=BASE_SIZE + 1, pad=8)
     _render_table_on_ax(ax, rows, BASE_SIZE)
