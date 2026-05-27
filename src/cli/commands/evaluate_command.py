@@ -473,6 +473,8 @@ class EvaluateCommand(BaseCommand):
 
         prepared_dir_str = getattr(getattr(config, "data", None), "prepared_data_dir", None)
         prepared_dir = Path(prepared_dir_str) if prepared_dir_str else None
+        validation_size = getattr(getattr(config, "data", None), "validation_size", None)
+        test_size = getattr(getattr(config, "data", None), "test_size", None)
 
         requested: set[str] = (
             {SplitName.VAL, SplitName.TEST}
@@ -501,11 +503,17 @@ class EvaluateCommand(BaseCommand):
                 )
                 if SplitName.VAL in requested:
                     key = f"val_{symbol}"
-                    split_dfs[key] = pd.read_parquet(val_prepared)
+                    df_val = pd.read_parquet(val_prepared)
+                    if validation_size is not None:
+                        df_val = df_val.iloc[:validation_size]
+                    split_dfs[key] = df_val
                     splits_to_eval.append(key)
                 if SplitName.TEST in requested:
                     key = f"test_{symbol}"
-                    split_dfs[key] = pd.read_parquet(test_prepared)
+                    df_test = pd.read_parquet(test_prepared)
+                    if test_size is not None:
+                        df_test = df_test.iloc[:test_size]
+                    split_dfs[key] = df_test
                     splits_to_eval.append(key)
             else:
                 self.console.print(f"[dim]  {symbol}: computing features ({Path(val_path).name})[/dim]")
