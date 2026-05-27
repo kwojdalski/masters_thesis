@@ -205,6 +205,11 @@ def run_statistical_tests_for_split(
         logger.info("statistical significance tests complete split=%s", split_ctx.split)
     except Exception:
         logger.error("statistical tests failed split=%s", split_ctx.split, exc_info=True)
+        try:
+            import mlflow
+            mlflow.log_metric(f"{split_ctx.split}_statistical_tests_failed", 1)
+        except Exception:
+            pass
 
 
 def _save_benchmark_table_for_split(
