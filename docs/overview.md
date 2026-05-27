@@ -84,3 +84,4 @@ flowchart TD
 | Symbols | 6 | AAPL, MSFT, TSLA, META, AMZN, AVGO |
 
 See [training_pipeline.md](./training_pipeline.md) for detailed per-step diagrams.
+See [CLI Reference](./cli/overview.md) for comprehensive command-line documentation.

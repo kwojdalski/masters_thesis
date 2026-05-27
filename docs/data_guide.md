@@ -292,6 +292,8 @@ gen.generate_sine_wave_pattern(
 
 - [Experiment Workflow](./experiment_workflow.md) - End-to-end training workflow
 - [Data Preparation Details](./prepare_data.md) - Feature engineering and normalization
+- [CLI Reference - Workflow Commands](./cli/workflow_commands.md) - Core ML pipeline CLI commands
+- [CLI Reference - Inspection & Validation](./cli/inspection_validation.md) - Data inspection and validation commands
 - [PPO Implementation](./ppo_implementation_overview.md) - PPO algorithm details
 - [DDPG Implementation](./ddpg_implementation_overview.md) - DDPG algorithm details
 - [TD3 Implementation](./td3_implementation_overview.md) - TD3 algorithm details
