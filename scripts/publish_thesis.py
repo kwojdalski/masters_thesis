@@ -56,7 +56,6 @@ def main() -> int:
     # --- render ---
     env = os.environ.copy()
     env["MPLBACKEND"] = "Agg"
-    env["THESIS_PDF_RENDER"] = "1"
     if args.audit:
         env["AUDIT_PLOTS"] = "1"
         print("AUDIT_PLOTS=1 enabled")

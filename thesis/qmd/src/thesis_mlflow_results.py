@@ -1233,16 +1233,6 @@ def audit_plots_enabled() -> bool:
     return os.environ.get("AUDIT_PLOTS", "").lower() in {"1", "true", "yes"}
 
 
-def pdf_render_enabled() -> bool:
-    """Return True when rendering for PDF (THESIS_PDF_RENDER=1).
-
-    Set automatically by scripts/publish_thesis.py. To enable manually:
-        THESIS_PDF_RENDER=1 uv run quarto render masters-thesis.qmd --to pdf
-    """
-    import os
-    return os.environ.get("THESIS_PDF_RENDER", "").lower() in {"1", "true", "yes"}
-
-
 def _figures_dir() -> "Path":
     """Return (and create) the _figures/ subdir next to this file."""
     from pathlib import Path
@@ -1267,10 +1257,10 @@ def show_plot(
     Two rendering modes depending on whether *fig_label* is provided:
 
     **Inline mode** (fig_label=None, default)
-        Calls plot.draw() so Quarto captures the image inline.  In PDF mode
-        (THESIS_PDF_RENDER=1) the plot title, subtitle, and caption are stripped
-        from the PNG and emitted as adjacent Markdown paragraphs (LaTeX-typeset),
-        but they appear outside the figure environment.
+        Calls plot.draw() so Quarto captures the image inline.  The plot title,
+        subtitle, and caption are always stripped from the PNG and emitted as
+        adjacent Markdown paragraphs (LaTeX-typeset for PDF, rendered text for
+        HTML), but they appear outside the figure environment.
 
     **Figure-env mode** (fig_label="fig-xxx")
         Saves the stripped PNG to _figures/<label>.png and emits a Quarto
@@ -1341,17 +1331,15 @@ def show_plot(
             f":::"
         ))
     else:
-        # --- Inline mode ---
-        is_pdf = pdf_render_enabled()
-        if is_pdf:
-            if title:
-                display(Markdown(f"**{title}**\n"))
-            if subtitle:
-                display(Markdown(f"*{subtitle}*\n"))
+        # --- Inline mode: title/caption always emitted as Markdown ---
+        if title:
+            display(Markdown(f"**{title}**\n"))
+        if subtitle:
+            display(Markdown(f"*{subtitle}*\n"))
 
         plot.draw()
 
-        if is_pdf and caption:
+        if caption:
             display(Markdown(f"\n*{caption}*"))
 
     if audit:
