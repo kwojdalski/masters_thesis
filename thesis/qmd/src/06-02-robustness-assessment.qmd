@@ -25,18 +25,6 @@ finished = snapshot.latest_finished
 runs_df = runs_overview_table(EXPERIMENT_NAME)
 ```
 
-### Why Robustness Matters in This Thesis
-<!-- [PLACEHOLDER] -->
-
-In this work, robustness matters because the agent is trained on a noisy
-microstructure-driven reward stream and evaluated in a simplified execution
-environment. Apparent improvements may therefore come from favorable training
-dynamics or feature-set idiosyncrasies rather than from a genuinely more useful
-policy. A result is treated as robust only if it remains directionally
-consistent under reasonable changes in seed, state representation, reward
-specification, and cost assumptions, while preserving interpretable turnover and
-drawdown behavior.
-
 
 ## H2: Feature Specification Sensitivity
 <!-- [PLACEHOLDER] -->
