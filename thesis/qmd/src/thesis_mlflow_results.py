@@ -204,6 +204,8 @@ def find_evaluation_plot_data(
     if not plot_dir.exists():
         return {}
 
+    from trading_rl.evaluation.asset_meta import load_asset_meta
+
     result: dict[str, Any] = {}
 
     for frame_name in ("rewards", "actions", "actions_ma", "equity"):
@@ -211,6 +213,9 @@ def find_evaluation_plot_data(
         if files:
             try:
                 result[frame_name] = pd.read_parquet(files[-1])
+                sidecar = load_asset_meta(files[-1])
+                if sidecar:
+                    result.setdefault("asset_meta", {})[frame_name] = sidecar
             except Exception:
                 pass
 

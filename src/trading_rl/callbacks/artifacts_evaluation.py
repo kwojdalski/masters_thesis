@@ -573,10 +573,16 @@ def log_evaluation_plots(
             }
             meta = {k: plot_data[k] for k in meta_keys if k in plot_data}
 
+            from trading_rl.evaluation.asset_meta import write_asset_meta
+
             for frame_name, df_frame in frames.items():
                 pq_path = os.path.join(batch_temp_dir, f"{timestamp}_{frame_name}_data.parquet")
                 df_frame.assign(Run=df_frame["Run"].astype(str)).to_parquet(pq_path, index=False)
+                write_asset_meta(pq_path, generator="callbacks/artifacts_evaluation.py")
                 mlflow.log_artifact(pq_path, artifact_dir)
+                sidecar = pq_path + ".meta.json"
+                if os.path.exists(sidecar):
+                    mlflow.log_artifact(sidecar, artifact_dir)
 
             meta_path = os.path.join(batch_temp_dir, f"{timestamp}_plot_meta.json")
             with open(meta_path, "w", encoding="utf-8") as f:
