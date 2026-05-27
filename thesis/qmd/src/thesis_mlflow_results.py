@@ -1233,6 +1233,16 @@ def audit_plots_enabled() -> bool:
     return os.environ.get("AUDIT_PLOTS", "").lower() in {"1", "true", "yes"}
 
 
+def pdf_render_enabled() -> bool:
+    """Return True when rendering for PDF (THESIS_PDF_RENDER=1).
+
+    Set automatically by scripts/publish_thesis.py. To enable manually:
+        THESIS_PDF_RENDER=1 uv run quarto render masters-thesis.qmd --to pdf
+    """
+    import os
+    return os.environ.get("THESIS_PDF_RENDER", "").lower() in {"1", "true", "yes"}
+
+
 def show_plot(
     plot: Any,
     data: dict[str, Any],
@@ -1244,6 +1254,11 @@ def show_plot(
 ) -> None:
     """Draw a plotnine plot and optionally print asset provenance.
 
+    In PDF mode (THESIS_PDF_RENDER=1) the plot's title, subtitle, and caption
+    are stripped from the image and emitted as Markdown text (LaTeX-typeset by
+    Quarto) surrounding the figure.  The axes, data, and internal color legend
+    remain in the PNG.
+
     Args:
         plot: plotnine ggplot object.
         data: dict returned by find_evaluation_plot_data.
@@ -1254,6 +1269,7 @@ def show_plot(
         audit: when True, print commit hash and generation datetime below the plot.
                Pass audit=audit_plots_enabled() or set AUDIT_PLOTS=1 at render time.
     """
+    from IPython.display import Markdown, display
     from plotnine import theme
 
     if width is not None or height is not None:
@@ -1261,7 +1277,23 @@ def show_plot(
         cur_w, cur_h = current.properties["value"] if current else (8, 5)
         plot = plot + theme(figure_size=(width or cur_w, height or cur_h))
 
+    is_pdf = pdf_render_enabled()
+
+    if is_pdf:
+        title    = plot.labels.get("title")    or ""
+        subtitle = plot.labels.get("subtitle") or ""
+        caption  = plot.labels.get("caption")  or ""
+        for key in ("title", "subtitle", "caption"):
+            plot.labels.pop(key, None)
+        if title:
+            display(Markdown(f"**{title}**\n"))
+        if subtitle:
+            display(Markdown(f"*{subtitle}*\n"))
+
     plot.draw()
+
+    if is_pdf and caption:
+        display(Markdown(f"\n*{caption}*"))
 
     if audit:
         meta = data.get("asset_meta", {}).get(frame, {})
