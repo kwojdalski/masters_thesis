@@ -2,8 +2,8 @@
   "run_id": null,
   "run_name": "pooled_td3_h3_features_full",
   "status": "FINISHED",
-  "start_time": "2026-05-27T13:37:59.365993+00:00",
-  "end_time": "2026-05-27T13:37:59.365993+00:00",
+  "start_time": "2026-05-27T14:17:59.383598+00:00",
+  "end_time": "2026-05-27T14:17:59.383598+00:00",
   "artifact_uri": null,
   "experiment_name": "pooled_td3_h3_features_full",
   "experiment_id": null,
@@ -11,7 +11,7 @@
     "type": "evaluate_cli",
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_h3_features_full",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_h3_features_full/results.json",
-    "exported_at_utc": "2026-05-27T13:37:59.365993+00:00"
+    "exported_at_utc": "2026-05-27T14:17:59.383598+00:00"
   },
   "files": {
     "params": "params.json",
