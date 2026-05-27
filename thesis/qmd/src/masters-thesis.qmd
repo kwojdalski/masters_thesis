@@ -27,6 +27,8 @@ format:
       - \usepackage{pdflscape}
       - \usepackage{tikz}
       - \usetikzlibrary{arrows.meta}
+      - \usepackage{caption}
+      - \captionsetup[figure]{position=above}
       - \nralbumu{310284}
       - \speciality{Quantitative Finance}
       - \opiekun{dr Pawel Sakowski}

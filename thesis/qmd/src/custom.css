@@ -1,3 +1,16 @@
+/* Figure captions above figures */
+figure {
+  display: flex;
+  flex-direction: column;
+}
+
+figcaption,
+figure > p.caption {
+  order: -1;
+  margin-top: 0;
+  margin-bottom: 0.5em;
+}
+
 /* Full-width tables for pandas DataFrames and custom comparison tables */
 table.dataframe {
   width: 100%;
