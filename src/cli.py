@@ -830,29 +830,37 @@ def validate_guardrails(
         raise typer.BadParameter("Provide --scenario or --config.")
 
     # Resolve scenario path (matching BaseCommand._load_experiment_config logic)
+    # Handle both -s/--scenario and -c/--config with scenario shorthands
     if scenario:
-        path = Path(scenario)
-        if not path.exists():
-            candidate = Path("src/configs/scenarios") / scenario
-            if candidate.exists():
-                path = candidate
-        if path.exists():
-            config_path = path
-        else:
-            # Try with .yaml suffix
-            search = [
-                Path(scenario),
-                Path("src/configs/scenarios") / scenario,
-                Path("src/configs/scenarios") / f"{scenario}.yaml",
-            ]
-            config_path = next((p for p in search if p.exists()), None)
-            if config_path is None:
-                raise typer.BadParameter(f"Scenario '{scenario}' not found.")
+        input_path = scenario
+    elif config_file:
+        input_path = str(config_file)
     else:
-        config_path = config_file
+        raise typer.BadParameter("Provide --scenario or --config.")
 
-    # Use command="train" for scenarios to load train.yaml component
-    command = "train" if scenario else None
+    # Resolve path (handles both scenario shorthand and direct paths)
+    path = Path(input_path)
+    if not path.exists():
+        candidate = Path("src/configs/scenarios") / input_path
+        if candidate.exists():
+            path = candidate
+
+    if not path.exists():
+        # Try with .yaml suffix
+        search = [
+            Path(input_path),
+            Path("src/configs/scenarios") / input_path,
+            Path("src/configs/scenarios") / f"{input_path}.yaml",
+        ]
+        config_path = next((p for p in search if p.exists()), None)
+        if config_path is None:
+            raise typer.BadParameter(f"Config '{input_path}' not found.")
+    else:
+        config_path = path
+
+    # Use command="train" for scenario directories (to load train.yaml component)
+    command = "train" if config_path.is_dir() else None
+
     config = ExperimentConfig.load(config_path, command=command, overrides=config_override)
 
     findings = check_config_guardrails(config)
