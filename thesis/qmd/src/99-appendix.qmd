@@ -220,3 +220,54 @@ metrics are not the reward function that the agent optimizes during training.
 Running selection as a separate step ensures that the agent's training loop
 remains uncontaminated by any pre-training statistical analysis that could
 introduce look-ahead bias or circular reasoning.
+
+---
+
+# Experimental Pipeline Architecture {#sec-appendix-pipeline}
+
+The figure below shows the six major stages of the experimental pipeline at a
+glance. Each stage is described in the corresponding chapter; this overview is
+intended as a navigation aid.
+
+The full machine-readable diagram — including CLI entry points, per-step data
+flows, all configuration guardrail checks, environment variants, MLflow
+logging, and asset provenance metadata — is maintained as a D2 source file
+at `docs/workflow.d2` in the project repository (@Wojdalski2026). It is too
+information-dense to reproduce at print resolution; the SVG rendering is
+available at `docs/workflow.svg`.
+
+```{=latex}
+\begin{center}
+```
+
+```{mermaid}
+%%| fig-align: center
+%%| fig-width: 4.5
+%%| fig-height: 7.5
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '9px'}, 'flowchart': {'nodeSpacing': 14, 'rankSpacing': 18, 'padding': 5, 'useMaxWidth': true}}}%%
+flowchart TD
+    ACQ["<b>1. Data Acquisition</b><br/>DataBento MBP-10<br/>6 symbols × 4 days<br/>~7M tick events / symbol"]
+    RES["<b>2. Offline Feature Research</b><br/>IC / ICIR scoring per feature<br/>Greedy conditional IC selection<br/>Outputs selected_features.yaml"]
+    PREP["<b>3. Data Preparation</b><br/>FeaturePipeline.fit on train only<br/>Welford online z-score normalisation<br/>18 memmap files (6 symbols × 3 days)<br/>val + test DataFrames"]
+    GRD["<b>4. Config Guardrails</b><br/>50 pre-flight checks<br/>FATAL → ValueError / abort<br/>WARN → prompt or auto-proceed"]
+    TRAIN["<b>5. RL Training</b><br/>Algorithms: TD3 · DDPG · PPO · Random<br/>StreamingTradingEnvXY episode shuffle<br/>DSR or log-return reward<br/>Runtime health monitor (early stop)<br/>Checkpoints + MLflow logging"]
+    EVAL["<b>6. Post-Training Evaluation</b><br/>Deterministic rollout on val + test<br/>Sharpe · Sortino · drawdown metrics<br/>Buy-and-hold / TWAP / VWAP benchmarks<br/>Statistical significance tests<br/>Permutation + IG explainability"]
+
+    ACQ --> RES
+    RES -.->|"optional: reduced<br/>feature config"| PREP
+    ACQ --> PREP
+    PREP --> GRD
+    GRD -->|"pass"| TRAIN
+    TRAIN --> EVAL
+
+    style ACQ  fill:#bfdbfe,stroke:#3b82f6
+    style RES  fill:#fef08a,stroke:#ca8a04
+    style PREP fill:#bbf7d0,stroke:#16a34a
+    style GRD  fill:#fed7aa,stroke:#ea580c
+    style TRAIN fill:#fecaca,stroke:#dc2626
+    style EVAL fill:#e9d5ff,stroke:#9333ea
+```
+
+```{=latex}
+\end{center}
+```

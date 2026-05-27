@@ -10,7 +10,11 @@ required to switch between experimental variants. A pre-training validation stag
 feature definitions, split feasibility, and column compatibility before any
 computation begins, preventing wasted runs from invalid experimental
 specifications. A condensed summary of the main specification is provided in
-Appendix B.
+Appendix B. A high-level overview of the full pipeline — from data
+acquisition and offline feature research through preparation, pre-training
+configuration checks, training, and post-training evaluation — is provided
+in Appendix E; the complete machine-readable diagram is maintained alongside
+the source code in `docs/workflow.d2`.
 
 ### Feature Pipeline
 
