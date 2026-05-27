@@ -461,10 +461,18 @@ class EvaluateCommand(BaseCommand):
         Mirrors _build_per_day_splits: splits each file 50/50 so "val" is the
         first half and "test" is the second half. Returns a list of split-keys
         (e.g. ``["test_AAPL", "test_AMZN", ...]``) and the corresponding map.
+
+        Fast path: if prepared_data_dir contains val_{sym}_prepared.parquet and
+        test_{sym}_prepared.parquet (written by _build_per_day_splits during
+        training), those are used directly — no feature recomputation.
         """
+        import pandas as pd
         from pathlib import Path
 
         from trading_rl.constants import SplitName
+
+        prepared_dir_str = getattr(getattr(config, "data", None), "prepared_data_dir", None)
+        prepared_dir = Path(prepared_dir_str) if prepared_dir_str else None
 
         requested: set[str] = (
             {SplitName.VAL, SplitName.TEST}
@@ -477,17 +485,40 @@ class EvaluateCommand(BaseCommand):
         for val_path in val_data_paths:
             stem = Path(val_path).stem
             symbol = stem.split("_")[0]
-            self.console.print(f"[dim]  Preparing {symbol} ({Path(val_path).name})[/dim]")
-            df = self._prepare_arbitrary_df(Path(val_path), config, checkpoint_path)
-            mid = len(df) // 2
-            if SplitName.VAL in requested:
-                key = f"val_{symbol}"
-                split_dfs[key] = df.iloc[:mid].copy()
-                splits_to_eval.append(key)
-            if SplitName.TEST in requested:
-                key = f"test_{symbol}"
-                split_dfs[key] = df.iloc[mid:].copy()
-                splits_to_eval.append(key)
+
+            # Fast path: use already-prepared per-symbol parquets from training.
+            val_prepared = prepared_dir / f"val_{symbol}_prepared.parquet" if prepared_dir else None
+            test_prepared = prepared_dir / f"test_{symbol}_prepared.parquet" if prepared_dir else None
+
+            if (
+                val_prepared is not None
+                and val_prepared.exists()
+                and test_prepared is not None
+                and test_prepared.exists()
+            ):
+                self.console.print(
+                    f"[dim]  {symbol}: loading from prepared cache ({val_prepared.parent.name}/)[/dim]"
+                )
+                if SplitName.VAL in requested:
+                    key = f"val_{symbol}"
+                    split_dfs[key] = pd.read_parquet(val_prepared)
+                    splits_to_eval.append(key)
+                if SplitName.TEST in requested:
+                    key = f"test_{symbol}"
+                    split_dfs[key] = pd.read_parquet(test_prepared)
+                    splits_to_eval.append(key)
+            else:
+                self.console.print(f"[dim]  {symbol}: computing features ({Path(val_path).name})[/dim]")
+                df = self._prepare_arbitrary_df(Path(val_path), config, checkpoint_path)
+                mid = len(df) // 2
+                if SplitName.VAL in requested:
+                    key = f"val_{symbol}"
+                    split_dfs[key] = df.iloc[:mid].copy()
+                    splits_to_eval.append(key)
+                if SplitName.TEST in requested:
+                    key = f"test_{symbol}"
+                    split_dfs[key] = df.iloc[mid:].copy()
+                    splits_to_eval.append(key)
 
         return splits_to_eval, split_dfs
 
