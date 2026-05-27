@@ -1068,6 +1068,48 @@ def repo_root() -> Path:
     return _repo_root()
 
 
+def find_observation_sample(
+    split: str = "test",
+    symbol: str | None = None,
+    artifact_uri: str | None = None,
+) -> pd.DataFrame | None:
+    """Load an observation-sample parquet saved by save_observation_sample_artifact.
+
+    Search order:
+    1. ``eval_results/evaluation_data/`` at the repo root — prefers symbol-qualified
+       files (``{split}_{symbol}_observations_head_*.parquet``) when *symbol* is given,
+       then falls back to plain ``{split}_observations_head_*.parquet``.
+    2. The MLflow artifact dir pointed to by *artifact_uri* (same subdir pattern).
+
+    Returns the largest matching file as a DataFrame, or ``None`` if nothing is found.
+    """
+    def _find_in_dir(directory: Path) -> Path | None:
+        if not directory.exists():
+            return None
+        candidates: list[Path] = []
+        if symbol:
+            candidates = list(directory.glob(f"{split}_{symbol}_observations_head_*.parquet"))
+        if not candidates:
+            candidates = list(directory.glob(f"{split}_observations_head_*.parquet"))
+        if not candidates:
+            return None
+        return max(candidates, key=lambda p: p.stat().st_size)
+
+    eval_results_dir = _repo_root() / "eval_results" / "evaluation_data"
+    path = _find_in_dir(eval_results_dir)
+
+    if path is None and artifact_uri is not None:
+        artifact_dir = _artifact_dir_from_uri(artifact_uri)
+        if artifact_dir is not None:
+            path = _find_in_dir(artifact_dir / "evaluation_data" / split)
+            if path is None:
+                path = _find_in_dir(artifact_dir / "evaluation_data")
+
+    if path is None:
+        return None
+    return pd.read_parquet(path)
+
+
 # ---------------------------------------------------------------------------
 # H4 learning report loader
 # ---------------------------------------------------------------------------

@@ -271,24 +271,17 @@ To illustrate how the raw order book data is transformed into the input features
 #| echo: false
 #| warning: false
 
-import pandas as pd
 import numpy as np
-from pathlib import Path
+import pandas as pd
 from IPython.display import HTML
-from thesis_mlflow_results import repo_root
+from thesis_mlflow_results import find_observation_sample
 from thesis_tables import table_note
 
-_data_path = (
-    repo_root()
-    / "eval_results"
-    / "evaluation_data"
-    / "test_AAPL_observations_head_5000.parquet"
-)
+df = find_observation_sample(split="test", symbol="AAPL")
 
-if not _data_path.exists():
-    print(f"Data not found: {_data_path}")
+if df is None:
+    print("Observation sample not found: run evaluate for AAPL to generate evaluation_data artifacts.")
 else:
-    df = pd.read_parquet(_data_path)
 
     # Identify the 12-event window with the most bid+ask price changes so the
     # illustration captures genuine LOB dynamics rather than a quiet period.
