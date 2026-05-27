@@ -25,6 +25,25 @@ logger = get_logger(__name__)
 _MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
 
 
+def _collect_mlflow_meta() -> dict:
+    """Collect active MLflow run metadata; returns empty dict when no run is active."""
+    try:
+        import mlflow
+        run = mlflow.active_run()
+        if run is None:
+            return {}
+        experiment = mlflow.get_experiment(run.info.experiment_id)
+        return {
+            "run_id": run.info.run_id,
+            "run_name": run.data.tags.get("mlflow.runName"),
+            "tracking_uri": mlflow.get_tracking_uri(),
+            "experiment_id": run.info.experiment_id,
+            "experiment_name": experiment.name if experiment else None,
+        }
+    except Exception:
+        return {}
+
+
 class TD3Loss(TorchRLTd3Loss):
     """Thin wrapper around TorchRL's TD3 loss to ensure consistent behavior."""
 
@@ -496,18 +515,16 @@ class TD3Trainer(BaseTrainer):
     def _compute_exploration_ratio(self) -> float:
         return getattr(self.config, "policy_noise", 0.2)
 
-    def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
+    def save_checkpoint(
+        self,
+        path: str,
+        feature_pipeline_state: dict[str, dict[str, float]] | None = None,
+        mlflow_meta: dict | None = None,
+    ) -> None:
         from pathlib import Path
 
-        import mlflow
-
-        run = mlflow.active_run()
-        tracking_uri = mlflow.get_tracking_uri()
-        run_name = run.data.tags.get("mlflow.runName") if run else None
-        experiment_name = None
-        if run:
-            experiment = mlflow.get_experiment(run.info.experiment_id)
-            experiment_name = experiment.name if experiment else None
+        if mlflow_meta is None:
+            mlflow_meta = _collect_mlflow_meta()
         from trading_rl.models import _extract_action_bounds_from_spec
         _bounds = _extract_action_bounds_from_spec(getattr(self.env, "action_spec", None))
         checkpoint = {
@@ -534,11 +551,11 @@ class TD3Trainer(BaseTrainer):
                 else 0
             ),
             "logs": dict(self.logs),
-            "mlflow_run_id": run.info.run_id if run else None,
-            "mlflow_run_name": run_name,
-            "mlflow_tracking_uri": tracking_uri,
-            "mlflow_experiment_id": run.info.experiment_id if run else None,
-            "mlflow_experiment_name": experiment_name,
+            "mlflow_run_id": mlflow_meta.get("run_id"),
+            "mlflow_run_name": mlflow_meta.get("run_name"),
+            "mlflow_tracking_uri": mlflow_meta.get("tracking_uri"),
+            "mlflow_experiment_id": mlflow_meta.get("experiment_id"),
+            "mlflow_experiment_name": mlflow_meta.get("experiment_name"),
             "feature_pipeline_state": feature_pipeline_state,
         }
 

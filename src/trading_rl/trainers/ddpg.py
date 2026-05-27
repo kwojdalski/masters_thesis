@@ -22,6 +22,25 @@ logger = get_logger(__name__)
 _MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
 
 
+def _collect_mlflow_meta() -> dict:
+    """Collect active MLflow run metadata; returns empty dict when no run is active."""
+    try:
+        import mlflow
+        run = mlflow.active_run()
+        if run is None:
+            return {}
+        experiment = mlflow.get_experiment(run.info.experiment_id)
+        return {
+            "run_id": run.info.run_id,
+            "run_name": run.data.tags.get("mlflow.runName"),
+            "tracking_uri": mlflow.get_tracking_uri(),
+            "experiment_id": run.info.experiment_id,
+            "experiment_name": experiment.name if experiment else None,
+        }
+    except Exception:
+        return {}
+
+
 class DDPGTrainer(BaseTrainer):
     """Trainer for DDPG algorithm on trading environments."""
 
@@ -295,23 +314,25 @@ class DDPGTrainer(BaseTrainer):
     def _compute_exploration_ratio(self) -> float:
         return getattr(self.config, "exploration_noise_std", 0.1)
 
-    def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
+    def save_checkpoint(
+        self,
+        path: str,
+        feature_pipeline_state: dict[str, dict[str, float]] | None = None,
+        mlflow_meta: dict | None = None,
+    ) -> None:
         """Save training checkpoint.
 
         Args:
             path: Path to save checkpoint
+            feature_pipeline_state: Optional serialised scaler state for the feature pipeline.
+            mlflow_meta: Optional MLflow run metadata dict (keys: run_id, run_name,
+                tracking_uri, experiment_id, experiment_name). When None, the active
+                MLflow run is queried automatically as a fallback.
         """
         from pathlib import Path
 
-        import mlflow
-
-        run = mlflow.active_run()
-        tracking_uri = mlflow.get_tracking_uri()
-        run_name = run.data.tags.get("mlflow.runName") if run else None
-        experiment_name = None
-        if run:
-            experiment = mlflow.get_experiment(run.info.experiment_id)
-            experiment_name = experiment.name if experiment else None
+        if mlflow_meta is None:
+            mlflow_meta = _collect_mlflow_meta()
         actor_params_state = self.ddpg_loss.actor_network_params.state_dict()
         value_params_state = self.ddpg_loss.value_network_params.state_dict()
         target_actor_params_state = self.ddpg_loss.target_actor_network_params.state_dict()
@@ -342,11 +363,11 @@ class DDPGTrainer(BaseTrainer):
                 else 0
             ),
             "logs": dict(self.logs),
-            "mlflow_run_id": run.info.run_id if run else None,
-            "mlflow_run_name": run_name,
-            "mlflow_tracking_uri": tracking_uri,
-            "mlflow_experiment_id": run.info.experiment_id if run else None,
-            "mlflow_experiment_name": experiment_name,
+            "mlflow_run_id": mlflow_meta.get("run_id"),
+            "mlflow_run_name": mlflow_meta.get("run_name"),
+            "mlflow_tracking_uri": mlflow_meta.get("tracking_uri"),
+            "mlflow_experiment_id": mlflow_meta.get("experiment_id"),
+            "mlflow_experiment_name": mlflow_meta.get("experiment_name"),
             "feature_pipeline_state": feature_pipeline_state,
         }
 
