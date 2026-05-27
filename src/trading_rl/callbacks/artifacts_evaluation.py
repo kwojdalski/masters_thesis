@@ -529,16 +529,17 @@ def log_evaluation_plots(
                 try:
                     from PIL import Image
 
-                    reward_img = Image.open(saved_paths["rewards"])
-                    action_img = Image.open(saved_paths["positions"])
-                    probs_img = Image.open(saved_paths["action_probabilities"])
-
-                    top_width = reward_img.width + action_img.width
-                    top_height = max(reward_img.height, action_img.height)
-                    combined = Image.new("RGB", (max(top_width, probs_img.width), top_height + probs_img.height), "white")
-                    combined.paste(reward_img, (0, 0))
-                    combined.paste(action_img, (reward_img.width, 0))
-                    combined.paste(probs_img, (0, top_height))
+                    with (
+                        Image.open(saved_paths["rewards"]) as reward_img,
+                        Image.open(saved_paths["positions"]) as action_img,
+                        Image.open(saved_paths["action_probabilities"]) as probs_img,
+                    ):
+                        top_width = reward_img.width + action_img.width
+                        top_height = max(reward_img.height, action_img.height)
+                        combined = Image.new("RGB", (max(top_width, probs_img.width), top_height + probs_img.height), "white")
+                        combined.paste(reward_img, (0, 0))
+                        combined.paste(action_img, (reward_img.width, 0))
+                        combined.paste(probs_img, (0, top_height))
 
                     tmp_combined = os.path.join(batch_temp_dir, f"{timestamp}_combined_evaluation.png")
                     combined.save(tmp_combined, format="PNG")
