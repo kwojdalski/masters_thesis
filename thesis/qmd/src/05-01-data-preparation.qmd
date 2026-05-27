@@ -139,7 +139,7 @@ and test each represent one chronological half of the March 2 file.
 import json
 import pandas as pd
 from thesis_mlflow_results import repo_root
-from thesis_tables import fmt_duration, display_df
+from thesis_tables import fmt_duration, display_df, table_note
 
 _inv_path = repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/raw_file_inventory.json"
 
@@ -153,12 +153,18 @@ if _inv_path.exists():
     display_df(df[["symbol", "Split", "Events", "Trades", "Mean Δt", "Median Δt"]].rename(
         columns={"symbol": "Symbol"}
     ))
+    table_note(
+        note=(
+            "Mean and median Δt computed from positive within-session inter-event deltas only "
+            "(overnight gaps excluded for the training split). "
+            "Training aggregates all three days per symbol (February 25–27, 2026); "
+            "validation and test each cover one chronological half of the March 2 session."
+        ),
+    )
 else:
     print("raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
           "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export")
 ```
-
-*Mean and median Δt are computed from positive within-session inter-event deltas only (overnight gaps excluded for the training split). Training aggregates all three days per symbol (February 25–27, 2026); validation and test each cover one chronological half of the March 2 session.*
 
 **Training data.** The 18 files from days 1–3 are used exclusively for
 training. Each daily file is treated as a complete, independent training unit:
@@ -382,6 +388,7 @@ continuous-control RL on financial microstructure data.
 import pandas as pd
 from IPython.display import HTML
 from thesis_mlflow_results import repo_root
+from thesis_tables import table_note
 
 _PEEK_DIR = repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
 _feat_path = _PEEK_DIR / "feature_stats.csv"
@@ -408,10 +415,15 @@ if _feat_path.exists():
     })
 
     display(HTML(feat_df.to_html(index=False)))
+    table_note(
+        note=(
+            "Computed on the training split; the first 500 events are skipped to allow "
+            "rolling-window features to reach steady state. "
+            "Selected (yes): the feature is included in the agent observation vector."
+        ),
+    )
 else:
     print("feature_stats.csv not found — run: uv run python src/cli.py peek "
           "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
           "--skip 500 --export")
 ```
-
-*Computed on the training split. The first 500 events are skipped to allow rolling-window features to reach steady state. Selected (yes): the feature is included in the agent observation vector.*
