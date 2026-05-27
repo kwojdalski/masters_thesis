@@ -1243,6 +1243,14 @@ def pdf_render_enabled() -> bool:
     return os.environ.get("THESIS_PDF_RENDER", "").lower() in {"1", "true", "yes"}
 
 
+def _figures_dir() -> "Path":
+    """Return (and create) the _figures/ subdir next to this file."""
+    from pathlib import Path
+    d = Path(__file__).parent / "_figures"
+    d.mkdir(exist_ok=True)
+    return d
+
+
 def show_plot(
     plot: Any,
     data: dict[str, Any],
@@ -1251,24 +1259,48 @@ def show_plot(
     width: float | None = None,
     height: float | None = None,
     audit: bool = False,
+    fig_label: str | None = None,
+    fig_cap: str | None = None,
 ) -> None:
     """Draw a plotnine plot and optionally print asset provenance.
 
-    In PDF mode (THESIS_PDF_RENDER=1) the plot's title, subtitle, and caption
-    are stripped from the image and emitted as Markdown text (LaTeX-typeset by
-    Quarto) surrounding the figure.  The axes, data, and internal color legend
-    remain in the PNG.
+    Two rendering modes depending on whether *fig_label* is provided:
+
+    **Inline mode** (fig_label=None, default)
+        Calls plot.draw() so Quarto captures the image inline.  In PDF mode
+        (THESIS_PDF_RENDER=1) the plot title, subtitle, and caption are stripped
+        from the PNG and emitted as adjacent Markdown paragraphs (LaTeX-typeset),
+        but they appear outside the figure environment.
+
+    **Figure-env mode** (fig_label="fig-xxx")
+        Saves the stripped PNG to _figures/<label>.png and emits a Quarto
+        cross-reference div via Markdown so the title/caption land inside
+        \\begin{figure}...\\end{figure} and @fig-xxx cross-references resolve.
+
+        The calling cell MUST have ``#| output: asis`` for Quarto to treat the
+        emitted Markdown as raw markup rather than literal text.
+
+        Example cell header::
+
+            ```{python}
+            #| output: asis
+            #| echo: false
+            show_plot(p, data, fig_label="fig-rewards", fig_cap="Cumulative rewards.")
+            ```
 
     Args:
         plot: plotnine ggplot object.
         data: dict returned by find_evaluation_plot_data.
         frame: which DataFrame key to look up provenance for ("rewards", "actions", "equity").
-        width: figure width in inches passed to theme(figure_size=...). Overrides any
-               existing figure_size in the plot theme. Use instead of #| fig-width.
-        height: figure height in inches. Same as width.
-        audit: when True, print commit hash and generation datetime below the plot.
-               Pass audit=audit_plots_enabled() or set AUDIT_PLOTS=1 at render time.
+        width: figure width in inches. Overrides the plot's existing figure_size.
+        height: figure height in inches.
+        audit: print commit hash and generation datetime below the plot.
+        fig_label: Quarto cross-reference label (e.g. "fig-rewards"). Enables
+                   figure-env mode; requires ``#| output: asis`` on the chunk.
+        fig_cap: explicit figure caption for the LaTeX figure environment.
+                 Defaults to the plot's labs(caption=...) if omitted.
     """
+    import matplotlib.pyplot as plt
     from IPython.display import Markdown, display
     from plotnine import theme
 
@@ -1277,23 +1309,50 @@ def show_plot(
         cur_w, cur_h = current.properties["value"] if current else (8, 5)
         plot = plot + theme(figure_size=(width or cur_w, height or cur_h))
 
-    is_pdf = pdf_render_enabled()
+    # Extract and strip text labels from the plot.
+    title    = plot.labels.get("title")    or ""
+    subtitle = plot.labels.get("subtitle") or ""
+    caption  = fig_cap or plot.labels.get("caption") or ""
+    for key in ("title", "subtitle", "caption"):
+        plot.labels.pop(key, None)
 
-    if is_pdf:
-        title    = plot.labels.get("title")    or ""
-        subtitle = plot.labels.get("subtitle") or ""
-        caption  = plot.labels.get("caption")  or ""
-        for key in ("title", "subtitle", "caption"):
-            plot.labels.pop(key, None)
+    if fig_label:
+        # --- Figure-env mode: save to file, emit Quarto cross-ref div ---
+        path = _figures_dir() / f"{fig_label}.png"
+        mpl_fig = plot.draw()
+        mpl_fig.savefig(str(path), dpi=150, bbox_inches="tight")
+        plt.close(mpl_fig)
+
+        # Build the caption that goes inside \caption{}.
+        parts: list[str] = []
         if title:
-            display(Markdown(f"**{title}**\n"))
-        if subtitle:
-            display(Markdown(f"*{subtitle}*\n"))
+            t = f"**{title}**"
+            if subtitle:
+                t += f" — *{subtitle}*"
+            parts.append(t)
+        if caption:
+            parts.append(caption)
+        cap_md = "\n\n".join(parts)
 
-    plot.draw()
+        display(Markdown(
+            f"::: {{#{fig_label}}}\n\n"
+            f"![](_figures/{fig_label}.png)\n\n"
+            f"{cap_md}\n\n"
+            f":::"
+        ))
+    else:
+        # --- Inline mode ---
+        is_pdf = pdf_render_enabled()
+        if is_pdf:
+            if title:
+                display(Markdown(f"**{title}**\n"))
+            if subtitle:
+                display(Markdown(f"*{subtitle}*\n"))
 
-    if is_pdf and caption:
-        display(Markdown(f"\n*{caption}*"))
+        plot.draw()
+
+        if is_pdf and caption:
+            display(Markdown(f"\n*{caption}*"))
 
     if audit:
         meta = data.get("asset_meta", {}).get(frame, {})
@@ -1301,7 +1360,7 @@ def show_plot(
             commit = meta.get("commit", "unknown")[:8]
             dt = meta.get("datetime", "unknown")
             generator = meta.get("generator", "")
-            parts = [f"commit: {commit}", f"generated: {dt}"]
+            parts_a = [f"commit: {commit}", f"generated: {dt}"]
             if generator:
-                parts.append(f"source: {generator}")
-            print("  |  ".join(parts))
+                parts_a.append(f"source: {generator}")
+            print("  |  ".join(parts_a))
