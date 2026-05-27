@@ -701,3 +701,28 @@ enums: Type-Safe Enums  (StrEnum for YAML compatibility) {
     style.fill: "#e5e5e5"
   }
 }
+
+# ─────────────────────────────────────────────
+# Asset Provenance Metadata
+# ─────────────────────────────────────────────
+asset_meta: Asset Provenance Metadata {
+  style.fill: "#fdf4ff"
+  style.stroke: "#a855f7"
+
+  write_side: "Write side — evaluation/asset_meta.py\nwrite_asset_meta(path, generator=...)\n  called automatically after every persistent file write\n  git commit: lru_cache(subprocess git rev-parse HEAD)\n             resolved once per process, reused across all saves\n  datetime: UTC ISO-8601 timestamp at save time\n  generator: source file that wrote the asset\n\nSidecar format: <filename>.meta.json  (next to the asset)\n  { \"commit\": \"abc1234...\",\n    \"datetime\": \"2026-05-27T10:00:00+00:00\",\n    \"generator\": \"evaluation/plots.py\" }" {
+    shape: step
+    style.fill: "#f3e8ff"
+  }
+
+  covered_assets: "Assets with provenance sidecars\n\nEvaluation plots (PNG)\n  evaluation/thesis_theme.save_plot()        all reward/action/equity plots\n  evaluation/plots.py                        merged comparison plot\n  cli/commands/evaluate_command._save_plots  per-split exported plots\n\nBenchmark & metrics tables\n  evaluation/benchmark_table.py              {split}_benchmark_table.json + .png\n  cli/commands/evaluate_command.py           results.json\n  pipeline/experiment_runner.py              results.json  (post-training)\n\nRollout data\n  cli/commands/evaluate_command.py           {split}_rollout.csv\n  callbacks/artifacts.py                     {split}_rollout.csv + observations_head.csv\n\nFeature research outputs\n  feature_research/service.py                feature_scores*.csv  ·  feature_correlations.csv\n                                             selected_features.yaml  ·  summary.md\n  features/selector.py                       selected_features.yaml  (direct write path)\n\nPeek exports\n  cli/commands/peek_command.py               splits.json  ·  raw_file_inventory.json\n                                             feature_stats.csv  ·  log_return_stats.csv\n                                             correlations.csv\n\nModel checkpoints (.pt)\n  trainers/td3.py  ·  ddpg.py  ·  ppo.py  ·  random_trainer.py\n\nThesis snapshot exports\n  thesis_mlflow_results._write_json()        all JSON snapshots\n  thesis_mlflow_results                      runs_overview.parquet  ·  runs_overview.json\n  cli/commands/collect_results_command.py    comparison tables  ·  manifest.json\n\nExcluded (temp/cache)\n  tempfile.TemporaryDirectory paths  (MLflow upload then deleted)\n  .cache/ feature transformation parquets  (pipeline internals)\n  memmap .npy files  (streaming training data, not thesis outputs)" {
+    shape: step
+    style.fill: "#f3e8ff"
+  }
+
+  read_side: "Read side — thesis/qmd/src/thesis_asset_debug.py\nshow_asset_debug(path)\n  no-op when THESIS_DEBUG_ASSETS is unset  (default)\n  when set: reads .meta.json sidecar and renders below the asset:\n    commit: <8-char hash>  ·  generated: <UTC datetime>  ·  source: <generator>\n\nIntegration point:\n  thesis_tables.display_image_from_path()\n    calls show_asset_debug() after every plt.show()\n    covers all evaluation plots in all QMD chapters automatically\n\nDebug render:\n  THESIS_DEBUG_ASSETS=1 quarto render thesis/qmd/src/masters-thesis.qmd" {
+    shape: step
+    style.fill: "#f3e8ff"
+  }
+
+  write_side -> covered_assets -> read_side
+}

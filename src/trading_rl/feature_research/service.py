@@ -340,6 +340,8 @@ def _write_summary(
             f"{row.ic_tstat:.2f} | {row.ic_positive_ratio:.3f} |"
         )
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    from trading_rl.evaluation.asset_meta import write_asset_meta
+    write_asset_meta(summary_path, generator="feature_research/service.py")
 
 
 # Max val rows per symbol kept for the pooled correlation / redundancy-pruning
@@ -564,9 +566,10 @@ def run_feature_research(
             feature_configs = sym_feature_configs
 
         if multi_symbol:
-            sym_scores.to_csv(
-                output_path / f"feature_scores_{symbol}.csv", index=False
-            )
+            _sym_csv = output_path / f"feature_scores_{symbol}.csv"
+            sym_scores.to_csv(_sym_csv, index=False)
+            from trading_rl.evaluation.asset_meta import write_asset_meta
+            write_asset_meta(_sym_csv, generator="feature_research/service.py")
 
     scores = (
         _aggregate_symbol_scores(per_symbol_scores)
@@ -615,9 +618,13 @@ def run_feature_research(
     selected_yaml = output_path / "selected_features.yaml"
     summary_md = output_path / "summary.md"
 
+    from trading_rl.evaluation.asset_meta import write_asset_meta
     scores.to_csv(scores_csv, index=False)
+    write_asset_meta(scores_csv, generator="feature_research/service.py")
     correlation_matrix.to_csv(correlation_csv, index=True)
+    write_asset_meta(correlation_csv, generator="feature_research/service.py")
     _write_selected_feature_config(feature_configs, selected_features, selected_yaml)
+    write_asset_meta(selected_yaml, generator="feature_research/service.py")
     _write_summary(
         summary_md,
         config=config,

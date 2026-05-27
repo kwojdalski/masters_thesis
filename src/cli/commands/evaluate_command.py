@@ -324,6 +324,8 @@ class EvaluateCommand(BaseCommand):
             out_json = params.output_dir / "results.json"
             with out_json.open("w", encoding="utf-8") as f:
                 json.dump(all_results, f, indent=2, default=_json_default)
+            from trading_rl.evaluation.asset_meta import write_asset_meta
+            write_asset_meta(out_json, generator="cli/commands/evaluate_command.py")
             self.console.print(f"[green]Results written to {out_json}[/green]")
 
             if mlflow_run_id:
@@ -700,6 +702,8 @@ class EvaluateCommand(BaseCommand):
         out_df = pd.DataFrame(data, index=index)
         out_path = output_dir / f"{split}_rollout.csv"
         out_df.to_csv(out_path)
+        from trading_rl.evaluation.asset_meta import write_asset_meta
+        write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
         self.console.print(f"[dim]Rollout data ({n:,} steps) → {out_path}[/dim]")
 
     def _save_plots(
@@ -714,6 +718,8 @@ class EvaluateCommand(BaseCommand):
                     fig.save(str(out_path), dpi=225, verbose=False)
                 else:
                     fig.savefig(out_path, bbox_inches="tight", dpi=225)
+                from trading_rl.evaluation.asset_meta import write_asset_meta
+                write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
                 self.console.print(f"[dim]Saved plot: {out_path}[/dim]")
             except Exception as exc:
                 self.logger.warning("save plot failed name=%s err=%s", name, exc)
@@ -722,6 +728,7 @@ class EvaluateCommand(BaseCommand):
                 data_path = output_dir / f"{split}_{name}.csv"
                 try:
                     fig.data.to_csv(data_path, index=False)
+                    write_asset_meta(data_path, generator="cli/commands/evaluate_command.py")
                 except Exception as exc:
                     self.logger.warning("save plot data failed name=%s err=%s", name, exc)
 

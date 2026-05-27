@@ -371,6 +371,8 @@ class DDPGTrainer(BaseTrainer):
                 )
 
         torch.save(checkpoint, path)
+        from trading_rl.evaluation.asset_meta import write_asset_meta
+        write_asset_meta(path, generator="trainers/ddpg.py")
         logger.info("save checkpoint path=%s", path)
 
     def load_checkpoint(self, path: str) -> None:

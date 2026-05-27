@@ -478,6 +478,11 @@ def _sanitise_for_json(obj: Any) -> Any:
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(_sanitise_for_json(payload), indent=2, default=str))
+    try:
+        from trading_rl.evaluation.asset_meta import write_asset_meta
+        write_asset_meta(path, generator="thesis_mlflow_results.py")
+    except Exception:
+        pass
 
 
 def _iso_or_none(value: Any) -> str | None:
@@ -600,12 +605,22 @@ def export_experiment_snapshot(experiment_name: str, output_root: Path | None = 
         else:
             child.unlink()
 
+    try:
+        from trading_rl.evaluation.asset_meta import write_asset_meta as _wam
+    except Exception:
+        _wam = None
     if not runs_df.empty:
-        runs_df.to_parquet(output_dir / "runs_overview.parquet", index=False)
+        _parquet_path = output_dir / "runs_overview.parquet"
+        runs_df.to_parquet(_parquet_path, index=False)
+        if _wam:
+            _wam(_parquet_path, generator="thesis_mlflow_results.py")
+        _json_path = output_dir / "runs_overview.json"
         runs_df.assign(
             start_time=runs_df["start_time"].astype(str),
             end_time=runs_df["end_time"].astype(str),
-        ).to_json(output_dir / "runs_overview.json", orient="records", indent=2)
+        ).to_json(_json_path, orient="records", indent=2)
+        if _wam:
+            _wam(_json_path, generator="thesis_mlflow_results.py")
     else:
         pd.DataFrame().to_parquet(output_dir / "runs_overview.parquet", index=False)
         _write_json(output_dir / "runs_overview.json", [])

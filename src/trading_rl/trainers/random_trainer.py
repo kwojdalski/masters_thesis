@@ -42,6 +42,7 @@ class RandomTrainer(BaseTrainer):
 
     def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
         import torch
+        from trading_rl.evaluation.asset_meta import write_asset_meta
         torch.save(
             {
                 "algorithm": "RANDOM",
@@ -51,6 +52,7 @@ class RandomTrainer(BaseTrainer):
             },
             path,
         )
+        write_asset_meta(path, generator="trainers/random_trainer.py")
 
     def setup_periodic_explainability(
         self,

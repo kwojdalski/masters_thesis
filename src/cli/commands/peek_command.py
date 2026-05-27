@@ -75,19 +75,30 @@ class PeekCommand(BaseCommand):
 
         if export_dir is not None:
             import json
+            from trading_rl.evaluation.asset_meta import write_asset_meta
             splits_records = splits_df.to_dict(orient="records")
-            (export_dir / "splits.json").write_text(
+            _splits_path = export_dir / "splits.json"
+            _splits_path.write_text(
                 json.dumps(splits_records, indent=2, default=str), encoding="utf-8"
             )
+            write_asset_meta(_splits_path, generator="cli/commands/peek_command.py")
             if inventory_df is not None:
-                (export_dir / "raw_file_inventory.json").write_text(
+                _inv_path = export_dir / "raw_file_inventory.json"
+                _inv_path.write_text(
                     json.dumps(inventory_df.to_dict(orient="records"), indent=2), encoding="utf-8"
                 )
-            feat_df.to_csv(export_dir / "feature_stats.csv", index=False)
+                write_asset_meta(_inv_path, generator="cli/commands/peek_command.py")
+            _feat_path = export_dir / "feature_stats.csv"
+            feat_df.to_csv(_feat_path, index=False)
+            write_asset_meta(_feat_path, generator="cli/commands/peek_command.py")
             if ret_df is not None:
-                ret_df.to_csv(export_dir / "log_return_stats.csv", index=False)
+                _ret_path = export_dir / "log_return_stats.csv"
+                ret_df.to_csv(_ret_path, index=False)
+                write_asset_meta(_ret_path, generator="cli/commands/peek_command.py")
             if corr_df is not None:
-                corr_df.to_csv(export_dir / "correlations.csv", index=False)
+                _corr_path = export_dir / "correlations.csv"
+                corr_df.to_csv(_corr_path, index=False)
+                write_asset_meta(_corr_path, generator="cli/commands/peek_command.py")
             self.console.print(f"\n[green]Exported to {export_dir}/[/green]")
 
     # ------------------------------------------------------------------
