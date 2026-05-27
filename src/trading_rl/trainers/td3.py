@@ -233,7 +233,7 @@ class TD3Trainer(BaseTrainer):
                     self._record_skipped_batch("tensor shape error", exc=e)
                     continue
                 else:
-                    raise e
+                    raise
 
             self.optimizer_value.zero_grad()
             loss_vals["loss_qvalue"].backward()
