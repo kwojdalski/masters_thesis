@@ -218,20 +218,20 @@ def build_rollout_plot_data(
                     rewards_data.extend(
                         {
                             "Steps": int(s),
-                            "Cumulative_Reward": float(cumsum[i]),
+                            "Cumulative_Reward": float(cumsum[s]),
                             "Run": bench_name,
                         }
-                        for i, s in enumerate(idx) if i < len(cumsum)
+                        for i, s in enumerate(idx) if s < len(cumsum)
                     )
                 twap_positions = np.arange(1, len(log_returns) + 1, dtype=float) / len(log_returns)
                 twap_cumsum = (twap_positions * log_returns).cumsum()
                 rewards_data.extend(
                     {
                         "Steps": int(s),
-                        "Cumulative_Reward": float(twap_cumsum[i]),
+                        "Cumulative_Reward": float(twap_cumsum[s]),
                         "Run": "TWAP",
                     }
-                    for i, s in enumerate(idx) if i < len(twap_cumsum)
+                    for i, s in enumerate(idx) if s < len(twap_cumsum)
                 )
                 df_rewards = pd.DataFrame(rewards_data)
                 df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
@@ -262,10 +262,10 @@ def build_rollout_plot_data(
                 rewards_data.extend(
                     {
                         "Steps": int(s),
-                        "Cumulative_Reward": float(dsr_cumsum[i]),
+                        "Cumulative_Reward": float(dsr_cumsum[s]),
                         "Run": bench_name,
                     }
-                    for i, s in enumerate(idx) if i < len(dsr_cumsum)
+                    for i, s in enumerate(idx) if s < len(dsr_cumsum)
                 )
             twap_dsr_cumsum, _ = calculate_twap_dsr(
                 df, eta=eta, max_steps=n_obs, price_column=price_col,
@@ -274,10 +274,10 @@ def build_rollout_plot_data(
             rewards_data.extend(
                 {
                     "Steps": int(s),
-                    "Cumulative_Reward": float(twap_dsr_cumsum[i]),
+                    "Cumulative_Reward": float(twap_dsr_cumsum[s]),
                     "Run": "TWAP",
                 }
-                for i, s in enumerate(idx) if i < len(twap_dsr_cumsum)
+                for i, s in enumerate(idx) if s < len(twap_dsr_cumsum)
             )
             df_rewards = pd.DataFrame(rewards_data)
             df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
