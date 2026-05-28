@@ -223,16 +223,15 @@ def feature_stats_table(raw_df: "pd.DataFrame", *, obs_clip: float = 5.0) -> Non
     for col in ("skew", "kurt"):
         if col in df.columns:
             df[col] = df[col].apply(lambda x: f"{float(x):.3f}")
-    for col in ("q1", "q2", "q3"):
-        if col in df.columns:
-            df[col] = df[col].apply(lambda x: f"{float(x):.4f}")
+    if "q2" in df.columns:
+        df["q2"] = df["q2"].apply(lambda x: f"{float(x):.4f}")
 
-    keep = ["feature", "mean", "std", "skew", "kurt", "q1", "q2", "q3", "min", "max"]
+    keep = ["feature", "mean", "std", "skew", "kurt", "q2", "min", "max"]
     df = df[[c for c in keep if c in df.columns]]
     df = df.rename(columns={
         "feature": "Feature", "mean": "Mean", "std": "Std",
         "skew": "Skew", "kurt": "Kurt",
-        "q1": "Q1", "q2": "Q2", "q3": "Q3",
+        "q2": "Median",
         "min": "Min", "max": "Max",
     })
 
@@ -241,7 +240,7 @@ def feature_stats_table(raw_df: "pd.DataFrame", *, obs_clip: float = 5.0) -> Non
         "Computed on the training split; the first 500 events are skipped to allow "
         "rolling-window features to reach steady state. "
         "Skew and Kurt are the Fisher skewness and excess kurtosis. "
-        "Q1/Q2/Q3 are the 25th, 50th, and 75th percentiles."
+        "Median is the 50th percentile."
     )
     clip_suffix_html = (
         f" * the RL environment clips observations to \\u00b1{obs_clip:.0f};"
