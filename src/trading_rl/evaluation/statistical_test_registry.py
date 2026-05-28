@@ -207,6 +207,29 @@ class PermutationTest(StatisticalTest, ABC):
         }
 
 
+TEST_REGISTRY: dict[str, type[StatisticalTest]] = {}
+
+
+def register_test(test_class: type[StatisticalTest]) -> type[StatisticalTest]:
+    """Decorator to register a StatisticalTest implementation.
+
+    The name is derived from the class's ``name`` property.
+
+    Example::
+
+        @register_test
+        class MyTest(StatisticalTest):
+            @property
+            def name(self) -> str:
+                return "my_test"
+    """
+    instance = test_class()
+    TEST_REGISTRY[instance.name] = test_class
+    logger.debug("registered statistical test name=%s", instance.name)
+    return test_class
+
+
+@register_test
 class TTest(StatisticalTest):
     """Two-sample t-test for comparing mean returns."""
 
@@ -232,6 +255,7 @@ class TTest(StatisticalTest):
         }
 
 
+@register_test
 class MannWhitneyTest(StatisticalTest):
     """Mann-Whitney U test for comparing distributions (non-parametric)."""
 
@@ -261,6 +285,7 @@ class MannWhitneyTest(StatisticalTest):
         }
 
 
+@register_test
 class PermutationMeanTest(PermutationTest):
     """Permutation test for difference in means (distribution-free)."""
 
@@ -277,6 +302,7 @@ class PermutationMeanTest(PermutationTest):
         return np.mean(strategy_returns) - np.mean(baseline_returns)
 
 
+@register_test
 class SharpeBootstrapTest(BootstrapTest):
     """Bootstrap test for Sharpe ratio significance."""
 
@@ -307,6 +333,7 @@ class SharpeBootstrapTest(BootstrapTest):
             )
 
 
+@register_test
 class SortinoBootstrapTest(BootstrapTest):
     """Bootstrap test for Sortino ratio significance."""
 
@@ -319,28 +346,12 @@ class SortinoBootstrapTest(BootstrapTest):
         return _sortino_ratio(returns)
 
 
-TEST_REGISTRY: dict[str, type[StatisticalTest]] = {
-    "t_test": TTest,
-    "mann_whitney": MannWhitneyTest,
-    "permutation_test": PermutationMeanTest,
-    "sharpe_bootstrap": SharpeBootstrapTest,
-    "sortino_bootstrap": SortinoBootstrapTest,
-}
-
-
 def get_test(test_name: str) -> StatisticalTest | None:
     """Factory function to create test instances."""
     test_class = TEST_REGISTRY.get(test_name)
     if test_class:
         return test_class()
     return None
-
-
-def register_test(test_class: type[StatisticalTest]) -> None:
-    """Register a new test class (for extensibility)."""
-    instance = test_class()
-    TEST_REGISTRY[instance.name] = test_class
-    logger.info("registered statistical test name=%s", instance.name)
 
 
 def list_available_tests() -> list[str]:

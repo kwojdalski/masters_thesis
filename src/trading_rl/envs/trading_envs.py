@@ -106,6 +106,24 @@ class DiscreteActionWrapper(gym.ActionWrapper):
         return int(action)
 
 
+_ENV_FACTORY_REGISTRY: dict[str, type] = {}
+
+
+def register_env_factory(*backends: str):
+    """Decorator to register a factory class for one or more backend strings.
+
+    Example::
+
+        @register_env_factory("gym_trading_env.discrete", "gym_trading_env.continuous")
+        class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory): ...
+    """
+    def decorator(cls: type) -> type:
+        for b in backends:
+            _ENV_FACTORY_REGISTRY[b] = cls
+        return cls
+    return decorator
+
+
 class BaseTradingEnvironmentFactory:
     """Base class for all trading environment factories."""
 
@@ -114,7 +132,6 @@ class BaseTradingEnvironmentFactory:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
             return TransformedEnv(env, StepCounter())
-
 
     def make(self, *args, **kwargs) -> TransformedEnv:
         """Abstract method to be implemented by subclasses."""
@@ -125,6 +142,7 @@ class BaseTradingEnvironmentFactory:
         return self.make(*args, **kwargs)
 
 
+@register_env_factory(EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS)
 class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
     """Factory for custom TradingEnv environments with config-based setup."""
 
@@ -254,40 +272,38 @@ class _AnyTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
         return env
 
 
+@register_env_factory(EnvBackend.GYM_ANYTRADING_FOREX)
 class ForexEnvironmentFactory(_AnyTradingEnvironmentFactory):
     """Factory for forex-v0 environments."""
 
     _env_id = "forex-v0"
 
 
+@register_env_factory(EnvBackend.GYM_ANYTRADING_STOCKS)
 class StocksEnvironmentFactory(_AnyTradingEnvironmentFactory):
     """Factory for stocks-v0 environments."""
 
     _env_id = "stocks-v0"
 
 
+def _register_tradingenv_factory() -> None:
+    """Register TradingEnvXYFactory lazily to avoid circular import at module load."""
+    if EnvBackend.TRADINGENV not in _ENV_FACTORY_REGISTRY:
+        from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory
+        _ENV_FACTORY_REGISTRY[EnvBackend.TRADINGENV] = TradingEnvXYFactory
+
+
 def get_environment_factory(
     backend: Backend, **kwargs
 ) -> BaseTradingEnvironmentFactory:
-    """Factory function to get the appropriate environment factory based on backend."""
+    """Return the factory instance for *backend*, looked up from the registry."""
     validate_backend(backend, log_backend=False)
+    _register_tradingenv_factory()
 
-    config = kwargs.get("config")
-
-    if backend in {EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS}:
-        return CustomTradingEnvironmentFactory(config)
-    elif backend == EnvBackend.GYM_ANYTRADING_FOREX:
-        return ForexEnvironmentFactory(config)
-    elif backend == EnvBackend.GYM_ANYTRADING_STOCKS:
-        return StocksEnvironmentFactory(config)
-    elif backend == EnvBackend.TRADINGENV:
-        # Import here to avoid circular dependency and keep it optional
-        from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory
-
-        return TradingEnvXYFactory(config)
-    else:
-        # This should not happen after validation, but keeping for safety
+    factory_cls = _ENV_FACTORY_REGISTRY.get(str(backend))
+    if factory_cls is None:
         raise ValueError(f"Unsupported backend: {backend}")
+    return factory_cls(kwargs.get("config"))
 
 
 # Convenience functions that maintain backward compatibility
