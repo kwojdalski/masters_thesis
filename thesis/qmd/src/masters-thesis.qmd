@@ -45,6 +45,7 @@ format:
     number-depth: 2
     toc-location: right
     format-links: false
+    fig-cap-location: top
     css: custom.css
     grid:
       body-width: 960px
