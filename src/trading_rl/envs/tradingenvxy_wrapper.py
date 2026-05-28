@@ -634,16 +634,18 @@ class StreamingTradingEnvXY(gym.Env):
         return lam * (float(action) - self._prev_action) ** 2
 
     def step(self, action):
-        action = float(np.asarray(action).flat[0])
         try:
             obs, reward, done, info = self._inner_env.step(action)
         except EndOfEpisodeError:
             obs = np.zeros(self.observation_space.shape, dtype=np.float32)
             self._prev_action = 0.0
             return obs, -1.0, True, False, {"bankrupt": True}
-        penalty = self._compute_action_penalty(action)
+        # BoxPortfolio.contains() checks shape, so pass the array to the inner
+        # env as-is; extract a scalar only for penalty/tracking.
+        action_val = float(np.asarray(action).flat[0])
+        penalty = self._compute_action_penalty(action_val)
         reward = float(reward) - penalty
-        self._prev_action = float(action)
+        self._prev_action = action_val
         # Distinguish bankruptcy (terminated) from data exhaustion (truncated).
         if done:
             broker = getattr(self._inner_env, "broker", None)
