@@ -23,7 +23,9 @@ class _FakeReplayBuffer:
 
 
 class _FakeOptimizer:
-    def __init__(self) -> None:
+    def __init__(self, name: str = "", events: list[str] | None = None) -> None:
+        self.name = name
+        self.events = events
         self.zero_grad_calls = 0
         self.step_calls = 0
 
@@ -32,31 +34,45 @@ class _FakeOptimizer:
 
     def step(self) -> None:
         self.step_calls += 1
+        if self.events is not None:
+            self.events.append(f"{self.name}.step")
 
 
 class _FakeUpdater:
-    def __init__(self) -> None:
+    def __init__(self, events: list[str] | None = None) -> None:
+        self.events = events
         self.step_calls = 0
 
     def step(self) -> None:
         self.step_calls += 1
+        if self.events is not None:
+            self.events.append("updater.step")
 
 
 class _FakeParams:
-    def __init__(self) -> None:
+    def __init__(self, name: str = "", events: list[str] | None = None) -> None:
+        self.name = name
+        self.events = events
         self.to_module_calls = 0
 
     def to_module(self, _module) -> None:
         self.to_module_calls += 1
+        if self.events is not None:
+            self.events.append(f"{self.name}.to_module")
 
 
 class _FakeDdpgLoss:
-    def __init__(self) -> None:
-        self.actor_network_params = _FakeParams()
-        self.value_network_params = _FakeParams()
+    def __init__(self, events: list[str] | None = None) -> None:
+        self.events = events
+        self.actor_network_params = _FakeParams("actor", events)
+        self.value_network_params = _FakeParams("value", events)
         self.sample_shapes: list[dict[str, torch.Size]] = []
+        self.call_count = 0
 
     def __call__(self, sample):
+        self.call_count += 1
+        if self.events is not None:
+            self.events.append("loss.call")
         self.sample_shapes.append(
             {
                 "reward": sample["next", "reward"].shape,
@@ -65,7 +81,7 @@ class _FakeDdpgLoss:
             }
         )
         return {
-            "loss_actor": torch.tensor(0.11, requires_grad=True),
+            "loss_actor": torch.tensor(0.10 + self.call_count / 100, requires_grad=True),
             "loss_value": torch.tensor(0.22, requires_grad=True),
         }
 
@@ -133,6 +149,7 @@ def _ddpg_sample(
 
 def _optimization_trainer(sample: TensorDict) -> DDPGTrainer:
     trainer = _bare_ddpg_trainer()
+    trainer._events = []
     trainer.config = SimpleNamespace(
         optim_steps_per_batch=2,
         sample_size=4,
@@ -141,10 +158,10 @@ def _optimization_trainer(sample: TensorDict) -> DDPGTrainer:
         max_grad_norm=0,
     )
     trainer.replay_buffer = _FakeReplayBuffer(sample)
-    trainer.ddpg_loss = _FakeDdpgLoss()
-    trainer.optimizer_actor = _FakeOptimizer()
-    trainer.optimizer_value = _FakeOptimizer()
-    trainer.updater = _FakeUpdater()
+    trainer.ddpg_loss = _FakeDdpgLoss(trainer._events)
+    trainer.optimizer_actor = _FakeOptimizer("actor", trainer._events)
+    trainer.optimizer_value = _FakeOptimizer("value", trainer._events)
+    trainer.updater = _FakeUpdater(trainer._events)
     trainer.logs = defaultdict(list)
     trainer.callback = None
     trainer.actor = object()
@@ -162,6 +179,8 @@ def test_ddpg_optimization_step_updates_networks_and_logs_losses() -> None:
     assert trainer.ddpg_loss.sample_shapes == [
         {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
         {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
+        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
+        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
     ]
     assert trainer.successful_batches == 2
     assert trainer.skipped_batches == 0
@@ -171,7 +190,23 @@ def test_ddpg_optimization_step_updates_networks_and_logs_losses() -> None:
     assert trainer.updater.step_calls == 2
     assert trainer.ddpg_loss.actor_network_params.to_module_calls == 2
     assert trainer.ddpg_loss.value_network_params.to_module_calls == 2
-    assert trainer.logs["loss_actor"] == pytest.approx([0.11, 0.11])
+    assert trainer._events == [
+        "loss.call",
+        "value.step",
+        "value.to_module",
+        "loss.call",
+        "actor.step",
+        "actor.to_module",
+        "updater.step",
+        "loss.call",
+        "value.step",
+        "value.to_module",
+        "loss.call",
+        "actor.step",
+        "actor.to_module",
+        "updater.step",
+    ]
+    assert trainer.logs["loss_actor"] == pytest.approx([0.12, 0.14])
     assert trainer.logs["loss_value"] == pytest.approx([0.22, 0.22])
 
 

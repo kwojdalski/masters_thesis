@@ -198,19 +198,6 @@ class DDPGTrainer(BaseTrainer):
                 else:
                     raise e
 
-            # Optimize actor
-            self.optimizer_actor.zero_grad()
-            loss_vals["loss_actor"].backward()
-            if self.config.max_grad_norm > 0:
-                torch.nn.utils.clip_grad_norm_(
-                    self.ddpg_loss.actor_network_params.values(True, True),
-                    self.config.max_grad_norm,
-                )
-            self.optimizer_actor.step()
-
-            # Sync functional actor params back to the actor module used by the collector/evaluator
-            self.ddpg_loss.actor_network_params.to_module(self.actor)
-
             # Optimize value network
             self.optimizer_value.zero_grad()
             loss_vals["loss_value"].backward()
@@ -224,11 +211,25 @@ class DDPGTrainer(BaseTrainer):
             # Sync functional value params back to the value module
             self.ddpg_loss.value_network_params.to_module(self.value_net)
 
+            # Optimize actor against the updated critic.
+            loss_vals_actor = self.ddpg_loss(sample)
+            self.optimizer_actor.zero_grad()
+            loss_vals_actor["loss_actor"].backward()
+            if self.config.max_grad_norm > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    self.ddpg_loss.actor_network_params.values(True, True),
+                    self.config.max_grad_norm,
+                )
+            self.optimizer_actor.step()
+
+            # Sync functional actor params back to the actor module used by the collector/evaluator
+            self.ddpg_loss.actor_network_params.to_module(self.actor)
+
             # Update target networks
             self.updater.step()
 
             # Log losses
-            actor_loss = loss_vals["loss_actor"].item()
+            actor_loss = loss_vals_actor["loss_actor"].item()
             value_loss = loss_vals["loss_value"].item()
             self.logs["loss_value"].append(value_loss)
             self.logs["loss_actor"].append(actor_loss)
