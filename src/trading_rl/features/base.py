@@ -639,11 +639,11 @@ class Feature(ABC):
             # mutated as a side effect of transform().
             saved_scaler = self.scaler
             self.scaler = RunningMeanStd(epsilon=saved_scaler.epsilon)
-
-            normalized_session = self._transform_running_session_online(session_data)
+            try:
+                normalized_session = self._transform_running_session_online(session_data)
+            finally:
+                self.scaler = saved_scaler
             all_normalized.append(normalized_session)
-
-            self.scaler = saved_scaler
 
         # Concatenate all sessions
         if all_normalized:
@@ -694,13 +694,13 @@ class Feature(ABC):
             # mutated as a side effect of transform().
             saved_scaler = self.scaler
             self.scaler = TimeWeightedRunningMeanStd(epsilon=saved_scaler.epsilon)
-
-            normalized_session = self._transform_time_weighted_session_online(
-                session_data
-            )
+            try:
+                normalized_session = self._transform_time_weighted_session_online(
+                    session_data
+                )
+            finally:
+                self.scaler = saved_scaler
             all_normalized.append(normalized_session)
-
-            self.scaler = saved_scaler
 
         # Concatenate all sessions
         if all_normalized:
