@@ -411,11 +411,17 @@ def evaluate_split(
             )
 
     log_banner(logger, f"EVALUATION END  split={split.upper()}  reward={split_final_reward:.4f}")
-    return PipelineSplitResult(
-        final_reward=split_final_reward,
-        last_positions=split_last_positions,
-        evaluation_report=split_evaluation_report,
-    )
+    try:
+        return PipelineSplitResult(
+            final_reward=split_final_reward,
+            last_positions=split_last_positions,
+            evaluation_report=split_evaluation_report,
+        )
+    finally:
+        try:
+            split_ctx.env.close()
+        except Exception:
+            logger.debug("eval env close failed split=%s", split, exc_info=True)
 
 
 def evaluate_all_splits(
@@ -504,14 +510,20 @@ def run_primary_split_explainability(
         df=split_frames[primary_split],
         config=config,
     )
-    run_explainability_analysis(
-        config=config,
-        trainer=trainer,
-        eval_ctx=explainability_ctx,
-        train_df=train_df,
-        logger=logger,
-        artifact_path_prefix=ArtifactPaths.explainability(primary_split),
-    )
+    try:
+        run_explainability_analysis(
+            config=config,
+            trainer=trainer,
+            eval_ctx=explainability_ctx,
+            train_df=train_df,
+            logger=logger,
+            artifact_path_prefix=ArtifactPaths.explainability(primary_split),
+        )
+    finally:
+        try:
+            explainability_ctx.env.close()
+        except Exception:
+            logger.debug("explainability env close failed split=%s", primary_split, exc_info=True)
 
 
 def build_final_metrics(
