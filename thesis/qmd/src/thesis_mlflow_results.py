@@ -1319,9 +1319,10 @@ def show_plot(
         plot = plot + theme(figure_size=(width or cur_w, height or cur_h))
 
     # Extract and strip text labels from the plot.
-    title    = plot.labels.get("title")    or ""
-    subtitle = plot.labels.get("subtitle") or ""
-    caption  = fig_cap or plot.labels.get("caption") or ""
+    # plotnine's labels_view.get() requires an explicit default argument.
+    title    = plot.labels.get("title",    "") or ""
+    subtitle = plot.labels.get("subtitle", "") or ""
+    caption  = fig_cap or plot.labels.get("caption", "") or ""
     for key in ("title", "subtitle", "caption"):
         plot.labels.pop(key, None)
 
