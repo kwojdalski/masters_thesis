@@ -3,14 +3,14 @@
 
 Steps for each hypothesis
 -------------------------
-0. Guardrails   -- validate config for all scenarios (skip with --skip-guardrails)
-1. Train        -- fit the agent(s)                  (skip with --skip-train)
-2. Evaluate     -- compute metrics, benchmarks, plots (skip with --skip-eval)
+0. Guardrails   -- validate config for all scenarios (auto-skipped with --dev)
+1. Train        -- fit the agent(s)
+2. Evaluate     -- compute metrics, benchmarks, plots
 3. Report       -- run the hypothesis-specific summary script
 4. Export       -- write thesis snapshots for Quarto rendering
 
-Usage
------
+Examples
+--------
     uv run python scripts/run_experiments.py h1
     uv run python scripts/run_experiments.py h2 --skip-train
     uv run python scripts/run_experiments.py h3 --parallel
@@ -18,32 +18,31 @@ Usage
     uv run python scripts/run_experiments.py h1 --max-train-seconds 300
     uv run python scripts/run_experiments.py h1 -o training.max_steps=50000
     uv run python scripts/run_experiments.py h2 -o evaluation.eval_steps=500
-    uv run python scripts/run_experiments.py h1 --skip-train --parallel
-    uv run python scripts/run_experiments.py all --skip-guardrails
     uv run python scripts/run_experiments.py h1 --dev
     uv run python scripts/run_experiments.py all --dev --dev-steps 500
-
-Config overrides (-o / --config-override) are forwarded to both train and
-evaluate.  Use --skip-eval or --skip-train to isolate overrides to one step.
-
---dev skips guardrails and caps each scenario's training at --dev-steps steps
-(default 2000).  Useful for end-to-end pipeline smoke-testing without waiting
-for a full training run.
 """
 
 from __future__ import annotations
 
-import argparse
 import concurrent.futures
 import os
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Annotated, Optional
+
+import typer
+from rich.console import Console
+from rich.markup import escape
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _CLI = ["uv", "run", "python", str(_REPO_ROOT / "src" / "cli.py")]
 _LOG_DIR = _REPO_ROOT / "logs"
+
+_con = Console()
+_err = Console(stderr=True)
 
 # ---------------------------------------------------------------------------
 # Scenario definitions
@@ -93,6 +92,23 @@ _REPORT_SCRIPTS: dict[str, str] = {
 }
 
 # ---------------------------------------------------------------------------
+# Shared run args
+# ---------------------------------------------------------------------------
+
+@dataclass
+class RunArgs:
+    skip_train: bool = False
+    skip_eval: bool = False
+    parallel: bool = False
+    verbose: bool = False
+    skip_guardrails: bool = False
+    overrides: list[str] = field(default_factory=list)
+    dev: bool = False
+    dev_steps: int = 2000
+    max_train_seconds: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
 # Low-level subprocess helpers
 # ---------------------------------------------------------------------------
 
@@ -112,21 +128,21 @@ def _override_flags(overrides: list[str]) -> list[str]:
 
 
 def _watch_hint(label: str, log_files: list[Path]) -> None:
-    print()
     paths = " ".join(str(f) for f in log_files)
+    _con.print()
     if shutil.which("multitail"):
-        print(f"Monitor {label} logs:")
-        print(f"  multitail -s {len(log_files)} {paths}")
+        _con.print(f"[dim]Monitor {label} logs:[/dim]")
+        _con.print(f"  [cyan]multitail -s {len(log_files)} {escape(paths)}[/cyan]")
     else:
-        print(f"Monitor {label} logs (install multitail for split-pane view):")
-        print(f"  tail -f {paths}")
-    print()
+        _con.print(f"[dim]Monitor {label} logs (install multitail for split-pane view):[/dim]")
+        _con.print(f"  [cyan]tail -f {escape(paths)}[/cyan]")
+    _con.print()
 
 
 def _run_tee(cmd: list[str], log_file: Path) -> None:
-    """Run command, streaming output to both terminal and log file."""
+    """Run command streaming output to both terminal and log file."""
     log_file.parent.mkdir(parents=True, exist_ok=True)
-    print(f"  -> {log_file}")
+    _con.print(f"  [dim]-> {escape(str(log_file))}[/dim]")
     with log_file.open("w") as fh:
         proc = subprocess.Popen(
             cmd,
@@ -146,7 +162,7 @@ def _run_tee(cmd: list[str], log_file: Path) -> None:
 
 
 def _run_capture(cmd: list[str], log_file: Path) -> None:
-    """Run command, capturing all output to log file (used in parallel mode)."""
+    """Run command capturing all output to log file (for parallel threads)."""
     log_file.parent.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
     env["NO_COLOR"] = "1"
@@ -155,86 +171,80 @@ def _run_capture(cmd: list[str], log_file: Path) -> None:
 
 
 def _run_simple(cmd: list[str]) -> None:
-    """Run command with inherited stdio."""
-    print(f"$ {' '.join(cmd)}")
+    _con.print(f"[dim]$ {escape(' '.join(cmd))}[/dim]")
     subprocess.run(cmd, cwd=_REPO_ROOT, check=True)
 
 
-def _run_parallel_jobs(
-    label: str,
-    jobs: list[tuple[list[str], Path]],
-) -> None:
-    log_files = [log for _, log in jobs]
-    for cmd, log in jobs:
-        print(f"  {_scenario_name(str(log).split('_')[0])}  ->  {log}  (background)")
+def _run_parallel_jobs(label: str, jobs: list[tuple[list[str], Path]]) -> None:
+    for _, log in jobs:
+        _con.print(f"  [cyan]{escape(_scenario_name(str(log.stem)))}[/cyan]  [dim]->[/dim]  [dim]{escape(str(log))}[/dim]  [dim](background)[/dim]")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(jobs)) as executor:
         futures = {
             executor.submit(_run_capture, cmd, log): log
             for cmd, log in jobs
         }
-        _watch_hint(label, log_files)
-        print(f"Waiting for {len(futures)} {label} job(s)...")
+        _watch_hint(label, [log for _, log in jobs])
+        _con.print(f"Waiting for [bold]{len(futures)}[/bold] {label} job(s)...")
         failed: list[Path] = []
         for future in concurrent.futures.as_completed(futures):
             log = futures[future]
             try:
                 future.result()
-                print(f"  done: {log.name}")
+                _con.print(f"  [green]done:[/green] {log.name}")
             except subprocess.CalledProcessError as exc:
-                print(f"  FAILED (rc={exc.returncode}): {log}")
+                _con.print(f"  [red]FAILED[/red] (rc={exc.returncode}): {escape(str(log))}")
                 failed.append(log)
 
     if failed:
-        raise SystemExit(
-            f"{len(failed)} {label} job(s) failed. "
-            f"Check logs: {', '.join(str(f) for f in failed)}"
+        logs = ", ".join(str(f) for f in failed)
+        raise typer.Exit(
+            code=1,
         )
+
 
 # ---------------------------------------------------------------------------
 # Pipeline steps
 # ---------------------------------------------------------------------------
 
-def _check_guardrails(scenarios: list[str], args: argparse.Namespace) -> None:
-    print(f"=== Pre-flight: Checking guardrails for {len(scenarios)} scenario(s) ===")
+def _check_guardrails(scenarios: list[str], args: RunArgs) -> None:
+    _con.print(f"\n[bold]Pre-flight:[/bold] checking guardrails for [cyan]{len(scenarios)}[/cyan] scenario(s)")
     passed: list[str] = []
     failed: list[str] = []
 
     for scenario in scenarios:
         log = _log_file(scenario, "guardrails")
         log.parent.mkdir(parents=True, exist_ok=True)
-        print(f"  Checking {scenario}...")
+        _con.print(f"  Checking [cyan]{escape(scenario)}[/cyan]...")
         cmd = [*_CLI, "validate", "guardrails", "-c", scenario]
         if args.verbose:
             cmd.append("--verbose")
         with log.open("w") as fh:
-            result = subprocess.run(
-                cmd, cwd=_REPO_ROOT, stdout=fh, stderr=fh, check=False
-            )
+            result = subprocess.run(cmd, cwd=_REPO_ROOT, stdout=fh, stderr=fh, check=False)
         if result.returncode == 0:
-            print(f"    [PASS] {scenario}")
+            _con.print(f"    [green][PASS][/green] {escape(scenario)}")
             passed.append(scenario)
         else:
-            print(f"    [FAIL] {scenario}  (see {log})")
+            _con.print(f"    [red][FAIL][/red] {escape(scenario)}  [dim](see {escape(str(log))})[/dim]")
             failed.append(scenario)
 
-    print(f"\nGuardrails summary:  passed={len(passed)}  failed={len(failed)}")
+    _con.print(
+        f"\nGuardrails summary:  "
+        f"passed=[green]{len(passed)}[/green]  "
+        f"failed=[{'red' if failed else 'green'}]{len(failed)}[/{'red' if failed else 'green'}]"
+    )
 
     if failed:
-        print("\nFailed scenarios:")
+        _con.print("\n[red]Failed scenarios:[/red]")
         for s in failed:
-            print(f"  - {s}  (logs: {_log_file(s, 'guardrails')})")
-        print("\nFix the guardrail issues or run with --skip-guardrails to proceed anyway.")
-        raise SystemExit("Guardrails check failed.")
+            _con.print(f"  [dim]-[/dim] {escape(s)}  [dim](logs: {escape(str(_log_file(s, 'guardrails')))})[/dim]")
+        _err.print("\n[red]Fix the guardrail issues or run with --skip-guardrails to proceed anyway.[/red]")
+        raise typer.Exit(code=1)
 
-    print("All scenarios passed guardrails.\n")
+    _con.print("[green]All scenarios passed guardrails.[/green]\n")
 
 
-def _train_all(
-    scenarios: list[str],
-    args: argparse.Namespace,
-    extra_overrides: list[str] | None = None,
-) -> None:
+def _train_all(scenarios: list[str], args: RunArgs, extra_overrides: list[str] | None = None) -> None:
     overrides = list(args.overrides) + (extra_overrides or [])
 
     def _cmd(scenario: str) -> list[str]:
@@ -244,23 +254,16 @@ def _train_all(
         return cmd
 
     if args.parallel:
-        _run_parallel_jobs(
-            "training",
-            [(_cmd(s), _log_file(s, "train")) for s in scenarios],
-        )
+        _run_parallel_jobs("training", [(_cmd(s), _log_file(s, "train")) for s in scenarios])
     else:
         for scenario in scenarios:
             log = _log_file(scenario, "train")
-            print(f"Training {scenario}  ->  {log}")
+            _con.print(f"Training [cyan]{escape(scenario)}[/cyan]")
             _run_tee(_cmd(scenario), log)
-            print("  done.")
+            _con.print(f"  [green]done.[/green]")
 
 
-def _evaluate_all(
-    scenarios: list[str],
-    eval_only: list[str],
-    args: argparse.Namespace,
-) -> None:
+def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> None:
     overrides = list(args.overrides)
 
     def _cmd(scenario: str) -> list[str]:
@@ -277,38 +280,35 @@ def _evaluate_all(
         return cmd
 
     if args.parallel:
-        _run_parallel_jobs(
-            "evaluation",
-            [(_cmd(s), _log_file(s, "eval")) for s in scenarios],
-        )
+        _run_parallel_jobs("evaluation", [(_cmd(s), _log_file(s, "eval")) for s in scenarios])
     else:
         for scenario in scenarios:
             log = _log_file(scenario, "eval")
             output_dir = _LOG_DIR / _scenario_name(scenario)
-            print(f"Evaluating {scenario}  ->  {output_dir}")
+            _con.print(f"Evaluating [cyan]{escape(scenario)}[/cyan]  [dim]->[/dim]  [dim]{escape(str(output_dir))}[/dim]")
             _run_tee(_cmd(scenario), log)
-            print("  done.")
+            _con.print(f"  [green]done.[/green]")
 
 
 def _run_report(hypothesis: str) -> None:
     script = _REPO_ROOT / "scripts" / _REPORT_SCRIPTS[hypothesis]
-    print(f"=== {hypothesis.upper()}: Report ===")
+    _con.print(f"\n[bold cyan]=== {hypothesis.upper()}: Report ===[/bold cyan]")
     _run_simple(["uv", "run", "python", str(script)])
 
 
 def _export_all(scenarios: list[str]) -> None:
     export_script = str(_REPO_ROOT / "scripts" / "export_eval_to_thesis.py")
     for scenario in scenarios:
-        print(f"  Exporting {scenario} ...")
+        _con.print(f"  Exporting [cyan]{escape(scenario)}[/cyan] ...")
         _run_simple(["uv", "run", "python", export_script, "--scenario", scenario])
-    print("Thesis snapshots updated.")
+    _con.print("[green]Thesis snapshots updated.[/green]")
 
 
 # ---------------------------------------------------------------------------
-# Hypothesis runners
+# Hypothesis runner
 # ---------------------------------------------------------------------------
 
-def run_hypothesis(hypothesis: str, args: argparse.Namespace) -> None:
+def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
     scenarios = _SCENARIOS[hypothesis]
     eval_only = _EVAL_ONLY[hypothesis]
     skip_guardrails = args.skip_guardrails or args.dev
@@ -316,7 +316,10 @@ def run_hypothesis(hypothesis: str, args: argparse.Namespace) -> None:
     _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     if args.dev:
-        print(f"[dev] guardrails skipped, training capped at {args.dev_steps} steps per scenario")
+        _con.print(
+            f"[yellow][dev][/yellow] guardrails skipped, "
+            f"training capped at [bold]{args.dev_steps}[/bold] steps per scenario"
+        )
 
     # Step 0 — Guardrails
     if not skip_guardrails:
@@ -324,103 +327,128 @@ def run_hypothesis(hypothesis: str, args: argparse.Namespace) -> None:
 
     # Step 1 — Train
     if not args.skip_train:
-        print(f"=== {hypothesis.upper()}: Training ===")
+        _con.print(f"\n[bold cyan]=== {hypothesis.upper()}: Training ===[/bold cyan]")
         extra: list[str] = []
-        max_secs = getattr(args, "max_train_seconds", None)
-        if max_secs:
-            extra.append(f"training.max_train_seconds={max_secs}")
+        if args.max_train_seconds:
+            extra.append(f"training.max_train_seconds={args.max_train_seconds}")
         if args.dev:
             extra.append(f"training.max_steps={args.dev_steps}")
         _train_all(scenarios, args, extra_overrides=extra)
-        print()
+        _con.print()
 
     # Steps 2–4 — Evaluate, Report, Export
     if not args.skip_eval:
-        print(f"=== {hypothesis.upper()}: Evaluating ===")
+        _con.print(f"\n[bold cyan]=== {hypothesis.upper()}: Evaluating ===[/bold cyan]")
         _evaluate_all(scenarios, eval_only, args)
-        print()
 
         _run_report(hypothesis)
 
-        print(f"=== {hypothesis.upper()}: Export to thesis ===")
+        _con.print(f"\n[bold cyan]=== {hypothesis.upper()}: Export to thesis ===[/bold cyan]")
         _export_all(scenarios)
     else:
-        print(f"=== {hypothesis.upper()}: Skipping evaluate, report, and export (--skip-eval) ===")
+        _con.print(f"[dim]=== {hypothesis.upper()}: skipping evaluate, report, and export (--skip-eval) ===[/dim]")
 
 
 # ---------------------------------------------------------------------------
-# CLI
+# Typer app
 # ---------------------------------------------------------------------------
 
-def _add_common_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--skip-train", action="store_true", help="Skip training step.")
-    p.add_argument("--skip-eval", action="store_true", help="Skip evaluate/report/export steps.")
-    p.add_argument("--parallel", action="store_true", help="Run scenarios concurrently.")
-    p.add_argument("--verbose", "-v", action="store_true", help="Enable debug logging in subcommands.")
-    p.add_argument("--skip-guardrails", action="store_true", help="Skip pre-flight guardrails check.")
-    p.add_argument(
-        "-o", "--config-override",
-        dest="overrides",
-        action="append",
-        default=[],
-        metavar="K=V",
-        help="OmegaConf dotlist override forwarded to both train and evaluate. Repeatable.",
+app = typer.Typer(
+    help="Run H1, H2, H3, or all hypothesis experiments.",
+    rich_markup_mode="rich",
+    no_args_is_help=True,
+)
+
+# Reusable option type aliases
+_SkipTrain      = Annotated[bool,                   typer.Option("--skip-train",      help="Skip training step.")]
+_SkipEval       = Annotated[bool,                   typer.Option("--skip-eval",       help="Skip evaluate / report / export steps.")]
+_Parallel       = Annotated[bool,                   typer.Option("--parallel",        help="Run scenarios concurrently.")]
+_Verbose        = Annotated[bool,                   typer.Option("--verbose", "-v",   help="Enable debug logging in subcommands.")]
+_SkipGuardrails = Annotated[bool,                   typer.Option("--skip-guardrails", help="Skip pre-flight guardrails check.")]
+_Overrides      = Annotated[Optional[list[str]],    typer.Option("-o", "--config-override", help="OmegaConf dotlist override forwarded to both train and evaluate. Repeatable.")]
+_Dev            = Annotated[bool,                   typer.Option("--dev",             help="Dev mode: skip guardrails and cap training at [bold]--dev-steps[/bold] steps.")]
+_DevSteps       = Annotated[int,                    typer.Option("--dev-steps",       help="Training steps per scenario in [bold]--dev[/bold] mode (default: 2000).")]
+
+
+@app.command()
+def h1(
+    skip_train:      _SkipTrain      = False,
+    skip_eval:       _SkipEval       = False,
+    parallel:        _Parallel       = False,
+    verbose:         _Verbose        = False,
+    skip_guardrails: _SkipGuardrails = False,
+    overrides:       _Overrides      = None,
+    dev:             _Dev            = False,
+    dev_steps:       _DevSteps       = 2000,
+    max_train_seconds: Annotated[Optional[int], typer.Option("--max-train-seconds", metavar="N", help="Cap training wall-clock time per scenario (forwarded as training.max_train_seconds=N).")] = None,
+) -> None:
+    """[bold]H1[/bold]: Compare TD3, DDPG, PPO, Random agents with DSR reward."""
+    run_hypothesis("h1", RunArgs(
+        skip_train=skip_train, skip_eval=skip_eval, parallel=parallel,
+        verbose=verbose, skip_guardrails=skip_guardrails, overrides=overrides or [],
+        dev=dev, dev_steps=dev_steps, max_train_seconds=max_train_seconds,
+    ))
+
+
+@app.command()
+def h2(
+    skip_train:      _SkipTrain      = False,
+    skip_eval:       _SkipEval       = False,
+    parallel:        _Parallel       = False,
+    verbose:         _Verbose        = False,
+    skip_guardrails: _SkipGuardrails = False,
+    overrides:       _Overrides      = None,
+    dev:             _Dev            = False,
+    dev_steps:       _DevSteps       = 2000,
+) -> None:
+    """[bold]H2[/bold]: Compare minimal / selected / full feature specifications."""
+    run_hypothesis("h2", RunArgs(
+        skip_train=skip_train, skip_eval=skip_eval, parallel=parallel,
+        verbose=verbose, skip_guardrails=skip_guardrails, overrides=overrides or [],
+        dev=dev, dev_steps=dev_steps,
+    ))
+
+
+@app.command()
+def h3(
+    skip_train:      _SkipTrain      = False,
+    skip_eval:       _SkipEval       = False,
+    parallel:        _Parallel       = False,
+    verbose:         _Verbose        = False,
+    skip_guardrails: _SkipGuardrails = False,
+    overrides:       _Overrides      = None,
+    dev:             _Dev            = False,
+    dev_steps:       _DevSteps       = 2000,
+) -> None:
+    """[bold]H3[/bold]: Sensitivity analysis — features, reward, transaction cost."""
+    run_hypothesis("h3", RunArgs(
+        skip_train=skip_train, skip_eval=skip_eval, parallel=parallel,
+        verbose=verbose, skip_guardrails=skip_guardrails, overrides=overrides or [],
+        dev=dev, dev_steps=dev_steps,
+    ))
+
+
+@app.command(name="all")
+def run_all(
+    skip_train:      _SkipTrain      = False,
+    skip_eval:       _SkipEval       = False,
+    parallel:        _Parallel       = False,
+    verbose:         _Verbose        = False,
+    skip_guardrails: _SkipGuardrails = False,
+    overrides:       _Overrides      = None,
+    dev:             _Dev            = False,
+    dev_steps:       _DevSteps       = 2000,
+) -> None:
+    """Run [bold]H1[/bold], [bold]H2[/bold], and [bold]H3[/bold] in sequence."""
+    args = RunArgs(
+        skip_train=skip_train, skip_eval=skip_eval, parallel=parallel,
+        verbose=verbose, skip_guardrails=skip_guardrails, overrides=overrides or [],
+        dev=dev, dev_steps=dev_steps,
     )
-    p.add_argument(
-        "--dev",
-        action="store_true",
-        help="Dev mode: skip guardrails and cap training at --dev-steps steps for quick pipeline smoke-testing.",
-    )
-    p.add_argument(
-        "--dev-steps",
-        type=int,
-        default=2000,
-        metavar="N",
-        help="Training steps per scenario when --dev is set (default: 2000).",
-    )
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Run H1, H2, H3, or all hypothesis experiments.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
-    )
-    sub = parser.add_subparsers(dest="hypothesis", required=True)
-
-    # h1
-    h1 = sub.add_parser("h1", help="H1: Compare TD3, DDPG, PPO, Random agents with DSR reward.")
-    _add_common_args(h1)
-    h1.add_argument(
-        "--max-train-seconds",
-        type=int,
-        metavar="N",
-        help="Cap training wall-clock time per scenario (forwarded as training.max_train_seconds=N).",
-    )
-
-    # h2
-    h2 = sub.add_parser("h2", help="H2: Compare minimal / selected / full feature specifications.")
-    _add_common_args(h2)
-
-    # h3
-    h3 = sub.add_parser("h3", help="H3: Sensitivity — features, reward, transaction cost.")
-    _add_common_args(h3)
-
-    # all
-    all_p = sub.add_parser("all", help="Run H1, H2, and H3 in sequence.")
-    _add_common_args(all_p)
-
-    args = parser.parse_args()
-
-    if args.hypothesis == "all":
-        for hyp in ("h1", "h2", "h3"):
-            run_hypothesis(hyp, args)
-    else:
-        run_hypothesis(args.hypothesis, args)
-
-    print("\nAll done.")
-    return 0
+    for hyp in ("h1", "h2", "h3"):
+        run_hypothesis(hyp, args)
+    _con.print("\n[bold green]All done.[/bold green]")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    app()
