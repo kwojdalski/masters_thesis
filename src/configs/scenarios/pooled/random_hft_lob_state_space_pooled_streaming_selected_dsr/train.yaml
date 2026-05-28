@@ -30,7 +30,7 @@ data:
   download_data: false
   train_size: 50000
   validation_size: 50000
-  test_size: 50000
+  test_size: null
   lazy_load: true
   prepared_data_dir: ./data/prepared/pooled_daily_6sym_selected
   memmap_dir: ./data/memmap/pooled_daily_6sym_selected
