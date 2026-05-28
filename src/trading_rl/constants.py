@@ -80,6 +80,17 @@ class RewardType(StrEnum):
     DIFFERENTIAL_SHARPE = "differential_sharpe"
 
 
+class ActionPenaltyType(StrEnum):
+    """Action penalty variants subtracted from the reward each step.
+
+    Used to discourage bang-bang (±1) behavior in continuous-action policies.
+    """
+
+    QUADRATIC = "quadratic"          # lambda * action^2
+    ABSOLUTE = "absolute"            # lambda * abs(action)
+    CHANGE_QUADRATIC = "change_quadratic"  # lambda * (action_t - action_{t-1})^2
+
+
 class EnvMode(StrEnum):
     """Experiment mode controlling which features are eligible.
 

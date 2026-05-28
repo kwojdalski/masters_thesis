@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
-from trading_rl.constants import Algorithm, BenchmarkName, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, MetricName, RewardType, SplitName, StatisticalTest, TradePosition
+from trading_rl.constants import ActionPenaltyType, Algorithm, BenchmarkName, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, MetricName, RewardType, SplitName, StatisticalTest, TradePosition
 
 # HFT-appropriate metric set: excludes CAGR and Calmar, which annualise
 # intra-session tick returns and produce misleading values on sub-day horizons.
@@ -159,7 +159,7 @@ class EnvConfig:
     #   "absolute"         → lambda * abs(action)
     #   "change_quadratic" → lambda * (action_t - action_{t-1})^2  (models transaction costs)
     action_penalty_lambda: float = 0.0
-    action_penalty_type: str = "quadratic"
+    action_penalty_type: str = ActionPenaltyType.QUADRATIC
 
 
 @dataclass
@@ -532,10 +532,9 @@ class ExperimentConfig:
             errors.append(
                 f"env.action_penalty_lambda must be >= 0, got {self.env.action_penalty_lambda}"
             )
-        _valid_penalty_types = {"quadratic", "absolute", "change_quadratic"}
-        if self.env.action_penalty_type not in _valid_penalty_types:
+        if self.env.action_penalty_type not in set(ActionPenaltyType):
             errors.append(
-                f"env.action_penalty_type must be one of {sorted(_valid_penalty_types)}, "
+                f"env.action_penalty_type must be one of {[t.value for t in ActionPenaltyType]}, "
                 f"got '{self.env.action_penalty_type}'"
             )
 

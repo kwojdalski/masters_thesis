@@ -22,7 +22,7 @@ from tradingenv.spaces import BoxPortfolio
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
-from trading_rl.constants import RewardType
+from trading_rl.constants import ActionPenaltyType, RewardType
 from trading_rl.data_loading import MemmapPaths
 from trading_rl.envs.trading_envs import BaseTradingEnvironmentFactory
 from trading_rl.rewards import DifferentialSharpeRatio
@@ -416,7 +416,7 @@ class StreamingTradingEnvXY(gym.Env):
         seed: int | None = None,
         dsr_persist_across_symbols: bool = False,
         action_penalty_lambda: float = 0.0,
-        action_penalty_type: str = "quadratic",
+        action_penalty_type: str | ActionPenaltyType = ActionPenaltyType.QUADRATIC,
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -436,14 +436,8 @@ class StreamingTradingEnvXY(gym.Env):
         self._obs_clip = obs_clip
         self._dsr_persist_across_symbols = dsr_persist_across_symbols
 
-        _valid_penalty_types = {"quadratic", "absolute", "change_quadratic"}
-        if action_penalty_type not in _valid_penalty_types:
-            raise ValueError(
-                f"action_penalty_type must be one of {_valid_penalty_types}, "
-                f"got {action_penalty_type!r}"
-            )
         self._action_penalty_lambda = float(action_penalty_lambda)
-        self._action_penalty_type = action_penalty_type
+        self._action_penalty_type = ActionPenaltyType(action_penalty_type)
         self._prev_action: float = 0.0
 
         stocks = [Stock(price_column)]
@@ -632,11 +626,11 @@ class StreamingTradingEnvXY(gym.Env):
         lam = self._action_penalty_lambda
         if lam == 0.0:
             return 0.0
-        if self._action_penalty_type == "quadratic":
+        if self._action_penalty_type == ActionPenaltyType.QUADRATIC:
             return lam * float(action) ** 2
-        if self._action_penalty_type == "absolute":
+        if self._action_penalty_type == ActionPenaltyType.ABSOLUTE:
             return lam * abs(float(action))
-        # change_quadratic
+        # CHANGE_QUADRATIC
         return lam * (float(action) - self._prev_action) ** 2
 
     def step(self, action):
