@@ -33,13 +33,14 @@ training:
   sample_size: 64
   buffer_size: 10000
   tau: 0.005
-  policy_noise: 0.2
-  noise_clip: 0.5
-  delay_actor: true
-  delay_qvalue: true
   loss_function: l2
   eval_interval: 120
   log_interval: 40
+  td3:
+    policy_noise: 0.2
+    noise_clip: 0.5
+    delay_actor: true
+    delay_qvalue: true
 evaluation:
   eval_steps: 350
 

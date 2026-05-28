@@ -38,16 +38,17 @@ training:
   buffer_size: 200000
   gamma: 0.9
   tau: 0.005
-  policy_noise: 0.05
-  noise_clip: 0.1
-  policy_delay: 2
-  delay_actor: true
-  delay_qvalue: true
-  exploration_noise_std: 0.8
   loss_function: smooth_l1
   eval_interval: 1000
   temp_eval_interval: 100000
   log_interval: 100
+  td3:
+    policy_noise: 0.05
+    noise_clip: 0.1
+    policy_delay: 2
+    delay_actor: true
+    delay_qvalue: true
+    exploration_noise_std: 0.8
 evaluation:
   eval_steps: 10000
 

@@ -35,13 +35,14 @@ training:
   frames_per_batch: 256
   sample_size: 64
   buffer_size: 10000
-  clip_epsilon: 0.2
-  entropy_bonus: 0.01
-  vf_coef: 0.5
-  ppo_epochs: 4
   loss_function: l2
   eval_interval: 200
   log_interval: 100
+  ppo:
+    clip_epsilon: 0.2
+    entropy_bonus: 0.01
+    vf_coef: 0.5
+    epochs: 4
 evaluation:
   eval_steps: 200
 

@@ -70,13 +70,14 @@ training:
   buffer_size: 100000
   save_buffer: false
   gamma: 0.9
-  clip_epsilon: 0.2
-  entropy_bonus: 0.01
-  vf_coef: 0.5
-  ppo_epochs: 4
   loss_function: l2
   eval_interval: 1000
   log_interval: 100
+  ppo:
+    clip_epsilon: 0.2
+    entropy_bonus: 0.01
+    vf_coef: 0.5
+    epochs: 4
 evaluation:
   eval_fraction: 1.0
 

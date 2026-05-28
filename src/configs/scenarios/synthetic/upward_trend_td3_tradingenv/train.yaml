@@ -37,15 +37,16 @@ training:
   sample_size: 64
   buffer_size: 100000
   tau: 0.005
-  policy_noise: 0.05
-  noise_clip: 0.5
-  policy_delay: 2
-  delay_actor: true
-  delay_qvalue: true
-  exploration_noise_std: 0.05
   loss_function: smooth_l1
   eval_interval: 500
   log_interval: 100
+  td3:
+    policy_noise: 0.05
+    noise_clip: 0.5
+    policy_delay: 2
+    delay_actor: true
+    delay_qvalue: true
+    exploration_noise_std: 0.05
 evaluation:
   eval_steps: 440
 

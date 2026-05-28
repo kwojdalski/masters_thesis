@@ -68,8 +68,8 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
             "init recurrent_ppo trainer lr=%s clip_epsilon=%.3f entropy_bonus=%.4f "
             "gru_num_layers=%d",
             config.actor_lr,
-            getattr(config, "clip_epsilon", 0.2),
-            getattr(config, "entropy_bonus", 0.01),
+            config.ppo.clip_epsilon,
+            config.ppo.entropy_bonus,
             getattr(config.network, "gru_num_layers", 1),
         )
 
@@ -104,7 +104,7 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
             max_length: Maximum episode length in buffer
             buffer_len: Current replay buffer size
         """
-        ppo_epochs = getattr(self.config, "ppo_epochs", 4)
+        ppo_epochs = self.config.ppo.epochs
 
         # GAE / value targets computed on the full ordered rollout before any updates.
         ppo_batch = self._current_batch.clone()

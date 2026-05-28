@@ -1,7 +1,7 @@
 """Configuration for trading RL experiments."""
 
 import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, is_dataclass
 from pathlib import Path
 
 import yaml
@@ -486,17 +486,17 @@ class ExperimentConfig:
 
         # PPO-specific validation
         if self.training.algorithm.upper() == Algorithm.PPO:
-            if not (0 < self.training.clip_epsilon < 1):
+            if not (0 < self.training.ppo.clip_epsilon < 1):
                 errors.append(
-                    f"training.clip_epsilon must be in (0, 1), got {self.training.clip_epsilon}"
+                    f"training.ppo.clip_epsilon must be in (0, 1), got {self.training.ppo.clip_epsilon}"
                 )
-            if self.training.entropy_bonus < 0:
+            if self.training.ppo.entropy_bonus < 0:
                 errors.append(
-                    f"training.entropy_bonus must be >= 0, got {self.training.entropy_bonus}"
+                    f"training.ppo.entropy_bonus must be >= 0, got {self.training.ppo.entropy_bonus}"
                 )
-            if self.training.ppo_epochs <= 0:
+            if self.training.ppo.epochs <= 0:
                 errors.append(
-                    f"training.ppo_epochs must be > 0, got {self.training.ppo_epochs}"
+                    f"training.ppo.epochs must be > 0, got {self.training.ppo.epochs}"
                 )
 
         # DDPG/TD3-specific validation

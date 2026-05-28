@@ -38,11 +38,12 @@ training:
   buffer_size: 50000
   gamma: 0.99
   tau: 0.005
-  exploration_noise_std: 0.4
   loss_function: smooth_l1
   eval_interval: 1000
   temp_eval_interval: 100000
   log_interval: 100
+  td3:
+    exploration_noise_std: 0.4
 evaluation:
   eval_steps: 10000
 
