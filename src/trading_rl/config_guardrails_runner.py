@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from logger import get_logger
 from rich.console import Console
 from rich.markup import escape
-from trading_rl.config_guardrails_checks import Finding, Severity, check_config_guardrails
+from trading_rl.config_guardrails_checks import Severity, check_config_guardrails
 
 if TYPE_CHECKING:
     from trading_rl.config import ExperimentConfig
