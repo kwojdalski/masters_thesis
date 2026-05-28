@@ -381,6 +381,59 @@ class StatisticalTestingConfig:
     confidence_level: float = 0.95
 
 
+def _apply_dict_to_dataclass(target, d: dict) -> None:
+    """Apply matching keys from d to a dataclass instance via setattr."""
+    for key, value in d.items():
+        if hasattr(target, key):
+            setattr(target, key, value)
+
+
+def _migrate_legacy_keys(config_dict: dict) -> dict:
+    """Return a copy of config_dict with legacy key aliases normalised.
+
+    Handles:
+    - "environment" key alias → "env"
+    - training.max_training_steps → training.max_steps
+    - env.price_columns (list) → env.price_column (str)
+    - statistical_testing.compare_to_* / n_random_trials / random_seed → benchmarks.*
+    """
+    import copy
+
+    d = copy.deepcopy(config_dict)
+
+    if "environment" in d and "env" not in d:
+        d["env"] = d.pop("environment")
+
+    train = d.get("training")
+    if isinstance(train, dict) and "max_training_steps" in train:
+        train.setdefault("max_steps", train.pop("max_training_steps"))
+
+    env = d.get("env", {})
+    if isinstance(env, dict) and "price_columns" in env:
+        val = env.pop("price_columns")
+        if isinstance(val, list) and val:
+            env.setdefault("price_column", str(val[0]))
+        elif isinstance(val, str):
+            env.setdefault("price_column", val)
+
+    _LEGACY_ST_KEYS = {
+        "compare_to_buy_and_hold": "buy_and_hold",
+        "compare_to_twap": "twap",
+        "compare_to_vwap": "vwap",
+        "compare_to_random": "random",
+        "n_random_trials": "n_random_trials",
+        "random_seed": "random_seed",
+    }
+    stat = d.get("statistical_testing")
+    if isinstance(stat, dict):
+        bench = d.setdefault("benchmarks", {})
+        for old_key, new_key in _LEGACY_ST_KEYS.items():
+            if old_key in stat:
+                bench.setdefault(new_key, stat.pop(old_key))
+
+    return d
+
+
 @dataclass
 class ExperimentConfig:
     """Full experiment configuration."""
@@ -779,10 +832,9 @@ class ExperimentConfig:
         Returns:
             ExperimentConfig instance
         """
-        # Create default config
+        config_dict = _migrate_legacy_keys(config_dict)
         config = cls()
 
-        # Update with provided values
         if "experiment_name" in config_dict:
             config.experiment_name = config_dict["experiment_name"]
         if "seed" in config_dict and config_dict["seed"] is not None:
@@ -790,113 +842,42 @@ class ExperimentConfig:
         if "device" in config_dict:
             config.device = config_dict["device"]
 
-        # Update data config
+        # Data config — needs datetime coercion for download_since
         if "data" in config_dict:
-            data_dict = config_dict["data"]
-            for key, value in data_dict.items():
-                if hasattr(config.data, key):
-                    # Handle datetime parsing
-                    if key == "download_since" and isinstance(value, str):
-                        setattr(
-                            config.data,
-                            key,
-                            datetime.datetime.fromisoformat(
-                                value.replace("Z", "+00:00")
-                            ),
-                        )
-                    else:
-                        setattr(config.data, key, value)
+            data_dict = dict(config_dict["data"])
+            if "download_since" in data_dict and isinstance(data_dict["download_since"], str):
+                data_dict["download_since"] = datetime.datetime.fromisoformat(
+                    data_dict["download_since"].replace("Z", "+00:00")
+                )
+            _apply_dict_to_dataclass(config.data, data_dict)
 
-        # Update environment config
-        if "environment" in config_dict or "env" in config_dict:
-            env_dict = config_dict.get("environment", config_dict.get("env", {}))
-            for key, value in env_dict.items():
-                if key == "price_columns":
-                    # Backward compatibility: accept legacy list-style key and
-                    # map to canonical single-column env.price_column.
-                    if isinstance(value, list) and value:
-                        config.env.price_column = str(value[0])
-                    elif isinstance(value, str):
-                        config.env.price_column = value
-                    continue
-                if hasattr(config.env, key):
-                    setattr(config.env, key, value)
+        # Simple sub-configs — no special type conversions needed
+        for attr_name, key in [
+            ("env", "env"),
+            ("network", "network"),
+            ("training", "training"),
+            ("evaluation", "evaluation"),
+            ("logging", "logging"),
+            ("tracking", "tracking"),
+            ("explainability", "explainability"),
+            ("statistical_testing", "statistical_testing"),
+            ("profiling", "profiling"),
+        ]:
+            if key in config_dict:
+                _apply_dict_to_dataclass(getattr(config, attr_name), config_dict[key])
 
-        # Update network config
-        if "network" in config_dict:
-            net_dict = config_dict["network"]
-            for key, value in net_dict.items():
-                if hasattr(config.network, key):
-                    setattr(config.network, key, value)
-
-        # Update training config
-        if "training" in config_dict:
-            train_dict = config_dict["training"]
-            for key, value in train_dict.items():
-                if key == "max_training_steps":
-                    config.training.max_steps = value
-                    continue
-                if hasattr(config.training, key):
-                    setattr(config.training, key, value)
-
-        # Update evaluation config
-        if "evaluation" in config_dict:
-            eval_dict = config_dict["evaluation"]
-            for key, value in eval_dict.items():
-                if hasattr(config.evaluation, key):
-                    setattr(config.evaluation, key, value)
-
-        # Update logging config
-        if "logging" in config_dict:
-            log_dict = config_dict["logging"]
-            for key, value in log_dict.items():
-                if hasattr(config.logging, key):
-                    setattr(config.logging, key, value)
-
-        if "tracking" in config_dict:
-            tracking_dict = config_dict["tracking"]
-            for key, value in tracking_dict.items():
-                if hasattr(config.tracking, key):
-                    setattr(config.tracking, key, value)
-
-        if "explainability" in config_dict:
-            exp_dict = config_dict["explainability"]
-            for key, value in exp_dict.items():
-                if hasattr(config.explainability, key):
-                    setattr(config.explainability, key, value)
-
-        # Backward compat: old YAMLs put compare_to_* and random trial params
-        # inside statistical_testing. Migrate them to benchmarks on the fly.
-        _LEGACY_BENCHMARK_KEYS = {
-            "compare_to_buy_and_hold": "buy_and_hold",
-            "compare_to_twap": "twap",
-            "compare_to_vwap": "vwap",
-            "compare_to_random": "random",
-            "n_random_trials": "n_random_trials",
-            "random_seed": "random_seed",
-        }
-        bench_overrides: dict = {}
-        if "statistical_testing" in config_dict:
-            stat_dict = config_dict["statistical_testing"]
-            for old_key, new_key in _LEGACY_BENCHMARK_KEYS.items():
-                if old_key in stat_dict:
-                    bench_overrides[new_key] = stat_dict[old_key]
-            for key, value in stat_dict.items():
-                if key not in _LEGACY_BENCHMARK_KEYS and hasattr(config.statistical_testing, key):
-                    setattr(config.statistical_testing, key, value)
-
-        # Map old single-boolean keys to BenchmarkName for backward compat.
+        # Benchmarks — enabled list needs BenchmarkName enum conversion;
+        # individual bool keys map to BenchmarkName values for backward compat.
         _BOOL_TO_BENCHMARK = {
-            "buy_and_hold":   BenchmarkName.BUY_AND_HOLD,
-            "twap":           BenchmarkName.TWAP,
-            "vwap":           BenchmarkName.VWAP,
-            "random":         BenchmarkName.RANDOM_ACTIONS,
+            "buy_and_hold": BenchmarkName.BUY_AND_HOLD,
+            "twap":         BenchmarkName.TWAP,
+            "vwap":         BenchmarkName.VWAP,
+            "random":       BenchmarkName.RANDOM_ACTIONS,
         }
-        bench_dict = {**bench_overrides, **config_dict.get("benchmarks", {})}
+        bench_dict = config_dict.get("benchmarks", {})
         if "enabled" in bench_dict:
             config.benchmarks.enabled = [BenchmarkName(v) for v in bench_dict["enabled"]]
         else:
-            # Backward compat: reconstruct enabled list from individual booleans.
             enabled: set[BenchmarkName] = set(config.benchmarks.enabled)
             for old_key, bname in _BOOL_TO_BENCHMARK.items():
                 if old_key in bench_dict:
@@ -909,11 +890,11 @@ class ExperimentConfig:
             if key not in _BOOL_TO_BENCHMARK and key != "enabled" and hasattr(config.benchmarks, key):
                 setattr(config.benchmarks, key, value)
 
+        # Metrics — enabled list needs MetricName enum conversion
         if "metrics" in config_dict:
             metrics_dict = config_dict["metrics"]
             if "enabled" in metrics_dict:
-                raw = metrics_dict["enabled"]
-                config.metrics.enabled = [MetricName(v) for v in raw]
+                config.metrics.enabled = [MetricName(v) for v in metrics_dict["enabled"]]
 
         return config
 
