@@ -26,7 +26,6 @@ from trading_rl.evaluation.metrics import MetricReport, build_metric_report
 from trading_rl.evaluation.plots import (
     build_equity_plot_data,
     build_rollout_plot_data,
-    create_equity_curve_plot,
     plot_actions,
     plot_equity_curve,
     plot_rewards,
