@@ -41,6 +41,7 @@ def _collect_mlflow_meta() -> dict:
             "experiment_name": experiment.name if experiment else None,
         }
     except Exception:
+        logger.debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata", exc_info=True)
         return {}
 
 
