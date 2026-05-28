@@ -66,6 +66,7 @@ class PeekCommand(BaseCommand):
             export_dir.mkdir(parents=True, exist_ok=True)
 
         self.console.print(Panel(Text(str(config_path), style="bold cyan"), title="scenario", expand=False))
+        self._print_scenario_status(config)
         splits_df = self._print_splits(dataset)
         feat_df = self._print_feature_stats(dataset, config, params.n_features, effective_skip, detected_warmup, params.skip_rows)
         ret_df = self._print_log_return_stats(dataset, config, effective_skip)
@@ -100,6 +101,135 @@ class PeekCommand(BaseCommand):
                 corr_df.to_csv(_corr_path, index=False)
                 write_asset_meta(_corr_path, generator="cli/commands/peek_command.py")
             self.console.print(f"\n[green]Exported to {export_dir}/[/green]")
+
+    # ------------------------------------------------------------------
+
+    def _print_scenario_status(self, config) -> None:
+        """Print MLflow run status, latest eval metrics, and checkpoint currency."""
+        import os
+        import re
+        from datetime import datetime, timezone
+
+        experiment_name: str = getattr(config, "experiment_name", "") or ""
+        if not experiment_name:
+            return
+
+        # ── 1. MLflow run ──────────────────────────────────────────────
+        run = None
+        try:
+            import mlflow
+            tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
+            mlflow.set_tracking_uri(tracking_uri)
+            client = mlflow.tracking.MlflowClient()
+            exp = client.get_experiment_by_name(experiment_name)
+            if exp:
+                runs = client.search_runs(
+                    exp.experiment_id,
+                    order_by=["start_time DESC"],
+                    max_results=1,
+                )
+                run = runs[0] if runs else None
+        except Exception:
+            pass
+
+        # ── 2. Checkpoints ─────────────────────────────────────────────
+        checkpoint_info: dict | None = None
+        log_dir = Path("logs") / experiment_name
+        if log_dir.exists():
+            _step_re = re.compile(r"_checkpoint_step_(\d+)\.pt$")
+            best_step, best_path, best_mtime = -1, None, 0.0
+            for pt in log_dir.rglob("*_checkpoint*.pt"):
+                m = _step_re.search(pt.name)
+                step = int(m.group(1)) if m else -1
+                mtime = pt.stat().st_mtime
+                if step > best_step or (step == best_step and mtime > best_mtime):
+                    best_step, best_path, best_mtime = step, pt, mtime
+            if best_path is not None:
+                age_s = datetime.now(timezone.utc).timestamp() - best_mtime
+                if age_s < 3600:
+                    age_str = f"{age_s / 60:.0f} min ago"
+                elif age_s < 86400:
+                    age_str = f"{age_s / 3600:.1f} h ago"
+                else:
+                    age_str = f"{age_s / 86400:.1f} d ago"
+                checkpoint_info = {
+                    "step": best_step,
+                    "path": str(best_path),
+                    "age": age_str,
+                }
+
+        if run is None and checkpoint_info is None:
+            return  # nothing to show — scenario has never been run
+
+        tbl = Table(title="Scenario status", show_header=False, box=None, padding=(0, 2))
+        tbl.add_column("key", style="dim", no_wrap=True)
+        tbl.add_column("value", no_wrap=False)
+
+        # ── run info ───────────────────────────────────────────────────
+        if run is not None:
+            status = run.info.status  # RUNNING / FINISHED / FAILED / KILLED
+            status_color = {"FINISHED": "green", "RUNNING": "cyan", "FAILED": "red"}.get(status, "yellow")
+            tbl.add_row("run status", f"[{status_color}]{status}[/{status_color}]")
+
+            start_ms = run.info.start_time
+            end_ms = run.info.end_time
+            if start_ms:
+                started = datetime.fromtimestamp(start_ms / 1000).strftime("%Y-%m-%d %H:%M")
+                tbl.add_row("started", started)
+            if end_ms and start_ms:
+                elapsed_s = (end_ms - start_ms) / 1000
+                h, rem = divmod(int(elapsed_s), 3600)
+                m, s = divmod(rem, 60)
+                elapsed_str = f"{h}h {m}m {s}s" if h else f"{m}m {s}s"
+                tbl.add_row("duration", elapsed_str)
+            elif start_ms and status == "RUNNING":
+                elapsed_s = datetime.now(timezone.utc).timestamp() - start_ms / 1000
+                h, rem = divmod(int(elapsed_s), 3600)
+                m_val, s = divmod(rem, 60)
+                tbl.add_row("elapsed", f"[cyan]{h}h {m_val}m {s}s (running)[/cyan]" if h else f"[cyan]{m_val}m {s}s (running)[/cyan]")
+
+            metrics = run.data.metrics
+            steps = metrics.get("total_steps_trained")
+            if steps is not None:
+                tbl.add_row("steps trained", f"{int(steps):,}")
+            actor_loss = metrics.get("actor_loss")
+            if actor_loss is not None:
+                tbl.add_row("actor loss", f"{actor_loss:.5f}")
+            ep_reward = metrics.get("episode_reward")
+            if ep_reward is not None:
+                tbl.add_row("episode reward", f"{ep_reward:.6f}")
+
+            # ── eval metrics ───────────────────────────────────────────
+            EVAL_METRICS = [
+                ("total_return",  "total return",  ".4%"),
+                ("sharpe_ratio",  "Sharpe",        ".3f"),
+                ("max_drawdown",  "max drawdown",  ".4%"),
+                ("profit_factor", "profit factor", ".3f"),
+            ]
+            for split in ("val", "test", "train"):
+                rows_for_split = []
+                for key, label, fmt in EVAL_METRICS:
+                    v = metrics.get(f"eval_{split}_{key}")
+                    if v is not None:
+                        try:
+                            rows_for_split.append(f"{label}: {v:{fmt}}")
+                        except (ValueError, TypeError):
+                            rows_for_split.append(f"{label}: {v}")
+                if rows_for_split:
+                    tbl.add_row(f"eval \\[{split}]", "  ".join(rows_for_split))
+
+        # ── checkpoint ─────────────────────────────────────────────────
+        if checkpoint_info is not None:
+            step_str = f"{checkpoint_info['step']:,}" if checkpoint_info["step"] >= 0 else "?"
+            tbl.add_row(
+                "checkpoint",
+                f"step {step_str}  ({checkpoint_info['age']})  [dim]{checkpoint_info['path']}[/dim]",
+            )
+        elif run is not None:
+            tbl.add_row("checkpoint", "[dim]none found[/dim]")
+
+        self.console.print(tbl)
+        self.console.print()
 
     # ------------------------------------------------------------------
 
