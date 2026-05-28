@@ -106,17 +106,25 @@ configuration without manual updates.
 #| warning: false
 
 import pandas as pd
-from IPython.display import HTML
-from thesis_mlflow_results import build_experiment_specification_rows
+from IPython.display import HTML, display
+from thesis_mlflow_results import (
+    audit_plots_enabled,
+    build_experiment_specification_rows,
+    load_experiment_snapshot,
+    show_table_meta,
+)
 from thesis_tables import wrap_html
 
 _EXPERIMENT = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+_audit = audit_plots_enabled()
+_finished = load_experiment_snapshot(_EXPERIMENT).latest_finished
 
 rows = build_experiment_specification_rows(_EXPERIMENT)
 if rows:
     spec_df = pd.DataFrame(rows, columns=["Component", "Specification"])
     spec_df["Specification"] = spec_df["Specification"].apply(wrap_html)
-    HTML(spec_df.to_html(index=False, escape=False))
+    display(HTML(spec_df.to_html(index=False, escape=False)))
+    show_table_meta(_finished, audit=_audit)
 else:
     print("Experiment hyperparameters not found — run: uv run python src/cli.py export-eval "
           f"--experiment {_EXPERIMENT}")

@@ -63,6 +63,19 @@ of outcomes.
 The table below reports test-split metrics for each algorithm, all trained on
 identical data, features, reward function, and evaluation protocol.
 
+```{python}
+#| label: results_setup
+#| echo: false
+#| warning: false
+
+from thesis_mlflow_results import audit_plots_enabled, load_experiment_snapshot, show_table_meta
+
+_H1_EXPERIMENT = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+_h1_snapshot = load_experiment_snapshot(_H1_EXPERIMENT)
+finished = _h1_snapshot.latest_finished
+_audit = audit_plots_enabled()
+```
+
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
 \begin{landscape}
@@ -114,6 +127,7 @@ if h1_df.iloc[:, 1:].isin(["—"]).all().all():
     print("No H1 results available. Run: bash scripts/run_h1_experiments.sh")
 else:
     display_df(h1_df)
+    show_table_meta(finished, audit=_audit)
 ```
 
 ::: {.content-visible when-format="pdf"}
