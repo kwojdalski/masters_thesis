@@ -869,24 +869,28 @@ def validate_guardrails(
         console.print("[green]Guardrails passed — no issues found[/green]")
         return
 
+    from rich.markup import escape as _escape
+
     fatals = [f for f in findings if f.severity == Severity.FATAL]
     warns = [f for f in findings if f.severity == Severity.WARN]
+    scenario_name = getattr(config, "experiment_name", None) or ""
+    scenario_tag = f"  [dim]{_escape(f'[{scenario_name}]')}[/dim]" if scenario_name else ""
 
     if fatals:
-        console.print(f"\n[bold red]CONFIG GUARDRAIL — {len(fatals)} FATAL ERROR(S)[/bold red]")
+        console.print(f"\n[bold red]CONFIG GUARDRAIL — {len(fatals)} FATAL ERROR(S)[/bold red]{scenario_tag}")
         console.print("=" * 50)
         for i, f in enumerate(fatals, 1):
-            console.print(f"\n[{i}] [yellow]{f.parameter}[/yellow]")
-            console.print(f"    Problem:    {f.message}")
-            console.print(f"    Fix:        [cyan]{f.suggestion}[/cyan]")
+            console.print(f"\n[bold cyan][{i}][/bold cyan] [yellow]{_escape(f.parameter)}[/yellow]")
+            console.print(f"    Problem:    {_escape(f.message)}")
+            console.print(f"    Fix:        [cyan]{_escape(f.suggestion)}[/cyan]")
 
     if warns:
-        console.print(f"\n[bold yellow]CONFIG GUARDRAIL — {len(warns)} WARNING(S)[/bold yellow]")
+        console.print(f"\n[bold yellow]CONFIG GUARDRAIL — {len(warns)} WARNING(S)[/bold yellow]{scenario_tag}")
         console.print("=" * 50)
         for i, f in enumerate(warns, 1):
-            console.print(f"\n[{i}] [yellow]{f.parameter}[/yellow]")
-            console.print(f"    Problem:    {f.message}")
-            console.print(f"    Suggestion: [cyan]{f.suggestion}[/cyan]")
+            console.print(f"\n[bold cyan][{i}][/bold cyan] [yellow]{_escape(f.parameter)}[/yellow]")
+            console.print(f"    Problem:    {_escape(f.message)}")
+            console.print(f"    Suggestion: [cyan]{_escape(f.suggestion)}[/cyan]")
 
     if fatals:
         raise typer.Exit(code=1)

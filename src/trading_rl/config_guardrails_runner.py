@@ -10,12 +10,17 @@ import sys
 from typing import TYPE_CHECKING
 
 from logger import get_logger
+from rich.console import Console
+from rich.markup import escape
 from trading_rl.config_guardrails_checks import Finding, Severity, check_config_guardrails
 
 if TYPE_CHECKING:
     from trading_rl.config import ExperimentConfig
 
 logger = get_logger(__name__)
+
+_console = Console()
+_err_console = Console(stderr=True)
 
 
 def run_guardrail_check(config: ExperimentConfig) -> None:
@@ -31,6 +36,8 @@ def run_guardrail_check(config: ExperimentConfig) -> None:
         return
 
     skip_prompts = getattr(config.training, "skip_guardrail_prompts", False)
+    scenario_name = getattr(config, "experiment_name", None) or ""
+    scenario_tag = f"  [dim]{escape(f'[{scenario_name}]')}[/dim]" if scenario_name else ""
 
     fatals = [f for f in findings if f.severity == Severity.FATAL]
     warns  = [f for f in findings if f.severity == Severity.WARN]
@@ -43,29 +50,29 @@ def run_guardrail_check(config: ExperimentConfig) -> None:
         )
 
     if fatals:
-        lines = ["\nCONFIG GUARDRAIL — FATAL ERRORS\n" + "=" * 50]
+        _err_console.print(f"\n[bold red]CONFIG GUARDRAIL — FATAL ERRORS[/bold red]{scenario_tag}")
+        _err_console.print("=" * 50)
         for i, f in enumerate(fatals, 1):
-            lines.append(f"\n[{i}] {f.parameter}")
-            lines.append(f"    Problem:    {f.message}")
-            lines.append(f"    Fix:        {f.suggestion}")
-        lines.append("\nTraining cannot start with these settings.")
-        print("\n".join(lines), file=sys.stderr)
+            _err_console.print(f"\n[bold cyan][{i}][/bold cyan] [yellow]{escape(f.parameter)}[/yellow]")
+            _err_console.print(f"    Problem:    {escape(f.message)}")
+            _err_console.print(f"    Fix:        [cyan]{escape(f.suggestion)}[/cyan]")
+        _err_console.print("\nTraining cannot start with these settings.")
         raise ValueError(
             f"Config guardrail check failed with {len(fatals)} fatal error(s). "
             "See output above for details."
         )
 
     if warns:
-        lines = ["\nCONFIG GUARDRAIL — WARNINGS\n" + "=" * 50]
+        _console.print(f"\n[bold yellow]CONFIG GUARDRAIL — WARNINGS[/bold yellow]{scenario_tag}")
+        _console.print("=" * 50)
         for i, f in enumerate(warns, 1):
-            lines.append(f"\n[{i}] {f.parameter}")
-            lines.append(f"    Problem:    {f.message}")
-            lines.append(f"    Suggestion: {f.suggestion}")
-        print("\n".join(lines))
+            _console.print(f"\n[bold cyan][{i}][/bold cyan] [yellow]{escape(f.parameter)}[/yellow]")
+            _console.print(f"    Problem:    {escape(f.message)}")
+            _console.print(f"    Suggestion: [cyan]{escape(f.suggestion)}[/cyan]")
 
         if skip_prompts:
-            print(
-                "\n[guardrail] training.skip_guardrail_prompts=True — proceeding without prompt.\n"
+            _console.print(
+                "\n[dim][guardrail] training.skip_guardrail_prompts=True — proceeding without prompt.[/dim]\n"
             )
             return
 
@@ -79,7 +86,7 @@ def run_guardrail_check(config: ExperimentConfig) -> None:
             )
             return
 
-        print("\nProceed anyway? [y/N] ", end="", flush=True)
+        _console.print("\nProceed anyway? [y/N] ", end="")
         try:
             answer = input().strip().lower()
         except (EOFError, OSError):

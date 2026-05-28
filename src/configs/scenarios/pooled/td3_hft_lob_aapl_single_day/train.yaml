@@ -1,3 +1,4 @@
+seed: 42
 data:
   data_paths:
   - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet

@@ -1,3 +1,4 @@
+seed: 42
 data:
   data_path: ./data/raw/synthetic/sine_wave_ppo_no_trend.parquet
   data_config: src/configs/data/sine_wave_standard.yaml
