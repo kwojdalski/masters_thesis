@@ -569,10 +569,6 @@ class ExperimentConfig:
                 "Configuration validation failed:\n  - " + "\n  - ".join(errors)
             )
 
-        # Create directories if they don't exist
-        Path(self.logging.log_dir).mkdir(parents=True, exist_ok=True)
-        Path(self.logging.tensorboard_dir).mkdir(parents=True, exist_ok=True)
-
     @classmethod
     def from_yaml(
         cls, yaml_path: str | Path, overrides: list[str] | None = None

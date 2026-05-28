@@ -19,13 +19,16 @@ from logger import setup_logging as configure_root_logging
 from trading_rl.profiler import get_profiler
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
-from trading_rl.constants import Algorithm
 from trading_rl.data_utils import PreparedDataset, build_prepared_dataset
 from trading_rl.envs import AlgorithmicEnvironmentBuilder
 from trading_rl.envs.trading_envs import EnvBackend
-from trading_rl.trainers.ppo import PPOTrainerContinuous
-from trading_rl.trainers.random_trainer import RandomTrainer
-from trading_rl.training import DDPGTrainer, PPOTrainer, TD3Trainer
+import trading_rl.trainers.ddpg  # noqa: F401 — registers DDPGTrainer
+import trading_rl.trainers.ppo  # noqa: F401 — registers PPOTrainer, PPOTrainerContinuous
+import trading_rl.trainers.random_trainer  # noqa: F401 — registers RandomTrainer
+import trading_rl.trainers.recurrent_ppo  # noqa: F401 — registers RecurrentPPOTrainer
+import trading_rl.trainers.sac  # noqa: F401 — registers SACTrainer
+import trading_rl.trainers.td3  # noqa: F401 — registers TD3Trainer
+from trading_rl.trainers.registry import TrainerRegistry
 
 
 @dataclass(frozen=True)
@@ -56,6 +59,7 @@ def setup_logging(config: ExperimentConfig) -> logging.Logger:
     """Setup logging configuration."""
     log_level = os.getenv("LOG_LEVEL") or config.logging.log_level
     Path(config.logging.log_dir).mkdir(parents=True, exist_ok=True)
+    Path(config.logging.tensorboard_dir).mkdir(parents=True, exist_ok=True)
     log_file_path = (
         str(Path(config.logging.log_dir) / config.logging.log_file)
         if config.logging.log_to_file
@@ -105,17 +109,7 @@ def set_seed(seed: int | None) -> int:
 
 def _select_trainer_class(algorithm: str, backend: str):
     is_continuous_env = backend in {EnvBackend.TRADINGENV, EnvBackend.GYM_TRADING_CONTINUOUS}
-    algorithm_upper = algorithm.upper()
-
-    if algorithm_upper == Algorithm.PPO:
-        return PPOTrainerContinuous if is_continuous_env else PPOTrainer
-    if algorithm_upper == Algorithm.TD3:
-        return TD3Trainer
-    if algorithm_upper == Algorithm.DDPG:
-        return DDPGTrainer
-    if algorithm_upper == Algorithm.RANDOM:
-        return RandomTrainer
-    raise ValueError(f"Unsupported algorithm: {algorithm}")
+    return TrainerRegistry.get(algorithm, is_continuous=is_continuous_env)
 
 
 def _build_train_env(
