@@ -178,7 +178,7 @@ class DDPGTrainer(BaseTrainer):
                     self._record_skipped_batch("tensor shape error", exc=e)
                     continue
                 else:
-                    raise e
+                    raise
 
             # Optimize value network
             self.optimizer_value.zero_grad()
