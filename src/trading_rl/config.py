@@ -388,51 +388,6 @@ def _apply_dict_to_dataclass(target, d: dict) -> None:
             setattr(target, key, value)
 
 
-def _migrate_legacy_keys(config_dict: dict) -> dict:
-    """Return a copy of config_dict with legacy key aliases normalised.
-
-    Handles:
-    - "environment" key alias → "env"
-    - training.max_training_steps → training.max_steps
-    - env.price_columns (list) → env.price_column (str)
-    - statistical_testing.compare_to_* / n_random_trials / random_seed → benchmarks.*
-    """
-    import copy
-
-    d = copy.deepcopy(config_dict)
-
-    if "environment" in d and "env" not in d:
-        d["env"] = d.pop("environment")
-
-    train = d.get("training")
-    if isinstance(train, dict) and "max_training_steps" in train:
-        train.setdefault("max_steps", train.pop("max_training_steps"))
-
-    env = d.get("env", {})
-    if isinstance(env, dict) and "price_columns" in env:
-        val = env.pop("price_columns")
-        if isinstance(val, list) and val:
-            env.setdefault("price_column", str(val[0]))
-        elif isinstance(val, str):
-            env.setdefault("price_column", val)
-
-    _LEGACY_ST_KEYS = {
-        "compare_to_buy_and_hold": "buy_and_hold",
-        "compare_to_twap": "twap",
-        "compare_to_vwap": "vwap",
-        "compare_to_random": "random",
-        "n_random_trials": "n_random_trials",
-        "random_seed": "random_seed",
-    }
-    stat = d.get("statistical_testing")
-    if isinstance(stat, dict):
-        bench = d.setdefault("benchmarks", {})
-        for old_key, new_key in _LEGACY_ST_KEYS.items():
-            if old_key in stat:
-                bench.setdefault(new_key, stat.pop(old_key))
-
-    return d
-
 
 @dataclass
 class ExperimentConfig:
@@ -832,7 +787,6 @@ class ExperimentConfig:
         Returns:
             ExperimentConfig instance
         """
-        config_dict = _migrate_legacy_keys(config_dict)
         config = cls()
 
         if "experiment_name" in config_dict:
