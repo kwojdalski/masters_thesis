@@ -28,8 +28,9 @@ def _end_mlflow_run():
 
 @pytest.fixture(autouse=True)
 def _restore_logging():
-    """Restore all logger levels after each test to prevent pollution across tests."""
+    """Restore logging state and LOG_LEVEL env var after each test."""
     import logging
+    import os
     root = logging.getLogger()
     saved_root_level = root.level
     saved_levels = {
@@ -37,10 +38,15 @@ def _restore_logging():
         for name, lgr in logging.Logger.manager.loggerDict.items()
         if isinstance(lgr, logging.Logger)
     }
+    saved_log_level_env = os.environ.get("LOG_LEVEL")
     yield
     root.setLevel(saved_root_level)
     for name, level in saved_levels.items():
         logging.getLogger(name).setLevel(level)
+    if saved_log_level_env is None:
+        os.environ.pop("LOG_LEVEL", None)
+    else:
+        os.environ["LOG_LEVEL"] = saved_log_level_env
 
 
 @pytest.mark.slow

@@ -26,6 +26,29 @@ def _end_mlflow_run():
         pass
 
 
+@pytest.fixture(autouse=True)
+def _restore_logging():
+    """Restore logging state and LOG_LEVEL env var after each test."""
+    import logging
+    import os
+    root = logging.getLogger()
+    saved_root_level = root.level
+    saved_levels = {
+        name: lgr.level
+        for name, lgr in logging.Logger.manager.loggerDict.items()
+        if isinstance(lgr, logging.Logger)
+    }
+    saved_log_level_env = os.environ.get("LOG_LEVEL")
+    yield
+    root.setLevel(saved_root_level)
+    for name, level in saved_levels.items():
+        logging.getLogger(name).setLevel(level)
+    if saved_log_level_env is None:
+        os.environ.pop("LOG_LEVEL", None)
+    else:
+        os.environ["LOG_LEVEL"] = saved_log_level_env
+
+
 # @pytest.mark.skip(reason="Long running training test for manual debugging")
 def test_sine_wave_ppo_training_debug():
     """
