@@ -466,6 +466,187 @@ def create_td3_qvalue_network(
     return value_net
 
 
+def create_sac_actor(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+    spec: Any | None = None,
+) -> ProbabilisticActor:
+    """Create a stochastic TanhNormal actor for SAC (continuous actions).
+
+    Identical in structure to the continuous PPO actor — a TanhNormal
+    policy outputs a sampled action together with its log-probability, which
+    SACLoss requires for the entropy-regularised objective.
+    """
+    return create_continuous_ppo_actor(n_obs, n_act, hidden_dims=hidden_dims, spec=spec)
+
+
+def create_sac_qvalue_network(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+) -> ValueOperator:
+    """Create a Q-value network for SAC taking (observation, action) as input.
+
+    Identical in structure to the TD3 Q-value network — SAC also uses double
+    Q-learning to reduce overestimation bias.
+    """
+    return create_td3_qvalue_network(n_obs, n_act, hidden_dims=hidden_dims)
+
+
+class _GRUActorNet(nn.Module):
+    """GRU-based network backbone for recurrent stochastic actor.
+
+    Processes observation sequences in temporal order and outputs the (loc, scale)
+    parameters of a TanhNormal distribution for each time step.
+    """
+
+    def __init__(
+        self,
+        n_obs: int,
+        n_act: int,
+        gru_hidden_dim: int,
+        num_layers: int,
+    ) -> None:
+        super().__init__()
+        self.gru = nn.GRU(n_obs, gru_hidden_dim, num_layers, batch_first=True)
+        self.head = nn.Linear(gru_hidden_dim, n_act * 2)
+        self._extractor = NormalParamExtractor()
+
+        # Small output-layer init — keeps the initial policy near-neutral.
+        nn.init.uniform_(self.head.weight, -3e-3, 3e-3)
+        nn.init.zeros_(self.head.bias)
+
+    def forward(self, obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        # obs arrives as (n_obs,), (T, n_obs), or (B, T, n_obs) from TorchRL.
+        was_1d = obs.dim() == 1
+        was_2d = obs.dim() == 2
+        if was_1d:
+            obs = obs.unsqueeze(0).unsqueeze(0)   # → (1, 1, n_obs)
+        elif was_2d:
+            obs = obs.unsqueeze(0)                 # → (1, T, n_obs)
+        gru_out, _ = self.gru(obs)                 # (B, T, gru_hidden_dim)
+        if was_1d:
+            gru_out = gru_out.squeeze(0).squeeze(0)  # → (gru_hidden_dim,)
+        elif was_2d:
+            gru_out = gru_out.squeeze(0)             # → (T, gru_hidden_dim)
+        return self._extractor(self.head(gru_out))   # (loc, scale) pair
+
+
+class _GRUValueNet(nn.Module):
+    """GRU-based network backbone for recurrent state-value critic.
+
+    Processes observation sequences in temporal order and outputs a scalar
+    V(s) estimate for each time step.
+    """
+
+    def __init__(
+        self,
+        n_obs: int,
+        gru_hidden_dim: int,
+        num_layers: int,
+    ) -> None:
+        super().__init__()
+        self.gru = nn.GRU(n_obs, gru_hidden_dim, num_layers, batch_first=True)
+        self.head = nn.Linear(gru_hidden_dim, 1)
+
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        was_1d = obs.dim() == 1
+        was_2d = obs.dim() == 2
+        if was_1d:
+            obs = obs.unsqueeze(0).unsqueeze(0)
+        elif was_2d:
+            obs = obs.unsqueeze(0)
+        gru_out, _ = self.gru(obs)
+        if was_1d:
+            gru_out = gru_out.squeeze(0).squeeze(0)
+        elif was_2d:
+            gru_out = gru_out.squeeze(0)
+        return self.head(gru_out)
+
+
+def create_recurrent_ppo_actor(
+    n_obs: int,
+    n_act: int,
+    hidden_dims: list[int] | None = None,
+    spec: Any | None = None,
+    gru_num_layers: int = 1,
+) -> ProbabilisticActor:
+    """Create a GRU-backed stochastic actor for RecurrentPPO.
+
+    Args:
+        n_obs: Flattened observation dimension.
+        n_act: Action dimension.
+        hidden_dims: Network width per layer; hidden_dims[0] is used as the GRU
+            hidden size. Defaults to [64, 32] (GRU hidden = 64).
+        spec: Action spec from the environment.
+        gru_num_layers: Number of stacked GRU layers.
+
+    Returns:
+        ProbabilisticActor with TanhNormal distribution and return_log_prob=True.
+    """
+    logger.info("build recurrent_ppo actor")
+
+    if hidden_dims is None:
+        hidden_dims = [64, 32]
+    gru_hidden_dim = hidden_dims[0]
+
+    net = _GRUActorNet(n_obs, n_act, gru_hidden_dim, gru_num_layers)
+    module = TensorDictModule(
+        net,
+        in_keys=["observation"],
+        out_keys=["loc", "scale"],
+    )
+    actor = ProbabilisticActor(
+        module=module,
+        distribution_class=TanhNormal,
+        distribution_kwargs={},
+        in_keys=["loc", "scale"],
+        out_keys=["action"],
+        spec=spec,
+        safe=False,
+        default_interaction_type=InteractionType.RANDOM,
+        return_log_prob=True,
+    )
+    logger.info(
+        "build recurrent_ppo actor complete gru_hidden_dim=%d gru_num_layers=%d",
+        gru_hidden_dim, gru_num_layers,
+    )
+    return actor
+
+
+def create_recurrent_ppo_value_network(
+    n_obs: int,
+    hidden_dims: list[int] | None = None,
+    gru_num_layers: int = 1,
+) -> ValueOperator:
+    """Create a GRU-backed state-value critic for RecurrentPPO.
+
+    Args:
+        n_obs: Flattened observation dimension.
+        hidden_dims: hidden_dims[0] is the GRU hidden size. Defaults to [64, 32, 16].
+        gru_num_layers: Number of stacked GRU layers.
+
+    Returns:
+        ValueOperator estimating V(s) for each step in the episode rollout.
+    """
+    logger.info("build recurrent_ppo value network")
+
+    if hidden_dims is None:
+        hidden_dims = [64, 32, 16]
+    gru_hidden_dim = hidden_dims[0]
+
+    value_net = ValueOperator(
+        _GRUValueNet(n_obs, gru_hidden_dim, gru_num_layers),
+        in_keys=["observation"],
+        out_keys=["state_value"],
+    )
+    logger.info(
+        "build recurrent_ppo value network complete gru_hidden_dim=%d gru_num_layers=%d",
+        gru_hidden_dim, gru_num_layers,
+    )
+    return value_net
+
 
 def count_parameters(model: nn.Module) -> int:
     """Count the number of trainable parameters in a model.
