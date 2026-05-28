@@ -458,10 +458,11 @@ class TD3Trainer(BaseTrainer):
             n_eval = self.eval_config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.eval_config.eval_steps
             if self._eval_env is None:
                 logger.warning(
-                    "td3 _evaluate: no dedicated eval env set; using training env "
-                    "which may corrupt SyncDataCollector state"
+                    "td3 _evaluate: no dedicated eval env set; skipping periodic eval "
+                    "to avoid corrupting SyncDataCollector state"
                 )
-            eval_rollout = (self._eval_env or self.env).rollout(n_eval, self.actor)
+                return
+            eval_rollout = self._eval_env.rollout(n_eval, self.actor)
 
             mean_reward = eval_rollout["next", "reward"].mean().item()
             sum_reward = eval_rollout["next", "reward"].sum().item()

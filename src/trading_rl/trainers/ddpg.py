@@ -290,10 +290,11 @@ class DDPGTrainer(BaseTrainer):
             n_eval = self.eval_config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.eval_config.eval_steps
             if self._eval_env is None:
                 logger.warning(
-                    "ddpg _evaluate: no dedicated eval env set; using training env "
-                    "which may corrupt SyncDataCollector state"
+                    "ddpg _evaluate: no dedicated eval env set; skipping periodic eval "
+                    "to avoid corrupting SyncDataCollector state"
                 )
-            eval_rollout = (self._eval_env or self.env).rollout(n_eval, self.actor)
+                return
+            eval_rollout = self._eval_env.rollout(n_eval, self.actor)
 
             # Log evaluation metrics
             mean_reward = eval_rollout["next", "reward"].mean().item()
