@@ -195,7 +195,10 @@ def _configure_periodic_hooks(
                 "periodic eval: split '%s' not available or too small, skipping", split_name
             )
             continue
-        ctx = build_evaluation_context_for_split(split=split_name, df=df, config=config)
+        # Slice df to temp_eval_max_steps rows so the env is small and fast to
+        # build; the full split is reserved for final evaluation.
+        temp_df = df.iloc[:temp_eval_max_steps] if len(df) > temp_eval_max_steps else df
+        ctx = build_evaluation_context_for_split(split=split_name, df=temp_df, config=config)
         split_contexts.append(
             SplitEvalContext(
                 split=split_name,

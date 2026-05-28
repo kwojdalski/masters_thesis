@@ -160,7 +160,7 @@ if _plot_data.get("rewards") is not None:
     )
     show_plot(_p, _plot_data, frame="rewards", fig_label="fig-eval-rewards",
               fig_cap="Per-step reward signal received by the TD3 agent during the held-out evaluation rollout.",
-              audit=_audit)
+              audit=_audit, render_base_size=11)
 else:
     print(_no_data_msg)
 ```
@@ -185,7 +185,7 @@ if _plot_data.get("actions") is not None:
     )
     show_plot(_p, _plot_data, frame="actions", fig_label="fig-eval-positions",
               fig_cap="Portfolio allocation (position) taken by the TD3 agent at each step of the held-out evaluation rollout.",
-              audit=_audit)
+              audit=_audit, render_base_size=11)
 else:
     print(_no_data_msg)
 ```

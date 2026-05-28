@@ -1270,6 +1270,7 @@ def show_plot(
     audit: bool = False,
     fig_label: str | None = None,
     fig_cap: str | None = None,
+    render_base_size: int | None = None,
 ) -> None:
     """Draw a plotnine plot and optionally print asset provenance.
 
@@ -1308,15 +1309,28 @@ def show_plot(
                    figure-env mode; requires ``#| output: asis`` on the chunk.
         fig_cap: explicit figure caption for the LaTeX figure environment.
                  Defaults to the plot's labs(caption=...) if omitted.
+        render_base_size: if set, overrides the theme base font size just before
+                 drawing — does not affect MLflow artifacts saved during training.
     """
     import matplotlib.pyplot as plt
     from IPython.display import Markdown, display
-    from plotnine import theme
+    from plotnine import element_text, theme
 
     if width is not None or height is not None:
         current = plot.theme.themeables.get("figure_size")
         cur_w, cur_h = current.properties["value"] if current else (8, 5)
         plot = plot + theme(figure_size=(width or cur_w, height or cur_h))
+
+    if render_base_size is not None:
+        plot = plot + theme(
+            text=element_text(size=render_base_size),
+            axis_title=element_text(size=render_base_size),
+            axis_text=element_text(size=render_base_size - 1),
+            legend_title=element_text(size=render_base_size - 1),
+            legend_text=element_text(size=render_base_size - 1),
+            plot_title=element_text(size=render_base_size + 1),
+            plot_caption=element_text(size=round(render_base_size * 0.65)),
+        )
 
     # Extract and strip text labels from the plot.
     # labels_view is a dataclass — use attribute access, not dict methods.
