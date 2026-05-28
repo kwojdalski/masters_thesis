@@ -68,6 +68,8 @@ class Algorithm(StrEnum):
     PPO = "PPO"
     TD3 = "TD3"
     DDPG = "DDPG"
+    SAC = "SAC"
+    RECURRENT_PPO = "RECURRENT_PPO"
     RANDOM = "RANDOM"
 
 
