@@ -97,8 +97,9 @@ on the raw per-step series.
 #| warning: false
 
 from trading_rl.evaluation.plots import plot_equity_curve, plot_rewards, plot_actions
-from thesis_mlflow_results import find_evaluation_plot_data, show_plot
+from thesis_mlflow_results import audit_plots_enabled, find_evaluation_plot_data, show_plot
 
+_audit = audit_plots_enabled()
 _plot_data = {}
 if finished is not None:
     _plot_data = find_evaluation_plot_data(finished.get("artifact_uri"))
@@ -130,7 +131,8 @@ if _plot_data.get("equity") is not None:
         n_total_symbols=_plot_data.get("n_total_symbols"),
     )
     show_plot(_p, _plot_data, frame="equity", fig_label="fig-eval-equity",
-              fig_cap="Portfolio value over the held-out evaluation window for the TD3 agent and benchmark strategies.")
+              fig_cap="Portfolio value over the held-out evaluation window for the TD3 agent and benchmark strategies.",
+              audit=_audit)
 else:
     print(_no_data_msg)
 ```
@@ -152,7 +154,8 @@ if _plot_data.get("rewards") is not None:
         date_str=_plot_data.get("date_str", ""),
     )
     show_plot(_p, _plot_data, frame="rewards", fig_label="fig-eval-rewards",
-              fig_cap="Per-step reward signal received by the TD3 agent during the held-out evaluation rollout.")
+              fig_cap="Per-step reward signal received by the TD3 agent during the held-out evaluation rollout.",
+              audit=_audit)
 else:
     print(_no_data_msg)
 ```
@@ -176,7 +179,8 @@ if _plot_data.get("actions") is not None:
         allocation_ma_window=_plot_data.get("allocation_ma_window"),
     )
     show_plot(_p, _plot_data, frame="actions", fig_label="fig-eval-positions",
-              fig_cap="Portfolio allocation (position) taken by the TD3 agent at each step of the held-out evaluation rollout.")
+              fig_cap="Portfolio allocation (position) taken by the TD3 agent at each step of the held-out evaluation rollout.",
+              audit=_audit)
 else:
     print(_no_data_msg)
 ```
