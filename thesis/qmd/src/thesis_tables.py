@@ -185,6 +185,87 @@ def display_image_from_path(
 
 
 # ---------------------------------------------------------------------------
+# LOB events sample table
+# ---------------------------------------------------------------------------
+
+def lob_events_table(df: "pd.DataFrame") -> None:
+    """Select a 12-event window with maximum price activity and display as HTML.
+
+    Picks the 12 consecutive rows with the most bid/ask price changes so the
+    illustration captures genuine LOB dynamics rather than a quiet period.
+    Events become rows; raw order-book columns on the left, z-score-normalized
+    features on the right, separated by a vertical rule.
+
+    Calls display() and table_note() internally — no return value.
+    """
+    best_start, best_score = 0, 0
+    for i in range(0, len(df) - 12, 5):
+        w = df.iloc[i : i + 12]
+        score = (
+            (w["ask_px_00"].diff().abs() > 0).sum()
+            + (w["bid_px_00"].diff().abs() > 0).sum()
+        )
+        if score > best_score:
+            best_score, best_start = score, i
+
+    win = df.iloc[best_start : best_start + 12].copy()
+
+    RAW_COLS = ["Time (UTC)", "Best Bid ($)", "Best Ask ($)", "Bid Size", "Ask Size"]
+    FEAT_COLS = ["Book Pressure", "Order Imbalance", "Microprice Dev.", "OFI"]
+    FIRST_FEAT_COL = FEAT_COLS[0]
+
+    tbl = pd.DataFrame({
+        "Time (UTC)": win["ts_event"].dt.strftime("%H:%M:%S.%f").str[:-3].values,
+        "Best Bid ($)": win["bid_px_00"].round(2).values,
+        "Best Ask ($)": win["ask_px_00"].round(2).values,
+        "Bid Size": win["bid_sz_00"].astype(int).values,
+        "Ask Size": win["ask_sz_00"].astype(int).values,
+        "Book Pressure": win["feature_hft_book_pressure_l0"].round(3).values,
+        "Order Imbalance": win["feature_hft_order_book_imbalance_3l"].round(3).values,
+        "Microprice Dev.": win["feature_hft_microprice_divergence"].round(3).values,
+        "OFI": win["feature_hft_ofi"].round(3).values,
+    }, index=[f"E{i}" for i in range(1, 13)])
+
+    header_cells = ""
+    for col in tbl.columns:
+        bold = "font-weight:bold;" if col in RAW_COLS else ""
+        border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
+        header_cells += f'<th style="text-align:right;{bold}{border}">{col}</th>'
+    header = f'<thead><tr><th style="text-align:left">Event</th>{header_cells}</tr></thead>'
+
+    html_rows = []
+    for event, series in tbl.iterrows():
+        cells = ""
+        for col, val in series.items():
+            border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
+            cells += f'<td style="text-align:right;{border}">{val}</td>'
+        html_rows.append(
+            f'<tr><th style="text-align:left;font-weight:normal">{event}</th>{cells}</tr>'
+        )
+
+    body = "<tbody>" + "".join(html_rows) + "</tbody>"
+    table_html = (
+        '<div style="overflow-x:auto">'
+        '<table style="border-collapse:collapse;font-size:0.82em;width:100%">'
+        f"{header}{body}"
+        "</table></div>"
+    )
+
+    display(HTML(table_html))
+    table_note(
+        source="DataBento Nasdaq MBP-10 feed, AAPL, 2 March 2026.",
+        note=(
+            "E1–E12: twelve consecutive order-book events selected from the test split "
+            "to include multiple bid/ask price changes. "
+            "Book Pressure, Order Imbalance, Microprice Dev., and OFI are "
+            "z-score normalized using causal running statistics. "
+            "A vertical rule separates the raw order-book state (left columns) "
+            "from the normalized features (right columns)."
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Comparison tables (value row + delta row per group)
 # ---------------------------------------------------------------------------
 

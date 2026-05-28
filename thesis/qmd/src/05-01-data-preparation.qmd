@@ -271,92 +271,14 @@ To illustrate how the raw order book data is transformed into the input features
 #| echo: false
 #| warning: false
 
-import numpy as np
-import pandas as pd
-from IPython.display import HTML
 from thesis_mlflow_results import find_observation_sample
-from thesis_tables import table_note
+from thesis_tables import lob_events_table
 
 df = find_observation_sample(split="test", symbol="AAPL")
-
-if df is None:
-    print("Observation sample not found: run evaluate for AAPL to generate evaluation_data artifacts.")
+if df is not None:
+    lob_events_table(df)
 else:
-
-    # Identify the 12-event window with the most bid+ask price changes so the
-    # illustration captures genuine LOB dynamics rather than a quiet period.
-    best_start, best_score = 0, 0
-    for i in range(0, len(df) - 12, 5):
-        w = df.iloc[i : i + 12]
-        score = (
-            (w["ask_px_00"].diff().abs() > 0).sum()
-            + (w["bid_px_00"].diff().abs() > 0).sum()
-        )
-        if score > best_score:
-            best_score, best_start = score, i
-
-    win = df.iloc[best_start : best_start + 12].copy()
-
-    # Build display frame: events as rows, features as columns.
-    RAW_COLS = ["Time (UTC)", "Best Bid ($)", "Best Ask ($)", "Bid Size", "Ask Size"]
-    FEAT_COLS = ["Book Pressure", "Order Imbalance", "Microprice Dev.", "OFI"]
-    FIRST_FEAT_COL = FEAT_COLS[0]
-
-    tbl = pd.DataFrame({
-        "Time (UTC)": win["ts_event"].dt.strftime("%H:%M:%S.%f").str[:-3].values,
-        "Best Bid ($)": win["bid_px_00"].round(2).values,
-        "Best Ask ($)": win["ask_px_00"].round(2).values,
-        "Bid Size": win["bid_sz_00"].astype(int).values,
-        "Ask Size": win["ask_sz_00"].astype(int).values,
-        "Book Pressure": win["feature_hft_book_pressure_l0"].round(3).values,
-        "Order Imbalance": win["feature_hft_order_book_imbalance_3l"].round(3).values,
-        "Microprice Dev.": win["feature_hft_microprice_divergence"].round(3).values,
-        "OFI": win["feature_hft_ofi"].round(3).values,
-    }, index=[f"E{i}" for i in range(1, 13)])
-
-    # Header: event index + one <th> per column; bold raw cols, left-border on first feature col.
-    header_cells = ""
-    for col in tbl.columns:
-        bold = "font-weight:bold;" if col in RAW_COLS else ""
-        border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
-        header_cells += f'<th style="text-align:right;{bold}{border}">{col}</th>'
-    header = (
-        f'<thead><tr><th style="text-align:left">Event</th>{header_cells}</tr></thead>'
-    )
-
-    # Rows: one per event.
-    html_rows = []
-    for event, series in tbl.iterrows():
-        cells = ""
-        for col, val in series.items():
-            border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
-            cells += f'<td style="text-align:right;{border}">{val}</td>'
-        html_rows.append(
-            f"<tr>"
-            f'<th style="text-align:left;font-weight:normal">{event}</th>'
-            f"{cells}</tr>"
-        )
-
-    body = "<tbody>" + "".join(html_rows) + "</tbody>"
-    table_html = (
-        '<div style="overflow-x:auto">'
-        '<table style="border-collapse:collapse;font-size:0.82em;width:100%">'
-        f"{header}{body}"
-        "</table></div>"
-    )
-
-    display(HTML(table_html))
-    table_note(
-        source="DataBento Nasdaq MBP-10 feed, AAPL, 2 March 2026.",
-        note=(
-            "E1–E12: twelve consecutive order-book events selected from the test split "
-            "to include multiple bid/ask price changes. "
-            "Book Pressure, Order Imbalance, Microprice Dev., and OFI are "
-            "z-score normalized using causal running statistics. "
-            "A vertical rule separates the raw order-book state (left columns) "
-            "from the normalized features (right columns)."
-        ),
-    )
+    print("Observation sample not found: run evaluate for AAPL to generate evaluation_data artifacts.")
 ```
 
 The transformed features in @tbl-transformed-features demonstrate several key properties of the feature engineering approach. First, **Book Pressure** and **Order Imbalance** capture instantaneous order-book liquidity and directional pressure: positive values indicate net buying pressure (bid depth dominates), while negative values signal selling pressure (visible in E12 after a bid-side refresh). Second, **Microprice Deviation** tracks how far the current microprice lies from the simple mid-price, providing a depth-weighted estimate of the fair transaction price. Third, **OFI** (Order Flow Imbalance) captures signed net trade flow over a short window, jumping sharply at events where displayed depth is consumed or replenished.
