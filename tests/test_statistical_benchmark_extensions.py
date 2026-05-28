@@ -241,6 +241,6 @@ def test_run_all_statistical_tests_truncates_uneven_random_baseline_trials(
 
     assert results["baselines"][0]["baseline"] == BenchmarkName.RANDOM_ACTIONS
     assert captured["baseline"] == pytest.approx(np.array([0.03, 0.05]))
-    assert captured["strategy"] == pytest.approx(np.array([0.02, 0.04, 0.06]))
+    assert captured["strategy"] == pytest.approx(np.array([0.02, 0.04]))
     table = {row["strategy"]: row for row in results["benchmark_comparison_table"]}
     assert set(table) == {"agent", BenchmarkName.RANDOM_ACTIONS}

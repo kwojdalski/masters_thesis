@@ -122,8 +122,9 @@ def run_all_statistical_tests(
             random_returns_mean = np.mean(
                 [t[:min_len] for t in random_baseline_trials], axis=0
             )
+            random_strategy_returns = np.asarray(strategy_returns, dtype=float)[:min_len]
             random_results = run_statistical_tests(
-                strategy_returns,
+                random_strategy_returns,
                 random_returns_mean,
                 BenchmarkName.RANDOM_ACTIONS,
                 config,
