@@ -1373,3 +1373,52 @@ def show_plot(
             if generator:
                 parts_a.append(f"source: {generator}")
             print("  |  ".join(parts_a))
+
+
+def show_table_meta(data: "dict[str, Any]", *, audit: bool = False) -> None:
+    """Emit commit/run provenance below a table, mirroring show_plot's audit block.
+
+    *data* can be either:
+    - a *plot_data* dict (returned by find_evaluation_plot_data) — uses the
+      ``asset_meta`` sidecar commit hash and datetime, or
+    - a *finished* dict (from load_experiment_snapshot) — falls back to
+      ``run_name`` and ``start_time``.
+
+    Usage in QMD (same audit flag as show_plot)::
+
+        show_table_meta(_plot_data, audit=_audit)
+        # or
+        show_table_meta(finished, audit=_audit)
+    """
+    if not audit:
+        return
+    from thesis_tables import table_note
+
+    # Prefer sidecar metadata (has git commit hash)
+    asset_meta = data.get("asset_meta", {})
+    sidecar = next(iter(asset_meta.values()), None) if asset_meta else None
+
+    if sidecar:
+        commit = sidecar.get("commit", "unknown")[:8]
+        dt = sidecar.get("datetime", "unknown")
+        generator = sidecar.get("generator", "")
+        parts: list[str] = [f"commit: {commit}", f"generated: {dt}"]
+        if generator:
+            parts.append(f"source: {generator}")
+        table_note(note="  |  ".join(parts))
+    else:
+        # Fallback: render-time commit + export timestamp from finished dict
+        try:
+            from trading_rl.evaluation.asset_meta import _git_commit
+            commit = _git_commit()[:8]
+        except Exception:
+            commit = "unknown"
+        source = data.get("source") or {}
+        exported_at = (
+            source.get("exported_at_utc")
+            or str(data.get("start_time", ""))[:19]
+        )
+        parts = [f"commit: {commit}"]
+        if exported_at:
+            parts.append(f"exported: {exported_at[:19]}")
+        table_note(note="  |  ".join(parts))

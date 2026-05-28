@@ -15,9 +15,11 @@ that the rendered chapter stays tied to recorded evaluation artifacts.
 
 import pandas as pd
 from thesis_mlflow_results import (
+    audit_plots_enabled,
     format_benchmark_comparison_table,
     format_key_metrics,
     load_experiment_snapshot,
+    show_table_meta,
 )
 from thesis_tables import display_df as display_table
 
@@ -25,6 +27,7 @@ from thesis_tables import display_df as display_table
 EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
+_audit = audit_plots_enabled()
 ```
 
 
@@ -73,6 +76,8 @@ from thesis_tables import table_note
 HTML(benchmark_df.to_html(index=False))
 if _is_placeholder:
     table_note(note="**Placeholder values** — these figures are illustrative only and will be replaced once the full experiment pipeline has completed and evaluation artifacts are available.")
+if finished is not None:
+    show_table_meta(finished, audit=_audit)
 ```
 
 *TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (mean excess return divided by standard deviation, not annualized). Sortino: Sortino Ratio (mean excess return divided by downside deviation, not annualized). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*

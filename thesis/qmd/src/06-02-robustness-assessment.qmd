@@ -17,12 +17,13 @@ depend too heavily on one narrow experimental setup.
 
 import pandas as pd
 
-from thesis_mlflow_results import load_experiment_snapshot, runs_overview_table
+from thesis_mlflow_results import audit_plots_enabled, load_experiment_snapshot, runs_overview_table, show_table_meta
 
 EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 snapshot = load_experiment_snapshot(EXPERIMENT_NAME)
 finished = snapshot.latest_finished
 runs_df = runs_overview_table(EXPERIMENT_NAME)
+_audit = audit_plots_enabled()
 ```
 
 
@@ -78,6 +79,7 @@ if all(row.get("Sharpe", "—") == "—" for row in rows):
     print("No H2 results available. Run: bash scripts/run_h2_experiments.sh")
 else:
     display(comparison_table_html(rows, _H2_COLS, index_col="Feature Set"))
+    show_table_meta(finished, audit=_audit)
 ```
 
 ::: {.content-visible when-format="pdf"}
@@ -170,6 +172,7 @@ for axis in _H3_AXES:
     else:
         display(Markdown(f"### {axis['label']}"))
         display_df(df)
+        show_table_meta(finished, audit=_audit)
 ```
 
 The reward-design comparison shows that Differential Sharpe Ratio optimization
@@ -285,6 +288,7 @@ if h4_data:
             view["win_rate"] = view["win_rate"].apply(lambda x: f"{x:.1%}")
             view.columns = ["Trial", "Return", "Sharpe", "Win Rate", "Profit Factor", "vs Dummy"]
             display_df(view)
+    show_table_meta(finished, audit=_audit)
 else:
     print("No H4 results available. Run: bash scripts/run_h4_experiments.sh")
 ```
