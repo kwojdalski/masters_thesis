@@ -822,7 +822,7 @@ def validate_guardrails(
     sample_size vs init_rand_steps, and algorithm-specific constraints.
     Reports FATAL and WARN findings without running training.
     """
-    from trading_rl.config_guardrails_checks import check_config_guardrails, Finding, Severity
+    from trading_rl.config_guardrails_checks import check_config_guardrails, Severity
 
     if scenario and config_file:
         raise typer.BadParameter("Cannot specify both --config and --scenario.")
