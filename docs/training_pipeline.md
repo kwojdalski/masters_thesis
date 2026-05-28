@@ -250,9 +250,9 @@ flowchart TD
 
 **TD3-specific details:**
 - Two independent Q-networks to reduce overestimation bias
-- Policy delay: actor updates every `policy_delay` critic updates (default 2)
-- Target policy smoothing: Gaussian noise clipped to `noise_clip` added to target actions
-- Exploration: Gaussian noise with std `exploration_noise_std` during collection
+- Policy delay: actor updates every `td3.policy_delay` critic updates (default 2)
+- Target policy smoothing: Gaussian noise (`td3.policy_noise`) clipped to ±`td3.noise_clip` added to target actions
+- Exploration: Gaussian noise with std `td3.exploration_noise_std` during collection
 
 ---
 

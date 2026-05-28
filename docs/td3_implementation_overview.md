@@ -173,9 +173,9 @@ Key hyperparameters used in the comparison:
 
 ## Training Loop
 - Collect batch → replay buffer → sample minibatches.
-- Critic update every step; actor update delayed by `policy_delay=2`.
-- Target policy smoothing via `policy_noise=0.2` and `noise_clip=0.3`.
-- Soft-update target params with `tau=0.005`.
+- Critic update every step; actor update delayed by `td3.policy_delay` (default 2).
+- Target policy smoothing via `td3.policy_noise` (default 0.2) clipped to ±`td3.noise_clip` (default 0.5).
+- Soft-update target params with `tau` (default 0.005).
 
 ## See Also
 

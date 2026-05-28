@@ -150,10 +150,10 @@ Network capacity is equalized with TD3 and DDPG for a controlled comparison:
 | Actor hidden activation | Tanh |
 | Distribution | TanhNormal(μ, σ) |
 | Evaluation action | tanh(μ) — mode of TanhNormal |
-| clip_epsilon | 0.2 |
-| entropy_bonus | 0.01 |
-| vf_coef | 0.5 |
-| ppo_epochs | 4 |
+| `training.ppo.clip_epsilon` | 0.2 |
+| `training.ppo.entropy_bonus` | 0.01 |
+| `training.ppo.vf_coef` | 0.5 |
+| `training.ppo.epochs` | 4 |
 | Actor lr / Critic lr | 1e-4 / 1e-4 |
 
 ## Components
@@ -163,7 +163,7 @@ Network capacity is equalized with TD3 and DDPG for a controlled comparison:
 - **Collector/buffer**: `SyncDataCollector`; on-policy so replay buffer is not used for accumulation.
 
 ## Training Loop
-- Collect fresh rollout → compute advantages → sample minibatches for `ppo_epochs`.
+- Collect fresh rollout → compute advantages → sample minibatches for `ppo.epochs`.
 - Compute clipped PPO loss (objective + critic + entropy).
 - Backprop and step optimizer; log per-step metrics.
 - Periodic evaluation rollouts.

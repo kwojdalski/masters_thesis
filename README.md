@@ -164,5 +164,6 @@ masters_thesis/
 - [PPO Implementation Overview](docs/ppo_implementation_overview.md)
 - [DDPG Implementation Overview](docs/ddpg_implementation_overview.md)
 - [TD3 Implementation Overview](docs/td3_implementation_overview.md)
+- [SAC Implementation Overview](docs/sac_implementation_overview.md)
 - [Core RL Package Overview](src/trading_rl/README.md)
 - [Logging Utilities](src/logger/README.md)
