@@ -81,6 +81,7 @@ def _runtime(
 
 def _patch_finalization(monkeypatch, *, evaluate_raises: bool = False) -> dict[str, Any]:
     calls: dict[str, Any] = {"metrics": [], "checkpoints": [], "saved_json": 0}
+    monkeypatch.setattr(runner, "run_guardrail_check", lambda _config: None)
     monkeypatch.setattr(runner, "_configure_periodic_hooks", lambda **_kwargs: None)
     monkeypatch.setattr(
         runner,

@@ -88,7 +88,7 @@ def _ppo_batch() -> TensorDict:
 def test_ppo_optimization_step_builds_targets_before_sampling_fresh_batch() -> None:
     trainer = PPOTrainer.__new__(PPOTrainer)
     trainer.config = SimpleNamespace(
-        ppo_epochs=2,
+        ppo=SimpleNamespace(epochs=2),
         frames_per_batch=4,
         sample_size=4,
         log_interval=999,

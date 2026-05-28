@@ -26,6 +26,23 @@ def _end_mlflow_run():
         pass
 
 
+@pytest.fixture(autouse=True)
+def _restore_logging():
+    """Restore all logger levels after each test to prevent pollution across tests."""
+    import logging
+    root = logging.getLogger()
+    saved_root_level = root.level
+    saved_levels = {
+        name: lgr.level
+        for name, lgr in logging.Logger.manager.loggerDict.items()
+        if isinstance(lgr, logging.Logger)
+    }
+    yield
+    root.setLevel(saved_root_level)
+    for name, level in saved_levels.items():
+        logging.getLogger(name).setLevel(level)
+
+
 @pytest.mark.slow
 def test_ppo_anytrading_forex():
     """

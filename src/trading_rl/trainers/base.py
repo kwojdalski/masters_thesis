@@ -87,20 +87,21 @@ logger = get_logger(__name__)
 
 
 def _collect_mlflow_meta() -> dict:
-    """Collect active MLflow run metadata; returns empty dict when no run is active."""
+    """Collect MLflow metadata; always includes tracking_uri when mlflow is available."""
     try:
         import mlflow
+        meta: dict = {"tracking_uri": mlflow.get_tracking_uri()}
         run = mlflow.active_run()
         if run is None:
-            return {}
+            return meta
         experiment = mlflow.get_experiment(run.info.experiment_id)
-        return {
+        meta.update({
             "run_id": run.info.run_id,
             "run_name": run.data.tags.get("mlflow.runName"),
-            "tracking_uri": mlflow.get_tracking_uri(),
             "experiment_id": run.info.experiment_id,
             "experiment_name": experiment.name if experiment else None,
-        }
+        })
+        return meta
     except Exception:
         logger.debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata", exc_info=True)
         return {}

@@ -840,6 +840,13 @@ class ExperimentConfig:
             if key in config_dict:
                 _apply_dict_to_dataclass(getattr(config, attr_name), config_dict[key])
 
+        # Legacy env key migration: price_columns (list) → price_column (str)
+        if "env" in config_dict:
+            env_dict = config_dict["env"]
+            if "price_columns" in env_dict and not config.env.price_column:
+                pc = env_dict["price_columns"]
+                config.env.price_column = pc[0] if isinstance(pc, list) and pc else pc
+
         # Benchmarks — enabled list needs BenchmarkName enum conversion;
         # individual bool keys map to BenchmarkName values for backward compat.
         _BOOL_TO_BENCHMARK = {
