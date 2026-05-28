@@ -106,6 +106,7 @@ _no_data_msg = (
 ```
 
 ```{python}
+#| label: fig-eval-equity-cell
 #| output: asis
 #| echo: false
 #| warning: false
@@ -130,6 +131,7 @@ else:
 ```
 
 ```{python}
+#| label: fig-eval-rewards-cell
 #| output: asis
 #| echo: false
 #| warning: false
@@ -151,6 +153,7 @@ else:
 ```
 
 ```{python}
+#| label: fig-eval-positions-cell
 #| output: asis
 #| echo: false
 #| warning: false
