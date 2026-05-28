@@ -164,6 +164,10 @@ class NetworkConfig:
     # Value network
     value_hidden_dims: list[int] = field(default_factory=lambda: [64, 32, 16])
 
+    # Recurrent policy (RecurrentPPO): number of GRU layers stacked on top of each other.
+    # actor_hidden_dims[0] is used as the GRU hidden size.
+    gru_num_layers: int = 1
+
 
 @dataclass
 class TrainingConfig:
@@ -212,6 +216,11 @@ class TrainingConfig:
     exploration_noise_std: float = 0.2
     delay_actor: bool = True
     delay_qvalue: bool = True
+
+    # SAC-specific parameters
+    sac_alpha_lr: float = 3e-4          # Learning rate for the log_alpha (temperature) optimizer
+    sac_initial_alpha: float = 0.2      # Initial entropy temperature α
+    sac_target_entropy: float | None = None  # Target entropy for auto-tuning; None → −n_act
 
     # Loss function
     loss_function: LossFunction = LossFunction.L2
