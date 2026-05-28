@@ -12,8 +12,8 @@ Usage
 -----
     uv run python scripts/publish_thesis.py
     uv run python scripts/publish_thesis.py --audit
-    uv run python scripts/publish_thesis.py --hard-force
-    uv run python scripts/publish_thesis.py --audit --hard-force
+    uv run python scripts/publish_thesis.py --force
+    uv run python scripts/publish_thesis.py --audit --force
 """
 
 from __future__ import annotations
@@ -47,7 +47,8 @@ def main() -> int:
         help="Set AUDIT_PLOTS=1 during the Quarto render.",
     )
     p.add_argument(
-        "--hard-force",
+        "--force", "--hard-force",
+        dest="force",
         action="store_true",
         help="Use --force instead of --force-with-lease on git push.",
     )
@@ -89,7 +90,7 @@ def main() -> int:
     _run(["git", "commit", "-m", msg])
 
     # --- push ---
-    push_flag = "--force" if args.hard_force else "--force-with-lease"
+    push_flag = "--force" if args.force else "--force-with-lease"
     _run(["git", "push", push_flag, "origin", "HEAD"])
 
     print("Done — thesis PDF published.")
