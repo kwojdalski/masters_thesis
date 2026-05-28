@@ -8,6 +8,7 @@ import pytest
 from trading_rl.evaluation.metrics import (
     _drawdown_series,
     _equity_curve,
+    aggregate_to_reporting_frequency,
     build_metric_report,
 )
 
@@ -103,6 +104,32 @@ class TestTotalReturn:
         report = _report(returns)
         equity_final = np.prod([1 + x for x in returns])
         assert report["total_return"] == pytest.approx(equity_final - 1.0, rel=1e-9)
+
+    def test_subdaily_aggregation_keeps_final_partial_bar(self):
+        """A return in the final partial reporting bar must not be discarded."""
+        ppy = 252 * 390
+        returns = np.zeros(19_999)
+        returns[-1] = 0.01
+
+        report = _report(returns, ppy=ppy)
+
+        assert report["total_return"] == pytest.approx(0.01, rel=1e-12)
+        assert report["n_bars"] == 52.0
+
+
+class TestAggregateToReportingFrequency:
+    def test_keeps_final_partial_chunk(self):
+        returns = np.zeros(151)
+        returns[-1] = 0.01
+
+        aggregated, ppy = aggregate_to_reporting_frequency(
+            returns,
+            periods_per_year=252 * 3,
+        )
+
+        assert ppy == 252
+        assert len(aggregated) == 51
+        assert aggregated[-1] == pytest.approx(0.01, rel=1e-12)
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +227,26 @@ class TestSharpeRatio:
         sigma = np.std(r, ddof=1)
         expected = mu / sigma
         assert _report(r)["sharpe_ratio"] == pytest.approx(expected, rel=1e-6)
+
+
+class TestBenchmarkRelativeMetrics:
+    def test_subdaily_relative_metrics_require_paired_observations(self):
+        strategy = np.full(100, np.nan)
+        benchmark = np.full(100, np.nan)
+        strategy[::2] = np.linspace(-0.01, 0.01, 50)
+        benchmark[1::2] = np.linspace(0.02, -0.02, 50)
+
+        report = build_metric_report(
+            strategy_simple_returns=strategy,
+            benchmark_simple_returns=benchmark,
+            actions=None,
+            periods_per_year=253,
+        )
+
+        assert np.isnan(report["beta"])
+        assert np.isnan(report["alpha"])
+        assert np.isnan(report["information_ratio"])
+        assert np.isnan(report["tracking_error"])
 
 
 # ---------------------------------------------------------------------------

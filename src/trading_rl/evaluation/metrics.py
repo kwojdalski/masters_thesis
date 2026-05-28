@@ -22,6 +22,23 @@ _REPORTING_LADDER: list[ReportingFrequency] = [
 _MIN_SR_OBSERVATIONS = 50
 
 
+def _compound_return_chunks(
+    simple_returns: np.ndarray,
+    steps_per_bar: int,
+) -> np.ndarray:
+    """Compound returns into fixed-width chunks, keeping the final partial chunk."""
+    if simple_returns.size == 0:
+        return np.array([], dtype=float)
+    steps_per_bar = max(1, steps_per_bar)
+    return np.asarray(
+        [
+            np.prod(1.0 + simple_returns[start : start + steps_per_bar]) - 1.0
+            for start in range(0, len(simple_returns), steps_per_bar)
+        ],
+        dtype=float,
+    )
+
+
 def aggregate_to_reporting_frequency(
     simple_returns: np.ndarray,
     periods_per_year: int,
@@ -43,15 +60,14 @@ def aggregate_to_reporting_frequency(
 
     for freq in _REPORTING_LADDER:
         steps_per_bar = max(1, round(periods_per_year / freq.periods_per_year))
-        n_bars = len(simple_returns) // steps_per_bar
+        n_bars = int(math.ceil(len(simple_returns) / steps_per_bar))
         if n_bars >= _MIN_SR_OBSERVATIONS:
-            trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
-            return np.prod(1.0 + trimmed, axis=1) - 1.0, freq.periods_per_year
+            return _compound_return_chunks(simple_returns, steps_per_bar), freq.periods_per_year
 
     # Fallback: finest ladder entry (5-second) even if < 50 bars.
     finest = _REPORTING_LADDER[-1]
     steps_per_bar = max(1, round(periods_per_year / finest.periods_per_year))
-    n_bars = len(simple_returns) // steps_per_bar
+    n_bars = int(math.ceil(len(simple_returns) / steps_per_bar))
     if n_bars < 2:
         # The eval window covers less than one bar at the finest supported
         # resolution (5-second). We cannot aggregate, so we keep the raw tick
@@ -59,8 +75,7 @@ def aggregate_to_reporting_frequency(
         # annualised vol but avoids both the NaN problem and the astronomical
         # inflation from using the raw tick ppy.
         return simple_returns, finest.periods_per_year
-    trimmed = simple_returns[: n_bars * steps_per_bar].reshape(n_bars, steps_per_bar)
-    return np.prod(1.0 + trimmed, axis=1) - 1.0, finest.periods_per_year
+    return _compound_return_chunks(simple_returns, steps_per_bar), finest.periods_per_year
 
 _NAN = float("nan")
 
@@ -434,12 +449,17 @@ def build_metric_report(
             benchmark_simple_returns = benchmark_simple_returns.to_simple().values
         b_raw = np.asarray(benchmark_simple_returns, dtype=float)
         if _orig_ppy > 252:
-            # Sub-daily data: both series were aggregated to a common bar size.
-            # Align on the aggregated, finite-filtered arrays — no NaN masking needed.
-            b, _ = aggregate_to_reporting_frequency(b_raw[np.isfinite(b_raw)], _orig_ppy)
-            n = min(r_all.size, b.size)
+            # Align strategy and benchmark before aggregation. Dropping NaNs
+            # independently shifts timestamps and fabricates relative metrics.
+            n = min(_r_orig.size, b_raw.size)
             if n > 1:
-                rs, bs = r_all[:n], b[:n]
+                paired_mask = np.isfinite(_r_orig[:n]) & np.isfinite(b_raw[:n])
+                rs, _ = aggregate_to_reporting_frequency(_r_orig[:n][paired_mask], _orig_ppy)
+                bs, _ = aggregate_to_reporting_frequency(b_raw[:n][paired_mask], _orig_ppy)
+                n = min(rs.size, bs.size)
+                rs, bs = rs[:n], bs[:n]
+            else:
+                rs, bs = np.array([]), np.array([])
         else:
             # Daily-or-lower: use original arrays so the paired NaN mask aligns
             # strategy and benchmark by position before dropping missing values.
