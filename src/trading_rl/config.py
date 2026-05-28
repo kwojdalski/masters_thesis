@@ -178,11 +178,42 @@ class NetworkConfig:
 
 
 @dataclass
+class TD3Config:
+    """TD3-specific hyperparameters."""
+
+    policy_noise: float = 0.2
+    noise_clip: float = 0.5
+    policy_delay: int = 2
+    exploration_noise_std: float = 0.2
+    delay_actor: bool = True
+    delay_qvalue: bool = True
+
+
+@dataclass
+class PPOConfig:
+    """PPO-specific hyperparameters."""
+
+    clip_epsilon: float = 0.2
+    entropy_bonus: float = 0.01
+    vf_coef: float = 0.5
+    epochs: int = 4
+
+
+@dataclass
+class SACConfig:
+    """SAC-specific hyperparameters."""
+
+    alpha_lr: float = 3e-4
+    initial_alpha: float = 0.2
+    target_entropy: float | None = None
+
+
+@dataclass
 class TrainingConfig:
     """Training hyperparameters configuration."""
 
     # Algorithm selection
-    algorithm: str = Algorithm.PPO  # "PPO", "DDPG", or "TD3"
+    algorithm: str = Algorithm.PPO  # "PPO", "DDPG", "TD3", or "SAC"
 
     # Optimization
     actor_lr: float = 1e-4
@@ -190,8 +221,9 @@ class TrainingConfig:
     value_weight_decay: float = 1e-2
     actor_weight_decay: float = 1e-4
     max_grad_norm: float = 1.0  # Gradient clipping threshold; set to 0 to disable
+
     # Training loop
-    max_steps: int = 10_000  # _000
+    max_steps: int = 10_000
     max_train_seconds: int | None = None  # wall-clock budget in seconds; None = unlimited
     init_rand_steps: int = 5000
     frames_per_batch: int = 200
@@ -201,35 +233,19 @@ class TrainingConfig:
 
     # Replay buffer
     buffer_size: int = 100_000
-    save_buffer: bool = (
-        False  # Save replay buffer in checkpoint (increases file size significantly)
-    )
+    save_buffer: bool = False  # Save replay buffer in checkpoint (increases file size significantly)
 
-    # DDPG-specific parameters
-    tau: float = 0.001  # Target network update rate
+    # Soft target-network update rate — used by DDPG, TD3, SAC
+    tau: float = 0.001
 
-    # PPO-specific parameters
-    clip_epsilon: float = 0.2  # PPO clipping parameter
-    entropy_bonus: float = 0.01  # Entropy bonus coefficient
-    vf_coef: float = 0.5  # Value function loss coefficient
-    ppo_epochs: int = 4  # Number of PPO epochs per batch
+    # Algorithm-specific sub-configs
+    td3: TD3Config = field(default_factory=TD3Config)
+    ppo: PPOConfig = field(default_factory=PPOConfig)
+    sac: SACConfig = field(default_factory=SACConfig)
 
     # Pre-flight guardrail checks
-    skip_guardrails: bool = False         # Set True to skip the check entirely (e.g. dev/smoke runs)
-    skip_guardrail_prompts: bool = False  # Set True in scripts to suppress the y/N prompt; warnings still logged
-
-    # TD3-specific parameters
-    policy_noise: float = 0.2
-    noise_clip: float = 0.5
-    policy_delay: int = 2
-    exploration_noise_std: float = 0.2
-    delay_actor: bool = True
-    delay_qvalue: bool = True
-
-    # SAC-specific parameters
-    sac_alpha_lr: float = 3e-4          # Learning rate for the log_alpha (temperature) optimizer
-    sac_initial_alpha: float = 0.2      # Initial entropy temperature α
-    sac_target_entropy: float | None = None  # Target entropy for auto-tuning; None → −n_act
+    skip_guardrails: bool = False
+    skip_guardrail_prompts: bool = False  # suppress the y/N prompt; warnings still logged
 
     # Loss function
     loss_function: LossFunction = LossFunction.L2
@@ -382,9 +398,17 @@ class StatisticalTestingConfig:
 
 
 def _apply_dict_to_dataclass(target, d: dict) -> None:
-    """Apply matching keys from d to a dataclass instance via setattr."""
+    """Apply matching keys from d to a dataclass instance via setattr.
+
+    Recurses into nested dataclass fields when the value is a dict.
+    """
     for key, value in d.items():
-        if hasattr(target, key):
+        if not hasattr(target, key):
+            continue
+        existing = getattr(target, key)
+        if isinstance(value, dict) and is_dataclass(existing):
+            _apply_dict_to_dataclass(existing, value)
+        else:
             setattr(target, key, value)
 
 

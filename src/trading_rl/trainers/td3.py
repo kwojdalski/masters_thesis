@@ -110,11 +110,10 @@ class TD3Trainer(BaseTrainer):
         # Gaussian exploration around the deterministic policy
         self.exploration_module = AdditiveGaussianModule(
             spec=td3_action_spec,
-            sigma_init=getattr(config, "exploration_noise_std", 0.2),
-            sigma_end=getattr(config, "exploration_noise_std", 0.2),
+            sigma_init=config.td3.exploration_noise_std,
+            sigma_end=config.td3.exploration_noise_std,
             annealing_num_steps=config.max_steps,
         )
-        # Log the exploration noise std
 
         # TD3 uses two critics; configure loss and optimizers
         self.td3_loss = TD3Loss(
@@ -122,11 +121,11 @@ class TD3Trainer(BaseTrainer):
             qvalue_network=value_net,
             action_spec=td3_action_spec,
             num_qvalue_nets=2,
-            policy_noise=getattr(config, "policy_noise", 0.2),
-            noise_clip=getattr(config, "noise_clip", 0.5),
+            policy_noise=config.td3.policy_noise,
+            noise_clip=config.td3.noise_clip,
             loss_function=getattr(config, "loss_function", LossFunction.L2),
-            delay_actor=getattr(config, "delay_actor", True),
-            delay_qvalue=getattr(config, "delay_qvalue", True),
+            delay_actor=config.td3.delay_actor,
+            delay_qvalue=config.td3.delay_qvalue,
         )
 
         for attr in ("actor_network_params", "qvalue_network_params"):
@@ -147,7 +146,7 @@ class TD3Trainer(BaseTrainer):
             weight_decay=config.value_weight_decay,
         )
 
-        self.policy_delay = getattr(config, "policy_delay", 2)
+        self.policy_delay = config.td3.policy_delay
 
         # Counters for tracking successful vs skipped batches
         self.successful_batches = 0
@@ -158,9 +157,9 @@ class TD3Trainer(BaseTrainer):
             "init td3 trainer actor_lr=%s value_lr=%s exploration_noise_std=%.3f policy_noise=%.3f noise_clip=%.3f policy_delay=%d",
             config.actor_lr,
             config.value_lr,
-            getattr(config, "exploration_noise_std", 0.2),
-            getattr(config, "policy_noise", 0.2),
-            getattr(config, "noise_clip", 0.5),
+            config.td3.exploration_noise_std,
+            config.td3.policy_noise,
+            config.td3.noise_clip,
             self.policy_delay,
         )
 
