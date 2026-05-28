@@ -56,7 +56,7 @@ network:
 training:
   algorithm: DDPG
   temp_eval_interval: 100000
-  temp_eval_max_steps: 200000
+  temp_eval_max_steps: 50000
   actor_lr: 0.0001
   value_lr: 0.0001
   value_weight_decay: 2.0e-06
