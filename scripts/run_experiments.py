@@ -143,12 +143,15 @@ def _run_tee(cmd: list[str], log_file: Path) -> None:
     """Run command streaming output to both terminal and log file."""
     log_file.parent.mkdir(parents=True, exist_ok=True)
     _con.print(f"  [dim]-> {escape(str(log_file))}[/dim]")
+    env = os.environ.copy()
+    env["FORCE_COLOR"] = "1"  # Rich detects pipe and disables colors without this
     with log_file.open("w") as fh:
         proc = subprocess.Popen(
             cmd,
             cwd=_REPO_ROOT,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            env=env,
         )
         assert proc.stdout is not None
         for raw in proc.stdout:
@@ -333,6 +336,7 @@ def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
             extra.append(f"training.max_train_seconds={args.max_train_seconds}")
         if args.dev:
             extra.append(f"training.max_steps={args.dev_steps}")
+            extra.append("training.skip_guardrails=true")
         _train_all(scenarios, args, extra_overrides=extra)
         _con.print()
 

@@ -215,6 +215,7 @@ class TrainingConfig:
     ppo_epochs: int = 4  # Number of PPO epochs per batch
 
     # Pre-flight guardrail checks
+    skip_guardrails: bool = False         # Set True to skip the check entirely (e.g. dev/smoke runs)
     skip_guardrail_prompts: bool = False  # Set True in scripts to suppress the y/N prompt; warnings still logged
 
     # TD3-specific parameters

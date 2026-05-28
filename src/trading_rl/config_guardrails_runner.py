@@ -26,10 +26,14 @@ _err_console = Console(stderr=True)
 def run_guardrail_check(config: ExperimentConfig) -> None:
     """Check config, log findings, raise on FATAL, prompt on WARN.
 
-    Controlled by training.skip_guardrail_prompts:
-      False (default) — print WARN findings and ask for y/N confirmation.
-      True            — log WARNs but proceed without prompting (for scripts).
+    Controlled by training config flags:
+      skip_guardrails=True       — skip the check entirely (dev/smoke runs).
+      skip_guardrail_prompts=True — log WARNs but proceed without prompting.
     """
+    if getattr(config.training, "skip_guardrails", False):
+        logger.debug("config guardrail check skipped (training.skip_guardrails=True)")
+        return
+
     findings = check_config_guardrails(config)
     if not findings:
         logger.info("config guardrail check passed — no issues found")
