@@ -52,6 +52,11 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
+  cli_validate_guardrails: "validate guardrails\nuv run python src/cli.py validate guardrails\n  -c <scenario>  [--verbose]\n  Runs all 50 pure-function config guardrail checks\n  prints FATAL/WARN findings; exits non-zero on any FATAL\n  Used by run_experiments.py as pre-flight step 0" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
   cli_collect_results: "collect-results\nuv run python src/cli.py collect-results\n  --algorithm <algo> --dir <eval_dir>\n  Merge per-algorithm evaluation results into unified thesis directory" {
     shape: step
     style.fill: "#e0f2fe"
@@ -252,7 +257,7 @@ prep: Data Preparation {
       style.fill: "#bbf7d0"
     }
 
-    pd_assemble: "Assemble val / test DataFrames\nval_df  = pd.concat(val_j  for j in 0..5)\ntest_df = pd.concat(test_j for j in 0..5)\nRe-deduplicate timestamps on concatenated frames\n  (fix cross-symbol timestamp collisions after concat)\nOptional size truncation:\n  if validation_size set: val_df  = val_df.iloc[:validation_size]\n  if test_size set:       test_df = test_df.iloc[:test_size]\n  (pooled configs use 50k each to keep eval fast)\ntrain_df = first_train_df  (file 0, reference only —\n  actual training lives in the 18 memmaps)" {
+    pd_assemble: "Assemble val / test DataFrames\nval_df  = pd.concat(val_j  for j in 0..5)\ntest_df = pd.concat(test_j for j in 0..5)\nRe-deduplicate timestamps on concatenated frames\n  (fix cross-symbol timestamp collisions after concat)\nOptional size truncation:\n  if validation_size set: val_df  = val_df.iloc[:validation_size]\n  if test_size set:       test_df = test_df.iloc[:test_size]\n  (pooled configs: validation_size = 50k; test_size = null → uncapped)\ntrain_df = first_train_df  (file 0, reference only —\n  actual training lives in the 18 memmaps)" {
       shape: step
       style.fill: "#bbf7d0"
     }
@@ -495,7 +500,7 @@ train: RL Training {
     style.fill: "#fecaca"
   }
 
-  periodic_eval: "Periodic evaluation  (every temp_eval_interval = 100k steps)\ndedicated _eval_env  (separate from training env; warns if reusing training env)\ndeterministic rollout on train-split window\neval_steps = int(val_len × eval_fraction)  — data-size-relative horizon\n  eval_fraction overrides fixed eval_steps when set\nlog episode reward · portfolio return\n→ temp MLflow metric (not final eval)" {
+  periodic_eval: "Periodic evaluation  (every temp_eval_interval = 100k steps)\ndedicated _eval_env  (separate from training env; warns if reusing training env)\ndeterministic rollout on val-split window\ntemp_eval_max_steps = 50k  (hard cap on rollout length — 4× faster than 200k)\neval_steps = int(val_len × eval_fraction)  — data-size-relative horizon\n  eval_fraction overrides fixed eval_steps when set\nlog episode reward · portfolio return · Sharpe · Sortino\n→ temp MLflow metric (not final eval)" {
     shape: step
     style.fill: "#fecaca"
   }
@@ -591,7 +596,7 @@ eval: Post-Training Evaluation {
   style.fill: "#f3e8ff"
   style.stroke: "#9333ea"
 
-  rollout: "Deterministic rollout  (no exploration noise)\nfull val split  (eval_fraction = 0.2 of total)\nfull test split (eval_fraction = 0.2 of total)\nactor in deterministic / MODE interaction type\nSymbol selection (streaming/memmap mode):\n  EvalSymbolSelection.FIRST   → first symbol from pool\n  EvalSymbolSelection.RANDOM  → random symbol per run\n  EvalSymbolSelection.ROTATED → rotating selection\n Eval symbol persisted to .eval_symbol_used" {
+  rollout: "Deterministic rollout  (no exploration noise)\nfull val split  (eval_fraction = 1.0 — all validation_size rows)\nfull test split (eval_fraction = 1.0 — uncapped, all available rows)\nactor in deterministic / MODE interaction type\nSymbol selection (streaming/memmap mode):\n  EvalSymbolSelection.FIRST   → first symbol from pool\n  EvalSymbolSelection.RANDOM  → random symbol per run\n  EvalSymbolSelection.ROTATED → rotating selection\n Eval symbol persisted to .eval_symbol_used" {
     shape: step
     style.fill: "#e9d5ff"
   }
@@ -718,6 +723,10 @@ cli.cli_validate_config -> prep.dp_prepared: "validates config wiring + data dep
   style.stroke: "#0369a1"
 }
 cli.cli_validate_data -> prep.dp_prepared: "validates prepared dataset" {
+  style.stroke-dash: 4
+  style.stroke: "#0369a1"
+}
+cli.cli_validate_guardrails -> guardrails: "drives" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
 }
