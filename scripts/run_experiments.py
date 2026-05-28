@@ -20,9 +20,15 @@ Usage
     uv run python scripts/run_experiments.py h2 -o evaluation.eval_steps=500
     uv run python scripts/run_experiments.py h1 --skip-train --parallel
     uv run python scripts/run_experiments.py all --skip-guardrails
+    uv run python scripts/run_experiments.py h1 --dev
+    uv run python scripts/run_experiments.py all --dev --dev-steps 500
 
 Config overrides (-o / --config-override) are forwarded to both train and
 evaluate.  Use --skip-eval or --skip-train to isolate overrides to one step.
+
+--dev skips guardrails and caps each scenario's training at --dev-steps steps
+(default 2000).  Useful for end-to-end pipeline smoke-testing without waiting
+for a full training run.
 """
 
 from __future__ import annotations
@@ -305,11 +311,15 @@ def _export_all(scenarios: list[str]) -> None:
 def run_hypothesis(hypothesis: str, args: argparse.Namespace) -> None:
     scenarios = _SCENARIOS[hypothesis]
     eval_only = _EVAL_ONLY[hypothesis]
+    skip_guardrails = args.skip_guardrails or args.dev
 
     _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
+    if args.dev:
+        print(f"[dev] guardrails skipped, training capped at {args.dev_steps} steps per scenario")
+
     # Step 0 — Guardrails
-    if not args.skip_guardrails:
+    if not skip_guardrails:
         _check_guardrails(scenarios, args)
 
     # Step 1 — Train
@@ -319,6 +329,8 @@ def run_hypothesis(hypothesis: str, args: argparse.Namespace) -> None:
         max_secs = getattr(args, "max_train_seconds", None)
         if max_secs:
             extra.append(f"training.max_train_seconds={max_secs}")
+        if args.dev:
+            extra.append(f"training.max_steps={args.dev_steps}")
         _train_all(scenarios, args, extra_overrides=extra)
         print()
 
@@ -353,6 +365,18 @@ def _add_common_args(p: argparse.ArgumentParser) -> None:
         default=[],
         metavar="K=V",
         help="OmegaConf dotlist override forwarded to both train and evaluate. Repeatable.",
+    )
+    p.add_argument(
+        "--dev",
+        action="store_true",
+        help="Dev mode: skip guardrails and cap training at --dev-steps steps for quick pipeline smoke-testing.",
+    )
+    p.add_argument(
+        "--dev-steps",
+        type=int,
+        default=2000,
+        metavar="N",
+        help="Training steps per scenario when --dev is set (default: 2000).",
     )
 
 
