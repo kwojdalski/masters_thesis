@@ -288,6 +288,65 @@ def setup_mlflow_experiment(
     return exp_name
 
 
+def _log_data_diagnostics(
+    prepared_dataset: "PreparedDataset",
+    logger: logging.Logger,
+) -> None:
+    """Log data shape and feature diagnostics after preparation."""
+    train_df = prepared_dataset.train_df
+    val_df = prepared_dataset.val_df
+    test_df = prepared_dataset.test_df
+
+    if logger.isEnabledFor(logging.INFO):
+        feature_cols = [c for c in train_df.columns if str(c).startswith("feature_")]
+        other_cols = [c for c in train_df.columns if not str(c).startswith("feature_")]
+        print_df_head(
+            train_df[feature_cols + other_cols],
+            title=f"Prepared Training Split  ({len(feature_cols)} feature_* cols used as observations, {len(train_df.columns)} total)",
+            max_columns=7,
+            paginate=True,
+        )
+
+    logger.debug(
+        "Data loaded - train: %s, val: %s, test: %s, columns: %s",
+        train_df.shape, val_df.shape, test_df.shape, list(train_df.columns),
+    )
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("training data statistics")
+        if "close" in train_df.columns:
+            logger.debug(
+                "  Close price - min: %.2f, max: %.2f, mean: %.2f",
+                train_df["close"].min(), train_df["close"].max(), train_df["close"].mean(),
+            )
+            logger.debug("  Close price std: %.2f", train_df["close"].std())
+        feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
+        logger.debug("  Features found: %s" if feature_cols else "  No feature_* columns found in prepared data", feature_cols or "")
+
+    n_feat = len([c for c in train_df.columns if str(c).startswith("feature_")])
+    log_banner(
+        logger,
+        f"DATA PREPARATION END  train={train_df.shape[0]:,}  val={val_df.shape[0]:,}  test={test_df.shape[0]:,}  features={n_feat}",
+    )
+
+
+def _log_mlflow_artifacts(
+    config: ExperimentConfig,
+    prepared_dataset: "PreparedDataset",
+    create_mlflow_callback: bool,
+) -> None:
+    """Log static MLflow artifacts (config, FAQs, optional data overviews)."""
+    if not (create_mlflow_callback and mlflow.active_run()):
+        return
+    MLflowTrainingCallback.log_parameter_faq_artifact()
+    MLflowTrainingCallback.log_training_parameters(config)
+    MLflowTrainingCallback.log_config_artifact(config)
+    if getattr(getattr(config, "logging", None), "log_data_overviews", False):
+        train_df = prepared_dataset.train_df
+        MLflowTrainingCallback.log_raw_data_overview(train_df, config)
+        MLflowTrainingCallback.log_transformed_data_overview(train_df, config)
+
+
 def build_experiment_runtime(
     config: ExperimentConfig,
     experiment_name: str | None = None,
@@ -309,52 +368,7 @@ def build_experiment_runtime(
     log_banner(logger, "DATA PREPARATION START")
     with profiler.stage("data_preparation", 2):
         prepared_dataset = build_prepared_dataset(config, logger)
-    train_df = prepared_dataset.train_df
-    val_df = prepared_dataset.val_df
-    test_df = prepared_dataset.test_df
-
-    if logger.isEnabledFor(logging.INFO):
-        feature_cols = [c for c in train_df.columns if str(c).startswith("feature_")]
-        other_cols = [c for c in train_df.columns if not str(c).startswith("feature_")]
-        display_df = train_df[feature_cols + other_cols]
-        n_feature = len(feature_cols)
-        n_total = len(train_df.columns)
-        print_df_head(
-            display_df,
-            title=f"Prepared Training Split  ({n_feature} feature_* cols used as observations, {n_total} total)",
-            max_columns=7,
-            paginate=True,
-        )
-
-    logger.debug(
-        "Data loaded - train: %s, val: %s, test: %s, columns: %s",
-        train_df.shape,
-        val_df.shape,
-        test_df.shape,
-        list(train_df.columns),
-    )
-
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug("training data statistics")
-        if "close" in train_df.columns:
-            logger.debug(
-                "  Close price - min: %.2f, max: %.2f, mean: %.2f",
-                train_df["close"].min(),
-                train_df["close"].max(),
-                train_df["close"].mean(),
-            )
-            logger.debug("  Close price std: %.2f", train_df["close"].std())
-
-        feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
-        if feature_cols:
-            logger.debug("  Features found: %s", feature_cols)
-        else:
-            logger.debug("  No feature_* columns found in prepared data")
-
-    log_banner(
-        logger,
-        f"DATA PREPARATION END  train={train_df.shape[0]:,}  val={val_df.shape[0]:,}  test={test_df.shape[0]:,}  features={len([c for c in train_df.columns if str(c).startswith('feature_')])}",
-    )
+    _log_data_diagnostics(prepared_dataset, logger)
 
     with profiler.stage("train_env_build", 2):
         training_bundle = _build_training_bundle(
@@ -366,13 +380,7 @@ def build_experiment_runtime(
             create_mlflow_callback=create_mlflow_callback,
         )
 
-    if create_mlflow_callback and mlflow.active_run():
-        MLflowTrainingCallback.log_parameter_faq_artifact()
-        MLflowTrainingCallback.log_training_parameters(config)
-        MLflowTrainingCallback.log_config_artifact(config)
-        if getattr(getattr(config, "logging", None), "log_data_overviews", False):
-            MLflowTrainingCallback.log_raw_data_overview(train_df, config)
-            MLflowTrainingCallback.log_transformed_data_overview(train_df, config)
+    _log_mlflow_artifacts(config, prepared_dataset, create_mlflow_callback)
 
     return ExperimentRuntime(
         logger=logger,
