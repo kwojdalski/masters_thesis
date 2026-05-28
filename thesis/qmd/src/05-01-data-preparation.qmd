@@ -263,7 +263,7 @@ Cyclical temporal encodings (hour-of-day sine and cosine) are already bounded in
 
 #### Transformed Feature Example
 
-To illustrate how the raw order book data is transformed into the input features used by the RL agent, @tbl-transformed-features shows twelve consecutive events from the AAPL feed. Each column (E1–E12) represents one order-book event; each row shows how a single variable evolves across those events. The upper rows display the raw order book state (best bid/ask prices and sizes), while the lower rows show the corresponding normalized microstructure features computed from that state.
+To illustrate how the raw order book data is transformed into the input features used by the RL agent, @tbl-transformed-features shows twelve consecutive events from the AAPL feed. Each row represents one order-book event; the left columns display the raw order book state (best bid/ask prices and sizes), while the right columns show the corresponding normalized microstructure features computed from that state.
 
 ```{python}
 #| label: tbl-transformed-features
@@ -297,42 +297,46 @@ else:
 
     win = df.iloc[best_start : best_start + 12].copy()
 
-    # Build the transposed display frame: features as rows, events as columns.
-    rows = {
+    # Build display frame: events as rows, features as columns.
+    RAW_COLS = ["Time (UTC)", "Best Bid ($)", "Best Ask ($)", "Bid Size", "Ask Size"]
+    FEAT_COLS = ["Book Pressure", "Order Imbalance", "Microprice Dev.", "OFI"]
+    FIRST_FEAT_COL = FEAT_COLS[0]
+
+    tbl = pd.DataFrame({
         "Time (UTC)": win["ts_event"].dt.strftime("%H:%M:%S.%f").str[:-3].values,
-        "Best Bid (\\$)": win["bid_px_00"].round(2).values,
-        "Best Ask (\\$)": win["ask_px_00"].round(2).values,
+        "Best Bid ($)": win["bid_px_00"].round(2).values,
+        "Best Ask ($)": win["ask_px_00"].round(2).values,
         "Bid Size": win["bid_sz_00"].astype(int).values,
         "Ask Size": win["ask_sz_00"].astype(int).values,
         "Book Pressure": win["feature_hft_book_pressure_l0"].round(3).values,
         "Order Imbalance": win["feature_hft_order_book_imbalance_3l"].round(3).values,
         "Microprice Dev.": win["feature_hft_microprice_divergence"].round(3).values,
         "OFI": win["feature_hft_ofi"].round(3).values,
-    }
-    tbl = pd.DataFrame(rows, index=range(1, 13)).T
-    tbl.columns = [f"E{i}" for i in range(1, 13)]
+    }, index=[f"E{i}" for i in range(1, 13)])
 
-    # Separate raw-data rows from feature rows with a visual rule.
-    RAW_ROWS = {"Time (UTC)", "Best Bid (\\$)", "Best Ask (\\$)", "Bid Size", "Ask Size"}
-    DIVIDER_AFTER = "Ask Size"
+    # Header: event index + one <th> per column; bold raw cols, left-border on first feature col.
+    header_cells = ""
+    for col in tbl.columns:
+        bold = "font-weight:bold;" if col in RAW_COLS else ""
+        border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
+        header_cells += f'<th style="text-align:right;{bold}{border}">{col}</th>'
+    header = (
+        f'<thead><tr><th style="text-align:left">Event</th>{header_cells}</tr></thead>'
+    )
 
+    # Rows: one per event.
     html_rows = []
-    for row_name, series in tbl.iterrows():
-        style = "font-weight:bold;" if row_name in RAW_ROWS else ""
-        cells = "".join(f'<td style="text-align:right">{v}</td>' for v in series)
-        border = ' style="border-top:2px solid #555"' if row_name == "Book Pressure" else ""
+    for event, series in tbl.iterrows():
+        cells = ""
+        for col, val in series.items():
+            border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
+            cells += f'<td style="text-align:right;{border}">{val}</td>'
         html_rows.append(
-            f"<tr{border}>"
-            f'<th style="text-align:left;white-space:nowrap;{style}">{row_name}</th>'
+            f"<tr>"
+            f'<th style="text-align:left;font-weight:normal">{event}</th>'
             f"{cells}</tr>"
         )
 
-    header_cells = "".join(
-        f'<th style="text-align:right">{c}</th>' for c in tbl.columns
-    )
-    header = (
-        f'<thead><tr><th style="text-align:left">Feature</th>{header_cells}</tr></thead>'
-    )
     body = "<tbody>" + "".join(html_rows) + "</tbody>"
     table_html = (
         '<div style="overflow-x:auto">'
@@ -349,8 +353,8 @@ else:
             "to include multiple bid/ask price changes. "
             "Book Pressure, Order Imbalance, Microprice Dev., and OFI are "
             "z-score normalized using causal running statistics. "
-            "A horizontal rule separates the raw order-book state (upper rows) "
-            "from the normalized features (lower rows)."
+            "A vertical rule separates the raw order-book state (left columns) "
+            "from the normalized features (right columns)."
         ),
     )
 ```
