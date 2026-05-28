@@ -36,7 +36,7 @@ data:
   memmap_dir: ./data/memmap/pooled_daily_6sym_selected
   feature_cache_dir: .cache/feature_transformation
   filter_lob_levels: 5
-  eval_symbol_selection: first
+  eval_symbol_selection: rotated
 env:
   backend: tradingenv
   trading_fees: 0.0001
