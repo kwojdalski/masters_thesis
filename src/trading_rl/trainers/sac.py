@@ -17,31 +17,11 @@ from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction
 from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.models import create_sac_actor, create_sac_qvalue_network
-from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _log_network_stats, BaseTrainer
+from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _collect_mlflow_meta, _log_network_stats, BaseTrainer
 
 logger = get_logger(__name__)
 
 _MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
-
-
-def _collect_mlflow_meta() -> dict:
-    """Collect active MLflow run metadata; returns empty dict when no run is active."""
-    try:
-        import mlflow
-        run = mlflow.active_run()
-        if run is None:
-            return {}
-        experiment = mlflow.get_experiment(run.info.experiment_id)
-        return {
-            "run_id": run.info.run_id,
-            "run_name": run.data.tags.get("mlflow.runName"),
-            "tracking_uri": mlflow.get_tracking_uri(),
-            "experiment_id": run.info.experiment_id,
-            "experiment_name": experiment.name if experiment else None,
-        }
-    except Exception:
-        logger.debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata", exc_info=True)
-        return {}
 
 
 @register_trainer("SAC", continuous=True)
@@ -101,7 +81,7 @@ class SACTrainer(BaseTrainer):
             logger.warning("action_spec not Bounded spec fallback bounds=[-1, 1]")
         self.sac_action_spec = sac_action_spec
 
-        target_entropy = getattr(config, "sac_target_entropy", None)
+        target_entropy = config.sac.target_entropy
         if target_entropy is None:
             target_entropy = -float(self.n_act)
 
@@ -110,7 +90,7 @@ class SACTrainer(BaseTrainer):
             qvalue_network=value_net,
             num_qvalue_nets=2,
             loss_function=getattr(config, "loss_function", LossFunction.L2),
-            alpha_init=getattr(config, "sac_initial_alpha", 0.2),
+            alpha_init=config.sac.initial_alpha,
             fixed_alpha=False,
             target_entropy=target_entropy,
             delay_actor=False,
@@ -131,7 +111,7 @@ class SACTrainer(BaseTrainer):
         )
         self.optimizer_alpha = Adam(
             [self.sac_loss.log_alpha],
-            lr=getattr(config, "sac_alpha_lr", 3e-4),
+            lr=config.sac.alpha_lr,
         )
 
         # Counters for tracking successful vs skipped batches
@@ -144,10 +124,10 @@ class SACTrainer(BaseTrainer):
             "initial_alpha=%.3f target_entropy=%.3f",
             config.actor_lr,
             config.value_lr,
-            getattr(config, "sac_alpha_lr", 3e-4),
+            config.sac.alpha_lr,
             config.buffer_size,
             config.tau,
-            getattr(config, "sac_initial_alpha", 0.2),
+            config.sac.initial_alpha,
             target_entropy,
         )
 

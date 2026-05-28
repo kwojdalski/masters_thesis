@@ -86,6 +86,26 @@ class _LocalTrajectoryPool:
 logger = get_logger(__name__)
 
 
+def _collect_mlflow_meta() -> dict:
+    """Collect active MLflow run metadata; returns empty dict when no run is active."""
+    try:
+        import mlflow
+        run = mlflow.active_run()
+        if run is None:
+            return {}
+        experiment = mlflow.get_experiment(run.info.experiment_id)
+        return {
+            "run_id": run.info.run_id,
+            "run_name": run.data.tags.get("mlflow.runName"),
+            "tracking_uri": mlflow.get_tracking_uri(),
+            "experiment_id": run.info.experiment_id,
+            "experiment_name": experiment.name if experiment else None,
+        }
+    except Exception:
+        logger.debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata", exc_info=True)
+        return {}
+
+
 def _patch_torchrl_trajectory_pool() -> None:
     """Replace TorchRL's _TrajectoryPool with a shared-memory-free implementation.
 

@@ -16,31 +16,11 @@ from logger import get_logger
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.models import create_ddpg_actor, create_value_network
-from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _log_network_stats, BaseTrainer
+from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _collect_mlflow_meta, _log_network_stats, BaseTrainer
 
 logger = get_logger(__name__)
 
 _MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
-
-
-def _collect_mlflow_meta() -> dict:
-    """Collect active MLflow run metadata; returns empty dict when no run is active."""
-    try:
-        import mlflow
-        run = mlflow.active_run()
-        if run is None:
-            return {}
-        experiment = mlflow.get_experiment(run.info.experiment_id)
-        return {
-            "run_id": run.info.run_id,
-            "run_name": run.data.tags.get("mlflow.runName"),
-            "tracking_uri": mlflow.get_tracking_uri(),
-            "experiment_id": run.info.experiment_id,
-            "experiment_name": experiment.name if experiment else None,
-        }
-    except Exception:
-        logger.debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata", exc_info=True)
-        return {}
 
 
 @register_trainer("DDPG", continuous=True)

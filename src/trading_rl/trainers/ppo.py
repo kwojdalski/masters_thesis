@@ -35,29 +35,9 @@ from trading_rl.models import (
     create_ppo_actor,
     create_ppo_value_network,
 )
-from trading_rl.trainers.base import _log_network_stats, BaseTrainer
+from trading_rl.trainers.base import _collect_mlflow_meta, _log_network_stats, BaseTrainer
 
 logger = get_logger(__name__)
-
-
-def _collect_mlflow_meta() -> dict:
-    """Collect active MLflow run metadata; returns empty dict when no run is active."""
-    try:
-        import mlflow
-        run = mlflow.active_run()
-        if run is None:
-            return {}
-        experiment = mlflow.get_experiment(run.info.experiment_id)
-        return {
-            "run_id": run.info.run_id,
-            "run_name": run.data.tags.get("mlflow.runName"),
-            "tracking_uri": mlflow.get_tracking_uri(),
-            "experiment_id": run.info.experiment_id,
-            "experiment_name": experiment.name if experiment else None,
-        }
-    except Exception:
-        logger.debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata", exc_info=True)
-        return {}
 
 
 def _run_viz_rollout(env, actor, max_steps: int, max_episode_length: int, process_step) -> None:
@@ -162,9 +142,9 @@ class PPOTrainer(BaseTrainer):
         self.ppo_loss = ClipPPOLoss(
             actor_network=actor,
             critic_network=value_net,
-            clip_epsilon=getattr(config, "clip_epsilon", 0.2),
-            entropy_bonus=getattr(config, "entropy_bonus", 0.01),
-            critic_coeff=getattr(config, "vf_coef", 0.5),
+            clip_epsilon=config.ppo.clip_epsilon,
+            entropy_bonus=config.ppo.entropy_bonus,
+            critic_coeff=config.ppo.vf_coef,
             loss_critic_type=getattr(config, "loss_function", LossFunction.L2),
             normalize_advantage=True,
         )
@@ -183,14 +163,11 @@ class PPOTrainer(BaseTrainer):
             },
         ])
 
-        # Note: Don't set composite LP aggregate for PPO to avoid conflicts
-        # with log_prob_key property
-
         logger.info(
             "init ppo trainer lr=%s clip_epsilon=%.3f entropy_bonus=%.4f",
             config.actor_lr,
-            getattr(config, "clip_epsilon", 0.2),
-            getattr(config, "entropy_bonus", 0.01),
+            config.ppo.clip_epsilon,
+            config.ppo.entropy_bonus,
         )
 
     def _optimization_step(
@@ -204,7 +181,7 @@ class PPOTrainer(BaseTrainer):
             buffer_len: Current replay buffer size
         """
         # PPO typically does multiple epochs per batch
-        ppo_epochs = getattr(self.config, "ppo_epochs", 4)
+        ppo_epochs = self.config.ppo.epochs
 
         # Compute trajectory-based targets (GAE/value_target) on the full ordered
         # rollout before random minibatch sampling. Computing these on shuffled
@@ -343,7 +320,7 @@ class PPOTrainer(BaseTrainer):
             del eval_rollout
 
     def _compute_exploration_ratio(self) -> float:
-        return getattr(self.config, "entropy_bonus", 0.01)
+        return self.config.ppo.entropy_bonus
 
     def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for PPO agent."""
