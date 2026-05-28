@@ -350,16 +350,14 @@ else:
 
 @tbl-feature-stats reports distributional statistics for all engineered
 microstructure features computed over the training split, after skipping
-the first 500 events to allow rolling-window features to stabilise. The
-"Selected" column indicates whether the feature is included in the
-agent's observation vector. Means close to zero and standard deviations
-near one confirm that the causal running normalization is
-operating as intended across all features. The absence of null values
-verifies that no look-ahead imputation or forward-fill was applied
-during feature construction.
+the first 500 events to allow rolling-window features to stabilise. Means
+close to zero and standard deviations near one confirm that the causal
+running normalisation is operating as intended. Q1, Q2, and Q3 show the
+inter-quartile spread; Skew and Kurt (excess kurtosis) characterise the
+shape of each marginal distribution.
 
-Several selected features — most notably `ofi` and `ofi_rolling_50` —
-exhibit extreme minimum and maximum values despite the near-unit standard
+Several features — most notably `ofi` and `ofi_rolling_50` — exhibit
+extreme minimum and maximum values despite the near-unit standard
 deviation. This is a structural property of order-flow imbalance, not a
 data quality issue. The order book is quiet the overwhelming majority of
 the time: most tick events represent small queue adjustments that produce
@@ -367,7 +365,8 @@ z-scores close to zero. Occasionally, however, a large aggressive order
 consumes multiple price levels in rapid succession, causing a spike of
 hundreds of raw OFI units. The Welford running standard deviation is
 dominated by the quiet majority, so these rare spikes emerge as z-scores
-of $\pm$290 or larger after normalization.
+of $\pm$290 or larger after normalisation. The large positive excess
+kurtosis visible for OFI features reflects this heavy-tailed structure.
 
 The values in @tbl-feature-stats are post-normalization but pre-clipping.
 The environment applies a hard observation clip of $[-5, 5]$ via the
@@ -396,21 +395,35 @@ if _feat_path.exists():
     feat_df = pd.read_csv(_feat_path)
 
     # Clean up feature names for display
-    feat_df["feature"] = feat_df["feature"].str.replace("feature_hft_", "", regex=False).str.replace("feature_", "", regex=False)
-    feat_df["selected"] = feat_df["selected"].map({True: "yes", False: ""})
+    feat_df["feature"] = (
+        feat_df["feature"]
+        .str.replace("feature_hft_", "", regex=False)
+        .str.replace("feature_", "", regex=False)
+    )
 
     for col in ("mean", "std", "min", "max"):
         feat_df[col] = feat_df[col].apply(lambda x: f"{x:.4f}")
-    feat_df["nulls"] = feat_df["nulls"].astype(int)
+    for col in ("skew", "kurt"):
+        if col in feat_df.columns:
+            feat_df[col] = feat_df[col].apply(lambda x: f"{x:.3f}")
+    for col in ("q1", "q2", "q3"):
+        if col in feat_df.columns:
+            feat_df[col] = feat_df[col].apply(lambda x: f"{x:.4f}")
+
+    keep = ["feature", "mean", "std", "skew", "kurt", "q1", "q2", "q3", "min", "max"]
+    feat_df = feat_df[[c for c in keep if c in feat_df.columns]]
 
     feat_df = feat_df.rename(columns={
         "feature": "Feature",
-        "selected": "Selected",
         "mean": "Mean",
         "std": "Std",
+        "skew": "Skew",
+        "kurt": "Kurt",
+        "q1": "Q1",
+        "q2": "Q2 (median)",
+        "q3": "Q3",
         "min": "Min",
         "max": "Max",
-        "nulls": "Nulls",
     })
 
     display(HTML(feat_df.to_html(index=False)))
@@ -418,7 +431,8 @@ if _feat_path.exists():
         note=(
             "Computed on the training split; the first 500 events are skipped to allow "
             "rolling-window features to reach steady state. "
-            "Selected (yes): the feature is included in the agent observation vector."
+            "Skew and Kurt are the Fisher skewness and excess kurtosis. "
+            "Q1/Q2/Q3 are the 25th, 50th, and 75th percentiles."
         ),
     )
 else:

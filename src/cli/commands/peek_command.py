@@ -191,20 +191,31 @@ class PeekCommand(BaseCommand):
         tbl.add_column("selected", justify="center")
         tbl.add_column("mean", justify="right")
         tbl.add_column("std", justify="right")
+        tbl.add_column("skew", justify="right")
+        tbl.add_column("kurt", justify="right")
+        tbl.add_column("Q1", justify="right")
+        tbl.add_column("Q2", justify="right")
+        tbl.add_column("Q3", justify="right")
         tbl.add_column("min", justify="right")
         tbl.add_column("max", justify="right")
         tbl.add_column("nulls", justify="right")
 
         selected_set = set(env_selected)
-        desc = train.describe().T
+        desc = train.describe(percentiles=[0.25, 0.50, 0.75]).T
+        skewness = train.skew()
+        kurtosis = train.kurt()
         export_rows = []
         for col in feat_cols[:n_features]:
             row = desc.loc[col]
             null_count = int(train[col].isnull().sum())
+            skew_val = float(skewness[col])
+            kurt_val = float(kurtosis[col])
             tick = "[green]yes[/green]" if col in selected_set else ""
             tbl.add_row(
                 col, tick,
                 f"{row['mean']:.4f}", f"{row['std']:.4f}",
+                f"{skew_val:.3f}", f"{kurt_val:.3f}",
+                f"{row['25%']:.4f}", f"{row['50%']:.4f}", f"{row['75%']:.4f}",
                 f"{row['min']:.4f}", f"{row['max']:.4f}",
                 str(null_count) if null_count else "[green]0[/green]",
             )
@@ -213,6 +224,11 @@ class PeekCommand(BaseCommand):
                 "selected": col in selected_set,
                 "mean": float(row["mean"]),
                 "std": float(row["std"]),
+                "skew": skew_val,
+                "kurt": kurt_val,
+                "q1": float(row["25%"]),
+                "q2": float(row["50%"]),
+                "q3": float(row["75%"]),
                 "min": float(row["min"]),
                 "max": float(row["max"]),
                 "nulls": null_count,
