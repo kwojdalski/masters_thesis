@@ -188,6 +188,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         # feature_position lives in the env at runtime, not in the memmap data
         static_feature_columns = [c for c in feature_columns if c not in runtime_cols]
         obs_clip = getattr(config.env, "obs_clip", 5.0)
+        action_penalty_lambda = getattr(config.env, "action_penalty_lambda", 0.0)
+        action_penalty_type = getattr(config.env, "action_penalty_type", "quadratic")
 
         base_env = StreamingTradingEnvXY(
             memmap_paths=memmap_paths,
@@ -202,6 +204,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             runtime_feature_columns=runtime_cols,
             obs_clip=obs_clip,
             seed=getattr(config, "seed", None),
+            action_penalty_lambda=action_penalty_lambda,
+            action_penalty_type=action_penalty_type,
         )
         env = GymWrapper(base_env)
         with warnings.catch_warnings():

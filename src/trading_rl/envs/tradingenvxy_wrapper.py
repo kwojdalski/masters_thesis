@@ -415,6 +415,8 @@ class StreamingTradingEnvXY(gym.Env):
         obs_clip: float | None = None,
         seed: int | None = None,
         dsr_persist_across_symbols: bool = False,
+        action_penalty_lambda: float = 0.0,
+        action_penalty_type: str = "quadratic",
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -433,6 +435,16 @@ class StreamingTradingEnvXY(gym.Env):
         self._runtime_feature_columns = runtime_feature_columns or []
         self._obs_clip = obs_clip
         self._dsr_persist_across_symbols = dsr_persist_across_symbols
+
+        _valid_penalty_types = {"quadratic", "absolute", "change_quadratic"}
+        if action_penalty_type not in _valid_penalty_types:
+            raise ValueError(
+                f"action_penalty_type must be one of {_valid_penalty_types}, "
+                f"got {action_penalty_type!r}"
+            )
+        self._action_penalty_lambda = float(action_penalty_lambda)
+        self._action_penalty_type = action_penalty_type
+        self._prev_action: float = 0.0
 
         stocks = [Stock(price_column)]
         self.action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
@@ -613,14 +625,30 @@ class StreamingTradingEnvXY(gym.Env):
         # moments explicitly so cross-episode EMA continuity is preserved.
         if _dsr_to_restore is not None and _saved_moments is not None:
             _dsr_to_restore.A_t, _dsr_to_restore.B_t = _saved_moments
+        self._prev_action = 0.0
         return self._extract_obs(obs), {}
+
+    def _compute_action_penalty(self, action: float) -> float:
+        lam = self._action_penalty_lambda
+        if lam == 0.0:
+            return 0.0
+        if self._action_penalty_type == "quadratic":
+            return lam * float(action) ** 2
+        if self._action_penalty_type == "absolute":
+            return lam * abs(float(action))
+        # change_quadratic
+        return lam * (float(action) - self._prev_action) ** 2
 
     def step(self, action):
         try:
             obs, reward, done, info = self._inner_env.step(action)
         except EndOfEpisodeError:
             obs = np.zeros(self.observation_space.shape, dtype=np.float32)
+            self._prev_action = 0.0
             return obs, -1.0, True, False, {"bankrupt": True}
+        penalty = self._compute_action_penalty(action)
+        reward = float(reward) - penalty
+        self._prev_action = float(action)
         # Distinguish bankruptcy (terminated) from data exhaustion (truncated).
         if done:
             broker = getattr(self._inner_env, "broker", None)

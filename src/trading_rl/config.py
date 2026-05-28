@@ -153,6 +153,14 @@ class EnvConfig:
     reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")
     reward_scale: float = 1.0  # Multiplicative scale applied to the reward after clipping (e.g. 1000.0 to amplify DSR signals)
 
+    # Action penalty: subtracted from the reward at each step to discourage bang-bang (±1) behavior.
+    # Off by default (lambda=0). Penalty types:
+    #   "quadratic"        → lambda * action^2
+    #   "absolute"         → lambda * abs(action)
+    #   "change_quadratic" → lambda * (action_t - action_{t-1})^2  (models transaction costs)
+    action_penalty_lambda: float = 0.0
+    action_penalty_type: str = "quadratic"
+
 
 @dataclass
 class NetworkConfig:
@@ -519,6 +527,16 @@ class ExperimentConfig:
             errors.append(
                 f"env.reward_eta must be > 0 when using differential_sharpe, "
                 f"got {self.env.reward_eta}"
+            )
+        if self.env.action_penalty_lambda < 0:
+            errors.append(
+                f"env.action_penalty_lambda must be >= 0, got {self.env.action_penalty_lambda}"
+            )
+        _valid_penalty_types = {"quadratic", "absolute", "change_quadratic"}
+        if self.env.action_penalty_type not in _valid_penalty_types:
+            errors.append(
+                f"env.action_penalty_type must be one of {sorted(_valid_penalty_types)}, "
+                f"got '{self.env.action_penalty_type}'"
             )
 
         # Network configuration validation
