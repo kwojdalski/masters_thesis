@@ -17,7 +17,6 @@ from trading_rl.evaluation.returns import (
     RewardSeries,
     extract_tradingenv_return_series,
 )
-from trading_rl.evaluation.statistical_test_registry import _sharpe_ratio
 
 
 def compute_buy_and_hold_returns(prices: pd.Series, max_steps: int) -> np.ndarray:
