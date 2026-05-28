@@ -41,7 +41,8 @@ if finished is not None:
     if benchmark_df.empty:
         benchmark_df = None
 
-if benchmark_df is None or benchmark_df.empty:
+_is_placeholder = benchmark_df is None or benchmark_df.empty
+if _is_placeholder:
     print("Placeholder values shown — run full experiment pipeline to populate.")
     benchmark_df = pd.DataFrame([
         ("TD3 Agent", "0.28%", "12.34%", "1.8234", "2.4123", "-0.16%", "56.21%", "0.6400"),
@@ -67,7 +68,11 @@ if benchmark_df is None or benchmark_df.empty:
 #| label: tbl-benchmark-comparison
 #| tbl-cap: "Benchmark Strategy Performance Comparison"
 
+from thesis_tables import table_note
+
 HTML(benchmark_df.to_html(index=False))
+if _is_placeholder:
+    table_note(note="**Placeholder values** — these figures are illustrative only and will be replaced once the full experiment pipeline has completed and evaluation artifacts are available.")
 ```
 
 *TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (mean excess return divided by standard deviation, not annualized). Sortino: Sortino Ratio (mean excess return divided by downside deviation, not annualized). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
