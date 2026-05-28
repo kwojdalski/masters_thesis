@@ -16,15 +16,27 @@ DOC_PATH = Path(__file__).parent.parent / "docs" / "hft_features.md"
 
 
 def _lob_feature_types() -> list[str]:
-    """Return all feature type names registered from lob_features module."""
-    importlib.import_module("trading_rl.features.lob_features")
+    """Return all feature type names registered from LOB feature modules."""
+    for mod in [
+        "trading_rl.features.lob_features",
+        "trading_rl.features.lob_book_features",
+        "trading_rl.features.lob_flow_features",
+        "trading_rl.features.lob_trade_features",
+    ]:
+        importlib.import_module(mod)
     from trading_rl.features.registry import FeatureRegistry
 
     registry = FeatureRegistry()
+    _lob_modules = {
+        "trading_rl.features.lob_features",
+        "trading_rl.features.lob_book_features",
+        "trading_rl.features.lob_flow_features",
+        "trading_rl.features.lob_trade_features",
+    }
     return sorted(
         key
         for key, cls in registry._registry.items()
-        if "lob_features" in cls.__module__
+        if cls.__module__ in _lob_modules
     )
 
 

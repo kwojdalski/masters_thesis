@@ -194,7 +194,33 @@ Range $[0, 1]$.
 
 ---
 
-### 14. Mid-Price Acceleration
+### 14. Mid-Price Velocity
+
+**Feature type:** `mid_price_velocity`
+
+$$M_t = \frac{P^{bid}_{0,t} + P^{ask}_{0,t}}{2}$$
+
+$$\text{Velocity}_t = M_t - M_{t-1}$$
+
+First finite difference of mid-price. Positive when mid-price is rising, negative when falling. First row is 0.
+
+**Feasibility:** fully computable from `bid_px_00`, `ask_px_00`.
+
+---
+
+### 14b. Future Mid-Price Velocity (sanity-check only)
+
+**Feature type:** `mid_price_future_velocity`
+
+$$\text{FutureVelocity}_t = M_{t+1} - M_t$$
+
+Look-ahead version of `mid_price_velocity` — the *next* step's mid-price change shifted back by one. Contains intentional data leakage and is used only as a training-loop sanity check: correlation with the log-return reward should be approximately 1.0. Must not be used in live or evaluation settings.
+
+**Feasibility:** requires future data — training sanity check only.
+
+---
+
+### 15. Mid-Price Acceleration
 
 **Feature type:** `mid_price_acceleration`
 **Literature:** No single canonical citation. Second finite difference used as a regime indicator in Abergel et al. (2016) *Limit order books* (Cambridge); the acceleration concept is related to momentum factor research (Jegadeesh & Titman, 1993) applied at tick frequency.
