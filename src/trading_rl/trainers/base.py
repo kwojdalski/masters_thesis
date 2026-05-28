@@ -19,7 +19,7 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 
 from logger import get_logger, log_banner
 from trading_rl.config import EvaluationConfig, TrainingConfig
-from trading_rl.constants import BenchmarkName, EnvBackend, EnvMode, RewardType
+from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.benchmarks import benchmarks_from_config
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.profiler import get_profiler
