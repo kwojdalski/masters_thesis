@@ -82,9 +82,11 @@ class PolicyLoader:
                 )
             actor = PolicyLoader._build_continuous_actor(n_obs, n_act, hidden_dims, spec)
         else:
+            from trading_rl.trainers.registry import TrainerRegistry
+            available = [a.lower() for a in TrainerRegistry.list_algorithms()]
             raise ValueError(
                 f"Unsupported algorithm '{algorithm}'. "
-                "Expected one of: ppo, td3, ddpg."
+                f"Expected one of: {available}."
             )
 
         actor.load_state_dict(state_dict)

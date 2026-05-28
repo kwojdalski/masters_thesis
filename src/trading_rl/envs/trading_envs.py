@@ -226,15 +226,17 @@ class _AnyTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
 
         base_env = gym.make(self._env_id, **env_kwargs)
 
-        # Apply DSR wrapper if configured
+        # Apply DSR wrapper if configured (log_return needs no wrapper)
         if self.config is not None:
             reward_type = getattr(self.config.env, "reward_type", RewardType.LOG_RETURN)
-            if reward_type == RewardType.DIFFERENTIAL_SHARPE:
+            if reward_type != RewardType.LOG_RETURN:
                 from trading_rl.rewards.dsr_wrapper import (
                     DifferentialSharpeRatioAnyTrading,
                     StatefulRewardWrapper,
                 )
+                from trading_rl.rewards.registry import RewardRegistry
 
+                RewardRegistry.create(reward_type)  # validates early; raises on unknown type
                 reward_eta = getattr(self.config.env, "reward_eta", 0.01)
                 reward_scale = getattr(self.config.env, "reward_scale", 1.0)
                 dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta, scale=reward_scale)
@@ -242,11 +244,6 @@ class _AnyTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
                 logger.info(
                     "applied dsr reward to %s environment eta=%s scale=%s",
                     self._env_id, reward_eta, reward_scale,
-                )
-            elif reward_type != RewardType.LOG_RETURN:
-                raise ValueError(
-                    f"Unknown reward type: {reward_type}. "
-                    "Supported types: 'log_return', 'differential_sharpe'"
                 )
 
         base_env = DiscreteActionWrapper(base_env)

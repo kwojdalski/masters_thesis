@@ -1,6 +1,7 @@
 """RecurrentPPO Trainer implementation."""
 
 import logging
+from trading_rl.trainers.registry import register_trainer
 from typing import Any
 
 import torch
@@ -19,6 +20,7 @@ from trading_rl.trainers.ppo import PPOTrainerContinuous
 logger = get_logger(__name__)
 
 
+@register_trainer("RECURRENT_PPO", continuous=True)
 class RecurrentPPOTrainer(PPOTrainerContinuous):
     """PPO trainer with GRU recurrent actor and value networks.
 

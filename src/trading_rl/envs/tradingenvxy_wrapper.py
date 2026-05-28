@@ -17,7 +17,6 @@ from tradingenv.broker.broker import EndOfEpisodeError
 from tradingenv.broker.fees import BrokerFees
 from tradingenv.contracts import Stock
 from tradingenv.features import Feature
-from tradingenv.rewards import LogReturn
 from tradingenv.spaces import BoxPortfolio
 
 from logger import get_logger
@@ -294,18 +293,9 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         reward_eta = kwargs.pop("reward_eta", reward_eta)
         reward_scale = kwargs.pop("reward_scale", reward_scale)
 
-        # Create reward function based on configuration
-        if reward_type == RewardType.DIFFERENTIAL_SHARPE:
-            reward = DifferentialSharpeRatio(eta=reward_eta, scale=reward_scale)
-            logger.info("reward differential_sharpe eta=%s scale=%s", reward_eta, reward_scale)
-        elif reward_type == RewardType.LOG_RETURN:
-            reward = LogReturn(scale=reward_scale)
-            logger.info("using log_return reward scale=%s", reward_scale)
-        else:
-            raise ValueError(
-                f"Unknown reward type: {reward_type}. "
-                "Supported types: 'log_return', 'differential_sharpe'"
-            )
+        from trading_rl.rewards.registry import RewardRegistry
+        reward = RewardRegistry.create(reward_type, eta=reward_eta, scale=reward_scale)
+        logger.info("reward reward_type=%s eta=%s scale=%s", reward_type, reward_eta, reward_scale)
 
         logger.info(
             "creating TradingEnv environment n_rows=%d n_static_cols=%d n_runtime_cols=%d price_column=%s fee=%s",
@@ -492,11 +482,9 @@ class StreamingTradingEnvXY(gym.Env):
                     eta=self._reward_eta, scale=self._reward_scale
                 )
             return self._dsr_per_symbol[symbol]
-        if self._reward_type == RewardType.LOG_RETURN:
-            return LogReturn(scale=self._reward_scale)
-        raise ValueError(
-            f"Unknown reward type: {self._reward_type!r}. "
-            "Supported: 'log_return', 'differential_sharpe'"
+        from trading_rl.rewards.registry import RewardRegistry
+        return RewardRegistry.create(
+            self._reward_type, eta=self._reward_eta, scale=self._reward_scale
         )
 
     def _load_window(self, file_idx: int, start: int) -> pd.DataFrame:

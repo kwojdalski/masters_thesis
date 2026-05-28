@@ -1,6 +1,7 @@
 """TD3 Trainer implementation."""
 
 import logging
+from trading_rl.trainers.registry import register_trainer
 from collections import defaultdict
 from typing import Any
 
@@ -60,6 +61,7 @@ class TD3Loss(TorchRLTd3Loss):
         return ["observation", "action", "next", "reward", "done", "terminated"]
 
 
+@register_trainer("TD3", continuous=True)
 class TD3Trainer(BaseTrainer):
     """Trainer for TD3 algorithm on trading environments."""
 

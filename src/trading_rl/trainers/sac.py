@@ -1,6 +1,7 @@
 """SAC Trainer implementation."""
 
 import logging
+from trading_rl.trainers.registry import register_trainer
 from collections import defaultdict
 from typing import Any
 
@@ -43,6 +44,7 @@ def _collect_mlflow_meta() -> dict:
         return {}
 
 
+@register_trainer("SAC", continuous=True)
 class SACTrainer(BaseTrainer):
     """Trainer for SAC (Soft Actor-Critic) algorithm on trading environments.
 

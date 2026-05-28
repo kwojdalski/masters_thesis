@@ -4,6 +4,7 @@ import numpy as np
 
 from logger import get_logger
 from trading_rl.rewards.differential_sharpe import DifferentialSharpeRatio
+from trading_rl.rewards.registry import RewardRegistry, register_reward
 
 logger = get_logger(__name__)
 
@@ -33,4 +34,4 @@ def reward_function(history: dict) -> float:
     return float(np.log(curr / prev))
 
 
-__all__ = ["DifferentialSharpeRatio", "reward_function"]
+__all__ = ["DifferentialSharpeRatio", "RewardRegistry", "register_reward", "reward_function"]

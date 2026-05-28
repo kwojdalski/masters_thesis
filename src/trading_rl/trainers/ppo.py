@@ -1,6 +1,7 @@
 """PPO Trainer implementation."""
 
 import logging
+from trading_rl.trainers.registry import register_trainer
 from collections import defaultdict
 from typing import Any
 
@@ -100,6 +101,7 @@ def _run_viz_rollout(env, actor, max_steps: int, max_episode_length: int, proces
             current_episode_steps = 0
 
 
+@register_trainer("PPO")
 class PPOTrainer(BaseTrainer):
     """Trainer for PPO algorithm on trading environments."""
 
@@ -572,6 +574,7 @@ class PPOTrainer(BaseTrainer):
         return plot
 
 
+@register_trainer("PPO", continuous=True)
 class PPOTrainerContinuous(PPOTrainer):
     """Trainer for PPO algorithm with continuous action spaces."""
 
