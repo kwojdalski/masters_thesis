@@ -1319,12 +1319,13 @@ def show_plot(
         plot = plot + theme(figure_size=(width or cur_w, height or cur_h))
 
     # Extract and strip text labels from the plot.
-    # plotnine's labels_view.get() requires an explicit default argument.
-    title    = plot.labels.get("title",    "") or ""
-    subtitle = plot.labels.get("subtitle", "") or ""
-    caption  = fig_cap or plot.labels.get("caption", "") or ""
-    for key in ("title", "subtitle", "caption"):
-        plot.labels.pop(key, None)
+    # labels_view is a dataclass — use attribute access, not dict methods.
+    title    = plot.labels.title    or ""
+    subtitle = plot.labels.subtitle or ""
+    caption  = fig_cap or plot.labels.caption or ""
+    plot.labels.title    = None
+    plot.labels.subtitle = None
+    plot.labels.caption  = None
 
     if fig_label:
         # --- Figure-env mode: save to file, emit Quarto cross-ref div ---
