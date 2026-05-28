@@ -337,6 +337,14 @@ def evaluate_split(
         except Exception as _rd_err:
             logger.warning("rollout data artifact failed split=%s err=%s", split, _rd_err)
 
+    # Merge rollout and equity plot DataFrames so the QMD can re-render at any
+    # figure size without re-running the rollout.
+    _eval_plots_dict = getattr(last_eval_result, "plots", None) or {}
+    _plot_data: dict = {
+        **((_eval_plots_dict.get("_rollout_plot_data")) or {}),
+        **((_eval_plots_dict.get("_equity_plot_data")) or {}),
+    }
+
     with profiler.stage(f"eval_mlflow_plots_{split}"):
         MLflowTrainingCallback.log_evaluation_plots(
             reward_plot=reward_plot,
@@ -347,6 +355,7 @@ def evaluate_split(
             merged_plot=merged_plot,
             artifact_path_prefix=ArtifactPaths.eval_plots(split),
             debug=getattr(config.logging, "debug_plots", False),
+            plot_data=_plot_data or None,
         )
 
     with profiler.stage(f"eval_report_{split}"):

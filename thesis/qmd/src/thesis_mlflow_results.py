@@ -208,8 +208,19 @@ def find_evaluation_plot_data(
 
     result: dict[str, Any] = {}
 
+    def _find_parquets(name: str) -> list[Path]:
+        # Prefer split subdirs (test > val > train) then root then any subdir.
+        for split in ("test", "val", "train"):
+            hits = sorted((plot_dir / split).glob(f"*_{name}_data.parquet"))
+            if hits:
+                return hits
+        hits = sorted(plot_dir.glob(f"*_{name}_data.parquet"))
+        if hits:
+            return hits
+        return sorted(plot_dir.glob(f"**/*_{name}_data.parquet"))
+
     for frame_name in ("rewards", "actions", "actions_ma", "equity"):
-        files = sorted(plot_dir.glob(f"*_{frame_name}_data.parquet"))
+        files = _find_parquets(frame_name)
         if files:
             try:
                 result[frame_name] = pd.read_parquet(files[-1])
@@ -219,7 +230,15 @@ def find_evaluation_plot_data(
             except Exception:
                 pass
 
-    meta_files = sorted(plot_dir.glob("*_plot_meta.json"))
+    def _find_meta_json() -> list[Path]:
+        for split in ("test", "val", "train"):
+            hits = sorted((plot_dir / split).glob("*_plot_meta.json"))
+            if hits:
+                return hits
+        hits = sorted(plot_dir.glob("*_plot_meta.json"))
+        return hits or sorted(plot_dir.glob("**/*_plot_meta.json"))
+
+    meta_files = _find_meta_json()
     if meta_files:
         try:
             with open(meta_files[-1], encoding="utf-8") as f:
