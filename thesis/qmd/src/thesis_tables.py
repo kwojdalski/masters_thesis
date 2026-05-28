@@ -185,6 +185,157 @@ def display_image_from_path(
 
 
 # ---------------------------------------------------------------------------
+# Feature distributional statistics table (landscape PDF / HTML)
+# ---------------------------------------------------------------------------
+
+def feature_stats_table(raw_df: "pd.DataFrame", *, obs_clip: float = 5.0) -> None:
+    """Emit feature distributional statistics as a landscape table.
+
+    Requires ``#| output: asis`` on the calling cell.
+
+    HTML: standard table wrapped in a ``#tbl-feature-stats`` cross-ref div.
+    PDF: landscape LaTeX via ``\\begin{landscape}`` (pdflscape), placed on its
+    own page with ``\\clearpage`` guards.
+
+    Min/Max values whose magnitude exceeds *obs_clip* are flagged with ``*``
+    (HTML) or ``$^{*}$`` (LaTeX) to indicate that the RL environment clips
+    them before passing observations to the policy network.
+    """
+    import math
+
+    df = raw_df.copy()
+
+    # Clean feature names
+    df["feature"] = (
+        df["feature"]
+        .str.replace("feature_hft_", "", regex=False)
+        .str.replace("feature_", "", regex=False)
+    )
+
+    # Determine clipped rows BEFORE string formatting
+    clip_min = df["min"].apply(lambda x: math.isfinite(float(x)) and float(x) < -obs_clip)
+    clip_max = df["max"].apply(lambda x: math.isfinite(float(x)) and float(x) > obs_clip)
+    any_clipped = bool(clip_min.any() or clip_max.any())
+
+    # Format numeric columns
+    for col in ("mean", "std", "min", "max"):
+        df[col] = df[col].apply(lambda x: f"{float(x):.4f}")
+    for col in ("skew", "kurt"):
+        if col in df.columns:
+            df[col] = df[col].apply(lambda x: f"{float(x):.3f}")
+    for col in ("q1", "q2", "q3"):
+        if col in df.columns:
+            df[col] = df[col].apply(lambda x: f"{float(x):.4f}")
+
+    keep = ["feature", "mean", "std", "skew", "kurt", "q1", "q2", "q3", "min", "max"]
+    df = df[[c for c in keep if c in df.columns]]
+    df = df.rename(columns={
+        "feature": "Feature", "mean": "Mean", "std": "Std",
+        "skew": "Skew", "kurt": "Kurt",
+        "q1": "Q1", "q2": "Q2", "q3": "Q3",
+        "min": "Min", "max": "Max",
+    })
+
+    caption = "Distributional statistics of engineered microstructure features."
+    note_base = (
+        "Computed on the training split; the first 500 events are skipped to allow "
+        "rolling-window features to reach steady state. "
+        "Skew and Kurt are the Fisher skewness and excess kurtosis. "
+        "Q1/Q2/Q3 are the 25th, 50th, and 75th percentiles."
+    )
+    clip_suffix_html = (
+        f" * the RL environment clips observations to \\u00b1{obs_clip:.0f};"
+        " starred values exceed this bound."
+    ) if any_clipped else ""
+    note_html = note_base + clip_suffix_html.replace("\\u00b1", "±")
+
+    # ── HTML version ──────────────────────────────────────────────────
+    html_df = df.copy()
+    html_df["Min"] = [v + "*" if c else v for v, c in zip(html_df["Min"], clip_min)]
+    html_df["Max"] = [v + "*" if c else v for v, c in zip(html_df["Max"], clip_max)]
+
+    html_table = html_df.to_html(index=False, classes="dataframe")
+    note_p = f'<p style="font-size:0.85em"><em><strong>Note:</strong> {note_html}</em></p>'
+
+    html_block = (
+        f'::: {{#tbl-feature-stats}}\n\n'
+        f'{html_table}\n\n'
+        f'{note_p}\n\n'
+        f'{caption}\n\n'
+        f':::'
+    )
+
+    # ── LaTeX version ─────────────────────────────────────────────────
+    def _esc(s: str) -> str:
+        return s.replace("_", r"\_").replace("%", r"\%").replace("&", r"\&")
+
+    cols = list(df.columns)
+    col_spec = "l " + " ".join(["r"] * (len(cols) - 1))
+    header_cells = " & ".join(f"\\textbf{{{_esc(c)}}}" for c in cols)
+
+    rows_latex: list[str] = []
+    for i, (_, row) in enumerate(df.iterrows()):
+        cells = []
+        for col, val in zip(cols, row):
+            s = _esc(str(val))
+            if col == "Min" and clip_min.iloc[i]:
+                s += r"$^{*}$"
+            elif col == "Max" and clip_max.iloc[i]:
+                s += r"$^{*}$"
+            cells.append(s)
+        rows_latex.append(" & ".join(cells) + r" \\")
+
+    note_latex = _esc(note_base)
+    if any_clipped:
+        note_latex += (
+            f" $^{{*}}$~the RL environment clips observations to"
+            f" $\\pm{obs_clip:.0f}$; starred values exceed this bound."
+        )
+
+    latex_block = "\n".join([
+        r"\clearpage",
+        r"\begin{landscape}",
+        r"\begin{table}[htbp]",
+        f"\\caption{{{_esc(caption)}}}",
+        r"\label{tbl-feature-stats}",
+        r"\centering",
+        r"\footnotesize",
+        f"\\begin{{tabular}}{{{col_spec}}}",
+        r"\toprule",
+        header_cells + r" \\",
+        r"\midrule",
+        *rows_latex,
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\vspace{4pt}",
+        r"\begin{minipage}{\linewidth}",
+        f"\\footnotesize\\textit{{{note_latex}}}",
+        r"\end{minipage}",
+        r"\end{table}",
+        r"\end{landscape}",
+        r"\clearpage",
+    ])
+
+    # ── Emit conditional blocks ────────────────────────────────────────
+    content = "\n".join([
+        '::: {.content-visible when-format="html"}',
+        "",
+        html_block,
+        "",
+        ":::",
+        "",
+        '::: {.content-visible when-format="pdf"}',
+        "",
+        "```{=latex}",
+        latex_block,
+        "```",
+        "",
+        ":::",
+    ])
+    display(Markdown(content))
+
+
+# ---------------------------------------------------------------------------
 # LOB events sample table
 # ---------------------------------------------------------------------------
 
@@ -231,17 +382,15 @@ def lob_events_table(df: "pd.DataFrame") -> None:
         bold = "font-weight:bold;" if col in RAW_COLS else ""
         border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
         header_cells += f'<th style="text-align:right;{bold}{border}">{col}</th>'
-    header = f'<thead><tr><th style="text-align:left">Event</th>{header_cells}</tr></thead>'
+    header = f'<thead><tr>{header_cells}</tr></thead>'
 
     html_rows = []
-    for event, series in tbl.iterrows():
+    for _event, series in tbl.iterrows():
         cells = ""
         for col, val in series.items():
             border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
             cells += f'<td style="text-align:right;{border}">{val}</td>'
-        html_rows.append(
-            f'<tr><th style="text-align:left;font-weight:normal">{event}</th>{cells}</tr>'
-        )
+        html_rows.append(f'<tr>{cells}</tr>')
 
     body = "<tbody>" + "".join(html_rows) + "</tbody>"
     table_html = (
@@ -255,7 +404,7 @@ def lob_events_table(df: "pd.DataFrame") -> None:
     table_note(
         source="DataBento Nasdaq MBP-10 feed, AAPL, 2 March 2026.",
         note=(
-            "E1–E12: twelve consecutive order-book events selected from the test split "
+            "Twelve consecutive order-book events selected from the test split "
             "to include multiple bid/ask price changes. "
             "Book Pressure, Order Imbalance, Microprice Dev., and OFI are "
             "z-score normalized using causal running statistics. "

@@ -91,10 +91,10 @@ are summarized below.
 
 | Timestamp (UTC) | Action | Side | Price (\$) | Size | Best Bid (\$) | Best Ask (\$) | Bid Sz | Ask Sz |
 |:---|:---:|:---:|---:|---:|---:|---:|---:|---:|
-| 14:30:00.016203 | A | B | 271.20 | 200 | 271.45 | 271.85 | 500 | 756 |
-| 14:30:00.024730 | T | N | 271.65 |  21 | 271.45 | 271.85 | 500 | 756 |
-| 14:30:00.024979 | A | A | 271.79 | 140 | 271.45 | 271.79 | 500 | 140 |
-| 14:30:00.025009 | A | A | 271.79 | 100 | 271.45 | 271.79 | 500 | 240 |
+| 14:30:00.016 | A | B | 271.20 | 200 | 271.45 | 271.85 | 500 | 756 |
+| 14:30:00.024 | T | N | 271.65 |  21 | 271.45 | 271.85 | 500 | 756 |
+| 14:30:00.024 | A | A | 271.79 | 140 | 271.45 | 271.79 | 500 | 140 |
+| 14:30:00.025 | A | A | 271.79 | 100 | 271.45 | 271.79 | 500 | 240 |
 
 : Four consecutive AAPL MBP-10 events, 25 February 2026. {#tbl-raw-sample}
 
@@ -378,65 +378,21 @@ then clip to suppress the rare extreme events — is standard practice in
 continuous-control RL on financial microstructure data.
 
 ```{python}
-#| label: tbl-feature-stats
-#| tbl-cap: "Distributional statistics of engineered microstructure features."
+#| label: cell-feature-stats
+#| output: asis
 #| echo: false
 #| warning: false
 
 import pandas as pd
-from IPython.display import HTML
 from thesis_mlflow_results import repo_root
-from thesis_tables import table_note
+from thesis_tables import feature_stats_table
 
-_PEEK_DIR = repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
-_feat_path = _PEEK_DIR / "feature_stats.csv"
-
+_feat_path = (
+    repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/feature_stats.csv"
+)
 if _feat_path.exists():
-    feat_df = pd.read_csv(_feat_path)
-
-    # Clean up feature names for display
-    feat_df["feature"] = (
-        feat_df["feature"]
-        .str.replace("feature_hft_", "", regex=False)
-        .str.replace("feature_", "", regex=False)
-    )
-
-    for col in ("mean", "std", "min", "max"):
-        feat_df[col] = feat_df[col].apply(lambda x: f"{x:.4f}")
-    for col in ("skew", "kurt"):
-        if col in feat_df.columns:
-            feat_df[col] = feat_df[col].apply(lambda x: f"{x:.3f}")
-    for col in ("q1", "q2", "q3"):
-        if col in feat_df.columns:
-            feat_df[col] = feat_df[col].apply(lambda x: f"{x:.4f}")
-
-    keep = ["feature", "mean", "std", "skew", "kurt", "q1", "q2", "q3", "min", "max"]
-    feat_df = feat_df[[c for c in keep if c in feat_df.columns]]
-
-    feat_df = feat_df.rename(columns={
-        "feature": "Feature",
-        "mean": "Mean",
-        "std": "Std",
-        "skew": "Skew",
-        "kurt": "Kurt",
-        "q1": "Q1",
-        "q2": "Q2 (median)",
-        "q3": "Q3",
-        "min": "Min",
-        "max": "Max",
-    })
-
-    display(HTML(feat_df.to_html(index=False)))
-    table_note(
-        note=(
-            "Computed on the training split; the first 500 events are skipped to allow "
-            "rolling-window features to reach steady state. "
-            "Skew and Kurt are the Fisher skewness and excess kurtosis. "
-            "Q1/Q2/Q3 are the 25th, 50th, and 75th percentiles."
-        ),
-    )
+    feature_stats_table(pd.read_csv(_feat_path))
 else:
     print("feature_stats.csv not found — run: uv run python src/cli.py peek "
-          "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
-          "--skip 500 --export")
+          "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export")
 ```
