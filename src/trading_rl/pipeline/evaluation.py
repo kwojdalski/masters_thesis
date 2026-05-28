@@ -209,7 +209,11 @@ def run_statistical_tests_for_split(
             import mlflow
             mlflow.log_metric(f"{split_ctx.split}_statistical_tests_failed", 1)
         except Exception:
-            pass
+            logger.debug(
+                "mlflow.log_metric for statistical_tests_failed also failed split=%s",
+                split_ctx.split,
+                exc_info=True,
+            )
 
 
 def _save_benchmark_table_for_split(
