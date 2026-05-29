@@ -239,7 +239,7 @@ class FeaturePipeline:
                 feature.scaler.reset()
         self._is_fitted = False
         self._current_symbol_id = symbol_id
-        logger.trace("feature pipeline reset n_features=%d symbol_id=%s", len(self.features), symbol_id)
+        logger.trace("feature pipeline reset n_features={} symbol_id={}", len(self.features), symbol_id)
         return self
 
     def get_feature_names(self) -> list[str]:

@@ -307,5 +307,5 @@ def _feature_cache_key(
     train_suffix = f"|train{train_size}" if (uses_global and train_size is not None) else ""
     raw = f"{Path(data_path).name}|{file_mtime}|lob{filter_lob_levels}|{config_sig}{train_suffix}"
     key = hashlib.md5(raw.encode()).hexdigest()
-    logger.trace("feature cache key raw=%s key=%s", raw, key)
+    logger.trace("feature cache key raw={} key={}", raw, key)
     return key

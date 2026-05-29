@@ -471,7 +471,7 @@ class BaseTrainer(ABC):
                 self._algo_label, self.successful_batches, total, rate, self.skipped_batches,
             )
         else:
-            logger.warning("%s no optimization batches attempted", self._algo_label)
+            logger.warning("{} no optimization batches attempted", self._algo_label)
 
     def _evaluate(self) -> None:
         """Periodic policy evaluation shared by DDPG, TD3, and SAC.
@@ -645,7 +645,7 @@ class BaseTrainer(ABC):
                         replay_buffer.loads(buffer_path)
                         logger.info("load replay buffer path={} n_experiences={}", buffer_path, len(replay_buffer))
                     except Exception:
-                        logger.exception("Failed to load replay buffer from %s", buffer_path)
+                        logger.exception("Failed to load replay buffer from {}", buffer_path)
                 else:
                     logger.info("no replay buffer in checkpoint start_fresh=true")
 

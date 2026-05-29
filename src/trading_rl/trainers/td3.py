@@ -351,7 +351,7 @@ class TD3Trainer(BaseTrainer):
             )
         else:
             percentiles = np.percentile(actions_flat, [0, 25, 50, 75, 100])
-            logger.trace("td3 eval action percentiles=%s", percentiles.tolist())
+            logger.trace("td3 eval action percentiles={}", percentiles.tolist())
         if actions.std() < 0.01:
             logger.warning("td3 eval agent stuck action_std={:.6f}", actions.std())
 

@@ -119,7 +119,7 @@ THESIS_DOWNLOADS = [
 
 
 def run_command(command: list[str], *, dry_run: bool) -> None:
-    logger.debug("run command cmd=%s", " ".join(command))
+    logger.debug("run command cmd={}", " ".join(command))
     if dry_run:
         return
     subprocess.run(command, cwd=REPO_ROOT, check=True)  # noqa: S603
@@ -157,9 +157,9 @@ def _print_summary_table(jobs: list[ThesisStockDownload], output_dir: Path) -> N
                 n_rows = pq.read_metadata(filtered_file).num_rows
                 total_rows += n_rows
                 table.add_row(job.symbol, filtered_file.name, f"{n_rows:,}", "[green]ok[/green]")
-                logger.debug("summary symbol=%s n_rows=%d path=%s", job.symbol, n_rows, filtered_file)
+                logger.debug("summary symbol={} n_rows={} path={}", job.symbol, n_rows, filtered_file)
             except Exception as e:
-                logger.warning("summary read failed symbol=%s err=%s", job.symbol, e)
+                logger.warning("summary read failed symbol={} err={}", job.symbol, e)
                 table.add_row(job.symbol, filtered_file.name, "—", "[yellow]error[/yellow]")
         else:
             table.add_row(job.symbol, filtered_file.name, "—", "[red]missing[/red]")
@@ -167,7 +167,7 @@ def _print_summary_table(jobs: list[ThesisStockDownload], output_dir: Path) -> N
     table.add_section()
     table.add_row("[bold]Total[/bold]", "", f"[bold]{total_rows:,}[/bold]", "")
     console.print(table)
-    logger.info("summary total_rows=%d n_files=%d", total_rows, len(jobs))
+    logger.info("summary total_rows={} n_files={}", total_rows, len(jobs))
 
 
 def filter_command(input_file: Path, output_file: Path) -> list[str]:
@@ -213,8 +213,8 @@ def main(
         logger.error("DATABENTO_API_KEY is not set")
         raise typer.Exit(code=1)
 
-    logger.info("start thesis data download n_symbols=%d dry_run=%s", len(THESIS_DOWNLOADS), dry_run)
-    logger.debug("output_dir=%s skip_existing=%s force=%s skip_filter=%s", output_dir, skip_existing, force, skip_filter)
+    logger.info("start thesis data download n_symbols={} dry_run={}", len(THESIS_DOWNLOADS), dry_run)
+    logger.debug("output_dir={} skip_existing={} force={} skip_filter={}", output_dir, skip_existing, force, skip_filter)
 
     skipped = 0
     downloaded = 0
@@ -224,22 +224,22 @@ def main(
         filtered_file = output_dir / job.filtered_filename
 
         if skip_existing and filtered_file.exists():
-            logger.info("skip symbol=%s reason=already exists path=%s", job.symbol, filtered_file.name)
+            logger.info("skip symbol={} reason=already exists path={}", job.symbol, filtered_file.name)
             skipped += 1
             continue
 
-        logger.info("download symbol=%s schema=%s dates=%s to %s", job.symbol, job.schema, job.start_date, job.end_date)
+        logger.info("download symbol={} schema={} dates={} to {}", job.symbol, job.schema, job.start_date, job.end_date)
         run_command(fetch_command(job, output_dir, force), dry_run=dry_run)
         downloaded += 1
 
         if job.filter_us_hours and not skip_filter:
             raw_file = output_dir / job.raw_filename
-            logger.info("filter us hours symbol=%s output=%s", job.symbol, filtered_file.name)
-            logger.debug("filter input=%s output=%s", raw_file, filtered_file)
+            logger.info("filter us hours symbol={} output={}", job.symbol, filtered_file.name)
+            logger.debug("filter input={} output={}", raw_file, filtered_file)
             run_command(filter_command(raw_file, filtered_file), dry_run=dry_run)
             filtered += 1
 
-    logger.info("thesis data download complete downloaded=%d filtered=%d skipped=%d", downloaded, filtered, skipped)
+    logger.info("thesis data download complete downloaded={} filtered={} skipped={}", downloaded, filtered, skipped)
     _print_summary_table(THESIS_DOWNLOADS, output_dir)
 
 

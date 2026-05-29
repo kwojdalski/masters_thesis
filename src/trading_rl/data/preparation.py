@@ -758,7 +758,7 @@ def _build_pooled_splits(
         for split, df in [("train", train_i), ("val", val_i), ("test", test_i)]:
             p = tmp_dir / f"{i}_{split}.parquet"
             df.to_parquet(p)
-            logger.trace("tmp parquet write symbol=%d split=%s n_rows=%d path=%s", i, split, len(df), p)
+            logger.trace("tmp parquet write symbol={} split={} n_rows={} path={}", i, split, len(df), p)
             sym[split] = p
         tmp_paths.append(sym)
         del train_i, val_i, test_i

@@ -213,19 +213,19 @@ def main() -> int:
             logger.info("No files selected. Exiting.")
             return 0
 
-        logger.info("Downloading %d file(s) into: %s", len(selected), destination)
+        logger.info("Downloading {} file(s) into: {}", len(selected), destination)
         downloaded = 0
         for f in selected:
             out_path = destination / f["name"]
-            logger.info("Downloading %s...", f["name"])
+            logger.info("Downloading {}...", f["name"])
             try:
                 download_file_via_api(service, f["id"], out_path)
                 downloaded += 1
-                logger.info("OK: %s", f["name"])
+                logger.info("OK: {}", f["name"])
             except Exception as exc:
-                logger.error("FAIL: %s — %s", f["name"], exc)
+                logger.error("FAIL: {} — {}", f["name"], exc)
 
-        logger.info("Download complete. Successful: %d/%d", downloaded, len(selected))
+        logger.info("Download complete. Successful: {}/{}", downloaded, len(selected))
         return 0 if downloaded == len(selected) else 1
 
     # Use Drive API (authenticated) if credentials are available, otherwise fall
@@ -247,19 +247,19 @@ def main() -> int:
             logger.warning("No files found in the Drive folder.")
             return 1
 
-        logger.info("Downloading %d file(s) into: %s", len(remote_files), destination)
+        logger.info("Downloading {} file(s) into: {}", len(remote_files), destination)
         downloaded = 0
         for f in remote_files:
             out_path = destination / f["name"]
-            logger.info("Downloading %s...", f["name"])
+            logger.info("Downloading {}...", f["name"])
             try:
                 download_file_via_api(service, f["id"], out_path)
                 downloaded += 1
-                logger.info("OK: %s", f["name"])
+                logger.info("OK: {}", f["name"])
             except Exception as exc:
-                logger.error("FAIL: %s — %s", f["name"], exc)
+                logger.error("FAIL: {} — {}", f["name"], exc)
 
-        logger.info("Download complete. Successful: %d/%d", downloaded, len(remote_files))
+        logger.info("Download complete. Successful: {}/{}", downloaded, len(remote_files))
         return 0 if downloaded == len(remote_files) else 1
 
     try:
@@ -268,8 +268,8 @@ def main() -> int:
         logger.error("Missing dependency 'gdown'. Install with: uv add gdown")
         return 3
 
-    logger.info("Downloading Google Drive folder into: %s", destination)
-    logger.info("URL source: %s", "--url" if args.url else "GDRIVE_STOCKS_URL")
+    logger.info("Downloading Google Drive folder into: {}", destination)
+    logger.info("URL source: {}", "--url" if args.url else "GDRIVE_STOCKS_URL")
 
     downloaded_files = gdown.download_folder(
         url=url,
@@ -282,7 +282,7 @@ def main() -> int:
         logger.warning("No files were downloaded. Verify folder sharing permissions and URL.")
         return 1
 
-    logger.info("Download complete. Files downloaded: %d", len(downloaded_files))
+    logger.info("Download complete. Files downloaded: {}", len(downloaded_files))
     return 0
 
 
