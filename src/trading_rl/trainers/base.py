@@ -675,6 +675,9 @@ class BaseTrainer(ABC):
                             finding.severity.value, finding.parameter,
                             finding.message, finding.suggestion,
                         )
+                        self.logs["early_stop_reason"].append(
+                            f"{finding.severity.value}:{finding.parameter}:{finding.message}"
+                        )
                         break
 
                     if on_batch_end is not None:
@@ -705,6 +708,12 @@ class BaseTrainer(ABC):
 
         t1 = time.time()
         elapsed = t1 - t0
+        early_stop_reasons = self.logs.get("early_stop_reason", [])
+        if early_stop_reasons:
+            logger.warning(
+                "training ended early reason=%s steps=%d/%d",
+                early_stop_reasons[-1], self.total_count, self.config.max_steps,
+            )
         log_banner(logger, f"TRAINING END  {self.total_count} steps  {self.total_episodes} episodes  {elapsed:.2f}s")
         self.logs["training_duration_s"].append(elapsed)
         return dict(self.logs)
