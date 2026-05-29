@@ -102,18 +102,18 @@ def main() -> int:
                 scenarios.append((hyp, s))
 
     hypotheses_label = " ".join(h.upper() for h in args.hypothesis)
-    logger.info("exporting %d scenario(s) for %s", len(scenarios), hypotheses_label)
+    logger.info("exporting {} scenario(s) for {}", len(scenarios), hypotheses_label)
 
     ok: list[str] = []
     skipped: list[str] = []
 
     for hyp, scenario in scenarios:
-        logger.info("[%s] %s", hyp.upper(), scenario)
+        logger.info("[{}] {}", hyp.upper(), scenario)
         if _export_scenario(scenario):
             ok.append(scenario)
         else:
             skipped.append(scenario)
-            logger.warning("[%s] export failed or skipped: %s", hyp.upper(), scenario)
+            logger.warning("[{}] export failed or skipped: {}", hyp.upper(), scenario)
 
     logger.info(
         "export complete  exported=%d  skipped/failed=%d",
@@ -123,7 +123,7 @@ def main() -> int:
     if skipped:
         logger.warning("skipped scenarios (results.json missing or evaluate not yet run):")
         for s in skipped:
-            logger.warning("  %s", s)
+            logger.warning("  {}", s)
         logger.warning(
             "to evaluate a missing scenario: "
             "uv run python src/cli.py evaluate -c <scenario> "

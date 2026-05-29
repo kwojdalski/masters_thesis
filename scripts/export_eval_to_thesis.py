@@ -383,7 +383,7 @@ def main() -> int:
         assert args.output_dir is not None
         experiment_name = primary_dir.name
 
-    logger.info("exporting scenario=%s experiment=%s", args.scenario or args.output_dir, experiment_name)
+    logger.info("exporting scenario={} experiment={}", args.scenario or args.output_dir, experiment_name)
 
     # --------------------------------------------------------------------------
     # Locate results.json
@@ -397,23 +397,23 @@ def main() -> int:
 
     if results_file is None:
         logger.error("results.json not found")
-        logger.error("  checked: %s", primary_dir / "results.json")
+        logger.error("  checked: {}", primary_dir / "results.json")
         if fallback_dir != primary_dir:
-            logger.error("  checked: %s", fallback_dir / "results.json")
+            logger.error("  checked: {}", fallback_dir / "results.json")
         logger.error(
-            "run evaluate first:  uv run python src/cli.py evaluate -c %s "
-            "--output-dir %s --only metrics --only benchmarks --only plots",
+            "run evaluate first:  uv run python src/cli.py evaluate -c {} "
+            "--output-dir {} --only metrics --only benchmarks --only plots",
             args.scenario or args.output_dir,
             primary_dir,
         )
         return 1
 
-    logger.info("reading results from %s", results_file)
+    logger.info("reading results from {}", results_file)
 
     try:
         results = _load_results_json(results_file)
     except json.JSONDecodeError as e:
-        logger.error("failed to parse results.json: %s", e)
+        logger.error("failed to parse results.json: {}", e)
         return 1
 
     # --------------------------------------------------------------------------
@@ -424,7 +424,7 @@ def main() -> int:
         logger.warning("no metrics found in results.json")
     else:
         n_test = sum(1 for k in results if k.startswith("test"))
-        logger.info("aggregated %d metrics across %d test split(s)", len(metrics), n_test)
+        logger.info("aggregated {} metrics across {} test split(s)", len(metrics), n_test)
 
     # --------------------------------------------------------------------------
     # Find plots
@@ -436,7 +436,7 @@ def main() -> int:
 
     plots = _find_plots(plot_search_dirs)
     if plots:
-        logger.info("found plots: %s", list(plots))
+        logger.info("found plots: {}", list(plots))
     else:
         logger.warning(
             "no plots found — run evaluate without --only to include them: "
@@ -480,7 +480,7 @@ def main() -> int:
         _write_json(snapshot_dir / "statistical_tests.json", benchmark_table)
         statistical_tests_file = "statistical_tests.json"
         n_rows = len(benchmark_table.get("benchmark_comparison_table", []))
-        logger.info("benchmark table: %d strategies", n_rows)
+        logger.info("benchmark table: {} strategies", n_rows)
 
     run_json: dict = {
         "run_id": None,
@@ -525,7 +525,7 @@ def main() -> int:
     }
     _write_json(experiment_dir / "manifest.json", manifest)
 
-    logger.info("exported thesis snapshot  experiment=%s  location=%s", experiment_name, snapshot_dir)
+    logger.info("exported thesis snapshot  experiment={}  location={}", experiment_name, snapshot_dir)
     return 0
 
 
