@@ -323,7 +323,7 @@ class TrainerRuntimeHooks:
                         plot_data=_plot_data,
                     )
                     logger.debug(
-                        "temp eval: mlflow upload split=%s elapsed=%.2fs",
+                        "temp eval: mlflow upload split=%s elapsed_s=%.2f",
                         split_ctx.split, time.monotonic() - _t,
                     )
                     # Upload equity progression plot (all committed checkpoints
