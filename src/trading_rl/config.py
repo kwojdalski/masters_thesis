@@ -590,6 +590,10 @@ class ExperimentConfig:
     # Experiment metadata
     experiment_name: str = "ddpg_trading"
 
+    # Per-check guardrail suppression (e.g. ["check_td3_policy_delay_too_small"])
+    # Use training.skip_guardrails=true to disable all checks at once.
+    disabled_guardrails: list[str] = field(default_factory=list)
+
     def __post_init__(self):
         """Validate configuration after initialization."""
         _validate_experiment_config(self)
@@ -771,6 +775,8 @@ class ExperimentConfig:
             config.seed = config_dict["seed"]
         if "device" in config_dict:
             config.device = config_dict["device"]
+        if "disabled_guardrails" in config_dict:
+            config.disabled_guardrails = list(config_dict["disabled_guardrails"] or [])
 
         # Data config — needs datetime coercion for download_since
         if "data" in config_dict:

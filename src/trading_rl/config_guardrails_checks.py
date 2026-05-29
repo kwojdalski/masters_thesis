@@ -1758,9 +1758,19 @@ _ALL_CHECKS = [
 
 
 def check_config_guardrails(config: ExperimentConfig) -> list[Finding]:
-    """Run all guardrail checks; return every finding, sorted FATAL first."""
+    """Run all guardrail checks; return every finding, sorted FATAL first.
+
+    Checks listed in ``config.disabled_guardrails`` are skipped.  Each entry
+    is matched against the check function name with or without the leading
+    underscore, so both ``"_check_td3_policy_delay_too_small"`` and
+    ``"check_td3_policy_delay_too_small"`` are accepted.
+    """
+    skip = {n.lstrip("_") for n in getattr(config, "disabled_guardrails", [])}
+
     findings: list[Finding] = []
     for check in _ALL_CHECKS:
+        if check.__name__.lstrip("_") in skip:
+            continue
         try:
             result = check(config)
             if result is not None:
