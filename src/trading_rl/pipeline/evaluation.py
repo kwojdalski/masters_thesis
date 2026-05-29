@@ -431,6 +431,111 @@ def evaluate_split(
             logger.opt(exception=True).debug("eval env close failed split={}", split)
 
 
+def evaluate_per_symbol(
+    *,
+    trainer: Any,
+    config: ExperimentConfig,
+    feature_pipeline_state: dict[str, Any] | None,
+    algorithm: str,
+    logs: dict[str, Any],
+    logger: Any,
+) -> dict[str, dict[str, Any]]:
+    """Evaluate the pooled-trained model on each symbol independently.
+
+    Loads each file in ``config.data.val_data_paths``, applies the already-fitted
+    pooled pipeline (state restored from ``feature_pipeline_state``), and calls
+    ``evaluate_split`` with a ``val__<symbol>`` split key per symbol.
+
+    Args:
+        trainer: Trained model.
+        config: Experiment configuration.
+        feature_pipeline_state: Scaler state saved during training (pooled fit).
+        algorithm: Algorithm label string.
+        logs: Mutable logs dict passed through to evaluate_split.
+        logger: Logger instance.
+
+    Returns:
+        Dict mapping ``"val__<symbol>"`` to the per-symbol split result dicts.
+    """
+    val_data_paths = getattr(config.data, "val_data_paths", None) or []
+    if not val_data_paths:
+        logger.warning("per_symbol_eval=True but val_data_paths is empty — skipping")
+        return {}
+
+    feature_config = getattr(config.data, "feature_config", None)
+    filter_lob_levels = getattr(config.data, "filter_lob_levels", None)
+    mode = str(getattr(config.env, "mode", "")).lower().strip()
+
+    pipeline = None
+    if feature_config:
+        try:
+            from trading_rl.features import FeaturePipeline
+            from trading_rl.data.loading import restore_pipeline_state
+
+            pipeline = FeaturePipeline.from_yaml(feature_config)
+            if feature_pipeline_state:
+                init_sample_path = Path(val_data_paths[0])
+                _init_df = pd.read_parquet(init_sample_path).dropna().iloc[:100]
+                pipeline.fit(_init_df)
+                restore_pipeline_state(pipeline, feature_pipeline_state)
+                logger.info(
+                    "per-symbol eval: restored pooled pipeline state n_features={}",
+                    len(feature_pipeline_state),
+                )
+            else:
+                logger.warning(
+                    "per-symbol eval: no pipeline state available — pipeline will be fit per symbol"
+                )
+        except Exception:
+            logger.opt(exception=True).error(
+                "per-symbol eval: failed to build/restore feature pipeline — skipping"
+            )
+            return {}
+
+    results: dict[str, dict[str, Any]] = {}
+    for raw_path in val_data_paths:
+        data_path = Path(raw_path)
+        symbol = data_path.parent.name
+        split_key = f"val__{symbol}"
+        logger.info("per-symbol eval symbol={} path={}", symbol, data_path)
+        try:
+            df = pd.read_parquet(data_path).dropna()
+
+            if filter_lob_levels is not None:
+                from trading_rl.data.lob_filters import filter_unchanged_lob
+                df = filter_unchanged_lob(df, levels=filter_lob_levels)
+
+            if pipeline is not None:
+                features = pipeline.transform(df)
+                df = pd.concat([df, features], axis=1)
+
+            if mode == "hft":
+                from trading_rl.data.hft import _derive_close_hft_single
+                df = _derive_close_hft_single(df, data_path.stem, logger)
+
+            result = evaluate_split(
+                split=split_key,
+                split_df=df,
+                trainer=trainer,
+                config=config,
+                algorithm=algorithm,
+                logs=logs,
+                logger=logger,
+            )
+            if result is not None:
+                results[split_key] = {
+                    "final_reward": result.final_reward,
+                    "last_positions": result.last_positions,
+                    "evaluation_report": result.evaluation_report,
+                }
+        except Exception:
+            logger.opt(exception=True).error(
+                "per-symbol eval failed symbol={}", symbol
+            )
+
+    return results
+
+
 def evaluate_all_splits(
     *,
     trainer: Any,

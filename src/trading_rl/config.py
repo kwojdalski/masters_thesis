@@ -330,6 +330,7 @@ class EvaluationConfig:
     eval_plots: list[str] = field(
         default_factory=lambda: ["rewards", "positions", "portfolio_value"]
     )  # Which plots to generate: any subset of "rewards", "positions", "portfolio_value"
+    per_symbol_eval: bool = False  # After pooled evaluation, run evaluate_split per symbol using val_data_paths with the pooled-fitted pipeline
 
     def resolve_eval_steps(self, val_len: int) -> int:
         """Return the number of eval steps, honouring eval_fraction when set."""

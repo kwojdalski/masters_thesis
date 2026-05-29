@@ -14,6 +14,7 @@ from trading_rl.pipeline.evaluation import (
     build_evaluation_context_for_split,
     build_final_metrics,
     evaluate_all_splits,
+    evaluate_per_symbol,
     resolve_primary_split_result,
     run_primary_split_explainability,
 )
@@ -308,6 +309,19 @@ def execute_single_experiment(
         primary_split, final_reward, last_positions, evaluation_report = (
             resolve_primary_split_result(split_results)
         )
+
+        if getattr(getattr(config, "evaluation", None), "per_symbol_eval", False):
+            with profiler.stage("eval_per_symbol"):
+                per_symbol_results = evaluate_per_symbol(
+                    trainer=trainer,
+                    config=config,
+                    feature_pipeline_state=prepared_dataset.feature_pipeline_state,
+                    algorithm=runtime.training_bundle.algorithm,
+                    logs=training_result.logs,
+                    logger=logger,
+                )
+                split_results.update(per_symbol_results)
+
         with profiler.stage("explainability"):
             run_primary_split_explainability(
                 primary_split=primary_split,
