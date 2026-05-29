@@ -285,6 +285,54 @@ The transformed features in @tbl-transformed-features demonstrate several key pr
 
 These features are computed from the raw order book data using the causal running normalization described in @eq-running-normalize. The normalization ensures that features are on comparable scales across different securities and time periods, while the causal structure guarantees that the agent never has access to future information when making decisions. The four features shown here (Book Pressure, Order Imbalance, Microprice Deviation, OFI) are a representative subset; the full feature set includes additional microstructure signals such as depth slopes, queue depletion rates, VPIN, and rolling order-flow statistics.
 
+### Feature–Return Correlations {#sec-feature-return-correlations}
+
+@tbl-feature-correlations reports Pearson and Spearman rank correlations between
+each engineered feature and the one-step-ahead log mid-price return, computed on
+the training split. Both measures capture strictly pairwise, marginal dependence:
+Pearson detects linear association, while Spearman detects any monotone
+relationship — including non-linear but rank-preserving ones.
+
+All absolute correlations are below 0.005. Neither measure identifies any feature
+whose marginal distribution is reliably aligned with the direction of the next
+price move. This is expected in a microstructure context: each feature captures
+a local structural signal — order-flow pressure, depth asymmetry, queue imbalance —
+that is informative about the trading environment but not predictive of short-term
+returns in isolation. Predictive value, if any, arises from the joint, non-linear
+interaction among multiple features simultaneously observed at the same timestep.
+
+Linear models — including logistic regression, ridge regression, and any other
+predictor that combines features through a weighted sum — cannot exploit this joint
+non-linear structure. The near-zero Pearson and Spearman correlations confirm that
+linearly combining even the full feature vector is unlikely to yield a useful
+directional signal. This directly motivates the use of a deep neural network as
+the function approximator inside the RL policy: the network can, in principle, learn
+arbitrary non-linear mappings from the feature vector to action-value estimates,
+capturing the higher-order interactions that linear models cannot represent.
+
+```{python}
+#| label: tbl-feature-correlations
+#| output: asis
+#| echo: false
+#| warning: false
+
+import pandas as pd
+from thesis_mlflow_results import repo_root
+from thesis_tables import feature_correlation_table
+
+_corr_path = (
+    repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/correlations.csv"
+)
+if _corr_path.exists():
+    feature_correlation_table(pd.read_csv(_corr_path))
+else:
+    print(
+        "correlations.csv not found — run: uv run python src/cli.py peek "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected "
+        "--corr --export"
+    )
+```
+
 ### Feature and Price Column Separation
 
 A strict separation is maintained between the observation features passed to

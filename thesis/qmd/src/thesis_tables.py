@@ -335,6 +335,97 @@ def feature_stats_table(raw_df: "pd.DataFrame", *, obs_clip: float = 5.0) -> Non
 
 
 # ---------------------------------------------------------------------------
+# Feature–return correlation table
+# ---------------------------------------------------------------------------
+
+def feature_correlation_table(raw_df: "pd.DataFrame") -> None:
+    """Emit feature Pearson and Spearman correlations with next-step log return.
+
+    Requires ``#| output: asis`` on the calling cell.
+
+    HTML: standard table wrapped in a ``#tbl-feature-correlations`` cross-ref div.
+    PDF: plain booktabs LaTeX table.
+    """
+    df = raw_df.copy()
+    df["feature"] = (
+        df["feature"]
+        .str.replace("feature_hft_", "", regex=False)
+        .str.replace("feature_", "", regex=False)
+    )
+    df["pearson"] = df["pearson"].apply(lambda x: f"{float(x):+.4f}")
+    df["spearman"] = df["spearman"].apply(lambda x: f"{float(x):+.4f}")
+    df = df.rename(columns={"feature": "Feature", "pearson": "Pearson", "spearman": "Spearman"})
+
+    caption = (
+        "Pearson and Spearman rank correlations between each engineered feature "
+        "and the next-step log return, computed on the training split."
+    )
+    note = (
+        "Correlations computed against one-step-ahead log mid-price returns on the training split "
+        "after skipping the first 500 events. All |r| < 0.005 across both measures, "
+        "indicating negligible linear and monotone dependence between individual features "
+        "and the prediction target. This motivates a non-linear function approximator "
+        "(the neural network policy) rather than a linear model."
+    )
+
+    # ── HTML version ──────────────────────────────────────────────────
+    html_table = df.to_html(index=False, classes="dataframe")
+    note_p = f'<p style="font-size:0.85em"><em><strong>Note:</strong> {note}</em></p>'
+    html_block = (
+        f'::: {{#tbl-feature-correlations}}\n\n'
+        f'{html_table}\n\n'
+        f'{note_p}\n\n'
+        f'{caption}\n\n'
+        f':::'
+    )
+
+    # ── LaTeX version ─────────────────────────────────────────────────
+    def _esc(s: str) -> str:
+        return s.replace("_", r"\_").replace("%", r"\%").replace("&", r"\&")
+
+    rows_latex = [
+        " & ".join(_esc(str(v)) for v in row) + r" \\"
+        for _, row in df.iterrows()
+    ]
+    latex_block = "\n".join([
+        r"\begin{table}[htbp]",
+        f"\\caption{{{_esc(caption)}}}",
+        r"\label{tbl-feature-correlations}",
+        r"\centering",
+        r"\small",
+        r"\begin{tabular}{l r r}",
+        r"\toprule",
+        r"\textbf{Feature} & \textbf{Pearson} & \textbf{Spearman} \\",
+        r"\midrule",
+        *rows_latex,
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\vspace{4pt}",
+        r"\begin{minipage}{0.95\linewidth}",
+        f"\\footnotesize\\textit{{{_esc(note)}}}",
+        r"\end{minipage}",
+        r"\end{table}",
+    ])
+
+    content = "\n".join([
+        '::: {.content-visible when-format="html"}',
+        "",
+        html_block,
+        "",
+        ":::",
+        "",
+        '::: {.content-visible when-format="pdf"}',
+        "",
+        "```{=latex}",
+        latex_block,
+        "```",
+        "",
+        ":::",
+    ])
+    display(Markdown(content))
+
+
+# ---------------------------------------------------------------------------
 # LOB events sample table
 # ---------------------------------------------------------------------------
 
