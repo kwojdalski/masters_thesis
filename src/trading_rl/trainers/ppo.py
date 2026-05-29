@@ -269,7 +269,7 @@ class PPOTrainer(BaseTrainer):
             max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
         )
 
-        if is_level_enabled("DEBUG"):
+        if is_level_enabled("TRACE"):
             _log_network_stats(logger, "ppo", self.actor, self.value_net)
 
     def _evaluate(self) -> None:

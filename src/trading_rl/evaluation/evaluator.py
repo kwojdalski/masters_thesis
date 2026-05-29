@@ -161,7 +161,7 @@ class StrategyEvaluator:
                 pct = 100.0 * _step_counter[0] / max_steps
                 elapsed = now - _t
                 eta = (elapsed / _step_counter[0]) * (max_steps - _step_counter[0])
-                logger.debug(
+                logger.trace(
                     "rollout progress step=%d/%d pct=%.0f%% elapsed_s=%.1f eta_s=%.1f",
                     _step_counter[0], max_steps, pct, elapsed, eta,
                 )
@@ -335,12 +335,12 @@ class StrategyEvaluator:
         # Run deterministic rollout
         _t = time.monotonic()
         rollout = self._run_rollout(env, max_steps)
-        logger.debug("evaluate_split: rollout elapsed={:.2f}s steps={}", time.monotonic() - _t, max_steps)
+        logger.trace("evaluate_split: rollout elapsed={:.2f}s steps={}", time.monotonic() - _t, max_steps)
 
         # Extract returns
         _t = time.monotonic()
         return_series = self._extract_return_series(env, rollout, max_steps)
-        logger.debug("evaluate_split: extract_returns elapsed={:.2f}s", time.monotonic() - _t)
+        logger.trace("evaluate_split: extract_returns elapsed={:.2f}s", time.monotonic() - _t)
         if return_series is None:
             simple_returns = np.array([], dtype=float)
             cumulative_returns = None
@@ -359,7 +359,7 @@ class StrategyEvaluator:
             if self.config.enable_metrics
             else None
         )
-        logger.debug("evaluate_split: compute_metrics elapsed={:.2f}s", time.monotonic() - _t)
+        logger.trace("evaluate_split: compute_metrics elapsed={:.2f}s", time.monotonic() - _t)
 
         # Generate plots
         plots = None
@@ -381,7 +381,7 @@ class StrategyEvaluator:
                     show_benchmarks=self.config.show_reward_benchmarks,
                     benchmark_price_column=self.config.price_column,
                 )
-                logger.debug("evaluate_split: build_rollout_plot_data elapsed={:.2f}s", time.monotonic() - _t)
+                logger.trace("evaluate_split: build_rollout_plot_data elapsed={:.2f}s", time.monotonic() - _t)
                 plots["_rollout_plot_data"] = rollout_data
                 if "rewards" in enabled:
                     plots["reward_plot"] = plot_rewards(
@@ -439,7 +439,7 @@ class StrategyEvaluator:
                             symbols=equity_data["symbols"],
                             n_total_symbols=equity_data["n_total_symbols"],
                         )
-                        logger.debug("evaluate_split: portfolio_value_plot elapsed={:.2f}s", time.monotonic() - _t)
+                        logger.trace("evaluate_split: portfolio_value_plot elapsed={:.2f}s", time.monotonic() - _t)
                     except Exception:
                         logger.opt(exception=True).warning("evaluate_split: portfolio value plot failed")
 

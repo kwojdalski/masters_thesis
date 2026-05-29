@@ -32,14 +32,7 @@ _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batc
 
 
 def _log_network_stats(log, algo: str, actor: torch.nn.Module, critic: torch.nn.Module) -> None:
-    """Emit a DEBUG line with parameter and gradient statistics for actor and critic.
-
-    Logged metrics per network:
-      - param_abs_sum  : sum of |w| across all parameters
-      - param_norm     : L2 norm of all parameters concatenated
-      - grad_norm      : L2 norm of all *gradients* (0.0 if no backward pass yet)
-      - n_params       : total scalar parameter count
-    """
+    """Emit a TRACE line with parameter and gradient statistics for actor and critic."""
     def _stats(net: torch.nn.Module) -> tuple[float, float, float, int]:
         params = list(net.parameters())
         abs_sum = sum(p.detach().abs().sum().item() for p in params)
@@ -53,7 +46,7 @@ def _log_network_stats(log, algo: str, actor: torch.nn.Module, critic: torch.nn.
 
     a_abs, a_norm, a_gnorm, a_n = _stats(actor)
     c_abs, c_norm, c_gnorm, c_n = _stats(critic)
-    log.debug(
+    log.trace(
         "%s network_stats "
         "actor_abs_sum=%.4f actor_norm=%.4f actor_grad_norm=%.4f actor_n_params=%d "
         "critic_abs_sum=%.4f critic_norm=%.4f critic_grad_norm=%.4f critic_n_params=%d",
@@ -193,7 +186,7 @@ def _run_evaluation(
     with profiler.stage("agent_rollout", 2):
         result = evaluator.evaluate_split("eval", df, env=env_to_use)
     trainer._last_evaluation_result = result
-    logger.debug("evaluate.rollout_and_metrics elapsed={:.2f}s", time.monotonic() - _t)
+    logger.trace("evaluate.rollout_and_metrics elapsed={:.2f}s", time.monotonic() - _t)
 
     _enabled_plots = set(eval_config.eval_plots)
     reward_plot = result.plots.get("reward_plot") if result.plots else None
@@ -203,7 +196,7 @@ def _run_evaluation(
     if "portfolio_value" in _enabled_plots:
         with profiler.stage("plot_equity_curve", 2):
             _t = time.monotonic()
-            logger.debug("create_equity_curve_plot start n_steps={}", max_steps)
+            logger.trace("create_equity_curve_plot start n_steps={}", max_steps)
             _data_paths = config.data.data_paths if config else None
             plot_series = result.return_series or ReturnSeries(result.simple_returns, ReturnKind.SIMPLE)
             equity_curve_plot = create_equity_curve_plot(
@@ -224,14 +217,14 @@ def _run_evaluation(
                 max_plot_points=config.training.max_plot_points if config else None,
                 reward_type=str(config.env.reward_type) if config else None,
             )
-            logger.debug("evaluate.plot_equity_curve elapsed={:.2f}s", time.monotonic() - _t)
+            logger.trace("evaluate.plot_equity_curve elapsed={:.2f}s", time.monotonic() - _t)
 
     merged_plot = None
     if reward_plot is not None and action_plot is not None:
         with profiler.stage("plot_merged", 2):
             _t = time.monotonic()
             merged_plot = create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot)
-            logger.debug("evaluate.plot_merged elapsed={:.2f}s", time.monotonic() - _t)
+            logger.trace("evaluate.plot_merged elapsed={:.2f}s", time.monotonic() - _t)
 
     return (
         reward_plot,

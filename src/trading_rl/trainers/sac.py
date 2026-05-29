@@ -295,7 +295,7 @@ class SACTrainer(BaseTrainer):
             curr_loss_alpha, curr_alpha,
         )
 
-        if is_level_enabled("DEBUG"):
+        if is_level_enabled("TRACE"):
             _log_network_stats(logger, "sac", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
@@ -344,18 +344,18 @@ class SACTrainer(BaseTrainer):
         )
 
         def on_batch_start(i, data) -> None:
-            if is_level_enabled("DEBUG") and i % 10 == 0:
+            if is_level_enabled("TRACE") and i % 10 == 0:
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
-                logger.debug(
+                logger.trace(
                     "sac batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
                 )
-                logger.debug(
+                logger.trace(
                     "sac episode reward stats mean=%.4f std=%.4f",
                     episode_rewards.mean(), episode_rewards.std(),
                 )
                 collected_actions = data["action"]
-                logger.debug(
+                logger.trace(
                     "sac collected action stats mean=%.4f std=%.4f",
                     collected_actions.mean(), collected_actions.std(),
                 )

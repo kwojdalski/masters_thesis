@@ -45,22 +45,22 @@ def log_dataframe_info(
     logger.log(level.upper(), "dataframe columns name={} columns={}", name, df.columns.tolist())
 
     if hasattr(df, "dtypes"):
-        logger.debug("dataframe dtypes name={} dtypes={}", name, df.dtypes.to_dict())
+        logger.trace("dataframe dtypes name={} dtypes={}", name, df.dtypes.to_dict())
 
     if hasattr(df, "memory_usage"):
         try:
             total_memory = df.memory_usage(deep=True).sum()
-            logger.debug("dataframe memory name={} mb={:.2f}", name, total_memory / 1024 / 1024)
+            logger.trace("dataframe memory name={} mb={:.2f}", name, total_memory / 1024 / 1024)
         except Exception as e:
-            logger.debug("dataframe memory error name={} err={}", name, e)
+            logger.trace("dataframe memory error name={} err={}", name, e)
 
     if hasattr(df, "isnull"):
         null_counts = df.isnull().sum()
         if null_counts.any():
-            logger.debug("dataframe nulls name={} nulls={}", name, null_counts[null_counts > 0].to_dict())
+            logger.trace("dataframe nulls name={} nulls={}", name, null_counts[null_counts > 0].to_dict())
 
-    if is_level_enabled("DEBUG") and hasattr(df, "head"):
-        logger.debug("dataframe sample name={}\n{}", name, df.head())
+    if is_level_enabled("TRACE") and hasattr(df, "head"):
+        logger.trace("dataframe sample name={}\n{}", name, df.head())
 
 
 def log_processing_step(

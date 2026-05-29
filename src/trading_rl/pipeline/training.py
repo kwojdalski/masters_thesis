@@ -121,7 +121,7 @@ def _build_train_env(
 ) -> Any:
     logger.info("build environment")
     env = AlgorithmicEnvironmentBuilder().create(dataset.train_df, config)
-    logger.debug("environment obs_spec={} action_spec={} reward_spec={}", env.observation_spec, env.action_spec, env.reward_spec)
+    logger.trace("environment obs_spec={} action_spec={} reward_spec={}", env.observation_spec, env.action_spec, env.reward_spec)
     return env
 
 
@@ -228,7 +228,7 @@ def _build_training_bundle(
 
 
 def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> None:
-    if not is_level_enabled("DEBUG"):
+    if not is_level_enabled("TRACE"):
         return
 
     def format_key(key: str) -> str:
@@ -252,16 +252,16 @@ def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> Non
             formatted_key = format_key(key)
 
             if is_dataclass(value):
-                logger.debug("{}{}:", prefix, formatted_key)
+                logger.trace("{}{}:", prefix, formatted_key)
                 print_dataclass(value, indent + 1)
             else:
-                logger.debug("{}{}: {}", prefix, formatted_key, format_value(value))
+                logger.trace("{}{}: {}", prefix, formatted_key, format_value(value))
 
-    logger.debug("=" * 60)
-    logger.debug("configuration values")
-    logger.debug("=" * 60)
+    logger.trace("=" * 60)
+    logger.trace("configuration values")
+    logger.trace("=" * 60)
     print_dataclass(config)
-    logger.debug("=" * 60)
+    logger.trace("=" * 60)
 
 
 def setup_mlflow_experiment(
@@ -308,16 +308,16 @@ def _log_data_diagnostics(
         train_df.shape, val_df.shape, test_df.shape, list(train_df.columns),
     )
 
-    if is_level_enabled("DEBUG"):
-        logger.debug("training data statistics")
+    if is_level_enabled("TRACE"):
+        logger.trace("training data statistics")
         if "close" in train_df.columns:
-            logger.debug(
+            logger.trace(
                 "  Close price - min: %.2f, max: %.2f, mean: %.2f",
                 train_df["close"].min(), train_df["close"].max(), train_df["close"].mean(),
             )
-            logger.debug("  Close price std: {:.2f}", train_df["close"].std())
+            logger.trace("  Close price std: {:.2f}", train_df["close"].std())
         feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
-        logger.debug("  Features found: {}" if feature_cols else "  No feature_* columns found in prepared data", feature_cols or "")
+        logger.trace("  Features found: {}" if feature_cols else "  No feature_* columns found in prepared data", feature_cols or "")
 
     n_feat = len([c for c in train_df.columns if str(c).startswith("feature_")])
     log_banner(

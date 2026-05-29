@@ -183,11 +183,10 @@ class TD3Trainer(BaseTrainer):
                     tensor = tensor.unsqueeze(-1)
                 sample.set(key, tensor)
 
-            # DEBUG: Log sample statistics
-            if is_level_enabled("DEBUG"):
+            if is_level_enabled("TRACE"):
                 actions = sample["action"]
                 rewards = sample["next", "reward"]
-                logger.debug(
+                logger.trace(
                     "td3 batch sample stats batch=%d step=%d "
                     "action_mean=%.4f action_std=%.4f action_min=%.4f action_max=%.4f "
                     "reward_mean=%.4f reward_std=%.4f reward_min=%.4f reward_max=%.4f",
@@ -221,9 +220,8 @@ class TD3Trainer(BaseTrainer):
                 self.successful_batches += 1
                 self._consecutive_skips = 0
 
-                # DEBUG: Log loss values
-                if is_level_enabled("DEBUG"):
-                    logger.debug(
+                if is_level_enabled("TRACE"):
+                    logger.trace(
                         "td3 losses loss_qvalue=%.6f loss_actor=%.6f",
                         loss_vals['loss_qvalue'].item(), loss_vals['loss_actor'].item(),
                     )
@@ -275,8 +273,7 @@ class TD3Trainer(BaseTrainer):
 
                 actor_loss = loss_vals_actor["loss_actor"].item()
 
-                # Optional debug: prepare parameter magnitude summaries
-                if is_level_enabled("DEBUG"):
+                if is_level_enabled("TRACE"):
                     actor_sum = float(
                         sum(p.abs().sum().item() for p in self.actor.parameters())
                     )
@@ -291,7 +288,7 @@ class TD3Trainer(BaseTrainer):
                 # For logging purposes, use the actor loss computed in the first pass
                 actor_loss = loss_vals["loss_actor"].item()
 
-            if is_level_enabled("DEBUG"):
+            if is_level_enabled("TRACE"):
                 critic_param_diff = None
                 params = self.td3_loss.qvalue_network_params
                 if getattr(params, "batch_size", None) and params.batch_size[0] >= 2:
@@ -350,26 +347,21 @@ class TD3Trainer(BaseTrainer):
         )
 
         def on_batch_start(i, data) -> None:
-            # DEBUG: Log data collection statistics
-            if is_level_enabled("DEBUG") and i % 10 == 0:  # Every 10 batches
+            if is_level_enabled("TRACE") and i % 10 == 0:
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
-                logger.debug(
+                logger.trace(
                     "batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
                 )
-                logger.debug(
+                logger.trace(
                     "episode reward stats mean=%.4f std=%.4f",
                     episode_rewards.mean(), episode_rewards.std(),
                 )
-
-                # Log actions being collected
                 collected_actions = data["action"]
-                logger.debug(
+                logger.trace(
                     "collected action stats mean=%.4f std=%.4f",
                     collected_actions.mean(), collected_actions.std(),
                 )
-
-                # SARSA-style sample transitions: (s, a, r, s')
                 self._log_sample_transitions(data, n=3)
 
         def on_batch_end(i, data) -> None:
@@ -430,7 +422,7 @@ class TD3Trainer(BaseTrainer):
             max_length, buffer_len, curr_loss_value, curr_loss_actor,
         )
 
-        if is_level_enabled("DEBUG"):
+        if is_level_enabled("TRACE"):
             _log_network_stats(logger, "td3", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
@@ -452,18 +444,15 @@ class TD3Trainer(BaseTrainer):
             self.logs["eval_reward_sum"].append(sum_reward)
             self.logs["eval_step_count"].append(max_steps)
 
-            # DEBUG: Log action distribution during evaluation
-            if is_level_enabled("DEBUG"):
+            if is_level_enabled("TRACE"):
                 actions = eval_rollout["action"]
-                logger.debug(
+                logger.trace(
                     "td3 eval action stats n=%d mean=%.4f std=%.4f",
                     actions.numel(), actions.mean(), actions.std(),
                 )
-                logger.debug(
+                logger.trace(
                     "td3 eval action min=%.4f max=%.4f", actions.min(), actions.max()
                 )
-
-                # Show action distribution (histogram-like)
                 actions_flat = actions.flatten().cpu().detach().numpy()
                 import numpy as np
 
@@ -471,18 +460,16 @@ class TD3Trainer(BaseTrainer):
                     np.round(actions_flat, 2), return_counts=True
                 )
                 if len(unique_actions) <= 10:
-                    logger.debug(
+                    logger.trace(
                         "td3 eval action distribution=%s",
                         dict(zip(unique_actions, counts, strict=False)),
                     )
                 else:
-                    # Show percentiles if too many unique values
                     percentiles = np.percentile(actions_flat, [0, 25, 50, 75, 100])
-                    logger.debug(
+                    logger.trace(
                         "td3 eval action percentiles=%s", percentiles.tolist()
                     )
 
-                # Check if agent is stuck
                 if actions.std() < 0.01:
                     logger.warning("td3 eval agent stuck action_std={:.6f}", actions.std())
 
@@ -566,8 +553,8 @@ class TD3Trainer(BaseTrainer):
         from pathlib import Path
 
         checkpoint = torch.load(path, weights_only=True)
-        if is_level_enabled("DEBUG"):
-            logger.debug("td3 checkpoint keys={}", sorted(checkpoint.keys()))
+        if is_level_enabled("TRACE"):
+            logger.trace("td3 checkpoint keys={}", sorted(checkpoint.keys()))
 
         # Restore functional params and sync modules
         if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
