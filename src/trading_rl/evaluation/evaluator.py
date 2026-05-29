@@ -150,12 +150,29 @@ class StrategyEvaluator:
         from tensordict.nn import InteractionType
         from torchrl.envs.utils import set_exploration_type
 
+        _log_interval = max(1, max_steps // 10)
+        _step_counter = [0]
+        _t_last = [_time.monotonic()]
+
+        def _progress_cb(td: Any) -> None:
+            _step_counter[0] += 1
+            if _step_counter[0] % _log_interval == 0:
+                now = _time.monotonic()
+                pct = 100.0 * _step_counter[0] / max_steps
+                elapsed = now - _t
+                eta = (elapsed / _step_counter[0]) * (max_steps - _step_counter[0])
+                logger.debug(
+                    "rollout progress step=%d/%d pct=%.0f%% elapsed_s=%.1f eta_s=%.1f",
+                    _step_counter[0], max_steps, pct, elapsed, eta,
+                )
+                _t_last[0] = now
+
         logger.debug("rollout start max_steps=%d", max_steps)
         _t = _time.monotonic()
         with torch.no_grad():
             try:
                 with set_exploration_type(InteractionType.MODE):
-                    rollout = env.rollout(max_steps=max_steps, policy=self.policy)
+                    rollout = env.rollout(max_steps=max_steps, policy=self.policy, callback=_progress_cb)
             except (NotImplementedError, RuntimeError) as exc:
                 if not (
                     isinstance(exc, NotImplementedError)
@@ -165,10 +182,10 @@ class StrategyEvaluator:
                     raise
                 # Fallback for distributions without analytical mode
                 with set_exploration_type(InteractionType.DETERMINISTIC):
-                    rollout = env.rollout(max_steps=max_steps, policy=self.policy)
+                    rollout = env.rollout(max_steps=max_steps, policy=self.policy, callback=_progress_cb)
         actual_steps = rollout.shape[0] if rollout.ndim > 0 else 1
         logger.debug(
-            "rollout done requested=%d actual=%d elapsed=%.2fs",
+            "rollout done requested=%d actual=%d elapsed_s=%.2f",
             max_steps, actual_steps, _time.monotonic() - _t,
         )
         return rollout
