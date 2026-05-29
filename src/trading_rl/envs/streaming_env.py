@@ -136,7 +136,7 @@ class StreamingTradingEnv(TradingEnv):
         window_df = self._load_window(file_idx, start)
         self._set_df(window_df)
 
-        logger.debug(
+        logger.trace(
             "StreamingTradingEnv reset: symbol=%d start=%d length=%d",
             file_idx,
             start,

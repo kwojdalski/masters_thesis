@@ -17,7 +17,7 @@ from tensordict.nn import set_composite_lp_aggregate
 from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
 
-from logger import get_logger, log_banner
+from logger import get_logger, is_level_enabled, log_banner
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.benchmarks import benchmarks_from_config
@@ -640,6 +640,11 @@ class BaseTrainer(ABC):
                             buffer_len = data.numel()
 
                     self.total_count += data.numel()
+                    if is_level_enabled("TRACE"):
+                        logger.trace(
+                            "batch collected batch=%d n_frames=%d total_count=%d buffer_len=%d",
+                            i, data.numel(), self.total_count, buffer_len,
+                        )
 
                     collected_steps = self.total_count if not self._use_replay_buffer else buffer_len
                     if collected_steps > self.config.init_rand_steps:
@@ -648,6 +653,11 @@ class BaseTrainer(ABC):
 
                     episodes_in_batch = int(data["next", "done"].sum().item())
                     self.total_episodes += episodes_in_batch
+                    if is_level_enabled("TRACE") and episodes_in_batch > 0:
+                        logger.trace(
+                            "episodes completed batch=%d n_episodes=%d total_episodes=%d",
+                            i, episodes_in_batch, self.total_episodes,
+                        )
 
                     with _profiler.stage("checkpoint", 2):
                         self.checkpoint_manager.maybe_save_checkpoint()

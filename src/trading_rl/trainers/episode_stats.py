@@ -210,7 +210,7 @@ class EpisodeStatsTracker:
                     arr = t.reshape(-1).cpu().tolist()
                     return "[" + ", ".join(f"{v:.4f}" for v in arr) + "]"
 
-                logger.debug(
+                logger.trace(
                     "transition idx=%d  s=%s  a=%s  r=%.6f  s'=%s",
                     idx, _fmt(obs), _fmt(action),
                     float(reward) if reward is not None else float("nan"),

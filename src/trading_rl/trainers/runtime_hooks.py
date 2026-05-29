@@ -322,7 +322,7 @@ class TrainerRuntimeHooks:
                         debug=getattr(hook.config.logging, "debug_plots", False),
                         plot_data=_plot_data,
                     )
-                    logger.debug(
+                    logger.trace(
                         "temp eval: mlflow upload split=%s elapsed_s=%.2f",
                         split_ctx.split, time.monotonic() - _t,
                     )
@@ -356,7 +356,7 @@ class TrainerRuntimeHooks:
                                         _tmp_path,
                                         f"evaluation_plots_temp/{split_ctx.split}",
                                     )
-                                logger.debug(
+                                logger.trace(
                                     "temp eval: progression plot uploaded split=%s checkpoints=%d",
                                     split_ctx.split, len(_prog_history),
                                 )
@@ -454,7 +454,7 @@ class TrainerRuntimeHooks:
                     self._progression_history.setdefault(split_ctx.split, []).append(
                         _staged_prog_entry
                     )
-                    logger.debug(
+                    logger.trace(
                         "temp eval: progression entry committed split=%s step=%s n=%d",
                         split_ctx.split, step_number,
                         len(self._progression_history[split_ctx.split]),
@@ -494,7 +494,7 @@ class TrainerRuntimeHooks:
                                 _tmp_path,
                                 "evaluation_plots_temp",
                             )
-                        logger.debug(
+                        logger.trace(
                             "temp eval: train/val progression plot uploaded train_checkpoints=%d val_checkpoints=%d",
                             len(train_history), len(val_history),
                         )
