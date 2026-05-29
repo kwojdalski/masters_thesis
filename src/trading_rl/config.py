@@ -13,6 +13,43 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from trading_rl.constants import ActionPenaltyType, Algorithm, BenchmarkName, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, MetricName, RewardType, SplitName, StatisticalTest, TradePosition
 
+_COMMAND_STEMS = {"train", "evaluate", "experiment"}
+
+
+def _derive_experiment_name(path: Path) -> str:
+    """Derive a unique experiment name from a config file or scenario path.
+
+    Walks up to the 'scenarios/' segment so that, e.g.
+    ``src/configs/scenarios/btc/td3_tradingenv/train.yaml`` becomes
+    ``btc_td3_tradingenv``.
+    """
+    parts = path.parts
+    try:
+        scenarios_idx = list(parts).index("scenarios")
+        rel_parts = list(parts[scenarios_idx + 1:])
+        if rel_parts and Path(rel_parts[-1]).stem in _COMMAND_STEMS:
+            rel_parts = rel_parts[:-1]
+        return "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else path.stem
+    except ValueError:
+        return path.stem
+
+
+def _apply_derived_defaults(config_dict: dict, derived_name: str) -> None:
+    """Fill in experiment_name, env.name, and log_dir if not already set."""
+    if "experiment_name" not in config_dict:
+        config_dict["experiment_name"] = derived_name
+
+    env_dict = config_dict.setdefault("env", {})
+    if isinstance(env_dict, dict) and not env_dict.get("name"):
+        env_dict["name"] = derived_name.upper()
+
+    log_dict = config_dict.get("logging")
+    if log_dict is None:
+        config_dict["logging"] = {"log_dir": str(Path("logs") / derived_name)}
+    elif isinstance(log_dict, dict) and "log_dir" not in log_dict:
+        log_dict["log_dir"] = str(Path("logs") / derived_name)
+
+
 # HFT-appropriate metric set: excludes CAGR and Calmar, which annualise
 # intra-session tick returns and produce misleading values on sub-day horizons.
 _HFT_DEFAULT_METRICS: list[MetricName] = [
@@ -649,31 +686,8 @@ class ExperimentConfig:
         # Build a unique name that includes the group subfolder when present.
         # e.g. src/configs/scenarios/sine_wave/ppo_no_trend.yaml -> sine_wave_ppo_no_trend
         # e.g. src/configs/scenarios/btc/td3_tradingenv/train.yaml -> btc_td3_tradingenv
-        _COMMAND_STEMS = {"train", "evaluate", "experiment"}
-        parts = yaml_path.parts
-        try:
-            scenarios_idx = list(parts).index("scenarios")
-            rel_parts = list(parts[scenarios_idx + 1:])
-            # Strip command-file stem so train.yaml / evaluate.yaml don't pollute the name
-            if rel_parts and Path(rel_parts[-1]).stem in _COMMAND_STEMS:
-                rel_parts = rel_parts[:-1]
-            derived_name = "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else yaml_path.stem
-        except ValueError:
-            derived_name = yaml_path.stem
-
-        if "experiment_name" not in config_dict:
-            config_dict["experiment_name"] = derived_name
-
-        env_dict = config_dict.setdefault("env", {})
-        if isinstance(env_dict, dict) and not env_dict.get("name"):
-            env_dict["name"] = derived_name.upper()
-
-        log_dict = config_dict.get("logging")
-        if log_dict is None:
-            config_dict["logging"] = {"log_dir": str(Path("logs") / derived_name)}
-        elif isinstance(log_dict, dict) and "log_dir" not in log_dict:
-            log_dict["log_dir"] = str(Path("logs") / derived_name)
-
+        derived_name = _derive_experiment_name(yaml_path)
+        _apply_derived_defaults(config_dict, derived_name)
         return cls.from_dict(config_dict)
 
     @classmethod
@@ -761,30 +775,8 @@ class ExperimentConfig:
         config_dict = config_dict or {}
 
         # Derive experiment name from scenario directory (same logic as from_yaml)
-        _COMMAND_STEMS = {"train", "evaluate", "experiment"}
-        parts = command_path.parts
-        try:
-            scenarios_idx = list(parts).index("scenarios")
-            rel_parts = list(parts[scenarios_idx + 1:])
-            if rel_parts and Path(rel_parts[-1]).stem in _COMMAND_STEMS:
-                rel_parts = rel_parts[:-1]
-            derived_name = "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else scenario_dir.name
-        except ValueError:
-            derived_name = scenario_dir.name
-
-        if "experiment_name" not in config_dict:
-            config_dict["experiment_name"] = derived_name
-
-        env_dict = config_dict.setdefault("env", {})
-        if isinstance(env_dict, dict) and not env_dict.get("name"):
-            env_dict["name"] = derived_name.upper()
-
-        log_dict = config_dict.get("logging")
-        if log_dict is None:
-            config_dict["logging"] = {"log_dir": str(Path("logs") / derived_name)}
-        elif isinstance(log_dict, dict) and "log_dir" not in log_dict:
-            log_dict["log_dir"] = str(Path("logs") / derived_name)
-
+        derived_name = _derive_experiment_name(command_path)
+        _apply_derived_defaults(config_dict, derived_name)
         return cls.from_dict(config_dict)
 
     @classmethod
