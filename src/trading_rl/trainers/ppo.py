@@ -1,7 +1,6 @@
 """PPO Trainer implementation."""
 
 from trading_rl.trainers.registry import register_trainer
-from collections import defaultdict
 from typing import Any
 
 import pandas as pd
@@ -28,13 +27,12 @@ from torchrl.objectives import ClipPPOLoss
 from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction, TradePosition
-from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.models import (
     create_continuous_ppo_actor,
     create_ppo_actor,
     create_ppo_value_network,
 )
-from trading_rl.trainers.base import _collect_mlflow_meta, _log_network_stats, BaseTrainer
+from trading_rl.trainers.base import _log_network_stats, BaseTrainer
 
 logger = get_logger(__name__)
 
@@ -321,6 +319,24 @@ class PPOTrainer(BaseTrainer):
     def _compute_exploration_ratio(self) -> float:
         return self.config.ppo.entropy_bonus
 
+    @property
+    def _algo_label(self) -> str:
+        return "ppo"
+
+    def _get_checkpoint_network_state(self) -> dict:
+        return {
+            "actor_params_state": self.ppo_loss.actor_network_params.state_dict(),
+            "value_params_state": self.ppo_loss.critic_network_params.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+        }
+
+    def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
+        self.ppo_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
+        self.ppo_loss.critic_network_params.load_state_dict(checkpoint["value_params_state"])
+        self.ppo_loss.actor_network_params.to_module(self.actor)
+        self.ppo_loss.critic_network_params.to_module(self.value_net)
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
     def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for PPO agent."""
         return self._run_training_loop(
@@ -328,84 +344,6 @@ class PPOTrainer(BaseTrainer):
             start_message="Starting PPO training",
             completion_prefix="PPO Training complete",
         )
-
-    def save_checkpoint(
-        self,
-        path: str,
-        feature_pipeline_state: dict[str, dict[str, float]] | None = None,
-        mlflow_meta: dict | None = None,
-    ) -> None:
-        """Save PPO training checkpoint.
-
-        Args:
-            path: Path to save checkpoint
-            feature_pipeline_state: Optional fitted scaler states keyed by feature output name.
-            mlflow_meta: Optional MLflow run metadata dict. When None, the active
-                MLflow run is queried automatically as a fallback.
-        """
-        if mlflow_meta is None:
-            mlflow_meta = _collect_mlflow_meta()
-        checkpoint = {
-            "algorithm": "ppo",
-            "n_obs": self.n_obs,
-            "n_act": self.n_act,
-            "actor_hidden_dims": self.actor_hidden_dims,
-            "value_hidden_dims": self.value_hidden_dims,
-            "actor_state_dict": self.actor.state_dict(),
-            "value_net_state_dict": self.value_net.state_dict(),
-            "actor_params_state": self.ppo_loss.actor_network_params.state_dict(),
-            "value_params_state": self.ppo_loss.critic_network_params.state_dict(),
-            "optimizer_state_dict": self.optimizer.state_dict(),
-            "total_count": self.total_count,
-            "total_episodes": self.total_episodes,
-            "episode_log_count": (
-                int(self.logs.get("episode_log_count", [0])[-1])
-                if self.logs.get("episode_log_count")
-                else 0
-            ),
-            "logs": dict(self.logs),
-            "mlflow_run_id": mlflow_meta.get("run_id"),
-            "mlflow_run_name": mlflow_meta.get("run_name"),
-            "mlflow_tracking_uri": mlflow_meta.get("tracking_uri"),
-            "mlflow_experiment_id": mlflow_meta.get("experiment_id"),
-            "mlflow_experiment_name": mlflow_meta.get("experiment_name"),
-            "feature_pipeline_state": feature_pipeline_state,
-        }
-        torch.save(checkpoint, path)
-        write_asset_meta(path, generator="trainers/ppo.py")
-        logger.info("save checkpoint path={}", path)
-
-    def load_checkpoint(self, path: str) -> None:
-        """Load PPO training checkpoint.
-
-        Args:
-            path: Path to checkpoint
-        """
-        checkpoint = torch.load(path, weights_only=True)
-        if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
-            raise KeyError(
-                "PPO checkpoint is missing functional parameter states "
-                "(actor_params_state/value_params_state). "
-                "Legacy module-only checkpoints are no longer supported."
-            )
-        self.ppo_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
-        self.ppo_loss.critic_network_params.load_state_dict(checkpoint["value_params_state"])
-        self.ppo_loss.actor_network_params.to_module(self.actor)
-        self.ppo_loss.critic_network_params.to_module(self.value_net)
-        if "actor_state_dict" in checkpoint:
-            self.actor.load_state_dict(checkpoint["actor_state_dict"])
-        if "value_net_state_dict" in checkpoint:
-            self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
-        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        self.total_count = checkpoint["total_count"]
-        self.total_episodes = checkpoint["total_episodes"]
-        self.logs = defaultdict(list, checkpoint["logs"])
-        self.mlflow_run_id = checkpoint.get("mlflow_run_id")
-        self.mlflow_run_name = checkpoint.get("mlflow_run_name")
-        self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
-        self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
-        self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
-        logger.info("load checkpoint path={}", path)
 
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):

@@ -13,13 +13,15 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 import torchrl.collectors.collectors as torchrl_collectors
-from tensordict.nn import set_composite_lp_aggregate
+from tensordict.nn import InteractionType, set_composite_lp_aggregate
 from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
+from torchrl.envs.utils import set_exploration_type
 
 from logger import get_logger, is_level_enabled, log_banner
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import BenchmarkName
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.evaluation.benchmarks import benchmarks_from_config
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.profiler import get_profiler
@@ -29,6 +31,7 @@ from trading_rl.trainers.health_monitor import TrainingHealthMonitor
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 
 _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
+_MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
 
 
 def _log_network_stats(log, algo: str, actor: torch.nn.Module, critic: torch.nn.Module) -> None:
@@ -380,6 +383,11 @@ class BaseTrainer(ABC):
         if enable_composite_lp:
             set_composite_lp_aggregate(True).set()
 
+        # Counters used by off-policy trainers; harmless for on-policy ones.
+        self.successful_batches = 0
+        self.skipped_batches = 0
+        self._consecutive_skips = 0
+
     def _global_optimization_step(
         self, batch_idx: int, inner_idx: int, steps_per_batch: int
     ) -> int:
@@ -407,9 +415,247 @@ class BaseTrainer(ABC):
     ) -> None:
         """Run optimization for a batch."""
 
+    @property
     @abstractmethod
+    def _algo_label(self) -> str:
+        """Short algorithm identifier used in log messages and checkpoints."""
+
+    @property
+    def _value_loss_key(self) -> str:
+        """Key for the value/critic loss in the loss_vals dict. DDPG overrides to 'loss_value'."""
+        return "loss_qvalue"
+
+    @abstractmethod
+    def _get_checkpoint_network_state(self) -> dict:
+        """Return algorithm-specific entries to merge into the checkpoint dict.
+
+        Must include at minimum ``actor_params_state``, ``value_params_state``,
+        and all optimizer state dicts.  Algorithm-specific extras (e.g. SAC's
+        ``log_alpha``, DDPG's target params) go here too.
+        """
+
+    @abstractmethod
+    def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
+        """Restore the algorithm-specific network and optimizer states from *checkpoint*."""
+
+    # ------------------------------------------------------------------
+    # Shared off-policy utilities (harmless stubs for on-policy trainers)
+    # ------------------------------------------------------------------
+
+    def _record_skipped_batch(self, reason: str, exc: RuntimeError | None = None) -> None:
+        """Track skipped optimization batches and raise after too many consecutive failures."""
+        self.skipped_batches += 1
+        self._consecutive_skips += 1
+        if exc is None:
+            logger.warning("{} skipping batch reason={}", self._algo_label, reason)
+        else:
+            logger.warning("{} skipping batch reason={} err={}", self._algo_label, reason, exc)
+        if self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES and self.successful_batches == 0:
+            error = RuntimeError(
+                f"{self._algo_label.upper()}: {self._consecutive_skips} consecutive optimization "
+                "batches skipped with zero successful updates. Training cannot proceed — "
+                "check environment or replay buffer tensor shapes."
+            )
+            if exc is not None:
+                raise error from exc
+            raise error
+
+    def _log_batch_summary(self) -> None:
+        """Log successful vs skipped optimization batch counts at training end."""
+        total = self.successful_batches + self.skipped_batches
+        if total > 0:
+            rate = (self.successful_batches / total) * 100
+            _log = logger.warning if rate < _MIN_BATCH_SUCCESS_RATE else logger.info
+            _log(
+                "%s batch summary successful=%d/%d success_rate=%.1f%% skipped=%d",
+                self._algo_label, self.successful_batches, total, rate, self.skipped_batches,
+            )
+        else:
+            logger.warning("%s no optimization batches attempted", self._algo_label)
+
     def _evaluate(self) -> None:
-        """Evaluate current policy."""
+        """Periodic policy evaluation shared by DDPG, TD3, and SAC.
+
+        Runs a deterministic rollout on the dedicated eval env, logs scalar
+        metrics, and calls ``_post_eval_trace_hook`` for algorithm-specific
+        TRACE logging (e.g. TD3 action-distribution stats).
+        """
+        with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
+            n_eval = (
+                self.eval_config.resolve_eval_steps(self._eval_data_len)
+                if self._eval_data_len is not None
+                else self.eval_config.eval_steps
+            )
+            if self._eval_env is None:
+                logger.warning(
+                    "%s _evaluate: no dedicated eval env set; skipping periodic eval "
+                    "to avoid corrupting SyncDataCollector state",
+                    self._algo_label,
+                )
+                return
+            eval_rollout = self._eval_env.rollout(n_eval, self.actor)
+
+            mean_reward = eval_rollout["next", "reward"].mean().item()
+            sum_reward = eval_rollout["next", "reward"].sum().item()
+            max_steps = eval_rollout["step_count"].max().item()
+
+            self.logs["eval_reward_mean"].append(mean_reward)
+            self.logs["eval_reward_sum"].append(sum_reward)
+            self.logs["eval_step_count"].append(max_steps)
+
+            self._post_eval_trace_hook(eval_rollout)
+
+            eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
+            logger.info(
+                "%s eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
+                self._algo_label, mean_reward, sum_reward, max_steps, eval_data_len,
+            )
+            del eval_rollout
+
+    def _post_eval_trace_hook(self, eval_rollout: Any) -> None:
+        """Optional TRACE-level hook called after each periodic eval rollout."""
+
+    def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
+        """Log one optimization step; used by DDPG and TD3. SAC overrides with extra fields."""
+        curr_loss_value = loss_vals[self._value_loss_key].item()
+        curr_loss_actor = loss_vals["loss_actor"].item()
+        logger.info(
+            "%s step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f",
+            self._algo_label, max_length, buffer_len, curr_loss_value, curr_loss_actor,
+        )
+        if is_level_enabled("TRACE"):
+            _log_network_stats(logger, self._algo_label, self.actor, self.value_net)
+
+    # ------------------------------------------------------------------
+    # Shared checkpoint save / load
+    # ------------------------------------------------------------------
+
+    def save_checkpoint(
+        self,
+        path: str,
+        feature_pipeline_state: dict[str, dict[str, float]] | None = None,
+        mlflow_meta: dict | None = None,
+    ) -> None:
+        """Save a training checkpoint.
+
+        The common frame (architecture metadata, training state, MLflow tags,
+        feature pipeline state, optional replay buffer) is written here.
+        Algorithm-specific network / optimizer state is provided by
+        ``_get_checkpoint_network_state()``.
+        """
+        from pathlib import Path
+        from trading_rl.models import _extract_action_bounds_from_spec
+
+        if mlflow_meta is None:
+            mlflow_meta = _collect_mlflow_meta()
+        _env = getattr(self, "env", None)
+        _bounds = _extract_action_bounds_from_spec(getattr(_env, "action_spec", None))
+        checkpoint: dict = {
+            "algorithm": self._algo_label,
+            "n_obs": self.n_obs,
+            "n_act": self.n_act,
+            "actor_hidden_dims": self.actor_hidden_dims,
+            "value_hidden_dims": self.value_hidden_dims,
+            "action_low": _bounds[0].tolist() if _bounds is not None else None,
+            "action_high": _bounds[1].tolist() if _bounds is not None else None,
+            "actor_state_dict": self.actor.state_dict(),
+            "value_net_state_dict": self.value_net.state_dict(),
+            "total_count": self.total_count,
+            "total_episodes": self.total_episodes,
+            "episode_log_count": (
+                int(self.logs.get("episode_log_count", [0])[-1])
+                if self.logs.get("episode_log_count")
+                else 0
+            ),
+            "logs": dict(self.logs),
+            "mlflow_run_id": mlflow_meta.get("run_id"),
+            "mlflow_run_name": mlflow_meta.get("run_name"),
+            "mlflow_tracking_uri": mlflow_meta.get("tracking_uri"),
+            "mlflow_experiment_id": mlflow_meta.get("experiment_id"),
+            "mlflow_experiment_name": mlflow_meta.get("experiment_name"),
+            "feature_pipeline_state": feature_pipeline_state,
+        }
+        checkpoint.update(self._get_checkpoint_network_state())
+
+        if getattr(self, "replay_buffer", None) is not None and getattr(self.config, "save_buffer", False):
+            path_obj = Path(path)
+            buffer_dir = path_obj.with_suffix("").with_name(f"{path_obj.stem}_buffer")
+            try:
+                self.replay_buffer.dumps(buffer_dir)
+            except Exception:
+                logger.exception("failed to save replay buffer; checkpoint will not include buffer")
+            else:
+                checkpoint["replay_buffer_path"] = str(buffer_dir)
+                checkpoint["buffer_metadata"] = {
+                    "buffer_size": len(self.replay_buffer),
+                    "max_size": self.replay_buffer._storage.max_size,
+                }
+                logger.info("save replay buffer path={} n_experiences={}", buffer_dir, len(self.replay_buffer))
+
+        torch.save(checkpoint, path)
+        write_asset_meta(path, generator=f"trainers/{self._algo_label}.py")
+        logger.info("save checkpoint path={}", path)
+
+    def load_checkpoint(self, path: str) -> None:
+        """Load a training checkpoint.
+
+        Validates the required keys, delegates network / optimizer restoration
+        to ``_load_checkpoint_network_state()``, then restores common training
+        state and optionally the replay buffer.
+        """
+        from pathlib import Path
+
+        checkpoint = torch.load(path, weights_only=True)
+        if is_level_enabled("TRACE"):
+            logger.trace("{} checkpoint keys={}", self._algo_label, sorted(checkpoint.keys()))
+
+        if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
+            raise KeyError(
+                f"{self._algo_label.upper()} checkpoint is missing functional parameter states "
+                "(actor_params_state/value_params_state). "
+                "Legacy module-only checkpoints are no longer supported."
+            )
+
+        self._load_checkpoint_network_state(checkpoint)
+
+        # Backward-compat: restore visible module weights if present in checkpoint.
+        if "actor_state_dict" in checkpoint:
+            self.actor.load_state_dict(checkpoint["actor_state_dict"])
+        if "value_net_state_dict" in checkpoint:
+            self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
+
+        self.total_count = checkpoint["total_count"]
+        self.total_episodes = checkpoint["total_episodes"]
+        self.logs = defaultdict(list, checkpoint["logs"])
+        self.mlflow_run_id = checkpoint.get("mlflow_run_id")
+        self.mlflow_run_name = checkpoint.get("mlflow_run_name")
+        self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
+        self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
+        self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
+
+        replay_buffer = getattr(self, "replay_buffer", None)
+        if replay_buffer is not None:
+            if "replay_buffer" in checkpoint:
+                logger.info("restore replay buffer legacy n_experiences={}", len(checkpoint["replay_buffer"]))
+                self.replay_buffer = checkpoint["replay_buffer"]
+            else:
+                buffer_path = checkpoint.get("replay_buffer_path")
+                if buffer_path and Path(buffer_path).exists():
+                    try:
+                        replay_buffer.loads(buffer_path)
+                        logger.info("load replay buffer path={} n_experiences={}", buffer_path, len(replay_buffer))
+                    except Exception:
+                        logger.exception("Failed to load replay buffer from %s", buffer_path)
+                else:
+                    logger.info("no replay buffer in checkpoint start_fresh=true")
+
+        logger.debug(
+            "load checkpoint state total_count=%s total_episodes=%s mlflow_run_id=%s "
+            "mlflow_run_name=%s experiment=%s",
+            self.total_count, self.total_episodes,
+            self.mlflow_run_id, self.mlflow_run_name, self.mlflow_experiment_name,
+        )
+        logger.info("load checkpoint path={}", path)
 
     def _compute_exploration_ratio(self) -> float:
         """Algorithm-specific exploration metric."""

@@ -157,7 +157,7 @@ class TestBuildPooledSplits:
         class _FakePipeline:
             features: list = []
 
-            def reset(self):
+            def reset(self, symbol_id=None):
                 reset_calls.append(1)
 
             def fit(self, df: pd.DataFrame) -> None:

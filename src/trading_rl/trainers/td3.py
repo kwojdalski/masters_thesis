@@ -1,28 +1,23 @@
 """TD3 Trainer implementation."""
 
 from trading_rl.trainers.registry import register_trainer
-from collections import defaultdict
 from typing import Any
 
 import torch
-from tensordict.nn import InteractionType, TensorDictSequential
+from tensordict.nn import TensorDictSequential
 from torch.optim import Adam
 from torchrl.data import Bounded
-from torchrl.envs.utils import set_exploration_type
 from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import SoftUpdate
 from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
 from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
-from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.constants import LossFunction
 from trading_rl.models import create_td3_actor, create_td3_qvalue_network
-from trading_rl.trainers.base import _MIN_BATCH_SUCCESS_RATE, _collect_mlflow_meta, _log_network_stats, BaseTrainer
+from trading_rl.trainers.base import BaseTrainer
 
 logger = get_logger(__name__)
-
-_MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
 
 
 class TD3Loss(TorchRLTd3Loss):
@@ -126,11 +121,6 @@ class TD3Trainer(BaseTrainer):
         )
 
         self.policy_delay = config.td3.policy_delay
-
-        # Counters for tracking successful vs skipped batches
-        self.successful_batches = 0
-        self.skipped_batches = 0
-        self._consecutive_skips = 0
 
         logger.info(
             "init td3 trainer actor_lr=%s value_lr=%s exploration_noise_std=%.3f policy_noise=%.3f noise_clip=%.3f policy_delay=%d",
@@ -315,6 +305,56 @@ class TD3Trainer(BaseTrainer):
             if self._should_eval_step(current_step):
                 self._evaluate()
 
+    def _compute_exploration_ratio(self) -> float:
+        return self.config.td3.policy_noise
+
+    @property
+    def _algo_label(self) -> str:
+        return "td3"
+
+    def _get_checkpoint_network_state(self) -> dict:
+        return {
+            "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
+            "target_actor_params_state": self.td3_loss.target_actor_network_params.state_dict(),
+            "value_params_state": self.td3_loss.qvalue_network_params.state_dict(),
+            "target_value_params_state": self.td3_loss.target_qvalue_network_params.state_dict(),
+            "optimizer_actor_state_dict": self.optimizer_actor.state_dict(),
+            "optimizer_value_state_dict": self.optimizer_value.state_dict(),
+        }
+
+    def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
+        self.td3_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
+        self.td3_loss.qvalue_network_params.load_state_dict(checkpoint["value_params_state"])
+        self.td3_loss.target_actor_network_params.load_state_dict(checkpoint["target_actor_params_state"])
+        self.td3_loss.target_qvalue_network_params.load_state_dict(checkpoint["target_value_params_state"])
+        self.td3_loss.actor_network_params.to_module(self.actor)
+        self.td3_loss.qvalue_network_params.to_module(self.value_net)
+        self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
+        self.optimizer_value.load_state_dict(checkpoint["optimizer_value_state_dict"])
+
+    def _post_eval_trace_hook(self, eval_rollout: Any) -> None:
+        if not is_level_enabled("TRACE"):
+            return
+        import numpy as np
+        actions = eval_rollout["action"]
+        logger.trace(
+            "td3 eval action stats n=%d mean=%.4f std=%.4f",
+            actions.numel(), actions.mean(), actions.std(),
+        )
+        logger.trace("td3 eval action min=%.4f max=%.4f", actions.min(), actions.max())
+        actions_flat = actions.flatten().cpu().detach().numpy()
+        unique_actions, counts = np.unique(np.round(actions_flat, 2), return_counts=True)
+        if len(unique_actions) <= 10:
+            logger.trace(
+                "td3 eval action distribution=%s",
+                dict(zip(unique_actions, counts, strict=False)),
+            )
+        else:
+            percentiles = np.percentile(actions_flat, [0, 25, 50, 75, 100])
+            logger.trace("td3 eval action percentiles=%s", percentiles.tolist())
+        if actions.std() < 0.01:
+            logger.warning("td3 eval agent stuck action_std={:.6f}", actions.std())
+
     def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for RL agent, with exploration for TD3."""
         logger.debug(
@@ -361,244 +401,3 @@ class TD3Trainer(BaseTrainer):
             on_batch_end=on_batch_end,
             on_train_end=self._log_batch_summary,
         )
-
-    def _record_skipped_batch(self, reason: str, exc: RuntimeError | None = None) -> None:
-        """Track skipped TD3 optimization batches and fail fast if none succeed."""
-        self.skipped_batches += 1
-        self._consecutive_skips += 1
-
-        if exc is None:
-            logger.warning("td3 skipping batch reason={}", reason)
-        else:
-            logger.warning("td3 skipping batch reason={} err={}", reason, exc)
-
-        if (
-            self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
-            and self.successful_batches == 0
-        ):
-            error = RuntimeError(
-                f"TD3: {self._consecutive_skips} consecutive optimization batches "
-                "skipped with zero successful updates. Training cannot proceed - "
-                "check environment or replay buffer tensor shapes."
-            )
-            if exc is not None:
-                raise error from exc
-            raise error
-
-    def _log_batch_summary(self) -> None:
-        """Log successful vs skipped optimization batch summary."""
-        # Log batch success/failure summary
-        total_batches = self.successful_batches + self.skipped_batches
-        if total_batches > 0:
-            success_rate = (self.successful_batches / total_batches) * 100
-            _log = logger.warning if success_rate < _MIN_BATCH_SUCCESS_RATE else logger.info
-            _log(
-                "td3 batch summary successful=%d/%d success_rate=%.1f%% skipped=%d",
-                self.successful_batches, total_batches, success_rate, self.skipped_batches,
-            )
-        else:
-            logger.warning("td3 no optimization batches attempted")
-
-    def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
-        curr_loss_value = loss_vals["loss_qvalue"].item()
-        curr_loss_actor = loss_vals["loss_actor"].item()
-
-        logger.info(
-            "td3 step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f",
-            max_length, buffer_len, curr_loss_value, curr_loss_actor,
-        )
-
-        if is_level_enabled("TRACE"):
-            _log_network_stats(logger, "td3", self.actor, self.value_net)
-
-    def _evaluate(self) -> None:
-        with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
-            n_eval = self.eval_config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.eval_config.eval_steps
-            if self._eval_env is None:
-                logger.warning(
-                    "td3 _evaluate: no dedicated eval env set; skipping periodic eval "
-                    "to avoid corrupting SyncDataCollector state"
-                )
-                return
-            eval_rollout = self._eval_env.rollout(n_eval, self.actor)
-
-            mean_reward = eval_rollout["next", "reward"].mean().item()
-            sum_reward = eval_rollout["next", "reward"].sum().item()
-            max_steps = eval_rollout["step_count"].max().item()
-
-            self.logs["eval_reward_mean"].append(mean_reward)
-            self.logs["eval_reward_sum"].append(sum_reward)
-            self.logs["eval_step_count"].append(max_steps)
-
-            if is_level_enabled("TRACE"):
-                actions = eval_rollout["action"]
-                logger.trace(
-                    "td3 eval action stats n=%d mean=%.4f std=%.4f",
-                    actions.numel(), actions.mean(), actions.std(),
-                )
-                logger.trace(
-                    "td3 eval action min=%.4f max=%.4f", actions.min(), actions.max()
-                )
-                actions_flat = actions.flatten().cpu().detach().numpy()
-                import numpy as np
-
-                unique_actions, counts = np.unique(
-                    np.round(actions_flat, 2), return_counts=True
-                )
-                if len(unique_actions) <= 10:
-                    logger.trace(
-                        "td3 eval action distribution=%s",
-                        dict(zip(unique_actions, counts, strict=False)),
-                    )
-                else:
-                    percentiles = np.percentile(actions_flat, [0, 25, 50, 75, 100])
-                    logger.trace(
-                        "td3 eval action percentiles=%s", percentiles.tolist()
-                    )
-
-                if actions.std() < 0.01:
-                    logger.warning("td3 eval agent stuck action_std={:.6f}", actions.std())
-
-            eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
-            logger.info(
-                "td3 eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
-                mean_reward, sum_reward, max_steps, eval_data_len,
-            )
-
-            del eval_rollout
-
-    def _compute_exploration_ratio(self) -> float:
-        return self.config.td3.policy_noise
-
-    def save_checkpoint(
-        self,
-        path: str,
-        feature_pipeline_state: dict[str, dict[str, float]] | None = None,
-        mlflow_meta: dict | None = None,
-    ) -> None:
-        from pathlib import Path
-
-        if mlflow_meta is None:
-            mlflow_meta = _collect_mlflow_meta()
-        from trading_rl.models import _extract_action_bounds_from_spec
-        _bounds = _extract_action_bounds_from_spec(getattr(self.env, "action_spec", None))
-        checkpoint = {
-            "algorithm": "td3",
-            "n_obs": self.n_obs,
-            "n_act": self.n_act,
-            "actor_hidden_dims": self.actor_hidden_dims,
-            "value_hidden_dims": self.value_hidden_dims,
-            "action_low": _bounds[0].tolist() if _bounds is not None else None,
-            "action_high": _bounds[1].tolist() if _bounds is not None else None,
-            "actor_state_dict": self.actor.state_dict(),
-            "actor_params_state": self.td3_loss.actor_network_params.state_dict(),
-            "target_actor_params_state": self.td3_loss.target_actor_network_params.state_dict(),
-            "value_net_state_dict": self.value_net.state_dict(),
-            "value_params_state": self.td3_loss.qvalue_network_params.state_dict(),
-            "target_value_params_state": self.td3_loss.target_qvalue_network_params.state_dict(),
-            "optimizer_actor_state_dict": self.optimizer_actor.state_dict(),
-            "optimizer_value_state_dict": self.optimizer_value.state_dict(),
-            "total_count": self.total_count,
-            "total_episodes": self.total_episodes,
-            "episode_log_count": (
-                int(self.logs.get("episode_log_count", [0])[-1])
-                if self.logs.get("episode_log_count")
-                else 0
-            ),
-            "logs": dict(self.logs),
-            "mlflow_run_id": mlflow_meta.get("run_id"),
-            "mlflow_run_name": mlflow_meta.get("run_name"),
-            "mlflow_tracking_uri": mlflow_meta.get("tracking_uri"),
-            "mlflow_experiment_id": mlflow_meta.get("experiment_id"),
-            "mlflow_experiment_name": mlflow_meta.get("experiment_name"),
-            "feature_pipeline_state": feature_pipeline_state,
-        }
-
-        # Optionally save replay buffer (can be very large)
-        if getattr(self.config, "save_buffer", False):
-            path_obj = Path(path)
-            buffer_dir = path_obj.with_suffix("")
-            buffer_dir = buffer_dir.with_name(f"{buffer_dir.name}_buffer")
-            try:
-                self.replay_buffer.dumps(buffer_dir)
-            except Exception:
-                logger.exception("failed to save replay buffer; checkpoint will not include buffer")
-            else:
-                checkpoint["replay_buffer_path"] = str(buffer_dir)
-                checkpoint["buffer_metadata"] = {
-                    "buffer_size": len(self.replay_buffer),
-                    "max_size": self.replay_buffer._storage.max_size,
-                }
-                logger.info("save replay buffer path={} n_experiences={}", buffer_dir, len(self.replay_buffer))
-
-        torch.save(checkpoint, path)
-        write_asset_meta(path, generator="trainers/td3.py")
-        logger.info("save checkpoint path={}", path)
-
-    def load_checkpoint(self, path: str) -> None:
-        from pathlib import Path
-
-        checkpoint = torch.load(path, weights_only=True)
-        if is_level_enabled("TRACE"):
-            logger.trace("td3 checkpoint keys={}", sorted(checkpoint.keys()))
-
-        # Restore functional params and sync modules
-        if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
-            raise KeyError(
-                "TD3 checkpoint is missing functional parameter states "
-                "(actor_params_state/value_params_state). "
-                "Legacy module-only checkpoints are no longer supported."
-            )
-        self.td3_loss.actor_network_params.load_state_dict(
-            checkpoint["actor_params_state"]
-        )
-        self.td3_loss.qvalue_network_params.load_state_dict(
-            checkpoint["value_params_state"]
-        )
-        self.td3_loss.target_actor_network_params.load_state_dict(
-            checkpoint["target_actor_params_state"]
-        )
-        self.td3_loss.target_qvalue_network_params.load_state_dict(
-            checkpoint["target_value_params_state"]
-        )
-        self.td3_loss.actor_network_params.to_module(self.actor)
-        self.td3_loss.qvalue_network_params.to_module(self.value_net)
-
-        self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
-        self.optimizer_value.load_state_dict(checkpoint["optimizer_value_state_dict"])
-        self.total_count = checkpoint["total_count"]
-        self.total_episodes = checkpoint["total_episodes"]
-        self.logs = defaultdict(list, checkpoint["logs"])
-        self.mlflow_run_id = checkpoint.get("mlflow_run_id")
-        self.mlflow_run_name = checkpoint.get("mlflow_run_name")
-        self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
-        self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
-        self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
-
-        # Optionally restore replay buffer if it was saved
-        if "replay_buffer" in checkpoint:
-            logger.info("restore replay buffer legacy n_experiences={}", len(checkpoint["replay_buffer"]))
-            self.replay_buffer = checkpoint["replay_buffer"]
-        else:
-            buffer_path = checkpoint.get("replay_buffer_path")
-            if buffer_path and Path(buffer_path).exists():
-                try:
-                    self.replay_buffer.loads(buffer_path)
-                    buffer_size = len(self.replay_buffer)
-                    logger.info("load replay buffer path={} n_experiences={}", buffer_path, buffer_size)
-                except Exception:
-                    logger.exception(
-                        "Failed to load replay buffer from %s", buffer_path
-                    )
-            else:
-                logger.info("no replay buffer in checkpoint start_fresh=true")
-
-        logger.debug(
-            "load checkpoint state total_count=%s total_episodes=%s mlflow_run_id=%s mlflow_run_name=%s experiment=%s",
-            self.total_count,
-            self.total_episodes,
-            self.mlflow_run_id,
-            self.mlflow_run_name,
-            self.mlflow_experiment_name,
-        )
-        logger.info("load checkpoint path={}", path)

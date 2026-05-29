@@ -23,6 +23,16 @@ class _LoopTrainer(BaseTrainer):
     def _evaluate(self) -> None:
         raise NotImplementedError
 
+    @property
+    def _algo_label(self) -> str:
+        return "test"
+
+    def _get_checkpoint_network_state(self) -> dict:
+        return {}
+
+    def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
+        pass
+
 
 class _CheckpointManager:
     def __init__(self) -> None:
