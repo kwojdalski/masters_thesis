@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import mlflow
@@ -31,6 +31,8 @@ class PeriodicEvaluationHook:
     config: Any
     algorithm: str
     last_step: int = 0
+    effective_interval: int = 0             # current eval cadence (may be shortened in dense mode)
+    dense_reward_history: dict = field(default_factory=dict)  # split → [(step, reward)]
 
 
 @dataclass
@@ -82,11 +84,13 @@ class TrainerRuntimeHooks:
             splits=splits,
             config=config,
             algorithm=algorithm,
+            effective_interval=eval_interval,
         )
         split_names = [s.split for s in splits]
         logger.info(
-            "periodic evaluation enabled interval=%s splits=%s",
+            "periodic evaluation enabled interval=%s splits=%s dense_eval=%s",
             eval_interval, split_names,
+            getattr(config.training, "dense_eval_enabled", False),
         )
 
     def configure_periodic_explainability(
@@ -131,8 +135,7 @@ class TrainerRuntimeHooks:
         if hook is None:
             return
 
-        eval_interval = hook.config.training.temp_eval_interval
-        if step_number - hook.last_step < eval_interval:
+        if step_number - hook.last_step < hook.effective_interval:
             return
 
         self._run_temporary_evaluation(step_number, hook)
@@ -459,6 +462,12 @@ class TrainerRuntimeHooks:
                         split_ctx.split, step_number,
                         len(self._progression_history[split_ctx.split]),
                     )
+                _dense_signal = (
+                    metric_report.total_return
+                    if metric_report is not None
+                    else final_reward
+                )
+                self._update_eval_density(hook, split_ctx.split, _dense_signal, step_number)
 
         # Create and upload train/val progression plot (if we have both splits)
         if mlflow.active_run():
@@ -507,6 +516,69 @@ class TrainerRuntimeHooks:
             "temp eval all splits done step=%s total_elapsed_s=%.2f",
             step_number, time.monotonic() - _t_total,
         )
+
+    def _update_eval_density(
+        self,
+        hook: PeriodicEvaluationHook,
+        split: str,
+        signal: float,
+        step: int,
+    ) -> None:
+        """Shorten or restore the eval interval based on recent reward trend.
+
+        Dense mode triggers when the most recent `window` evaluations show a
+        relative improvement of at least `threshold` over the preceding `window`
+        evaluations.  The cadence is restored once improvement flattens out.
+        """
+        import math
+
+        cfg = hook.config.training
+        if not getattr(cfg, "dense_eval_enabled", False):
+            return
+        if not math.isfinite(signal):
+            return
+
+        window: int = cfg.dense_eval_window
+        threshold: float = cfg.dense_eval_improvement_threshold
+        factor: float = cfg.dense_eval_factor
+        min_evals: int = cfg.dense_eval_min_evals
+        base_interval: int = cfg.temp_eval_interval
+
+        history = hook.dense_reward_history.setdefault(split, [])
+        history.append((step, signal))
+
+        if len(history) < min_evals:
+            return
+
+        recent_vals = [r for _, r in history[-window:]]
+        earlier_start = max(0, len(history) - 2 * window)
+        earlier_end = max(0, len(history) - window)
+        earlier_vals = [r for _, r in history[earlier_start:earlier_end]]
+
+        if not earlier_vals:
+            return
+
+        recent_mean = sum(recent_vals) / len(recent_vals)
+        earlier_mean = sum(earlier_vals) / len(earlier_vals)
+        denominator = abs(earlier_mean) + 1e-12
+        relative_change = (recent_mean - earlier_mean) / denominator
+
+        dense_interval = max(1, int(base_interval * factor))
+
+        if relative_change > threshold:
+            if hook.effective_interval != dense_interval:
+                hook.effective_interval = dense_interval
+                logger.info(
+                    "dense eval: improvement {:.1%} > threshold {:.1%} split={} "
+                    "interval {} → {} (factor={:.2f})",
+                    relative_change, threshold, split, base_interval, dense_interval, factor,
+                )
+        elif len(history) >= 2 * window and hook.effective_interval != base_interval:
+            hook.effective_interval = base_interval
+            logger.info(
+                "dense eval: plateau detected split={} interval restored to {}",
+                split, base_interval,
+            )
 
     def _run_temporary_explainability(
         self,

@@ -257,6 +257,14 @@ class TrainingConfig:
     temp_eval_splits: list[SplitName] = field(default_factory=lambda: [SplitName.TRAIN, SplitName.VAL])  # Which splits to evaluate
     temp_eval_max_steps: int = 200000  # Cap rollout length for periodic eval
     temp_eval_log_data: bool = False  # Log rollout parquet artifact during periodic eval (disabled by default)
+
+    # Dense eval tempo — shorten eval cadence when training metrics show sustained improvement
+    dense_eval_enabled: bool = False
+    dense_eval_min_evals: int = 3            # Evals required before density adaptation activates
+    dense_eval_window: int = 3               # Comparison window (number of evals per side)
+    dense_eval_improvement_threshold: float = 0.05  # Min relative improvement to enter dense mode
+    dense_eval_factor: float = 0.5          # Multiply temp_eval_interval by this in dense mode
+
     max_plot_points: int | None = 50_000  # Cap the number of plotted points per series; None = plot all
     show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
