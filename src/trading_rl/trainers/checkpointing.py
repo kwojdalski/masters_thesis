@@ -36,6 +36,9 @@ class CheckpointManager:
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         self.trainer.save_checkpoint(str(checkpoint_path))
         self._last_checkpoint_step = self.trainer.total_count
+        logger.trace(
+            "checkpoint saved path=%s step=%d", checkpoint_path, self.trainer.total_count
+        )
 
     def save_interrupt_checkpoint(self) -> str | None:
         """Persist an emergency checkpoint when training is interrupted."""
@@ -58,4 +61,7 @@ class CheckpointManager:
         )
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         self.trainer.save_checkpoint(str(checkpoint_path))
+        logger.trace(
+            "interrupt checkpoint saved path=%s step=%d", checkpoint_path, self.trainer.total_count
+        )
         return str(checkpoint_path)

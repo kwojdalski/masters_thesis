@@ -758,6 +758,7 @@ def _build_pooled_splits(
         for split, df in [("train", train_i), ("val", val_i), ("test", test_i)]:
             p = tmp_dir / f"{i}_{split}.parquet"
             df.to_parquet(p)
+            logger.trace("tmp parquet write symbol=%d split=%s n_rows=%d path=%s", i, split, len(df), p)
             sym[split] = p
         tmp_paths.append(sym)
         del train_i, val_i, test_i
@@ -987,6 +988,10 @@ def prepare_data(
             )
             _val_end = _train + _val
             _test_end = (_val_end + cfg.test_size) if cfg.test_size is not None else _n
+            logger.trace(
+                "cache slice key=%s train=0:%d val=%d:%d test=%d:%d",
+                _cache_key[:8], _train, _train, _val_end, _val_end, _test_end,
+            )
             return (
                 full_df.iloc[:_train],
                 full_df.iloc[_train:_val_end],

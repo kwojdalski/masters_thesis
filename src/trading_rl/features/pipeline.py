@@ -216,6 +216,7 @@ class FeaturePipeline:
             if feature.scaler is not None and hasattr(feature.scaler, "reset"):
                 feature.scaler.reset()
         self._is_fitted = False
+        logger.trace("feature pipeline reset n_features=%d", len(self.features))
         return self
 
     def get_feature_names(self) -> list[str]:

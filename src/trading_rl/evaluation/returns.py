@@ -208,6 +208,10 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
         )
         return None
 
+    logger.trace(
+        "nlv extracted n_values=%d start=%.4f end=%.4f",
+        len(nlv_values), nlv_values[0], nlv_values[-1],
+    )
     return ReturnSeries(
         np.asarray(nlv_values, dtype=float),
         ReturnKind.EQUITY,
