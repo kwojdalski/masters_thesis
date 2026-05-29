@@ -43,6 +43,7 @@ class FeaturePipeline:
         self.feature_configs = feature_configs
         self.features: list[Feature] = []
         self._is_fitted = False
+        self._current_symbol_id: str | None = None
 
         # Create feature instances
         for config in feature_configs:
@@ -118,17 +119,33 @@ class FeaturePipeline:
 
         return cls.from_config_dict(feature_list)
 
-    def fit(self, df: pd.DataFrame) -> "FeaturePipeline":
+    def fit(self, df: pd.DataFrame, symbol_id: str | None = None) -> "FeaturePipeline":
         """Fit normalization parameters on training data.
 
         CRITICAL: This should ONLY be called on training data to prevent data leakage.
 
         Args:
             df: Training DataFrame with OHLCV columns
+            symbol_id: Optional symbol identifier.  If provided and differs from
+                the symbol_id given to the last ``reset()`` call, a warning is
+                emitted to catch missing resets in pooled multi-symbol training.
 
         Returns:
             self for chaining
         """
+        if (
+            symbol_id is not None
+            and self._current_symbol_id is not None
+            and symbol_id != self._current_symbol_id
+            and self._is_fitted
+        ):
+            logger.warning(
+                "feature pipeline fitting symbol_id=%s but last reset was for symbol_id=%s "
+                "— possible missing pipeline.reset() between symbols",
+                symbol_id, self._current_symbol_id,
+            )
+        if symbol_id is not None:
+            self._current_symbol_id = symbol_id
         logger.info("fit feature pipeline")
         logger.trace("fit feature pipeline n_rows={} n_cols={}", *df.shape)
 
@@ -205,18 +222,24 @@ class FeaturePipeline:
         """
         return self.fit(df).transform(df)
 
-    def reset(self) -> "FeaturePipeline":
+    def reset(self, symbol_id: str | None = None) -> "FeaturePipeline":
         """Reset all feature scaler states so the pipeline can be re-fitted from scratch.
 
         Call this between symbols in pooled multi-symbol training to prevent
         RunningMeanStd from accumulating statistics across symbols, which would
         make each symbol's normalization order-dependent.
+
+        Args:
+            symbol_id: Optional identifier for the incoming symbol.  When
+                provided, it is stored and compared on the next ``fit()`` call
+                so that a missing reset between two different symbols is caught.
         """
         for feature in self.features:
             if feature.scaler is not None and hasattr(feature.scaler, "reset"):
                 feature.scaler.reset()
         self._is_fitted = False
-        logger.trace("feature pipeline reset n_features=%d", len(self.features))
+        self._current_symbol_id = symbol_id
+        logger.trace("feature pipeline reset n_features=%d symbol_id=%s", len(self.features), symbol_id)
         return self
 
     def get_feature_names(self) -> list[str]:

@@ -76,13 +76,15 @@ class StreamingTradingEnv(TradingEnv):
         end = start + self._episode_length
 
         # mmap_mode='r' keeps the file on disk; slicing forces only the window
-        # into RAM as a contiguous array.
+        # into RAM as a contiguous array. try/finally guarantees GC even on
+        # exception so file descriptors are not leaked under rapid resets.
         data_mm = np.load(mp.data_path, mmap_mode="r")
         index_mm = np.load(mp.index_path, mmap_mode="r")
-
-        window_data = np.array(data_mm[start:end], dtype=np.float32)
-        window_index_ns = np.array(index_mm[start:end])
-        del data_mm, index_mm  # release OS file handles immediately
+        try:
+            window_data = np.array(data_mm[start:end], dtype=np.float32)
+            window_index_ns = np.array(index_mm[start:end])
+        finally:
+            del data_mm, index_mm
 
         try:
             index = pd.DatetimeIndex(window_index_ns)

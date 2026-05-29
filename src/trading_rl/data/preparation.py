@@ -711,7 +711,7 @@ def _build_pooled_splits(
         # Without this, RunningMeanStd accumulates statistics across symbols,
         # making symbol N's normalization order-dependent on symbols 1..N-1.
         if pipeline is not None:
-            pipeline.reset()
+            pipeline.reset(symbol_id=str(data_path))
         train_i, val_i, test_i = prepare_data(data_path, prep_cfg, pipeline)
         if i == target_si:
             eval_pipeline_state = dump_pipeline_state(pipeline)

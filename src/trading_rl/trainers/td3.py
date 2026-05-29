@@ -162,6 +162,93 @@ class TD3Trainer(BaseTrainer):
         )
         return actor, value_net
 
+    def _normalize_batch_shapes(self, sample) -> None:
+        """Ensure reward/done/terminated have consistent 2-D shapes for TD3Loss."""
+        for key in [("next", "reward"), ("next", "done"), ("next", "terminated")]:
+            tensor = sample.get(key)
+            if tensor is None:
+                continue
+            if tensor.ndim == 0:
+                tensor = tensor.unsqueeze(0).unsqueeze(-1)
+            elif tensor.ndim == 1:
+                tensor = tensor.unsqueeze(-1)
+            sample.set(key, tensor)
+
+    def _update_critics(self, sample) -> tuple[Any, float] | None:
+        """Run one critic gradient step. Returns (loss_vals, value_loss) or None on skip."""
+        try:
+            loss_vals = self.td3_loss(sample)
+            self.successful_batches += 1
+            self._consecutive_skips = 0
+            if is_level_enabled("TRACE"):
+                logger.trace(
+                    "td3 losses loss_qvalue=%.6f loss_actor=%.6f",
+                    loss_vals["loss_qvalue"].item(), loss_vals["loss_actor"].item(),
+                )
+        except RuntimeError as e:
+            if "All input tensors" in str(e) and "must share a unique shape" in str(e):
+                self._record_skipped_batch("tensor shape error", exc=e)
+                return None
+            raise
+
+        self.optimizer_value.zero_grad()
+        loss_vals["loss_qvalue"].backward()
+        if self.config.max_grad_norm > 0:
+            torch.nn.utils.clip_grad_norm_(
+                self.td3_loss.qvalue_network_params.values(True, True),
+                self.config.max_grad_norm,
+            )
+        self.optimizer_value.step()
+        self.td3_loss.qvalue_network_params.to_module(self.value_net)
+
+        value_loss = loss_vals["loss_qvalue"].item()
+        self.logs["loss_value"].append(value_loss)
+        return loss_vals, value_loss
+
+    def _update_actor_and_targets(self, sample) -> tuple[float, dict | None]:
+        """Run delayed actor gradient step and target network update.
+
+        TD3 recomputes the loss on the same batch after critic weights have been
+        updated so the actor gradient uses the latest Q-values.
+
+        Returns (actor_loss, extra_metrics).
+        """
+        loss_vals_actor = self.td3_loss(sample)
+
+        self.optimizer_actor.zero_grad()
+        loss_vals_actor["loss_actor"].backward()
+        if self.config.max_grad_norm > 0:
+            torch.nn.utils.clip_grad_norm_(
+                self.td3_loss.actor_network_params.values(True, True),
+                self.config.max_grad_norm,
+            )
+        self.optimizer_actor.step()
+        self.td3_loss.actor_network_params.to_module(self.actor)
+        self.updater.step()
+
+        actor_loss = loss_vals_actor["loss_actor"].item()
+
+        extra_metrics: dict | None = None
+        if is_level_enabled("TRACE"):
+            actor_sum = float(sum(p.abs().sum().item() for p in self.actor.parameters()))
+            critic_sum = float(sum(p.abs().sum().item() for p in self.value_net.parameters()))
+            extra_metrics = {
+                "actor_param_abs_sum": actor_sum,
+                "critic_param_abs_sum": critic_sum,
+            }
+
+            params = self.td3_loss.qvalue_network_params
+            if getattr(params, "batch_size", None) and params.batch_size[0] >= 2:
+                params0, params1 = params[0], params[1]
+                max_diff = max(
+                    (p0 - params1.get(key)).abs().max().item()
+                    for key, p0 in params0.items(True, True)
+                    if isinstance(p0, torch.Tensor) and isinstance(params1.get(key), torch.Tensor)
+                )
+                extra_metrics["critic_qvalue_params_max_diff"] = max_diff
+
+        return actor_loss, extra_metrics
+
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int
     ) -> None:
@@ -171,17 +258,7 @@ class TD3Trainer(BaseTrainer):
                 batch_idx, j, self.config.optim_steps_per_batch
             )
 
-            # TorchRL's TD3Loss requires reward/done/terminated to have identical shapes.
-            # Some env wrappers emit 1D tensors which then trigger a shape error; normalize here.
-            for key in [("next", "reward"), ("next", "done"), ("next", "terminated")]:
-                tensor = sample.get(key)
-                if tensor is None:
-                    continue
-                if tensor.ndim == 0:
-                    tensor = tensor.unsqueeze(0).unsqueeze(-1)
-                elif tensor.ndim == 1:
-                    tensor = tensor.unsqueeze(-1)
-                sample.set(key, tensor)
+            self._normalize_batch_shapes(sample)
 
             if is_level_enabled("TRACE"):
                 actions = sample["action"]
@@ -195,8 +272,6 @@ class TD3Trainer(BaseTrainer):
                     rewards.mean(), rewards.std(), rewards.min(), rewards.max(),
                 )
 
-            # Ensure sample has consistent shapes for TD3Loss
-            # Check for any NaN or inf values that could cause shape issues
             if (
                 torch.isnan(sample["next", "reward"]).any()
                 or torch.isinf(sample["next", "reward"]).any()
@@ -204,7 +279,6 @@ class TD3Trainer(BaseTrainer):
                 self._record_skipped_batch("nan/inf in reward")
                 continue
 
-            # Ensure done and terminated have consistent shapes
             done = sample["next", "done"]
             terminated = sample["next", "terminated"]
             if done.shape != terminated.shape:
@@ -213,102 +287,16 @@ class TD3Trainer(BaseTrainer):
                 )
                 continue
 
-            # 1. Update critics
-            try:
-                loss_vals = self.td3_loss(sample)
-                # If we get here, the batch was successful
-                self.successful_batches += 1
-                self._consecutive_skips = 0
+            result = self._update_critics(sample)
+            if result is None:
+                continue
+            loss_vals, value_loss = result
 
-                if is_level_enabled("TRACE"):
-                    logger.trace(
-                        "td3 losses loss_qvalue=%.6f loss_actor=%.6f",
-                        loss_vals['loss_qvalue'].item(), loss_vals['loss_actor'].item(),
-                    )
-
-            except RuntimeError as e:
-                if "All input tensors" in str(e) and "must share a unique shape" in str(e):
-                    self._record_skipped_batch("tensor shape error", exc=e)
-                    continue
-                else:
-                    raise
-
-            self.optimizer_value.zero_grad()
-            loss_vals["loss_qvalue"].backward()
-            if self.config.max_grad_norm > 0:
-                torch.nn.utils.clip_grad_norm_(
-                    self.td3_loss.qvalue_network_params.values(True, True),
-                    self.config.max_grad_norm,
-                )
-            self.optimizer_value.step()
-
-            # Sync functional critic params back to critic module used for collection/eval
-            self.td3_loss.qvalue_network_params.to_module(self.value_net)
-
-            value_loss = loss_vals["loss_qvalue"].item()
-            self.logs["loss_value"].append(value_loss)
-
-            # 2. Delayed actor update
-            update_actor = self._should_update_actor(current_step)
-
-            extra_metrics = None
-            if update_actor:
-                # Recompute loss for actor update (using updated critic weights)
-                loss_vals_actor = self.td3_loss(sample)
-
-                self.optimizer_actor.zero_grad()
-                loss_vals_actor["loss_actor"].backward()
-                if self.config.max_grad_norm > 0:
-                    torch.nn.utils.clip_grad_norm_(
-                        self.td3_loss.actor_network_params.values(True, True),
-                        self.config.max_grad_norm,
-                    )
-                self.optimizer_actor.step()
-
-                # Sync functional actor params back to the actor module the collector uses
-                self.td3_loss.actor_network_params.to_module(self.actor)
-
-                # Update target networks
-                self.updater.step()
-
-                actor_loss = loss_vals_actor["loss_actor"].item()
-
-                if is_level_enabled("TRACE"):
-                    actor_sum = float(
-                        sum(p.abs().sum().item() for p in self.actor.parameters())
-                    )
-                    critic_sum = float(
-                        sum(p.abs().sum().item() for p in self.value_net.parameters())
-                    )
-                    extra_metrics = {
-                        "actor_param_abs_sum": actor_sum,
-                        "critic_param_abs_sum": critic_sum,
-                    }
+            if self._should_update_actor(current_step):
+                actor_loss, extra_metrics = self._update_actor_and_targets(sample)
             else:
-                # For logging purposes, use the actor loss computed in the first pass
                 actor_loss = loss_vals["loss_actor"].item()
-
-            if is_level_enabled("TRACE"):
-                critic_param_diff = None
-                params = self.td3_loss.qvalue_network_params
-                if getattr(params, "batch_size", None) and params.batch_size[0] >= 2:
-                    params0 = params[0]
-                    params1 = params[1]
-                    max_diff = 0.0
-                    for key, p0 in params0.items(True, True):
-                        p1 = params1.get(key)
-                        if isinstance(p0, torch.Tensor) and isinstance(
-                            p1, torch.Tensor
-                        ):
-                            diff = (p0 - p1).abs().max().item()
-                            if diff > max_diff:
-                                max_diff = diff
-                    critic_param_diff = max_diff
-
-                if critic_param_diff is not None:
-                    if extra_metrics is None:
-                        extra_metrics = {}
-                    extra_metrics["critic_qvalue_params_max_diff"] = critic_param_diff
+                extra_metrics = None
 
             self.logs["loss_actor"].append(actor_loss)
 
@@ -320,8 +308,6 @@ class TD3Trainer(BaseTrainer):
                 self.callback.log_training_step(
                     current_step, actor_loss, value_loss, extra_metrics=extra_metrics
                 )
-
-            # Log progress similar to PPO (info level)
 
             if self._should_log_step(current_step):
                 self._log_progress(max_length, buffer_len, loss_vals)

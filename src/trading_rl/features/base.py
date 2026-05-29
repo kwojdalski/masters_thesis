@@ -1,5 +1,6 @@
 """Base classes for feature engineering."""
 
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
@@ -9,7 +10,14 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
+from logger import get_logger
 from trading_rl.constants import EnvMode
+
+logger = get_logger(__name__)
+
+# Set TRADING_RL_DEBUG_FEATURES=1 to enable out-of-range warnings on transform output.
+_DEBUG_FEATURES = os.environ.get("TRADING_RL_DEBUG_FEATURES", "0") == "1"
+_FEATURE_CLIP_WARN = 10.0
 
 
 class NormalizationMethod(StrEnum):
@@ -572,17 +580,17 @@ class Feature(ABC):
             if isinstance(self.scaler, TimeWeightedRunningMeanStd):
                 # Time-weighted: transform with time-aware handling
                 if self.config.reset_on_session_break:
-                    return self._transform_session_aware_time_weighted(raw_values)
+                    result = self._transform_session_aware_time_weighted(raw_values)
                 else:
                     normalized = self.scaler.transform(raw_values)
-                    return pd.Series(normalized, index=raw_values.index, dtype=float)
+                    result = pd.Series(normalized, index=raw_values.index, dtype=float)
             elif isinstance(self.scaler, RunningMeanStd) and self.config.reset_on_session_break:
                 # Session-aware running normalization: reset at overnight/weekend gaps
-                return self._transform_session_aware(raw_values)
+                result = self._transform_session_aware(raw_values)
             elif isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd)):
                 # RollingWindowScaler and non-session-aware RunningMeanStd handle NaNs internally
                 normalized = self.scaler.transform(raw_values)
-                return pd.Series(normalized, index=raw_values.index, dtype=float)
+                result = pd.Series(normalized, index=raw_values.index, dtype=float)
             else:
                 # StandardScaler: normalize non-null values
                 result = pd.Series(index=raw_values.index, dtype=float)
@@ -592,10 +600,20 @@ class Feature(ABC):
                     valid_values = raw_values[valid_mask].values.reshape(-1, 1)
                     normalized = self.scaler.transform(valid_values).flatten()
                     result[valid_mask] = normalized
-
-                return result
         else:
-            return raw_values
+            result = raw_values
+
+        if _DEBUG_FEATURES:
+            finite = result.dropna()
+            if len(finite) > 0:
+                abs_max = finite.abs().max()
+                if abs_max > _FEATURE_CLIP_WARN:
+                    logger.warning(
+                        "feature %s transform output abs_max=%.2f exceeds %.1f "
+                        "— possible gradient explosion risk",
+                        self.config.name, abs_max, _FEATURE_CLIP_WARN,
+                    )
+        return result
 
     def _transform_session_aware(self, raw_values: pd.Series) -> pd.Series:
         """Transform with session resets for running normalization.
