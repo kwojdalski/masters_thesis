@@ -449,6 +449,106 @@ class StatisticalTestingConfig:
     confidence_level: float = 0.95
 
 
+def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
+    """Collect all validation errors for an ExperimentConfig and raise on failure."""
+    errors: list[str] = []
+
+    # Training hyperparameters
+    if cfg.training.actor_lr <= 0:
+        errors.append(f"training.actor_lr must be > 0, got {cfg.training.actor_lr}")
+    if cfg.training.value_lr <= 0:
+        errors.append(f"training.value_lr must be > 0, got {cfg.training.value_lr}")
+    if cfg.training.max_steps <= 0:
+        errors.append(f"training.max_steps must be > 0, got {cfg.training.max_steps}")
+    if cfg.training.init_rand_steps < 0:
+        errors.append(f"training.init_rand_steps must be >= 0, got {cfg.training.init_rand_steps}")
+    if cfg.training.max_steps <= cfg.training.init_rand_steps:
+        errors.append(
+            f"training.max_steps ({cfg.training.max_steps}) must be > "
+            f"init_rand_steps ({cfg.training.init_rand_steps})"
+        )
+    if cfg.training.frames_per_batch <= 0:
+        errors.append(f"training.frames_per_batch must be > 0, got {cfg.training.frames_per_batch}")
+    if cfg.training.buffer_size <= 0:
+        errors.append(f"training.buffer_size must be > 0, got {cfg.training.buffer_size}")
+    if cfg.evaluation.eval_steps <= 0:
+        errors.append(f"evaluation.eval_steps must be > 0, got {cfg.evaluation.eval_steps}")
+    if cfg.evaluation.eval_fraction is not None and not (0.0 < cfg.evaluation.eval_fraction <= 1.0):
+        errors.append(f"evaluation.eval_fraction must be in (0, 1], got {cfg.evaluation.eval_fraction}")
+    if cfg.training.checkpoint_interval < 0:
+        errors.append(f"training.checkpoint_interval must be >= 0, got {cfg.training.checkpoint_interval}")
+
+    # Algorithm-specific
+    if cfg.training.algorithm.upper() == Algorithm.PPO:
+        if not (0 < cfg.training.ppo.clip_epsilon < 1):
+            errors.append(f"training.ppo.clip_epsilon must be in (0, 1), got {cfg.training.ppo.clip_epsilon}")
+        if cfg.training.ppo.entropy_bonus < 0:
+            errors.append(f"training.ppo.entropy_bonus must be >= 0, got {cfg.training.ppo.entropy_bonus}")
+        if cfg.training.ppo.epochs <= 0:
+            errors.append(f"training.ppo.epochs must be > 0, got {cfg.training.ppo.epochs}")
+    if cfg.training.algorithm.upper() in {Algorithm.DDPG, Algorithm.TD3}:
+        if not (0 < cfg.training.tau <= 1):
+            errors.append(f"training.tau must be in (0, 1], got {cfg.training.tau}")
+
+    # Data
+    if cfg.data.train_size <= 0:
+        errors.append(f"data.train_size must be > 0, got {cfg.data.train_size}")
+    if cfg.data.validation_size is not None and cfg.data.validation_size < 0:
+        errors.append(f"data.validation_size must be >= 0 when provided, got {cfg.data.validation_size}")
+    if cfg.data.train_size < cfg.training.frames_per_batch:
+        errors.append(
+            f"data.train_size ({cfg.data.train_size}) must be >= "
+            f"frames_per_batch ({cfg.training.frames_per_batch})"
+        )
+
+    # Environment
+    if cfg.env.trading_fees < 0:
+        errors.append(f"env.trading_fees must be >= 0, got {cfg.env.trading_fees}")
+    if cfg.env.borrow_interest_rate < 0:
+        errors.append(f"env.borrow_interest_rate must be >= 0, got {cfg.env.borrow_interest_rate}")
+    if cfg.env.initial_portfolio_value <= 0:
+        errors.append(f"env.initial_portfolio_value must be > 0, got {cfg.env.initial_portfolio_value}")
+    if not cfg.env.positions:
+        errors.append("env.positions must not be empty")
+    if str(cfg.env.mode).lower() not in set(EnvMode):
+        errors.append(f"env.mode must be one of {list(EnvMode)}, got '{cfg.env.mode}'")
+    if (
+        cfg.env.price_column is not None
+        and (not isinstance(cfg.env.price_column, str) or not cfg.env.price_column.strip())
+    ):
+        errors.append("env.price_column must be a non-empty string when provided.")
+    if cfg.env.reward_type not in set(RewardType):
+        errors.append(f"env.reward_type must be one of {list(RewardType)}, got '{cfg.env.reward_type}'")
+    if cfg.env.reward_type == RewardType.DIFFERENTIAL_SHARPE and cfg.env.reward_eta <= 0:
+        errors.append(f"env.reward_eta must be > 0 when using differential_sharpe, got {cfg.env.reward_eta}")
+    if cfg.env.action_penalty_lambda < 0:
+        errors.append(f"env.action_penalty_lambda must be >= 0, got {cfg.env.action_penalty_lambda}")
+    if cfg.env.action_penalty_type not in set(ActionPenaltyType):
+        errors.append(
+            f"env.action_penalty_type must be one of {[t.value for t in ActionPenaltyType]}, "
+            f"got '{cfg.env.action_penalty_type}'"
+        )
+
+    # Network
+    if not cfg.network.actor_hidden_dims:
+        errors.append("network.actor_hidden_dims must not be empty")
+    if not cfg.network.value_hidden_dims:
+        errors.append("network.value_hidden_dims must not be empty")
+    if any(dim <= 0 for dim in cfg.network.actor_hidden_dims):
+        errors.append("network.actor_hidden_dims must contain only positive integers")
+    if any(dim <= 0 for dim in cfg.network.value_hidden_dims):
+        errors.append("network.value_hidden_dims must contain only positive integers")
+
+    # Algorithm enum
+    if cfg.training.algorithm.upper() not in set(Algorithm):
+        errors.append(
+            f"training.algorithm must be one of {list(Algorithm)}, got '{cfg.training.algorithm}'"
+        )
+
+    if errors:
+        raise ValueError("Configuration validation failed:\n  - " + "\n  - ".join(errors))
+
+
 def _apply_dict_to_dataclass(target, d: dict) -> None:
     """Apply matching keys from d to a dataclass instance via setattr.
 
@@ -491,159 +591,7 @@ class ExperimentConfig:
 
     def __post_init__(self):
         """Validate configuration after initialization."""
-        errors = []
-
-        # Training hyperparameter validation
-        if self.training.actor_lr <= 0:
-            errors.append(
-                f"training.actor_lr must be > 0, got {self.training.actor_lr}"
-            )
-        if self.training.value_lr <= 0:
-            errors.append(
-                f"training.value_lr must be > 0, got {self.training.value_lr}"
-            )
-        if self.training.max_steps <= 0:
-            errors.append(
-                f"training.max_steps must be > 0, got {self.training.max_steps}"
-            )
-        if self.training.init_rand_steps < 0:
-            errors.append(
-                f"training.init_rand_steps must be >= 0, got {self.training.init_rand_steps}"
-            )
-        if self.training.max_steps <= self.training.init_rand_steps:
-            errors.append(
-                f"training.max_steps ({self.training.max_steps}) must be > "
-                f"init_rand_steps ({self.training.init_rand_steps})"
-            )
-        if self.training.frames_per_batch <= 0:
-            errors.append(
-                f"training.frames_per_batch must be > 0, got {self.training.frames_per_batch}"
-            )
-        if self.training.buffer_size <= 0:
-            errors.append(
-                f"training.buffer_size must be > 0, got {self.training.buffer_size}"
-            )
-        if self.evaluation.eval_steps <= 0:
-            errors.append(
-                f"evaluation.eval_steps must be > 0, got {self.evaluation.eval_steps}"
-            )
-        if self.evaluation.eval_fraction is not None and not (0.0 < self.evaluation.eval_fraction <= 1.0):
-            errors.append(
-                f"evaluation.eval_fraction must be in (0, 1], got {self.evaluation.eval_fraction}"
-            )
-        if self.training.checkpoint_interval < 0:
-            errors.append(
-                f"training.checkpoint_interval must be >= 0, got {self.training.checkpoint_interval}"
-            )
-
-        # PPO-specific validation
-        if self.training.algorithm.upper() == Algorithm.PPO:
-            if not (0 < self.training.ppo.clip_epsilon < 1):
-                errors.append(
-                    f"training.ppo.clip_epsilon must be in (0, 1), got {self.training.ppo.clip_epsilon}"
-                )
-            if self.training.ppo.entropy_bonus < 0:
-                errors.append(
-                    f"training.ppo.entropy_bonus must be >= 0, got {self.training.ppo.entropy_bonus}"
-                )
-            if self.training.ppo.epochs <= 0:
-                errors.append(
-                    f"training.ppo.epochs must be > 0, got {self.training.ppo.epochs}"
-                )
-
-        # DDPG/TD3-specific validation
-        if self.training.algorithm.upper() in {Algorithm.DDPG, Algorithm.TD3}:
-            if not (0 < self.training.tau <= 1):
-                errors.append(
-                    f"training.tau must be in (0, 1], got {self.training.tau}"
-                )
-
-        # Data configuration validation
-        if self.data.train_size <= 0:
-            errors.append(f"data.train_size must be > 0, got {self.data.train_size}")
-        if self.data.validation_size is not None and self.data.validation_size < 0:
-            errors.append(
-                "data.validation_size must be >= 0 when provided, "
-                f"got {self.data.validation_size}"
-            )
-        if self.data.train_size < self.training.frames_per_batch:
-            errors.append(
-                f"data.train_size ({self.data.train_size}) must be >= "
-                f"frames_per_batch ({self.training.frames_per_batch})"
-            )
-
-        # Environment configuration validation
-        if self.env.trading_fees < 0:
-            errors.append(
-                f"env.trading_fees must be >= 0, got {self.env.trading_fees}"
-            )
-        if self.env.borrow_interest_rate < 0:
-            errors.append(
-                f"env.borrow_interest_rate must be >= 0, got {self.env.borrow_interest_rate}"
-            )
-        if self.env.initial_portfolio_value <= 0:
-            errors.append(
-                f"env.initial_portfolio_value must be > 0, got {self.env.initial_portfolio_value}"
-            )
-        if not self.env.positions:
-            errors.append("env.positions must not be empty")
-        if str(self.env.mode).lower() not in set(EnvMode):
-            errors.append(
-                f"env.mode must be one of {list(EnvMode)}, got '{self.env.mode}'"
-            )
-        if (
-            self.env.price_column is not None
-            and (
-                not isinstance(self.env.price_column, str)
-                or not self.env.price_column.strip()
-            )
-        ):
-            errors.append(
-                "env.price_column must be a non-empty string when provided."
-            )
-
-        # Reward configuration validation
-        if self.env.reward_type not in set(RewardType):
-            errors.append(
-                f"env.reward_type must be one of {list(RewardType)}, "
-                f"got '{self.env.reward_type}'"
-            )
-        if self.env.reward_type == RewardType.DIFFERENTIAL_SHARPE and self.env.reward_eta <= 0:
-            errors.append(
-                f"env.reward_eta must be > 0 when using differential_sharpe, "
-                f"got {self.env.reward_eta}"
-            )
-        if self.env.action_penalty_lambda < 0:
-            errors.append(
-                f"env.action_penalty_lambda must be >= 0, got {self.env.action_penalty_lambda}"
-            )
-        if self.env.action_penalty_type not in set(ActionPenaltyType):
-            errors.append(
-                f"env.action_penalty_type must be one of {[t.value for t in ActionPenaltyType]}, "
-                f"got '{self.env.action_penalty_type}'"
-            )
-
-        # Network configuration validation
-        if not self.network.actor_hidden_dims:
-            errors.append("network.actor_hidden_dims must not be empty")
-        if not self.network.value_hidden_dims:
-            errors.append("network.value_hidden_dims must not be empty")
-        if any(dim <= 0 for dim in self.network.actor_hidden_dims):
-            errors.append("network.actor_hidden_dims must contain only positive integers")
-        if any(dim <= 0 for dim in self.network.value_hidden_dims):
-            errors.append("network.value_hidden_dims must contain only positive integers")
-
-        # Algorithm validation
-        if self.training.algorithm.upper() not in set(Algorithm):
-            errors.append(
-                f"training.algorithm must be one of {list(Algorithm)}, "
-                f"got '{self.training.algorithm}'"
-            )
-
-        if errors:
-            raise ValueError(
-                "Configuration validation failed:\n  - " + "\n  - ".join(errors)
-            )
+        _validate_experiment_config(self)
 
     @classmethod
     def from_yaml(
