@@ -137,7 +137,7 @@ class BenchmarkEngine:
                 price_column = "close"
             else:
                 logger.warning(
-                    "No price column '%s' or 'close' found; no benchmarks built.",
+                    "No price column '{}' or 'close' found; no benchmarks built.",
                     price_column,
                 )
                 return [], {}
@@ -179,7 +179,7 @@ class BenchmarkEngine:
             else:
                 if volume_source and "proxy" in str(volume_source):
                     logger.warning(
-                        "VWAP is using %s. This is quote-size-weighted, not true traded volume.",
+                        "VWAP is using {}. This is quote-size-weighted, not true traded volume.",
                         volume_source,
                     )
                 specs.append(BenchmarkEngine.vwap(prices, volumes, volume_source=volume_source))
@@ -207,7 +207,7 @@ def calculate_benchmark_dsr(
     if price_column not in df_prices.columns:
         if "close" in df_prices.columns:
             logger.warning(
-                "DSR benchmark price column '%s' not found; falling back to 'close'.",
+                "DSR benchmark price column '{}' not found; falling back to 'close'.",
                 price_column,
             )
             price_column = "close"
@@ -246,7 +246,7 @@ def calculate_benchmark_dsr(
     for i in range(1, len(portfolio_values)):
         if portfolio_values[i - 1] <= 0 or portfolio_values[i] <= 0:
             logger.warning(
-                "Invalid portfolio value at step %s: %s -> %s",
+                "Invalid portfolio value at step {}: {} -> {}",
                 i,
                 portfolio_values[i - 1],
                 portfolio_values[i],
@@ -271,7 +271,7 @@ def calculate_benchmark_dsr(
 
     cumulative_dsr = np.cumsum(dsr_values)
     logger.debug(
-        "Calculated %s DSR benchmark: %s steps, final DSR: %.4f, final portfolio: $%.2f",
+        "Calculated {} DSR benchmark: {} steps, final DSR: {}, final portfolio: ${}",
         strategy,
         len(cumulative_dsr),
         cumulative_dsr[-1],
@@ -292,7 +292,7 @@ def calculate_twap_dsr(
     if price_column not in df_prices.columns:
         if "close" in df_prices.columns:
             logger.warning(
-                "TWAP DSR price column '%s' not found; falling back to 'close'.",
+                "TWAP DSR price column '{}' not found; falling back to 'close'.",
                 price_column,
             )
             price_column = "close"
@@ -343,7 +343,7 @@ def calculate_twap_dsr(
 
     cumulative_dsr = np.cumsum(dsr_values)
     logger.debug(
-        "Calculated TWAP DSR benchmark: %s steps, final DSR: %.4f, final portfolio: $%.2f",
+        "Calculated TWAP DSR benchmark: {} steps, final DSR: {}, final portfolio: ${}",
         len(cumulative_dsr),
         cumulative_dsr[-1],
         portfolio_values[-1],

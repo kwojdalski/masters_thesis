@@ -172,7 +172,7 @@ class Book:
         if order is None:
             # If order not found, treat it as an add
             logger.debug(
-                "Order %s not found during modify; treating as new add", mbo.order_id
+                "Order {} not found during modify; treating as new add", mbo.order_id
             )
             self._add(mbo)
             return
@@ -312,7 +312,7 @@ if __name__ == "__main__":
         data = db.DBNStore.from_file(data_path)
     else:
         logger.info(
-            "Fetching MBO data from Databento for symbols %s",
+            "Fetching MBO data from Databento for symbols {}",
             ["GOOG", "GOOGL"],
         )
         data = client.timeseries.get_range(

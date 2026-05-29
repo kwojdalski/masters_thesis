@@ -49,7 +49,7 @@ def run_guardrail_check(config: ExperimentConfig) -> None:
     # Always surface every finding in the log regardless of skip_prompts.
     for f in findings:
         logger.warning(
-            "guardrail %s [%s] %s | suggestion: %s",
+            "guardrail {} [{}] {} | suggestion: {}",
             f.severity.value, f.parameter, f.message, f.suggestion,
         )
 

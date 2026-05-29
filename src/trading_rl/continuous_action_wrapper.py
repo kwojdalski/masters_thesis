@@ -50,7 +50,7 @@ class ContinuousToDiscreteAction(Transform):
         )
 
         logger.info(
-            "init continuous_to_discrete actions=%s thresholds=%s action_spec=%s",
+            "init continuous_to_discrete actions={} thresholds={} action_spec={}",
             discrete_actions, thresholds, self.action_spec,
         )
 

@@ -25,7 +25,7 @@ def generate_mean_reversion_pattern(
 ) -> pd.DataFrame:
     """Generate synthetic OHLCV data with mean-reverting price dynamics."""
     logger.info(
-        "Generating mean reversion pattern -> samples=%s, mean_price=%.2f, reversion_strength=%.2f",
+        "Generating mean reversion pattern -> samples={}, mean_price={}, reversion_strength={}",
         n_samples, mean_price, reversion_strength,
     )
 
@@ -73,11 +73,11 @@ def generate_mean_reversion_pattern(
     mean_deviation = np.mean(np.abs(prices - mean_price))
     max_deviation = np.max(np.abs(prices - mean_price))
     logger.info(
-        "Mean price target %.2f, actual %.2f (mean deviation %.2f, max deviation %.2f)",
+        "Mean price target {}, actual {} (mean deviation {}, max deviation {})",
         mean_price, df["close"].mean(), mean_deviation, max_deviation,
     )
     logger.info(
-        "Strategy hint -> accumulate below %.0f, distribute above %.0f",
+        "Strategy hint -> accumulate below {}, distribute above {}",
         mean_price * 0.98, mean_price * 1.02,
     )
     return df

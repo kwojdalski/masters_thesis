@@ -40,7 +40,7 @@ class RandomTrainer(BaseTrainer):
         """No-op — random policy has no learnable state to restore."""
         from logger import get_logger
         get_logger(__name__).warning(
-            "load_checkpoint called on RandomTrainer; no state to restore path=%s", path
+            "load_checkpoint called on RandomTrainer; no state to restore path={}", path
         )
 
     def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:

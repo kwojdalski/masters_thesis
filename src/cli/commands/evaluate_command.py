@@ -444,7 +444,7 @@ class EvaluateCommand(BaseCommand):
                         )
                 except Exception as exc:
                     self.logger.warning(
-                        "failed to restore pipeline state from checkpoint: %s", exc
+                        "failed to restore pipeline state from checkpoint: {}", exc
                     )
 
             if not state_restored:

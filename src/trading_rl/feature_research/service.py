@@ -431,7 +431,7 @@ def _score_single_symbol(
     if train_size >= len(raw_df):
         train_size = max(10, int(len(raw_df) * 0.8))
         logger.info(
-            "train_size exceeds file length for '%s' — using proportional split "
+            "train_size exceeds file length for '{}' — using proportional split "
             "train=%d (80 %%) val=%d (10 %%)",
             symbol, train_size, int(len(raw_df) * 0.1),
         )
@@ -543,7 +543,7 @@ def run_feature_research(
     multi_symbol = len(data_paths) > 1
 
     logger.info(
-        "feature scoring target_type=%s horizons=%s vol_window=%d n_symbols=%d",
+        "feature scoring target_type={} horizons={} vol_window=%d n_symbols=%d",
         config.research.target_type,
         config.research.horizons,
         config.research.vol_window,

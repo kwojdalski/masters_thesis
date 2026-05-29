@@ -174,7 +174,7 @@ def build_rollout_plot_data(
             actions_equal = bool(allclose(all_actions[i][:min_a].float(), all_actions[j][:min_a].float()))
             rewards_equal = bool(allclose(all_rewards[i][:min_r].float(), all_rewards[j][:min_r].float()))
             logger.info(
-                "Run %s vs Run %s | actions_identical=%s rewards_identical=%s",
+                "Run {} vs Run {} | actions_identical={} rewards_identical={}",
                 i + 1,
                 j + 1,
                 actions_equal,
@@ -572,7 +572,7 @@ def build_equity_plot_data(
                 _extend_with_stride(run_name, portfolio_values)
             else:
                 logger.warning(
-                    "%s: Cannot derive portfolio values — reward_type='%s' rewards are not "
+                    "{}: Cannot derive portfolio values — reward_type='{}' rewards are not "
                     "log returns and no broker NLV is available. Skipping series.",
                     run_name, reward_type,
                 )

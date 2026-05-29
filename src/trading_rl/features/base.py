@@ -609,7 +609,7 @@ class Feature(ABC):
                 abs_max = finite.abs().max()
                 if abs_max > _FEATURE_CLIP_WARN:
                     logger.warning(
-                        "feature %s transform output abs_max=%.2f exceeds %.1f "
+                        "feature {} transform output abs_max={} exceeds {} "
                         "— possible gradient explosion risk",
                         self.config.name, abs_max, _FEATURE_CLIP_WARN,
                     )

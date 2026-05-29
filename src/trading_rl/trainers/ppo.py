@@ -161,7 +161,7 @@ class PPOTrainer(BaseTrainer):
         ])
 
         logger.info(
-            "init ppo trainer lr=%s clip_epsilon=%.3f entropy_bonus=%.4f",
+            "init ppo trainer lr={} clip_epsilon={} entropy_bonus={}",
             config.actor_lr,
             config.ppo.clip_epsilon,
             config.ppo.entropy_bonus,
@@ -310,7 +310,7 @@ class PPOTrainer(BaseTrainer):
 
             eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
-                "ppo eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
+                "ppo eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len={}",
                 mean_reward, sum_reward, max_steps, eval_data_len,
             )
 

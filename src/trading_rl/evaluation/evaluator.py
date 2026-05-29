@@ -162,7 +162,7 @@ class StrategyEvaluator:
                 elapsed = now - _t
                 eta = (elapsed / _step_counter[0]) * (max_steps - _step_counter[0])
                 logger.trace(
-                    "rollout progress step=%d/%d pct=%.0f%% elapsed_s=%.1f eta_s=%.1f",
+                    "rollout progress step={}/{} pct={:.0f}% elapsed_s={:.1f} eta_s={:.1f}",
                     _step_counter[0], max_steps, pct, elapsed, eta,
                 )
                 _t_last[0] = now

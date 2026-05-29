@@ -95,7 +95,7 @@ def _deduplicate_hft_index_single(
     max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
     new_min_gap_ns = int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
     logger.info(
-        "adjust hft index split=%s duplicates=%d min_gap_ns=%d->%d max_shift_ns=%d",
+        "adjust hft index split={} duplicates=%d min_gap_ns=%d->%d max_shift_ns=%d",
         split_name, duplicate_count, old_min_gap_ns, new_min_gap_ns, max_shift_ns,
     )
     return df

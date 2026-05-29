@@ -143,7 +143,7 @@ def _memmap_cache_compatible(
     bad_rows = [p.n_rows for p in paths if p.n_rows < expected_train_rows]
     if bad_rows:
         logger.info(
-            "memmap cache mismatch expected_train_rows=%d actual_rows=%s",
+            "memmap cache mismatch expected_train_rows=%d actual_rows={}",
             expected_train_rows,
             bad_rows,
         )
@@ -180,7 +180,7 @@ def _prepared_cache_compatible(
             cached = metadata_rows.get(split)
             if expected is not None and (cached is None or cached < expected):
                 logger.info(
-                    "prepared cache metadata row mismatch split=%s expected=%s actual=%s",
+                    "prepared cache metadata row mismatch split={} expected={} actual={}",
                     split,
                     expected,
                     cached,
@@ -193,7 +193,7 @@ def _prepared_cache_compatible(
     for split, expected in expected_rows.items():
         if expected is not None and actual_rows[split] < expected:
             logger.info(
-                "legacy prepared cache row mismatch split=%s expected=%s actual=%s",
+                "legacy prepared cache row mismatch split={} expected={} actual={}",
                 split,
                 expected,
                 actual_rows[split],

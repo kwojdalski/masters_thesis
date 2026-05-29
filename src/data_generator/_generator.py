@@ -41,7 +41,7 @@ class PriceDataGenerator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.logger.debug(
-            "Initialized generator with source_dir=%s, output_dir=%s",
+            "Initialized generator with source_dir={}, output_dir={}",
             self.source_dir, self.output_dir,
         )
 
@@ -86,7 +86,7 @@ class PriceDataGenerator:
             df = df[df.index <= end_date]
         if start_date or end_date:
             self.logger.debug(
-                "Filtered data to date range %s -> %s (remaining rows: %s)",
+                "Filtered data to date range {} -> {} (remaining rows: {})",
                 start_date or df.index.min(), end_date or df.index.max(), len(df),
             )
 
@@ -100,7 +100,7 @@ class PriceDataGenerator:
 
         if df.empty:
             self.logger.warning(
-                "Generated dataset for %s is empty after filtering; writing empty frame",
+                "Generated dataset for {} is empty after filtering; writing empty frame",
                 output_path,
             )
         df.to_parquet(output_path)

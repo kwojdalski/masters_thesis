@@ -27,8 +27,8 @@ def generate_sine_wave_pattern(
 ) -> pd.DataFrame:
     """Generate synthetic OHLCV data with sine wave pattern and optional upward trend."""
     logger.info(
-        "Generating sine wave pattern -> periods=%s, samples_per_period=%s, "
-        "amplitude=%.2f, trend_slope=%.2f, freq=%s",
+        "Generating sine wave pattern -> periods={}, samples_per_period={}, "
+        "amplitude={}, trend_slope={}, freq={}",
         n_periods, samples_per_period, amplitude, trend_slope, freq,
     )
 
@@ -82,7 +82,7 @@ def generate_sine_wave_pattern(
     df.to_parquet(output_path)
     log_dataset_summary(df, output_path, context="Sine wave pattern", logger=logger)
     logger.info(
-        "Sine wave trading cues -> buy ≈ %.0f, sell ≈ %.0f",
+        "Sine wave trading cues -> buy ≈ {}, sell ≈ {}",
         base_price - amplitude, base_price + amplitude,
     )
     logger.trace("Close price std dev: {:.2f}", df["close"].std())
@@ -110,8 +110,8 @@ def generate_hft_sine_wave_lob(
 ) -> pd.DataFrame:
     """Generate synthetic HFT LOB data matching the MBP-10 structure of real stock data."""
     logger.info(
-        "Generating HFT sine wave LOB -> n_events=%s, n_periods=%s, "
-        "base_price=%.2f, amplitude=%.2f, spread=%.4f",
+        "Generating HFT sine wave LOB -> n_events={}, n_periods={}, "
+        "base_price={}, amplitude={}, spread={}",
         n_events, n_periods, base_price, amplitude, spread,
     )
 

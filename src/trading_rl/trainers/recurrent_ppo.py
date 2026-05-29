@@ -64,7 +64,7 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
         )
 
         logger.info(
-            "init recurrent_ppo trainer lr=%s clip_epsilon=%.3f entropy_bonus=%.4f "
+            "init recurrent_ppo trainer lr={} clip_epsilon={} entropy_bonus={} "
             "gru_num_layers=%d",
             config.actor_lr,
             config.ppo.clip_epsilon,
@@ -167,7 +167,7 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
 
         logger.info(
             "recurrent_ppo step max_steps=%d buffer_size=%d loss_value=%.4f "
-            "loss_actor=%.4f loss_entropy=%.4f",
+            "loss_actor={} loss_entropy={}",
             max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
         )
 
@@ -206,7 +206,7 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
 
             eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
-                "recurrent_ppo eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
+                "recurrent_ppo eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len={}",
                 mean_reward, sum_reward, max_steps, eval_data_len,
             )
 

@@ -27,7 +27,7 @@ def generate_trending_pattern(
 ) -> pd.DataFrame:
     """Generate synthetic OHLCV data with sustained trend and consolidation segments."""
     logger.info(
-        "Generating trending pattern -> samples=%s, base_price=%.2f, n_trends=%s",
+        "Generating trending pattern -> samples={}, base_price={}, n_trends={}",
         n_samples, base_price, n_trends,
     )
 

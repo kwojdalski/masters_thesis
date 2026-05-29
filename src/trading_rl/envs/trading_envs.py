@@ -206,7 +206,7 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
         continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
         logger.info("creating trading environment backend={} continuous={}", backend, continuous)
         logger.debug(
-            "env settings positions=%s trading_fees=%s borrow_interest_rate=%s",
+            "env settings positions={} trading_fees={} borrow_interest_rate={}",
             config.env.positions, config.env.trading_fees, config.env.borrow_interest_rate,
         )
 
@@ -260,7 +260,7 @@ class _AnyTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
                 dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta, scale=reward_scale)
                 base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
                 logger.info(
-                    "applied dsr reward to %s environment eta=%s scale=%s",
+                    "applied dsr reward to {} environment eta={} scale={}",
                     self._env_id, reward_eta, reward_scale,
                 )
 

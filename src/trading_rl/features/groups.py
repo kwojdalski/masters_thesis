@@ -108,7 +108,7 @@ class FeatureGroupResolver:
             )
 
         logger.info(
-            "Loaded %d feature groups from %s",
+            "Loaded %d feature groups from {}",
             len(data["groups"]),
             yaml_path,
         )
@@ -187,13 +187,13 @@ class FeatureGroupResolver:
                 output_name = cfg.get_output_name()
                 if output_name in seen_names:
                     logger.debug(
-                        "Skipping duplicate feature '%s' (already added from another group)",
+                        "Skipping duplicate feature '{}' (already added from another group)",
                         output_name,
                     )
                     continue
                 if output_name in exclude_set:
                     logger.debug(
-                        "Skipping excluded feature '%s'", output_name
+                        "Skipping excluded feature '{}'", output_name
                     )
                     continue
                 seen_names.add(output_name)

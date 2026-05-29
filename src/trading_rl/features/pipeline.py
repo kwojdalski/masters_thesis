@@ -140,7 +140,7 @@ class FeaturePipeline:
             and self._is_fitted
         ):
             logger.warning(
-                "feature pipeline fitting symbol_id=%s but last reset was for symbol_id=%s "
+                "feature pipeline fitting symbol_id={} but last reset was for symbol_id={} "
                 "— possible missing pipeline.reset() between symbols",
                 symbol_id, self._current_symbol_id,
             )
@@ -302,7 +302,7 @@ class FeaturePipeline:
         resolver = FeatureGroupResolver.from_yaml(groups_yaml_path)
         configs = resolver.resolve(group_names, exclude=exclude)
         logger.info(
-            "Built pipeline from groups %s: %d features",
+            "Built pipeline from groups {}: %d features",
             group_names,
             len(configs),
         )

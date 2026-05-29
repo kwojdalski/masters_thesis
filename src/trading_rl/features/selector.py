@@ -491,7 +491,7 @@ def _build_multi_horizon_score_table(
         horizon_weights = [1.0 / len(horizons)] * len(horizons)
 
     logger.info(
-        "Building multi-horizon scores with horizons=%s, weights=%s",
+        "Building multi-horizon scores with horizons={}, weights={}",
         horizons, horizon_weights
     )
 
@@ -887,7 +887,7 @@ class FeatureSelector:
         cfg = self.config
         logger.info(
             "Starting IC/ICIR feature selection: %d candidates, top_k=%d, "
-            "icir_threshold=%.3f, horizon=%d, multi_horizon=%s",
+            "icir_threshold=%.3f, horizon=%d, multi_horizon={}",
             len(feature_configs),
             cfg.top_k,
             cfg.icir_threshold,
@@ -935,7 +935,7 @@ class FeatureSelector:
         logger.info("ic/icir scoring complete, top 5 features")
         for _, row in scores.head(5).iterrows():
             logger.info(
-                "  %s: ICIR=%.4f, mean_IC=%.6f, t=%.2f",
+                "  {}: ICIR={}, mean_IC={}, t={}",
                 row["feature"], row["icir"], row["mean_ic"], row.get("ic_tstat", 0),
             )
 
@@ -1004,7 +1004,7 @@ class FeatureSelector:
 
         logger.info(
             "Starting cross-validated feature selection: %d candidates, n_splits=%d, "
-            "ensemble_method=%s, multi_horizon=%s",
+            "ensemble_method={}, multi_horizon={}",
             len(feature_configs),
             cfg.n_cv_splits,
             cfg.ensemble_method,
@@ -1046,7 +1046,7 @@ class FeatureSelector:
                 )
             except Exception as e:
                 logger.warning(
-                    "Split %d failed: %s. Skipping this split.",
+                    "Split %d failed: {}. Skipping this split.",
                     split_idx + 1, str(e)
                 )
                 continue
@@ -1196,7 +1196,7 @@ class FeatureSelector:
             return FeatureSelector(fallback_cfg).select(feature_configs, train_df, val_df, df)
 
         logger.info(
-            "Starting hyperparameter search with grid: %s",
+            "Starting hyperparameter search with grid: {}",
             cfg.hyperparameter_grid
         )
 
@@ -1252,7 +1252,7 @@ class FeatureSelector:
                     )
 
                     logger.info(
-                        "Config %s: score=%.4f, n_selected=%d",
+                        "Config {}: score=%.4f, n_selected=%d",
                         param_dict, config_score, len(result.selected_configs)
                     )
 
@@ -1260,18 +1260,18 @@ class FeatureSelector:
                         best_score = config_score
                         best_result = result
                         logger.info(
-                            "New best config: %s (score=%.4f)",
+                            "New best config: {} (score={})",
                             param_dict, best_score
                         )
                 else:
                     logger.warning(
-                        "Config %s produced empty or invalid scores, skipping",
+                        "Config {} produced empty or invalid scores, skipping",
                         param_dict
                     )
 
             except Exception as e:
                 logger.warning(
-                    "Config %s failed: %s. Skipping.",
+                    "Config {} failed: {}. Skipping.",
                     param_dict, str(e)
                 )
                 continue
@@ -1289,7 +1289,7 @@ class FeatureSelector:
             raise RuntimeError("Hyperparameter search failed for all configurations")
 
         logger.info(
-            "Hyperparameter search complete. Best config: score=%.4f",
+            "Hyperparameter search complete. Best config: score={}",
             best_score
         )
 

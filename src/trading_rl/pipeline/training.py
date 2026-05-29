@@ -304,7 +304,7 @@ def _log_data_diagnostics(
         )
 
     logger.debug(
-        "Data loaded - train: %s, val: %s, test: %s, columns: %s",
+        "Data loaded - train: {}, val: {}, test: {}, columns: {}",
         train_df.shape, val_df.shape, test_df.shape, list(train_df.columns),
     )
 
@@ -312,7 +312,7 @@ def _log_data_diagnostics(
         logger.trace("training data statistics")
         if "close" in train_df.columns:
             logger.trace(
-                "  Close price - min: %.2f, max: %.2f, mean: %.2f",
+                "  Close price - min: {}, max: {}, mean: {}",
                 train_df["close"].min(), train_df["close"].max(), train_df["close"].mean(),
             )
             logger.trace("  Close price std: {:.2f}", train_df["close"].std())

@@ -24,8 +24,8 @@ def generate_upward_drift_pattern(
 ) -> pd.DataFrame:
     """Generate synthetic OHLCV data with strong upward drift and minimal volatility."""
     logger.info(
-        "Generating upward drift pattern -> samples=%s, base_price=%.2f, "
-        "drift_rate=%.4f, volatility=%.4f",
+        "Generating upward drift pattern -> samples={}, base_price={}, "
+        "drift_rate={}, volatility={}",
         n_samples, base_price, drift_rate, volatility,
     )
 
@@ -69,7 +69,7 @@ def generate_upward_drift_pattern(
     log_dataset_summary(df, output_path, context="Upward drift pattern", logger=logger)
     total_return = (df["close"].iloc[-1] / df["close"].iloc[0] - 1) * 100
     logger.info(
-        "Upward drift stats -> total return %.2f%%, volatility %.4f",
+        "Upward drift stats -> total return {}%, volatility {}",
         total_return, df["close"].pct_change().std(),
     )
     return df

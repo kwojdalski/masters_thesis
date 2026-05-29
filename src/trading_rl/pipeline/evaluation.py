@@ -236,7 +236,7 @@ def run_statistical_tests_for_split(
             mlflow.log_metric(f"{split_ctx.split}_statistical_tests_failed", 1)
         except Exception:
             logger.debug(
-                "mlflow.log_metric for statistical_tests_failed also failed split=%s",
+                "mlflow.log_metric for statistical_tests_failed also failed split={}",
                 split_ctx.split,
             )
 
@@ -439,7 +439,7 @@ def evaluate_split(
                 )
         except KeyboardInterrupt:
             logger.warning(
-                "Statistical tests interrupted for %s split. "
+                "Statistical tests interrupted for {} split. "
                 "Returning main evaluation results without statistical tests...",
                 split
             )

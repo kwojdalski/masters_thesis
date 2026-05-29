@@ -318,7 +318,7 @@ class SharpeBootstrapTest(BootstrapTest):
         """Warn if Sharpe ratios are negative."""
         if strategy_sharpe < 0 and baseline_sharpe < 0:
             logger.warning(
-                "Both Sharpe ratios are negative (strategy=%.3f, baseline=%.3f). "
+                "Both Sharpe ratios are negative (strategy={}, baseline={}). "
                 "Interpretation is problematic: higher volatility makes Sharpe less negative. "
                 "Enable 'sortino_bootstrap' test for more robust comparison with negative returns.",
                 strategy_sharpe,
@@ -326,7 +326,7 @@ class SharpeBootstrapTest(BootstrapTest):
             )
         elif strategy_sharpe < 0:
             logger.warning(
-                "Strategy Sharpe ratio is negative (%.3f). "
+                "Strategy Sharpe ratio is negative ({}). "
                 "This indicates mean returns below risk-free rate. "
                 "Enable 'sortino_bootstrap' test for more interpretable risk-adjusted metric.",
                 strategy_sharpe,
@@ -376,7 +376,7 @@ def run_statistical_tests(
         test = get_test(test_name)
         if test is None:
             logger.warning(
-                "Unknown test: %s. Available: %s",
+                "Unknown test: {}. Available: {}",
                 test_name,
                 list(TEST_REGISTRY.keys()),
             )
@@ -396,7 +396,7 @@ def run_statistical_tests(
             )
         except Exception as exc:
             logger.error(
-                "Failed to run %s for %s: %s",
+                "Failed to run {} for {}: {}",
                 test_name,
                 baseline_name,
                 exc,

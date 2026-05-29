@@ -440,7 +440,7 @@ def main() -> int:
     else:
         logger.warning(
             "no plots found — run evaluate without --only to include them: "
-            "uv run python src/cli.py evaluate -c %s",
+            "uv run python src/cli.py evaluate -c {}",
             args.scenario or args.output_dir,
         )
 

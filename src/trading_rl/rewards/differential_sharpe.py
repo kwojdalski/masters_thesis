@@ -184,7 +184,7 @@ class DifferentialSharpeRatio(AbstractReward):
         valid_now = np.isfinite(nlv_now) and nlv_now > 0
         if not (valid_prev and valid_now):
             logger.warning(
-                "Invalid portfolio value: prev=%s, now=%s. Returning 0 reward.",
+                "Invalid portfolio value: prev={}, now={}. Returning 0 reward.",
                 self._prev_nlv, nlv_now,
             )
             if valid_now:

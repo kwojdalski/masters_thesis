@@ -123,7 +123,7 @@ class TD3Trainer(BaseTrainer):
         self.policy_delay = config.td3.policy_delay
 
         logger.info(
-            "init td3 trainer actor_lr=%s value_lr=%s exploration_noise_std=%.3f policy_noise=%.3f noise_clip=%.3f policy_delay=%d",
+            "init td3 trainer actor_lr={} value_lr={} exploration_noise_std=%.3f policy_noise=%.3f noise_clip=%.3f policy_delay=%d",
             config.actor_lr,
             config.value_lr,
             config.td3.exploration_noise_std,
@@ -172,7 +172,7 @@ class TD3Trainer(BaseTrainer):
             self._consecutive_skips = 0
             if is_level_enabled("TRACE"):
                 logger.trace(
-                    "td3 losses loss_qvalue=%.6f loss_actor=%.6f",
+                    "td3 losses loss_qvalue={} loss_actor={}",
                     loss_vals["loss_qvalue"].item(), loss_vals["loss_actor"].item(),
                 )
         except RuntimeError as e:
@@ -255,8 +255,8 @@ class TD3Trainer(BaseTrainer):
                 rewards = sample["next", "reward"]
                 logger.trace(
                     "td3 batch sample stats batch=%d step=%d "
-                    "action_mean=%.4f action_std=%.4f action_min=%.4f action_max=%.4f "
-                    "reward_mean=%.4f reward_std=%.4f reward_min=%.4f reward_max=%.4f",
+                    "action_mean={} action_std={} action_min={} action_max={} "
+                    "reward_mean={} reward_std={} reward_min={} reward_max={}",
                     batch_idx, j,
                     actions.mean(), actions.std(), actions.min(), actions.max(),
                     rewards.mean(), rewards.std(), rewards.min(), rewards.max(),
@@ -341,12 +341,12 @@ class TD3Trainer(BaseTrainer):
             "td3 eval action stats n=%d mean=%.4f std=%.4f",
             actions.numel(), actions.mean(), actions.std(),
         )
-        logger.trace("td3 eval action min=%.4f max=%.4f", actions.min(), actions.max())
+        logger.trace("td3 eval action min={} max={}", actions.min(), actions.max())
         actions_flat = actions.flatten().cpu().detach().numpy()
         unique_actions, counts = np.unique(np.round(actions_flat, 2), return_counts=True)
         if len(unique_actions) <= 10:
             logger.trace(
-                "td3 eval action distribution=%s",
+                "td3 eval action distribution={}",
                 dict(zip(unique_actions, counts, strict=False)),
             )
         else:
@@ -380,12 +380,12 @@ class TD3Trainer(BaseTrainer):
                     "batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
                 )
                 logger.trace(
-                    "episode reward stats mean=%.4f std=%.4f",
+                    "episode reward stats mean={} std={}",
                     episode_rewards.mean(), episode_rewards.std(),
                 )
                 collected_actions = data["action"]
                 logger.trace(
-                    "collected action stats mean=%.4f std=%.4f",
+                    "collected action stats mean={} std={}",
                     collected_actions.mean(), collected_actions.std(),
                 )
                 self._log_sample_transitions(data, n=3)

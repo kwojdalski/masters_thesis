@@ -181,27 +181,27 @@ def build_evaluation_report_for_trainer(
                     xval_err, _ = cross_validate_nlv(rollout, return_series.values, prices_for_xval)
                     if np.isfinite(xval_err):
                         logger.info(
-                            "NLV cross-validation: max |broker_nlv - recomputed_nlv| = %.6f "
+                            "NLV cross-validation: max |broker_nlv - recomputed_nlv| = {} "
                             "(tolerance ~0.01 for no-fee envs)",
                             xval_err,
                         )
                         if xval_err > 1.0:
                             logger.warning(
                                 "NLV cross-validation FAILED: broker NLV diverges from "
-                                "manually-recomputed NLV by %.4f. Check broker fees, "
+                                "manually-recomputed NLV by {}. Check broker fees, "
                                 "position sizing, or weight scaling.",
                                 xval_err,
                             )
             else:
                 logger.warning(
                     "Could not extract TradingEnv broker returns for evaluation "
-                    "(reward_type=%s); falling back to reward-as-log-return proxy.",
+                    "(reward_type={}); falling back to reward-as-log-return proxy.",
                     reward_type,
                 )
 
         if strategy_simple_returns.size == 0:
             logger.warning(
-                "Cannot compute return metrics for reward_type=%s: broker return extraction "
+                "Cannot compute return metrics for reward_type={}: broker return extraction "
                 "unavailable or returned no data. All return/risk metrics will be NaN. "
                 "Use the tradingenv backend to enable broker NLV tracking.",
                 reward_type,

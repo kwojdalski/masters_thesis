@@ -108,8 +108,8 @@ class SACTrainer(BaseTrainer):
         )
 
         logger.info(
-            "init sac trainer actor_lr=%s value_lr=%s alpha_lr=%s buffer_size=%d tau=%s "
-            "initial_alpha=%.3f target_entropy=%.3f",
+            "init sac trainer actor_lr={} value_lr={} alpha_lr={} buffer_size=%d tau={} "
+            "initial_alpha={} target_entropy={}",
             config.actor_lr,
             config.value_lr,
             config.sac.alpha_lr,
@@ -256,7 +256,7 @@ class SACTrainer(BaseTrainer):
 
         logger.info(
             "sac step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f "
-            "loss_alpha=%.4f alpha=%.4f",
+            "loss_alpha={} alpha={}",
             max_length, buffer_len, curr_loss_value, curr_loss_actor,
             curr_loss_alpha, curr_alpha,
         )
@@ -316,12 +316,12 @@ class SACTrainer(BaseTrainer):
                     "sac batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
                 )
                 logger.trace(
-                    "sac episode reward stats mean=%.4f std=%.4f",
+                    "sac episode reward stats mean={} std={}",
                     episode_rewards.mean(), episode_rewards.std(),
                 )
                 collected_actions = data["action"]
                 logger.trace(
-                    "sac collected action stats mean=%.4f std=%.4f",
+                    "sac collected action stats mean={} std={}",
                     collected_actions.mean(), collected_actions.std(),
                 )
 

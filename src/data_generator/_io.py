@@ -21,7 +21,7 @@ def log_dataset_summary(
         logger.trace("Index range: {} -> {}", df.index.min(), df.index.max())
         if "close" in df.columns:
             logger.trace(
-                "Close price range: %.2f -> %.2f",
+                "Close price range: {} -> {}",
                 df["close"].min(),
                 df["close"].max(),
             )

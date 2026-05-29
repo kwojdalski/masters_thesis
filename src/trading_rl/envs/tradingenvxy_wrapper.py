@@ -298,7 +298,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         logger.info("reward reward_type={} eta={} scale={}", reward_type, reward_eta, reward_scale)
 
         logger.info(
-            "creating TradingEnv environment n_rows=%d n_static_cols=%d n_runtime_cols=%d price_column=%s fee=%s",
+            "creating TradingEnv environment n_rows=%d n_static_cols=%d n_runtime_cols=%d price_column={} fee={}",
             len(df),
             len(static_feature_columns),
             len(runtime_feature_columns) if runtime_feature_columns else 0,
@@ -498,7 +498,7 @@ class StreamingTradingEnvXY(gym.Env):
             index = pd.DatetimeIndex(window_index)
         except (ValueError, OverflowError) as e:
             logger.warning(
-                "Could not parse timestamps dtype=%s error=%s, using RangeIndex",
+                "Could not parse timestamps dtype={} error={}, using RangeIndex",
                 window_index.dtype, e,
             )
             index = pd.RangeIndex(len(window_data))

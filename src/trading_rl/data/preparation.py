@@ -745,7 +745,7 @@ def _build_pooled_splits(
                     )
                 else:
                     logger.info(
-                        "memmap cache mismatch prefix=%s expected_rows=%d actual_rows=%d",
+                        "memmap cache mismatch prefix={} expected_rows=%d actual_rows=%d",
                         prefix,
                         len(train_i),
                         data.shape[0],
@@ -965,7 +965,7 @@ def prepare_data(
                         )
                 else:
                     logger.warning(
-                        "Missing checksum file for %s; loading without verification. "
+                        "Missing checksum file for {}; loading without verification. "
                         "Delete the cache directory to force rebuild with checksum.",
                         _state_path,
                     )
@@ -989,7 +989,7 @@ def prepare_data(
             _val_end = _train + _val
             _test_end = (_val_end + cfg.test_size) if cfg.test_size is not None else _n
             logger.trace(
-                "cache slice key=%s train=0:%d val=%d:%d test=%d:%d",
+                "cache slice key={} train=0:%d val=%d:%d test=%d:%d",
                 _cache_key[:8], _train, _train, _val_end, _val_end, _test_end,
             )
             return (

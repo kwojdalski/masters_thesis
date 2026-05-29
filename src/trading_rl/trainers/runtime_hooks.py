@@ -89,7 +89,7 @@ class TrainerRuntimeHooks:
         )
         split_names = [s.split for s in splits]
         logger.info(
-            "periodic evaluation enabled interval=%s splits=%s dense_eval=%s",
+            "periodic evaluation enabled interval={} splits={} dense_eval={}",
             eval_interval, split_names, temp_eval_cfg.dense_enabled,
         )
 
@@ -121,7 +121,7 @@ class TrainerRuntimeHooks:
             eval_env=eval_env,
         )
         logger.info(
-            "Periodic explainability enabled: will analyze every %s training steps",
+            "Periodic explainability enabled: will analyze every {} training steps",
             explainability_interval,
         )
 
@@ -178,7 +178,7 @@ class TrainerRuntimeHooks:
             plot = create_price_plot(split_ctx.df, price_column=price_column)
             if plot is None:
                 logger.warning(
-                    "price plot: column %r not found in split=%s df (columns=%s)",
+                    "price plot: column {} not found in split={} df (columns={})",
                     price_column, split_ctx.split, list(split_ctx.df.columns)[:10],
                 )
                 return
@@ -202,14 +202,14 @@ class TrainerRuntimeHooks:
         _t_total = time.monotonic()
         split_names = [s.split for s in hook.splits]
         logger.info(
-            "run temporary evaluation step=%s splits=%s",
+            "run temporary evaluation step={} splits={}",
             step_number, split_names,
         )
 
         for split_ctx in hook.splits:
             _t_split = time.monotonic()
             logger.info(
-                "temp eval split=%s max_steps=%s df_rows=%s",
+                "temp eval split={} max_steps={} df_rows={}",
                 split_ctx.split, split_ctx.max_steps, len(split_ctx.df),
             )
             try:
@@ -230,7 +230,7 @@ class TrainerRuntimeHooks:
                     eval_env=split_ctx.eval_env,
                 )
                 logger.info(
-                    "temp eval: trainer.evaluate split=%s elapsed_s=%.2f",
+                    "temp eval: trainer.evaluate split={} elapsed_s={}",
                     split_ctx.split, time.monotonic() - _t,
                 )
 
@@ -259,7 +259,7 @@ class TrainerRuntimeHooks:
                     _sortino = metric_report.sortino_ratio
                     _tot_ret = metric_report.total_return
                     logger.info(
-                        "temp eval metrics split=%s sharpe=%.3f sortino=%.3f total_return=%.4f",
+                        "temp eval metrics split={} sharpe={} sortino={} total_return={}",
                         split_ctx.split,
                         _sharpe if math.isfinite(_sharpe) else float("nan"),
                         _sortino if math.isfinite(_sortino) else float("nan"),
@@ -267,7 +267,7 @@ class TrainerRuntimeHooks:
                     )
                 else:
                     logger.warning(
-                        "temp eval: metric report unavailable split=%s (Sharpe/Sortino will not be logged)",
+                        "temp eval: metric report unavailable split={} (Sharpe/Sortino will not be logged)",
                         split_ctx.split,
                     )
 
@@ -288,12 +288,12 @@ class TrainerRuntimeHooks:
                         if _rs is not None:
                             _staged_prog_entry = (step_number, _rs)
                             logger.debug(
-                                "temp eval: progression entry staged split=%s step=%s",
+                                "temp eval: progression entry staged split={} step={}",
                                 split_ctx.split, step_number,
                             )
                 except Exception:
                     logger.warning(
-                        "temp eval: progression history collect failed split=%s",
+                        "temp eval: progression history collect failed split={}",
                         split_ctx.split, exc_info=True,
                     )
 
@@ -326,7 +326,7 @@ class TrainerRuntimeHooks:
                         plot_data=_plot_data,
                     )
                     logger.trace(
-                        "temp eval: mlflow upload split=%s elapsed_s=%.2f",
+                        "temp eval: mlflow upload split={} elapsed_s={}",
                         split_ctx.split, time.monotonic() - _t,
                     )
                     # Upload equity progression plot (all committed checkpoints
@@ -360,12 +360,12 @@ class TrainerRuntimeHooks:
                                         f"evaluation_plots_temp/{split_ctx.split}",
                                     )
                                 logger.trace(
-                                    "temp eval: progression plot uploaded split=%s checkpoints=%d",
+                                    "temp eval: progression plot uploaded split={} checkpoints=%d",
                                     split_ctx.split, len(_prog_history),
                                 )
                         except Exception:
                             logger.error(
-                                "temp eval: progression plot failed split=%s",
+                                "temp eval: progression plot failed split={}",
                                 split_ctx.split, exc_info=True,
                             )
 
@@ -401,12 +401,12 @@ class TrainerRuntimeHooks:
                                 _plt.close(fig)
                                 mlflow.log_artifact(_tbl_path, artifact_prefix)
                             logger.debug(
-                                "temp eval: metrics table saved split=%s step=%s",
+                                "temp eval: metrics table saved split={} step={}",
                                 split_ctx.split, step_number,
                             )
                         except Exception:
                             logger.warning(
-                                "temp eval: metrics table failed split=%s step=%s",
+                                "temp eval: metrics table failed split={} step={}",
                                 split_ctx.split, step_number, exc_info=True,
                             )
                     if hook.config.training.temp_eval.log_data:
@@ -429,12 +429,12 @@ class TrainerRuntimeHooks:
                                 logger.opt(exception=True).warning("temp eval: rollout data artifact failed split={} step={}", split_ctx.split, step_number)
                     _elapsed = time.monotonic() - _t_split
                     logger.info(
-                        "temp eval complete split=%s reward=%.4f artifacts=%s elapsed_s=%.2f",
+                        "temp eval complete split={} reward={} artifacts={} elapsed_s={}",
                         split_ctx.split, final_reward, artifact_prefix, _elapsed,
                     )
                 else:
                     logger.warning(
-                        "no active mlflow run, skip temp evaluation logging split=%s",
+                        "no active mlflow run, skip temp evaluation logging split={}",
                         split_ctx.split,
                     )
             except Exception:
@@ -458,7 +458,7 @@ class TrainerRuntimeHooks:
                         _staged_prog_entry
                     )
                     logger.trace(
-                        "temp eval: progression entry committed split=%s step=%s n=%d",
+                        "temp eval: progression entry committed split={} step={} n=%d",
                         split_ctx.split, step_number,
                         len(self._progression_history[split_ctx.split]),
                     )
@@ -513,7 +513,7 @@ class TrainerRuntimeHooks:
                     )
 
         logger.info(
-            "temp eval all splits done step=%s total_elapsed_s=%.2f",
+            "temp eval all splits done step={} total_elapsed_s={}",
             step_number, time.monotonic() - _t_total,
         )
 
@@ -586,7 +586,7 @@ class TrainerRuntimeHooks:
     ) -> None:
         """Run explainability during training and log artifacts without affecting control flow."""
         logger.info(
-            "Running temporary explainability analysis at step %s...",
+            "Running temporary explainability analysis at step {}...",
             step_number,
         )
 
@@ -612,7 +612,7 @@ class TrainerRuntimeHooks:
                 artifact_path_prefix=artifact_prefix,
             )
             logger.info(
-                "Temporary explainability complete: plots saved to %s",
+                "Temporary explainability complete: plots saved to {}",
                 artifact_prefix,
             )
         except Exception:

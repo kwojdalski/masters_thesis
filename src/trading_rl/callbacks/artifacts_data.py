@@ -173,7 +173,7 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
     else:
         logger.warning(
             "log_transformed_data_overview: no selected features found — "
-            "env.feature_columns=%s; selected_features folder will not be created.",
+            "env.feature_columns={}; selected_features folder will not be created.",
             selected_cols or "not set",
         )
 
@@ -283,7 +283,7 @@ def log_feature_descriptive_stats(df: pd.DataFrame, config: Any) -> None:
             mlflow.log_artifact(json_path, artifact_dir)
 
         logger.info(
-            "log_feature_descriptive_stats: logged stats for %d features to %s",
+            "log_feature_descriptive_stats: logged stats for %d features to {}",
             len(feat_cols),
             artifact_dir,
         )

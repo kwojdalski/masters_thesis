@@ -17,16 +17,16 @@ def reward_function(history: dict) -> float:
     curr = float(history["portfolio_valuation", -1])
     if not (np.isfinite(prev) and prev > 0):
         logger.warning(
-            "reward_function: invalid previous portfolio valuation %.6g; "
-            "returning penalty %.2f",
+            "reward_function: invalid previous portfolio valuation {}; "
+            "returning penalty {}",
             prev,
             _INVALID_VALUATION_PENALTY,
         )
         return _INVALID_VALUATION_PENALTY
     if not (np.isfinite(curr) and curr > 0):
         logger.warning(
-            "reward_function: invalid current portfolio valuation %.6g; "
-            "returning penalty %.2f",
+            "reward_function: invalid current portfolio valuation {}; "
+            "returning penalty {}",
             curr,
             _INVALID_VALUATION_PENALTY,
         )

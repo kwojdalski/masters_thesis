@@ -50,7 +50,7 @@ def _log_network_stats(log, algo: str, actor: torch.nn.Module, critic: torch.nn.
     a_abs, a_norm, a_gnorm, a_n = _stats(actor)
     c_abs, c_norm, c_gnorm, c_n = _stats(critic)
     log.trace(
-        "%s network_stats "
+        "{} network_stats "
         "actor_abs_sum=%.4f actor_norm=%.4f actor_grad_norm=%.4f actor_n_params=%d "
         "critic_abs_sum=%.4f critic_norm=%.4f critic_grad_norm=%.4f critic_n_params=%d",
         algo,
@@ -467,7 +467,7 @@ class BaseTrainer(ABC):
             rate = (self.successful_batches / total) * 100
             _log = logger.warning if rate < _MIN_BATCH_SUCCESS_RATE else logger.info
             _log(
-                "%s batch summary successful=%d/%d success_rate=%.1f%% skipped=%d",
+                "{} batch summary successful={}/{} success_rate={:.1f}% skipped={}",
                 self._algo_label, self.successful_batches, total, rate, self.skipped_batches,
             )
         else:
@@ -488,7 +488,7 @@ class BaseTrainer(ABC):
             )
             if self._eval_env is None:
                 logger.warning(
-                    "%s _evaluate: no dedicated eval env set; skipping periodic eval "
+                    "{} _evaluate: no dedicated eval env set; skipping periodic eval "
                     "to avoid corrupting SyncDataCollector state",
                     self._algo_label,
                 )
@@ -507,7 +507,7 @@ class BaseTrainer(ABC):
 
             eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
-                "%s eval mean_reward=%.4f sum_reward=%.4f eval_steps=%d eval_data_len=%s",
+                "{} eval mean_reward={:.4f} sum_reward={:.4f} eval_steps={} eval_data_len={}",
                 self._algo_label, mean_reward, sum_reward, max_steps, eval_data_len,
             )
             del eval_rollout
@@ -520,7 +520,7 @@ class BaseTrainer(ABC):
         curr_loss_value = loss_vals[self._value_loss_key].item()
         curr_loss_actor = loss_vals["loss_actor"].item()
         logger.info(
-            "%s step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f",
+            "{} step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f}",
             self._algo_label, max_length, buffer_len, curr_loss_value, curr_loss_actor,
         )
         if is_level_enabled("TRACE"):
@@ -650,8 +650,8 @@ class BaseTrainer(ABC):
                     logger.info("no replay buffer in checkpoint start_fresh=true")
 
         logger.debug(
-            "load checkpoint state total_count=%s total_episodes=%s mlflow_run_id=%s "
-            "mlflow_run_name=%s experiment=%s",
+            "load checkpoint state total_count={} total_episodes={} mlflow_run_id={} "
+            "mlflow_run_name={} experiment={}",
             self.total_count, self.total_episodes,
             self.mlflow_run_id, self.mlflow_run_name, self.mlflow_experiment_name,
         )
@@ -714,7 +714,7 @@ class BaseTrainer(ABC):
             self.collector.policy = exploration_policy
             self.random_exploration_done = True
             logger.info(
-                "%s random warmup already complete at %s steps; starting with exploration policy.",
+                "{} random warmup already complete at {} steps; starting with exploration policy.",
                 algorithm_label,
                 self.total_count,
             )
@@ -724,7 +724,7 @@ class BaseTrainer(ABC):
         self.collector.policy = RandomPolicy(action_spec)
         self.random_exploration_done = False
         logger.info(
-            "%s using random policy for first %s steps",
+            "{} using random policy for first {} steps",
             algorithm_label,
             warmup_steps,
         )
@@ -745,14 +745,14 @@ class BaseTrainer(ABC):
         exploration_policy = getattr(self, "_offpolicy_exploration_policy", None)
         if exploration_policy is None:
             logger.warning(
-                "%s warmup threshold reached but no exploration policy configured.",
+                "{} warmup threshold reached but no exploration policy configured.",
                 algorithm_label,
             )
             return
 
         buffer_len = len(self.replay_buffer) if getattr(self, "_use_replay_buffer", True) else 0
         logger.info(
-            "%s random exploration finished at %s steps. Switching to exploration policy.",
+            "{} random exploration finished at {} steps. Switching to exploration policy.",
             algorithm_label,
             self.total_count,
         )
@@ -917,7 +917,7 @@ class BaseTrainer(ABC):
                     finding = self.health_monitor.check()
                     if finding is not None:
                         logger.warning(
-                            "runtime guardrail %s [%s] %s | suggestion: %s",
+                            "runtime guardrail {} [{}] {} | suggestion: {}",
                             finding.severity.value, finding.parameter,
                             finding.message, finding.suggestion,
                         )
@@ -957,7 +957,7 @@ class BaseTrainer(ABC):
         early_stop_reasons = self.logs.get("early_stop_reason", [])
         if early_stop_reasons:
             logger.warning(
-                "training ended early reason=%s steps=%d/%d",
+                "training ended early reason={} steps=%d/%d",
                 early_stop_reasons[-1], self.total_count, self.config.max_steps,
             )
         log_banner(logger, f"TRAINING END  {self.total_count} steps  {self.total_episodes} episodes  {elapsed:.2f}s")

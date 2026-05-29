@@ -82,8 +82,8 @@ class StockDataFetcher(BaseMarketDataFetcher):
         dataset = dataset or "XNAS.ITCH"
         end_date = end_date or datetime.now(tz=UTC).strftime("%Y-%m-%d")
         self.logger.info(
-            "Fetching stock data: symbols=%s, dates=%s to %s, source=%s, "
-            "dataset=%s, schema=%s",
+            "Fetching stock data: symbols={}, dates={} to {}, source={}, "
+            "dataset={}, schema={}",
             symbols,
             start_date,
             end_date,
