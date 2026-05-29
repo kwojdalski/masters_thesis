@@ -1,6 +1,5 @@
 """SAC Trainer implementation."""
 
-import logging
 from trading_rl.trainers.registry import register_trainer
 from collections import defaultdict
 from typing import Any
@@ -12,7 +11,7 @@ from torchrl.data import Bounded
 from torchrl.envs.utils import set_exploration_type
 from torchrl.objectives import SACLoss, SoftUpdate
 
-from logger import get_logger
+from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction
 from trading_rl.evaluation.asset_meta import write_asset_meta
@@ -259,9 +258,9 @@ class SACTrainer(BaseTrainer):
         self._consecutive_skips += 1
 
         if exc is None:
-            logger.warning("sac skipping batch reason=%s", reason)
+            logger.warning("sac skipping batch reason={}", reason)
         else:
-            logger.warning("sac skipping batch reason=%s err=%s", reason, exc)
+            logger.warning("sac skipping batch reason={} err={}", reason, exc)
 
         if (
             self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
@@ -296,7 +295,7 @@ class SACTrainer(BaseTrainer):
             curr_loss_alpha, curr_alpha,
         )
 
-        if logger.isEnabledFor(logging.DEBUG):
+        if is_level_enabled("DEBUG"):
             _log_network_stats(logger, "sac", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
@@ -345,7 +344,7 @@ class SACTrainer(BaseTrainer):
         )
 
         def on_batch_start(i, data) -> None:
-            if logger.isEnabledFor(logging.DEBUG) and i % 10 == 0:
+            if is_level_enabled("DEBUG") and i % 10 == 0:
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
                 logger.debug(
@@ -462,7 +461,7 @@ class SACTrainer(BaseTrainer):
 
         torch.save(checkpoint, path)
         write_asset_meta(path, generator="trainers/sac.py")
-        logger.info("save checkpoint path=%s", path)
+        logger.info("save checkpoint path={}", path)
 
     def load_checkpoint(self, path: str) -> None:
         """Load SAC training checkpoint.
@@ -510,7 +509,7 @@ class SACTrainer(BaseTrainer):
         self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
 
         if "replay_buffer" in checkpoint:
-            logger.info("restore replay buffer legacy n_experiences=%s", len(checkpoint["replay_buffer"]))
+            logger.info("restore replay buffer legacy n_experiences={}", len(checkpoint["replay_buffer"]))
             self.replay_buffer = checkpoint["replay_buffer"]
         else:
             buffer_path = checkpoint.get("replay_buffer_path")
@@ -518,10 +517,10 @@ class SACTrainer(BaseTrainer):
                 try:
                     self.replay_buffer.loads(buffer_path)
                     buffer_size = len(self.replay_buffer)
-                    logger.info("load replay buffer path=%s n_experiences=%s", buffer_path, buffer_size)
+                    logger.info("load replay buffer path={} n_experiences={}", buffer_path, buffer_size)
                 except Exception:
-                    logger.exception("Failed to load replay buffer from %s", buffer_path)
+                    logger.exception("Failed to load replay buffer from {}", buffer_path)
             else:
                 logger.info("no replay buffer in checkpoint start_fresh=true")
 
-        logger.info("load checkpoint path=%s", path)
+        logger.info("load checkpoint path={}", path)

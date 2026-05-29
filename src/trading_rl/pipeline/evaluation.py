@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import logging
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -152,10 +151,10 @@ def run_statistical_tests_for_split(
     trainer: Any,
     split_ctx: EvaluationContext,
     config: ExperimentConfig,
-    logger: logging.Logger,
+    logger: Any,
     strategy_simple_returns: np.ndarray | None = None,
 ) -> None:
-    logger.info("run statistical significance tests split=%s", split_ctx.split)
+    logger.info("run statistical significance tests split={}", split_ctx.split)
     try:
         if strategy_simple_returns is None:
             rollout = _run_rollout(trainer, split_ctx)
@@ -202,9 +201,9 @@ def run_statistical_tests_for_split(
             log_to_research_artifacts=config.statistical_testing.log_to_research_artifacts,
             research_artifact_subdir=config.statistical_testing.research_artifact_subdir,
         )
-        logger.info("statistical significance tests complete split=%s", split_ctx.split)
+        logger.info("statistical significance tests complete split={}", split_ctx.split)
     except Exception:
-        logger.error("statistical tests failed split=%s", split_ctx.split, exc_info=True)
+        logger.opt(exception=True).error("statistical tests failed split={}", split_ctx.split)
         try:
             import mlflow
             mlflow.log_metric(f"{split_ctx.split}_statistical_tests_failed", 1)
@@ -212,7 +211,6 @@ def run_statistical_tests_for_split(
             logger.debug(
                 "mlflow.log_metric for statistical_tests_failed also failed split=%s",
                 split_ctx.split,
-                exc_info=True,
             )
 
 
@@ -222,7 +220,7 @@ def _save_benchmark_table_for_split(
     split_ctx: EvaluationContext,
     config: ExperimentConfig,
     evaluation_report: MetricReport,
-    logger: logging.Logger,
+    logger: Any,
     strategy_simple_returns: np.ndarray | None = None,
 ) -> None:
     """Build benchmarks and save the benchmark comparison table artifact."""
@@ -237,14 +235,14 @@ def _save_benchmark_table_for_split(
     if strategy_simple_returns is None:
         return_series = extract_tradingenv_return_series(split_ctx.env, split_ctx.max_steps)
         if return_series is None:
-            logger.warning("benchmark table: no strategy returns available for split=%s", split)
+            logger.warning("benchmark table: no strategy returns available for split={}", split)
             return
         strategy_simple_returns = return_series.to_simple().values
     else:
         strategy_simple_returns = np.asarray(strategy_simple_returns, dtype=float)
 
     if strategy_simple_returns.size == 0:
-        logger.warning("benchmark table: empty strategy returns for split=%s", split)
+        logger.warning("benchmark table: empty strategy returns for split={}", split)
         return
 
     bench_out = build_bench_out(
@@ -262,7 +260,7 @@ def _save_benchmark_table_for_split(
         strategy_metrics=evaluation_report.to_dict(),
         output_dir=output_dir,
     )
-    logger.info("benchmark table saved split=%s dir=%s", split, output_dir)
+    logger.info("benchmark table saved split={} dir={}", split, output_dir)
 
 
 def evaluate_split(
@@ -273,7 +271,7 @@ def evaluate_split(
     config: ExperimentConfig,
     algorithm: str,
     logs: dict[str, Any],
-    logger: logging.Logger,
+    logger: Any,
 ) -> PipelineSplitResult | None:
     if len(split_df) < 2:
         logger.warning(
@@ -296,9 +294,9 @@ def evaluate_split(
                 df=split_ctx.df,
                 output_dir=Path(config.logging.log_dir) / ArtifactPaths.EVAL_DATA,
             )
-            logger.info("observation sample saved split=%s path=%s", split, sample_path)
+            logger.info("observation sample saved split={} path={}", split, sample_path)
     except Exception as sample_error:
-        logger.warning("observation sample artifact failed split=%s err=%s", split, sample_error)
+        logger.warning("observation sample artifact failed split={} err={}", split, sample_error)
 
     with profiler.stage(f"eval_rollout_{split}"):
         if hasattr(trainer, "_last_evaluation_result"):
@@ -335,7 +333,7 @@ def evaluate_split(
                 artifact_path_prefix=ArtifactPaths.eval_data(split),
             )
         except Exception as _rd_err:
-            logger.warning("rollout data artifact failed split=%s err=%s", split, _rd_err)
+            logger.warning("rollout data artifact failed split={} err={}", split, _rd_err)
 
     # Merge rollout and equity plot DataFrames so the QMD can re-render at any
     # figure size without re-running the rollout.
@@ -387,7 +385,7 @@ def evaluate_split(
                 plt.close(fig)
                 _mlflow.log_artifact(_tbl_path, ArtifactPaths.eval_plots(split))
     except Exception as _mt_err:
-        logger.warning("metrics table artifact failed split=%s err=%s", split, _mt_err)
+        logger.warning("metrics table artifact failed split={} err={}", split, _mt_err)
 
     try:
         with profiler.stage(f"eval_benchmark_table_{split}"):
@@ -400,7 +398,7 @@ def evaluate_split(
                 strategy_simple_returns=strategy_simple_returns,
             )
     except Exception as _bt_err:
-        logger.warning("benchmark table artifact failed split=%s err=%s", split, _bt_err)
+        logger.warning("benchmark table artifact failed split={} err={}", split, _bt_err)
 
     if config.statistical_testing.enabled:
         try:
@@ -430,7 +428,7 @@ def evaluate_split(
         try:
             split_ctx.env.close()
         except Exception:
-            logger.debug("eval env close failed split=%s", split, exc_info=True)
+            logger.opt(exception=True).debug("eval env close failed split={}", split)
 
 
 def evaluate_all_splits(
@@ -442,7 +440,7 @@ def evaluate_all_splits(
     config: ExperimentConfig,
     algorithm: str,
     logs: dict[str, Any],
-    logger: logging.Logger,
+    logger: Any,
 ) -> dict[str, dict[str, Any]]:
     split_frames = {
         SplitName.TRAIN: train_df,
@@ -503,7 +501,7 @@ def run_primary_split_explainability(
     val_df: pd.DataFrame,
     test_df: pd.DataFrame,
     config: ExperimentConfig,
-    logger: logging.Logger,
+    logger: Any,
 ) -> None:
     if not primary_split:
         return
@@ -532,7 +530,7 @@ def run_primary_split_explainability(
         try:
             explainability_ctx.env.close()
         except Exception:
-            logger.debug("explainability env close failed split=%s", primary_split, exc_info=True)
+            logger.opt(exception=True).debug("explainability env close failed split={}", primary_split)
 
 
 def build_final_metrics(

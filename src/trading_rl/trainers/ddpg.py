@@ -1,5 +1,4 @@
 """DDPG Trainer implementation."""
-import logging
 from trading_rl.trainers.registry import register_trainer
 from collections import defaultdict
 from typing import Any
@@ -12,7 +11,7 @@ from torchrl.envs.utils import set_exploration_type
 from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import DDPGLoss, SoftUpdate
 
-from logger import get_logger
+from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.models import create_ddpg_actor, create_value_network
@@ -238,9 +237,9 @@ class DDPGTrainer(BaseTrainer):
         self._consecutive_skips += 1
 
         if exc is None:
-            logger.warning("ddpg skipping batch reason=%s", reason)
+            logger.warning("ddpg skipping batch reason={}", reason)
         else:
-            logger.warning("ddpg skipping batch reason=%s err=%s", reason, exc)
+            logger.warning("ddpg skipping batch reason={} err={}", reason, exc)
 
         if (
             self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
@@ -264,7 +263,7 @@ class DDPGTrainer(BaseTrainer):
             max_length, buffer_len, curr_loss_value, curr_loss_actor,
         )
 
-        if logger.isEnabledFor(logging.DEBUG):
+        if is_level_enabled("DEBUG"):
             _log_network_stats(logger, "ddpg", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
@@ -380,7 +379,7 @@ class DDPGTrainer(BaseTrainer):
 
         torch.save(checkpoint, path)
         write_asset_meta(path, generator="trainers/ddpg.py")
-        logger.info("save checkpoint path=%s", path)
+        logger.info("save checkpoint path={}", path)
 
     def load_checkpoint(self, path: str) -> None:
         """Load training checkpoint.
@@ -430,7 +429,7 @@ class DDPGTrainer(BaseTrainer):
 
         # Optionally restore replay buffer if it was saved
         if "replay_buffer" in checkpoint:
-            logger.info("restore replay buffer legacy n_experiences=%s", len(checkpoint["replay_buffer"]))
+            logger.info("restore replay buffer legacy n_experiences={}", len(checkpoint["replay_buffer"]))
             self.replay_buffer = checkpoint["replay_buffer"]
         else:
             buffer_path = checkpoint.get("replay_buffer_path")
@@ -438,7 +437,7 @@ class DDPGTrainer(BaseTrainer):
                 try:
                     self.replay_buffer.loads(buffer_path)
                     buffer_size = len(self.replay_buffer)
-                    logger.info("load replay buffer path=%s n_experiences=%s", buffer_path, buffer_size)
+                    logger.info("load replay buffer path={} n_experiences={}", buffer_path, buffer_size)
                 except Exception:
                     logger.exception(
                         "Failed to load replay buffer from %s", buffer_path
@@ -446,7 +445,7 @@ class DDPGTrainer(BaseTrainer):
             else:
                 logger.info("no replay buffer in checkpoint start_fresh=true")
 
-        logger.info("load checkpoint path=%s", path)
+        logger.info("load checkpoint path={}", path)
 
     def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for DDPG agent with batch summary."""
@@ -458,7 +457,7 @@ class DDPGTrainer(BaseTrainer):
         )
 
         def on_batch_start(i, data) -> None:
-            if logger.isEnabledFor(logging.DEBUG) and i % 10 == 0:
+            if is_level_enabled("DEBUG") and i % 10 == 0:
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
                 logger.debug(

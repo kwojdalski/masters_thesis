@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
+from loguru import logger
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-logger = logging.getLogger(__name__)
+
 
 from trading_rl.constants import RewardType
 from trading_rl.evaluation.metrics import aggregate_to_reporting_frequency, sharpe_raw, sortino_raw

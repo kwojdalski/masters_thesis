@@ -295,7 +295,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
 
         from trading_rl.rewards.registry import RewardRegistry
         reward = RewardRegistry.create(reward_type, eta=reward_eta, scale=reward_scale)
-        logger.info("reward reward_type=%s eta=%s scale=%s", reward_type, reward_eta, reward_scale)
+        logger.info("reward reward_type={} eta={} scale={}", reward_type, reward_eta, reward_scale)
 
         logger.info(
             "creating TradingEnv environment n_rows=%d n_static_cols=%d n_runtime_cols=%d price_column=%s fee=%s",
@@ -306,12 +306,12 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             fee,
         )
 
-        logger.debug("building stock contracts n_price_columns=%d", len(price_columns))
+        logger.debug("building stock contracts n_price_columns={}", len(price_columns))
         stocks = [Stock(col) for col in price_columns]
         action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
         logger.debug("action space built low=-1.0 high=1.0")
 
-        logger.debug("building CustomFeature n_static=%d", len(static_feature_columns))
+        logger.debug("building CustomFeature n_static={}", len(static_feature_columns))
         features = [
             CustomFeature(
                 static_feature_columns,
@@ -322,14 +322,14 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         ]
         logger.debug("CustomFeature built")
 
-        logger.debug("preparing price dataframe n_rows=%d n_cols=%d", len(df), len(price_columns))
+        logger.debug("preparing price dataframe n_rows={} n_cols={}", len(df), len(price_columns))
         prices = df[price_columns].copy()
         prices.columns = stocks
         logger.debug("price dataframe ready")
 
         broker_fees = BrokerFees(proportional=fee, fixed=0.0)
 
-        logger.debug("constructing TradingEnv initial_cash=%s", initial_cash)
+        logger.debug("constructing TradingEnv initial_cash={}", initial_cash)
         env = TradingEnv(
             action_space=action_space,
             state=features,
@@ -347,7 +347,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             if env_cfg is not None:
                 obs_clip = getattr(env_cfg, "obs_clip", None)
 
-        logger.debug("wrapping with GymnasiumTradingEnvWrapper obs_clip=%s", obs_clip)
+        logger.debug("wrapping with GymnasiumTradingEnvWrapper obs_clip={}", obs_clip)
         gym_env = GymnasiumTradingEnvWrapper(env, obs_clip=obs_clip)
 
         logger.debug("wrapping with GymWrapper and transforms")

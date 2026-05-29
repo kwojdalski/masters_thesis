@@ -158,7 +158,7 @@ class DifferentialSharpeRatio(AbstractReward):
         # Track previous portfolio value for return calculation
         self._prev_nlv = None
 
-        logger.debug("init dsr eta=%s epsilon=%s", eta, epsilon)
+        logger.debug("init dsr eta={} epsilon={}", eta, epsilon)
 
     def calculate(self, env) -> float:
         """Calculate DSR reward for the current step.
@@ -230,7 +230,7 @@ class DifferentialSharpeRatio(AbstractReward):
             self.A_t = 0.0
             self.B_t = 0.0
         self._prev_nlv = None
-        logger.debug("dsr state reset persist_moments=%s", persist_moments)
+        logger.debug("dsr state reset persist_moments={}", persist_moments)
         return self
 
     def __repr__(self) -> str:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import pandas as pd
@@ -20,7 +19,7 @@ def run_explainability_analysis(
     trainer: Any,
     eval_ctx: EvaluationContext,
     train_df: pd.DataFrame,
-    logger: logging.Logger,
+    logger: Any,
     artifact_path_prefix: str | None = None,
 ) -> None:
     """Run explainability analysis and log results to MLflow.
@@ -30,7 +29,7 @@ def run_explainability_analysis(
         trainer: Trained agent.
         eval_ctx: Evaluation context with environment for rollout.
         train_df: Training dataframe to extract feature names.
-        logger: Logger instance.
+        logger: Any instance.
         artifact_path_prefix: Optional path prefix for MLflow artifacts.
     """
     if not config.explainability.enabled:
@@ -46,11 +45,11 @@ def run_explainability_analysis(
                 col for col in train_df.columns if str(col).startswith("feature_")
             ]
 
-        logger.debug("explainability n_features=%d features=%s", len(feature_names), feature_names)
+        logger.debug("explainability n_features={} features={}", len(feature_names), feature_names)
 
         rollout = eval_ctx.env.rollout(max_steps=config.explainability.n_steps)
         obs_batch = rollout["observation"]
-        logger.debug("explainability obs_batch n_rows=%d n_cols=%d", *obs_batch.shape)
+        logger.debug("explainability obs_batch n_rows={} n_cols={}", *obs_batch.shape)
 
         analyzer = RLInterpretabilityAnalyzer(trainer, feature_names)
         results = {}
@@ -111,4 +110,4 @@ def run_explainability_analysis(
             logger.info("save merged explainability plot")
 
     except Exception as e:
-        logger.error("explainability analysis failed err=%s", e)
+        logger.error("explainability analysis failed err={}", e)

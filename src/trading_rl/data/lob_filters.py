@@ -9,9 +9,9 @@ Functions for filtering order book data to remove:
 from __future__ import annotations
 
 import pandas as pd
-import logging
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+
 
 
 def filter_unchanged_lob(

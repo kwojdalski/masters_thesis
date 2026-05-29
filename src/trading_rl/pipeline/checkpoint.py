@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import logging
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import mlflow
 import pandas as pd
@@ -35,7 +34,7 @@ def _resolve_experiment_name_from_checkpoint(
     trainer: Any,
     config: ExperimentConfig,
     effective_experiment_name: str,
-    logger: logging.Logger,
+    logger: Any,
 ) -> str:
     """Resolve experiment name from checkpoint metadata, updating config if needed."""
     resume_experiment_name = getattr(trainer, "mlflow_experiment_name", None)
@@ -48,7 +47,7 @@ def _resolve_experiment_name_from_checkpoint(
 
     if resume_experiment_name:
         if resume_experiment_name != config.experiment_name:
-            logger.info("resume experiment name=%s", resume_experiment_name)
+            logger.info("resume experiment name={}", resume_experiment_name)
         config.experiment_name = resume_experiment_name
         effective_experiment_name = resume_experiment_name
         if hasattr(trainer, "checkpoint_prefix"):
@@ -60,15 +59,15 @@ def _resolve_experiment_name_from_checkpoint(
 def _start_mlflow_run_for_resumption(
     trainer: Any,
     original_steps: int,
-    logger: logging.Logger,
+    logger: Any,
 ) -> None:
     """Start or resume MLflow run for checkpoint resumption."""
     resume_run_id = getattr(trainer, "mlflow_run_id", None)
     if resume_run_id:
-        logger.info("resume mlflow run run_id=%s", resume_run_id)
+        logger.info("resume mlflow run run_id={}", resume_run_id)
         mlflow.start_run(run_id=resume_run_id)
     else:
-        logger.info("create mlflow run from_step=%d", original_steps)
+        logger.info("create mlflow run from_step={}", original_steps)
         mlflow.start_run(run_name=f"resumed_step_{original_steps}")
 
 
@@ -124,7 +123,7 @@ def setup_checkpoint_resumption(
     train_df: pd.DataFrame,
     effective_experiment_name: str,
     additional_steps: int | None,
-    logger: logging.Logger,
+    logger: Any,
     setup_mlflow_experiment_fn: Any,
 ) -> CheckpointResumptionResult:
     """Load checkpoint, setup MLflow tracking, and create callback for resumed training.
@@ -136,7 +135,7 @@ def setup_checkpoint_resumption(
         train_df: Training dataframe for price series.
         effective_experiment_name: Initial experiment name (may be updated).
         additional_steps: Optional additional training steps.
-        logger: Logger instance.
+        logger: Any instance.
         setup_mlflow_experiment_fn: Callable matching setup_mlflow_experiment's signature.
 
     Returns:
@@ -145,15 +144,15 @@ def setup_checkpoint_resumption(
     if not Path(checkpoint_path).exists():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
 
-    logger.info("resume training from checkpoint path=%s", checkpoint_path)
+    logger.info("resume training from checkpoint path={}", checkpoint_path)
 
     trainer.load_checkpoint(str(checkpoint_path))
     original_steps = trainer.total_count
-    logger.info("load checkpoint step=%d", original_steps)
+    logger.info("load checkpoint step={}", original_steps)
 
     if additional_steps:
         trainer.config.max_steps = original_steps + additional_steps
-        logger.info("extend training additional_steps=%d target_steps=%d", additional_steps, trainer.config.max_steps)
+        logger.info("extend training additional_steps={} target_steps={}", additional_steps, trainer.config.max_steps)
 
     tracking_uri = _setup_mlflow_tracking_from_checkpoint(trainer)
     effective_experiment_name = _resolve_experiment_name_from_checkpoint(

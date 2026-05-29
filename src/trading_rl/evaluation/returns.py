@@ -193,7 +193,7 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
             return None
 
     if len(nlv_values) < 2:
-        logger.debug("insufficient nlv values count=%s", len(nlv_values))
+        logger.debug("insufficient nlv values count={}", len(nlv_values))
         return None
 
     nlv_array = np.asarray(nlv_values, dtype=float)

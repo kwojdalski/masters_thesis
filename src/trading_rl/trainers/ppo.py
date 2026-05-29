@@ -1,6 +1,5 @@
 """PPO Trainer implementation."""
 
-import logging
 from trading_rl.trainers.registry import register_trainer
 from collections import defaultdict
 from typing import Any
@@ -26,7 +25,7 @@ from torch.optim import Adam
 from torchrl.envs.utils import set_exploration_type
 from torchrl.objectives import ClipPPOLoss
 
-from logger import get_logger
+from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction, TradePosition
 from trading_rl.evaluation.asset_meta import write_asset_meta
@@ -270,7 +269,7 @@ class PPOTrainer(BaseTrainer):
             max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
         )
 
-        if logger.isEnabledFor(logging.DEBUG):
+        if is_level_enabled("DEBUG"):
             _log_network_stats(logger, "ppo", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
@@ -374,7 +373,7 @@ class PPOTrainer(BaseTrainer):
         }
         torch.save(checkpoint, path)
         write_asset_meta(path, generator="trainers/ppo.py")
-        logger.info("save checkpoint path=%s", path)
+        logger.info("save checkpoint path={}", path)
 
     def load_checkpoint(self, path: str) -> None:
         """Load PPO training checkpoint.
@@ -406,7 +405,7 @@ class PPOTrainer(BaseTrainer):
         self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
         self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
         self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
-        logger.info("load checkpoint path=%s", path)
+        logger.info("load checkpoint path={}", path)
 
     @staticmethod
     def build_models(n_obs: int, n_act: int, config: Any, env: Any):

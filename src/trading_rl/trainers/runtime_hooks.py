@@ -184,9 +184,9 @@ class TrainerRuntimeHooks:
                 path = os.path.join(tmpdir, "close_price.png")
                 _save_plot(plot, path, width=FIGURE_WIDTH * 2, height=FIGURE_HEIGHT * 1.5, dpi=PLOT_DPI)
                 mlflow.log_artifact(path, artifact_dir)
-            logger.info("price plot logged split=%s column=%s", split_ctx.split, price_column)
+            logger.info("price plot logged split={} column={}", split_ctx.split, price_column)
         except Exception:
-            logger.warning("price plot failed split=%s", split_ctx.split, exc_info=True)
+            logger.opt(exception=True).warning("price plot failed split={}", split_ctx.split)
 
     def _run_temporary_evaluation(
         self,
@@ -248,7 +248,7 @@ class TrainerRuntimeHooks:
                         strategy_simple_returns=_last_strategy_returns(self.trainer),
                     )
                 except Exception:
-                    logger.warning("temp eval: MetricReport failed split=%s", split_ctx.split, exc_info=True)
+                    logger.opt(exception=True).warning("temp eval: MetricReport failed split={}", split_ctx.split)
                     metric_report = None
 
                 if metric_report is not None:
@@ -423,7 +423,7 @@ class TrainerRuntimeHooks:
                                     artifact_path_prefix=ArtifactPaths.eval_data_temp(split_ctx.split, step_number),
                                 )
                             except Exception:
-                                logger.warning("temp eval: rollout data artifact failed split=%s step=%s", split_ctx.split, step_number, exc_info=True)
+                                logger.opt(exception=True).warning("temp eval: rollout data artifact failed split={} step={}", split_ctx.split, step_number)
                     _elapsed = time.monotonic() - _t_split
                     logger.info(
                         "temp eval complete split=%s reward=%.4f artifacts=%s elapsed_s=%.2f",
@@ -440,7 +440,6 @@ class TrainerRuntimeHooks:
                     "temp eval failed split=%s step=%s elapsed=%.2fs (failure %d/%d)",
                     split_ctx.split, step_number, time.monotonic() - _t_split,
                     self._eval_consecutive_failures, self._MAX_HOOK_FAILURES,
-                    exc_info=True,
                 )
                 if self._eval_consecutive_failures >= self._MAX_HOOK_FAILURES:
                     raise RuntimeError(
@@ -502,7 +501,6 @@ class TrainerRuntimeHooks:
                 except Exception:
                     logger.error(
                         "temp eval: train/val progression plot failed",
-                        exc_info=True,
                     )
 
         logger.info(
@@ -552,7 +550,6 @@ class TrainerRuntimeHooks:
                 "Temporary explainability failed at step %s (failure %d/%d)",
                 step_number,
                 self._explainability_consecutive_failures, self._MAX_HOOK_FAILURES,
-                exc_info=True,
             )
             if self._explainability_consecutive_failures >= self._MAX_HOOK_FAILURES:
                 raise RuntimeError(

@@ -168,11 +168,11 @@ def _prepared_cache_compatible(
         try:
             metadata = json.loads(metadata_path.read_text())
         except json.JSONDecodeError:
-            logger.info("prepared cache metadata invalid path=%s", metadata_path)
+            logger.info("prepared cache metadata invalid path={}", metadata_path)
             return False
         cached_sig = metadata.get("config_signature", {})
         if _sig_without_sizes(cached_sig) != _sig_without_sizes(expected_signature):
-            logger.info("prepared cache metadata mismatch path=%s", metadata_path)
+            logger.info("prepared cache metadata mismatch path={}", metadata_path)
             return False
         expected_rows = _expected_cached_split_rows(config, memmap_dir)
         metadata_rows = metadata.get("split_rows", {})
@@ -200,7 +200,7 @@ def _prepared_cache_compatible(
             )
             return False
 
-    logger.info("legacy prepared cache accepted without metadata dir=%s", prepared_dir)
+    logger.info("legacy prepared cache accepted without metadata dir={}", prepared_dir)
     return True
 
 
@@ -248,7 +248,7 @@ def _yaml_uses_global(feature_config_path: str) -> bool:
             if method == NormalizationMethod.GLOBAL:
                 return True
     except Exception as exc:
-        logger.debug("could not parse feature config for GLOBAL detection: %s", exc)
+        logger.debug("could not parse feature config for GLOBAL detection: {}", exc)
     return False
 
 

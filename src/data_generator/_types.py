@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from enum import StrEnum
 
 
@@ -23,15 +22,15 @@ DEFAULT_SYNTHETIC_START_DATE = "2024-01-01"
 def _parse_log_level(level: int | str | None) -> int:
     """Convert log level provided as string or int into numeric constant."""
     level_map = {
-        "CRITICAL": logging.CRITICAL,
-        "ERROR": logging.ERROR,
-        "WARNING": logging.WARNING,
-        "INFO": logging.INFO,
-        "DEBUG": logging.DEBUG,
-        "NOTSET": logging.NOTSET,
+        "CRITICAL": 50,
+        "ERROR": 40,
+        "WARNING": 30,
+        "INFO": 20,
+        "DEBUG": 10,
+        "NOTSET": 0,
     }
     if isinstance(level, int):
         return level
     if isinstance(level, str):
-        return level_map.get(level.upper(), logging.INFO)
-    return logging.INFO
+        return level_map.get(level.upper(), 20)
+    return 20

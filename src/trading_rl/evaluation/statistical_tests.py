@@ -100,7 +100,7 @@ def run_all_statistical_tests(
             all_results["baselines"].append(baseline_results)
             _status(f"  [{i}/{n_baselines}] {spec.name} done")
         except Exception as e:
-            logger.error("%s comparison failed err=%s", spec.name, e)
+            logger.error("{} comparison failed err={}", spec.name, e)
             all_results["baselines"].append({"baseline": spec.name, "error": str(e)})
 
     if random_baseline_trials is not None:
@@ -134,7 +134,7 @@ def run_all_statistical_tests(
             all_results["baselines"].append(random_results)
             _status(f"  [{idx}/{n_baselines}] {BenchmarkName.RANDOM_ACTIONS} done")
         except Exception as e:
-            logger.error("random baseline comparison failed err=%s", e)
+            logger.error("random baseline comparison failed err={}", e)
             all_results["baselines"].append(
                 {"baseline": BenchmarkName.RANDOM_ACTIONS, "error": str(e)}
             )

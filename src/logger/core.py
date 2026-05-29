@@ -1,194 +1,49 @@
 """
 Core logging functionality for the project.
 
-This module provides the main logging setup and configuration utilities.
+Thin wrapper around loguru that preserves the original public API
+(setup_logging, get_logger, configure_logging, …) while delegating all
+formatting, coloring, rotation, and serialisation to loguru.
 """
 
-import json
 import logging
 import os
 import re
 import sys
 from datetime import UTC, datetime
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
-_COLOR_NUMBER = "\033[38;5;117m"   # light blue
-_COLOR_PATH   = "\033[38;5;180m"   # warm tan/golden
-_COLOR_RESET  = "\033[0m"
-
-_PATH_EXTENSIONS = frozenset({
-    ".parquet", ".csv", ".log", ".yaml", ".yml", ".json", ".pt", ".pth",
-    ".pkl", ".npz", ".npy", ".h5", ".hdf5", ".db", ".sqlite", ".txt",
-})
-
-# Matches standalone numbers in an already-interpolated plain-text message.
-_NUMBER_RE = re.compile(r'(?<![.\d\w])([+-]?\d[\d,]*(?:\.\d+)?%?)(?![.\d\w])')
-# Matches a complete ANSI escape sequence so we can skip over already-colored segments.
-_ANSI_RE = re.compile(r'\033\[[0-9;]*m')
+from loguru import logger
 
 
-def _is_path_like(value: str) -> bool:
-    """Return True if the string looks like a filesystem path."""
-    if "/" in value or value.startswith("."):
-        return True
-    dot = value.rfind(".")
-    return dot != -1 and value[dot:] in _PATH_EXTENSIONS
+# ---------------------------------------------------------------------------
+# Level-check helper (replaces logging.Logger.isEnabledFor)
+# ---------------------------------------------------------------------------
 
-
-def _colorize_path_arg(arg: object) -> object:
-    """Colorize a single arg if it is a path-like string; leave numbers untouched.
-
-    Numbers must not be pre-colorized because %d/%f format specifiers require
-    a real number, not a string.  Numbers are colorized post-interpolation by
-    _colorize_numbers_in_text() instead.
-    """
-    if isinstance(arg, (str, Path)) and _is_path_like(str(arg)):
-        return f"{_COLOR_PATH}{arg}{_COLOR_RESET}"
-    return arg
-
-
-def _colorize_path_args(args: object) -> object:
-    """Apply _colorize_path_arg to every element of a record's args."""
-    if isinstance(args, tuple):
-        return tuple(_colorize_path_arg(a) for a in args)
-    if isinstance(args, dict):
-        return {k: _colorize_path_arg(v) for k, v in args.items()}
-    return args
-
-
-def _colorize_numbers_in_text(text: str) -> str:
-    """Highlight standalone numbers in an already-interpolated plain-text string.
-
-    Applies number coloring only to plain-text segments between existing ANSI
-    sequences, so messages that already have path-colored args still get their
-    numeric values highlighted.
-    """
-    def _color_numbers(segment: str) -> str:
-        return _NUMBER_RE.sub(lambda m: f"{_COLOR_NUMBER}{m.group()}{_COLOR_RESET}", segment)
-
-    if "\033[" not in text:
-        return _color_numbers(text)
-
-    # Colorize numbers in each plain-text segment between existing ANSI codes.
-    result = []
-    last = 0
-    for m in _ANSI_RE.finditer(text):
-        result.append(_color_numbers(text[last:m.start()]))
-        result.append(m.group())
-        last = m.end()
-    result.append(_color_numbers(text[last:]))
-    return "".join(result)
-
-
-def _supports_color() -> bool:
-    """Check if the current environment supports colored output."""
-    # Check for explicit environment variables
-    if os.environ.get("FORCE_COLOR") in ("1", "true", "True"):
-        return True
-    if os.environ.get("NO_COLOR"):
-        return False
-    
-    # Check if we're in IPython/Jupyter
+def is_level_enabled(level: str) -> bool:
+    """Return True if messages at *level* would reach at least one handler."""
     try:
-        # This will succeed if we're in IPython
-        get_ipython()  # type: ignore
+        return logger.level(level).no >= logger._core.min_level  # type: ignore[attr-defined]
+    except Exception:
         return True
-    except NameError:
-        pass
-    
-    # Check for common color-supporting terminals
-    if os.environ.get("COLORTERM") in ("truecolor", "24bit"):
-        return True
-    
-    term = os.environ.get("TERM", "")
-    if any(term_type in term for term_type in ["color", "256", "xterm"]):
-        return True
-    
-    # Fallback to isatty check
-    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
-class DotMillisFormatter(logging.Formatter):
-    """Formatter that uses '.' instead of ',' to separate milliseconds in timestamps."""
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
-    def formatTime(self, record, datefmt=None):
-        result = super().formatTime(record, datefmt)
-        return result.replace(',', '.', 1)
+_DEFAULT_FMT = (
+    "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+    "<level>{level: <8}</level> | "
+    "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+    "<level>{message}</level>"
+)
 
-
-class ColoredFormatter(DotMillisFormatter):
-    """Colored log formatter for enhanced console readability."""
-
-    COLORS: ClassVar[dict[str, str]] = {
-        "DEBUG": "\033[96m",    # Bright cyan
-        "INFO": "\033[92m",     # Bright green  
-        "WARNING": "\033[93m",  # Bright yellow
-        "ERROR": "\033[91m",    # Bright red
-        "CRITICAL": "\033[95m", # Bright magenta
-        "RESET": "\033[0m",     # Reset
-        "BOLD": "\033[1m",      # Bold
-        "DIM": "\033[2m",       # Dim
-    }
-
-    def format(self, record):
-        if not _supports_color():
-            return super().format(record)
-
-        log_color = self.COLORS.get(record.levelname, self.COLORS["RESET"])
-
-        # Color the level name with bold
-        colored_levelname = (
-            f"{self.COLORS['BOLD']}{log_color}{record.levelname}{self.COLORS['RESET']}"
-        )
-
-        # Phase 1: pre-colorize path-like string args only.
-        # Numeric args must stay as real numbers so %d/%f specifiers don't fail.
-        original_msg = record.msg
-        original_args = record.args
-        try:
-            record.args = _colorize_path_args(record.args)
-            # Phase 2: interpolate then colorize numbers in the resulting text.
-            record.msg = _colorize_numbers_in_text(record.getMessage())
-            record.args = None
-        except Exception:
-            record.msg = original_msg
-            record.args = original_args
-
-        original_levelname = record.levelname
-        record.levelname = colored_levelname
-
-        formatted = super().format(record)
-
-        record.levelname = original_levelname
-        record.msg = original_msg
-        record.args = original_args
-
-        return formatted
-
-
-class StructuredFormatter(logging.Formatter):
-    """JSON structured formatter for machine-readable logs."""
-
-    def format(self, record):
-        log_entry = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-            "module": record.module,
-            "function": record.funcName,
-            "line": record.lineno,
-        }
-
-        if record.exc_info:
-            log_entry["exception"] = self.formatException(record.exc_info)
-
-        if hasattr(record, "extra_data"):
-            log_entry.update(record.extra_data)
-
-        return json.dumps(log_entry)
+_PLAIN_FMT = (
+    "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | "
+    "{name}:{function}:{line} - {message}"
+)
 
 
 def setup_logging(
@@ -197,128 +52,67 @@ def setup_logging(
     console_output: bool = True,
     colored_output: bool = True,
     structured_logging: bool = False,
-    max_file_size: int = 10 * 1024 * 1024,  # 10MB
+    max_file_size: int = 10 * 1024 * 1024,  # 10 MB
     backup_count: int = 5,
     format_string: str | None = None,
     log_regex: str | None = None,
-) -> logging.Logger:
-    """
-    Set up comprehensive logging configuration for the project.
+) -> Any:
+    """Configure loguru sinks for the project and return the logger."""
+    logger.remove()
 
-    Args:
-        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_file: Optional file path to write logs to
-        console_output: Whether to output logs to console
-        colored_output: Whether to use colored console output
-        structured_logging: Whether to use JSON structured logging
-        max_file_size: Maximum log file size before rotation (bytes)
-        backup_count: Number of backup log files to keep
-        format_string: Custom format string for log messages
+    if log_regex is None:
+        log_regex = os.environ.get("LOG_REGEX")
 
-    Returns:
-        Configured root logger
-    """
-    # Convert string level to logging constant
-    numeric_level = getattr(logging, level.upper(), logging.INFO)
+    compiled_re = None
+    if log_regex:
+        try:
+            compiled_re = re.compile(log_regex)
+        except re.error:
+            print(f"Invalid LOG_REGEX ignored: {log_regex}", file=sys.stderr)
 
-    # Default format string
+    def _filter(record: dict) -> bool:
+        if compiled_re is not None:
+            return bool(compiled_re.search(record["message"]))
+        return True
+
     if format_string is None:
-        format_string = (
-            "%(asctime)s - %(name)s - %(levelname)s "
-            + "- %(funcName)s:%(lineno)d - %(message)s"
+        fmt = _DEFAULT_FMT if (colored_output and not structured_logging) else _PLAIN_FMT
+    else:
+        fmt = format_string
+
+    if console_output:
+        logger.add(
+            sys.stdout,
+            level=level.upper(),
+            format=fmt,
+            colorize=colored_output and not structured_logging,
+            serialize=structured_logging,
+            filter=_filter,
         )
 
-    # Clear any existing handlers
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    root_logger.setLevel(numeric_level)
-    # Silence noisy third-party loggers
+    if log_file:
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.add(
+            log_file,
+            level=level.upper(),
+            rotation=max_file_size,
+            retention=backup_count,
+            serialize=structured_logging,
+            encoding="utf-8",
+        )
+
+    # Silence noisy third-party stdlib loggers that don't use loguru
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("selectors").setLevel(logging.WARNING)
     logging.getLogger("joblib").setLevel(logging.ERROR)
     logging.getLogger("torchrl").setLevel(logging.WARNING)
 
-    if log_regex is None:
-        log_regex = os.environ.get("LOG_REGEX")
-
-    class _RegexFilter(logging.Filter):
-        def __init__(self, pattern: str):
-            super().__init__()
-            self._pattern = re.compile(pattern)
-
-        def filter(self, record: logging.LogRecord) -> bool:
-            return bool(self._pattern.search(record.getMessage()))
-
-    regex_filter = None
-    if log_regex:
-        try:
-            regex_filter = _RegexFilter(log_regex)
-        except re.error:
-            print(
-                f"Invalid LOG_REGEX pattern ignored: {log_regex}",
-                file=sys.stderr,
-            )
-
-    # Console handler
-    if console_output:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(numeric_level)
-
-        if structured_logging:
-            console_formatter = StructuredFormatter()
-        elif colored_output and _supports_color():
-            console_formatter = ColoredFormatter(format_string)
-        else:
-            console_formatter = DotMillisFormatter(format_string)
-
-        console_handler.setFormatter(console_formatter)
-        if regex_filter is not None:
-            console_handler.addFilter(regex_filter)
-        root_logger.addHandler(console_handler)
-
-    # File handler with rotation
-    if log_file:
-        log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-
-        file_handler = RotatingFileHandler(
-            log_file, maxBytes=max_file_size, backupCount=backup_count, encoding="utf-8"
-        )
-        file_handler.setLevel(numeric_level)
-
-        if structured_logging:
-            file_formatter = StructuredFormatter()
-        else:
-            file_formatter = DotMillisFormatter(format_string)
-
-        file_handler.setFormatter(file_formatter)
-        root_logger.addHandler(file_handler)
-
-    return root_logger
+    return logger
 
 
-def get_logger(name: str, extra_config: dict[str, Any] | None = None) -> logging.Logger:
-    """
-    Get a logger instance for the given name with optional extra configuration.
-
-    This follows the standard pattern used throughout the project.
-
-    Args:
-        name: Logger name (typically __name__)
-        extra_config: Optional extra configuration for the logger
-
-    Returns:
-        Logger instance
-    """
-    logger = logging.getLogger(name)
-
-    if extra_config:
-        if "level" in extra_config:
-            logger.setLevel(getattr(logging, extra_config["level"].upper()))
-
-        if "propagate" in extra_config:
-            logger.propagate = extra_config["propagate"]
-
+def get_logger(name: str, extra_config: dict[str, Any] | None = None) -> Any:
+    """Return the loguru logger singleton (name is accepted for API compat)."""
     return logger
 
 
@@ -331,25 +125,9 @@ def configure_logging(
     structured_logging: bool = False,
     include_console: bool = True,
     log_regex: str | None = None,
-) -> logging.Logger:
-    """
-    Configure logging for project components.
-
-    This function provides component-specific logging configuration
-    that can be shared across different modules.
-
-    Args:
-        component: Component name (e.g., 'tardis_downloader', 'market_data_fetcher')
-        debug: Enable debug logging
-        log_dir: Directory to store log files
-        structured_logging: Use JSON structured logging format
-        include_console: Include console output
-
-    Returns:
-        Configured logger
-    """
-    level = level
-    level = "DEBUG" if debug else level
+) -> Any:
+    """Configure logging for project components."""
+    effective_level = "DEBUG" if debug else level
 
     log_file = None
     if log_dir:
@@ -357,21 +135,22 @@ def configure_logging(
         log_dir_path.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now(UTC).strftime("%Y%m%d")
         log_file = log_dir_path / f"{component}_{timestamp}.log"
+
     if simplified:
-        format_string = "%(funcName)s:%(lineno)d - %(message)s"
+        fmt = "{function}:{line} - {message}"
     else:
-        format_string = (
-            f"%(asctime)s - {component} - %(name)s "
-            + "- %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+        fmt = (
+            "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | "
+            f"{component} | {{name}}:{{function}}:{{line}} - {{message}}"
         )
 
     return setup_logging(
-        level=level,
+        level=effective_level,
         log_file=str(log_file) if log_file else None,
         console_output=include_console,
         colored_output=not structured_logging,
         structured_logging=structured_logging,
-        format_string=format_string,
+        format_string=fmt if not structured_logging else None,
         log_regex=log_regex,
     )
 
@@ -381,69 +160,11 @@ def setup_component_logger(
     log_level: str = "INFO",
     log_to_file: bool = True,
     log_dir: str = "logs",
-) -> logging.Logger:
-    """
-    Set up a logger for a specific component.
-
-    Args:
-        component_name: Name of the component (e.g., 'tardis_downloader')
-        log_level: Logging level
-        log_to_file: Whether to log to file
-        log_dir: Directory for log files
-
-    Returns:
-        Configured component logger
-    """
-    logger = get_logger(component_name)
-
-    # Prevent duplicate handlers
-    if logger.handlers:
-        return logger
-
-    numeric_level = getattr(logging, log_level.upper(), logging.INFO)
-    logger.setLevel(numeric_level)
-
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(numeric_level)
-
-    if _supports_color():
-        console_formatter = ColoredFormatter(
-            f"%(asctime)s - {component_name} - %(levelname)s - %(message)s"
-        )
-    else:
-        console_formatter = DotMillisFormatter(
-            f"%(asctime)s - {component_name} - %(levelname)s - %(message)s"
-        )
-
-    console_handler.setFormatter(console_formatter)
-    logger.addHandler(console_handler)
-
-    # File handler
-    if log_to_file:
-        log_path = Path(log_dir)
-        log_path.mkdir(parents=True, exist_ok=True)
-
-        file_handler = RotatingFileHandler(
-            log_path / f"{component_name}.log",
-            maxBytes=10 * 1024 * 1024,  # 10MB
-            backupCount=5,
-        )
-        file_handler.setLevel(numeric_level)
-        file_formatter = DotMillisFormatter(
-            f"%(asctime)s - {component_name} - %(name)s "
-            + "- %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
-        )
-        file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler)
-
-    # Prevent propagation to root logger to avoid duplicate messages
-    logger.propagate = False
-
+) -> Any:
+    """Return the loguru logger (component setup is done via setup_logging)."""
     return logger
 
 
-# Alias for weles compatibility
 def configure_weles_logging(
     component: str = "weles",
     debug: bool = False,
@@ -452,25 +173,8 @@ def configure_weles_logging(
     log_dir: str | None = None,
     structured_logging: bool = False,
     include_console: bool = True,
-) -> logging.Logger:
-    """
-    Configure logging for Weles components (compatibility alias).
-
-    This is an alias to configure_logging() for compatibility with
-    weles project modules that expect this function.
-
-    Args:
-        component: Component name
-        debug: Enable debug logging
-        level: Log level
-        simplified: Use simplified format
-        log_dir: Directory to store log files
-        structured_logging: Use JSON structured logging
-        include_console: Include console output
-
-    Returns:
-        Configured logger
-    """
+) -> Any:
+    """Configure logging for Weles components (compatibility alias)."""
     return configure_logging(
         component=component,
         debug=debug,

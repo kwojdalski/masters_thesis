@@ -398,7 +398,7 @@ def _score_single_symbol(
         cache_entry = Path(config.data.feature_cache_dir) / f"fr_{cache_key}"
         _fr_files = ("train_features", "val_features", "train_price", "val_price")
         if all((cache_entry / f"{f}.parquet").exists() for f in _fr_files):
-            logger.info("feature research cache hit symbol=%s key=%s", symbol, cache_key[:8])
+            logger.info("feature research cache hit symbol={} key={}", symbol, cache_key[:8])
             train_features = pd.read_parquet(cache_entry / "train_features.parquet")
             val_features = pd.read_parquet(cache_entry / "val_features.parquet")
             train_price_df = pd.read_parquet(cache_entry / "train_price.parquet")
@@ -420,7 +420,7 @@ def _score_single_symbol(
                     n=_VAL_POOL_CAP, random_state=0
                 ).reset_index(drop=True)
             return scores, val_features, feature_configs
-        logger.info("feature research cache miss symbol=%s key=%s", symbol, cache_key[:8])
+        logger.info("feature research cache miss symbol={} key={}", symbol, cache_key[:8])
     # --- end cache lookup ------------------------------------------------
 
     raw_df = load_trading_data(data_path).dropna()
@@ -477,7 +477,7 @@ def _score_single_symbol(
         val_features.to_parquet(cache_entry / "val_features.parquet")
         train_price_df.to_parquet(cache_entry / "train_price.parquet")
         val_price_df.to_parquet(cache_entry / "val_price.parquet")
-        logger.info("feature research cache write symbol=%s key=%s", symbol, cache_key[:8])
+        logger.info("feature research cache write symbol={} key={}", symbol, cache_key[:8])
 
     scores = _build_score_table(
         train_features, val_features, train_price_df, val_price_df,
@@ -556,7 +556,7 @@ def run_feature_research(
 
     for idx, data_path in enumerate(data_paths):
         symbol = Path(data_path).stem
-        logger.info("scoring symbol %d/%d: %s", idx + 1, len(data_paths), symbol)
+        logger.info("scoring symbol {}/{}: {}", idx + 1, len(data_paths), symbol)
         sym_scores, sym_val_features, sym_feature_configs = _score_single_symbol(
             data_path, config
         )

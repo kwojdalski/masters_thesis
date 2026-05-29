@@ -138,7 +138,7 @@ def log_parameter_faq_artifact() -> None:
 
         faq_path = Path(__file__).resolve().parent.parent / "docs" / "parameter_faq.md"
         if not faq_path.exists():
-            logger.warning("faq file not found path=%s", faq_path)
+            logger.warning("faq file not found path={}", faq_path)
             return
 
         with open(faq_path, encoding="utf-8") as f:
@@ -171,9 +171,9 @@ def log_parameter_faq_artifact() -> None:
                 tmp_md_path = tmp_md.name
             mlflow.log_artifact(tmp_md_path, "documentation")
             os.unlink(tmp_md_path)
-            logger.info("log faq markdown artifact commit=%s", short)
+            logger.info("log faq markdown artifact commit={}", short)
         except Exception as md_error:
-            logger.error("log faq markdown failed err=%s", md_error)
+            logger.error("log faq markdown failed err={}", md_error)
             return
 
         try:
@@ -184,7 +184,7 @@ def log_parameter_faq_artifact() -> None:
                     md_content, extensions=["tables", "fenced_code", "toc"]
                 )
             except Exception as ext_error:
-                logger.warning("markdown extensions failed trying basic conversion err=%s", ext_error)
+                logger.warning("markdown extensions failed trying basic conversion err={}", ext_error)
                 html_content = markdown.markdown(md_content)
 
             styled_html = f"""<!DOCTYPE html>
@@ -229,7 +229,7 @@ def log_parameter_faq_artifact() -> None:
         except ImportError:
             logger.warning("markdown library not available skipping html conversion")
         except Exception as html_error:
-            logger.error("log faq html failed err=%s", html_error)
+            logger.error("log faq html failed err={}", html_error)
 
     except Exception as e:
-        logger.error("faq artifact logging failed err=%s", e)
+        logger.error("faq artifact logging failed err={}", e)

@@ -35,7 +35,7 @@ class ContinuousActionWrapper(EnvBase):
         # Initialize parent class
         super().__init__(device=device, batch_size=base_env.batch_size)
         
-        logger.info("init continuous_action_wrapper discrete_actions=%s thresholds=%s", discrete_actions, thresholds)
+        logger.info("init continuous_action_wrapper discrete_actions={} thresholds={}", discrete_actions, thresholds)
     
     @property
     def action_spec(self):

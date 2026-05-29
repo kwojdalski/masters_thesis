@@ -28,7 +28,7 @@ def _log_overview_impl(
     logger = get_project_logger(__name__)
 
     if not mlflow.active_run():
-        logger.warning("no active mlflow run skipping %s logging", artifact_dir)
+        logger.warning("no active mlflow run skipping {} logging", artifact_dir)
         return
 
     try:
@@ -88,7 +88,7 @@ def _log_overview_impl(
                 mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
                 os.unlink(temp_path)
             except Exception as plot_error:  # pragma: no cover
-                logger.warning("create plot failed column=%s err=%s", column, plot_error)
+                logger.warning("create plot failed column={} err={}", column, plot_error)
 
         ohlc_cols = ["open", "high", "low", "close"]
         if all(col in plot_df.columns for col in ohlc_cols):
@@ -116,10 +116,10 @@ def _log_overview_impl(
                 mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
                 os.unlink(temp_path)
             except Exception as combined_error:  # pragma: no cover
-                logger.warning("create combined ohlc plot failed err=%s", combined_error)
+                logger.warning("create combined ohlc plot failed err={}", combined_error)
 
     except Exception as e:  # pragma: no cover
-        logger.warning("log %s failed err=%s", artifact_dir, e)
+        logger.warning("log {} failed err={}", artifact_dir, e)
 
 
 def log_raw_data_overview(df: pd.DataFrame, config: Any) -> None:
@@ -288,7 +288,7 @@ def log_feature_descriptive_stats(df: pd.DataFrame, config: Any) -> None:
             artifact_dir,
         )
     except Exception as e:  # pragma: no cover
-        logger.warning("log_feature_descriptive_stats failed err=%s", e)
+        logger.warning("log_feature_descriptive_stats failed err={}", e)
 
 
 def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
@@ -346,10 +346,10 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
                 mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
                 os.unlink(temp_path)
             except Exception as e:  # pragma: no cover
-                logger.warning("feature vs return scatter failed feat=%s err=%s", feat, e)
+                logger.warning("feature vs return scatter failed feat={} err={}", feat, e)
 
     except Exception as e:  # pragma: no cover
-        logger.warning("_log_feature_vs_return_scatter failed err=%s", e)
+        logger.warning("_log_feature_vs_return_scatter failed err={}", e)
 
 
 def _log_oracle_vs_reward_alignment(
@@ -369,12 +369,12 @@ def _log_oracle_vs_reward_alignment(
 
     oracle_col = "feature_future_close_vel"
     if oracle_col not in df.columns:
-        logger.debug("oracle alignment plot skipped: %s not in df", oracle_col)
+        logger.debug("oracle alignment plot skipped: {} not in df", oracle_col)
         return
 
     price_col = getattr(getattr(config, "env", None), "price_column", "close")
     if price_col not in df.columns:
-        logger.debug("oracle alignment plot skipped: price column %s not in df", price_col)
+        logger.debug("oracle alignment plot skipped: price column {} not in df", price_col)
         return
 
     try:
@@ -423,7 +423,7 @@ def _log_oracle_vs_reward_alignment(
             p.save(temp_path, width=12, height=8, dpi=225)
             mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
             os.unlink(temp_path)
-            logger.info("log oracle alignment plot filename=%s corr=%.4f n=%d", filename, corr, len(plot_df))
+            logger.info("log oracle alignment plot filename={} corr={:.4f} n={}", filename, corr, len(plot_df))
 
         # Normalised feature column
         plot_df_norm = _make_plot_df(df[oracle_col].to_numpy(dtype=float))
@@ -443,4 +443,4 @@ def _log_oracle_vs_reward_alignment(
             logger.debug("oracle alignment raw plot skipped: bid_px_00/ask_px_00 not in df")
 
     except Exception as e:  # pragma: no cover
-        logger.warning("oracle alignment plot failed err=%s", e)
+        logger.warning("oracle alignment plot failed err={}", e)

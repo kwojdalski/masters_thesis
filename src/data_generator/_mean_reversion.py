@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from logging import Logger
+from typing import Any
 from pathlib import Path
 
 import numpy as np
@@ -13,7 +13,7 @@ from ._io import log_dataset_summary
 def generate_mean_reversion_pattern(
     output_dir: Path,
     output_file: str,
-    logger: Logger,
+    logger: Any,
     *,
     n_samples: int = 500,
     mean_price: float = 50000.0,

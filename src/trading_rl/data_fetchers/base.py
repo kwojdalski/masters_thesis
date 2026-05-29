@@ -107,7 +107,7 @@ class BaseDataSource(ABC):
         dict[str, Any]
             Configuration dictionary
         """
-        self.logger.debug("load config path=%s", config_path)
+        self.logger.debug("load config path={}", config_path)
         with open(config_path) as f:
             config = yaml.safe_load(f)
         return config
@@ -132,7 +132,7 @@ class BaseDataSource(ABC):
             Generated or fetched data
         """
         config = self.load_config(config_path)
-        self.logger.info("generate data from config path=%s cls=%s", config_path, self.__class__.__name__)
+        self.logger.info("generate data from config path={} cls={}", config_path, self.__class__.__name__)
         # Subclasses should implement their own config parsing
         return self.generate_data(**{**config, **kwargs})
 
@@ -170,7 +170,7 @@ class BaseDataSource(ABC):
         else:
             raise ValueError(f"Unsupported format: {format}")
 
-        self.logger.info("save data path=%s format=%s", output_path, format)
+        self.logger.info("save data path={} format={}", output_path, format)
         return output_path
 
     def _log_dataset_summary(
@@ -192,13 +192,13 @@ class BaseDataSource(ABC):
         context : str
             Description of the dataset (e.g., "Synthetic sample", "Stock data")
         """
-        self.logger.info("save dataset context=%s path=%s", context, output_path)
-        self.logger.debug("save dataset n_rows=%d n_cols=%d", *df.shape)
+        self.logger.info("save dataset context={} path={}", context, output_path)
+        self.logger.debug("save dataset n_rows={} n_cols={}", *df.shape)
 
         if not df.empty:
-            self.logger.debug("save dataset index_min=%s index_max=%s", df.index.min(), df.index.max())
+            self.logger.debug("save dataset index_min={} index_max={}", df.index.min(), df.index.max())
             if "close" in df.columns:
-                self.logger.debug("save dataset close_min=%.2f close_max=%.2f", df["close"].min(), df["close"].max())
+                self.logger.debug("save dataset close_min={:.2f} close_max={:.2f}", df["close"].min(), df["close"].max())
 
     def validate_ohlcv(self, df: pd.DataFrame) -> bool:
         """
@@ -219,7 +219,7 @@ class BaseDataSource(ABC):
 
         if not has_required:
             missing = required_columns - set(df.columns)
-            self.logger.warning("validate ohlcv missing_columns=%s", missing)
+            self.logger.warning("validate ohlcv missing_columns={}", missing)
             return False
 
         # Validate OHLC relationships

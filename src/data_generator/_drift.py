@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from logging import Logger
+from typing import Any
 from pathlib import Path
 
 import numpy as np
@@ -13,7 +13,7 @@ from ._io import log_dataset_summary
 def generate_upward_drift_pattern(
     output_dir: Path,
     output_file: str,
-    logger: Logger,
+    logger: Any,
     *,
     n_samples: int = 1000,
     base_price: float = 50000.0,

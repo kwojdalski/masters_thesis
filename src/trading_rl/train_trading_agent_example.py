@@ -50,7 +50,7 @@ env = create_environment(train_df, config)
 # Get environment specs
 n_obs = env.observation_spec["observation"].shape[-1]
 n_act = env.action_spec.shape[-1]
-logger.info("environment obs=%s actions=%s", n_obs, n_act)
+logger.info("environment obs={} actions={}", n_obs, n_act)
 
 # %%
 # Create models
@@ -110,7 +110,7 @@ action_plot
 final_reward
 # %%
 logger.info("training complete")
-logger.info("checkpoint saved path=%s", checkpoint_path)
+logger.info("checkpoint saved path={}", checkpoint_path)
 
 # %%
 run_multiple_experiments("trading_rl_experiments", n_trials=1)

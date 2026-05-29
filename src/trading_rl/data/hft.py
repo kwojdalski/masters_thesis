@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import numpy as np
@@ -34,7 +33,7 @@ def _map_splits(
 def _derive_close_hft_single(
     df: pd.DataFrame,
     split_name: str,
-    logger: logging.Logger,
+    logger: Any,
 ) -> pd.DataFrame:
     """Derive 'close' mid-price column for one HFT split if not already present."""
     if "close" in df.columns:
@@ -53,14 +52,14 @@ def _derive_close_hft_single(
     result["close"] = mid_price.ffill().bfill()
     nan_ratio = float(result["close"].isna().mean())
     method = "mid_price+fallback" if "price" in result.columns else "mid_price"
-    logger.info("derive close split=%s method=%s nan_ratio=%.6f", split_name, method, nan_ratio)
+    logger.info("derive close split={} method={} nan_ratio={:.6f}", split_name, method, nan_ratio)
     return result
 
 
 def _deduplicate_hft_index_single(
     df: pd.DataFrame,
     split_name: str,
-    logger: logging.Logger,
+    logger: Any,
 ) -> pd.DataFrame:
     """Enforce unique, monotonic nanosecond timestamps for one HFT split."""
     if not isinstance(df.index, pd.DatetimeIndex):
@@ -107,7 +106,7 @@ def ensure_close_column_for_hft(
     val_df: pd.DataFrame,
     test_df: pd.DataFrame,
     config: Any,
-    logger: logging.Logger,
+    logger: Any,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Ensure raw `close` exists in HFT mode by deriving mid-price from L1 book."""
     mode = getattr(config.env, "mode", EnvMode.MFT)
@@ -125,7 +124,7 @@ def ensure_unique_index_for_hft_tradingenv(
     val_df: pd.DataFrame,
     test_df: pd.DataFrame,
     config: Any,
-    logger: logging.Logger,
+    logger: Any,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Ensure unique, monotonic timestamps for HFT data used with TradingEnv."""
     mode = getattr(config.env, "mode", EnvMode.MFT)

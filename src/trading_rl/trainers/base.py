@@ -103,7 +103,7 @@ def _collect_mlflow_meta() -> dict:
         })
         return meta
     except Exception:
-        logger.debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata", exc_info=True)
+        logger.opt(exception=True).debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata")
         return {}
 
 
@@ -193,7 +193,7 @@ def _run_evaluation(
     with profiler.stage("agent_rollout", 2):
         result = evaluator.evaluate_split("eval", df, env=env_to_use)
     trainer._last_evaluation_result = result
-    logger.debug("evaluate.rollout_and_metrics elapsed=%.2fs", time.monotonic() - _t)
+    logger.debug("evaluate.rollout_and_metrics elapsed={:.2f}s", time.monotonic() - _t)
 
     _enabled_plots = set(eval_config.eval_plots)
     reward_plot = result.plots.get("reward_plot") if result.plots else None
@@ -203,7 +203,7 @@ def _run_evaluation(
     if "portfolio_value" in _enabled_plots:
         with profiler.stage("plot_equity_curve", 2):
             _t = time.monotonic()
-            logger.debug("create_equity_curve_plot start n_steps=%d", max_steps)
+            logger.debug("create_equity_curve_plot start n_steps={}", max_steps)
             _data_paths = config.data.data_paths if config else None
             plot_series = result.return_series or ReturnSeries(result.simple_returns, ReturnKind.SIMPLE)
             equity_curve_plot = create_equity_curve_plot(
@@ -224,14 +224,14 @@ def _run_evaluation(
                 max_plot_points=config.training.max_plot_points if config else None,
                 reward_type=str(config.env.reward_type) if config else None,
             )
-            logger.debug("evaluate.plot_equity_curve elapsed=%.2fs", time.monotonic() - _t)
+            logger.debug("evaluate.plot_equity_curve elapsed={:.2f}s", time.monotonic() - _t)
 
     merged_plot = None
     if reward_plot is not None and action_plot is not None:
         with profiler.stage("plot_merged", 2):
             _t = time.monotonic()
             merged_plot = create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot)
-            logger.debug("evaluate.plot_merged elapsed=%.2fs", time.monotonic() - _t)
+            logger.debug("evaluate.plot_merged elapsed={:.2f}s", time.monotonic() - _t)
 
     return (
         reward_plot,
@@ -517,7 +517,7 @@ class BaseTrainer(ABC):
             algorithm_label,
             self.total_count,
         )
-        logger.debug("  Buffer now contains %s transitions", buffer_len)
+        logger.debug("  Buffer now contains {} transitions", buffer_len)
 
         self.collector.policy = exploration_policy
         self.random_exploration_done = True
@@ -678,7 +678,7 @@ class BaseTrainer(ABC):
                         on_batch_end(i, data)
 
                     if self.total_count >= self.config.max_steps:
-                        logger.info("training stopped max_steps=%d", self.config.max_steps)
+                        logger.info("training stopped max_steps={}", self.config.max_steps)
                         break
                     if (
                         self.config.max_train_seconds is not None
@@ -694,7 +694,7 @@ class BaseTrainer(ABC):
                 logger.warning("training interrupted by user saving checkpoint")
                 checkpoint_path = self.checkpoint_manager.save_interrupt_checkpoint()
                 if checkpoint_path:
-                    logger.info("interrupt checkpoint saved path=%s", checkpoint_path)
+                    logger.info("interrupt checkpoint saved path={}", checkpoint_path)
                 raise
 
         if on_train_end is not None:

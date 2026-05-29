@@ -102,13 +102,12 @@ def save_training_results_json(config: Any, final_metrics: dict[str, Any]) -> Pa
             encoding="utf-8",
         )
         write_asset_meta(out_path, generator="pipeline/experiment_runner.py")
-        _logger.info("results.json written path=%s", out_path)
+        _logger.info("results.json written path={}", out_path)
         return out_path
     except Exception:
         _logger.warning(
             "save_training_results_json failed — results.json NOT written; "
             "thesis export will use stale data",
-            exc_info=True,
         )
         return None
 
@@ -190,9 +189,8 @@ def _configure_periodic_hooks(
     for split_name in configured_splits:
         df = split_map.get(split_name)
         if df is None or len(df) < 2:
-            import logging as _logging
-            _logging.getLogger(__name__).warning(
-                "periodic eval: split '%s' not available or too small, skipping", split_name
+            _logger.warning(
+                "periodic eval: split '{}' not available or too small, skipping", split_name
             )
             continue
         # Slice df to temp_eval_max_steps rows so the env is small and fast to
@@ -384,8 +382,8 @@ def execute_single_experiment(
         logger.info("training interrupted final_eval=complete")
     else:
         logger.info("training complete")
-    logger.info("final reward=%.4f", final_reward)
-    logger.info("save checkpoint path=%s", final_checkpoint_path)
+    logger.info("final reward={:.4f}", final_reward)
+    logger.info("save checkpoint path={}", final_checkpoint_path)
 
     save_training_results_json(config, final_metrics)
 

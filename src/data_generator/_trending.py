@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from logging import Logger
+from typing import Any
 from pathlib import Path
 
 import numpy as np
@@ -13,7 +13,7 @@ from ._io import log_dataset_summary
 def generate_trending_pattern(
     output_dir: Path,
     output_file: str,
-    logger: Logger,
+    logger: Any,
     *,
     n_samples: int = 500,
     base_price: float = 50000.0,
@@ -110,6 +110,6 @@ def generate_trending_pattern(
     log_dataset_summary(df, output_path, context="Trending pattern", logger=logger)
     total_return = (prices[-1] / prices[0] - 1) * 100
     max_drawdown = np.min(prices / np.maximum.accumulate(prices) - 1) * 100
-    logger.info("Momentum stats -> total return %.2f%%, max drawdown %.2f%%", total_return, max_drawdown)
-    logger.info("Trends identified: %s | Strategy hint -> ride momentum, manage reversals", len(segments))
+    logger.info("Momentum stats -> total return {:.2f}%, max drawdown {:.2f}%", total_return, max_drawdown)
+    logger.info("Trends identified: {} | Strategy hint -> ride momentum, manage reversals", len(segments))
     return df

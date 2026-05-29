@@ -573,7 +573,7 @@ class EvaluateCommand(BaseCommand):
             return _MlflowRunContext(ctx, meta, checkpoint_path, splits_to_eval)
 
         except Exception as exc:
-            self.logger.warning("mlflow unavailable skip run creation err=%s", exc)
+            self.logger.warning("mlflow unavailable skip run creation err={}", exc)
             return _noop_context()
 
     def _log_benchmarks_to_mlflow(
@@ -607,7 +607,7 @@ class EvaluateCommand(BaseCommand):
                             f"bench_{split}_{bench_name}_{key}", float(val)
                         )
         except Exception as exc:
-            self.logger.warning("log benchmarks to mlflow failed err=%s", exc)
+            self.logger.warning("log benchmarks to mlflow failed err={}", exc)
 
     @staticmethod
     def _mlflow_run_url(tracking_uri: str, run_id: str) -> str:
@@ -763,7 +763,7 @@ class EvaluateCommand(BaseCommand):
                 write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
                 self.console.print(f"[dim]Saved plot: {out_path}[/dim]")
             except Exception as exc:
-                self.logger.warning("save plot failed name=%s err=%s", name, exc)
+                self.logger.warning("save plot failed name={} err={}", name, exc)
                 continue
             if hasattr(fig, "data") and fig.data is not None:
                 data_path = output_dir / f"{split}_{name}.csv"
@@ -771,7 +771,7 @@ class EvaluateCommand(BaseCommand):
                     fig.data.to_csv(data_path, index=False)
                     write_asset_meta(data_path, generator="cli/commands/evaluate_command.py")
                 except Exception as exc:
-                    self.logger.warning("save plot data failed name=%s err=%s", name, exc)
+                    self.logger.warning("save plot data failed name={} err={}", name, exc)
 
 
 # ------------------------------------------------------------------

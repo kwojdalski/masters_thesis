@@ -263,7 +263,7 @@ def log_statistical_tests(
     for baseline_result in test_results.get("baselines", []):
         baseline_name = baseline_result.get("baseline", "unknown")
         if "error" in baseline_result:
-            logger.warning("skip baseline baseline=%s err=%s", baseline_name, baseline_result['error'])
+            logger.warning("skip baseline baseline={} err={}", baseline_name, baseline_result['error'])
             continue
 
         if "n_strategy_samples" in baseline_result:
@@ -441,27 +441,27 @@ def log_evaluation_plots(
             tmp_path = os.path.join(batch_temp_dir, filename)
             try:
                 t_render = time.monotonic()
-                logger.debug("render plot filename=%s debug=%s", filename, debug)
+                logger.debug("render plot filename={} debug={}", filename, debug)
                 with warnings.catch_warnings(), _suppress_plotnine():
                     warnings.simplefilter("ignore", PlotnineWarning)
                     _save_plot(plot_obj, tmp_path, width=width, height=height, dpi=225, debug=debug)
-                logger.debug("render done filename=%s elapsed=%.2fs", filename, time.monotonic() - t_render)
+                logger.debug("render done filename={} elapsed={:.2f}s", filename, time.monotonic() - t_render)
 
                 pil_logger = logging.getLogger("PIL.PngImagePlugin")
                 prev_level = pil_logger.level
                 pil_logger.setLevel(logging.INFO)
                 t_upload = time.monotonic()
-                logger.debug("mlflow log_artifact filename=%s dir=%s", filename, dir_)
+                logger.debug("mlflow log_artifact filename={} dir={}", filename, dir_)
                 try:
                     mlflow.log_artifact(tmp_path, dir_)
                 finally:
                     pil_logger.setLevel(prev_level)
-                logger.debug("mlflow log_artifact done filename=%s elapsed=%.2fs", filename, time.monotonic() - t_upload)
+                logger.debug("mlflow log_artifact done filename={} elapsed={:.2f}s", filename, time.monotonic() - t_upload)
 
                 if key:
                     saved_paths[key] = tmp_path
             except Exception:
-                logger.exception("save plot failed filename=%s", filename)
+                logger.exception("save plot failed filename={}", filename)
 
         _save(reward_plot, f"{timestamp}_rewards.png", "rewards", artifact_dir, 16, 10)
         _save(action_plot, f"{timestamp}_positions.png", "positions", artifact_dir, 16, 10)
@@ -550,7 +550,7 @@ def log_evaluation_plots(
                     combined.save(tmp_combined, format="PNG")
                     mlflow.log_artifact(tmp_combined, artifact_dir)
                 except Exception as combine_error:  # pragma: no cover
-                    logger.warning("create combined evaluation plot failed err=%s", combine_error)
+                    logger.warning("create combined evaluation plot failed err={}", combine_error)
 
         # Save plot DataFrames as parquet so QMD can re-render at any figure size
         if plot_data:
@@ -588,11 +588,11 @@ def log_evaluation_plots(
             with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(meta, f, default=str)
             mlflow.log_artifact(meta_path, artifact_dir)
-            logger.info("saved plot data parquets frames=%s", list(frames))
+            logger.info("saved plot data parquets frames={}", list(frames))
 
         logger.info("save evaluation and training plots as mlflow artifacts")
     except Exception as e:  # pragma: no cover
-        logger.warning("save plots as artifacts failed err=%s", e)
+        logger.warning("save plots as artifacts failed err={}", e)
     finally:
         if os.path.exists(batch_temp_dir):
             shutil.rmtree(batch_temp_dir)

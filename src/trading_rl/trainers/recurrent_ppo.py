@@ -1,6 +1,5 @@
 """RecurrentPPO Trainer implementation."""
 
-import logging
 from trading_rl.trainers.registry import register_trainer
 from typing import Any
 
@@ -8,7 +7,7 @@ import torch
 from tensordict.nn import InteractionType
 from torchrl.envs.utils import set_exploration_type
 
-from logger import get_logger
+from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.models import (
     create_recurrent_ppo_actor,
@@ -172,7 +171,7 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
             max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
         )
 
-        if logger.isEnabledFor(logging.DEBUG):
+        if is_level_enabled("DEBUG"):
             _log_network_stats(logger, "recurrent_ppo", self.actor, self.value_net)
 
     def _evaluate(self) -> None:

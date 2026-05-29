@@ -168,7 +168,7 @@ def run_multiple_experiments(
 
     with progress_context if progress_context else contextlib.nullcontext() as progress:
         for trial_number in range(n_trials):
-            logger.info("run trial trial=%d n_trials=%d", trial_number + 1, n_trials)
+            logger.info("run trial trial={} n_trials={}", trial_number + 1, n_trials)
 
             if custom_config is not None:
                 trial_config = copy.deepcopy(custom_config)

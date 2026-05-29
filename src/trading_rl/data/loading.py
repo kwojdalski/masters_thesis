@@ -55,7 +55,7 @@ def restore_pipeline_state(pipeline: Any, state: dict[str, dict[str, float]]) ->
         if scaler is not None and hasattr(scaler, "load_state_dict"):
             scaler.load_state_dict(feature_state)
             restored += 1
-    logger.debug("restore pipeline state restored=%d total=%d", restored, len(pipeline.features))
+    logger.debug("restore pipeline state restored={} total={}", restored, len(pipeline.features))
 
 
 def dump_pipeline_state(pipeline: Any) -> dict[str, dict] | None:
@@ -103,7 +103,7 @@ def download_trading_data(
             "Install it with: pip install gym-trading-env"
         )
 
-    logger.info("download data symbols=%s exchanges=%s", symbols, exchange_names)
+    logger.info("download data symbols={} exchanges={}", symbols, exchange_names)
     download(
         exchange_names=exchange_names,
         symbols=symbols,
@@ -124,7 +124,7 @@ def load_trading_data(data_path: str) -> pd.DataFrame:
         DataFrame with OHLCV data
     """
     data_file = Path(data_path)
-    logger.info("load data path=%s", data_file)
+    logger.info("load data path={}", data_file)
     suffix = data_file.suffix.lower()
     if suffix in {".pkl", ".pickle"}:
         df = pd.read_pickle(data_file)
@@ -135,5 +135,5 @@ def load_trading_data(data_path: str) -> pd.DataFrame:
             f"Unsupported data format '{suffix}' for file {data_file}. "
             "Supported formats: .pkl, .pickle, .parquet"
         )
-    logger.info("load data n_rows=%d", len(df))
+    logger.info("load data n_rows={}", len(df))
     return df

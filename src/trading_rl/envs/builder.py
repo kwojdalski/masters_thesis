@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from torchrl.envs import GymWrapper, TransformedEnv
@@ -21,7 +21,7 @@ from trading_rl.envs.trading_envs import Backend, create_environment as build_ba
 class BaseEnvironmentBuilder(ABC):
     """Base class for environment builders."""
 
-    logger: logging.Logger = field(
+    logger: Any = field(
         default_factory=lambda: get_logger(__name__), init=False, repr=False
     )
 
@@ -66,7 +66,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
 
         backend: Backend = explicit_backend or algo_backend or self.default_backend
         self.logger.debug(
-            "resolved backend=%s explicit_backend=%s algorithm=%s",
+            "resolved backend={} explicit_backend={} algorithm={}",
             backend, explicit_backend, algorithm,
         )
         return backend
@@ -83,7 +83,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         if memmap_paths:
             env = self._create_streaming_env(memmap_paths, config)
             self.logger.info(
-                "created StreamingTradingEnv n_symbols=%d episode_length=%d",
+                "created StreamingTradingEnv n_symbols={} episode_length={}",
                 len(memmap_paths),
                 getattr(config.env, "streaming_episode_length", 10_000),
             )
@@ -92,7 +92,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         backend = self._resolve_backend(config)
         env = build_backend_env(df=df, config=config, backend=backend)
         self.logger.info(
-            "created environment backend=%s positions=%s trading_fees=%s",
+            "created environment backend={} positions={} trading_fees={}",
             backend, config.env.positions, config.env.trading_fees,
         )
         return env
@@ -170,8 +170,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         config: ExperimentConfig,
     ) -> TransformedEnv:
         import warnings
-        from trading_rl.envs.tradingenvxy_wrapper import StreamingTradingEnvXY
         from torchrl.envs.transforms import StepCounter
+        from trading_rl.envs.tradingenvxy_wrapper import StreamingTradingEnvXY
 
         feature_columns = getattr(config.env, "feature_columns", None)
         if not feature_columns:

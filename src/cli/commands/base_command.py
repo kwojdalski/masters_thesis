@@ -23,14 +23,14 @@ class BaseCommand(ABC):
         if not config_path:
             return {}
 
-        self.logger.info("load config path=%s", config_path)
+        self.logger.info("load config path={}", config_path)
         with config_path.open("r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
 
     def handle_error(self, error: Exception, context: str) -> None:
         """Standardized error handling."""
         self.console.print(f"[bold red]{context} failed: {error}[/bold red]")
-        self.logger.error("command failed context=%s", context, exc_info=error)
+        self.logger.error("command failed context={}", context, exc_info=error)
         raise typer.Exit(1) from error
 
     def resolve_seed(self, provided_seed: int | None) -> int:

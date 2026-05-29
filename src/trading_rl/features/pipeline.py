@@ -49,7 +49,7 @@ class FeaturePipeline:
             feature = FeatureRegistry.create(config)
             self.features.append(feature)
 
-        logger.info("build feature pipeline n_features=%d", len(self.features))
+        logger.info("build feature pipeline n_features={}", len(self.features))
 
     @classmethod
     def from_config_dict(cls, config_dict: list[dict]) -> "FeaturePipeline":
@@ -103,7 +103,7 @@ class FeaturePipeline:
         if not config_file.exists():
             raise FileNotFoundError(f"Feature config file not found: {config_path}")
 
-        logger.info("load feature pipeline path=%s", config_path)
+        logger.info("load feature pipeline path={}", config_path)
 
         with config_file.open("r") as f:
             config_data = yaml.safe_load(f)
@@ -114,7 +114,7 @@ class FeaturePipeline:
             )
 
         feature_list = config_data["features"]
-        logger.info("load feature pipeline n_features=%d path=%s", len(feature_list), config_path)
+        logger.info("load feature pipeline n_features={} path={}", len(feature_list), config_path)
 
         return cls.from_config_dict(feature_list)
 
@@ -130,7 +130,7 @@ class FeaturePipeline:
             self for chaining
         """
         logger.info("fit feature pipeline")
-        logger.debug("fit feature pipeline n_rows=%d n_cols=%d", *df.shape)
+        logger.debug("fit feature pipeline n_rows={} n_cols={}", *df.shape)
 
         # Validate required columns
         self._validate_columns(df)
@@ -138,7 +138,7 @@ class FeaturePipeline:
         # Fit each feature
         for feature in self.features:
             feature.fit(df)
-            logger.debug("fit feature name=%s", feature.get_output_name())
+            logger.debug("fit feature name={}", feature.get_output_name())
 
         self._is_fitted = True
         logger.info("fit feature pipeline complete")
@@ -163,7 +163,7 @@ class FeaturePipeline:
                 "Pipeline must be fitted before transform. Call fit() first."
             )
 
-        logger.debug("transform data n_rows=%d n_cols=%d", *df.shape)
+        logger.debug("transform data n_rows={} n_cols={}", *df.shape)
 
         # Validate required columns
         self._validate_columns(df)
@@ -175,7 +175,7 @@ class FeaturePipeline:
         for feature in self.features:
             output_name = feature.get_output_name()
             result[output_name] = feature.transform(df)
-            logger.debug("transform feature name=%s", output_name)
+            logger.debug("transform feature name={}", output_name)
 
         # Drop any remaining NaN rows
         rows_before = len(result)
@@ -188,7 +188,7 @@ class FeaturePipeline:
                 rows_before - rows_after, rows_before, rows_after,
             )
 
-        logger.debug("transform output n_rows=%d n_cols=%d", *result.shape)
+        logger.debug("transform output n_rows={} n_cols={}", *result.shape)
         return result
 
     def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -347,5 +347,5 @@ def create_default_pipeline() -> FeaturePipeline:
     ]
 
     pipeline = FeaturePipeline(configs)
-    logger.info("build default feature pipeline complete n_features=%d", len(configs))
+    logger.info("build default feature pipeline complete n_features={}", len(configs))
     return pipeline

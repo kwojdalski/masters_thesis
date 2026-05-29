@@ -266,15 +266,15 @@ class Market:
 
 def _log_price_level(label: str, level: PriceLevel | None) -> None:
     if level is None:
-        logger.info("    %s: None", label)
+        logger.info("    {}: None", label)
     else:
-        logger.info("    %s: %s", label, level)
+        logger.info("    {}: {}", label, level)
 
 
 def _log_aggregated_book(
     symbol: str, ts: str, bid: PriceLevel | None, ask: PriceLevel | None
 ) -> None:
-    logger.info("%s Aggregated BBO | %s", symbol, ts)
+    logger.info("{} Aggregated BBO | {}", symbol, ts)
     _log_price_level("Ask", ask)
     _log_price_level("Bid", bid)
 
@@ -308,7 +308,7 @@ if __name__ == "__main__":
         os.path.join(_script_dir, "..", "data", "raw", "databento", "20250501", "glbx-mdp3-20250501.mbo.dbn"),
     )
     if os.path.exists(data_path):
-        logger.info("load mbo data path=%s", data_path)
+        logger.info("load mbo data path={}", data_path)
         data = db.DBNStore.from_file(data_path)
     else:
         logger.info(

@@ -75,7 +75,7 @@ def _resolve_symbol_index(
     """
     if strategy == EvalSymbolSelection.RANDOM:
         idx = int(np.random.default_rng(seed).integers(n_symbols))
-        logger.info("eval_symbol_selection=random seed=%s picked idx=%d of %d", seed, idx, n_symbols)
+        logger.info("eval_symbol_selection=random seed={} picked idx={} of {}", seed, idx, n_symbols)
         return idx
     if strategy == EvalSymbolSelection.ROTATED:
         counter_path = (memmap_dir / ".eval_symbol_counter") if memmap_dir else None
@@ -88,7 +88,7 @@ def _resolve_symbol_index(
         idx = count % n_symbols
         if counter_path:
             counter_path.write_text(str(count + 1))
-        logger.info("eval_symbol_selection=rotated counter=%d idx=%d of %d", count, idx, n_symbols)
+        logger.info("eval_symbol_selection=rotated counter={} idx={} of {}", count, idx, n_symbols)
         return idx
     # EvalSymbolSelection.FIRST or unrecognised
     return 0
@@ -140,9 +140,9 @@ def _resolve_feature_pipeline(config: Any, logger: Any) -> Any:
 
     resolver = FeatureGroupResolver.from_yaml(feature_groups)
     group_names = resolver.list_groups()
-    logger.info("use feature groups n=%d source=%s", len(group_names), feature_groups)
+    logger.info("use feature groups n={} source={}", len(group_names), feature_groups)
     pipeline = FeaturePipeline(resolver.resolve(group_names))
-    logger.info("build feature pipeline n_features=%d n_groups=%d", len(pipeline.features), len(group_names))
+    logger.info("build feature pipeline n_features={} n_groups={}", len(pipeline.features), len(group_names))
     return pipeline
 
 
@@ -159,7 +159,7 @@ def _apply_warmup_skip(
             f"warmup_rows ({warmup_rows}) must be less than training split size ({len(train_df)})"
             + (f" [{label}]" if label else "")
         )
-    logger.info("warmup skip n_rows=%d train_size_before=%d%s", warmup_rows, len(train_df), f" [{label}]" if label else "")
+    logger.info("warmup skip n_rows={} train_size_before={}{}", warmup_rows, len(train_df), f" [{label}]" if label else "")
     return train_df.iloc[warmup_rows:]
 
 
@@ -305,7 +305,7 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
         )
         for fc in pipeline.feature_configs
     )
-    _logger.info("fit pipeline symbol=%s n_days=%d incremental=%s", symbol, len(train_paths_sym), not needs_full_concat)
+    _logger.info("fit pipeline symbol={} n_days={} incremental={}", symbol, len(train_paths_sym), not needs_full_concat)
     if needs_full_concat:
         raw_parts = [_load(p) for p in train_paths_sym]
         combined = _pd.concat(raw_parts)
@@ -323,10 +323,10 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
     # ── 2. Transform training files ───────────────────────────────────────────
     train_results: list[tuple[int, Any]] = []
     for orig_idx, train_path in zip(train_indices, train_paths_sym):
-        _logger.info("transform train path=%s", train_path)
+        _logger.info("transform train path={}", train_path)
         _fcp = _feat_cache_path(train_path) if not needs_full_concat else None
         if _fcp is not None and _fcp.exists():
-            _logger.info("feature cache hit path=%s", train_path)
+            _logger.info("feature cache hit path={}", train_path)
             train_df_i = _pd.read_parquet(_fcp)
         else:
             raw_df = _load(train_path)
@@ -389,10 +389,10 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
     # ── 3. Transform val file ─────────────────────────────────────────────────
     val_entry: dict[str, str] | None = None
     if val_path is not None and val_index is not None:
-        _logger.info("transform val path=%s symbol=%s", val_path, symbol)
+        _logger.info("transform val path={} symbol={}", val_path, symbol)
         _fcp_val = _feat_cache_path(val_path) if not needs_full_concat else None
         if _fcp_val is not None and _fcp_val.exists():
-            _logger.info("feature cache hit val path=%s", val_path)
+            _logger.info("feature cache hit val path={}", val_path)
             val_df_j = _pd.read_parquet(_fcp_val)
         else:
             raw_val = _load(val_path)
@@ -636,7 +636,7 @@ def _build_per_day_splits(
                 sym_test = _deduplicate_hft_index_single(sym_test, f"test_{sym}", logger)
             sym_val.to_parquet(prepared_dir / f"val_{sym}_prepared.parquet")
             sym_test.to_parquet(prepared_dir / f"test_{sym}_prepared.parquet")
-            logger.info("save per-symbol val/test sym=%s n_val=%d n_test=%d", sym, len(sym_val), len(sym_test))
+            logger.info("save per-symbol val/test sym={} n_val={} n_test={}", sym, len(sym_val), len(sym_test))
 
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -698,7 +698,7 @@ def _build_pooled_splits(
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
 
-    logger.info("pooled training n_symbols=%d", len(data_paths))
+    logger.info("pooled training n_symbols={}", len(data_paths))
     tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
     tmp_paths: list[dict[str, Path]] = []
     collected_memmap_paths: list[MemmapPaths] = []
@@ -706,7 +706,7 @@ def _build_pooled_splits(
     eval_pipeline_state: dict | None = None
 
     for i, data_path in enumerate(data_paths):
-        logger.info("process symbol idx=%d/%d path=%s", i + 1, len(data_paths), data_path)
+        logger.info("process symbol idx={}/{} path={}", i + 1, len(data_paths), data_path)
         # Reset scaler state so each symbol is normalised independently.
         # Without this, RunningMeanStd accumulates statistics across symbols,
         # making symbol N's normalization order-dependent on symbols 1..N-1.
@@ -784,7 +784,7 @@ def _build_pooled_splits(
         test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths])
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
-    logger.info("pooled splits train=%d val=%d test=%d", len(train_df), len(val_df), len(test_df))
+    logger.info("pooled splits train={} val={} test={}", len(train_df), len(val_df), len(test_df))
 
     # ensure_unique_index was applied per-symbol above; re-run on concat to fix
     # cross-symbol timestamp collisions in val/test (train is first-symbol only
@@ -813,7 +813,7 @@ def build_prepared_dataset(
         and _prepared_cache_compatible(config, prepared_dir, memmap_dir, logger)
     )
     if cache_ready:
-        logger.info("load prepared splits cache_dir=%s", prepared_dir)
+        logger.info("load prepared splits cache_dir={}", prepared_dir)
         lazy_splits = load_prepared_splits(prepared_dir)
         memmap_paths = load_memmap_paths(memmap_dir) if memmap_dir and memmap_dir.exists() else None
 
@@ -858,7 +858,7 @@ def build_prepared_dataset(
                 test_df = _test_ldf.iloc[:test_size_cfg]   if test_size_cfg    is not None else _test_ldf
                 memmap_dir.mkdir(parents=True, exist_ok=True)
                 (memmap_dir / ".eval_symbol_used").write_text(_sym)
-                logger.info("cache-hit rotated val/test sym=%s idx=%d", _sym, _idx)
+                logger.info("cache-hit rotated val/test sym={} idx={}", _sym, _idx)
 
         return _make_dataset(
             train_df, val_df, test_df,
@@ -889,7 +889,7 @@ def build_prepared_dataset(
         memmap_paths = [save_symbol_memmap(train_df, memmap_dir, "0")] if memmap_dir else None
 
     if lazy_load and prepared_dir:
-        logger.info("save prepared splits cache_dir=%s", prepared_dir)
+        logger.info("save prepared splits cache_dir={}", prepared_dir)
         prepared_dir.mkdir(parents=True, exist_ok=True)
         save_prepared_splits(train_df, val_df, test_df, prepared_dir)
         _write_prepared_cache_metadata(
@@ -941,7 +941,7 @@ def prepare_data(
         _cache_entry = Path(cfg.feature_cache_dir) / _cache_key
         _full_cache = _cache_entry / "full.parquet"
         if _full_cache.exists():
-            logger.info("feature cache hit key=%s path=%s", _cache_key[:8], _cache_entry)
+            logger.info("feature cache hit key={} path={}", _cache_key[:8], _cache_entry)
             full_df = pd.read_parquet(_full_cache)
             # Restore pipeline state from the companion file so callers always
             # get a pipeline that reflects training-time scaler statistics,
@@ -972,7 +972,7 @@ def prepare_data(
                     _saved_state = pickle.loads(_state_bytes)
                     if _saved_state:
                         restore_pipeline_state(feature_pipeline, _saved_state)
-                        logger.debug("cache hit: restored pipeline state from %s", _state_path)
+                        logger.debug("cache hit: restored pipeline state from {}", _state_path)
                 except Exception as _exc:
                     raise RuntimeError(
                         f"Feature cache pipeline state at {_state_path} is corrupted. "
@@ -992,7 +992,7 @@ def prepare_data(
                 full_df.iloc[_train:_val_end],
                 full_df.iloc[_val_end:_test_end],
             )
-        logger.info("feature cache miss key=%s", _cache_key[:8])
+        logger.info("feature cache miss key={}", _cache_key[:8])
 
     # Check if data exists
     if not Path(data_path).exists():
@@ -1011,7 +1011,7 @@ def prepare_data(
         from trading_rl.data.lob_filters import filter_unchanged_lob
         df = filter_unchanged_lob(df, levels=cfg.filter_lob_levels)
 
-    logger.info("load raw data n_rows=%d n_cols=%d", len(df), len(df.columns))
+    logger.info("load raw data n_rows={} n_cols={}", len(df), len(df.columns))
 
     # Split data BEFORE feature engineering (critical for preventing leakage!)
     train_size = cfg.train_size
@@ -1057,10 +1057,10 @@ def prepare_data(
     from trading_rl.features import FeaturePipeline, create_default_pipeline
 
     if feature_pipeline is not None:
-        logger.info("use pre-built feature pipeline n_features=%d", len(feature_pipeline.features))
+        logger.info("use pre-built feature pipeline n_features={}", len(feature_pipeline.features))
         pipeline = feature_pipeline
     elif cfg.feature_config_path:
-        logger.info("load feature pipeline path=%s", cfg.feature_config_path)
+        logger.info("load feature pipeline path={}", cfg.feature_config_path)
         pipeline = FeaturePipeline.from_yaml(cfg.feature_config_path)
     else:
         logger.info("use default feature pipeline")
@@ -1076,7 +1076,7 @@ def prepare_data(
     # session — not on where the train/val/test boundary falls. Transforming
     # the full array lets us cache once and slice for any split configuration.
     full_df_raw = df.iloc[:test_end].copy()
-    logger.info("transform full dataset n_rows=%d", len(full_df_raw))
+    logger.info("transform full dataset n_rows={}", len(full_df_raw))
     full_features = pipeline.transform(full_df_raw)
     full_df = pd.concat([full_df_raw, full_features], axis=1)
     del full_df_raw, full_features
@@ -1093,7 +1093,7 @@ def prepare_data(
         *train_df.shape, *val_df.shape, *test_df.shape,
     )
     feature_cols = [c for c in train_df.columns if str(c).startswith("feature_")]
-    logger.info("feature columns cols=%s", feature_cols)
+    logger.info("feature columns cols={}", feature_cols)
 
     if _cache_entry is not None:
         _cache_entry.mkdir(parents=True, exist_ok=True)
@@ -1104,6 +1104,6 @@ def prepare_data(
             _pkl_bytes = pickle.dumps(_pstate)
             (_cache_entry / "pipeline_state.pkl").write_bytes(_pkl_bytes)
             (_cache_entry / "pipeline_state.pkl.sha256").write_text(hashlib.sha256(_pkl_bytes).hexdigest())
-        logger.info("save feature cache key=%s path=%s", _cache_key[:8], _cache_entry)
+        logger.info("save feature cache key={} path={}", _cache_key[:8], _cache_entry)
 
     return train_df, val_df, test_df

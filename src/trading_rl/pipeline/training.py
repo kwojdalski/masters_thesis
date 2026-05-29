@@ -12,7 +12,9 @@ from typing import Any
 import mlflow
 import numpy as np
 import torch
+from loguru import logger
 from logger import get_logger as get_project_logger
+from logger import is_level_enabled
 from logger import log_banner
 from logger import print_df_head
 from logger import setup_logging as configure_root_logging
@@ -82,7 +84,7 @@ def setup_logging(config: ExperimentConfig) -> logging.Logger:
     warnings.filterwarnings("ignore", category=PlotnineWarning)
 
     logger = get_project_logger(__name__)
-    logger.info("start experiment name=%s", config.experiment_name)
+    logger.info("start experiment name={}", config.experiment_name)
     return logger
 
 
@@ -93,7 +95,7 @@ def set_seed(seed: int | None) -> int:
 
     if seed is None:
         seed = random.randint(1, 100000)  # noqa: S311
-        logging.getLogger(__name__).info("Generated random seed: %s", seed)
+        logger.info("Generated random seed: {}", seed)
 
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
@@ -119,7 +121,7 @@ def _build_train_env(
 ) -> Any:
     logger.info("build environment")
     env = AlgorithmicEnvironmentBuilder().create(dataset.train_df, config)
-    logger.debug("environment obs_spec=%s action_spec=%s reward_spec=%s", env.observation_spec, env.action_spec, env.reward_spec)
+    logger.debug("environment obs_spec={} action_spec={} reward_spec={}", env.observation_spec, env.action_spec, env.reward_spec)
     return env
 
 
@@ -133,12 +135,12 @@ def _build_trainer(
     import math
     n_obs = math.prod(env.observation_spec["observation"].shape)
     n_act = env.action_spec.shape[-1]
-    logger.info("build environment n_obs=%s n_act=%s", n_obs, n_act)
+    logger.info("build environment n_obs={} n_act={}", n_obs, n_act)
 
     backend = getattr(config.env, "backend", "")
-    logger.info("build models algorithm=%s backend=%s", algorithm, backend)
+    logger.info("build models algorithm={} backend={}", algorithm, backend)
     trainer_cls = _select_trainer_class(algorithm, backend)
-    logger.info("select trainer cls=%s", trainer_cls.__name__)
+    logger.info("select trainer cls={}", trainer_cls.__name__)
 
     actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
     trainer = trainer_cls(
@@ -226,7 +228,7 @@ def _build_training_bundle(
 
 
 def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> None:
-    if not logger.isEnabledFor(logging.DEBUG):
+    if not is_level_enabled("DEBUG"):
         return
 
     def format_key(key: str) -> str:
@@ -250,10 +252,10 @@ def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> Non
             formatted_key = format_key(key)
 
             if is_dataclass(value):
-                logger.debug("%s%s:", prefix, formatted_key)
+                logger.debug("{}{}:", prefix, formatted_key)
                 print_dataclass(value, indent + 1)
             else:
-                logger.debug("%s%s: %s", prefix, formatted_key, format_value(value))
+                logger.debug("{}{}: {}", prefix, formatted_key, format_value(value))
 
     logger.debug("=" * 60)
     logger.debug("configuration values")
@@ -291,7 +293,7 @@ def _log_data_diagnostics(
     val_df = prepared_dataset.val_df
     test_df = prepared_dataset.test_df
 
-    if logger.isEnabledFor(logging.INFO):
+    if is_level_enabled("INFO"):
         feature_cols = [c for c in train_df.columns if str(c).startswith("feature_")]
         other_cols = [c for c in train_df.columns if not str(c).startswith("feature_")]
         print_df_head(
@@ -306,16 +308,16 @@ def _log_data_diagnostics(
         train_df.shape, val_df.shape, test_df.shape, list(train_df.columns),
     )
 
-    if logger.isEnabledFor(logging.DEBUG):
+    if is_level_enabled("DEBUG"):
         logger.debug("training data statistics")
         if "close" in train_df.columns:
             logger.debug(
                 "  Close price - min: %.2f, max: %.2f, mean: %.2f",
                 train_df["close"].min(), train_df["close"].max(), train_df["close"].mean(),
             )
-            logger.debug("  Close price std: %.2f", train_df["close"].std())
+            logger.debug("  Close price std: {:.2f}", train_df["close"].std())
         feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
-        logger.debug("  Features found: %s" if feature_cols else "  No feature_* columns found in prepared data", feature_cols or "")
+        logger.debug("  Features found: {}" if feature_cols else "  No feature_* columns found in prepared data", feature_cols or "")
 
     n_feat = len([c for c in train_df.columns if str(c).startswith("feature_")])
     log_banner(
@@ -357,7 +359,7 @@ def build_experiment_runtime(
     profiler = get_profiler()
 
     logger.info("prepare data")
-    logger.debug("data path=%s train_size=%s feature_config=%s", config.data.data_path, config.data.train_size, getattr(config.data, "feature_config", None))
+    logger.debug("data path={} train_size={} feature_config={}", config.data.data_path, config.data.train_size, getattr(config.data, "feature_config", None))
 
     log_banner(logger, "DATA PREPARATION START")
     with profiler.stage("data_preparation", 2):

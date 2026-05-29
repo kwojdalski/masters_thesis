@@ -109,7 +109,7 @@ class DataGeneratorCommand(BaseCommand):
             return ScenarioDefaults()
 
         config_path = self._resolve_config_path(scenario)
-        self.logger.info("read scenario defaults path=%s", config_path)
+        self.logger.info("read scenario defaults path={}", config_path)
 
         scenario_config = self.load_config(config_path)
 
@@ -215,7 +215,7 @@ class DataGeneratorCommand(BaseCommand):
             self.logger.warning("  No parquet files found in source directory")
         else:
             for f in source_files:
-                self.logger.info("  - %s", f)
+                self.logger.info("  - {}", f)
     
     def _generate_sine_wave(
         self, generator, sine_wave: SineWaveParams, defaults: ScenarioDefaults, output_file: str | None
@@ -234,7 +234,7 @@ class DataGeneratorCommand(BaseCommand):
             volatility=float(sine_params["volatility"]),
             start_date=str(sine_params["start_date"]),
         )
-        self.logger.info("generate sine wave pattern rows=%s", len(df))
+        self.logger.info("generate sine wave pattern rows={}", len(df))
     
     def _collect_sine_wave_params(
         self, sine_wave: SineWaveParams, pattern_defaults: dict[str, Any]
@@ -274,7 +274,7 @@ class DataGeneratorCommand(BaseCommand):
             pullback_floor=float(drift_params["pullback_floor"]),
             start_date=str(drift_params["start_date"]),
         )
-        self.logger.info("generate upward drift pattern rows=%s", len(df))
+        self.logger.info("generate upward drift pattern rows={}", len(df))
     
     def _collect_upward_drift_params(
         self, upward_drift: UpwardDriftParams, pattern_defaults: dict[str, Any]
@@ -320,4 +320,4 @@ class DataGeneratorCommand(BaseCommand):
             end_date=params.end_date,
             sample_size=params.sample_size,
         )
-        self.logger.info("generate synthetic data rows=%s", len(df))
+        self.logger.info("generate synthetic data rows={}", len(df))

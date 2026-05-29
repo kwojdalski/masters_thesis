@@ -38,7 +38,7 @@ def validate_backend(backend: str, log_backend: bool = False) -> None:
             f"Invalid backend '{backend}'. Supported backends are: {SUPPORTED_BACKENDS}"
         )
     if log_backend:
-        logger.warning("validate backend backend=%s", backend)
+        logger.warning("validate backend backend={}", backend)
 
 
 def validate_actions(backend: Backend, positions: list[int] | None) -> None:
@@ -56,7 +56,7 @@ def validate_actions(backend: Backend, positions: list[int] | None) -> None:
                 f"{backend} supports only two actions {allowed} (short/long), "
                 f"but positions={positions}. Please set env.positions to {allowed}."
             )
-        logger.debug("validate actions backend=%s positions=%s", backend, positions)
+        logger.debug("validate actions backend={} positions={}", backend, positions)
 
 
 class DiscreteActionWrapper(gym.ActionWrapper):
@@ -204,7 +204,7 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
         validate_backend(backend, log_backend=False)
 
         continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
-        logger.info("creating trading environment backend=%s continuous=%s", backend, continuous)
+        logger.info("creating trading environment backend={} continuous={}", backend, continuous)
         logger.debug(
             "env settings positions=%s trading_fees=%s borrow_interest_rate=%s",
             config.env.positions, config.env.trading_fees, config.env.borrow_interest_rate,
@@ -268,7 +268,7 @@ class _AnyTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
         env = GymWrapper(base_env)
         env = self._wrap_with_step_counter(env)
 
-        logger.info("create %s environment done", self._env_id)
+        logger.info("create {} environment done", self._env_id)
         return env
 
 
@@ -332,12 +332,12 @@ def create_environment(
     if backend is None:
         if config is not None and hasattr(config.env, "backend"):
             backend = config.env.backend
-            logger.warning("backend from config backend=%s", backend)
+            logger.warning("backend from config backend={}", backend)
         else:
             backend = EnvBackend.GYM_TRADING_DISCRETE
-            logger.warning("backend default backend=%s", backend)
+            logger.warning("backend default backend={}", backend)
     else:
-        logger.warning("backend explicit backend=%s", backend)
+        logger.warning("backend explicit backend={}", backend)
 
     # Validate backend early (without additional logging)
     validate_backend(backend, log_backend=False)
@@ -347,7 +347,7 @@ def create_environment(
         else kwargs.get("positions")
     )
     validate_actions(backend, positions)
-    logger.debug("environment validation passed backend=%s positions=%s", backend, positions)
+    logger.debug("environment validation passed backend={} positions={}", backend, positions)
 
     if backend in {EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS}:
         if config is None:

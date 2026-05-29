@@ -92,7 +92,7 @@ class PriceDataGenerator:
 
         if sample_size is not None and sample_size < len(df):
             df = df.sample(n=sample_size, random_state=42).sort_index()
-            self.logger.debug("sampled rows=%s", len(df))
+            self.logger.debug("sampled rows={}", len(df))
 
         if output_file is None:
             output_file = source_file.replace(".parquet", "_synthetic.parquet")

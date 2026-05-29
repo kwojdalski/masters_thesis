@@ -1362,6 +1362,6 @@ def check_config_guardrails(config: ExperimentConfig) -> list[Finding]:
             if result is not None:
                 findings.append(result)
         except Exception as exc:  # never let a guardrail crash the run
-            logger.warning("guardrail check %s failed unexpectedly: %s", check.__name__, exc)
+            logger.warning("guardrail check {} failed unexpectedly: {}", check.__name__, exc)
     findings.sort(key=lambda f: 0 if f.severity == Severity.FATAL else 1)
     return findings

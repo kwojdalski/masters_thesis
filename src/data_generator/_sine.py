@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from logging import Logger
+from typing import Any
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +14,7 @@ from ._io import log_dataset_summary
 def generate_sine_wave_pattern(
     output_dir: Path,
     output_file: str,
-    logger: Logger,
+    logger: Any,
     *,
     n_periods: int = 5,
     samples_per_period: int = 100,
@@ -85,14 +85,14 @@ def generate_sine_wave_pattern(
         "Sine wave trading cues -> buy ≈ %.0f, sell ≈ %.0f",
         base_price - amplitude, base_price + amplitude,
     )
-    logger.debug("Close price std dev: %.2f", df["close"].std())
+    logger.debug("Close price std dev: {:.2f}", df["close"].std())
     return df
 
 
 def generate_hft_sine_wave_lob(
     output_dir: Path,
     output_file: str,
-    logger: Logger,
+    logger: Any,
     *,
     n_events: int = 20000,
     n_periods: int = 5,

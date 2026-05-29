@@ -532,7 +532,7 @@ def build_equity_plot_data(
     t0 = time.monotonic()
     returns_data = []
     stride = max(1, n_obs // max_plot_points) if max_plot_points and max_plot_points < n_obs else 1
-    logger.debug("build_equity_plot_data start n_obs=%d stride=%d", n_obs, stride)
+    logger.debug("build_equity_plot_data start n_obs={} stride={}", n_obs, stride)
 
     def _extend_with_stride(run_name: str, values: np.ndarray) -> None:
         idx = np.arange(len(values))[::stride]
@@ -545,7 +545,7 @@ def build_equity_plot_data(
         for i, actual_returns in enumerate(actual_returns_list):
             run_name = "Deterministic" if i == 0 else f"Run_{i}"
             if actual_returns is not None:
-                logger.debug("%s: Using actual portfolio returns from provided list", run_name)
+                logger.debug("{}: Using actual portfolio returns from provided list", run_name)
                 portfolio_values = _portfolio_values_from_actual_returns(
                     actual_returns, initial_portfolio_value, n_obs,
                 )
@@ -559,7 +559,7 @@ def build_equity_plot_data(
                 actual_returns = extract_tradingenv_return_series(env, n_obs) if env else None
 
             if actual_returns is not None:
-                logger.debug("%s: Using actual portfolio returns from TradingEnv broker", run_name)
+                logger.debug("{}: Using actual portfolio returns from TradingEnv broker", run_name)
                 portfolio_values = _portfolio_values_from_actual_returns(
                     actual_returns, initial_portfolio_value, n_obs,
                 )
@@ -567,7 +567,7 @@ def build_equity_plot_data(
             elif reward_type in (None, "log_return"):
                 rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
                 cumulative_log_returns = np.cumsum(rewards)
-                logger.debug("%s: Using rollout rewards as log-return fallback", run_name)
+                logger.debug("{}: Using rollout rewards as log-return fallback", run_name)
                 portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
                 _extend_with_stride(run_name, portfolio_values)
             else:
@@ -577,7 +577,7 @@ def build_equity_plot_data(
                     run_name, reward_type,
                 )
 
-    logger.debug("returns_data built n_points=%d elapsed=%.2fs", len(returns_data), time.monotonic() - t0)
+    logger.debug("returns_data built n_points={} elapsed={:.2f}s", len(returns_data), time.monotonic() - t0)
 
     price_series = None
     if df_prices is not None:
@@ -645,11 +645,11 @@ def build_equity_plot_data(
             if show_vwap and vwap_values is not None:
                 _extend_with_stride("VWAP", vwap_values)
 
-    logger.debug("benchmark data appended total_points=%d elapsed=%.2fs", len(returns_data), time.monotonic() - t0)
+    logger.debug("benchmark data appended total_points={} elapsed={:.2f}s", len(returns_data), time.monotonic() - t0)
 
     df_returns = pd.DataFrame(returns_data)
     df_returns["Run"] = _as_ordered_run_categorical(df_returns["Run"])
-    logger.debug("DataFrame built elapsed=%.2fs", time.monotonic() - t0)
+    logger.debug("DataFrame built elapsed={:.2f}s", time.monotonic() - t0)
 
     symbols: list[str] = []
     if df_prices is not None and "symbol" in df_prices.columns:
@@ -1058,7 +1058,7 @@ def create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot=No
     n_panels = 3 if equity_curve_plot is not None else 2
     merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH * 2, round(_MERGED_PANEL_HEIGHT * n_panels, 1)))
     if save_path:
-        logger.info("save merged comparison plot path=%s", save_path)
+        logger.info("save merged comparison plot path={}", save_path)
         from trading_rl.evaluation.thesis_theme import PLOT_DPI
         merged_plot.save(save_path, dpi=PLOT_DPI, verbose=False)
         write_asset_meta(save_path, generator="evaluation/plots.py")

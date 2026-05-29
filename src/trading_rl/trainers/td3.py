@@ -1,6 +1,5 @@
 """TD3 Trainer implementation."""
 
-import logging
 from trading_rl.trainers.registry import register_trainer
 from collections import defaultdict
 from typing import Any
@@ -14,7 +13,7 @@ from torchrl.modules import AdditiveGaussianModule
 from torchrl.objectives import SoftUpdate
 from torchrl.objectives import TD3Loss as TorchRLTd3Loss
 
-from logger import get_logger
+from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.constants import LossFunction
@@ -185,7 +184,7 @@ class TD3Trainer(BaseTrainer):
                 sample.set(key, tensor)
 
             # DEBUG: Log sample statistics
-            if logger.isEnabledFor(logging.DEBUG):
+            if is_level_enabled("DEBUG"):
                 actions = sample["action"]
                 rewards = sample["next", "reward"]
                 logger.debug(
@@ -223,7 +222,7 @@ class TD3Trainer(BaseTrainer):
                 self._consecutive_skips = 0
 
                 # DEBUG: Log loss values
-                if logger.isEnabledFor(logging.DEBUG):
+                if is_level_enabled("DEBUG"):
                     logger.debug(
                         "td3 losses loss_qvalue=%.6f loss_actor=%.6f",
                         loss_vals['loss_qvalue'].item(), loss_vals['loss_actor'].item(),
@@ -277,7 +276,7 @@ class TD3Trainer(BaseTrainer):
                 actor_loss = loss_vals_actor["loss_actor"].item()
 
                 # Optional debug: prepare parameter magnitude summaries
-                if logger.isEnabledFor(logging.DEBUG):
+                if is_level_enabled("DEBUG"):
                     actor_sum = float(
                         sum(p.abs().sum().item() for p in self.actor.parameters())
                     )
@@ -292,7 +291,7 @@ class TD3Trainer(BaseTrainer):
                 # For logging purposes, use the actor loss computed in the first pass
                 actor_loss = loss_vals["loss_actor"].item()
 
-            if logger.isEnabledFor(logging.DEBUG):
+            if is_level_enabled("DEBUG"):
                 critic_param_diff = None
                 params = self.td3_loss.qvalue_network_params
                 if getattr(params, "batch_size", None) and params.batch_size[0] >= 2:
@@ -352,7 +351,7 @@ class TD3Trainer(BaseTrainer):
 
         def on_batch_start(i, data) -> None:
             # DEBUG: Log data collection statistics
-            if logger.isEnabledFor(logging.DEBUG) and i % 10 == 0:  # Every 10 batches
+            if is_level_enabled("DEBUG") and i % 10 == 0:  # Every 10 batches
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
                 logger.debug(
@@ -391,9 +390,9 @@ class TD3Trainer(BaseTrainer):
         self._consecutive_skips += 1
 
         if exc is None:
-            logger.warning("td3 skipping batch reason=%s", reason)
+            logger.warning("td3 skipping batch reason={}", reason)
         else:
-            logger.warning("td3 skipping batch reason=%s err=%s", reason, exc)
+            logger.warning("td3 skipping batch reason={} err={}", reason, exc)
 
         if (
             self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
@@ -431,7 +430,7 @@ class TD3Trainer(BaseTrainer):
             max_length, buffer_len, curr_loss_value, curr_loss_actor,
         )
 
-        if logger.isEnabledFor(logging.DEBUG):
+        if is_level_enabled("DEBUG"):
             _log_network_stats(logger, "td3", self.actor, self.value_net)
 
     def _evaluate(self) -> None:
@@ -454,7 +453,7 @@ class TD3Trainer(BaseTrainer):
             self.logs["eval_step_count"].append(max_steps)
 
             # DEBUG: Log action distribution during evaluation
-            if logger.isEnabledFor(logging.DEBUG):
+            if is_level_enabled("DEBUG"):
                 actions = eval_rollout["action"]
                 logger.debug(
                     "td3 eval action stats n=%d mean=%.4f std=%.4f",
@@ -485,7 +484,7 @@ class TD3Trainer(BaseTrainer):
 
                 # Check if agent is stuck
                 if actions.std() < 0.01:
-                    logger.warning("td3 eval agent stuck action_std=%.6f", actions.std())
+                    logger.warning("td3 eval agent stuck action_std={:.6f}", actions.std())
 
             eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
             logger.info(
@@ -557,18 +556,18 @@ class TD3Trainer(BaseTrainer):
                     "buffer_size": len(self.replay_buffer),
                     "max_size": self.replay_buffer._storage.max_size,
                 }
-                logger.info("save replay buffer path=%s n_experiences=%s", buffer_dir, len(self.replay_buffer))
+                logger.info("save replay buffer path={} n_experiences={}", buffer_dir, len(self.replay_buffer))
 
         torch.save(checkpoint, path)
         write_asset_meta(path, generator="trainers/td3.py")
-        logger.info("save checkpoint path=%s", path)
+        logger.info("save checkpoint path={}", path)
 
     def load_checkpoint(self, path: str) -> None:
         from pathlib import Path
 
         checkpoint = torch.load(path, weights_only=True)
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("td3 checkpoint keys=%s", sorted(checkpoint.keys()))
+        if is_level_enabled("DEBUG"):
+            logger.debug("td3 checkpoint keys={}", sorted(checkpoint.keys()))
 
         # Restore functional params and sync modules
         if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
@@ -605,7 +604,7 @@ class TD3Trainer(BaseTrainer):
 
         # Optionally restore replay buffer if it was saved
         if "replay_buffer" in checkpoint:
-            logger.info("restore replay buffer legacy n_experiences=%s", len(checkpoint["replay_buffer"]))
+            logger.info("restore replay buffer legacy n_experiences={}", len(checkpoint["replay_buffer"]))
             self.replay_buffer = checkpoint["replay_buffer"]
         else:
             buffer_path = checkpoint.get("replay_buffer_path")
@@ -613,7 +612,7 @@ class TD3Trainer(BaseTrainer):
                 try:
                     self.replay_buffer.loads(buffer_path)
                     buffer_size = len(self.replay_buffer)
-                    logger.info("load replay buffer path=%s n_experiences=%s", buffer_path, buffer_size)
+                    logger.info("load replay buffer path={} n_experiences={}", buffer_path, buffer_size)
                 except Exception:
                     logger.exception(
                         "Failed to load replay buffer from %s", buffer_path
@@ -629,4 +628,4 @@ class TD3Trainer(BaseTrainer):
             self.mlflow_run_name,
             self.mlflow_experiment_name,
         )
-        logger.info("load checkpoint path=%s", path)
+        logger.info("load checkpoint path={}", path)

@@ -129,7 +129,7 @@ class DiscreteNet(nn.Module):
 
         self.network = nn.Sequential(*layers)
 
-        logger.info("build discrete_net input_dim=%d n_actions=%d hidden_dims=%s", input_dim, n_actions, hidden_dims)
+        logger.info("build discrete_net input_dim={} n_actions={} hidden_dims={}", input_dim, n_actions, hidden_dims)
 
     def forward(self, x):
         """Forward pass.
@@ -217,7 +217,7 @@ def create_value_network(
         out_keys=["state_action_value"],
     )
 
-    logger.info("build value network hidden_dims=%s", hidden_dims)
+    logger.info("build value network hidden_dims={}", hidden_dims)
     return value_net
 
 
@@ -367,7 +367,7 @@ def create_ppo_value_network(
         out_keys=["state_value"],  # V(s) not Q(s,a)
     )
 
-    logger.info("build ppo value network hidden_dims=%s", hidden_dims)
+    logger.info("build ppo value network hidden_dims={}", hidden_dims)
     return value_net
 
 
@@ -462,7 +462,7 @@ def create_td3_qvalue_network(
         out_keys=["state_action_value"],
     )
 
-    logger.info("build td3 qvalue network hidden_dims=%s", hidden_dims)
+    logger.info("build td3 qvalue network hidden_dims={}", hidden_dims)
     return value_net
 
 

@@ -225,7 +225,7 @@ def register_test(test_class: type[StatisticalTest]) -> type[StatisticalTest]:
     """
     instance = test_class()
     TEST_REGISTRY[instance.name] = test_class
-    logger.debug("registered statistical test name=%s", instance.name)
+    logger.debug("registered statistical test name={}", instance.name)
     return test_class
 
 

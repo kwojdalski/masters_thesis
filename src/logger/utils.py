@@ -6,7 +6,6 @@ and consistent across different components.
 """
 
 import functools
-import logging
 import time
 from collections.abc import Callable
 from contextlib import contextmanager
@@ -14,161 +13,99 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pandas as pd
+from loguru import logger as _loguru_logger
 from rich.console import Console
 from rich.table import Table
 
+from logger.core import is_level_enabled
+
 _GREEN = "\033[32m"
 _RESET = "\033[0m"
-_CYAN = "\033[96m"   # bright cyan — used to highlight log values
 _BANNER_WIDTH = 100
 
 
-def log_banner(logger: logging.Logger, message: str) -> None:
+def log_banner(logger: Any, message: str) -> None:
     """Log a fully green separator banner at INFO level."""
     inner = f"  {message}  "
     dashes = max(0, _BANNER_WIDTH - len(inner))
     left = dashes // 2
     right = dashes - left
     line = "=" * left + inner + "=" * right
-    logger.info("%s%s%s", _GREEN, line, _RESET)
+    logger.info("{}{}{}", _GREEN, line, _RESET)
 
 
 def log_dataframe_info(
-    logger: logging.Logger, df, name: str = "DataFrame", level: str = "INFO"
-):
-    """
-    Log comprehensive information about a pandas DataFrame.
-
-    Args:
-        logger: Logger instance
-        df: Pandas DataFrame
-        name: Name to use in log messages
-        level: Logging level to use
-    """
-    log_level = getattr(logging, level.upper(), logging.INFO)
-
-    if not logger.isEnabledFor(log_level):
+    logger: Any, df: Any, name: str = "DataFrame", level: str = "INFO"
+) -> None:
+    """Log comprehensive information about a pandas DataFrame."""
+    if not is_level_enabled(level.upper()):
         return
 
-    logger.log(log_level, "dataframe shape name=%s n_rows=%d n_cols=%d", name, *df.shape)
-    logger.log(log_level, "dataframe columns name=%s columns=%s", name, df.columns.tolist())
+    logger.log(level.upper(), "dataframe shape name={} n_rows={} n_cols={}", name, *df.shape)
+    logger.log(level.upper(), "dataframe columns name={} columns={}", name, df.columns.tolist())
 
     if hasattr(df, "dtypes"):
-        logger.debug("dataframe dtypes name=%s dtypes=%s", name, df.dtypes.to_dict())
+        logger.debug("dataframe dtypes name={} dtypes={}", name, df.dtypes.to_dict())
 
     if hasattr(df, "memory_usage"):
         try:
             total_memory = df.memory_usage(deep=True).sum()
-            logger.debug("dataframe memory name=%s mb=%.2f", name, total_memory / 1024 / 1024)
+            logger.debug("dataframe memory name={} mb={:.2f}", name, total_memory / 1024 / 1024)
         except Exception as e:
-            logger.debug("dataframe memory error name=%s err=%s", name, e)
+            logger.debug("dataframe memory error name={} err={}", name, e)
 
     if hasattr(df, "isnull"):
         null_counts = df.isnull().sum()
         if null_counts.any():
-            logger.debug("dataframe nulls name=%s nulls=%s", name, null_counts[null_counts > 0].to_dict())
+            logger.debug("dataframe nulls name={} nulls={}", name, null_counts[null_counts > 0].to_dict())
 
-    if logger.isEnabledFor(logging.DEBUG) and hasattr(df, "head"):
-        logger.debug("dataframe sample name=%s\n%s", name, df.head())
+    if is_level_enabled("DEBUG") and hasattr(df, "head"):
+        logger.debug("dataframe sample name={}\n{}", name, df.head())
 
 
 def log_processing_step(
-    logger: logging.Logger,
+    logger: Any,
     step: str,
     details: str | None = None,
     extra_data: dict[str, Any] | None = None,
-):
-    """
-    Log a processing step with consistent formatting and optional structured data.
-
-    Args:
-        logger: Logger instance
-        step: Description of the processing step
-        details: Optional additional details
-        extra_data: Optional structured data to include
-    """
+) -> None:
+    """Log a processing step with consistent formatting."""
     message = f"Processing step: {step}"
     if details:
         message += f" - {details}"
-
     if extra_data:
-        # Create a custom LogRecord with extra data for structured logging
-        extra_record = logging.LogRecord(
-            name=logger.name,
-            level=logging.INFO,
-            pathname="",
-            lineno=0,
-            msg=message,
-            args=(),
-            exc_info=None,
-        )
-        extra_record.extra_data = extra_data
-        logger.handle(extra_record)
-    else:
-        logger.info(message)
+        message += f" | {extra_data}"
+    logger.info("{}", message)
 
 
 def log_error_with_context(
-    logger: logging.Logger,
+    logger: Any,
     error: Exception,
     context: str,
     extra_data: dict[str, Any] | None = None,
-):
-    """
-    Log an error with additional context information and structured data.
-
-    Args:
-        logger: Logger instance
-        error: Exception that occurred
-        context: Context description where the error occurred
-        extra_data: Optional structured data for debugging
-    """
+) -> None:
+    """Log an error with additional context information."""
     error_msg = f"Error in {context}: {type(error).__name__}: {error!s}"
-
     if extra_data:
-        extra_record = logging.LogRecord(
-            name=logger.name,
-            level=logging.ERROR,
-            pathname="",
-            lineno=0,
-            msg=error_msg,
-            args=(),
-            exc_info=None,
-        )
-        extra_record.extra_data = extra_data
-        logger.handle(extra_record)
-    else:
-        logger.error(error_msg)
-
-    logger.debug("error details context=%s", context, exc_info=True)
+        error_msg += f" | {extra_data}"
+    logger.error("{}", error_msg)
+    logger.opt(exception=True).debug("error details context={}", context)
 
 
 def log_function_call(
-    logger: logging.Logger,
+    logger: Any,
     func_name: str,
     args: tuple | None = None,
     kwargs: dict[str, Any] | None = None,
     level: str = "DEBUG",
-):
-    """
-    Log function call details.
-
-    Args:
-        logger: Logger instance
-        func_name: Name of the function being called
-        args: Function arguments (will be truncated if too long)
-        kwargs: Function keyword arguments (will be truncated if too long)
-        level: Logging level to use
-    """
-    log_level = getattr(logging, level.upper(), logging.DEBUG)
-
-    if not logger.isEnabledFor(log_level):
+) -> None:
+    """Log function call details."""
+    if not is_level_enabled(level.upper()):
         return
 
     call_info = f"Calling function: {func_name}"
 
     if args:
-        # Truncate long arguments for readability
         args_str = str(args)
         if len(args_str) > 200:
             args_str = args_str[:200] + "..."
@@ -180,80 +117,36 @@ def log_function_call(
             kwargs_str = kwargs_str[:200] + "..."
         call_info += f" with kwargs: {kwargs_str}"
 
-    logger.log(log_level, call_info)
+    logger.log(level.upper(), "{}", call_info)
 
 
 def log_performance_metrics(
-    logger: logging.Logger,
+    logger: Any,
     operation: str,
     duration: float,
     extra_metrics: dict[str, int | float | str] | None = None,
-):
-    """
-    Log performance metrics for operations.
-
-    Args:
-        logger: Logger instance
-        operation: Description of the operation
-        duration: Duration in seconds
-        extra_metrics: Optional additional metrics (e.g., rows_processed, memory_used)
-    """
+) -> None:
+    """Log performance metrics for operations."""
     perf_msg = f"Performance - {operation}: {duration:.3f}s"
-
-    extra_data = {
-        "operation": operation,
-        "duration_seconds": duration,
-        "timestamp": datetime.now(tz=UTC).isoformat(),
-    }
-
     if extra_metrics:
-        extra_data.update(extra_metrics)
         perf_msg += f" | Metrics: {extra_metrics}"
-
-    # Create structured log entry
-    extra_record = logging.LogRecord(
-        name=logger.name,
-        level=logging.INFO,
-        pathname="",
-        lineno=0,
-        msg=perf_msg,
-        args=(),
-        exc_info=None,
-    )
-    extra_record.extra_data = extra_data
-    logger.handle(extra_record)
+    logger.info("{}", perf_msg)
 
 
 @contextmanager
 def LogContext(
-    logger: logging.Logger,
+    logger: Any,
     operation: str,
     log_start: bool = True,
     log_end: bool = True,
     log_performance: bool = True,
     level: str = "INFO",
 ):
-    """
-    Context manager for logging operation start/end and performance.
-
-    Args:
-        logger: Logger instance
-        operation: Description of the operation
-        log_start: Whether to log operation start
-        log_end: Whether to log operation end
-        log_performance: Whether to log performance metrics
-        level: Logging level to use
-
-    Usage:
-        with LogContext(logger, "Data processing"):
-            # Your code here
-            pass
-    """
-    log_level = getattr(logging, level.upper(), logging.INFO)
+    """Context manager for logging operation start/end and performance."""
     start_time = time.time()
 
-    if log_start and logger.isEnabledFor(log_level):
-        logger.log(log_level, "start operation=%s", operation)
+    if log_start and is_level_enabled(level.upper()):
+        logger.log(level.upper(), "start operation={}", operation)
 
     try:
         yield
@@ -266,66 +159,45 @@ def LogContext(
     finally:
         duration = time.time() - start_time
 
-        if log_end and logger.isEnabledFor(log_level):
-            logger.log(log_level, "complete operation=%s", operation)
+        if log_end and is_level_enabled(level.upper()):
+            logger.log(level.upper(), "complete operation={}", operation)
 
         if log_performance:
             log_performance_metrics(logger, operation, duration)
 
 
 def logged_function(
-    logger: logging.Logger | None = None,
+    logger: Any | None = None,
     level: str = "DEBUG",
     log_args: bool = False,
     log_result: bool = False,
     log_performance: bool = True,
-):
-    """
-    Decorator to automatically log function calls and performance.
-
-    Args:
-        logger: Logger instance (if None, will get logger from function's module)
-        level: Logging level to use
-        log_args: Whether to log function arguments
-        log_result: Whether to log function result
-        log_performance: Whether to log performance metrics
-
-    Usage:
-        @logged_function(logger=my_logger, log_performance=True)
-        def my_function(arg1, arg2):
-            return "result"
-    """
+) -> Callable:
+    """Decorator to automatically log function calls and performance."""
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Get logger if not provided
-            func_logger = logger or logging.getLogger(func.__module__)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            func_logger = logger or _loguru_logger
 
-            # Log function call
             if log_args:
                 log_function_call(func_logger, func.__name__, args, kwargs, level)
             else:
                 log_function_call(func_logger, func.__name__, level=level)
 
-            # Execute function with performance tracking
             start_time = time.time()
             try:
                 result = func(*args, **kwargs)
                 duration = time.time() - start_time
 
                 if log_performance:
-                    log_performance_metrics(
-                        func_logger, f"Function {func.__name__}", duration
-                    )
+                    log_performance_metrics(func_logger, f"Function {func.__name__}", duration)
 
                 if log_result:
                     result_str = str(result)
                     if len(result_str) > 100:
                         result_str = result_str[:100] + "..."
-                    func_logger.debug(
-                        f"Function {func.__name__} returned: {result_str}"
-                    )
+                    func_logger.debug("Function {} returned: {}", func.__name__, result_str)
 
                 return result
 
@@ -344,8 +216,14 @@ def logged_function(
     return decorator
 
 
+def setup_component_specific_logger(
+    component: str, submodule: str | None = None, level: str = "INFO"
+) -> Any:
+    """Return the loguru logger (name parameters kept for API compat)."""
+    return _loguru_logger
+
+
 def _fmt_cell(value: Any) -> str:
-    """Format a single DataFrame cell for terminal display."""
     if pd.isna(value):
         return "NaN"
     if isinstance(value, float):
@@ -362,22 +240,7 @@ def print_df_head(
     columns_per_page: int = 10,
     transpose: bool = False,
 ) -> None:
-    """Print the first n_rows of a DataFrame as a Rich table.
-
-    Args:
-        df: DataFrame to display.
-        n_rows: Number of rows to show (ignored in transpose mode — all columns
-            become rows so the row count is driven by the column count).
-        title: Table title shown above each printed table.
-        max_columns: When paginate=False, cap the visible columns at this value.
-        paginate: When True, print all columns in sequential chunks of
-            columns_per_page width instead of truncating.
-        columns_per_page: Columns per page when paginate=True (or rows per page
-            in transpose mode).
-        transpose: When True, flip rows and columns — original column names
-            become the leftmost column and original row indices become the
-            column headers. Useful for wide DataFrames.
-    """
+    """Print the first n_rows of a DataFrame as a Rich table."""
     if df.empty:
         return
 
@@ -387,7 +250,6 @@ def print_df_head(
     index_labels = [str(i) for i in head_df.index]
 
     if transpose:
-        # Each original column becomes a row; original row indices become columns.
         def _build_transposed_table(col_chunk: list[str], page_info: str) -> Table:
             t = Table(title=f"{title}{page_info}")
             t.add_column("Column", style="cyan")
@@ -438,30 +300,3 @@ def print_df_head(
                     f"[dim]Showing {len(visible)} of {len(all_columns)} columns "
                     f"({hidden} hidden). Pass paginate=True to see all.[/dim]"
                 )
-
-
-def setup_component_specific_logger(
-    component: str, submodule: str | None = None, level: str = "INFO"
-) -> logging.Logger:
-    """
-    Set up a logger specifically for a component/submodule combination.
-
-    This is useful for getting consistent logger names across the project.
-
-    Args:
-        component: Main component name (e.g., 'tardis_downloader')
-        submodule: Optional submodule name (e.g., 'utils', 'analysis')
-        level: Logging level
-
-    Returns:
-        Configured logger
-    """
-    if submodule:
-        logger_name = f"{component}.{submodule}"
-    else:
-        logger_name = component
-
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(getattr(logging, level.upper(), logging.INFO))
-
-    return logger

@@ -1336,5 +1336,5 @@ class FeatureSelector:
             encoding="utf-8",
         )
         write_asset_meta(output_path, generator="features/selector.py")
-        logger.info("write selected features count=%d path=%s", len(features), output_path)
+        logger.info("write selected features count={} path={}", len(features), output_path)
         return output_path

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -11,9 +10,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from trading_rl.constants import SplitName
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+from trading_rl.constants import SplitName
 
 
 class LazyDataFrame:
@@ -54,7 +53,7 @@ class LazyDataFrame:
     def _load_if_needed(self) -> pd.DataFrame:
         """Load DataFrame from file if not already cached."""
         if self._df is None or (not self.cache_after_load and self._loaded):
-            logger.debug("lazy load path=%s", self.file_path)
+            logger.debug("lazy load path={}", self.file_path)
             self._df = pd.read_parquet(self.file_path)
             self._loaded = True
         return self._df
@@ -143,7 +142,7 @@ def save_prepared_splits(
         output_path = output_dir / f"{split_name}_prepared.parquet"
         df.to_parquet(output_path)
         paths[split_name] = output_path
-        logger.info("save split name=%s path=%s n_rows=%d", split_name, output_path, len(df))
+        logger.info("save split name={} path={} n_rows={}", split_name, output_path, len(df))
 
     return paths
 
@@ -168,7 +167,7 @@ def load_prepared_splits(
             raise FileNotFoundError(f"Prepared split file not found: {file_path}")
         paths[split_name] = LazyDataFrame(file_path)
 
-    logger.info("load lazy splits n_splits=%d dir=%s", len(paths), output_dir)
+    logger.info("load lazy splits n_splits={} dir={}", len(paths), output_dir)
     return paths
 
 
@@ -212,7 +211,7 @@ def save_symbol_memmap(
     numeric_df = df.select_dtypes(include=[np.number])
     dropped = set(df.columns) - set(numeric_df.columns)
     if dropped:
-        logger.warning("save memmap dropping non-numeric columns cols=%s", sorted(dropped))
+        logger.warning("save memmap dropping non-numeric columns cols={}", sorted(dropped))
 
     columns = list(numeric_df.columns)
     data_path = output_dir / f"{prefix}_train_data.npy"
@@ -229,7 +228,7 @@ def save_symbol_memmap(
     if symbol:
         (output_dir / f"{prefix}_symbol.txt").write_text(symbol)
 
-    logger.info("save memmap prefix=%s symbol=%s dir=%s n_rows=%d", prefix, symbol or "?", output_dir, len(df))
+    logger.info("save memmap prefix={} symbol={} dir={} n_rows={}", prefix, symbol or "?", output_dir, len(df))
     return MemmapPaths(data_path=data_path, index_path=index_path, n_rows=len(df), columns=columns, symbol=symbol)
 
 
@@ -252,7 +251,7 @@ def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
         index_file = output_dir / f"{prefix}_train_index.npy"
         cols_file = output_dir / f"{prefix}_columns.json"
         if not index_file.exists() or not cols_file.exists():
-            logger.warning("skip incomplete memmap prefix=%s", prefix)
+            logger.warning("skip incomplete memmap prefix={}", prefix)
             continue
         data = np.load(data_file, mmap_mode="r")
         columns = json.loads(cols_file.read_text())
@@ -268,5 +267,5 @@ def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
             )
         )
 
-    logger.info("load memmap n_symbols=%d dir=%s", len(results), output_dir)
+    logger.info("load memmap n_symbols={} dir={}", len(results), output_dir)
     return results

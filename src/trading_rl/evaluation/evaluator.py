@@ -167,7 +167,7 @@ class StrategyEvaluator:
                 )
                 _t_last[0] = now
 
-        logger.debug("rollout start max_steps=%d", max_steps)
+        logger.debug("rollout start max_steps={}", max_steps)
         _t = _time.monotonic()
         with torch.no_grad():
             try:
@@ -326,7 +326,7 @@ class StrategyEvaluator:
             )
 
         max_steps = self.config.max_steps or len(df) - 1
-        logger.debug("evaluate_split split=%s max_steps=%d df_rows=%d", split, max_steps, len(df))
+        logger.debug("evaluate_split split={} max_steps={} df_rows={}", split, max_steps, len(df))
 
         # Use the caller-provided environment when available. Training code
         # already builds split-specific envs from the full ExperimentConfig.
@@ -335,12 +335,12 @@ class StrategyEvaluator:
         # Run deterministic rollout
         _t = time.monotonic()
         rollout = self._run_rollout(env, max_steps)
-        logger.debug("evaluate_split: rollout elapsed=%.2fs steps=%d", time.monotonic() - _t, max_steps)
+        logger.debug("evaluate_split: rollout elapsed={:.2f}s steps={}", time.monotonic() - _t, max_steps)
 
         # Extract returns
         _t = time.monotonic()
         return_series = self._extract_return_series(env, rollout, max_steps)
-        logger.debug("evaluate_split: extract_returns elapsed=%.2fs", time.monotonic() - _t)
+        logger.debug("evaluate_split: extract_returns elapsed={:.2f}s", time.monotonic() - _t)
         if return_series is None:
             simple_returns = np.array([], dtype=float)
             cumulative_returns = None
@@ -359,7 +359,7 @@ class StrategyEvaluator:
             if self.config.enable_metrics
             else None
         )
-        logger.debug("evaluate_split: compute_metrics elapsed=%.2fs", time.monotonic() - _t)
+        logger.debug("evaluate_split: compute_metrics elapsed={:.2f}s", time.monotonic() - _t)
 
         # Generate plots
         plots = None
@@ -381,7 +381,7 @@ class StrategyEvaluator:
                     show_benchmarks=self.config.show_reward_benchmarks,
                     benchmark_price_column=self.config.price_column,
                 )
-                logger.debug("evaluate_split: build_rollout_plot_data elapsed=%.2fs", time.monotonic() - _t)
+                logger.debug("evaluate_split: build_rollout_plot_data elapsed={:.2f}s", time.monotonic() - _t)
                 plots["_rollout_plot_data"] = rollout_data
                 if "rewards" in enabled:
                     plots["reward_plot"] = plot_rewards(
@@ -439,9 +439,9 @@ class StrategyEvaluator:
                             symbols=equity_data["symbols"],
                             n_total_symbols=equity_data["n_total_symbols"],
                         )
-                        logger.debug("evaluate_split: portfolio_value_plot elapsed=%.2fs", time.monotonic() - _t)
+                        logger.debug("evaluate_split: portfolio_value_plot elapsed={:.2f}s", time.monotonic() - _t)
                     except Exception:
-                        logger.warning("evaluate_split: portfolio value plot failed", exc_info=True)
+                        logger.opt(exception=True).warning("evaluate_split: portfolio value plot failed")
 
         return SplitEvaluationResult(
             final_reward=float(rollout["next", "reward"].sum().item()),
