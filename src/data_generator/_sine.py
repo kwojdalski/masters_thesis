@@ -85,7 +85,7 @@ def generate_sine_wave_pattern(
         "Sine wave trading cues -> buy ≈ %.0f, sell ≈ %.0f",
         base_price - amplitude, base_price + amplitude,
     )
-    logger.debug("Close price std dev: {:.2f}", df["close"].std())
+    logger.trace("Close price std dev: {:.2f}", df["close"].std())
     return df
 
 

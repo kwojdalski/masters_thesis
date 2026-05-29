@@ -130,7 +130,7 @@ class FeaturePipeline:
             self for chaining
         """
         logger.info("fit feature pipeline")
-        logger.debug("fit feature pipeline n_rows={} n_cols={}", *df.shape)
+        logger.trace("fit feature pipeline n_rows={} n_cols={}", *df.shape)
 
         # Validate required columns
         self._validate_columns(df)
@@ -138,7 +138,7 @@ class FeaturePipeline:
         # Fit each feature
         for feature in self.features:
             feature.fit(df)
-            logger.debug("fit feature name={}", feature.get_output_name())
+            logger.trace("fit feature name={}", feature.get_output_name())
 
         self._is_fitted = True
         logger.info("fit feature pipeline complete")
@@ -163,7 +163,7 @@ class FeaturePipeline:
                 "Pipeline must be fitted before transform. Call fit() first."
             )
 
-        logger.debug("transform data n_rows={} n_cols={}", *df.shape)
+        logger.trace("transform data n_rows={} n_cols={}", *df.shape)
 
         # Validate required columns
         self._validate_columns(df)
@@ -175,7 +175,7 @@ class FeaturePipeline:
         for feature in self.features:
             output_name = feature.get_output_name()
             result[output_name] = feature.transform(df)
-            logger.debug("transform feature name={}", output_name)
+            logger.trace("transform feature name={}", output_name)
 
         # Drop any remaining NaN rows
         rows_before = len(result)
@@ -183,12 +183,12 @@ class FeaturePipeline:
         rows_after = len(result)
 
         if rows_before != rows_after:
-            logger.debug(
+            logger.trace(
                 "transform drop nan n_dropped=%d n_rows_before=%d n_rows_after=%d",
                 rows_before - rows_after, rows_before, rows_after,
             )
 
-        logger.debug("transform output n_rows={} n_cols={}", *result.shape)
+        logger.trace("transform output n_rows={} n_cols={}", *result.shape)
         return result
 
     def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:

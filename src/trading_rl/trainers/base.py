@@ -510,7 +510,7 @@ class BaseTrainer(ABC):
             algorithm_label,
             self.total_count,
         )
-        logger.debug("  Buffer now contains {} transitions", buffer_len)
+        logger.trace("  Buffer now contains {} transitions", buffer_len)
 
         self.collector.policy = exploration_policy
         self.random_exploration_done = True

@@ -193,12 +193,12 @@ class BaseDataSource(ABC):
             Description of the dataset (e.g., "Synthetic sample", "Stock data")
         """
         self.logger.info("save dataset context={} path={}", context, output_path)
-        self.logger.debug("save dataset n_rows={} n_cols={}", *df.shape)
+        self.logger.trace("save dataset n_rows={} n_cols={}", *df.shape)
 
         if not df.empty:
-            self.logger.debug("save dataset index_min={} index_max={}", df.index.min(), df.index.max())
+            self.logger.trace("save dataset index_min={} index_max={}", df.index.min(), df.index.max())
             if "close" in df.columns:
-                self.logger.debug("save dataset close_min={:.2f} close_max={:.2f}", df["close"].min(), df["close"].max())
+                self.logger.trace("save dataset close_min={:.2f} close_max={:.2f}", df["close"].min(), df["close"].max())
 
     def validate_ohlcv(self, df: pd.DataFrame) -> bool:
         """
