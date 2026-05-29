@@ -191,49 +191,50 @@ else:
 ```
 
 ### Discussion: Reading Performance in the Context of State Design
-<!-- [PLACEHOLDER] -->
-
 The benchmark comparison places the TD3 agent's held-out behavior in direct
-relation to the five reference strategies. Several features of the comparison
+relation to the reference strategies. Several features of the comparison
 are worth stating explicitly.
 
-On cumulative return, the agent does not outperform buy-and-hold
-($7.68 \times 10^{-5}$) or the TWAP and VWAP execution references
-($2.33 \times 10^{-5}$ and $2.50 \times 10^{-5}$ respectively). The agent's
-cumulative return of $2.28 \times 10^{-7}$ is substantially smaller in absolute
-terms. This is the direct consequence of its behavioral profile: with a turnover
-of 0.054% per step and a near-neutral position distribution (49.8% long,
-50.2% short), the agent accumulates position-weighted returns at a rate well
-below what a sustained directional exposure would achieve in a market that
-drifted upward during the evaluation window.
+The test window is characterized by a slight market decline. The buy-and-hold
+benchmark accumulated a total return of $-6.98 \times 10^{-4}$ ($-0.070\%$);
+TWAP and VWAP produced $-5.73 \times 10^{-4}$ ($-0.057\%$) and
+$-6.08 \times 10^{-4}$ ($-0.061\%$) respectively. In this environment, the
+TD3 agent recorded a total return of $-1.40 \times 10^{-4}$ ($-0.014\%$) —
+better than all passive benchmarks. The agent's behavioral profile explains this
+outcome: with approximately 54.9% long and 45.1% short exposure and a per-step
+turnover of 0.058%, the agent accumulated only a fraction of the directional loss
+that sustained long-only exposure would imply in a declining market. The
+outperformance relative to passive benchmarks is therefore structural — a
+consequence of near-neutral positioning — rather than a sign of correctly
+timed directional bets.
 
-Where the agent does compare favorably is in drawdown and trade quality.
-Maximum drawdown is $-1.05 \times 10^{-7}$, effectively zero, against
-$-1.06 \times 10^{-4}$ for buy-and-hold and $-6.4$ to $-6.6 \times 10^{-5}$
-for the execution benchmarks. The profit factor — gross profit divided by gross
-loss — is 5.70 for the agent, higher than the 2.84 achieved by buy-and-hold
-and the 2.41 achieved by TWAP and VWAP. These two observations together suggest
-that the agent's infrequent position adjustments tend to occur in the
-correct direction relative to short-horizon price movement: when it does trade,
-the resulting returns are substantially larger than its losses. The difficulty
-is that with near-zero turnover, the total capital deployed through these
-selective trades is negligible, and the aggregate return reflects that scale.
+The trade-level statistics reinforce this interpretation. The agent's win rate
+is 1.3% and its profit factor is $3.65 \times 10^{-3}$: the overwhelming
+majority of individual position adjustments result in a per-step loss, and the
+ratio of gross profit to gross loss is well below unity. These figures contrast
+sharply with buy-and-hold's profit factor of 0.968 and win rate of 48.4%.
+The agent avoids large directional losses by staying near-neutral, but it does
+not generate a stream of profitable individual trades.
 
-Short-and-hold is the only benchmark the agent clearly dominates on return
-($-7.68 \times 10^{-5}$ versus $+2.28 \times 10^{-7}$). This reflects the
-agent's near-neutral positioning against the directional losses accumulated by
-a sustained short position in an upward-drifting market.
+On drawdown, the agent's maximum drawdown of $-1.40 \times 10^{-4}$ ($-0.014\%$)
+is contained relative to buy-and-hold's $-3.66 \times 10^{-3}$ ($-0.37\%$).
+This arises from the same source: near-zero net exposure limits the
+cumulative loss that any single directional move can inflict, regardless of
+whether that positioning reflects skill or passivity.
 
-Taken together, the benchmark comparison confirms that the agent has learned to
-avoid systematic mispositioning — it does not commit capital to a sustained
-wrong-direction bet and carries essentially no drawdown — but it has not
-translated its demonstrated trade selectivity into a return rate comparable to
-passive long exposure over this evaluation window. Whether a richer feature
-representation, longer training horizon, or alternative reward specification
-can close that gap is the question addressed directly in the H2 and H3
-comparisons.
+Taken together, the benchmark comparison establishes that the agent has learned
+to maintain near-neutral positioning in this test window, which incidentally
+reduces exposure during a period when all passive long strategies lost money.
+The agent does not demonstrate profitable active trading: its trade-level
+quality metrics (win rate, profit factor) are substantially worse than even a
+passive strategy, and the positive relative total return is entirely attributable
+to the neutral position stance. Whether a longer training horizon, richer feature
+set, or more targeted reward design can yield active trading profitability is the
+question addressed in the H2 and H3 comparisons.
 
-The final performance verdict is therefore deliberately narrow. The TD3 agent
-passes a feasibility test for learning conservative, low-drawdown behavior from
-LOB-derived features, but the exported results do not show a deployable or
-benchmark-dominating trading strategy.
+The performance verdict for H1 is therefore qualified. On the realized test
+window, the agent produces a better total return than all passive benchmarks
+($-0.014\%$ versus $-0.057\%$ to $-0.070\%$), but through risk avoidance rather
+than directional skill. It passes a weak feasibility test — it does not commit
+capital to a sustained wrong-direction bet — but it does not establish a basis
+for claiming a deployable or benchmark-dominating trading strategy.

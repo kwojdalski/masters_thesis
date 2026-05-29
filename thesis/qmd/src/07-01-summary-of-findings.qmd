@@ -6,22 +6,25 @@ for high-frequency single-asset trading using order-book-derived features. This
 section summarizes the empirical evidence for each.
 
 **Hypothesis 1: the TD3 agent can outperform benchmark strategies on a
-risk-adjusted basis.** The evaluation supports this hypothesis within the
-scope of the controlled experiment. The trained TD3 agent achieved positive
-test-set risk-adjusted returns and outperformed the evaluated benchmark
-strategies on both the Sharpe ratio and realized cumulative return dimensions,
-with this edge persisting after accounting for position-change
-turnover in the zero-fee baseline setting. The agent's behavior was also
-economically coherent: position sizing varied with the state of the order book
-rather than producing constant directional exposure, and drawdown during the
-test period remained contained relative to the buy-and-hold benchmark. These
-results should be read as a proof of concept rather than a
-generalization claim: the test split is drawn from the same three-day market
-episode as the training data, and "out-of-sample" here means held-out within
-that window, not evaluated across different market conditions. The finding
-establishes that the learning problem is tractable and that the chosen feature
-set carries sufficient signal for the agent to develop a policy superior to
-passive benchmarks under these conditions.
+risk-adjusted basis.** The evaluation offers only qualified support for this
+hypothesis. On the held-out test window — which is characterized by a slight
+market decline — the agent records a total return of $-0.014\%$, better than
+buy-and-hold ($-0.070\%$), TWAP ($-0.057\%$), and VWAP ($-0.061\%$). However,
+the mechanism is near-neutral positioning (54.9\% long, 45.1\% short) rather
+than directional trading skill: the agent avoids the brunt of the market
+decline by holding minimal net exposure. Trade-level quality metrics tell a
+more sobering story — a win rate of 1.3\% and a profit factor of $3.65 \times
+10^{-3}$ confirm that the vast majority of individual position adjustments are
+loss-generating. Maximum drawdown is contained at $-0.014\%$ versus $-0.37\%$
+for buy-and-hold, again as a consequence of low net exposure rather than active
+risk management. H1 is therefore supported in the narrow sense that the agent
+produces a better realized return than passive benchmarks on this specific test
+window, but not in the stronger sense originally contemplated: the
+outperformance reflects risk avoidance through near-neutral positioning, not
+the development of a profitable directional strategy. These results should be
+read as a feasibility finding — the learning problem is tractable and the agent
+avoids systematic mispositioning — rather than as evidence of a deployable
+trading edge.
 
 **Hypothesis 2: a broader microstructure-aware feature set improves out-of-sample
 performance relative to a simpler snapshot-based state representation.** The
