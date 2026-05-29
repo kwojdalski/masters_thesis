@@ -244,8 +244,10 @@ def test_configure_periodic_hooks_filters_splits_and_clamps_eval_steps(
     )
     config = SimpleNamespace(
         training=SimpleNamespace(
-            temp_eval_splits=["train", "val", "missing", "test"],
-            temp_eval_max_steps=2,
+            temp_eval=SimpleNamespace(
+                splits=["train", "val", "missing", "test"],
+                max_steps=2,
+            ),
         ),
         explainability=SimpleNamespace(n_steps=7),
     )
