@@ -69,7 +69,7 @@ app.add_typer(validate_app, name="validate")
 def _configure_logging(verbose: bool, log_regex: str | None) -> None:
     """Configure logging based on CLI context."""
     env_level = os.environ.get("LOG_LEVEL", "").upper()
-    if env_level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+    if env_level not in {"TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
         env_level = ""
     if verbose:
         level = "DEBUG"
