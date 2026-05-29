@@ -154,7 +154,7 @@ class StrategyEvaluator:
         _step_counter = [0]
         _t_last = [_time.monotonic()]
 
-        def _progress_cb(td: Any) -> None:
+        def _progress_cb(*args: Any) -> None:
             _step_counter[0] += 1
             if _step_counter[0] % _log_interval == 0:
                 now = _time.monotonic()
