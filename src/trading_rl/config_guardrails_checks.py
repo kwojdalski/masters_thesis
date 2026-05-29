@@ -1291,6 +1291,393 @@ def _check_off_policy_too_few_total_updates(config: ExperimentConfig) -> Finding
     return None
 
 
+def _is_sac(algorithm: str) -> bool:
+    """Check if algorithm is SAC (Soft Actor-Critic)."""
+    return algorithm.upper() == "SAC"
+
+
+def _is_td3(algorithm: str) -> bool:
+    """Check if algorithm is TD3 (Twin Delayed DDPG)."""
+    return algorithm.upper() == "TD3"
+
+
+# ---------------------------------------------------------------------------
+# SAC-specific guardrails
+# ---------------------------------------------------------------------------
+
+
+def _check_sac_initial_alpha_too_large(config: ExperimentConfig) -> Finding | None:
+    """WARN (SAC): initial_alpha > 1.0 → entropy term dominates; policy commits to random actions."""
+    if not _is_sac(config.training.algorithm):
+        return None
+    alpha = config.training.sac.initial_alpha
+    if alpha > 1.0:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.sac.initial_alpha",
+            message=(
+                f"initial_alpha={alpha}: the entropy coefficient is very large. "
+                "In SAC the objective is J = Q(s,a) - α log π(a|s). With α > 1, "
+                "the entropy term dominates and the policy is pushed toward maximum "
+                "entropy (uniform) regardless of value estimates. The agent effectively "
+                "learns to act randomly."
+            ),
+            suggestion="Typical values are 0.1–0.5. Consider initial_alpha=0.2.",
+        )
+    return None
+
+
+def _check_sac_initial_alpha_too_small(config: ExperimentConfig) -> Finding | None:
+    """WARN (SAC): initial_alpha < 0.01 → almost no exploration; policy may commit prematurely."""
+    if not _is_sac(config.training.algorithm):
+        return None
+    alpha = config.training.sac.initial_alpha
+    if alpha < 0.01:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.sac.initial_alpha",
+            message=(
+                f"initial_alpha={alpha}: the entropy coefficient is near-zero. "
+                "SAC relies on entropy regularization for exploration; with such a low "
+                "initial value the policy is almost deterministic from the start. "
+                "This can cause premature convergence to suboptimal deterministic policies."
+            ),
+            suggestion="Typical values are 0.1–0.5. Consider initial_alpha=0.2.",
+        )
+    return None
+
+
+def _check_sac_target_entropy_implausible(config: ExperimentConfig) -> Finding | None:
+    """WARN (SAC): target_entropy outside plausible range for action dimension."""
+    if not _is_sac(config.training.algorithm):
+        return None
+    target = config.training.sac.target_entropy
+    if target is None:
+        return None  # Auto-set to -dim, which is correct
+
+    # For continuous actions with TanhNormal, max entropy is -dim (uniform distribution)
+    # Minimal plausible entropy depends on action space, but -0.1 * dim is a reasonable lower bound
+    # We need n_act which depends on env, but we can infer from action bounds if available
+    # or just use a generic warning for extreme values
+    if target > 0:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.sac.target_entropy",
+            message=(
+                f"target_entropy={target} > 0: target entropy is positive. "
+                "Entropy is always ≤ 0 for continuous distributions; a positive target "
+                "is meaningless and may cause the alpha optimizer to diverge."
+            ),
+            suggestion="Set target_entropy to a negative value (e.g. -dim(actions)), or None for auto.",
+        )
+    if target < -10:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.sac.target_entropy",
+            message=(
+                f"target_entropy={target}: very negative target entropy. "
+                "This asks the policy to be extremely deterministic, which may limit "
+                "exploration and cause premature convergence. A continuous action's "
+                "maximum entropy is approximately -dim(actions)."
+            ),
+            suggestion="Typical values are in [-dim(actions), -0.5*dim(actions)]. Consider None for auto (-dim).",
+        )
+    return None
+
+
+def _check_sac_alpha_lr_imbalance(config: ExperimentConfig) -> Finding | None:
+    """WARN (SAC): alpha_lr >> actor_lr → temperature adapts faster than policy, causing instability."""
+    if not _is_sac(config.training.algorithm):
+        return None
+    alpha_lr = config.training.sac.alpha_lr
+    actor_lr = config.training.actor_lr
+    if alpha_lr > actor_lr * 10:
+        ratio = alpha_lr / actor_lr
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.sac.alpha_lr / training.actor_lr",
+            message=(
+                f"alpha_lr={alpha_lr:.2e} is {ratio:.0f}× actor_lr={actor_lr:.2e}. "
+                "The temperature parameter α will adapt much faster than the policy, "
+                "causing the entropy regularization strength to fluctuate wildly during "
+                "training. This destabilizes the policy objective J = Q - α log π."
+            ),
+            suggestion="Keep alpha_lr within 1–10× of actor_lr. Typical: both in [1e-4, 3e-4].",
+        )
+    if alpha_lr < actor_lr / 10:
+        ratio = actor_lr / alpha_lr
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.sac.alpha_lr / training.actor_lr",
+            message=(
+                f"alpha_lr={alpha_lr:.2e} is {ratio:.0f}× smaller than actor_lr={actor_lr:.2e}. "
+                "The temperature parameter adapts so slowly that α essentially never adjusts "
+                "from its initial value. You might as well use a fixed_alpha SAC variant."
+            ),
+            suggestion="Increase alpha_lr to be within 0.1–1× of actor_lr. Typical: both in [1e-4, 3e-4].",
+        )
+    return None
+
+
+# ---------------------------------------------------------------------------
+# TD3-specific guardrails
+# ---------------------------------------------------------------------------
+
+
+def _check_td3_policy_delay_too_small(config: ExperimentConfig) -> Finding | None:
+    """WARN (TD3): delay_actor < 2 → eliminates TD3's key advantage over DDPG."""
+    if not _is_td3(config.training.algorithm):
+        return None
+    delay = config.training.td3.delay_actor
+    if delay < 2:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.td3.delay_actor",
+            message=(
+                f"delay_actor={delay}: TD3 updates the actor every {delay} critic steps, "
+                f"but TD3's key innovation is delayed actor updates (typically 2 or more). "
+                "With delay < 2, the actor updates every step, which eliminates the "
+                "variance reduction benefit and makes TD3 essentially DDPG with twin critics."
+            ),
+            suggestion="Set delay_actor >= 2. The original TD3 paper uses delay_actor=2.",
+        )
+    if delay > 10:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.td3.delay_actor",
+            message=(
+                f"delay_actor={delay}: actor updates only every {delay} critic steps. "
+                "Such a large delay can slow policy improvement significantly, especially "
+                "in the early stages of training when the critic is still learning."
+            ),
+            suggestion="Typical values are 1–3. Consider delay_actor=2.",
+        )
+    return None
+
+
+def _check_td3_exploration_noise_too_large(config: ExperimentConfig) -> Finding | None:
+    """WARN (TD3): exploration_noise_std > 1.0 → noise overwhelms policy output."""
+    if not _is_td3(config.training.algorithm):
+        return None
+    noise = config.training.td3.exploration_noise_std
+    if noise > 1.0:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.td3.exploration_noise_std",
+            message=(
+                f"exploration_noise_std={noise}: TD3 actor output is bounded to [-1, 1] "
+                "(via tanh), but the exploration noise standard deviation exceeds that range. "
+                "Actions are dominated by noise rather than policy, making exploration "
+                "essentially random regardless of what the network learns."
+            ),
+            suggestion="Typical values are 0.05–0.3. Consider exploration_noise_std=0.1.",
+        )
+    return None
+
+
+# ---------------------------------------------------------------------------
+# General learning rate guardrails
+# ---------------------------------------------------------------------------
+
+
+def _check_actor_lr_too_small(config: ExperimentConfig) -> Finding | None:
+    """WARN: actor_lr < 1e-5 → policy essentially never updates."""
+    lr = config.training.actor_lr
+    if lr < 1e-5:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.actor_lr",
+            message=(
+                f"actor_lr={lr:.2e} is extremely small. With Adam, a learning rate "
+                "below 1e-5 means parameter updates are so tiny that the policy "
+                "effectively never changes, even after many gradient steps. Training "
+                "will appear to run but the agent will not learn."
+            ),
+            suggestion="Typical actor LRs are 1e-4–3e-4. Consider actor_lr=1e-4.",
+        )
+    return None
+
+
+def _check_value_lr_too_small(config: ExperimentConfig) -> Finding | None:
+    """WARN: value_lr < 1e-5 → critic essentially never learns."""
+    lr = config.training.value_lr
+    if lr < 1e-5:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.value_lr",
+            message=(
+                f"value_lr={lr:.2e} is extremely small. The critic updates so slowly "
+                "that value estimates remain near their initialisation throughout training. "
+                "This produces noisy or flat advantages, making policy updates ineffective."
+            ),
+            suggestion="Typical value LRs are 1e-3–3e-3 (10× actor). Consider value_lr=1e-3.",
+        )
+    return None
+
+
+def _check_weight_decay_imbalance(config: ExperimentConfig) -> Finding | None:
+    """WARN: actor_weight_decay and value_weight_decay differ by > 100×."""
+    awd = config.training.actor_weight_decay
+    vwd = config.training.value_weight_decay
+    if awd == 0 and vwd == 0:
+        return None
+    if awd > 0 and vwd > 0:
+        ratio = max(awd, vwd) / min(awd, vwd)
+        if ratio > 100:
+            larger = "actor" if awd > vwd else "value"
+            return Finding(
+                severity=Severity.WARN,
+                parameter="training.actor_weight_decay / training.value_weight_decay",
+                message=(
+                    f"{larger}_weight_decay is {ratio:.0f}× the other. Such asymmetric "
+                    f"L2 regularization heavily penalises one network relative to the other, "
+                    "biasing the learning dynamics. The heavily regularized network may "
+                    "underfit while the other overfits."
+                ),
+                suggestion="Keep weight decay ratios within 10–100×. Typical: actor=1e-4, value=1e-2.",
+            )
+    return None
+
+
+def _check_sample_size_too_small(config: ExperimentConfig) -> Finding | None:
+    """WARN: sample_size < 16 → gradient estimates are very noisy."""
+    s = config.training.sample_size
+    if s < 16:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.sample_size",
+            message=(
+                f"sample_size={s}: mini-batches smaller than 16 produce very noisy "
+                "gradient estimates. High variance updates can cause training instability "
+                "and slow convergence, especially for value-based methods."
+            ),
+            suggestion="Set sample_size >= 32, ideally 64–256 for stable gradients.",
+        )
+    return None
+
+
+def _check_optim_steps_excessive(config: ExperimentConfig) -> Finding | None:
+    """WARN: optim_steps_per_batch > 100 → risk of overfitting to a single batch."""
+    steps = config.training.optim_steps_per_batch
+    if steps > 100:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.optim_steps_per_batch",
+            message=(
+                f"optim_steps_per_batch={steps}: performing many gradient updates on "
+                "the same collected batch before collecting new data. This risks "
+                "overfitting to the current batch, especially early in training when "
+                "the replay buffer has high temporal correlation."
+            ),
+            suggestion="Typical values are 1–10. Consider optim_steps_per_batch <= 10.",
+        )
+    return None
+
+
+def _check_frames_per_batch_vs_max_steps(config: ExperimentConfig) -> Finding | None:
+    """WARN: frames_per_batch > max_steps // 2 → fewer than 2 gradient updates total."""
+    f = config.training.frames_per_batch
+    ms = config.training.max_steps
+    if f > ms // 2:
+        updates = ms // f
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.frames_per_batch / training.max_steps",
+            message=(
+                f"frames_per_batch={f:,} allows only ~{updates} collection iteration(s) "
+                f"before max_steps={ms:,} is reached. With so few gradient updates, "
+                "meaningful learning is unlikely."
+            ),
+            suggestion=f"Set frames_per_batch <= max_steps // 10 = {ms // 10:,} for ~10 updates.",
+        )
+    return None
+
+
+def _check_buffer_size_vs_sample_size(config: ExperimentConfig) -> Finding | None:
+    """WARN (off-policy): buffer_size < 10 × sample_size → samples are highly correlated."""
+    if not _is_off_policy(config.training.algorithm) and not _is_sac(config.training.algorithm):
+        return None
+    b = config.training.buffer_size
+    s = config.training.sample_size
+    if b < s * 10:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="training.buffer_size / training.sample_size",
+            message=(
+                f"buffer_size={b:,} is only {b / s:.1f}× sample_size={s}. "
+                "With such a small buffer, sampled mini-batches have high temporal "
+                "correlation, reducing the variance-reduction benefit of experience replay."
+            ),
+            suggestion=f"Set buffer_size >= sample_size × 50 = {s * 50:,}.",
+        )
+    return None
+
+
+def _check_first_layer_bottleneck(config: ExperimentConfig) -> Finding | None:
+    """WARN: first hidden layer narrower than observation dim → input information bottleneck."""
+    if not config.network.actor_hidden_dims:
+        return None
+    first_layer = config.network.actor_hidden_dims[0]
+    # Observation dimension varies; we can't get it directly from config
+    # But we can warn if it's suspiciously small (less than 16)
+    if first_layer < 16:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="network.actor_hidden_dims",
+            message=(
+                f"actor_hidden_dims first layer={first_layer} is very narrow. "
+                "If this is smaller than the observation dimension, it creates an "
+                "information bottleneck at the input that prevents the network from "
+                "learning useful representations."
+            ),
+            suggestion="Use at least 32 units in the first layer, ideally 64–128.",
+        )
+    return None
+
+
+def _check_network_depth_mismatch(config: ExperimentConfig) -> Finding | None:
+    """WARN: actor and value networks have vastly different depths."""
+    actor_depth = len(config.network.actor_hidden_dims)
+    value_depth = len(config.network.value_hidden_dims)
+    if abs(actor_depth - value_depth) >= 3:
+        return Finding(
+            severity=Severity.WARN,
+            parameter="network.actor_hidden_dims / network.value_hidden_dims",
+            message=(
+                f"Actor has {actor_depth} hidden layers, value has {value_depth}. "
+                "Large depth differences mean the two networks have very different "
+                "representational capacities and learning speeds. This can cause "
+                "training instability, especially when the value function is used "
+                "as the bootstrap target."
+            ),
+            suggestion="Keep layer counts within 1–2 of each other. Typical: both 2–3 layers.",
+        )
+    return None
+
+
+def _check_action_bounds_asymmetry(config: ExperimentConfig) -> Finding | None:
+    """WARN (continuous): action bounds highly asymmetric → bias toward one side of action space."""
+    # This only applies to continuous action environments with custom bounds
+    thresholds = config.env.continuous_action_thresholds
+    if not thresholds or len(thresholds) < 2:
+        return None
+    lo, hi = thresholds[0], thresholds[1]
+    if abs(lo + hi) > 0.3:  # Not symmetric around 0
+        mid = (lo + hi) / 2
+        return Finding(
+            severity=Severity.WARN,
+            parameter="env.continuous_action_thresholds",
+            message=(
+                f"continuous_action_thresholds=[{lo}, {hi}] are asymmetric around 0 "
+                f"(midpoint={mid:.2f}). The tanh output is symmetric, so asymmetric "
+                "thresholds create a bias where one extreme position is easier to reach "
+                "than the other. The agent may learn to favor one side."
+            ),
+            suggestion="Use symmetric thresholds around 0, e.g. [-0.33, 0.33].",
+        )
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Registry and public entry point
 # ---------------------------------------------------------------------------
@@ -1350,6 +1737,23 @@ _ALL_CHECKS = [
     _check_off_policy_too_few_total_updates,
     _check_es_stale_policy_config,
     _check_es_saturation_config,
+    # New guardrails
+    _check_sac_initial_alpha_too_large,
+    _check_sac_initial_alpha_too_small,
+    _check_sac_target_entropy_implausible,
+    _check_sac_alpha_lr_imbalance,
+    _check_td3_policy_delay_too_small,
+    _check_td3_exploration_noise_too_large,
+    _check_actor_lr_too_small,
+    _check_value_lr_too_small,
+    _check_weight_decay_imbalance,
+    _check_sample_size_too_small,
+    _check_optim_steps_excessive,
+    _check_frames_per_batch_vs_max_steps,
+    _check_buffer_size_vs_sample_size,
+    _check_first_layer_bottleneck,
+    _check_network_depth_mismatch,
+    _check_action_bounds_asymmetry,
 ]
 
 
