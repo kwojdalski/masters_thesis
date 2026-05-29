@@ -45,6 +45,33 @@ _PLAIN_FMT = (
     "{name}:{function}:{line} - {message}"
 )
 
+# Matches the value part of key=value tokens in log messages.
+# Excludes whitespace and characters used by loguru markup (<>) and Python
+# format strings ({}) so we never accidentally consume a color tag or brace.
+_KV_VALUE_RE = re.compile(r"(?<==)([^\s,\)\]\[|{}<>]+)")
+
+
+def _highlight_kv(msg: str) -> str:
+    """Color numeric values blue and string values yellow in key=value pairs."""
+    def _replace(m: re.Match) -> str:
+        val = m.group(1)
+        try:
+            float(val)
+            return f"<blue>{val}</blue>"
+        except ValueError:
+            return f"<yellow>{val}</yellow>"
+    return _KV_VALUE_RE.sub(_replace, msg)
+
+
+def _make_kv_format(fmt: str) -> Any:
+    """Return a loguru format callable that highlights key=value pairs."""
+    def _format(record: dict) -> str:
+        highlighted = _highlight_kv(record["message"])
+        # Escape bare braces so format_map doesn't misinterpret message content.
+        safe = highlighted.replace("{", "{{").replace("}", "}}")
+        return fmt.replace("{message}", safe, 1) + "\n"
+    return _format
+
 
 def setup_logging(
     level: str = "INFO",
@@ -81,11 +108,13 @@ def setup_logging(
         fmt = format_string
 
     if console_output:
+        use_color = colored_output and not structured_logging
+        console_fmt = _make_kv_format(fmt) if use_color else fmt
         logger.add(
             sys.stdout,
             level=level.upper(),
-            format=fmt,
-            colorize=colored_output and not structured_logging,
+            format=console_fmt,
+            colorize=use_color,
             serialize=structured_logging,
             filter=_filter,
         )

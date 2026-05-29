@@ -123,7 +123,7 @@ class TD3Trainer(BaseTrainer):
         self.policy_delay = config.td3.policy_delay
 
         logger.info(
-            "init td3 trainer actor_lr={} value_lr={} exploration_noise_std=%.3f policy_noise=%.3f noise_clip=%.3f policy_delay=%d",
+            "init td3 trainer actor_lr={} value_lr={} exploration_noise_std={:.3f} policy_noise={:.3f} noise_clip={:.3f} policy_delay={}",
             config.actor_lr,
             config.value_lr,
             config.td3.exploration_noise_std,
@@ -254,7 +254,7 @@ class TD3Trainer(BaseTrainer):
                 actions = sample["action"]
                 rewards = sample["next", "reward"]
                 logger.trace(
-                    "td3 batch sample stats batch=%d step=%d "
+                    "td3 batch sample stats batch={} step={} "
                     "action_mean={} action_std={} action_min={} action_max={} "
                     "reward_mean={} reward_std={} reward_min={} reward_max={}",
                     batch_idx, j,
@@ -338,7 +338,7 @@ class TD3Trainer(BaseTrainer):
         import numpy as np
         actions = eval_rollout["action"]
         logger.trace(
-            "td3 eval action stats n=%d mean=%.4f std=%.4f",
+            "td3 eval action stats n={} mean={:.4f} std={:.4f}",
             actions.numel(), actions.mean(), actions.std(),
         )
         logger.trace("td3 eval action min={} max={}", actions.min(), actions.max())
@@ -358,7 +358,7 @@ class TD3Trainer(BaseTrainer):
     def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for RL agent, with exploration for TD3."""
         logger.debug(
-            "td3 train config max_steps=%d init_rand_steps=%d frames_per_batch=%d buffer_size=%d",
+            "td3 train config max_steps={} init_rand_steps={} frames_per_batch={} buffer_size={}",
             self.config.max_steps, self.config.init_rand_steps,
             self.config.frames_per_batch, self.config.buffer_size,
         )
@@ -377,7 +377,7 @@ class TD3Trainer(BaseTrainer):
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
                 logger.trace(
-                    "batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
+                    "batch={} steps={} buffer_size={}", i, data.numel(), buffer_len
                 )
                 logger.trace(
                     "episode reward stats mean={} std={}",

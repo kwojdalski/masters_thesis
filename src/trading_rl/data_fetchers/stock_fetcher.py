@@ -297,7 +297,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
 
         result = pd.concat(frames).sort_index()
         self.logger.info(
-            "Converted %d %s records to %d OHLCV bars (%s)",
+            "Converted {} {} records to {} OHLCV bars ({})",
             len(df),
             schema,
             len(result),

@@ -510,7 +510,7 @@ def _build_per_day_splits(
         else min(_cfg_workers, len(all_symbols))
     )
     logger.info(
-        "per-day mode: processing %d symbols with %d workers", len(all_symbols), n_workers
+        "per-day mode: processing {} symbols with {} workers", len(all_symbols), n_workers
     )
 
     worker_args = []
@@ -617,7 +617,7 @@ def _build_per_day_splits(
         val_df  = pd.read_parquet(val_tmp[_si]["val"])
         test_df = pd.read_parquet(val_tmp[_si]["test"])
         logger.info(
-            "streaming mode (per-day): representative sample symbol_index=%d val=%d test=%d",
+            "streaming mode (per-day): representative sample symbol_index={} val={} test={}",
             _si, len(val_df), len(test_df),
         )
     else:
@@ -655,7 +655,7 @@ def _build_per_day_splits(
         test_df = test_df.iloc[:test_size_cfg]
 
     logger.info(
-        "per-day splits: n_train_memmaps=%d train_sample=%d val=%d test=%d",
+        "per-day splits: n_train_memmaps={} train_sample={} val={} test={}",
         len(collected_memmap_paths),
         len(first_train_df) if first_train_df is not None else 0,
         len(val_df),
@@ -745,7 +745,7 @@ def _build_pooled_splits(
                     )
                 else:
                     logger.info(
-                        "memmap cache mismatch prefix={} expected_rows=%d actual_rows=%d",
+                        "memmap cache mismatch prefix={} expected_rows={} actual_rows={}",
                         prefix,
                         len(train_i),
                         data.shape[0],
@@ -776,8 +776,8 @@ def _build_pooled_splits(
         val_df   = pd.read_parquet(tmp_paths[_si]["val"])
         test_df  = pd.read_parquet(tmp_paths[_si]["test"])
         logger.info(
-            "streaming mode: representative sample symbol_index=%d of %d"
-            " train=%d val=%d test=%d", _si, len(tmp_paths), len(train_df), len(val_df), len(test_df),
+            "streaming mode: representative sample symbol_index={} of {}"
+            " train={} val={} test={}", _si, len(tmp_paths), len(train_df), len(val_df), len(test_df),
         )
     else:
         train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths])
@@ -989,7 +989,7 @@ def prepare_data(
             _val_end = _train + _val
             _test_end = (_val_end + cfg.test_size) if cfg.test_size is not None else _n
             logger.trace(
-                "cache slice key={} train=0:%d val=%d:%d test=%d:%d",
+                "cache slice key={} train=0:{} val={}:{} test={}:{}",
                 _cache_key[:8], _train, _train, _val_end, _val_end, _test_end,
             )
             return (
@@ -1052,7 +1052,7 @@ def prepare_data(
     test_df_raw = df[val_end:test_end].copy()
 
     logger.info(
-        "split data train=%d val=%d test=%d",
+        "split data train={} val={} test={}",
         len(train_df_raw),
         len(val_df_raw),
         len(test_df_raw),
@@ -1092,9 +1092,9 @@ def prepare_data(
 
     logger.info(
         "feature engineering complete"
-        " train_n_rows=%d train_n_cols=%d"
-        " val_n_rows=%d val_n_cols=%d"
-        " test_n_rows=%d test_n_cols=%d",
+        " train_n_rows={} train_n_cols={}"
+        " val_n_rows={} val_n_cols={}"
+        " test_n_rows={} test_n_cols={}",
         *train_df.shape, *val_df.shape, *test_df.shape,
     )
     feature_cols = [c for c in train_df.columns if str(c).startswith("feature_")]

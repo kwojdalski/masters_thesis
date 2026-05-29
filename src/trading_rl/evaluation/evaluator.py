@@ -185,7 +185,7 @@ class StrategyEvaluator:
                     rollout = env.rollout(max_steps=max_steps, policy=self.policy, callback=_progress_cb)
         actual_steps = rollout.shape[0] if rollout.ndim > 0 else 1
         logger.debug(
-            "rollout done requested=%d actual=%d elapsed_s=%.2f",
+            "rollout done requested={} actual={} elapsed_s={:.2f}",
             max_steps, actual_steps, _time.monotonic() - _t,
         )
         return rollout

@@ -116,7 +116,7 @@ def main() -> int:
             logger.warning("[{}] export failed or skipped: {}", hyp.upper(), scenario)
 
     logger.info(
-        "export complete  exported=%d  skipped/failed=%d",
+        "export complete  exported={}  skipped/failed={}",
         len(ok), len(skipped),
     )
 

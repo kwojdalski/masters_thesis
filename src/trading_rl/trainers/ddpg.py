@@ -100,7 +100,7 @@ class DDPGTrainer(BaseTrainer):
         )
 
         logger.info(
-            "init ddpg trainer actor_lr={} value_lr={} buffer_size=%d tau={} exploration_noise_std=%.3f",
+            "init ddpg trainer actor_lr={} value_lr={} buffer_size={} tau={} exploration_noise_std={:.3f}",
             config.actor_lr,
             config.value_lr,
             config.buffer_size,
@@ -271,7 +271,7 @@ class DDPGTrainer(BaseTrainer):
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
                 logger.trace(
-                    "ddpg batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
+                    "ddpg batch={} steps={} buffer_size={}", i, data.numel(), buffer_len
                 )
                 logger.trace(
                     "ddpg episode reward stats mean={} std={}",

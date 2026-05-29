@@ -405,7 +405,7 @@ def _build_time_series_cv_splits(
         original_n_splits = n_splits
         n_splits = (n_samples - min_train_size - test_size) // (gap + test_size) + 1
         logger.warning(
-            "Reducing n_splits to %d due to insufficient data for %d splits",
+            "Reducing n_splits to {} due to insufficient data for {} splits",
             n_splits, original_n_splits
         )
 
@@ -418,14 +418,14 @@ def _build_time_series_cv_splits(
 
         if val_end > n_samples:
             logger.warning(
-                "Split %d exceeds data bounds, stopping early", i
+                "Split {} exceeds data bounds, stopping early", i
             )
             break
 
         splits.append((train_start, train_end, val_start, val_end))
 
     logger.info(
-        "Generated %d time-series CV splits with min_train_size=%d, test_size=%d, gap=%d",
+        "Generated {} time-series CV splits with min_train_size={}, test_size={}, gap={}",
         len(splits), min_train_size, test_size, gap
     )
 
@@ -526,7 +526,7 @@ def _build_multi_horizon_score_table(
 
         if train_aligned.empty or val_aligned.empty:
             logger.warning(
-                "Horizon %d produced empty frames after alignment, skipping", h
+                "Horizon {} produced empty frames after alignment, skipping", h
             )
             continue
 
@@ -695,7 +695,7 @@ def _ensemble_select_features(
         ]
 
         logger.info(
-            "Majority voting: %d features selected (threshold=%d/%d splits)",
+            "Majority voting: {} features selected (threshold={}/{} splits)",
             len(ensemble_selected), threshold, n_splits
         )
         return ensemble_selected
@@ -726,7 +726,7 @@ def _ensemble_select_features(
         )
 
         logger.info(
-            "Rank averaging: %d features selected across %d splits",
+            "Rank averaging: {} features selected across {} splits",
             len(ensemble_selected), n_splits
         )
         return ensemble_selected
@@ -760,7 +760,7 @@ def _ensemble_select_features(
         )
 
         logger.info(
-            "Weighted ensemble: %d features selected across %d splits",
+            "Weighted ensemble: {} features selected across {} splits",
             len(ensemble_selected), n_splits
         )
         return ensemble_selected
@@ -886,8 +886,8 @@ class FeatureSelector:
         """Run single-split IC/ICIR feature selection."""
         cfg = self.config
         logger.info(
-            "Starting IC/ICIR feature selection: %d candidates, top_k=%d, "
-            "icir_threshold=%.3f, horizon=%d, multi_horizon={}",
+            "Starting IC/ICIR feature selection: {} candidates, top_k={}, "
+            "icir_threshold={:.3f}, horizon={}, multi_horizon={}",
             len(feature_configs),
             cfg.top_k,
             cfg.icir_threshold,
@@ -979,7 +979,7 @@ class FeatureSelector:
         ]
 
         logger.info(
-            "Feature selection complete: %d of %d candidates selected",
+            "Feature selection complete: {} of {} candidates selected",
             len(selected_configs),
             len(feature_configs),
         )
@@ -1003,7 +1003,7 @@ class FeatureSelector:
         cfg = self.config
 
         logger.info(
-            "Starting cross-validated feature selection: %d candidates, n_splits=%d, "
+            "Starting cross-validated feature selection: {} candidates, n_splits={}, "
             "ensemble_method={}, multi_horizon={}",
             len(feature_configs),
             cfg.n_cv_splits,
@@ -1028,7 +1028,7 @@ class FeatureSelector:
 
         for split_idx, (train_start, train_end, val_start, val_end) in enumerate(splits):
             logger.info(
-                "Processing CV split %d: train=%d:%d, val=%d:%d",
+                "Processing CV split {}: train={}:{}, val={}:{}",
                 split_idx + 1, train_start, train_end, val_start, val_end
             )
 
@@ -1041,12 +1041,12 @@ class FeatureSelector:
                 split_scores.append(result.scores)
 
                 logger.info(
-                    "Split %d: Selected %d features",
+                    "Split {}: Selected {} features",
                     split_idx + 1, len(result.selected_names)
                 )
             except Exception as e:
                 logger.warning(
-                    "Split %d failed: {}. Skipping this split.",
+                    "Split {} failed: {}. Skipping this split.",
                     split_idx + 1, str(e)
                 )
                 continue
@@ -1160,8 +1160,8 @@ class FeatureSelector:
         ]
 
         logger.info(
-            "Cross-validated selection complete: %d of %d candidates selected "
-            "(across %d CV splits)",
+            "Cross-validated selection complete: {} of {} candidates selected "
+            "(across {} CV splits)",
             len(selected_configs),
             len(feature_configs),
             len(split_selections),
@@ -1252,7 +1252,7 @@ class FeatureSelector:
                     )
 
                     logger.info(
-                        "Config {}: score=%.4f, n_selected=%d",
+                        "Config {}: score={:.4f}, n_selected={}",
                         param_dict, config_score, len(result.selected_configs)
                     )
 

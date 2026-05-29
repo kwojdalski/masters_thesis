@@ -108,7 +108,7 @@ class FeatureGroupResolver:
             )
 
         logger.info(
-            "Loaded %d feature groups from {}",
+            "Loaded {} feature groups from {}",
             len(data["groups"]),
             yaml_path,
         )
@@ -200,7 +200,7 @@ class FeatureGroupResolver:
                 configs.append(cfg)
 
         logger.info(
-            "Resolved %d groups into %d features (excluded %d)",
+            "Resolved {} groups into {} features (excluded {})",
             len(group_names),
             len(configs),
             len(exclude_set),

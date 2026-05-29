@@ -64,7 +64,7 @@ class TrainingHealthMonitor:
             ratio = float(np.sum(np.diff(arr) != 0)) / (arr.size - 1) if arr.size > 1 else 0.0
             self._change_ratios.append(ratio)
             logger.trace(
-                "health_monitor episode_change_ratio=%.4f window=%d/%d",
+                "health_monitor episode_change_ratio={:.4f} window={}/{}",
                 ratio, len(self._change_ratios), self._stale_window,
             )
 
@@ -73,7 +73,7 @@ class TrainingHealthMonitor:
                 pct_extreme = float(np.mean(arr != 0)) if arr.size > 0 else 0.0
             self._saturation_rates.append(pct_extreme)
             logger.trace(
-                "health_monitor episode_saturation=%.4f window=%d/%d",
+                "health_monitor episode_saturation={:.4f} window={}/{}",
                 pct_extreme, len(self._saturation_rates), self._saturation_window,
             )
 

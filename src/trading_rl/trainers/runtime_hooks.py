@@ -360,7 +360,7 @@ class TrainerRuntimeHooks:
                                         f"evaluation_plots_temp/{split_ctx.split}",
                                     )
                                 logger.trace(
-                                    "temp eval: progression plot uploaded split={} checkpoints=%d",
+                                    "temp eval: progression plot uploaded split={} checkpoints={}",
                                     split_ctx.split, len(_prog_history),
                                 )
                         except Exception:
@@ -440,7 +440,7 @@ class TrainerRuntimeHooks:
             except Exception:
                 self._eval_consecutive_failures += 1
                 logger.error(
-                    "temp eval failed split=%s step=%s elapsed=%.2fs (failure %d/%d)",
+                    "temp eval failed split={} step={} elapsed={:.2f}s (failure {}/{})",
                     split_ctx.split, step_number, time.monotonic() - _t_split,
                     self._eval_consecutive_failures, self._MAX_HOOK_FAILURES,
                 )
@@ -458,7 +458,7 @@ class TrainerRuntimeHooks:
                         _staged_prog_entry
                     )
                     logger.trace(
-                        "temp eval: progression entry committed split={} step={} n=%d",
+                        "temp eval: progression entry committed split={} step={} n={}",
                         split_ctx.split, step_number,
                         len(self._progression_history[split_ctx.split]),
                     )
@@ -504,7 +504,7 @@ class TrainerRuntimeHooks:
                                 "evaluation_plots_temp",
                             )
                         logger.trace(
-                            "temp eval: train/val progression plot uploaded train_checkpoints=%d val_checkpoints=%d",
+                            "temp eval: train/val progression plot uploaded train_checkpoints={} val_checkpoints={}",
                             len(train_history), len(val_history),
                         )
                 except Exception:
@@ -618,7 +618,7 @@ class TrainerRuntimeHooks:
         except Exception:
             self._explainability_consecutive_failures += 1
             logger.error(
-                "Temporary explainability failed at step %s (failure %d/%d)",
+                "Temporary explainability failed at step {} (failure {}/{})",
                 step_number,
                 self._explainability_consecutive_failures, self._MAX_HOOK_FAILURES,
             )

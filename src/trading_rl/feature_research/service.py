@@ -197,7 +197,7 @@ def _build_score_table(
 
             if len(val_aligned) < 10:
                 logger.warning(
-                    "Insufficient val data for feature=%s horizon=%d (%d rows); "
+                    "Insufficient val data for feature={} horizon={} ({} rows); "
                     "val_mean_ic set to NaN",
                     feat, h, len(val_aligned),
                 )
@@ -432,7 +432,7 @@ def _score_single_symbol(
         train_size = max(10, int(len(raw_df) * 0.8))
         logger.info(
             "train_size exceeds file length for '{}' — using proportional split "
-            "train=%d (80 %%) val=%d (10 %%)",
+            "train={} (80%) val={} (10%)",
             symbol, train_size, int(len(raw_df) * 0.1),
         )
 
@@ -543,7 +543,7 @@ def run_feature_research(
     multi_symbol = len(data_paths) > 1
 
     logger.info(
-        "feature scoring target_type={} horizons={} vol_window=%d n_symbols=%d",
+        "feature scoring target_type={} horizons={} vol_window={} n_symbols={}",
         config.research.target_type,
         config.research.horizons,
         config.research.vol_window,
@@ -632,7 +632,7 @@ def run_feature_research(
     )
 
     logger.info(
-        "Offline feature research complete: %d features ranked, %d selected",
+        "Offline feature research complete: {} features ranked, {} selected",
         len(scores),
         len(selected_features),
     )

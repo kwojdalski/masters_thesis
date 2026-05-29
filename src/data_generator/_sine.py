@@ -215,7 +215,7 @@ def generate_hft_sine_wave_lob(
     df.to_parquet(output_path)
     log_dataset_summary(df, output_path, context="HFT sine wave LOB pattern", logger=logger)
     logger.info(
-        "Mid-price range: %.4f - %.4f | action mix A/C/T: %d/%d/%d",
+        "Mid-price range: {:.4f} - {:.4f} | action mix A/C/T: {}/{}/{}",
         mid_prices.min(), mid_prices.max(),
         (actions == "A").sum(), (actions == "C").sum(), is_trade.sum(),
     )

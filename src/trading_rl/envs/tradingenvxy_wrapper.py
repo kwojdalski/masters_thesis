@@ -298,7 +298,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         logger.info("reward reward_type={} eta={} scale={}", reward_type, reward_eta, reward_scale)
 
         logger.info(
-            "creating TradingEnv environment n_rows=%d n_static_cols=%d n_runtime_cols=%d price_column={} fee={}",
+            "creating TradingEnv environment n_rows={} n_static_cols={} n_runtime_cols={} price_column={} fee={}",
             len(df),
             len(static_feature_columns),
             len(runtime_feature_columns) if runtime_feature_columns else 0,
@@ -560,7 +560,7 @@ class StreamingTradingEnvXY(gym.Env):
             if mp.n_rows >= self._episode_length:
                 break
             logger.warning(
-                "StreamingTradingEnvXY: skipping symbol %d (%d rows < episode_length %d)",
+                "StreamingTradingEnvXY: skipping symbol {} ({} rows < episode_length {})",
                 file_idx,
                 mp.n_rows,
                 self._episode_length,

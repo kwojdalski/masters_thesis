@@ -83,7 +83,7 @@ def run_guardrail_check(config: ExperimentConfig) -> None:
         # Non-interactive stdin (CI, scripts, pytest) — warn and continue.
         if not sys.stdin.isatty():
             logger.warning(
-                "guardrail: %d warning(s) found but stdin is non-interactive — "
+                "guardrail: {} warning(s) found but stdin is non-interactive — "
                 "proceeding automatically. Set training.skip_guardrail_prompts=true "
                 "to silence this message.",
                 len(warns),

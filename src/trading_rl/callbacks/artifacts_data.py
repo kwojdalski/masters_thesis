@@ -154,7 +154,7 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
     selected_cols = getattr(getattr(config, "env", None), "feature_columns", None) or []
     selected_feat_cols = [c for c in selected_cols if c in df.columns and c != "feature_position"]
     logger.debug(
-        "log_transformed_data_overview: selected_cols=%d in_df=%d",
+        "log_transformed_data_overview: selected_cols={} in_df={}",
         len(selected_cols),
         len(selected_feat_cols),
     )
@@ -283,7 +283,7 @@ def log_feature_descriptive_stats(df: pd.DataFrame, config: Any) -> None:
             mlflow.log_artifact(json_path, artifact_dir)
 
         logger.info(
-            "log_feature_descriptive_stats: logged stats for %d features to {}",
+            "log_feature_descriptive_stats: logged stats for {} features to {}",
             len(feat_cols),
             artifact_dir,
         )

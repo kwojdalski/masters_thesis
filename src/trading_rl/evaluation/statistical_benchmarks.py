@@ -258,7 +258,7 @@ def compute_random_baseline_returns(
                     random_returns.append(series.to_simple().values)
                 else:
                     logger.warning(
-                        "random baseline trial %d: NLV extraction failed; trial skipped", trial
+                        "random baseline trial {}: NLV extraction failed; trial skipped", trial
                     )
                 continue
 

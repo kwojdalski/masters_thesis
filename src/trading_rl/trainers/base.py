@@ -888,7 +888,7 @@ class BaseTrainer(ABC):
                     self.total_count += data.numel()
                     if is_level_enabled("TRACE"):
                         logger.trace(
-                            "batch collected batch=%d n_frames=%d total_count=%d buffer_len=%d",
+                            "batch collected batch={} n_frames={} total_count={} buffer_len={}",
                             i, data.numel(), self.total_count, buffer_len,
                         )
 
@@ -901,7 +901,7 @@ class BaseTrainer(ABC):
                     self.total_episodes += episodes_in_batch
                     if is_level_enabled("TRACE") and episodes_in_batch > 0:
                         logger.trace(
-                            "episodes completed batch=%d n_episodes=%d total_episodes=%d",
+                            "episodes completed batch={} n_episodes={} total_episodes={}",
                             i, episodes_in_batch, self.total_episodes,
                         )
 
@@ -937,7 +937,7 @@ class BaseTrainer(ABC):
                         and (time.time() - t0) >= self.config.max_train_seconds
                     ):
                         logger.info(
-                            "training stopped max_train_seconds=%d elapsed=%.1fs",
+                            "training stopped max_train_seconds={} elapsed={:.1f}s",
                             self.config.max_train_seconds,
                             time.time() - t0,
                         )
@@ -957,7 +957,7 @@ class BaseTrainer(ABC):
         early_stop_reasons = self.logs.get("early_stop_reason", [])
         if early_stop_reasons:
             logger.warning(
-                "training ended early reason={} steps=%d/%d",
+                "training ended early reason={} steps={}/{}",
                 early_stop_reasons[-1], self.total_count, self.config.max_steps,
             )
         log_banner(logger, f"TRAINING END  {self.total_count} steps  {self.total_episodes} episodes  {elapsed:.2f}s")

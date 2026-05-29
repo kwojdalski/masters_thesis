@@ -108,7 +108,7 @@ class SACTrainer(BaseTrainer):
         )
 
         logger.info(
-            "init sac trainer actor_lr={} value_lr={} alpha_lr={} buffer_size=%d tau={} "
+            "init sac trainer actor_lr={} value_lr={} alpha_lr={} buffer_size={} tau={} "
             "initial_alpha={} target_entropy={}",
             config.actor_lr,
             config.value_lr,
@@ -255,7 +255,7 @@ class SACTrainer(BaseTrainer):
         curr_alpha = loss_vals_alpha["alpha"].item()
 
         logger.info(
-            "sac step max_steps=%d buffer_size=%d loss_value=%.4f loss_actor=%.4f "
+            "sac step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f} "
             "loss_alpha={} alpha={}",
             max_length, buffer_len, curr_loss_value, curr_loss_actor,
             curr_loss_alpha, curr_alpha,
@@ -313,7 +313,7 @@ class SACTrainer(BaseTrainer):
                 episode_rewards = data["next", "reward"]
                 buffer_len = len(self.replay_buffer)
                 logger.trace(
-                    "sac batch=%d steps=%d buffer_size=%d", i, data.numel(), buffer_len
+                    "sac batch={} steps={} buffer_size={}", i, data.numel(), buffer_len
                 )
                 logger.trace(
                     "sac episode reward stats mean={} std={}",

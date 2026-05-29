@@ -184,7 +184,7 @@ class EpisodeStatsTracker:
         else:
             position_str = ""
         logger.info(
-            "n_episode=%d portfolio_return_pct=%.2f portfolio_value=%.2f{}{}{}",
+            "n_episode={} portfolio_return_pct={:.2f} portfolio_value={:.2f}{}{}{}",
             callback._episode_count, portfolio_return, portfolio_valuation,
             steps_label, position_str, episode_ctx,
         )
@@ -211,7 +211,7 @@ class EpisodeStatsTracker:
                     return "[" + ", ".join(f"{v:.4f}" for v in arr) + "]"
 
                 logger.trace(
-                    "transition idx=%d  s={}  a={}  r=%.6f  s'={}",
+                    "transition idx={}  s={}  a={}  r={:.6f}  s'={}",
                     idx, _fmt(obs), _fmt(action),
                     float(reward) if reward is not None else float("nan"),
                     _fmt(next_obs),

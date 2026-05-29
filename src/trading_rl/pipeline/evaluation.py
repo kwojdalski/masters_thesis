@@ -201,7 +201,7 @@ def run_statistical_tests_for_split(
         random_trials = None
         if config.benchmarks.is_random:
             logger.info(
-                "compute random baseline n_trials=%d", config.benchmarks.n_random_trials
+                "compute random baseline n_trials={}", config.benchmarks.n_random_trials
             )
             random_trials = compute_random_baseline_returns(
                 split_ctx.env,
@@ -302,7 +302,7 @@ def evaluate_split(
 ) -> PipelineSplitResult | None:
     if len(split_df) < 2:
         logger.warning(
-            "Skipping %s split evaluation: insufficient data (%d rows)",
+            "Skipping {} split evaluation: insufficient data ({} rows)",
             split,
             len(split_df),
         )

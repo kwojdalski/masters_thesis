@@ -128,7 +128,7 @@ def _memmap_cache_compatible(
     expected_count = len(data_paths) if data_paths else 1
     if len(paths) != expected_count:
         logger.info(
-            "memmap cache mismatch expected_symbols=%d actual_symbols=%d",
+            "memmap cache mismatch expected_symbols={} actual_symbols={}",
             expected_count,
             len(paths),
         )
@@ -143,7 +143,7 @@ def _memmap_cache_compatible(
     bad_rows = [p.n_rows for p in paths if p.n_rows < expected_train_rows]
     if bad_rows:
         logger.info(
-            "memmap cache mismatch expected_train_rows=%d actual_rows={}",
+            "memmap cache mismatch expected_train_rows={} actual_rows={}",
             expected_train_rows,
             bad_rows,
         )

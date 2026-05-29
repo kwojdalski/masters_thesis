@@ -201,7 +201,7 @@ class FeaturePipeline:
 
         if rows_before != rows_after:
             logger.trace(
-                "transform drop nan n_dropped=%d n_rows_before=%d n_rows_after=%d",
+                "transform drop nan n_dropped={} n_rows_before={} n_rows_after={}",
                 rows_before - rows_after, rows_before, rows_after,
             )
 
@@ -302,7 +302,7 @@ class FeaturePipeline:
         resolver = FeatureGroupResolver.from_yaml(groups_yaml_path)
         configs = resolver.resolve(group_names, exclude=exclude)
         logger.info(
-            "Built pipeline from groups {}: %d features",
+            "Built pipeline from groups {}: {} features",
             group_names,
             len(configs),
         )

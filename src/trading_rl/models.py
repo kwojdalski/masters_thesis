@@ -609,7 +609,7 @@ def create_recurrent_ppo_actor(
         return_log_prob=True,
     )
     logger.info(
-        "build recurrent_ppo actor complete gru_hidden_dim=%d gru_num_layers=%d",
+        "build recurrent_ppo actor complete gru_hidden_dim={} gru_num_layers={}",
         gru_hidden_dim, gru_num_layers,
     )
     return actor
@@ -642,7 +642,7 @@ def create_recurrent_ppo_value_network(
         out_keys=["state_value"],
     )
     logger.info(
-        "build recurrent_ppo value network complete gru_hidden_dim=%d gru_num_layers=%d",
+        "build recurrent_ppo value network complete gru_hidden_dim={} gru_num_layers={}",
         gru_hidden_dim, gru_num_layers,
     )
     return value_net

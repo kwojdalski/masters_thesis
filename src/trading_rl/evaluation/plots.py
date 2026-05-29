@@ -237,7 +237,7 @@ def build_rollout_plot_data(
                 df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
             else:
                 logger.warning(
-                    "Benchmark reward curves skipped: %d non-finite returns in price series",
+                    "Benchmark reward curves skipped: {} non-finite returns in price series",
                     n_bad,
                 )
 
@@ -603,7 +603,7 @@ def build_equity_plot_data(
         n_bad = int(np.sum(~np.isfinite(benchmark_returns)))
         if n_bad > 0:
             logger.warning(
-                "benchmark price series has %d non-finite return(s) "
+                "benchmark price series has {} non-finite return(s) "
                 "(likely cross-symbol boundary in concatenated val_df); skipping benchmark lines",
                 n_bad,
             )

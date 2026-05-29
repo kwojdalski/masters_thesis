@@ -113,7 +113,7 @@ def run_all_statistical_tests(
             if min_len < max_len:
                 n_short = sum(1 for n in trial_lens if n < max_len)
                 logger.warning(
-                    "random baseline: %d/%d trials shorter than max_len=%d; truncating to min_len=%d",
+                    "random baseline: {}/{} trials shorter than max_len={}; truncating to min_len={}",
                     n_short,
                     len(random_baseline_trials),
                     max_len,

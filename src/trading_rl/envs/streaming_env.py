@@ -57,7 +57,7 @@ class StreamingTradingEnv(TradingEnv):
         for mp in memmap_paths:
             if mp.n_rows < episode_length:
                 logger.warning(
-                    "symbol file {} has %d rows < episode_length %d; "
+                    "symbol file {} has {} rows < episode_length {}; "
                     "it will be skipped at reset time",
                     mp.data_path, mp.n_rows, episode_length,
                 )
@@ -90,7 +90,7 @@ class StreamingTradingEnv(TradingEnv):
             index = pd.DatetimeIndex(window_index_ns)
         except (ValueError, OverflowError) as e:
             logger.warning(
-                "Could not parse timestamps for symbol %d, using RangeIndex: {}",
+                "Could not parse timestamps for symbol {}, using RangeIndex: {}",
                 file_idx, e,
             )
             index = pd.RangeIndex(len(window_data))
@@ -121,7 +121,7 @@ class StreamingTradingEnv(TradingEnv):
             if mp.n_rows >= self._episode_length:
                 break
             logger.warning(
-                "StreamingTradingEnv: skipping symbol %d (%d rows < episode_length %d)",
+                "StreamingTradingEnv: skipping symbol {} ({} rows < episode_length {})",
                 file_idx, mp.n_rows, self._episode_length,
             )
             _attempts += 1
@@ -139,7 +139,7 @@ class StreamingTradingEnv(TradingEnv):
         self._set_df(window_df)
 
         logger.trace(
-            "StreamingTradingEnv reset: symbol=%d start=%d length=%d",
+            "StreamingTradingEnv reset: symbol={} start={} length={}",
             file_idx,
             start,
             self._episode_length,

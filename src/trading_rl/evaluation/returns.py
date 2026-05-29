@@ -203,13 +203,13 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
     if not np.all(np.isfinite(nlv_array)):
         n_inf = int(np.sum(~np.isfinite(nlv_array)))
         logger.warning(
-            "nlv path contains %d non-finite value(s) (likely cross-symbol price jump in val_df); dropping series",
+            "nlv path contains {} non-finite value(s) (likely cross-symbol price jump in val_df); dropping series",
             n_inf,
         )
         return None
 
     logger.trace(
-        "nlv extracted n_values=%d start=%.4f end=%.4f",
+        "nlv extracted n_values={} start={:.4f} end={:.4f}",
         len(nlv_values), nlv_values[0], nlv_values[-1],
     )
     return ReturnSeries(
