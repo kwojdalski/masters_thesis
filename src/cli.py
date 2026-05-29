@@ -471,6 +471,15 @@ def evaluate(
             "to <output-dir>/<split>_rollout.csv for offline plotting or analysis."
         ),
     ),
+    per_symbol: bool = typer.Option(
+        False,
+        "--per-symbol",
+        help=(
+            "For multi-symbol scenarios: evaluate each symbol independently and write "
+            "artifacts to <output-dir>/per_symbol/<SYMBOL>/. "
+            "Without this flag, val/test evaluation is skipped for multi-symbol configs."
+        ),
+    ),
 ):
     """Evaluate a trained policy from a checkpoint without re-running training.
 
@@ -508,6 +517,10 @@ def evaluate(
             --checkpoint logs/my_exp/checkpoint.pt \\
             --data-path data/raw/stocks/daily/AAPL/AAPL_2026-03-10_raw_mbp-10_us_hours.parquet \\
             --no-mlflow
+
+        # Evaluate each symbol independently (results in eval_results/per_symbol/<SYMBOL>/)
+        python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected \\
+            --per-symbol --split test --no-mlflow
     """
     params = EvaluateParams(
         config_file=config_file,
@@ -520,6 +533,7 @@ def evaluate(
         no_mlflow=no_mlflow,
         data_path=data_path,
         save_rollout=save_rollout,
+        per_symbol=per_symbol,
     )
     evaluate_cmd.execute(params)
 

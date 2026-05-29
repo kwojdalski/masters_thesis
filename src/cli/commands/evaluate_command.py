@@ -48,6 +48,7 @@ class EvaluateParams:
     no_mlflow: bool = False
     data_path: Path | None = None
     save_rollout: bool = False
+    per_symbol: bool = False
 
 
 class EvaluateCommand(BaseCommand):
@@ -134,19 +135,32 @@ class EvaluateCommand(BaseCommand):
             split_dfs = {split_name: arbitrary_df}
         else:
             val_data_paths = getattr(config.data, "val_data_paths", None)
-            if val_data_paths and (
+            wants_val_or_test = (
                 params.split == "all"
                 or params.split in {SplitName.VAL, SplitName.TEST}
-            ):
-                # Pooled multi-symbol scenario: evaluate each val file separately.
-                # Concatenated test_df causes spurious cross-symbol price jumps that
-                # trigger broker bankruptcy — per-symbol eval avoids this entirely.
+            )
+            if val_data_paths and wants_val_or_test and params.per_symbol:
+                # Per-symbol eval: each symbol evaluated independently to avoid
+                # cross-symbol price artefacts; results go to per_symbol/{SYMBOL}/.
                 self.console.print(
-                    "[dim]Multi-symbol scenario — evaluating per symbol to avoid cross-symbol price artefacts[/dim]"
+                    "[dim]--per-symbol: evaluating each symbol independently[/dim]"
                 )
                 splits_to_eval, split_dfs = self._resolve_per_symbol_splits(
                     config, params, [str(p) for p in val_data_paths], checkpoint_path
                 )
+            elif val_data_paths and wants_val_or_test and not params.per_symbol:
+                self.console.print(
+                    "[yellow]Multi-symbol scenario: val/test eval skipped. "
+                    "Re-run with --per-symbol to evaluate each symbol separately.[/yellow]"
+                )
+                # Fall back to train-only if "all" was requested; skip entirely otherwise.
+                if params.split == "all":
+                    dataset = build_prepared_dataset(config, self.logger)
+                    splits_to_eval = [SplitName.TRAIN]
+                    split_dfs = {SplitName.TRAIN: dataset.train_df}
+                else:
+                    splits_to_eval = []
+                    split_dfs = {}
             else:
                 dataset = build_prepared_dataset(config, self.logger)
                 splits_to_eval = (
@@ -177,6 +191,14 @@ class EvaluateCommand(BaseCommand):
                     f"[bold]Evaluating {split} split ({len(split_df):,} rows)...[/bold]"
                 )
 
+                # Per-symbol mode: route artifacts to per_symbol/{SYMBOL}/
+                if params.per_symbol and isinstance(split, str) and "_" in split:
+                    sym = split.split("_", 1)[1]
+                    split_out_dir = params.output_dir / "per_symbol" / sym
+                else:
+                    split_out_dir = params.output_dir
+                split_out_dir.mkdir(parents=True, exist_ok=True)
+
                 periods_py = _periods_per_year_from_index(split_df) or _timeframe_ppy
 
                 split_ctx = build_evaluation_context_for_split(
@@ -187,7 +209,7 @@ class EvaluateCommand(BaseCommand):
                 sample_path = save_observation_sample_artifact(
                     split=split,
                     df=split_ctx.df,
-                    output_dir=params.output_dir / ArtifactPaths.EVAL_DATA,
+                    output_dir=split_out_dir / ArtifactPaths.EVAL_DATA,
                 )
                 self.console.print(f"[dim]  Observation sample parquet → {sample_path}[/dim]")
                 self.console.print(f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]")
@@ -282,7 +304,7 @@ class EvaluateCommand(BaseCommand):
                         strategy_dict = result.metrics.to_filtered_dict(_enabled) if result.metrics else None
                         self._print_benchmark_table(split, bench_out, strategy_dict)
                         json_p, png_p = save_benchmark_table_artifact(
-                            split, split_df, bench_out, strategy_dict, params.output_dir
+                            split, split_df, bench_out, strategy_dict, split_out_dir
                         )
                         self.console.print(f"[dim]  Benchmark table JSON → {json_p}[/dim]")
                         self.console.print(f"[dim]  Benchmark table PNG  → {png_p}[/dim]")
@@ -306,11 +328,11 @@ class EvaluateCommand(BaseCommand):
                             log_statistical_tests(stat_results, split_prefix=split)
 
                 if params.save_rollout:
-                    self._save_rollout_data(result, split, split_df, params.output_dir)
+                    self._save_rollout_data(result, split, split_df, split_out_dir)
 
                 if "plots" in components and result.plots:
                     self.console.print("[dim]  Saving plots...[/dim]")
-                    self._save_plots(result.plots, split, params.output_dir)
+                    self._save_plots(result.plots, split, split_out_dir)
                     if mlflow_run_id:
                         from trading_rl.callbacks.artifacts import log_evaluation_plots
                         _rollout = result.plots.get("_rollout_plot_data")
