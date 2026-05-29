@@ -48,7 +48,30 @@ Answer these questions explicitly:
 4. Does the number of trials (N=5) provide enough statistical power to draw meaningful conclusions? Does the prose acknowledge this limitation?
 5. Does the H4 conclusion appropriately qualify H1-H3 — either strengthening confidence (if H4 passes) or adding a caveat (if H4 fails)?
 
-## Step 5 — Report
+## Step 5 — Create GitHub issues for findings
+
+For each gap, mismatch, or recommendation, create a GitHub issue with the `#masters_thesis` label:
+
+```bash
+gh issue create \
+  --title "[H4] <brief description of issue>" \
+  --body "## Issue
+<description>
+
+## Context
+Found during H4 review of thesis.
+
+## File
+<thesis/qmd/src/file.qmd:line>
+
+## Recommendation
+<how to fix>" \
+  --label "masters_thesis"
+```
+
+Track the issue numbers created.
+
+## Step 6 — Report
 
 ```
 ## H4 Review
@@ -81,5 +104,17 @@ Answer these questions explicitly:
 [Does H4 provide meaningful robustness evidence? Does the prose correctly position the result relative to H1-H3?]
 
 ### Gaps and recommendations
-- [Missing trials, underpowered design, prose updates needed]
+- [List issues created: #N, #N, ...]
+
+### GitHub issues created
+- #N — <title>
+- #N — <title>
+```
+
+## Step 7 — Close resolved issues
+
+After fixes are applied, close the related GitHub issues:
+
+```bash
+gh issue close <issue-number> --comment "Fixed during H4 review — resolved mismatch/gap."
 ```

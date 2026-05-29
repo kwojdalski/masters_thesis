@@ -88,7 +88,30 @@ EQUATION VERIFICATION REPORT
 ...
 ```
 
-7. Say: "Found N issues. Starting review — reply ok to apply suggestion, s to skip, or type your own replacement. Type 'done' at any time to finish and commit."
+7. For each issue that requires a fix, create a GitHub issue with the `#masters_thesis` label if it's not trivial. Track created issue numbers.
+
+8. Say: "Found N issues. Starting review — reply ok to apply suggestion, s to skip, or type your own replacement. Type 'done' at any time to finish and commit."
+
+## GitHub Issue Creation
+
+For non-trivial issues that require separate fixes (e.g., requires author input, or the fix is uncertain), create GitHub issues:
+
+```bash
+gh issue create \
+  --title "[Equation] <brief description>" \
+  --body "## Issue
+<description of equation/notation problem>
+
+## Context
+Found during equation verification of thesis.
+
+## File
+<thesis/qmd/src/file.qmd:line>
+
+## Proposed fix
+<fix description>" \
+  --label "masters_thesis"
+```
 
 ## Interactive Review
 
@@ -110,7 +133,11 @@ When the user types `done`, or all items have been reviewed:
 
 - Apply any pending edits
 - Create a single git commit: `Fix equation notation and formatting inconsistencies`
-- Report: how many issues reviewed, how many fixed, which files changed
+- Close any GitHub issues that were resolved by these fixes:
+  ```bash
+  gh issue close <issue-number> --comment "Fixed during equation verification — resolved notation/formatting issue."
+  ```
+- Report: how many issues reviewed, how many fixed, which files changed, which GitHub issues were closed
 
 ## Important
 

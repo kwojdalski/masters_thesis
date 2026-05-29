@@ -64,7 +64,30 @@ Answer these questions explicitly:
 4. Does the prose correctly bound the economic claim — i.e., does it state that the agent's edge exists only at near-zero transaction costs?
 5. Is the H3 verdict ("supported") consistent with all three sensitivity axes?
 
-## Step 5 — Report
+## Step 5 — Create GitHub issues for findings
+
+For each gap, mismatch, or recommendation, create a GitHub issue with the `#masters_thesis` label:
+
+```bash
+gh issue create \
+  --title "[H3] <brief description of issue>" \
+  --body "## Issue
+<description>
+
+## Context
+Found during H3 review of thesis.
+
+## File
+<thesis/qmd/src/file.qmd:line>
+
+## Recommendation
+<how to fix>" \
+  --label "masters_thesis"
+```
+
+Track the issue numbers created.
+
+## Step 6 — Report
 
 ```
 ## H3 Review
@@ -97,5 +120,17 @@ Answer these questions explicitly:
 [Is H3 supported as stated? Is the cost-sensitivity bound accurately characterized?]
 
 ### Gaps and recommendations
-- [Missing data, inconsistencies, prose updates needed]
+- [List issues created: #N, #N, ...]
+
+### GitHub issues created
+- #N — <title>
+- #N — <title>
+```
+
+## Step 7 — Close resolved issues
+
+After fixes are applied, close the related GitHub issues:
+
+```bash
+gh issue close <issue-number> --comment "Fixed during H3 review — resolved mismatch/gap."
 ```

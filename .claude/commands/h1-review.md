@@ -42,7 +42,30 @@ Answer these questions explicitly:
 4. Does the prose accurately describe the mechanism (not overstate the RL contribution)?
 5. Is the final H1 verdict in 07-01 (`supported` / `partially supported` / `not supported`) consistent with the data?
 
-## Step 5 — Report
+## Step 5 — Create GitHub issues for findings
+
+For each gap, mismatch, or recommendation, create a GitHub issue with the `#masters_thesis` label:
+
+```bash
+gh issue create \
+  --title "[H1] <brief description of issue>" \
+  --body "## Issue
+<description>
+
+## Context
+Found during H1 review of thesis.
+
+## File
+<thesis/qmd/src/file.qmd:line>
+
+## Recommendation
+<how to fix>" \
+  --label "masters_thesis"
+```
+
+Track the issue numbers created.
+
+## Step 6 — Report
 
 Produce a structured report:
 
@@ -62,5 +85,17 @@ Produce a structured report:
 [Your analysis of whether the stated H1 conclusion is justified]
 
 ### Gaps and recommendations
-- [List any missing numbers, ambiguous claims, or prose updates needed]
+- [List issues created: #N, #N, ...]
+
+### GitHub issues created
+- #N — <title>
+- #N — <title>
+```
+
+## Step 7 — Close resolved issues
+
+After fixes are applied, close the related GitHub issues:
+
+```bash
+gh issue close <issue-number> --comment "Fixed during H1 review — resolved mismatch/gap."
 ```

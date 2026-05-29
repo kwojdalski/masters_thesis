@@ -50,7 +50,30 @@ Answer these questions explicitly:
 4. Is the stated H2 verdict — "supported for minimal→selected transition, not for every broader set" — justified by the numbers?
 5. Are there any metrics where H2 goes in the wrong direction that the prose should acknowledge?
 
-## Step 5 — Report
+## Step 5 — Create GitHub issues for findings
+
+For each gap, mismatch, or recommendation, create a GitHub issue with the `#masters_thesis` label:
+
+```bash
+gh issue create \
+  --title "[H2] <brief description of issue>" \
+  --body "## Issue
+<description>
+
+## Context
+Found during H2 review of thesis.
+
+## File
+<thesis/qmd/src/file.qmd:line>
+
+## Recommendation
+<how to fix>" \
+  --label "masters_thesis"
+```
+
+Track the issue numbers created.
+
+## Step 6 — Report
 
 ```
 ## H2 Review
@@ -75,5 +98,17 @@ Answer these questions explicitly:
 [Is H2 supported as stated? What nuance is missing?]
 
 ### Gaps and recommendations
-- [Missing data, inconsistencies, prose updates needed]
+- [List issues created: #N, #N, ...]
+
+### GitHub issues created
+- #N — <title>
+- #N — <title>
+```
+
+## Step 7 — Close resolved issues
+
+After fixes are applied, close the related GitHub issues:
+
+```bash
+gh issue close <issue-number> --comment "Fixed during H2 review — resolved mismatch/gap."
 ```
