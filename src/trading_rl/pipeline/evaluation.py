@@ -103,31 +103,58 @@ def compute_strategy_simple_returns_for_split(
     return strategy_simple_returns
 
 
+def _make_rollout_progress_callback(max_steps: int) -> Any:
+    """Return a tqdm-backed callback for env.rollout(), or None if tqdm is absent."""
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        return None, None
+
+    bar = tqdm(
+        total=max_steps,
+        desc="rollout",
+        unit="step",
+        dynamic_ncols=True,
+        leave=False,
+    )
+
+    def _callback(_td: Any) -> None:
+        bar.update(1)
+
+    return bar, _callback
+
+
 def _run_rollout(trainer: Any, split_ctx: EvaluationContext) -> Any:
     """Execute a deterministic rollout, falling back from MODE to DETERMINISTIC."""
     from tensordict.nn import InteractionType
     from torchrl.envs.utils import set_exploration_type
 
-    with torch.no_grad():
-        try:
-            with set_exploration_type(InteractionType.MODE):
-                return split_ctx.env.rollout(
-                    max_steps=split_ctx.max_steps,
-                    policy=trainer.actor,
-                )
-        except (NotImplementedError, RuntimeError) as exc:
-            if not (
-                isinstance(exc, NotImplementedError)
-                or "does not have a mode" in str(exc)
-                or "analytical mode" in str(exc).lower()
-            ):
-                raise
-            # Fallback for distributions without analytical mode
-            with set_exploration_type(InteractionType.DETERMINISTIC):
-                return split_ctx.env.rollout(
-                    max_steps=split_ctx.max_steps,
-                    policy=trainer.actor,
-                )
+    bar, callback = _make_rollout_progress_callback(split_ctx.max_steps)
+    try:
+        with torch.no_grad():
+            try:
+                with set_exploration_type(InteractionType.MODE):
+                    return split_ctx.env.rollout(
+                        max_steps=split_ctx.max_steps,
+                        policy=trainer.actor,
+                        callback=callback,
+                    )
+            except (NotImplementedError, RuntimeError) as exc:
+                if not (
+                    isinstance(exc, NotImplementedError)
+                    or "does not have a mode" in str(exc)
+                    or "analytical mode" in str(exc).lower()
+                ):
+                    raise
+                with set_exploration_type(InteractionType.DETERMINISTIC):
+                    return split_ctx.env.rollout(
+                        max_steps=split_ctx.max_steps,
+                        policy=trainer.actor,
+                        callback=callback,
+                    )
+    finally:
+        if bar is not None:
+            bar.close()
 
 
 def _last_strategy_returns(trainer: Any) -> np.ndarray | None:
