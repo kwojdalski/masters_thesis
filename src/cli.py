@@ -829,30 +829,93 @@ def validate_guardrails(
     config_override: list[str] | None = typer.Option(
         None, "--config-override", "-o", help="OmegaConf override in dotlist format (repeatable)"
     ),
+    all_scenarios: bool = typer.Option(
+        False, "--all", help="Check every scenario directory under src/configs/scenarios"
+    ),
 ):
     """Run pre-flight config guardrails (parameter consistency checks).
 
     Checks training parameter relationships like sample_size vs buffer_size,
     sample_size vs init_rand_steps, and algorithm-specific constraints.
     Reports FATAL and WARN findings without running training.
+
+    Use --all to validate every scenario in src/configs/scenarios at once.
     """
+    from rich.markup import escape as _escape
     from trading_rl.config_guardrails_checks import check_config_guardrails, Severity
+
+    def _check_one(config_path: Path) -> tuple[list, list, str]:
+        """Return (fatals, warns, scenario_name) for a single config path."""
+        command = "train" if config_path.is_dir() else None
+        try:
+            cfg = ExperimentConfig.load(config_path, command=command, overrides=config_override)
+        except Exception as exc:
+            return [], [], f"[red]LOAD ERROR[/red] {_escape(str(exc))}"
+        findings = check_config_guardrails(cfg)
+        fatals = [f for f in findings if f.severity == Severity.FATAL]
+        warns  = [f for f in findings if f.severity == Severity.WARN]
+        name = getattr(cfg, "experiment_name", None) or str(config_path)
+        return fatals, warns, name
+
+    def _print_findings(fatals: list, warns: list, scenario_name: str) -> None:
+        tag = f"  [dim]{_escape(f'[{scenario_name}]')}[/dim]"
+        if fatals:
+            console.print(f"\n[bold red]FATAL ({len(fatals)})[/bold red]{tag}")
+            for i, f in enumerate(fatals, 1):
+                console.print(f"  [cyan][{i}][/cyan] [yellow]{_escape(f.parameter)}[/yellow]")
+                console.print(f"       Problem: {_escape(f.message)}")
+                console.print(f"       Fix:     [cyan]{_escape(f.suggestion)}[/cyan]")
+        if warns:
+            console.print(f"\n[bold yellow]WARN ({len(warns)})[/bold yellow]{tag}")
+            for i, f in enumerate(warns, 1):
+                console.print(f"  [cyan][{i}][/cyan] [yellow]{_escape(f.parameter)}[/yellow]")
+                console.print(f"       Problem:    {_escape(f.message)}")
+                console.print(f"       Suggestion: [cyan]{_escape(f.suggestion)}[/cyan]")
+
+    if all_scenarios:
+        scenarios_root = Path("src/configs/scenarios")
+        # Every directory that contains a train.yaml is a scenario
+        scenario_dirs = sorted(
+            p.parent for p in scenarios_root.rglob("train.yaml")
+        )
+        if not scenario_dirs:
+            console.print("[yellow]No scenarios found under src/configs/scenarios[/yellow]")
+            raise typer.Exit(0)
+
+        console.print(f"Checking [bold]{len(scenario_dirs)}[/bold] scenario(s)...\n")
+        passed = failed = warned = 0
+        for sdir in scenario_dirs:
+            fatals, warns, name = _check_one(sdir)
+            rel = sdir.relative_to(scenarios_root)
+            if fatals:
+                console.print(f"[red][FAIL][/red] {_escape(str(rel))}")
+                _print_findings(fatals, warns, name)
+                failed += 1
+            elif warns:
+                console.print(f"[yellow][WARN][/yellow] {_escape(str(rel))}")
+                _print_findings([], warns, name)
+                warned += 1
+            else:
+                console.print(f"[green][PASS][/green] {_escape(str(rel))}")
+                passed += 1
+
+        console.print(
+            f"\nSummary: "
+            f"[green]passed={passed}[/green]  "
+            f"[yellow]warned={warned}[/yellow]  "
+            f"[{'red' if failed else 'green'}]failed={failed}[/{'red' if failed else 'green'}]"
+        )
+        if failed:
+            raise typer.Exit(code=1)
+        return
 
     if scenario and config_file:
         raise typer.BadParameter("Cannot specify both --config and --scenario.")
     if not scenario and not config_file:
-        raise typer.BadParameter("Provide --scenario or --config.")
+        raise typer.BadParameter("Provide --scenario, --config, or --all.")
 
-    # Resolve scenario path (matching BaseCommand._load_experiment_config logic)
-    # Handle both -s/--scenario and -c/--config with scenario shorthands
-    if scenario:
-        input_path = scenario
-    elif config_file:
-        input_path = str(config_file)
-    else:
-        raise typer.BadParameter("Provide --scenario or --config.")
+    input_path = scenario if scenario else str(config_file)
 
-    # Resolve path (handles both scenario shorthand and direct paths)
     path = Path(input_path)
     if not path.exists():
         candidate = Path("src/configs/scenarios") / input_path
@@ -860,7 +923,6 @@ def validate_guardrails(
             path = candidate
 
     if not path.exists():
-        # Try with .yaml suffix
         search = [
             Path(input_path),
             Path("src/configs/scenarios") / input_path,
@@ -872,39 +934,13 @@ def validate_guardrails(
     else:
         config_path = path
 
-    # Use command="train" for scenario directories (to load train.yaml component)
-    command = "train" if config_path.is_dir() else None
+    fatals, warns, scenario_name = _check_one(config_path)
 
-    config = ExperimentConfig.load(config_path, command=command, overrides=config_override)
-
-    findings = check_config_guardrails(config)
-
-    if not findings:
+    if not fatals and not warns:
         console.print("[green]Guardrails passed — no issues found[/green]")
         return
 
-    from rich.markup import escape as _escape
-
-    fatals = [f for f in findings if f.severity == Severity.FATAL]
-    warns = [f for f in findings if f.severity == Severity.WARN]
-    scenario_name = getattr(config, "experiment_name", None) or ""
-    scenario_tag = f"  [dim]{_escape(f'[{scenario_name}]')}[/dim]" if scenario_name else ""
-
-    if fatals:
-        console.print(f"\n[bold red]CONFIG GUARDRAIL — {len(fatals)} FATAL ERROR(S)[/bold red]{scenario_tag}")
-        console.print("=" * 50)
-        for i, f in enumerate(fatals, 1):
-            console.print(f"\n[bold cyan][{i}][/bold cyan] [yellow]{_escape(f.parameter)}[/yellow]")
-            console.print(f"    Problem:    {_escape(f.message)}")
-            console.print(f"    Fix:        [cyan]{_escape(f.suggestion)}[/cyan]")
-
-    if warns:
-        console.print(f"\n[bold yellow]CONFIG GUARDRAIL — {len(warns)} WARNING(S)[/bold yellow]{scenario_tag}")
-        console.print("=" * 50)
-        for i, f in enumerate(warns, 1):
-            console.print(f"\n[bold cyan][{i}][/bold cyan] [yellow]{_escape(f.parameter)}[/yellow]")
-            console.print(f"    Problem:    {_escape(f.message)}")
-            console.print(f"    Suggestion: [cyan]{_escape(f.suggestion)}[/cyan]")
+    _print_findings(fatals, warns, scenario_name)
 
     if fatals:
         raise typer.Exit(code=1)
