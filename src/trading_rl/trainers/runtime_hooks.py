@@ -74,9 +74,10 @@ class TrainerRuntimeHooks:
             config: Full experiment config.
             algorithm: Algorithm label used in plot titles.
         """
-        eval_interval = getattr(config.training, "temp_eval_interval", None)
+        temp_eval_cfg = config.training.temp_eval
+        eval_interval = temp_eval_cfg.interval
         if eval_interval is None or eval_interval <= 0:
-            logger.info("periodic evaluation disabled (temp_eval_interval not set)")
+            logger.info("periodic evaluation disabled (temp_eval.interval not set)")
             self._evaluation = None
             return
 
@@ -89,8 +90,7 @@ class TrainerRuntimeHooks:
         split_names = [s.split for s in splits]
         logger.info(
             "periodic evaluation enabled interval=%s splits=%s dense_eval=%s",
-            eval_interval, split_names,
-            getattr(config.training, "dense_eval_enabled", False),
+            eval_interval, split_names, temp_eval_cfg.dense_enabled,
         )
 
     def configure_periodic_explainability(
@@ -409,7 +409,7 @@ class TrainerRuntimeHooks:
                                 "temp eval: metrics table failed split=%s step=%s",
                                 split_ctx.split, step_number, exc_info=True,
                             )
-                    if getattr(hook.config.training, "temp_eval_log_data", False):
+                    if hook.config.training.temp_eval.log_data:
                         last_result = getattr(self.trainer, "_last_evaluation_result", None)
                         if last_result is not None:
                             try:
@@ -532,17 +532,16 @@ class TrainerRuntimeHooks:
         """
         import math
 
-        cfg = hook.config.training
-        if not getattr(cfg, "dense_eval_enabled", False):
+        cfg = hook.config.training.temp_eval
+        if not cfg.dense_enabled:
             return
         if not math.isfinite(signal):
             return
 
-        window: int = cfg.dense_eval_window
-        threshold: float = cfg.dense_eval_improvement_threshold
-        factor: float = cfg.dense_eval_factor
-        min_evals: int = cfg.dense_eval_min_evals
-        base_interval: int = cfg.temp_eval_interval
+        window: int = cfg.dense_window
+        threshold: float = cfg.dense_improvement_threshold
+        min_evals: int = cfg.dense_min_evals
+        base_interval: int = cfg.interval
 
         history = hook.dense_reward_history.setdefault(split, [])
         history.append((step, signal))
@@ -563,15 +562,15 @@ class TrainerRuntimeHooks:
         denominator = abs(earlier_mean) + 1e-12
         relative_change = (recent_mean - earlier_mean) / denominator
 
-        dense_interval = max(1, int(base_interval * factor))
+        dense_interval = cfg.dense_interval if cfg.dense_interval is not None else max(1, base_interval // 2)
 
         if relative_change > threshold:
             if hook.effective_interval != dense_interval:
                 hook.effective_interval = dense_interval
                 logger.info(
                     "dense eval: improvement {:.1%} > threshold {:.1%} split={} "
-                    "interval {} → {} (factor={:.2f})",
-                    relative_change, threshold, split, base_interval, dense_interval, factor,
+                    "interval {} → {}",
+                    relative_change, threshold, split, base_interval, dense_interval,
                 )
         elif len(history) >= 2 * window and hook.effective_interval != base_interval:
             hook.effective_interval = base_interval

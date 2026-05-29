@@ -37,7 +37,8 @@ network:
   - 64
 training:
   algorithm: TD3
-  temp_eval_interval: 100000
+  temp_eval:
+    interval: 100000
   actor_lr: 0.0001
   value_lr: 0.0001
   value_weight_decay: 2.0e-06

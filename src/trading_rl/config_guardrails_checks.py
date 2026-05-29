@@ -1103,22 +1103,22 @@ def _check_no_neutral_position(config: ExperimentConfig) -> Finding | None:
 
 
 def _check_temp_eval_shorter_than_final(config: ExperimentConfig) -> Finding | None:
-    """WARN: temp_eval_max_steps < eval_steps → periodic eval runs fewer steps than final eval."""
-    temp_max = config.training.temp_eval_max_steps
+    """WARN: temp_eval.max_steps < eval_steps → periodic eval runs fewer steps than final eval."""
+    temp_max = config.training.temp_eval.max_steps
     final_steps = config.evaluation.eval_steps
     if temp_max < final_steps:
         return Finding(
             severity=Severity.WARN,
-            parameter="training.temp_eval_max_steps / evaluation.eval_steps",
+            parameter="training.temp_eval.max_steps / evaluation.eval_steps",
             message=(
-                f"temp_eval_max_steps={temp_max:,} < eval_steps={final_steps:,}: "
+                f"temp_eval.max_steps={temp_max:,} < eval_steps={final_steps:,}: "
                 "periodic evaluation during training is capped at fewer steps than the "
                 "final post-training evaluation. The best-checkpoint selection signal "
                 "(from periodic eval) is noisier than the evaluation it is supposed to "
                 "predict, making checkpoint selection less reliable."
             ),
             suggestion=(
-                f"Set temp_eval_max_steps >= eval_steps={final_steps:,}, "
+                f"Set temp_eval.max_steps >= eval_steps={final_steps:,}, "
                 "or reduce eval_steps."
             ),
         )
