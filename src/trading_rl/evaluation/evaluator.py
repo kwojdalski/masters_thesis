@@ -251,8 +251,8 @@ class StrategyEvaluator:
                     _r_min[0] = r
                 if r > _r_max[0]:
                     _r_max[0] = r
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("_progress_cb reward extraction failed step={} err={}", _step_counter[0], exc)
             reward_elapsed = _time.monotonic() - t_reward
             _cb_reward_time[0] += reward_elapsed
             _fine_reward[0] += reward_elapsed
@@ -267,8 +267,8 @@ class StrategyEvaluator:
                     _a_long[0] += 1
                 elif a < 0:
                     _a_short[0] += 1
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("_progress_cb action extraction failed step={} err={}", _step_counter[0], exc)
             action_elapsed = _time.monotonic() - t_action
             _cb_action_time[0] += action_elapsed
             _fine_action[0] += action_elapsed
@@ -278,8 +278,8 @@ class StrategyEvaluator:
             try:
                 if bool(td["next", "done"].any().item()):
                     _ep_done[0] += 1
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("_progress_cb done check failed step={} err={}", _step_counter[0], exc)
             done_elapsed = _time.monotonic() - t_done
             _cb_done_time[0] += done_elapsed
             _fine_done[0] += done_elapsed
