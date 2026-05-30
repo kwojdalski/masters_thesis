@@ -252,6 +252,37 @@ def _yaml_uses_global(feature_config_path: str) -> bool:
     return False
 
 
+def _memmap_feature_hash(feature_pipeline: Any | None, feature_config_path: str | None) -> str:
+    """Stable hash of the feature pipeline config for memmap cache invalidation.
+
+    Covers only the pipeline structure, not per-file data, so the same hash
+    applies to all symbols processed under the same config.  The hash changes
+    whenever any feature parameter changes, which is the condition under which
+    cached memmaps must be regenerated.
+    """
+    if feature_pipeline is not None:
+        pipeline_repr = [
+            {
+                "name": fc.name,
+                "feature_type": fc.feature_type,
+                "params": fc.params,
+                "normalize": fc.normalize,
+                "normalization_method": fc.normalization_method,
+                "rolling_window": fc.rolling_window,
+                "reset_on_session_break": fc.reset_on_session_break,
+                "session_break_threshold_hours": fc.session_break_threshold_hours,
+                "use_time_weights": fc.use_time_weights,
+                "output_name": fc.output_name,
+                "domain": str(fc.domain),
+            }
+            for fc in feature_pipeline.feature_configs
+        ]
+        return hashlib.md5(json.dumps(pipeline_repr, sort_keys=True).encode()).hexdigest()[:16]
+    if feature_config_path and Path(feature_config_path).exists():
+        return hashlib.md5(Path(feature_config_path).read_bytes()).hexdigest()[:16]
+    return "no_features"
+
+
 def _feature_cache_key(
     data_path: str,
     feature_config_path: str | None,

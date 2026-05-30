@@ -25,6 +25,7 @@ from trading_rl.constants import EnvBackend, EnvMode, EvalSymbolSelection
 from trading_rl.data_loading import LazyDataFrame, MemmapPaths, load_memmap_paths, load_prepared_splits, save_prepared_splits, save_symbol_memmap
 from trading_rl.data.cache import (
     _feature_cache_key,
+    _memmap_feature_hash,
     _prepared_cache_compatible,
     _write_prepared_cache_metadata,
 )
@@ -697,8 +698,9 @@ def _build_pooled_splits(
 
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
+    feature_hash = _memmap_feature_hash(pipeline, prep_cfg.feature_config_path)
 
-    logger.info("pooled training n_symbols={}", len(data_paths))
+    logger.info("pooled training n_symbols={} feature_hash={}", len(data_paths), feature_hash)
     tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
     tmp_paths: list[dict[str, Path]] = []
     collected_memmap_paths: list[MemmapPaths] = []
@@ -733,7 +735,9 @@ def _build_pooled_splits(
                 data = np.load(memmap_marker, mmap_mode="r")
                 symbol_file = memmap_dir / f"{prefix}_symbol.txt"
                 cached_symbol = symbol_file.read_text().strip() if symbol_file.exists() else ""
-                if data.shape[0] >= len(train_i) and cols == expected_columns:
+                hash_file = memmap_dir / f"{prefix}_feature_hash.txt"
+                cached_hash = hash_file.read_text().strip() if hash_file.exists() else ""
+                if data.shape[0] >= len(train_i) and cols == expected_columns and cached_hash == feature_hash:
                     collected_memmap_paths.append(
                         MemmapPaths(
                             data_path=memmap_marker,
@@ -745,14 +749,20 @@ def _build_pooled_splits(
                     )
                 else:
                     logger.info(
-                        "memmap cache mismatch prefix={} expected_rows={} actual_rows={}",
+                        "memmap cache mismatch prefix={} expected_rows={} actual_rows={} hash_match={}",
                         prefix,
                         len(train_i),
                         data.shape[0],
+                        cached_hash == feature_hash,
                     )
-                    collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=prefix, symbol=sym_name))
+                    mp = save_symbol_memmap(train_i, memmap_dir, prefix=prefix, symbol=sym_name)
+                    (memmap_dir / f"{prefix}_feature_hash.txt").write_text(feature_hash)
+                    collected_memmap_paths.append(mp)
             else:
-                collected_memmap_paths.append(save_symbol_memmap(train_i, memmap_dir, prefix=str(i), symbol=sym_name))
+                prefix = str(i)
+                mp = save_symbol_memmap(train_i, memmap_dir, prefix=prefix, symbol=sym_name)
+                (memmap_dir / f"{prefix}_feature_hash.txt").write_text(feature_hash)
+                collected_memmap_paths.append(mp)
 
         sym: dict[str, Path] = {}
         for split, df in [("train", train_i), ("val", val_i), ("test", test_i)]:
