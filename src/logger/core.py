@@ -55,8 +55,15 @@ def _highlight_kv(msg: str) -> str:
     """Color numeric values magenta and string values light-cyan in key=value pairs."""
     def _replace(m: re.Match) -> str:
         val = m.group(1)
+        # Strip trailing % and common non-numeric suffixes for float check
+        check_val = val.rstrip("%")
+        # Handle N/M format (e.g., step=96921/969218)
+        if "/" in check_val:
+            parts = check_val.split("/")
+            if len(parts) == 2 and all(p.replace(".", "", 1).replace("-", "", 1).isdigit() for p in parts):
+                return f"<magenta>{val}</magenta>"
         try:
-            float(val)
+            float(check_val)
             return f"<magenta>{val}</magenta>"
         except ValueError:
             return f"<light-cyan>{val}</light-cyan>"
