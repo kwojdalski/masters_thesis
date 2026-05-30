@@ -29,30 +29,47 @@ from trading_rl.rewards import DifferentialSharpeRatio
 
 logger = get_logger(__name__)
 
-# TrackRecord._checkpoint uses `if time in self._time` (O(n) list scan) to detect
-# duplicate timestamps. self._rebalancing is a dict with the same keys, so the
-# check is equivalent but O(1). Patching here fixes linear step-time growth on
-# long episodes (eval runs 969k steps as a single episode; training episodes are
-# 10k steps but also benefit slightly).
-def _checkpoint_fast(self: "TrackRecord", rebalancing: "Any") -> None:
-    import pandas as _pd
-    t = rebalancing.time
-    if isinstance(t, _pd.Timestamp):
-        t = t.to_pydatetime()
-    if t in self._rebalancing:
-        raise ValueError(
-            "All RebalancingResponse must have different timestamps. "
-            "Duplicated timestamp found: {}".format(t)
-        )
-    self._time.append(t)
-    self._rebalancing[t] = rebalancing
-    self._trading_started = self._trading_started or len(rebalancing.trades) != 0
-    if not self._trading_started:
-        self._nr_steps_to_burn += 1
-
-TrackRecord._checkpoint = _checkpoint_fast  # type: ignore[method-assign]
-
 RUNTIME_POSITION_FEATURE = "feature_position"
+
+
+class FastTrackRecord(TrackRecord):
+    """TrackRecord with O(1) duplicate-timestamp check.
+
+    The upstream implementation scans a Python list (self._time) for duplicates
+    on every step, giving O(n) cost per step as the episode grows.  self._rebalancing
+    is a dict with the exact same keys, so checking it is semantically identical
+    but O(1).  All other behaviour is inherited unchanged.
+    """
+
+    def _checkpoint(self, rebalancing: Any) -> None:
+        t = rebalancing.time
+        if isinstance(t, pd.Timestamp):
+            t = t.to_pydatetime()
+        if t in self._rebalancing:
+            raise ValueError(
+                "All RebalancingResponse must have different timestamps. "
+                "Duplicated timestamp found: {}".format(t)
+            )
+        self._time.append(t)
+        self._rebalancing[t] = rebalancing
+        self._trading_started = self._trading_started or len(rebalancing.trades) != 0
+        if not self._trading_started:
+            self._nr_steps_to_burn += 1
+
+
+class FastTradingEnv(TradingEnv):
+    """TradingEnv that uses FastTrackRecord instead of TrackRecord.
+
+    reset() creates a fresh Broker with a standard TrackRecord; we immediately
+    replace it with FastTrackRecord.  The swap is safe because the broker's
+    track_record is empty at that point (no steps have been taken yet).
+    """
+
+    def reset(self, *args: Any, **kwargs: Any) -> Any:
+        result = super().reset(*args, **kwargs)
+        if self.broker is not None:
+            self.broker.track_record = FastTrackRecord()
+        return result
 SUPPORTED_RUNTIME_FEATURES = {RUNTIME_POSITION_FEATURE}
 
 
@@ -360,7 +377,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         broker_fees = BrokerFees(proportional=fee, fixed=0.0)
 
         logger.trace("constructing TradingEnv initial_cash={}", initial_cash)
-        env = TradingEnv(
+        env = FastTradingEnv(
             action_space=action_space,
             state=features,
             reward=reward,
@@ -539,7 +556,7 @@ class StreamingTradingEnvXY(gym.Env):
             index = pd.RangeIndex(len(window_data))
         return pd.DataFrame(window_data, columns=mp.columns, index=index)
 
-    def _build_inner_env(self, window_df: pd.DataFrame, symbol: str = "", reward: Any = None) -> TradingEnv:
+    def _build_inner_env(self, window_df: pd.DataFrame, symbol: str = "", reward: Any = None) -> FastTradingEnv:
         stocks = [Stock(self._price_column)]
         prices = window_df[[self._price_column]].copy()
         prices.columns = pd.Index(stocks)
@@ -551,7 +568,7 @@ class StreamingTradingEnvXY(gym.Env):
                 traded_contracts=stocks,
             )
         ]
-        return TradingEnv(
+        return FastTradingEnv(
             action_space=BoxPortfolio(stocks, low=-1.0, high=1.0),
             state=features,
             reward=reward or self._make_reward(symbol),
