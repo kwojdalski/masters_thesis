@@ -199,7 +199,23 @@ class StrategyEvaluator:
         _cb_action_time = [0.0]
         _cb_done_time = [0.0]
         _inter_cb_total = [0.0]   # time outside callback (env step + policy)
+        _pol_time_total = [0.0]   # policy forward pass only
         _last_cb_end: list[float | None] = [None]
+
+        # Wrap the policy to measure forward-pass time separately from env step.
+        # env_time per step = inter_cb_time - pol_time  (both measured over the same window)
+        _original_policy = self.policy
+
+        class _TimedPolicy:
+            def __call__(self_inner, td: Any) -> Any:
+                t = _time.monotonic()
+                result = _original_policy(td)
+                elapsed = _time.monotonic() - t
+                _pol_time_total[0] += elapsed
+                _fine_pol[0] += elapsed
+                return result
+
+        timed_policy = _TimedPolicy()
 
         _fine_interval = max(1, max_steps // 100)   # 1% intervals for compact trace
         _coarse_interval = max(1, max_steps // 10)  # 10% intervals for full stats
@@ -212,7 +228,7 @@ class StrategyEvaluator:
         _ep_done = [0]
         _cum_reward = [0.0]
         # Fine accumulators (reset each 1%)
-        _fine_cb = [0.0]; _fine_inter = [0.0]
+        _fine_cb = [0.0]; _fine_inter = [0.0]; _fine_pol = [0.0]
         _fine_reward = [0.0]; _fine_action = [0.0]; _fine_done = [0.0]
 
         def _progress_cb(env: Any, td: Any) -> None:  # noqa: ARG001
@@ -284,20 +300,22 @@ class StrategyEvaluator:
                 steps_s = _fine_interval / max(interval_s, 1e-9)
                 n = _fine_interval
                 inter_us = _fine_inter[0] / n * 1e6
+                pol_us   = _fine_pol[0]   / n * 1e6
+                env_us   = max(0.0, inter_us - pol_us)
                 cb_us    = _fine_cb[0]    / n * 1e6
                 r_us     = _fine_reward[0] / n * 1e6
                 a_us     = _fine_action[0] / n * 1e6
                 d_us     = _fine_done[0]   / n * 1e6
                 total_us = inter_us + cb_us
-                inter_pct = 100.0 * inter_us / total_us if total_us > 0 else 0.0
+                env_pct = 100.0 * env_us  / total_us if total_us > 0 else 0.0
+                pol_pct = 100.0 * pol_us  / total_us if total_us > 0 else 0.0
                 logger.trace(
-                    "rollout {}%: {}/s | {:.0f}us/step (env+pol={:.0f} cb={:.0f}: r={:.0f} a={:.0f} d={:.0f}) | env={:.1f}%",
+                    "rollout {}%: {}/s | {:.0f}us/step (env={:.0f} {:.1f}% pol={:.0f} {:.1f}% cb={:.0f}: r={:.0f} a={:.0f} d={:.0f})",
                     int(pct), int(steps_s),
-                    total_us, inter_us, cb_us, r_us, a_us, d_us,
-                    inter_pct,
+                    total_us, env_us, env_pct, pol_us, pol_pct, cb_us, r_us, a_us, d_us,
                 )
                 _t_last_fine[0] = now
-                _fine_cb[0] = 0.0; _fine_inter[0] = 0.0
+                _fine_cb[0] = 0.0; _fine_inter[0] = 0.0; _fine_pol[0] = 0.0
                 _fine_reward[0] = 0.0; _fine_action[0] = 0.0; _fine_done[0] = 0.0
 
             # Coarse: every 10% — full reward/action stats
@@ -321,16 +339,20 @@ class StrategyEvaluator:
 
                 # Detailed timing breakdown (first 10% interval only)
                 if step == _coarse_interval:
+                    pol_us   = _pol_time_total[0] / step * 1e6
                     inter_us = _inter_cb_total[0] / step * 1e6
+                    env_us   = max(0.0, inter_us - pol_us)
                     cb_us    = _cb_time_total[0]  / step * 1e6
                     total_us = elapsed / step * 1e6
-                    inter_pct = 100.0 * _inter_cb_total[0] / elapsed if elapsed > 0 else 0.0
+                    env_pct  = 100.0 * env_us / total_us if total_us > 0 else 0.0
+                    pol_pct  = 100.0 * pol_us / total_us if total_us > 0 else 0.0
+                    cb_pct_v = 100.0 * cb_us  / total_us if total_us > 0 else 0.0
                     logger.debug(
                         "rollout profiling: steps={} {}/s | "
-                        "{:.0f}us/step (env+pol={:.0f} {:.1f}% cb={:.0f} {:.1f}%) | "
+                        "{:.0f}us/step (env={:.0f} {:.1f}% pol={:.0f} {:.1f}% cb={:.0f} {:.1f}%) | "
                         "cb breakdown: r={:.0f}us a={:.0f}us d={:.0f}us | mem_mb={:.0f}",
                         step, int(steps_s),
-                        total_us, inter_us, inter_pct, cb_us, 100.0 - inter_pct,
+                        total_us, env_us, env_pct, pol_us, pol_pct, cb_us, cb_pct_v,
                         _cb_reward_time[0] / step * 1e6,
                         _cb_action_time[0] / step * 1e6,
                         _cb_done_time[0]   / step * 1e6,
@@ -352,7 +374,7 @@ class StrategyEvaluator:
                 _a_sum[0] = 0.0; _a_long[0] = 0; _a_short[0] = 0; _a_n[0] = 0
                 _ep_done[0] = 0
                 # Reset fine accumulators (coarse boundary doubles as fine)
-                _fine_cb[0] = 0.0; _fine_inter[0] = 0.0
+                _fine_cb[0] = 0.0; _fine_inter[0] = 0.0; _fine_pol[0] = 0.0
                 _fine_reward[0] = 0.0; _fine_action[0] = 0.0; _fine_done[0] = 0.0
 
         logger.debug("rollout start max_steps={}", max_steps)
@@ -360,7 +382,7 @@ class StrategyEvaluator:
         with torch.no_grad():
             try:
                 with set_exploration_type(InteractionType.MODE):
-                    rollout = env.rollout(max_steps=max_steps, policy=self.policy, callback=_progress_cb)
+                    rollout = env.rollout(max_steps=max_steps, policy=timed_policy, callback=_progress_cb)
             except (NotImplementedError, RuntimeError) as exc:
                 if not (
                     isinstance(exc, NotImplementedError)
@@ -370,18 +392,22 @@ class StrategyEvaluator:
                     raise
                 # Fallback for distributions without analytical mode
                 with set_exploration_type(InteractionType.DETERMINISTIC):
-                    rollout = env.rollout(max_steps=max_steps, policy=self.policy, callback=_progress_cb)
+                    rollout = env.rollout(max_steps=max_steps, policy=timed_policy, callback=_progress_cb)
         actual_steps = rollout.shape[0] if rollout.ndim > 0 else 1
         elapsed_total = _time.monotonic() - _t
-        cb_avg_us    = _cb_time_total[0]   / actual_steps * 1e6 if actual_steps > 0 else 0
-        inter_avg_us = _inter_cb_total[0]  / actual_steps * 1e6 if actual_steps > 0 else 0
-        cb_pct    = 100.0 * _cb_time_total[0]  / elapsed_total if elapsed_total > 0 else 0
-        inter_pct = 100.0 * _inter_cb_total[0] / elapsed_total if elapsed_total > 0 else 0
+        n = actual_steps if actual_steps > 0 else 1
+        pol_avg_us   = _pol_time_total[0]  / n * 1e6
+        inter_avg_us = _inter_cb_total[0]  / n * 1e6
+        env_avg_us   = max(0.0, inter_avg_us - pol_avg_us)
+        cb_avg_us    = _cb_time_total[0]   / n * 1e6
+        env_pct  = 100.0 * env_avg_us  / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
+        pol_pct  = 100.0 * pol_avg_us  / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
+        cb_pct   = 100.0 * cb_avg_us   / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
         logger.info(
             "rollout done: steps={}/{} elapsed={:.1f}s {}/s | "
-            "env+pol={:.0f}us/step ({:.1f}%) cb={:.0f}us/step ({:.1f}%)",
+            "env={:.0f}us/step ({:.1f}%) pol={:.0f}us/step ({:.1f}%) cb={:.0f}us/step ({:.1f}%)",
             actual_steps, max_steps, elapsed_total, int(actual_steps / elapsed_total),
-            inter_avg_us, inter_pct, cb_avg_us, cb_pct,
+            env_avg_us, env_pct, pol_avg_us, pol_pct, cb_avg_us, cb_pct,
         )
         return rollout
 
