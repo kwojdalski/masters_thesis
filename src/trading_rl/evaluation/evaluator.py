@@ -11,6 +11,7 @@ All without coupling to training, MLflow, or specific algorithm details.
 
 from __future__ import annotations
 
+import gc
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -194,6 +195,9 @@ class StrategyEvaluator:
         # Profiling: track time spent in callback vs environment step
         _cb_time_total = [0.0]
         _cb_samples: list[float] = []
+        _cb_reward_time = [0.0]
+        _cb_action_time = [0.0]
+        _cb_done_time = [0.0]
 
         _log_interval = max(1, max_steps // 10)
         _step_counter = [0]
@@ -208,7 +212,9 @@ class StrategyEvaluator:
             cb_start = _time.monotonic()
             _step_counter[0] += 1
 
-            # Accumulate reward stats
+            # Time each part of the callback
+            # 1. Reward extraction
+            t_reward = _time.monotonic()
             try:
                 r = float(td["next", "reward"].mean().item())
                 _cum_reward[0] += r
@@ -220,8 +226,10 @@ class StrategyEvaluator:
                     _r_max[0] = r
             except Exception:  # noqa: BLE001
                 pass
+            _cb_reward_time[0] += _time.monotonic() - t_reward
 
-            # Accumulate action stats
+            # 2. Action extraction
+            t_action = _time.monotonic()
             try:
                 a = float(td["action"].float().mean().item())
                 _a_sum[0] += a
@@ -232,13 +240,16 @@ class StrategyEvaluator:
                     _a_short[0] += 1
             except Exception:  # noqa: BLE001
                 pass
+            _cb_action_time[0] += _time.monotonic() - t_action
 
-            # Count episode completions
+            # 3. Done check
+            t_done = _time.monotonic()
             try:
                 if bool(td["next", "done"].any().item()):
                     _ep_done[0] += 1
             except Exception:  # noqa: BLE001
                 pass
+            _cb_done_time[0] += _time.monotonic() - t_done
 
             cb_elapsed = _time.monotonic() - cb_start
             _cb_time_total[0] += cb_elapsed
@@ -262,14 +273,24 @@ class StrategyEvaluator:
                 short_pct   = 100.0 * _a_short[0] / _a_n[0] if _a_n[0] else float("nan")
                 neutral_pct = 100.0 - long_pct - short_pct if _a_n[0] else float("nan")
 
-                # Internal timing only, no trace log
+                # Memory tracking
+                gc.collect()
+                torch_mb = 0
+                if torch.cuda.is_available():
+                    torch_mb = torch.cuda.memory_allocated() / 1024 / 1024
+
+                # Internal timing breakdown
                 if _step_counter[0] == _log_interval:  # First interval only
                     logger.debug(
                         "rollout profiling: steps={} steps_s={:.0f} | "
-                        "callback avg_us={:.0f} callback_total_ms={:.2f}",
+                        "callback_total_ms={:.2f} reward_ms={:.2f} action_ms={:.2f} done_ms={:.2f} | "
+                        "torch_memory_mb={:.0f}",
                         _step_counter[0], steps_s,
-                        (sum(_cb_samples) / len(_cb_samples) * 1e6) if _cb_samples else 0,
                         _cb_time_total[0] * 1000,
+                        _cb_reward_time[0] * 1000,
+                        _cb_action_time[0] * 1000,
+                        _cb_done_time[0] * 1000,
+                        torch_mb,
                     )
 
                 logger.trace(
