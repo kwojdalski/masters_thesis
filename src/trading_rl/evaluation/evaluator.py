@@ -153,19 +153,81 @@ class StrategyEvaluator:
         _log_interval = max(1, max_steps // 10)
         _step_counter = [0]
         _t_last = [_time.monotonic()]
+        # Running accumulators reset each interval
+        _r_sum = [0.0]; _r_min = [float("inf")]; _r_max = [float("-inf")]; _r_n = [0]
+        _a_sum = [0.0]; _a_long = [0]; _a_short = [0]; _a_n = [0]
+        _ep_done = [0]
+        _cum_reward = [0.0]
 
-        def _progress_cb(*args: Any) -> None:
+        def _progress_cb(env: Any, td: Any) -> None:  # noqa: ARG001
             _step_counter[0] += 1
+
+            # Accumulate reward stats
+            try:
+                r = float(td["next", "reward"].mean().item())
+                _cum_reward[0] += r
+                _r_sum[0] += r
+                _r_n[0] += 1
+                if r < _r_min[0]:
+                    _r_min[0] = r
+                if r > _r_max[0]:
+                    _r_max[0] = r
+            except Exception:  # noqa: BLE001
+                pass
+
+            # Accumulate action stats
+            try:
+                a = float(td["action"].float().mean().item())
+                _a_sum[0] += a
+                _a_n[0] += 1
+                if a > 0:
+                    _a_long[0] += 1
+                elif a < 0:
+                    _a_short[0] += 1
+            except Exception:  # noqa: BLE001
+                pass
+
+            # Count episode completions
+            try:
+                if bool(td["next", "done"].any().item()):
+                    _ep_done[0] += 1
+            except Exception:  # noqa: BLE001
+                pass
+
             if _step_counter[0] % _log_interval == 0:
                 now = _time.monotonic()
                 pct = 100.0 * _step_counter[0] / max_steps
                 elapsed = now - _t
                 eta = (elapsed / _step_counter[0]) * (max_steps - _step_counter[0])
+                interval_s = now - _t_last[0]
+                steps_s = _log_interval / max(interval_s, 1e-9)
+
+                r_mean = _r_sum[0] / _r_n[0] if _r_n[0] else float("nan")
+                r_min  = _r_min[0] if _r_n[0] else float("nan")
+                r_max  = _r_max[0] if _r_n[0] else float("nan")
+
+                a_mean = _a_sum[0] / _a_n[0] if _a_n[0] else float("nan")
+                long_pct    = 100.0 * _a_long[0] / _a_n[0] if _a_n[0] else float("nan")
+                short_pct   = 100.0 * _a_short[0] / _a_n[0] if _a_n[0] else float("nan")
+                neutral_pct = 100.0 - long_pct - short_pct if _a_n[0] else float("nan")
+
                 logger.trace(
-                    "rollout progress step={}/{} pct={:.0f}% elapsed_s={:.1f} eta_s={:.1f}",
-                    _step_counter[0], max_steps, pct, elapsed, eta,
+                    "rollout progress step={}/{} pct={:.0f}% "
+                    "elapsed_s={:.1f} eta_s={:.1f} steps_s={:.0f} | "
+                    "reward mean={:.5f} min={:.5f} max={:.5f} cum={:.4f} | "
+                    "action mean={:.3f} long={:.1f}% short={:.1f}% neutral={:.1f}% | "
+                    "episodes_done={}",
+                    _step_counter[0], max_steps, pct,
+                    elapsed, eta, steps_s,
+                    r_mean, r_min, r_max, _cum_reward[0],
+                    a_mean, long_pct, short_pct, neutral_pct,
+                    _ep_done[0],
                 )
                 _t_last[0] = now
+                # Reset interval accumulators
+                _r_sum[0] = 0.0; _r_min[0] = float("inf"); _r_max[0] = float("-inf"); _r_n[0] = 0
+                _a_sum[0] = 0.0; _a_long[0] = 0; _a_short[0] = 0; _a_n[0] = 0
+                _ep_done[0] = 0
 
         logger.debug("rollout start max_steps={}", max_steps)
         _t = _time.monotonic()

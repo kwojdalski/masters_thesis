@@ -17,7 +17,7 @@ class _RolloutEnv:
     def __init__(self) -> None:
         self.rollout_calls = 0
 
-    def rollout(self, *, max_steps: int, policy: object) -> TensorDict:
+    def rollout(self, *, max_steps: int, policy: object, callback=None) -> TensorDict:
         self.rollout_calls += 1
         return TensorDict(
             {
