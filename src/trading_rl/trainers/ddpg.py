@@ -28,25 +28,28 @@ class DDPGTrainer(BaseTrainer):
         env: Any,
         config: TrainingConfig,
         *,
+        n_obs: int,
+        n_act: int,
+        actor_hidden_dims: list[int],
+        value_hidden_dims: list[int],
         eval_config: "EvaluationConfig | None" = None,
+        eval_env: Any | None = None,
+        eval_data_len: int | None = None,
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
     ):
-        """Initialize DDPG trainer.
-
-        Args:
-            actor: Actor network
-            value_net: Value network
-            env: Trading environment
-            config: Training configuration
-            eval_config: Evaluation configuration (eval_steps, eval_fraction, log_data)
-        """
         super().__init__(
             actor=actor,
             value_net=value_net,
             env=env,
             config=config,
+            n_obs=n_obs,
+            n_act=n_act,
+            actor_hidden_dims=actor_hidden_dims,
+            value_hidden_dims=value_hidden_dims,
             eval_config=eval_config,
+            eval_env=eval_env,
+            eval_data_len=eval_data_len,
             enable_composite_lp=True,
             checkpoint_dir=checkpoint_dir,
             checkpoint_prefix=checkpoint_prefix,

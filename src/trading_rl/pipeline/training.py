@@ -131,7 +131,10 @@ def _build_trainer(
     algorithm: str,
     effective_experiment_name: str,
     logger: logging.Logger,
-) -> tuple[Any, int, int]:
+    *,
+    eval_env: Any | None = None,
+    eval_data_len: int | None = None,
+) -> Any:
     import math
     n_obs = math.prod(env.observation_spec["observation"].shape)
     n_act = env.action_spec.shape[-1]
@@ -143,17 +146,21 @@ def _build_trainer(
     logger.info("select trainer cls={}", trainer_cls.__name__)
 
     actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
-    trainer = trainer_cls(
+    return trainer_cls(
         actor=actor,
         value_net=value_net,
         env=env,
         config=config.training,
+        n_obs=n_obs,
+        n_act=n_act,
+        actor_hidden_dims=config.network.actor_hidden_dims,
+        value_hidden_dims=config.network.value_hidden_dims,
         eval_config=config.evaluation,
+        eval_env=eval_env,
+        eval_data_len=eval_data_len,
         checkpoint_dir=config.logging.log_dir,
         checkpoint_prefix=effective_experiment_name,
     )
-
-    return trainer, n_obs, n_act
 
 
 def _build_mlflow_callback(
@@ -191,22 +198,20 @@ def _build_training_bundle(
 ) -> TrainingBundle:
     algorithm = getattr(config.training, "algorithm", "PPO").upper()
     train_env = _build_train_env(dataset, config, logger)
-    trainer, n_obs, n_act = _build_trainer(
+    eval_env = None
+    if getattr(config.training, "eval_interval", 0) > 0:
+        eval_env = AlgorithmicEnvironmentBuilder().create(
+            dataset.val_df, EnvBuildParams.from_config(config), use_memmap=False
+        )
+    trainer = _build_trainer(
         train_env,
         config,
         algorithm,
         effective_experiment_name,
         logger,
+        eval_env=eval_env,
+        eval_data_len=len(dataset.val_df),
     )
-    trainer._eval_data_len = len(dataset.val_df)
-    if getattr(config.training, "eval_interval", 0) > 0:
-        trainer._eval_env = AlgorithmicEnvironmentBuilder().create(
-            dataset.val_df, EnvBuildParams.from_config(config), use_memmap=False
-        )
-    trainer.n_obs = n_obs
-    trainer.n_act = n_act
-    trainer.actor_hidden_dims = config.network.actor_hidden_dims
-    trainer.value_hidden_dims = config.network.value_hidden_dims
 
     mlflow_callback = None
     if create_mlflow_callback:
@@ -222,8 +227,8 @@ def _build_training_bundle(
         trainer=trainer,
         mlflow_callback=mlflow_callback,
         algorithm=algorithm,
-        n_obs=n_obs,
-        n_act=n_act,
+        n_obs=trainer.n_obs,
+        n_act=trainer.n_act,
     )
 
 

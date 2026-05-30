@@ -75,6 +75,10 @@ trainer = DDPGTrainer(
     value_net=value_net,
     env=env,
     config=config.training,
+    n_obs=n_obs,
+    n_act=n_act,
+    actor_hidden_dims=config.network.actor_hidden_dims,
+    value_hidden_dims=config.network.value_hidden_dims,
     checkpoint_dir=config.logging.log_dir,
     checkpoint_prefix=config.experiment_name,
 )

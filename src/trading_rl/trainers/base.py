@@ -308,7 +308,13 @@ class BaseTrainer(ABC):
         env: Any,
         config: TrainingConfig,
         *,
+        n_obs: int,
+        n_act: int,
+        actor_hidden_dims: list[int],
+        value_hidden_dims: list[int],
         eval_config: EvaluationConfig | None = None,
+        eval_env: Any | None = None,
+        eval_data_len: int | None = None,
         enable_composite_lp: bool = False,
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
@@ -323,6 +329,14 @@ class BaseTrainer(ABC):
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_prefix = checkpoint_prefix
 
+        self.n_obs = n_obs
+        self.n_act = n_act
+        self.actor_hidden_dims = actor_hidden_dims
+        self.value_hidden_dims = value_hidden_dims
+        self._eval_env = eval_env
+        self._eval_data_len = eval_data_len
+        self._last_evaluation_result: Any | None = None
+
         # Replay buffer — skipped for on-policy algorithms (e.g. PPO) that set
         # _use_replay_buffer = False before calling super().__init__().
         if getattr(self, "_use_replay_buffer", True):
@@ -334,22 +348,6 @@ class BaseTrainer(ABC):
             actor=actor,
             config=config,
         )
-
-        # Set by the pipeline after construction when val data length is known.
-        # Used by _evaluate to resolve eval_fraction against actual data size.
-        self._eval_data_len: int | None = None
-
-        # Set by the pipeline after construction for checkpoint portability.
-        self.n_obs: int | None = None
-        self.n_act: int | None = None
-        self.actor_hidden_dims: list[int] | None = None
-        self.value_hidden_dims: list[int] | None = None
-
-        # Optional dedicated evaluation environment.  When set, periodic _evaluate()
-        # calls use this env instead of self.env, preventing SyncDataCollector
-        # state corruption.  Set by the pipeline after construction.
-        self._eval_env: Any | None = None
-        self._last_evaluation_result: Any | None = None
 
         # Training state
         self.total_count = 0
