@@ -284,20 +284,15 @@ class TD3Trainer(BaseTrainer):
 
             if self._should_update_actor(current_step):
                 actor_loss, extra_metrics = self._update_actor_and_targets(sample)
-            else:
-                actor_loss = loss_vals["loss_actor"].item()
-                extra_metrics = None
-
-            self.logs["loss_actor"].append(actor_loss)
-
-            if (
-                hasattr(self, "callback")
-                and self.callback
-                and hasattr(self.callback, "log_training_step")
-            ):
-                self.callback.log_training_step(
-                    current_step, actor_loss, value_loss, extra_metrics=extra_metrics
-                )
+                self.logs["loss_actor"].append(actor_loss)
+                if (
+                    hasattr(self, "callback")
+                    and self.callback
+                    and hasattr(self.callback, "log_training_step")
+                ):
+                    self.callback.log_training_step(
+                        current_step, actor_loss, value_loss, extra_metrics=extra_metrics
+                    )
 
             if self._should_log_step(current_step):
                 self._log_progress(max_length, buffer_len, loss_vals)

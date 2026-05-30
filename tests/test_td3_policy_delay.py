@@ -150,4 +150,5 @@ def test_td3_optimization_step_normalizes_shapes_and_delays_actor_update() -> No
     assert trainer.td3_loss.qvalue_network_params.to_module_calls == 3
     assert trainer.td3_loss.actor_network_params.to_module_calls == 1
     assert trainer.logs["loss_value"] == pytest.approx([0.30, 0.30, 0.30])
-    assert trainer.logs["loss_actor"] == pytest.approx([0.40, 0.40, 0.40])
+    # actor loss only logged on the one delayed-update step, not on critic-only steps
+    assert trainer.logs["loss_actor"] == pytest.approx([0.40])
