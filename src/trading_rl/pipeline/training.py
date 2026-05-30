@@ -12,6 +12,7 @@ from typing import Any
 import mlflow
 import numpy as np
 import torch
+from torchrl.envs import TransformedEnv
 from loguru import logger
 from logger import get_logger as get_project_logger
 from logger import is_level_enabled
@@ -24,6 +25,7 @@ from trading_rl.config import ExperimentConfig, LoggingParams, MLflowCallbackPar
 from trading_rl.data_utils import PreparedDataset, build_prepared_dataset
 from trading_rl.envs import AlgorithmicEnvironmentBuilder, EnvBuildParams
 from trading_rl.envs.trading_envs import EnvBackend
+from trading_rl.trainers.base import BaseTrainer
 import trading_rl.trainers.ddpg  # noqa: F401 — registers DDPGTrainer
 import trading_rl.trainers.ppo  # noqa: F401 — registers PPOTrainer, PPOTrainerContinuous
 import trading_rl.trainers.random_trainer  # noqa: F401 — registers RandomTrainer
@@ -37,8 +39,8 @@ from trading_rl.trainers.registry import TrainerRegistry
 class TrainingBundle:
     """Constructed training runtime objects derived from config and dataset."""
 
-    train_env: Any
-    trainer: Any
+    train_env: TransformedEnv
+    trainer: BaseTrainer
     mlflow_callback: MLflowTrainingCallback | None
     algorithm: str
     n_obs: int
