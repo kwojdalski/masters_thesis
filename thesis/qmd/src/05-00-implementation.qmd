@@ -35,6 +35,22 @@ performs well in this simulated setting, the result supports a claim about
 policy learning under the specified assumptions, not a claim that the strategy
 is immediately deployable without further execution modeling.
 
+**Simulation engine.** The portfolio accounting layer is built on
+`tradingenv` [@XAIAssetManagement2024TradingEnv], an open-source
+event-driven market simulator developed by XAI Asset Management that
+implements the OpenAI Gymnasium protocol. The library models a broker
+with configurable transaction fees, handles continuous portfolio
+rebalancing, and records a full trade history for post-episode analysis.
+It was integrated into the training pipeline via a custom wrapper
+(`StreamingTradingEnvXY`) that streams fixed-length episode windows from
+memory-mapped data files, keeping peak memory proportional to episode
+length rather than dataset size. One performance modification was applied
+to the library: the duplicate-timestamp check in the internal
+`TrackRecord._checkpoint` method was overridden in a subclass to use an
+$O(1)$ dictionary lookup instead of an $O(n)$ linear list scan, which
+would otherwise degrade step time quadratically over long evaluation
+episodes.
+
 ## Simulation Assumptions
 
 The following assumptions govern the trading simulation throughout all
