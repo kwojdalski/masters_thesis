@@ -13,34 +13,49 @@ import pytest
 
 from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.envs import builder as builder_module
-from trading_rl.envs.builder import AlgorithmicEnvironmentBuilder, EnvBuildParams
+from trading_rl.envs.builder import (
+    AlgorithmicEnvironmentBuilder,
+    CommonEnvParams,
+    EnvBuildParams,
+    GymTradingEnvParams,
+    StreamingEnvParams,
+    TradingEnvParams,
+)
 from trading_rl.rewards import reward_function
 
 
 def _params(algorithm: str = "PPO", backend: str | None = None) -> EnvBuildParams:
     """Minimal EnvBuildParams for tests."""
     return EnvBuildParams(
-        env_name="test-env",
-        positions=[-1, 0, 1],
-        trading_fees=0.0,
-        borrow_interest_rate=0.0,
-        streaming_episode_length=12,
-        continuous_action_thresholds=[-0.25, 0.25],
-        feature_columns=None,
-        price_column="close",
-        initial_portfolio_value=100_000.0,
-        reward_type="log_return",
-        reward_eta=0.01,
-        reward_scale=1.0,
-        include_position_feature=False,
-        obs_clip=5.0,
-        action_penalty_lambda=0.0,
-        action_penalty_type="quadratic",
-        backend=backend,
+        common=CommonEnvParams(
+            env_name="test-env",
+            positions=[-1, 0, 1],
+            trading_fees=0.0,
+            borrow_interest_rate=0.0,
+            reward_type="log_return",
+            reward_eta=0.01,
+            reward_scale=1.0,
+            backend=backend,
+            seed=123,
+        ),
         algorithm=algorithm,
-        device="cpu",
-        memmap_dir=None,
-        seed=123,
+        trading_env=TradingEnvParams(
+            feature_columns=None,
+            price_column="close",
+            initial_portfolio_value=100_000.0,
+            include_position_feature=False,
+            obs_clip=5.0,
+            action_penalty_lambda=0.0,
+            action_penalty_type="quadratic",
+        ),
+        gym_trading=GymTradingEnvParams(
+            continuous_action_thresholds=[-0.25, 0.25],
+            device="cpu",
+        ),
+        streaming=StreamingEnvParams(
+            memmap_dir=None,
+            streaming_episode_length=12,
+        ),
     )
 
 
@@ -317,27 +332,35 @@ class TestCreateStreamingEnv:
             columns=["close", "feature_signal", "feature_position"]
         )
         params = EnvBuildParams(
-            env_name="test-env",
-            positions=[-1, 0, 1],
-            trading_fees=0.0002,
-            borrow_interest_rate=0.0,
-            streaming_episode_length=12,
-            continuous_action_thresholds=[-0.25, 0.25],
-            feature_columns=["feature_signal", "feature_position"],
-            price_column="mid_price",
-            initial_portfolio_value=25_000.0,
-            reward_type=RewardType.DIFFERENTIAL_SHARPE,
-            reward_eta=0.07,
-            reward_scale=2.5,
-            include_position_feature=True,
-            obs_clip=3.0,
-            action_penalty_lambda=0.0,
-            action_penalty_type="quadratic",
-            backend=EnvBackend.TRADINGENV,
+            common=CommonEnvParams(
+                env_name="test-env",
+                positions=[-1, 0, 1],
+                trading_fees=0.0002,
+                borrow_interest_rate=0.0,
+                reward_type=RewardType.DIFFERENTIAL_SHARPE,
+                reward_eta=0.07,
+                reward_scale=2.5,
+                backend=EnvBackend.TRADINGENV,
+                seed=123,
+            ),
             algorithm="TD3",
-            device="cpu",
-            memmap_dir=None,
-            seed=123,
+            trading_env=TradingEnvParams(
+                feature_columns=["feature_signal", "feature_position"],
+                price_column="mid_price",
+                initial_portfolio_value=25_000.0,
+                include_position_feature=True,
+                obs_clip=3.0,
+                action_penalty_lambda=0.0,
+                action_penalty_type="quadratic",
+            ),
+            gym_trading=GymTradingEnvParams(
+                continuous_action_thresholds=[-0.25, 0.25],
+                device="cpu",
+            ),
+            streaming=StreamingEnvParams(
+                memmap_dir=None,
+                streaming_episode_length=12,
+            ),
         )
 
         result = AlgorithmicEnvironmentBuilder()._create_streaming_tradingenv(

@@ -186,7 +186,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             self.logger.info(
                 "created StreamingTradingEnv n_symbols={} episode_length={}",
                 len(memmap_paths),
-                params.streaming_episode_length,
+                params.streaming.streaming_episode_length,
             )
             return env
 
