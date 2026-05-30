@@ -310,7 +310,7 @@ class StrategyEvaluator:
                 env_pct = 100.0 * env_us  / total_us if total_us > 0 else 0.0
                 pol_pct = 100.0 * pol_us  / total_us if total_us > 0 else 0.0
                 logger.trace(
-                    "rollout {}%: {}/s | {:.0f}us/step (env={:.0f} {:.1f}% pol={:.0f} {:.1f}% cb={:.0f}: r={:.0f} a={:.0f} d={:.0f})",
+                    "rollout: pct={}% spd={}/s | step_us={:.0f} env_us={:.0f} env_pct={:.1f}% pol_us={:.0f} pol_pct={:.1f}% cb_us={:.0f} r_us={:.0f} a_us={:.0f} d_us={:.0f}",
                     int(pct), int(steps_s),
                     total_us, env_us, env_pct, pol_us, pol_pct, cb_us, r_us, a_us, d_us,
                 )
@@ -348,9 +348,9 @@ class StrategyEvaluator:
                     pol_pct  = 100.0 * pol_us / total_us if total_us > 0 else 0.0
                     cb_pct_v = 100.0 * cb_us  / total_us if total_us > 0 else 0.0
                     logger.debug(
-                        "rollout profiling: steps={} {}/s | "
-                        "{:.0f}us/step (env={:.0f} {:.1f}% pol={:.0f} {:.1f}% cb={:.0f} {:.1f}%) | "
-                        "cb breakdown: r={:.0f}us a={:.0f}us d={:.0f}us | mem_mb={:.0f}",
+                        "rollout profiling: steps={} spd={}/s | "
+                        "step_us={:.0f} env_us={:.0f} env_pct={:.1f}% pol_us={:.0f} pol_pct={:.1f}% cb_us={:.0f} cb_pct={:.1f}% | "
+                        "cb: r_us={:.0f} a_us={:.0f} d_us={:.0f} | mem_mb={:.0f}",
                         step, int(steps_s),
                         total_us, env_us, env_pct, pol_us, pol_pct, cb_us, cb_pct_v,
                         _cb_reward_time[0] / step * 1e6,
@@ -360,8 +360,8 @@ class StrategyEvaluator:
                     )
 
                 logger.trace(
-                    "rollout: step={}/{} {}% elapsed={:.1f}s eta={:.1f}s {}/s | "
-                    "r={:.4f} ({:.5f} to {:.5f}) | a={:.2f} (long={:.0f}% short={:.0f}%)",
+                    "rollout: step={}/{} pct={}% elapsed_s={:.1f} eta_s={:.1f} spd={}/s | "
+                    "r={:.4f} r_min={:.5f} r_max={:.5f} | a={:.2f} long_pct={:.0f}% short_pct={:.0f}%",
                     step, max_steps, int(pct),
                     elapsed, eta, int(steps_s),
                     _cum_reward[0], r_min, r_max,
@@ -404,8 +404,8 @@ class StrategyEvaluator:
         pol_pct  = 100.0 * pol_avg_us  / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
         cb_pct   = 100.0 * cb_avg_us   / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
         logger.info(
-            "rollout done: steps={}/{} elapsed={:.1f}s {}/s | "
-            "env={:.0f}us/step ({:.1f}%) pol={:.0f}us/step ({:.1f}%) cb={:.0f}us/step ({:.1f}%)",
+            "rollout done: steps={}/{} elapsed_s={:.1f} spd={}/s | "
+            "env_us={:.0f} env_pct={:.1f}% pol_us={:.0f} pol_pct={:.1f}% cb_us={:.0f} cb_pct={:.1f}%",
             actual_steps, max_steps, elapsed_total, int(actual_steps / elapsed_total),
             env_avg_us, env_pct, pol_avg_us, pol_pct, cb_avg_us, cb_pct,
         )
