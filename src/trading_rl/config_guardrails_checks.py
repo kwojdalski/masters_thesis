@@ -1425,32 +1425,32 @@ def _check_sac_alpha_lr_imbalance(config: ExperimentConfig) -> Finding | None:
 
 
 def _check_td3_policy_delay_too_small(config: ExperimentConfig) -> Finding | None:
-    """WARN (TD3): delay_actor < 2 → eliminates TD3's key advantage over DDPG."""
+    """WARN (TD3): policy_delay < 2 → eliminates TD3's key advantage over DDPG."""
     if not _is_td3(config.training.algorithm):
         return None
-    delay = config.training.td3.delay_actor
+    delay = config.training.td3.policy_delay
     if delay < 2:
         return Finding(
             severity=Severity.WARN,
-            parameter="training.td3.delay_actor",
+            parameter="training.td3.policy_delay",
             message=(
-                f"delay_actor={delay}: TD3 updates the actor every {delay} critic steps, "
+                f"policy_delay={delay}: TD3 updates the actor every {delay} critic steps, "
                 f"but TD3's key innovation is delayed actor updates (typically 2 or more). "
                 "With delay < 2, the actor updates every step, which eliminates the "
                 "variance reduction benefit and makes TD3 essentially DDPG with twin critics."
             ),
-            suggestion="Set delay_actor >= 2. The original TD3 paper uses delay_actor=2.",
+            suggestion="Set policy_delay >= 2. The original TD3 paper uses policy_delay=2.",
         )
     if delay > 10:
         return Finding(
             severity=Severity.WARN,
-            parameter="training.td3.delay_actor",
+            parameter="training.td3.policy_delay",
             message=(
-                f"delay_actor={delay}: actor updates only every {delay} critic steps. "
+                f"policy_delay={delay}: actor updates only every {delay} critic steps. "
                 "Such a large delay can slow policy improvement significantly, especially "
                 "in the early stages of training when the critic is still learning."
             ),
-            suggestion="Typical values are 1–3. Consider delay_actor=2.",
+            suggestion="Typical values are 1–3. Consider policy_delay=2.",
         )
     return None
 
