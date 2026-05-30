@@ -16,69 +16,81 @@ from trading_rl.pipeline.checkpoint import (
 from trading_rl.trainers.checkpointing import CheckpointManager
 
 
-class _Trainer:
-    def __init__(self, tmp_path, *, interval: int = 10) -> None:
-        self.config = SimpleNamespace(checkpoint_interval=interval, max_steps=100)
-        self.checkpoint_dir = tmp_path / "checkpoints"
-        self.checkpoint_prefix = "experiment"
-        self.total_count = 0
-        self.saved_paths: list[str] = []
+from trading_rl.trainers.checkpointing import TrainingCheckpoint
 
-    def save_checkpoint(self, path: str) -> None:
-        self.saved_paths.append(path)
-        pd.DataFrame({"x": [1]}).to_parquet(path)
+
+def _manager(tmp_path, *, interval: int = 10) -> CheckpointManager:
+    return CheckpointManager(
+        checkpoint_dir=tmp_path / "checkpoints",
+        checkpoint_prefix="experiment",
+        interval=interval,
+    )
+
+
+def _snapshot() -> TrainingCheckpoint:
+    return TrainingCheckpoint(
+        algorithm="test",
+        total_count=0,
+        total_episodes=0,
+        logs={},
+        network_state={"actor_params_state": {}, "value_params_state": {}},
+    )
 
 
 def test_checkpoint_manager_does_not_save_before_interval(tmp_path) -> None:
-    trainer = _Trainer(tmp_path, interval=10)
-    trainer.total_count = 9
-    manager = CheckpointManager(trainer)
-
-    manager.maybe_save_checkpoint()
-
-    assert trainer.saved_paths == []
+    manager = _manager(tmp_path, interval=10)
+    saved: list[str] = []
+    manager.maybe_save(9, _snapshot)
+    assert not list((tmp_path / "checkpoints").glob("*.pt")) if (tmp_path / "checkpoints").exists() else True
 
 
-def test_checkpoint_manager_saves_when_interval_reached(tmp_path) -> None:
-    trainer = _Trainer(tmp_path, interval=10)
-    trainer.total_count = 10
-    manager = CheckpointManager(trainer)
+def test_checkpoint_manager_saves_when_interval_reached(tmp_path, monkeypatch) -> None:
+    manager = _manager(tmp_path, interval=10)
+    saved: list[str] = []
+    monkeypatch.setattr("trading_rl.trainers.checkpointing.torch.save", lambda obj, path: saved.append(str(path)))
+    monkeypatch.setattr(
+        "trading_rl.trainers.checkpointing.CheckpointManager.save",
+        lambda self, path, cp: saved.append(path),
+    )
 
-    manager.maybe_save_checkpoint()
+    manager.maybe_save(10, _snapshot)
 
-    assert len(trainer.saved_paths) == 1
-    assert trainer.saved_paths[0].endswith("experiment_checkpoint_step_10.pt")
+    assert len(saved) == 1
+    assert saved[0].endswith("experiment_checkpoint_step_10.pt")
 
 
-def test_checkpoint_manager_updates_last_saved_step(tmp_path) -> None:
-    trainer = _Trainer(tmp_path, interval=10)
-    manager = CheckpointManager(trainer)
-    trainer.total_count = 10
-    manager.maybe_save_checkpoint()
-    trainer.total_count = 15
-    manager.maybe_save_checkpoint()
+def test_checkpoint_manager_updates_last_saved_step(tmp_path, monkeypatch) -> None:
+    manager = _manager(tmp_path, interval=10)
+    saved: list[str] = []
+    monkeypatch.setattr(
+        "trading_rl.trainers.checkpointing.CheckpointManager.save",
+        lambda self, path, cp: saved.append(path),
+    )
 
-    assert len(trainer.saved_paths) == 1
+    manager.maybe_save(10, _snapshot)
+    manager.maybe_save(15, _snapshot)
+
+    assert len(saved) == 1
 
 
 def test_interrupt_checkpoint_returns_none_without_checkpoint_config(tmp_path) -> None:
-    trainer = _Trainer(tmp_path)
-    trainer.checkpoint_dir = None
-    manager = CheckpointManager(trainer)
-
-    assert manager.save_interrupt_checkpoint() is None
+    manager = CheckpointManager(checkpoint_dir=None, checkpoint_prefix=None, interval=10)
+    assert manager.save_interrupt(42, _snapshot) is None
 
 
-def test_interrupt_checkpoint_saves_timestamped_file(tmp_path) -> None:
-    trainer = _Trainer(tmp_path)
-    trainer.total_count = 42
-    manager = CheckpointManager(trainer)
+def test_interrupt_checkpoint_saves_timestamped_file(tmp_path, monkeypatch) -> None:
+    manager = _manager(tmp_path)
+    saved: list[str] = []
+    monkeypatch.setattr(
+        "trading_rl.trainers.checkpointing.CheckpointManager.save",
+        lambda self, path, cp: saved.append(path),
+    )
 
-    path = manager.save_interrupt_checkpoint()
+    path = manager.save_interrupt(42, _snapshot)
 
     assert path is not None
     assert "experiment_checkpoint_interrupt_step_42_" in path
-    assert trainer.saved_paths == [path]
+    assert saved == [path]
 
 
 def test_get_episode_count_prefers_logged_episode_count() -> None:

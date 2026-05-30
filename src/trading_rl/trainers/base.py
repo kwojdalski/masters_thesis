@@ -21,11 +21,10 @@ from torchrl.envs.utils import set_exploration_type
 from logger import get_logger, is_level_enabled, log_banner
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import BenchmarkName
-from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.evaluation.benchmarks import benchmarks_from_config
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.profiler import get_profiler
-from trading_rl.trainers.checkpointing import CheckpointManager
+from trading_rl.trainers.checkpointing import CheckpointManager, TrainingCheckpoint
 from trading_rl.trainers.episode_stats import EpisodeStatsTracker
 from trading_rl.trainers.health_monitor import TrainingHealthMonitor
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
@@ -356,7 +355,12 @@ class BaseTrainer(ABC):
         self.total_count = 0
         self.total_episodes = 0
         self.logs = defaultdict(list)
-        self.checkpoint_manager = CheckpointManager(self)
+        self.checkpoint_manager = CheckpointManager(
+            checkpoint_dir=checkpoint_dir,
+            checkpoint_prefix=checkpoint_prefix,
+            interval=getattr(config, "checkpoint_interval", 0),
+            save_buffer=getattr(config, "save_buffer", False),
+        )
         self.runtime_hooks = TrainerRuntimeHooks(self)
         self.health_monitor = TrainingHealthMonitor(
             stale_policy_min_ratio=getattr(config, "es_stale_policy_min_ratio", 0.0),
@@ -530,19 +534,12 @@ class BaseTrainer(ABC):
     # Shared checkpoint save / load
     # ------------------------------------------------------------------
 
-    def save_checkpoint(
+    def _snapshot(
         self,
-        path: str,
         feature_pipeline_state: dict[str, dict[str, float]] | None = None,
         mlflow_meta: dict | None = None,
-    ) -> None:
-        """Save a training checkpoint.
-
-        The common frame (architecture metadata, training state, MLflow tags,
-        feature pipeline state, optional replay buffer) is written here.
-        Algorithm-specific network / optimizer state is provided by
-        ``_get_checkpoint_network_state()``.
-        """
+    ) -> TrainingCheckpoint:
+        """Assemble current training state into a portable snapshot."""
         from pathlib import Path
         from trading_rl.models import _extract_action_bounds_from_spec
 
@@ -550,34 +547,64 @@ class BaseTrainer(ABC):
             mlflow_meta = _collect_mlflow_meta()
         _env = getattr(self, "env", None)
         _bounds = _extract_action_bounds_from_spec(getattr(_env, "action_spec", None))
-        checkpoint: dict = {
-            "algorithm": self._algo_label,
-            "n_obs": self.n_obs,
-            "n_act": self.n_act,
-            "actor_hidden_dims": self.actor_hidden_dims,
-            "value_hidden_dims": self.value_hidden_dims,
-            "action_low": _bounds[0].tolist() if _bounds is not None else None,
-            "action_high": _bounds[1].tolist() if _bounds is not None else None,
-            "actor_state_dict": self.actor.state_dict(),
-            "value_net_state_dict": self.value_net.state_dict(),
-            "total_count": self.total_count,
-            "total_episodes": self.total_episodes,
-            "episode_log_count": (
+        return TrainingCheckpoint(
+            algorithm=self._algo_label,
+            n_obs=self.n_obs,
+            n_act=self.n_act,
+            actor_hidden_dims=self.actor_hidden_dims,
+            value_hidden_dims=self.value_hidden_dims,
+            action_low=_bounds[0].tolist() if _bounds is not None else None,
+            action_high=_bounds[1].tolist() if _bounds is not None else None,
+            actor_state_dict=self.actor.state_dict(),
+            value_net_state_dict=self.value_net.state_dict(),
+            total_count=self.total_count,
+            total_episodes=self.total_episodes,
+            episode_log_count=(
                 int(self.logs.get("episode_log_count", [0])[-1])
                 if self.logs.get("episode_log_count")
                 else 0
             ),
-            "logs": dict(self.logs),
-            "mlflow_run_id": mlflow_meta.get("run_id"),
-            "mlflow_run_name": mlflow_meta.get("run_name"),
-            "mlflow_tracking_uri": mlflow_meta.get("tracking_uri"),
-            "mlflow_experiment_id": mlflow_meta.get("experiment_id"),
-            "mlflow_experiment_name": mlflow_meta.get("experiment_name"),
-            "feature_pipeline_state": feature_pipeline_state,
-        }
-        checkpoint.update(self._get_checkpoint_network_state())
+            logs=dict(self.logs),
+            mlflow_run_id=mlflow_meta.get("run_id"),
+            mlflow_run_name=mlflow_meta.get("run_name"),
+            mlflow_tracking_uri=mlflow_meta.get("tracking_uri"),
+            mlflow_experiment_id=mlflow_meta.get("experiment_id"),
+            mlflow_experiment_name=mlflow_meta.get("experiment_name"),
+            feature_pipeline_state=feature_pipeline_state,
+            network_state=self._get_checkpoint_network_state(),
+        )
 
-        if getattr(self, "replay_buffer", None) is not None and getattr(self.config, "save_buffer", False):
+    def _restore(self, checkpoint: TrainingCheckpoint) -> None:
+        """Restore training state from a snapshot."""
+        self._load_checkpoint_network_state(checkpoint.network_state)
+
+        # Backward-compat: restore visible module weights when present.
+        if checkpoint.actor_state_dict:
+            self.actor.load_state_dict(checkpoint.actor_state_dict)
+        if checkpoint.value_net_state_dict:
+            self.value_net.load_state_dict(checkpoint.value_net_state_dict)
+
+        self.total_count = checkpoint.total_count
+        self.total_episodes = checkpoint.total_episodes
+        self.logs = defaultdict(list, checkpoint.logs)
+        self.mlflow_run_id = checkpoint.mlflow_run_id
+        self.mlflow_run_name = checkpoint.mlflow_run_name
+        self.mlflow_tracking_uri = checkpoint.mlflow_tracking_uri
+        self.mlflow_experiment_id = checkpoint.mlflow_experiment_id
+        self.mlflow_experiment_name = checkpoint.mlflow_experiment_name
+
+    def save_checkpoint(
+        self,
+        path: str,
+        feature_pipeline_state: dict[str, dict[str, float]] | None = None,
+        mlflow_meta: dict | None = None,
+    ) -> None:
+        """Save a training checkpoint."""
+        from pathlib import Path
+
+        snapshot = self._snapshot(feature_pipeline_state, mlflow_meta)
+
+        if getattr(self, "replay_buffer", None) is not None and self.checkpoint_manager.save_buffer:
             path_obj = Path(path)
             buffer_dir = path_obj.with_suffix("").with_name(f"{path_obj.stem}_buffer")
             try:
@@ -585,69 +612,37 @@ class BaseTrainer(ABC):
             except Exception:
                 logger.exception("failed to save replay buffer; checkpoint will not include buffer")
             else:
-                checkpoint["replay_buffer_path"] = str(buffer_dir)
-                checkpoint["buffer_metadata"] = {
+                snapshot.replay_buffer_path = str(buffer_dir)
+                snapshot.buffer_metadata = {
                     "buffer_size": len(self.replay_buffer),
                     "max_size": self.replay_buffer._storage.max_size,
                 }
                 logger.info("save replay buffer path={} n_experiences={}", buffer_dir, len(self.replay_buffer))
 
-        torch.save(checkpoint, path)
-        write_asset_meta(path, generator=f"trainers/{self._algo_label}.py")
-        logger.info("save checkpoint path={}", path)
+        self.checkpoint_manager.save(path, snapshot)
 
     def load_checkpoint(self, path: str) -> None:
-        """Load a training checkpoint.
-
-        Validates the required keys, delegates network / optimizer restoration
-        to ``_load_checkpoint_network_state()``, then restores common training
-        state and optionally the replay buffer.
-        """
+        """Load a training checkpoint."""
         from pathlib import Path
 
-        checkpoint = torch.load(path, weights_only=True)
+        checkpoint = self.checkpoint_manager.load(path)
+
         if is_level_enabled("TRACE"):
-            logger.trace("{} checkpoint keys={}", self._algo_label, sorted(checkpoint.keys()))
+            logger.trace("{} checkpoint algorithm={}", self._algo_label, checkpoint.algorithm)
 
-        if "actor_params_state" not in checkpoint or "value_params_state" not in checkpoint:
-            raise KeyError(
-                f"{self._algo_label.upper()} checkpoint is missing functional parameter states "
-                "(actor_params_state/value_params_state). "
-                "Legacy module-only checkpoints are no longer supported."
-            )
-
-        self._load_checkpoint_network_state(checkpoint)
-
-        # Backward-compat: restore visible module weights if present in checkpoint.
-        if "actor_state_dict" in checkpoint:
-            self.actor.load_state_dict(checkpoint["actor_state_dict"])
-        if "value_net_state_dict" in checkpoint:
-            self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
-
-        self.total_count = checkpoint["total_count"]
-        self.total_episodes = checkpoint["total_episodes"]
-        self.logs = defaultdict(list, checkpoint["logs"])
-        self.mlflow_run_id = checkpoint.get("mlflow_run_id")
-        self.mlflow_run_name = checkpoint.get("mlflow_run_name")
-        self.mlflow_tracking_uri = checkpoint.get("mlflow_tracking_uri")
-        self.mlflow_experiment_id = checkpoint.get("mlflow_experiment_id")
-        self.mlflow_experiment_name = checkpoint.get("mlflow_experiment_name")
+        self._restore(checkpoint)
 
         replay_buffer = getattr(self, "replay_buffer", None)
         if replay_buffer is not None:
-            if "replay_buffer" in checkpoint:
-                logger.info("restore replay buffer legacy n_experiences={}", len(checkpoint["replay_buffer"]))
-                self.replay_buffer = checkpoint["replay_buffer"]
+            buffer_path = checkpoint.replay_buffer_path
+            if buffer_path and Path(buffer_path).exists():
+                try:
+                    replay_buffer.loads(buffer_path)
+                    logger.info("load replay buffer path={} n_experiences={}", buffer_path, len(replay_buffer))
+                except Exception:
+                    logger.exception("Failed to load replay buffer from {}", buffer_path)
             else:
-                buffer_path = checkpoint.get("replay_buffer_path")
-                if buffer_path and Path(buffer_path).exists():
-                    try:
-                        replay_buffer.loads(buffer_path)
-                        logger.info("load replay buffer path={} n_experiences={}", buffer_path, len(replay_buffer))
-                    except Exception:
-                        logger.exception("Failed to load replay buffer from {}", buffer_path)
-                else:
-                    logger.info("no replay buffer in checkpoint start_fresh=true")
+                logger.info("no replay buffer in checkpoint start_fresh=true")
 
         logger.debug(
             "load checkpoint state total_count={} total_episodes={} mlflow_run_id={} "
@@ -906,7 +901,7 @@ class BaseTrainer(ABC):
                         )
 
                     with _profiler.stage("checkpoint", 2):
-                        self.checkpoint_manager.maybe_save_checkpoint()
+                        self.checkpoint_manager.maybe_save(self.total_count, self._snapshot)
 
                     with _profiler.stage("periodic_hooks", 2):
                         self.runtime_hooks.maybe_run(self.total_count)
@@ -944,7 +939,7 @@ class BaseTrainer(ABC):
                         break
             except KeyboardInterrupt:
                 logger.warning("training interrupted by user saving checkpoint")
-                checkpoint_path = self.checkpoint_manager.save_interrupt_checkpoint()
+                checkpoint_path = self.checkpoint_manager.save_interrupt(self.total_count, self._snapshot)
                 if checkpoint_path:
                     logger.info("interrupt checkpoint saved path={}", checkpoint_path)
                 raise

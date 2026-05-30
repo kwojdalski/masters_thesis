@@ -39,10 +39,10 @@ class _CheckpointManager:
         self.maybe_save_calls = 0
         self.interrupt_saved = False
 
-    def maybe_save_checkpoint(self) -> None:
+    def maybe_save(self, step: int, snapshot_fn: object) -> None:
         self.maybe_save_calls += 1
 
-    def save_interrupt_checkpoint(self) -> str:
+    def save_interrupt(self, step: int, snapshot_fn: object) -> str:
         self.interrupt_saved = True
         return "interrupt.pt"
 

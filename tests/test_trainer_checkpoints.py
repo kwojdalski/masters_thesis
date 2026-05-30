@@ -7,9 +7,15 @@ from types import SimpleNamespace
 
 import torch
 
+from trading_rl.trainers.checkpointing import CheckpointManager
 from trading_rl.trainers.ddpg import DDPGTrainer
 from trading_rl.trainers.ppo import PPOTrainer
 from trading_rl.trainers.td3 import TD3Trainer
+
+
+def _no_op_manager() -> CheckpointManager:
+    """Minimal CheckpointManager for __new__-constructed trainers in tests."""
+    return CheckpointManager(checkpoint_dir=None, checkpoint_prefix=None, interval=0)
 
 
 class _FunctionalParams:
@@ -73,6 +79,7 @@ def test_ppo_checkpoint_round_trip_restores_module_optimizer_and_counters(
     monkeypatch.setattr(mlflow, "get_tracking_uri", lambda: "file://unit-test")
 
     trainer = PPOTrainer.__new__(PPOTrainer)
+    trainer.checkpoint_manager = _no_op_manager()
     trainer.actor = _linear(0.5)
     trainer.value_net = _linear(1.5)
     trainer.optimizer = torch.optim.Adam(
@@ -92,6 +99,7 @@ def test_ppo_checkpoint_round_trip_restores_module_optimizer_and_counters(
     trainer.save_checkpoint(str(path), feature_pipeline_state={"feature_x": {"mean": 1.0}})
 
     restored = PPOTrainer.__new__(PPOTrainer)
+    restored.checkpoint_manager = _no_op_manager()
     restored.actor = _linear(0.0)
     restored.value_net = _linear(0.0)
     restored.optimizer = torch.optim.Adam(
@@ -120,6 +128,7 @@ def test_ddpg_checkpoint_round_trip_restores_functional_params_and_syncs_modules
     monkeypatch.setattr(mlflow, "get_tracking_uri", lambda: "file://unit-test")
 
     trainer = DDPGTrainer.__new__(DDPGTrainer)
+    trainer.checkpoint_manager = _no_op_manager()
     trainer.actor = _linear(0.1)
     trainer.value_net = _linear(0.2)
     trainer.optimizer_actor = torch.optim.Adam(trainer.actor.parameters(), lr=0.01)
@@ -140,6 +149,7 @@ def test_ddpg_checkpoint_round_trip_restores_functional_params_and_syncs_modules
     trainer.save_checkpoint(str(path), feature_pipeline_state={"feature_y": {"var": 2.0}})
 
     restored = DDPGTrainer.__new__(DDPGTrainer)
+    restored.checkpoint_manager = _no_op_manager()
     restored.actor = _linear(0.0)
     restored.value_net = _linear(0.0)
     restored.optimizer_actor = torch.optim.Adam(restored.actor.parameters(), lr=0.01)
@@ -168,6 +178,7 @@ def test_td3_checkpoint_round_trip_restores_functional_params_and_syncs_modules(
     monkeypatch.setattr(mlflow, "get_tracking_uri", lambda: "file://unit-test")
 
     trainer = TD3Trainer.__new__(TD3Trainer)
+    trainer.checkpoint_manager = _no_op_manager()
     trainer.actor = _linear(0.3)
     trainer.value_net = _linear(0.4)
     trainer.optimizer_actor = torch.optim.Adam(trainer.actor.parameters(), lr=0.01)
@@ -188,6 +199,7 @@ def test_td3_checkpoint_round_trip_restores_functional_params_and_syncs_modules(
     trainer.save_checkpoint(str(path), feature_pipeline_state={"feature_z": {"std": 3.0}})
 
     restored = TD3Trainer.__new__(TD3Trainer)
+    restored.checkpoint_manager = _no_op_manager()
     restored.actor = _linear(0.0)
     restored.value_net = _linear(0.0)
     restored.optimizer_actor = torch.optim.Adam(restored.actor.parameters(), lr=0.01)
