@@ -928,7 +928,7 @@ class MLflowCallbackParams:
 
     @classmethod
     def from_config(cls, config: ExperimentConfig, dataset: Any) -> "MLflowCallbackParams":
-        from trading_rl.data_loading import PreparedDataset
+        from trading_rl.data.loading import PreparedDataset
 
         estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
         price_series = (

@@ -57,7 +57,7 @@ class ExperimentRuntime:
 
 
 
-def setup_logging(params: LoggingParams) -> logging.Logger:
+def setup_logging(params: LoggingParams, experiment_name: str | None = None) -> logging.Logger:
     """Setup logging configuration."""
     log_level = os.getenv("LOG_LEVEL") or params.log_level
     Path(params.log_dir).mkdir(parents=True, exist_ok=True)
@@ -84,7 +84,8 @@ def setup_logging(params: LoggingParams) -> logging.Logger:
     warnings.filterwarnings("ignore", category=PlotnineWarning)
 
     logger = get_project_logger(__name__)
-    logger.info("start experiment name={}", config.experiment_name)
+    if experiment_name:
+        logger.info("start experiment name={}", experiment_name)
     return logger
 
 
@@ -360,7 +361,7 @@ def _configure_experiment_environment(
     """
     effective_experiment_name = experiment_name or config.experiment_name
     logging_params = LoggingParams.from_config(config)
-    logger = setup_logging(logging_params)
+    logger = setup_logging(logging_params, effective_experiment_name)
     config.seed = set_seed(config.seed)
     _print_config_debug(config, logger)
     return logger, effective_experiment_name
