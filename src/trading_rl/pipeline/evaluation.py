@@ -28,6 +28,7 @@ from trading_rl.evaluation.benchmark_table import (
     save_benchmark_table_artifact,
 )
 from trading_rl.evaluation.benchmarks import BenchmarkEngine
+from trading_rl.evaluation.evaluator import StrategyEvaluatorConfig
 from trading_rl.evaluation.report import _periods_per_year_from_index
 from trading_rl.evaluation.returns import extract_tradingenv_return_series
 from trading_rl.pipeline.explainability import run_explainability_analysis
@@ -574,6 +575,14 @@ def evaluate_all_splits(
     logs: dict[str, Any],
     logger: Any,
 ) -> dict[str, dict[str, Any]]:
+    # Project ExperimentConfig to the narrow evaluation config at this boundary.
+    # Deeper call chains still receive the full config until those layers are similarly narrowed.
+    _eval_config = StrategyEvaluatorConfig.from_experiment_config(config)
+    logger.debug(
+        "evaluate_all_splits eval_config reward_type={} backend={} periods_per_year={}",
+        _eval_config.reward_type, _eval_config.backend, _eval_config.periods_per_year,
+    )
+
     split_frames = {
         SplitName.TRAIN: train_df,
         SplitName.VAL: val_df,

@@ -78,6 +78,47 @@ class StrategyEvaluatorConfig:
     benchmarks: frozenset[BenchmarkName] = frozenset({BenchmarkName.BUY_AND_HOLD})
     show_reward_benchmarks: bool = False  # Show benchmark reward curves on the reward plot
 
+    @classmethod
+    def from_experiment_config(cls, config: "Any") -> "StrategyEvaluatorConfig":
+        """Project an ExperimentConfig to the narrow evaluation config.
+
+        This factory makes the actual evaluation dependencies explicit and
+        allows standalone evaluation without a full ExperimentConfig.
+        """
+        from trading_rl.evaluation.report import periods_per_year_from_timeframe
+
+        env = getattr(config, "env", None)
+        data = getattr(config, "data", None)
+        benchmarks_cfg = getattr(config, "benchmarks", None)
+
+        price_column = getattr(env, "price_column", None) or "close"
+        timeframe = getattr(data, "timeframe", "1d") or "1d"
+        periods_per_year = periods_per_year_from_timeframe(timeframe) or 252
+
+        benchmark_set: frozenset[BenchmarkName]
+        if benchmarks_cfg is not None and hasattr(benchmarks_cfg, "enabled_set"):
+            benchmark_set = benchmarks_cfg.enabled_set
+        else:
+            benchmark_set = frozenset({BenchmarkName.BUY_AND_HOLD})
+
+        eval_env = EvaluatorEnvConfig(
+            name=getattr(env, "name", ""),
+            positions=getattr(env, "positions", None),
+            trading_fees=getattr(env, "trading_fees", 0.0),
+            borrow_interest_rate=getattr(env, "borrow_interest_rate", 0.0),
+            initial_portfolio_value=getattr(env, "initial_portfolio_value", 10_000.0),
+            price_column=price_column,
+        )
+
+        return cls(
+            reward_type=getattr(env, "reward_type", RewardType.LOG_RETURN),
+            backend=getattr(env, "backend", EnvBackend.TRADINGENV),
+            price_column=price_column,
+            periods_per_year=periods_per_year,
+            env=eval_env,
+            benchmarks=benchmark_set,
+        )
+
 
 @dataclass(frozen=True)
 class SplitEvaluationResult:

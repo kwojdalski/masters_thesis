@@ -25,6 +25,7 @@ from trading_rl.pipeline.explainability import run_explainability_analysis
 from trading_rl.pipeline.training import (
     ExperimentRuntime,
     TrainingBundle,
+    _configure_experiment_environment,
     build_experiment_runtime,
     set_seed,
     setup_logging,
@@ -56,6 +57,7 @@ __all__ = [
     # training
     "ExperimentRuntime",
     "TrainingBundle",
+    "_configure_experiment_environment",
     "build_experiment_runtime",
     "set_seed",
     "setup_logging",

@@ -343,6 +343,23 @@ def _log_mlflow_artifacts(
         MLflowTrainingCallback.log_transformed_data_overview(train_df, config)
 
 
+def _configure_experiment_environment(
+    config: ExperimentConfig,
+    experiment_name: str | None,
+) -> tuple[Any, str]:
+    """Configure logging and seed for an experiment; return (logger, effective_name).
+
+    Extracted from build_experiment_runtime so this phase can be called
+    independently (e.g. in resumed runs or tests that need a configured logger
+    without building the full training bundle).
+    """
+    effective_experiment_name = experiment_name or config.experiment_name
+    logger = setup_logging(config)
+    config.seed = set_seed(config.seed)
+    _print_config_debug(config, logger)
+    return logger, effective_experiment_name
+
+
 def build_experiment_runtime(
     config: ExperimentConfig,
     experiment_name: str | None = None,
@@ -350,11 +367,9 @@ def build_experiment_runtime(
     create_mlflow_callback: bool = True,
 ) -> ExperimentRuntime:
     """Build typed runtime state used by fresh and resumed runs."""
-    effective_experiment_name = experiment_name or config.experiment_name
-
-    logger = setup_logging(config)
-    config.seed = set_seed(config.seed)
-    _print_config_debug(config, logger)
+    logger, effective_experiment_name = _configure_experiment_environment(
+        config, experiment_name
+    )
 
     profiler = get_profiler()
 

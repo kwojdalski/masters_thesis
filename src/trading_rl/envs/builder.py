@@ -201,16 +201,19 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
                 obs_clip=params.obs_clip,
             )
 
+        _ANYTRADING_ENV_IDS = {
+            EnvBackend.GYM_ANYTRADING_FOREX: "forex-v0",
+            EnvBackend.GYM_ANYTRADING_STOCKS: "stocks-v0",
+        }
+        if backend in _ANYTRADING_ENV_IDS:
+            return self._create_anytrading_env(df, params, _ANYTRADING_ENV_IDS[backend])
+
         _GYM_TRADING_BACKENDS = {
             EnvBackend.GYM_TRADING_DISCRETE,
             EnvBackend.GYM_TRADING_CONTINUOUS,
         }
         if backend not in _GYM_TRADING_BACKENDS:
-            raise ValueError(
-                f"Backend '{backend}' is not supported via EnvBuildParams. "
-                "gym-anytrading backends require ExperimentConfig; "
-                "use trading_envs.create_environment() directly."
-            )
+            raise ValueError(f"Unsupported backend: '{backend}'")
 
         continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
         base_env = gym.make(
@@ -234,6 +237,32 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
                 ),
             )
 
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
+            return TransformedEnv(env, StepCounter())
+
+    def _create_anytrading_env(
+        self,
+        df: pd.DataFrame,
+        params: EnvBuildParams,
+        env_id: str,
+    ) -> TransformedEnv:
+        """Create a gym-anytrading (forex-v0 / stocks-v0) environment from params."""
+        from trading_rl.envs.trading_envs import DiscreteActionWrapper
+
+        rename_map = {"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"}
+        df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
+        base_env = gym.make(env_id, df=df)
+
+        reward_type = str(params.reward_type)
+        from trading_rl.constants import RewardType
+        if reward_type != RewardType.LOG_RETURN:
+            from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading, StatefulRewardWrapper
+            dsr = DifferentialSharpeRatioAnyTrading(eta=params.reward_eta, scale=params.reward_scale)
+            base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
+
+        base_env = DiscreteActionWrapper(base_env)
+        env = GymWrapper(base_env)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=".*auto_unwrap_transformed_env.*")
             return TransformedEnv(env, StepCounter())
