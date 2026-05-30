@@ -98,7 +98,7 @@ def _collect_mlflow_meta() -> dict:
         })
         return meta
     except Exception:
-        logger.opt(exception=True).debug("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata")
+        logger.opt(exception=True).warning("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata")
         return {}
 
 
