@@ -241,9 +241,13 @@ class StrategyEvaluator:
             _step_counter[0] += 1
 
             # 1. Reward extraction
+            # TorchRL passes td AFTER step_mdp in break_when_any_done=True mode,
+            # which strips the "next" sub-key. Try "next/reward" first (nonstop
+            # mode), silently skip if missing (stop-early mode drops reward).
             t_reward = _time.monotonic()
-            try:
-                r = float(td["next", "reward"].mean().item())
+            _r_td = td.get(("next", "reward"), None)
+            if _r_td is not None:
+                r = float(_r_td.mean().item())
                 _cum_reward[0] += r
                 _r_sum[0] += r
                 _r_n[0] += 1
@@ -251,8 +255,6 @@ class StrategyEvaluator:
                     _r_min[0] = r
                 if r > _r_max[0]:
                     _r_max[0] = r
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("_progress_cb reward extraction failed step={} err={}", _step_counter[0], exc)
             reward_elapsed = _time.monotonic() - t_reward
             _cb_reward_time[0] += reward_elapsed
             _fine_reward[0] += reward_elapsed
@@ -273,13 +275,11 @@ class StrategyEvaluator:
             _cb_action_time[0] += action_elapsed
             _fine_action[0] += action_elapsed
 
-            # 3. Done check
+            # 3. Done check — "next/done" in nonstop mode, root "done" in stop-early mode
             t_done = _time.monotonic()
-            try:
-                if bool(td["next", "done"].any().item()):
-                    _ep_done[0] += 1
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("_progress_cb done check failed step={} err={}", _step_counter[0], exc)
+            _done_td = td.get(("next", "done"), None) or td.get("done", None)
+            if _done_td is not None and bool(_done_td.any().item()):
+                _ep_done[0] += 1
             done_elapsed = _time.monotonic() - t_done
             _cb_done_time[0] += done_elapsed
             _fine_done[0] += done_elapsed
