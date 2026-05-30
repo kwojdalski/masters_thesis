@@ -77,8 +77,8 @@ flowchart TD
     ECC --> EUI["ensure_unique_index_for_hft_tradingenv()\ndeduplicate timestamps (1µs gap)"]
     EUI --> MEM{"memmap_dir\nconfigured?"}
 
-    MEM -- "Yes, file exists" --> LMM["load existing MemmapPaths\nfrom disk"]
-    MEM -- "Yes, file missing" --> SMM["save_symbol_memmap(train_i)\nwrite .npy + index + columns"]
+    MEM -- "Yes, file exists" --> LMM["check row count + column names\n+ feature config hash match?\nload existing MemmapPaths"]
+    MEM -- "Yes, file missing or stale" --> SMM["save_symbol_memmap(train_i)\nwrite .npy + index + columns\n+ feature_hash.txt"]
     MEM -- "No" --> WP
 
     LMM --> WP["write train/val/test\nto temp parquets"]
@@ -154,13 +154,16 @@ flowchart LR
 
 In the primary pooled scenario `streaming_episode_length=10_000` and each training file contains ~50k rows after the warmup skip, giving ~40k possible start offsets per file (18 files total). With 3M training steps at 200 frames/batch, the agent visits many overlapping windows across all 18 symbol-day files. The single-symbol chronological path uses `train_size=50_000` and the same episode length.
 
-Each symbol produces three files in `memmap_dir/`:
+Each symbol produces four files in `memmap_dir/`:
 
 ```
-{i}_train_data.npy     float32 array, shape (n_rows, n_cols)
-{i}_train_index.npy    int64 array,   shape (n_rows,)  — nanosecond timestamps
-{i}_columns.json       list[str]      — column names
+{i}_train_data.npy      float32 array, shape (n_rows, n_cols)
+{i}_train_index.npy     int64 array,   shape (n_rows,)  — nanosecond timestamps
+{i}_columns.json        list[str]      — column names
+{i}_feature_hash.txt    str            — MD5 of the feature pipeline config
 ```
+
+The feature hash is checked on every cache reuse. If the feature YAML changes (different indicator parameters, normalization settings, etc.) but column names and row counts stay the same, the hash mismatch forces regeneration. Without this check, stale memmaps would silently persist across config changes.
 
 `MemmapPaths` records `data_path`, `index_path`, `n_rows`, and `columns`.
 
@@ -281,7 +284,7 @@ flowchart TD
 |---|---|
 | `data/raw/stocks/` | Raw MBP-10 parquet files from DataBento |
 | `data/prepared/{name}/` | Cached train/val/test parquets (lazy_load fast path) |
-| `data/memmap/{name}/` | Per-symbol numpy memmap arrays for streaming |
-| `.cache/feature_transformation/` | Per-symbol feature engineering cache (keyed by file hash + config hash) |
+| `data/memmap/{name}/` | Per-symbol numpy memmap arrays + feature hash sentinels (`{i}_feature_hash.txt`) |
+| `.cache/feature_transformation/` | Per-symbol feature engineering cache (keyed by file mtime + pipeline config hash) |
 | `mlruns/` | MLflow experiment tracking |
 | `checkpoints/` | Model checkpoints (weights + optimizer state) |

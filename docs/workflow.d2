@@ -247,7 +247,7 @@ prep: Data Preparation {
       style.fill: "#bbf7d0"
     }
 
-    pd_train_transform: "Transform 18 training files  (one per day-symbol)\nFor each file i ∈ [0..17]:\n  raw_df = load_parquet(path_i).dropna()\n  features = pipeline[symbol_i].transform(raw_df)\n  merged = concat(raw_df, features)\n  warmup_rows skip: drop first 300 rows  (running-scaler cold-start)\n  HFT: derive close = (bid_px_00 + ask_px_00) / 2\n  HFT: deduplicate timestamps (1µs min gap)\n  save_symbol_memmap(merged, memmap_dir, prefix=i)\n    → {i}_train_data.npy · {i}_train_index.npy · {i}_columns.json\n  free merged + gc.collect()" {
+    pd_train_transform: "Transform 18 training files  (one per day-symbol)\nFor each file i ∈ [0..17]:\n  raw_df = load_parquet(path_i).dropna()\n  features = pipeline[symbol_i].transform(raw_df)\n  merged = concat(raw_df, features)\n  warmup_rows skip: drop first 300 rows  (running-scaler cold-start)\n  HFT: derive close = (bid_px_00 + ask_px_00) / 2\n  HFT: deduplicate timestamps (1µs min gap)\n  memmap cache check: row count + column names + feature_hash match?\n  save_symbol_memmap(merged, memmap_dir, prefix=i)\n    → {i}_train_data.npy · {i}_train_index.npy · {i}_columns.json · {i}_feature_hash.txt\n  free merged + gc.collect()" {
       shape: step
       style.fill: "#bbf7d0"
     }
@@ -262,7 +262,7 @@ prep: Data Preparation {
       style.fill: "#bbf7d0"
     }
 
-    pd_memmaps: "18 memmap files (one per training day-symbol pair)\n{i}_train_data.npy   (n_rows × n_cols, float32)\n{i}_train_index.npy  (nanosecond timestamps)\n{i}_columns.json     (column names)" {
+    pd_memmaps: "18 memmap files (one per training day-symbol pair)\n{i}_train_data.npy     (n_rows × n_cols, float32)\n{i}_train_index.npy    (nanosecond timestamps)\n{i}_columns.json       (column names)\n{i}_feature_hash.txt   (pipeline config MD5 — cache sentinel)" {
       shape: cylinder
       style.fill: "#86efac"
     }
@@ -311,7 +311,7 @@ prep: Data Preparation {
       style.fill: "#86efac"
     }
 
-    dp_memmap: "save_symbol_memmap(train_df)\nwrite float32 binary array to disk\n{i}_train_data.npy   (n_rows × n_cols)\n{i}_train_index.npy  (nanosecond timestamps)\n{i}_columns.json     (column names)" {
+    dp_memmap: "save_symbol_memmap(train_df)\nwrite float32 binary array to disk\n{i}_train_data.npy     (n_rows × n_cols)\n{i}_train_index.npy    (nanosecond timestamps)\n{i}_columns.json       (column names)\n{i}_feature_hash.txt   (pipeline config MD5)" {
       shape: cylinder
       style.fill: "#86efac"
     }
