@@ -50,17 +50,46 @@ _PLAIN_FMT = (
 # format strings ({}) so we never accidentally consume a color tag or brace.
 _KV_VALUE_RE = re.compile(r"(?<==)([^\s,\)\]\[|{}<>]+)")
 
+_PATH_EXTENSIONS: frozenset[str] = frozenset({
+    ".py", ".yaml", ".yml", ".npy", ".parquet", ".json", ".csv",
+    ".txt", ".pkl", ".pt", ".pth", ".log", ".db",
+})
+
+
+def _looks_like_path(val: str) -> bool:
+    if val.startswith(("/", "./", "../")):
+        return True
+    dot = val.rfind(".")
+    return dot > 0 and val[dot:] in _PATH_EXTENSIONS
+
 
 def _highlight_kv(msg: str) -> str:
-    """Color numeric values magenta and string values light-cyan in key=value pairs."""
+    """Color key=value tokens by value type:
+    - True → green, False → red
+    - None → dim
+    - paths → bold
+    - negative numbers → red, positive numbers → magenta
+    - strings → light-cyan
+    """
     def _replace(m: re.Match) -> str:
         val = m.group(1)
+
+        if val == "True":
+            return f"<green>{val}</green>"
+        if val == "False":
+            return f"<red>{val}</red>"
+        if val == "None":
+            return f"<dim>{val}</dim>"
+        if _looks_like_path(val):
+            return f"<bold>{val}</bold>"
+
         # Strip trailing % and common unit suffixes for numeric check
         check_val = val.rstrip("%")
         for suffix in ("us/step", "us", "ms"):
             if check_val.endswith(suffix) and len(check_val) > len(suffix):
                 check_val = check_val[: -len(suffix)]
                 break
+
         # Handle N/M fraction (e.g., step=96921/969218) and N/s rate
         if "/" in check_val:
             parts = check_val.split("/")
@@ -70,11 +99,13 @@ def _highlight_kv(msg: str) -> str:
                 right_ok = right == "s" or right.replace(".", "", 1).replace("-", "", 1).isdigit()
                 if left_ok and right_ok:
                     return f"<magenta>{val}</magenta>"
+
         try:
-            float(check_val)
-            return f"<magenta>{val}</magenta>"
+            num = float(check_val)
+            return f"<red>{val}</red>" if num < 0 else f"<magenta>{val}</magenta>"
         except ValueError:
             return f"<light-cyan>{val}</light-cyan>"
+
     return _KV_VALUE_RE.sub(_replace, msg)
 
 
