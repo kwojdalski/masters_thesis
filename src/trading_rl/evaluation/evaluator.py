@@ -275,16 +275,13 @@ class StrategyEvaluator:
 
                 # Memory tracking
                 gc.collect()
-                torch_mb = 0
-                if torch.cuda.is_available():
-                    torch_mb = torch.cuda.memory_allocated() / 1024 / 1024
+                torch_mb = torch.cuda.memory_allocated() / 1024 / 1024 if torch.cuda.is_available() else 0
 
-                # Internal timing breakdown
-                if _step_counter[0] == _log_interval:  # First interval only
+                # Internal timing breakdown (first interval only)
+                if _step_counter[0] == _log_interval:
                     logger.debug(
                         "rollout profiling: steps={} steps_s={:.0f} | "
-                        "callback_total_ms={:.2f} reward_ms={:.2f} action_ms={:.2f} done_ms={:.2f} | "
-                        "torch_memory_mb={:.0f}",
+                        "cb_ms={:.2f} (reward={:.2f} action={:.2f} done={:.2f}) | mem_mb={:.0f}",
                         _step_counter[0], steps_s,
                         _cb_time_total[0] * 1000,
                         _cb_reward_time[0] * 1000,
@@ -294,16 +291,12 @@ class StrategyEvaluator:
                     )
 
                 logger.trace(
-                    "rollout progress step={}/{} pct={:.0f}% "
-                    "elapsed_s={:.1f} eta_s={:.1f} steps_s={:.0f} | "
-                    "reward mean={:.5f} min={:.5f} max={:.5f} cum={:.4f} | "
-                    "action mean={:.3f} long={:.1f}% short={:.1f}% neutral={:.1f}% | "
-                    "episodes_done={}",
+                    "rollout: step={}/{} {}% elapsed={:.1f}s eta={:.1f}s {}/s | "
+                    "r={:.4f} ({:.5f} to {:.5f}) | a={:.2f} (long={:.0f}% short={:.0f}%)",
                     _step_counter[0], max_steps, pct,
-                    elapsed, eta, steps_s,
-                    r_mean, r_min, r_max, _cum_reward[0],
-                    a_mean, long_pct, short_pct, neutral_pct,
-                    _ep_done[0],
+                    elapsed, eta, int(steps_s),
+                    _cum_reward[0], r_min, r_max,
+                    a_mean, long_pct, short_pct,
                 )
                 _t_last[0] = now
                 # Reset interval accumulators
@@ -332,10 +325,9 @@ class StrategyEvaluator:
         cb_avg_us = (_cb_time_total[0] / actual_steps * 1e6) if actual_steps > 0 else 0
         cb_pct = 100.0 * _cb_time_total[0] / elapsed_total if elapsed_total > 0 else 0
         logger.info(
-            "rollout done requested={} actual={} elapsed_s={:.2f} steps/s={:.0f} | "
-            "callback: avg_us={:.0f} total_pct={:.1f}%",
-            max_steps, actual_steps, elapsed_total, actual_steps / elapsed_total,
-            cb_avg_us, cb_pct,
+            "rollout done: steps={}/{} elapsed={:.1f}s {}/s | callback {:.1f}% ({:.0f}us/step)",
+            actual_steps, max_steps, elapsed_total, int(actual_steps / elapsed_total),
+            cb_pct, cb_avg_us,
         )
         return rollout
 
