@@ -52,14 +52,14 @@ _KV_VALUE_RE = re.compile(r"(?<==)([^\s,\)\]\[|{}<>]+)")
 
 
 def _highlight_kv(msg: str) -> str:
-    """Color numeric values blue and string values yellow in key=value pairs."""
+    """Color numeric values magenta and string values light-cyan in key=value pairs."""
     def _replace(m: re.Match) -> str:
         val = m.group(1)
         try:
             float(val)
-            return f"<light-cyan>{val}</light-cyan>"
+            return f"<magenta>{val}</magenta>"
         except ValueError:
-            return f"<light-magenta>{val}</light-magenta>"
+            return f"<light-cyan>{val}</light-cyan>"
     return _KV_VALUE_RE.sub(_replace, msg)
 
 
