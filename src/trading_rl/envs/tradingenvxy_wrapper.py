@@ -15,6 +15,7 @@ from torchrl.envs.transforms import RenameTransform
 from tradingenv import TradingEnv
 from tradingenv.broker.broker import EndOfEpisodeError
 from tradingenv.broker.fees import BrokerFees
+from tradingenv.broker.track_record import TrackRecord
 from tradingenv.contracts import Stock
 from tradingenv.features import Feature
 from tradingenv.spaces import BoxPortfolio
@@ -27,6 +28,29 @@ from trading_rl.envs.trading_envs import BaseTradingEnvironmentFactory
 from trading_rl.rewards import DifferentialSharpeRatio
 
 logger = get_logger(__name__)
+
+# TrackRecord._checkpoint uses `if time in self._time` (O(n) list scan) to detect
+# duplicate timestamps. self._rebalancing is a dict with the same keys, so the
+# check is equivalent but O(1). Patching here fixes linear step-time growth on
+# long episodes (eval runs 969k steps as a single episode; training episodes are
+# 10k steps but also benefit slightly).
+def _checkpoint_fast(self: "TrackRecord", rebalancing: "Any") -> None:
+    import pandas as _pd
+    t = rebalancing.time
+    if isinstance(t, _pd.Timestamp):
+        t = t.to_pydatetime()
+    if t in self._rebalancing:
+        raise ValueError(
+            "All RebalancingResponse must have different timestamps. "
+            "Duplicated timestamp found: {}".format(t)
+        )
+    self._time.append(t)
+    self._rebalancing[t] = rebalancing
+    self._trading_started = self._trading_started or len(rebalancing.trades) != 0
+    if not self._trading_started:
+        self._nr_steps_to_burn += 1
+
+TrackRecord._checkpoint = _checkpoint_fast  # type: ignore[method-assign]
 
 RUNTIME_POSITION_FEATURE = "feature_position"
 SUPPORTED_RUNTIME_FEATURES = {RUNTIME_POSITION_FEATURE}
