@@ -57,9 +57,9 @@ def _highlight_kv(msg: str) -> str:
         val = m.group(1)
         try:
             float(val)
-            return f"<light-blue>{val}</light-blue>"
+            return f"<light-cyan>{val}</light-cyan>"
         except ValueError:
-            return f"<light-yellow>{val}</light-yellow>"
+            return f"<light-magenta>{val}</light-magenta>"
     return _KV_VALUE_RE.sub(_replace, msg)
 
 
