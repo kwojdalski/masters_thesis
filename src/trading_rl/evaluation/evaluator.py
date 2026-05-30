@@ -377,22 +377,34 @@ class StrategyEvaluator:
                 _fine_cb[0] = 0.0; _fine_inter[0] = 0.0; _fine_pol[0] = 0.0
                 _fine_reward[0] = 0.0; _fine_action[0] = 0.0; _fine_done[0] = 0.0
 
+        # gym_trading_env's History uses dtype='O' (Python object array), accumulating
+        # ~82 Python object references per step. Python's gen-2 GC scans all live objects
+        # every ~300 steps; at step k that scan is O(k), producing O(k) overhead per step.
+        # Disabling auto-GC eliminates this. Manual gc.collect() calls in the callback
+        # at 10% intervals still run (gc.collect() ignores the disabled flag) and bound
+        # memory growth to one episode's worth of objects between collections.
+        gc.collect()
+        gc.disable()
         logger.debug("rollout start max_steps={}", max_steps)
         _t = _time.monotonic()
-        with torch.no_grad():
-            try:
-                with set_exploration_type(InteractionType.MODE):
-                    rollout = env.rollout(max_steps=max_steps, policy=timed_policy, callback=_progress_cb)
-            except (NotImplementedError, RuntimeError) as exc:
-                if not (
-                    isinstance(exc, NotImplementedError)
-                    or "does not have a mode" in str(exc)
-                    or "analytical mode" in str(exc).lower()
-                ):
-                    raise
-                # Fallback for distributions without analytical mode
-                with set_exploration_type(InteractionType.DETERMINISTIC):
-                    rollout = env.rollout(max_steps=max_steps, policy=timed_policy, callback=_progress_cb)
+        try:
+            with torch.no_grad():
+                try:
+                    with set_exploration_type(InteractionType.MODE):
+                        rollout = env.rollout(max_steps=max_steps, policy=timed_policy, callback=_progress_cb)
+                except (NotImplementedError, RuntimeError) as exc:
+                    if not (
+                        isinstance(exc, NotImplementedError)
+                        or "does not have a mode" in str(exc)
+                        or "analytical mode" in str(exc).lower()
+                    ):
+                        raise
+                    # Fallback for distributions without analytical mode
+                    with set_exploration_type(InteractionType.DETERMINISTIC):
+                        rollout = env.rollout(max_steps=max_steps, policy=timed_policy, callback=_progress_cb)
+        finally:
+            gc.enable()
+            gc.collect()
         actual_steps = rollout.shape[0] if rollout.ndim > 0 else 1
         elapsed_total = _time.monotonic() - _t
         n = actual_steps if actual_steps > 0 else 1
