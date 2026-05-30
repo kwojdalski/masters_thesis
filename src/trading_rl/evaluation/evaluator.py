@@ -191,6 +191,10 @@ class StrategyEvaluator:
         from tensordict.nn import InteractionType
         from torchrl.envs.utils import set_exploration_type
 
+        # Profiling: track time spent in callback vs environment step
+        _cb_time_total = [0.0]
+        _cb_samples: list[float] = []
+
         _log_interval = max(1, max_steps // 10)
         _step_counter = [0]
         _t_last = [_time.monotonic()]
@@ -201,6 +205,7 @@ class StrategyEvaluator:
         _cum_reward = [0.0]
 
         def _progress_cb(env: Any, td: Any) -> None:  # noqa: ARG001
+            cb_start = _time.monotonic()
             _step_counter[0] += 1
 
             # Accumulate reward stats
@@ -235,6 +240,11 @@ class StrategyEvaluator:
             except Exception:  # noqa: BLE001
                 pass
 
+            cb_elapsed = _time.monotonic() - cb_start
+            _cb_time_total[0] += cb_elapsed
+            if len(_cb_samples) < 1000:  # Sample first 1000 callbacks
+                _cb_samples.append(cb_elapsed)
+
             if _step_counter[0] % _log_interval == 0:
                 now = _time.monotonic()
                 pct = 100.0 * _step_counter[0] / max_steps
@@ -251,6 +261,16 @@ class StrategyEvaluator:
                 long_pct    = 100.0 * _a_long[0] / _a_n[0] if _a_n[0] else float("nan")
                 short_pct   = 100.0 * _a_short[0] / _a_n[0] if _a_n[0] else float("nan")
                 neutral_pct = 100.0 - long_pct - short_pct if _a_n[0] else float("nan")
+
+                # Internal timing only, no trace log
+                if _step_counter[0] == _log_interval:  # First interval only
+                    logger.debug(
+                        "rollout profiling: steps={} steps_s={:.0f} | "
+                        "callback avg_us={:.0f} callback_total_ms={:.2f}",
+                        _step_counter[0], steps_s,
+                        (sum(_cb_samples) / len(_cb_samples) * 1e6) if _cb_samples else 0,
+                        _cb_time_total[0] * 1000,
+                    )
 
                 logger.trace(
                     "rollout progress step={}/{} pct={:.0f}% "
@@ -287,9 +307,14 @@ class StrategyEvaluator:
                 with set_exploration_type(InteractionType.DETERMINISTIC):
                     rollout = env.rollout(max_steps=max_steps, policy=self.policy, callback=_progress_cb)
         actual_steps = rollout.shape[0] if rollout.ndim > 0 else 1
-        logger.debug(
-            "rollout done requested={} actual={} elapsed_s={:.2f}",
-            max_steps, actual_steps, _time.monotonic() - _t,
+        elapsed_total = _time.monotonic() - _t
+        cb_avg_us = (_cb_time_total[0] / actual_steps * 1e6) if actual_steps > 0 else 0
+        cb_pct = 100.0 * _cb_time_total[0] / elapsed_total if elapsed_total > 0 else 0
+        logger.info(
+            "rollout done requested={} actual={} elapsed_s={:.2f} steps/s={:.0f} | "
+            "callback: avg_us={:.0f} total_pct={:.1f}%",
+            max_steps, actual_steps, elapsed_total, actual_steps / elapsed_total,
+            cb_avg_us, cb_pct,
         )
         return rollout
 
