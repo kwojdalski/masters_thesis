@@ -500,8 +500,11 @@ class StreamingTradingEnvXY(gym.Env):
         end = start + self._episode_length
         data_mm = np.load(mp.data_path, mmap_mode="r")
         index_mm = np.load(mp.index_path, mmap_mode="r")
-        window_data = np.array(data_mm[start:end], dtype=np.float32)
-        window_index = np.array(index_mm[start:end])
+        try:
+            window_data = np.array(data_mm[start:end], dtype=np.float32)
+            window_index = np.array(index_mm[start:end])
+        finally:
+            del data_mm, index_mm
         try:
             index = pd.DatetimeIndex(window_index)
         except (ValueError, OverflowError) as e:
