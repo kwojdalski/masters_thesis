@@ -3,6 +3,7 @@
 import datetime
 from dataclasses import dataclass, field, is_dataclass
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -886,3 +887,87 @@ class ExperimentConfig:
         d = _ser(self)
         # Preserve "env" key name — from_dict accepts it directly.
         return d
+
+
+# ---------------------------------------------------------------------------
+# Narrow parameter objects for dependency injection
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class LoggingParams:
+    """Logging configuration parameters extracted from ExperimentConfig."""
+
+    log_level: str
+    log_dir: str
+    log_file: str
+    log_to_file: bool
+    tensorboard_dir: str
+
+    @classmethod
+    def from_config(cls, config: ExperimentConfig) -> "LoggingParams":
+        return cls(
+            log_level=config.logging.log_level,
+            log_dir=config.logging.log_dir,
+            log_file=config.logging.log_file,
+            log_to_file=config.logging.log_to_file,
+            tensorboard_dir=config.logging.tensorboard_dir,
+        )
+
+
+@dataclass(frozen=True)
+class MLflowCallbackParams:
+    """Parameters for MLflowTrainingCallback construction."""
+
+    tracking_uri: str | None
+    total_episodes: int
+    price_series: Any
+    initial_portfolio_value: float
+    reward_type: str
+    action_positions: list[int]
+
+    @classmethod
+    def from_config(cls, config: ExperimentConfig, dataset: Any) -> "MLflowCallbackParams":
+        from trading_rl.data_loading import PreparedDataset
+
+        estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
+        price_series = (
+            dataset.train_df[dataset.price_column]
+            if isinstance(dataset, PreparedDataset)
+            else None
+        )
+        return cls(
+            tracking_uri=getattr(getattr(config, "tracking", None), "tracking_uri", None),
+            total_episodes=estimated_episodes,
+            price_series=price_series,
+            initial_portfolio_value=config.env.initial_portfolio_value,
+            reward_type=config.env.reward_type,
+            action_positions=config.env.positions,
+        )
+
+
+@dataclass(frozen=True)
+class TrainerConstructionParams:
+    """Parameters for trainer construction."""
+
+    config: TrainingConfig
+    n_obs: int
+    n_act: int
+    actor_hidden_dims: list[int]
+    value_hidden_dims: list[int]
+    eval_config: EvaluationConfig
+    checkpoint_dir: str
+    checkpoint_prefix: str
+
+    @classmethod
+    def from_config(cls, config: ExperimentConfig, n_obs: int, n_act: int, checkpoint_prefix: str) -> "TrainerConstructionParams":
+        return cls(
+            config=config.training,
+            n_obs=n_obs,
+            n_act=n_act,
+            actor_hidden_dims=config.network.actor_hidden_dims,
+            value_hidden_dims=config.network.value_hidden_dims,
+            eval_config=config.evaluation,
+            checkpoint_dir=config.logging.log_dir,
+            checkpoint_prefix=checkpoint_prefix,
+        )

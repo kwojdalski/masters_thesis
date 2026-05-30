@@ -20,7 +20,7 @@ from logger import print_df_head
 from logger import setup_logging as configure_root_logging
 from trading_rl.profiler import get_profiler
 from trading_rl.callbacks import MLflowTrainingCallback
-from trading_rl.config import ExperimentConfig
+from trading_rl.config import ExperimentConfig, LoggingParams, MLflowCallbackParams, TrainerConstructionParams
 from trading_rl.data_utils import PreparedDataset, build_prepared_dataset
 from trading_rl.envs import AlgorithmicEnvironmentBuilder, EnvBuildParams
 from trading_rl.envs.trading_envs import EnvBackend
@@ -57,14 +57,14 @@ class ExperimentRuntime:
 
 
 
-def setup_logging(config: ExperimentConfig) -> logging.Logger:
+def setup_logging(params: LoggingParams) -> logging.Logger:
     """Setup logging configuration."""
-    log_level = os.getenv("LOG_LEVEL") or config.logging.log_level
-    Path(config.logging.log_dir).mkdir(parents=True, exist_ok=True)
-    Path(config.logging.tensorboard_dir).mkdir(parents=True, exist_ok=True)
+    log_level = os.getenv("LOG_LEVEL") or params.log_level
+    Path(params.log_dir).mkdir(parents=True, exist_ok=True)
+    Path(params.tensorboard_dir).mkdir(parents=True, exist_ok=True)
     log_file_path = (
-        str(Path(config.logging.log_dir) / config.logging.log_file)
-        if config.logging.log_to_file
+        str(Path(params.log_dir) / params.log_file)
+        if params.log_to_file
         else None
     )
 
@@ -145,45 +145,44 @@ def _build_trainer(
     trainer_cls = _select_trainer_class(algorithm, backend)
     logger.info("select trainer cls={}", trainer_cls.__name__)
 
+    trainer_params = TrainerConstructionParams.from_config(
+        config, n_obs, n_act, effective_experiment_name
+    )
     actor, value_net = trainer_cls.build_models(n_obs, n_act, config, env)
     return trainer_cls(
         actor=actor,
         value_net=value_net,
         env=env,
-        config=config.training,
-        n_obs=n_obs,
-        n_act=n_act,
-        actor_hidden_dims=config.network.actor_hidden_dims,
-        value_hidden_dims=config.network.value_hidden_dims,
-        eval_config=config.evaluation,
+        config=trainer_params.config,
+        n_obs=trainer_params.n_obs,
+        n_act=trainer_params.n_act,
+        actor_hidden_dims=trainer_params.actor_hidden_dims,
+        value_hidden_dims=trainer_params.value_hidden_dims,
+        eval_config=trainer_params.eval_config,
         eval_env=eval_env,
         eval_data_len=eval_data_len,
-        checkpoint_dir=config.logging.log_dir,
-        checkpoint_prefix=effective_experiment_name,
+        checkpoint_dir=trainer_params.checkpoint_dir,
+        checkpoint_prefix=trainer_params.checkpoint_prefix,
     )
 
 
 def _build_mlflow_callback(
     *,
-    config: ExperimentConfig,
-    dataset: PreparedDataset,
+    params: MLflowCallbackParams,
     effective_experiment_name: str,
     progress_bar: Any,
+    config_for_run_name: ExperimentConfig,
 ) -> MLflowTrainingCallback:
-    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
-    estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
-    price_series = dataset.train_df[dataset.price_column]
-
     return MLflowTrainingCallback(
         effective_experiment_name,
-        tracking_uri=tracking_uri,
+        tracking_uri=params.tracking_uri,
         progress_bar=progress_bar,
-        total_episodes=estimated_episodes if progress_bar else None,
-        price_series=price_series,
-        initial_portfolio_value=config.env.initial_portfolio_value,
-        reward_type=config.env.reward_type,
-        action_positions=config.env.positions,
-        config_for_run_name=config,
+        total_episodes=params.total_episodes if progress_bar else None,
+        price_series=params.price_series,
+        initial_portfolio_value=params.initial_portfolio_value,
+        reward_type=params.reward_type,
+        action_positions=params.action_positions,
+        config_for_run_name=config_for_run_name,
     )
 
 
@@ -215,11 +214,12 @@ def _build_training_bundle(
 
     mlflow_callback = None
     if create_mlflow_callback:
+        mlflow_params = MLflowCallbackParams.from_config(config, dataset)
         mlflow_callback = _build_mlflow_callback(
-            config=config,
-            dataset=dataset,
+            params=mlflow_params,
             effective_experiment_name=effective_experiment_name,
             progress_bar=progress_bar,
+            config_for_run_name=config,
         )
 
     return TrainingBundle(
@@ -359,7 +359,8 @@ def _configure_experiment_environment(
     without building the full training bundle).
     """
     effective_experiment_name = experiment_name or config.experiment_name
-    logger = setup_logging(config)
+    logging_params = LoggingParams.from_config(config)
+    logger = setup_logging(logging_params)
     config.seed = set_seed(config.seed)
     _print_config_debug(config, logger)
     return logger, effective_experiment_name
