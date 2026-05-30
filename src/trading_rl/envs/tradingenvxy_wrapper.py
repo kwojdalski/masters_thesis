@@ -202,6 +202,10 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             feature_columns = [
                 col for col in df.columns.tolist() if str(col).startswith("feature_")
             ]
+        # Pop explicit override kwargs before they leak into TradingEnv(**kwargs).
+        include_position_feature_override = kwargs.pop("include_position_feature", None)
+        obs_clip_override = kwargs.pop("obs_clip", None)
+
         # Backward compatibility with legacy list-style parameter.
         legacy_price_columns = kwargs.pop("price_columns", None)
         if price_column is None and legacy_price_columns:
@@ -244,6 +248,8 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
                 include_position_feature = bool(
                     getattr(env_config, "include_position_feature", False)
                 )
+        if include_position_feature_override is not None:
+            include_position_feature = bool(include_position_feature_override)
 
         if include_position_feature and RUNTIME_POSITION_FEATURE not in feature_columns:
             feature_columns = [*feature_columns, RUNTIME_POSITION_FEATURE]
@@ -346,6 +352,8 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             env_cfg = getattr(config, "env", None)
             if env_cfg is not None:
                 obs_clip = getattr(env_cfg, "obs_clip", None)
+        if obs_clip_override is not None:
+            obs_clip = obs_clip_override
 
         logger.trace("wrapping with GymnasiumTradingEnvWrapper obs_clip={}", obs_clip)
         gym_env = GymnasiumTradingEnvWrapper(env, obs_clip=obs_clip)

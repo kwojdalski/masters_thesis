@@ -14,7 +14,7 @@ from logger import log_banner
 from trading_rl.callbacks import ArtifactPaths, MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.constants import EnvBackend, EvalSymbolSelection, RewardType, SplitName
-from trading_rl.envs import AlgorithmicEnvironmentBuilder
+from trading_rl.envs import AlgorithmicEnvironmentBuilder, EnvBuildParams
 from trading_rl.evaluation import (
     EvaluationContext,
     MetricReport,
@@ -56,7 +56,7 @@ def build_evaluation_context_for_split(
         df: DataFrame for this split.
         config: Experiment configuration.
     """
-    eval_env = AlgorithmicEnvironmentBuilder().create(df, config, use_memmap=False)
+    eval_env = AlgorithmicEnvironmentBuilder().create(df, EnvBuildParams.from_config(config), use_memmap=False)
     eval_max_steps = min(config.evaluation.resolve_eval_steps(len(df)), len(df) - 1)
     return EvaluationContext(
         split=split,

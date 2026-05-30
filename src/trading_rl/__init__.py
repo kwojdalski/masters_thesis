@@ -16,7 +16,7 @@ from trading_rl.data import (
     prepare_data,
 )
 from trading_rl.rewards import reward_function
-from trading_rl.envs import AlgorithmicEnvironmentBuilder
+from trading_rl.envs import AlgorithmicEnvironmentBuilder, EnvBuildParams
 
 from .models import (
     DiscreteNet,
@@ -42,7 +42,7 @@ _env_builder = AlgorithmicEnvironmentBuilder()
 
 
 def create_environment(df, config):
-    return _env_builder.create(df, config)
+    return _env_builder.create(df, EnvBuildParams.from_config(config))
 
 __all__ = [
     # Training

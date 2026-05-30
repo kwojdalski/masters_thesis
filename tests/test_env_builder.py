@@ -13,24 +13,33 @@ import pytest
 
 from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.envs import builder as builder_module
-from trading_rl.envs.builder import AlgorithmicEnvironmentBuilder
+from trading_rl.envs.builder import AlgorithmicEnvironmentBuilder, EnvBuildParams
 from trading_rl.rewards import reward_function
 
 
-def _cfg(algorithm: str = "PPO", backend: str | None = None) -> SimpleNamespace:
-    """Minimal config with the fields the builder inspects/logs."""
-    return SimpleNamespace(
-        env=SimpleNamespace(
-            backend=backend,
-            positions=[-1, 0, 1],
-            trading_fees=0.0,
-            borrow_interest_rate=0.0,
-            name="test-env",
-            streaming_episode_length=12,
-            continuous_action_thresholds=[-0.25, 0.25],
-        ),
-        training=SimpleNamespace(algorithm=algorithm, device="cpu"),
-        data=SimpleNamespace(memmap_dir=None),
+def _params(algorithm: str = "PPO", backend: str | None = None) -> EnvBuildParams:
+    """Minimal EnvBuildParams for tests."""
+    return EnvBuildParams(
+        env_name="test-env",
+        positions=[-1, 0, 1],
+        trading_fees=0.0,
+        borrow_interest_rate=0.0,
+        streaming_episode_length=12,
+        continuous_action_thresholds=[-0.25, 0.25],
+        feature_columns=None,
+        price_column="close",
+        initial_portfolio_value=100_000.0,
+        reward_type="log_return",
+        reward_eta=0.01,
+        reward_scale=1.0,
+        include_position_feature=False,
+        obs_clip=5.0,
+        action_penalty_lambda=0.0,
+        action_penalty_type="quadratic",
+        backend=backend,
+        algorithm=algorithm,
+        device="cpu",
+        memmap_dir=None,
         seed=123,
     )
 
@@ -49,62 +58,62 @@ def _df() -> pd.DataFrame:
 
 class TestResolveBackend:
     def test_ppo_defaults_to_discrete(self):
-        backend = AlgorithmicEnvironmentBuilder()._resolve_backend(_cfg("PPO"))
+        backend = AlgorithmicEnvironmentBuilder()._resolve_backend(_params("PPO"))
         assert backend == "gym_trading_env.discrete"
 
     def test_td3_defaults_to_continuous(self):
-        backend = AlgorithmicEnvironmentBuilder()._resolve_backend(_cfg("TD3"))
+        backend = AlgorithmicEnvironmentBuilder()._resolve_backend(_params("TD3"))
         assert backend == "gym_trading_env.continuous"
 
     def test_ddpg_defaults_to_continuous(self):
-        backend = AlgorithmicEnvironmentBuilder()._resolve_backend(_cfg("DDPG"))
+        backend = AlgorithmicEnvironmentBuilder()._resolve_backend(_params("DDPG"))
         assert backend == "gym_trading_env.continuous"
 
     def test_td3_with_discrete_backend_raises(self):
         with pytest.raises(ValueError, match="TD3"):
             AlgorithmicEnvironmentBuilder()._resolve_backend(
-                _cfg("TD3", "gym_trading_env.discrete")
+                _params("TD3", "gym_trading_env.discrete")
             )
 
     def test_ddpg_with_discrete_backend_raises(self):
         with pytest.raises(ValueError, match="DDPG"):
             AlgorithmicEnvironmentBuilder()._resolve_backend(
-                _cfg("DDPG", "gym_trading_env.discrete")
+                _params("DDPG", "gym_trading_env.discrete")
             )
 
     def test_td3_with_continuous_backend_accepted(self):
         backend = AlgorithmicEnvironmentBuilder()._resolve_backend(
-            _cfg("TD3", "gym_trading_env.continuous")
+            _params("TD3", "gym_trading_env.continuous")
         )
         assert backend == "gym_trading_env.continuous"
 
     def test_td3_with_tradingenv_backend_accepted(self):
         backend = AlgorithmicEnvironmentBuilder()._resolve_backend(
-            _cfg("TD3", "tradingenv")
+            _params("TD3", "tradingenv")
         )
         assert backend == "tradingenv"
 
     def test_ppo_explicit_backend_overrides_default(self):
         backend = AlgorithmicEnvironmentBuilder()._resolve_backend(
-            _cfg("PPO", "tradingenv")
+            _params("PPO", "tradingenv")
         )
         assert backend == "tradingenv"
 
     def test_lowercase_td3_enforced(self):
         """Algorithm matching must be case-insensitive."""
-        backend = AlgorithmicEnvironmentBuilder()._resolve_backend(_cfg("td3"))
+        backend = AlgorithmicEnvironmentBuilder()._resolve_backend(_params("td3"))
         assert backend == "gym_trading_env.continuous"
 
     def test_lowercase_ddpg_raises_for_discrete(self):
         with pytest.raises(ValueError, match="ddpg"):
             AlgorithmicEnvironmentBuilder()._resolve_backend(
-                _cfg("ddpg", "gym_trading_env.discrete")
+                _params("ddpg", "gym_trading_env.discrete")
             )
 
     def test_no_explicit_backend_ppo_uses_default_builder_backend(self):
         """When no explicit backend, algo_backend takes precedence over default_backend."""
         builder = AlgorithmicEnvironmentBuilder(default_backend="tradingenv")
-        backend = builder._resolve_backend(_cfg("PPO"))
+        backend = builder._resolve_backend(_params("PPO"))
         # PPO → algo_backend = "gym_trading_env.discrete", which wins over default_backend
         assert backend == "gym_trading_env.discrete"
 
@@ -112,59 +121,51 @@ class TestResolveBackend:
 class TestCreate:
     def test_create_uses_backend_environment_when_memmap_disabled(self, monkeypatch):
         builder = AlgorithmicEnvironmentBuilder()
-        config = _cfg("PPO", "tradingenv")
+        params = _params("PPO", "tradingenv")
         df = _df()
         calls = []
 
-        def fail_resolve_memmap_paths(_config):
+        def fail_resolve_memmap_paths(_params):
             raise AssertionError("use_memmap=False should not inspect memmap paths")
 
-        def fake_build_backend_env(**kwargs):
-            calls.append(kwargs)
+        def fake_create_non_streaming_env(d, p, backend):
+            calls.append({"df": d, "params": p, "backend": backend})
             return "batch-env"
 
         monkeypatch.setattr(builder, "_resolve_memmap_paths", fail_resolve_memmap_paths)
-        monkeypatch.setattr(builder_module, "build_backend_env", fake_build_backend_env)
+        monkeypatch.setattr(builder, "_create_non_streaming_env", fake_create_non_streaming_env)
 
-        env = builder.create(df, config, use_memmap=False)
+        env = builder.create(df, params, use_memmap=False)
 
         assert env == "batch-env"
-        assert calls == [
-            {
-                "df": df,
-                "config": config,
-                "backend": "tradingenv",
-            }
-        ]
+        assert calls == [{"df": df, "params": params, "backend": "tradingenv"}]
 
     def test_create_uses_streaming_environment_when_memmaps_exist(self, monkeypatch):
         builder = AlgorithmicEnvironmentBuilder()
-        config = _cfg("TD3", "gym_trading_env.continuous")
+        params = _params("TD3", "gym_trading_env.continuous")
         df = _df()
         memmap_paths = [object()]
         streaming_calls = []
 
-        def fail_build_backend_env(**_kwargs):
+        def fake_create_non_streaming_env(d, p, backend):
             raise AssertionError("memmap paths should route to streaming env")
 
-        def fake_create_streaming_env(paths, cfg):
-            streaming_calls.append((paths, cfg))
+        def fake_create_streaming_env(paths, p):
+            streaming_calls.append((paths, p))
             return "streaming-env"
 
-        monkeypatch.setattr(builder, "_resolve_memmap_paths", lambda _config: memmap_paths)
+        monkeypatch.setattr(builder, "_resolve_memmap_paths", lambda _params: memmap_paths)
         monkeypatch.setattr(builder, "_create_streaming_env", fake_create_streaming_env)
-        monkeypatch.setattr(builder_module, "build_backend_env", fail_build_backend_env)
+        monkeypatch.setattr(builder, "_create_non_streaming_env", fake_create_non_streaming_env)
 
-        env = builder.create(df, config)
+        env = builder.create(df, params)
 
         assert env == "streaming-env"
-        assert streaming_calls == [(memmap_paths, config)]
+        assert streaming_calls == [(memmap_paths, params)]
 
 
 class TestCreateStreamingEnv:
     def test_create_streaming_env_builds_gym_streaming_env(self, monkeypatch):
-        import torchrl.envs.transforms as transforms_module
-
         import trading_rl.envs.streaming_env as streaming_module
 
         calls = {"streaming": [], "gym": [], "transformed": [], "step_counter": 0}
@@ -186,12 +187,12 @@ class TestCreateStreamingEnv:
             return ("transformed", env, transform)
 
         monkeypatch.setattr(streaming_module, "StreamingTradingEnv", FakeStreamingTradingEnv)
-        monkeypatch.setattr(transforms_module, "StepCounter", FakeStepCounter)
+        monkeypatch.setattr(builder_module, "StepCounter", FakeStepCounter)
         monkeypatch.setattr(builder_module, "GymWrapper", fake_gym_wrapper)
         monkeypatch.setattr(builder_module, "TransformedEnv", fake_transformed_env)
 
-        config = _cfg("PPO", EnvBackend.GYM_TRADING_DISCRETE)
-        result = AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], config)
+        params = _params("PPO", EnvBackend.GYM_TRADING_DISCRETE)
+        result = AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], params)
 
         assert result[0] == "transformed"
         assert calls["streaming"] == [
@@ -211,8 +212,6 @@ class TestCreateStreamingEnv:
         assert len(calls["transformed"]) == 1
 
     def test_create_streaming_env_adds_continuous_action_mapping(self, monkeypatch):
-        import torchrl.envs.transforms as transforms_module
-
         import trading_rl.continuous_action_wrapper as continuous_module
         import trading_rl.envs.streaming_env as streaming_module
 
@@ -235,7 +234,7 @@ class TestCreateStreamingEnv:
             return ("transformed", env, transform)
 
         monkeypatch.setattr(streaming_module, "StreamingTradingEnv", FakeStreamingTradingEnv)
-        monkeypatch.setattr(transforms_module, "StepCounter", FakeStepCounter)
+        monkeypatch.setattr(builder_module, "StepCounter", FakeStepCounter)
         monkeypatch.setattr(
             continuous_module,
             "ContinuousToDiscreteAction",
@@ -244,8 +243,8 @@ class TestCreateStreamingEnv:
         monkeypatch.setattr(builder_module, "GymWrapper", lambda env: ("gym", env))
         monkeypatch.setattr(builder_module, "TransformedEnv", fake_transformed_env)
 
-        config = _cfg("TD3", EnvBackend.GYM_TRADING_CONTINUOUS)
-        AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], config)
+        params = _params("TD3", EnvBackend.GYM_TRADING_CONTINUOUS)
+        AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], params)
 
         assert action_maps == [
             {
@@ -259,11 +258,11 @@ class TestCreateStreamingEnv:
 
     def test_create_streaming_env_delegates_tradingenv_backend(self, monkeypatch):
         builder = AlgorithmicEnvironmentBuilder()
-        config = _cfg("TD3", EnvBackend.TRADINGENV)
+        params = _params("TD3", EnvBackend.TRADINGENV)
         calls = []
 
-        def fake_create_streaming_tradingenv(paths, episode_length, cfg):
-            calls.append((paths, episode_length, cfg))
+        def fake_create_streaming_tradingenv(paths, episode_length, p):
+            calls.append((paths, episode_length, p))
             return "streaming-tradingenv"
 
         monkeypatch.setattr(
@@ -272,22 +271,20 @@ class TestCreateStreamingEnv:
             fake_create_streaming_tradingenv,
         )
 
-        result = builder._create_streaming_env(["memmap"], config)
+        result = builder._create_streaming_env(["memmap"], params)
 
         assert result == "streaming-tradingenv"
-        assert calls == [(["memmap"], 12, config)]
+        assert calls == [(["memmap"], 12, params)]
 
     def test_create_streaming_env_rejects_unsupported_backend(self):
-        config = _cfg("PPO", EnvBackend.GYM_ANYTRADING_FOREX)
+        params = _params("PPO", EnvBackend.GYM_ANYTRADING_FOREX)
 
         with pytest.raises(ValueError, match="memmap streaming is not supported"):
-            AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], config)
+            AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], params)
 
     def test_create_streaming_tradingenv_forwards_runtime_and_reward_config(
         self, monkeypatch
     ):
-        import torchrl.envs.transforms as transforms_module
-
         import trading_rl.envs.tradingenvxy_wrapper as xy_module
 
         calls = {"xy": [], "gym": [], "transformed": []}
@@ -312,28 +309,41 @@ class TestCreateStreamingEnv:
             "StreamingTradingEnvXY",
             FakeStreamingTradingEnvXY,
         )
-        monkeypatch.setattr(transforms_module, "StepCounter", FakeStepCounter)
+        monkeypatch.setattr(builder_module, "StepCounter", FakeStepCounter)
         monkeypatch.setattr(builder_module, "GymWrapper", fake_gym_wrapper)
         monkeypatch.setattr(builder_module, "TransformedEnv", fake_transformed_env)
 
         memmap = SimpleNamespace(
             columns=["close", "feature_signal", "feature_position"]
         )
-        config = _cfg("TD3", EnvBackend.TRADINGENV)
-        config.env.feature_columns = ["feature_signal", "feature_position"]
-        config.env.price_column = "mid_price"
-        config.env.initial_portfolio_value = 25_000.0
-        config.env.trading_fees = 0.0002
-        config.env.reward_type = RewardType.DIFFERENTIAL_SHARPE
-        config.env.reward_eta = 0.07
-        config.env.reward_scale = 2.5
-        config.env.include_position_feature = True
-        config.env.obs_clip = 3.0
+        params = EnvBuildParams(
+            env_name="test-env",
+            positions=[-1, 0, 1],
+            trading_fees=0.0002,
+            borrow_interest_rate=0.0,
+            streaming_episode_length=12,
+            continuous_action_thresholds=[-0.25, 0.25],
+            feature_columns=["feature_signal", "feature_position"],
+            price_column="mid_price",
+            initial_portfolio_value=25_000.0,
+            reward_type=RewardType.DIFFERENTIAL_SHARPE,
+            reward_eta=0.07,
+            reward_scale=2.5,
+            include_position_feature=True,
+            obs_clip=3.0,
+            action_penalty_lambda=0.0,
+            action_penalty_type="quadratic",
+            backend=EnvBackend.TRADINGENV,
+            algorithm="TD3",
+            device="cpu",
+            memmap_dir=None,
+            seed=123,
+        )
 
         result = AlgorithmicEnvironmentBuilder()._create_streaming_tradingenv(
             [memmap],
             episode_length=12,
-            config=config,
+            params=params,
         )
 
         assert result[0] == "transformed"

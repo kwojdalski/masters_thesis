@@ -3,6 +3,7 @@
 from trading_rl.envs.builder import (
     AlgorithmicEnvironmentBuilder,
     BaseEnvironmentBuilder,
+    EnvBuildParams,
 )
 from trading_rl.envs.trading_envs import (
     Backend,
@@ -26,6 +27,7 @@ __all__ = [
     "AlgorithmicEnvironmentBuilder",
     "Backend",
     "BaseEnvironmentBuilder",
+    "EnvBuildParams",
     "CustomTradingEnvironmentFactory",
     "DiscreteActionWrapper",
     "ForexEnvironmentFactory",

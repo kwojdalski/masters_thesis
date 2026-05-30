@@ -22,7 +22,7 @@ from trading_rl.profiler import get_profiler
 from trading_rl.callbacks import MLflowTrainingCallback
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import PreparedDataset, build_prepared_dataset
-from trading_rl.envs import AlgorithmicEnvironmentBuilder
+from trading_rl.envs import AlgorithmicEnvironmentBuilder, EnvBuildParams
 from trading_rl.envs.trading_envs import EnvBackend
 import trading_rl.trainers.ddpg  # noqa: F401 — registers DDPGTrainer
 import trading_rl.trainers.ppo  # noqa: F401 — registers PPOTrainer, PPOTrainerContinuous
@@ -120,7 +120,7 @@ def _build_train_env(
     logger: logging.Logger,
 ) -> Any:
     logger.info("build environment")
-    env = AlgorithmicEnvironmentBuilder().create(dataset.train_df, config)
+    env = AlgorithmicEnvironmentBuilder().create(dataset.train_df, EnvBuildParams.from_config(config))
     logger.trace("environment obs_spec={} action_spec={} reward_spec={}", env.observation_spec, env.action_spec, env.reward_spec)
     return env
 
@@ -201,7 +201,7 @@ def _build_training_bundle(
     trainer._eval_data_len = len(dataset.val_df)
     if getattr(config.training, "eval_interval", 0) > 0:
         trainer._eval_env = AlgorithmicEnvironmentBuilder().create(
-            dataset.val_df, config, use_memmap=False
+            dataset.val_df, EnvBuildParams.from_config(config), use_memmap=False
         )
     trainer.n_obs = n_obs
     trainer.n_act = n_act
