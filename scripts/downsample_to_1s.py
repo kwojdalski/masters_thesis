@@ -107,26 +107,9 @@ def _resample_file(src: Path, dst: Path, freq: str) -> dict:
     if lob_anchor:
         out = out.dropna(subset=lob_anchor, how="all")
 
-    # Convert 64-bit integer columns that are now float back to nullable Int64
-    # (they become float after resample().last() when NaNs are introduced)
-    int_candidates = [
-        "rtype", "publisher_id", "instrument_id", "depth",
-        "size", "flags", "ts_in_delta", "sequence",
-        "bid_sz_00", "ask_sz_00", "bid_ct_00", "ask_ct_00",
-        "bid_sz_01", "ask_sz_01", "bid_ct_01", "ask_ct_01",
-        "bid_sz_02", "ask_sz_02", "bid_ct_02", "ask_ct_02",
-        "bid_sz_03", "ask_sz_03", "bid_ct_03", "ask_ct_03",
-        "bid_sz_04", "ask_sz_04", "bid_ct_04", "ask_ct_04",
-        "bid_sz_05", "ask_sz_05", "bid_ct_05", "ask_ct_05",
-        "bid_sz_06", "ask_sz_06", "bid_ct_06", "ask_ct_06",
-        "bid_sz_07", "ask_sz_07", "bid_ct_07", "ask_ct_07",
-        "bid_sz_08", "ask_sz_08", "bid_ct_08", "ask_ct_08",
-        "bid_sz_09", "ask_sz_09", "bid_ct_09", "ask_ct_09",
-        "volume", "trade_volume",
-    ]
-    for col in int_candidates:
-        if col in out.columns and out[col].dtype == np.float64:
-            out[col] = out[col].astype("Int64")
+    # Keep all numeric columns as float64. resample().last() already produces
+    # float64 for integer-origin columns; converting to pandas Int64 (nullable)
+    # would break numpy ufuncs (isinf, isfinite) used in the feature pipeline.
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     out.to_parquet(dst)
