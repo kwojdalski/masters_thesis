@@ -440,7 +440,7 @@ class TrainerRuntimeHooks:
             except Exception:
                 self._eval_consecutive_failures += 1
                 logger.error(
-                    "temp eval failed split={} step={} elapsed={:.2f}s (failure {}/{})",
+                    "temp eval failed split={} step={} elapsed_s={:.2f} (failure {}/{})",
                     split_ctx.split, step_number, time.monotonic() - _t_split,
                     self._eval_consecutive_failures, self._MAX_HOOK_FAILURES,
                 )

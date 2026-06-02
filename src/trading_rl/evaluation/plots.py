@@ -577,7 +577,7 @@ def build_equity_plot_data(
                     run_name, reward_type,
                 )
 
-    logger.trace("returns_data built n_points={} elapsed={:.2f}s", len(returns_data), time.monotonic() - t0)
+    logger.trace("returns_data built n_points={} elapsed_s={:.2f}", len(returns_data), time.monotonic() - t0)
 
     price_series = None
     if df_prices is not None:
@@ -645,11 +645,11 @@ def build_equity_plot_data(
             if show_vwap and vwap_values is not None:
                 _extend_with_stride("VWAP", vwap_values)
 
-    logger.trace("benchmark data appended total_points={} elapsed={:.2f}s", len(returns_data), time.monotonic() - t0)
+    logger.trace("benchmark data appended total_points={} elapsed_s={:.2f}", len(returns_data), time.monotonic() - t0)
 
     df_returns = pd.DataFrame(returns_data)
     df_returns["Run"] = _as_ordered_run_categorical(df_returns["Run"])
-    logger.trace("DataFrame built elapsed={:.2f}s", time.monotonic() - t0)
+    logger.trace("DataFrame built elapsed_s={:.2f}", time.monotonic() - t0)
 
     symbols: list[str] = []
     if df_prices is not None and "symbol" in df_prices.columns:

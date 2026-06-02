@@ -445,7 +445,7 @@ def log_evaluation_plots(
                 with warnings.catch_warnings(), _suppress_plotnine():
                     warnings.simplefilter("ignore", PlotnineWarning)
                     _save_plot(plot_obj, tmp_path, width=width, height=height, dpi=225, debug=debug)
-                logger.trace("render done filename={} elapsed={:.2f}s", filename, time.monotonic() - t_render)
+                logger.trace("render done filename={} elapsed_s={:.2f}", filename, time.monotonic() - t_render)
 
                 pil_logger = logging.getLogger("PIL.PngImagePlugin")
                 prev_level = pil_logger.level
@@ -456,7 +456,7 @@ def log_evaluation_plots(
                     mlflow.log_artifact(tmp_path, dir_)
                 finally:
                     pil_logger.setLevel(prev_level)
-                logger.trace("mlflow log_artifact done filename={} elapsed={:.2f}s", filename, time.monotonic() - t_upload)
+                logger.trace("mlflow log_artifact done filename={} elapsed_s={:.2f}", filename, time.monotonic() - t_upload)
 
                 if key:
                     saved_paths[key] = tmp_path

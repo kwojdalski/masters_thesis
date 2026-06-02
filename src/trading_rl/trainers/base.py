@@ -188,7 +188,7 @@ def _run_evaluation(
     with profiler.stage("agent_rollout", 2):
         result = evaluator.evaluate_split("eval", df, env=env_to_use)
     trainer._last_evaluation_result = result
-    logger.trace("evaluate.rollout_and_metrics elapsed={:.2f}s", time.monotonic() - _t)
+    logger.trace("evaluate.rollout_and_metrics elapsed_s={:.2f}", time.monotonic() - _t)
 
     _enabled_plots = set(eval_config.eval_plots)
     reward_plot = result.plots.get("reward_plot") if result.plots else None
@@ -219,14 +219,14 @@ def _run_evaluation(
                 max_plot_points=config.training.max_plot_points if config else None,
                 reward_type=str(config.env.reward_type) if config else None,
             )
-            logger.trace("evaluate.plot_equity_curve elapsed={:.2f}s", time.monotonic() - _t)
+            logger.trace("evaluate.plot_equity_curve elapsed_s={:.2f}", time.monotonic() - _t)
 
     merged_plot = None
     if reward_plot is not None and action_plot is not None:
         with profiler.stage("plot_merged", 2):
             _t = time.monotonic()
             merged_plot = create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot)
-            logger.trace("evaluate.plot_merged elapsed={:.2f}s", time.monotonic() - _t)
+            logger.trace("evaluate.plot_merged elapsed_s={:.2f}", time.monotonic() - _t)
 
     return (
         reward_plot,
@@ -930,7 +930,7 @@ class BaseTrainer(ABC):
                         and (time.time() - t0) >= self.config.max_train_seconds
                     ):
                         logger.info(
-                            "training stopped max_train_seconds={} elapsed={:.1f}s",
+                            "training stopped max_train_seconds={} elapsed_s={:.1f}",
                             self.config.max_train_seconds,
                             time.time() - t0,
                         )
