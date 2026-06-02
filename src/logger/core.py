@@ -112,7 +112,10 @@ def _highlight_kv(msg: str) -> str:
 def _make_kv_format(fmt: str) -> Any:
     """Return a loguru format callable that highlights key=value pairs."""
     def _format(record: dict) -> str:
-        highlighted = _highlight_kv(record["message"])
+        # Escape bare < so loguru's colorizer does not treat them as color tags.
+        # In a format callable, loguru strips the leading \ and renders plain <.
+        raw = record["message"].replace("<", r"\<")
+        highlighted = _highlight_kv(raw)
         # Escape bare braces so format_map doesn't misinterpret message content.
         safe = highlighted.replace("{", "{{").replace("}", "}}")
         return fmt.replace("{message}", safe, 1) + "\n"
