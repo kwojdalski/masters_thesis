@@ -88,6 +88,7 @@ def _resolve_symbol_index(
                 count = 0
         idx = count % n_symbols
         if counter_path:
+            counter_path.parent.mkdir(parents=True, exist_ok=True)
             counter_path.write_text(str(count + 1))
         logger.info("eval_symbol_selection=rotated counter={} idx={} of {}", count, idx, n_symbols)
         return idx
