@@ -474,9 +474,12 @@ def _build_per_day_splits(
             )
         return sym
 
-    # Build known symbols from config for validation
+    # Build known symbols from config for validation.
+    # When data_paths are provided, symbols are extracted from filenames and
+    # the legacy config.data.symbols field (default: ["BTC/USDT"]) is irrelevant.
     config_symbols = getattr(getattr(config, "data", None), "symbols", None)
-    known_symbols = set(config_symbols) if config_symbols else None
+    has_data_paths = bool(getattr(getattr(config, "data", None), "data_paths", None))
+    known_symbols = set(config_symbols) if (config_symbols and not has_data_paths) else None
 
     # Group training paths by symbol, preserving original indices
     symbol_train_paths: dict[str, list[str]] = defaultdict(list)
