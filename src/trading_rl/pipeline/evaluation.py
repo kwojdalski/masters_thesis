@@ -257,6 +257,27 @@ def _save_benchmark_table_for_split(
         getattr(config.data, "timeframe", "1d")
     )
     benchmarks, _ = BenchmarkEngine.build(split_ctx.df, config.benchmarks, price_column)
+
+    if config.benchmarks.is_random:
+        try:
+            logger.info(
+                "benchmark table: computing random baseline n_trials={} split={}",
+                config.benchmarks.n_random_trials, split,
+            )
+            random_trials = compute_random_baseline_returns(
+                split_ctx.env,
+                split_ctx.max_steps,
+                n_trials=config.benchmarks.n_random_trials,
+                seed=config.benchmarks.random_seed,
+                reward_type=config.env.reward_type,
+            )
+            if random_trials:
+                min_len = min(len(t) for t in random_trials)
+                mean_returns = np.mean([t[:min_len] for t in random_trials], axis=0)
+                benchmarks.append(BenchmarkEngine.random_actions(mean_returns))
+        except Exception as _rand_err:
+            logger.warning("benchmark table: random baseline failed split={} err={}", split, _rand_err)
+
     if not benchmarks:
         return
 

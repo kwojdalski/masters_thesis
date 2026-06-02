@@ -116,6 +116,16 @@ class BenchmarkEngine:
         )
 
     @staticmethod
+    def random_actions(mean_returns: np.ndarray) -> BenchmarkSpec:
+        return BenchmarkSpec(
+            name=BenchmarkName.RANDOM_ACTIONS,
+            compute_returns=lambda steps: _benchmark_returns(
+                mean_returns[:steps],
+                benchmark_position_side=None,
+            ),
+        )
+
+    @staticmethod
     def build(
         market_data: pd.DataFrame,
         config: Any,

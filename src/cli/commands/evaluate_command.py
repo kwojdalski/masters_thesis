@@ -266,6 +266,34 @@ class EvaluateCommand(BaseCommand):
                     benchmarks, _ = BenchmarkEngine.build(
                         split_df, config.benchmarks, price_column
                     )
+
+                    if getattr(config.benchmarks, "is_random", False):
+                        try:
+                            import numpy as np
+                            from trading_rl.evaluation.statistical_benchmarks import (
+                                compute_random_baseline_returns,
+                            )
+                            self.console.print("[dim]  Computing random baseline...[/dim]")
+                            random_trials = compute_random_baseline_returns(
+                                split_ctx.env,
+                                split_ctx.max_steps,
+                                n_trials=getattr(config.benchmarks, "n_random_trials", 10),
+                                seed=getattr(config.benchmarks, "random_seed", None),
+                                reward_type=getattr(config.env, "reward_type", None),
+                            )
+                            if random_trials:
+                                min_len = min(len(t) for t in random_trials)
+                                mean_returns = np.mean(
+                                    [t[:min_len] for t in random_trials], axis=0
+                                )
+                                benchmarks.append(
+                                    BenchmarkEngine.random_actions(mean_returns)
+                                )
+                        except Exception as _rand_err:
+                            self.console.print(
+                                f"[dim yellow]  Random baseline failed: {_rand_err}[/dim yellow]"
+                            )
+
                     self.console.print(f"[dim]  {len(benchmarks)} benchmark(s) ready[/dim]")
 
                     if "benchmarks" in components and benchmarks:
