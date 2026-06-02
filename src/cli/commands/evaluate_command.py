@@ -271,15 +271,15 @@ class EvaluateCommand(BaseCommand):
                         try:
                             import numpy as np
                             from trading_rl.evaluation.statistical_benchmarks import (
-                                compute_random_baseline_returns,
+                                compute_random_returns_from_prices,
                             )
                             self.console.print("[dim]  Computing random baseline...[/dim]")
-                            random_trials = compute_random_baseline_returns(
-                                split_ctx.env,
+                            _price_col = getattr(config.env, "price_column", None) or "close"
+                            random_trials = compute_random_returns_from_prices(
+                                split_df[_price_col],
                                 split_ctx.max_steps,
                                 n_trials=getattr(config.benchmarks, "n_random_trials", 10),
                                 seed=getattr(config.benchmarks, "random_seed", None),
-                                reward_type=getattr(config.env, "reward_type", None),
                             )
                             if random_trials:
                                 min_len = min(len(t) for t in random_trials)

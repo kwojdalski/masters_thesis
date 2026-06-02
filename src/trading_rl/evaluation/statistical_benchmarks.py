@@ -214,6 +214,33 @@ def build_benchmark_comparison_table(
     return rows
 
 
+def compute_random_returns_from_prices(
+    prices: pd.Series,
+    max_steps: int,
+    n_trials: int = 10,
+    seed: int | None = None,
+) -> list[np.ndarray]:
+    """Compute random-policy returns directly from a price series.
+
+    Draws positions uniformly from [-1, 1] at each step and multiplies by
+    the contemporaneous price return.  No environment rollout is needed so
+    this runs in milliseconds rather than minutes.  Use this for the benchmark
+    comparison table; use ``compute_random_baseline_returns`` only when you
+    need the full DSR reward path for statistical tests.
+    """
+    rng = np.random.default_rng(seed)
+    n = min(max_steps + 1, len(prices))
+    price_arr = prices.values[:n].astype(float)
+    denominators = np.where(np.abs(price_arr[:-1]) > 0, price_arr[:-1], 1.0)
+    price_returns = (price_arr[1:] - price_arr[:-1]) / denominators
+
+    trials: list[np.ndarray] = []
+    for _ in range(n_trials):
+        positions = rng.uniform(-1.0, 1.0, size=len(price_returns))
+        trials.append((positions * price_returns).astype(np.float32))
+    return trials
+
+
 def compute_random_baseline_returns(
     env: Any,
     max_steps: int,

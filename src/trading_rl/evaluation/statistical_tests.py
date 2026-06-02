@@ -13,6 +13,7 @@ from trading_rl.evaluation.statistical_benchmarks import (
     build_benchmark_comparison_table,
     compute_buy_and_hold_returns,
     compute_random_baseline_returns,
+    compute_random_returns_from_prices,
     compute_twap_returns,
     compute_vwap_returns,
     summarize_random_baseline_trials,
@@ -167,6 +168,7 @@ __all__ = [
     # Baseline computation (kept for backward compatibility)
     "compute_buy_and_hold_returns",
     "compute_random_baseline_returns",
+    "compute_random_returns_from_prices",
     "compute_twap_returns",
     "compute_vwap_returns",
     # Factory and registry

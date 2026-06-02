@@ -62,6 +62,7 @@ from trading_rl.evaluation.statistical_tests import (
     # Baseline computation
     compute_buy_and_hold_returns,
     compute_random_baseline_returns,
+    compute_random_returns_from_prices,
     compute_twap_returns,
     compute_vwap_returns,
     # Factory and registry
@@ -114,6 +115,7 @@ __all__ = [
     "compare_rollouts",
     "compute_buy_and_hold_returns",
     "compute_random_baseline_returns",
+    "compute_random_returns_from_prices",
     "compute_twap_returns",
     "compute_vwap_returns",
     "create_equity_curve_plot",

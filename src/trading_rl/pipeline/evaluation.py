@@ -20,6 +20,7 @@ from trading_rl.evaluation import (
     MetricReport,
     build_evaluation_report_for_trainer,
     compute_random_baseline_returns,
+    compute_random_returns_from_prices,
     periods_per_year_from_timeframe,
     run_all_statistical_tests,
 )
@@ -264,12 +265,12 @@ def _save_benchmark_table_for_split(
                 "benchmark table: computing random baseline n_trials={} split={}",
                 config.benchmarks.n_random_trials, split,
             )
-            random_trials = compute_random_baseline_returns(
-                split_ctx.env,
+            prices = split_ctx.df[price_column]
+            random_trials = compute_random_returns_from_prices(
+                prices,
                 split_ctx.max_steps,
                 n_trials=config.benchmarks.n_random_trials,
                 seed=config.benchmarks.random_seed,
-                reward_type=config.env.reward_type,
             )
             if random_trials:
                 min_len = min(len(t) for t in random_trials)
