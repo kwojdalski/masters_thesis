@@ -517,17 +517,21 @@ def evaluate_per_symbol(
     mode = str(getattr(config.env, "mode", "")).lower().strip()
 
     pipeline = None
+    pipeline_state_restored = False
     if feature_config:
         try:
-            from trading_rl.features import FeaturePipeline
-            from trading_rl.data.loading import restore_pipeline_state
+            from trading_rl.data.loading import build_feature_pipeline_with_state
 
-            pipeline = FeaturePipeline.from_yaml(feature_config)
-            if feature_pipeline_state:
-                restore_pipeline_state(pipeline, feature_pipeline_state)
+            restore_result = build_feature_pipeline_with_state(
+                feature_config,
+                feature_pipeline_state=feature_pipeline_state,
+            )
+            pipeline = restore_result.pipeline
+            pipeline_state_restored = restore_result.restored
+            if restore_result.restored:
                 logger.info(
                     "per-symbol eval: restored pooled pipeline state n_features={}",
-                    len(feature_pipeline_state),
+                    restore_result.state_size,
                 )
             else:
                 logger.warning(
@@ -553,7 +557,13 @@ def evaluate_per_symbol(
                 df = filter_unchanged_lob(df, levels=filter_lob_levels)
 
             if pipeline is not None:
-                features = pipeline.transform(df)
+                active_pipeline = pipeline
+                if not pipeline_state_restored:
+                    from trading_rl.data.loading import build_feature_pipeline_with_state
+
+                    active_pipeline = build_feature_pipeline_with_state(feature_config).pipeline
+                    active_pipeline.fit(df)
+                features = active_pipeline.transform(df)
                 df = pd.concat([df, features], axis=1)
 
             if mode == "hft":

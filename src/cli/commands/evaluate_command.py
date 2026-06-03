@@ -453,34 +453,20 @@ class EvaluateCommand(BaseCommand):
             self.console.print(f"[dim]  LOB filter: {before:,} → {len(df):,} rows[/dim]")
 
         if feature_config:
-            from trading_rl.features import FeaturePipeline
-            from trading_rl.data.loading import restore_pipeline_state
+            from trading_rl.data.loading import build_feature_pipeline_with_state
 
-            pipeline = FeaturePipeline.from_yaml(feature_config)
+            restore_result = build_feature_pipeline_with_state(
+                feature_config,
+                checkpoint_path=checkpoint_path,
+            )
+            pipeline = restore_result.pipeline
 
-            # Try to restore training-time pipeline state from checkpoint
-            state_restored = False
-            if checkpoint_path is not None and checkpoint_path.exists():
-                try:
-                    import torch
-                    checkpoint = torch.load(checkpoint_path, weights_only=True)
-                    pipeline_state = checkpoint.get("feature_pipeline_state")
-                    if pipeline_state:
-                        # First fit on a small sample to initialize scalers
-                        init_sample = df.iloc[:min(100, len(df))]
-                        pipeline.fit(init_sample)
-                        # Then restore training statistics
-                        restore_pipeline_state(pipeline, pipeline_state)
-                        state_restored = True
-                        self.console.print(
-                            f"[dim]  Restored training pipeline state from checkpoint ({len(pipeline_state)} features)[/dim]"
-                        )
-                except Exception as exc:
-                    self.logger.warning(
-                        "failed to restore pipeline state from checkpoint: {}", exc
-                    )
-
-            if not state_restored:
+            if restore_result.restored:
+                self.console.print(
+                    "[dim]  Restored training pipeline state from "
+                    f"{restore_result.source} ({restore_result.state_size} features)[/dim]"
+                )
+            else:
                 self.logger.warning(
                     "Pipeline state not available in checkpoint — normalizing eval data with eval statistics. "
                     "Metrics may not reflect true out-of-sample performance. Use --data-path mode only for "

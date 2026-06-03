@@ -33,6 +33,16 @@ class PreparedDataset:
     feature_pipeline_state: dict[str, dict[str, float]] | None = None
 
 
+@dataclass(frozen=True)
+class FeaturePipelineRestoreResult:
+    """Feature pipeline plus metadata about restored training-time state."""
+
+    pipeline: Any
+    restored: bool
+    state_size: int = 0
+    source: str | None = None
+
+
 def restore_pipeline_state(pipeline: Any, state: dict[str, dict[str, float]]) -> None:
     """Restore training-time scaler statistics into a FeaturePipeline.
 
@@ -56,7 +66,71 @@ def restore_pipeline_state(pipeline: Any, state: dict[str, dict[str, float]]) ->
             scaler.load_state_dict(feature_state)
             restored += 1
     pipeline._is_fitted = True
-    logger.debug("restore pipeline state restored={} total={}", restored, len(pipeline.features))
+    logger.debug(
+        "restore pipeline state restored={} total={}",
+        restored,
+        len(pipeline.features),
+    )
+
+
+def load_feature_pipeline_state_from_checkpoint(
+    checkpoint_path: str | Path | None,
+) -> dict[str, dict[str, float]] | None:
+    """Load saved feature pipeline scaler state from a training checkpoint."""
+    if checkpoint_path is None:
+        return None
+
+    checkpoint_file = Path(checkpoint_path)
+    if not checkpoint_file.exists():
+        return None
+
+    try:
+        import torch
+
+        checkpoint = torch.load(checkpoint_file, weights_only=True)
+    except Exception as exc:
+        logger.warning(
+            "failed to load feature pipeline state checkpoint={} error={}",
+            checkpoint_file,
+            exc,
+        )
+        return None
+
+    state = checkpoint.get("feature_pipeline_state")
+    return state if state else None
+
+
+def build_feature_pipeline_with_state(
+    feature_config: str | Path,
+    *,
+    feature_pipeline_state: dict[str, dict[str, float]] | None = None,
+    checkpoint_path: str | Path | None = None,
+) -> FeaturePipelineRestoreResult:
+    """Build a FeaturePipeline and restore training-time scaler state when available.
+
+    The checkpoint serialization detail lives here so evaluation callers do not
+    each need to know how feature scaler state is stored on disk.
+    """
+    from trading_rl.features import FeaturePipeline
+
+    pipeline = FeaturePipeline.from_yaml(str(feature_config))
+
+    state_source = "provided"
+    state = feature_pipeline_state
+    if not state:
+        state_source = "checkpoint"
+        state = load_feature_pipeline_state_from_checkpoint(checkpoint_path)
+
+    if state:
+        restore_pipeline_state(pipeline, state)
+        return FeaturePipelineRestoreResult(
+            pipeline=pipeline,
+            restored=True,
+            state_size=len(state),
+            source=state_source,
+        )
+
+    return FeaturePipelineRestoreResult(pipeline=pipeline, restored=False)
 
 
 def dump_pipeline_state(pipeline: Any) -> dict[str, dict] | None:
