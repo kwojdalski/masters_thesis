@@ -199,6 +199,12 @@ class EnvConfig:
     action_penalty_lambda: float = 0.0
     action_penalty_type: str = ActionPenaltyType.QUADRATIC
 
+    # Bid/ask spread execution: when set, trades execute at ask (buy) or bid (sell)
+    # instead of the mid-price column.  Both columns must be present in the memmap.
+    # Leave None (default) for mid-price execution.
+    bid_column: str | None = None
+    ask_column: str | None = None
+
 
 @dataclass
 class NetworkConfig:

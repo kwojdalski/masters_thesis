@@ -17,8 +17,10 @@ from tradingenv.broker.broker import EndOfEpisodeError
 from tradingenv.broker.fees import BrokerFees
 from tradingenv.broker.track_record import TrackRecord
 from tradingenv.contracts import Stock
+from tradingenv.events import EventNBBO
 from tradingenv.features import Feature
 from tradingenv.spaces import BoxPortfolio
+from tradingenv.transmitter import Transmitter
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
@@ -456,6 +458,8 @@ class StreamingTradingEnvXY(gym.Env):
         dsr_persist_across_symbols: bool = False,
         action_penalty_lambda: float = 0.0,
         action_penalty_type: str | ActionPenaltyType = ActionPenaltyType.QUADRATIC,
+        bid_column: str | None = None,
+        ask_column: str | None = None,
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -478,6 +482,8 @@ class StreamingTradingEnvXY(gym.Env):
         self._action_penalty_lambda = float(action_penalty_lambda)
         self._action_penalty_type = ActionPenaltyType(action_penalty_type)
         self._prev_action: float = 0.0
+        self._bid_column = bid_column
+        self._ask_column = ask_column
 
         stocks = [Stock(price_column)]
         self.action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
@@ -557,9 +563,8 @@ class StreamingTradingEnvXY(gym.Env):
         return pd.DataFrame(window_data, columns=mp.columns, index=index)
 
     def _build_inner_env(self, window_df: pd.DataFrame, symbol: str = "", reward: Any = None) -> FastTradingEnv:
-        stocks = [Stock(self._price_column)]
-        prices = window_df[[self._price_column]].copy()
-        prices.columns = pd.Index(stocks)
+        stock = Stock(self._price_column)
+        stocks = [stock]
         features = [
             CustomFeature(
                 self._feature_columns,
@@ -568,14 +573,40 @@ class StreamingTradingEnvXY(gym.Env):
                 traded_contracts=stocks,
             )
         ]
-        return FastTradingEnv(
+        common_kwargs = dict(
             action_space=BoxPortfolio(stocks, low=-1.0, high=1.0),
             state=features,
             reward=reward or self._make_reward(symbol),
-            prices=prices,
             initial_cash=self._initial_cash,
             broker_fees=BrokerFees(proportional=self._fee, fixed=0.0),
         )
+
+        use_bidask = (
+            self._bid_column is not None
+            and self._ask_column is not None
+            and self._bid_column in window_df.columns
+            and self._ask_column in window_df.columns
+        )
+        if use_bidask:
+            transmitter = Transmitter(timesteps=window_df.index)
+            bid_arr = window_df[self._bid_column].to_numpy(dtype=np.float64)
+            ask_arr = window_df[self._ask_column].to_numpy(dtype=np.float64)
+            transmitter.add_events([
+                EventNBBO(
+                    time=ts,
+                    contract=stock,
+                    bid_price=float(bid),
+                    ask_price=float(ask),
+                    bid_size=np.inf,
+                    ask_size=np.inf,
+                )
+                for ts, bid, ask in zip(window_df.index, bid_arr, ask_arr)
+            ])
+            return FastTradingEnv(transmitter=transmitter, **common_kwargs)
+
+        prices = window_df[[self._price_column]].copy()
+        prices.columns = pd.Index(stocks)
+        return FastTradingEnv(prices=prices, **common_kwargs)
 
     # ------------------------------------------------------------------
     # Gymnasium API
