@@ -253,7 +253,9 @@ def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
         if not index_file.exists() or not cols_file.exists():
             logger.warning("skip incomplete memmap prefix={}", prefix)
             continue
-        data = np.load(data_file, mmap_mode="r")
+        _data = np.load(data_file, mmap_mode="r")
+        n_rows = _data.shape[0]
+        del _data
         columns = json.loads(cols_file.read_text())
         symbol_file = output_dir / f"{prefix}_symbol.txt"
         symbol = symbol_file.read_text().strip() if symbol_file.exists() else ""
@@ -261,7 +263,7 @@ def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
             MemmapPaths(
                 data_path=data_file,
                 index_path=index_file,
-                n_rows=data.shape[0],
+                n_rows=n_rows,
                 columns=columns,
                 symbol=symbol,
             )
