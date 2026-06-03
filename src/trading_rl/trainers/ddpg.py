@@ -219,7 +219,7 @@ class DDPGTrainer(BaseTrainer):
 
             # Periodic logging and evaluation
             if self._should_log_step(current_step):
-                self._log_progress(max_length, buffer_len, loss_vals)
+                self._log_progress(max_length, buffer_len, loss_vals_actor)
 
             # Periodic evaluation
             if self._should_eval_step(current_step):
