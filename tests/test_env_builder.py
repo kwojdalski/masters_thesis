@@ -1,8 +1,4 @@
-"""Tests for AlgorithmicEnvironmentBuilder._resolve_backend().
-
-Verifies that TD3/DDPG force a continuous backend and that explicit backend
-overrides are applied correctly.
-"""
+"""Tests for AlgorithmicEnvironmentBuilder backend resolution."""
 
 from __future__ import annotations
 
@@ -15,6 +11,7 @@ from trading_rl.constants import EnvBackend, RewardType
 from trading_rl.envs import builder as builder_module
 from trading_rl.envs.builder import (
     AlgorithmicEnvironmentBuilder,
+    BackendResolutionPolicy,
     CommonEnvParams,
     EnvBuildParams,
     GymTradingEnvParams,
@@ -126,11 +123,30 @@ class TestResolveBackend:
             )
 
     def test_no_explicit_backend_ppo_uses_default_builder_backend(self):
-        """When no explicit backend, algo_backend takes precedence over default_backend."""
         builder = AlgorithmicEnvironmentBuilder(default_backend="tradingenv")
         backend = builder._resolve_backend(_params("PPO"))
-        # PPO → algo_backend = "gym_trading_env.discrete", which wins over default_backend
-        assert backend == "gym_trading_env.discrete"
+        assert backend == "tradingenv"
+
+    def test_custom_policy_can_add_algorithm_default_without_builder_change(self):
+        policy = BackendResolutionPolicy(
+            algorithm_defaults={"MODEL_BASED": EnvBackend.TRADINGENV},
+        )
+        builder = AlgorithmicEnvironmentBuilder(backend_policy=policy)
+
+        backend = builder._resolve_backend(_params("MODEL_BASED"))
+
+        assert backend == "tradingenv"
+
+    def test_custom_policy_can_constrain_algorithm_backends(self):
+        policy = BackendResolutionPolicy(
+            allowed_backends={"MODEL_BASED": frozenset({EnvBackend.TRADINGENV})},
+        )
+        builder = AlgorithmicEnvironmentBuilder(backend_policy=policy)
+
+        with pytest.raises(ValueError, match="MODEL_BASED"):
+            builder._resolve_backend(
+                _params("MODEL_BASED", EnvBackend.GYM_TRADING_CONTINUOUS)
+            )
 
 
 class TestCreate:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -134,6 +135,51 @@ class EnvBuildParams:
         )
 
 
+@dataclass(frozen=True)
+class BackendResolutionPolicy:
+    """Resolve environment backend defaults and algorithm backend constraints."""
+
+    default_backend: str = EnvBackend.GYM_TRADING_DISCRETE
+    algorithm_defaults: Mapping[str, str] = field(
+        default_factory=lambda: {
+            Algorithm.TD3: EnvBackend.GYM_TRADING_CONTINUOUS,
+            Algorithm.DDPG: EnvBackend.GYM_TRADING_CONTINUOUS,
+        }
+    )
+    allowed_backends: Mapping[str, frozenset[str]] = field(
+        default_factory=lambda: {
+            Algorithm.TD3: frozenset(
+                {EnvBackend.GYM_TRADING_CONTINUOUS, EnvBackend.TRADINGENV}
+            ),
+            Algorithm.DDPG: frozenset(
+                {EnvBackend.GYM_TRADING_CONTINUOUS, EnvBackend.TRADINGENV}
+            ),
+        }
+    )
+
+    def resolve(self, params: EnvBuildParams) -> str:
+        """Return the backend selected for params."""
+        explicit_backend = (
+            EnvBackend(params.common.backend) if params.common.backend else None
+        )
+        algorithm = str(params.algorithm).upper()
+        allowed_backends = self.allowed_backends.get(algorithm)
+
+        if explicit_backend is not None:
+            if allowed_backends and explicit_backend not in allowed_backends:
+                allowed = ", ".join(
+                    sorted(str(backend) for backend in allowed_backends)
+                )
+                raise ValueError(
+                    f"{params.algorithm} requires one of these backends: {allowed}; "
+                    f"got '{explicit_backend}'."
+                )
+            return explicit_backend
+
+        backend = self.algorithm_defaults.get(algorithm, self.default_backend)
+        return EnvBackend(backend)
+
+
 @dataclass
 class BaseEnvironmentBuilder(ABC):
     """Base class for environment builders."""
@@ -148,41 +194,26 @@ class BaseEnvironmentBuilder(ABC):
 
 
 class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
-    """Backend-aware environment builder that also respects algorithm defaults."""
+    """Backend-aware environment builder."""
 
     def __init__(
         self,
         default_backend: str = EnvBackend.GYM_TRADING_DISCRETE,
+        backend_policy: BackendResolutionPolicy | None = None,
     ):
         super().__init__()
         self.default_backend = EnvBackend(default_backend)
+        self.backend_policy = backend_policy or BackendResolutionPolicy(
+            default_backend=self.default_backend
+        )
 
     def _resolve_backend(self, params: EnvBuildParams) -> str:
-        """Determine backend from params, falling back to algorithm defaults."""
-        explicit_backend = (
-            EnvBackend(params.common.backend) if params.common.backend else None
-        )
-        algorithm_display = params.algorithm  # preserve original case for error messages
-        algorithm = str(params.algorithm).upper()
-
-        if algorithm in {Algorithm.TD3, Algorithm.DDPG}:
-            if explicit_backend and explicit_backend not in {
-                EnvBackend.GYM_TRADING_CONTINUOUS,
-                EnvBackend.TRADINGENV,
-            }:
-                raise ValueError(
-                    f"{algorithm_display} requires a continuous backend ('gym_trading_env.continuous' or 'tradingenv'), "
-                    f"but params.backend is '{explicit_backend}'. "
-                    "Please set env.backend to 'gym_trading_env.continuous' or 'tradingenv', or switch algorithm."
-                )
-            algo_backend: str = EnvBackend.GYM_TRADING_CONTINUOUS
-        else:
-            algo_backend = EnvBackend.GYM_TRADING_DISCRETE
-
-        backend = explicit_backend or algo_backend or self.default_backend
+        """Determine backend from explicit params and the configured policy."""
+        explicit_backend = params.common.backend
+        backend = self.backend_policy.resolve(params)
         self.logger.debug(
             "resolved backend={} explicit_backend={} algorithm={}",
-            backend, explicit_backend, algorithm,
+            backend, explicit_backend, str(params.algorithm).upper(),
         )
         return backend
 
