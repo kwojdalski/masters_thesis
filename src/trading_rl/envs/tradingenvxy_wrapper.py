@@ -718,8 +718,8 @@ class StreamingTradingEnvXY(gym.Env):
             _saved_moments = (dsr.A_t, dsr.B_t)
             dsr.reset(persist_moments=True)  # clear only _prev_nlv
             _dsr_to_restore = dsr
-        k_obs = self._obs_latency.sample(self._symbol_rng) if self._obs_latency is not None else 0
-        k_exec = self._exec_latency.sample(self._symbol_rng) if self._exec_latency is not None else 0
+        k_obs = self._obs_latency.resolve(self._symbol_rng, window_df.index) if self._obs_latency is not None else 0
+        k_exec = self._exec_latency.resolve(self._symbol_rng, window_df.index) if self._exec_latency is not None else 0
         total_k = k_obs + k_exec
         self._inner_env = self._build_inner_env(
             window_df,

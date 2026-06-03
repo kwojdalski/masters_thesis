@@ -216,6 +216,8 @@ class EnvConfig:
     # directly into StreamingTradingEnvXY instead of using these integer fields.
     obs_latency_ticks: int = 0
     exec_latency_ticks: int = 0
+    obs_latency_us: float = 0.0
+    exec_latency_us: float = 0.0
 
 
 @dataclass

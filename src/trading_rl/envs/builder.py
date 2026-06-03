@@ -66,6 +66,8 @@ class StreamingEnvParams:
     streaming_episode_length: int = 10_000
     obs_latency_ticks: int = 0
     exec_latency_ticks: int = 0
+    obs_latency_us: float = 0.0
+    exec_latency_us: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -120,6 +122,8 @@ class EnvBuildParams:
             streaming_episode_length=getattr(env, "streaming_episode_length", 10_000),
             obs_latency_ticks=getattr(env, "obs_latency_ticks", 0),
             exec_latency_ticks=getattr(env, "exec_latency_ticks", 0),
+            obs_latency_us=getattr(env, "obs_latency_us", 0.0),
+            exec_latency_us=getattr(env, "exec_latency_us", 0.0),
         )
         return cls(
             common=common,
@@ -398,8 +402,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             execution_price=params.trading_env.execution_price,
             bid_column=params.trading_env.bid_column,
             ask_column=params.trading_env.ask_column,
-            obs_latency=make_latency_model(params.streaming.obs_latency_ticks),
-            exec_latency=make_latency_model(params.streaming.exec_latency_ticks),
+            obs_latency=make_latency_model(params.streaming.obs_latency_ticks, params.streaming.obs_latency_us),
+            exec_latency=make_latency_model(params.streaming.exec_latency_ticks, params.streaming.exec_latency_us),
         )
         env = GymWrapper(base_env)
         with warnings.catch_warnings():
