@@ -46,9 +46,10 @@ _PLAIN_FMT = (
 )
 
 # Matches the value part of key=value tokens in log messages.
-# Excludes whitespace and characters used by loguru markup (<>) and Python
-# format strings ({}) so we never accidentally consume a color tag or brace.
-_KV_VALUE_RE = re.compile(r"(?<==)([^\s,\)\]\[|{}<>]+)")
+# Excludes whitespace and most punctuation used by loguru markup (<>) and
+# Python format strings ({}). Commas between digits are allowed so that
+# comma-formatted numbers like 11,643 are captured as a single token.
+_KV_VALUE_RE = re.compile(r"(?<==)([^\s,\)\]\[|{}<>]+(?:,[0-9]+)*)")
 
 _PATH_EXTENSIONS: frozenset[str] = frozenset({
     ".py", ".yaml", ".yml", ".npy", ".parquet", ".json", ".csv",
@@ -101,7 +102,7 @@ def _highlight_kv(msg: str) -> str:
                     return f"<magenta>{val}</magenta>"
 
         try:
-            num = float(check_val)
+            num = float(check_val.replace(",", ""))
             return f"<red>{val}</red>" if num < 0 else f"<magenta>{val}</magenta>"
         except ValueError:
             return f"<light-cyan>{val}</light-cyan>"
