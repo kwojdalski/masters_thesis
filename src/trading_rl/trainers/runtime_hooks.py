@@ -259,7 +259,7 @@ class TrainerRuntimeHooks:
                     _sortino = metric_report.sortino_ratio
                     _tot_ret = metric_report.total_return
                     logger.info(
-                        "temp eval metrics split={} sharpe={} sortino={} total_return={}",
+                        "temp eval metrics split={} sharpe={:.3f} sortino={:.3f} total_return={:.3f}",
                         split_ctx.split,
                         _sharpe if math.isfinite(_sharpe) else float("nan"),
                         _sortino if math.isfinite(_sortino) else float("nan"),
