@@ -517,14 +517,20 @@ class BaseTrainer(ABC):
     def _post_eval_trace_hook(self, eval_rollout: Any) -> None:
         """Optional TRACE-level hook called after each periodic eval rollout."""
 
-    def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
+    def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict, log_actor: bool = True) -> None:
         """Log one optimization step; used by DDPG and TD3. SAC overrides with extra fields."""
         curr_loss_value = loss_vals[self._value_loss_key].item()
-        curr_loss_actor = loss_vals["loss_actor"].item()
-        logger.info(
-            "{} step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f}",
-            self._algo_label, max_length, buffer_len, curr_loss_value, curr_loss_actor,
-        )
+        if log_actor:
+            curr_loss_actor = loss_vals["loss_actor"].item()
+            logger.info(
+                "{} step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f}",
+                self._algo_label, max_length, buffer_len, curr_loss_value, curr_loss_actor,
+            )
+        else:
+            logger.info(
+                "{} step max_steps={} buffer_size={} loss_value={:.4f}",
+                self._algo_label, max_length, buffer_len, curr_loss_value,
+            )
         if is_level_enabled("TRACE"):
             _log_network_stats(logger, self._algo_label, self.actor, self.value_net)
 

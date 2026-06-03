@@ -294,9 +294,11 @@ class TD3Trainer(BaseTrainer):
                 continue
             loss_vals, value_loss = result
 
+            actor_updated = False
             if self._should_update_actor(current_step):
                 actor_loss, extra_metrics = self._update_actor_and_targets(sample)
                 self.logs["loss_actor"].append(actor_loss)
+                actor_updated = True
                 if (
                     hasattr(self, "callback")
                     and self.callback
@@ -307,7 +309,7 @@ class TD3Trainer(BaseTrainer):
                     )
 
             if self._should_log_step(current_step):
-                self._log_progress(max_length, buffer_len, loss_vals)
+                self._log_progress(max_length, buffer_len, loss_vals, log_actor=actor_updated)
 
             if self._should_eval_step(current_step):
                 self._evaluate()
