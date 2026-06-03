@@ -221,7 +221,26 @@ def _build_single_symbol_splits(
     return train_df, val_df, test_df, pipeline_state
 
 
-def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[str, str] | None, int | None]:
+@dataclass(frozen=True)
+class _WorkerArgs:
+    symbol: str
+    train_indices: list[int]
+    train_paths_sym: list[str]
+    val_path: str | None
+    val_index: int | None
+    feature_config: str | None
+    mode: str
+    backend: str
+    filter_lob_levels: int | None
+    warmup_rows: int
+    memmap_dir_str: str | None
+    tmp_dir_str: str
+    worker_idx: int
+    n_workers_total: int
+    feature_cache_dir_str: str | None
+
+
+def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], dict[str, str] | None, int | None]:
     """Process one symbol: fit pipeline, transform train files, transform val file.
 
     Runs in a subprocess — all imports are local and config is passed as plain types.
@@ -234,23 +253,21 @@ def _per_symbol_worker(args: tuple) -> tuple[str, list[tuple[int, Any]], dict[st
     val_entry : {val_str: path_str, test_str: path_str} | None
     val_index : int | None
     """
-    (
-        symbol,
-        train_indices,        # list[int] — original positions in train_paths
-        train_paths_sym,      # list[str] — paths for this symbol
-        val_path,             # str | None
-        val_index,            # int | None
-        feature_config,       # str | None
-        mode,
-        backend,
-        filter_lob_levels,    # int | None
-        warmup_rows,
-        memmap_dir_str,       # str | None
-        tmp_dir_str,          # str
-        worker_idx,           # int — 1-based index for log tag
-        n_workers_total,      # int
-        feature_cache_dir_str,  # str | None
-    ) = args
+    symbol = args.symbol
+    train_indices = args.train_indices
+    train_paths_sym = args.train_paths_sym
+    val_path = args.val_path
+    val_index = args.val_index
+    feature_config = args.feature_config
+    mode = args.mode
+    backend = args.backend
+    filter_lob_levels = args.filter_lob_levels
+    warmup_rows = args.warmup_rows
+    memmap_dir_str = args.memmap_dir_str
+    tmp_dir_str = args.tmp_dir_str
+    worker_idx = args.worker_idx
+    n_workers_total = args.n_workers_total
+    feature_cache_dir_str = args.feature_cache_dir_str
 
     import gc as _gc
     import hashlib as _hashlib
@@ -521,22 +538,22 @@ def _build_per_day_splits(
     worker_args = []
     for worker_idx, sym in enumerate(all_symbols, start=1):
         val_p, val_j = symbol_val_path.get(sym, (None, None))
-        worker_args.append((
-            sym,
-            symbol_train_indices[sym],
-            symbol_train_paths[sym],
-            val_p,
-            val_j,
-            feature_config,
-            mode,
-            backend,
-            filter_lob_levels,
-            warmup_rows,
-            str(memmap_dir) if memmap_dir else None,
-            str(tmp_dir),
-            worker_idx,
-            n_workers,
-            str(feature_cache_dir) if feature_cache_dir else None,
+        worker_args.append(_WorkerArgs(
+            symbol=sym,
+            train_indices=symbol_train_indices[sym],
+            train_paths_sym=symbol_train_paths[sym],
+            val_path=val_p,
+            val_index=val_j,
+            feature_config=feature_config,
+            mode=mode,
+            backend=backend,
+            filter_lob_levels=filter_lob_levels,
+            warmup_rows=warmup_rows,
+            memmap_dir_str=str(memmap_dir) if memmap_dir else None,
+            tmp_dir_str=str(tmp_dir),
+            worker_idx=worker_idx,
+            n_workers_total=n_workers,
+            feature_cache_dir_str=str(feature_cache_dir) if feature_cache_dir else None,
         ))
 
     # The eval symbol is the one at symbol_index (capped to available val_paths).
@@ -558,7 +575,7 @@ def _build_per_day_splits(
             initializer=_worker_log_init,
             initargs=(log_queue,),
         ) as executor:
-            futures = {executor.submit(_per_symbol_worker, args): args[0] for args in worker_args}
+            futures = {executor.submit(_per_symbol_worker, args): args.symbol for args in worker_args}
             for future in as_completed(futures):
                 sym = futures[future]
                 try:
