@@ -142,6 +142,9 @@ class DataConfig:
     # first N ticks before their statistics converge; discarding those rows
     # prevents gradient spikes during early training episodes.
     warmup_rows: int = 300
+    # Explicit opt-in for oracle/sanity-check features that use future market
+    # information. Keep false for real experiments and thesis results.
+    allow_oracle_features: bool = False
 
 
 DEFAULT_INITIAL_PORTFOLIO_VALUE: float = 10000.0

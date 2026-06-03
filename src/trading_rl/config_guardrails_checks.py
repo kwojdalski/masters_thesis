@@ -10,7 +10,10 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+import yaml
 
 from logger import get_logger
 
@@ -124,6 +127,63 @@ def _check_streaming_episode_vs_train_size(config: ExperimentConfig) -> Finding 
             suggestion=f"Set streaming_episode_length <= train_size (e.g. {ts // 2:,}).",
         )
     return None
+
+
+_ORACLE_FEATURE_TYPES = frozenset({"mid_price_future_velocity"})
+_ORACLE_FEATURE_OUTPUTS = frozenset({"feature_future_close_vel"})
+
+
+def _configured_oracle_features(config: ExperimentConfig) -> list[str]:
+    """Return configured oracle feature names/types from env columns and YAML."""
+    found: set[str] = set()
+
+    for column in getattr(config.env, "feature_columns", None) or []:
+        if str(column) in _ORACLE_FEATURE_OUTPUTS:
+            found.add(str(column))
+
+    feature_config = getattr(config.data, "feature_config", None)
+    if not feature_config:
+        return sorted(found)
+
+    path = Path(feature_config)
+    if not path.exists():
+        return sorted(found)
+
+    data = yaml.safe_load(path.read_text()) or {}
+    for feature in data.get("features", []) or []:
+        if not isinstance(feature, dict):
+            continue
+        feature_type = str(feature.get("feature_type", ""))
+        output_name = str(feature.get("output_name") or f"feature_{feature.get('name', '')}")
+        if feature_type in _ORACLE_FEATURE_TYPES or output_name in _ORACLE_FEATURE_OUTPUTS:
+            found.add(output_name if output_name else feature_type)
+
+    return sorted(found)
+
+
+def _check_oracle_features_require_opt_in(config: ExperimentConfig) -> Finding | None:
+    """FATAL: future-price oracle features must be explicitly marked as sanity checks."""
+    if getattr(config.data, "allow_oracle_features", False):
+        return None
+
+    oracle_features = _configured_oracle_features(config)
+    if not oracle_features:
+        return None
+
+    return Finding(
+        severity=Severity.FATAL,
+        parameter="data.allow_oracle_features / data.feature_config / env.feature_columns",
+        message=(
+            "Oracle feature(s) configured without explicit opt-in: "
+            f"{oracle_features}. These features encode future market movement and "
+            "make training/evaluation results unusable as real trading performance."
+        ),
+        suggestion=(
+            "Remove the oracle feature(s), or set data.allow_oracle_features=true "
+            "only for isolated sanity-check scenarios that will not be reported as "
+            "production or thesis experiment results."
+        ),
+    )
 
 
 def _check_init_rand_overflows_buffer(config: ExperimentConfig) -> Finding | None:
@@ -1689,6 +1749,7 @@ _ALL_CHECKS = [
     _check_sample_size_vs_buffer,
     _check_ppo_minibatch_vs_batch,
     _check_streaming_episode_vs_train_size,
+    _check_oracle_features_require_opt_in,
     _check_train_size_vs_warmup_rows,
     # WARN
     _check_frames_per_batch_vs_train_size,
