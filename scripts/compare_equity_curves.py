@@ -195,8 +195,9 @@ def main() -> None:
                         help="Data split (default: val)")
     parser.add_argument("--stride", type=int, default=50,
                         help="Plot every Nth step to keep file size manageable (default: 50)")
-    parser.add_argument("--output-dir", type=Path, default=Path("."),
-                        help="Directory for output PNG files (default: current dir)")
+    parser.add_argument("--output-dir", type=Path,
+                        default=Path(__file__).parent.parent / "thesis" / "qmd" / "src" / "_figures",
+                        help="Directory for output PNG files (default: thesis/qmd/src/_figures)")
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
