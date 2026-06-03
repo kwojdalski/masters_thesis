@@ -55,6 +55,7 @@ def restore_pipeline_state(pipeline: Any, state: dict[str, dict[str, float]]) ->
         if scaler is not None and hasattr(scaler, "load_state_dict"):
             scaler.load_state_dict(feature_state)
             restored += 1
+    pipeline._is_fitted = True
     logger.debug("restore pipeline state restored={} total={}", restored, len(pipeline.features))
 
 

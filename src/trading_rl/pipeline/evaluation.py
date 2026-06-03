@@ -524,9 +524,6 @@ def evaluate_per_symbol(
 
             pipeline = FeaturePipeline.from_yaml(feature_config)
             if feature_pipeline_state:
-                init_sample_path = Path(val_data_paths[0])
-                _init_df = pd.read_parquet(init_sample_path).dropna().iloc[:100]
-                pipeline.fit(_init_df)
                 restore_pipeline_state(pipeline, feature_pipeline_state)
                 logger.info(
                     "per-symbol eval: restored pooled pipeline state n_features={}",
