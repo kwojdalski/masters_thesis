@@ -12,6 +12,7 @@ from trading_rl.constants import LossFunction
 from trading_rl.trainers import base as base_module
 from trading_rl.trainers.ddpg import DDPGTrainer
 from trading_rl.trainers.td3 import TD3Trainer
+from trading_rl.trainers.warmup import WarmupController
 
 
 def _action_spec(n_act: int = 1) -> Bounded:
@@ -90,46 +91,39 @@ def _sample_for_loss(actor, n_obs: int, batch_size: int = 4) -> TensorDict:
 
 
 def test_offpolicy_warmup_switches_only_after_threshold() -> None:
-    trainer = DDPGTrainer.__new__(DDPGTrainer)
-    trainer.config = SimpleNamespace(init_rand_steps=5)
-    trainer.total_count = 0
-    trainer.collector = SimpleNamespace(policy=None)
-    trainer.replay_buffer = [object(), object(), object()]
-    trainer._use_replay_buffer = True
+    collector = SimpleNamespace(policy=None)
+    replay_buffer = [object(), object(), object()]
     exploration_policy = object()
 
-    trainer._initialize_offpolicy_collection_policy(
-        exploration_policy, _action_spec(), algorithm_label="DDPG"
+    wc = WarmupController(
+        collector=collector,
+        init_rand_steps=5,
+        replay_buffer=replay_buffer,
+        use_replay_buffer=True,
     )
+    wc.initialize(exploration_policy, _action_spec(), total_count=0, algorithm_label="DDPG")
 
-    assert trainer.random_exploration_done is False
-    assert trainer._offpolicy_exploration_policy is exploration_policy
-    assert trainer.collector.policy is not exploration_policy
+    assert wc.random_exploration_done is False
+    assert collector.policy is not exploration_policy
 
-    trainer.total_count = 4
-    trainer._maybe_switch_from_random_warmup(algorithm_label="DDPG")
-    assert trainer.collector.policy is not exploration_policy
-    assert trainer.random_exploration_done is False
+    wc.maybe_switch(4, algorithm_label="DDPG")
+    assert collector.policy is not exploration_policy
+    assert wc.random_exploration_done is False
 
-    trainer.total_count = 5
-    trainer._maybe_switch_from_random_warmup(algorithm_label="DDPG")
-    assert trainer.collector.policy is exploration_policy
-    assert trainer.random_exploration_done is True
+    wc.maybe_switch(5, algorithm_label="DDPG")
+    assert collector.policy is exploration_policy
+    assert wc.random_exploration_done is True
 
 
 def test_offpolicy_warmup_starts_with_exploration_policy_when_already_complete() -> None:
-    trainer = TD3Trainer.__new__(TD3Trainer)
-    trainer.config = SimpleNamespace(init_rand_steps=5)
-    trainer.total_count = 5
-    trainer.collector = SimpleNamespace(policy=None)
+    collector = SimpleNamespace(policy=None)
     exploration_policy = object()
 
-    trainer._initialize_offpolicy_collection_policy(
-        exploration_policy, _action_spec(), algorithm_label="TD3"
-    )
+    wc = WarmupController(collector=collector, init_rand_steps=5)
+    wc.initialize(exploration_policy, _action_spec(), total_count=5, algorithm_label="TD3")
 
-    assert trainer.collector.policy is exploration_policy
-    assert trainer.random_exploration_done is True
+    assert collector.policy is exploration_policy
+    assert wc.random_exploration_done is True
 
 
 def test_td3_build_models_and_real_loss_accept_expected_tensordict(monkeypatch) -> None:

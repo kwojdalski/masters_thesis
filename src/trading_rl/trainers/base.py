@@ -1,7 +1,5 @@
 """Base trainer and utilities."""
 
-import contextlib
-import signal
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -18,7 +16,7 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyTensorStorage, ReplayBuffer
 from torchrl.envs.utils import set_exploration_type
 
-from logger import get_logger, is_level_enabled, log_banner
+from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.benchmarks import benchmarks_from_config
@@ -28,6 +26,8 @@ from trading_rl.trainers.checkpointing import CheckpointManager, TrainingCheckpo
 from trading_rl.trainers.episode_stats import EpisodeStatsTracker
 from trading_rl.trainers.health_monitor import TrainingHealthMonitor
 from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
+from trading_rl.trainers.training_loop import TrainingLoop
+from trading_rl.trainers.warmup import WarmupController
 
 _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
 _MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
@@ -239,26 +239,6 @@ def _run_evaluation(
     )
 
 
-@contextlib.contextmanager
-def _signal_guard():
-    """Context manager that installs a clean SIGINT handler and restores the original on exit.
-
-    Converts Ctrl-C into a plain KeyboardInterrupt so callers can catch it and
-    save a checkpoint before re-raising.
-    """
-    original = signal.getsignal(signal.SIGINT)
-
-    def _handler(sig, frame):
-        logger.info("sigint received raising KeyboardInterrupt")
-        signal.signal(signal.SIGINT, original)
-        raise KeyboardInterrupt()
-
-    signal.signal(signal.SIGINT, _handler)
-    try:
-        yield
-    finally:
-        signal.signal(signal.SIGINT, original)
-
 
 def _build_sync_data_collector(
     *,
@@ -318,6 +298,7 @@ class BaseTrainer(ABC):
         enable_composite_lp: bool = False,
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
+        use_replay_buffer: bool = True,
     ):
         _patch_torchrl_trajectory_pool()
         self.actor = actor
@@ -337,12 +318,12 @@ class BaseTrainer(ABC):
         self._eval_data_len = eval_data_len
         self._last_evaluation_result: Any | None = None
 
-        # Replay buffer — skipped for on-policy algorithms (e.g. PPO) that set
-        # _use_replay_buffer = False before calling super().__init__().
-        if getattr(self, "_use_replay_buffer", True):
-            self.replay_buffer = ReplayBuffer(storage=LazyTensorStorage(config.buffer_size))
-        else:
-            self.replay_buffer = None
+        self._use_replay_buffer = use_replay_buffer
+        self.replay_buffer = (
+            ReplayBuffer(storage=LazyTensorStorage(config.buffer_size))
+            if use_replay_buffer
+            else None
+        )
         self.collector = _build_sync_data_collector(
             env=env,
             actor=actor,
@@ -374,13 +355,13 @@ class BaseTrainer(ABC):
             get_current_episode_context=self._get_current_episode_context,
             health_monitor=self.health_monitor,
         )
-
-        # On-policy vs off-policy handling
-        # Off-policy algorithms (TD3, DDPG) accumulate experiences in replay buffer
-        # On-policy algorithms (PPO) only train on fresh data
-        if not hasattr(self, "_use_replay_buffer"):
-            self._use_replay_buffer = True  # Default for off-policy algorithms
-        self._current_batch = None  # Stores fresh batch for on-policy algorithms
+        self.warmup_controller = WarmupController(
+            collector=self.collector,
+            init_rand_steps=int(getattr(config, "init_rand_steps", 0)),
+            replay_buffer=self.replay_buffer,
+            use_replay_buffer=use_replay_buffer,
+        )
+        self._current_batch = None
 
         if enable_composite_lp:
             set_composite_lp_aggregate(True).set()
@@ -699,33 +680,12 @@ class BaseTrainer(ABC):
         *,
         algorithm_label: str = "Off-policy",
     ) -> None:
-        """Configure collector policy for off-policy warmup and resume.
-
-        Uses random actions until ``init_rand_steps`` is reached, then switches to
-        the provided exploration policy. On resume, if warmup is already complete,
-        it starts directly with the exploration policy to avoid collecting an extra
-        random batch.
-        """
-        self._offpolicy_exploration_policy = exploration_policy
-        warmup_steps = int(getattr(self.config, "init_rand_steps", 0))
-
-        if self.total_count >= warmup_steps:
-            self.collector.policy = exploration_policy
-            self.random_exploration_done = True
-            logger.info(
-                "{} random warmup already complete at {} steps; starting with exploration policy.",
-                algorithm_label,
-                self.total_count,
-            )
-            return
-
-        from torchrl.envs.utils import RandomPolicy
-        self.collector.policy = RandomPolicy(action_spec)
-        self.random_exploration_done = False
-        logger.info(
-            "{} using random policy for first {} steps",
-            algorithm_label,
-            warmup_steps,
+        """Delegate to WarmupController."""
+        self.warmup_controller.initialize(
+            exploration_policy,
+            action_spec,
+            total_count=self.total_count,
+            algorithm_label=algorithm_label,
         )
 
     def _maybe_switch_from_random_warmup(
@@ -733,32 +693,8 @@ class BaseTrainer(ABC):
         *,
         algorithm_label: str = "Off-policy",
     ) -> None:
-        """Switch collector from random warmup to exploration policy once ready."""
-        if getattr(self, "random_exploration_done", True):
-            return
-
-        warmup_steps = int(getattr(self.config, "init_rand_steps", 0))
-        if self.total_count < warmup_steps:
-            return
-
-        exploration_policy = getattr(self, "_offpolicy_exploration_policy", None)
-        if exploration_policy is None:
-            logger.warning(
-                "{} warmup threshold reached but no exploration policy configured.",
-                algorithm_label,
-            )
-            return
-
-        buffer_len = len(self.replay_buffer) if getattr(self, "_use_replay_buffer", True) else 0
-        logger.info(
-            "{} random exploration finished at {} steps. Switching to exploration policy.",
-            algorithm_label,
-            self.total_count,
-        )
-        logger.trace("  Buffer now contains {} transitions", buffer_len)
-
-        self.collector.policy = exploration_policy
-        self.random_exploration_done = True
+        """Delegate to WarmupController."""
+        self.warmup_controller.maybe_switch(self.total_count, algorithm_label=algorithm_label)
 
     # ------------------------------------------------------------------ #
     # Episode stats — delegated to EpisodeStatsTracker                   #
@@ -857,111 +793,16 @@ class BaseTrainer(ABC):
         on_batch_end: Callable[[int, Any], None] | None = None,
         on_train_end: Callable[[], None] | None = None,
     ) -> dict[str, list]:
-        """Shared training loop with optional algorithm-specific hooks."""
-        log_banner(logger, f"TRAINING START  {start_message}")
-        t0 = time.time()
-        self.callback = callback
-        self._log_step_offset = max(
-            len(self.logs.get("loss_actor", [])),
-            len(self.logs.get("loss_value", [])),
+        """Delegate to TrainingLoop."""
+        return TrainingLoop().run(
+            self,
+            callback,
+            start_message=start_message,
+            completion_prefix=completion_prefix,
+            on_batch_start=on_batch_start,
+            on_batch_end=on_batch_end,
+            on_train_end=on_train_end,
         )
-
-        _profiler = get_profiler()
-        with _signal_guard():
-            try:
-                for i, data in enumerate(self.collector):
-                    if on_batch_start is not None:
-                        on_batch_start(i, data)
-
-                    self._current_batch = data
-
-                    with _profiler.stage("buffer_extend", 2):
-                        if self._use_replay_buffer:
-                            self.replay_buffer.extend(data)
-                            max_length = self.replay_buffer[:]["next", "step_count"].max()
-                            buffer_len = len(self.replay_buffer)
-                        else:
-                            max_length = data["next", "step_count"].max()
-                            buffer_len = data.numel()
-
-                    self.total_count += data.numel()
-                    if is_level_enabled("TRACE"):
-                        logger.trace(
-                            "batch collected batch={} n_frames={} total_count={} buffer_len={}",
-                            i, data.numel(), self.total_count, buffer_len,
-                        )
-
-                    collected_steps = self.total_count if not self._use_replay_buffer else buffer_len
-                    if collected_steps > self.config.init_rand_steps:
-                        with _profiler.stage("optimization", 2):
-                            self._optimization_step(i, max_length, buffer_len)
-
-                    episodes_in_batch = int(data["next", "done"].sum().item())
-                    self.total_episodes += episodes_in_batch
-                    if is_level_enabled("TRACE") and episodes_in_batch > 0:
-                        logger.trace(
-                            "episodes completed batch={} n_episodes={} total_episodes={}",
-                            i, episodes_in_batch, self.total_episodes,
-                        )
-
-                    with _profiler.stage("checkpoint", 2):
-                        self.checkpoint_manager.maybe_save(self.total_count, self._snapshot)
-
-                    with _profiler.stage("periodic_hooks", 2):
-                        self.runtime_hooks.maybe_run(self.total_count)
-
-                    if self.callback and hasattr(self.callback, "log_episode_stats"):
-                        self._log_episode_stats(data, self.callback)
-
-                    finding = self.health_monitor.check()
-                    if finding is not None:
-                        logger.warning(
-                            "runtime guardrail {} [{}] {} | suggestion: {}",
-                            finding.severity.value, finding.parameter,
-                            finding.message, finding.suggestion,
-                        )
-                        self.logs["early_stop_reason"].append(
-                            f"{finding.severity.value}:{finding.parameter}:{finding.message}"
-                        )
-                        break
-
-                    if on_batch_end is not None:
-                        on_batch_end(i, data)
-
-                    if self.total_count >= self.config.max_steps:
-                        logger.info("training stopped max_steps={}", self.config.max_steps)
-                        break
-                    if (
-                        self.config.max_train_seconds is not None
-                        and (time.time() - t0) >= self.config.max_train_seconds
-                    ):
-                        logger.info(
-                            "training stopped max_train_seconds={} elapsed_s={:.1f}",
-                            self.config.max_train_seconds,
-                            time.time() - t0,
-                        )
-                        break
-            except KeyboardInterrupt:
-                logger.warning("training interrupted by user saving checkpoint")
-                checkpoint_path = self.checkpoint_manager.save_interrupt(self.total_count, self._snapshot)
-                if checkpoint_path:
-                    logger.info("interrupt checkpoint saved path={}", checkpoint_path)
-                raise
-
-        if on_train_end is not None:
-            on_train_end()
-
-        t1 = time.time()
-        elapsed = t1 - t0
-        early_stop_reasons = self.logs.get("early_stop_reason", [])
-        if early_stop_reasons:
-            logger.warning(
-                "training ended early reason={} steps={}/{}",
-                early_stop_reasons[-1], self.total_count, self.config.max_steps,
-            )
-        log_banner(logger, f"TRAINING END  {self.total_count} steps  {self.total_episodes} episodes  {elapsed:.2f}s")
-        self.logs["training_duration_s"].append(elapsed)
-        return dict(self.logs)
 
     def train(self, callback: Any = None) -> dict[str, list]:
         """Run training loop for RL agent."""

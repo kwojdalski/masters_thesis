@@ -119,8 +119,6 @@ class PPOTrainer(BaseTrainer):
         checkpoint_dir: str | None = None,
         checkpoint_prefix: str | None = None,
     ):
-        # Must be set before super().__init__() so BaseTrainer skips buffer allocation.
-        self._use_replay_buffer = False
         super().__init__(
             actor=actor,
             value_net=value_net,
@@ -136,6 +134,7 @@ class PPOTrainer(BaseTrainer):
             enable_composite_lp=False,
             checkpoint_dir=checkpoint_dir,
             checkpoint_prefix=checkpoint_prefix,
+            use_replay_buffer=False,
         )
 
         # Initialize PPO loss module
