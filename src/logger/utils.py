@@ -19,19 +19,17 @@ from rich.table import Table
 
 from logger.core import is_level_enabled
 
-_GREEN = "\033[32m"
-_RESET = "\033[0m"
 _BANNER_WIDTH = 100
 
 
 def log_banner(logger: Any, message: str) -> None:
-    """Log a fully green separator banner at INFO level."""
+    """Log a separator banner at INFO level."""
     inner = f"  {message}  "
     dashes = max(0, _BANNER_WIDTH - len(inner))
     left = dashes // 2
     right = dashes - left
     line = "=" * left + inner + "=" * right
-    logger.info("{}{}{}", _GREEN, line, _RESET)
+    logger.info("{}", line)
 
 
 def log_dataframe_info(
