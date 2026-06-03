@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "experiment_name": "pooled_td3_h3_features_full",
-  "exported_at_utc": "2026-05-29T16:51:18.432798+00:00",
+  "exported_at_utc": "2026-06-02T15:21:34.012111+00:00",
   "source": {
     "type": "evaluate_cli",
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_h3_features_full"
