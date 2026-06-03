@@ -12,5 +12,4 @@ env:
   - feature_hft_ask_slope
   - feature_hft_ofi
   - feature_hft_ofi_rolling_50
-  - feature_hft_signed_trade_flow_50
   - feature_position
