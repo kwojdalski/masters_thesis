@@ -161,7 +161,7 @@ def run_multiple_experiments(
 
     config = custom_config or ExperimentConfig()
     effective_experiment_name = experiment_name or config.experiment_name
-    setup_mlflow_experiment(config, effective_experiment_name)
+    setup_mlflow_experiment(effective_experiment_name, config.tracking.tracking_uri)
 
     logger = get_project_logger(__name__)
     progress_context = Progress() if show_progress else None
@@ -204,7 +204,7 @@ def run_experiment_from_config(config_path: str, n_trials: int = 1) -> str:
     """
     p = Path(config_path)
     config = ExperimentConfig.load(p)
-    setup_mlflow_experiment(config)
+    setup_mlflow_experiment(config.experiment_name, config.tracking.tracking_uri)
 
     if n_trials == 1:
         with mlflow.start_run():

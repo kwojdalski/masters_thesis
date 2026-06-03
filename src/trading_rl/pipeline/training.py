@@ -273,23 +273,22 @@ def _print_config_debug(config: ExperimentConfig, logger: logging.Logger) -> Non
 
 
 def setup_mlflow_experiment(
-    config: ExperimentConfig, experiment_name: str | None = None
+    experiment_name: str,
+    tracking_uri: str | None = None,
 ) -> str:
-    """Setup MLflow experiment for tracking.
+    """Configure the MLflow tracking URI and set the active experiment.
 
     Args:
-        config: Experiment configuration.
-        experiment_name: Optional override for the MLflow experiment name.
+        experiment_name: The MLflow experiment name to activate.
+        tracking_uri: Optional tracking server URI; uses MLflow default when None.
 
     Returns:
-        The effective experiment name that was set.
+        experiment_name unchanged.
     """
-    tracking_uri = getattr(getattr(config, "tracking", None), "tracking_uri", None)
     if tracking_uri:
         mlflow.set_tracking_uri(tracking_uri)
-    exp_name = experiment_name or config.experiment_name
-    mlflow.set_experiment(exp_name)
-    return exp_name
+    mlflow.set_experiment(experiment_name)
+    return experiment_name
 
 
 def _log_data_diagnostics(

@@ -158,7 +158,7 @@ def setup_checkpoint_resumption(
     effective_experiment_name = _resolve_experiment_name_from_checkpoint(
         trainer, config, effective_experiment_name, logger
     )
-    setup_mlflow_experiment_fn(config, effective_experiment_name)
+    setup_mlflow_experiment_fn(effective_experiment_name, config.tracking.tracking_uri)
     _start_mlflow_run_for_resumption(trainer, original_steps, logger)
 
     mlflow_callback = _create_resumption_callback(
