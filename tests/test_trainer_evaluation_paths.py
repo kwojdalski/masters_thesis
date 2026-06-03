@@ -117,7 +117,6 @@ def test_run_evaluation_returns_expected_plots_and_records_result(monkeypatch) -
         env="train-env",
         total_count=11,
         total_episodes=3,
-        _last_evaluation_result=None,
     )
     df = SimpleNamespace(name="prices")
 
@@ -130,7 +129,7 @@ def test_run_evaluation_returns_expected_plots_and_records_result(monkeypatch) -
         eval_env="dedicated-eval-env",
     )
 
-    assert result == (
+    assert tuple(result) == (
         "reward-plot",
         "action-plot",
         None,
@@ -139,7 +138,7 @@ def test_run_evaluation_returns_expected_plots_and_records_result(monkeypatch) -
         "equity-plot",
         "merged-plot",
     )
-    assert trainer._last_evaluation_result.final_reward == pytest.approx(1.25)
+    assert result.result.final_reward == pytest.approx(1.25)
     assert calls["env_factory_env"] == "dedicated-eval-env"
     assert calls["policy"] == "actor"
     assert calls["evaluate_split"] == ("eval", df, "dedicated-eval-env")

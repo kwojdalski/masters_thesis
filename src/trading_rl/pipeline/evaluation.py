@@ -159,8 +159,7 @@ def _run_rollout(trainer: Any, split_ctx: EvaluationContext) -> Any:
             bar.close()
 
 
-def _last_strategy_returns(trainer: Any) -> np.ndarray | None:
-    result = getattr(trainer, "_last_evaluation_result", None)
+def _evaluation_strategy_returns(result: Any | None) -> np.ndarray | None:
     simple_returns = getattr(result, "simple_returns", None)
     if simple_returns is None:
         return None
@@ -171,8 +170,8 @@ def _last_strategy_returns(trainer: Any) -> np.ndarray | None:
     return arr if arr.size > 0 else None
 
 
-def _last_evaluation_rollout(trainer: Any) -> Any | None:
-    return getattr(getattr(trainer, "_last_evaluation_result", None), "rollout", None)
+def _evaluation_rollout(result: Any | None) -> Any | None:
+    return getattr(result, "rollout", None)
 
 
 def run_statistical_tests_for_split(
@@ -349,8 +348,13 @@ def evaluate_split(
         logger.warning("observation sample artifact failed split={} err={}", split, sample_error)
 
     with profiler.stage(f"eval_rollout_{split}"):
-        if hasattr(trainer, "_last_evaluation_result"):
-            trainer._last_evaluation_result = None
+        eval_output = trainer.evaluate(
+            split_ctx.df,
+            max_steps=split_ctx.max_steps,
+            config=config,
+            algorithm=algorithm,
+            eval_env=split_ctx.env,
+        )
         (
             reward_plot,
             action_plot,
@@ -359,16 +363,10 @@ def evaluate_split(
             split_last_positions,
             equity_curve_plot,
             merged_plot,
-        ) = trainer.evaluate(
-            split_ctx.df,
-            max_steps=split_ctx.max_steps,
-            config=config,
-            algorithm=algorithm,
-            eval_env=split_ctx.env,
-        )
-    strategy_simple_returns = _last_strategy_returns(trainer)
-    rollout = _last_evaluation_rollout(trainer)
-    last_eval_result = getattr(trainer, "_last_evaluation_result", None)
+        ) = eval_output
+    last_eval_result = getattr(eval_output, "result", None)
+    strategy_simple_returns = _evaluation_strategy_returns(last_eval_result)
+    rollout = _evaluation_rollout(last_eval_result)
 
     if config.evaluation.log_data and last_eval_result is not None:
         try:

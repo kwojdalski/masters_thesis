@@ -1,10 +1,12 @@
 """Base trainer and utilities."""
 
+import contextlib
 import time
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -31,6 +33,29 @@ from trading_rl.trainers.warmup import WarmupController
 
 _MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
 _MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
+
+
+@dataclass(frozen=True)
+class EvaluationOutput:
+    """Evaluation return value with tuple-compatible plot/metric payload."""
+
+    reward_plot: Any
+    action_plot: Any
+    action_probs_plot: Any
+    final_reward: float
+    last_positions: Any
+    equity_curve_plot: Any
+    merged_plot: Any
+    result: Any
+
+    def __iter__(self):
+        yield self.reward_plot
+        yield self.action_plot
+        yield self.action_probs_plot
+        yield self.final_reward
+        yield self.last_positions
+        yield self.equity_curve_plot
+        yield self.merged_plot
 
 
 def _log_network_stats(log, algo: str, actor: torch.nn.Module, critic: torch.nn.Module) -> None:
@@ -131,7 +156,7 @@ def _run_evaluation(
     config: Any = None,
     algorithm: str | None = None,  # noqa: ARG001 — kept for API symmetry
     eval_env: Any | None = None,
-) -> tuple[Any, ...]:
+) -> EvaluationOutput:
     """Run a policy evaluation rollout and build result plots.
 
     Extracted from BaseTrainer.evaluate() so the logic is testable without
@@ -187,7 +212,6 @@ def _run_evaluation(
     _t = time.monotonic()
     with profiler.stage("agent_rollout", 2):
         result = evaluator.evaluate_split("eval", df, env=env_to_use)
-    trainer._last_evaluation_result = result
     logger.trace("evaluate.rollout_and_metrics elapsed_s={:.2f}", time.monotonic() - _t)
 
     _enabled_plots = set(eval_config.eval_plots)
@@ -228,14 +252,15 @@ def _run_evaluation(
             merged_plot = create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot)
             logger.trace("evaluate.plot_merged elapsed_s={:.2f}", time.monotonic() - _t)
 
-    return (
-        reward_plot,
-        action_plot,
-        None,  # action_probs_plot — PPO-specific, filled in by PPOTrainer.evaluate()
-        float(result.final_reward),
-        result.last_positions,
-        equity_curve_plot,
-        merged_plot,
+    return EvaluationOutput(
+        reward_plot=reward_plot,
+        action_plot=action_plot,
+        action_probs_plot=None,
+        final_reward=float(result.final_reward),
+        last_positions=result.last_positions,
+        equity_curve_plot=equity_curve_plot,
+        merged_plot=merged_plot,
+        result=result,
     )
 
 
@@ -316,7 +341,6 @@ class BaseTrainer(ABC):
         self.value_hidden_dims = value_hidden_dims
         self._eval_env = eval_env
         self._eval_data_len = eval_data_len
-        self._last_evaluation_result: Any | None = None
 
         self._use_replay_buffer = use_replay_buffer
         self.replay_buffer = (

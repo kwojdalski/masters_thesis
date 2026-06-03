@@ -214,6 +214,13 @@ class TrainerRuntimeHooks:
             )
             try:
                 _t = time.monotonic()
+                eval_output = self.trainer.evaluate(
+                    df=split_ctx.df,
+                    max_steps=split_ctx.max_steps,
+                    config=hook.config,
+                    algorithm=hook.algorithm,
+                    eval_env=split_ctx.eval_env,
+                )
                 (
                     reward_plot,
                     action_plot,
@@ -222,13 +229,8 @@ class TrainerRuntimeHooks:
                     _last_positions,
                     equity_curve_plot,
                     merged_plot,
-                ) = self.trainer.evaluate(
-                    df=split_ctx.df,
-                    max_steps=split_ctx.max_steps,
-                    config=hook.config,
-                    algorithm=hook.algorithm,
-                    eval_env=split_ctx.eval_env,
-                )
+                ) = eval_output
+                last_eval_result = getattr(eval_output, "result", None)
                 logger.info(
                     "temp eval: trainer.evaluate split={} elapsed_s={}",
                     split_ctx.split, time.monotonic() - _t,
@@ -238,8 +240,8 @@ class TrainerRuntimeHooks:
                 try:
                     from trading_rl.evaluation.report import build_evaluation_report_for_trainer
                     from trading_rl.pipeline.evaluation import (
-                        _last_evaluation_rollout,
-                        _last_strategy_returns,
+                        _evaluation_rollout,
+                        _evaluation_strategy_returns,
                     )
                     metric_report = build_evaluation_report_for_trainer(
                         trainer=self.trainer,
@@ -247,8 +249,10 @@ class TrainerRuntimeHooks:
                         max_steps=split_ctx.max_steps,
                         config=hook.config,
                         eval_env=split_ctx.eval_env,
-                        rollout=_last_evaluation_rollout(self.trainer),
-                        strategy_simple_returns=_last_strategy_returns(self.trainer),
+                        rollout=_evaluation_rollout(last_eval_result),
+                        strategy_simple_returns=_evaluation_strategy_returns(
+                            last_eval_result
+                        ),
                     )
                 except Exception:
                     logger.opt(exception=True).warning("temp eval: MetricReport failed split={}", split_ctx.split)
@@ -278,7 +282,7 @@ class TrainerRuntimeHooks:
                 _staged_prog_entry: tuple | None = None
                 try:
                     from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
-                    _eval_result = getattr(self.trainer, "_last_evaluation_result", None)
+                    _eval_result = last_eval_result
                     if _eval_result is not None:
                         _rs = getattr(_eval_result, "return_series", None)
                         if _rs is None:
@@ -308,7 +312,7 @@ class TrainerRuntimeHooks:
                     artifact_prefix = ArtifactPaths.eval_plots_temp(split_ctx.split, step_number)
                     _t = time.monotonic()
                     _plot_data = None
-                    _last_result = getattr(self.trainer, "_last_evaluation_result", None)
+                    _last_result = last_eval_result
                     if _last_result is not None and _last_result.plots:
                         _rollout = _last_result.plots.get("_rollout_plot_data")
                         _equity = _last_result.plots.get("_equity_plot_data")
@@ -410,7 +414,7 @@ class TrainerRuntimeHooks:
                                 split_ctx.split, step_number, exc_info=True,
                             )
                     if hook.config.training.temp_eval.log_data:
-                        last_result = getattr(self.trainer, "_last_evaluation_result", None)
+                        last_result = last_eval_result
                         if last_result is not None:
                             try:
                                 import numpy as _np

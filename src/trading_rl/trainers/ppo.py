@@ -32,7 +32,7 @@ from trading_rl.models import (
     create_ppo_actor,
     create_ppo_value_network,
 )
-from trading_rl.trainers.base import _log_network_stats, BaseTrainer
+from trading_rl.trainers.base import _log_network_stats, BaseTrainer, EvaluationOutput
 
 logger = get_logger(__name__)
 
@@ -394,16 +394,8 @@ class PPOTrainer(BaseTrainer):
         config: Any = None,
         algorithm: str | None = None,
         eval_env: Any | None = None,
-    ) -> tuple[Any, ...]:
-        (
-            reward_plot,
-            action_plot,
-            _,
-            final_reward,
-            last_positions,
-            equity_curve_plot,
-            merged_plot,
-        ) = super().evaluate(
+    ) -> EvaluationOutput:
+        output = super().evaluate(
             df,
             max_steps,
             config=config,
@@ -413,14 +405,15 @@ class PPOTrainer(BaseTrainer):
         action_probs_plot = self.create_action_probabilities_plot(
             max_steps=max_steps, df=df, config=config, eval_env=eval_env
         )
-        return (
-            reward_plot,
-            action_plot,
-            action_probs_plot,
-            final_reward,
-            last_positions,
-            equity_curve_plot,
-            merged_plot,
+        return EvaluationOutput(
+            reward_plot=output.reward_plot,
+            action_plot=output.action_plot,
+            action_probs_plot=action_probs_plot,
+            final_reward=output.final_reward,
+            last_positions=output.last_positions,
+            equity_curve_plot=output.equity_curve_plot,
+            merged_plot=output.merged_plot,
+            result=output.result,
         )
 
     @staticmethod
