@@ -149,15 +149,18 @@ def _us_to_ticks(latency_us: float, timestamps: pd.DatetimeIndex) -> int:
     ``len(timestamps) - 1`` (the last valid row index).
 
     Requires a DatetimeIndex; raises TypeError for other index types.
+
+    Uses ``DatetimeIndex.asi8`` (zero-copy int64 nanoseconds) and numpy
+    ``searchsorted`` to avoid allocating a TimedeltaIndex on every call.
     """
     if not isinstance(timestamps, pd.DatetimeIndex):
         raise TypeError(
             f"Time-based latency requires a DatetimeIndex but got {type(timestamps).__name__}. "
             "Ensure the memmap data has nanosecond-precision timestamps."
         )
-    target = pd.Timedelta(microseconds=latency_us)
-    deltas: pd.TimedeltaIndex = timestamps - timestamps[0]
-    k = int(deltas.searchsorted(target))
+    ns_vals: np.ndarray = timestamps.asi8  # zero-copy int64 ns view
+    target_ns = int(latency_us * 1_000)    # μs → ns
+    k = int(np.searchsorted(ns_vals - ns_vals[0], target_ns))
     return min(k, len(timestamps) - 1)
 
 
