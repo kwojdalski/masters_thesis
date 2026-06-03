@@ -270,3 +270,59 @@ def extract_tradingenv_returns(env, n_steps):
     if series is None:
         return None
     return series.to_cumulative_log(include_initial=True).values
+
+
+def extract_trade_log(env: Any) -> "pd.DataFrame | None":
+    """Extract all individual trades from a TradingEnv broker as a DataFrame.
+
+    Walks ``broker.track_record`` and flattens every ``Trade`` object into
+    one row, augmented with the NLV before and after the rebalancing that
+    contained it.
+
+    Returns ``None`` if no broker is found or the track record is empty.
+    """
+    import pandas as pd
+
+    broker = _find_broker(env)
+    if broker is None:
+        logger.debug("cannot find tradingenv broker in env stack")
+        return None
+    if not hasattr(broker, "track_record") or len(broker.track_record) == 0:
+        logger.debug("broker has no track_record or it's empty")
+        return None
+
+    rows = []
+    for i in range(len(broker.track_record)):
+        rebalancing = broker.track_record[i]
+        trades = getattr(rebalancing, "trades", None) or []
+        nlv_pre = float(rebalancing.context_pre.nlv) if (
+            hasattr(rebalancing, "context_pre") and hasattr(rebalancing.context_pre, "nlv")
+        ) else float("nan")
+        nlv_post = float(rebalancing.context_post.nlv) if (
+            hasattr(rebalancing, "context_post") and hasattr(rebalancing.context_post, "nlv")
+        ) else float("nan")
+        for trade in trades:
+            rows.append({
+                "rebalancing_index": i,
+                "time": getattr(trade, "time", None),
+                "contract": str(getattr(trade, "contract", "")),
+                "quantity": float(getattr(trade, "quantity", float("nan"))),
+                "acq_price": float(getattr(trade, "acq_price", float("nan"))),
+                "bid_price": float(getattr(trade, "bid_price", float("nan"))),
+                "ask_price": float(getattr(trade, "ask_price", float("nan"))),
+                "notional": float(getattr(trade, "notional", float("nan"))),
+                "cost_of_cash": float(getattr(trade, "cost_of_cash", float("nan"))),
+                "cost_of_commissions": float(getattr(trade, "cost_of_commissions", float("nan"))),
+                "cost_of_spread": float(getattr(trade, "cost_of_spread", float("nan"))),
+                "nlv_pre": nlv_pre,
+                "nlv_post": nlv_post,
+            })
+
+    if not rows:
+        logger.debug("track_record has {} rebalancings but no trades", len(broker.track_record))
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    if "time" in df.columns:
+        df["time"] = pd.to_datetime(df["time"], errors="coerce")
+    return df

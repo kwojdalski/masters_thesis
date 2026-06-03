@@ -471,6 +471,14 @@ def evaluate(
             "to <output-dir>/<split>_rollout.csv for offline plotting or analysis."
         ),
     ),
+    save_trades: bool = typer.Option(
+        False,
+        "--save-trades",
+        help=(
+            "Export the broker trade log (one row per trade) to "
+            "<output-dir>/<split>_trades.csv. Useful for debugging execution quality."
+        ),
+    ),
     per_symbol: bool = typer.Option(
         False,
         "--per-symbol",
@@ -533,6 +541,7 @@ def evaluate(
         no_mlflow=no_mlflow,
         data_path=data_path,
         save_rollout=save_rollout,
+        save_trades=save_trades,
         per_symbol=per_symbol,
     )
     evaluate_cmd.execute(params)

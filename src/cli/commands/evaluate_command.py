@@ -48,6 +48,7 @@ class EvaluateParams:
     no_mlflow: bool = False
     data_path: Path | None = None
     save_rollout: bool = False
+    save_trades: bool = False
     per_symbol: bool = False
 
 
@@ -357,6 +358,9 @@ class EvaluateCommand(BaseCommand):
 
                 if params.save_rollout:
                     self._save_rollout_data(result, split, split_df, split_out_dir)
+
+                if params.save_trades:
+                    self._save_trade_log(split_ctx.env, split, split_out_dir)
 
                 if "plots" in components and result.plots:
                     self.console.print("[dim]  Saving plots...[/dim]")
@@ -798,6 +802,22 @@ class EvaluateCommand(BaseCommand):
         out_df.to_parquet(out_path)
         write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
         self.console.print(f"[dim]Rollout data ({n:,} steps) → {out_path}[/dim]")
+
+    def _save_trade_log(self, env: Any, split: str, output_dir: Path) -> None:
+        from trading_rl.evaluation.returns import extract_trade_log
+
+        trade_df = extract_trade_log(env)
+        if trade_df is None:
+            self.console.print(f"[yellow]Trade log unavailable for {split} (no broker found)[/yellow]")
+            return
+        if trade_df.empty:
+            self.console.print(f"[dim]  No trades recorded for {split}[/dim]")
+            return
+
+        out_path = output_dir / f"{split}_trades.csv"
+        trade_df.to_csv(out_path, index=False)
+        write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
+        self.console.print(f"[dim]  Trade log ({len(trade_df):,} trades) → {out_path}[/dim]")
 
     def _save_plots(
         self, plots: dict[str, Any], split: str, output_dir: Path
