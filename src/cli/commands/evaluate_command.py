@@ -369,6 +369,7 @@ class EvaluateCommand(BaseCommand):
                         log_evaluation_plots(
                             reward_plot=result.plots.get("reward_plot"),
                             action_plot=result.plots.get("action_plot"),
+                            equity_curve_plot=result.plots.get("portfolio_value_plot"),
                             artifact_path_prefix=ArtifactPaths.eval_plots(split),
                             plot_data=_plot_data,
                         )
@@ -802,7 +803,7 @@ class EvaluateCommand(BaseCommand):
         self, plots: dict[str, Any], split: str, output_dir: Path
     ) -> None:
         for name, fig in plots.items():
-            if fig is None:
+            if fig is None or name.startswith("_"):
                 continue
             out_path = output_dir / f"{split}_{name}.png"
             try:
