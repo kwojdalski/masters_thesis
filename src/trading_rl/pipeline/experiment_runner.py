@@ -106,7 +106,7 @@ def save_training_results_json(config: Any, final_metrics: dict[str, Any]) -> Pa
         _logger.info("results.json written path={}", out_path)
         return out_path
     except Exception:
-        _logger.warning(
+        _logger.opt(exception=True).warning(
             "save_training_results_json failed — results.json NOT written; "
             "thesis export will use stale data",
         )
