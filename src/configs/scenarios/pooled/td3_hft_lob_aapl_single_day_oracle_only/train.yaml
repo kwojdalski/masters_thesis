@@ -13,6 +13,7 @@ data:
   prepared_data_dir: ./data/prepared/aapl_single_day_oracle_only
   memmap_dir: ./data/memmap/aapl_single_day_oracle_only
   feature_cache_dir: .cache/feature_transformation
+  allow_oracle_features: true
   filter_lob_levels: 5
   feature_config: src/configs/feature_sets/hft_lob_oracle_with_market.yaml
 env:

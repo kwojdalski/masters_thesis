@@ -5,6 +5,7 @@ data:
   download_data: false
   train_size: 8000
   validation_size: 10000
+  allow_oracle_features: true
   feature_config: "src/configs/feature_sets/hft_lob_oracle_with_market.yaml"
   filter_lob_levels: 5
   feature_cache_dir: .cache/feature_transformation
