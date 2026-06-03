@@ -26,6 +26,7 @@ from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
 from trading_rl.constants import ActionPenaltyType, RewardType
 from trading_rl.data_loading import MemmapPaths
+from trading_rl.envs.latency import LatencyModel
 from trading_rl.envs.trading_envs import BaseTradingEnvironmentFactory
 from trading_rl.rewards import DifferentialSharpeRatio
 
@@ -461,6 +462,8 @@ class StreamingTradingEnvXY(gym.Env):
         execution_price: str = "mid",
         bid_column: str = "bid_px_00",
         ask_column: str = "ask_px_00",
+        obs_latency: LatencyModel | None = None,
+        exec_latency: LatencyModel | None = None,
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -486,6 +489,8 @@ class StreamingTradingEnvXY(gym.Env):
         self._execution_price = execution_price
         self._bid_column = bid_column
         self._ask_column = ask_column
+        self._obs_latency = obs_latency
+        self._exec_latency = exec_latency
 
         stocks = [Stock(price_column)]
         self.action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
@@ -564,13 +569,38 @@ class StreamingTradingEnvXY(gym.Env):
             index = pd.RangeIndex(len(window_data))
         return pd.DataFrame(window_data, columns=mp.columns, index=index)
 
-    def _build_inner_env(self, window_df: pd.DataFrame, symbol: str = "", reward: Any = None) -> FastTradingEnv:
+    def _build_inner_env(
+        self,
+        window_df: pd.DataFrame,
+        symbol: str = "",
+        reward: Any = None,
+        total_latency_ticks: int = 0,
+    ) -> FastTradingEnv:
+        N = len(window_df)
+        k = total_latency_ticks
+        if k > 0:
+            if k >= N:
+                raise ValueError(
+                    f"total_latency_ticks={k} >= episode window size={N}. "
+                    "Reduce obs_latency + exec_latency or increase streaming_episode_length."
+                )
+            # feature_df: rows [0 .. N-k-1] — what the agent observes
+            # price_df:   rows [k .. N-1]   — what the agent is filled at
+            # Re-index price_df to feature_df timestamps so tradingenv sees a
+            # consistent timeline; the gap [0..k-1] is the combined latency.
+            feature_df = window_df.iloc[:N - k]
+            price_df = window_df.iloc[k:].copy()
+            price_df.index = feature_df.index
+        else:
+            feature_df = window_df
+            price_df = window_df
+
         stock = Stock(self._price_column)
         stocks = [stock]
         features = [
             CustomFeature(
                 self._feature_columns,
-                window_df[self._feature_columns],
+                feature_df[self._feature_columns],
                 runtime_features=self._runtime_feature_columns,
                 traded_contracts=stocks,
             )
@@ -585,17 +615,17 @@ class StreamingTradingEnvXY(gym.Env):
 
         use_bidask = self._execution_price == "bid_ask"
         if use_bidask and (
-            self._bid_column not in window_df.columns
-            or self._ask_column not in window_df.columns
+            self._bid_column not in price_df.columns
+            or self._ask_column not in price_df.columns
         ):
             raise KeyError(
                 f"execution_price='bid_ask' requires columns {self._bid_column!r} and "
-                f"{self._ask_column!r} in the memmap data; found {list(window_df.columns)}"
+                f"{self._ask_column!r} in the memmap data; found {list(price_df.columns)}"
             )
         if use_bidask:
-            transmitter = Transmitter(timesteps=window_df.index)
-            bid_arr = window_df[self._bid_column].to_numpy(dtype=np.float64)
-            ask_arr = window_df[self._ask_column].to_numpy(dtype=np.float64)
+            transmitter = Transmitter(timesteps=feature_df.index)
+            bid_arr = price_df[self._bid_column].to_numpy(dtype=np.float64)
+            ask_arr = price_df[self._ask_column].to_numpy(dtype=np.float64)
             transmitter.add_events([
                 EventNBBO(
                     time=ts,
@@ -605,11 +635,11 @@ class StreamingTradingEnvXY(gym.Env):
                     bid_size=np.inf,
                     ask_size=np.inf,
                 )
-                for ts, bid, ask in zip(window_df.index, bid_arr, ask_arr)
+                for ts, bid, ask in zip(feature_df.index, bid_arr, ask_arr)
             ])
             return FastTradingEnv(transmitter=transmitter, **common_kwargs)
 
-        prices = window_df[[self._price_column]].copy()
+        prices = price_df[[self._price_column]].copy()
         prices.columns = pd.Index(stocks)
         return FastTradingEnv(prices=prices, **common_kwargs)
 
@@ -688,7 +718,15 @@ class StreamingTradingEnvXY(gym.Env):
             _saved_moments = (dsr.A_t, dsr.B_t)
             dsr.reset(persist_moments=True)  # clear only _prev_nlv
             _dsr_to_restore = dsr
-        self._inner_env = self._build_inner_env(window_df, symbol=self._current_episode_symbol, reward=_dsr_to_restore)
+        k_obs = self._obs_latency.sample(self._symbol_rng) if self._obs_latency is not None else 0
+        k_exec = self._exec_latency.sample(self._symbol_rng) if self._exec_latency is not None else 0
+        total_k = k_obs + k_exec
+        self._inner_env = self._build_inner_env(
+            window_df,
+            symbol=self._current_episode_symbol,
+            reward=_dsr_to_restore,
+            total_latency_ticks=total_k,
+        )
         obs = self._inner_env.reset()
         # TradingEnv.reset() calls self._reward.reset() with no arguments, which
         # resets A_t/B_t to 0 regardless of persist_moments. Restore the saved

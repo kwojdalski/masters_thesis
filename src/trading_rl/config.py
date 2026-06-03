@@ -206,6 +206,17 @@ class EnvConfig:
     bid_column: str = "bid_px_00"
     ask_column: str = "ask_px_00"
 
+    # Latency simulation (streaming/memmap environments only).
+    # Both default to 0 (disabled).  The two are additive: at each episode
+    # reset the combined tick offset = obs_latency_ticks + exec_latency_ticks
+    # is applied between the feature rows and the execution price rows.
+    # Use obs_latency_ticks to model stale market-data feed latency and
+    # exec_latency_ticks to model order-submission / fill delay.
+    # For stochastic (distribution-based) latency inject LatencyModel instances
+    # directly into StreamingTradingEnvXY instead of using these integer fields.
+    obs_latency_ticks: int = 0
+    exec_latency_ticks: int = 0
+
 
 @dataclass
 class NetworkConfig:

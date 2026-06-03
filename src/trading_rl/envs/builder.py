@@ -64,6 +64,8 @@ class StreamingEnvParams:
 
     memmap_dir: str | None = None
     streaming_episode_length: int = 10_000
+    obs_latency_ticks: int = 0
+    exec_latency_ticks: int = 0
 
 
 @dataclass(frozen=True)
@@ -116,6 +118,8 @@ class EnvBuildParams:
         streaming = StreamingEnvParams(
             memmap_dir=getattr(getattr(config, "data", None), "memmap_dir", None),
             streaming_episode_length=getattr(env, "streaming_episode_length", 10_000),
+            obs_latency_ticks=getattr(env, "obs_latency_ticks", 0),
+            exec_latency_ticks=getattr(env, "exec_latency_ticks", 0),
         )
         return cls(
             common=common,
@@ -365,6 +369,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         episode_length: int,
         params: EnvBuildParams,
     ) -> TransformedEnv:
+        from trading_rl.envs.latency import make_latency_model
         from trading_rl.envs.tradingenvxy_wrapper import StreamingTradingEnvXY
 
         feature_columns = params.trading_env.feature_columns
@@ -393,6 +398,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             execution_price=params.trading_env.execution_price,
             bid_column=params.trading_env.bid_column,
             ask_column=params.trading_env.ask_column,
+            obs_latency=make_latency_model(params.streaming.obs_latency_ticks),
+            exec_latency=make_latency_model(params.streaming.exec_latency_ticks),
         )
         env = GymWrapper(base_env)
         with warnings.catch_warnings():
