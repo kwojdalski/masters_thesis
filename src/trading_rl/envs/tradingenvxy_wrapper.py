@@ -458,8 +458,9 @@ class StreamingTradingEnvXY(gym.Env):
         dsr_persist_across_symbols: bool = False,
         action_penalty_lambda: float = 0.0,
         action_penalty_type: str | ActionPenaltyType = ActionPenaltyType.QUADRATIC,
-        bid_column: str | None = None,
-        ask_column: str | None = None,
+        execution_price: str = "mid",
+        bid_column: str = "bid_px_00",
+        ask_column: str = "ask_px_00",
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -482,6 +483,7 @@ class StreamingTradingEnvXY(gym.Env):
         self._action_penalty_lambda = float(action_penalty_lambda)
         self._action_penalty_type = ActionPenaltyType(action_penalty_type)
         self._prev_action: float = 0.0
+        self._execution_price = execution_price
         self._bid_column = bid_column
         self._ask_column = ask_column
 
@@ -581,12 +583,15 @@ class StreamingTradingEnvXY(gym.Env):
             broker_fees=BrokerFees(proportional=self._fee, fixed=0.0),
         )
 
-        use_bidask = (
-            self._bid_column is not None
-            and self._ask_column is not None
-            and self._bid_column in window_df.columns
-            and self._ask_column in window_df.columns
-        )
+        use_bidask = self._execution_price == "bid_ask"
+        if use_bidask and (
+            self._bid_column not in window_df.columns
+            or self._ask_column not in window_df.columns
+        ):
+            raise KeyError(
+                f"execution_price='bid_ask' requires columns {self._bid_column!r} and "
+                f"{self._ask_column!r} in the memmap data; found {list(window_df.columns)}"
+            )
         if use_bidask:
             transmitter = Transmitter(timesteps=window_df.index)
             bid_arr = window_df[self._bid_column].to_numpy(dtype=np.float64)

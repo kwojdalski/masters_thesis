@@ -237,6 +237,17 @@ class MBOSide(StrEnum):
     BID = "B"
 
 
+class ExecutionPrice(StrEnum):
+    """Execution price model for trade fills in StreamingTradingEnvXY.
+
+    MID: all trades fill at the mid-price column (default, zero spread cost).
+    BID_ASK: buys fill at ask_px_00, sells fill at bid_px_00 (spread cost incurred).
+    """
+
+    MID = "mid"
+    BID_ASK = "bid_ask"
+
+
 class MBOAction(StrEnum):
     """Order book action codes used in Databento MBO records."""
 

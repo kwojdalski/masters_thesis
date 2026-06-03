@@ -199,11 +199,12 @@ class EnvConfig:
     action_penalty_lambda: float = 0.0
     action_penalty_type: str = ActionPenaltyType.QUADRATIC
 
-    # Bid/ask spread execution: when set, trades execute at ask (buy) or bid (sell)
-    # instead of the mid-price column.  Both columns must be present in the memmap.
-    # Leave None (default) for mid-price execution.
-    bid_column: str | None = None
-    ask_column: str | None = None
+    # Execution price model: "mid" (default) fills at the mid-price column;
+    # "bid_ask" fills buys at ask_px_00 and sells at bid_px_00 (spread cost).
+    # Override the column names only if your data uses non-standard names.
+    execution_price: str = "mid"
+    bid_column: str = "bid_px_00"
+    ask_column: str = "ask_px_00"
 
 
 @dataclass

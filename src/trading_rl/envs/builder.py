@@ -45,8 +45,9 @@ class TradingEnvParams:
     obs_clip: float | None = 5.0
     action_penalty_lambda: float = 0.0
     action_penalty_type: str = "quadratic"
-    bid_column: str | None = None
-    ask_column: str | None = None
+    execution_price: str = "mid"
+    bid_column: str = "bid_px_00"
+    ask_column: str = "ask_px_00"
 
 
 @dataclass(frozen=True)
@@ -104,8 +105,9 @@ class EnvBuildParams:
             obs_clip=getattr(env, "obs_clip", 5.0),
             action_penalty_lambda=getattr(env, "action_penalty_lambda", 0.0),
             action_penalty_type=getattr(env, "action_penalty_type", "quadratic"),
-            bid_column=getattr(env, "bid_column", None),
-            ask_column=getattr(env, "ask_column", None),
+            execution_price=getattr(env, "execution_price", "mid"),
+            bid_column=getattr(env, "bid_column", "bid_px_00"),
+            ask_column=getattr(env, "ask_column", "ask_px_00"),
         )
         gym_trading = GymTradingEnvParams(
             continuous_action_thresholds=getattr(env, "continuous_action_thresholds", [-0.33, 0.33]),
@@ -388,6 +390,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             seed=params.common.seed,
             action_penalty_lambda=params.trading_env.action_penalty_lambda,
             action_penalty_type=params.trading_env.action_penalty_type,
+            execution_price=params.trading_env.execution_price,
             bid_column=params.trading_env.bid_column,
             ask_column=params.trading_env.ask_column,
         )
