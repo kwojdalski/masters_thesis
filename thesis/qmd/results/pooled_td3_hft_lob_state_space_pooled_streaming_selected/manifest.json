@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "experiment_name": "pooled_td3_hft_lob_state_space_pooled_streaming_selected",
-  "exported_at_utc": "2026-06-02T15:21:33.670366+00:00",
+  "exported_at_utc": "2026-06-03T10:44:20.553364+00:00",
   "source": {
     "type": "evaluate_cli",
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_hft_lob_state_space_pooled_streaming_selected"
