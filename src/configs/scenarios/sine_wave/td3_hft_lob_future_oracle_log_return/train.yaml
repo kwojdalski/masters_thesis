@@ -17,6 +17,13 @@ env:
   obs_clip: 5.0
   reward_type: log_return
   reward_scale: 0.003
+  execution_price: mid
+  bid_column: bid_px_00
+  ask_column: ask_px_00
+  obs_latency_ticks: 0
+  exec_latency_ticks: 0
+  obs_latency_us: 0.0
+  exec_latency_us: 0.0
 network:
   actor_hidden_dims:
   - 64
