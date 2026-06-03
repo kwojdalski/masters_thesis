@@ -242,6 +242,38 @@ class FeaturePipeline:
         logger.trace("feature pipeline reset n_features={} symbol_id={}", len(self.features), symbol_id)
         return self
 
+    @property
+    def is_fitted(self) -> bool:
+        """True if ``fit()`` or ``load_state()`` has been called."""
+        return self._is_fitted
+
+    def load_state(self, state: dict[str, dict]) -> int:
+        """Restore serialized scaler statistics without requiring training data.
+
+        Equivalent to ``fit()`` when restoring from a checkpoint — the scaler
+        parameters come from disk rather than from a data pass.  Sets
+        ``_is_fitted`` so ``transform()`` can proceed.
+
+        Args:
+            state: Mapping from feature output names to scaler state dicts,
+                as produced by ``dump_pipeline_state()``.
+
+        Returns:
+            Number of features whose scaler state was successfully restored.
+        """
+        restored = 0
+        for feature in self.features:
+            name = feature.get_output_name()
+            feature_state = state.get(name)
+            if feature_state is None:
+                continue
+            scaler = getattr(feature, "scaler", None)
+            if scaler is not None and hasattr(scaler, "load_state_dict"):
+                scaler.load_state_dict(feature_state)
+                restored += 1
+        self._is_fitted = True
+        return restored
+
     def get_feature_names(self) -> list[str]:
         """Get list of output feature column names.
 

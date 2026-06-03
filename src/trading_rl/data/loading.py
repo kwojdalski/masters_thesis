@@ -46,26 +46,15 @@ class FeaturePipelineRestoreResult:
 def restore_pipeline_state(pipeline: Any, state: dict[str, dict[str, float]]) -> None:
     """Restore training-time scaler statistics into a FeaturePipeline.
 
-    Unlike the checkpoint-restore path in evaluate_command, this can be called
-    on an unfitted pipeline — load_state_dict writes directly into the scaler
-    attributes without requiring a prior fit() call.
+    Delegates to ``pipeline.load_state()`` so that the fitted-state flag is
+    managed inside the class rather than poked from outside.
 
     Args:
         pipeline: A FeaturePipeline instance (fitted or not).
         state: Mapping from feature output names to scaler state dicts, as
             saved by dump_pipeline_state / save_checkpoint.
     """
-    restored = 0
-    for feature in pipeline.features:
-        name = feature.get_output_name()
-        feature_state = state.get(name)
-        if feature_state is None:
-            continue
-        scaler = getattr(feature, "scaler", None)
-        if scaler is not None and hasattr(scaler, "load_state_dict"):
-            scaler.load_state_dict(feature_state)
-            restored += 1
-    pipeline._is_fitted = True
+    restored = pipeline.load_state(state)
     logger.debug(
         "restore pipeline state restored={} total={}",
         restored,
