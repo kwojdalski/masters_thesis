@@ -44,9 +44,6 @@ class BaseDataSource(ABC):
             Logging level (DEBUG, INFO, WARNING, ERROR)
         """
         self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
-        if log_level:
-            level = self._parse_log_level(log_level)
-            self.logger.setLevel(level)
 
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -54,23 +51,6 @@ class BaseDataSource(ABC):
         self.logger.debug(
             f"Initialized {self.__class__.__name__} with output_dir={self.output_dir}"
         )
-
-    @staticmethod
-    def _parse_log_level(level: int | str | None) -> int:
-        """Convert log level string to logging constant."""
-        level_map = {
-            "CRITICAL": 50,
-            "ERROR": 40,
-            "WARNING": 30,
-            "INFO": 20,
-            "DEBUG": 10,
-            "NOTSET": 0,
-        }
-        if isinstance(level, int):
-            return level
-        if isinstance(level, str):
-            return level_map.get(level.upper(), level_map["INFO"])
-        return level_map["INFO"]
 
     @abstractmethod
     def generate_data(self, **kwargs) -> pd.DataFrame:
