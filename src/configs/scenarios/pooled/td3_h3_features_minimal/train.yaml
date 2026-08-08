@@ -45,7 +45,9 @@ env:
   streaming_episode_length: 10000
   obs_clip: 5.0
   reward_type: log_return
-  reward_scale: 10000
+  # tradingenv's LogReturn divides the reward by reward_scale (not multiplies);
+  # 0.0001 = 1/10000 achieves the intended ~10000x amplification of raw tick returns.
+  reward_scale: 0.0001
   execution_price: mid
   bid_column: bid_px_00
   ask_column: ask_px_00
