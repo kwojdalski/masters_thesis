@@ -67,7 +67,7 @@ def _check_sample_size_vs_init_rand(config: ExperimentConfig) -> Finding | None:
                 f"fewer than {s} transitions when the first sampling attempt is made, "
                 "causing an immediate crash."
             ),
-            suggestion=f"Set init_rand_steps >= sample_size (e.g. {max(s, 1000):,}).",
+            suggestion=f"Set init_rand_steps >= sample_size (e.g. {max(s, 1000):_}).",
         )
     return None
 
@@ -84,7 +84,7 @@ def _check_sample_size_vs_buffer(config: ExperimentConfig) -> Finding | None:
                 f"sample_size={s} > buffer_size={b}: the buffer can never hold a full "
                 "mini-batch, so every sampling call will fail."
             ),
-            suggestion=f"Set buffer_size >= sample_size (e.g. {s * 10:,}).",
+            suggestion=f"Set buffer_size >= sample_size (e.g. {s * 10:_}).",
         )
     return None
 
@@ -104,7 +104,7 @@ def _check_ppo_minibatch_vs_batch(config: ExperimentConfig) -> Finding | None:
                 "than the collected rollout — the dataloader will be empty and training "
                 "will crash or silently skip all updates."
             ),
-            suggestion=f"Set sample_size <= frames_per_batch (e.g. {max(1, f // 4):,}).",
+            suggestion=f"Set sample_size <= frames_per_batch (e.g. {max(1, f // 4):_}).",
         )
     return None
 
@@ -120,11 +120,11 @@ def _check_streaming_episode_vs_train_size(config: ExperimentConfig) -> Finding 
             severity=Severity.FATAL,
             parameter="env.streaming_episode_length / data.train_size",
             message=(
-                f"streaming_episode_length={ep:,} > train_size={ts:,}: the streaming "
+                f"streaming_episode_length={ep:_} > train_size={ts:_}: the streaming "
                 "environment will attempt to load more rows than the training split "
                 "contains, causing an index error on reset."
             ),
-            suggestion=f"Set streaming_episode_length <= train_size (e.g. {ts // 2:,}).",
+            suggestion=f"Set streaming_episode_length <= train_size (e.g. {ts // 2:_}).",
         )
     return None
 
@@ -198,15 +198,15 @@ def _check_init_rand_overflows_buffer(config: ExperimentConfig) -> Finding | Non
             severity=Severity.WARN,
             parameter="training.init_rand_steps / training.buffer_size",
             message=(
-                f"init_rand_steps={r:,} > buffer_size={b:,}: the random warm-up phase "
-                f"produces {overflow:,} more transitions than the buffer can hold. "
+                f"init_rand_steps={r:_} > buffer_size={b:_}: the random warm-up phase "
+                f"produces {overflow:_} more transitions than the buffer can hold. "
                 "Those early transitions are evicted before any gradient update sees them — "
                 "wasted collection time, and the buffer is entirely overwritten by the end "
                 "of the warm-up."
             ),
             suggestion=(
-                f"Set init_rand_steps <= buffer_size (e.g. {b:,}), or increase "
-                f"buffer_size to {r:,}."
+                f"Set init_rand_steps <= buffer_size (e.g. {b:_}), or increase "
+                f"buffer_size to {r:_}."
             ),
         )
     return None
@@ -225,13 +225,13 @@ def _check_init_rand_too_small(config: ExperimentConfig) -> Finding | None:
             severity=Severity.WARN,
             parameter="training.init_rand_steps / training.buffer_size",
             message=(
-                f"init_rand_steps={r:,} fills only {pct:.1f}% of buffer_size={b:,}. "
+                f"init_rand_steps={r:_} fills only {pct:.1f}% of buffer_size={b:_}. "
                 "Early gradient updates draw from a tiny, highly correlated pool of "
                 "random transitions, which can bias the critic and slow convergence."
             ),
             suggestion=(
-                f"Set init_rand_steps >= buffer_size * 0.05 = {int(b * 0.05):,}, "
-                f"or reduce buffer_size to {r * 10:,}."
+                f"Set init_rand_steps >= buffer_size * 0.05 = {int(b * 0.05):_}, "
+                f"or reduce buffer_size to {r * 10:_}."
             ),
         )
     return None
@@ -249,14 +249,14 @@ def _check_frames_per_batch_vs_buffer(config: ExperimentConfig) -> Finding | Non
             severity=Severity.WARN,
             parameter="training.frames_per_batch / training.buffer_size",
             message=(
-                f"frames_per_batch={f:,} is {pct:.0f}% of buffer_size={b:,}. "
+                f"frames_per_batch={f:_} is {pct:.0f}% of buffer_size={b:_}. "
                 "Each collection step replaces a large fraction of the buffer, so "
                 "sampled mini-batches are temporally correlated, reducing the variance "
                 "reduction benefit of experience replay."
             ),
             suggestion=(
-                f"Increase buffer_size to at least frames_per_batch * 4 = {f * 4:,}, "
-                f"or reduce frames_per_batch to {b // 10:,}."
+                f"Increase buffer_size to at least frames_per_batch * 4 = {f * 4:_}, "
+                f"or reduce frames_per_batch to {b // 10:_}."
             ),
         )
     return None
@@ -272,11 +272,11 @@ def _check_eval_interval(config: ExperimentConfig) -> Finding | None:
             severity=Severity.WARN,
             parameter="training.eval_interval / training.max_steps",
             message=(
-                f"eval_interval={ei:,} against max_steps={ms:,} produces only "
+                f"eval_interval={ei:_} against max_steps={ms:_} produces only "
                 f"{n} evaluation checkpoint{'s' if n != 1 else ''} — too coarse "
                 "to observe a learning curve."
             ),
-            suggestion=f"Set eval_interval <= max_steps // 10 = {ms // 10:,}.",
+            suggestion=f"Set eval_interval <= max_steps // 10 = {ms // 10:_}.",
         )
     return None
 
@@ -353,7 +353,7 @@ def _check_ppo_updates_per_rollout(config: ExperimentConfig) -> Finding | None:
             ),
             suggestion=(
                 f"Reduce ppo_epochs (currently {epochs}) or increase frames_per_batch "
-                f"(currently {f:,}) so that updates per rollout <= {limit}."
+                f"(currently {f:_}) so that updates per rollout <= {limit}."
             ),
         )
     _ = steps_per_batch  # used for future checks
@@ -370,12 +370,12 @@ def _check_warmup_rows(config: ExperimentConfig) -> Finding | None:
             severity=Severity.WARN,
             parameter="data.warmup_rows / data.train_size",
             message=(
-                f"warmup_rows={w:,} discards {pct:.0f}% of train_size={ts:,} rows "
+                f"warmup_rows={w:_} discards {pct:.0f}% of train_size={ts:_} rows "
                 "after feature engineering. The effective training set may be too small."
             ),
             suggestion=(
-                f"Increase train_size to at least warmup_rows * 5 = {w * 5:,}, "
-                f"or reduce warmup_rows (currently {w:,})."
+                f"Increase train_size to at least warmup_rows * 5 = {w * 5:_}, "
+                f"or reduce warmup_rows (currently {w:_})."
             ),
         )
     return None
@@ -391,12 +391,12 @@ def _check_frames_per_batch_vs_train_size(config: ExperimentConfig) -> Finding |
             severity=Severity.WARN,
             parameter="training.frames_per_batch / data.train_size",
             message=(
-                f"frames_per_batch={f:,} > train_size={ts:,}: the collector will reset "
+                f"frames_per_batch={f:_} > train_size={ts:_}: the collector will reset "
                 f"the environment ~{resets}× per batch. Each reset replays the same "
                 "data from the beginning, increasing temporal correlation within the "
                 "batch and reducing effective data diversity."
             ),
-            suggestion=f"Set frames_per_batch <= train_size (e.g. {max(1, ts // 4):,}).",
+            suggestion=f"Set frames_per_batch <= train_size (e.g. {max(1, ts // 4):_}).",
         )
     return None
 
@@ -410,13 +410,13 @@ def _check_train_size_vs_warmup_rows(config: ExperimentConfig) -> Finding | None
             severity=Severity.FATAL,
             parameter="data.train_size / data.warmup_rows",
             message=(
-                f"train_size={ts:,} <= warmup_rows={w:,}: after discarding warmup rows "
+                f"train_size={ts:_} <= warmup_rows={w:_}: after discarding warmup rows "
                 "the effective training split is empty — the environment will have no "
                 "data to step through."
             ),
             suggestion=(
                 f"Increase train_size to at least warmup_rows + frames_per_batch = "
-                f"{w + config.training.frames_per_batch:,}, or reduce warmup_rows."
+                f"{w + config.training.frames_per_batch:_}, or reduce warmup_rows."
             ),
         )
     return None
@@ -435,13 +435,13 @@ def _check_optim_steps_replay_reuse(config: ExperimentConfig) -> Finding | None:
             parameter="training.optim_steps_per_batch * training.sample_size / training.buffer_size",
             message=(
                 f"optim_steps_per_batch={config.training.optim_steps_per_batch} × "
-                f"sample_size={config.training.sample_size} = {total_samples:,} samples "
-                f"drawn per collection step, but buffer_size={b:,}. Each transition is "
+                f"sample_size={config.training.sample_size} = {total_samples:_} samples "
+                f"drawn per collection step, but buffer_size={b:_}. Each transition is "
                 f"reused {ratio:.1f}× per batch on average, increasing overfitting risk."
             ),
             suggestion=(
                 f"Reduce optim_steps_per_batch (currently {config.training.optim_steps_per_batch}) "
-                f"or increase buffer_size to at least {total_samples:,}."
+                f"or increase buffer_size to at least {total_samples:_}."
             ),
         )
     return None
@@ -630,13 +630,13 @@ def _check_validation_size_vs_eval_steps(config: ExperimentConfig) -> Finding | 
             severity=Severity.WARN,
             parameter="data.validation_size / evaluation.eval_steps",
             message=(
-                f"validation_size={vs:,} < eval_steps={es:,}: the evaluator will run "
-                f"for at most {vs:,} steps (capped by available data) without raising "
+                f"validation_size={vs:_} < eval_steps={es:_}: the evaluator will run "
+                f"for at most {vs:_} steps (capped by available data) without raising "
                 "an error, so eval metrics represent a shorter horizon than intended."
             ),
             suggestion=(
-                f"Set eval_steps <= validation_size (e.g. {vs:,}), "
-                f"or increase validation_size to at least {es:,}."
+                f"Set eval_steps <= validation_size (e.g. {vs:_}), "
+                f"or increase validation_size to at least {es:_}."
             ),
         )
     return None
@@ -653,12 +653,12 @@ def _check_no_checkpoints_long_run(config: ExperimentConfig) -> Finding | None:
             severity=Severity.WARN,
             parameter="training.checkpoint_interval / training.max_steps",
             message=(
-                f"checkpoint_interval=0 (disabled) with max_steps={config.training.max_steps:,}. "
+                f"checkpoint_interval=0 (disabled) with max_steps={config.training.max_steps:_}. "
                 f"A crash or OOM error loses all training progress "
                 f"(estimated run time: ~{hours_estimate:.0f}+ minutes)."
             ),
             suggestion=(
-                f"Set checkpoint_interval to e.g. {config.training.max_steps // 5:,} "
+                f"Set checkpoint_interval to e.g. {config.training.max_steps // 5:_} "
                 "(save 5 checkpoints over the run)."
             ),
         )
@@ -674,12 +674,12 @@ def _check_log_interval_vs_eval_interval(config: ExperimentConfig) -> Finding | 
             severity=Severity.WARN,
             parameter="training.log_interval / training.eval_interval",
             message=(
-                f"log_interval={li:,} > eval_interval={ei:,}: evaluation fires more "
+                f"log_interval={li:_} > eval_interval={ei:_}: evaluation fires more "
                 "frequently than loss logging. You will see eval snapshots without "
                 "any loss metrics between them, making it hard to diagnose whether "
                 "a drop in eval performance corresponds to a loss spike."
             ),
-            suggestion=f"Set log_interval <= eval_interval (e.g. {ei:,}).",
+            suggestion=f"Set log_interval <= eval_interval (e.g. {ei:_}).",
         )
     return None
 
@@ -712,14 +712,14 @@ def _check_streaming_episode_vs_warmup_rows(config: ExperimentConfig) -> Finding
             severity=Severity.WARN,
             parameter="env.streaming_episode_length / data.warmup_rows",
             message=(
-                f"streaming_episode_length={ep:,} <= warmup_rows={w:,}: every episode "
+                f"streaming_episode_length={ep:_} <= warmup_rows={w:_}: every episode "
                 "is shorter than the running-normalizer warm-up window. The normalizer "
                 "never converges within an episode, so observations are perpetually "
                 "in the cold-start regime with high variance."
             ),
             suggestion=(
                 f"Set streaming_episode_length > warmup_rows "
-                f"(e.g. {w * 5:,}), or reduce warmup_rows."
+                f"(e.g. {w * 5:_}), or reduce warmup_rows."
             ),
         )
     return None
@@ -801,14 +801,14 @@ def _check_buffer_never_full(config: ExperimentConfig) -> Finding | None:
             severity=Severity.WARN,
             parameter="training.buffer_size / training.max_steps",
             message=(
-                f"buffer_size={b:,} > max_steps={total:,}: the replay buffer can never "
+                f"buffer_size={b:_} > max_steps={total:_}: the replay buffer can never "
                 f"be filled — training ends with only {fill_pct:.0f}% utilisation. "
                 "Sampling from a partially filled buffer skews the replay distribution "
                 "toward earlier, less-trained transitions and wastes memory."
             ),
             suggestion=(
-                f"Reduce buffer_size to at most max_steps={total:,}, "
-                f"or increase max_steps to {b:,}."
+                f"Reduce buffer_size to at most max_steps={total:_}, "
+                f"or increase max_steps to {b:_}."
             ),
         )
     return None
@@ -896,14 +896,14 @@ def _check_streaming_episode_too_long(config: ExperimentConfig) -> Finding | Non
             severity=Severity.WARN,
             parameter="env.streaming_episode_length / data.train_size",
             message=(
-                f"streaming_episode_length={ep:,} is more than half of "
-                f"train_size={ts:,} ({ep / ts * 100:.0f}%). Each pass through the "
+                f"streaming_episode_length={ep:_} is more than half of "
+                f"train_size={ts:_} ({ep / ts * 100:.0f}%). Each pass through the "
                 f"training data produces only ~{episodes_per_pass:.1f} episodes, giving "
                 "the agent very few episode resets and limiting its exposure to diverse "
                 "starting conditions within the training window."
             ),
             suggestion=(
-                f"Set streaming_episode_length <= train_size // 4 = {ts // 4:,} "
+                f"Set streaming_episode_length <= train_size // 4 = {ts // 4:_} "
                 "for at least 4 starting positions per data pass."
             ),
         )
@@ -950,14 +950,14 @@ def _check_effective_training_steps(config: ExperimentConfig) -> Finding | None:
             severity=Severity.WARN,
             parameter="training.max_steps - training.init_rand_steps",
             message=(
-                f"After the random warm-up (init_rand_steps={config.training.init_rand_steps:,}), "
-                f"only {effective:,} steps remain for gradient training "
+                f"After the random warm-up (init_rand_steps={config.training.init_rand_steps:_}), "
+                f"only {effective:_} steps remain for gradient training "
                 f"(~{approx_updates} collection iterations). This is unlikely to be "
                 "sufficient for any meaningful policy learning."
             ),
             suggestion=(
-                f"Increase max_steps to at least init_rand_steps + 10,000 = "
-                f"{config.training.init_rand_steps + 10_000:,}."
+                f"Increase max_steps to at least init_rand_steps + 10_000 = "
+                f"{config.training.init_rand_steps + 10_000:_}."
             ),
         )
     return None
@@ -976,13 +976,13 @@ def _check_val_size_much_smaller_than_train(config: ExperimentConfig) -> Finding
             severity=Severity.WARN,
             parameter="data.validation_size / data.train_size",
             message=(
-                f"validation_size={vs:,} is only {vs / ts * 100:.1f}% of "
-                f"train_size={ts:,} (ratio {ratio:.0f}:1). Validation metrics computed "
+                f"validation_size={vs:_} is only {vs / ts * 100:.1f}% of "
+                f"train_size={ts:_} (ratio {ratio:.0f}:1). Validation metrics computed "
                 "on a very small set have high variance, making it unreliable for "
                 "checkpoint selection and early stopping."
             ),
             suggestion=(
-                f"Set validation_size >= train_size // 10 = {threshold:,} for a "
+                f"Set validation_size >= train_size // 10 = {threshold:_} for a "
                 "reasonably stable evaluation signal."
             ),
         )
@@ -999,12 +999,12 @@ def _check_log_interval_too_coarse(config: ExperimentConfig) -> Finding | None:
             severity=Severity.WARN,
             parameter="training.log_interval / training.max_steps",
             message=(
-                f"log_interval={li:,} against max_steps={ms:,} produces only "
+                f"log_interval={li:_} against max_steps={ms:_} produces only "
                 f"{n} log entr{'ies' if n != 1 else 'y'} for the entire run. "
                 "Without frequent loss logging it is nearly impossible to detect "
                 "divergence, instability, or a flat loss early enough to intervene."
             ),
-            suggestion=f"Set log_interval <= max_steps // 20 = {ms // 20:,}.",
+            suggestion=f"Set log_interval <= max_steps // 20 = {ms // 20:_}.",
         )
     return None
 
@@ -1171,14 +1171,14 @@ def _check_temp_eval_shorter_than_final(config: ExperimentConfig) -> Finding | N
             severity=Severity.WARN,
             parameter="training.temp_eval.max_steps / evaluation.eval_steps",
             message=(
-                f"temp_eval.max_steps={temp_max:,} < eval_steps={final_steps:,}: "
+                f"temp_eval.max_steps={temp_max:_} < eval_steps={final_steps:_}: "
                 "periodic evaluation during training is capped at fewer steps than the "
                 "final post-training evaluation. The best-checkpoint selection signal "
                 "(from periodic eval) is noisier than the evaluation it is supposed to "
                 "predict, making checkpoint selection less reliable."
             ),
             suggestion=(
-                f"Set temp_eval.max_steps >= eval_steps={final_steps:,}, "
+                f"Set temp_eval.max_steps >= eval_steps={final_steps:_}, "
                 "or reduce eval_steps."
             ),
         )
@@ -1227,7 +1227,7 @@ def _check_val_test_imbalance(config: ExperimentConfig) -> Finding | None:
             severity=Severity.WARN,
             parameter="data.validation_size / data.test_size",
             message=(
-                f"{bigger}={bigger_val:,} is {ratio:.0f}× {smaller}={smaller_val:,}. "
+                f"{bigger}={bigger_val:_} is {ratio:.0f}× {smaller}={smaller_val:_}. "
                 "A strongly imbalanced val/test split means that either model selection "
                 "signal is noisier than holdout evaluation, or the final out-of-sample "
                 "estimate is less reliable than the validation score. "
@@ -1235,7 +1235,7 @@ def _check_val_test_imbalance(config: ExperimentConfig) -> Finding | None:
             ),
             suggestion=(
                 "Keep validation_size and test_size within 2–3× of each other. "
-                f"Consider {smaller}={bigger_val:,} or {bigger}={smaller_val:,}."
+                f"Consider {smaller}={bigger_val:_} or {bigger}={smaller_val:_}."
             ),
         )
     return None
@@ -1345,7 +1345,7 @@ def _check_off_policy_too_few_total_updates(config: ExperimentConfig) -> Finding
             suggestion=(
                 f"Increase max_steps or reduce frames_per_batch so that "
                 f"(max_steps - init_rand_steps) / frames_per_batch × optim_steps_per_batch >= 500. "
-                f"E.g. max_steps >= {config.training.init_rand_steps + 500 * config.training.frames_per_batch // max(config.training.optim_steps_per_batch, 1):,}."
+                f"E.g. max_steps >= {config.training.init_rand_steps + 500 * config.training.frames_per_batch // max(config.training.optim_steps_per_batch, 1):_}."
             ),
         )
     return None
@@ -1644,11 +1644,11 @@ def _check_frames_per_batch_vs_max_steps(config: ExperimentConfig) -> Finding | 
             severity=Severity.WARN,
             parameter="training.frames_per_batch / training.max_steps",
             message=(
-                f"frames_per_batch={f:,} allows only ~{updates} collection iteration(s) "
-                f"before max_steps={ms:,} is reached. With so few gradient updates, "
+                f"frames_per_batch={f:_} allows only ~{updates} collection iteration(s) "
+                f"before max_steps={ms:_} is reached. With so few gradient updates, "
                 "meaningful learning is unlikely."
             ),
-            suggestion=f"Set frames_per_batch <= max_steps // 10 = {ms // 10:,} for ~10 updates.",
+            suggestion=f"Set frames_per_batch <= max_steps // 10 = {ms // 10:_} for ~10 updates.",
         )
     return None
 
@@ -1664,11 +1664,11 @@ def _check_buffer_size_vs_sample_size(config: ExperimentConfig) -> Finding | Non
             severity=Severity.WARN,
             parameter="training.buffer_size / training.sample_size",
             message=(
-                f"buffer_size={b:,} is only {b / s:.1f}× sample_size={s}. "
+                f"buffer_size={b:_} is only {b / s:.1f}× sample_size={s}. "
                 "With such a small buffer, sampled mini-batches have high temporal "
                 "correlation, reducing the variance-reduction benefit of experience replay."
             ),
-            suggestion=f"Set buffer_size >= sample_size × 50 = {s * 50:,}.",
+            suggestion=f"Set buffer_size >= sample_size × 50 = {s * 50:_}.",
         )
     return None
 
