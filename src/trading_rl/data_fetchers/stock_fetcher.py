@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -201,7 +201,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
             "symbols": symbols,
             "schema": schema,
             "start": start_date,
-            "end": end_date,
+            "end": self._inclusive_end(end_date),
             "stype_in": kwargs.pop("stype_in", "raw_symbol"),
         }
         request.update(self._supported_databento_kwargs(kwargs))
@@ -218,6 +218,23 @@ class StockDataFetcher(BaseMarketDataFetcher):
             )
 
         return self._normalize_databento_frame(df, symbols=symbols)
+
+    @staticmethod
+    def _inclusive_end(end_date: str) -> str:
+        """Shift a bare calendar-date end forward a day.
+
+        Databento's ``get_range`` treats ``end`` as exclusive, so a plain
+        ``YYYY-MM-DD`` end_date would silently drop that entire day. Callers
+        of this fetcher (CLI options, ``THESIS_DOWNLOADS``, filenames) all
+        treat start/end as an inclusive calendar-day range, so bare dates are
+        advanced by one day here to match that expectation. Timestamps with
+        more precision are passed through unchanged.
+        """
+        try:
+            parsed = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+            return end_date
+        return (parsed + timedelta(days=1)).strftime("%Y-%m-%d")
 
     @staticmethod
     def _supported_databento_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
