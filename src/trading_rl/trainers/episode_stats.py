@@ -114,7 +114,15 @@ class EpisodeStatsTracker:
 
         episode_steps: int | None = None
         if reward_type == RewardType.LOG_RETURN:
-            portfolio_valuation = initial_val * np.exp(episode_reward)
+            # tradingenv's LogReturn divides the raw log return by reward_scale
+            # before returning it, so episode_reward (the sum of collected
+            # rewards) must be multiplied back by reward_scale to recover the
+            # true cumulative log return before exponentiating. Note this
+            # reconstruction is still approximate whenever LogReturn's
+            # internal per-step clipping (default +/-2.0, applied before
+            # summation) actually fires.
+            reward_scale = getattr(callback, "reward_scale", 1.0)
+            portfolio_valuation = initial_val * np.exp(episode_reward * reward_scale)
         elif reward_type == RewardType.DIFFERENTIAL_SHARPE:
             final_nlv, episode_steps = self._get_last_episode_final_nlv()
             if final_nlv is not None:

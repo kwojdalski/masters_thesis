@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+import numpy as np
 import pytest
 import torch
 from tensordict import TensorDict
@@ -38,7 +39,8 @@ class _Callback:
     initial_portfolio_value = DEFAULT_INITIAL_PORTFOLIO_VALUE
     reward_type = RewardType.LOG_RETURN
 
-    def __init__(self) -> None:
+    def __init__(self, reward_scale: float = 1.0) -> None:
+        self.reward_scale = reward_scale
         self.calls: list[dict] = []
 
     def log_episode_stats(
@@ -143,3 +145,25 @@ def test_episode_stats_carry_incomplete_episode_across_batches() -> None:
     assert trainer._pending_episode_rewards == []
     assert trainer._pending_episode_actions == []
     assert trainer.logs["episode_log_count"] == [1, 2]
+
+
+def test_log_return_portfolio_valuation_undoes_reward_scale() -> None:
+    """tradingenv's LogReturn divides the reward by reward_scale, so the
+    collected episode_reward must be multiplied back by reward_scale before
+    exponentiating to recover the true cumulative log return (see
+    episode_stats.py's LOG_RETURN branch)."""
+    trainer = _trainer()
+    reward_scale = 4.0
+    callback = _Callback(reward_scale=reward_scale)
+    raw_cumulative_log_return = 0.02
+    scaled_episode_reward = raw_cumulative_log_return / reward_scale
+
+    data = _batch(
+        rewards=[scaled_episode_reward],
+        done=[True],
+        actions=[0.0],
+    )
+    trainer._log_episode_stats(data, callback)
+
+    expected = DEFAULT_INITIAL_PORTFOLIO_VALUE * np.exp(raw_cumulative_log_return)
+    assert callback.calls[0]["portfolio_valuation"] == pytest.approx(expected)

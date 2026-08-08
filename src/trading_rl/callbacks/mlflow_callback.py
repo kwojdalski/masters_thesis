@@ -73,6 +73,7 @@ class MLflowTrainingCallback:
         start_run: bool = True,
         initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
         reward_type: str = RewardType.LOG_RETURN,
+        reward_scale: float = 1.0,
         action_positions: list[int] | None = None,
         config_for_run_name: Any | None = None,
     ):
@@ -80,6 +81,7 @@ class MLflowTrainingCallback:
         self._episode_count = 0
         self.initial_portfolio_value = initial_portfolio_value
         self.reward_type = reward_type
+        self.reward_scale = reward_scale
         self.action_positions = action_positions
         self._portfolio_value = initial_portfolio_value
         self.intermediate_losses = {"actor": [], "value": []}

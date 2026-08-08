@@ -953,6 +953,7 @@ class MLflowCallbackParams:
     price_series: Any
     initial_portfolio_value: float
     reward_type: str
+    reward_scale: float
     action_positions: list[int]
 
     @classmethod
@@ -971,6 +972,7 @@ class MLflowCallbackParams:
             price_series=price_series,
             initial_portfolio_value=config.env.initial_portfolio_value,
             reward_type=config.env.reward_type,
+            reward_scale=config.env.reward_scale,
             action_positions=config.env.positions,
         )
 
