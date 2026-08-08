@@ -7,7 +7,7 @@ Separated from the check functions so the validation logic in
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from logger import get_logger
 from rich.console import Console
@@ -23,12 +23,18 @@ _console = Console()
 _err_console = Console(stderr=True)
 
 
-def run_guardrail_check(config: ExperimentConfig) -> None:
+def run_guardrail_check(config: ExperimentConfig, progress_bar: Any = None) -> None:
     """Check config, log findings, raise on FATAL, prompt on WARN.
 
     Controlled by training config flags:
       skip_guardrails=True       — skip the check entirely (dev/smoke runs).
       skip_guardrail_prompts=True — log WARNs but proceed without prompting.
+
+    Args:
+        config: Experiment config to validate.
+        progress_bar: Active Rich ``Progress``/``Live`` display, if any. When
+            given, it is paused around the WARN confirmation prompt so the
+            prompt text isn't clobbered by the display's next redraw.
     """
     if getattr(config.training, "skip_guardrails", False):
         logger.debug("config guardrail check skipped (training.skip_guardrails=True)")
@@ -90,11 +96,17 @@ def run_guardrail_check(config: ExperimentConfig) -> None:
             )
             return
 
-        _console.print("\nProceed anyway? [y/N] ", end="")
+        if progress_bar is not None:
+            progress_bar.stop()
         try:
-            answer = input().strip().lower()
-        except (EOFError, OSError):
-            answer = "n"
+            _console.print("\nProceed anyway? [y/N] ", end="")
+            try:
+                answer = input().strip().lower()
+            except (EOFError, OSError):
+                answer = "n"
+        finally:
+            if progress_bar is not None:
+                progress_bar.start()
 
         if answer not in {"y", "yes"}:
             raise SystemExit(

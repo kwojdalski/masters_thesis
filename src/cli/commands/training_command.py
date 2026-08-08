@@ -219,7 +219,7 @@ class TrainingCommand(BaseCommand):
                 if params.checkpoint_path:
                     result = self._resume_from_checkpoint(config, params, progress)
                 else:
-                    result = run_single_experiment(custom_config=config)
+                    result = run_single_experiment(custom_config=config, progress_bar=progress)
 
                 if result.get("interrupted"):
                     progress.update(

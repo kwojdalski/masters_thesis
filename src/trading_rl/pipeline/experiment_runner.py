@@ -257,7 +257,7 @@ def execute_single_experiment(
     build_experiment_runtime_fn: Any = build_experiment_runtime,
 ) -> dict[str, Any]:
     """Run the end-to-end experiment flow and return the public result payload."""
-    run_guardrail_check(config)
+    run_guardrail_check(config, progress_bar=progress_bar)
 
     profiler = init_profiler(level=config.profiling.level if getattr(config, "profiling", None) else 0)
 
