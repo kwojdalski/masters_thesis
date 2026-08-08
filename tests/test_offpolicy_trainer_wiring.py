@@ -69,8 +69,8 @@ def _ddpg_config() -> SimpleNamespace:
         tau=0.01,
         max_grad_norm=0.0,
         loss_function=LossFunction.L2,
-        exploration_noise_std=0.1,
         buffer_size=100,
+        td3=SimpleNamespace(exploration_noise_std=0.1),
     )
 
 
@@ -164,16 +164,20 @@ def test_ddpg_build_models_and_real_loss_accept_expected_tensordict(monkeypatch)
     n_obs, n_act = 3, 1
     env = SimpleNamespace(action_spec=_action_spec(n_act))
     actor, value_net = DDPGTrainer.build_models(n_obs, n_act, _network_cfg(), env)
+    ddpg_config = _ddpg_config()
     trainer = DDPGTrainer(
         actor,
         value_net,
         env,
-        _ddpg_config(),
+        ddpg_config,
         n_obs=n_obs,
         n_act=n_act,
         actor_hidden_dims=[8],
         value_hidden_dims=[8],
     )
+
+    assert trainer.exploration_module.sigma_init == ddpg_config.td3.exploration_noise_std
+    assert trainer._compute_exploration_ratio() == ddpg_config.td3.exploration_noise_std
 
     action_td = trainer.actor(
         TensorDict({"observation": torch.randn(4, n_obs)}, batch_size=[4])

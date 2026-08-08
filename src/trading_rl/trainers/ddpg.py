@@ -97,8 +97,8 @@ class DDPGTrainer(BaseTrainer):
 
         self.exploration_module = AdditiveGaussianModule(
             spec=ddpg_action_spec,
-            sigma_init=getattr(config, "exploration_noise_std", 0.2),
-            sigma_end=getattr(config, "exploration_noise_std", 0.2),
+            sigma_init=config.td3.exploration_noise_std,
+            sigma_end=config.td3.exploration_noise_std,
             annealing_num_steps=config.max_steps,
         )
 
@@ -108,7 +108,7 @@ class DDPGTrainer(BaseTrainer):
             config.value_lr,
             config.buffer_size,
             config.tau,
-            getattr(config, "exploration_noise_std", 0.2),
+            config.td3.exploration_noise_std,
         )
 
     @staticmethod
@@ -226,7 +226,7 @@ class DDPGTrainer(BaseTrainer):
                 self._evaluate()
 
     def _compute_exploration_ratio(self) -> float:
-        return getattr(self.config, "exploration_noise_std", 0.1)
+        return self.config.td3.exploration_noise_std
 
     @property
     def _algo_label(self) -> str:
