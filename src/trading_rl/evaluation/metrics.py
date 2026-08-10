@@ -454,12 +454,19 @@ def build_metric_report(
             n = min(_r_orig.size, b_raw.size)
             if n > 1:
                 paired_mask = np.isfinite(_r_orig[:n]) & np.isfinite(b_raw[:n])
-                rs, _ = aggregate_to_reporting_frequency(_r_orig[:n][paired_mask], _orig_ppy)
+                # rs/bs come from the same paired_mask array length, so both
+                # calls land on the same ladder tier. Their returned ppy can
+                # differ from the outer `periods_per_year` (computed from the
+                # strategy-only isfinite mask, usually a longer array) — use
+                # the paired ppy for these metrics so annualisation matches
+                # the actual bar spacing of rs/bs.
+                rs, ppy_paired = aggregate_to_reporting_frequency(_r_orig[:n][paired_mask], _orig_ppy)
                 bs, _ = aggregate_to_reporting_frequency(b_raw[:n][paired_mask], _orig_ppy)
                 n = min(rs.size, bs.size)
                 rs, bs = rs[:n], bs[:n]
             else:
                 rs, bs = np.array([]), np.array([])
+                ppy_paired = periods_per_year
         else:
             # Daily-or-lower: use original arrays so the paired NaN mask aligns
             # strategy and benchmark by position before dropping missing values.
@@ -469,16 +476,17 @@ def build_metric_report(
                 rs, bs = _r_orig[:n][paired_mask], b_raw[:n][paired_mask]
             else:
                 rs, bs = np.array([]), np.array([])
+            ppy_paired = periods_per_year
         if n > 1 and rs.size > 1:
             cov = np.cov(rs, bs, ddof=1)
             var_b = cov[1, 1]
             beta = _safe_div(cov[0, 1], var_b)
-            if _can_annualize:
-                alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * periods_per_year
+            if ppy_paired > 0:
+                alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * ppy_paired
                 active = rs - bs
                 active_std = float(np.std(active, ddof=1))
-                tracking_error = active_std * np.sqrt(periods_per_year)
-                info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(periods_per_year), active_std)
+                tracking_error = active_std * np.sqrt(ppy_paired)
+                info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(ppy_paired), active_std)
 
     return MetricReport(
         n_periods=float(_r_orig.size),
