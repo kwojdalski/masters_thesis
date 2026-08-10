@@ -160,6 +160,9 @@ eval_results/
 # Agent memory (session-local notes, not project source)
 memory/
 
+# Python debugger command history
+.pdb-pyhist
+
 # Generated plot files for thesis PDF figure environments
 thesis/qmd/src/_figures/
 reports/
