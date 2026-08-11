@@ -232,7 +232,7 @@ class TrainerRuntimeHooks:
                 ) = eval_output
                 last_eval_result = getattr(eval_output, "result", None)
                 logger.info(
-                    "temp eval: trainer.evaluate split={} elapsed_s={}",
+                    "temp eval: trainer.evaluate split={} elapsed_s={:.3f}",
                     split_ctx.split, time.monotonic() - _t,
                 )
 
@@ -330,7 +330,7 @@ class TrainerRuntimeHooks:
                         plot_data=_plot_data,
                     )
                     logger.trace(
-                        "temp eval: mlflow upload split={} elapsed_s={}",
+                        "temp eval: mlflow upload split={} elapsed_s={:.3f}",
                         split_ctx.split, time.monotonic() - _t,
                     )
                     # Upload equity progression plot (all committed checkpoints
@@ -433,7 +433,7 @@ class TrainerRuntimeHooks:
                                 logger.opt(exception=True).warning("temp eval: rollout data artifact failed split={} step={}", split_ctx.split, step_number)
                     _elapsed = time.monotonic() - _t_split
                     logger.info(
-                        "temp eval complete split={} reward={} artifacts={} elapsed_s={}",
+                        "temp eval complete split={} reward={} artifacts={} elapsed_s={:.3f}",
                         split_ctx.split, final_reward, artifact_prefix, _elapsed,
                     )
                 else:
@@ -517,7 +517,7 @@ class TrainerRuntimeHooks:
                     )
 
         logger.info(
-            "temp eval all splits done step={} total_elapsed_s={}",
+            "temp eval all splits done step={} total_elapsed_s={:.3f}",
             step_number, time.monotonic() - _t_total,
         )
 
