@@ -34,6 +34,25 @@ are modular and independently testable.
 uv sync --extra dev
 ```
 
+## Rendering the Thesis
+
+`uv sync` only installs Python dependencies. Rendering `thesis/qmd/src/masters-thesis.qmd`
+also needs Quarto, a TeX distribution (xelatex), and the Latin Modern Roman
+font that the plot theme uses — none of which are Python packages. Tasks for
+these are defined with [poethepoet](https://poethepoet.natn.io/) in
+`pyproject.toml`:
+
+<!--pytest.mark.skip-->
+```bash
+uv run poe setup       # one-time: install Quarto, TinyTeX, and thesis fonts
+uv run poe thesis-pdf  # render thesis/qmd/src/masters_thesis.pdf
+uv run poe thesis-html # render the HTML version
+```
+
+`uv run poe setup` runs `brew install --cask quarto`, which needs an
+interactive sudo password — run it yourself in a real terminal rather than
+through an automated agent. Run `uv run poe --help` to list all tasks.
+
 ## Quick Start
 
 Common commands:

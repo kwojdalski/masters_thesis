@@ -50,6 +50,7 @@ dependencies = [
     "gdown>=5.2.1",
     "papermill>=2.7.0",
     "loguru>=0.7.3",
+    "markdown>=3.10.3",
 ]
 
 [project.optional-dependencies]
@@ -140,6 +141,7 @@ docstring-code-format = true
 dev = [
     "jupyter>=1.1.1",
     "nbformat>=5.10.4",
+    "poethepoet>=0.48.0",
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -154,3 +156,31 @@ ban-relative-imports = "all"
 override-dependencies = [
     "flask>=3.1.3",
 ]
+
+[tool.poe.tasks]
+test = "uv run pytest"
+lint = "uv run ruff check ."
+
+[tool.poe.tasks.fonts]
+cmd = "uv run python scripts/install_thesis_fonts.py"
+help = "Install and rename Latin Modern Roman fonts so matplotlib/plotnine can find them"
+
+[tool.poe.tasks.quarto-install]
+shell = "brew install --cask quarto && quarto install tinytex --no-prompt"
+help = "Install the Quarto CLI and TinyTeX (interactive: needs your sudo password)"
+
+[tool.poe.tasks.setup]
+sequence = ["quarto-install", "fonts"]
+help = "Bootstrap everything uv sync does not cover: Quarto, TinyTeX, thesis fonts"
+
+[tool.poe.tasks.thesis-pdf]
+cmd = "uv run quarto render thesis/qmd/src/masters-thesis.qmd --to pdf"
+help = "Render the thesis to PDF (pulls in latest experiment results via pre-render hook)"
+
+[tool.poe.tasks.thesis-html]
+cmd = "uv run quarto render thesis/qmd/src/masters-thesis.qmd --to html"
+help = "Render the thesis to HTML"
+
+[tool.poe.tasks.thesis-docx]
+cmd = "uv run quarto render thesis/qmd/src/masters-thesis.qmd --to docx"
+help = "Render the thesis to DOCX"
