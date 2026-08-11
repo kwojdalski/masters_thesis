@@ -53,6 +53,30 @@ uv run poe thesis-html # render the HTML version
 interactive sudo password — run it yourself in a real terminal rather than
 through an automated agent. Run `uv run poe --help` to list all tasks.
 
+### Troubleshooting
+
+- **`quarto: command not found` right after `uv run poe setup`.** The
+  `sudo` prompt from `brew install --cask quarto` was likely skipped or
+  cancelled (e.g. run from a non-interactive shell). Homebrew still records
+  the cask as installed even though the installer never ran, so a plain
+  retry does nothing (`Warning: Not upgrading quarto, the latest version is
+  already installed`). Force it:
+
+  <!--pytest.mark.skip-->
+  ```bash
+  brew reinstall --cask quarto
+  which quarto   # should print a path once it actually succeeded
+  uv run poe setup
+  ```
+
+- **`findfont: Font family 'Latin Modern Roman' not found`** when
+  generating plots. Re-run the font task on its own:
+
+  <!--pytest.mark.skip-->
+  ```bash
+  uv run poe fonts
+  ```
+
 ## Quick Start
 
 Common commands:
