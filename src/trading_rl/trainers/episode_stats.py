@@ -171,7 +171,7 @@ class EpisodeStatsTracker:
         steps_label = f" {steps_key}={steps_val}"
         symbol, start_ts, end_ts = self._get_current_episode_context()
         episode_ctx = (
-            f" symbol={symbol} date_range=[{start_ts} {end_ts}]"
+            f" symbol={symbol} start_ts={start_ts} end_ts={end_ts}"
             if symbol else ""
         )
         pct_extreme: float | None = None
