@@ -3,10 +3,13 @@ name: Publish Thesis to GitHub Pages
 on:
   push:
     branches: [master]
+    paths:
+      - "thesis/**"
+      - ".github/workflows/publish.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -29,6 +32,8 @@ jobs:
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -42,9 +47,7 @@ jobs:
 
 
       - name: Install Python dependencies
-        run: |
-          uv sync --extra dev
-          uv run python -m ipykernel install --user --name masters_thesis --display-name "Masters Thesis"
+        run: uv sync --extra dev
 
       - name: Render thesis to HTML
         run: |
@@ -57,6 +60,18 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
           MPLBACKEND: Agg
+
+      - name: Render thesis to PDF
+        run: uv run quarto render thesis/qmd/src/masters-thesis.qmd --to pdf
+        env:
+          PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
+          MPLBACKEND: Agg
+
+      - name: Commit regenerated PDF
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: thesis/qmd/src/masters_thesis.pdf
+          commit_message: "Chore: auto-render thesis PDF [skip ci]"
 
       - name: Copy PDF to site
         run: |
