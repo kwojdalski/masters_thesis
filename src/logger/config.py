@@ -10,6 +10,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from dotenv import find_dotenv, load_dotenv
+
+# Load .env before any env-backed default below is evaluated. No-op if no
+# .env file exists.
+load_dotenv(find_dotenv())
+
 
 @dataclass
 class LoggingConfig:

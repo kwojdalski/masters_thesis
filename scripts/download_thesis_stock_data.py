@@ -23,8 +23,11 @@ from typing import Annotated
 
 import pyarrow.parquet as pq
 import typer
+from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
 from rich.table import Table
+
+load_dotenv(find_dotenv())
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 console = Console()

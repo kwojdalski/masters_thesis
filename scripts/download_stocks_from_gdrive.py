@@ -26,6 +26,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+from dotenv import find_dotenv, load_dotenv
+
+load_dotenv(find_dotenv())
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from logger import setup_component_logger

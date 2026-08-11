@@ -5,6 +5,10 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import find_dotenv, load_dotenv
+
+load_dotenv(find_dotenv())
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CLAUDE_MD = PROJECT_ROOT / "CLAUDE.md"
 MODEL = "claude-haiku-4-5-20251001"

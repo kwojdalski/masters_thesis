@@ -21,7 +21,10 @@ from pathlib import Path
 
 import typer
 import yaml
+from dotenv import find_dotenv, load_dotenv
 from typing_extensions import Annotated
+
+load_dotenv(find_dotenv())
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

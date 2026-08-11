@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import find_dotenv, load_dotenv
 
 try:
     from omegaconf import OmegaConf
@@ -14,6 +15,10 @@ except ImportError:  # pragma: no cover - optional dependency
     OmegaConf = None
 
 from trading_rl.constants import ActionPenaltyType, Algorithm, BenchmarkName, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, MetricName, RewardType, SplitName, StatisticalTest, TradePosition
+
+# Load .env before any env-backed default below is evaluated. No-op if no
+# .env file exists (e.g. CI, or a machine that only sets real env vars).
+load_dotenv(find_dotenv())
 
 _COMMAND_STEMS = {"train", "evaluate", "experiment"}
 

@@ -24,6 +24,7 @@ dependencies = [
     "pyyaml>=6.0",
     "omegaconf>=2.3.0",
     "databento>=0.52.0",
+    "python-dotenv>=1.0.0",
     # Deep learning and RL
     "torch>=2.8.0",
     "torchrl>=0.7.0",
