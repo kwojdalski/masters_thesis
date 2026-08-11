@@ -359,7 +359,7 @@ def create_default_pipeline() -> FeaturePipeline:
         - feature_high: High relative to close (normalized)
         - feature_low: Low relative to close (normalized)
         - feature_log_volume: Log volume (normalized)
-        - feature_trend: Price trend from start (min-max scaled)
+        - feature_trend: Price trend from start (normalized)
 
     Example:
         pipeline = create_default_pipeline()
@@ -397,7 +397,7 @@ def create_default_pipeline() -> FeaturePipeline:
         FeatureConfig(
             name="trend",
             feature_type="trend",
-            normalize=False,  # Uses custom min-max scaling
+            normalize=True,
             params={},
         ),
     ]
