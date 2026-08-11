@@ -24,6 +24,11 @@ try:
 except Exception:
     _write_asset_meta = None
 
+try:
+    from trading_rl.config import EXPERIMENT_OUTPUT_DIR as _EXPERIMENT_OUTPUT_DIR
+except Exception:
+    _EXPERIMENT_OUTPUT_DIR = Path("logs")
+
 
 def _repo_root() -> Path:
     # thesis/qmd/src/thesis_mlflow_results.py -> repo root is 3 levels up
@@ -170,7 +175,7 @@ def _scenario_log_dirs(experiment_name: str) -> list[Path]:
     (e.g. "pooled/td3_..." → "td3_...").  To cover both the training dir
     (pooled_td3_...) and the evaluate output dir (td3_...) we probe both.
     """
-    logs_root = _repo_root() / "logs"
+    logs_root = _repo_root() / _EXPERIMENT_OUTPUT_DIR
     candidates: list[Path] = [logs_root / experiment_name]
     # Strip the first underscore-delimited component to derive the LOG_NAME.
     parts = experiment_name.split("_", 1)
@@ -937,7 +942,7 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
         pass
 
     # 3. logs/{log_name}/results.json
-    logs_root = _repo_root() / "logs"
+    logs_root = _repo_root() / _EXPERIMENT_OUTPUT_DIR
     parts = scenario_name.split("_", 1)
     log_name = parts[1] if len(parts) == 2 else scenario_name
     for candidate in (log_name, scenario_name):

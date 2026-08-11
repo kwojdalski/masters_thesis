@@ -1,6 +1,7 @@
 """Configuration for trading RL experiments."""
 
 import datetime
+import os
 from dataclasses import dataclass, field, is_dataclass
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,11 @@ except ImportError:  # pragma: no cover - optional dependency
 from trading_rl.constants import ActionPenaltyType, Algorithm, BenchmarkName, EnvBackend, EnvMode, EvalSymbolSelection, ExplainabilityMethod, LossFunction, MetricName, RewardType, SplitName, StatisticalTest, TradePosition
 
 _COMMAND_STEMS = {"train", "evaluate", "experiment"}
+
+# Root directory for per-run experiment artifacts (checkpoints, results.json,
+# benchmark tables, plots) written by train/evaluate. Distinct from the
+# `logger` package's RL_LOG_DIR, which is for rotating text logs only.
+EXPERIMENT_OUTPUT_DIR = Path(os.environ.get("EXPERIMENT_OUTPUT_DIR", "logs"))
 
 
 def _derive_experiment_name(path: Path) -> str:
@@ -46,9 +52,9 @@ def _apply_derived_defaults(config_dict: dict, derived_name: str) -> None:
 
     log_dict = config_dict.get("logging")
     if log_dict is None:
-        config_dict["logging"] = {"log_dir": str(Path("logs") / derived_name)}
+        config_dict["logging"] = {"log_dir": str(EXPERIMENT_OUTPUT_DIR / derived_name)}
     elif isinstance(log_dict, dict) and "log_dir" not in log_dict:
-        log_dict["log_dir"] = str(Path("logs") / derived_name)
+        log_dict["log_dir"] = str(EXPERIMENT_OUTPUT_DIR / derived_name)
 
 
 # HFT-appropriate metric set: excludes CAGR and Calmar, which annualise
@@ -373,7 +379,7 @@ class EvaluationConfig:
 class LoggingConfig:
     """Logging configuration."""
 
-    log_dir: str = "logs"
+    log_dir: str = str(EXPERIMENT_OUTPUT_DIR)
     log_file: str = "trading_env_debug.log"
     log_level: str = "INFO"
     tensorboard_dir: str = "runs"

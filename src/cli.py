@@ -45,6 +45,7 @@ from cli.commands import (
 )
 from logger import setup_logging as _setup_root_logging
 from trading_rl import ExperimentConfig
+from trading_rl.config import EXPERIMENT_OUTPUT_DIR
 
 # Ensure matplotlib can cache fonts to a writable directory
 if "MPLCONFIGDIR" in os.environ:
@@ -125,7 +126,7 @@ artifacts_cmd = ArtifactsCommand(console)
 @app.command(name="checkpoints")
 def checkpoints(
     log_dir: Path = typer.Option(  # noqa: B008
-        Path("logs"), "--log-dir", help="Root directory to scan for checkpoints"
+        EXPERIMENT_OUTPUT_DIR, "--log-dir", help="Root directory to scan for checkpoints"
     ),
     delete: str | None = typer.Option(
         None, "--delete", help="Delete checkpoints matching regex"

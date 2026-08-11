@@ -35,6 +35,7 @@ from pathlib import Path
 import yaml
 
 from logger import get_logger, setup_logging
+from trading_rl.config import EXPERIMENT_OUTPUT_DIR
 
 logger = get_logger(__name__)
 
@@ -297,8 +298,8 @@ def _resolve_eval_dir(scenario: str | None, output_dir: Path | None, repo_root: 
     """
     if scenario:
         log_name = scenario.split("/")[-1]
-        primary = repo_root / "logs" / log_name
-        fallback = repo_root / "logs" / scenario.replace("/", "_")
+        primary = repo_root / EXPERIMENT_OUTPUT_DIR / log_name
+        fallback = repo_root / EXPERIMENT_OUTPUT_DIR / scenario.replace("/", "_")
     else:
         assert output_dir is not None
         primary = output_dir.resolve()

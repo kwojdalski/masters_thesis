@@ -37,9 +37,17 @@ import typer
 from rich.console import Console
 from rich.markup import escape
 
+from logger.config import get_global_config as _get_global_logging_config
+from trading_rl.config import EXPERIMENT_OUTPUT_DIR
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _CLI = ["uv", "run", "python", str(_REPO_ROOT / "src" / "cli.py")]
-_LOG_DIR = _REPO_ROOT / "logs"
+# Plain-text subprocess captures (guardrails/train/eval .log files) vs.
+# structured evaluate output (results.json, benchmark_tables/, plots) --
+# these are separately configurable (RL_LOG_DIR vs EXPERIMENT_OUTPUT_DIR)
+# even though both default to "logs".
+_TEXT_LOG_DIR = _REPO_ROOT / Path(_get_global_logging_config().log_dir)
+_EXPERIMENT_OUTPUT_DIR = _REPO_ROOT / EXPERIMENT_OUTPUT_DIR
 
 _con = Console()
 _err = Console(stderr=True)
@@ -117,7 +125,7 @@ def _scenario_name(scenario: str) -> str:
 
 
 def _log_file(scenario: str, suffix: str) -> Path:
-    return _LOG_DIR / f"{_scenario_name(scenario)}_{suffix}.log"
+    return _TEXT_LOG_DIR / f"{_scenario_name(scenario)}_{suffix}.log"
 
 
 def _override_flags(overrides: list[str]) -> list[str]:
@@ -270,7 +278,7 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
     overrides = list(args.overrides)
 
     def _cmd(scenario: str) -> list[str]:
-        output_dir = str(_LOG_DIR / _scenario_name(scenario))
+        output_dir = str(_EXPERIMENT_OUTPUT_DIR / _scenario_name(scenario))
         cmd = [
             *_CLI, "evaluate",
             "-c", scenario,
@@ -287,7 +295,7 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
     else:
         for scenario in scenarios:
             log = _log_file(scenario, "eval")
-            output_dir = _LOG_DIR / _scenario_name(scenario)
+            output_dir = _EXPERIMENT_OUTPUT_DIR / _scenario_name(scenario)
             _con.print(f"Evaluating [cyan]{escape(scenario)}[/cyan]  [dim]->[/dim]  [dim]{escape(str(output_dir))}[/dim]")
             _run_tee(_cmd(scenario), log)
             _con.print(f"  [green]done.[/green]")
@@ -316,7 +324,8 @@ def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
     eval_only = _EVAL_ONLY[hypothesis]
     skip_guardrails = args.skip_guardrails or args.dev
 
-    _LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _TEXT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _EXPERIMENT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     if args.dev:
         _con.print(
