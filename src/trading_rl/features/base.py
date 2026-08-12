@@ -75,8 +75,12 @@ class RollingWindowScaler:
 
         # Compute rolling mean and std (causal - only looks at past)
         # Shift by 1 to ensure x_t is normalized using only previous values
-        rolling_mean = s.rolling(window=self.window, min_periods=self.min_periods).mean().shift(1)
-        rolling_std = s.rolling(window=self.window, min_periods=self.min_periods).std().shift(1)
+        rolling_mean = (
+            s.rolling(window=self.window, min_periods=self.min_periods).mean().shift(1)
+        )
+        rolling_std = (
+            s.rolling(window=self.window, min_periods=self.min_periods).std().shift(1)
+        )
 
         # Normalize: (x - rolling_mean) / rolling_std
         # Fill NaNs (from insufficient window) with 0 or forward fill
@@ -284,7 +288,9 @@ class TimeWeightedRunningMeanStd:
         self._fitted = False
         return self
 
-    def update(self, x: np.ndarray, time_weights: np.ndarray | None = None) -> "TimeWeightedRunningMeanStd":
+    def update(
+        self, x: np.ndarray, time_weights: np.ndarray | None = None
+    ) -> "TimeWeightedRunningMeanStd":
         """Update running statistics with new data batch.
 
         Args:
@@ -353,7 +359,9 @@ class TimeWeightedRunningMeanStd:
         if isinstance(data, pd.Series):
             # Compute time weights from DatetimeIndex if not provided
             if time_weights is None and isinstance(data.index, pd.DatetimeIndex):
-                time_weights = data.index.to_series().diff().dt.total_seconds().fillna(1.0)
+                time_weights = (
+                    data.index.to_series().diff().dt.total_seconds().fillna(1.0)
+                )
                 time_weights = time_weights.values
             data = data.values
 
@@ -467,7 +475,9 @@ class FeatureConfig:
     feature_type: str
     params: dict[str, Any] | None = None
     normalize: bool = True
-    normalization_method: str = NormalizationMethod.RUNNING  # Default to running (causal)
+    normalization_method: str = (
+        NormalizationMethod.RUNNING
+    )  # Default to running (causal)
     rolling_window: int = 1000
     reset_on_session_break: bool = True  # Reset stats at overnight/weekend gaps
     session_break_threshold_hours: float = 1.0  # 1 hour gap = session break
@@ -511,13 +521,26 @@ class Feature(ABC):
     def __init__(self, config: FeatureConfig):
         self.config = config
         self.scaler: (
-            StandardScaler | RollingWindowScaler | RunningMeanStd | TimeWeightedRunningMeanStd | None
+            StandardScaler
+            | RollingWindowScaler
+            | RunningMeanStd
+            | TimeWeightedRunningMeanStd
+            | None
         ) = None
-        if config.normalize and config.normalization_method == NormalizationMethod.GLOBAL:
+        if (
+            config.normalize
+            and config.normalization_method == NormalizationMethod.GLOBAL
+        ):
             self.scaler = StandardScaler()
-        elif config.normalize and config.normalization_method == NormalizationMethod.ROLLING:
+        elif (
+            config.normalize
+            and config.normalization_method == NormalizationMethod.ROLLING
+        ):
             self.scaler = RollingWindowScaler(window=config.rolling_window)
-        elif config.normalize and config.normalization_method == NormalizationMethod.RUNNING:
+        elif (
+            config.normalize
+            and config.normalization_method == NormalizationMethod.RUNNING
+        ):
             if config.use_time_weights:
                 self.scaler = TimeWeightedRunningMeanStd()
             else:
@@ -560,7 +583,10 @@ class Feature(ABC):
                 valid_values = raw_values.dropna().values.reshape(-1, 1)
                 if len(valid_values) > 0:
                     self.scaler.fit(valid_values)
-            elif isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd, TimeWeightedRunningMeanStd)):
+            elif isinstance(
+                self.scaler,
+                RollingWindowScaler | RunningMeanStd | TimeWeightedRunningMeanStd,
+            ):
                 # RollingWindowScaler, RunningMeanStd, TimeWeightedRunningMeanStd: fit updates stats
                 self.scaler.fit(raw_values)
         return self
@@ -584,10 +610,13 @@ class Feature(ABC):
                 else:
                     normalized = self.scaler.transform(raw_values)
                     result = pd.Series(normalized, index=raw_values.index, dtype=float)
-            elif isinstance(self.scaler, RunningMeanStd) and self.config.reset_on_session_break:
+            elif (
+                isinstance(self.scaler, RunningMeanStd)
+                and self.config.reset_on_session_break
+            ):
                 # Session-aware running normalization: reset at overnight/weekend gaps
                 result = self._transform_session_aware(raw_values)
-            elif isinstance(self.scaler, (RollingWindowScaler, RunningMeanStd)):
+            elif isinstance(self.scaler, RollingWindowScaler | RunningMeanStd):
                 # RollingWindowScaler and non-session-aware RunningMeanStd handle NaNs internally
                 normalized = self.scaler.transform(raw_values)
                 result = pd.Series(normalized, index=raw_values.index, dtype=float)
@@ -611,7 +640,9 @@ class Feature(ABC):
                     logger.warning(
                         "feature {} transform output abs_max={} exceeds {} "
                         "— possible gradient explosion risk",
-                        self.config.name, abs_max, _FEATURE_CLIP_WARN,
+                        self.config.name,
+                        abs_max,
+                        _FEATURE_CLIP_WARN,
                     )
         return result
 
@@ -646,7 +677,11 @@ class Feature(ABC):
 
         for i in range(len(session_starts)):
             start_idx = session_starts[i]
-            end_idx = session_starts[i + 1] if i + 1 < len(session_starts) else len(raw_values)
+            end_idx = (
+                session_starts[i + 1]
+                if i + 1 < len(session_starts)
+                else len(raw_values)
+            )
 
             if start_idx >= len(raw_values):
                 break
@@ -658,7 +693,9 @@ class Feature(ABC):
             saved_scaler = self.scaler
             self.scaler = RunningMeanStd(epsilon=saved_scaler.epsilon)
             try:
-                normalized_session = self._transform_running_session_online(session_data)
+                normalized_session = self._transform_running_session_online(
+                    session_data
+                )
             finally:
                 self.scaler = saved_scaler
             all_normalized.append(normalized_session)
@@ -672,7 +709,9 @@ class Feature(ABC):
             normalized = self.scaler.transform(raw_values)
             return pd.Series(normalized, index=raw_values.index, dtype=float)
 
-    def _transform_session_aware_time_weighted(self, raw_values: pd.Series) -> pd.Series:
+    def _transform_session_aware_time_weighted(
+        self, raw_values: pd.Series
+    ) -> pd.Series:
         """Transform with session resets for time-weighted running normalization.
 
         Similar to _transform_session_aware but uses time-weighted statistics.
@@ -701,7 +740,11 @@ class Feature(ABC):
 
         for i in range(len(session_starts)):
             start_idx = session_starts[i]
-            end_idx = session_starts[i + 1] if i + 1 < len(session_starts) else len(raw_values)
+            end_idx = (
+                session_starts[i + 1]
+                if i + 1 < len(session_starts)
+                else len(raw_values)
+            )
 
             if start_idx >= len(raw_values):
                 break
@@ -748,7 +791,7 @@ class Feature(ABC):
 
         with np.errstate(divide="ignore", invalid="ignore"):
             mean = np.where(counts > 0, running_sum / counts, 0.0)
-            var = np.where(counts > 0, running_sum_sq / counts - mean ** 2, 0.0)
+            var = np.where(counts > 0, running_sum_sq / counts - mean**2, 0.0)
             var = np.maximum(var, 0.0)
             epsilon = self.scaler.epsilon
             normalized = np.where(
@@ -773,7 +816,7 @@ class Feature(ABC):
         else:
             weights = np.ones(len(values), dtype=float)
 
-        for value, weight in zip(values, weights):
+        for value, weight in zip(values, weights, strict=False):
             if pd.isna(value):
                 normalized_values.append(0.0)
                 continue

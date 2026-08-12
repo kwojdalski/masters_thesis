@@ -31,7 +31,11 @@ VARIANTS = {
     "lmroman10-regular.otf": ("Regular", "Regular", "LatinModernRoman-Regular"),
     "lmroman10-bold.otf": ("Bold", "Bold", "LatinModernRoman-Bold"),
     "lmroman10-italic.otf": ("Italic", "Italic", "LatinModernRoman-Italic"),
-    "lmroman10-bolditalic.otf": ("Bold Italic", "Bold Italic", "LatinModernRoman-BoldItalic"),
+    "lmroman10-bolditalic.otf": (
+        "Bold Italic",
+        "Bold Italic",
+        "LatinModernRoman-BoldItalic",
+    ),
 }
 
 
@@ -39,16 +43,21 @@ def _ensure_source_fonts() -> None:
     missing = [name for name in VARIANTS if not (FONTS_DIR / name).exists()]
     if not missing:
         return
-    if not shutil.which("brew"):
+    brew = shutil.which("brew")
+    if not brew:
         raise SystemExit(
             f"Missing font files {missing} and Homebrew is not available.\n"
             "Install Latin Modern manually, then re-run this script."
         )
     print("Installing font-latin-modern cask via Homebrew...")
-    subprocess.run(["brew", "install", "--cask", "font-latin-modern"], check=True)
+    subprocess.run(  # noqa: S603 -- resolved via shutil.which, fixed args
+        [brew, "install", "--cask", "font-latin-modern"], check=True
+    )
 
 
-def _rename_family(src_name: str, subfamily: str, pref_subfamily: str, ps_name: str) -> Path:
+def _rename_family(
+    src_name: str, subfamily: str, pref_subfamily: str, ps_name: str
+) -> Path:
     font = TTFont(FONTS_DIR / src_name)
     name_table = font["name"]
 
@@ -85,7 +94,9 @@ def _refresh_matplotlib_cache() -> None:
     # this process.
     fm.fontManager = fm._load_fontmanager(try_read_cache=False)
     resolved = fm.findfont(fm.FontProperties(family=FAMILY))
-    if Path(resolved).stem not in {Path(FONTS_DIR / f"{ps}.otf").stem for *_, ps in VARIANTS.values()}:
+    if Path(resolved).stem not in {
+        Path(FONTS_DIR / f"{ps}.otf").stem for *_, ps in VARIANTS.values()
+    }:
         raise SystemExit(f"font resolution failed: matplotlib picked {resolved}")
     print(f"matplotlib resolves '{FAMILY}' -> {resolved}")
 

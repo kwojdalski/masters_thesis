@@ -89,7 +89,12 @@ def _resolve_symbol_index(
     """
     if strategy == EvalSymbolSelection.RANDOM:
         idx = int(np.random.default_rng(seed).integers(n_symbols))
-        logger.info("eval_symbol_selection=random seed={} picked idx={} of {}", seed, idx, n_symbols)
+        logger.info(
+            "eval_symbol_selection=random seed={} picked idx={} of {}",
+            seed,
+            idx,
+            n_symbols,
+        )
         return idx
     if strategy == EvalSymbolSelection.ROTATED:
         counter_path = (memmap_dir / ".eval_symbol_counter") if memmap_dir else None
@@ -103,7 +108,12 @@ def _resolve_symbol_index(
         if counter_path:
             counter_path.parent.mkdir(parents=True, exist_ok=True)
             counter_path.write_text(str(count + 1))
-        logger.info("eval_symbol_selection=rotated counter={} idx={} of {}", count, idx, n_symbols)
+        logger.info(
+            "eval_symbol_selection=rotated counter={} idx={} of {}",
+            count,
+            idx,
+            n_symbols,
+        )
         return idx
     # EvalSymbolSelection.FIRST or unrecognised
     return 0
@@ -140,7 +150,9 @@ class PrepareDataConfig:
             data_dir=getattr(cfg, "data_dir", "data"),
             since=getattr(cfg, "download_since", None),
             feature_config_path=getattr(cfg, "feature_config", None),
-            feature_cache_dir=getattr(cfg, "feature_cache_dir", ".cache/feature_transformation"),
+            feature_cache_dir=getattr(
+                cfg, "feature_cache_dir", ".cache/feature_transformation"
+            ),
             filter_lob_levels=getattr(cfg, "filter_lob_levels", None),
         )
 
@@ -157,7 +169,11 @@ def _resolve_feature_pipeline(config: Any, logger: Any) -> Any:
     group_names = resolver.list_groups()
     logger.info("use feature groups n={} source={}", len(group_names), feature_groups)
     pipeline = FeaturePipeline(resolver.resolve(group_names))
-    logger.info("build feature pipeline n_features={} n_groups={}", len(pipeline.features), len(group_names))
+    logger.info(
+        "build feature pipeline n_features={} n_groups={}",
+        len(pipeline.features),
+        len(group_names),
+    )
     return pipeline
 
 
@@ -174,7 +190,12 @@ def _apply_warmup_skip(
             f"warmup_rows ({warmup_rows}) must be less than training split size ({len(train_df)})"
             + (f" [{label}]" if label else "")
         )
-    logger.info("warmup skip n_rows={} train_size_before={}{}", warmup_rows, len(train_df), f" [{label}]" if label else "")
+    logger.info(
+        "warmup skip n_rows={} train_size_before={}{}",
+        warmup_rows,
+        len(train_df),
+        f" [{label}]" if label else "",
+    )
     return train_df.iloc[warmup_rows:]
 
 
@@ -186,8 +207,12 @@ def _finalize_splits(
     logger: Any,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Apply post-processing transforms and validation."""
-    train_df, val_df, test_df = ensure_close_column_for_hft(train_df, val_df, test_df, config, logger)
-    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(train_df, val_df, test_df, config, logger)
+    train_df, val_df, test_df = ensure_close_column_for_hft(
+        train_df, val_df, test_df, config, logger
+    )
+    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(
+        train_df, val_df, test_df, config, logger
+    )
     warmup_rows = getattr(config.data, "warmup_rows", 0)
     train_df = _apply_warmup_skip(train_df, warmup_rows, logger)
     validate_prepared_data(train_df, val_df, test_df, config)
@@ -203,11 +228,14 @@ def _make_dataset(
     feature_pipeline_state: dict[str, dict[str, float]] | None = None,
 ) -> PreparedDataset:
     """Detect feature/price columns and construct a PreparedDataset."""
-    feature_columns = [col for col in train_df.columns if str(col).startswith("feature_")]
+    feature_columns = [
+        col for col in train_df.columns if str(col).startswith("feature_")
+    ]
     configured_price_column = getattr(config.env, "price_column", None)
     price_column = (
         configured_price_column
-        if isinstance(configured_price_column, str) and configured_price_column in train_df.columns
+        if isinstance(configured_price_column, str)
+        and configured_price_column in train_df.columns
         else "close"
     )
     return PreparedDataset(
@@ -230,7 +258,9 @@ def _build_single_symbol_splits(
     prep_cfg = PrepareDataConfig.from_config(config.data)
     train_df, val_df, test_df = prepare_data(config.data.data_path, prep_cfg, pipeline)
     pipeline_state = dump_pipeline_state(pipeline)
-    train_df, val_df, test_df = _finalize_splits(train_df, val_df, test_df, config, logger)
+    train_df, val_df, test_df = _finalize_splits(
+        train_df, val_df, test_df, config, logger
+    )
     return train_df, val_df, test_df, pipeline_state
 
 
@@ -253,7 +283,9 @@ class _WorkerArgs:
     feature_cache_dir_str: str | None
 
 
-def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], dict[str, str] | None, int | None]:
+def _per_symbol_worker(
+    args: _WorkerArgs,
+) -> tuple[str, list[tuple[int, Any]], dict[str, str] | None, int | None]:
     """Process one symbol: fit pipeline, transform train files, transform val file.
 
     Runs in a subprocess — all imports are local and config is passed as plain types.
@@ -313,6 +345,7 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
         df = load_trading_data(path).dropna()
         if filter_lob_levels is not None:
             from trading_rl.data.lob_filters import filter_unchanged_lob
+
             df = filter_unchanged_lob(df, levels=filter_lob_levels)
         return df
 
@@ -321,14 +354,22 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
             return None
         mtime = _Path(path).stat().st_mtime_ns
         _cfg = _Path(feature_config) if feature_config else None
-        cfg_sig = _hashlib.md5(_cfg.read_bytes()).hexdigest()[:12] if (_cfg and _cfg.exists()) else "default"
-        key = _hashlib.md5(f"{_Path(path).name}|{mtime}|lob{filter_lob_levels}|{cfg_sig}".encode()).hexdigest()
+        cfg_sig = (
+            _hashlib.md5(_cfg.read_bytes(), usedforsecurity=False).hexdigest()[:12]
+            if (_cfg and _cfg.exists())
+            else "default"
+        )
+        key = _hashlib.md5(
+            f"{_Path(path).name}|{mtime}|lob{filter_lob_levels}|{cfg_sig}".encode(),
+            usedforsecurity=False,
+        ).hexdigest()
         return _Path(feature_cache_dir_str) / key / "full.parquet"
 
     # ── 1. Fit pipeline ───────────────────────────────────────────────────────
     pipeline = FeaturePipeline.from_yaml(feature_config)
     needs_full_concat = any(
-        fc.normalize and (
+        fc.normalize
+        and (
             fc.normalization_method == NormalizationMethod.GLOBAL
             or (
                 fc.normalization_method == NormalizationMethod.RUNNING
@@ -337,7 +378,12 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
         )
         for fc in pipeline.feature_configs
     )
-    _logger.info("fit pipeline symbol={} n_days={} incremental={}", symbol, len(train_paths_sym), not needs_full_concat)
+    _logger.info(
+        "fit pipeline symbol={} n_days={} incremental={}",
+        symbol,
+        len(train_paths_sym),
+        not needs_full_concat,
+    )
     if needs_full_concat:
         raw_parts = [_load(p) for p in train_paths_sym]
         combined = _pd.concat(raw_parts)
@@ -354,7 +400,7 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
 
     # ── 2. Transform training files ───────────────────────────────────────────
     train_results: list[tuple[int, Any]] = []
-    for orig_idx, train_path in zip(train_indices, train_paths_sym):
+    for orig_idx, train_path in zip(train_indices, train_paths_sym, strict=False):
         _logger.info("transform train path={}", train_path)
         _fcp = _feat_cache_path(train_path) if not needs_full_concat else None
         if _fcp is not None and _fcp.exists():
@@ -370,9 +416,13 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
                 train_df_i.to_parquet(_fcp)
 
         if mode == EnvMode.HFT:
-            train_df_i = _derive_close_hft_single(train_df_i, f"train_{orig_idx}", _logger)
+            train_df_i = _derive_close_hft_single(
+                train_df_i, f"train_{orig_idx}", _logger
+            )
         if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
-            train_df_i = _deduplicate_hft_index_single(train_df_i, f"train_{orig_idx}", _logger)
+            train_df_i = _deduplicate_hft_index_single(
+                train_df_i, f"train_{orig_idx}", _logger
+            )
 
         if warmup_rows > 0 and warmup_rows < len(train_df_i):
             train_df_i = train_df_i.iloc[warmup_rows:]
@@ -384,11 +434,16 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
             expected_cols = list(train_df_i.select_dtypes(include=[_np.number]).columns)
             if memmap_marker.exists():
                 cached_data = _np.load(memmap_marker, mmap_mode="r")
-                cached_cols = _json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
+                cached_cols = _json.loads(
+                    (memmap_dir / f"{prefix}_columns.json").read_text()
+                )
                 symbol_file = memmap_dir / f"{prefix}_symbol.txt"
                 if not symbol_file.exists() and symbol:
                     symbol_file.write_text(symbol)
-                if cached_data.shape[0] == len(train_df_i) and cached_cols == expected_cols:
+                if (
+                    cached_data.shape[0] == len(train_df_i)
+                    and cached_cols == expected_cols
+                ):
                     memmap_entry = {
                         "data_path": str(memmap_marker),
                         "index_path": str(memmap_dir / f"{prefix}_train_index.npy"),
@@ -397,7 +452,9 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
                         "symbol": symbol,
                     }
                 else:
-                    mp = save_symbol_memmap(train_df_i, memmap_dir, prefix, symbol=symbol)
+                    mp = save_symbol_memmap(
+                        train_df_i, memmap_dir, prefix, symbol=symbol
+                    )
                     memmap_entry = {
                         "data_path": str(mp.data_path),
                         "index_path": str(mp.index_path),
@@ -438,7 +495,9 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
         if mode == EnvMode.HFT:
             val_df_j = _derive_close_hft_single(val_df_j, f"val_{val_index}", _logger)
         if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
-            val_df_j = _deduplicate_hft_index_single(val_df_j, f"val_{val_index}", _logger)
+            val_df_j = _deduplicate_hft_index_single(
+                val_df_j, f"val_{val_index}", _logger
+            )
 
         mid = len(val_df_j) // 2
         val_p = tmp_dir / f"{val_index}_val.parquet"
@@ -450,6 +509,7 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
         _gc.collect()
 
     from trading_rl.data.loading import dump_pipeline_state as _dump_pipeline_state
+
     pipeline_state = _dump_pipeline_state(pipeline)
     return symbol, train_results, val_entry, val_index, pipeline_state
 
@@ -463,7 +523,9 @@ def _build_per_day_splits(
     symbol_index: int = 0,
     progress_callback: Callable[[str], None] | None = None,
     prepared_dir: Path | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None, dict | None]:
+) -> tuple[
+    pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None, dict | None
+]:
     """Process per-(symbol, day) training files with separate validation files.
 
     Training files are used in full (no internal split).  One feature pipeline
@@ -509,7 +571,9 @@ def _build_per_day_splits(
     # the legacy config.data.symbols field (default: ["BTC/USDT"]) is irrelevant.
     config_symbols = getattr(getattr(config, "data", None), "symbols", None)
     has_data_paths = bool(getattr(getattr(config, "data", None), "data_paths", None))
-    known_symbols = set(config_symbols) if (config_symbols and not has_data_paths) else None
+    known_symbols = (
+        set(config_symbols) if (config_symbols and not has_data_paths) else None
+    )
 
     # Group training paths by symbol, preserving original indices
     symbol_train_paths: dict[str, list[str]] = defaultdict(list)
@@ -545,29 +609,35 @@ def _build_per_day_splits(
         else min(_cfg_workers, len(all_symbols))
     )
     logger.info(
-        "per-day mode: processing {} symbols with {} workers", len(all_symbols), n_workers
+        "per-day mode: processing {} symbols with {} workers",
+        len(all_symbols),
+        n_workers,
     )
 
     worker_args = []
     for worker_idx, sym in enumerate(all_symbols, start=1):
         val_p, val_j = symbol_val_path.get(sym, (None, None))
-        worker_args.append(_WorkerArgs(
-            symbol=sym,
-            train_indices=symbol_train_indices[sym],
-            train_paths_sym=symbol_train_paths[sym],
-            val_path=val_p,
-            val_index=val_j,
-            feature_config=feature_config,
-            mode=mode,
-            backend=backend,
-            filter_lob_levels=filter_lob_levels,
-            warmup_rows=warmup_rows,
-            memmap_dir_str=str(memmap_dir) if memmap_dir else None,
-            tmp_dir_str=str(tmp_dir),
-            worker_idx=worker_idx,
-            n_workers_total=n_workers,
-            feature_cache_dir_str=str(feature_cache_dir) if feature_cache_dir else None,
-        ))
+        worker_args.append(
+            _WorkerArgs(
+                symbol=sym,
+                train_indices=symbol_train_indices[sym],
+                train_paths_sym=symbol_train_paths[sym],
+                val_path=val_p,
+                val_index=val_j,
+                feature_config=feature_config,
+                mode=mode,
+                backend=backend,
+                filter_lob_levels=filter_lob_levels,
+                warmup_rows=warmup_rows,
+                memmap_dir_str=str(memmap_dir) if memmap_dir else None,
+                tmp_dir_str=str(tmp_dir),
+                worker_idx=worker_idx,
+                n_workers_total=n_workers,
+                feature_cache_dir_str=str(feature_cache_dir)
+                if feature_cache_dir
+                else None,
+            )
+        )
 
     # The eval symbol is the one at symbol_index (capped to available val_paths).
     target_val_idx = min(symbol_index, len(val_paths) - 1)
@@ -580,7 +650,9 @@ def _build_per_day_splits(
     # Forward worker log records to the parent's handlers via a shared queue.
     log_queue: multiprocessing.Queue = multiprocessing.Queue()
     parent_handlers = logging.getLogger().handlers or [logging.StreamHandler()]
-    listener = logging.handlers.QueueListener(log_queue, *parent_handlers, respect_handler_level=True)
+    listener = logging.handlers.QueueListener(
+        log_queue, *parent_handlers, respect_handler_level=True
+    )
     listener.start()
     try:
         with ProcessPoolExecutor(
@@ -588,13 +660,20 @@ def _build_per_day_splits(
             initializer=_worker_log_init,
             initargs=(log_queue,),
         ) as executor:
-            futures = {executor.submit(_per_symbol_worker, args): args.symbol for args in worker_args}
+            futures = {
+                executor.submit(_per_symbol_worker, args): args.symbol
+                for args in worker_args
+            }
             for future in as_completed(futures):
                 sym = futures[future]
                 try:
-                    _sym, train_results, val_entry, val_idx, worker_pipeline_state = future.result()
+                    _sym, train_results, val_entry, val_idx, worker_pipeline_state = (
+                        future.result()
+                    )
                 except Exception as exc:
-                    raise RuntimeError(f"Worker for symbol '{sym}' failed: {exc}") from exc
+                    raise RuntimeError(
+                        f"Worker for symbol '{sym}' failed: {exc}"
+                    ) from exc
                 for orig_idx, memmap_entry in train_results:
                     train_memmap_by_idx[orig_idx] = memmap_entry
                 if val_entry is not None and val_idx is not None:
@@ -612,13 +691,15 @@ def _build_per_day_splits(
             entry = train_memmap_by_idx.get(i)
             if entry is None:
                 raise RuntimeError(f"Missing memmap result for train_paths[{i}]")
-            collected_memmap_paths.append(MemmapPaths(
-                data_path=Path(entry["data_path"]),
-                index_path=Path(entry["index_path"]),
-                n_rows=entry["n_rows"],
-                columns=entry["columns"],
-                symbol=entry.get("symbol", ""),
-            ))
+            collected_memmap_paths.append(
+                MemmapPaths(
+                    data_path=Path(entry["data_path"]),
+                    index_path=Path(entry["index_path"]),
+                    n_rows=entry["n_rows"],
+                    columns=entry["columns"],
+                    symbol=entry.get("symbol", ""),
+                )
+            )
 
     # Reconstruct ordered val_tmp list
     val_tmp: list[dict[str, Path]] = []
@@ -649,14 +730,16 @@ def _build_per_day_splits(
 
     if memmap_dir:
         _si = min(symbol_index, len(val_tmp) - 1)
-        val_df  = pd.read_parquet(val_tmp[_si]["val"])
+        val_df = pd.read_parquet(val_tmp[_si]["val"])
         test_df = pd.read_parquet(val_tmp[_si]["test"])
         logger.info(
             "streaming mode (per-day): representative sample symbol_index={} val={} test={}",
-            _si, len(val_df), len(test_df),
+            _si,
+            len(val_df),
+            len(test_df),
         )
     else:
-        val_df  = pd.concat([pd.read_parquet(p["val"])  for p in val_tmp])
+        val_df = pd.concat([pd.read_parquet(p["val"]) for p in val_tmp])
         test_df = pd.concat([pd.read_parquet(p["test"]) for p in val_tmp])
 
     # Before cleaning up tmp_dir, persist per-symbol val/test for rotation support
@@ -664,24 +747,31 @@ def _build_per_day_splits(
         prepared_dir.mkdir(parents=True, exist_ok=True)
         for j, vpath in enumerate(val_paths):
             sym = _symbol_of(vpath, known_symbols)
-            sym_val  = pd.read_parquet(val_tmp[j]["val"])
+            sym_val = pd.read_parquet(val_tmp[j]["val"])
             sym_test = pd.read_parquet(val_tmp[j]["test"])
             if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
-                sym_val  = _deduplicate_hft_index_single(sym_val,  f"val_{sym}",  logger)
-                sym_test = _deduplicate_hft_index_single(sym_test, f"test_{sym}", logger)
+                sym_val = _deduplicate_hft_index_single(sym_val, f"val_{sym}", logger)
+                sym_test = _deduplicate_hft_index_single(
+                    sym_test, f"test_{sym}", logger
+                )
             sym_val.to_parquet(prepared_dir / f"val_{sym}_prepared.parquet")
             sym_test.to_parquet(prepared_dir / f"test_{sym}_prepared.parquet")
-            logger.info("save per-symbol val/test sym={} n_val={} n_test={}", sym, len(sym_val), len(sym_test))
+            logger.info(
+                "save per-symbol val/test sym={} n_val={} n_test={}",
+                sym,
+                len(sym_val),
+                len(sym_test),
+            )
 
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
     if mode == EnvMode.HFT and backend == EnvBackend.TRADINGENV:
-        val_df  = _deduplicate_hft_index_single(val_df,  "val_concat",  logger)
+        val_df = _deduplicate_hft_index_single(val_df, "val_concat", logger)
         test_df = _deduplicate_hft_index_single(test_df, "test_concat", logger)
 
-    train_size_cfg  = getattr(config.data, "train_size", None)
+    train_size_cfg = getattr(config.data, "train_size", None)
     validation_size = getattr(config.data, "validation_size", None)
-    test_size_cfg   = getattr(config.data, "test_size", None)
+    test_size_cfg = getattr(config.data, "test_size", None)
     if train_size_cfg is not None and first_train_df is not None:
         first_train_df = first_train_df.iloc[:train_size_cfg]
     if validation_size is not None:
@@ -699,7 +789,13 @@ def _build_per_day_splits(
     validate_prepared_data(first_train_df, val_df, test_df, config)
 
     eval_pipeline_state = pipeline_states_by_val_idx.get(target_val_idx)
-    return first_train_df, val_df, test_df, collected_memmap_paths or None, eval_pipeline_state
+    return (
+        first_train_df,
+        val_df,
+        test_df,
+        collected_memmap_paths or None,
+        eval_pipeline_state,
+    )
 
 
 def _build_pooled_splits(
@@ -710,7 +806,9 @@ def _build_pooled_splits(
     symbol_index: int = 0,
     progress_callback: Callable[[str], None] | None = None,
     prepared_dir: Path | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None, dict | None]:
+) -> tuple[
+    pd.DataFrame, pd.DataFrame, pd.DataFrame, list[MemmapPaths] | None, dict | None
+]:
     """Process each symbol independently then concatenate from disk.
 
     When ``config.data.val_data_paths`` is set the function delegates to
@@ -728,13 +826,24 @@ def _build_pooled_splits(
     """
     val_data_paths = getattr(config.data, "val_data_paths", None)
     if val_data_paths:
-        return _build_per_day_splits(config, logger, data_paths, list(val_data_paths), memmap_dir, symbol_index, progress_callback, prepared_dir)
+        return _build_per_day_splits(
+            config,
+            logger,
+            data_paths,
+            list(val_data_paths),
+            memmap_dir,
+            symbol_index,
+            progress_callback,
+            prepared_dir,
+        )
 
     pipeline = _resolve_feature_pipeline(config, logger)
     prep_cfg = PrepareDataConfig.from_config(config.data)
     feature_hash = _memmap_feature_hash(pipeline, prep_cfg.feature_config_path)
 
-    logger.info("pooled training n_symbols={} feature_hash={}", len(data_paths), feature_hash)
+    logger.info(
+        "pooled training n_symbols={} feature_hash={}", len(data_paths), feature_hash
+    )
     tmp_dir = Path(tempfile.mkdtemp(prefix="pooled_splits_"))
     tmp_paths: list[dict[str, Path]] = []
     collected_memmap_paths: list[MemmapPaths] = []
@@ -742,7 +851,9 @@ def _build_pooled_splits(
     eval_pipeline_state: dict | None = None
 
     for i, data_path in enumerate(data_paths):
-        logger.info("process symbol idx={}/{} path={}", i + 1, len(data_paths), data_path)
+        logger.info(
+            "process symbol idx={}/{} path={}", i + 1, len(data_paths), data_path
+        )
         # Reset scaler state so each symbol is normalised independently.
         # Without this, RunningMeanStd accumulates statistics across symbols,
         # making symbol N's normalization order-dependent on symbols 1..N-1.
@@ -752,12 +863,18 @@ def _build_pooled_splits(
         if i == target_si:
             eval_pipeline_state = dump_pipeline_state(pipeline)
         # Apply close-column derivation per-symbol so each memmap is self-contained.
-        train_i, val_i, test_i = ensure_close_column_for_hft(train_i, val_i, test_i, config, logger)
+        train_i, val_i, test_i = ensure_close_column_for_hft(
+            train_i, val_i, test_i, config, logger
+        )
         # Deduplicate timestamps before saving to memmap so the streaming env
         # never receives a window with duplicate indices.
-        train_i, val_i, test_i = ensure_unique_index_for_hft_tradingenv(train_i, val_i, test_i, config, logger)
+        train_i, val_i, test_i = ensure_unique_index_for_hft_tradingenv(
+            train_i, val_i, test_i, config, logger
+        )
         warmup_rows = getattr(config.data, "warmup_rows", 0)
-        train_i = _apply_warmup_skip(train_i, warmup_rows, logger, label=Path(data_path).name)
+        train_i = _apply_warmup_skip(
+            train_i, warmup_rows, logger, label=Path(data_path).name
+        )
 
         sym_name = Path(data_path).stem.split("_")[0]
         if memmap_dir:
@@ -768,10 +885,18 @@ def _build_pooled_splits(
                 cols = json.loads((memmap_dir / f"{prefix}_columns.json").read_text())
                 data = np.load(memmap_marker, mmap_mode="r")
                 symbol_file = memmap_dir / f"{prefix}_symbol.txt"
-                cached_symbol = symbol_file.read_text().strip() if symbol_file.exists() else ""
+                cached_symbol = (
+                    symbol_file.read_text().strip() if symbol_file.exists() else ""
+                )
                 hash_file = memmap_dir / f"{prefix}_feature_hash.txt"
-                cached_hash = hash_file.read_text().strip() if hash_file.exists() else ""
-                if data.shape[0] >= len(train_i) and cols == expected_columns and cached_hash == feature_hash:
+                cached_hash = (
+                    hash_file.read_text().strip() if hash_file.exists() else ""
+                )
+                if (
+                    data.shape[0] >= len(train_i)
+                    and cols == expected_columns
+                    and cached_hash == feature_hash
+                ):
                     collected_memmap_paths.append(
                         MemmapPaths(
                             data_path=memmap_marker,
@@ -789,12 +914,16 @@ def _build_pooled_splits(
                         data.shape[0],
                         cached_hash == feature_hash,
                     )
-                    mp = save_symbol_memmap(train_i, memmap_dir, prefix=prefix, symbol=sym_name)
+                    mp = save_symbol_memmap(
+                        train_i, memmap_dir, prefix=prefix, symbol=sym_name
+                    )
                     (memmap_dir / f"{prefix}_feature_hash.txt").write_text(feature_hash)
                     collected_memmap_paths.append(mp)
             else:
                 prefix = str(i)
-                mp = save_symbol_memmap(train_i, memmap_dir, prefix=prefix, symbol=sym_name)
+                mp = save_symbol_memmap(
+                    train_i, memmap_dir, prefix=prefix, symbol=sym_name
+                )
                 (memmap_dir / f"{prefix}_feature_hash.txt").write_text(feature_hash)
                 collected_memmap_paths.append(mp)
 
@@ -802,7 +931,13 @@ def _build_pooled_splits(
         for split, df in [("train", train_i), ("val", val_i), ("test", test_i)]:
             p = tmp_dir / f"{i}_{split}.parquet"
             df.to_parquet(p)
-            logger.trace("tmp parquet write symbol={} split={} n_rows={} path={}", i, split, len(df), p)
+            logger.trace(
+                "tmp parquet write symbol={} split={} n_rows={} path={}",
+                i,
+                split,
+                len(df),
+                p,
+            )
             sym[split] = p
         tmp_paths.append(sym)
         del train_i, val_i, test_i
@@ -817,27 +952,45 @@ def _build_pooled_splits(
     if memmap_dir:
         _si = min(symbol_index, len(tmp_paths) - 1)
         train_df = pd.read_parquet(tmp_paths[_si]["train"])
-        val_df   = pd.read_parquet(tmp_paths[_si]["val"])
-        test_df  = pd.read_parquet(tmp_paths[_si]["test"])
+        val_df = pd.read_parquet(tmp_paths[_si]["val"])
+        test_df = pd.read_parquet(tmp_paths[_si]["test"])
         logger.info(
             "streaming mode: representative sample symbol_index={} of {}"
-            " train={} val={} test={}", _si, len(tmp_paths), len(train_df), len(val_df), len(test_df),
+            " train={} val={} test={}",
+            _si,
+            len(tmp_paths),
+            len(train_df),
+            len(val_df),
+            len(test_df),
         )
     else:
         train_df = pd.concat([pd.read_parquet(p["train"]) for p in tmp_paths])
-        val_df   = pd.concat([pd.read_parquet(p["val"])   for p in tmp_paths])
-        test_df  = pd.concat([pd.read_parquet(p["test"])  for p in tmp_paths])
+        val_df = pd.concat([pd.read_parquet(p["val"]) for p in tmp_paths])
+        test_df = pd.concat([pd.read_parquet(p["test"]) for p in tmp_paths])
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
-    logger.info("pooled splits train={} val={} test={}", len(train_df), len(val_df), len(test_df))
+    logger.info(
+        "pooled splits train={} val={} test={}",
+        len(train_df),
+        len(val_df),
+        len(test_df),
+    )
 
     # ensure_unique_index was applied per-symbol above; re-run on concat to fix
     # cross-symbol timestamp collisions in val/test (train is first-symbol only
     # in streaming mode so also benefits from a re-check).
-    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(train_df, val_df, test_df, config, logger)
+    train_df, val_df, test_df = ensure_unique_index_for_hft_tradingenv(
+        train_df, val_df, test_df, config, logger
+    )
     validate_prepared_data(train_df, val_df, test_df, config)
 
-    return train_df, val_df, test_df, collected_memmap_paths or None, eval_pipeline_state
+    return (
+        train_df,
+        val_df,
+        test_df,
+        collected_memmap_paths or None,
+        eval_pipeline_state,
+    )
 
 
 def build_prepared_dataset(
@@ -847,8 +1000,10 @@ def build_prepared_dataset(
 ) -> PreparedDataset:
     """Build a prepared dataset bundle for RL training and evaluation."""
     lazy_load = getattr(config.data, "lazy_load", False)
-    prepared_dir = Path(d) if (d := getattr(config.data, "prepared_data_dir", None)) else None
-    memmap_dir   = Path(d) if (d := getattr(config.data, "memmap_dir", None)) else None
+    prepared_dir = (
+        Path(d) if (d := getattr(config.data, "prepared_data_dir", None)) else None
+    )
+    memmap_dir = Path(d) if (d := getattr(config.data, "memmap_dir", None)) else None
 
     # Fast path: skip feature engineering only when prepared and memmap caches
     # match the current split sizes, data sources, and feature config.
@@ -860,7 +1015,11 @@ def build_prepared_dataset(
     if cache_ready:
         logger.info("load prepared splits cache_dir={}", prepared_dir)
         lazy_splits = load_prepared_splits(prepared_dir)
-        memmap_paths = load_memmap_paths(memmap_dir) if memmap_dir and memmap_dir.exists() else None
+        memmap_paths = (
+            load_memmap_paths(memmap_dir)
+            if memmap_dir and memmap_dir.exists()
+            else None
+        )
 
         # In non-per-day mode the cache may have more rows than requested.
         # Cap n_rows so the streaming env only sees the configured train_size.
@@ -869,8 +1028,15 @@ def build_prepared_dataset(
             if req is not None:
                 req = int(req)
                 memmap_paths = [
-                    MemmapPaths(mp.data_path, mp.index_path, min(mp.n_rows, req), mp.columns, mp.symbol)
-                    if mp.n_rows > req else mp
+                    MemmapPaths(
+                        mp.data_path,
+                        mp.index_path,
+                        min(mp.n_rows, req),
+                        mp.columns,
+                        mp.symbol,
+                    )
+                    if mp.n_rows > req
+                    else mp
                     for mp in memmap_paths
                 ]
 
@@ -890,24 +1056,49 @@ def build_prepared_dataset(
 
         # Rotation support on cache hit: swap val/test for the correct symbol.
         _val_paths_cfg = getattr(config.data, "val_data_paths", None)
-        _strategy = getattr(config.data, "eval_symbol_selection", EvalSymbolSelection.FIRST)
-        if _val_paths_cfg and _strategy != EvalSymbolSelection.FIRST and memmap_dir and prepared_dir:
+        _strategy = getattr(
+            config.data, "eval_symbol_selection", EvalSymbolSelection.FIRST
+        )
+        if (
+            _val_paths_cfg
+            and _strategy != EvalSymbolSelection.FIRST
+            and memmap_dir
+            and prepared_dir
+        ):
             _syms = [Path(p).parent.name for p in _val_paths_cfg]
             _per_sym_val = [prepared_dir / f"val_{s}_prepared.parquet" for s in _syms]
             if all(p.exists() for p in _per_sym_val):
-                _idx = _resolve_symbol_index(_strategy, len(_val_paths_cfg), memmap_dir, seed=getattr(config, "seed", None))
+                _idx = _resolve_symbol_index(
+                    _strategy,
+                    len(_val_paths_cfg),
+                    memmap_dir,
+                    seed=getattr(config, "seed", None),
+                )
                 _sym = _syms[_idx]
-                _val_ldf  = LazyDataFrame(prepared_dir / f"val_{_sym}_prepared.parquet")
-                _test_ldf = LazyDataFrame(prepared_dir / f"test_{_sym}_prepared.parquet")
-                val_df  = _val_ldf.iloc[:validation_size]  if validation_size  is not None else _val_ldf
-                test_df = _test_ldf.iloc[:test_size_cfg]   if test_size_cfg    is not None else _test_ldf
+                _val_ldf = LazyDataFrame(prepared_dir / f"val_{_sym}_prepared.parquet")
+                _test_ldf = LazyDataFrame(
+                    prepared_dir / f"test_{_sym}_prepared.parquet"
+                )
+                val_df = (
+                    _val_ldf.iloc[:validation_size]
+                    if validation_size is not None
+                    else _val_ldf
+                )
+                test_df = (
+                    _test_ldf.iloc[:test_size_cfg]
+                    if test_size_cfg is not None
+                    else _test_ldf
+                )
                 memmap_dir.mkdir(parents=True, exist_ok=True)
                 (memmap_dir / ".eval_symbol_used").write_text(_sym)
                 logger.info("cache-hit rotated val/test sym={} idx={}", _sym, _idx)
 
         return _make_dataset(
-            train_df, val_df, test_df,
-            config, memmap_paths or None,
+            train_df,
+            val_df,
+            test_df,
+            config,
+            memmap_paths or None,
         )
 
     data_paths = getattr(config.data, "data_paths", None)
@@ -919,19 +1110,37 @@ def build_prepared_dataset(
             "which set memmap_dir and use StreamingTradingEnvXY for correct per-symbol episode resets."
         )
     if data_paths:
-        _strategy = getattr(getattr(config, "data", None), "eval_symbol_selection", EvalSymbolSelection.FIRST)
-        _symbol_index = _resolve_symbol_index(_strategy, len(data_paths), memmap_dir, seed=getattr(config, "seed", None))
+        _strategy = getattr(
+            getattr(config, "data", None),
+            "eval_symbol_selection",
+            EvalSymbolSelection.FIRST,
+        )
+        _symbol_index = _resolve_symbol_index(
+            _strategy, len(data_paths), memmap_dir, seed=getattr(config, "seed", None)
+        )
         _val_paths = getattr(config.data, "val_data_paths", None) or data_paths
-        _eval_symbol = Path(_val_paths[min(_symbol_index, len(_val_paths) - 1)]).parent.name
+        _eval_symbol = Path(
+            _val_paths[min(_symbol_index, len(_val_paths) - 1)]
+        ).parent.name
         if memmap_dir:
             memmap_dir.mkdir(parents=True, exist_ok=True)
             (memmap_dir / ".eval_symbol_used").write_text(_eval_symbol)
         train_df, val_df, test_df, memmap_paths, pipeline_state = _build_pooled_splits(
-            config, logger, data_paths, memmap_dir, _symbol_index, progress_callback, prepared_dir
+            config,
+            logger,
+            data_paths,
+            memmap_dir,
+            _symbol_index,
+            progress_callback,
+            prepared_dir,
         )
     else:
-        train_df, val_df, test_df, pipeline_state = _build_single_symbol_splits(config, logger)
-        memmap_paths = [save_symbol_memmap(train_df, memmap_dir, "0")] if memmap_dir else None
+        train_df, val_df, test_df, pipeline_state = _build_single_symbol_splits(
+            config, logger
+        )
+        memmap_paths = (
+            [save_symbol_memmap(train_df, memmap_dir, "0")] if memmap_dir else None
+        )
 
     if lazy_load and prepared_dir:
         logger.info("save prepared splits cache_dir={}", prepared_dir)
@@ -946,7 +1155,9 @@ def build_prepared_dataset(
             memmap_paths,
         )
 
-    return _make_dataset(train_df, val_df, test_df, config, memmap_paths, pipeline_state)
+    return _make_dataset(
+        train_df, val_df, test_df, config, memmap_paths, pipeline_state
+    )
 
 
 def prepare_data(
@@ -980,13 +1191,18 @@ def prepare_data(
     _cache_key: str | None = None
     if cfg.feature_cache_dir and Path(data_path).exists():
         _cache_key = _feature_cache_key(
-            data_path, cfg.feature_config_path, feature_pipeline, cfg.filter_lob_levels,
+            data_path,
+            cfg.feature_config_path,
+            feature_pipeline,
+            cfg.filter_lob_levels,
             train_size=cfg.train_size,
         )
         _cache_entry = Path(cfg.feature_cache_dir) / _cache_key
         _full_cache = _cache_entry / "full.parquet"
         if _full_cache.exists():
-            logger.info("feature cache hit key={} path={}", _cache_key[:8], _cache_entry)
+            logger.info(
+                "feature cache hit key={} path={}", _cache_key[:8], _cache_entry
+            )
             full_df = pd.read_parquet(_full_cache)
             # Restore pipeline state from the companion file so callers always
             # get a pipeline that reflects training-time scaler statistics,
@@ -994,6 +1210,7 @@ def prepare_data(
             _state_path = _cache_entry / "pipeline_state.pkl"
             if feature_pipeline is not None and _state_path.exists():
                 import pickle
+
                 # Verify checksum before loading pickle for security
                 _checksum_path = _cache_entry / "pipeline_state.pkl.sha256"
                 _state_bytes = _state_path.read_bytes()
@@ -1014,10 +1231,12 @@ def prepare_data(
                         _state_path,
                     )
                 try:
-                    _saved_state = pickle.loads(_state_bytes)
+                    _saved_state = pickle.loads(_state_bytes)  # noqa: S301 — checksum-verified above, not untrusted input
                     if _saved_state:
                         restore_pipeline_state(feature_pipeline, _saved_state)
-                        logger.debug("cache hit: restored pipeline state from {}", _state_path)
+                        logger.debug(
+                            "cache hit: restored pipeline state from {}", _state_path
+                        )
                 except Exception as _exc:
                     raise RuntimeError(
                         f"Feature cache pipeline state at {_state_path} is corrupted. "
@@ -1027,14 +1246,25 @@ def prepare_data(
             _n = len(full_df)
             _train = min(cfg.train_size, _n)
             _remaining = _n - _train
-            _val = cfg.validation_size if cfg.validation_size is not None else (
-                _remaining // 2 if cfg.test_size is None else max(0, _remaining - cfg.test_size)
+            _val = (
+                cfg.validation_size
+                if cfg.validation_size is not None
+                else (
+                    _remaining // 2
+                    if cfg.test_size is None
+                    else max(0, _remaining - cfg.test_size)
+                )
             )
             _val_end = _train + _val
             _test_end = (_val_end + cfg.test_size) if cfg.test_size is not None else _n
             logger.trace(
                 "cache slice key={} train=0:{} val={}:{} test={}:{}",
-                _cache_key[:8], _train, _train, _val_end, _val_end, _test_end,
+                _cache_key[:8],
+                _train,
+                _train,
+                _val_end,
+                _val_end,
+                _test_end,
             )
             return (
                 full_df.iloc[:_train],
@@ -1046,7 +1276,9 @@ def prepare_data(
     # Check if data exists
     if not Path(data_path).exists():
         if cfg.download_if_missing and cfg.exchange_names and cfg.symbols and cfg.since:
-            download_trading_data(cfg.exchange_names, cfg.symbols, cfg.timeframe, cfg.data_dir, cfg.since)
+            download_trading_data(
+                cfg.exchange_names, cfg.symbols, cfg.timeframe, cfg.data_dir, cfg.since
+            )
         else:
             raise FileNotFoundError(
                 f"Data file not found: {data_path}. "
@@ -1058,6 +1290,7 @@ def prepare_data(
     df = df.dropna()
     if cfg.filter_lob_levels is not None:
         from trading_rl.data.lob_filters import filter_unchanged_lob
+
         df = filter_unchanged_lob(df, levels=cfg.filter_lob_levels)
 
     logger.info("load raw data n_rows={} n_cols={}", len(df), len(df.columns))
@@ -1072,7 +1305,9 @@ def prepare_data(
         )
     remaining = len(df) - train_size
     if validation_size is None:
-        validation_size = remaining // 2 if test_size is None else max(0, remaining - test_size)
+        validation_size = (
+            remaining // 2 if test_size is None else max(0, remaining - test_size)
+        )
     if validation_size < 0:
         raise ValueError(f"validation_size must be >= 0, got {validation_size}")
     if validation_size >= remaining:
@@ -1106,7 +1341,10 @@ def prepare_data(
     from trading_rl.features import FeaturePipeline, create_default_pipeline
 
     if feature_pipeline is not None:
-        logger.info("use pre-built feature pipeline n_features={}", len(feature_pipeline.features))
+        logger.info(
+            "use pre-built feature pipeline n_features={}",
+            len(feature_pipeline.features),
+        )
         pipeline = feature_pipeline
     elif cfg.feature_config_path:
         logger.info("load feature pipeline path={}", cfg.feature_config_path)
@@ -1139,7 +1377,9 @@ def prepare_data(
         " train_n_rows={} train_n_cols={}"
         " val_n_rows={} val_n_cols={}"
         " test_n_rows={} test_n_cols={}",
-        *train_df.shape, *val_df.shape, *test_df.shape,
+        *train_df.shape,
+        *val_df.shape,
+        *test_df.shape,
     )
     feature_cols = [c for c in train_df.columns if str(c).startswith("feature_")]
     logger.info("feature columns cols={}", feature_cols)
@@ -1150,9 +1390,12 @@ def prepare_data(
         _pstate = dump_pipeline_state(pipeline)
         if _pstate:
             import pickle
+
             _pkl_bytes = pickle.dumps(_pstate)
             (_cache_entry / "pipeline_state.pkl").write_bytes(_pkl_bytes)
-            (_cache_entry / "pipeline_state.pkl.sha256").write_text(hashlib.sha256(_pkl_bytes).hexdigest())
+            (_cache_entry / "pipeline_state.pkl.sha256").write_text(
+                hashlib.sha256(_pkl_bytes).hexdigest()
+            )
         logger.info("save feature cache key={} path={}", _cache_key[:8], _cache_entry)
 
     return train_df, val_df, test_df

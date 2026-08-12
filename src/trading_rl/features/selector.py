@@ -123,7 +123,9 @@ class FeatureSelectorConfig:
                     )
             if self.horizon_weights is None:
                 # Equal weights by default
-                self.horizon_weights = [1.0 / len(self.ic_decay_horizons)] * len(self.ic_decay_horizons)
+                self.horizon_weights = [1.0 / len(self.ic_decay_horizons)] * len(
+                    self.ic_decay_horizons
+                )
 
         if self.use_cross_validation:
             if self.n_cv_splits < 2:
@@ -135,19 +137,18 @@ class FeatureSelectorConfig:
 
         try:
             self.ensemble_method = EnsembleMethod(self.ensemble_method)
-        except ValueError:
+        except ValueError as err:
             raise ValueError(
                 f"ensemble_method must be one of {[e.value for e in EnsembleMethod]}, "
                 f"got '{self.ensemble_method}'"
-            )
+            ) from err
 
         if self.enable_hyperparameter_search:
             valid_keys = {"icir_threshold", "top_k", "horizon"}
             for key in self.hyperparameter_grid:
                 if key not in valid_keys:
                     raise ValueError(
-                        f"Invalid hyperparameter key '{key}'. "
-                        f"Valid keys: {valid_keys}"
+                        f"Invalid hyperparameter key '{key}'. Valid keys: {valid_keys}"
                     )
 
 
@@ -229,9 +230,7 @@ def _build_icir_score_table(
     Returns:
         Tuple of (scores DataFrame sorted by ICIR descending, IC series dict).
     """
-    target_col = next(
-        col for col in train_frame.columns if col.startswith("target_")
-    )
+    target_col = next(col for col in train_frame.columns if col.startswith("target_"))
     feature_cols = [col for col in train_frame.columns if col != target_col]
     train_target = train_frame[target_col]
 
@@ -263,7 +262,9 @@ def _build_icir_score_table(
             ic_std = float(ic_std_raw)
             icir = mean_ic / ic_std
             n = len(ic_series)
-            ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
+            ic_tstat = (
+                mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
+            )
             ic_positive_ratio = float((ic_series > 0).mean())
 
         # Compute validation IC for out-of-sample stability reporting only
@@ -285,9 +286,7 @@ def _build_icir_score_table(
         )
 
     scores = (
-        pd.DataFrame(rows)
-        .sort_values("icir", ascending=False)
-        .reset_index(drop=True)
+        pd.DataFrame(rows).sort_values("icir", ascending=False).reset_index(drop=True)
     )
 
     return scores, ic_series_dict
@@ -327,7 +326,9 @@ def _select_features_conditional_ic(
     def _candidate_score(candidate: str) -> float:
         if not selected:
             return float(original_scores.get(candidate, 0.0))
-        ic_series = _compute_ic_series(residual_data[candidate], target, window_size=None)
+        ic_series = _compute_ic_series(
+            residual_data[candidate], target, window_size=None
+        )
         if len(ic_series) == 0:
             return 0.0
         mean_ic = float(ic_series.mean())
@@ -406,7 +407,8 @@ def _build_time_series_cv_splits(
         n_splits = (n_samples - min_train_size - test_size) // (gap + test_size) + 1
         logger.warning(
             "Reducing n_splits to {} due to insufficient data for {} splits",
-            n_splits, original_n_splits
+            n_splits,
+            original_n_splits,
         )
 
     # Generate splits using expanding window
@@ -417,16 +419,17 @@ def _build_time_series_cv_splits(
         val_end = val_start + test_size
 
         if val_end > n_samples:
-            logger.warning(
-                "Split {} exceeds data bounds, stopping early", i
-            )
+            logger.warning("Split {} exceeds data bounds, stopping early", i)
             break
 
         splits.append((train_start, train_end, val_start, val_end))
 
     logger.info(
         "Generated {} time-series CV splits with min_train_size={}, test_size={}, gap={}",
-        len(splits), min_train_size, test_size, gap
+        len(splits),
+        min_train_size,
+        test_size,
+        gap,
     )
 
     return splits
@@ -480,7 +483,9 @@ def _build_multi_horizon_score_table(
                 primary_horizon = 1
                 train_target = _build_proxy_target(train_frame, primary_horizon)
                 val_target = _build_proxy_target(val_frame, primary_horizon)
-                train_aligned = pd.concat([train_features, train_target], axis=1).dropna()
+                train_aligned = pd.concat(
+                    [train_features, train_target], axis=1
+                ).dropna()
                 val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
                 return _build_icir_score_table(train_aligned, val_aligned, window_size)
             else:
@@ -492,7 +497,8 @@ def _build_multi_horizon_score_table(
 
     logger.info(
         "Building multi-horizon scores with horizons={}, weights={}",
-        horizons, horizon_weights
+        horizons,
+        horizon_weights,
     )
 
     # Build feature pipeline if not provided
@@ -515,7 +521,7 @@ def _build_multi_horizon_score_table(
     # Store IC results for each horizon
     horizon_results: dict[int, dict[str, dict]] = {}
 
-    for h, weight in zip(horizons, horizon_weights):
+    for h, _weight in zip(horizons, horizon_weights, strict=False):
         # Build target for this horizon
         train_target = _build_proxy_target(train_frame, h)
         val_target = _build_proxy_target(val_frame, h)
@@ -538,7 +544,9 @@ def _build_multi_horizon_score_table(
 
         for feat in feature_cols:
             # Compute IC series on training split (primary scoring)
-            ic_series = _compute_ic_series(train_aligned[feat], train_target_series, window_size)
+            ic_series = _compute_ic_series(
+                train_aligned[feat], train_target_series, window_size
+            )
 
             ic_std_raw = ic_series.std()  # NaN when n=1 (window_size=None)
             if len(ic_series) == 0:
@@ -562,7 +570,9 @@ def _build_multi_horizon_score_table(
                 ic_positive_ratio = float((ic_series > 0).mean())
 
             # Compute validation IC for out-of-sample stability reporting only
-            val_ic = _compute_ic_series(val_aligned[feat], val_target_series, window_size)
+            val_ic = _compute_ic_series(
+                val_aligned[feat], val_target_series, window_size
+            )
             val_mean_ic = float(val_ic.mean()) if len(val_ic) > 0 else 0.0
 
             horizon_results[h][feat] = {
@@ -599,7 +609,7 @@ def _build_multi_horizon_score_table(
         composite_ic_stability = 0.0
         total_weight = 0.0
 
-        for h, weight in zip(horizons, horizon_weights):
+        for h, weight in zip(horizons, horizon_weights, strict=False):
             if h not in feature_horizon_scores:
                 continue
 
@@ -623,22 +633,30 @@ def _build_multi_horizon_score_table(
             composite_ic_stability /= total_weight
 
         # Compute horizon-specific IC for reporting
-        horizon_ic_dict = {h: horizon_results[h][feat]["mean_ic"] for h in feature_horizon_scores}
-        horizon_ic_str = ",".join(f"{h}:{ic:.4f}" for h, ic in sorted(horizon_ic_dict.items()))
+        horizon_ic_dict = {
+            h: horizon_results[h][feat]["mean_ic"] for h in feature_horizon_scores
+        }
+        horizon_ic_str = ",".join(
+            f"{h}:{ic:.4f}" for h, ic in sorted(horizon_ic_dict.items())
+        )
 
-        rows.append({
-            "feature": feat,
-            "mean_ic": composite_mean_ic,
-            "ic_std": composite_ic_std,
-            "icir": composite_icir,
-            "ic_tstat": composite_ic_tstat,
-            "ic_positive_ratio": composite_ic_positive_ratio,
-            "val_mean_ic": composite_val_mean_ic,
-            "ic_stability": composite_ic_stability,
-            "horizon_ic_scores": horizon_ic_str,
-        })
+        rows.append(
+            {
+                "feature": feat,
+                "mean_ic": composite_mean_ic,
+                "ic_std": composite_ic_std,
+                "icir": composite_icir,
+                "ic_tstat": composite_ic_tstat,
+                "ic_positive_ratio": composite_ic_positive_ratio,
+                "val_mean_ic": composite_val_mean_ic,
+                "ic_stability": composite_ic_stability,
+                "horizon_ic_scores": horizon_ic_str,
+            }
+        )
 
-    scores = pd.DataFrame(rows).sort_values("icir", ascending=False).reset_index(drop=True)
+    scores = (
+        pd.DataFrame(rows).sort_values("icir", ascending=False).reset_index(drop=True)
+    )
 
     # Get IC series for primary horizon (first in list)
     primary_horizon = horizons[0]
@@ -688,7 +706,8 @@ def _ensemble_select_features(
         # Select features that appear in majority of splits
         threshold = n_splits // 2 + 1
         ensemble_selected = [
-            feat for feat, votes in sorted(
+            feat
+            for feat, votes in sorted(
                 feature_votes.items(), key=lambda x: x[1], reverse=True
             )
             if votes >= threshold
@@ -696,7 +715,9 @@ def _ensemble_select_features(
 
         logger.info(
             "Majority voting: {} features selected (threshold={}/{} splits)",
-            len(ensemble_selected), threshold, n_splits
+            len(ensemble_selected),
+            threshold,
+            n_splits,
         )
         return ensemble_selected
 
@@ -727,7 +748,8 @@ def _ensemble_select_features(
 
         logger.info(
             "Rank averaging: {} features selected across {} splits",
-            len(ensemble_selected), n_splits
+            len(ensemble_selected),
+            n_splits,
         )
         return ensemble_selected
 
@@ -756,12 +778,15 @@ def _ensemble_select_features(
         }
 
         ensemble_selected = sorted(
-            feature_avg_weights.keys(), key=lambda f: feature_avg_weights[f], reverse=True
+            feature_avg_weights.keys(),
+            key=lambda f: feature_avg_weights[f],
+            reverse=True,
         )
 
         logger.info(
             "Weighted ensemble: {} features selected across {} splits",
-            len(ensemble_selected), n_splits
+            len(ensemble_selected),
+            n_splits,
         )
         return ensemble_selected
 
@@ -788,7 +813,9 @@ class FeatureSelector:
         from trading_rl.features.groups import FeatureGroupResolver
         from trading_rl.features.selector import FeatureSelector, FeatureSelectorConfig
 
-        resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
+        resolver = FeatureGroupResolver.from_yaml(
+            "src/configs/feature_sets/feature_groups.yaml"
+        )
         candidates = resolver.resolve(resolver.list_groups())
 
         # Standard single-split selection
@@ -801,7 +828,7 @@ class FeatureSelector:
             use_cross_validation=True,
             n_cv_splits=5,
             cv_test_size=1000,
-            ensemble_method=EnsembleMethod.RANK_AVERAGE
+            ensemble_method=EnsembleMethod.RANK_AVERAGE,
         )
         result = selector.select(candidates, df)
 
@@ -810,7 +837,7 @@ class FeatureSelector:
             top_k=12,
             use_multi_horizon=True,
             ic_decay_horizons=[1, 5, 10, 20],
-            horizon_weights=[0.4, 0.3, 0.2, 0.1]  # Weight short-term more
+            horizon_weights=[0.4, 0.3, 0.2, 0.1],  # Weight short-term more
         )
         result = selector.select(candidates, train_df, val_df)
 
@@ -820,12 +847,14 @@ class FeatureSelector:
             hyperparameter_grid={
                 "icir_threshold": [0.01, 0.02, 0.03],
                 "top_k": [8, 12, 16],
-            }
+            },
         )
         result = selector.select(candidates, df)
 
         # Write to YAML for training
-        FeatureSelector.write_selected_yaml(result, "src/configs/feature_sets/selected.yaml")
+        FeatureSelector.write_selected_yaml(
+            result, "src/configs/feature_sets/selected.yaml"
+        )
     """
 
     def __init__(self, config: FeatureSelectorConfig | None = None) -> None:
@@ -873,7 +902,9 @@ class FeatureSelector:
 
         # Standard single-split selection
         if train_df is None or val_df is None:
-            raise ValueError("train_df and val_df must be provided for standard selection")
+            raise ValueError(
+                "train_df and val_df must be provided for standard selection"
+            )
 
         return self._single_split_select(feature_configs, train_df, val_df)
 
@@ -929,14 +960,19 @@ class FeatureSelector:
                 )
 
             scores, ic_series = _build_icir_score_table(
-                train_aligned, val_aligned, window_size=cfg.window_size,
+                train_aligned,
+                val_aligned,
+                window_size=cfg.window_size,
             )
 
         logger.info("ic/icir scoring complete, top 5 features")
         for _, row in scores.head(5).iterrows():
             logger.info(
                 "  {}: ICIR={}, mean_IC={}, t={}",
-                row["feature"], row["icir"], row["mean_ic"], row.get("ic_tstat", 0),
+                row["feature"],
+                row["icir"],
+                row["mean_ic"],
+                row.get("ic_tstat", 0),
             )
 
         # Compute inter-feature correlation on validation data for reporting only
@@ -950,12 +986,16 @@ class FeatureSelector:
             val_target = _build_proxy_target(val_df, cfg.horizon)
             val_aligned = pd.concat([val_features, val_target], axis=1).dropna()
 
-        feature_cols_from_val = [col for col in val_aligned.columns if not col.startswith("target_")]
+        feature_cols_from_val = [
+            col for col in val_aligned.columns if not col.startswith("target_")
+        ]
         correlation_matrix = val_aligned[feature_cols_from_val].corr().fillna(0.0)
 
         # Conditional IC redundancy filter runs on training data so that the
         # validation split is not used for any part of feature selection.
-        feature_cols_from_train = [col for col in train_aligned.columns if not col.startswith("target_")]
+        feature_cols_from_train = [
+            col for col in train_aligned.columns if not col.startswith("target_")
+        ]
         train_target_col = next(
             col for col in train_aligned.columns if col.startswith("target_")
         )
@@ -968,14 +1008,9 @@ class FeatureSelector:
         )
 
         # Map selected names back to FeatureConfig instances
-        output_name_map = {
-            fc.get_output_name(): fc
-            for fc in feature_configs
-        }
+        output_name_map = {fc.get_output_name(): fc for fc in feature_configs}
         selected_configs = [
-            output_name_map[name]
-            for name in selected_names
-            if name in output_name_map
+            output_name_map[name] for name in selected_names if name in output_name_map
         ]
 
         logger.info(
@@ -1026,10 +1061,16 @@ class FeatureSelector:
         split_selections: list[list[str]] = []
         split_scores: list[pd.DataFrame] = []
 
-        for split_idx, (train_start, train_end, val_start, val_end) in enumerate(splits):
+        for split_idx, (train_start, train_end, val_start, val_end) in enumerate(
+            splits
+        ):
             logger.info(
                 "Processing CV split {}: train={}:{}, val={}:{}",
-                split_idx + 1, train_start, train_end, val_start, val_end
+                split_idx + 1,
+                train_start,
+                train_end,
+                val_start,
+                val_end,
             )
 
             train_df = df.iloc[train_start:train_end].copy()
@@ -1042,12 +1083,12 @@ class FeatureSelector:
 
                 logger.info(
                     "Split {}: Selected {} features",
-                    split_idx + 1, len(result.selected_names)
+                    split_idx + 1,
+                    len(result.selected_names),
                 )
             except Exception as e:
                 logger.warning(
-                    "Split {} failed: {}. Skipping this split.",
-                    split_idx + 1, str(e)
+                    "Split {} failed: {}. Skipping this split.", split_idx + 1, str(e)
                 )
                 continue
 
@@ -1058,11 +1099,13 @@ class FeatureSelector:
         ensemble_selected = _ensemble_select_features(
             split_selections=split_selections,
             ensemble_method=cfg.ensemble_method,
-            scores_per_split=split_scores if cfg.ensemble_method == EnsembleMethod.WEIGHTED else None,
+            scores_per_split=split_scores
+            if cfg.ensemble_method == EnsembleMethod.WEIGHTED
+            else None,
         )
 
         # Trim to top_k if ensemble returned more
-        ensemble_selected = ensemble_selected[:cfg.top_k]
+        ensemble_selected = ensemble_selected[: cfg.top_k]
 
         # Create composite scores by averaging across splits
         feature_scores: dict[str, dict] = {}
@@ -1081,7 +1124,9 @@ class FeatureSelector:
                 feature_scores[feat]["icir_values"].append(row["icir"])
                 feature_scores[feat]["mean_ic_values"].append(row["mean_ic"])
                 feature_scores[feat]["ic_tstat_values"].append(row.get("ic_tstat", 0))
-                feature_scores[feat]["val_mean_ic_values"].append(row.get("val_mean_ic", 0.0))
+                feature_scores[feat]["val_mean_ic_values"].append(
+                    row.get("val_mean_ic", 0.0)
+                )
 
         # Build composite score DataFrame
         rows: list[dict] = []
@@ -1092,19 +1137,32 @@ class FeatureSelector:
                 ic_pos_ratios = []
                 for scores_df in split_scores:
                     if not scores_df.empty:
-                        match = scores_df.loc[scores_df["feature"] == feat, "ic_positive_ratio"]
+                        match = scores_df.loc[
+                            scores_df["feature"] == feat, "ic_positive_ratio"
+                        ]
                         if not match.empty:
                             ic_pos_ratios.append(float(match.iloc[0]))
-                rows.append({
-                    "feature": feat,
-                    "mean_ic": np.mean(scores["mean_ic_values"]),
-                    "ic_std": np.std(scores["mean_ic_values"]) if len(scores["mean_ic_values"]) > 1 else 0.0,
-                    "icir": np.mean(scores["icir_values"]),
-                    "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
-                    "ic_positive_ratio": np.mean(ic_pos_ratios) if ic_pos_ratios else 0.0,
-                    "val_mean_ic": np.mean(scores["val_mean_ic_values"]),
-                    "ic_stability": abs(np.mean(scores["mean_ic_values"]) - np.mean(scores["val_mean_ic_values"])),
-                })
+                rows.append(
+                    {
+                        "feature": feat,
+                        "mean_ic": np.mean(scores["mean_ic_values"]),
+                        "ic_std": np.std(scores["mean_ic_values"])
+                        if len(scores["mean_ic_values"]) > 1
+                        else 0.0,
+                        "icir": np.mean(scores["icir_values"]),
+                        "ic_tstat": np.mean(scores["ic_tstat_values"])
+                        if scores["ic_tstat_values"]
+                        else 0.0,
+                        "ic_positive_ratio": np.mean(ic_pos_ratios)
+                        if ic_pos_ratios
+                        else 0.0,
+                        "val_mean_ic": np.mean(scores["val_mean_ic_values"]),
+                        "ic_stability": abs(
+                            np.mean(scores["mean_ic_values"])
+                            - np.mean(scores["val_mean_ic_values"])
+                        ),
+                    }
+                )
 
         # If no features with valid scores, use all features that appear in any split scores
         if not rows:
@@ -1125,34 +1183,52 @@ class FeatureSelector:
                     ic_pos_ratios = []
                     for scores_df in split_scores:
                         if not scores_df.empty:
-                            match = scores_df.loc[scores_df["feature"] == feat, "ic_positive_ratio"]
+                            match = scores_df.loc[
+                                scores_df["feature"] == feat, "ic_positive_ratio"
+                            ]
                             if not match.empty:
                                 ic_pos_ratios.append(float(match.iloc[0]))
-                    rows.append({
-                        "feature": feat,
-                        "mean_ic": np.mean(scores["mean_ic_values"]),
-                        "ic_std": np.std(scores["mean_ic_values"]) if len(scores["mean_ic_values"]) > 1 else 0.0,
-                        "icir": np.mean(scores["icir_values"]),
-                        "ic_tstat": np.mean(scores["ic_tstat_values"]) if scores["ic_tstat_values"] else 0.0,
-                        "ic_positive_ratio": np.mean(ic_pos_ratios) if ic_pos_ratios else 0.0,
-                        "val_mean_ic": np.mean(scores["val_mean_ic_values"]),
-                        "ic_stability": abs(np.mean(scores["mean_ic_values"]) - np.mean(scores["val_mean_ic_values"])),
-                    })
+                    rows.append(
+                        {
+                            "feature": feat,
+                            "mean_ic": np.mean(scores["mean_ic_values"]),
+                            "ic_std": np.std(scores["mean_ic_values"])
+                            if len(scores["mean_ic_values"]) > 1
+                            else 0.0,
+                            "icir": np.mean(scores["icir_values"]),
+                            "ic_tstat": np.mean(scores["ic_tstat_values"])
+                            if scores["ic_tstat_values"]
+                            else 0.0,
+                            "ic_positive_ratio": np.mean(ic_pos_ratios)
+                            if ic_pos_ratios
+                            else 0.0,
+                            "val_mean_ic": np.mean(scores["val_mean_ic_values"]),
+                            "ic_stability": abs(
+                                np.mean(scores["mean_ic_values"])
+                                - np.mean(scores["val_mean_ic_values"])
+                            ),
+                        }
+                    )
 
         if not rows:
             logger.warning("no features with valid scores found in ensemble selection")
-            composite_scores = pd.DataFrame(columns=[
-                "feature", "mean_ic", "ic_std", "icir", "ic_tstat",
-                "ic_positive_ratio", "val_mean_ic", "ic_stability"
-            ])
+            composite_scores = pd.DataFrame(
+                columns=[
+                    "feature",
+                    "mean_ic",
+                    "ic_std",
+                    "icir",
+                    "ic_tstat",
+                    "ic_positive_ratio",
+                    "val_mean_ic",
+                    "ic_stability",
+                ]
+            )
         else:
             composite_scores = pd.DataFrame(rows).sort_values("icir", ascending=False)
 
         # Map selected names back to FeatureConfig instances
-        output_name_map = {
-            fc.get_output_name(): fc
-            for fc in feature_configs
-        }
+        output_name_map = {fc.get_output_name(): fc for fc in feature_configs}
         selected_configs = [
             output_name_map[name]
             for name in ensemble_selected
@@ -1188,16 +1264,23 @@ class FeatureSelector:
         cfg = self.config
 
         if not cfg.hyperparameter_grid:
-            logger.warning("enable_hyperparameter_search=True but grid is empty, using default config")
+            logger.warning(
+                "enable_hyperparameter_search=True but grid is empty, using default config"
+            )
             fallback_cfg = FeatureSelectorConfig(
-                **{k: v for k, v in asdict(cfg).items() if k != "enable_hyperparameter_search"},
+                **{
+                    k: v
+                    for k, v in asdict(cfg).items()
+                    if k != "enable_hyperparameter_search"
+                },
                 enable_hyperparameter_search=False,
             )
-            return FeatureSelector(fallback_cfg).select(feature_configs, train_df, val_df, df)
+            return FeatureSelector(fallback_cfg).select(
+                feature_configs, train_df, val_df, df
+            )
 
         logger.info(
-            "Starting hyperparameter search with grid: {}",
-            cfg.hyperparameter_grid
+            "Starting hyperparameter search with grid: {}", cfg.hyperparameter_grid
         )
 
         # Build parameter grid
@@ -1206,6 +1289,7 @@ class FeatureSelector:
 
         # Generate all combinations
         import itertools
+
         all_combinations = list(itertools.product(*param_values))
 
         best_result = None
@@ -1213,7 +1297,7 @@ class FeatureSelector:
         fallback_result = None  # best result when all selected-feature scores are -inf
 
         for combination in all_combinations:
-            param_dict = dict(zip(param_names, combination))
+            param_dict = dict(zip(param_names, combination, strict=False))
 
             # Create config for this combination
             search_config = FeatureSelectorConfig(
@@ -1253,27 +1337,25 @@ class FeatureSelector:
 
                     logger.info(
                         "Config {}: score={:.4f}, n_selected={}",
-                        param_dict, config_score, len(result.selected_configs)
+                        param_dict,
+                        config_score,
+                        len(result.selected_configs),
                     )
 
                     if config_score > best_score:
                         best_score = config_score
                         best_result = result
                         logger.info(
-                            "New best config: {} (score={})",
-                            param_dict, best_score
+                            "New best config: {} (score={})", param_dict, best_score
                         )
                 else:
                     logger.warning(
                         "Config {} produced empty or invalid scores, skipping",
-                        param_dict
+                        param_dict,
                     )
 
             except Exception as e:
-                logger.warning(
-                    "Config {} failed: {}. Skipping.",
-                    param_dict, str(e)
-                )
+                logger.warning("Config {} failed: {}. Skipping.", param_dict, str(e))
                 continue
 
         # Fall back to the first valid result when no config selected any features
@@ -1288,10 +1370,7 @@ class FeatureSelector:
         if best_result is None:
             raise RuntimeError("Hyperparameter search failed for all configurations")
 
-        logger.info(
-            "Hyperparameter search complete. Best config: score={}",
-            best_score
-        )
+        logger.info("Hyperparameter search complete. Best config: score={}", best_score)
 
         return best_result
 
@@ -1336,5 +1415,7 @@ class FeatureSelector:
             encoding="utf-8",
         )
         write_asset_meta(output_path, generator="features/selector.py")
-        logger.info("write selected features count={} path={}", len(features), output_path)
+        logger.info(
+            "write selected features count={} path={}", len(features), output_path
+        )
         return output_path

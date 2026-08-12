@@ -16,6 +16,7 @@ import concurrent.futures
 import logging
 import types
 from pathlib import Path
+from typing import ClassVar
 
 import numpy as np
 import pandas as pd
@@ -28,7 +29,10 @@ from trading_rl.data.preparation import _build_per_day_splits, _build_pooled_spl
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _write_ohlcv(tmp_path: Path, name: str, n_rows: int, price_offset: float = 100.0) -> str:
+
+def _write_ohlcv(
+    tmp_path: Path, name: str, n_rows: int, price_offset: float = 100.0
+) -> str:
     prices = price_offset + np.arange(n_rows, dtype=float)
     df = pd.DataFrame(
         {
@@ -87,12 +91,16 @@ def _skip_validation(monkeypatch):
 # _build_pooled_splits
 # ---------------------------------------------------------------------------
 
+
 class TestBuildPooledSplits:
     def test_single_symbol_split_sizes(self, tmp_path):
         path = _write_ohlcv(tmp_path, "AAPL", n_rows=150)
         cfg = _make_config(train_size=60, validation_size=30, test_size=30)
         train_df, val_df, test_df, memmaps, _ = _build_pooled_splits(
-            cfg, logging.getLogger(), [path], memmap_dir=None,
+            cfg,
+            logging.getLogger(),
+            [path],
+            memmap_dir=None,
         )
         assert len(train_df) == 60
         assert len(val_df) == 30
@@ -104,7 +112,10 @@ class TestBuildPooledSplits:
         path = _write_ohlcv(tmp_path, "AAPL", n_rows=180)
         cfg = _make_config(train_size=90, validation_size=45, test_size=45)
         train_df, val_df, test_df, _, _ = _build_pooled_splits(
-            cfg, logging.getLogger(), [path], memmap_dir=None,
+            cfg,
+            logging.getLogger(),
+            [path],
+            memmap_dir=None,
         )
         assert train_df.index.max() < val_df.index.min()
         assert val_df.index.max() < test_df.index.min()
@@ -114,7 +125,10 @@ class TestBuildPooledSplits:
         p1 = _write_ohlcv(tmp_path, "SYM1", n_rows=150, price_offset=200.0)
         cfg = _make_config(train_size=60, validation_size=30, test_size=30)
         train_df, val_df, test_df, memmaps, _ = _build_pooled_splits(
-            cfg, logging.getLogger(), [p0, p1], memmap_dir=None,
+            cfg,
+            logging.getLogger(),
+            [p0, p1],
+            memmap_dir=None,
         )
         # Each symbol contributes 60/30/30 rows → combined = 120/60/60
         assert len(train_df) == 120
@@ -129,7 +143,10 @@ class TestBuildPooledSplits:
         memmap_dir = tmp_path / "mm"
         cfg = _make_config(train_size=60, validation_size=30, test_size=30)
         _, val_df, _, memmaps, _ = _build_pooled_splits(
-            cfg, logging.getLogger(), [p0, p1], memmap_dir=memmap_dir,
+            cfg,
+            logging.getLogger(),
+            [p0, p1],
+            memmap_dir=memmap_dir,
         )
         # Default symbol_index=0 → representative sample from SYM0 (close < 300)
         assert val_df["close"].iloc[0] < 300.0
@@ -142,8 +159,11 @@ class TestBuildPooledSplits:
         memmap_dir = tmp_path / "mm"
         cfg = _make_config(train_size=60, validation_size=30, test_size=30)
         _, val_df, _, _, _ = _build_pooled_splits(
-            cfg, logging.getLogger(), [p0, p1],
-            memmap_dir=memmap_dir, symbol_index=1,
+            cfg,
+            logging.getLogger(),
+            [p0, p1],
+            memmap_dir=memmap_dir,
+            symbol_index=1,
         )
         # symbol_index=1 → representative sample from SYM1 (close ≥ 500)
         assert val_df["close"].iloc[0] >= 500.0
@@ -154,7 +174,7 @@ class TestBuildPooledSplits:
         reset_calls: list[int] = []
 
         class _FakePipeline:
-            features: list = []
+            features: ClassVar[list] = []
 
             def reset(self, symbol_id=None):
                 reset_calls.append(1)
@@ -173,11 +193,16 @@ class TestBuildPooledSplits:
         p1 = _write_ohlcv(tmp_path, "SYM1", n_rows=150)
         p2 = _write_ohlcv(tmp_path, "SYM2", n_rows=150)
         _build_pooled_splits(
-            _make_config(), logging.getLogger(), [p0, p1, p2], memmap_dir=None,
+            _make_config(),
+            logging.getLogger(),
+            [p0, p1, p2],
+            memmap_dir=None,
         )
         assert sum(reset_calls) == 3
 
-    def test_delegates_to_per_day_splits_when_val_data_paths_set(self, tmp_path, monkeypatch):
+    def test_delegates_to_per_day_splits_when_val_data_paths_set(
+        self, tmp_path, monkeypatch
+    ):
         calls: list[tuple] = []
         _dummy = pd.DataFrame(
             {"close": [1.0]},
@@ -188,12 +213,16 @@ class TestBuildPooledSplits:
             calls.append((list(train_paths), list(val_paths)))
             return _dummy, _dummy, _dummy, None
 
-        monkeypatch.setattr("trading_rl.data.preparation._build_per_day_splits", _fake_per_day)
+        monkeypatch.setattr(
+            "trading_rl.data.preparation._build_per_day_splits", _fake_per_day
+        )
         p_train = _write_ohlcv(tmp_path, "SYM0", n_rows=150)
         p_val = _write_ohlcv(tmp_path, "VAL0", n_rows=100)
         _build_pooled_splits(
             _make_config(val_data_paths=[p_val]),
-            logging.getLogger(), [p_train], memmap_dir=None,
+            logging.getLogger(),
+            [p_train],
+            memmap_dir=None,
         )
         assert len(calls) == 1
         assert calls[0][0] == [p_train]
@@ -204,18 +233,31 @@ class TestBuildPooledSplits:
 # _build_per_day_splits
 # ---------------------------------------------------------------------------
 
+
 def _fake_worker_factory(n_val_rows: int = 10):
     """Return a synchronous drop-in for _per_symbol_worker.
 
     Writes minimal parquet files to tmp_dir and returns the expected result
     tuple without performing any feature engineering.
     """
+
     def _worker(args):
         (
-            symbol, train_indices, train_paths_sym, val_path, val_index,
-            feature_config, mode, backend, filter_lob_levels, warmup_rows,
-            memmap_dir_str, tmp_dir_str, worker_idx, n_workers_total,
-            feature_cache_dir_str,
+            symbol,
+            train_indices,
+            _train_paths_sym,
+            val_path,
+            val_index,
+            _feature_config,
+            _mode,
+            _backend,
+            _filter_lob_levels,
+            _warmup_rows,
+            _memmap_dir_str,
+            tmp_dir_str,
+            _worker_idx,
+            _n_workers_total,
+            _feature_cache_dir_str,
         ) = args
 
         tmp_dir = Path(tmp_dir_str)
@@ -275,7 +317,8 @@ class TestBuildPerDaySplits:
         cfg = _make_config(train_size=1)
         with pytest.raises(ValueError, match="No training paths for symbol 'MSFT'"):
             _build_per_day_splits(
-                cfg, logging.getLogger(),
+                cfg,
+                logging.getLogger(),
                 train_paths=[train_path],
                 val_paths=[val_path],
                 memmap_dir=None,
@@ -300,7 +343,8 @@ class TestBuildPerDaySplits:
         cfg = _make_config(train_size=1)
         # Must not raise — both train files belong to 'AAPL' which matches the val file
         _build_per_day_splits(
-            cfg, logging.getLogger(),
+            cfg,
+            logging.getLogger(),
             train_paths=[train1, train2],
             val_paths=[val_p],
             memmap_dir=None,
@@ -325,7 +369,8 @@ class TestBuildPerDaySplits:
         )
         cfg = _make_config(train_size=1)
         _, val_df, test_df, _, _ = _build_per_day_splits(
-            cfg, logging.getLogger(),
+            cfg,
+            logging.getLogger(),
             train_paths=[train_path],
             val_paths=[val_path],
             memmap_dir=None,
@@ -333,7 +378,9 @@ class TestBuildPerDaySplits:
         assert len(val_df) == n_val_rows // 2
         assert len(test_df) == n_val_rows // 2
 
-    def test_memmap_results_ordered_by_original_train_index(self, tmp_path, monkeypatch):
+    def test_memmap_results_ordered_by_original_train_index(
+        self, tmp_path, monkeypatch
+    ):
         """Memmaps must be assembled in original train_paths order, not worker
         completion order.  Out-of-order assembly would silently assign the wrong
         data to a symbol slot in the streaming env."""
@@ -351,33 +398,54 @@ class TestBuildPerDaySplits:
         from trading_rl.data_loading import save_symbol_memmap
 
         def _worker_with_memmap(args):
-            (symbol, train_indices, train_paths_sym, val_path, val_index,
-             feature_config, mode, backend, filter_lob_levels, warmup_rows,
-             memmap_dir_str, tmp_dir_str, worker_idx, n_workers_total,
-             feature_cache_dir_str) = args
+            (
+                symbol,
+                train_indices,
+                train_paths_sym,
+                val_path,
+                val_index,
+                _feature_config,
+                _mode,
+                _backend,
+                _filter_lob_levels,
+                _warmup_rows,
+                memmap_dir_str,
+                tmp_dir_str,
+                _worker_idx,
+                _n_workers_total,
+                _feature_cache_dir_str,
+            ) = args
 
             from pathlib import Path as P
 
             import numpy as _np
             import pandas as _pd
+
             mm_dir = P(memmap_dir_str)
             tmp_dir_p = P(tmp_dir_str)
 
             train_results = []
-            for orig_idx, _ in zip(train_indices, train_paths_sym):
+            for orig_idx, _ in zip(train_indices, train_paths_sym, strict=False):
                 n = 20
                 df_tr = _pd.DataFrame(
                     {"close": _np.full(n, float(orig_idx + 1) * 100)},
                     index=_pd.date_range("2020-01-01", periods=n, freq="1min"),
                 )
-                mp = save_symbol_memmap(df_tr, mm_dir, prefix=str(orig_idx), symbol=symbol)
-                train_results.append((orig_idx, {
-                    "data_path": str(mp.data_path),
-                    "index_path": str(mp.index_path),
-                    "n_rows": mp.n_rows,
-                    "columns": mp.columns,
-                    "symbol": mp.symbol,
-                }))
+                mp = save_symbol_memmap(
+                    df_tr, mm_dir, prefix=str(orig_idx), symbol=symbol
+                )
+                train_results.append(
+                    (
+                        orig_idx,
+                        {
+                            "data_path": str(mp.data_path),
+                            "index_path": str(mp.index_path),
+                            "n_rows": mp.n_rows,
+                            "columns": mp.columns,
+                            "symbol": mp.symbol,
+                        },
+                    )
+                )
 
             val_entry = None
             if val_path is not None and val_index is not None:
@@ -403,7 +471,8 @@ class TestBuildPerDaySplits:
         )
         cfg = _make_config(train_size=20, validation_size=5, test_size=5)
         _, _, _, memmaps, _ = _build_per_day_splits(
-            cfg, logging.getLogger(),
+            cfg,
+            logging.getLogger(),
             train_paths=[sym_a_train1, sym_a_train2, sym_b_train],
             val_paths=[sym_a_val, sym_b_val],
             memmap_dir=memmap_dir,
@@ -441,7 +510,8 @@ class TestBuildPerDaySplits:
         )
         cfg = _make_config(train_size=1)
         _, val_df, test_df, _, _ = _build_per_day_splits(
-            cfg, logging.getLogger(),
+            cfg,
+            logging.getLogger(),
             train_paths=[train_a, train_b],
             val_paths=[val_a, val_b],
             memmap_dir=None,

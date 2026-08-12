@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -36,6 +37,12 @@ from trading_rl.evaluation.thesis_theme import (
     PALETTE,
     thesis_theme,
 )
+
+if TYPE_CHECKING:
+    import matplotlib.axes
+    import matplotlib.figure
+
+    from trading_rl.evaluation.metrics import MetricReport
 
 logger = get_logger(__name__)
 
@@ -85,7 +92,9 @@ def _build_run_caption(
     if date_range:
         lines.append(f"Date range: {date_range}.")
     if training_steps is not None and training_episodes is not None:
-        lines.append(f"Policy trained for {training_steps:,} steps ({training_episodes:,} episodes).")
+        lines.append(
+            f"Policy trained for {training_steps:,} steps ({training_episodes:,} episodes)."
+        )
     elif training_steps is not None:
         lines.append(f"Policy trained for {training_steps:,} steps.")
     for run in runs:
@@ -102,7 +111,10 @@ def _portfolio_values_from_actual_returns(
 ) -> np.ndarray:
     if isinstance(actual_returns, ReturnSeries):
         equity = actual_returns.to_equity(initial_portfolio_value).values
-        if actual_returns.kind == ReturnKind.EQUITY and not actual_returns.includes_initial:
+        if (
+            actual_returns.kind == ReturnKind.EQUITY
+            and not actual_returns.includes_initial
+        ):
             return equity[:n_obs]
         return equity[1 : n_obs + 1]
 
@@ -176,8 +188,12 @@ def build_rollout_plot_data(
         for j in range(i + 1, len(rollouts)):
             min_a = min(all_actions[i].shape[0], all_actions[j].shape[0])
             min_r = min(all_rewards[i].shape[0], all_rewards[j].shape[0])
-            actions_equal = bool(allclose(all_actions[i][:min_a].float(), all_actions[j][:min_a].float()))
-            rewards_equal = bool(allclose(all_rewards[i][:min_r].float(), all_rewards[j][:min_r].float()))
+            actions_equal = bool(
+                allclose(all_actions[i][:min_a].float(), all_actions[j][:min_a].float())
+            )
+            rewards_equal = bool(
+                allclose(all_rewards[i][:min_r].float(), all_rewards[j][:min_r].float())
+            )
             logger.info(
                 "Run {} vs Run {} | actions_identical={} rewards_identical={}",
                 i + 1,
@@ -186,7 +202,11 @@ def build_rollout_plot_data(
                 rewards_equal,
             )
 
-    stride = max(1, n_obs // max_plot_points) if max_plot_points and max_plot_points < n_obs else 1
+    stride = (
+        max(1, n_obs // max_plot_points)
+        if max_plot_points and max_plot_points < n_obs
+        else 1
+    )
 
     rewards_data = []
     for i, rewards in enumerate(all_rewards):
@@ -200,7 +220,7 @@ def build_rollout_plot_data(
                     "Cumulative_Reward": float(val),
                     "Run": "Deterministic" if i == 0 else "Random",
                 }
-                for step, val in zip(idx, cumsum[::stride])
+                for step, val in zip(idx, cumsum[::stride], strict=False)
             ]
         )
     df_rewards = pd.DataFrame(rewards_data)
@@ -213,12 +233,19 @@ def build_rollout_plot_data(
             price_col = "close"
         if price_col in df.columns:
             price_series = df[price_col].iloc[: n_obs + 1]
-            log_returns = np.log(price_series / price_series.shift(1)).iloc[1:].to_numpy(dtype=float)
+            log_returns = (
+                np.log(price_series / price_series.shift(1))
+                .iloc[1:]
+                .to_numpy(dtype=float)
+            )
 
             n_bad = int(np.sum(~np.isfinite(log_returns)))
             if n_bad == 0:
                 idx = np.arange(len(log_returns))[::stride]
-                for bench_name, sign in [("Buy-and-Hold", 1.0), ("Short-and-Hold", -1.0)]:
+                for bench_name, sign in [
+                    ("Buy-and-Hold", 1.0),
+                    ("Short-and-Hold", -1.0),
+                ]:
                     cumsum = (sign * log_returns).cumsum()
                     rewards_data.extend(
                         {
@@ -226,9 +253,12 @@ def build_rollout_plot_data(
                             "Cumulative_Reward": float(cumsum[s]),
                             "Run": bench_name,
                         }
-                        for i, s in enumerate(idx) if s < len(cumsum)
+                        for i, s in enumerate(idx)
+                        if s < len(cumsum)
                     )
-                twap_positions = np.arange(0, len(log_returns), dtype=float) / len(log_returns)
+                twap_positions = np.arange(0, len(log_returns), dtype=float) / len(
+                    log_returns
+                )
                 twap_cumsum = (twap_positions * log_returns).cumsum()
                 rewards_data.extend(
                     {
@@ -236,7 +266,8 @@ def build_rollout_plot_data(
                         "Cumulative_Reward": float(twap_cumsum[s]),
                         "Run": "TWAP",
                     }
-                    for i, s in enumerate(idx) if s < len(twap_cumsum)
+                    for i, s in enumerate(idx)
+                    if s < len(twap_cumsum)
                 )
                 df_rewards = pd.DataFrame(rewards_data)
                 df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
@@ -264,7 +295,11 @@ def build_rollout_plot_data(
                 ("Short-and-Hold", BenchmarkName.SHORT_AND_HOLD),
             ]:
                 dsr_cumsum, _ = calculate_benchmark_dsr(
-                    df, strategy=strategy, eta=eta, max_steps=n_obs, price_column=price_col,
+                    df,
+                    strategy=strategy,
+                    eta=eta,
+                    max_steps=n_obs,
+                    price_column=price_col,
                 )
                 idx = np.arange(len(dsr_cumsum))[::stride]
                 rewards_data.extend(
@@ -273,10 +308,14 @@ def build_rollout_plot_data(
                         "Cumulative_Reward": float(dsr_cumsum[s]),
                         "Run": bench_name,
                     }
-                    for i, s in enumerate(idx) if s < len(dsr_cumsum)
+                    for i, s in enumerate(idx)
+                    if s < len(dsr_cumsum)
                 )
             twap_dsr_cumsum, _ = calculate_twap_dsr(
-                df, eta=eta, max_steps=n_obs, price_column=price_col,
+                df,
+                eta=eta,
+                max_steps=n_obs,
+                price_column=price_col,
             )
             idx = np.arange(len(twap_dsr_cumsum))[::stride]
             rewards_data.extend(
@@ -285,7 +324,8 @@ def build_rollout_plot_data(
                     "Cumulative_Reward": float(twap_dsr_cumsum[s]),
                     "Run": "TWAP",
                 }
-                for i, s in enumerate(idx) if s < len(twap_dsr_cumsum)
+                for i, s in enumerate(idx)
+                if s < len(twap_dsr_cumsum)
             )
             df_rewards = pd.DataFrame(rewards_data)
             df_rewards["Run"] = _as_ordered_run_categorical(df_rewards["Run"])
@@ -301,7 +341,7 @@ def build_rollout_plot_data(
                     "Actions": float(val),
                     "Run": "Deterministic" if i == 0 else "Random",
                 }
-                for step, val in zip(idx, actions_np[::stride])
+                for step, val in zip(idx, actions_np[::stride], strict=False)
             ]
         )
     df_actions = pd.DataFrame(actions_data)
@@ -313,12 +353,20 @@ def build_rollout_plot_data(
     if is_portfolio and show_allocation_ma:
         ma_rows = []
         for run_name, grp in df_actions.groupby("Run", sort=False):
-            ma_vals = grp["Actions"].rolling(window=allocation_ma_window, min_periods=1).mean()
-            ma_rows.append(pd.DataFrame({
-                "Steps": grp["Steps"].values,
-                "MA": ma_vals.values,
-                "Run": run_name,
-            }))
+            ma_vals = (
+                grp["Actions"]
+                .rolling(window=allocation_ma_window, min_periods=1)
+                .mean()
+            )
+            ma_rows.append(
+                pd.DataFrame(
+                    {
+                        "Steps": grp["Steps"].values,
+                        "MA": ma_vals.values,
+                        "Run": run_name,
+                    }
+                )
+            )
         df_ma = pd.concat(ma_rows, ignore_index=True)
 
     return {
@@ -332,7 +380,9 @@ def build_rollout_plot_data(
         "training_steps": training_steps,
         "training_episodes": training_episodes,
         "n_obs": n_obs,
-        "allocation_ma_window": allocation_ma_window if (is_portfolio and show_allocation_ma) else None,
+        "allocation_ma_window": allocation_ma_window
+        if (is_portfolio and show_allocation_ma)
+        else None,
     }
 
 
@@ -457,7 +507,8 @@ def compare_rollouts(
 ):
     """Compare multiple rollouts and visualize their actions and rewards."""
     data = build_rollout_plot_data(
-        rollouts, n_obs,
+        rollouts,
+        n_obs,
         is_portfolio=is_portfolio,
         training_steps=training_steps,
         training_episodes=training_episodes,
@@ -525,37 +576,48 @@ def build_equity_plot_data(
         date_str, n_obs, stride, symbols, n_total_symbols
     """
     from trading_rl.constants import BenchmarkName
+
     if benchmarks is None:
         benchmarks = frozenset({BenchmarkName.BUY_AND_HOLD})
     show_buy_and_hold = BenchmarkName.BUY_AND_HOLD in benchmarks
-    show_max_profit   = BenchmarkName.MAX_PROFIT    in benchmarks
-    show_twap         = BenchmarkName.TWAP          in benchmarks
-    show_vwap         = BenchmarkName.VWAP          in benchmarks
+    show_max_profit = BenchmarkName.MAX_PROFIT in benchmarks
+    show_twap = BenchmarkName.TWAP in benchmarks
+    show_vwap = BenchmarkName.VWAP in benchmarks
 
     if initial_capital is not None:
         initial_portfolio_value = initial_capital
     if initial_portfolio_value <= 0:
-        raise ValueError(f"initial_portfolio_value must be > 0, got {initial_portfolio_value}")
+        raise ValueError(
+            f"initial_portfolio_value must be > 0, got {initial_portfolio_value}"
+        )
 
     t0 = time.monotonic()
     returns_data = []
-    stride = max(1, n_obs // max_plot_points) if max_plot_points and max_plot_points < n_obs else 1
+    stride = (
+        max(1, n_obs // max_plot_points)
+        if max_plot_points and max_plot_points < n_obs
+        else 1
+    )
     logger.trace("build_equity_plot_data start n_obs={} stride={}", n_obs, stride)
 
     def _extend_with_stride(run_name: str, values: np.ndarray) -> None:
         idx = np.arange(len(values))[::stride]
         returns_data.extend(
             {"Steps": int(s), "Portfolio_Value": float(v), "Run": run_name}
-            for s, v in zip(idx, values[::stride])
+            for s, v in zip(idx, values[::stride], strict=False)
         )
 
     if rollouts is None and actual_returns_list:
         for i, actual_returns in enumerate(actual_returns_list):
             run_name = "Deterministic" if i == 0 else f"Run_{i}"
             if actual_returns is not None:
-                logger.trace("{}: Using actual portfolio returns from provided list", run_name)
+                logger.trace(
+                    "{}: Using actual portfolio returns from provided list", run_name
+                )
                 portfolio_values = _portfolio_values_from_actual_returns(
-                    actual_returns, initial_portfolio_value, n_obs,
+                    actual_returns,
+                    initial_portfolio_value,
+                    n_obs,
                 )
                 _extend_with_stride(run_name, portfolio_values)
     else:
@@ -564,28 +626,44 @@ def build_equity_plot_data(
             if actual_returns_list and i < len(actual_returns_list):
                 actual_returns = actual_returns_list[i]
             else:
-                actual_returns = extract_tradingenv_return_series(env, n_obs) if env else None
+                actual_returns = (
+                    extract_tradingenv_return_series(env, n_obs) if env else None
+                )
 
             if actual_returns is not None:
-                logger.trace("{}: Using actual portfolio returns from TradingEnv broker", run_name)
+                logger.trace(
+                    "{}: Using actual portfolio returns from TradingEnv broker",
+                    run_name,
+                )
                 portfolio_values = _portfolio_values_from_actual_returns(
-                    actual_returns, initial_portfolio_value, n_obs,
+                    actual_returns,
+                    initial_portfolio_value,
+                    n_obs,
                 )
                 _extend_with_stride(run_name, portfolio_values)
             elif reward_type in (None, "log_return"):
                 rewards = rollout["next"]["reward"][:n_obs].detach().cpu().numpy()
                 cumulative_log_returns = np.cumsum(rewards)
-                logger.trace("{}: Using rollout rewards as log-return fallback", run_name)
-                portfolio_values = initial_portfolio_value * np.exp(cumulative_log_returns)
+                logger.trace(
+                    "{}: Using rollout rewards as log-return fallback", run_name
+                )
+                portfolio_values = initial_portfolio_value * np.exp(
+                    cumulative_log_returns
+                )
                 _extend_with_stride(run_name, portfolio_values)
             else:
                 logger.warning(
                     "{}: Cannot derive portfolio values — reward_type='{}' rewards are not "
                     "log returns and no broker NLV is available. Skipping series.",
-                    run_name, reward_type,
+                    run_name,
+                    reward_type,
                 )
 
-    logger.trace("returns_data built n_points={} elapsed_s={:.2f}", len(returns_data), time.monotonic() - t0)
+    logger.trace(
+        "returns_data built n_points={} elapsed_s={:.2f}",
+        len(returns_data),
+        time.monotonic() - t0,
+    )
 
     price_series = None
     if df_prices is not None:
@@ -599,7 +677,9 @@ def build_equity_plot_data(
             elif "close" in df_prices.columns:
                 benchmark_col = "close"
             else:
-                logger.warning("No benchmark price column available; skipping benchmarks.")
+                logger.warning(
+                    "No benchmark price column available; skipping benchmarks."
+                )
                 benchmark_col = ""
         price_series = df_prices[benchmark_col] if benchmark_col else None
         if price_series is None:
@@ -624,7 +704,9 @@ def build_equity_plot_data(
                 )
             if show_max_profit:
                 max_profit_values = initial_portfolio_value * np.exp(
-                    np.asarray(np.log1p(np.abs(benchmark_returns)).cumsum(), dtype=float)
+                    np.asarray(
+                        np.log1p(np.abs(benchmark_returns)).cumsum(), dtype=float
+                    )
                 )
             if show_twap or show_vwap:
                 from trading_rl.evaluation.statistical_benchmarks import (
@@ -632,17 +714,24 @@ def build_equity_plot_data(
                     compute_vwap_returns,
                     resolve_vwap_volume_series,
                 )
+
                 if show_twap:
                     twap_simple = compute_twap_returns(price_series, n_obs)
-                    twap_values = initial_portfolio_value * np.cumprod(1.0 + twap_simple)
+                    twap_values = initial_portfolio_value * np.cumprod(
+                        1.0 + twap_simple
+                    )
                 if show_vwap:
                     volumes, _vol_source = resolve_vwap_volume_series(df_prices)
                     if volumes is None:
-                        logger.warning("VWAP benchmark skipped: no usable volume column in df_prices")
+                        logger.warning(
+                            "VWAP benchmark skipped: no usable volume column in df_prices"
+                        )
                         show_vwap = False
                     else:
                         vwap_simple = compute_vwap_returns(price_series, volumes, n_obs)
-                        vwap_values = initial_portfolio_value * np.cumprod(1.0 + vwap_simple)
+                        vwap_values = initial_portfolio_value * np.cumprod(
+                            1.0 + vwap_simple
+                        )
 
             if show_buy_and_hold and buy_and_hold_values is not None:
                 _extend_with_stride("Buy-and-Hold", buy_and_hold_values)
@@ -653,7 +742,11 @@ def build_equity_plot_data(
             if show_vwap and vwap_values is not None:
                 _extend_with_stride("VWAP", vwap_values)
 
-    logger.trace("benchmark data appended total_points={} elapsed_s={:.2f}", len(returns_data), time.monotonic() - t0)
+    logger.trace(
+        "benchmark data appended total_points={} elapsed_s={:.2f}",
+        len(returns_data),
+        time.monotonic() - t0,
+    )
 
     df_returns = pd.DataFrame(returns_data)
     df_returns["Run"] = _as_ordered_run_categorical(df_returns["Run"])
@@ -697,7 +790,11 @@ def plot_equity_curve(
     or any DataFrame with columns Steps, Portfolio_Value, Run.
     """
     symbols = symbols or []
-    is_sample = n_total_symbols is not None and n_total_symbols > len(symbols) and len(symbols) > 0
+    is_sample = (
+        n_total_symbols is not None
+        and n_total_symbols > len(symbols)
+        and len(symbols) > 0
+    )
     asset_str = f" — {', '.join(symbols)}" if (symbols and not is_sample) else ""
     full_title = f"Portfolio Value{asset_str}"
 
@@ -725,7 +822,9 @@ def plot_equity_curve(
         caption_prefix += f"\nRollout: {n_obs:,} steps total; showing {n_plotted:,} points (every {stride}th step)."
 
     return (
-        ggplot(df_returns, aes(x="Steps", y="Portfolio_Value", color="Run", linetype="Run"))
+        ggplot(
+            df_returns, aes(x="Steps", y="Portfolio_Value", color="Run", linetype="Run")
+        )
         + geom_line(size=0.32)
         + labs(
             title=full_title,
@@ -764,7 +863,8 @@ def create_equity_curve_plot(
 ):
     """Create a plot showing actual portfolio returns, not training rewards."""
     data = build_equity_plot_data(
-        rollouts, n_obs,
+        rollouts,
+        n_obs,
         df_prices=df_prices,
         env=env,
         actual_returns_list=actual_returns_list,
@@ -815,23 +915,39 @@ def create_equity_progression_plot(
     for training_step, returns in history:
         equity = returns.to_equity(initial_portfolio_value).values
         n = len(equity)
-        stride = max(1, n // max_plot_points) if max_plot_points and max_plot_points < n else 1
+        stride = (
+            max(1, n // max_plot_points)
+            if max_plot_points and max_plot_points < n
+            else 1
+        )
         idx = np.arange(n)[::stride]
-        for s, v in zip(idx, equity[::stride]):
-            rows.append({
-                "Steps": int(s),
-                "Portfolio_Value": float(v),
-                "Training_Step": int(training_step),
-            })
+        for s, v in zip(idx, equity[::stride], strict=False):
+            rows.append(
+                {
+                    "Steps": int(s),
+                    "Portfolio_Value": float(v),
+                    "Training_Step": int(training_step),
+                }
+            )
 
     df = pd.DataFrame(rows)
     n_checkpoints = df["Training_Step"].nunique()
 
     return (
-        ggplot(df, aes(x="Steps", y="Portfolio_Value", color="Training_Step", group="Training_Step"))
+        ggplot(
+            df,
+            aes(
+                x="Steps",
+                y="Portfolio_Value",
+                color="Training_Step",
+                group="Training_Step",
+            ),
+        )
         + geom_line(size=0.32)
         + scale_color_gradient(
-            low="#f5cccc", high="#CC0000", name="Training Step",
+            low="#f5cccc",
+            high="#CC0000",
+            name="Training Step",
             labels=lambda vals: [f"{int(v / 1_000)}k" for v in vals],
         )
         + labs(
@@ -881,11 +997,13 @@ def create_train_val_progression_plot(
             y = float(equity.values[-1])
         else:
             raise ValueError(f"Unknown metric: {metric}")
-        rows.append({
-            "Training_Step": int(training_step),
-            "Value": y,
-            "Split": "Train",
-        })
+        rows.append(
+            {
+                "Training_Step": int(training_step),
+                "Value": y,
+                "Split": "Train",
+            }
+        )
 
     for training_step, returns in val_history:
         if metric == "total_return":
@@ -895,11 +1013,13 @@ def create_train_val_progression_plot(
             y = float(equity.values[-1])
         else:
             raise ValueError(f"Unknown metric: {metric}")
-        rows.append({
-            "Training_Step": int(training_step),
-            "Value": y,
-            "Split": "Val",
-        })
+        rows.append(
+            {
+                "Training_Step": int(training_step),
+                "Value": y,
+                "Split": "Val",
+            }
+        )
 
     df = pd.DataFrame(rows)
 
@@ -923,7 +1043,9 @@ def create_train_val_progression_plot(
             caption=caption_text,
         )
         + thesis_theme()
-        + guides(color=guide_legend(title="Split"), linetype=guide_legend(title="Split"))
+        + guides(
+            color=guide_legend(title="Split"), linetype=guide_legend(title="Split")
+        )
     )
 
 
@@ -998,7 +1120,7 @@ def _render_table_on_ax(
             if col == 0 and sec:
                 cell.set_text_props(fontweight="bold", color="#2c3e50")
 
-    for col, w in zip(range(4), [0.10, 0.18, 0.12, 0.60]):
+    for col, w in zip(range(4), [0.10, 0.18, 0.12, 0.60], strict=False):
         for row_idx in range(len(rows) + 1):
             tbl[row_idx, col].set_width(w)
 
@@ -1030,7 +1152,9 @@ def create_metrics_table_figure(
             val = report_dict[meta.key]
             sec_label = section if first else ""
             first = False
-            rows.append((sec_label, meta.label, fmt_metric(meta.key, val), meta.description))
+            rows.append(
+                (sec_label, meta.label, fmt_metric(meta.key, val), meta.description)
+            )
 
     BASE_SIZE = 11
 
@@ -1058,17 +1182,22 @@ def create_metrics_table_figure(
 _MERGED_PANEL_HEIGHT = 9.0  # inches per panel — sized for 22pt base font
 
 
-def create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot=None, save_path=None):
+def create_merged_comparison_plot(
+    reward_plot, action_plot, equity_curve_plot=None, save_path=None
+):
     """Merge reward, action, and (optionally) equity curve plots into a vertical layout."""
     if equity_curve_plot is not None:
         merged_plot = reward_plot / action_plot / equity_curve_plot
     else:
         merged_plot = reward_plot / action_plot
     n_panels = 3 if equity_curve_plot is not None else 2
-    merged_plot = merged_plot + theme(figure_size=(FIGURE_WIDTH * 2, round(_MERGED_PANEL_HEIGHT * n_panels, 1)))
+    merged_plot = merged_plot + theme(
+        figure_size=(FIGURE_WIDTH * 2, round(_MERGED_PANEL_HEIGHT * n_panels, 1))
+    )
     if save_path:
         logger.info("save merged comparison plot path={}", save_path)
         from trading_rl.evaluation.thesis_theme import PLOT_DPI
+
         merged_plot.save(save_path, dpi=PLOT_DPI, verbose=False)
         write_asset_meta(save_path, generator="evaluation/plots.py")
     return merged_plot

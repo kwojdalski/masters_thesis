@@ -4,7 +4,7 @@ Refactored command-line interface using command classes.
 """
 
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -126,7 +126,9 @@ artifacts_cmd = ArtifactsCommand(console)
 @app.command(name="checkpoints")
 def checkpoints(
     log_dir: Path = typer.Option(  # noqa: B008
-        EXPERIMENT_OUTPUT_DIR, "--log-dir", help="Root directory to scan for checkpoints"
+        EXPERIMENT_OUTPUT_DIR,
+        "--log-dir",
+        help="Root directory to scan for checkpoints",
     ),
     delete: str | None = typer.Option(
         None, "--delete", help="Delete checkpoints matching regex"
@@ -292,7 +294,7 @@ def train(
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to custom config file"
     ),
-    config_override: list[str] | None = typer.Option(
+    config_override: list[str] | None = typer.Option(  # noqa: B008
         None,
         "--config-override",
         "-o",
@@ -426,7 +428,7 @@ def evaluate(
         "-s",
         help="Data split(s) to evaluate: train, val, test, or all",
     ),
-    only: list[str] | None = typer.Option(
+    only: list[str] | None = typer.Option(  # noqa: B008
         None,
         "--only",
         help=(
@@ -439,7 +441,7 @@ def evaluate(
         "--output-dir",
         help="Directory to write results.json and plot PNGs",
     ),
-    config_override: list[str] | None = typer.Option(
+    config_override: list[str] | None = typer.Option(  # noqa: B008
         None,
         "--config-override",
         "-o",
@@ -553,19 +555,27 @@ _collect_results_cmd = CollectResultsCommand(console)
 
 @app.command(name="collect-results")
 def collect_results(
-    algorithms: list[str] = typer.Option(
-        ..., "--algorithm", "-a",
+    algorithms: list[str] = typer.Option(  # noqa: B008
+        ...,
+        "--algorithm",
+        "-a",
         help="Algorithm name (repeat for each, e.g. -a TD3 -a DDPG -a PPO)",
     ),
-    dirs: list[str] = typer.Option(
-        ..., "--dir", "-d",
+    dirs: list[str] = typer.Option(  # noqa: B008
+        ...,
+        "--dir",
+        "-d",
         help="Path to eval_results directory for the corresponding algorithm (same order as --algorithm)",
     ),
     output_dir: Path = typer.Option(  # noqa: B008
-        Path("masters_thesis_results"), "--output-dir", "-o",
+        Path("masters_thesis_results"),
+        "--output-dir",
+        "-o",
         help="Destination directory for aggregated thesis results",
     ),
-    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing output"),
+    overwrite: bool = typer.Option(
+        False, "--overwrite", help="Overwrite existing output"
+    ),
 ) -> None:
     """Merge per-algorithm evaluation results into a single thesis results directory.
 
@@ -589,12 +599,15 @@ def collect_results(
 @app.command(name="prepare-data")
 def prepare_data(
     scenario: str | None = typer.Option(
-        None, "--scenario", "-s", help="Scenario name or path under src/configs/scenarios"
+        None,
+        "--scenario",
+        "-s",
+        help="Scenario name or path under src/configs/scenarios",
     ),
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to experiment config YAML"
     ),
-    config_override: list[str] | None = typer.Option(
+    config_override: list[str] | None = typer.Option(  # noqa: B008
         None, "--config-override", "-o", help="OmegaConf dotlist override (repeatable)"
     ),
 ):
@@ -676,22 +689,29 @@ app.add_typer(peek_app, name="peek")
 @peek_app.command(name="dataset")
 def peek_dataset(
     scenario: str | None = typer.Option(
-        None, "--scenario", "-s", help="Scenario name or path under src/configs/scenarios"
+        None,
+        "--scenario",
+        "-s",
+        help="Scenario name or path under src/configs/scenarios",
     ),
     config_file: Path | None = typer.Option(  # noqa: B008
         None, "--config", "-c", help="Path to experiment config YAML"
     ),
-    config_override: list[str] | None = typer.Option(
+    config_override: list[str] | None = typer.Option(  # noqa: B008
         None, "--config-override", "-o", help="OmegaConf dotlist override (repeatable)"
     ),
     n_features: int = typer.Option(
         20, "--top", "-n", help="Max feature rows to show in stats table"
     ),
     skip_rows: int = typer.Option(
-        0, "--skip", help="Skip first N rows before computing feature stats (excludes indicator warm-up)"
+        0,
+        "--skip",
+        help="Skip first N rows before computing feature stats (excludes indicator warm-up)",
     ),
     show_correlations: bool = typer.Option(
-        False, "--corr", help="Show feature–reward correlation table (Pearson + Spearman)"
+        False,
+        "--corr",
+        help="Show feature–reward correlation table (Pearson + Spearman)",
     ),
     export: bool = typer.Option(
         False, "--export", help="Export tables as CSV files to reports/peek/<scenario>/"
@@ -702,15 +722,17 @@ def peek_dataset(
     Loads from cache when available (instant after prepare-data).  Displays
     split sizes, date ranges, per-feature statistics, and memmap file inventory.
     """
-    peek_cmd.execute(PeekParams(
-        scenario=scenario,
-        config_file=config_file,
-        config_override=config_override,
-        n_features=n_features,
-        skip_rows=skip_rows,
-        show_correlations=show_correlations,
-        export=export,
-    ))
+    peek_cmd.execute(
+        PeekParams(
+            scenario=scenario,
+            config_file=config_file,
+            config_override=config_override,
+            n_features=n_features,
+            skip_rows=skip_rows,
+            show_correlations=show_correlations,
+            export=export,
+        )
+    )
 
 
 @peek_app.command(name="configs")
@@ -738,7 +760,11 @@ def peek_configs(
 
     yamls = yamls[:n]
 
-    tbl = Table(title=f"Recent configs (top {len(yamls)} of {base})", show_header=True, header_style="bold")
+    tbl = Table(
+        title=f"Recent configs (top {len(yamls)} of {base})",
+        show_header=True,
+        header_style="bold",
+    )
     tbl.add_column("modified", style="dim")
     tbl.add_column("scenario")
     tbl.add_column("algorithm")
@@ -746,12 +772,18 @@ def peek_configs(
     tbl.add_column("backend")
 
     for p in yamls:
-        mtime = datetime.fromtimestamp(p.stat().st_mtime).strftime("%m-%d %H:%M")
+        mtime = (
+            datetime.fromtimestamp(p.stat().st_mtime, tz=UTC)
+            .astimezone()
+            .strftime("%m-%d %H:%M")
+        )
         rel = p.relative_to(base)
         # For train.yaml show just the parent dir; strip leading scenarios/ prefix
         label = rel.parent if p.name == "train.yaml" else rel
         parts = label.parts
-        scenario_label = str(Path(*parts[1:])) if parts and parts[0] == "scenarios" else str(label)
+        scenario_label = (
+            str(Path(*parts[1:])) if parts and parts[0] == "scenarios" else str(label)
+        )
         try:
             with p.open() as f:
                 cfg = yaml.safe_load(f) or {}
@@ -774,16 +806,21 @@ def validate_config(
     scenario: str | None = typer.Option(
         None, "--scenario", "-s", help="Scenario name or path to scenario file"
     ),
-    config_override: list[str] | None = typer.Option(
-        None, "--config-override", "-o", help="OmegaConf override in dotlist format (repeatable)"
+    config_override: list[str] | None = typer.Option(  # noqa: B008
+        None,
+        "--config-override",
+        "-o",
+        help="OmegaConf override in dotlist format (repeatable)",
     ),
 ):
     """Validate experiment config, data dependencies, and feature wiring."""
-    validation_cmd.execute(ValidationParams(
-        config_file=config_file,
-        scenario=scenario,
-        config_overrides=config_override,
-    ))
+    validation_cmd.execute(
+        ValidationParams(
+            config_file=config_file,
+            scenario=scenario,
+            config_overrides=config_override,
+        )
+    )
 
 
 @validate_app.command(name="data")
@@ -794,38 +831,64 @@ def validate_data(
     scenario: str | None = typer.Option(
         None, "--scenario", "-s", help="Scenario name or path to scenario file"
     ),
-    config_override: list[str] | None = typer.Option(
-        None, "--config-override", "-o", help="OmegaConf override in dotlist format (repeatable)"
+    config_override: list[str] | None = typer.Option(  # noqa: B008
+        None,
+        "--config-override",
+        "-o",
+        help="OmegaConf override in dotlist format (repeatable)",
     ),
     no_nan: bool = typer.Option(False, "--no-nan", help="Skip NaN check"),
     no_inf: bool = typer.Option(False, "--no-inf", help="Skip inf check"),
-    no_duplicates: bool = typer.Option(False, "--no-duplicates", help="Skip duplicate index check"),
-    no_zero_variance: bool = typer.Option(False, "--no-zero-variance", help="Skip zero-variance feature check"),
-    no_lob_deltas: bool = typer.Option(False, "--no-lob-deltas", help="Skip LOB delta check"),
-    no_temporal_order: bool = typer.Option(False, "--no-temporal-order", help="Skip temporal ordering check"),
-    no_overlap: bool = typer.Option(False, "--no-overlap", help="Skip index overlap / data-leakage check"),
-    no_sizes: bool = typer.Option(False, "--no-sizes", help="Skip split-size vs config check"),
-    lob_levels: int = typer.Option(5, "--lob-levels", help="Number of LOB levels to check for deltas"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show description for each check"),
-    transpose: bool = typer.Option(False, "--transpose", "-t", help="Transpose data glimpse table (shows all columns)"),
+    no_duplicates: bool = typer.Option(
+        False, "--no-duplicates", help="Skip duplicate index check"
+    ),
+    no_zero_variance: bool = typer.Option(
+        False, "--no-zero-variance", help="Skip zero-variance feature check"
+    ),
+    no_lob_deltas: bool = typer.Option(
+        False, "--no-lob-deltas", help="Skip LOB delta check"
+    ),
+    no_temporal_order: bool = typer.Option(
+        False, "--no-temporal-order", help="Skip temporal ordering check"
+    ),
+    no_overlap: bool = typer.Option(
+        False, "--no-overlap", help="Skip index overlap / data-leakage check"
+    ),
+    no_sizes: bool = typer.Option(
+        False, "--no-sizes", help="Skip split-size vs config check"
+    ),
+    lob_levels: int = typer.Option(
+        5, "--lob-levels", help="Number of LOB levels to check for deltas"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show description for each check"
+    ),
+    transpose: bool = typer.Option(
+        False,
+        "--transpose",
+        "-t",
+        help="Transpose data glimpse table (shows all columns)",
+    ),
 ):
     """Validate the prepared dataset for a scenario using DataValidator."""
-    validate_data_cmd.execute(ValidateDataParams(
-        scenario=scenario,
-        config_file=config_file,
-        config_override=config_override,
-        check_nan=not no_nan,
-        check_inf=not no_inf,
-        check_duplicates=not no_duplicates,
-        check_zero_variance=not no_zero_variance,
-        check_lob_deltas=not no_lob_deltas,
-        check_temporal_order=not no_temporal_order,
-        check_overlap=not no_overlap,
-        check_sizes=not no_sizes,
-        lob_levels=lob_levels,
-        verbose=verbose,
-        transpose=transpose,
-    ))
+    validate_data_cmd.execute(
+        ValidateDataParams(
+            scenario=scenario,
+            config_file=config_file,
+            config_override=config_override,
+            check_nan=not no_nan,
+            check_inf=not no_inf,
+            check_duplicates=not no_duplicates,
+            check_zero_variance=not no_zero_variance,
+            check_lob_deltas=not no_lob_deltas,
+            check_temporal_order=not no_temporal_order,
+            check_overlap=not no_overlap,
+            check_sizes=not no_sizes,
+            lob_levels=lob_levels,
+            verbose=verbose,
+            transpose=transpose,
+        )
+    )
 
 
 @validate_app.command(name="guardrails")
@@ -836,11 +899,16 @@ def validate_guardrails(
     scenario: str | None = typer.Option(
         None, "--scenario", "-s", help="Scenario name or path to scenario file"
     ),
-    config_override: list[str] | None = typer.Option(
-        None, "--config-override", "-o", help="OmegaConf override in dotlist format (repeatable)"
+    config_override: list[str] | None = typer.Option(  # noqa: B008
+        None,
+        "--config-override",
+        "-o",
+        help="OmegaConf override in dotlist format (repeatable)",
     ),
     all_scenarios: bool = typer.Option(
-        False, "--all", help="Check every scenario directory under src/configs/scenarios"
+        False,
+        "--all",
+        help="Check every scenario directory under src/configs/scenarios",
     ),
 ):
     """Run pre-flight config guardrails (parameter consistency checks).
@@ -859,12 +927,14 @@ def validate_guardrails(
         """Return (fatals, warns, scenario_name) for a single config path."""
         command = "train" if config_path.is_dir() else None
         try:
-            cfg = ExperimentConfig.load(config_path, command=command, overrides=config_override)
+            cfg = ExperimentConfig.load(
+                config_path, command=command, overrides=config_override
+            )
         except Exception as exc:
             return [], [], f"[red]LOAD ERROR[/red] {_escape(str(exc))}"
         findings = check_config_guardrails(cfg)
         fatals = [f for f in findings if f.severity == Severity.FATAL]
-        warns  = [f for f in findings if f.severity == Severity.WARN]
+        warns = [f for f in findings if f.severity == Severity.WARN]
         name = getattr(cfg, "experiment_name", None) or str(config_path)
         return fatals, warns, name
 
@@ -873,24 +943,30 @@ def validate_guardrails(
         if fatals:
             console.print(f"\n[bold red]FATAL ({len(fatals)})[/bold red]{tag}")
             for i, f in enumerate(fatals, 1):
-                console.print(f"  [cyan][{i}][/cyan] [yellow]{_escape(f.parameter)}[/yellow]")
+                console.print(
+                    f"  [cyan][{i}][/cyan] [yellow]{_escape(f.parameter)}[/yellow]"
+                )
                 console.print(f"       Problem: {_escape(f.message)}")
                 console.print(f"       Fix:     [cyan]{_escape(f.suggestion)}[/cyan]")
         if warns:
             console.print(f"\n[bold yellow]WARN ({len(warns)})[/bold yellow]{tag}")
             for i, f in enumerate(warns, 1):
-                console.print(f"  [cyan][{i}][/cyan] [yellow]{_escape(f.parameter)}[/yellow]")
+                console.print(
+                    f"  [cyan][{i}][/cyan] [yellow]{_escape(f.parameter)}[/yellow]"
+                )
                 console.print(f"       Problem:    {_escape(f.message)}")
-                console.print(f"       Suggestion: [cyan]{_escape(f.suggestion)}[/cyan]")
+                console.print(
+                    f"       Suggestion: [cyan]{_escape(f.suggestion)}[/cyan]"
+                )
 
     if all_scenarios:
         scenarios_root = Path("src/configs/scenarios")
         # Every directory that contains a train.yaml is a scenario
-        scenario_dirs = sorted(
-            p.parent for p in scenarios_root.rglob("train.yaml")
-        )
+        scenario_dirs = sorted(p.parent for p in scenarios_root.rglob("train.yaml"))
         if not scenario_dirs:
-            console.print("[yellow]No scenarios found under src/configs/scenarios[/yellow]")
+            console.print(
+                "[yellow]No scenarios found under src/configs/scenarios[/yellow]"
+            )
             raise typer.Exit(0)
 
         console.print(f"Checking [bold]{len(scenario_dirs)}[/bold] scenario(s)...\n")
@@ -959,13 +1035,13 @@ def validate_guardrails(
 
 @app.command(name="feature-research")
 def feature_research(
-    config_file: Path | None = typer.Option(
+    config_file: Path | None = typer.Option(  # noqa: B008
         None,
         "--config",
         help="Path to feature research config YAML",
         show_default=False,
     ),
-    experiment_config_file: Path | None = typer.Option(
+    experiment_config_file: Path | None = typer.Option(  # noqa: B008
         None,
         "--experiment-config",
         help="Path to experiment scenario YAML to derive research settings from",
@@ -977,7 +1053,7 @@ def feature_research(
         help="Scenario config name or path under src/configs/scenarios",
         show_default=False,
     ),
-    config_override: list[str] | None = typer.Option(
+    config_override: list[str] | None = typer.Option(  # noqa: B008
         None,
         "--config-override",
         help="OmegaConf override in dotlist format (repeatable)",

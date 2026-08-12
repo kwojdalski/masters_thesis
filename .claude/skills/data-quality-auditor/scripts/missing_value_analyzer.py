@@ -38,7 +38,9 @@ def null_stats(mask: list[bool]) -> dict:
     return {"count": count, "pct": round(count / total * 100, 2) if total else 0}
 
 
-def classify_mechanism(col: str, mask: list[bool], all_masks: dict[str, list[bool]]) -> str:
+def classify_mechanism(
+    col: str, mask: list[bool], all_masks: dict[str, list[bool]]
+) -> str:
     """
     Heuristic classification of missingness mechanism:
     - MCAR: nulls appear randomly, no correlation with other columns
@@ -72,14 +74,21 @@ def classify_mechanism(col: str, mask: list[bool], all_masks: dict[str, list[boo
     # Check if nulls are clustered (time/positional pattern) — proxy for MNAR
     sorted_indices = sorted(null_indices)
     if len(sorted_indices) > 2:
-        gaps = [sorted_indices[i + 1] - sorted_indices[i] for i in range(len(sorted_indices) - 1)]
+        gaps = [
+            sorted_indices[i + 1] - sorted_indices[i]
+            for i in range(len(sorted_indices) - 1)
+        ]
         avg_gap = sum(gaps) / len(gaps)
-        clustered = avg_gap < n / len(null_indices) * 0.5  # nulls appear closer together than random
+        clustered = (
+            avg_gap < n / len(null_indices) * 0.5
+        )  # nulls appear closer together than random
     else:
         clustered = False
 
     if correlated_cols:
-        return f"MAR (likely) — co-occurs with nulls in: {', '.join(correlated_cols[:3])}"
+        return (
+            f"MAR (likely) — co-occurs with nulls in: {', '.join(correlated_cols[:3])}"
+        )
     elif clustered:
         return "MNAR (possible) — nulls are spatially clustered, may reflect a systematic gap"
     else:
@@ -124,7 +133,9 @@ def infer_type(values: list[str]) -> str:
     return max(counts, key=lambda k: counts[k]) if any(counts.values()) else "string"
 
 
-def compute_cooccurrence(headers: list[str], masks: dict[str, list[bool]], top_n: int = 5) -> list[dict]:
+def compute_cooccurrence(
+    headers: list[str], masks: dict[str, list[bool]], top_n: int = 5
+) -> list[dict]:
     """Find column pairs where nulls most frequently co-occur."""
     pairs = []
     cols = list(headers)
@@ -132,7 +143,7 @@ def compute_cooccurrence(headers: list[str], masks: dict[str, list[bool]], top_n
         for j in range(i + 1, len(cols)):
             a, b = cols[i], cols[j]
             mask_a, mask_b = masks[a], masks[b]
-            overlap = sum(1 for x, y in zip(mask_a, mask_b) if x and y)
+            overlap = sum(1 for x, y in zip(mask_a, mask_b, strict=False) if x and y)
             if overlap > 0:
                 pairs.append({"col_a": a, "col_b": b, "co_null_rows": overlap})
     pairs.sort(key=lambda x: -x["co_null_rows"])
@@ -156,14 +167,16 @@ def print_report(headers: list[str], rows: list[dict], masks: dict, threshold: f
         col_type = infer_type(raw_vals)
         mechanism = classify_mechanism(col, mask, masks)
         strategy = recommend_strategy(stats["pct"], col_type)
-        results.append({
-            "column": col,
-            "null_count": stats["count"],
-            "null_pct": stats["pct"],
-            "col_type": col_type,
-            "mechanism": mechanism,
-            "strategy": strategy,
-        })
+        results.append(
+            {
+                "column": col,
+                "null_count": stats["count"],
+                "null_pct": stats["pct"],
+                "col_type": col_type,
+                "mechanism": mechanism,
+                "strategy": strategy,
+            }
+        )
 
     fully_complete = [col for col in headers if null_stats(masks[col])["count"] == 0]
     print(f"\nFully complete columns: {len(fully_complete)}/{len(headers)}")
@@ -173,9 +186,13 @@ def print_report(headers: list[str], rows: list[dict], masks: dict, threshold: f
     else:
         print(f"\nColumns with missing values (threshold >= {threshold * 100:.1f}%):\n")
         for r in sorted(results, key=lambda x: -x["null_pct"]):
-            indicator = "🔴" if r["null_pct"] > 30 else ("🟡" if r["null_pct"] > 10 else "🟢")
+            indicator = (
+                "🔴" if r["null_pct"] > 30 else ("🟡" if r["null_pct"] > 10 else "🟢")
+            )
             print(f"  {indicator} {r['column']}")
-            print(f"     Nulls: {r['null_count']} ({r['null_pct']}%)  |  Type: {r['col_type']}")
+            print(
+                f"     Nulls: {r['null_count']} ({r['null_pct']}%)  |  Type: {r['col_type']}"
+            )
             print(f"     Mechanism: {r['mechanism']}")
             print(f"     Strategy:  {r['strategy']}")
             print()
@@ -186,16 +203,24 @@ def print_report(headers: list[str], rows: list[dict], masks: dict, threshold: f
         print("NULL CO-OCCURRENCE (top pairs)")
         print("-" * 64)
         for pair in cooccur:
-            print(f"  {pair['col_a']} + {pair['col_b']}  →  {pair['co_null_rows']} rows both null")
+            print(
+                f"  {pair['col_a']} + {pair['col_b']}  →  {pair['co_null_rows']} rows both null"
+            )
 
     print("\n" + "=" * 64)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyze missing values in a CSV dataset.")
+    parser = argparse.ArgumentParser(
+        description="Analyze missing values in a CSV dataset."
+    )
     parser.add_argument("--file", required=True, help="Path to CSV file")
-    parser.add_argument("--threshold", type=float, default=0.0,
-                        help="Only show columns with null fraction above this (e.g. 0.05 = 5%%)")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.0,
+        help="Only show columns with null fraction above this (e.g. 0.05 = 5%%)",
+    )
     parser.add_argument("--format", choices=["text", "json"], default="text")
     args = parser.parse_args()
 
@@ -223,14 +248,16 @@ def main():
             col_type = infer_type(raw_vals)
             mechanism = classify_mechanism(col, mask, masks)
             strategy = recommend_strategy(stats["pct"], col_type)
-            output.append({
-                "column": col,
-                "null_count": stats["count"],
-                "null_pct": stats["pct"],
-                "col_type": col_type,
-                "mechanism": mechanism,
-                "strategy": strategy,
-            })
+            output.append(
+                {
+                    "column": col,
+                    "null_count": stats["count"],
+                    "null_pct": stats["pct"],
+                    "col_type": col_type,
+                    "mechanism": mechanism,
+                    "strategy": strategy,
+                }
+            )
         print(json.dumps({"total_rows": len(rows), "columns": output}, indent=2))
     else:
         print_report(headers, rows, masks, args.threshold)

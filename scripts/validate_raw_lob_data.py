@@ -22,18 +22,24 @@ def analyze_lob_data(df: pd.DataFrame) -> dict:
         "shape": df.shape,
         "columns": list(df.columns),
         "index_type": str(type(df.index).__name__),
-        "dtypes": {col: str(dtype) for col, dtype in zip(df.columns, df.dtypes)},
-        "issues": []
+        "dtypes": {
+            col: str(dtype) for col, dtype in zip(df.columns, df.dtypes, strict=False)
+        },
+        "issues": [],
     }
 
     # Basic data quality
     result["null_counts"] = df.isnull().sum().to_dict()
     total_nulls = df.isnull().sum().sum()
     result["total_null_count"] = int(total_nulls)
-    result["total_null_percentage"] = float(total_nulls / (df.shape[0] * df.shape[1]) * 100)
+    result["total_null_percentage"] = float(
+        total_nulls / (df.shape[0] * df.shape[1]) * 100
+    )
 
     if result["total_null_percentage"] > 0:
-        result["issues"].append(f"High null rate: {result['total_null_percentage']:.2f}%")
+        result["issues"].append(
+            f"High null rate: {result['total_null_percentage']:.2f}%"
+        )
 
     # Check for timestamp issues
     if not isinstance(df.index, pd.DatetimeIndex):
@@ -56,7 +62,14 @@ def analyze_lob_data(df: pd.DataFrame) -> dict:
             result["last_timestamp"] = str(df.index[-1])
 
     # Check for LOB-specific issues
-    lob_columns = [col for col in df.columns if any(x in col.lower() for x in ['px', 'sz', 'ct', 'price', 'size', 'count', 'depth'])]
+    lob_columns = [
+        col
+        for col in df.columns
+        if any(
+            x in col.lower()
+            for x in ["px", "sz", "ct", "price", "size", "count", "depth"]
+        )
+    ]
 
     for col in lob_columns:
         if col not in df.columns:
@@ -75,29 +88,39 @@ def analyze_lob_data(df: pd.DataFrame) -> dict:
 
         if is_numeric:
             # Check for negative prices
-            if 'px' in col.lower() or 'price' in col.lower():
+            if "px" in col.lower() or "price" in col.lower():
                 negative_prices = (series < 0).sum()
                 if negative_prices > 0:
-                    result["issues"].append(f"Negative prices in '{col}': {negative_prices:,}")
+                    result["issues"].append(
+                        f"Negative prices in '{col}': {negative_prices:,}"
+                    )
 
                 # Check for unreasonably large prices
-                if 'bid_px' in col or 'ask_px' in col:
+                if "bid_px" in col or "ask_px" in col:
                     if series.max() > 10000:  # Unlikely for most stocks
-                        result["issues"].append(f"Suspiciously high prices in '{col}': max ${series.max():.2f}")
+                        result["issues"].append(
+                            f"Suspiciously high prices in '{col}': max ${series.max():.2f}"
+                        )
 
             # Check for negative sizes
-            if 'sz' in col.lower() or 'size' in col.lower():
+            if "sz" in col.lower() or "size" in col.lower():
                 negative_sizes = (series < 0).sum()
                 if negative_sizes > 0:
-                    result["issues"].append(f"Negative sizes in '{col}': {negative_sizes:,}")
+                    result["issues"].append(
+                        f"Negative sizes in '{col}': {negative_sizes:,}"
+                    )
 
             # Check for unreasonably large sizes
             if series.max() > 1_000_000:  # Unlikely for LOB data
-                result["issues"].append(f"Suspiciously large sizes in '{col}': max {series.max():,.0f}")
+                result["issues"].append(
+                    f"Suspiciously large sizes in '{col}': max {series.max():,.0f}"
+                )
 
             # Check for zero variance columns
             if series.std() < 1e-10:
-                result["issues"].append(f"Zero variance in '{col}': all values are {series.iloc[0]}")
+                result["issues"].append(
+                    f"Zero variance in '{col}': all values are {series.iloc[0]}"
+                )
 
             # Outlier detection
             Q1 = series.quantile(0.25)
@@ -111,7 +134,9 @@ def analyze_lob_data(df: pd.DataFrame) -> dict:
             outlier_pct = float(outlier_count / len(series) * 100)
 
             if outlier_pct > 20.0:  # High threshold for LOB data
-                result["issues"].append(f"High outlier rate in '{col}': {outlier_pct:.2f}% (>20%)")
+                result["issues"].append(
+                    f"High outlier rate in '{col}': {outlier_pct:.2f}% (>20%)"
+                )
 
     return result
 
@@ -126,21 +151,25 @@ def format_lob_analysis(result: dict, file_path: str) -> str:
     lines.append(f"Shape: {result['shape'][0]:,} rows × {result['shape'][1]:,} columns")
     lines.append(f"Index: {result['index_type']}")
 
-    if 'time_span' in result:
-        lines.append(f"Time range: {result['first_timestamp']} to {result['last_timestamp']}")
+    if "time_span" in result:
+        lines.append(
+            f"Time range: {result['first_timestamp']} to {result['last_timestamp']}"
+        )
         lines.append(f"Time span: {result['time_span']}")
 
     # Null data check
-    if result['total_null_count'] > 0:
+    if result["total_null_count"] > 0:
         lines.append("\n⚠️  NULL VALUES:")
         lines.append(f"  Total null cells: {result['total_null_count']:,}")
         lines.append(f"  Null percentage: {result['total_null_percentage']:.4f}%")
 
-        high_null_cols = [col for col, count in result['null_counts'].items() if count > 0]
+        high_null_cols = [
+            col for col, count in result["null_counts"].items() if count > 0
+        ]
         if high_null_cols:
             lines.append(f"  Columns with nulls: {len(high_null_cols)}")
             for col in high_null_cols[:5]:  # Show first 5
-                null_pct = result['null_counts'][col] / result['shape'][0] * 100
+                null_pct = result["null_counts"][col] / result["shape"][0] * 100
                 lines.append(f"    - {col}: {null_pct:.2f}%")
             if len(high_null_cols) > 5:
                 lines.append(f"    ... and {len(high_null_cols) - 5} more")
@@ -150,16 +179,16 @@ def format_lob_analysis(result: dict, file_path: str) -> str:
     # Data type check
     lines.append("\n📊 DATA TYPES:")
     type_counts = {}
-    for dtype in result['dtypes'].values():
+    for dtype in result["dtypes"].values():
         type_counts[dtype] = type_counts.get(dtype, 0) + 1
 
     for dtype, count in sorted(type_counts.items()):
         lines.append(f"  {dtype}: {count} columns")
 
     # Issues found
-    if result['issues']:
+    if result["issues"]:
         lines.append(f"\n🚨 ISSUES FOUND ({len(result['issues'])}):")
-        for i, issue in enumerate(result['issues'], 1):
+        for i, issue in enumerate(result["issues"], 1):
             lines.append(f"  {i}. {issue}")
     else:
         lines.append("\n✅ NO ISSUES FOUND - Raw LOB data looks clean")
@@ -192,7 +221,9 @@ def analyze_specific_columns(df: pd.DataFrame, columns: list[str]) -> None:
         if is_numeric:
             print(f"\n📊 COLUMN: {col}")
             print(f"  Type: {series.dtype}")
-            print(f"  Non-null: {len(series):,} / {len(df):,} ({len(series)/len(df)*100:.1f}%)")
+            print(
+                f"  Non-null: {len(series):,} / {len(df):,} ({len(series) / len(df) * 100:.1f}%)"
+            )
 
             if len(series) > 0:
                 print(f"  Min: {series.min():.4f}")
@@ -227,7 +258,9 @@ def main():
     if len(sys.argv) < 2:
         print(__doc__)
         print("\nExample files:")
-        print("  data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet")
+        print(
+            "  data/raw/stocks/AAPL_2026-02-25_2026-03-03_raw_mbp-10_us_hours.parquet"
+        )
         sys.exit(1)
 
     file_path = Path(sys.argv[1])
@@ -245,10 +278,21 @@ def main():
 
     # Detailed analysis of key LOB columns
     key_columns = [
-        'bid_px_00', 'ask_px_00', 'bid_sz_00', 'ask_sz_00',  # Level 0
-        'bid_px_01', 'ask_px_01', 'bid_sz_01', 'ask_sz_01',  # Level 1
-        'bid_px_02', 'ask_px_02', 'bid_sz_02', 'ask_sz_02',  # Level 2
-        'depth', 'size', 'price'  # Order metadata
+        "bid_px_00",
+        "ask_px_00",
+        "bid_sz_00",
+        "ask_sz_00",  # Level 0
+        "bid_px_01",
+        "ask_px_01",
+        "bid_sz_01",
+        "ask_sz_01",  # Level 1
+        "bid_px_02",
+        "ask_px_02",
+        "bid_sz_02",
+        "ask_sz_02",  # Level 2
+        "depth",
+        "size",
+        "price",  # Order metadata
     ]
 
     # Filter to columns that exist in the data

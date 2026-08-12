@@ -69,12 +69,14 @@ class CollectResultsCommand(BaseCommand):
         all_benchmarks: list[dict[str, Any]] = []
         algo_results: dict[str, dict[str, Any]] = {}
 
-        for algo, src_dir_str in zip(params.algorithms, params.dirs):
+        for algo, src_dir_str in zip(params.algorithms, params.dirs, strict=False):
             src_dir = Path(src_dir_str)
             results_json = src_dir / "results.json"
 
             if not results_json.exists():
-                self.console.print(f"[yellow]  {algo}: results.json not found in {src_dir} — skipping[/yellow]")
+                self.console.print(
+                    f"[yellow]  {algo}: results.json not found in {src_dir} — skipping[/yellow]"
+                )
                 continue
 
             self.console.print(f"[green]  Loading {algo} from {src_dir}[/green]")
@@ -137,8 +139,12 @@ class CollectResultsCommand(BaseCommand):
         _write_csv(comp / "metrics_table.csv", all_rows)
         _write_json(comp / "benchmark_table.json", all_benchmarks)
         _write_csv(comp / "benchmark_table.csv", all_benchmarks)
-        for _p in [comp / "metrics_table.json", comp / "metrics_table.csv",
-                   comp / "benchmark_table.json", comp / "benchmark_table.csv"]:
+        for _p in [
+            comp / "metrics_table.json",
+            comp / "metrics_table.csv",
+            comp / "benchmark_table.json",
+            comp / "benchmark_table.csv",
+        ]:
             write_asset_meta(_p, generator="cli/commands/collect_results_command.py")
 
         # Write manifest
@@ -148,11 +154,13 @@ class CollectResultsCommand(BaseCommand):
             "n_splits": len(all_rows),
             "sources": {
                 algo.lower(): str(Path(d).resolve())
-                for algo, d in zip(params.algorithms, params.dirs)
+                for algo, d in zip(params.algorithms, params.dirs, strict=False)
             },
         }
         _write_json(out / "manifest.json", manifest)
-        write_asset_meta(out / "manifest.json", generator="cli/commands/collect_results_command.py")
+        write_asset_meta(
+            out / "manifest.json", generator="cli/commands/collect_results_command.py"
+        )
 
         self.console.print(f"\n[bold green]Results collected → {out}[/bold green]")
         self.console.print(f"  Algorithms : {', '.join(algo_results.keys())}")
@@ -187,6 +195,7 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         path.write_text("")
         return
     import csv
+
     keys = list(rows[0].keys())
     with path.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=keys)

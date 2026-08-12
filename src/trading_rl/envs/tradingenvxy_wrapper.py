@@ -73,6 +73,8 @@ class FastTradingEnv(TradingEnv):
         if self.broker is not None:
             self.broker.track_record = FastTrackRecord()
         return result
+
+
 SUPPORTED_RUNTIME_FEATURES = {RUNTIME_POSITION_FEATURE}
 
 
@@ -93,7 +95,9 @@ class GymnasiumTradingEnvWrapper(gym.Env):
         if self._obs_clip is None:
             return obs
         if isinstance(obs, dict):
-            return {k: np.clip(v, -self._obs_clip, self._obs_clip) for k, v in obs.items()}
+            return {
+                k: np.clip(v, -self._obs_clip, self._obs_clip) for k, v in obs.items()
+            }
         return np.clip(obs, -self._obs_clip, self._obs_clip)
 
     def reset(self, *, seed=None, options=None):
@@ -330,7 +334,11 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         if config is not None:
             env_config = getattr(config, "env", None)
             if env_config is not None:
-                initial_cash = getattr(env_config, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)
+                initial_cash = getattr(
+                    env_config,
+                    "initial_portfolio_value",
+                    DEFAULT_INITIAL_PORTFOLIO_VALUE,
+                )
                 fee = getattr(env_config, "trading_fees", 0.0)
                 reward_type = getattr(env_config, "reward_type", RewardType.LOG_RETURN)
                 reward_eta = getattr(env_config, "reward_eta", 0.01)
@@ -344,8 +352,14 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         reward_scale = kwargs.pop("reward_scale", reward_scale)
 
         from trading_rl.rewards.registry import RewardRegistry
+
         reward = RewardRegistry.create(reward_type, eta=reward_eta, scale=reward_scale)
-        logger.info("reward reward_type={} eta={} scale={}", reward_type, reward_eta, reward_scale)
+        logger.info(
+            "reward reward_type={} eta={} scale={}",
+            reward_type,
+            reward_eta,
+            reward_scale,
+        )
 
         logger.info(
             "creating TradingEnv environment n_rows={} n_static_cols={} n_runtime_cols={} price_column={} fee={}",
@@ -372,7 +386,9 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         ]
         logger.trace("CustomFeature built")
 
-        logger.trace("preparing price dataframe n_rows={} n_cols={}", len(df), len(price_columns))
+        logger.trace(
+            "preparing price dataframe n_rows={} n_cols={}", len(df), len(price_columns)
+        )
         prices = df[price_columns].copy()
         prices.columns = stocks
         logger.trace("price dataframe ready")
@@ -545,6 +561,7 @@ class StreamingTradingEnvXY(gym.Env):
                 )
             return self._dsr_per_symbol[symbol]
         from trading_rl.rewards.registry import RewardRegistry
+
         return RewardRegistry.create(
             self._reward_type, eta=self._reward_eta, scale=self._reward_scale
         )
@@ -564,7 +581,8 @@ class StreamingTradingEnvXY(gym.Env):
         except (ValueError, OverflowError) as e:
             logger.warning(
                 "Could not parse timestamps dtype={} error={}, using RangeIndex",
-                window_index.dtype, e,
+                window_index.dtype,
+                e,
             )
             index = pd.RangeIndex(len(window_data))
         return pd.DataFrame(window_data, columns=mp.columns, index=index)
@@ -588,7 +606,7 @@ class StreamingTradingEnvXY(gym.Env):
             # price_df:   rows [k .. N-1]   — what the agent is filled at
             # Re-index price_df to feature_df timestamps so tradingenv sees a
             # consistent timeline; the gap [0..k-1] is the combined latency.
-            feature_df = window_df.iloc[:N - k]
+            feature_df = window_df.iloc[: N - k]
             price_df = window_df.iloc[k:].copy()
             price_df.index = feature_df.index
         else:
@@ -605,13 +623,13 @@ class StreamingTradingEnvXY(gym.Env):
                 traded_contracts=stocks,
             )
         ]
-        common_kwargs = dict(
-            action_space=BoxPortfolio(stocks, low=-1.0, high=1.0),
-            state=features,
-            reward=reward or self._make_reward(symbol),
-            initial_cash=self._initial_cash,
-            broker_fees=BrokerFees(proportional=self._fee, fixed=0.0),
-        )
+        common_kwargs = {
+            "action_space": BoxPortfolio(stocks, low=-1.0, high=1.0),
+            "state": features,
+            "reward": reward or self._make_reward(symbol),
+            "initial_cash": self._initial_cash,
+            "broker_fees": BrokerFees(proportional=self._fee, fixed=0.0),
+        }
 
         use_bidask = self._execution_price == "bid_ask"
         if use_bidask and (
@@ -626,17 +644,21 @@ class StreamingTradingEnvXY(gym.Env):
             transmitter = Transmitter(timesteps=feature_df.index)
             bid_arr = price_df[self._bid_column].to_numpy(dtype=np.float64)
             ask_arr = price_df[self._ask_column].to_numpy(dtype=np.float64)
-            transmitter.add_events([
-                EventNBBO(
-                    time=ts,
-                    contract=stock,
-                    bid_price=float(bid),
-                    ask_price=float(ask),
-                    bid_size=np.inf,
-                    ask_size=np.inf,
-                )
-                for ts, bid, ask in zip(feature_df.index, bid_arr, ask_arr)
-            ])
+            transmitter.add_events(
+                [
+                    EventNBBO(
+                        time=ts,
+                        contract=stock,
+                        bid_price=float(bid),
+                        ask_price=float(ask),
+                        bid_size=np.inf,
+                        ask_size=np.inf,
+                    )
+                    for ts, bid, ask in zip(
+                        feature_df.index, bid_arr, ask_arr, strict=False
+                    )
+                ]
+            )
             return FastTradingEnv(transmitter=transmitter, **common_kwargs)
 
         prices = price_df[[self._price_column]].copy()
@@ -663,9 +685,15 @@ class StreamingTradingEnvXY(gym.Env):
         # always sees the completed episode's value, not the new episode's.
         if self._inner_env is not None:
             broker = self._inner_env.broker
-            if broker is not None and hasattr(broker, "track_record") and broker.track_record:
+            if (
+                broker is not None
+                and hasattr(broker, "track_record")
+                and broker.track_record
+            ):
                 last_record = broker.track_record[-1]
-                if hasattr(last_record, "context_post") and hasattr(last_record.context_post, "nlv"):
+                if hasattr(last_record, "context_post") and hasattr(
+                    last_record.context_post, "nlv"
+                ):
                     self._last_episode_final_nlv = float(last_record.context_post.nlv)
                     self._last_episode_steps = len(broker.track_record)
         if self._dsr_persist_across_symbols and self._persistent_dsr is not None:
@@ -694,7 +722,9 @@ class StreamingTradingEnvXY(gym.Env):
         start = int(self._symbol_rng.integers(0, max_start + 1))
         window_df = self._load_window(file_idx, start)
         # Snapshot symbol and date range for the new episode.
-        self._current_episode_symbol = mp.symbol or Path(mp.data_path).stem.split("_")[0]
+        self._current_episode_symbol = (
+            mp.symbol or Path(mp.data_path).stem.split("_")[0]
+        )
         if isinstance(window_df.index, pd.DatetimeIndex) and len(window_df) > 0:
             fmt = "%Y-%m-%dT%H:%M:%S"
             self._current_episode_start_ts = window_df.index[0].strftime(fmt)
@@ -706,7 +736,10 @@ class StreamingTradingEnvXY(gym.Env):
         # new episode starts with a fresh NLV reference while moments persist.
         _dsr_to_restore: object | None = None
         _saved_moments: tuple[float, float] | None = None
-        if not self._dsr_persist_across_symbols and self._reward_type == RewardType.DIFFERENTIAL_SHARPE:
+        if (
+            not self._dsr_persist_across_symbols
+            and self._reward_type == RewardType.DIFFERENTIAL_SHARPE
+        ):
             sym = self._current_episode_symbol
             if sym in self._dsr_per_symbol:
                 dsr = self._dsr_per_symbol[sym]
@@ -718,8 +751,16 @@ class StreamingTradingEnvXY(gym.Env):
             _saved_moments = (dsr.A_t, dsr.B_t)
             dsr.reset(persist_moments=True)  # clear only _prev_nlv
             _dsr_to_restore = dsr
-        k_obs = self._obs_latency.resolve(self._symbol_rng, window_df.index) if self._obs_latency is not None else 0
-        k_exec = self._exec_latency.resolve(self._symbol_rng, window_df.index) if self._exec_latency is not None else 0
+        k_obs = (
+            self._obs_latency.resolve(self._symbol_rng, window_df.index)
+            if self._obs_latency is not None
+            else 0
+        )
+        k_exec = (
+            self._exec_latency.resolve(self._symbol_rng, window_df.index)
+            if self._exec_latency is not None
+            else 0
+        )
         total_k = k_obs + k_exec
         self._inner_env = self._build_inner_env(
             window_df,
