@@ -19,7 +19,7 @@ def get_highest_priority_issues(limit: int = 5) -> list[dict]:
             ["gh", "issue", "list", "--state", "open", "--limit", str(limit), "--json"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
 
         if result.returncode != 0:
@@ -27,6 +27,7 @@ def get_highest_priority_issues(limit: int = 5) -> list[dict]:
             return []
 
         import json
+
         issues = json.loads(result.stdout)
 
         # Filter only open issues
@@ -42,13 +43,18 @@ def get_highest_priority_issues(limit: int = 5) -> list[dict]:
         sorted_issues = sorted(
             open_issues,
             key=lambda x: (
-                severity_order.get(x.get("labels", {}).get(0, "none"), 4)  # Priority by severity
-                x.get("created_at", "")
-            )
+                severity_order.get(
+                    x.get("labels", {}).get(0, "none"), 4
+                ),  # Priority by severity
+                x.get("created_at", ""),
+            ),
         )
 
         # Take top N issues
         return sorted_issues[:limit]
+    except subprocess.CalledProcessError as e:
+        print(f"Error: Failed to fetch issues: {e.stderr}")
+        return []
 
 
 def analyze_issue(issue: dict) -> dict:
@@ -71,14 +77,26 @@ def analyze_issue(issue: dict) -> dict:
         "is_real_issue": False,
         "evidence": [],
         "verdict": "NEEDS_INVESTIGATION",
-        "next_actions": []
+        "next_actions": [],
     }
 
     # Heuristic analysis for real issues
     real_issue_indicators = [
-        "bug", "error", "exception", "crash", "broken", "fails",
-        "fix", "correct", "resolve", "patch", "improve",
-        "optimization", "refactor", "update", "upgrade"
+        "bug",
+        "error",
+        "exception",
+        "crash",
+        "broken",
+        "fails",
+        "fix",
+        "correct",
+        "resolve",
+        "patch",
+        "improve",
+        "optimization",
+        "refactor",
+        "update",
+        "upgrade",
     ]
 
     # Check for issue description patterns
@@ -86,9 +104,7 @@ def analyze_issue(issue: dict) -> dict:
     body_lower = body.lower()
 
     # Indicators this might be a real issue
-    has_action_verbs = any(
-        word in title_lower for word in real_issue_indicators
-    )
+    has_action_verbs = any(word in title_lower for word in real_issue_indicators)
     has_error_terms = any(
         word in title_lower + " " + body_lower
         for word in ["error", "exception", "crash", "fails", "bug", "fix"]
@@ -96,13 +112,22 @@ def analyze_issue(issue: dict) -> dict:
 
     # Documentation vs real issue detection
     doc_indicators = [
-        "documentation", "doc", "readme", "changelog", "guide", "tutorial",
-        "example", "clarification", "update", "typo", "format", "style"
+        "documentation",
+        "doc",
+        "readme",
+        "changelog",
+        "guide",
+        "tutorial",
+        "example",
+        "clarification",
+        "update",
+        "typo",
+        "format",
+        "style",
     ]
 
     has_doc_requests = any(
-        word in title_lower + " " + body_lower
-        for word in doc_indicators
+        word in title_lower + " " + body_lower for word in doc_indicators
     )
 
     # Make初步 verdict
@@ -114,7 +139,7 @@ def analyze_issue(issue: dict) -> dict:
             "Investigate code location mentioned in issue",
             "Verify bug with existing tests",
             "Create reproduction case if possible",
-            "Check git log for recent related changes"
+            "Check git log for recent related changes",
         ]
     elif has_doc_requests:
         # Looks like documentation request
@@ -123,7 +148,7 @@ def analyze_issue(issue: dict) -> dict:
         analysis["next_actions"] = [
             "Check if documentation exists in codebase",
             "Consider adding to existing docs",
-            "Update docstrings if needed"
+            "Update docstrings if needed",
         ]
     else:
         # Need more investigation
@@ -131,7 +156,7 @@ def analyze_issue(issue: dict) -> dict:
         analysis["next_actions"] = [
             "Read issue body and comments thoroughly",
             "Search codebase for relevant code",
-            "Ask user for clarification if needed"
+            "Ask user for clarification if needed",
         ]
 
     analysis["evidence"] = {
@@ -139,7 +164,7 @@ def analyze_issue(issue: dict) -> dict:
         "has_action_verbs": has_action_verbs,
         "has_error_terms": has_error_terms,
         "has_doc_requests": has_doc_requests,
-        "labels": labels
+        "labels": labels,
     }
 
     return analysis
@@ -164,12 +189,13 @@ def verify_codebase_claim(issue: dict, issue_analysis: dict) -> dict:
         "claim_matches_code": False,
         "evidence": [],
         "verdict": "",
-        "additional_findings": []
+        "additional_findings": [],
     }
 
     # Look for file paths in issue
     import re
-    file_pattern = r'\`[^`]+\.[a-z]{2,4}`:[0-9]+'
+
+    file_pattern = r"\`[^`]+\.[a-z]{2,4}`:[0-9]+"
 
     def find_all_occurrences(text: str, pattern: str) -> list[str]:
         """Find all occurrences of a pattern in text."""
@@ -200,11 +226,11 @@ def verify_codebase_claim(issue: dict, issue_analysis: dict) -> dict:
                 break
 
     # Look for function mentions
-    func_pattern = r'\b[a-z_]+\(|\s+[a-z_]+\)'
+    func_pattern = r"\b[a-z_]+\(|\s+[a-z_]+\)"
 
     def find_functions(text: str) -> list[str]:
         """Find function names in text."""
-        matches = re.findall(r'\b[a-z_]+\(|\s+[a-z_]+\)', text)
+        matches = re.findall(r"\b[a-z_]+\(|\s+[a-z_]+\)", text)
         return [m for m in matches if len(m.group(1)) > 2]  # Filter out short ones
 
     title_funcs = find_functions(title)
@@ -222,7 +248,10 @@ def verify_codebase_claim(issue: dict, issue_analysis: dict) -> dict:
 
     # Determine verdict based on verification
     if verification["claim_matches_code"]:
-        if file_matches and len([m for m in file_matches if Path(m.group(1)).exists()]) > 0:
+        if (
+            file_matches
+            and len([m for m in file_matches if Path(m.group(1)).exists()]) > 0
+        ):
             verification["verdict"] = "CONFIRMED"
             verification["additional_findings"].append(
                 "At least one referenced file exists in codebase"
@@ -245,11 +274,13 @@ def generate_triage_report(issues: list[dict]) -> str:
 
     report = []
     report.append("# Auto Issue Triage Report")
-    report.append(f"Generated: 2026-05-12")
+    report.append("Generated: 2026-05-12")
     report.append("")
     for i, issue in enumerate(issues, 1):
         issue_number = issue.get("number", i)
-        report.append(f"## Issue #{issue_number}: {issue.get('title', 'Unknown Issue')}")
+        report.append(
+            f"## Issue #{issue_number}: {issue.get('title', 'Unknown Issue')}"
+        )
         report.append("")
 
         # Get issue details
@@ -283,7 +314,9 @@ def generate_triage_report(issues: list[dict]) -> str:
                 for action in analysis["next_actions"]:
                     report.append(f"  • {action}")
         elif analysis["verdict"] == "ALREADY_DOCUMENTED":
-            report.append("This appears to be a documentation or clarification request.")
+            report.append(
+                "This appears to be a documentation or clarification request."
+            )
             if analysis["next_actions"]:
                 report.append("**Recommended Actions:**")
                 for action in analysis["next_actions"]:
@@ -299,9 +332,13 @@ def generate_triage_report(issues: list[dict]) -> str:
         # Next steps section
         report.append("**Next Steps:**")
         if verdict == "CONFIRMED":
-            report.append("1. Add confirmation label: `gh issue edit {issue_number} --add-label \"triaged-confirmed\"")
+            report.append(
+                '1. Add confirmation label: `gh issue edit {issue_number} --add-label "triaged-confirmed"'
+            )
             report.append("2. Start working on fix")
-            report.append("3. Create feature branch: `git checkout -b fix/issue-{issue_number}\"")
+            report.append(
+                '3. Create feature branch: `git checkout -b fix/issue-{issue_number}"'
+            )
         elif verdict == "ALREADY_DOCUMENTED":
             report.append("1. Add clarification comment if needed")
             report.append("2. Consider updating documentation if applicable")
@@ -322,7 +359,7 @@ def get_severity_display(labels: list) -> str:
         "critical": "Critical",
         "high": "High",
         "medium": "Medium",
-        "low": "Low"
+        "low": "Low",
     }
 
     for label in labels:
@@ -343,7 +380,9 @@ def main():
     else:
         max_issues = 5
 
-    print(f"Auto Issue Triage - Checking up to {max_issues} highest priority open issues...")
+    print(
+        f"Auto Issue Triage - Checking up to {max_issues} highest priority open issues..."
+    )
 
     issues = get_highest_priority_issues(max_issues)
 
@@ -361,15 +400,21 @@ def main():
         analysis = analyze_issue(issue)
         verification = verify_codebase_claim(issue, analysis)
 
-        all_analyses.append({
-            "issue": issue,
-            "analysis": analysis,
-            "verification": verification
-        })
+        all_analyses.append(
+            {"issue": issue, "analysis": analysis, "verification": verification}
+        )
 
     # Sort by priority for display
-    sorted_issues = sorted(all_analyses, key=lambda x: (
-        {"CONFIRMED": 0, "ALREADY_DOCUMENTED": 1, "NEEDS_INVESTIGATION": 2, "NOT_CONFIRMED": 3}
+    sorted_issues = sorted(
+        all_analyses,
+        key=lambda x: (
+            {
+                "CONFIRMED": 0,
+                "ALREADY_DOCUMENTED": 1,
+                "NEEDS_INVESTIGATION": 2,
+                "NOT_CONFIRMED": 3,
+            }.get(x["analysis"]["verdict"], 4)
+        ),
     )
 
     # Generate report
@@ -379,7 +424,7 @@ def main():
 
     # Optional: Save report to file
     report_file = Path("auto_triage_report.md")
-    with open(report_file, 'w') as f:
+    with open(report_file, "w") as f:
         f.write(report)
 
     print(f"\nReport saved to: {report_file}")
@@ -390,13 +435,19 @@ def main():
         issue_number = item["issue"].get("number", "")
         verdict = item["analysis"]["verdict"]
         print(f"  {i+1}. gh issue view {issue_number} -- View full details")
-        print(f"  {i+1}. gh issue edit {issue_number} --add-label \"in-progress\"")
-        print(f"  {i+1}. git checkout -b fix/issue-{issue_number} -- Create branch for this issue")
+        print(f'  {i+1}. gh issue edit {issue_number} --add-label "in-progress"')
+        print(
+            f"  {i+1}. git checkout -b fix/issue-{issue_number} -- Create branch for this issue"
+        )
 
     print("\nTo use automatic mode:")
     print("  ds-triage --max-issues <n>     — Auto-triage N issues")
-    print("  ds-triage --dry-run                    — Preview actions without making changes")
-    print("  ds-triage --severity <level>         — Only process issues at or above severity")
+    print(
+        "  ds-triage --dry-run                    — Preview actions without making changes"
+    )
+    print(
+        "  ds-triage --severity <level>         — Only process issues at or above severity"
+    )
 
 
 if __name__ == "__main__":
