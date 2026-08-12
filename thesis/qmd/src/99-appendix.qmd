@@ -138,21 +138,7 @@ The diagram below shows the feature pipeline design that ensures no information
 from the validation or test splits leaks into the fitted normalization
 parameters.
 
-```{=latex}
-\begin{center}
-```
-
-```{mermaid}
-%%| fig-align: center
-%%| fig-width: 3.5
-%%| fig-height: 6.8
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 10, 'rankSpacing': 14, 'padding': 3, 'useMaxWidth': true}}}%%
-{{< include ./diagrams/data_pipeline.mmd >}}
-```
-
-```{=latex}
-\end{center}
-```
+![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){fig-align="center" width="3.5in"}
 
 ---
 
@@ -186,42 +172,7 @@ which jointly rewards signal strength and consistency; features with $|\text{ICI
 
 The diagram below summarizes the pipeline.
 
-```{=latex}
-\begin{center}
-```
-
-```{mermaid}
-%%| fig-align: center
-%%| fig-width: 1.9
-%%| fig-height: 3.75
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 4, 'useMaxWidth': true}}}%%
-flowchart TD
-    GRP["Feature-group catalogue<br/>(5 named groups)"]
-    RES["Feature resolver<br/>expand group names"]
-    POOL["Candidate Pool<br/>(registry features)"]
-
-    GRP --> RES --> POOL
-
-    POOL --> FIT["Fit Pipeline<br/>on Training Split"]
-    FIT --> TRANS["Transform<br/>Train + Validation"]
-    TRANS --> SCORE["Score Features<br/>ICIR_i = mean(IC_i) / std(IC_i)"]
-    SCORE --> RANK["Rank by ICIR<br/>drop if |ICIR| < 0.02"]
-    RANK --> FILTER["Conditional IC Filter<br/>residualize on selected set"]
-    FILTER --> SEL["Selected Features<br/>(10 static LOB features)"]
-    SEL --> SPEC["Selected feature specification"]
-    SPEC --> TRAIN["Training Pipeline"]
-
-    style GRP fill:#e1f5fe
-    style SEL fill:#e8f5e9
-    style SPEC fill:#e8f5e9
-    style TRAIN fill:#fff3e0
-    style SCORE fill:#fff3e0
-    style FILTER fill:#fce4ec
-```
-
-```{=latex}
-\end{center}
-```
+![Offline feature selection pipeline: score candidates by ICIR, apply a conditional-IC redundancy filter, store the selected specification for training.](diagrams/fig-feature-selection-pipeline.svg){fig-align="center" width="1.9in"}
 
 The offline nature of this pipeline is deliberate: the proxy target and scoring
 metrics are not the reward function that the agent optimizes during training.
@@ -244,38 +195,4 @@ at `docs/workflow.d2` in the project repository (@Wojdalski2026). It is too
 information-dense to reproduce at print resolution; the SVG rendering is
 available at `docs/workflow.svg`.
 
-```{=latex}
-\begin{center}
-```
-
-```{mermaid}
-%%| fig-align: center
-%%| fig-width: 4.5
-%%| fig-height: 7.5
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '9px'}, 'flowchart': {'nodeSpacing': 14, 'rankSpacing': 18, 'padding': 5, 'useMaxWidth': true}}}%%
-flowchart TD
-    ACQ["<b>1. Data Acquisition</b><br/>DataBento MBP-10<br/>6 symbols × 4 days<br/>~7M tick events / symbol"]
-    RES["<b>2. Offline Feature Research</b><br/>IC / ICIR scoring per feature<br/>Greedy conditional IC selection<br/>Outputs selected_features.yaml"]
-    PREP["<b>3. Data Preparation</b><br/>FeaturePipeline.fit on train only<br/>Welford online z-score normalisation<br/>18 memmap files (6 symbols × 3 days)<br/>val + test DataFrames"]
-    GRD["<b>4. Config Guardrails</b><br/>50 pre-flight checks<br/>FATAL → ValueError / abort<br/>WARN → prompt or auto-proceed"]
-    TRAIN["<b>5. RL Training</b><br/>Algorithms: TD3 · DDPG · PPO · Random<br/>StreamingTradingEnvXY episode shuffle<br/>DSR or log-return reward<br/>Runtime health monitor (early stop)<br/>Checkpoints + MLflow logging"]
-    EVAL["<b>6. Post-Training Evaluation</b><br/>Deterministic rollout on val + test<br/>Sharpe · Sortino · drawdown metrics<br/>Buy-and-hold / TWAP / VWAP benchmarks<br/>Statistical significance tests<br/>Permutation + IG explainability"]
-
-    ACQ --> RES
-    RES -.->|"optional: reduced<br/>feature config"| PREP
-    ACQ --> PREP
-    PREP --> GRD
-    GRD -->|"pass"| TRAIN
-    TRAIN --> EVAL
-
-    style ACQ  fill:#bfdbfe,stroke:#3b82f6
-    style RES  fill:#fef08a,stroke:#ca8a04
-    style PREP fill:#bbf7d0,stroke:#16a34a
-    style GRD  fill:#fed7aa,stroke:#ea580c
-    style TRAIN fill:#fecaca,stroke:#dc2626
-    style EVAL fill:#e9d5ff,stroke:#9333ea
-```
-
-```{=latex}
-\end{center}
-```
+![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){fig-align="center" width="4.5in"}

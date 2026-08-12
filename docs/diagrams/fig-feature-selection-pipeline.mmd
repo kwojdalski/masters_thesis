@@ -1,0 +1,23 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '8px'}, 'flowchart': {'nodeSpacing': 12, 'rankSpacing': 16, 'padding': 4, 'useMaxWidth': true}}}%%
+flowchart TD
+    GRP["Feature-group catalogue<br/>(5 named groups)"]
+    RES["Feature resolver<br/>expand group names"]
+    POOL["Candidate Pool<br/>(registry features)"]
+
+    GRP --> RES --> POOL
+
+    POOL --> FIT["Fit Pipeline<br/>on Training Split"]
+    FIT --> TRANS["Transform<br/>Train + Validation"]
+    TRANS --> SCORE["Score Features<br/>ICIR_i = mean(IC_i) / std(IC_i)"]
+    SCORE --> RANK["Rank by ICIR<br/>drop if |ICIR| < 0.02"]
+    RANK --> FILTER["Conditional IC Filter<br/>residualize on selected set"]
+    FILTER --> SEL["Selected Features<br/>(10 static LOB features)"]
+    SEL --> SPEC["Selected feature specification"]
+    SPEC --> TRAIN["Training Pipeline"]
+
+    style GRP fill:#e1f5fe
+    style SEL fill:#e8f5e9
+    style SPEC fill:#e8f5e9
+    style TRAIN fill:#fff3e0
+    style SCORE fill:#fff3e0
+    style FILTER fill:#fce4ec
