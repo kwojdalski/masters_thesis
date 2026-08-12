@@ -56,7 +56,7 @@ _EXPORT_SCRIPT = _REPO_ROOT / "scripts" / "export_eval_to_thesis.py"
 
 def _export_scenario(scenario: str) -> bool:
     """Run export_eval_to_thesis.py for one scenario. Returns True on success."""
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 -- fixed interpreter path + repo-local script, no untrusted input
         [sys.executable, str(_EXPORT_SCRIPT), "--scenario", scenario],
         cwd=_REPO_ROOT,
         env=os.environ,
@@ -79,7 +79,8 @@ def main() -> int:
         help="Which hypotheses to export (h1 h2 h3). Defaults to all.",
     )
     p.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable DEBUG logging.",
     )
@@ -117,11 +118,14 @@ def main() -> int:
 
     logger.info(
         "export complete  exported={}  skipped/failed={}",
-        len(ok), len(skipped),
+        len(ok),
+        len(skipped),
     )
 
     if skipped:
-        logger.warning("skipped scenarios (results.json missing or evaluate not yet run):")
+        logger.warning(
+            "skipped scenarios (results.json missing or evaluate not yet run):"
+        )
         for s in skipped:
             logger.warning("  {}", s)
         logger.warning(

@@ -1,5 +1,6 @@
 """Feature registry for factory pattern."""
 
+from typing import ClassVar
 
 from trading_rl.features.base import Feature, FeatureConfig
 
@@ -10,7 +11,7 @@ class FeatureRegistry:
     Allows features to be created by name from configuration.
     """
 
-    _registry: dict[str, type[Feature]] = {}
+    _registry: ClassVar[dict[str, type[Feature]]] = {}
 
     @classmethod
     def register(cls, feature_type: str, feature_class: type[Feature]) -> None:

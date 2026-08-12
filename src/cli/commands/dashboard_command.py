@@ -11,6 +11,7 @@ from .base_command import BaseCommand
 @dataclass
 class DashboardParams:
     """Parameters for MLflow dashboard."""
+
     port: int = 5000
     host: str = "localhost"
     tracking_uri: str | None = None
@@ -19,9 +20,13 @@ class DashboardParams:
 class DashboardCommand(BaseCommand):
     """Command for managing MLflow dashboard."""
 
-    def __init__(self, console, default_tracking_uri: str | None = "sqlite:///mlflow.db"):
+    def __init__(
+        self, console, default_tracking_uri: str | None = "sqlite:///mlflow.db"
+    ):
         super().__init__(console)
-        self.default_tracking_uri = default_tracking_uri if default_tracking_uri else None
+        self.default_tracking_uri = (
+            default_tracking_uri if default_tracking_uri else None
+        )
 
     def execute(self, params: DashboardParams) -> None:
         """Launch MLflow UI."""
@@ -58,19 +63,31 @@ class DashboardCommand(BaseCommand):
         except Exception as e:
             self.handle_error(e, "Reading MLflow experiments")
 
-    def _launch_mlflow_ui(self, params: DashboardParams, tracking_uri: str | None) -> None:
+    def _launch_mlflow_ui(
+        self, params: DashboardParams, tracking_uri: str | None
+    ) -> None:
         """Launch MLflow UI subprocess."""
         mlflow_cmd = shutil.which("mlflow")
         if not mlflow_cmd:
-            raise FileNotFoundError("MLflow not found. Install with: pip install mlflow")
+            raise FileNotFoundError(
+                "MLflow not found. Install with: pip install mlflow"
+            )
 
-        subprocess.run([
-            mlflow_cmd, "ui",
-            "--host", params.host,
-            "--port", str(params.port),
-            "--backend-store-uri", tracking_uri,
-            "--registry-store-uri", tracking_uri,
-        ], check=False)
+        subprocess.run(  # noqa: S603 -- resolved via shutil.which, args come from local CLI params
+            [
+                mlflow_cmd,
+                "ui",
+                "--host",
+                params.host,
+                "--port",
+                str(params.port),
+                "--backend-store-uri",
+                tracking_uri,
+                "--registry-store-uri",
+                tracking_uri,
+            ],
+            check=False,
+        )
 
     def _resolve_tracking_uri(self, override: str | None = None) -> str:
         """Resolve tracking URI from option, env, or defaults."""
@@ -102,7 +119,9 @@ class DashboardCommand(BaseCommand):
             if len(runs) > 0:
                 self._display_best_run(runs)
         except Exception as e:
-            self.logger.warning("retrieve runs failed experiment={} err={}", exp.name, e)
+            self.logger.warning(
+                "retrieve runs failed experiment={} err={}", exp.name, e
+            )
 
     def _display_best_run(self, runs) -> None:
         """Display best run information if available."""

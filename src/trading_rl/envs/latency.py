@@ -22,12 +22,12 @@ Pass instances to ``StreamingTradingEnvXY`` via ``obs_latency`` /
 Usage::
 
     # Tick-based — fast, no timestamp dependency
-    obs_latency=FixedLatency(5)
-    exec_latency=LogNormalLatency(mu=1.5, sigma=0.5, min_ticks=1)
+    obs_latency = FixedLatency(5)
+    exec_latency = LogNormalLatency(mu=1.5, sigma=0.5, min_ticks=1)
 
     # Time-based — resolves to ticks from actual episode timestamps
-    obs_latency=FixedTimedLatency(latency_us=100.0)          # 100 μs feed delay
-    exec_latency=LogNormalTimedLatency(mu_us=50.0, sigma_us=20.0)
+    obs_latency = FixedTimedLatency(latency_us=100.0)  # 100 μs feed delay
+    exec_latency = LogNormalTimedLatency(mu_us=50.0, sigma_us=20.0)
 
     # YAML config (fixed latency only)
     # env:
@@ -37,13 +37,11 @@ Usage::
 
 from __future__ import annotations
 
-from abc import ABC
-
 import numpy as np
 import pandas as pd
 
 
-class LatencyModel(ABC):
+class LatencyModel:
     """Abstract base for all latency models.
 
     ``resolve`` is called once per episode reset; the returned tick offset is
@@ -73,6 +71,7 @@ class LatencyModel(ABC):
 # ---------------------------------------------------------------------------
 # Tick-based models
 # ---------------------------------------------------------------------------
+
 
 class ZeroLatency(LatencyModel):
     """No latency — always returns 0.  Equivalent to passing ``None``."""
@@ -142,6 +141,7 @@ class UniformLatency(LatencyModel):
 # Time-based models (latency in microseconds → resolved to ticks at reset)
 # ---------------------------------------------------------------------------
 
+
 def _us_to_ticks(latency_us: float, timestamps: pd.DatetimeIndex) -> int:
     """Return the smallest row offset k such that timestamps[k] - timestamps[0] >= latency_us.
 
@@ -159,7 +159,7 @@ def _us_to_ticks(latency_us: float, timestamps: pd.DatetimeIndex) -> int:
             "Ensure the memmap data has nanosecond-precision timestamps."
         )
     ns_vals: np.ndarray = timestamps.asi8  # zero-copy int64 ns view
-    target_ns = int(latency_us * 1_000)    # μs → ns
+    target_ns = int(latency_us * 1_000)  # μs → ns
     k = int(np.searchsorted(ns_vals - ns_vals[0], target_ns))
     return min(k, len(timestamps) - 1)
 
@@ -203,6 +203,7 @@ class LogNormalTimedLatency(LatencyModel):
 # ---------------------------------------------------------------------------
 # Builder helpers
 # ---------------------------------------------------------------------------
+
 
 def make_latency_model(ticks: int = 0, us: float = 0.0) -> LatencyModel | None:
     """Convenience constructor for config-driven latency.

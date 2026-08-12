@@ -45,7 +45,9 @@ class ArtifactsCommand(BaseCommand):
 
         self._handle_all_experiments(client, mlflow, params)
 
-    def _handle_single_run(self, client: Any, mlflow: Any, params: ArtifactsParams) -> None:
+    def _handle_single_run(
+        self, client: Any, mlflow: Any, params: ArtifactsParams
+    ) -> None:
         run = client.get_run(params.run_id)
         experiment_obj = client.get_experiment(run.info.experiment_id)
         exp_name = experiment_obj.name if experiment_obj else run.info.experiment_id
@@ -58,14 +60,18 @@ class ArtifactsCommand(BaseCommand):
                 if params.delete_all or (pattern and pattern.search(entry.path))
             ]
             if not targets:
-                self.console.print("[yellow]No artifacts matched for deletion.[/yellow]")
+                self.console.print(
+                    "[yellow]No artifacts matched for deletion.[/yellow]"
+                )
                 raise typer.Exit(0)
             if params.dry_run:
                 self.console.print("[yellow]Dry run: artifacts to delete[/yellow]")
                 for entry in targets:
                     self.console.print(f"  {params.run_id}:{entry.path}")
                 raise typer.Exit(0)
-            if not self._confirm_delete([f"{params.run_id}:{e.path}" for e in targets], params.force):
+            if not self._confirm_delete(
+                [f"{params.run_id}:{e.path}" for e in targets], params.force
+            ):
                 self.console.print("[yellow]Deletion cancelled.[/yellow]")
                 raise typer.Exit(0)
             for entry in targets:
@@ -79,13 +85,16 @@ class ArtifactsCommand(BaseCommand):
             return
         self._print_run_artifacts(exp_name, run, artifacts_list)
 
-    def _handle_all_experiments(self, client: Any, mlflow: Any, params: ArtifactsParams) -> None:
-        experiments_list, file_store_fallback, mlruns_dir = self._safe_search_experiments(
-            params.tracking_uri
+    def _handle_all_experiments(
+        self, client: Any, mlflow: Any, params: ArtifactsParams
+    ) -> None:
+        experiments_list, file_store_fallback, mlruns_dir = (
+            self._safe_search_experiments(params.tracking_uri)
         )
         exp_pattern = re.compile(params.experiment) if params.experiment else None
         targets = [
-            exp for exp in experiments_list
+            exp
+            for exp in experiments_list
             if not exp_pattern or exp_pattern.search(exp["name"])
         ]
         if not targets:
@@ -98,9 +107,11 @@ class ArtifactsCommand(BaseCommand):
             if file_store_fallback:
                 runs = self._safe_list_runs_file_store(mlruns_dir, exp["experiment_id"])
                 if not runs:
-                    self.console.print(f"[yellow]No runs for experiment {exp['name']}.[/yellow]")
+                    self.console.print(
+                        f"[yellow]No runs for experiment {exp['name']}.[/yellow]"
+                    )
                     continue
-                for run in runs[:params.max_runs]:
+                for run in runs[: params.max_runs]:
                     artifacts_list = self._list_artifacts_file_store(
                         run.get("artifact_uri"), params.prefix
                     )
@@ -109,7 +120,8 @@ class ArtifactsCommand(BaseCommand):
                         delete_targets.extend(
                             (run["run_id"], run.get("artifact_uri"), entry)
                             for entry in artifacts_list
-                            if params.delete_all or (pattern and pattern.search(entry["path"]))
+                            if params.delete_all
+                            or (pattern and pattern.search(entry["path"]))
                         )
                     else:
                         title = f"Run: {run['run_id']}"
@@ -119,9 +131,13 @@ class ArtifactsCommand(BaseCommand):
                         table.add_column("Artifact")
                         table.add_column("Size", justify="right")
                         if not artifacts_list:
-                            self.console.print(f"[yellow]No artifacts for run {run['run_id']}[/yellow]")
+                            self.console.print(
+                                f"[yellow]No artifacts for run {run['run_id']}[/yellow]"
+                            )
                         else:
-                            for entry in sorted(artifacts_list, key=lambda e: e["path"]):
+                            for entry in sorted(
+                                artifacts_list, key=lambda e: e["path"]
+                            ):
                                 size = (
                                     f"{entry['file_size'] / 1024:.1f} KB"
                                     if entry["file_size"]
@@ -136,23 +152,30 @@ class ArtifactsCommand(BaseCommand):
                     order_by=["start_time DESC"],
                 )
                 if runs.empty:
-                    self.console.print(f"[yellow]No runs for experiment {exp['name']}.[/yellow]")
+                    self.console.print(
+                        f"[yellow]No runs for experiment {exp['name']}.[/yellow]"
+                    )
                     continue
                 for _, row in runs.iterrows():
                     run = client.get_run(row["run_id"])
-                    artifacts_list = self._list_run_artifacts(client, run.info.run_id, params.prefix)
+                    artifacts_list = self._list_run_artifacts(
+                        client, run.info.run_id, params.prefix
+                    )
                     if delete_any:
                         pattern = re.compile(params.delete) if params.delete else None
                         delete_targets.extend(
                             (run.info.run_id, None, entry)
                             for entry in artifacts_list
-                            if params.delete_all or (pattern and pattern.search(entry.path))
+                            if params.delete_all
+                            or (pattern and pattern.search(entry.path))
                         )
                     else:
                         self._print_run_artifacts(exp["name"], run, artifacts_list)
             if delete_any:
                 if not delete_targets:
-                    self.console.print("[yellow]No artifacts matched for deletion.[/yellow]")
+                    self.console.print(
+                        "[yellow]No artifacts matched for deletion.[/yellow]"
+                    )
                     raise typer.Exit(0)
                 if params.dry_run:
                     self.console.print("[yellow]Dry run: artifacts to delete[/yellow]")
@@ -174,12 +197,20 @@ class ArtifactsCommand(BaseCommand):
                         run_info = client.get_run(run_id_val)
                         artifact_uri = getattr(run_info.info, "artifact_uri", None)
                     if isinstance(entry, dict):
-                        self._delete_artifact_path(client, run_id_val, entry["path"], artifact_uri)
+                        self._delete_artifact_path(
+                            client, run_id_val, entry["path"], artifact_uri
+                        )
                     else:
-                        self._delete_artifact_path(client, run_id_val, entry.path, artifact_uri)
-                self.console.print(f"[green]Deleted {len(delete_targets)} artifacts.[/green]")
+                        self._delete_artifact_path(
+                            client, run_id_val, entry.path, artifact_uri
+                        )
+                self.console.print(
+                    f"[green]Deleted {len(delete_targets)} artifacts.[/green]"
+                )
 
-    def _print_run_artifacts(self, exp_name: str, run: Any, artifacts_list: list) -> None:
+    def _print_run_artifacts(
+        self, exp_name: str, run: Any, artifacts_list: list
+    ) -> None:
         run_name = run.data.tags.get("mlflow.runName", "") if run else ""
         title = f"Run: {run.info.run_id}"
         if run_name:
@@ -188,14 +219,18 @@ class ArtifactsCommand(BaseCommand):
         table.add_column("Artifact")
         table.add_column("Size", justify="right")
         if not artifacts_list:
-            self.console.print(f"[yellow]No artifacts for run {run.info.run_id}[/yellow]")
+            self.console.print(
+                f"[yellow]No artifacts for run {run.info.run_id}[/yellow]"
+            )
             return
         for entry in sorted(artifacts_list, key=lambda e: e.path):
             size = f"{entry.file_size / 1024:.1f} KB" if entry.file_size else "-"
             table.add_row(entry.path, size)
         self.console.print(table)
 
-    def _list_run_artifacts(self, client: Any, run_id: str, prefix: str | None = None) -> list:
+    def _list_run_artifacts(
+        self, client: Any, run_id: str, prefix: str | None = None
+    ) -> list:
         artifacts = []
         stack = [prefix or ""]
         while stack:
@@ -258,7 +293,10 @@ class ArtifactsCommand(BaseCommand):
                 exp_name = meta.get("name")
                 if exp_id and exp_name:
                     experiments.append({"experiment_id": exp_id, "name": exp_name})
-            except Exception:
+            except Exception as e:
+                self.logger.debug(
+                    "skip unreadable experiment meta path={} err={}", meta_path, e
+                )
                 continue
         return experiments, True, mlruns_dir
 
@@ -295,7 +333,10 @@ class ArtifactsCommand(BaseCommand):
                         "artifact_uri": meta.get("artifact_uri"),
                     }
                 )
-            except Exception:
+            except Exception as e:
+                self.logger.debug(
+                    "skip unreadable run meta path={} err={}", meta_path, e
+                )
                 continue
         return runs
 
@@ -339,14 +380,20 @@ class ArtifactsCommand(BaseCommand):
                     continue
 
     def _delete_artifact_path(
-        self, client: Any, run_id: str, artifact_path: str, artifact_uri: str | None = None
+        self,
+        client: Any,
+        run_id: str,
+        artifact_path: str,
+        artifact_uri: str | None = None,
     ) -> None:
         import mlflow
 
         if hasattr(client, "delete_artifacts"):
             client.delete_artifacts(run_id, artifact_path)
             return
-        if hasattr(mlflow, "artifacts") and hasattr(mlflow.artifacts, "delete_artifacts"):
+        if hasattr(mlflow, "artifacts") and hasattr(
+            mlflow.artifacts, "delete_artifacts"
+        ):
             mlflow.artifacts.delete_artifacts(run_id, artifact_path)
             return
         if artifact_uri:

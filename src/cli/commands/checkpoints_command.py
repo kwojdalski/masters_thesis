@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -56,8 +56,10 @@ class CheckpointsCommand(BaseCommand):
                 checkpoint_paths.append(path)
                 stat = path.stat()
                 size_kb = f"{stat.st_size / 1024:.1f} KB"
-                modified = datetime.fromtimestamp(stat.st_mtime).strftime(
-                    "%Y-%m-%d %H:%M:%S"
+                modified = (
+                    datetime.fromtimestamp(stat.st_mtime, tz=UTC)
+                    .astimezone()
+                    .strftime("%Y-%m-%d %H:%M:%S")
                 )
                 step = _parse_checkpoint_step(name)
                 checkpoints.setdefault(experiment, []).append(
@@ -81,7 +83,9 @@ class CheckpointsCommand(BaseCommand):
                 if params.delete_all or (pattern and pattern.search(p.name))
             ]
             if not targets:
-                self.console.print("[yellow]No checkpoints matched for deletion.[/yellow]")
+                self.console.print(
+                    "[yellow]No checkpoints matched for deletion.[/yellow]"
+                )
                 raise typer.Exit(0)
             if params.dry_run:
                 self.console.print("[yellow]Dry run: checkpoints to delete[/yellow]")
@@ -103,7 +107,9 @@ class CheckpointsCommand(BaseCommand):
             table.add_column("Size", justify="right")
             table.add_column("Modified", justify="right")
             for item in sorted(items, key=lambda x: x["path"]):
-                table.add_row(item["path"], item["step"], item["size"], item["modified"])
+                table.add_row(
+                    item["path"], item["step"], item["size"], item["modified"]
+                )
             self.console.print(table)
 
     def _confirm_delete(self, items: list[str], force: bool) -> bool:

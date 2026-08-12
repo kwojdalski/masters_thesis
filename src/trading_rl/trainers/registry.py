@@ -1,7 +1,8 @@
 """Trainer registry for algorithm→class dispatch."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     pass
@@ -16,8 +17,8 @@ class TrainerRegistry:
     regardless of the flag.
     """
 
-    _discrete: dict[str, type] = {}
-    _continuous: dict[str, type] = {}
+    _discrete: ClassVar[dict[str, type]] = {}
+    _continuous: ClassVar[dict[str, type]] = {}
 
     @classmethod
     def register(cls, algorithm: str, *, continuous: bool = False):
@@ -27,6 +28,7 @@ class TrainerRegistry:
             algorithm: Upper-cased algorithm name (e.g. ``"PPO"``).
             continuous: If True, register as the continuous-action variant.
         """
+
         def decorator(trainer_cls: type) -> type:
             key = algorithm.upper()
             if continuous:
