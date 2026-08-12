@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import annotations
-
 """
 data_profiler.py — Full dataset profile with Data Quality Score (DQS).
 
@@ -10,6 +8,8 @@ Usage:
     python3 data_profiler.py --file data.csv --format json
     python3 data_profiler.py --file data.csv --monitor
 """
+
+from __future__ import annotations
 
 import argparse
 import csv
@@ -76,11 +76,15 @@ def profile_column(name: str, raw_values: list[str]) -> dict:
         "null_pct": round(null_count / total * 100, 2) if total else 0,
         "non_null_count": len(non_null),
         "unique_count": len(unique_values),
-        "cardinality_pct": round(len(unique_values) / len(non_null) * 100, 2) if non_null else 0,
+        "cardinality_pct": round(len(unique_values) / len(non_null) * 100, 2)
+        if non_null
+        else 0,
         "inferred_type": col_type,
         "top_values": top_values,
         "is_constant": len(unique_values) == 1,
-        "is_high_cardinality": len(unique_values) / len(non_null) > 0.9 if len(non_null) > 10 else False,
+        "is_high_cardinality": len(unique_values) / len(non_null) > 0.9
+        if len(non_null) > 10
+        else False,
     }
 
     if col_type in ("int", "float"):
@@ -90,7 +94,9 @@ def profile_column(name: str, raw_values: list[str]) -> dict:
             profile["min"] = min(nums)
             profile["max"] = max(nums)
             profile["mean"] = round(mean, 4) if mean is not None else None
-            profile["std"] = round(safe_std(nums, mean), 4) if mean is not None else None
+            profile["std"] = (
+                round(safe_std(nums, mean), 4) if mean is not None else None
+            )
         except ValueError:
             pass
 
@@ -111,7 +117,11 @@ def compute_dqs(profiles: list[dict], total_rows: int) -> dict:
     consistency = max(0, 100 - (constant_cols / len(profiles)) * 100)
 
     # Validity (20%) — penalize high-cardinality string cols (proxy for free-text issues)
-    high_card = sum(1 for p in profiles if p["is_high_cardinality"] and p["inferred_type"] == "string")
+    high_card = sum(
+        1
+        for p in profiles
+        if p["is_high_cardinality"] and p["inferred_type"] == "string"
+    )
     validity = max(0, 100 - (high_card / len(profiles)) * 60)
 
     # Uniqueness (15%) — placeholder; duplicate detection needs full row comparison
@@ -149,7 +159,9 @@ def dqs_label(score: float) -> str:
         return "FAIL — Remediation required before use"
 
 
-def print_report(headers: list[str], profiles: list[dict], dqs: dict, total_rows: int, monitor: bool):
+def print_report(
+    headers: list[str], profiles: list[dict], dqs: dict, total_rows: int, monitor: bool
+):
     print("=" * 64)
     print("DATA QUALITY AUDIT REPORT")
     print("=" * 64)
@@ -185,12 +197,18 @@ def print_report(headers: list[str], profiles: list[dict], dqs: dict, total_rows
             status = "🟡"
             col_issues.append("Constant column — zero variance, likely useless")
         if p["is_high_cardinality"] and p["inferred_type"] == "string":
-            col_issues.append("High-cardinality string — check if categorical or free-text")
+            col_issues.append(
+                "High-cardinality string — check if categorical or free-text"
+            )
 
         print(f"\n  {status} {p['column']}")
-        print(f"     Type: {p['inferred_type']}  |  Nulls: {p['null_count']} ({p['null_pct']}%)  |  Unique: {p['unique_count']}")
+        print(
+            f"     Type: {p['inferred_type']}  |  Nulls: {p['null_count']} ({p['null_pct']}%)  |  Unique: {p['unique_count']}"
+        )
         if "min" in p:
-            print(f"     Min: {p['min']}  Max: {p['max']}  Mean: {p['mean']}  Std: {p['std']}")
+            print(
+                f"     Min: {p['min']}  Max: {p['max']}  Mean: {p['mean']}  Std: {p['std']}"
+            )
         if p["top_values"]:
             top = ", ".join(f"{v}({c})" for v, c in p["top_values"][:3])
             print(f"     Top values: {top}")
@@ -211,20 +229,30 @@ def print_report(headers: list[str], profiles: list[dict], dqs: dict, total_rows
         print("-" * 64)
         for p in profiles:
             if p["null_pct"] > 0:
-                print(f"  {p['column']}: null_pct <= {min(p['null_pct'] * 1.5, 100):.1f}%")
+                print(
+                    f"  {p['column']}: null_pct <= {min(p['null_pct'] * 1.5, 100):.1f}%"
+                )
             if "mean" in p and p["mean"] is not None:
                 drift = abs(p.get("std", 0) or 0) * 2
-                print(f"  {p['column']}: mean within [{p['mean'] - drift:.2f}, {p['mean'] + drift:.2f}]")
+                print(
+                    f"  {p['column']}: mean within [{p['mean'] - drift:.2f}, {p['mean'] + drift:.2f}]"
+                )
 
     print("\n" + "=" * 64)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Profile a CSV dataset and compute a Data Quality Score.")
+    parser = argparse.ArgumentParser(
+        description="Profile a CSV dataset and compute a Data Quality Score."
+    )
     parser.add_argument("--file", required=True, help="Path to CSV file")
-    parser.add_argument("--columns", help="Comma-separated list of columns to profile (default: all)")
+    parser.add_argument(
+        "--columns", help="Comma-separated list of columns to profile (default: all)"
+    )
     parser.add_argument("--format", choices=["text", "json"], default="text")
-    parser.add_argument("--monitor", action="store_true", help="Print monitoring thresholds")
+    parser.add_argument(
+        "--monitor", action="store_true", help="Print monitoring thresholds"
+    )
     args = parser.parse_args()
 
     try:
@@ -246,11 +274,17 @@ def main():
         print(f"Error: columns not found: {', '.join(missing_cols)}", file=sys.stderr)
         sys.exit(1)
 
-    profiles = [profile_column(col, [row.get(col, "") for row in rows]) for col in selected]
+    profiles = [
+        profile_column(col, [row.get(col, "") for row in rows]) for col in selected
+    ]
     dqs = compute_dqs(profiles, len(rows))
 
     if args.format == "json":
-        print(json.dumps({"total_rows": len(rows), "dqs": dqs, "columns": profiles}, indent=2))
+        print(
+            json.dumps(
+                {"total_rows": len(rows), "dqs": dqs, "columns": profiles}, indent=2
+            )
+        )
     else:
         print_report(selected, profiles, dqs, len(rows), args.monitor)
 

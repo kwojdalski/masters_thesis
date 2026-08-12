@@ -27,7 +27,7 @@ def _ohlcv(n_rows: int, price_start: float = 100.0) -> pd.DataFrame:
 class TestTransformBeforeFit:
     def test_raises_runtime_error(self):
         pipeline = create_default_pipeline()
-        with pytest.raises(RuntimeError, match="[Ff]it"):
+        with pytest.raises(RuntimeError, match=r"[Ff]it"):
             pipeline.transform(_ohlcv(50))
 
     def test_error_message_mentions_fit(self):
@@ -49,7 +49,7 @@ class TestReset:
         pipeline = create_default_pipeline()
         pipeline.fit(_ohlcv(50))
         pipeline.reset()
-        with pytest.raises(RuntimeError, match="[Ff]it"):
+        with pytest.raises(RuntimeError, match=r"[Ff]it"):
             pipeline.transform(_ohlcv(50))
 
     def test_refit_after_reset_succeeds(self):
@@ -99,7 +99,9 @@ class TestConfigLoading:
 
         assert pipeline.get_feature_names() == ["feature_px", "feature_volume_raw"]
         assert list(result.columns) == ["feature_px", "feature_volume_raw"]
-        pd.testing.assert_series_equal(result["feature_px"], df["close"], check_names=False)
+        pd.testing.assert_series_equal(
+            result["feature_px"], df["close"], check_names=False
+        )
         pd.testing.assert_series_equal(
             result["feature_volume_raw"], df["volume"], check_names=False
         )

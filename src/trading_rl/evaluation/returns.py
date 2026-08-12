@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any
 
 import numpy as np
+import pandas as pd
 
 from logger import get_logger
 from trading_rl.constants import RewardType
@@ -59,7 +60,9 @@ class ReturnSeries:
             return ReturnSeries(np.expm1(step_log), ReturnKind.SIMPLE, self.name)
         if self.kind == ReturnKind.EQUITY:
             if self.values.size < 2:
-                return ReturnSeries(np.array([], dtype=float), ReturnKind.SIMPLE, self.name)
+                return ReturnSeries(
+                    np.array([], dtype=float), ReturnKind.SIMPLE, self.name
+                )
             if not self.includes_initial:
                 raise ValueError(
                     "equity ReturnSeries must include the initial value to convert to returns"
@@ -149,7 +152,6 @@ class RewardSeries:
         return ReturnSeries(self.values, ReturnKind.LOG, self.name)
 
 
-
 def _find_broker(env, max_depth: int = 8):
     """Traverse a TorchRL env stack to find the tradingenv broker.
 
@@ -184,7 +186,11 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
     max_records = min(n_steps, len(broker.track_record))
     for i in range(max_records):
         record = broker.track_record[i]
-        if i == 0 and hasattr(record, "context_pre") and hasattr(record.context_pre, "nlv"):
+        if (
+            i == 0
+            and hasattr(record, "context_pre")
+            and hasattr(record.context_pre, "nlv")
+        ):
             nlv_values.append(float(record.context_pre.nlv))
         if hasattr(record, "context_post") and hasattr(record.context_post, "nlv"):
             nlv_values.append(float(record.context_post.nlv))
@@ -210,7 +216,9 @@ def extract_tradingenv_return_series(env: Any, n_steps: int) -> ReturnSeries | N
 
     logger.trace(
         "nlv extracted n_values={} start={:.4f} end={:.4f}",
-        len(nlv_values), nlv_values[0], nlv_values[-1],
+        len(nlv_values),
+        nlv_values[0],
+        nlv_values[-1],
     )
     return ReturnSeries(
         np.asarray(nlv_values, dtype=float),
@@ -281,8 +289,6 @@ def extract_trade_log(env: Any) -> pd.DataFrame | None:
 
     Returns ``None`` if no broker is found or the track record is empty.
     """
-    import pandas as pd
-
     broker = _find_broker(env)
     if broker is None:
         logger.debug("cannot find tradingenv broker in env stack")
@@ -295,31 +301,49 @@ def extract_trade_log(env: Any) -> pd.DataFrame | None:
     for i in range(len(broker.track_record)):
         rebalancing = broker.track_record[i]
         trades = getattr(rebalancing, "trades", None) or []
-        nlv_pre = float(rebalancing.context_pre.nlv) if (
-            hasattr(rebalancing, "context_pre") and hasattr(rebalancing.context_pre, "nlv")
-        ) else float("nan")
-        nlv_post = float(rebalancing.context_post.nlv) if (
-            hasattr(rebalancing, "context_post") and hasattr(rebalancing.context_post, "nlv")
-        ) else float("nan")
+        nlv_pre = (
+            float(rebalancing.context_pre.nlv)
+            if (
+                hasattr(rebalancing, "context_pre")
+                and hasattr(rebalancing.context_pre, "nlv")
+            )
+            else float("nan")
+        )
+        nlv_post = (
+            float(rebalancing.context_post.nlv)
+            if (
+                hasattr(rebalancing, "context_post")
+                and hasattr(rebalancing.context_post, "nlv")
+            )
+            else float("nan")
+        )
         for trade in trades:
-            rows.append({
-                "rebalancing_index": i,
-                "time": getattr(trade, "time", None),
-                "contract": str(getattr(trade, "contract", "")),
-                "quantity": float(getattr(trade, "quantity", float("nan"))),
-                "acq_price": float(getattr(trade, "acq_price", float("nan"))),
-                "bid_price": float(getattr(trade, "bid_price", float("nan"))),
-                "ask_price": float(getattr(trade, "ask_price", float("nan"))),
-                "notional": float(getattr(trade, "notional", float("nan"))),
-                "cost_of_cash": float(getattr(trade, "cost_of_cash", float("nan"))),
-                "cost_of_commissions": float(getattr(trade, "cost_of_commissions", float("nan"))),
-                "cost_of_spread": float(getattr(trade, "cost_of_spread", float("nan"))),
-                "nlv_pre": nlv_pre,
-                "nlv_post": nlv_post,
-            })
+            rows.append(
+                {
+                    "rebalancing_index": i,
+                    "time": getattr(trade, "time", None),
+                    "contract": str(getattr(trade, "contract", "")),
+                    "quantity": float(getattr(trade, "quantity", float("nan"))),
+                    "acq_price": float(getattr(trade, "acq_price", float("nan"))),
+                    "bid_price": float(getattr(trade, "bid_price", float("nan"))),
+                    "ask_price": float(getattr(trade, "ask_price", float("nan"))),
+                    "notional": float(getattr(trade, "notional", float("nan"))),
+                    "cost_of_cash": float(getattr(trade, "cost_of_cash", float("nan"))),
+                    "cost_of_commissions": float(
+                        getattr(trade, "cost_of_commissions", float("nan"))
+                    ),
+                    "cost_of_spread": float(
+                        getattr(trade, "cost_of_spread", float("nan"))
+                    ),
+                    "nlv_pre": nlv_pre,
+                    "nlv_post": nlv_post,
+                }
+            )
 
     if not rows:
-        logger.debug("track_record has {} rebalancings but no trades", len(broker.track_record))
+        logger.debug(
+            "track_record has {} rebalancings but no trades", len(broker.track_record)
+        )
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)

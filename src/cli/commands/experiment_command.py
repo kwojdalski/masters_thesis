@@ -6,12 +6,15 @@ from pathlib import Path
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from trading_rl.config import ExperimentConfig
+
 from .base_command import BaseCommand
 
 
 @dataclass
 class ExperimentParams:
     """Parameters for running multiple experiments."""
+
     experiment_name: str | None = None
     n_trials: int = 5
     config_file: Path | None = None
@@ -38,9 +41,7 @@ class ExperimentCommand(BaseCommand):
             self._display_experiment_info(config, params, base_seed)
 
             # Run experiments
-            self._run_experiments_with_progress(
-                config, params, base_seed
-            )
+            self._run_experiments_with_progress(config, params, base_seed)
 
         except Exception as e:
             self.handle_error(e, "Experiments")
@@ -49,6 +50,7 @@ class ExperimentCommand(BaseCommand):
         """Clear all caches before experiments."""
         self.console.print("[blue]Clearing caches before experiments...[/blue]")
         from trading_rl.cache_utils import clear_all_caches
+
         clear_all_caches()
         self.console.print("[green]Caches cleared.[/green]")
 
@@ -56,19 +58,25 @@ class ExperimentCommand(BaseCommand):
         """Load and configure experiment parameters."""
         # Validate that only one of config_file or scenario is provided
         if params.config_file and params.scenario:
-            raise typer.BadParameter("Cannot specify both --config and --scenario. Use one or the other.")
+            raise typer.BadParameter(
+                "Cannot specify both --config and --scenario. Use one or the other."
+            )
 
         # Create config and override with CLI parameters
         if params.config_file:
             config = super()._load_experiment_config(
                 params.config_file, command="train", overrides=params.config_overrides
             )
-            self.console.print(f"[blue]Loaded config from file: {params.config_file}[/blue]")
+            self.console.print(
+                f"[blue]Loaded config from file: {params.config_file}[/blue]"
+            )
         elif params.scenario:
             config = super()._load_experiment_config(
                 params.scenario, command="train", overrides=params.config_overrides
             )
-            self.console.print(f"[blue]Loaded config from scenario: {params.scenario}[/blue]")
+            self.console.print(
+                f"[blue]Loaded config from scenario: {params.scenario}[/blue]"
+            )
         else:
             if params.config_overrides:
                 raise typer.BadParameter(
@@ -82,9 +90,13 @@ class ExperimentCommand(BaseCommand):
 
         return config
 
-    def _display_experiment_info(self, config, params: ExperimentParams, base_seed: int) -> None:
+    def _display_experiment_info(
+        self, config, params: ExperimentParams, base_seed: int
+    ) -> None:
         """Display experiment configuration info."""
-        self.console.print(f"[bold blue]Running {params.n_trials} experiments[/bold blue]")
+        self.console.print(
+            f"[bold blue]Running {params.n_trials} experiments[/bold blue]"
+        )
         self.console.print(f"Experiment: [green]{config.experiment_name}[/green]")
 
         self.console.print(
@@ -124,7 +136,9 @@ class ExperimentCommand(BaseCommand):
                 progress.update(task, description="Experiments failed!")
                 raise e
 
-    def _display_experiment_results(self, experiment_result: str, n_trials: int) -> None:
+    def _display_experiment_results(
+        self, experiment_result: str, n_trials: int
+    ) -> None:
         """Display experiment results."""
         self.console.print("\n[bold green]All experiments completed![/bold green]")
         self.console.print(f"MLflow experiment: [green]{experiment_result}[/green]")
@@ -132,4 +146,3 @@ class ExperimentCommand(BaseCommand):
         self.console.print(
             "\n[dim]Check MLflow UI for detailed metrics and comparisons[/dim]"
         )
-

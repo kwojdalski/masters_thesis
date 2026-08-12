@@ -231,7 +231,7 @@ class StockDataFetcher(BaseMarketDataFetcher):
         more precision are passed through unchanged.
         """
         try:
-            parsed = datetime.strptime(end_date, "%Y-%m-%d")
+            parsed = datetime.strptime(end_date, "%Y-%m-%d")  # noqa: DTZ007 -- bare calendar date, no tz in input format
         except ValueError:
             return end_date
         return (parsed + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -341,8 +341,12 @@ class StockDataFetcher(BaseMarketDataFetcher):
 
         bid_columns = ("bid_px", "bid_price", "bid")
         ask_columns = ("ask_px", "ask_price", "ask")
-        bid_col = next((column for column in bid_columns if column in working.columns), None)
-        ask_col = next((column for column in ask_columns if column in working.columns), None)
+        bid_col = next(
+            (column for column in bid_columns if column in working.columns), None
+        )
+        ask_col = next(
+            (column for column in ask_columns if column in working.columns), None
+        )
         if bid_col and ask_col:
             working["price"] = (working[bid_col] + working[ask_col]) / 2
             return working

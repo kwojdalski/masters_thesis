@@ -32,7 +32,7 @@ def check_dependencies():
     except ImportError:
         logger.error("gym_trading_env package not found")
         logger.info("To fix this, run: pip install gym-trading-env")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 def parse_date(date_str: str) -> datetime.datetime:
@@ -195,7 +195,7 @@ def download_crypto(
         typer.echo("\n1. Inspect the data:")
         typer.echo(
             f"   python -c \"import pandas as pd; df = pd.read_parquet('{output_path}/{example_file}'); "
-            f"print(df.info()); print(df.head())\""
+            f'print(df.info()); print(df.head())"'
         )
 
         typer.echo("\n2. Use in training:")
@@ -214,7 +214,7 @@ def download_crypto(
         logger.info("2. Verify the symbol exists on the exchange")
         logger.info("3. Try a different exchange or timeframe")
         logger.info("4. Check if gym_trading_env supports this exchange")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 @app.command()

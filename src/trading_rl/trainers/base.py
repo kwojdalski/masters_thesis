@@ -31,7 +31,9 @@ from trading_rl.trainers.runtime_hooks import TrainerRuntimeHooks
 from trading_rl.trainers.training_loop import TrainingLoop
 from trading_rl.trainers.warmup import WarmupController
 
-_MIN_BATCH_SUCCESS_RATE = 70.0  # Warn if fewer than this % of optimization batches succeed
+_MIN_BATCH_SUCCESS_RATE = (
+    70.0  # Warn if fewer than this % of optimization batches succeed
+)
 _MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
 
 
@@ -58,16 +60,23 @@ class EvaluationOutput:
         yield self.merged_plot
 
 
-def _log_network_stats(log, algo: str, actor: torch.nn.Module, critic: torch.nn.Module) -> None:
+def _log_network_stats(
+    log, algo: str, actor: torch.nn.Module, critic: torch.nn.Module
+) -> None:
     """Emit a TRACE line with parameter and gradient statistics for actor and critic."""
+
     def _stats(net: torch.nn.Module) -> tuple[float, float, float, int]:
         params = list(net.parameters())
         abs_sum = sum(p.detach().abs().sum().item() for p in params)
         norm = sum(p.detach().pow(2).sum().item() for p in params) ** 0.5
-        grad_norm = sum(
-            p.grad.detach().pow(2).sum().item()
-            for p in params if p.grad is not None
-        ) ** 0.5
+        grad_norm = (
+            sum(
+                p.grad.detach().pow(2).sum().item()
+                for p in params
+                if p.grad is not None
+            )
+            ** 0.5
+        )
         n = sum(p.numel() for p in params)
         return abs_sum, norm, grad_norm, n
 
@@ -78,10 +87,15 @@ def _log_network_stats(log, algo: str, actor: torch.nn.Module, critic: torch.nn.
         "actor_abs_sum=%.4f actor_norm=%.4f actor_grad_norm=%.4f actor_n_params=%d "
         "critic_abs_sum=%.4f critic_norm=%.4f critic_grad_norm=%.4f critic_n_params=%d",
         algo,
-        a_abs, a_norm, a_gnorm, a_n,
-        c_abs, c_norm, c_gnorm, c_n,
+        a_abs,
+        a_norm,
+        a_gnorm,
+        a_n,
+        c_abs,
+        c_norm,
+        c_gnorm,
+        c_n,
     )
-
 
 
 class _LocalTrajectoryPool:
@@ -110,20 +124,25 @@ def _collect_mlflow_meta() -> dict:
     """Collect MLflow metadata; always includes tracking_uri when mlflow is available."""
     try:
         import mlflow
+
         meta: dict = {"tracking_uri": mlflow.get_tracking_uri()}
         run = mlflow.active_run()
         if run is None:
             return meta
         experiment = mlflow.get_experiment(run.info.experiment_id)
-        meta.update({
-            "run_id": run.info.run_id,
-            "run_name": run.data.tags.get("mlflow.runName"),
-            "experiment_id": run.info.experiment_id,
-            "experiment_name": experiment.name if experiment else None,
-        })
+        meta.update(
+            {
+                "run_id": run.info.run_id,
+                "run_name": run.data.tags.get("mlflow.runName"),
+                "experiment_id": run.info.experiment_id,
+                "experiment_name": experiment.name if experiment else None,
+            }
+        )
         return meta
     except Exception:
-        logger.opt(exception=True).warning("_collect_mlflow_meta failed; checkpoint will have no mlflow metadata")
+        logger.opt(exception=True).warning(
+            "_collect_mlflow_meta failed; checkpoint will have no mlflow metadata"
+        )
         return {}
 
 
@@ -142,7 +161,10 @@ def _patch_torchrl_trajectory_pool() -> None:
 
     patched = False
     for _mod in (torchrl_collectors, _tc_utils):
-        if hasattr(_mod, "_TrajectoryPool") and _mod._TrajectoryPool is not _LocalTrajectoryPool:
+        if (
+            hasattr(_mod, "_TrajectoryPool")
+            and _mod._TrajectoryPool is not _LocalTrajectoryPool
+        ):
             _mod._TrajectoryPool = _LocalTrajectoryPool
             patched = True
     if patched:
@@ -178,6 +200,7 @@ def _run_evaluation(
 
     if config:
         from trading_rl.evaluation.evaluator import EvaluatorEnvConfig
+
         eval_config_kwargs = {
             "reward_type": config.env.reward_type,
             "backend": config.env.backend,
@@ -190,7 +213,9 @@ def _run_evaluation(
             "allocation_ma_window": config.training.allocation_ma_window,
             "eval_plots": tuple(config.evaluation.eval_plots),
             "training_steps": int(trainer.total_count) if trainer is not None else None,
-            "training_episodes": int(trainer.total_episodes) if trainer is not None else None,
+            "training_episodes": int(trainer.total_episodes)
+            if trainer is not None
+            else None,
             "benchmarks": benchmarks_from_config(config.benchmarks),
             "env": EvaluatorEnvConfig(
                 name=config.env.name,
@@ -227,7 +252,9 @@ def _run_evaluation(
             _t = time.monotonic()
             logger.trace("create_equity_curve_plot start n_steps={}", max_steps)
             _data_paths = config.data.data_paths if config else None
-            plot_series = result.return_series or ReturnSeries(result.simple_returns, ReturnKind.SIMPLE)
+            plot_series = result.return_series or ReturnSeries(
+                result.simple_returns, ReturnKind.SIMPLE
+            )
             equity_curve_plot = create_equity_curve_plot(
                 None,
                 max_steps,
@@ -236,23 +263,32 @@ def _run_evaluation(
                 actual_returns_list=[plot_series],
                 initial_portfolio_value=(
                     float(config.env.initial_portfolio_value)
-                    if config else DEFAULT_INITIAL_PORTFOLIO_VALUE
+                    if config
+                    else DEFAULT_INITIAL_PORTFOLIO_VALUE
                 ),
-                benchmark_price_column=config.env.price_column or "close" if config else "close",
-                benchmarks=benchmarks_from_config(config.benchmarks) if config else frozenset({BenchmarkName.BUY_AND_HOLD}),
+                benchmark_price_column=config.env.price_column or "close"
+                if config
+                else "close",
+                benchmarks=benchmarks_from_config(config.benchmarks)
+                if config
+                else frozenset({BenchmarkName.BUY_AND_HOLD}),
                 training_steps=trainer.total_count,
                 training_episodes=trainer.total_episodes,
                 n_total_symbols=len(_data_paths) if _data_paths else None,
                 max_plot_points=config.training.max_plot_points if config else None,
                 reward_type=str(config.env.reward_type) if config else None,
             )
-            logger.trace("evaluate.plot_equity_curve elapsed_s={:.2f}", time.monotonic() - _t)
+            logger.trace(
+                "evaluate.plot_equity_curve elapsed_s={:.2f}", time.monotonic() - _t
+            )
 
     merged_plot = None
     if reward_plot is not None and action_plot is not None:
         with profiler.stage("plot_merged", 2):
             _t = time.monotonic()
-            merged_plot = create_merged_comparison_plot(reward_plot, action_plot, equity_curve_plot)
+            merged_plot = create_merged_comparison_plot(
+                reward_plot, action_plot, equity_curve_plot
+            )
             logger.trace("evaluate.plot_merged elapsed_s={:.2f}", time.monotonic() - _t)
 
     return EvaluationOutput(
@@ -265,7 +301,6 @@ def _run_evaluation(
         merged_plot=merged_plot,
         result=result,
     )
-
 
 
 def _build_sync_data_collector(
@@ -452,15 +487,22 @@ class BaseTrainer(ABC):
     # Shared off-policy utilities (harmless stubs for on-policy trainers)
     # ------------------------------------------------------------------
 
-    def _record_skipped_batch(self, reason: str, exc: RuntimeError | None = None) -> None:
+    def _record_skipped_batch(
+        self, reason: str, exc: RuntimeError | None = None
+    ) -> None:
         """Track skipped optimization batches and raise after too many consecutive failures."""
         self.skipped_batches += 1
         self._consecutive_skips += 1
         if exc is None:
             logger.warning("{} skipping batch reason={}", self._algo_label, reason)
         else:
-            logger.warning("{} skipping batch reason={} err={}", self._algo_label, reason, exc)
-        if self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES and self.successful_batches == 0:
+            logger.warning(
+                "{} skipping batch reason={} err={}", self._algo_label, reason, exc
+            )
+        if (
+            self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
+            and self.successful_batches == 0
+        ):
             error = RuntimeError(
                 f"{self._algo_label.upper()}: {self._consecutive_skips} consecutive optimization "
                 "batches skipped with zero successful updates. Training cannot proceed — "
@@ -478,7 +520,11 @@ class BaseTrainer(ABC):
             _log = logger.warning if rate < _MIN_BATCH_SUCCESS_RATE else logger.info
             _log(
                 "{} batch summary successful={}/{} success_rate={:.1f}% skipped={}",
-                self._algo_label, self.successful_batches, total, rate, self.skipped_batches,
+                self._algo_label,
+                self.successful_batches,
+                total,
+                rate,
+                self.skipped_batches,
             )
         else:
             logger.warning("{} no optimization batches attempted", self._algo_label)
@@ -515,29 +561,44 @@ class BaseTrainer(ABC):
 
             self._post_eval_trace_hook(eval_rollout)
 
-            eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
+            eval_data_len = (
+                self._eval_data_len if self._eval_data_len is not None else "?"
+            )
             logger.info(
                 "{} eval mean_reward={:.4f} sum_reward={:.4f} eval_steps={} eval_data_len={}",
-                self._algo_label, mean_reward, sum_reward, max_steps, eval_data_len,
+                self._algo_label,
+                mean_reward,
+                sum_reward,
+                max_steps,
+                eval_data_len,
             )
             del eval_rollout
 
-    def _post_eval_trace_hook(self, eval_rollout: Any) -> None:
+    def _post_eval_trace_hook(self, eval_rollout: Any) -> None:  # noqa: B027 -- intentionally optional, not required for every trainer
         """Optional TRACE-level hook called after each periodic eval rollout."""
 
-    def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict, log_actor: bool = True) -> None:
+    def _log_progress(
+        self, max_length: int, buffer_len: int, loss_vals: dict, log_actor: bool = True
+    ) -> None:
         """Log one optimization step; used by DDPG and TD3. SAC overrides with extra fields."""
         curr_loss_value = loss_vals[self._value_loss_key].item()
         if log_actor:
             curr_loss_actor = loss_vals["loss_actor"].item()
             logger.info(
                 "{} step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f}",
-                self._algo_label, max_length, buffer_len, curr_loss_value, curr_loss_actor,
+                self._algo_label,
+                max_length,
+                buffer_len,
+                curr_loss_value,
+                curr_loss_actor,
             )
         else:
             logger.info(
                 "{} step max_steps={} buffer_size={} loss_value={:.4f}",
-                self._algo_label, max_length, buffer_len, curr_loss_value,
+                self._algo_label,
+                max_length,
+                buffer_len,
+                curr_loss_value,
             )
         if is_level_enabled("TRACE"):
             _log_network_stats(logger, self._algo_label, self.actor, self.value_net)
@@ -615,20 +676,29 @@ class BaseTrainer(ABC):
 
         snapshot = self._snapshot(feature_pipeline_state, mlflow_meta)
 
-        if getattr(self, "replay_buffer", None) is not None and self.checkpoint_manager.save_buffer:
+        if (
+            getattr(self, "replay_buffer", None) is not None
+            and self.checkpoint_manager.save_buffer
+        ):
             path_obj = Path(path)
             buffer_dir = path_obj.with_suffix("").with_name(f"{path_obj.stem}_buffer")
             try:
                 self.replay_buffer.dumps(buffer_dir)
             except Exception:
-                logger.exception("failed to save replay buffer; checkpoint will not include buffer")
+                logger.exception(
+                    "failed to save replay buffer; checkpoint will not include buffer"
+                )
             else:
                 snapshot.replay_buffer_path = str(buffer_dir)
                 snapshot.buffer_metadata = {
                     "buffer_size": len(self.replay_buffer),
                     "max_size": self.replay_buffer._storage.max_size,
                 }
-                logger.info("save replay buffer path={} n_experiences={}", buffer_dir, len(self.replay_buffer))
+                logger.info(
+                    "save replay buffer path={} n_experiences={}",
+                    buffer_dir,
+                    len(self.replay_buffer),
+                )
 
         self.checkpoint_manager.save(path, snapshot)
 
@@ -639,7 +709,9 @@ class BaseTrainer(ABC):
         checkpoint = self.checkpoint_manager.load(path)
 
         if is_level_enabled("TRACE"):
-            logger.trace("{} checkpoint algorithm={}", self._algo_label, checkpoint.algorithm)
+            logger.trace(
+                "{} checkpoint algorithm={}", self._algo_label, checkpoint.algorithm
+            )
 
         self._restore(checkpoint)
 
@@ -649,17 +721,26 @@ class BaseTrainer(ABC):
             if buffer_path and Path(buffer_path).exists():
                 try:
                     replay_buffer.loads(buffer_path)
-                    logger.info("load replay buffer path={} n_experiences={}", buffer_path, len(replay_buffer))
+                    logger.info(
+                        "load replay buffer path={} n_experiences={}",
+                        buffer_path,
+                        len(replay_buffer),
+                    )
                 except Exception:
-                    logger.exception("Failed to load replay buffer from {}", buffer_path)
+                    logger.exception(
+                        "Failed to load replay buffer from {}", buffer_path
+                    )
             else:
                 logger.info("no replay buffer in checkpoint start_fresh=true")
 
         logger.debug(
             "load checkpoint state total_count={} total_episodes={} mlflow_run_id={} "
             "mlflow_run_name={} experiment={}",
-            self.total_count, self.total_episodes,
-            self.mlflow_run_id, self.mlflow_run_name, self.mlflow_experiment_name,
+            self.total_count,
+            self.total_episodes,
+            self.mlflow_run_id,
+            self.mlflow_run_name,
+            self.mlflow_experiment_name,
         )
         logger.info("load checkpoint path={}", path)
 
@@ -672,7 +753,9 @@ class BaseTrainer(ABC):
         obj = self.env
         for _ in range(10):
             if hasattr(obj, "_last_episode_final_nlv"):
-                return obj._last_episode_final_nlv, getattr(obj, "_last_episode_steps", None)
+                return obj._last_episode_final_nlv, getattr(
+                    obj, "_last_episode_steps", None
+                )
             obj = getattr(obj, "_env", None) or getattr(obj, "env", None)
             if obj is None:
                 break
@@ -694,7 +777,11 @@ class BaseTrainer(ABC):
         return None, None, None
 
     def create_action_probabilities_plot(
-        self, max_steps: int, df: Any = None, config: Any = None, eval_env: Any | None = None
+        self,
+        max_steps: int,
+        df: Any = None,
+        config: Any = None,
+        eval_env: Any | None = None,
     ) -> Any:
         """Optional action-probability visualization; default is not implemented."""
         return None
@@ -720,7 +807,9 @@ class BaseTrainer(ABC):
         algorithm_label: str = "Off-policy",
     ) -> None:
         """Delegate to WarmupController."""
-        self.warmup_controller.maybe_switch(self.total_count, algorithm_label=algorithm_label)
+        self.warmup_controller.maybe_switch(
+            self.total_count, algorithm_label=algorithm_label
+        )
 
     # ------------------------------------------------------------------ #
     # Episode stats — delegated to EpisodeStatsTracker                   #

@@ -30,21 +30,23 @@ warnings.filterwarnings(
     category=DeprecationWarning,
 )
 
-import mlflow
-import torch.multiprocessing as mp
+import mlflow  # noqa: E402 — must follow the warnings.filterwarnings reset above
+import torch.multiprocessing as mp  # noqa: E402
 
-from logger import get_logger as get_project_logger
-from logger import trace_calls
-from trading_rl.callbacks import (
+from logger import get_logger as get_project_logger  # noqa: E402
+from logger import trace_calls  # noqa: E402
+from trading_rl.callbacks import (  # noqa: E402
     MLflowTrainingCallback,  # noqa: F401 — tests monkeypatch this via module attribute
 )
-from trading_rl.config import ExperimentConfig
-from trading_rl.data_utils import (
+from trading_rl.config import ExperimentConfig  # noqa: E402
+from trading_rl.data_utils import (  # noqa: E402
     ensure_close_column_for_hft,
     ensure_unique_index_for_hft_tradingenv,
 )
-from trading_rl.pipeline.experiment_runner import execute_single_experiment
-from trading_rl.pipeline.training import (
+from trading_rl.pipeline.experiment_runner import (  # noqa: E402
+    execute_single_experiment,
+)
+from trading_rl.pipeline.training import (  # noqa: E402
     build_experiment_runtime,
     setup_mlflow_experiment,
 )
@@ -103,6 +105,7 @@ def build_training_context(
 # ---------------------------------------------------------------------------
 # Public entry points
 # ---------------------------------------------------------------------------
+
 
 @trace_calls(show_return=False)
 def run_single_experiment(

@@ -69,15 +69,31 @@ class StrategyEvaluatorConfig:
     enable_plots: bool = True
     enable_metrics: bool = True
     periods_per_year: int = 252
-    env: EvaluatorEnvConfig = field(default_factory=EvaluatorEnvConfig)  # Environment configuration
-    max_plot_points: int | None = None  # Cap the number of plotted points per series; None = plot all
-    show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
+    env: EvaluatorEnvConfig = field(
+        default_factory=EvaluatorEnvConfig
+    )  # Environment configuration
+    max_plot_points: int | None = (
+        None  # Cap the number of plotted points per series; None = plot all
+    )
+    show_allocation_ma: bool = (
+        True  # Overlay moving-average line on Portfolio Allocation plot
+    )
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
-    eval_plots: tuple[str, ...] = ("rewards", "positions", "portfolio_value")  # Which plots to generate
-    training_steps: int | None = None  # Steps the policy was trained for (shown in captions)
-    training_episodes: int | None = None  # Episodes the policy was trained for (shown in captions)
+    eval_plots: tuple[str, ...] = (
+        "rewards",
+        "positions",
+        "portfolio_value",
+    )  # Which plots to generate
+    training_steps: int | None = (
+        None  # Steps the policy was trained for (shown in captions)
+    )
+    training_episodes: int | None = (
+        None  # Episodes the policy was trained for (shown in captions)
+    )
     benchmarks: frozenset[BenchmarkName] = frozenset({BenchmarkName.BUY_AND_HOLD})
-    show_reward_benchmarks: bool = False  # Show benchmark reward curves on the reward plot
+    show_reward_benchmarks: bool = (
+        False  # Show benchmark reward curves on the reward plot
+    )
 
     @classmethod
     def from_experiment_config(cls, config: Any) -> StrategyEvaluatorConfig:
@@ -198,8 +214,8 @@ class StrategyEvaluator:
         _cb_reward_time = [0.0]
         _cb_action_time = [0.0]
         _cb_done_time = [0.0]
-        _inter_cb_total = [0.0]   # time outside callback (env step + policy)
-        _pol_time_total = [0.0]   # policy forward pass only
+        _inter_cb_total = [0.0]  # time outside callback (env step + policy)
+        _pol_time_total = [0.0]  # policy forward pass only
         _last_cb_end: list[float | None] = [None]
 
         # Wrap the policy to measure forward-pass time separately from env step.
@@ -217,19 +233,29 @@ class StrategyEvaluator:
 
         timed_policy = _TimedPolicy()
 
-        _fine_interval = max(1, max_steps // 100)   # 1% intervals for compact trace
+        _fine_interval = max(1, max_steps // 100)  # 1% intervals for compact trace
         _coarse_interval = max(1, max_steps // 10)  # 10% intervals for full stats
         _step_counter = [0]
         _t_last_fine = [_time.monotonic()]
         _t_last_coarse = [_time.monotonic()]
         # Coarse accumulators (reset each 10%)
-        _r_sum = [0.0]; _r_min = [float("inf")]; _r_max = [float("-inf")]; _r_n = [0]
-        _a_sum = [0.0]; _a_long = [0]; _a_short = [0]; _a_n = [0]
+        _r_sum = [0.0]
+        _r_min = [float("inf")]
+        _r_max = [float("-inf")]
+        _r_n = [0]
+        _a_sum = [0.0]
+        _a_long = [0]
+        _a_short = [0]
+        _a_n = [0]
         _ep_done = [0]
         _cum_reward = [0.0]
         # Fine accumulators (reset each 1%)
-        _fine_cb = [0.0]; _fine_inter = [0.0]; _fine_pol = [0.0]
-        _fine_reward = [0.0]; _fine_action = [0.0]; _fine_done = [0.0]
+        _fine_cb = [0.0]
+        _fine_inter = [0.0]
+        _fine_pol = [0.0]
+        _fine_reward = [0.0]
+        _fine_action = [0.0]
+        _fine_done = [0.0]
 
         def _progress_cb(env: Any, td: Any) -> None:
             cb_start = _time.monotonic()
@@ -270,7 +296,11 @@ class StrategyEvaluator:
                 elif a < 0:
                     _a_short[0] += 1
             except Exception as exc:
-                logger.debug("_progress_cb action extraction failed step={} err={}", _step_counter[0], exc)
+                logger.debug(
+                    "_progress_cb action extraction failed step={} err={}",
+                    _step_counter[0],
+                    exc,
+                )
             action_elapsed = _time.monotonic() - t_action
             _cb_action_time[0] += action_elapsed
             _fine_action[0] += action_elapsed
@@ -300,23 +330,36 @@ class StrategyEvaluator:
                 steps_s = _fine_interval / max(interval_s, 1e-9)
                 n = _fine_interval
                 inter_us = _fine_inter[0] / n * 1e6
-                pol_us   = _fine_pol[0]   / n * 1e6
-                env_us   = max(0.0, inter_us - pol_us)
-                cb_us    = _fine_cb[0]    / n * 1e6
-                r_us     = _fine_reward[0] / n * 1e6
-                a_us     = _fine_action[0] / n * 1e6
-                d_us     = _fine_done[0]   / n * 1e6
+                pol_us = _fine_pol[0] / n * 1e6
+                env_us = max(0.0, inter_us - pol_us)
+                cb_us = _fine_cb[0] / n * 1e6
+                r_us = _fine_reward[0] / n * 1e6
+                a_us = _fine_action[0] / n * 1e6
+                d_us = _fine_done[0] / n * 1e6
                 total_us = inter_us + cb_us
-                env_pct = 100.0 * env_us  / total_us if total_us > 0 else 0.0
-                pol_pct = 100.0 * pol_us  / total_us if total_us > 0 else 0.0
+                env_pct = 100.0 * env_us / total_us if total_us > 0 else 0.0
+                pol_pct = 100.0 * pol_us / total_us if total_us > 0 else 0.0
                 logger.trace(
                     "rollout: pct={} spd={}/s | step_us={:.0f} env_us={:.0f} env_pct={:.1f} pol_us={:.0f} pol_pct={:.1f} cb_us={:.0f} r_us={:.0f} a_us={:.0f} d_us={:.0f}",
-                    int(pct), int(steps_s),
-                    total_us, env_us, env_pct, pol_us, pol_pct, cb_us, r_us, a_us, d_us,
+                    int(pct),
+                    int(steps_s),
+                    total_us,
+                    env_us,
+                    env_pct,
+                    pol_us,
+                    pol_pct,
+                    cb_us,
+                    r_us,
+                    a_us,
+                    d_us,
                 )
                 _t_last_fine[0] = now
-                _fine_cb[0] = 0.0; _fine_inter[0] = 0.0; _fine_pol[0] = 0.0
-                _fine_reward[0] = 0.0; _fine_action[0] = 0.0; _fine_done[0] = 0.0
+                _fine_cb[0] = 0.0
+                _fine_inter[0] = 0.0
+                _fine_pol[0] = 0.0
+                _fine_reward[0] = 0.0
+                _fine_action[0] = 0.0
+                _fine_done[0] = 0.0
 
             # Coarse: every 10% — full reward/action stats
             if step % _coarse_interval == 0:
@@ -327,55 +370,84 @@ class StrategyEvaluator:
                 interval_s = now - _t_last_coarse[0]
                 steps_s = _coarse_interval / max(interval_s, 1e-9)
 
-                r_min  = _r_min[0] if _r_n[0] else float("nan")
-                r_max  = _r_max[0] if _r_n[0] else float("nan")
+                r_min = _r_min[0] if _r_n[0] else float("nan")
+                r_max = _r_max[0] if _r_n[0] else float("nan")
                 a_mean = _a_sum[0] / _a_n[0] if _a_n[0] else float("nan")
-                long_pct  = 100.0 * _a_long[0] / _a_n[0] if _a_n[0] else float("nan")
+                long_pct = 100.0 * _a_long[0] / _a_n[0] if _a_n[0] else float("nan")
                 short_pct = 100.0 * _a_short[0] / _a_n[0] if _a_n[0] else float("nan")
 
                 # Memory tracking
                 gc.collect()
-                torch_mb = torch.cuda.memory_allocated() / 1024 / 1024 if torch.cuda.is_available() else 0
+                torch_mb = (
+                    torch.cuda.memory_allocated() / 1024 / 1024
+                    if torch.cuda.is_available()
+                    else 0
+                )
 
                 # Detailed timing breakdown (first 10% interval only)
                 if step == _coarse_interval:
-                    pol_us   = _pol_time_total[0] / step * 1e6
+                    pol_us = _pol_time_total[0] / step * 1e6
                     inter_us = _inter_cb_total[0] / step * 1e6
-                    env_us   = max(0.0, inter_us - pol_us)
-                    cb_us    = _cb_time_total[0]  / step * 1e6
+                    env_us = max(0.0, inter_us - pol_us)
+                    cb_us = _cb_time_total[0] / step * 1e6
                     total_us = elapsed / step * 1e6
-                    env_pct  = 100.0 * env_us / total_us if total_us > 0 else 0.0
-                    pol_pct  = 100.0 * pol_us / total_us if total_us > 0 else 0.0
-                    cb_pct_v = 100.0 * cb_us  / total_us if total_us > 0 else 0.0
+                    env_pct = 100.0 * env_us / total_us if total_us > 0 else 0.0
+                    pol_pct = 100.0 * pol_us / total_us if total_us > 0 else 0.0
+                    cb_pct_v = 100.0 * cb_us / total_us if total_us > 0 else 0.0
                     logger.debug(
                         "rollout profiling: steps={} spd={}/s | "
                         "step_us={:.0f} env_us={:.0f} env_pct={:.1f} pol_us={:.0f} pol_pct={:.1f} cb_us={:.0f} cb_pct={:.1f} | "
                         "cb: r_us={:.0f} a_us={:.0f} d_us={:.0f} | mem_mb={:.0f}",
-                        step, int(steps_s),
-                        total_us, env_us, env_pct, pol_us, pol_pct, cb_us, cb_pct_v,
+                        step,
+                        int(steps_s),
+                        total_us,
+                        env_us,
+                        env_pct,
+                        pol_us,
+                        pol_pct,
+                        cb_us,
+                        cb_pct_v,
                         _cb_reward_time[0] / step * 1e6,
                         _cb_action_time[0] / step * 1e6,
-                        _cb_done_time[0]   / step * 1e6,
+                        _cb_done_time[0] / step * 1e6,
                         torch_mb,
                     )
 
                 logger.trace(
                     "rollout: step={}/{} pct={} elapsed_s={:.1f} eta_s={:.1f} spd={}/s | "
                     "r={:.4f} r_min={:.5f} r_max={:.5f} | a={:.2f} long_pct={:.0f} short_pct={:.0f}",
-                    step, max_steps, int(pct),
-                    elapsed, eta, int(steps_s),
-                    _cum_reward[0], r_min, r_max,
-                    a_mean, long_pct, short_pct,
+                    step,
+                    max_steps,
+                    int(pct),
+                    elapsed,
+                    eta,
+                    int(steps_s),
+                    _cum_reward[0],
+                    r_min,
+                    r_max,
+                    a_mean,
+                    long_pct,
+                    short_pct,
                 )
                 _t_last_coarse[0] = now
                 _t_last_fine[0] = now
                 # Reset coarse accumulators
-                _r_sum[0] = 0.0; _r_min[0] = float("inf"); _r_max[0] = float("-inf"); _r_n[0] = 0
-                _a_sum[0] = 0.0; _a_long[0] = 0; _a_short[0] = 0; _a_n[0] = 0
+                _r_sum[0] = 0.0
+                _r_min[0] = float("inf")
+                _r_max[0] = float("-inf")
+                _r_n[0] = 0
+                _a_sum[0] = 0.0
+                _a_long[0] = 0
+                _a_short[0] = 0
+                _a_n[0] = 0
                 _ep_done[0] = 0
                 # Reset fine accumulators (coarse boundary doubles as fine)
-                _fine_cb[0] = 0.0; _fine_inter[0] = 0.0; _fine_pol[0] = 0.0
-                _fine_reward[0] = 0.0; _fine_action[0] = 0.0; _fine_done[0] = 0.0
+                _fine_cb[0] = 0.0
+                _fine_inter[0] = 0.0
+                _fine_pol[0] = 0.0
+                _fine_reward[0] = 0.0
+                _fine_action[0] = 0.0
+                _fine_done[0] = 0.0
 
         # gym_trading_env's History uses dtype='O' (Python object array), accumulating
         # ~82 Python object references per step. Python's gen-2 GC scans all live objects
@@ -391,7 +463,11 @@ class StrategyEvaluator:
             with torch.no_grad():
                 try:
                     with set_exploration_type(InteractionType.MODE):
-                        rollout = env.rollout(max_steps=max_steps, policy=timed_policy, callback=_progress_cb)
+                        rollout = env.rollout(
+                            max_steps=max_steps,
+                            policy=timed_policy,
+                            callback=_progress_cb,
+                        )
                 except (NotImplementedError, RuntimeError) as exc:
                     if not (
                         isinstance(exc, NotImplementedError)
@@ -401,25 +477,41 @@ class StrategyEvaluator:
                         raise
                     # Fallback for distributions without analytical mode
                     with set_exploration_type(InteractionType.DETERMINISTIC):
-                        rollout = env.rollout(max_steps=max_steps, policy=timed_policy, callback=_progress_cb)
+                        rollout = env.rollout(
+                            max_steps=max_steps,
+                            policy=timed_policy,
+                            callback=_progress_cb,
+                        )
         finally:
             gc.enable()
             gc.collect()
         actual_steps = rollout.shape[0] if rollout.ndim > 0 else 1
         elapsed_total = _time.monotonic() - _t
         n = actual_steps if actual_steps > 0 else 1
-        pol_avg_us   = _pol_time_total[0]  / n * 1e6
-        inter_avg_us = _inter_cb_total[0]  / n * 1e6
-        env_avg_us   = max(0.0, inter_avg_us - pol_avg_us)
-        cb_avg_us    = _cb_time_total[0]   / n * 1e6
-        env_pct  = 100.0 * env_avg_us  / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
-        pol_pct  = 100.0 * pol_avg_us  / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
-        cb_pct   = 100.0 * cb_avg_us   / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
+        pol_avg_us = _pol_time_total[0] / n * 1e6
+        inter_avg_us = _inter_cb_total[0] / n * 1e6
+        env_avg_us = max(0.0, inter_avg_us - pol_avg_us)
+        cb_avg_us = _cb_time_total[0] / n * 1e6
+        env_pct = (
+            100.0 * env_avg_us / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
+        )
+        pol_pct = (
+            100.0 * pol_avg_us / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
+        )
+        cb_pct = 100.0 * cb_avg_us / elapsed_total * n / 1e6 if elapsed_total > 0 else 0
         logger.info(
             "rollout done: steps={}/{} elapsed_s={:.1f} spd={}/s | "
             "env_us={:.0f} env_pct={:.1f} pol_us={:.0f} pol_pct={:.1f} cb_us={:.0f} cb_pct={:.1f}",
-            actual_steps, max_steps, elapsed_total, int(actual_steps / elapsed_total),
-            env_avg_us, env_pct, pol_avg_us, pol_pct, cb_avg_us, cb_pct,
+            actual_steps,
+            max_steps,
+            elapsed_total,
+            int(actual_steps / elapsed_total),
+            env_avg_us,
+            env_pct,
+            pol_avg_us,
+            pol_pct,
+            cb_avg_us,
+            cb_pct,
         )
         return rollout
 
@@ -510,7 +602,9 @@ class StrategyEvaluator:
         if actions is None:
             return []
 
-        action_tensor = actions.detach().cpu() if hasattr(actions, "detach") else actions
+        action_tensor = (
+            actions.detach().cpu() if hasattr(actions, "detach") else actions
+        )
         is_portfolio = str(self.config.backend).lower() == EnvBackend.TRADINGENV
 
         # Handle continuous portfolio actions
@@ -559,7 +653,9 @@ class StrategyEvaluator:
             )
 
         max_steps = self.config.max_steps or len(df) - 1
-        logger.debug("evaluate_split split={} max_steps={} df_rows={}", split, max_steps, len(df))
+        logger.debug(
+            "evaluate_split split={} max_steps={} df_rows={}", split, max_steps, len(df)
+        )
 
         # Use the caller-provided environment when available. Training code
         # already builds split-specific envs from the full ExperimentConfig.
@@ -568,22 +664,34 @@ class StrategyEvaluator:
         # Run deterministic rollout
         _t = time.monotonic()
         rollout = self._run_rollout(env, max_steps)
-        logger.trace("evaluate_split: rollout elapsed_s={:.2f} steps={}", time.monotonic() - _t, max_steps)
+        logger.trace(
+            "evaluate_split: rollout elapsed_s={:.2f} steps={}",
+            time.monotonic() - _t,
+            max_steps,
+        )
 
         # Extract returns
         _t = time.monotonic()
         return_series = self._extract_return_series(env, rollout, max_steps)
-        logger.trace("evaluate_split: extract_returns elapsed_s={:.2f}", time.monotonic() - _t)
+        logger.trace(
+            "evaluate_split: extract_returns elapsed_s={:.2f}", time.monotonic() - _t
+        )
         if return_series is None:
             simple_returns = np.array([], dtype=float)
             cumulative_returns = None
         else:
             simple_returns = return_series.to_simple().values
-            cumulative_returns = return_series.to_cumulative_log(include_initial=True).values
+            cumulative_returns = return_series.to_cumulative_log(
+                include_initial=True
+            ).values
 
         # Extract last positions before metrics so we can pass them in
         actions = rollout.get("action", None)
-        last_positions = self._extract_last_positions(actions, max_steps) if actions is not None else []
+        last_positions = (
+            self._extract_last_positions(actions, max_steps)
+            if actions is not None
+            else []
+        )
 
         # Compute metrics (pass positions for pct_long / pct_short)
         _t = time.monotonic()
@@ -592,7 +700,9 @@ class StrategyEvaluator:
             if self.config.enable_metrics
             else None
         )
-        logger.trace("evaluate_split: compute_metrics elapsed_s={:.2f}", time.monotonic() - _t)
+        logger.trace(
+            "evaluate_split: compute_metrics elapsed_s={:.2f}", time.monotonic() - _t
+        )
 
         # Generate plots
         plots = None
@@ -604,7 +714,10 @@ class StrategyEvaluator:
                 _t = time.monotonic()
                 is_portfolio = self.config.backend.lower() == EnvBackend.TRADINGENV
                 rollout_data = build_rollout_plot_data(
-                    [rollout], max_steps, is_portfolio=is_portfolio, df=df,
+                    [rollout],
+                    max_steps,
+                    is_portfolio=is_portfolio,
+                    df=df,
                     reward_type=self.config.reward_type,
                     max_plot_points=self.config.max_plot_points,
                     show_allocation_ma=self.config.show_allocation_ma,
@@ -614,7 +727,10 @@ class StrategyEvaluator:
                     show_benchmarks=self.config.show_reward_benchmarks,
                     benchmark_price_column=self.config.price_column,
                 )
-                logger.trace("evaluate_split: build_rollout_plot_data elapsed_s={:.2f}", time.monotonic() - _t)
+                logger.trace(
+                    "evaluate_split: build_rollout_plot_data elapsed_s={:.2f}",
+                    time.monotonic() - _t,
+                )
                 plots["_rollout_plot_data"] = rollout_data
                 if "rewards" in enabled:
                     plots["reward_plot"] = plot_rewards(
@@ -636,12 +752,15 @@ class StrategyEvaluator:
                         stride=rollout_data["stride"],
                         n_obs=rollout_data["n_obs"],
                         date_str=rollout_data["date_str"],
-                        allocation_ma_window=rollout_data.get("allocation_ma_window") or self.config.allocation_ma_window,
+                        allocation_ma_window=rollout_data.get("allocation_ma_window")
+                        or self.config.allocation_ma_window,
                     )
 
             if "portfolio_value" in enabled:
                 plot_series = return_series or (
-                    ReturnSeries(simple_returns, ReturnKind.SIMPLE) if simple_returns.size else None
+                    ReturnSeries(simple_returns, ReturnKind.SIMPLE)
+                    if simple_returns.size
+                    else None
                 )
                 if plot_series is not None:
                     try:
@@ -662,7 +781,9 @@ class StrategyEvaluator:
                         plots["_equity_plot_data"] = equity_data
                         plots["portfolio_value_plot"] = plot_equity_curve(
                             equity_data["returns"],
-                            initial_portfolio_value=equity_data["initial_portfolio_value"],
+                            initial_portfolio_value=equity_data[
+                                "initial_portfolio_value"
+                            ],
                             policy_mode=equity_data["policy_mode"],
                             training_steps=equity_data["training_steps"],
                             training_episodes=equity_data["training_episodes"],
@@ -672,9 +793,14 @@ class StrategyEvaluator:
                             symbols=equity_data["symbols"],
                             n_total_symbols=equity_data["n_total_symbols"],
                         )
-                        logger.trace("evaluate_split: portfolio_value_plot elapsed_s={:.2f}", time.monotonic() - _t)
+                        logger.trace(
+                            "evaluate_split: portfolio_value_plot elapsed_s={:.2f}",
+                            time.monotonic() - _t,
+                        )
                     except Exception:
-                        logger.opt(exception=True).warning("evaluate_split: portfolio value plot failed")
+                        logger.opt(exception=True).warning(
+                            "evaluate_split: portfolio value plot failed"
+                        )
 
         return SplitEvaluationResult(
             final_reward=float(rollout["next", "reward"].sum().item()),

@@ -32,8 +32,11 @@ class ExperimentsCommand(BaseCommand):
             db_path = self._resolve_sqlite_path(params.tracking_uri)
             pattern = re.compile(params.delete) if params.delete else None
             self._purge_experiments_sqlite(
-                db_path, pattern, params.delete_all or not params.delete,
-                params.dry_run, params.force,
+                db_path,
+                pattern,
+                params.delete_all or not params.delete,
+                params.dry_run,
+                params.force,
             )
             return
 
@@ -68,10 +71,15 @@ class ExperimentsCommand(BaseCommand):
         db_path = self._resolve_sqlite_path(params.tracking_uri)
         pattern = re.compile(params.delete) if params.delete else None
         self._purge_experiments_sqlite(
-            db_path, pattern, params.delete_all or not params.delete,
-            dry_run=False, force=True,
+            db_path,
+            pattern,
+            params.delete_all or not params.delete,
+            dry_run=False,
+            force=True,
         )
-        self.console.print(f"[green]Permanently deleted {len(targets)} experiment(s).[/green]")
+        self.console.print(
+            f"[green]Permanently deleted {len(targets)} experiment(s).[/green]"
+        )
 
     def _list_experiments(self, tracking_uri: str | None) -> None:
         import mlflow
@@ -94,7 +102,7 @@ class ExperimentsCommand(BaseCommand):
     def _resolve_sqlite_path(self, tracking_uri: str | None) -> str:
         uri = tracking_uri or "sqlite:///mlflow.db"
         if uri.startswith("sqlite:///"):
-            return uri[len("sqlite:///"):]
+            return uri[len("sqlite:///") :]
         raise typer.BadParameter(
             f"--purge only supports sqlite:/// tracking URIs, got: {uri}"
         )
@@ -129,7 +137,9 @@ class ExperimentsCommand(BaseCommand):
             raise typer.Exit(0)
 
         if dry_run:
-            self.console.print("[yellow]Dry run: experiments to permanently delete[/yellow]")
+            self.console.print(
+                "[yellow]Dry run: experiments to permanently delete[/yellow]"
+            )
             for exp_id, name in targets:
                 run_count = con.execute(
                     "SELECT COUNT(*) FROM runs WHERE experiment_id = ?", (exp_id,)
@@ -152,11 +162,15 @@ class ExperimentsCommand(BaseCommand):
             raise typer.Exit(0)
 
         _RUN_CHILD_TABLES = (
-            "params", "metrics", "latest_metrics", "tags",
-            "inputs", "input_tags",
+            "params",
+            "metrics",
+            "latest_metrics",
+            "tags",
+            "inputs",
+            "input_tags",
         )
         n_purged = 0
-        for exp_id, name in targets:
+        for exp_id, _name in targets:
             run_ids = [
                 r[0]
                 for r in con.execute(
@@ -166,7 +180,10 @@ class ExperimentsCommand(BaseCommand):
             for run_uuid in run_ids:
                 for tbl in _RUN_CHILD_TABLES:
                     try:
-                        con.execute(f"DELETE FROM {tbl} WHERE run_uuid = ?", (run_uuid,))  # noqa: S608
+                        con.execute(
+                            f"DELETE FROM {tbl} WHERE run_uuid = ?",  # noqa: S608
+                            (run_uuid,),
+                        )
                     except sqlite3.OperationalError:
                         pass  # table may not exist in all schema versions
                 con.execute("DELETE FROM runs WHERE run_uuid = ?", (run_uuid,))
@@ -175,7 +192,9 @@ class ExperimentsCommand(BaseCommand):
 
         con.commit()
         con.close()
-        self.console.print(f"[green]Permanently deleted {n_purged} experiment(s).[/green]")
+        self.console.print(
+            f"[green]Permanently deleted {n_purged} experiment(s).[/green]"
+        )
 
     def _confirm_delete(self, items: list[str], force: bool) -> bool:
         if force:

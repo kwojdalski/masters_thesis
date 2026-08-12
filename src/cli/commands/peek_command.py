@@ -6,14 +6,18 @@ from dataclasses import dataclass
 from datetime import UTC
 from pathlib import Path
 
+import pandas as pd
 import typer
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from logger import get_logger
 from trading_rl.evaluation.asset_meta import write_asset_meta
 
 from .base_command import BaseCommand
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -31,8 +35,6 @@ class PeekCommand(BaseCommand):
     """Show a prepared dataset summary: splits, feature stats, memmap inventory."""
 
     def execute(self, params: PeekParams) -> None:
-        import pandas as pd
-
         from logger import get_logger as _get_logger
         from trading_rl import ExperimentConfig
         from trading_rl.data_utils import build_prepared_dataset
@@ -64,14 +66,29 @@ class PeekCommand(BaseCommand):
 
         export_dir: Path | None = None
         if params.export:
-            scenario_name = config_path.stem if config_path.is_file() else config_path.name
+            scenario_name = (
+                config_path.stem if config_path.is_file() else config_path.name
+            )
             export_dir = Path("reports/peek") / scenario_name
             export_dir.mkdir(parents=True, exist_ok=True)
 
-        self.console.print(Panel(Text(str(config_path), style="bold cyan"), title="scenario", expand=False))
+        self.console.print(
+            Panel(
+                Text(str(config_path), style="bold cyan"),
+                title="scenario",
+                expand=False,
+            )
+        )
         self._print_scenario_status(config)
         splits_df = self._print_splits(dataset)
-        feat_df = self._print_feature_stats(dataset, config, params.n_features, effective_skip, detected_warmup, params.skip_rows)
+        feat_df = self._print_feature_stats(
+            dataset,
+            config,
+            params.n_features,
+            effective_skip,
+            detected_warmup,
+            params.skip_rows,
+        )
         ret_df = self._print_log_return_stats(dataset, config, effective_skip)
         corr_df: pd.DataFrame | None = None
         if params.show_correlations:
@@ -80,6 +97,7 @@ class PeekCommand(BaseCommand):
 
         if export_dir is not None:
             import json
+
             splits_records = splits_df.to_dict(orient="records")
             _splits_path = export_dir / "splits.json"
             _splits_path.write_text(
@@ -89,7 +107,8 @@ class PeekCommand(BaseCommand):
             if inventory_df is not None:
                 _inv_path = export_dir / "raw_file_inventory.json"
                 _inv_path.write_text(
-                    json.dumps(inventory_df.to_dict(orient="records"), indent=2), encoding="utf-8"
+                    json.dumps(inventory_df.to_dict(orient="records"), indent=2),
+                    encoding="utf-8",
                 )
                 write_asset_meta(_inv_path, generator="cli/commands/peek_command.py")
             _feat_path = export_dir / "feature_stats.csv"
@@ -121,6 +140,7 @@ class PeekCommand(BaseCommand):
         run = None
         try:
             import mlflow
+
             tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
             mlflow.set_tracking_uri(tracking_uri)
             client = mlflow.tracking.MlflowClient()
@@ -132,8 +152,8 @@ class PeekCommand(BaseCommand):
                     max_results=1,
                 )
                 run = runs[0] if runs else None
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("failed to fetch latest mlflow run: {}", exc)
 
         # ── 2. Checkpoints ─────────────────────────────────────────────
         checkpoint_info: dict | None = None
@@ -164,20 +184,28 @@ class PeekCommand(BaseCommand):
         if run is None and checkpoint_info is None:
             return  # nothing to show — scenario has never been run
 
-        tbl = Table(title="Scenario status", show_header=False, box=None, padding=(0, 2))
+        tbl = Table(
+            title="Scenario status", show_header=False, box=None, padding=(0, 2)
+        )
         tbl.add_column("key", style="dim", no_wrap=True)
         tbl.add_column("value", no_wrap=False)
 
         # ── run info ───────────────────────────────────────────────────
         if run is not None:
             status = run.info.status  # RUNNING / FINISHED / FAILED / KILLED
-            status_color = {"FINISHED": "green", "RUNNING": "cyan", "FAILED": "red"}.get(status, "yellow")
+            status_color = {
+                "FINISHED": "green",
+                "RUNNING": "cyan",
+                "FAILED": "red",
+            }.get(status, "yellow")
             tbl.add_row("run status", f"[{status_color}]{status}[/{status_color}]")
 
             start_ms = run.info.start_time
             end_ms = run.info.end_time
             if start_ms:
-                started = datetime.fromtimestamp(start_ms / 1000).strftime("%Y-%m-%d %H:%M")
+                started = datetime.fromtimestamp(start_ms / 1000, tz=UTC).strftime(
+                    "%Y-%m-%d %H:%M"
+                )
                 tbl.add_row("started", started)
             if end_ms and start_ms:
                 elapsed_s = (end_ms - start_ms) / 1000
@@ -189,7 +217,12 @@ class PeekCommand(BaseCommand):
                 elapsed_s = datetime.now(UTC).timestamp() - start_ms / 1000
                 h, rem = divmod(int(elapsed_s), 3600)
                 m_val, s = divmod(rem, 60)
-                tbl.add_row("elapsed", f"[cyan]{h}h {m_val}m {s}s (running)[/cyan]" if h else f"[cyan]{m_val}m {s}s (running)[/cyan]")
+                tbl.add_row(
+                    "elapsed",
+                    f"[cyan]{h}h {m_val}m {s}s (running)[/cyan]"
+                    if h
+                    else f"[cyan]{m_val}m {s}s (running)[/cyan]",
+                )
 
             metrics = run.data.metrics
             steps = metrics.get("total_steps_trained")
@@ -204,9 +237,9 @@ class PeekCommand(BaseCommand):
 
             # ── eval metrics ───────────────────────────────────────────
             EVAL_METRICS = [
-                ("total_return",  "total return",  ".4%"),
-                ("sharpe_ratio",  "Sharpe",        ".3f"),
-                ("max_drawdown",  "max drawdown",  ".4%"),
+                ("total_return", "total return", ".4%"),
+                ("sharpe_ratio", "Sharpe", ".3f"),
+                ("max_drawdown", "max drawdown", ".4%"),
                 ("profit_factor", "profit factor", ".3f"),
             ]
             for split in ("val", "test", "train"):
@@ -223,7 +256,9 @@ class PeekCommand(BaseCommand):
 
         # ── checkpoint ─────────────────────────────────────────────────
         if checkpoint_info is not None:
-            step_str = f"{checkpoint_info['step']:,}" if checkpoint_info["step"] >= 0 else "?"
+            step_str = (
+                f"{checkpoint_info['step']:,}" if checkpoint_info["step"] >= 0 else "?"
+            )
             tbl.add_row(
                 "checkpoint",
                 f"step {step_str}  ({checkpoint_info['age']})  [dim]{checkpoint_info['path']}[/dim]",
@@ -243,6 +278,7 @@ class PeekCommand(BaseCommand):
             return detected
         try:
             from trading_rl.features.pipeline import FeaturePipeline
+
             pipeline = FeaturePipeline.from_yaml(feature_config_path)
             for fc in pipeline.feature_configs:
                 for key in ("window", "period", "slow_period", "long_period"):
@@ -250,13 +286,12 @@ class PeekCommand(BaseCommand):
                     if isinstance(val, int):
                         detected = max(detected, val)
                 detected = max(detected, fc.rolling_window or 0)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("failed to detect warmup from feature pipeline: {}", exc)
         return detected
 
     def _print_splits(self, dataset) -> pd.DataFrame:
         import numpy as np
-        import pandas as pd
 
         def _delta_stats(df: pd.DataFrame) -> tuple[float | None, float | None]:
             if not isinstance(df.index, pd.DatetimeIndex) or len(df) < 2:
@@ -276,7 +311,11 @@ class PeekCommand(BaseCommand):
         tbl.add_column("last timestamp")
         tbl.add_column("mean Δt", justify="right")
         tbl.add_column("median Δt", justify="right")
-        for name, df in [("train", dataset.train_df), ("val", dataset.val_df), ("test", dataset.test_df)]:
+        for name, df in [
+            ("train", dataset.train_df),
+            ("val", dataset.val_df),
+            ("test", dataset.test_df),
+        ]:
             first = str(df.index[0]) if len(df) else ""
             last = str(df.index[-1]) if len(df) else ""
             mean_s, median_s = _delta_stats(df)
@@ -290,22 +329,38 @@ class PeekCommand(BaseCommand):
                     return f"{s * 1e3:.2f} ms"
                 return f"{s:.3f} s"
 
-            tbl.add_row(name, f"{len(df):,}", str(df.shape[1]), first, last, _fmt(mean_s), _fmt(median_s))
-            rows.append({
-                "split": name,
-                "rows": len(df),
-                "columns": int(df.shape[1]),
-                "first_timestamp": first,
-                "last_timestamp": last,
-                "mean_delta_s": mean_s,
-                "median_delta_s": median_s,
-            })
+            tbl.add_row(
+                name,
+                f"{len(df):,}",
+                str(df.shape[1]),
+                first,
+                last,
+                _fmt(mean_s),
+                _fmt(median_s),
+            )
+            rows.append(
+                {
+                    "split": name,
+                    "rows": len(df),
+                    "columns": int(df.shape[1]),
+                    "first_timestamp": first,
+                    "last_timestamp": last,
+                    "mean_delta_s": mean_s,
+                    "median_delta_s": median_s,
+                }
+            )
         self.console.print(tbl)
         return pd.DataFrame(rows)
 
-    def _print_feature_stats(self, dataset, config, n_features: int, effective_skip: int, detected_warmup: int, skip_rows: int) -> pd.DataFrame:
-        import pandas as pd
-
+    def _print_feature_stats(
+        self,
+        dataset,
+        config,
+        n_features: int,
+        effective_skip: int,
+        detected_warmup: int,
+        skip_rows: int,
+    ) -> pd.DataFrame:
         feat_cols = dataset.feature_columns
         env_selected = list(getattr(config.env, "feature_columns", None) or feat_cols)
         train = dataset.train_df[feat_cols].iloc[effective_skip:]
@@ -313,7 +368,9 @@ class PeekCommand(BaseCommand):
         warmup_note = f"detected warm-up={detected_warmup}"
         if skip_rows:
             warmup_note += f", overridden to {skip_rows}"
-        skip_note = f", skip={effective_skip:,} ({warmup_note})" if effective_skip else ""
+        skip_note = (
+            f", skip={effective_skip:,} ({warmup_note})" if effective_skip else ""
+        )
 
         tbl = Table(
             title=f"Feature statistics (train{skip_note}, top {min(n_features, len(feat_cols))} of {len(feat_cols)})",
@@ -345,37 +402,48 @@ class PeekCommand(BaseCommand):
             kurt_val = float(kurtosis[col])
             tick = "[green]yes[/green]" if col in selected_set else ""
             tbl.add_row(
-                col, tick,
-                f"{row['mean']:.4f}", f"{row['std']:.4f}",
-                f"{skew_val:.3f}", f"{kurt_val:.3f}",
-                f"{row['25%']:.4f}", f"{row['50%']:.4f}", f"{row['75%']:.4f}",
-                f"{row['min']:.4f}", f"{row['max']:.4f}",
+                col,
+                tick,
+                f"{row['mean']:.4f}",
+                f"{row['std']:.4f}",
+                f"{skew_val:.3f}",
+                f"{kurt_val:.3f}",
+                f"{row['25%']:.4f}",
+                f"{row['50%']:.4f}",
+                f"{row['75%']:.4f}",
+                f"{row['min']:.4f}",
+                f"{row['max']:.4f}",
                 str(null_count) if null_count else "[green]0[/green]",
             )
-            export_rows.append({
-                "feature": col,
-                "selected": col in selected_set,
-                "mean": float(row["mean"]),
-                "std": float(row["std"]),
-                "skew": skew_val,
-                "kurt": kurt_val,
-                "q1": float(row["25%"]),
-                "q2": float(row["50%"]),
-                "q3": float(row["75%"]),
-                "min": float(row["min"]),
-                "max": float(row["max"]),
-                "nulls": null_count,
-            })
+            export_rows.append(
+                {
+                    "feature": col,
+                    "selected": col in selected_set,
+                    "mean": float(row["mean"]),
+                    "std": float(row["std"]),
+                    "skew": skew_val,
+                    "kurt": kurt_val,
+                    "q1": float(row["25%"]),
+                    "q2": float(row["50%"]),
+                    "q3": float(row["75%"]),
+                    "min": float(row["min"]),
+                    "max": float(row["max"]),
+                    "nulls": null_count,
+                }
+            )
         self.console.print(tbl)
 
         if len(feat_cols) > n_features:
-            self.console.print(f"  [dim]… {len(feat_cols) - n_features} more features hidden (use --top {len(feat_cols)} to show all)[/dim]")
+            self.console.print(
+                f"  [dim]… {len(feat_cols) - n_features} more features hidden (use --top {len(feat_cols)} to show all)[/dim]"
+            )
 
         return pd.DataFrame(export_rows)
 
-    def _print_log_return_stats(self, dataset, config, effective_skip: int) -> pd.DataFrame | None:
+    def _print_log_return_stats(
+        self, dataset, config, effective_skip: int
+    ) -> pd.DataFrame | None:
         import numpy as np
-        import pandas as pd
 
         from trading_rl.data_utils import load_trading_data
 
@@ -388,7 +456,11 @@ class PeekCommand(BaseCommand):
         if price_col not in raw_train.columns:
             if {"ask_px_00", "bid_px_00"}.issubset(raw_train.columns):
                 raw_train = raw_train.copy()
-                raw_train[price_col] = ((raw_train["ask_px_00"] + raw_train["bid_px_00"]) / 2.0).ffill().bfill()
+                raw_train[price_col] = (
+                    ((raw_train["ask_px_00"] + raw_train["bid_px_00"]) / 2.0)
+                    .ffill()
+                    .bfill()
+                )
             else:
                 return None
 
@@ -406,7 +478,18 @@ class PeekCommand(BaseCommand):
             show_header=True,
             header_style="bold",
         )
-        for col in ("n_steps", "mean", "std", "min", "p5", "p25", "p50", "p75", "p95", "max"):
+        for col in (
+            "n_steps",
+            "mean",
+            "std",
+            "min",
+            "p5",
+            "p25",
+            "p50",
+            "p75",
+            "p95",
+            "max",
+        ):
             tbl.add_column(col, justify="right")
 
         p = np.percentile(log_rets, [5, 25, 50, 75, 95])
@@ -423,30 +506,37 @@ class PeekCommand(BaseCommand):
             f"{log_rets.max():.6f}",
         )
         self.console.print(tbl)
-        return pd.DataFrame([{
-            "price_column": price_col,
-            "reward_type": reward_type,
-            "n_steps": len(log_rets),
-            "mean": float(log_rets.mean()),
-            "std": float(log_rets.std()),
-            "min": float(log_rets.min()),
-            "p5": float(p[0]),
-            "p25": float(p[1]),
-            "p50": float(p[2]),
-            "p75": float(p[3]),
-            "p95": float(p[4]),
-            "max": float(log_rets.max()),
-        }])
+        return pd.DataFrame(
+            [
+                {
+                    "price_column": price_col,
+                    "reward_type": reward_type,
+                    "n_steps": len(log_rets),
+                    "mean": float(log_rets.mean()),
+                    "std": float(log_rets.std()),
+                    "min": float(log_rets.min()),
+                    "p5": float(p[0]),
+                    "p25": float(p[1]),
+                    "p50": float(p[2]),
+                    "p75": float(p[3]),
+                    "p95": float(p[4]),
+                    "max": float(log_rets.max()),
+                }
+            ]
+        )
 
-    def _print_reward_correlations(self, dataset, config, effective_skip: int) -> pd.DataFrame | None:
+    def _print_reward_correlations(
+        self, dataset, config, effective_skip: int
+    ) -> pd.DataFrame | None:
         import numpy as np
-        import pandas as pd
         from scipy.stats import spearmanr
 
         from trading_rl.data_utils import load_trading_data
 
         price_col = getattr(config.env, "price_column", "close")
-        feat_cols = list(getattr(config.env, "feature_columns", None) or dataset.feature_columns)
+        feat_cols = list(
+            getattr(config.env, "feature_columns", None) or dataset.feature_columns
+        )
 
         raw_df = load_trading_data(config.data.data_path).dropna()
         train_size = len(dataset.train_df) + effective_skip
@@ -455,9 +545,15 @@ class PeekCommand(BaseCommand):
         if price_col not in raw_train.columns:
             if {"ask_px_00", "bid_px_00"}.issubset(raw_train.columns):
                 raw_train = raw_train.copy()
-                raw_train[price_col] = ((raw_train["ask_px_00"] + raw_train["bid_px_00"]) / 2.0).ffill().bfill()
+                raw_train[price_col] = (
+                    ((raw_train["ask_px_00"] + raw_train["bid_px_00"]) / 2.0)
+                    .ffill()
+                    .bfill()
+                )
             else:
-                self.console.print("[yellow]Cannot compute correlations: price column not found.[/yellow]")
+                self.console.print(
+                    "[yellow]Cannot compute correlations: price column not found.[/yellow]"
+                )
                 return None
 
         prices = raw_train[price_col].to_numpy(dtype=float)
@@ -469,7 +565,7 @@ class PeekCommand(BaseCommand):
         # Align: log_rets has one fewer row than prices
         n = min(len(log_rets), len(feat_df) - 1)
         log_rets = log_rets[:n]
-        feat_aligned = feat_df.iloc[1:n + 1]
+        feat_aligned = feat_df.iloc[1 : n + 1]
 
         rows = []
         for col in feat_cols:
@@ -505,12 +601,13 @@ class PeekCommand(BaseCommand):
             tbl.add_row(col, _fmt(p), _fmt(s))
 
         self.console.print(tbl)
-        return pd.DataFrame([{"feature": col, "pearson": p, "spearman": s} for col, p, s in rows])
+        return pd.DataFrame(
+            [{"feature": col, "pearson": p, "spearman": s} for col, p, s in rows]
+        )
 
     def _print_raw_file_inventory(self, config) -> pd.DataFrame | None:
         """Build and print a symbol × split table with event counts and delta stats."""
         import numpy as np
-        import pandas as pd
 
         train_paths = list(getattr(config.data, "data_paths", None) or [])
         val_paths = list(getattr(config.data, "val_data_paths", None) or [])
@@ -548,30 +645,49 @@ class PeekCommand(BaseCommand):
                     if len(df) >= 2:
                         d = np.diff(df.index.view(np.int64)) / 1e9
                         all_deltas.append(d)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("failed to read raw file {}: {}", p, exc)
             combined = np.concatenate(all_deltas) if all_deltas else np.array([])
             mean_s, median_s = _delta_stats(combined)
-            rows.append({"symbol": sym, "split": "train", "rows": total_rows,
-                         "trades": total_trades, "mean_delta_s": mean_s, "median_delta_s": median_s})
+            rows.append(
+                {
+                    "symbol": sym,
+                    "split": "train",
+                    "rows": total_rows,
+                    "trades": total_trades,
+                    "mean_delta_s": mean_s,
+                    "median_delta_s": median_s,
+                }
+            )
 
         # Val + test: each val file split 50/50 at midpoint
         for p in sorted(val_paths, key=_symbol_of):
             sym = _symbol_of(p)
             try:
                 df = _read_file(p)
-            except Exception:
+            except Exception as exc:
+                logger.debug("failed to read raw file {}: {}", p, exc)
                 continue
             mid = len(df) // 2
-            for split_name, split_df in [("val", df.iloc[:mid]), ("test", df.iloc[mid:])]:
+            for split_name, split_df in [
+                ("val", df.iloc[:mid]),
+                ("test", df.iloc[mid:]),
+            ]:
                 if len(split_df) >= 2:
                     d = np.diff(split_df.index.view(np.int64)) / 1e9
                     mean_s, median_s = _delta_stats(d)
                 else:
                     mean_s, median_s = None, None
-                rows.append({"symbol": sym, "split": split_name, "rows": len(split_df),
-                             "trades": int((split_df["action"] == "T").sum()),
-                             "mean_delta_s": mean_s, "median_delta_s": median_s})
+                rows.append(
+                    {
+                        "symbol": sym,
+                        "split": split_name,
+                        "rows": len(split_df),
+                        "trades": int((split_df["action"] == "T").sum()),
+                        "mean_delta_s": mean_s,
+                        "median_delta_s": median_s,
+                    }
+                )
 
         if not rows:
             return None
@@ -586,7 +702,11 @@ class PeekCommand(BaseCommand):
             return f"{s:.3f} s"
 
         flat_df = pd.DataFrame(rows)
-        tbl = Table(title="Raw data inventory (events per symbol per split)", show_header=True, header_style="bold")
+        tbl = Table(
+            title="Raw data inventory (events per symbol per split)",
+            show_header=True,
+            header_style="bold",
+        )
         tbl.add_column("Symbol")
         tbl.add_column("Split")
         tbl.add_column("Events", justify="right")
@@ -594,8 +714,13 @@ class PeekCommand(BaseCommand):
         tbl.add_column("Mean Δt", justify="right")
         tbl.add_column("Median Δt", justify="right")
         for _, r in flat_df.iterrows():
-            tbl.add_row(r["symbol"], r["split"], f"{int(r['rows']):,}",
-                        f"{int(r['trades']):,}",
-                        _fmt(r["mean_delta_s"]), _fmt(r["median_delta_s"]))
+            tbl.add_row(
+                r["symbol"],
+                r["split"],
+                f"{int(r['rows']):,}",
+                f"{int(r['trades']):,}",
+                _fmt(r["mean_delta_s"]),
+                _fmt(r["median_delta_s"]),
+            )
         self.console.print(tbl)
         return flat_df

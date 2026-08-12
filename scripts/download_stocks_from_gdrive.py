@@ -23,16 +23,13 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 from dotenv import find_dotenv, load_dotenv
 
-load_dotenv(find_dotenv())
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
 from logger import setup_component_logger
+
+load_dotenv(find_dotenv())
 
 logger = setup_component_logger("download_stocks_from_gdrive")
 
@@ -125,7 +122,6 @@ def get_drive_service():
 
 
 def download_file_via_api(service, file_id: str, dest_path: Path) -> None:
-
     from googleapiclient.http import MediaIoBaseDownload
 
     request = service.files().get_media(fileId=file_id)
@@ -161,12 +157,17 @@ def list_folder_files(service, folder_id: str) -> list[dict]:
 
 
 def pick_files_with_fzf(files: list[dict]) -> list[dict]:
-    if not shutil.which("fzf"):
+    fzf_path = shutil.which("fzf")
+    if not fzf_path:
         raise RuntimeError("fzf not found. Install with: brew install fzf")
 
     entries = "\n".join(f["name"] for f in files)
-    result = subprocess.run(
-        ["fzf", "--multi", "--prompt=Select files to download (TAB=multi-select, ENTER=confirm)> "],
+    result = subprocess.run(  # noqa: S603 -- fzf_path is resolved via shutil.which, not user input
+        [
+            fzf_path,
+            "--multi",
+            "--prompt=Select files to download (TAB=multi-select, ENTER=confirm)> ",
+        ],
         input=entries,
         capture_output=True,
         text=True,
@@ -174,7 +175,9 @@ def pick_files_with_fzf(files: list[dict]) -> list[dict]:
     if result.returncode != 0:
         return []
 
-    selected_names = {line.strip() for line in result.stdout.splitlines() if line.strip()}
+    selected_names = {
+        line.strip() for line in result.stdout.splitlines() if line.strip()
+    }
     return [f for f in files if f["name"] in selected_names]
 
 
@@ -235,7 +238,8 @@ def main() -> int:
     # Use Drive API (authenticated) if credentials are available, otherwise fall
     # back to gdown which requires the folder to be publicly shared.
     has_credentials = bool(
-        os.getenv("GDRIVE_SERVICE_ACCOUNT_FILE") or os.getenv("GDRIVE_CLIENT_SECRET_FILE")
+        os.getenv("GDRIVE_SERVICE_ACCOUNT_FILE")
+        or os.getenv("GDRIVE_CLIENT_SECRET_FILE")
     )
 
     if has_credentials:
@@ -263,7 +267,9 @@ def main() -> int:
             except Exception as exc:
                 logger.error("FAIL: {} — {}", f["name"], exc)
 
-        logger.info("Download complete. Successful: {}/{}", downloaded, len(remote_files))
+        logger.info(
+            "Download complete. Successful: {}/{}", downloaded, len(remote_files)
+        )
         return 0 if downloaded == len(remote_files) else 1
 
     try:
@@ -283,7 +289,9 @@ def main() -> int:
     )
 
     if not downloaded_files:
-        logger.warning("No files were downloaded. Verify folder sharing permissions and URL.")
+        logger.warning(
+            "No files were downloaded. Verify folder sharing permissions and URL."
+        )
         return 1
 
     logger.info("Download complete. Files downloaded: {}", len(downloaded_files))

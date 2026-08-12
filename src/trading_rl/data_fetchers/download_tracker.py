@@ -5,7 +5,7 @@ Prevents redundant downloads and implements daily rate limiting.
 
 import hashlib
 import json
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -78,6 +78,13 @@ class DownloadTracker:
         sorted_params = json.dumps(params, sort_keys=True, default=str)
         return hashlib.sha256(sorted_params.encode()).hexdigest()
 
+    @staticmethod
+    def _parse_timestamp(timestamp: str) -> datetime:
+        """Parse a cached ISO timestamp, treating naive entries (from older cache
+        files written before this class stored UTC-aware timestamps) as UTC."""
+        parsed = datetime.fromisoformat(timestamp)
+        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
     def should_download(
         self,
         symbols: list[str],
@@ -124,19 +131,24 @@ class DownloadTracker:
             return True, "No previous download found"
 
         download_info = self.cache[param_hash]
-        last_download = datetime.fromisoformat(download_info["timestamp"])
-        time_since_download = datetime.now() - last_download
+        last_download = self._parse_timestamp(download_info["timestamp"])
+        time_since_download = datetime.now(UTC) - last_download
 
         # Check rate limit
         if time_since_download < timedelta(hours=self.rate_limit_hours):
-            hours_remaining = self.rate_limit_hours - (time_since_download.total_seconds() / 3600)
+            hours_remaining = self.rate_limit_hours - (
+                time_since_download.total_seconds() / 3600
+            )
             reason = (
                 f"Downloaded {time_since_download.total_seconds() / 3600:.1f}h ago "
                 f"(rate limit: {self.rate_limit_hours}h, {hours_remaining:.1f}h remaining)"
             )
             return False, reason
 
-        return True, f"Last download was {time_since_download.total_seconds() / 3600:.1f}h ago (beyond rate limit)"
+        return (
+            True,
+            f"Last download was {time_since_download.total_seconds() / 3600:.1f}h ago (beyond rate limit)",
+        )
 
     def record_download(
         self,
@@ -182,17 +194,21 @@ class DownloadTracker:
         for filepath in output_files:
             path = Path(filepath)
             if path.exists():
-                file_info.append({
-                    "path": str(filepath),
-                    "size_bytes": path.stat().st_size,
-                    "exists": True,
-                })
+                file_info.append(
+                    {
+                        "path": str(filepath),
+                        "size_bytes": path.stat().st_size,
+                        "exists": True,
+                    }
+                )
             else:
-                file_info.append({
-                    "path": str(filepath),
-                    "size_bytes": 0,
-                    "exists": False,
-                })
+                file_info.append(
+                    {
+                        "path": str(filepath),
+                        "size_bytes": 0,
+                        "exists": False,
+                    }
+                )
 
         self.cache[param_hash] = {
             "symbols": symbols,
@@ -203,13 +219,15 @@ class DownloadTracker:
             "schema": schema,
             "timeframe": timeframe,
             "aggregate": aggregate,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "output_files": file_info,
             "rows_downloaded": rows_downloaded,
         }
 
         self._save_cache()
-        logger.info("record download n_symbols={} n_rows={}", len(symbols), rows_downloaded)
+        logger.info(
+            "record download n_symbols={} n_rows={}", len(symbols), rows_downloaded
+        )
 
     def get_recent_downloads(self, hours: int = 24) -> list[dict[str, Any]]:
         """Get downloads from the last N hours.
@@ -220,14 +238,16 @@ class DownloadTracker:
         Returns:
             List of download records
         """
-        cutoff = datetime.now() - timedelta(hours=hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
         recent = []
 
         for param_hash, info in self.cache.items():
-            download_time = datetime.fromisoformat(info["timestamp"])
+            download_time = self._parse_timestamp(info["timestamp"])
             if download_time > cutoff:
                 info["param_hash"] = param_hash
-                info["hours_ago"] = (datetime.now() - download_time).total_seconds() / 3600
+                info["hours_ago"] = (
+                    datetime.now(UTC) - download_time
+                ).total_seconds() / 3600
                 recent.append(info)
 
         # Sort by timestamp (newest first)
@@ -243,11 +263,11 @@ class DownloadTracker:
         Returns:
             Number of entries removed
         """
-        cutoff = datetime.now() - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
         to_remove = []
 
         for param_hash, info in self.cache.items():
-            download_time = datetime.fromisoformat(info["timestamp"])
+            download_time = self._parse_timestamp(info["timestamp"])
             if download_time < cutoff:
                 to_remove.append(param_hash)
 
@@ -294,11 +314,17 @@ class DownloadTracker:
             "total_files": total_files,
             "total_size_mb": total_size / (1024 * 1024),
             "oldest_download": min(
-                (datetime.fromisoformat(info["timestamp"]) for info in self.cache.values()),
+                (
+                    self._parse_timestamp(info["timestamp"])
+                    for info in self.cache.values()
+                ),
                 default=None,
             ),
             "newest_download": max(
-                (datetime.fromisoformat(info["timestamp"]) for info in self.cache.values()),
+                (
+                    self._parse_timestamp(info["timestamp"])
+                    for info in self.cache.values()
+                ),
                 default=None,
             ),
         }

@@ -15,6 +15,7 @@ from logger import get_logger as get_project_logger
 def _to_yaml_serializable(obj):
     """Recursively convert enum values and other non-YAML-safe types to primitives."""
     import enum
+
     if isinstance(obj, dict):
         return {k: _to_yaml_serializable(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -40,7 +41,7 @@ def log_config_artifact(config) -> None:
         cparts = candidate.parts
         try:
             idx = list(cparts).index("scenarios")
-            rel_parts = cparts[idx + 1:]
+            rel_parts = cparts[idx + 1 :]
             candidate_name = (
                 "_".join(Path(*rel_parts).with_suffix("").parts)
                 if rel_parts
@@ -80,23 +81,43 @@ def log_training_parameters(config) -> None:
         mlflow.log_param("env_name", str(config.env.name))
         mlflow.log_param("env_positions", json.dumps(config.env.positions))
         mlflow.log_param("env_trading_fees", float(config.env.trading_fees))
-        mlflow.log_param("env_borrow_interest_rate", float(config.env.borrow_interest_rate))
+        mlflow.log_param(
+            "env_borrow_interest_rate", float(config.env.borrow_interest_rate)
+        )
         mlflow.log_param(
             "env_initial_portfolio_value",
-            float(getattr(config.env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE)),
+            float(
+                getattr(
+                    config.env,
+                    "initial_portfolio_value",
+                    DEFAULT_INITIAL_PORTFOLIO_VALUE,
+                )
+            ),
         )
 
-        mlflow.log_param("network_actor_hidden_dims", json.dumps(config.network.actor_hidden_dims))
-        mlflow.log_param("network_value_hidden_dims", json.dumps(config.network.value_hidden_dims))
+        mlflow.log_param(
+            "network_actor_hidden_dims", json.dumps(config.network.actor_hidden_dims)
+        )
+        mlflow.log_param(
+            "network_value_hidden_dims", json.dumps(config.network.value_hidden_dims)
+        )
 
         mlflow.log_param("training_algorithm", str(config.training.algorithm))
         mlflow.log_param("training_actor_lr", float(config.training.actor_lr))
         mlflow.log_param("training_value_lr", float(config.training.value_lr))
-        mlflow.log_param("training_value_weight_decay", float(config.training.value_weight_decay))
+        mlflow.log_param(
+            "training_value_weight_decay", float(config.training.value_weight_decay)
+        )
         mlflow.log_param("training_max_steps", int(config.training.max_steps))
-        mlflow.log_param("training_init_rand_steps", int(config.training.init_rand_steps))
-        mlflow.log_param("training_frames_per_batch", int(config.training.frames_per_batch))
-        mlflow.log_param("training_optim_steps_per_batch", int(config.training.optim_steps_per_batch))
+        mlflow.log_param(
+            "training_init_rand_steps", int(config.training.init_rand_steps)
+        )
+        mlflow.log_param(
+            "training_frames_per_batch", int(config.training.frames_per_batch)
+        )
+        mlflow.log_param(
+            "training_optim_steps_per_batch", int(config.training.optim_steps_per_batch)
+        )
         mlflow.log_param("training_sample_size", int(config.training.sample_size))
         mlflow.log_param("training_buffer_size", int(config.training.buffer_size))
         mlflow.log_param(
@@ -118,13 +139,17 @@ def log_training_parameters(config) -> None:
             ("ppo_epochs", int),
         ):
             if hasattr(config.training, attr):
-                mlflow.log_param(f"training_{attr}", cast(getattr(config.training, attr)))
+                mlflow.log_param(
+                    f"training_{attr}", cast(getattr(config.training, attr))
+                )
 
         mlflow.log_param("logging_log_dir", str(config.logging.log_dir))
         mlflow.log_param("logging_log_level", str(config.logging.log_level))
 
     except Exception as e:  # pragma: no cover - defensive
-        get_project_logger(__name__).warning(f"Failed to log some training parameters: {e}")
+        get_project_logger(__name__).warning(
+            f"Failed to log some training parameters: {e}"
+        )
 
 
 def log_parameter_faq_artifact() -> None:
@@ -145,10 +170,17 @@ def log_parameter_faq_artifact() -> None:
             md_content = f.read()
 
         try:
+            import shutil
             import subprocess
-            commit = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-            ).decode().strip()
+
+            git_bin = shutil.which("git") or "git"
+            commit = (
+                subprocess.check_output(  # noqa: S603 -- resolved git binary, fixed args
+                    [git_bin, "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+                )
+                .decode()
+                .strip()
+            )
             short = commit[:8]
         except Exception:
             commit, short = "unknown", "unknown"
@@ -184,7 +216,10 @@ def log_parameter_faq_artifact() -> None:
                     md_content, extensions=["tables", "fenced_code", "toc"]
                 )
             except Exception as ext_error:
-                logger.warning("markdown extensions failed trying basic conversion err={}", ext_error)
+                logger.warning(
+                    "markdown extensions failed trying basic conversion err={}",
+                    ext_error,
+                )
                 html_content = markdown.markdown(md_content)
 
             styled_html = f"""<!DOCTYPE html>

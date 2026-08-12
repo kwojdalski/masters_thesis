@@ -191,7 +191,7 @@ def load_trading_data(data_path: str) -> pd.DataFrame:
     logger.info("load data path={}", data_file)
     suffix = data_file.suffix.lower()
     if suffix in {".pkl", ".pickle"}:
-        df = pd.read_pickle(data_file)
+        df = pd.read_pickle(data_file)  # noqa: S301 -- local project data cache, not untrusted input
     elif suffix in {".parquet"}:
         df = pd.read_parquet(data_file)
     else:

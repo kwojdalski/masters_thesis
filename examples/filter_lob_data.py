@@ -7,14 +7,8 @@ This demonstrates how to use the LOB filtering utilities to:
 4. Analyze LOB change statistics
 """
 
-import sys
-from pathlib import Path
-
-# Add src to path
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
 import logging
+from pathlib import Path
 
 import pandas as pd
 
@@ -27,8 +21,7 @@ from trading_rl.data.lob_filters import (
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -37,7 +30,9 @@ def main():
     """Main example demonstrating LOB filtering."""
 
     # Path to your LOB data
-    data_path = "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
+    data_path = (
+        "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_us_hours.parquet"
+    )
 
     logger.info(f"Loading LOB data from: {data_path}")
 
@@ -46,7 +41,9 @@ def main():
     except FileNotFoundError:
         logger.error(f"Data file not found: {data_path}")
         logger.info("Using small sample file instead...")
-        data_path = "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_small.parquet"
+        data_path = (
+            "./data/raw/stocks/AAPL_2026-02-25_2026-02-27_raw_mbp-10_small.parquet"
+        )
         try:
             df = pd.read_parquet(data_path)
         except FileNotFoundError:
@@ -60,24 +57,24 @@ def main():
     # ==========================================================================
     # Example 1: Get LOB change statistics
     # ==========================================================================
-    logger.info("\n" + "="*80)
+    logger.info("\n" + "=" * 80)
     logger.info("Example 1: Analyzing LOB change patterns")
-    logger.info("="*80)
+    logger.info("=" * 80)
 
     stats = get_lob_change_stats(df, levels=5)
 
     logger.info("\nTop 10 most frequently changing columns:")
-    print(stats.sort_values('pct_changes', ascending=False).head(10))
+    print(stats.sort_values("pct_changes", ascending=False).head(10))
 
     logger.info("\nLeast frequently changing columns:")
-    print(stats.sort_values('pct_changes', ascending=True).head(10))
+    print(stats.sort_values("pct_changes", ascending=True).head(10))
 
     # ==========================================================================
     # Example 2: Filter unchanged LOB data
     # ==========================================================================
-    logger.info("\n" + "="*80)
+    logger.info("\n" + "=" * 80)
     logger.info("Example 2: Filtering unchanged LOB snapshots")
-    logger.info("="*80)
+    logger.info("=" * 80)
 
     df_changed = filter_unchanged_lob(df, levels=5)
 
@@ -88,16 +85,12 @@ def main():
     # ==========================================================================
     # Example 3: Validate LOB data
     # ==========================================================================
-    logger.info("\n" + "="*80)
+    logger.info("\n" + "=" * 80)
     logger.info("Example 3: Validating LOB data quality")
-    logger.info("="*80)
+    logger.info("=" * 80)
 
     df_valid = filter_valid_lob(
-        df,
-        levels=5,
-        min_spread_bps=0.5,
-        max_spread_bps=50.0,
-        min_size=0.0
+        df, levels=5, min_spread_bps=0.5, max_spread_bps=50.0, min_size=0.0
     )
 
     logger.info(f"\nOriginal data: {len(df):,} rows")
@@ -107,9 +100,9 @@ def main():
     # ==========================================================================
     # Example 4: Combined filtering (recommended)
     # ==========================================================================
-    logger.info("\n" + "="*80)
+    logger.info("\n" + "=" * 80)
     logger.info("Example 4: Combined active LOB filtering (recommended)")
-    logger.info("="*80)
+    logger.info("=" * 80)
 
     df_active = filter_active_lob(
         df,
@@ -127,11 +120,11 @@ def main():
     # ==========================================================================
     # Example 5: Save filtered data
     # ==========================================================================
-    logger.info("\n" + "="*80)
+    logger.info("\n" + "=" * 80)
     logger.info("Example 5: Saving filtered data")
-    logger.info("="*80)
+    logger.info("=" * 80)
 
-    output_path = data_path.replace('.parquet', '_active_l5.parquet')
+    output_path = data_path.replace(".parquet", "_active_l5.parquet")
     logger.info(f"Saving filtered data to: {output_path}")
 
     df_active.to_parquet(output_path)
@@ -143,14 +136,20 @@ def main():
     # ==========================================================================
     # Summary statistics
     # ==========================================================================
-    logger.info("\n" + "="*80)
+    logger.info("\n" + "=" * 80)
     logger.info("Summary")
-    logger.info("="*80)
+    logger.info("=" * 80)
 
     logger.info(f"\nOriginal dataset: {len(df):,} rows")
-    logger.info(f"Unchanged filter: {len(df_changed):,} rows ({100*len(df_changed)/len(df):.1f}%)")
-    logger.info(f"Validation filter: {len(df_valid):,} rows ({100*len(df_valid)/len(df):.1f}%)")
-    logger.info(f"Combined filter: {len(df_active):,} rows ({100*len(df_active)/len(df):.1f}%)")
+    logger.info(
+        f"Unchanged filter: {len(df_changed):,} rows ({100*len(df_changed)/len(df):.1f}%)"
+    )
+    logger.info(
+        f"Validation filter: {len(df_valid):,} rows ({100*len(df_valid)/len(df):.1f}%)"
+    )
+    logger.info(
+        f"Combined filter: {len(df_active):,} rows ({100*len(df_active)/len(df):.1f}%)"
+    )
 
     logger.info("\nRecommendation: Use 'filter_active_lob()' for most use cases")
     logger.info("This removes both invalid and unchanged data in one step")

@@ -67,7 +67,9 @@ def _build_target(
     raise ValueError(f"Unknown target_type '{target_type}'.")
 
 
-def _build_sharpe_proxy_target(df: pd.DataFrame, horizon: int, vol_window: int) -> pd.Series:
+def _build_sharpe_proxy_target(
+    df: pd.DataFrame, horizon: int, vol_window: int
+) -> pd.Series:
     """Build a Sharpe-proxy target: forward return scaled by recent realised vol.
 
     Dividing by rolling vol rewards features that predict good risk-adjusted
@@ -189,7 +191,9 @@ def _build_score_table(
             val_target = _build_target(val_raw, h, target_type, vol_window)
 
             # Align feature with target (drop NaNs from vol warm-up + forward shift)
-            train_aligned = pd.concat([train_features[feat], train_target], axis=1).dropna()
+            train_aligned = pd.concat(
+                [train_features[feat], train_target], axis=1
+            ).dropna()
             val_aligned = pd.concat([val_features[feat], val_target], axis=1).dropna()
 
             if len(train_aligned) < 10:
@@ -199,7 +203,9 @@ def _build_score_table(
                 logger.warning(
                     "Insufficient val data for feature={} horizon={} ({} rows); "
                     "val_mean_ic set to NaN",
-                    feat, h, len(val_aligned),
+                    feat,
+                    h,
+                    len(val_aligned),
                 )
                 stats = _score_feature_at_horizon(
                     train_aligned.iloc[:, 0],
@@ -233,7 +239,9 @@ def _build_score_table(
                 "ic_tstat": best.get("ic_tstat", 0.0),
                 "ic_positive_ratio": best.get("ic_positive_ratio", 0.0),
                 "val_mean_ic": best.get("val_mean_ic", 0.0),
-                "ic_stability": abs(best.get("mean_ic", 0.0) - best.get("val_mean_ic", 0.0)),
+                "ic_stability": abs(
+                    best.get("mean_ic", 0.0) - best.get("val_mean_ic", 0.0)
+                ),
             }
         )
 
@@ -387,28 +395,38 @@ def _score_single_symbol(
         )
         _feat_cfg_path = config.data.feature_config
         _cfg_sig = (
-            hashlib.md5(Path(_feat_cfg_path).read_bytes()).hexdigest()[:12]
+            hashlib.md5(
+                Path(_feat_cfg_path).read_bytes(), usedforsecurity=False
+            ).hexdigest()[:12]
             if _feat_cfg_path and Path(_feat_cfg_path).exists()
             else "default"
         )
         _file_mtime = Path(data_path).stat().st_mtime_ns
         cache_key = hashlib.md5(
-            f"{Path(data_path).name}|{_file_mtime}|{train_size_cfg}|{validation_size_resolved}|{_cfg_sig}".encode()
+            f"{Path(data_path).name}|{_file_mtime}|{train_size_cfg}|{validation_size_resolved}|{_cfg_sig}".encode(),
+            usedforsecurity=False,
         ).hexdigest()
         cache_entry = Path(config.data.feature_cache_dir) / f"fr_{cache_key}"
         _fr_files = ("train_features", "val_features", "train_price", "val_price")
         if all((cache_entry / f"{f}.parquet").exists() for f in _fr_files):
-            logger.info("feature research cache hit symbol={} key={}", symbol, cache_key[:8])
+            logger.info(
+                "feature research cache hit symbol={} key={}", symbol, cache_key[:8]
+            )
             train_features = pd.read_parquet(cache_entry / "train_features.parquet")
             val_features = pd.read_parquet(cache_entry / "val_features.parquet")
             train_price_df = pd.read_parquet(cache_entry / "train_price.parquet")
             val_price_df = pd.read_parquet(cache_entry / "val_price.parquet")
             feature_configs = [
                 cfg.__dict__.copy()
-                for cfg in FeaturePipeline.from_yaml(config.data.feature_config).feature_configs
+                for cfg in FeaturePipeline.from_yaml(
+                    config.data.feature_config
+                ).feature_configs
             ]
             scores = _build_score_table(
-                train_features, val_features, train_price_df, val_price_df,
+                train_features,
+                val_features,
+                train_price_df,
+                val_price_df,
                 horizons=config.research.horizons,
                 vol_window=config.research.vol_window,
                 window_size=config.research.window_size,
@@ -420,7 +438,9 @@ def _score_single_symbol(
                     n=_VAL_POOL_CAP, random_state=0
                 ).reset_index(drop=True)
             return scores, val_features, feature_configs
-        logger.info("feature research cache miss symbol={} key={}", symbol, cache_key[:8])
+        logger.info(
+            "feature research cache miss symbol={} key={}", symbol, cache_key[:8]
+        )
     # --- end cache lookup ------------------------------------------------
 
     raw_df = load_trading_data(data_path).dropna()
@@ -433,7 +453,9 @@ def _score_single_symbol(
         logger.info(
             "train_size exceeds file length for '{}' — using proportional split "
             "train={} (80%) val={} (10%)",
-            symbol, train_size, int(len(raw_df) * 0.1),
+            symbol,
+            train_size,
+            int(len(raw_df) * 0.1),
         )
 
     remaining = len(raw_df) - train_size
@@ -477,10 +499,15 @@ def _score_single_symbol(
         val_features.to_parquet(cache_entry / "val_features.parquet")
         train_price_df.to_parquet(cache_entry / "train_price.parquet")
         val_price_df.to_parquet(cache_entry / "val_price.parquet")
-        logger.info("feature research cache write symbol={} key={}", symbol, cache_key[:8])
+        logger.info(
+            "feature research cache write symbol={} key={}", symbol, cache_key[:8]
+        )
 
     scores = _build_score_table(
-        train_features, val_features, train_price_df, val_price_df,
+        train_features,
+        val_features,
+        train_price_df,
+        val_price_df,
         horizons=config.research.horizons,
         vol_window=config.research.vol_window,
         window_size=config.research.window_size,
@@ -489,9 +516,9 @@ def _score_single_symbol(
     del train_features, train_price_df, val_price_df
 
     if len(val_features) > _VAL_POOL_CAP:
-        val_features = val_features.sample(
-            n=_VAL_POOL_CAP, random_state=0
-        ).reset_index(drop=True)
+        val_features = val_features.sample(n=_VAL_POOL_CAP, random_state=0).reset_index(
+            drop=True
+        )
 
     return scores, val_features, feature_configs
 
@@ -516,10 +543,7 @@ def _aggregate_symbol_scores(per_symbol_scores: list[pd.DataFrame]) -> pd.DataFr
         )
         .reset_index()
     )
-    return (
-        agg.sort_values("icir", ascending=False, key=abs)
-        .reset_index(drop=True)
-    )
+    return agg.sort_values("icir", ascending=False, key=abs).reset_index(drop=True)
 
 
 def run_feature_research(

@@ -9,6 +9,7 @@ display it in debug mode.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -20,8 +21,9 @@ def _git_commit() -> str:
     """Return HEAD commit hash, cached for the process lifetime."""
     try:
         repo_root = Path(__file__).resolve().parents[3]
-        r = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
+        git_bin = shutil.which("git") or "git"
+        r = subprocess.run(  # noqa: S603 -- resolved git binary, fixed args
+            [git_bin, "rev-parse", "HEAD"],
             capture_output=True,
             text=True,
             timeout=5,

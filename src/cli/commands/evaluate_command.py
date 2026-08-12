@@ -118,31 +118,40 @@ class EvaluateCommand(BaseCommand):
         _timeframe_ppy = periods_per_year_from_timeframe(timeframe)
 
         from pathlib import Path as _Path
+
         if getattr(config.data, "data_paths", None):
-            _train_symbols = sorted({_Path(p).parent.name for p in config.data.data_paths})
+            _train_symbols = sorted(
+                {_Path(p).parent.name for p in config.data.data_paths}
+            )
         elif getattr(config.data, "symbols", None):
             _train_symbols = list(config.data.symbols)
         else:
             _train_symbols = []
         if getattr(config.data, "val_data_paths", None):
-            _val_symbols = sorted({_Path(p).parent.name for p in config.data.val_data_paths})
+            _val_symbols = sorted(
+                {_Path(p).parent.name for p in config.data.val_data_paths}
+            )
         else:
             _val_symbols = _train_symbols
 
         if params.data_path is not None:
             if not params.data_path.exists():
                 raise FileNotFoundError(f"--data-path not found: {params.data_path}")
-            self.console.print(f"[dim]Preparing arbitrary data: {params.data_path}[/dim]")
-            arbitrary_df = self._prepare_arbitrary_df(params.data_path, config, checkpoint_path)
+            self.console.print(
+                f"[dim]Preparing arbitrary data: {params.data_path}[/dim]"
+            )
+            arbitrary_df = self._prepare_arbitrary_df(
+                params.data_path, config, checkpoint_path
+            )
             split_name = params.data_path.stem
             splits_to_eval = [split_name]
             split_dfs = {split_name: arbitrary_df}
         else:
             val_data_paths = getattr(config.data, "val_data_paths", None)
-            wants_val_or_test = (
-                params.split == "all"
-                or params.split in {SplitName.VAL, SplitName.TEST}
-            )
+            wants_val_or_test = params.split == "all" or params.split in {
+                SplitName.VAL,
+                SplitName.TEST,
+            }
             if val_data_paths and wants_val_or_test and params.per_symbol:
                 # Per-symbol eval: each symbol evaluated independently to avoid
                 # cross-symbol price artefacts; results go to per_symbol/{SYMBOL}/.
@@ -180,7 +189,9 @@ class EvaluateCommand(BaseCommand):
 
         all_results: dict[str, Any] = {}
 
-        mlflow_ctx = self._start_mlflow_run(config, meta, checkpoint_path, splits_to_eval, params)
+        mlflow_ctx = self._start_mlflow_run(
+            config, meta, checkpoint_path, splits_to_eval, params
+        )
 
         with mlflow_ctx as mlflow_run_id:
             for split in splits_to_eval:
@@ -215,8 +226,12 @@ class EvaluateCommand(BaseCommand):
                     df=split_ctx.df,
                     output_dir=split_out_dir / ArtifactPaths.EVAL_DATA,
                 )
-                self.console.print(f"[dim]  Observation sample parquet → {sample_path}[/dim]")
-                self.console.print(f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]")
+                self.console.print(
+                    f"[dim]  Observation sample parquet → {sample_path}[/dim]"
+                )
+                self.console.print(
+                    f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]"
+                )
                 eval_config = StrategyEvaluatorConfig(
                     reward_type=reward_type,
                     backend=backend,
@@ -225,14 +240,27 @@ class EvaluateCommand(BaseCommand):
                     enable_plots="plots" in components,
                     enable_metrics="metrics" in components,
                     periods_per_year=periods_py,
-                    eval_plots=tuple(getattr(config.evaluation, "eval_plots", ("rewards", "positions", "portfolio_value"))),
-                    training_steps=int(meta["total_count"]) if meta.get("total_count") is not None else None,
-                    training_episodes=int(meta["total_episodes"]) if meta.get("total_episodes") is not None else None,
-                    benchmarks=benchmarks_from_config(config.benchmarks) if getattr(config, "benchmarks", None) else None,
+                    eval_plots=tuple(
+                        getattr(
+                            config.evaluation,
+                            "eval_plots",
+                            ("rewards", "positions", "portfolio_value"),
+                        )
+                    ),
+                    training_steps=int(meta["total_count"])
+                    if meta.get("total_count") is not None
+                    else None,
+                    training_episodes=int(meta["total_episodes"])
+                    if meta.get("total_episodes") is not None
+                    else None,
+                    benchmarks=benchmarks_from_config(config.benchmarks)
+                    if getattr(config, "benchmarks", None)
+                    else None,
                 )
 
                 if is_random:
                     from torchrl.envs.utils import RandomPolicy
+
                     split_policy = RandomPolicy(split_ctx.env.action_spec)
                 else:
                     split_policy = policy
@@ -258,10 +286,17 @@ class EvaluateCommand(BaseCommand):
                 if "metrics" in components and result.metrics:
                     self.console.print("[dim]  Computing metrics...[/dim]")
                     split_output["metrics"] = result.metrics
-                    _split_symbols = _train_symbols if str(split).startswith("train") else _val_symbols
-                    self._print_metrics_table(split, result.metrics, split_df=split_df, symbols=_split_symbols)
+                    _split_symbols = (
+                        _train_symbols
+                        if str(split).startswith("train")
+                        else _val_symbols
+                    )
+                    self._print_metrics_table(
+                        split, result.metrics, split_df=split_df, symbols=_split_symbols
+                    )
                     if mlflow_run_id:
                         from trading_rl.callbacks.artifacts import log_evaluation_report
+
                         log_evaluation_report(result.metrics, split_prefix=split)
 
                 bench_returns_map: dict[str, Any] = {}
@@ -278,12 +313,19 @@ class EvaluateCommand(BaseCommand):
                             from trading_rl.evaluation.statistical_benchmarks import (
                                 compute_random_returns_from_prices,
                             )
-                            self.console.print("[dim]  Computing random baseline...[/dim]")
-                            _price_col = getattr(config.env, "price_column", None) or "close"
+
+                            self.console.print(
+                                "[dim]  Computing random baseline...[/dim]"
+                            )
+                            _price_col = (
+                                getattr(config.env, "price_column", None) or "close"
+                            )
                             random_trials = compute_random_returns_from_prices(
                                 split_df[_price_col],
                                 split_ctx.max_steps,
-                                n_trials=getattr(config.benchmarks, "n_random_trials", 10),
+                                n_trials=getattr(
+                                    config.benchmarks, "n_random_trials", 10
+                                ),
                                 seed=getattr(config.benchmarks, "random_seed", None),
                             )
                             if random_trials:
@@ -299,12 +341,16 @@ class EvaluateCommand(BaseCommand):
                                 f"[dim yellow]  Random baseline failed: {_rand_err}[/dim yellow]"
                             )
 
-                    self.console.print(f"[dim]  {len(benchmarks)} benchmark(s) ready[/dim]")
+                    self.console.print(
+                        f"[dim]  {len(benchmarks)} benchmark(s) ready[/dim]"
+                    )
 
                     if "benchmarks" in components and benchmarks:
                         bench_out: dict[str, Any] = {}
                         for spec in benchmarks:
-                            self.console.print(f"[dim]  Benchmark metrics: {spec.name}...[/dim]")
+                            self.console.print(
+                                f"[dim]  Benchmark metrics: {spec.name}...[/dim]"
+                            )
                             bench_returns = spec.compute_returns(split_ctx.max_steps)
                             bench_returns_map[spec.name] = bench_returns
                             n = min(len(result.simple_returns), len(bench_returns))
@@ -324,40 +370,64 @@ class EvaluateCommand(BaseCommand):
                                 periods_per_year=periods_py,
                                 risk_free_rate_annual=0.0,
                             )
-                            _enabled = getattr(getattr(config, "metrics", None), "enabled_set", None)
+                            _enabled = getattr(
+                                getattr(config, "metrics", None), "enabled_set", None
+                            )
                             bench_out[spec.name] = {
-                                "benchmark_metrics": bench_own.to_filtered_dict(_enabled),
+                                "benchmark_metrics": bench_own.to_filtered_dict(
+                                    _enabled
+                                ),
                                 "relative_metrics": {
                                     k: getattr(bench_rel, k)
-                                    for k in ("alpha", "beta", "information_ratio", "tracking_error")
+                                    for k in (
+                                        "alpha",
+                                        "beta",
+                                        "information_ratio",
+                                        "tracking_error",
+                                    )
                                 },
                             }
                         split_output["benchmarks"] = bench_out
-                        _enabled = getattr(getattr(config, "metrics", None), "enabled_set", None)
-                        strategy_dict = result.metrics.to_filtered_dict(_enabled) if result.metrics else None
+                        _enabled = getattr(
+                            getattr(config, "metrics", None), "enabled_set", None
+                        )
+                        strategy_dict = (
+                            result.metrics.to_filtered_dict(_enabled)
+                            if result.metrics
+                            else None
+                        )
                         self._print_benchmark_table(split, bench_out, strategy_dict)
                         json_p, png_p = save_benchmark_table_artifact(
                             split, split_df, bench_out, strategy_dict, split_out_dir
                         )
-                        self.console.print(f"[dim]  Benchmark table JSON → {json_p}[/dim]")
-                        self.console.print(f"[dim]  Benchmark table PNG  → {png_p}[/dim]")
+                        self.console.print(
+                            f"[dim]  Benchmark table JSON → {json_p}[/dim]"
+                        )
+                        self.console.print(
+                            f"[dim]  Benchmark table PNG  → {png_p}[/dim]"
+                        )
                         if mlflow_run_id:
                             self._log_benchmarks_to_mlflow(bench_out, split)
 
-                    if "stats" in components and getattr(config, "statistical_testing", None):
+                    if "stats" in components and getattr(
+                        config, "statistical_testing", None
+                    ):
                         stat_results = run_all_statistical_tests(
                             strategy_returns=result.simple_returns,
                             benchmarks=benchmarks,
                             max_steps=split_ctx.max_steps,
                             config=config.statistical_testing,
                             periods_per_year=periods_py,
-                            status_fn=lambda msg: self.console.print(f"[dim]  {msg}[/dim]"),
+                            status_fn=lambda msg: self.console.print(
+                                f"[dim]  {msg}[/dim]"
+                            ),
                         )
                         split_output["statistical_tests"] = stat_results
                         if mlflow_run_id:
                             from trading_rl.callbacks.artifacts import (
                                 log_statistical_tests,
                             )
+
                             log_statistical_tests(stat_results, split_prefix=split)
 
                 if params.save_rollout:
@@ -371,9 +441,14 @@ class EvaluateCommand(BaseCommand):
                     self._save_plots(result.plots, split, split_out_dir)
                     if mlflow_run_id:
                         from trading_rl.callbacks.artifacts import log_evaluation_plots
+
                         _rollout = result.plots.get("_rollout_plot_data")
                         _equity = result.plots.get("_equity_plot_data")
-                        _plot_data = {**(_rollout or {}), **(_equity or {})} if (_rollout or _equity) else None
+                        _plot_data = (
+                            {**(_rollout or {}), **(_equity or {})}
+                            if (_rollout or _equity)
+                            else None
+                        )
                         log_evaluation_plots(
                             reward_plot=result.plots.get("reward_plot"),
                             action_plot=result.plots.get("action_plot"),
@@ -393,6 +468,7 @@ class EvaluateCommand(BaseCommand):
 
             if mlflow_run_id:
                 import mlflow
+
                 mlflow.log_artifact(str(out_json), "evaluation_summary")
                 run_url = self._mlflow_run_url(params.tracking_uri, mlflow_run_id)
                 self.console.print(f"[green]MLflow run: {run_url}[/green]")
@@ -401,7 +477,9 @@ class EvaluateCommand(BaseCommand):
     # Arbitrary data preparation
     # ------------------------------------------------------------------
 
-    def _prepare_arbitrary_df(self, data_path: Path, config: Any, checkpoint_path: Path | None = None) -> pd.DataFrame:
+    def _prepare_arbitrary_df(
+        self, data_path: Path, config: Any, checkpoint_path: Path | None = None
+    ) -> pd.DataFrame:
         """Load a raw parquet file, apply the scenario's feature pipeline, and return a prepared DataFrame.
 
         Results are cached under ``config.data.feature_cache_dir`` keyed by the file's
@@ -438,7 +516,8 @@ class EvaluateCommand(BaseCommand):
             if checkpoint_path is not None and checkpoint_path.exists():
                 ckpt_id = str(checkpoint_path.stat().st_mtime_ns)
             sig = hashlib.md5(
-                f"{data_path}:{data_path.stat().st_mtime_ns}:{filter_lob_levels}:{feature_config}:{mode}:{backend}:{ckpt_id}".encode()
+                f"{data_path}:{data_path.stat().st_mtime_ns}:{filter_lob_levels}:{feature_config}:{mode}:{backend}:{ckpt_id}".encode(),
+                usedforsecurity=False,
             ).hexdigest()
             cache_path = Path(feature_cache_dir) / f"eval_{sig}.parquet"
 
@@ -448,13 +527,18 @@ class EvaluateCommand(BaseCommand):
 
         # --- Compute from scratch ---
         df = load_trading_data(str(data_path)).dropna()
-        self.console.print(f"[dim]  Loaded {len(df):,} rows from {data_path.name}[/dim]")
+        self.console.print(
+            f"[dim]  Loaded {len(df):,} rows from {data_path.name}[/dim]"
+        )
 
         if filter_lob_levels is not None:
             from trading_rl.data.lob_filters import filter_unchanged_lob
+
             before = len(df)
             df = filter_unchanged_lob(df, levels=filter_lob_levels)
-            self.console.print(f"[dim]  LOB filter: {before:,} → {len(df):,} rows[/dim]")
+            self.console.print(
+                f"[dim]  LOB filter: {before:,} → {len(df):,} rows[/dim]"
+            )
 
         if feature_config:
             from trading_rl.data.loading import build_feature_pipeline_with_state
@@ -480,7 +564,9 @@ class EvaluateCommand(BaseCommand):
 
             features = pipeline.transform(df)
             df = pd.concat([df, features], axis=1)
-            self.console.print(f"[dim]  Features computed: {len(features.columns)} columns[/dim]")
+            self.console.print(
+                f"[dim]  Features computed: {len(features.columns)} columns[/dim]"
+            )
 
         if mode == EnvMode.HFT:
             df = _derive_close_hft_single(df, stem, self.logger)
@@ -517,9 +603,13 @@ class EvaluateCommand(BaseCommand):
 
         from trading_rl.constants import SplitName
 
-        prepared_dir_str = getattr(getattr(config, "data", None), "prepared_data_dir", None)
+        prepared_dir_str = getattr(
+            getattr(config, "data", None), "prepared_data_dir", None
+        )
         prepared_dir = Path(prepared_dir_str) if prepared_dir_str else None
-        validation_size = getattr(getattr(config, "data", None), "validation_size", None)
+        validation_size = getattr(
+            getattr(config, "data", None), "validation_size", None
+        )
         test_size = getattr(getattr(config, "data", None), "test_size", None)
 
         requested: set[str] = (
@@ -535,8 +625,16 @@ class EvaluateCommand(BaseCommand):
             symbol = stem.split("_")[0]
 
             # Fast path: use already-prepared per-symbol parquets from training.
-            val_prepared = prepared_dir / f"val_{symbol}_prepared.parquet" if prepared_dir else None
-            test_prepared = prepared_dir / f"test_{symbol}_prepared.parquet" if prepared_dir else None
+            val_prepared = (
+                prepared_dir / f"val_{symbol}_prepared.parquet"
+                if prepared_dir
+                else None
+            )
+            test_prepared = (
+                prepared_dir / f"test_{symbol}_prepared.parquet"
+                if prepared_dir
+                else None
+            )
 
             if (
                 val_prepared is not None
@@ -562,7 +660,9 @@ class EvaluateCommand(BaseCommand):
                     split_dfs[key] = df_test
                     splits_to_eval.append(key)
             else:
-                self.console.print(f"[dim]  {symbol}: computing features ({Path(val_path).name})[/dim]")
+                self.console.print(
+                    f"[dim]  {symbol}: computing features ({Path(val_path).name})[/dim]"
+                )
                 df = self._prepare_arbitrary_df(Path(val_path), config, checkpoint_path)
                 mid = len(df) // 2
                 if SplitName.VAL in requested:
@@ -622,9 +722,7 @@ class EvaluateCommand(BaseCommand):
             self.logger.warning("mlflow unavailable skip run creation err={}", exc)
             return _noop_context()
 
-    def _log_benchmarks_to_mlflow(
-        self, bench_out: dict[str, Any], split: str
-    ) -> None:
+    def _log_benchmarks_to_mlflow(self, bench_out: dict[str, Any], split: str) -> None:
         try:
             import mlflow
             import numpy as np
@@ -658,7 +756,7 @@ class EvaluateCommand(BaseCommand):
     @staticmethod
     def _mlflow_run_url(tracking_uri: str, run_id: str) -> str:
         if tracking_uri.startswith("sqlite:///"):
-            db_path = tracking_uri[len("sqlite:///"):]
+            db_path = tracking_uri[len("sqlite:///") :]
             abs_db = Path(db_path).resolve()
             return f"mlflow ui --backend-store-uri sqlite:///{abs_db}  →  run {run_id}"
         return f"{tracking_uri}  →  run {run_id}"
@@ -676,7 +774,6 @@ class EvaluateCommand(BaseCommand):
         )
         self.console.print(f"[dim]Config: {params.config_file}[/dim]")
         return config
-
 
     def _resolve_checkpoint(self, config: Any, params: EvaluateParams) -> Path:
         if params.checkpoint is not None:
@@ -709,7 +806,10 @@ class EvaluateCommand(BaseCommand):
         self.display.print_metrics_table(split, metrics, split_df, symbols)
 
     def _print_benchmark_table(
-        self, split: str, bench_out: dict[str, Any], strategy_metrics: dict[str, Any] | None = None
+        self,
+        split: str,
+        bench_out: dict[str, Any],
+        strategy_metrics: dict[str, Any] | None = None,
     ) -> None:
         self.display.print_benchmark_table(split, bench_out, strategy_metrics)
 
@@ -751,7 +851,9 @@ class EvaluateCommand(BaseCommand):
 
         trade_df = extract_trade_log(env)
         if trade_df is None:
-            self.console.print(f"[yellow]Trade log unavailable for {split} (no broker found)[/yellow]")
+            self.console.print(
+                f"[yellow]Trade log unavailable for {split} (no broker found)[/yellow]"
+            )
             return
         if trade_df.empty:
             self.console.print(f"[dim]  No trades recorded for {split}[/dim]")
@@ -760,11 +862,11 @@ class EvaluateCommand(BaseCommand):
         out_path = output_dir / f"{split}_trades.csv"
         trade_df.to_csv(out_path, index=False)
         write_asset_meta(out_path, generator="cli/commands/evaluate_command.py")
-        self.console.print(f"[dim]  Trade log ({len(trade_df):,} trades) → {out_path}[/dim]")
+        self.console.print(
+            f"[dim]  Trade log ({len(trade_df):,} trades) → {out_path}[/dim]"
+        )
 
-    def _save_plots(
-        self, plots: dict[str, Any], split: str, output_dir: Path
-    ) -> None:
+    def _save_plots(self, plots: dict[str, Any], split: str, output_dir: Path) -> None:
         for name, fig in plots.items():
             if fig is None or name.startswith("_"):
                 continue
@@ -783,14 +885,19 @@ class EvaluateCommand(BaseCommand):
                 data_path = output_dir / f"{split}_{name}.csv"
                 try:
                     fig.data.to_csv(data_path, index=False)
-                    write_asset_meta(data_path, generator="cli/commands/evaluate_command.py")
+                    write_asset_meta(
+                        data_path, generator="cli/commands/evaluate_command.py"
+                    )
                 except Exception as exc:
-                    self.logger.warning("save plot data failed name={} err={}", name, exc)
+                    self.logger.warning(
+                        "save plot data failed name={} err={}", name, exc
+                    )
 
 
 # ------------------------------------------------------------------
 # MLflow run context wrapper
 # ------------------------------------------------------------------
+
 
 class _MlflowRunContext:
     """Wraps mlflow.start_run(), logs params on enter, returns run_id."""
@@ -804,13 +911,16 @@ class _MlflowRunContext:
 
     def __enter__(self) -> str | None:
         import mlflow
+
         active = self._ctx.__enter__()
         self._run_id = active.info.run_id
 
         mlflow.log_param("eval_algorithm", self._meta.get("algorithm"))
         mlflow.log_param("eval_n_obs", self._meta.get("n_obs"))
         mlflow.log_param("eval_n_act", self._meta.get("n_act"))
-        mlflow.log_param("eval_actor_hidden_dims", str(self._meta.get("actor_hidden_dims")))
+        mlflow.log_param(
+            "eval_actor_hidden_dims", str(self._meta.get("actor_hidden_dims"))
+        )
         mlflow.log_param("eval_checkpoint", str(self._checkpoint_path))
         mlflow.log_param("eval_splits", ",".join(self._splits))
 
@@ -835,6 +945,7 @@ def _noop_context() -> _NoopContext:
 # ------------------------------------------------------------------
 # JSON serialization helper
 # ------------------------------------------------------------------
+
 
 def _json_default(obj: Any) -> Any:
     import numpy as np

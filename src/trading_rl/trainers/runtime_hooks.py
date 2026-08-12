@@ -31,7 +31,7 @@ class PeriodicEvaluationHook:
     config: Any
     algorithm: str
     last_step: int = 0
-    effective_interval: int = 0             # current eval cadence (may be shortened in dense mode)
+    effective_interval: int = 0  # current eval cadence (may be shortened in dense mode)
     dense_reward_history: dict = field(default_factory=dict)  # split → [(step, reward)]
 
 
@@ -90,7 +90,9 @@ class TrainerRuntimeHooks:
         split_names = [s.split for s in splits]
         logger.info(
             "periodic evaluation enabled interval={} splits={} dense_eval={}",
-            eval_interval, split_names, temp_eval_cfg.dense_enabled,
+            eval_interval,
+            split_names,
+            temp_eval_cfg.dense_enabled,
         )
 
     def configure_periodic_explainability(
@@ -106,11 +108,15 @@ class TrainerRuntimeHooks:
             config.explainability, "temp_explainability_interval", None
         )
         if explainability_interval is None or explainability_interval <= 0:
-            logger.info("periodic explainability disabled (temp_explainability_interval not set)")
+            logger.info(
+                "periodic explainability disabled (temp_explainability_interval not set)"
+            )
             self._explainability = None
             return
         if not config.explainability.enabled:
-            logger.info("periodic explainability disabled (explainability.enabled is False)")
+            logger.info(
+                "periodic explainability disabled (explainability.enabled is False)"
+            )
             self._explainability = None
             return
 
@@ -155,7 +161,9 @@ class TrainerRuntimeHooks:
         self._run_temporary_explainability(step_number, hook)
         hook.last_step = step_number
 
-    def _log_price_plot_once(self, split_ctx: SplitEvalContext, hook: PeriodicEvaluationHook) -> None:
+    def _log_price_plot_once(
+        self, split_ctx: SplitEvalContext, hook: PeriodicEvaluationHook
+    ) -> None:
         """Save the underlying close price plot to evaluation_plots_temp/{split}/ once."""
         import os
         import tempfile
@@ -176,22 +184,37 @@ class TrainerRuntimeHooks:
                 save_plot as _save_plot,
             )
 
-            price_column = getattr(getattr(hook.config, "env", None), "price_column", None) or "close"
+            price_column = (
+                getattr(getattr(hook.config, "env", None), "price_column", None)
+                or "close"
+            )
             plot = create_price_plot(split_ctx.df, price_column=price_column)
             if plot is None:
                 logger.warning(
                     "price plot: column {} not found in split={} df (columns={})",
-                    price_column, split_ctx.split, list(split_ctx.df.columns)[:10],
+                    price_column,
+                    split_ctx.split,
+                    list(split_ctx.df.columns)[:10],
                 )
                 return
             artifact_dir = f"{ArtifactPaths.EVAL_PLOTS_TEMP}/{split_ctx.split}"
             with tempfile.TemporaryDirectory() as tmpdir:
                 path = os.path.join(tmpdir, "close_price.png")
-                _save_plot(plot, path, width=FIGURE_WIDTH * 2, height=FIGURE_HEIGHT * 1.5, dpi=PLOT_DPI)
+                _save_plot(
+                    plot,
+                    path,
+                    width=FIGURE_WIDTH * 2,
+                    height=FIGURE_HEIGHT * 1.5,
+                    dpi=PLOT_DPI,
+                )
                 mlflow.log_artifact(path, artifact_dir)
-            logger.info("price plot logged split={} column={}", split_ctx.split, price_column)
+            logger.info(
+                "price plot logged split={} column={}", split_ctx.split, price_column
+            )
         except Exception:
-            logger.opt(exception=True).warning("price plot failed split={}", split_ctx.split)
+            logger.opt(exception=True).warning(
+                "price plot failed split={}", split_ctx.split
+            )
 
     def _run_temporary_evaluation(
         self,
@@ -201,18 +224,22 @@ class TrainerRuntimeHooks:
         """Run evaluation during training and log artifacts without affecting control flow."""
         import math
         import time
+
         _t_total = time.monotonic()
         split_names = [s.split for s in hook.splits]
         logger.info(
             "run temporary evaluation step={} splits={}",
-            step_number, split_names,
+            step_number,
+            split_names,
         )
 
         for split_ctx in hook.splits:
             _t_split = time.monotonic()
             logger.info(
                 "temp eval split={} max_steps={} df_rows={}",
-                split_ctx.split, split_ctx.max_steps, len(split_ctx.df),
+                split_ctx.split,
+                split_ctx.max_steps,
+                len(split_ctx.df),
             )
             try:
                 _t = time.monotonic()
@@ -235,7 +262,8 @@ class TrainerRuntimeHooks:
                 last_eval_result = getattr(eval_output, "result", None)
                 logger.info(
                     "temp eval: trainer.evaluate split={} elapsed_s={:.3f}",
-                    split_ctx.split, time.monotonic() - _t,
+                    split_ctx.split,
+                    time.monotonic() - _t,
                 )
 
                 # Compute full MetricReport from the completed rollout
@@ -247,6 +275,7 @@ class TrainerRuntimeHooks:
                         _evaluation_rollout,
                         _evaluation_strategy_returns,
                     )
+
                     metric_report = build_evaluation_report_for_trainer(
                         trainer=self.trainer,
                         df_prices=split_ctx.df,
@@ -259,7 +288,9 @@ class TrainerRuntimeHooks:
                         ),
                     )
                 except Exception:
-                    logger.opt(exception=True).warning("temp eval: MetricReport failed split={}", split_ctx.split)
+                    logger.opt(exception=True).warning(
+                        "temp eval: MetricReport failed split={}", split_ctx.split
+                    )
                     metric_report = None
 
                 if metric_report is not None:
@@ -286,6 +317,7 @@ class TrainerRuntimeHooks:
                 _staged_prog_entry: tuple | None = None
                 try:
                     from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
+
                     _eval_result = last_eval_result
                     if _eval_result is not None:
                         _rs = getattr(_eval_result, "return_series", None)
@@ -297,12 +329,14 @@ class TrainerRuntimeHooks:
                             _staged_prog_entry = (step_number, _rs)
                             logger.debug(
                                 "temp eval: progression entry staged split={} step={}",
-                                split_ctx.split, step_number,
+                                split_ctx.split,
+                                step_number,
                             )
                 except Exception:
                     logger.warning(
                         "temp eval: progression history collect failed split={}",
-                        split_ctx.split, exc_info=True,
+                        split_ctx.split,
+                        exc_info=True,
                     )
 
                 if mlflow.active_run():
@@ -313,7 +347,9 @@ class TrainerRuntimeHooks:
                         self._log_price_plot_once(split_ctx, hook)
                         self._price_plots_logged.add(split_ctx.split)
 
-                    artifact_prefix = ArtifactPaths.eval_plots_temp(split_ctx.split, step_number)
+                    artifact_prefix = ArtifactPaths.eval_plots_temp(
+                        split_ctx.split, step_number
+                    )
                     _t = time.monotonic()
                     _plot_data = None
                     _last_result = last_eval_result
@@ -335,13 +371,14 @@ class TrainerRuntimeHooks:
                     )
                     logger.trace(
                         "temp eval: mlflow upload split={} elapsed_s={:.3f}",
-                        split_ctx.split, time.monotonic() - _t,
+                        split_ctx.split,
+                        time.monotonic() - _t,
                     )
                     # Upload equity progression plot (all committed checkpoints
                     # plus the staged entry for this step, without mutating history).
-                    _prog_history = self._progression_history.get(split_ctx.split, []) + (
-                        [_staged_prog_entry] if _staged_prog_entry is not None else []
-                    )
+                    _prog_history = self._progression_history.get(
+                        split_ctx.split, []
+                    ) + ([_staged_prog_entry] if _staged_prog_entry is not None else [])
                     if len(_prog_history) >= 2:
                         try:
                             import os
@@ -358,12 +395,14 @@ class TrainerRuntimeHooks:
                             from trading_rl.evaluation.thesis_theme import (
                                 save_plot as _save_plot,
                             )
+
                             _prog_plot = create_equity_progression_plot(_prog_history)
                             if _prog_plot is not None:
                                 with tempfile.TemporaryDirectory() as _tmpdir:
                                     _tmp_path = os.path.join(_tmpdir, "progression.png")
                                     _save_plot(
-                                        _prog_plot, _tmp_path,
+                                        _prog_plot,
+                                        _tmp_path,
                                         width=FIGURE_WIDTH * 1.5,
                                         height=FIGURE_HEIGHT * 1.5,
                                         dpi=PLOT_DPI,
@@ -374,12 +413,14 @@ class TrainerRuntimeHooks:
                                     )
                                 logger.trace(
                                     "temp eval: progression plot uploaded split={} checkpoints={}",
-                                    split_ctx.split, len(_prog_history),
+                                    split_ctx.split,
+                                    len(_prog_history),
                                 )
                         except Exception:
                             logger.error(
                                 "temp eval: progression plot failed split={}",
-                                split_ctx.split, exc_info=True,
+                                split_ctx.split,
+                                exc_info=True,
                             )
 
                     mlflow.log_metric(
@@ -403,6 +444,7 @@ class TrainerRuntimeHooks:
                             from trading_rl.evaluation.plots import (
                                 create_metrics_table_figure,
                             )
+
                             fig = create_metrics_table_figure(
                                 metric_report,
                                 step=step_number,
@@ -414,16 +456,20 @@ class TrainerRuntimeHooks:
                                 _tbl_path = os.path.join(_tmpdir, "metrics_table.png")
                                 fig.savefig(_tbl_path, dpi=150, bbox_inches="tight")
                                 import matplotlib.pyplot as _plt
+
                                 _plt.close(fig)
                                 mlflow.log_artifact(_tbl_path, artifact_prefix)
                             logger.debug(
                                 "temp eval: metrics table saved split={} step={}",
-                                split_ctx.split, step_number,
+                                split_ctx.split,
+                                step_number,
                             )
                         except Exception:
                             logger.warning(
                                 "temp eval: metrics table failed split={} step={}",
-                                split_ctx.split, step_number, exc_info=True,
+                                split_ctx.split,
+                                step_number,
+                                exc_info=True,
                             )
                     if hook.config.training.temp_eval.log_data:
                         last_result = last_eval_result
@@ -436,39 +482,59 @@ class TrainerRuntimeHooks:
                                 from trading_rl.callbacks.artifacts import (
                                     save_eval_rollout_artifact,
                                 )
+
                                 save_eval_rollout_artifact(
                                     split=f"{split_ctx.split}_step_{step_number:08d}",
-                                    last_positions=getattr(last_result, "last_positions", []),
-                                    simple_returns=getattr(last_result, "simple_returns", _np.array([])),
-                                    cumulative_returns=getattr(last_result, "cumulative_returns", None),
+                                    last_positions=getattr(
+                                        last_result, "last_positions", []
+                                    ),
+                                    simple_returns=getattr(
+                                        last_result, "simple_returns", _np.array([])
+                                    ),
+                                    cumulative_returns=getattr(
+                                        last_result, "cumulative_returns", None
+                                    ),
                                     df_index=split_ctx.df.index,
-                                    output_dir=_Path(hook.config.logging.log_dir) / ArtifactPaths.EVAL_DATA_TEMP,
-                                    artifact_path_prefix=ArtifactPaths.eval_data_temp(split_ctx.split, step_number),
+                                    output_dir=_Path(hook.config.logging.log_dir)
+                                    / ArtifactPaths.EVAL_DATA_TEMP,
+                                    artifact_path_prefix=ArtifactPaths.eval_data_temp(
+                                        split_ctx.split, step_number
+                                    ),
                                 )
                             except Exception:
-                                logger.opt(exception=True).warning("temp eval: rollout data artifact failed split={} step={}", split_ctx.split, step_number)
+                                logger.opt(exception=True).warning(
+                                    "temp eval: rollout data artifact failed split={} step={}",
+                                    split_ctx.split,
+                                    step_number,
+                                )
                     _elapsed = time.monotonic() - _t_split
                     logger.info(
                         "temp eval complete split={} reward={} artifacts={} elapsed_s={:.3f}",
-                        split_ctx.split, final_reward, artifact_prefix, _elapsed,
+                        split_ctx.split,
+                        final_reward,
+                        artifact_prefix,
+                        _elapsed,
                     )
                 else:
                     logger.warning(
                         "no active mlflow run, skip temp evaluation logging split={}",
                         split_ctx.split,
                     )
-            except Exception:
+            except Exception as exc:
                 self._eval_consecutive_failures += 1
                 logger.error(
                     "temp eval failed split={} step={} elapsed_s={:.2f} (failure {}/{})",
-                    split_ctx.split, step_number, time.monotonic() - _t_split,
-                    self._eval_consecutive_failures, self._MAX_HOOK_FAILURES,
+                    split_ctx.split,
+                    step_number,
+                    time.monotonic() - _t_split,
+                    self._eval_consecutive_failures,
+                    self._MAX_HOOK_FAILURES,
                 )
                 if self._eval_consecutive_failures >= self._MAX_HOOK_FAILURES:
                     raise RuntimeError(
                         f"Periodic eval hook failed {self._MAX_HOOK_FAILURES} consecutive times; "
                         "aborting training. Check logs above for the root cause."
-                    )
+                    ) from exc
             else:
                 self._eval_consecutive_failures = 0
                 # Commit the staged progression entry now that the full
@@ -479,7 +545,8 @@ class TrainerRuntimeHooks:
                     )
                     logger.trace(
                         "temp eval: progression entry committed split={} step={} n={}",
-                        split_ctx.split, step_number,
+                        split_ctx.split,
+                        step_number,
                         len(self._progression_history[split_ctx.split]),
                     )
                 _dense_signal = (
@@ -487,7 +554,9 @@ class TrainerRuntimeHooks:
                     if metric_report is not None
                     else final_reward
                 )
-                self._update_eval_density(hook, split_ctx.split, _dense_signal, step_number)
+                self._update_eval_density(
+                    hook, split_ctx.split, _dense_signal, step_number
+                )
 
         # Create and upload train/val progression plot (if we have both splits)
         if mlflow.active_run():
@@ -509,6 +578,7 @@ class TrainerRuntimeHooks:
                     from trading_rl.evaluation.thesis_theme import (
                         save_plot as _save_plot,
                     )
+
                     _prog_plot = create_train_val_progression_plot(
                         train_history,
                         val_history,
@@ -517,9 +587,12 @@ class TrainerRuntimeHooks:
                     )
                     if _prog_plot is not None:
                         with tempfile.TemporaryDirectory() as _tmpdir:
-                            _tmp_path = os.path.join(_tmpdir, "train_val_progression.png")
+                            _tmp_path = os.path.join(
+                                _tmpdir, "train_val_progression.png"
+                            )
                             _save_plot(
-                                _prog_plot, _tmp_path,
+                                _prog_plot,
+                                _tmp_path,
                                 width=FIGURE_WIDTH * 2,
                                 height=FIGURE_HEIGHT * 1.5,
                                 dpi=PLOT_DPI,
@@ -530,7 +603,8 @@ class TrainerRuntimeHooks:
                             )
                         logger.trace(
                             "temp eval: train/val progression plot uploaded train_checkpoints={} val_checkpoints={}",
-                            len(train_history), len(val_history),
+                            len(train_history),
+                            len(val_history),
                         )
                 except Exception:
                     logger.error(
@@ -539,7 +613,8 @@ class TrainerRuntimeHooks:
 
         logger.info(
             "temp eval all splits done step={} total_elapsed_s={:.3f}",
-            step_number, time.monotonic() - _t_total,
+            step_number,
+            time.monotonic() - _t_total,
         )
 
     def _update_eval_density(
@@ -587,7 +662,11 @@ class TrainerRuntimeHooks:
         denominator = abs(earlier_mean) + 1e-12
         relative_change = (recent_mean - earlier_mean) / denominator
 
-        dense_interval = cfg.dense_interval if cfg.dense_interval is not None else max(1, base_interval // 2)
+        dense_interval = (
+            cfg.dense_interval
+            if cfg.dense_interval is not None
+            else max(1, base_interval // 2)
+        )
 
         if relative_change > threshold:
             if hook.effective_interval != dense_interval:
@@ -595,13 +674,18 @@ class TrainerRuntimeHooks:
                 logger.info(
                     "dense eval: improvement {:.1%} > threshold {:.1%} split={} "
                     "interval {} → {}",
-                    relative_change, threshold, split, base_interval, dense_interval,
+                    relative_change,
+                    threshold,
+                    split,
+                    base_interval,
+                    dense_interval,
                 )
         elif len(history) >= 2 * window and hook.effective_interval != base_interval:
             hook.effective_interval = base_interval
             logger.info(
                 "dense eval: plateau detected split={} interval restored to {}",
-                split, base_interval,
+                split,
+                base_interval,
             )
 
     def _run_temporary_explainability(
@@ -640,17 +724,18 @@ class TrainerRuntimeHooks:
                 "Temporary explainability complete: plots saved to {}",
                 artifact_prefix,
             )
-        except Exception:
+        except Exception as exc:
             self._explainability_consecutive_failures += 1
             logger.error(
                 "Temporary explainability failed at step {} (failure {}/{})",
                 step_number,
-                self._explainability_consecutive_failures, self._MAX_HOOK_FAILURES,
+                self._explainability_consecutive_failures,
+                self._MAX_HOOK_FAILURES,
             )
             if self._explainability_consecutive_failures >= self._MAX_HOOK_FAILURES:
                 raise RuntimeError(
                     f"Periodic explainability hook failed {self._MAX_HOOK_FAILURES} consecutive times; "
                     "aborting training. Check logs above for the root cause."
-                )
+                ) from exc
         else:
             self._explainability_consecutive_failures = 0
