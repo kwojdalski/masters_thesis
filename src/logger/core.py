@@ -16,7 +16,6 @@ from typing import Any
 
 from loguru import logger
 
-
 # ---------------------------------------------------------------------------
 # Level-check helper (replaces logging.Logger.isEnabledFor)
 # ---------------------------------------------------------------------------
@@ -145,7 +144,8 @@ def setup_logging(
         try:
             compiled_re = re.compile(log_regex)
         except re.error:
-            print(f"Invalid LOG_REGEX ignored: {log_regex}", file=sys.stderr)
+            # logger has no sinks yet at this point in setup, so print is the only way out
+            print(f"Invalid LOG_REGEX ignored: {log_regex}", file=sys.stderr)  # noqa: T201
 
     def _filter(record: dict) -> bool:
         if compiled_re is not None:

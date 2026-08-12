@@ -129,6 +129,10 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "T20"]  # Allow asserts and prints in tests
 "scripts/*" = ["T20"]  # Allow prints in scripts
+"examples/*" = ["T20"]  # Allow prints in example scripts
+".claude/skills/*" = ["T20"]  # Allow prints in skill CLI scripts
+"thesis/qmd/src/*" = ["T20"]  # Allow prints in Quarto notebook source (renders as cell output)
+"thesis/figures/*" = ["T20"]  # Allow prints in standalone figure-generation scripts
 
 [tool.ruff.lint.isort]
 known-first-party = ["src", "cli", "common"]
