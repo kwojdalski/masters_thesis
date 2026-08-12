@@ -2,8 +2,8 @@
   "run_id": null,
   "run_name": "pooled_ddpg_hft_lob_state_space_pooled_streaming_selected_dsr",
   "status": "FINISHED",
-  "start_time": "2026-06-03T10:44:18.917415+00:00",
-  "end_time": "2026-06-03T10:44:18.917415+00:00",
+  "start_time": "2026-08-12T20:34:23.209282+00:00",
+  "end_time": "2026-08-12T20:34:23.209282+00:00",
   "artifact_uri": null,
   "experiment_name": "pooled_ddpg_hft_lob_state_space_pooled_streaming_selected_dsr",
   "experiment_id": null,
@@ -11,7 +11,7 @@
     "type": "evaluate_cli",
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_ddpg_hft_lob_state_space_pooled_streaming_selected_dsr",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_ddpg_hft_lob_state_space_pooled_streaming_selected_dsr/results.json",
-    "exported_at_utc": "2026-06-03T10:44:18.917415+00:00"
+    "exported_at_utc": "2026-08-12T20:34:23.209282+00:00"
   },
   "files": {
     "params": "params.json",
@@ -20,26 +20,22 @@
     "statistical_tests": "statistical_tests.json",
     "hyperparams": "hyperparams.json"
   },
-  "evaluation_plots": {
-    "rewards": "plots/rewards.png",
-    "positions": "plots/positions.png",
-    "portfolio_value": "plots/portfolio_value.png"
-  },
+  "evaluation_plots": {},
   "per_symbol_results": {
     "train": {
       "split": "train",
-      "final_reward": -0.93084716796875,
+      "final_reward": -95.86329650878906,
       "n_steps": 49999
     },
     "val": {
       "split": "val",
-      "final_reward": 20.91012954711914,
-      "n_steps": 49999
+      "final_reward": -1179.1368408203125,
+      "n_steps": 380316
     },
     "test": {
       "split": "test",
-      "final_reward": 0.08067039400339127,
-      "n_steps": 49999
+      "final_reward": -1078.6351318359375,
+      "n_steps": 380317
     }
   }
 }

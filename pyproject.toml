@@ -165,6 +165,9 @@ override-dependencies = [
 [tool.poe.tasks]
 test = "uv run pytest"
 lint = "uv run ruff check ."
+gendata = "uv run python src/cli.py data generate"
+pcli = "uv run python src/cli.py"
+tta = "uv run python src/trading_rl/train_trading_agent.py"
 
 [tool.poe.tasks.fonts]
 cmd = "uv run python scripts/install_thesis_fonts.py"
