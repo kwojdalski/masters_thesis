@@ -77,7 +77,7 @@ def main():
     print("DATA SUMMARY")
     print("=" * 120)
     print(f"Total rows in sample: {len(table_df)}")
-    print(f"Feature columns shown: 4 (out of 10 total features)")
+    print("Feature columns shown: 4 (out of 10 total features)")
     print("\nFeature ranges in sample:")
     for col in ['Book Pressure', 'Order Imbalance', 'Microprice Deviation', 'Order Flow Imbalance']:
         print(f"  {col}: [{table_df[col].min():.2f}, {table_df[col].max():.2f}]")

@@ -97,11 +97,11 @@ def format_per_symbol_analysis(result: dict) -> str:
 
                 # Flag high outlier percentages
                 if outliers['percentage'] > 10.0:
-                    lines.append(f"      ⚠️  HIGH OUTLIER % - expected for HFT LOB data")
+                    lines.append("      ⚠️  HIGH OUTLIER % - expected for HFT LOB data")
                 elif outliers['percentage'] > 5.0:
-                    lines.append(f"      ⚠️  Moderate outlier %")
+                    lines.append("      ⚠️  Moderate outlier %")
                 else:
-                    lines.append(f"      ✅ Normal outlier % for HFT data")
+                    lines.append("      ✅ Normal outlier % for HFT data")
 
     return "\n".join(lines)
 
@@ -134,7 +134,7 @@ def compare_symbol_ranges(result: dict) -> str:
     max_range = max(ranges)
     mean_range = np.mean(ranges)
 
-    lines.append(f"\n📊 Range Analysis:")
+    lines.append("\n📊 Range Analysis:")
     lines.append(f"  Min range: ${min_range:.2f}")
     lines.append(f"  Max range: ${max_range:.2f}")
     lines.append(f"  Mean range: ${mean_range:.2f}")
@@ -142,11 +142,11 @@ def compare_symbol_ranges(result: dict) -> str:
     # Explain why cross-symbol analysis shows high outliers
     if min_range > 0 and max_range / min_range > 5.0:
         ratio = max_range / min_range
-        lines.append(f"\n⚠️  CROSS-SYMBOL OUTLIER EXPLANATION:")
+        lines.append("\n⚠️  CROSS-SYMBOL OUTLIER EXPLANATION:")
         lines.append(f"  The highest-priced symbol (max ${max(ranges):.2f}) trades")
         lines.append(f"  {ratio:.1f}× higher range than the lowest-priced symbol.")
-        lines.append(f"  This explains why 'combined' analysis shows 16-17% outliers -")
-        lines.append(f"  it's comparing different stock price levels, not data quality issues.")
+        lines.append("  This explains why 'combined' analysis shows 16-17% outliers -")
+        lines.append("  it's comparing different stock price levels, not data quality issues.")
 
     lines.append(f"{'=' * 70}")
     return "\n".join(lines)

@@ -125,7 +125,7 @@ def format_analysis_result(result: dict, max_col_width: int = 30) -> str:
 
     # Numeric results
     if 'mean' in result:
-        lines.append(f"\n📈 STATISTICS:")
+        lines.append("\n📈 STATISTICS:")
         lines.append(f"  Mean:   {result['mean']:.4f}")
         lines.append(f"  Median: {result['median']:.4f}")
         lines.append(f"  Std:    {result['std']:.4f}")
@@ -139,7 +139,7 @@ def format_analysis_result(result: dict, max_col_width: int = 30) -> str:
         outliers_zscore = result.get('outliers_zscore', {})
 
         if outliers_iqr and outliers_zscore:
-            lines.append(f"\n🚨 OUTLIERS:")
+            lines.append("\n🚨 OUTLIERS:")
             lines.append(f"  IQR Method: {outliers_iqr.get('count', 0):,} ({outliers_iqr.get('percentage', 0):.2f}%)")
             if 'lower_bound' in outliers_iqr and 'upper_bound' in outliers_iqr:
                 lines.append(f"    Bounds: [{outliers_iqr['lower_bound']:.4f}, {outliers_iqr['upper_bound']:.4f}]")
@@ -149,11 +149,11 @@ def format_analysis_result(result: dict, max_col_width: int = 30) -> str:
 
             # Warning for high outlier percentages
             if outliers_iqr.get('percentage', 0) > 10.0 or outliers_zscore.get('percentage', 0) > 10.0:
-                lines.append(f"⚠️  WARNING: High outlier percentage detected!")
+                lines.append("⚠️  WARNING: High outlier percentage detected!")
 
     # Categorical results
     else:
-        lines.append(f"\n📊 CATEGORICAL:")
+        lines.append("\n📊 CATEGORICAL:")
         lines.append(f"  Unique values: {result['unique_count']:,} ({result['unique_percentage']:.2f}%)")
         if result['most_common'] is not None:
             lines.append(f"  Most common: {result['most_common']}")
@@ -180,7 +180,7 @@ def generate_summary_report(results: list[dict]) -> str:
     # Columns with high null percentages
     high_null_cols = [r['column'] for r in results if r['null_percentage'] > 5.0]
     if high_null_cols:
-        lines.append(f"\n⚠️  COLUMNS WITH HIGH NULL VALUES (>5%):")
+        lines.append("\n⚠️  COLUMNS WITH HIGH NULL VALUES (>5%):")
         for col in high_null_cols:
             null_pct = next(r['null_percentage'] for r in results if r['column'] == col)
             lines.append(f"  - {col}: {null_pct:.2f}%")
@@ -191,7 +191,7 @@ def generate_summary_report(results: list[dict]) -> str:
         if 'outliers_iqr' in r and r['outliers_iqr']['percentage'] > 10.0
     ]
     if high_outlier_cols:
-        lines.append(f"\n🚨 COLUMNS WITH HIGH OUTLIER PERCENTAGES (>10%):")
+        lines.append("\n🚨 COLUMNS WITH HIGH OUTLIER PERCENTAGES (>10%):")
         for col in high_outlier_cols:
             outlier_pct = next(r['outliers_iqr']['percentage'] for r in results if r['column'] == col)
             lines.append(f"  - {col}: {outlier_pct:.2f}%")
@@ -217,11 +217,11 @@ def generate_summary_report(results: list[dict]) -> str:
         potential_issues.append(f"Columns with extreme ranges: {len(extreme_range_cols)}")
 
     if potential_issues:
-        lines.append(f"\n🔍 POTENTIAL ISSUES:")
+        lines.append("\n🔍 POTENTIAL ISSUES:")
         for issue in potential_issues:
             lines.append(f"  - {issue}")
     else:
-        lines.append(f"\n✅ No obvious structural issues detected")
+        lines.append("\n✅ No obvious structural issues detected")
 
     lines.append(f"{'=' * 60}\n")
     return "\n".join(lines)
@@ -244,7 +244,7 @@ def validate_split(df: pd.DataFrame, split_name: str, max_columns: int = 20) -> 
         columns_to_analyze = df.columns[:max_columns]
         if len(df.columns) > max_columns:
             print(f"\n⚠️  Analyzing first {max_columns} of {len(df.columns)} columns")
-            print(f"    Use --all-columns to analyze all columns\n")
+            print("    Use --all-columns to analyze all columns\n")
 
     results = []
     for col in columns_to_analyze:

@@ -12,6 +12,7 @@ from rich.text import Text
 
 from trading_rl.evaluation.asset_meta import write_asset_meta
 from .base_command import BaseCommand
+from datetime import UTC
 
 
 @dataclass
@@ -145,7 +146,7 @@ class PeekCommand(BaseCommand):
                 if step > best_step or (step == best_step and mtime > best_mtime):
                     best_step, best_path, best_mtime = step, pt, mtime
             if best_path is not None:
-                age_s = datetime.now(timezone.utc).timestamp() - best_mtime
+                age_s = datetime.now(UTC).timestamp() - best_mtime
                 if age_s < 3600:
                     age_str = f"{age_s / 60:.0f} min ago"
                 elif age_s < 86400:
@@ -183,7 +184,7 @@ class PeekCommand(BaseCommand):
                 elapsed_str = f"{h}h {m}m {s}s" if h else f"{m}m {s}s"
                 tbl.add_row("duration", elapsed_str)
             elif start_ms and status == "RUNNING":
-                elapsed_s = datetime.now(timezone.utc).timestamp() - start_ms / 1000
+                elapsed_s = datetime.now(UTC).timestamp() - start_ms / 1000
                 h, rem = divmod(int(elapsed_s), 3600)
                 m_val, s = divmod(rem, 60)
                 tbl.add_row("elapsed", f"[cyan]{h}h {m_val}m {s}s (running)[/cyan]" if h else f"[cyan]{m_val}m {s}s (running)[/cyan]")
@@ -251,11 +252,11 @@ class PeekCommand(BaseCommand):
             pass
         return detected
 
-    def _print_splits(self, dataset) -> "pd.DataFrame":
+    def _print_splits(self, dataset) -> pd.DataFrame:
         import numpy as np
         import pandas as pd
 
-        def _delta_stats(df: "pd.DataFrame") -> tuple[float | None, float | None]:
+        def _delta_stats(df: pd.DataFrame) -> tuple[float | None, float | None]:
             if not isinstance(df.index, pd.DatetimeIndex) or len(df) < 2:
                 return None, None
             deltas = df.index.to_series().diff().dropna().dt.total_seconds().to_numpy()
@@ -300,7 +301,7 @@ class PeekCommand(BaseCommand):
         self.console.print(tbl)
         return pd.DataFrame(rows)
 
-    def _print_feature_stats(self, dataset, config, n_features: int, effective_skip: int, detected_warmup: int, skip_rows: int) -> "pd.DataFrame":
+    def _print_feature_stats(self, dataset, config, n_features: int, effective_skip: int, detected_warmup: int, skip_rows: int) -> pd.DataFrame:
         import pandas as pd
 
         feat_cols = dataset.feature_columns
@@ -370,7 +371,7 @@ class PeekCommand(BaseCommand):
 
         return pd.DataFrame(export_rows)
 
-    def _print_log_return_stats(self, dataset, config, effective_skip: int) -> "pd.DataFrame | None":
+    def _print_log_return_stats(self, dataset, config, effective_skip: int) -> pd.DataFrame | None:
         import numpy as np
         import pandas as pd
         from trading_rl.data_utils import load_trading_data
@@ -434,7 +435,7 @@ class PeekCommand(BaseCommand):
             "max": float(log_rets.max()),
         }])
 
-    def _print_reward_correlations(self, dataset, config, effective_skip: int) -> "pd.DataFrame | None":
+    def _print_reward_correlations(self, dataset, config, effective_skip: int) -> pd.DataFrame | None:
         import numpy as np
         import pandas as pd
         from scipy.stats import spearmanr
@@ -502,7 +503,7 @@ class PeekCommand(BaseCommand):
         self.console.print(tbl)
         return pd.DataFrame([{"feature": col, "pearson": p, "spearman": s} for col, p, s in rows])
 
-    def _print_raw_file_inventory(self, config) -> "pd.DataFrame | None":
+    def _print_raw_file_inventory(self, config) -> pd.DataFrame | None:
         """Build and print a symbol × split table with event counts and delta stats."""
         import numpy as np
         import pandas as pd
@@ -515,7 +516,7 @@ class PeekCommand(BaseCommand):
         def _symbol_of(p: str) -> str:
             return Path(p).name.split("_")[0]
 
-        def _read_file(p: str) -> "pd.DataFrame":
+        def _read_file(p: str) -> pd.DataFrame:
             return pd.read_parquet(p, columns=["action"])
 
         def _delta_stats(deltas_s: np.ndarray) -> tuple[float | None, float | None]:

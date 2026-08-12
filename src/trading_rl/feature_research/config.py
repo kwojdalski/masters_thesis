@@ -106,7 +106,7 @@ class FeatureResearchConfig:
     @classmethod
     def from_yaml(
         cls, yaml_path: str | Path, overrides: list[str] | None = None
-    ) -> "FeatureResearchConfig":
+    ) -> FeatureResearchConfig:
         """Load feature research configuration from YAML via OmegaConf."""
         yaml_path = Path(yaml_path)
         if not yaml_path.exists():
@@ -139,7 +139,7 @@ class FeatureResearchConfig:
         return cls.from_dict(config_dict)
 
     @classmethod
-    def from_dict(cls, config_dict: dict) -> "FeatureResearchConfig":
+    def from_dict(cls, config_dict: dict) -> FeatureResearchConfig:
         """Create feature research config from a dictionary."""
         data_defaults = FeatureResearchDataConfig()
         research_defaults = FeatureResearchRunConfig()
@@ -178,7 +178,7 @@ class FeatureResearchConfig:
         experiment_config: ExperimentConfig,
         output_dir: str | None = None,
         overrides: list[str] | None = None,
-    ) -> "FeatureResearchConfig":
+    ) -> FeatureResearchConfig:
         """Derive a feature research config from an experiment scenario.
 
         ``overrides`` are OmegaConf dotlist entries (e.g.

@@ -96,13 +96,13 @@ def main():
 
         key_cols = result['key_columns']
         if len(key_cols) == 4:
-            print(f"   ✅ All key LOB columns present")
+            print("   ✅ All key LOB columns present")
         else:
             print(f"   ⚠️  Missing LOB columns: {4 - len(key_cols)}")
 
     # Summary
     print(f"\n{'=' * 70}")
-    print(f"📋 SUMMARY")
+    print("📋 SUMMARY")
     print(f"{'=' * 70}")
 
     valid_files = [r for r in results if 'error' not in r]
@@ -129,11 +129,11 @@ def main():
             issues.append(f"High duplicate rates in: {len(high_dup_files)} files")
 
         if issues:
-            print(f"\n⚠️  ISSUES:")
+            print("\n⚠️  ISSUES:")
             for issue in issues:
                 print(f"   - {issue}")
         else:
-            print(f"\n✅ NO SYSTEMATIC ISSUES - Raw LOB data quality is good")
+            print("\n✅ NO SYSTEMATIC ISSUES - Raw LOB data quality is good")
 
         print(f"{'=' * 70}")
 

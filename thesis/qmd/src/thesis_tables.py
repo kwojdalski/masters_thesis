@@ -188,7 +188,7 @@ def display_image_from_path(
 # Feature distributional statistics table (landscape PDF / HTML)
 # ---------------------------------------------------------------------------
 
-def feature_stats_table(raw_df: "pd.DataFrame", *, obs_clip: float = 5.0) -> None:
+def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
     """Emit feature distributional statistics as a landscape table.
 
     Requires ``#| output: asis`` on the calling cell.
@@ -338,7 +338,7 @@ def feature_stats_table(raw_df: "pd.DataFrame", *, obs_clip: float = 5.0) -> Non
 # Feature–return correlation table
 # ---------------------------------------------------------------------------
 
-def feature_correlation_table(raw_df: "pd.DataFrame") -> None:
+def feature_correlation_table(raw_df: pd.DataFrame) -> None:
     """Emit feature Pearson and Spearman correlations with next-step log return.
 
     Requires ``#| output: asis`` on the calling cell.
@@ -429,7 +429,7 @@ def feature_correlation_table(raw_df: "pd.DataFrame") -> None:
 # LOB events sample table
 # ---------------------------------------------------------------------------
 
-def lob_events_table(df: "pd.DataFrame") -> None:
+def lob_events_table(df: pd.DataFrame) -> None:
     """Select a 12-event window with maximum price activity and display as HTML.
 
     Picks the 12 consecutive rows with the most bid/ask price changes so the

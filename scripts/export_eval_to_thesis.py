@@ -29,7 +29,7 @@ import math
 import os
 import re
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from pathlib import Path
 
 import yaml
@@ -457,7 +457,7 @@ def main() -> int:
     snapshot_dir = experiment_dir / "latest_finished"
     snapshot_dir.mkdir(parents=True, exist_ok=True)
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     _write_json(snapshot_dir / "evaluation_report.json", metrics)
 

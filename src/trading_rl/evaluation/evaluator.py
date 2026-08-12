@@ -80,7 +80,7 @@ class StrategyEvaluatorConfig:
     show_reward_benchmarks: bool = False  # Show benchmark reward curves on the reward plot
 
     @classmethod
-    def from_experiment_config(cls, config: "Any") -> "StrategyEvaluatorConfig":
+    def from_experiment_config(cls, config: Any) -> StrategyEvaluatorConfig:
         """Project an ExperimentConfig to the narrow evaluation config.
 
         This factory makes the actual evaluation dependencies explicit and

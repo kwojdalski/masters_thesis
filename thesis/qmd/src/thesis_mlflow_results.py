@@ -11,7 +11,7 @@ import json
 import math
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from dataclasses import dataclass
 from pathlib import Path
 import shutil
@@ -710,7 +710,7 @@ def export_experiment_snapshot(experiment_name: str, output_root: Path | None = 
     manifest = {
         "schema_version": 1,
         "experiment_name": experiment_name,
-        "exported_at_utc": datetime.now(timezone.utc).isoformat(),
+        "exported_at_utc": datetime.now(UTC).isoformat(),
         "source": {
             "type": "mlflow",
             "mlflow_db_path": str(mlflow_db_path()),
@@ -1257,7 +1257,7 @@ def audit_plots_enabled() -> bool:
     return os.environ.get("AUDIT_PLOTS", "").lower() in {"1", "true", "yes"}
 
 
-def _figures_dir() -> "Path":
+def _figures_dir() -> Path:
     """Return (and create) the _figures/ subdir next to this file."""
     from pathlib import Path
     d = Path(__file__).parent / "_figures"
@@ -1394,7 +1394,7 @@ def show_plot(
             print("  |  ".join(parts_a))
 
 
-def show_table_meta(data: "dict[str, Any]", *, audit: bool = False) -> None:
+def show_table_meta(data: dict[str, Any], *, audit: bool = False) -> None:
     """Emit commit/run provenance below a table, mirroring show_plot's audit block.
 
     *data* can be either:

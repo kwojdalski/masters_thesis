@@ -272,7 +272,7 @@ def extract_tradingenv_returns(env, n_steps):
     return series.to_cumulative_log(include_initial=True).values
 
 
-def extract_trade_log(env: Any) -> "pd.DataFrame | None":
+def extract_trade_log(env: Any) -> pd.DataFrame | None:
     """Extract all individual trades from a TradingEnv broker as a DataFrame.
 
     Walks ``broker.track_record`` and flattens every ``Trade`` object into

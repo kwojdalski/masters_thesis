@@ -155,7 +155,7 @@ class TrainerRuntimeHooks:
         self._run_temporary_explainability(step_number, hook)
         hook.last_step = step_number
 
-    def _log_price_plot_once(self, split_ctx: "SplitEvalContext", hook: "PeriodicEvaluationHook") -> None:
+    def _log_price_plot_once(self, split_ctx: SplitEvalContext, hook: PeriodicEvaluationHook) -> None:
         """Save the underlying close price plot to evaluation_plots_temp/{split}/ once."""
         import os
         import tempfile

@@ -56,7 +56,7 @@ _RUN_ORDER: list[str] = [
 ]
 
 
-def _as_ordered_run_categorical(series: "pd.Series") -> "pd.Categorical":
+def _as_ordered_run_categorical(series: pd.Series) -> pd.Categorical:
     """Convert a Run string column to an ordered Categorical with Deterministic first.
 
     Any run name not in _RUN_ORDER is appended after the known entries in the
@@ -336,7 +336,7 @@ def plot_rewards(
     stride: int = 1,
     n_obs: int | None = None,
     date_str: str = "",
-) -> "ggplot":
+) -> ggplot:
     """Build cumulative rewards ggplot from a pre-built DataFrame.
 
     Accepts the DataFrame returned by build_rollout_plot_data (key "rewards"),
@@ -374,7 +374,7 @@ def plot_rewards(
 
 def plot_actions(
     df_actions: pd.DataFrame,
-    df_ma: "pd.DataFrame | None" = None,
+    df_ma: pd.DataFrame | None = None,
     is_portfolio: bool = False,
     training_steps: int | None = None,
     training_episodes: int | None = None,
@@ -382,7 +382,7 @@ def plot_actions(
     n_obs: int | None = None,
     date_str: str = "",
     allocation_ma_window: int = 500,
-) -> "ggplot":
+) -> ggplot:
     """Build actions/portfolio-allocation ggplot from a pre-built DataFrame.
 
     Accepts the DataFrame returned by build_rollout_plot_data (key "actions"),
@@ -498,7 +498,7 @@ def build_equity_plot_data(
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
-    benchmarks: "frozenset | None" = None,
+    benchmarks: frozenset | None = None,
     training_steps: int | None = None,
     training_episodes: int | None = None,
     n_total_symbols: int | None = None,
@@ -680,9 +680,9 @@ def plot_equity_curve(
     date_str: str = "",
     n_obs: int | None = None,
     stride: int = 1,
-    symbols: "list[str] | None" = None,
+    symbols: list[str] | None = None,
     n_total_symbols: int | None = None,
-) -> "ggplot":
+) -> ggplot:
     """Build portfolio equity curve ggplot from a pre-built DataFrame.
 
     Accepts the DataFrame returned by build_equity_plot_data (key "returns"),
@@ -746,7 +746,7 @@ def create_equity_curve_plot(
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
-    benchmarks: "frozenset | None" = None,
+    benchmarks: frozenset | None = None,
     training_steps: int | None = None,
     training_episodes: int | None = None,
     n_total_symbols: int | None = None,
@@ -786,7 +786,7 @@ def create_equity_curve_plot(
 
 
 def create_equity_progression_plot(
-    history: "list[tuple[int, ReturnSeries]]",
+    history: list[tuple[int, ReturnSeries]],
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     max_plot_points: int | None = None,
 ):
@@ -841,8 +841,8 @@ def create_equity_progression_plot(
 
 
 def create_train_val_progression_plot(
-    train_history: "list[tuple[int, ReturnSeries]] | None",
-    val_history: "list[tuple[int, ReturnSeries]] | None",
+    train_history: list[tuple[int, ReturnSeries]] | None,
+    val_history: list[tuple[int, ReturnSeries]] | None,
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     metric: str = "total_return",
 ):
@@ -923,7 +923,7 @@ def create_price_plot(
     df: pd.DataFrame,
     price_column: str = "close",
     max_points: int = 5_000,
-) -> "ggplot | None":
+) -> ggplot | None:
     """Line plot of the underlying close price for an evaluation split.
 
     Downsampled to at most *max_points* rows so the PNG stays small.
@@ -959,8 +959,8 @@ def create_price_plot(
 
 
 def _render_table_on_ax(
-    ax: "matplotlib.axes.Axes",
-    rows: "list[tuple[str, str, str, str]]",
+    ax: matplotlib.axes.Axes,
+    rows: list[tuple[str, str, str, str]],
     base_size: int,
 ) -> None:
     """Draw a styled metrics table onto *ax*."""
@@ -996,12 +996,12 @@ def _render_table_on_ax(
 
 
 def create_metrics_table_figure(
-    metric_report: "MetricReport",
+    metric_report: MetricReport,
     step: int | None = None,
     split: str | None = None,
-    df: "pd.DataFrame | None" = None,
+    df: pd.DataFrame | None = None,
     max_steps: int | None = None,
-) -> "matplotlib.figure.Figure":
+) -> matplotlib.figure.Figure:
     """Render a MetricReport as a matplotlib table figure.
 
     All metrics are rendered in a single column regardless of row count.

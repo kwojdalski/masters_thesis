@@ -392,7 +392,7 @@ def log_evaluation_plots(
     merged_plot=None,
     artifact_path_prefix=None,
     debug: bool = False,
-    plot_data: "dict | None" = None,
+    plot_data: dict | None = None,
 ) -> None:
     """Save evaluation/training plots as MLflow artifacts.
 

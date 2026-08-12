@@ -271,7 +271,7 @@ def _train_all(scenarios: list[str], args: RunArgs, extra_overrides: list[str] |
             log = _log_file(scenario, "train")
             _con.print(f"Training [cyan]{escape(scenario)}[/cyan]")
             _run_tee(_cmd(scenario), log)
-            _con.print(f"  [green]done.[/green]")
+            _con.print("  [green]done.[/green]")
 
 
 def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> None:
@@ -298,7 +298,7 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
             output_dir = _EXPERIMENT_OUTPUT_DIR / _scenario_name(scenario)
             _con.print(f"Evaluating [cyan]{escape(scenario)}[/cyan]  [dim]->[/dim]  [dim]{escape(str(output_dir))}[/dim]")
             _run_tee(_cmd(scenario), log)
-            _con.print(f"  [green]done.[/green]")
+            _con.print("  [green]done.[/green]")
 
 
 def _run_report(hypothesis: str) -> None:

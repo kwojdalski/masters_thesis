@@ -303,7 +303,7 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
             df = filter_unchanged_lob(df, levels=filter_lob_levels)
         return df
 
-    def _feat_cache_path(path: str) -> "_Path | None":
+    def _feat_cache_path(path: str) -> _Path | None:
         if not feature_cache_dir_str:
             return None
         mtime = _Path(path).stat().st_mtime_ns

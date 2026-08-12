@@ -88,7 +88,7 @@ class EnvBuildParams:
     streaming: StreamingEnvParams = field(default_factory=StreamingEnvParams)
 
     @classmethod
-    def from_config(cls, config: ExperimentConfig) -> "EnvBuildParams":
+    def from_config(cls, config: ExperimentConfig) -> EnvBuildParams:
         """Extract environment build parameters from a full ExperimentConfig."""
         env = config.env
         common = CommonEnvParams(

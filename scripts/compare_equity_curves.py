@@ -162,7 +162,7 @@ def plot_equity_comparison(
     scenario_labels: list[str],
     symbol: str,
     split: str,
-) -> "ggplot":
+) -> ggplot:
     benchmark_runs = [r for r in df["Run"].unique() if r not in scenario_labels]
     palette = _build_palette(scenario_labels, benchmark_runs)
     lt = _build_linetype(scenario_labels, benchmark_runs)

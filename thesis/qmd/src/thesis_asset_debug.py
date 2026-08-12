@@ -47,8 +47,8 @@ def show_asset_debug(path: str | Path) -> None:
         parts.append(f'source: <code>{gen}</code>')
 
     display(HTML(
-        f'<div style="font-size:0.7em;color:#666;border-left:3px solid #ccc;'
-        f'padding-left:6px;margin-top:3px">'
+        '<div style="font-size:0.7em;color:#666;border-left:3px solid #ccc;'
+        'padding-left:6px;margin-top:3px">'
         + "  &middot;  ".join(parts)
         + "</div>"
     ))

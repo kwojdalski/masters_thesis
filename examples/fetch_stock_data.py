@@ -39,9 +39,9 @@ def example_1_basic_fetch():
 
     print(f"\nFetched {len(df)} rows")
     print(f"Columns: {list(df.columns)}")
-    print(f"\nFirst 5 rows:")
+    print("\nFirst 5 rows:")
     print(df.head())
-    print(f"\nData saved to: data/raw/stocks/")
+    print("\nData saved to: data/raw/stocks/")
 
 
 def example_2_multiple_stocks():
@@ -107,7 +107,7 @@ def example_4_nyse_stocks():
     )
 
     print(f"\nFetched {len(df)} rows")
-    print(f"\nPrice statistics:")
+    print("\nPrice statistics:")
     print(df[["open", "high", "low", "close", "volume"]].describe())
 
 

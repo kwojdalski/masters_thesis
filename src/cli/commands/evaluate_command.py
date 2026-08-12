@@ -394,7 +394,7 @@ class EvaluateCommand(BaseCommand):
     # Arbitrary data preparation
     # ------------------------------------------------------------------
 
-    def _prepare_arbitrary_df(self, data_path: Path, config: Any, checkpoint_path: Path | None = None) -> "pd.DataFrame":
+    def _prepare_arbitrary_df(self, data_path: Path, config: Any, checkpoint_path: Path | None = None) -> pd.DataFrame:
         """Load a raw parquet file, apply the scenario's feature pipeline, and return a prepared DataFrame.
 
         Results are cached under ``config.data.feature_cache_dir`` keyed by the file's
@@ -492,8 +492,8 @@ class EvaluateCommand(BaseCommand):
         config: Any,
         params: EvaluateParams,
         val_data_paths: list[str],
-        checkpoint_path: "Path | None" = None,
-    ) -> tuple[list[str], dict[str, "pd.DataFrame"]]:
+        checkpoint_path: Path | None = None,
+    ) -> tuple[list[str], dict[str, pd.DataFrame]]:
         """Prepare each val file as an independent single-symbol DataFrame.
 
         Mirrors _build_per_day_splits: splits each file 50/50 so "val" is the
@@ -695,7 +695,7 @@ class EvaluateCommand(BaseCommand):
         self,
         split: str,
         metrics: dict[str, float],
-        split_df: "pd.DataFrame | None" = None,
+        split_df: pd.DataFrame | None = None,
         symbols: list[str] | None = None,
     ) -> None:
         self.display.print_metrics_table(split, metrics, split_df, symbols)
@@ -709,7 +709,7 @@ class EvaluateCommand(BaseCommand):
         self,
         result: Any,
         split: str,
-        split_df: "pd.DataFrame",
+        split_df: pd.DataFrame,
         output_dir: Path,
     ) -> None:
         import numpy as np

@@ -19,6 +19,7 @@ import pandas as pd
 from rich.console import Console
 from rich.table import Table
 from scipy import stats
+from datetime import UTC
 
 console = Console()
 
@@ -327,7 +328,7 @@ def main() -> None:
     }
 
     from datetime import datetime, timezone
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     (snapshot_dir / "evaluation_report.json").write_text(json.dumps(evaluation_report, indent=2))
     (snapshot_dir / "h4_learning_report.json").write_text(json.dumps(report_data, indent=2))

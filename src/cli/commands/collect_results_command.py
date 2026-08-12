@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from pathlib import Path
 from typing import Any
 
@@ -142,7 +142,7 @@ class CollectResultsCommand(BaseCommand):
 
         # Write manifest
         manifest = {
-            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "exported_at": datetime.now(UTC).isoformat(),
             "algorithms": list(algo_results.keys()),
             "n_splits": len(all_rows),
             "sources": {

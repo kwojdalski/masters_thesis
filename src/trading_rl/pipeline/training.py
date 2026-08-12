@@ -293,7 +293,7 @@ def setup_mlflow_experiment(
 
 
 def _log_data_diagnostics(
-    prepared_dataset: "PreparedDataset",
+    prepared_dataset: PreparedDataset,
     logger: logging.Logger,
 ) -> None:
     """Log data shape and feature diagnostics after preparation."""
@@ -336,7 +336,7 @@ def _log_data_diagnostics(
 
 def _log_mlflow_artifacts(
     config: ExperimentConfig,
-    prepared_dataset: "PreparedDataset",
+    prepared_dataset: PreparedDataset,
     create_mlflow_callback: bool,
 ) -> None:
     """Log static MLflow artifacts (config, FAQs, optional data overviews)."""
