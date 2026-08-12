@@ -36,7 +36,7 @@ class StatefulRewardWrapper(gym.Wrapper):
         self.reward_fn = reward_fn
 
         # Validate that reward_fn has reset() method
-        if not hasattr(reward_fn, 'reset'):
+        if not hasattr(reward_fn, "reset"):
             raise ValueError(
                 f"reward_fn must have a reset() method. "
                 f"Got {type(reward_fn).__name__} without reset()"
@@ -53,18 +53,18 @@ class StatefulRewardWrapper(gym.Wrapper):
 
     def step(self, action):
         """Take step and use custom reward function."""
-        obs, reward, terminated, truncated, info = self.env.step(action)
+        obs, _reward, terminated, truncated, info = self.env.step(action)
 
         # Replace reward with custom reward function
         # gym_anytrading exposes _get_info() method
-        if hasattr(self.env.unwrapped, '_get_info'):
+        if hasattr(self.env.unwrapped, "_get_info"):
             # gym_anytrading pattern
             history = self.env.unwrapped._get_info()
             custom_reward = float(self.reward_fn(history))
-        elif 'history' in info:
+        elif "history" in info:
             # Direct history in info
-            custom_reward = float(self.reward_fn(info['history']))
-        elif hasattr(self.env.unwrapped, 'history'):
+            custom_reward = float(self.reward_fn(info["history"]))
+        elif hasattr(self.env.unwrapped, "history"):
             # Direct history attribute
             history = self.env.unwrapped.history
             custom_reward = float(self.reward_fn(history))
@@ -131,7 +131,9 @@ class DifferentialSharpeRatioAnyTrading:
         self.B_t = 0.0  # EMA of squared returns (second moment)
         self._prev_nlv = None
 
-    def reset(self, persist_moments: bool | None = None) -> "DifferentialSharpeRatioAnyTrading":
+    def reset(
+        self, persist_moments: bool | None = None
+    ) -> "DifferentialSharpeRatioAnyTrading":
         """Reset state for new episode.
 
         Args:
@@ -161,19 +163,19 @@ class DifferentialSharpeRatioAnyTrading:
         # as a NLV proxy. Fall back to that before raising.
         try:
             nlv_now = history["portfolio_valuation", -1]
-        except (KeyError, TypeError):
+        except (KeyError, TypeError) as err:
             if "portfolio_valuation" in history:
                 nlv_now = history["portfolio_valuation"][-1]
             elif "total_profit" in history:
                 val = history["total_profit"]
-                nlv_now = val[-1] if isinstance(val, (list, tuple)) else float(val)
+                nlv_now = val[-1] if isinstance(val, list | tuple) else float(val)
             else:
                 keys = list(history.keys()) if hasattr(history, "keys") else "N/A"
                 raise KeyError(
                     f"DifferentialSharpeRatioAnyTrading: 'portfolio_valuation' not found "
                     f"in history (type={type(history).__name__}, keys={keys}). "
                     "Cannot compute DSR reward. Check environment history format."
-                )
+                ) from err
 
         valid_prev = self._prev_nlv is None or (
             np.isfinite(self._prev_nlv) and self._prev_nlv > 0
@@ -198,10 +200,10 @@ class DifferentialSharpeRatioAnyTrading:
         # Calculate DSR using OLD EMA values (t-1)
         # This matches Moody & Saffell (2001) formula
         delta_A = R_t - self.A_t  # ΔA_t = R_t - A_{t-1}
-        delta_B = R_t ** 2 - self.B_t  # ΔB_t = R_t^2 - B_{t-1}
+        delta_B = R_t**2 - self.B_t  # ΔB_t = R_t^2 - B_{t-1}
 
         # D_t = (B_{t-1} * ΔA_t - A_{t-1} * ΔB_t / 2) / (B_{t-1} - A_{t-1}^2)^(3/2)
-        variance = self.B_t - self.A_t ** 2  # Var = B_{t-1} - A_{t-1}^2
+        variance = self.B_t - self.A_t**2  # Var = B_{t-1} - A_{t-1}^2
         # Clamp to non-negative: floating-point drift can give slightly negative
         # variance, and Python raises ValueError on negative ** 1.5.
         denominator = max(variance, 0.0) ** 1.5 + self.epsilon
@@ -209,7 +211,7 @@ class DifferentialSharpeRatioAnyTrading:
 
         # NOW update EMAs for next step
         self.A_t = (1 - self.eta) * self.A_t + self.eta * R_t
-        self.B_t = (1 - self.eta) * self.B_t + self.eta * (R_t ** 2)
+        self.B_t = (1 - self.eta) * self.B_t + self.eta * (R_t**2)
 
         # Update prev_nlv for next step
         self._prev_nlv = nlv_now

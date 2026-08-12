@@ -13,10 +13,7 @@ from trading_rl.pipeline.checkpoint import (
     _resolve_experiment_name_from_checkpoint,
     _setup_mlflow_tracking_from_checkpoint,
 )
-from trading_rl.trainers.checkpointing import CheckpointManager
-
-
-from trading_rl.trainers.checkpointing import TrainingCheckpoint
+from trading_rl.trainers.checkpointing import CheckpointManager, TrainingCheckpoint
 
 
 def _manager(tmp_path, *, interval: int = 10) -> CheckpointManager:
@@ -39,15 +36,21 @@ def _snapshot() -> TrainingCheckpoint:
 
 def test_checkpoint_manager_does_not_save_before_interval(tmp_path) -> None:
     manager = _manager(tmp_path, interval=10)
-    saved: list[str] = []
     manager.maybe_save(9, _snapshot)
-    assert not list((tmp_path / "checkpoints").glob("*.pt")) if (tmp_path / "checkpoints").exists() else True
+    assert (
+        not list((tmp_path / "checkpoints").glob("*.pt"))
+        if (tmp_path / "checkpoints").exists()
+        else True
+    )
 
 
 def test_checkpoint_manager_saves_when_interval_reached(tmp_path, monkeypatch) -> None:
     manager = _manager(tmp_path, interval=10)
     saved: list[str] = []
-    monkeypatch.setattr("trading_rl.trainers.checkpointing.torch.save", lambda obj, path: saved.append(str(path)))
+    monkeypatch.setattr(
+        "trading_rl.trainers.checkpointing.torch.save",
+        lambda obj, path: saved.append(str(path)),
+    )
     monkeypatch.setattr(
         "trading_rl.trainers.checkpointing.CheckpointManager.save",
         lambda self, path, cp: saved.append(path),
@@ -74,7 +77,9 @@ def test_checkpoint_manager_updates_last_saved_step(tmp_path, monkeypatch) -> No
 
 
 def test_interrupt_checkpoint_returns_none_without_checkpoint_config(tmp_path) -> None:
-    manager = CheckpointManager(checkpoint_dir=None, checkpoint_prefix=None, interval=10)
+    manager = CheckpointManager(
+        checkpoint_dir=None, checkpoint_prefix=None, interval=10
+    )
     assert manager.save_interrupt(42, _snapshot) is None
 
 
@@ -120,7 +125,9 @@ def test_setup_mlflow_tracking_from_checkpoint_sets_uri(monkeypatch) -> None:
     assert calls == ["sqlite:///run.db"]
 
 
-def test_resolve_experiment_name_updates_config_and_checkpoint_prefix(monkeypatch) -> None:
+def test_resolve_experiment_name_updates_config_and_checkpoint_prefix(
+    monkeypatch,
+) -> None:
     monkeypatch.setattr(
         "trading_rl.pipeline.checkpoint.mlflow.get_experiment",
         lambda experiment_id: SimpleNamespace(name="resumed_experiment"),
@@ -140,7 +147,9 @@ def test_resolve_experiment_name_updates_config_and_checkpoint_prefix(monkeypatc
     assert trainer.checkpoint_prefix == "resumed_experiment"
 
 
-def test_create_resumption_callback_prefers_configured_price_column(monkeypatch) -> None:
+def test_create_resumption_callback_prefers_configured_price_column(
+    monkeypatch,
+) -> None:
     captured = {}
 
     class CallbackProbe:
@@ -150,7 +159,9 @@ def test_create_resumption_callback_prefers_configured_price_column(monkeypatch)
             captured["price_series"] = price_series
             captured["start_run"] = start_run
 
-    monkeypatch.setattr("trading_rl.pipeline.checkpoint.MLflowTrainingCallback", CallbackProbe)
+    monkeypatch.setattr(
+        "trading_rl.pipeline.checkpoint.MLflowTrainingCallback", CallbackProbe
+    )
     train_df = pd.DataFrame({"mid": [10.0, 11.0], "close": [100.0, 101.0]})
     config = SimpleNamespace(
         env=SimpleNamespace(price_column="mid"),

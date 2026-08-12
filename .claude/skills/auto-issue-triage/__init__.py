@@ -15,8 +15,8 @@ def get_highest_priority_issues(limit: int = 5) -> list[dict]:
         List of issues sorted by priority (critical → high → medium → low)
     """
     try:
-        result = subprocess.run(
-            ["gh", "issue", "list", "--state", "open", "--limit", str(limit), "--json"],
+        result = subprocess.run(  # noqa: S603 — fixed argument list, no shell/user input
+            ["gh", "issue", "list", "--state", "open", "--limit", str(limit), "--json"],  # noqa: S607 — "gh" resolved via PATH by design, matches project convention
             capture_output=True,
             text=True,
             check=True,
@@ -226,7 +226,6 @@ def verify_codebase_claim(issue: dict, issue_analysis: dict) -> dict:
                 break
 
     # Look for function mentions
-    func_pattern = r"\b[a-z_]+\(|\s+[a-z_]+\)"
 
     def find_functions(text: str) -> list[str]:
         """Find function names in text."""
@@ -407,14 +406,12 @@ def main():
     # Sort by priority for display
     sorted_issues = sorted(
         all_analyses,
-        key=lambda x: (
-            {
-                "CONFIRMED": 0,
-                "ALREADY_DOCUMENTED": 1,
-                "NEEDS_INVESTIGATION": 2,
-                "NOT_CONFIRMED": 3,
-            }.get(x["analysis"]["verdict"], 4)
-        ),
+        key=lambda x: {
+            "CONFIRMED": 0,
+            "ALREADY_DOCUMENTED": 1,
+            "NEEDS_INVESTIGATION": 2,
+            "NOT_CONFIRMED": 3,
+        }.get(x["analysis"]["verdict"], 4),
     )
 
     # Generate report
@@ -433,11 +430,11 @@ def main():
     print("To work on the top issues interactively:")
     for i, item in enumerate(sorted_issues[:3], 1):
         issue_number = item["issue"].get("number", "")
-        verdict = item["analysis"]["verdict"]
-        print(f"  {i+1}. gh issue view {issue_number} -- View full details")
-        print(f'  {i+1}. gh issue edit {issue_number} --add-label "in-progress"')
+        item["analysis"]["verdict"]
+        print(f"  {i + 1}. gh issue view {issue_number} -- View full details")
+        print(f'  {i + 1}. gh issue edit {issue_number} --add-label "in-progress"')
         print(
-            f"  {i+1}. git checkout -b fix/issue-{issue_number} -- Create branch for this issue"
+            f"  {i + 1}. git checkout -b fix/issue-{issue_number} -- Create branch for this issue"
         )
 
     print("\nTo use automatic mode:")

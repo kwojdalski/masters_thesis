@@ -35,31 +35,31 @@ from trading_rl.pipeline.training import (
 __all__ = [
     # checkpoint
     "CheckpointResumptionResult",
-    "setup_checkpoint_resumption",
+    # training
+    "ExperimentRuntime",
     # evaluation
     "PipelineSplitResult",
+    "TrainingBundle",
+    "_configure_experiment_environment",
     "build_evaluation_context_for_split",
+    # finalization
+    "build_experiment_result",
+    "build_experiment_runtime",
+    "build_final_checkpoint_path",
     "build_final_metrics",
     "evaluate_all_splits",
     "evaluate_split",
-    "resolve_primary_split_result",
-    "run_primary_split_explainability",
-    "run_statistical_tests_for_split",
     # experiment_runner
     "execute_single_experiment",
-    # finalization
-    "build_experiment_result",
-    "build_final_checkpoint_path",
     "log_final_metrics",
-    "save_final_checkpoint",
+    "resolve_primary_split_result",
     # explainability
     "run_explainability_analysis",
-    # training
-    "ExperimentRuntime",
-    "TrainingBundle",
-    "_configure_experiment_environment",
-    "build_experiment_runtime",
+    "run_primary_split_explainability",
+    "run_statistical_tests_for_split",
+    "save_final_checkpoint",
     "set_seed",
+    "setup_checkpoint_resumption",
     "setup_logging",
     "setup_mlflow_experiment",
 ]

@@ -28,9 +28,12 @@ def _volumes(n: int = 10) -> pd.Series:
 # BenchmarkReturnArray
 # ---------------------------------------------------------------------------
 
+
 class TestBenchmarkReturnArray:
     def test_carries_position_side_metadata(self):
-        arr = BenchmarkReturnArray(np.array([0.01, -0.02, 0.03]), benchmark_position_side=1.0)
+        arr = BenchmarkReturnArray(
+            np.array([0.01, -0.02, 0.03]), benchmark_position_side=1.0
+        )
         assert arr.benchmark_position_side == pytest.approx(1.0)
 
     def test_negative_position_side_for_short(self):
@@ -42,12 +45,16 @@ class TestBenchmarkReturnArray:
         assert arr.benchmark_position_side is None
 
     def test_behaves_as_numpy_array(self):
-        arr = BenchmarkReturnArray(np.array([0.01, 0.02, 0.03]), benchmark_position_side=1.0)
+        arr = BenchmarkReturnArray(
+            np.array([0.01, 0.02, 0.03]), benchmark_position_side=1.0
+        )
         assert arr.shape == (3,)
         assert arr.sum() == pytest.approx(0.06)
 
     def test_metadata_preserved_after_arithmetic(self):
-        arr = BenchmarkReturnArray(np.array([1.0, 2.0, 3.0]), benchmark_position_side=1.0)
+        arr = BenchmarkReturnArray(
+            np.array([1.0, 2.0, 3.0]), benchmark_position_side=1.0
+        )
         doubled = arr * 2
         assert isinstance(doubled, BenchmarkReturnArray)
         assert doubled.benchmark_position_side == pytest.approx(1.0)
@@ -56,6 +63,7 @@ class TestBenchmarkReturnArray:
 # ---------------------------------------------------------------------------
 # BenchmarkEngine.buy_and_hold
 # ---------------------------------------------------------------------------
+
 
 class TestBuyAndHold:
     def test_returns_benchmark_spec(self):
@@ -97,6 +105,7 @@ class TestBuyAndHold:
 # BenchmarkEngine.twap
 # ---------------------------------------------------------------------------
 
+
 class TestTwap:
     def test_returns_benchmark_spec(self):
         spec = BenchmarkEngine.twap(_prices())
@@ -121,6 +130,7 @@ class TestTwap:
 # BenchmarkEngine.vwap
 # ---------------------------------------------------------------------------
 
+
 class TestVwap:
     def test_returns_benchmark_spec(self):
         spec = BenchmarkEngine.vwap(_prices(10), _volumes(10))
@@ -144,13 +154,16 @@ class TestVwap:
         assert not np.allclose(twap_r, vwap_r)
 
     def test_volume_source_stored_in_metadata(self):
-        spec = BenchmarkEngine.vwap(_prices(10), _volumes(10), volume_source="bid_volume")
+        spec = BenchmarkEngine.vwap(
+            _prices(10), _volumes(10), volume_source="bid_volume"
+        )
         assert spec.metadata.get("volume_source") == "bid_volume"
 
 
 # ---------------------------------------------------------------------------
 # BenchmarkEngine.build
 # ---------------------------------------------------------------------------
+
 
 class TestBenchmarkEngineBuild:
     def _market_data(self, n: int = 10) -> pd.DataFrame:
@@ -159,23 +172,31 @@ class TestBenchmarkEngineBuild:
         return pd.DataFrame({"close": prices, "volume": volumes})
 
     def test_no_config_flags_returns_empty(self):
-        cfg = SimpleNamespace(buy_and_hold=False, short_and_hold=False, twap=False, vwap=False)
-        specs, meta = BenchmarkEngine.build(self._market_data(), cfg)
+        cfg = SimpleNamespace(
+            buy_and_hold=False, short_and_hold=False, twap=False, vwap=False
+        )
+        specs, _meta = BenchmarkEngine.build(self._market_data(), cfg)
         assert specs == []
 
     def test_buy_and_hold_flag_adds_one_spec(self):
-        cfg = SimpleNamespace(buy_and_hold=True, short_and_hold=False, twap=False, vwap=False)
+        cfg = SimpleNamespace(
+            buy_and_hold=True, short_and_hold=False, twap=False, vwap=False
+        )
         specs, _ = BenchmarkEngine.build(self._market_data(), cfg)
         assert len(specs) == 1
         assert specs[0].name == BenchmarkName.BUY_AND_HOLD
 
     def test_missing_price_column_returns_empty(self):
         df = pd.DataFrame({"volume": [1000.0] * 5})
-        cfg = SimpleNamespace(buy_and_hold=True, short_and_hold=False, twap=False, vwap=False)
+        cfg = SimpleNamespace(
+            buy_and_hold=True, short_and_hold=False, twap=False, vwap=False
+        )
         specs, _ = BenchmarkEngine.build(df, cfg, price_column="close")
         assert specs == []
 
     def test_all_flags_returns_at_least_two_specs(self):
-        cfg = SimpleNamespace(buy_and_hold=True, short_and_hold=False, twap=True, vwap=False)
+        cfg = SimpleNamespace(
+            buy_and_hold=True, short_and_hold=False, twap=True, vwap=False
+        )
         specs, _ = BenchmarkEngine.build(self._market_data(), cfg)
         assert len(specs) == 2

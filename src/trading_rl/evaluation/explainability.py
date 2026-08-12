@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 
 class ActorCaptumProxy(nn.Module):
     """
-    A proxy wrapper that converts TensorDict-based TorchRL actors 
+    A proxy wrapper that converts TensorDict-based TorchRL actors
     to standard tensor-in/tensor-out modules for Captum.
     """
 
@@ -37,11 +37,13 @@ class ActorCaptumProxy(nn.Module):
 
     def forward(self, obs_tensor: torch.Tensor) -> torch.Tensor:
         """
-        Captum calls this with a raw tensor. 
+        Captum calls this with a raw tensor.
         We wrap it in a TensorDict, call the actor, and return the action/mean.
         """
         # Create a dummy TensorDict
-        td = TensorDict({self.observation_key: obs_tensor}, batch_size=obs_tensor.shape[:-1])
+        td = TensorDict(
+            {self.observation_key: obs_tensor}, batch_size=obs_tensor.shape[:-1]
+        )
 
         # Run the actor (TensorDictModule)
         result_td = self.actor(td)
@@ -54,7 +56,9 @@ class ActorCaptumProxy(nn.Module):
             # for continuous, 'action' is what we want.
             return result_td["action"].float()
 
-        raise ValueError("Actor output TensorDict must contain 'loc' or 'action' for attribution.")
+        raise ValueError(
+            "Actor output TensorDict must contain 'loc' or 'action' for attribution."
+        )
 
 
 class RLInterpretabilityAnalyzer:
@@ -66,7 +70,7 @@ class RLInterpretabilityAnalyzer:
         self,
         trainer: Any,
         feature_names: list[str],
-        observation_key: str = "observation"
+        observation_key: str = "observation",
     ):
         self.trainer = trainer
         self.feature_names = feature_names
@@ -86,12 +90,16 @@ class RLInterpretabilityAnalyzer:
 
         # Take the absolute mean across the batch (and time steps if present)
         # Assuming obs_batch is [batch, features] or [batch, time, features]
-        importance = torch.abs(attributions).mean(dim=tuple(range(attributions.ndim - 1)))
+        importance = torch.abs(attributions).mean(
+            dim=tuple(range(attributions.ndim - 1))
+        )
 
-        df = pd.DataFrame({
-            "feature": self.feature_names,
-            "importance": importance.detach().cpu().numpy()
-        })
+        df = pd.DataFrame(
+            {
+                "feature": self.feature_names,
+                "importance": importance.detach().cpu().numpy(),
+            }
+        )
         return df.sort_values("importance", ascending=False)
 
     def compute_global_ig(self, obs_batch: torch.Tensor) -> pd.DataFrame:
@@ -107,12 +115,16 @@ class RLInterpretabilityAnalyzer:
         attributions = ig.attribute(obs_batch, baselines=baseline, target=None)
 
         # Average absolute attributions
-        importance = torch.abs(attributions).mean(dim=tuple(range(attributions.ndim - 1)))
+        importance = torch.abs(attributions).mean(
+            dim=tuple(range(attributions.ndim - 1))
+        )
 
-        df = pd.DataFrame({
-            "feature": self.feature_names,
-            "importance": importance.detach().cpu().numpy()
-        })
+        df = pd.DataFrame(
+            {
+                "feature": self.feature_names,
+                "importance": importance.detach().cpu().numpy(),
+            }
+        )
         return df.sort_values("importance", ascending=False)
 
     def compute_local_attribution(self, obs_sample: torch.Tensor) -> pd.DataFrame:
@@ -125,20 +137,24 @@ class RLInterpretabilityAnalyzer:
         # Baselines are typically zero (no information)
         baseline = torch.zeros_like(obs_sample)
 
-        attributions, delta = ig.attribute(
-            obs_sample,
-            baselines=baseline,
-            target=None,
-            return_convergence_delta=True
+        attributions, _delta = ig.attribute(
+            obs_sample, baselines=baseline, target=None, return_convergence_delta=True
         )
 
-        df = pd.DataFrame({
-            "feature": self.feature_names,
-            "attribution": attributions.detach().cpu().numpy().flatten()
-        })
+        df = pd.DataFrame(
+            {
+                "feature": self.feature_names,
+                "attribution": attributions.detach().cpu().numpy().flatten(),
+            }
+        )
         return df
 
-    def plot_importance(self, df: pd.DataFrame, title: str = "Feature Importance", color: str = "steelblue"):
+    def plot_importance(
+        self,
+        df: pd.DataFrame,
+        title: str = "Feature Importance",
+        color: str = "steelblue",
+    ):
         """Visualize the importance using plotnine."""
         # Clean up column names for plotting
         if "importance" in df.columns:
@@ -164,20 +180,22 @@ class RLInterpretabilityAnalyzer:
         p1 = self.plot_importance(
             df_permutation,
             title="Global Feature Importance (Permutation)",
-            color="steelblue"
+            color="steelblue",
         )
 
         p2 = self.plot_importance(
             df_ig,
             title="Global Feature Importance (Integrated Gradients)",
-            color="coral"
+            color="coral",
         )
 
         # Stack vertically using / operator
         merged_plot = p1 / p2
         return merged_plot
 
-    def quantify_interpretability(self, importance_df: pd.DataFrame) -> dict[str, float]:
+    def quantify_interpretability(
+        self, importance_df: pd.DataFrame
+    ) -> dict[str, float]:
         """Quantify interpretability metrics from importance data."""
         importance = importance_df["importance"].values
         normalized = importance / (importance.sum() + 1e-9)
@@ -190,29 +208,37 @@ class RLInterpretabilityAnalyzer:
         # How many features account for 80% of the information?
         sorted_norm = np.sort(normalized)[::-1]
         cumulative = np.cumsum(sorted_norm)
-        top_80_count = np.where(cumulative >= 0.8)[0][0] + 1 if any(cumulative >= 0.8) else len(normalized)
+        top_80_count = (
+            np.where(cumulative >= 0.8)[0][0] + 1
+            if any(cumulative >= 0.8)
+            else len(normalized)
+        )
         concentration = top_80_count / len(normalized)
 
         return {
             "interpretability_sparsity": float(sparsity),
             "interpretability_top_80_feature_ratio": float(concentration),
-            "interpretability_top_feature_count": float(top_80_count)
+            "interpretability_top_feature_count": float(top_80_count),
         }
 
 
-def analyze_trained_agent(trainer: Any, env: Any, feature_names: list[str], n_steps: int = 100):
+def analyze_trained_agent(
+    trainer: Any, env: Any, feature_names: list[str], n_steps: int = 100
+):
     """
     Helper function to run a rollout and analyze feature importance.
     """
     # 1. Collect data
     rollout = env.rollout(max_steps=n_steps)
-    obs_batch = rollout["observation"] # [T, D]
+    obs_batch = rollout["observation"]  # [T, D]
 
     # 2. Analyze
     analyzer = RLInterpretabilityAnalyzer(trainer, feature_names)
     importance_df = analyzer.compute_global_importance(obs_batch)
 
     # 3. Plot
-    plot = analyzer.plot_importance(importance_df, title=f"Global Importance (n={n_steps} steps)")
+    plot = analyzer.plot_importance(
+        importance_df, title=f"Global Importance (n={n_steps} steps)"
+    )
 
     return importance_df, plot

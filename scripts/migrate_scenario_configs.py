@@ -61,7 +61,9 @@ def build_evaluate_yaml(config: dict) -> dict:
 def write_yaml(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        yaml.dump(
+            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
+        )
     print(f"  wrote {path}")
 
 
@@ -128,16 +130,24 @@ def main() -> None:
     for path in sorted(SCENARIOS_DIR.rglob("*.yaml")):
         # Skip the top-level default.yaml (kept as legacy fallback)
         rel = path.relative_to(SCENARIOS_DIR)
-        parts = rel.parts
 
         # Already inside a command-component directory (has observation.yaml sibling)
         if (path.parent / "observation.yaml").exists() and path.name in (
-            "train.yaml", "evaluate.yaml", "observation.yaml", "feature_selection.yaml"
+            "train.yaml",
+            "evaluate.yaml",
+            "observation.yaml",
+            "feature_selection.yaml",
         ):
             continue
 
         # Flat scenario YAML (e.g. aapl/td3_hft_lob.yaml)
-        if path.is_file() and path.stem not in ("train", "evaluate", "observation", "feature_selection", "default"):
+        if path.is_file() and path.stem not in (
+            "train",
+            "evaluate",
+            "observation",
+            "feature_selection",
+            "default",
+        ):
             print(f"Migrating flat: {rel}")
             migrate_flat_yaml(path)
             continue

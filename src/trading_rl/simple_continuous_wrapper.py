@@ -15,10 +15,10 @@ class ContinuousActionWrapper(EnvBase):
 
     def __init__(self, base_env, discrete_actions=None, thresholds=None, device="cpu"):
         """Initialize the wrapper.
-        
+
         Args:
             base_env: The underlying discrete trading environment
-            discrete_actions: List of discrete actions (default: [-1, 0, 1])  
+            discrete_actions: List of discrete actions (default: [-1, 0, 1])
             thresholds: Thresholds for continuous->discrete mapping
             device: Device for tensors
         """
@@ -35,17 +35,17 @@ class ContinuousActionWrapper(EnvBase):
         # Initialize parent class
         super().__init__(device=device, batch_size=base_env.batch_size)
 
-        logger.info("init continuous_action_wrapper discrete_actions={} thresholds={}", discrete_actions, thresholds)
+        logger.info(
+            "init continuous_action_wrapper discrete_actions={} thresholds={}",
+            discrete_actions,
+            thresholds,
+        )
 
     @property
     def action_spec(self):
         """Return continuous action spec."""
         return Bounded(
-            low=-1.0,
-            high=1.0,
-            shape=(1,),
-            dtype=torch.float32,
-            device=self.device
+            low=-1.0, high=1.0, shape=(1,), dtype=torch.float32, device=self.device
         )
 
     @property

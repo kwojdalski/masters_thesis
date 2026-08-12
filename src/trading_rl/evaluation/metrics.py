@@ -60,14 +60,16 @@ def aggregate_to_reporting_frequency(
 
     for freq in _REPORTING_LADDER:
         steps_per_bar = max(1, round(periods_per_year / freq.periods_per_year))
-        n_bars = int(math.ceil(len(simple_returns) / steps_per_bar))
+        n_bars = math.ceil(len(simple_returns) / steps_per_bar)
         if n_bars >= _MIN_SR_OBSERVATIONS:
-            return _compound_return_chunks(simple_returns, steps_per_bar), freq.periods_per_year
+            return _compound_return_chunks(
+                simple_returns, steps_per_bar
+            ), freq.periods_per_year
 
     # Fallback: finest ladder entry (5-second) even if < 50 bars.
     finest = _REPORTING_LADDER[-1]
     steps_per_bar = max(1, round(periods_per_year / finest.periods_per_year))
-    n_bars = int(math.ceil(len(simple_returns) / steps_per_bar))
+    n_bars = math.ceil(len(simple_returns) / steps_per_bar)
     if n_bars < 2:
         # The eval window covers less than one bar at the finest supported
         # resolution (5-second). We cannot aggregate, so we keep the raw tick
@@ -75,7 +77,10 @@ def aggregate_to_reporting_frequency(
         # annualised vol but avoids both the NaN problem and the astronomical
         # inflation from using the raw tick ppy.
         return simple_returns, finest.periods_per_year
-    return _compound_return_chunks(simple_returns, steps_per_bar), finest.periods_per_year
+    return _compound_return_chunks(
+        simple_returns, steps_per_bar
+    ), finest.periods_per_year
+
 
 _NAN = float("nan")
 
@@ -89,20 +94,20 @@ class MetricReport:
     """
 
     # Metadata / scale
-    n_periods: float = _NAN             # number of raw return observations
-    n_bars: float = _NAN                # number of bars after frequency aggregation
+    n_periods: float = _NAN  # number of raw return observations
+    n_bars: float = _NAN  # number of bars after frequency aggregation
     periods_per_year_used: float = _NAN  # effective ppy used for annualised ratios
 
     # Return / growth
     total_return: float = _NAN
     annualized_return_cagr: float = _NAN
     annualized_volatility: float = _NAN
-    mean_return: float = _NAN           # per-bar mean return (μ)
-    std_return: float = _NAN            # per-bar standard deviation (σ)
+    mean_return: float = _NAN  # per-bar mean return (μ)
+    std_return: float = _NAN  # per-bar standard deviation (σ)
 
     # Risk-adjusted ratios
     sharpe_ratio: float = _NAN
-    sharpe_expost: float = _NAN         # sharpe_raw × √n_bars; t-stat interpretation
+    sharpe_expost: float = _NAN  # sharpe_raw × √n_bars; t-stat interpretation
     sortino_ratio: float = _NAN
     calmar_ratio: float = _NAN
     omega_ratio: float = _NAN
@@ -112,7 +117,7 @@ class MetricReport:
     average_drawdown: float = _NAN
     max_drawdown_duration: float = _NAN
     recovery_time_from_max_drawdown: float = _NAN
-    ulcer_index: float = _NAN           # sqrt(mean(drawdown²)); RMS drawdown pain
+    ulcer_index: float = _NAN  # sqrt(mean(drawdown²)); RMS drawdown pain
 
     # Tail risk
     var_95: float = _NAN
@@ -120,7 +125,7 @@ class MetricReport:
     var_99: float = _NAN
     cvar_99: float = _NAN
     downside_deviation: float = _NAN
-    tail_ratio: float = _NAN            # 95th-pctile return / |5th-pctile return|
+    tail_ratio: float = _NAN  # 95th-pctile return / |5th-pctile return|
 
     # Distribution shape
     return_skewness: float = _NAN
@@ -132,16 +137,16 @@ class MetricReport:
     profit_factor: float = _NAN
     payoff_ratio: float = _NAN
     expectancy_per_period: float = _NAN
-    gross_profit: float = _NAN          # sum of all positive returns
-    gross_loss: float = _NAN            # absolute sum of all negative returns
+    gross_profit: float = _NAN  # sum of all positive returns
+    gross_loss: float = _NAN  # absolute sum of all negative returns
 
     # Execution / position
     turnover: float = _NAN
     average_holding_period: float = _NAN
-    n_trades: float = _NAN              # number of position changes
+    n_trades: float = _NAN  # number of position changes
     pct_long: float = _NAN
     pct_short: float = _NAN
-    pct_neutral: float = _NAN           # fraction of periods with zero position
+    pct_neutral: float = _NAN  # fraction of periods with zero position
 
     # Benchmark-relative (NaN when no benchmark provided)
     beta: float = _NAN
@@ -172,7 +177,11 @@ class MetricReport:
 
     def __contains__(self, key: object) -> bool:
         """Support `key in report` — checks field names, mirrors dict behaviour."""
-        return isinstance(key, str) and hasattr(self, key) and key in {f.name for f in dataclasses.fields(self)}
+        return (
+            isinstance(key, str)
+            and hasattr(self, key)
+            and key in {f.name for f in dataclasses.fields(self)}
+        )
 
     def __getitem__(self, key: str) -> float:
         """Support `report[key]` — mirrors dict behaviour."""
@@ -194,6 +203,7 @@ def _safe_div(numerator: float, denominator: float) -> float:
 # ---------------------------------------------------------------------------
 # Three Sharpe / Sortino variants
 # ---------------------------------------------------------------------------
+
 
 def sharpe_raw(mu_excess: float, sigma: float) -> float:
     """Raw per-period Sharpe: μ_excess / σ.  No frequency scaling."""
@@ -228,7 +238,9 @@ def sortino_expost(mu_excess: float, downside_dev_per_bar: float, n_bars: int) -
     return _safe_div(mu_excess * np.sqrt(n_bars), downside_dev_per_bar)
 
 
-def sortino_annualized(mu_excess: float, downside_dev_per_bar: float, periods_per_year: int) -> float:
+def sortino_annualized(
+    mu_excess: float, downside_dev_per_bar: float, periods_per_year: int
+) -> float:
     """Annualised Sortino: (μ_excess / downside_dev) × √periods_per_year."""
     return _safe_div(mu_excess * np.sqrt(periods_per_year), downside_dev_per_bar)
 
@@ -335,7 +347,9 @@ def build_metric_report(
     )
     if isinstance(strategy_simple_returns, ReturnSeries):
         strategy_simple_returns = strategy_simple_returns.to_simple().values
-    _r_orig = np.asarray(strategy_simple_returns, dtype=float)  # kept with NaNs for position-aligned benchmark pairing
+    _r_orig = np.asarray(
+        strategy_simple_returns, dtype=float
+    )  # kept with NaNs for position-aligned benchmark pairing
     _orig_ppy = periods_per_year
     r_all, periods_per_year = aggregate_to_reporting_frequency(
         _r_orig[np.isfinite(_r_orig)], periods_per_year
@@ -385,7 +399,7 @@ def build_metric_report(
     drawdowns = _drawdown_series(equity)
     max_dd, avg_dd, max_dd_duration, recovery_time = _drawdown_stats(drawdowns)
     calmar = _safe_div(cagr, abs(max_dd))
-    ulcer_idx = float(np.sqrt(np.mean(drawdowns ** 2))) if drawdowns.size else np.nan
+    ulcer_idx = float(np.sqrt(np.mean(drawdowns**2))) if drawdowns.size else np.nan
 
     var_95, cvar_95 = _tail_risk(r, alpha=0.05)
     var_99, cvar_99 = _tail_risk(r, alpha=0.01)
@@ -460,8 +474,12 @@ def build_metric_report(
                 # strategy-only isfinite mask, usually a longer array) — use
                 # the paired ppy for these metrics so annualisation matches
                 # the actual bar spacing of rs/bs.
-                rs, ppy_paired = aggregate_to_reporting_frequency(_r_orig[:n][paired_mask], _orig_ppy)
-                bs, _ = aggregate_to_reporting_frequency(b_raw[:n][paired_mask], _orig_ppy)
+                rs, ppy_paired = aggregate_to_reporting_frequency(
+                    _r_orig[:n][paired_mask], _orig_ppy
+                )
+                bs, _ = aggregate_to_reporting_frequency(
+                    b_raw[:n][paired_mask], _orig_ppy
+                )
                 n = min(rs.size, bs.size)
                 rs, bs = rs[:n], bs[:n]
             else:
@@ -482,11 +500,15 @@ def build_metric_report(
             var_b = cov[1, 1]
             beta = _safe_div(cov[0, 1], var_b)
             if ppy_paired > 0:
-                alpha = (np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)) * ppy_paired
+                alpha = (
+                    np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)
+                ) * ppy_paired
                 active = rs - bs
                 active_std = float(np.std(active, ddof=1))
                 tracking_error = active_std * np.sqrt(ppy_paired)
-                info_ratio = _safe_div(float(np.mean(active)) * np.sqrt(ppy_paired), active_std)
+                info_ratio = _safe_div(
+                    float(np.mean(active)) * np.sqrt(ppy_paired), active_std
+                )
 
     return MetricReport(
         n_periods=float(_r_orig.size),
@@ -505,7 +527,9 @@ def build_metric_report(
         max_drawdown=max_dd,
         average_drawdown=avg_dd,
         max_drawdown_duration=float(max_dd_duration),
-        recovery_time_from_max_drawdown=float(recovery_time) if np.isfinite(recovery_time) else np.nan,
+        recovery_time_from_max_drawdown=float(recovery_time)
+        if np.isfinite(recovery_time)
+        else np.nan,
         ulcer_index=ulcer_idx,
         var_95=var_95,
         cvar_95=cvar_95,

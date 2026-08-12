@@ -18,7 +18,9 @@ def _wrapper_dict_obs() -> GymnasiumTradingEnvWrapper:
     inner.observation_space = gym.spaces.Dict(
         {"feat": gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3,), dtype=np.float32)}
     )
-    inner.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
+    inner.action_space = gym.spaces.Box(
+        low=-1.0, high=1.0, shape=(1,), dtype=np.float32
+    )
     return GymnasiumTradingEnvWrapper(inner)
 
 
@@ -28,7 +30,9 @@ def _wrapper_box_obs() -> GymnasiumTradingEnvWrapper:
     inner.observation_space = gym.spaces.Box(
         low=-np.inf, high=np.inf, shape=(4,), dtype=np.float32
     )
-    inner.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
+    inner.action_space = gym.spaces.Box(
+        low=-1.0, high=1.0, shape=(1,), dtype=np.float32
+    )
     return GymnasiumTradingEnvWrapper(inner)
 
 
@@ -64,7 +68,7 @@ class TestBankruptHandler:
         wrapper = _wrapper_box_obs()
         fake_obs = np.ones(4, dtype=np.float32) * 0.5
         wrapper._env.step.return_value = (fake_obs, 0.3, False, {"info_key": 1})
-        obs, reward, terminated, truncated, info = wrapper.step(np.array([0.5]))
+        obs, reward, terminated, truncated, _info = wrapper.step(np.array([0.5]))
 
         np.testing.assert_allclose(obs, fake_obs)
         assert reward == pytest.approx(0.3)

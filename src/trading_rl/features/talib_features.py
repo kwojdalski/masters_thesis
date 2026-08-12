@@ -153,7 +153,7 @@ class MACDFeature(Feature):
         slowperiod = self.config.params.get("slowperiod", 26)
         signalperiod = self.config.params.get("signalperiod", 9)
 
-        macd, signal, hist = talib.MACD(
+        macd, _signal, _hist = talib.MACD(
             df["close"].values,
             fastperiod=fastperiod,
             slowperiod=slowperiod,
@@ -320,7 +320,7 @@ class BBANDSFeature(Feature):
         nbdevup = self.config.params.get("nbdevup", 2)
         nbdevdn = self.config.params.get("nbdevdn", 2)
 
-        upper, middle, lower = talib.BBANDS(
+        upper, _middle, lower = talib.BBANDS(
             df["close"].values,
             timeperiod=period,
             nbdevup=nbdevup,
@@ -402,9 +402,7 @@ class ADOSCFeature(Feature):
             slowperiod=slowperiod,
         )
         # Normalize by volume
-        return pd.Series(
-            adosc / (df["volume"].values + 1e-8), index=df.index
-        ).fillna(0)
+        return pd.Series(adosc / (df["volume"].values + 1e-8), index=df.index).fillna(0)
 
 
 # =============================================================================

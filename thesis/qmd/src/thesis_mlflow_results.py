@@ -25,6 +25,26 @@ except Exception:
     _write_asset_meta = None
 
 try:
+    from logger import get_logger
+
+    _logger = get_logger(__name__)
+except Exception:
+    _logger = None
+
+
+def _log_fallback(context: str, exc: Exception) -> None:
+    """Debug-log a swallowed exception from a fallback data-loading attempt.
+
+    Failures here are expected (a source may simply not be populated yet) and
+    the caller always has another fallback to try, so this is deliberately
+    debug-level rather than a warning -- but silent `except: pass` makes a
+    genuinely broken source indistinguishable from a merely-absent one.
+    """
+    if _logger is not None:
+        _logger.debug(f"{context}: {type(exc).__name__}: {exc}")
+
+
+try:
     from trading_rl.config import EXPERIMENT_OUTPUT_DIR as _EXPERIMENT_OUTPUT_DIR
 except Exception:
     _EXPERIMENT_OUTPUT_DIR = Path("logs")
@@ -43,7 +63,9 @@ def thesis_results_root() -> Path:
     return _repo_root() / "thesis" / "qmd" / "results"
 
 
-def _experiment_snapshot_dir(experiment_name: str, output_root: Path | None = None) -> Path:
+def _experiment_snapshot_dir(
+    experiment_name: str, output_root: Path | None = None
+) -> Path:
     root = output_root if output_root is not None else thesis_results_root()
     return root / experiment_name
 
@@ -232,8 +254,8 @@ def find_evaluation_plot_data(
                 sidecar = load_asset_meta(files[-1])
                 if sidecar:
                     result.setdefault("asset_meta", {})[frame_name] = sidecar
-            except Exception:
-                pass
+            except Exception as exc:
+                _log_fallback(f"reading rollout parquet for {frame_name!r}", exc)
 
     def _find_meta_json() -> list[Path]:
         for split in ("test", "val", "train"):
@@ -248,8 +270,8 @@ def find_evaluation_plot_data(
         try:
             with open(meta_files[-1], encoding="utf-8") as f:
                 result.update(json.load(f))
-        except Exception:
-            pass
+        except Exception as exc:
+            _log_fallback("reading plot metadata json", exc)
 
     return result
 
@@ -301,7 +323,7 @@ def find_evaluation_plots(
                         found[key] = p
 
     # Scenario-specific log dirs (checked live — always reflects the latest evaluate run)
-    for log_dir in (log_dirs or []):
+    for log_dir in log_dirs or []:
         if not log_dir.exists():
             continue
         for key, pattern in cli_plot_patterns.items():
@@ -341,7 +363,9 @@ def _find_static_export_plots(experiment_name: str) -> dict[str, Path]:
         return {}
 
 
-def latest_run_for_experiment(experiment_name: str, status: str | None = None) -> dict[str, Any] | None:
+def latest_run_for_experiment(
+    experiment_name: str, status: str | None = None
+) -> dict[str, Any] | None:
     exp = get_experiment_by_name(experiment_name)
     if exp is None:
         return None
@@ -360,7 +384,9 @@ def latest_run_for_experiment(experiment_name: str, status: str | None = None) -
     row["evaluation_report"] = load_latest_evaluation_report(row["artifact_uri"])
     row["statistical_tests"] = load_latest_statistical_tests(row["artifact_uri"])
     log_dirs = _scenario_log_dirs(experiment_name)
-    row["evaluation_plots"] = find_evaluation_plots(row["artifact_uri"], log_dirs=log_dirs)
+    row["evaluation_plots"] = find_evaluation_plots(
+        row["artifact_uri"], log_dirs=log_dirs
+    )
     # Supplement with static export plots when neither MLflow nor log dirs have any
     # (e.g. evaluate was run with --only metrics before plots were ever generated).
     if not row["evaluation_plots"]:
@@ -417,11 +443,11 @@ def format_key_metrics(report: dict[str, Any] | None) -> pd.DataFrame:
         if key not in report:
             continue
         val = report[key]
-        if isinstance(val, (int, float)):
+        if isinstance(val, int | float):
             if key in small_return_keys:
                 rows.append((label, f"{val:.2e}"))
             elif key in pct_keys:
-                rows.append((label, f"{val*100:.2f}%"))
+                rows.append((label, f"{val * 100:.2f}%"))
             else:
                 rows.append((label, f"{val:.4f}"))
         else:
@@ -465,7 +491,9 @@ def format_benchmark_comparison_table(
         "turnover": "Turnover",
     }
 
-    display_frame = display_frame[[c for c in ordered_columns if c in display_frame.columns]]
+    display_frame = display_frame[
+        [c for c in ordered_columns if c in display_frame.columns]
+    ]
     for column in display_frame.columns:
         if column == "strategy":
             continue
@@ -513,9 +541,7 @@ def format_statistical_significance_summary(
                     "Test": str(test_name).replace("_", " ").title(),
                     "Benchmark": baseline_name.replace("_", " ").title(),
                     "p-value": float(p_value),
-                    "Significant (p < 0.05)": (
-                        "Yes" if bool(significant) else "No"
-                    ),
+                    "Significant (p < 0.05)": ("Yes" if bool(significant) else "No"),
                 }
             )
 
@@ -546,6 +572,7 @@ def _load_experiment_snapshot_from_mlflow(experiment_name: str) -> ExperimentSna
 def _sanitise_for_json(obj: Any) -> Any:
     """Recursively replace NaN/Inf floats with None so json.dumps produces valid JSON."""
     import math
+
     if isinstance(obj, float):
         return None if not math.isfinite(obj) else obj
     if isinstance(obj, dict):
@@ -580,14 +607,16 @@ def _json_number_or_none(value: Any) -> Any:
     try:
         if pd.isna(value):
             return None
-    except Exception:
-        pass
-    if isinstance(value, (int, float, str, bool)):
+    except Exception as exc:
+        _log_fallback(f"pd.isna check on {type(value).__name__} value", exc)
+    if isinstance(value, int | float | str | bool):
         return value
     return str(value)
 
 
-def _copy_plots_to_snapshot(plots: dict[str, Path], destination_dir: Path) -> dict[str, str]:
+def _copy_plots_to_snapshot(
+    plots: dict[str, Path], destination_dir: Path
+) -> dict[str, str]:
     copied: dict[str, str] = {}
     plot_dir = destination_dir / "plots"
     plot_dir.mkdir(parents=True, exist_ok=True)
@@ -605,7 +634,9 @@ def _copy_plots_to_snapshot(plots: dict[str, Path], destination_dir: Path) -> di
     return copied
 
 
-def _serialize_run_payload_for_export(run: dict[str, Any], destination_dir: Path) -> dict[str, Any]:
+def _serialize_run_payload_for_export(
+    run: dict[str, Any], destination_dir: Path
+) -> dict[str, Any]:
     destination_dir.mkdir(parents=True, exist_ok=True)
 
     params = dict(run.get("params", {}) or {})
@@ -618,8 +649,7 @@ def _serialize_run_payload_for_export(run: dict[str, Any], destination_dir: Path
         }
     elif isinstance(latest_metrics_obj, dict):
         latest_metrics_dict = {
-            str(k): _json_number_or_none(v)
-            for k, v in latest_metrics_obj.items()
+            str(k): _json_number_or_none(v) for k, v in latest_metrics_obj.items()
         }
     else:
         latest_metrics_dict = {}
@@ -663,7 +693,9 @@ def _serialize_run_payload_for_export(run: dict[str, Any], destination_dir: Path
     return run_json
 
 
-def export_experiment_snapshot(experiment_name: str, output_root: Path | None = None) -> Path:
+def export_experiment_snapshot(
+    experiment_name: str, output_root: Path | None = None
+) -> Path:
     """Export a thesis-friendly snapshot for an MLflow experiment.
 
     The export contains JSON/Parquet/PNG artifacts so Quarto can render without
@@ -720,8 +752,12 @@ def export_experiment_snapshot(experiment_name: str, output_root: Path | None = 
             "runs_overview_json": "runs_overview.json",
         },
         "runs": {
-            "latest_running": None if exported_runs["latest_running"] is None else "latest_running/run.json",
-            "latest_finished": None if exported_runs["latest_finished"] is None else "latest_finished/run.json",
+            "latest_running": None
+            if exported_runs["latest_running"] is None
+            else "latest_running/run.json",
+            "latest_finished": None
+            if exported_runs["latest_finished"] is None
+            else "latest_finished/run.json",
         },
     }
     _write_json(output_dir / "manifest.json", manifest)
@@ -782,7 +818,9 @@ def _load_run_from_export(run_json_path: Path) -> dict[str, Any] | None:
     return loaded
 
 
-def _load_experiment_snapshot_from_export(experiment_name: str) -> ExperimentSnapshot | None:
+def _load_experiment_snapshot_from_export(
+    experiment_name: str,
+) -> ExperimentSnapshot | None:
     snapshot_dir = _experiment_snapshot_dir(experiment_name)
     manifest_path = snapshot_dir / "manifest.json"
     if not manifest_path.exists():
@@ -804,14 +842,19 @@ def _load_experiment_snapshot_from_export(experiment_name: str) -> ExperimentSna
     )
 
 
-def _supplement_run_from_export(live_run: dict[str, Any], export_run: dict[str, Any]) -> None:
+def _supplement_run_from_export(
+    live_run: dict[str, Any], export_run: dict[str, Any]
+) -> None:
     """Fill gaps in a live-MLflow run dict using a static-export run dict.
 
     The live MLflow path may be missing artifacts that were only written to the
     thesis snapshot (e.g. statistical_tests, final evaluation plots).  Supplement
     rather than replace so live data always takes precedence.
     """
-    if live_run.get("statistical_tests") is None and export_run.get("statistical_tests") is not None:
+    if (
+        live_run.get("statistical_tests") is None
+        and export_run.get("statistical_tests") is not None
+    ):
         live_run["statistical_tests"] = export_run["statistical_tests"]
     if not live_run.get("evaluation_plots") and export_run.get("evaluation_plots"):
         live_run["evaluation_plots"] = export_run["evaluation_plots"]
@@ -834,8 +877,8 @@ def load_experiment_snapshot(experiment_name: str) -> ExperimentSnapshot:
                     if live_run is not None and exp_run is not None:
                         _supplement_run_from_export(live_run, exp_run)
             return live
-    except Exception:
-        pass
+    except Exception as exc:
+        _log_fallback(f"loading live MLflow snapshot for {experiment_name!r}", exc)
     exported = _load_experiment_snapshot_from_export(experiment_name)
     if exported is not None:
         return exported
@@ -852,8 +895,10 @@ def runs_overview_table(experiment_name: str) -> pd.DataFrame:
         df = _runs_overview_table_from_mlflow(experiment_name)
         if not df.empty:
             return df
-    except Exception:
-        pass
+    except Exception as exc:
+        _log_fallback(
+            f"loading runs overview from live MLflow for {experiment_name!r}", exc
+        )
     snapshot_dir = _experiment_snapshot_dir(experiment_name)
     json_path = snapshot_dir / "runs_overview.json"
     parquet_path = snapshot_dir / "runs_overview.parquet"
@@ -871,6 +916,7 @@ def runs_overview_table(experiment_name: str) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # Multi-scenario comparison helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_results_json_tolerant(path: Path) -> dict:
     """Parse results.json that may contain bare NaN/Infinity tokens."""
@@ -904,7 +950,7 @@ def _aggregate_from_results_json(results: dict, split: str = "test") -> dict[str
             entry["metrics"][key]
             for entry in entries.values()
             if key in entry["metrics"]
-            and isinstance(entry["metrics"][key], (int, float))
+            and isinstance(entry["metrics"][key], int | float)
             and entry["metrics"][key] is not None
             and math.isfinite(entry["metrics"][key])
         ]
@@ -922,14 +968,21 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
        so "pooled_td3_..." maps to logs/td3_.../results.json)
     """
     # 1. Thesis snapshot (fastest — no DB round-trip)
-    snap_path = thesis_results_root() / scenario_name / "latest_finished" / "evaluation_report.json"
+    snap_path = (
+        thesis_results_root()
+        / scenario_name
+        / "latest_finished"
+        / "evaluation_report.json"
+    )
     if snap_path.exists():
         try:
             data = json.loads(snap_path.read_text())
             if isinstance(data, dict) and data:
                 return data
-        except Exception:
-            pass
+        except Exception as exc:
+            _log_fallback(
+                f"reading thesis snapshot evaluation_report for {scenario_name!r}", exc
+            )
 
     # 2. MLflow
     try:
@@ -938,8 +991,10 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
             report = live.latest_finished.get("evaluation_report")
             if isinstance(report, dict) and report:
                 return report
-    except Exception:
-        pass
+    except Exception as exc:
+        _log_fallback(
+            f"loading live MLflow evaluation_report for {scenario_name!r}", exc
+        )
 
     # 3. logs/{log_name}/results.json
     logs_root = _repo_root() / _EXPERIMENT_OUTPUT_DIR
@@ -953,8 +1008,8 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
                 aggregated = _aggregate_from_results_json(results, split)
                 if aggregated:
                     return aggregated
-            except Exception:
-                pass
+            except Exception as exc:
+                _log_fallback(f"reading logs results.json at {results_path}", exc)
 
     return {}
 
@@ -966,12 +1021,14 @@ def load_experiment_hyperparams(experiment_name: str) -> dict[str, Any]:
     the scenario train.yaml used for the run. Returns an empty dict when no
     snapshot is available.
     """
-    hp_path = thesis_results_root() / experiment_name / "latest_finished" / "hyperparams.json"
+    hp_path = (
+        thesis_results_root() / experiment_name / "latest_finished" / "hyperparams.json"
+    )
     if hp_path.exists():
         try:
             return json.loads(hp_path.read_text())
-        except Exception:
-            pass
+        except Exception as exc:
+            _log_fallback(f"reading hyperparams.json for {experiment_name!r}", exc)
     return {}
 
 
@@ -1033,11 +1090,19 @@ def load_scenario_feature_info(scenario_path: str) -> dict[str, Any]:
       - ``has_position`` — whether a runtime position feature is included
       - ``group_counts`` — mapping of group name → feature count (LOB features only)
     """
-    obs_yaml = _repo_root() / "src" / "configs" / "scenarios" / scenario_path / "observation.yaml"
+    obs_yaml = (
+        _repo_root()
+        / "src"
+        / "configs"
+        / "scenarios"
+        / scenario_path
+        / "observation.yaml"
+    )
     if not obs_yaml.exists():
         return {}
     try:
         import yaml
+
         raw = yaml.safe_load(obs_yaml.read_text(encoding="utf-8"))
     except Exception:
         return {}
@@ -1087,6 +1152,7 @@ def compute_mlp_parameter_count(
 # Public repo root accessor
 # ---------------------------------------------------------------------------
 
+
 def repo_root() -> Path:
     """Return the repository root as an absolute Path."""
     return _repo_root()
@@ -1107,12 +1173,15 @@ def find_observation_sample(
 
     Returns the largest matching file as a DataFrame, or ``None`` if nothing is found.
     """
+
     def _find_in_dir(directory: Path) -> Path | None:
         if not directory.exists():
             return None
         candidates: list[Path] = []
         if symbol:
-            candidates = list(directory.glob(f"{split}_{symbol}_observations_head_*.parquet"))
+            candidates = list(
+                directory.glob(f"{split}_{symbol}_observations_head_*.parquet")
+            )
         if not candidates:
             candidates = list(directory.glob(f"{split}_observations_head_*.parquet"))
         if not candidates:
@@ -1138,24 +1207,31 @@ def find_observation_sample(
 # H4 learning report loader
 # ---------------------------------------------------------------------------
 
+
 def load_h4_report(scenario_name: str) -> dict[str, Any]:
     """Load the H4 learning report JSON for a given scenario.
 
     Looks for ``thesis/qmd/results/<scenario_name>/latest_finished/h4_learning_report.json``.
     Returns an empty dict when the file is missing or unparseable.
     """
-    path = thesis_results_root() / scenario_name / "latest_finished" / "h4_learning_report.json"
+    path = (
+        thesis_results_root()
+        / scenario_name
+        / "latest_finished"
+        / "h4_learning_report.json"
+    )
     if path.exists():
         try:
             return json.loads(path.read_text())
-        except Exception:
-            pass
+        except Exception as exc:
+            _log_fallback(f"reading h4_learning_report.json for {scenario_name!r}", exc)
     return {}
 
 
 # ---------------------------------------------------------------------------
 # Experiment specification row builder (appendix table)
 # ---------------------------------------------------------------------------
+
 
 def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str, str]]:
     """Build (Component, Specification) rows for the appendix experiment spec table.
@@ -1195,57 +1271,72 @@ def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str,
         else f"Actor {actor_lr}; critic {value_lr}"
     )
 
-    actor_wd = _get("actor_weight_decay", 0.0)
+    _get("actor_weight_decay", 0.0)
     value_wd = _get("value_weight_decay", 2e-6)
     wd_str = f"Actor 0.0; critic {fmt_scientific(value_wd)}" if value_wd else "0.0"
 
-    episode_len   = _get("streaming_episode_length", 10_000)
-    reward_type   = _get("reward_type", "differential_sharpe")
-    reward_eta    = _get("reward_eta", 0.01)
-    trading_fees  = _get("trading_fees", 0.0)
-    algorithm     = _get("algorithm", "TD3")
-    gamma         = _get("gamma", 0.9)
-    tau           = _get("tau", 0.005)
-    policy_delay  = _get("policy_delay", 2)
-    policy_noise  = _get("policy_noise", 0.2)
-    noise_clip    = _get("noise_clip", 0.3)
-    exploration   = _get("exploration_noise_std", 0.3)
-    max_steps     = _get("max_steps", 3_000_000)
-    init_rand     = _get("init_rand_steps", 5_000)
-    fpb           = _get("frames_per_batch", 200)
-    optim_steps   = _get("optim_steps_per_batch", 5)
-    sample_size   = _get("sample_size", 128)
-    buffer_size   = _get("buffer_size", 100_000)
-    loss_fn       = _get("loss_function", "smooth_l1")
+    episode_len = _get("streaming_episode_length", 10_000)
+    reward_type = _get("reward_type", "differential_sharpe")
+    reward_eta = _get("reward_eta", 0.01)
+    trading_fees = _get("trading_fees", 0.0)
+    algorithm = _get("algorithm", "TD3")
+    gamma = _get("gamma", 0.9)
+    tau = _get("tau", 0.005)
+    policy_delay = _get("policy_delay", 2)
+    policy_noise = _get("policy_noise", 0.2)
+    noise_clip = _get("noise_clip", 0.3)
+    exploration = _get("exploration_noise_std", 0.3)
+    max_steps = _get("max_steps", 3_000_000)
+    init_rand = _get("init_rand_steps", 5_000)
+    fpb = _get("frames_per_batch", 200)
+    optim_steps = _get("optim_steps_per_batch", 5)
+    sample_size = _get("sample_size", 128)
+    buffer_size = _get("buffer_size", 100_000)
+    loss_fn = _get("loss_function", "smooth_l1")
 
     return [
-        ("Asset and data",               "AAPL, MSFT, TSLA, META, AMZN, and AVGO; ten-level limit order book observations during regular U.S. trading hours"),
-        ("Training data",                "18 pooled symbol-day files: AAPL, AMZN, AVGO, META, MSFT, and TSLA over February 25–27, 2026"),
-        ("Validation/test data",         "March 2, 2026 symbol-day files, capped at 50,000 rows per split"),
-        ("Feature set",                  "Selected causal LOB microstructure set: book pressure L0, three-level OBI, order-count imbalance L0, microprice, microprice divergence, bid/ask slope, OFI, 50-event rolling OFI, 50-event signed trade flow, and runtime position"),
-        ("Environment backend",          "Continuous single-asset trading environment"),
-        ("Episode length",               f"{episode_len:,} event-time steps (streaming)"),
-        ("Action",                       "Target portfolio exposure in [-1, 1]"),
-        ("Reward",                       f"{fmt_reward_type(reward_type)} with eta = {reward_eta}"),
-        ("Transaction fee",              f"{trading_fees:.3f} in the baseline setting"),
-        ("Algorithm",                    algorithm),
-        ("Network widths",               network_dims),
-        ("Learning rates",               lr_str),
-        ("Weight decay",                 wd_str),
-        ("Discount factor",              f"gamma = {gamma}"),
-        ("Target update",                f"tau = {tau}"),
-        ("Policy delay",                 f"{policy_delay} critic updates per actor update"),
-        ("Target policy noise",          f"sigma = {policy_noise}, clipped at +/-{noise_clip}"),
-        ("Exploration noise",            f"sigma = {exploration} during training"),
-        ("Total training steps",         f"{max_steps:,}"),
-        ("Initial random steps",         f"{init_rand:,}"),
-        ("Frames per batch",             f"{fpb:,}"),
+        (
+            "Asset and data",
+            "AAPL, MSFT, TSLA, META, AMZN, and AVGO; ten-level limit order book observations during regular U.S. trading hours",
+        ),
+        (
+            "Training data",
+            "18 pooled symbol-day files: AAPL, AMZN, AVGO, META, MSFT, and TSLA over February 25–27, 2026",
+        ),
+        (
+            "Validation/test data",
+            "March 2, 2026 symbol-day files, capped at 50,000 rows per split",
+        ),
+        (
+            "Feature set",
+            "Selected causal LOB microstructure set: book pressure L0, three-level OBI, order-count imbalance L0, microprice, microprice divergence, bid/ask slope, OFI, 50-event rolling OFI, 50-event signed trade flow, and runtime position",
+        ),
+        ("Environment backend", "Continuous single-asset trading environment"),
+        ("Episode length", f"{episode_len:,} event-time steps (streaming)"),
+        ("Action", "Target portfolio exposure in [-1, 1]"),
+        ("Reward", f"{fmt_reward_type(reward_type)} with eta = {reward_eta}"),
+        ("Transaction fee", f"{trading_fees:.3f} in the baseline setting"),
+        ("Algorithm", algorithm),
+        ("Network widths", network_dims),
+        ("Learning rates", lr_str),
+        ("Weight decay", wd_str),
+        ("Discount factor", f"gamma = {gamma}"),
+        ("Target update", f"tau = {tau}"),
+        ("Policy delay", f"{policy_delay} critic updates per actor update"),
+        ("Target policy noise", f"sigma = {policy_noise}, clipped at +/-{noise_clip}"),
+        ("Exploration noise", f"sigma = {exploration} during training"),
+        ("Total training steps", f"{max_steps:,}"),
+        ("Initial random steps", f"{init_rand:,}"),
+        ("Frames per batch", f"{fpb:,}"),
         ("Optimisation steps per batch", str(optim_steps)),
-        ("Mini-batch size",              f"{sample_size:,}"),
-        ("Replay buffer size",           f"{buffer_size:,}"),
-        ("Loss function",                fmt_loss_fn(loss_fn)),
-        ("Evaluation random seed",       "42"),
-        ("Compute environment",          "Apple M3 MacBook (November 2023) with 18 GB unified memory"),
+        ("Mini-batch size", f"{sample_size:,}"),
+        ("Replay buffer size", f"{buffer_size:,}"),
+        ("Loss function", fmt_loss_fn(loss_fn)),
+        ("Evaluation random seed", "42"),
+        (
+            "Compute environment",
+            "Apple M3 MacBook (November 2023) with 18 GB unified memory",
+        ),
     ]
 
 
@@ -1259,12 +1350,14 @@ def audit_plots_enabled() -> bool:
         AUDIT_PLOTS=1 uv run quarto render masters-thesis.qmd --to pdf
     """
     import os
+
     return os.environ.get("AUDIT_PLOTS", "").lower() in {"1", "true", "yes"}
 
 
 def _figures_dir() -> Path:
     """Return (and create) the _figures/ subdir next to this file."""
     from pathlib import Path
+
     d = Path(__file__).parent / "_figures"
     d.mkdir(exist_ok=True)
     return d
@@ -1344,12 +1437,12 @@ def show_plot(
 
     # Extract and strip text labels from the plot.
     # labels_view is a dataclass — use attribute access, not dict methods.
-    title    = plot.labels.title    or ""
+    title = plot.labels.title or ""
     subtitle = plot.labels.subtitle or ""
-    caption  = fig_cap or plot.labels.caption or ""
-    plot.labels.title    = None
+    caption = fig_cap or plot.labels.caption or ""
+    plot.labels.title = None
     plot.labels.subtitle = None
-    plot.labels.caption  = None
+    plot.labels.caption = None
 
     if fig_label:
         # --- Figure-env mode: save to file, emit Quarto cross-ref div ---
@@ -1369,12 +1462,14 @@ def show_plot(
             parts.append(caption)
         cap_md = "\n\n".join(parts)
 
-        display(Markdown(
-            f"::: {{#{fig_label}}}\n\n"
-            f"![](_figures/{fig_label}.png)\n\n"
-            f"{cap_md}\n\n"
-            f":::"
-        ))
+        display(
+            Markdown(
+                f"::: {{#{fig_label}}}\n\n"
+                f"![](_figures/{fig_label}.png)\n\n"
+                f"{cap_md}\n\n"
+                f":::"
+            )
+        )
     else:
         # --- Inline mode: title/caption always emitted as Markdown ---
         if title:
@@ -1434,13 +1529,13 @@ def show_table_meta(data: dict[str, Any], *, audit: bool = False) -> None:
         # Fallback: render-time commit + export timestamp from finished dict
         try:
             from trading_rl.evaluation.asset_meta import _git_commit
+
             commit = _git_commit()[:8]
         except Exception:
             commit = "unknown"
         source = data.get("source") or {}
         exported_at = (
-            source.get("exported_at_utc")
-            or str(data.get("start_time", ""))[:19]
+            source.get("exported_at_utc") or str(data.get("start_time", ""))[:19]
         )
         parts = [f"commit: {commit}"]
         if exported_at:

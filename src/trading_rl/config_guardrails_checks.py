@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -23,22 +23,23 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     FATAL = "FATAL"
-    WARN  = "WARN"
+    WARN = "WARN"
 
 
 @dataclass
 class Finding:
     severity: Severity
-    parameter: str          # dotted config key(s) involved
-    message: str            # what is wrong
-    suggestion: str         # what to change
+    parameter: str  # dotted config key(s) involved
+    message: str  # what is wrong
+    suggestion: str  # what to change
 
 
 # ---------------------------------------------------------------------------
 # Algorithm helpers
 # ---------------------------------------------------------------------------
+
 
 def _is_off_policy(algorithm: str) -> bool:
     return algorithm.upper() in {"DDPG", "TD3"}
@@ -51,6 +52,7 @@ def _is_ppo(algorithm: str) -> bool:
 # ---------------------------------------------------------------------------
 # Individual checks
 # ---------------------------------------------------------------------------
+
 
 def _check_sample_size_vs_init_rand(config: ExperimentConfig) -> Finding | None:
     """FATAL (off-policy): sample_size > init_rand_steps → first buffer sample crashes."""
@@ -154,8 +156,13 @@ def _configured_oracle_features(config: ExperimentConfig) -> list[str]:
         if not isinstance(feature, dict):
             continue
         feature_type = str(feature.get("feature_type", ""))
-        output_name = str(feature.get("output_name") or f"feature_{feature.get('name', '')}")
-        if feature_type in _ORACLE_FEATURE_TYPES or output_name in _ORACLE_FEATURE_OUTPUTS:
+        output_name = str(
+            feature.get("output_name") or f"feature_{feature.get('name', '')}"
+        )
+        if (
+            feature_type in _ORACLE_FEATURE_TYPES
+            or output_name in _ORACLE_FEATURE_OUTPUTS
+        ):
             found.add(output_name if output_name else feature_type)
 
     return sorted(found)
@@ -284,6 +291,7 @@ def _check_eval_interval(config: ExperimentConfig) -> Finding | None:
 def _check_dsr_reward_scale(config: ExperimentConfig) -> Finding | None:
     """WARN: DSR + high reward_scale → large reward magnitudes; advice depends on grad clipping."""
     from trading_rl.constants import RewardType
+
     if config.env.reward_type != RewardType.DIFFERENTIAL_SHARPE:
         return None
     scale = config.env.reward_scale
@@ -514,6 +522,7 @@ def _check_tau_too_large(config: ExperimentConfig) -> Finding | None:
 def _check_dsr_eta_range(config: ExperimentConfig) -> Finding | None:
     """WARN (DSR): reward_eta outside [1e-4, 0.5] → EMA either barely adapts or forgets instantly."""
     from trading_rl.constants import RewardType
+
     if config.env.reward_type != RewardType.DIFFERENTIAL_SHARPE:
         return None
     eta = config.env.reward_eta
@@ -1655,7 +1664,9 @@ def _check_frames_per_batch_vs_max_steps(config: ExperimentConfig) -> Finding | 
 
 def _check_buffer_size_vs_sample_size(config: ExperimentConfig) -> Finding | None:
     """WARN (off-policy): buffer_size < 10 × sample_size → samples are highly correlated."""
-    if not _is_off_policy(config.training.algorithm) and not _is_sac(config.training.algorithm):
+    if not _is_off_policy(config.training.algorithm) and not _is_sac(
+        config.training.algorithm
+    ):
         return None
     b = config.training.buffer_size
     s = config.training.sample_size
@@ -1837,6 +1848,8 @@ def check_config_guardrails(config: ExperimentConfig) -> list[Finding]:
             if result is not None:
                 findings.append(result)
         except Exception as exc:  # never let a guardrail crash the run
-            logger.warning("guardrail check {} failed unexpectedly: {}", check.__name__, exc)
+            logger.warning(
+                "guardrail check {} failed unexpectedly: {}", check.__name__, exc
+            )
     findings.sort(key=lambda f: 0 if f.severity == Severity.FATAL else 1)
     return findings

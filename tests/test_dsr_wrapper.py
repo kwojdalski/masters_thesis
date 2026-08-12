@@ -239,16 +239,16 @@ class TestStatefulRewardWrapper:
         wrapped.reset()
 
         # Take steps
-        obs, reward1, terminated, truncated, info = wrapped.step(0)
+        _obs, reward1, _terminated, _truncated, _info = wrapped.step(0)
         assert reward1 == 0.0  # First DSR step is always 0
 
-        obs, reward2, terminated, truncated, info = wrapped.step(1)
+        _obs, reward2, _terminated, _truncated, _info = wrapped.step(1)
         # Second step still returns ~0 (EMAs just starting to build)
         assert abs(reward2) < 1e-6
         assert np.isfinite(reward2)
 
         # Third step should have non-zero DSR
-        obs, reward3, terminated, truncated, info = wrapped.step(0)
+        _obs, reward3, _terminated, _truncated, _info = wrapped.step(0)
         assert abs(reward3) > 1e-10
         assert np.isfinite(reward3)
 
@@ -263,7 +263,7 @@ class TestStatefulRewardWrapper:
         # Take several steps
         rewards = []
         for _ in range(3):
-            obs, reward, terminated, truncated, info = wrapped.step(0)
+            _obs, reward, _terminated, _truncated, _info = wrapped.step(0)
             rewards.append(reward)
 
         # State should have been updated

@@ -16,8 +16,10 @@ def example_standard_selection():
     print("\n=== Standard Single-Split Selection ===")
 
     # Load feature groups
-    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
-    candidates = resolver.resolve(["imbalance", "fair_value"])
+    resolver = FeatureGroupResolver.from_yaml(
+        "src/configs/feature_sets/feature_groups.yaml"
+    )
+    resolver.resolve(["imbalance", "fair_value"])
 
     # Standard selection
     config = FeatureSelectorConfig(
@@ -25,7 +27,7 @@ def example_standard_selection():
         horizon=1,
         icir_threshold=0.02,
     )
-    selector = FeatureSelector(config)
+    FeatureSelector(config)
 
     # Load your data (replace with actual data loading)
     # train_df = pd.read_pickle("path/to/train.pkl")
@@ -39,8 +41,10 @@ def example_cross_validated_selection():
     """Cross-validated feature selection with ensemble."""
     print("\n=== Cross-Validated Selection ===")
 
-    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
-    candidates = resolver.resolve(["imbalance", "fair_value", "spread"])
+    resolver = FeatureGroupResolver.from_yaml(
+        "src/configs/feature_sets/feature_groups.yaml"
+    )
+    resolver.resolve(["imbalance", "fair_value", "spread"])
 
     # Cross-validated selection
     config = FeatureSelectorConfig(
@@ -51,7 +55,7 @@ def example_cross_validated_selection():
         cv_gap=100,
         ensemble_method="rank_average",  # or "majority", "weighted"
     )
-    selector = FeatureSelector(config)
+    FeatureSelector(config)
 
     # Load full dataset
     # df = pd.read_pickle("path/to/data.pkl")
@@ -64,8 +68,10 @@ def example_multi_horizon_selection():
     """Multi-horizon feature selection for composite scoring."""
     print("\n=== Multi-Horizon Selection ===")
 
-    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
-    candidates = resolver.resolve(["imbalance", "fair_value", "flow"])
+    resolver = FeatureGroupResolver.from_yaml(
+        "src/configs/feature_sets/feature_groups.yaml"
+    )
+    resolver.resolve(["imbalance", "fair_value", "flow"])
 
     # Multi-horizon selection
     config = FeatureSelectorConfig(
@@ -75,7 +81,7 @@ def example_multi_horizon_selection():
         horizon_weights=[0.4, 0.3, 0.2, 0.1],  # Weight short-term more
         horizon=1,  # Default horizon for fallback
     )
-    selector = FeatureSelector(config)
+    FeatureSelector(config)
 
     # Load train/validation splits
     # train_df = pd.read_pickle("path/to/train.pkl")
@@ -89,8 +95,10 @@ def example_hyperparameter_search():
     """Automated hyperparameter search."""
     print("\n=== Hyperparameter Search ===")
 
-    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
-    candidates = resolver.resolve(["imbalance", "fair_value", "spread"])
+    resolver = FeatureGroupResolver.from_yaml(
+        "src/configs/feature_sets/feature_groups.yaml"
+    )
+    resolver.resolve(["imbalance", "fair_value", "spread"])
 
     # Hyperparameter search
     config = FeatureSelectorConfig(
@@ -103,7 +111,7 @@ def example_hyperparameter_search():
         n_cv_splits=3,
         cv_test_size=800,
     )
-    selector = FeatureSelector(config)
+    FeatureSelector(config)
 
     # Load full dataset
     # df = pd.read_pickle("path/to/data.pkl")
@@ -116,8 +124,10 @@ def example_combined_approach():
     """Combine CV and multi-horizon for robust selection."""
     print("\n=== Combined CV + Multi-Horizon ===")
 
-    resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
-    candidates = resolver.resolve(resolver.list_groups())  # All groups
+    resolver = FeatureGroupResolver.from_yaml(
+        "src/configs/feature_sets/feature_groups.yaml"
+    )
+    resolver.resolve(resolver.list_groups())  # All groups
 
     # Combined approach
     config = FeatureSelectorConfig(
@@ -131,7 +141,7 @@ def example_combined_approach():
         horizon_weights=[0.4, 0.3, 0.2, 0.1],
         ensemble_method="weighted",  # Weight by ICIR scores
     )
-    selector = FeatureSelector(config)
+    FeatureSelector(config)
 
     # Load full dataset
     # df = pd.read_pickle("path/to/data.pkl")
