@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
@@ -27,15 +26,13 @@ from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
 from rich.table import Table
 
+from logger import get_logger, setup_logging
+
 load_dotenv(find_dotenv())
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 console = Console()
 DEFAULT_OUTPUT_DIR = Path("data/raw/stocks")
-
-sys.path.insert(0, str(REPO_ROOT / "src"))
-
-from logger import get_logger, setup_logging
 
 setup_logging(level="INFO")
 logger = get_logger(__name__)
@@ -130,13 +127,23 @@ def run_command(command: list[str], *, dry_run: bool) -> None:
 
 def fetch_command(job: ThesisStockDownload, output_dir: Path, force: bool) -> list[str]:
     command = [
-        "uv", "run", "python", "scripts/fetch_stocks.py", "download-stocks",
-        "--symbols", job.symbol,
-        "--start-date", job.start_date,
-        "--end-date", job.end_date,
-        "--dataset", job.dataset,
-        "--schema", job.schema,
-        "--output-dir", str(output_dir),
+        "uv",
+        "run",
+        "python",
+        "scripts/fetch_stocks.py",
+        "download-stocks",
+        "--symbols",
+        job.symbol,
+        "--start-date",
+        job.start_date,
+        "--end-date",
+        job.end_date,
+        "--dataset",
+        job.dataset,
+        "--schema",
+        job.schema,
+        "--output-dir",
+        str(output_dir),
         "--sequential",
     ]
     command.append("--aggregate" if job.aggregate else "--raw")
@@ -159,11 +166,20 @@ def _print_summary_table(jobs: list[ThesisStockDownload], output_dir: Path) -> N
             try:
                 n_rows = pq.read_metadata(filtered_file).num_rows
                 total_rows += n_rows
-                table.add_row(job.symbol, filtered_file.name, f"{n_rows:,}", "[green]ok[/green]")
-                logger.debug("summary symbol={} n_rows={} path={}", job.symbol, n_rows, filtered_file)
+                table.add_row(
+                    job.symbol, filtered_file.name, f"{n_rows:,}", "[green]ok[/green]"
+                )
+                logger.debug(
+                    "summary symbol={} n_rows={} path={}",
+                    job.symbol,
+                    n_rows,
+                    filtered_file,
+                )
             except Exception as e:
                 logger.warning("summary read failed symbol={} err={}", job.symbol, e)
-                table.add_row(job.symbol, filtered_file.name, "—", "[yellow]error[/yellow]")
+                table.add_row(
+                    job.symbol, filtered_file.name, "—", "[yellow]error[/yellow]"
+                )
         else:
             table.add_row(job.symbol, filtered_file.name, "—", "[red]missing[/red]")
 
@@ -175,7 +191,10 @@ def _print_summary_table(jobs: list[ThesisStockDownload], output_dir: Path) -> N
 
 def filter_command(input_file: Path, output_file: Path) -> list[str]:
     return [
-        "uv", "run", "python", "scripts/filter_us_hours.py",
+        "uv",
+        "run",
+        "python",
+        "scripts/filter_us_hours.py",
         str(input_file),
         str(output_file),
     ]
@@ -185,19 +204,32 @@ def filter_command(input_file: Path, output_file: Path) -> list[str]:
 def main(
     output_dir: Annotated[
         Path,
-        typer.Option("--output-dir", "-o", help="Output directory for downloaded files."),
+        typer.Option(
+            "--output-dir", "-o", help="Output directory for downloaded files."
+        ),
     ] = DEFAULT_OUTPUT_DIR,
     skip_existing: Annotated[
         bool,
-        typer.Option("--skip-existing", "-s", help="Skip symbols whose filtered *_us_hours.parquet already exists."),
+        typer.Option(
+            "--skip-existing",
+            "-s",
+            help="Skip symbols whose filtered *_us_hours.parquet already exists.",
+        ),
     ] = False,
     force: Annotated[
         bool,
-        typer.Option("--force", "-f", help="Pass --force to fetch_stocks.py, ignoring the download cache."),
+        typer.Option(
+            "--force",
+            "-f",
+            help="Pass --force to fetch_stocks.py, ignoring the download cache.",
+        ),
     ] = False,
     skip_filter: Annotated[
         bool,
-        typer.Option("--skip-filter", help="Only download raw data; do not create *_us_hours.parquet files."),
+        typer.Option(
+            "--skip-filter",
+            help="Only download raw data; do not create *_us_hours.parquet files.",
+        ),
     ] = False,
     dry_run: Annotated[
         bool,
@@ -216,8 +248,18 @@ def main(
         logger.error("DATABENTO_API_KEY is not set")
         raise typer.Exit(code=1)
 
-    logger.info("start thesis data download n_symbols={} dry_run={}", len(THESIS_DOWNLOADS), dry_run)
-    logger.debug("output_dir={} skip_existing={} force={} skip_filter={}", output_dir, skip_existing, force, skip_filter)
+    logger.info(
+        "start thesis data download n_symbols={} dry_run={}",
+        len(THESIS_DOWNLOADS),
+        dry_run,
+    )
+    logger.debug(
+        "output_dir={} skip_existing={} force={} skip_filter={}",
+        output_dir,
+        skip_existing,
+        force,
+        skip_filter,
+    )
 
     skipped = 0
     downloaded = 0
@@ -227,22 +269,39 @@ def main(
         filtered_file = output_dir / job.filtered_filename
 
         if skip_existing and filtered_file.exists():
-            logger.info("skip symbol={} reason=already exists path={}", job.symbol, filtered_file.name)
+            logger.info(
+                "skip symbol={} reason=already exists path={}",
+                job.symbol,
+                filtered_file.name,
+            )
             skipped += 1
             continue
 
-        logger.info("download symbol={} schema={} dates={} to {}", job.symbol, job.schema, job.start_date, job.end_date)
+        logger.info(
+            "download symbol={} schema={} dates={} to {}",
+            job.symbol,
+            job.schema,
+            job.start_date,
+            job.end_date,
+        )
         run_command(fetch_command(job, output_dir, force), dry_run=dry_run)
         downloaded += 1
 
         if job.filter_us_hours and not skip_filter:
             raw_file = output_dir / job.raw_filename
-            logger.info("filter us hours symbol={} output={}", job.symbol, filtered_file.name)
+            logger.info(
+                "filter us hours symbol={} output={}", job.symbol, filtered_file.name
+            )
             logger.debug("filter input={} output={}", raw_file, filtered_file)
             run_command(filter_command(raw_file, filtered_file), dry_run=dry_run)
             filtered += 1
 
-    logger.info("thesis data download complete downloaded={} filtered={} skipped={}", downloaded, filtered, skipped)
+    logger.info(
+        "thesis data download complete downloaded={} filtered={} skipped={}",
+        downloaded,
+        filtered,
+        skipped,
+    )
     _print_summary_table(THESIS_DOWNLOADS, output_dir)
 
 

@@ -15,7 +15,6 @@ Features:
 """
 
 import os
-import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Annotated
@@ -24,12 +23,9 @@ import typer
 import yaml
 from dotenv import find_dotenv, load_dotenv
 
-load_dotenv(find_dotenv())
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
 from logger import get_logger
+
+load_dotenv(find_dotenv())
 
 logger = get_logger(__name__)
 
@@ -193,7 +189,9 @@ def download_symbols_parallel(
     """
     results = []
 
-    logger.info(f"Starting parallel download of {len(symbols)} symbols (workers={max_workers})")
+    logger.info(
+        f"Starting parallel download of {len(symbols)} symbols (workers={max_workers})"
+    )
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all downloads
@@ -410,9 +408,9 @@ def download_stocks(
             fail_count = sum(1 for r in results if r["status"] == "failed")
             total_rows = sum(r["rows"] for r in results)
 
-            logger.info("\n" + "="*60)
+            logger.info("\n" + "=" * 60)
             logger.info("DOWNLOAD SUMMARY")
-            logger.info("="*60)
+            logger.info("=" * 60)
             logger.info(f"Total symbols: {len(symbols_list)}")
             logger.info(f"Success: {success_count}")
             logger.info(f"Skipped: {skip_count}")
@@ -427,7 +425,9 @@ def download_stocks(
                 elif result["status"] == "skipped":
                     logger.info(f"  ⊘ {result['symbol']} - {result['reason']}")
                 else:
-                    logger.info(f"  ✗ {result['symbol']} - {result.get('error', 'Unknown error')}")
+                    logger.info(
+                        f"  ✗ {result['symbol']} - {result.get('error', 'Unknown error')}"
+                    )
 
         else:
             # Sequential download
@@ -453,8 +453,10 @@ def download_stocks(
             skip_count = sum(1 for r in results if r["status"] == "skipped")
             total_rows = sum(r["rows"] for r in results)
 
-            logger.info("\n" + "="*60)
-            logger.info(f"Downloaded {success_count}/{len(symbols_list)} symbols ({skip_count} skipped)")
+            logger.info("\n" + "=" * 60)
+            logger.info(
+                f"Downloaded {success_count}/{len(symbols_list)} symbols ({skip_count} skipped)"
+            )
             logger.info(f"Total rows: {total_rows}")
 
         # Next steps
@@ -464,11 +466,13 @@ def download_stocks(
         logger.info("     python scripts/fetch_stocks.py download-history")
         if aggregate:
             logger.info("3. Use in training config:")
-            logger.info(f"     data_path: '{output_dir}/SYMBOL_START_END_{timeframe}.parquet'")
+            logger.info(
+                f"     data_path: '{output_dir}/SYMBOL_START_END_{timeframe}.parquet'"
+            )
 
     except Exception as e:
         logger.error(f"Failed to download: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
@@ -512,7 +516,9 @@ def batch(
 
     # Initialize
     fetcher = StockDataFetcher(output_dir=output_dir, log_level="INFO")
-    tracker = DownloadTracker(cache_dir="data/.download_cache", rate_limit_hours=rate_limit_hours)
+    tracker = DownloadTracker(
+        cache_dir="data/.download_cache", rate_limit_hours=rate_limit_hours
+    )
 
     # Get download jobs
     downloads = config.get("downloads", [])
@@ -539,11 +545,11 @@ def batch(
         aggregate = job.get("aggregate", True)
         job_parallel = job.get("parallel_downloads", parallel_default)
 
-        logger.info("="*60)
+        logger.info("=" * 60)
         logger.info(f"Job {i}/{len(downloads)}: {job_name}")
         logger.info(f"Symbols: {', '.join(symbols)}")
         logger.info(f"Dates: {start_date} to {end_date}")
-        logger.info("="*60)
+        logger.info("=" * 60)
 
         if job_parallel and len(symbols) > 1:
             results = download_symbols_parallel(
@@ -585,12 +591,14 @@ def batch(
         skipped = sum(1 for r in results if r["status"] == "skipped")
         failed = sum(1 for r in results if r["status"] == "failed")
 
-        logger.info(f"\nJob complete: {success} success, {skipped} skipped, {failed} failed\n")
+        logger.info(
+            f"\nJob complete: {success} success, {skipped} skipped, {failed} failed\n"
+        )
 
     # Final summary
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("BATCH DOWNLOAD COMPLETE")
-    logger.info("="*60)
+    logger.info("=" * 60)
     total_success = sum(1 for r in all_results if r["status"] == "success")
     total_skipped = sum(1 for r in all_results if r["status"] == "skipped")
     total_failed = sum(1 for r in all_results if r["status"] == "failed")
@@ -618,9 +626,9 @@ def download_history(
     # Get stats
     stats = tracker.get_stats()
 
-    logger.info("="*60)
+    logger.info("=" * 60)
     logger.info("DOWNLOAD CACHE STATISTICS")
-    logger.info("="*60)
+    logger.info("=" * 60)
     logger.info(f"Total downloads: {stats['total_downloads']}")
     logger.info(f"Total symbols: {stats['total_symbols']}")
     logger.info(f"Total files: {stats['total_files']}")
@@ -636,12 +644,14 @@ def download_history(
 
     if recent:
         logger.info(f"\nRecent downloads (last {hours}h):")
-        logger.info("-"*60)
+        logger.info("-" * 60)
 
         for download in recent:
             symbols_str = ", ".join(download["symbols"])
             logger.info(f"\n{symbols_str}")
-            logger.info(f"  Date range: {download['start_date']} to {download['end_date']}")
+            logger.info(
+                f"  Date range: {download['start_date']} to {download['end_date']}"
+            )
             logger.info(f"  Source: {download['source']} / {download['dataset']}")
             logger.info(f"  Downloaded: {download['hours_ago']:.1f}h ago")
             logger.info(f"  Rows: {download['rows_downloaded']}")
