@@ -15,7 +15,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 SYMBOLS = ["AAPL", "MSFT", "TSLA", "META", "AMZN", "AVGO"]
 SOURCE_DIR = Path("data/raw/stocks")
 OUT_DIR = Path("data/raw/stocks/daily")

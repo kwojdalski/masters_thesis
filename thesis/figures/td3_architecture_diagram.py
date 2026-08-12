@@ -5,7 +5,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
 
-
 FIG_DIR = Path(__file__).resolve().parent
 OUT_PNG = FIG_DIR / "td3_learning_architecture.png"
 OUT_SVG = FIG_DIR / "td3_learning_architecture.svg"

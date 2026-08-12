@@ -129,7 +129,9 @@ class EpisodeStatsTracker:
                 portfolio_valuation = final_nlv
             else:
                 episode_steps = None
-                from trading_rl.evaluation.returns import extract_tradingenv_return_series
+                from trading_rl.evaluation.returns import (
+                    extract_tradingenv_return_series,
+                )
                 actual_returns = extract_tradingenv_return_series(
                     self._env,
                     len(episode_rewards),

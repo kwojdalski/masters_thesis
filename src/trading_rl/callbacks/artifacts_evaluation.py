@@ -392,7 +392,7 @@ def log_evaluation_plots(
     merged_plot=None,
     artifact_path_prefix=None,
     debug: bool = False,
-    plot_data: "dict | None" = None,
+    plot_data: dict | None = None,
 ) -> None:
     """Save evaluation/training plots as MLflow artifacts.
 
@@ -483,6 +483,7 @@ def log_evaluation_plots(
 
         if logs and (logs.get("loss_value") or logs.get("loss_actor")):
             from plotnine import aes, facet_wrap, geom_line, ggplot, labs
+
             from trading_rl.evaluation.thesis_theme import thesis_theme
 
             loss_data = []

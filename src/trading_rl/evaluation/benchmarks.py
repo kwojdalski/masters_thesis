@@ -14,7 +14,6 @@ from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.statistical_benchmarks import (
     compute_buy_and_hold_returns,
-
     compute_twap_returns,
     compute_vwap_returns,
     resolve_vwap_volume_series,

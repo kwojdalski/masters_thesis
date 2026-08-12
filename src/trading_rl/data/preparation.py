@@ -22,7 +22,6 @@ import pandas as pd
 
 from logger import get_logger
 from trading_rl.constants import EnvBackend, EnvMode, EvalSymbolSelection
-from trading_rl.data_loading import LazyDataFrame, MemmapPaths, load_memmap_paths, load_prepared_splits, save_prepared_splits, save_symbol_memmap
 from trading_rl.data.cache import (
     _feature_cache_key,
     _memmap_feature_hash,
@@ -35,8 +34,22 @@ from trading_rl.data.hft import (
     ensure_close_column_for_hft,
     ensure_unique_index_for_hft_tradingenv,
 )
-from trading_rl.data.loading import PreparedDataset, download_trading_data, dump_pipeline_state, load_trading_data, restore_pipeline_state
+from trading_rl.data.loading import (
+    PreparedDataset,
+    download_trading_data,
+    dump_pipeline_state,
+    load_trading_data,
+    restore_pipeline_state,
+)
 from trading_rl.data.validation import validate_prepared_data
+from trading_rl.data_loading import (
+    LazyDataFrame,
+    MemmapPaths,
+    load_memmap_paths,
+    load_prepared_splits,
+    save_prepared_splits,
+    save_symbol_memmap,
+)
 
 logger = get_logger(__name__)
 
@@ -303,7 +316,7 @@ def _per_symbol_worker(args: _WorkerArgs) -> tuple[str, list[tuple[int, Any]], d
             df = filter_unchanged_lob(df, levels=filter_lob_levels)
         return df
 
-    def _feat_cache_path(path: str) -> "_Path | None":
+    def _feat_cache_path(path: str) -> _Path | None:
         if not feature_cache_dir_str:
             return None
         mtime = _Path(path).stat().st_mtime_ns

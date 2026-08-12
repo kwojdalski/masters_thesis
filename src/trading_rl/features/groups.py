@@ -81,7 +81,7 @@ class FeatureGroupResolver:
                     )
 
     @classmethod
-    def from_yaml(cls, yaml_path: str | Path) -> "FeatureGroupResolver":
+    def from_yaml(cls, yaml_path: str | Path) -> FeatureGroupResolver:
         """Load feature groups from a YAML configuration file.
 
         Args:

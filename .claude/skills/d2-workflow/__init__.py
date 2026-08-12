@@ -1,6 +1,5 @@
 """DSR Workflow Diagram skill implementation."""
 
-import re
 from pathlib import Path
 
 
@@ -20,11 +19,10 @@ def add_workflow_diagram_to_dsr(dsr_file_path: str) -> None:
         return
 
     # Read the file content
-    with open(dsr_path, 'r') as f:
+    with open(dsr_path) as f:
         content = f.read()
 
     # Check if workflow diagram already exists
-    has_workflow_diagram = "Workflow Diagram:" in content
 
     # Check if artifact consumption step already exists
     has_artifact_consumption = "Artifact Consumption" in content
@@ -138,10 +136,14 @@ def add_workflow_diagram_to_dsr(dsr_file_path: str) -> None:
 """
 
     # Insert the workflow diagram and additional steps
-    new_content = content[:performance_section_end] + workflow_diagram + content[performance_section_end:]
+    new_content = (
+        content[:performance_section_end]
+        + workflow_diagram
+        + content[performance_section_end:]
+    )
 
     # Write back to file
-    with open(dsr_path, 'w') as f:
+    with open(dsr_path, "w") as f:
         f.write(new_content)
 
     print(f"Workflow diagram added to: {dsr_file_path}")

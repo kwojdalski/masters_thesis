@@ -13,10 +13,10 @@ from trading_rl.evaluation.metrics import (
     build_metric_report,
 )
 
-
 # ---------------------------------------------------------------------------
 # _tail_risk
 # ---------------------------------------------------------------------------
+
 
 class TestTailRisk:
     def test_var_is_5th_percentile(self):
@@ -51,7 +51,7 @@ class TestTailRisk:
 
     def test_known_sorted_sequence(self):
         r = np.arange(1.0, 21.0)  # 1..20
-        var, cvar = _tail_risk(r, alpha=0.05)
+        var, _cvar = _tail_risk(r, alpha=0.05)
         assert var == pytest.approx(np.quantile(r, 0.05), rel=1e-9)
 
     def test_var_alpha_01_is_1st_percentile(self):
@@ -63,6 +63,7 @@ class TestTailRisk:
 # ---------------------------------------------------------------------------
 # _turnover
 # ---------------------------------------------------------------------------
+
 
 class TestTurnover:
     def test_empty_actions_returns_nan(self):
@@ -101,6 +102,7 @@ class TestTurnover:
 # _holding_period
 # ---------------------------------------------------------------------------
 
+
 class TestHoldingPeriod:
     def test_empty_actions_returns_nan(self):
         assert np.isnan(_holding_period(np.array([])))
@@ -121,14 +123,16 @@ class TestHoldingPeriod:
 
     def test_2d_actions_uses_argmax(self):
         # Two-column one-hot: first 3 rows pick col 0, next 3 pick col 1
-        actions = np.array([
-            [1.0, 0.0],
-            [1.0, 0.0],
-            [1.0, 0.0],
-            [0.0, 1.0],
-            [0.0, 1.0],
-            [0.0, 1.0],
-        ])
+        actions = np.array(
+            [
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+            ]
+        )
         result = _holding_period(actions)
         assert result == pytest.approx(3.0, rel=1e-9)
 
@@ -140,9 +144,11 @@ class TestHoldingPeriod:
 # _drawdown_stats — recovery_time and avg_dd
 # ---------------------------------------------------------------------------
 
+
 class TestDrawdownStats:
     def _dd(self, returns):
         from trading_rl.evaluation.metrics import _drawdown_series, _equity_curve
+
         equity = _equity_curve(np.asarray(returns, dtype=float))
         return _drawdown_series(equity)
 
@@ -176,6 +182,7 @@ class TestDrawdownStats:
 # ---------------------------------------------------------------------------
 # build_metric_report — position percentages via actions
 # ---------------------------------------------------------------------------
+
 
 class TestBuildMetricReportWithActions:
     def test_all_long_pct_long_equals_one(self):

@@ -26,7 +26,7 @@ class DataGenerationParams:
     list_files: bool = False
 
 
-@dataclass 
+@dataclass
 class SineWaveParams:
     """Sine wave pattern parameters."""
     enabled: bool = False
@@ -51,7 +51,7 @@ class UpwardDriftParams:
 @dataclass
 class ScenarioDefaults:
     """Container for scenario-derived default values."""
-    
+
     name: str | None = None
     path: Path | None = None
     pattern_type: str | None = None
@@ -67,7 +67,7 @@ class ScenarioDefaults:
 
 class DataGeneratorCommand(BaseCommand):
     """Command for generating synthetic price data."""
-    
+
     def execute(
         self,
         params: DataGenerationParams,
@@ -79,15 +79,15 @@ class DataGeneratorCommand(BaseCommand):
         try:
             # Load scenario defaults
             defaults = self._load_scenario_defaults(params.scenario)
-            
+
             # Resolve generation flags
             sine_wave.enabled, upward_drift.enabled = self._derive_generation_flags(
                 sine_wave.enabled, upward_drift.enabled, defaults.pattern_type
             )
-            
+
             # Initialize generator
             generator = self._create_generator(params, defaults)
-            
+
             # Execute appropriate generation strategy
             if params.list_files:
                 self._list_files(generator)
@@ -99,10 +99,10 @@ class DataGeneratorCommand(BaseCommand):
                 self._copy_data(generator, params)
             else:
                 self._generate_synthetic_sample(generator, params, start_date)
-                
+
         except Exception as e:
             self.handle_error(e, "Data generation")
-    
+
     def _load_scenario_defaults(self, scenario: str | None) -> ScenarioDefaults:
         """Load scenario configuration from YAML."""
         if not scenario:
@@ -125,7 +125,7 @@ class DataGeneratorCommand(BaseCommand):
             pattern=pattern_defaults,
             data=data_defaults,
         )
-    
+
     def _resolve_config_path(self, scenario: str) -> Path:
         """Find the configuration file associated with a scenario string."""
         candidate_path = Path(scenario)
@@ -146,7 +146,7 @@ class DataGeneratorCommand(BaseCommand):
         raise typer.BadParameter(
             f"Scenario '{scenario}' not found. Provide a valid path or name in src/configs/scenarios."
         )
-    
+
     def _derive_generation_flags(
         self, explicit_sine: bool, explicit_drift: bool, pattern_type: str | None
     ) -> tuple[bool, bool]:
@@ -170,19 +170,19 @@ class DataGeneratorCommand(BaseCommand):
             sine_wave = False
 
         return sine_wave, upward_drift
-    
+
     def _create_generator(self, params: DataGenerationParams, defaults: ScenarioDefaults):
         """Create and configure data generator."""
         from data_generator import PriceDataGenerator
-        
+
         source_dir = params.source_dir or "data/raw/binance"
         output_dir, _ = self._resolve_output_targets(
             params.output_dir, params.output_file, defaults.data
         )
         output_dir = output_dir or "data/raw/synthetic"
-        
+
         return PriceDataGenerator(source_dir=source_dir, output_dir=output_dir)
-    
+
     def _resolve_output_targets(
         self,
         output_dir: str | None,
@@ -199,14 +199,14 @@ class DataGeneratorCommand(BaseCommand):
                 output_dir = str(parent_dir)
 
         return output_dir, output_file
-    
+
     def _coalesce(self, *values: Any) -> Any:
         """Return the first value that is not None."""
         for value in values:
             if value is not None:
                 return value
         return None
-    
+
     def _list_files(self, generator) -> None:
         """List available source files."""
         self.logger.info("available source files")
@@ -216,7 +216,7 @@ class DataGeneratorCommand(BaseCommand):
         else:
             for f in source_files:
                 self.logger.info("  - {}", f)
-    
+
     def _generate_sine_wave(
         self, generator, sine_wave: SineWaveParams, defaults: ScenarioDefaults, output_file: str | None
     ) -> None:
@@ -235,7 +235,7 @@ class DataGeneratorCommand(BaseCommand):
             start_date=str(sine_params["start_date"]),
         )
         self.logger.info("generate sine wave pattern rows={}", len(df))
-    
+
     def _collect_sine_wave_params(
         self, sine_wave: SineWaveParams, pattern_defaults: dict[str, Any]
     ) -> dict[str, Any]:
@@ -257,7 +257,7 @@ class DataGeneratorCommand(BaseCommand):
                 pattern_defaults.get("start_date"), "2024-01-01"
             ),
         }
-    
+
     def _generate_upward_drift(
         self, generator, upward_drift: UpwardDriftParams, defaults: ScenarioDefaults, output_file: str | None
     ) -> None:
@@ -275,7 +275,7 @@ class DataGeneratorCommand(BaseCommand):
             start_date=str(drift_params["start_date"]),
         )
         self.logger.info("generate upward drift pattern rows={}", len(df))
-    
+
     def _collect_upward_drift_params(
         self, upward_drift: UpwardDriftParams, pattern_defaults: dict[str, Any]
     ) -> dict[str, Any]:
@@ -296,13 +296,13 @@ class DataGeneratorCommand(BaseCommand):
                 pattern_defaults.get("start_date"), "2024-01-01"
             ),
         }
-    
+
     def _copy_data(self, generator, params: DataGenerationParams) -> None:
         """Copy data without modifications."""
         if not params.source_file:
             raise typer.BadParameter("--source-file is required for copy operation")
         generator.copy_data(params.source_file, params.output_file)
-    
+
     def _generate_synthetic_sample(
         self, generator, params: DataGenerationParams, start_date: str | None
     ) -> None:

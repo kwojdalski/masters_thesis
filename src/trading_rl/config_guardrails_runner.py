@@ -9,9 +9,10 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING, Any
 
-from logger import get_logger
 from rich.console import Console
 from rich.markup import escape
+
+from logger import get_logger
 from trading_rl.config_guardrails_checks import Severity, check_config_guardrails
 
 if TYPE_CHECKING:

@@ -5,7 +5,11 @@ import pandas as pd
 import pytest
 
 from trading_rl.features.base import FeatureConfig
-from trading_rl.features.price_features import ReturnLagFeature, RSIFeature, TrendFeature
+from trading_rl.features.price_features import (
+    ReturnLagFeature,
+    RSIFeature,
+    TrendFeature,
+)
 from trading_rl.features.temporal_features import (
     DayOfWeekCosFeature,
     DayOfWeekSinFeature,

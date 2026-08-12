@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-
 DOC_PATH = Path(__file__).parent.parent / "docs" / "hft_features.md"
 
 

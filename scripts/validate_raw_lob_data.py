@@ -120,7 +120,7 @@ def format_lob_analysis(result: dict, file_path: str) -> str:
     """Format LOB analysis results."""
     lines = []
     lines.append(f"{'=' * 70}")
-    lines.append(f"🔍 RAW LOB DATA VALIDATION")
+    lines.append("🔍 RAW LOB DATA VALIDATION")
     lines.append(f"{'=' * 70}")
     lines.append(f"File: {Path(file_path).name}")
     lines.append(f"Shape: {result['shape'][0]:,} rows × {result['shape'][1]:,} columns")
@@ -132,7 +132,7 @@ def format_lob_analysis(result: dict, file_path: str) -> str:
 
     # Null data check
     if result['total_null_count'] > 0:
-        lines.append(f"\n⚠️  NULL VALUES:")
+        lines.append("\n⚠️  NULL VALUES:")
         lines.append(f"  Total null cells: {result['total_null_count']:,}")
         lines.append(f"  Null percentage: {result['total_null_percentage']:.4f}%")
 
@@ -145,10 +145,10 @@ def format_lob_analysis(result: dict, file_path: str) -> str:
             if len(high_null_cols) > 5:
                 lines.append(f"    ... and {len(high_null_cols) - 5} more")
     else:
-        lines.append(f"\n✅ NO NULL VALUES - All data complete")
+        lines.append("\n✅ NO NULL VALUES - All data complete")
 
     # Data type check
-    lines.append(f"\n📊 DATA TYPES:")
+    lines.append("\n📊 DATA TYPES:")
     type_counts = {}
     for dtype in result['dtypes'].values():
         type_counts[dtype] = type_counts.get(dtype, 0) + 1
@@ -162,7 +162,7 @@ def format_lob_analysis(result: dict, file_path: str) -> str:
         for i, issue in enumerate(result['issues'], 1):
             lines.append(f"  {i}. {issue}")
     else:
-        lines.append(f"\n✅ NO ISSUES FOUND - Raw LOB data looks clean")
+        lines.append("\n✅ NO ISSUES FOUND - Raw LOB data looks clean")
 
     lines.append(f"{'=' * 70}")
     return "\n".join(lines)
@@ -171,7 +171,7 @@ def format_lob_analysis(result: dict, file_path: str) -> str:
 def analyze_specific_columns(df: pd.DataFrame, columns: list[str]) -> None:
     """Analyze specific LOB columns in detail."""
     print(f"\n{'#' * 70}")
-    print(f"📊 DETAILED COLUMN ANALYSIS")
+    print("📊 DETAILED COLUMN ANALYSIS")
     print(f"{'#' * 70}")
 
     for col in columns:
@@ -215,11 +215,11 @@ def analyze_specific_columns(df: pd.DataFrame, columns: list[str]) -> None:
                 print(f"     IQR bounds: [{lower_bound:.4f}, {upper_bound:.4f}]")
 
                 if outlier_pct > 20.0:
-                    print(f"     ⚠️  HIGH OUTLIER RATE for LOB data")
+                    print("     ⚠️  HIGH OUTLIER RATE for LOB data")
                 elif outlier_pct > 10.0:
-                    print(f"     ⚠️  MODERATE OUTLIER RATE")
+                    print("     ⚠️  MODERATE OUTLIER RATE")
                 else:
-                    print(f"     ✅ NORMAL OUTLIER RATE for LOB data")
+                    print("     ✅ NORMAL OUTLIER RATE for LOB data")
 
 
 def main():
@@ -257,7 +257,7 @@ def main():
     if existing_columns:
         analyze_specific_columns(df, existing_columns)
     else:
-        print(f"\n⚠️  No key LOB columns found for detailed analysis")
+        print("\n⚠️  No key LOB columns found for detailed analysis")
 
     print("\n✅ Raw LOB data validation complete!")
 

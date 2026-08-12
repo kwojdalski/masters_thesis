@@ -8,10 +8,11 @@ eight-colour palette.
 from __future__ import annotations
 
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from plotnine import element_blank, element_line, element_text, theme, theme_classic
+
 from trading_rl.evaluation.asset_meta import write_asset_meta
 
 # Wong (2011) colorblind-safe palette — ordered by intended use
@@ -70,7 +71,7 @@ def add_debug_watermark(fig, *, base_size: int = 11) -> None:
     """
     width, height = fig.get_size_inches()
     commit = _get_git_commit()
-    build_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    build_date = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     text = (
         f"build:  {commit}\n"
         f"date:   {build_date}\n"

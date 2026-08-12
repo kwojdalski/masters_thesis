@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
 from pathlib import Path
 
 import mlflow
 import numpy as np
 import pytest
-import trading_rl.train_trading_agent as training_module
 import yaml
 
+import trading_rl.train_trading_agent as training_module
 from data_generator import PriceDataGenerator
 from trading_rl.config import ExperimentConfig
 from trading_rl.train_trading_agent import run_single_experiment
-
 
 SCENARIO_PATHS = (
     Path("src/configs/scenarios/sine_wave/ppo_no_trend_tradingenv"),

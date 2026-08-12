@@ -4,7 +4,7 @@ from typing import Any
 
 import torch
 import torch.nn as nn
-from tensordict.nn import InteractionType, TensorDictModule, NormalParamExtractor
+from tensordict.nn import InteractionType, NormalParamExtractor, TensorDictModule
 from torch import distributions as d
 from torchrl.modules import MLP, ProbabilisticActor, ValueOperator
 from torchrl.modules.distributions import TanhNormal
@@ -304,7 +304,7 @@ def create_continuous_ppo_actor(
 
     # Add NormalParamExtractor to split output into loc and scale
     extractor = NormalParamExtractor()
-    
+
     # Combined network
     net = nn.Sequential(net, extractor)
 

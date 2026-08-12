@@ -24,6 +24,7 @@ Scoring:
       0 = no verification mentioned
 """
 from __future__ import annotations
+
 import argparse
 import json
 import re

@@ -18,11 +18,11 @@ import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Annotated
 
 import typer
 import yaml
 from dotenv import find_dotenv, load_dotenv
-from typing_extensions import Annotated
 
 load_dotenv(find_dotenv())
 

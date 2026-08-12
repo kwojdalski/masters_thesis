@@ -7,6 +7,8 @@ import pytest
 from trading_rl import ExperimentConfig
 from trading_rl.data_utils import (
     ensure_close_column_for_hft as _ensure_close_column_for_hft,
+)
+from trading_rl.data_utils import (
     ensure_unique_index_for_hft_tradingenv as _ensure_unique_index_for_hft_tradingenv,
 )
 

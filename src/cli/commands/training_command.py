@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any
 
 import typer
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.columns import Columns
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from cli.services import validate_experiment_config

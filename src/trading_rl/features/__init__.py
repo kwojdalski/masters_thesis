@@ -10,37 +10,6 @@ This module provides a flexible, configurable feature engineering system that:
 from trading_rl.features.base import Feature, FeatureConfig
 from trading_rl.features.column_features import ColumnValueFeature
 from trading_rl.features.groups import FeatureGroupResolver
-from trading_rl.features.pipeline import FeaturePipeline, create_default_pipeline
-from trading_rl.features.selector import FeatureSelector, FeatureSelectorConfig, FeatureSelectionResult
-
-# Import concrete features to register them
-from trading_rl.features.price_features import (
-    HighFeature,
-    LogReturnFeature,
-    LowFeature,
-    ReturnLagFeature,
-    RSIFeature,
-    SimpleReturnFeature,
-    TrendFeature,
-)
-from trading_rl.features.registry import FeatureRegistry, register_feature
-from trading_rl.features.volatility_features import (
-    RealizedVolatilityFeature,
-    VolatilityRatioFeature,
-)
-from trading_rl.features.volume_features import (
-    LogVolumeFeature,
-    VolumeChangeFeature,
-    VolumeMAFeature,
-)
-from trading_rl.features.temporal_features import (
-    DayOfWeekCosFeature,
-    DayOfWeekSinFeature,
-    HourCosFeature,
-    HourSinFeature,
-    MinuteOfHourCosFeature,
-    MinuteOfHourSinFeature,
-)
 
 # Import LOB (Limit Order Book) features to register them
 from trading_rl.features.lob_features import (
@@ -59,6 +28,41 @@ from trading_rl.features.lob_features import (
     TradeArrivalRateFeature,
     VPINFeature,
     VWMPSkewFeature,
+)
+from trading_rl.features.pipeline import FeaturePipeline, create_default_pipeline
+
+# Import concrete features to register them
+from trading_rl.features.price_features import (
+    HighFeature,
+    LogReturnFeature,
+    LowFeature,
+    ReturnLagFeature,
+    RSIFeature,
+    SimpleReturnFeature,
+    TrendFeature,
+)
+from trading_rl.features.registry import FeatureRegistry, register_feature
+from trading_rl.features.selector import (
+    FeatureSelectionResult,
+    FeatureSelector,
+    FeatureSelectorConfig,
+)
+from trading_rl.features.temporal_features import (
+    DayOfWeekCosFeature,
+    DayOfWeekSinFeature,
+    HourCosFeature,
+    HourSinFeature,
+    MinuteOfHourCosFeature,
+    MinuteOfHourSinFeature,
+)
+from trading_rl.features.volatility_features import (
+    RealizedVolatilityFeature,
+    VolatilityRatioFeature,
+)
+from trading_rl.features.volume_features import (
+    LogVolumeFeature,
+    VolumeChangeFeature,
+    VolumeMAFeature,
 )
 
 # Import TA-Lib features to register them
@@ -91,55 +95,55 @@ except ImportError:
     _TALIB_AVAILABLE = False
 
 __all__ = [
-    "Feature",
-    "FeatureConfig",
-    "FeatureGroupResolver",
-    "FeaturePipeline",
-    "FeatureSelectionResult",
-    "FeatureSelector",
-    "FeatureSelectorConfig",
-    "FeatureRegistry",
-    "ColumnValueFeature",
-    "DayOfWeekCosFeature",
-    "DayOfWeekSinFeature",
-    "HighFeature",
-    "HourCosFeature",
-    "HourSinFeature",
-    "LogReturnFeature",
-    "LogVolumeFeature",
-    "LowFeature",
-    "MinuteOfHourCosFeature",
-    "MinuteOfHourSinFeature",
-    "RSIFeature",
-    "RealizedVolatilityFeature",
-    "ReturnLagFeature",
-    "SimpleReturnFeature",
-    "TrendFeature",
-    "VolatilityRatioFeature",
-    "VolumeChangeFeature",
-    "VolumeMAFeature",
-    "create_default_pipeline",
-    "FeatureGroupResolver",
-    "FeatureSelector",
-    "FeatureSelectorConfig",
-    "FeatureSelectionResult",
-    "register_feature",
     # LOB Features
     "BidAskSlopeFeature",
     "BookPressureFeature",
     "CancelToTradeRatioFeature",
+    "ColumnValueFeature",
+    "DayOfWeekCosFeature",
+    "DayOfWeekSinFeature",
     "DepthRatioFeature",
+    "Feature",
+    "FeatureConfig",
+    "FeatureGroupResolver",
+    "FeatureGroupResolver",
+    "FeaturePipeline",
+    "FeatureRegistry",
+    "FeatureSelectionResult",
+    "FeatureSelectionResult",
+    "FeatureSelector",
+    "FeatureSelector",
+    "FeatureSelectorConfig",
+    "FeatureSelectorConfig",
+    "HighFeature",
+    "HourCosFeature",
+    "HourSinFeature",
     "LargeTradeRatioFeature",
+    "LogReturnFeature",
+    "LogVolumeFeature",
+    "LowFeature",
     "MicropriceDivergenceFeature",
     "MicropriceFeature",
+    "MinuteOfHourCosFeature",
+    "MinuteOfHourSinFeature",
     "MultiLevelOFIFeature",
     "OFIAutocorrelationFeature",
     "OrderBookImbalanceFeature",
     "PriceVampFeature",
+    "RSIFeature",
+    "RealizedVolatilityFeature",
+    "ReturnLagFeature",
+    "SimpleReturnFeature",
     "SpreadBpsFeature",
     "TradeArrivalRateFeature",
+    "TrendFeature",
     "VPINFeature",
     "VWMPSkewFeature",
+    "VolatilityRatioFeature",
+    "VolumeChangeFeature",
+    "VolumeMAFeature",
+    "create_default_pipeline",
+    "register_feature",
 ]
 
 if _TALIB_AVAILABLE:

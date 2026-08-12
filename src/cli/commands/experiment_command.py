@@ -22,42 +22,42 @@ class ExperimentParams:
 
 class ExperimentCommand(BaseCommand):
     """Command for running multiple experiments with MLflow tracking."""
-    
+
     def execute(self, params: ExperimentParams) -> None:
         """Execute multiple experiments."""
         try:
             # Clear cache if requested
             if params.clear_cache:
                 self._clear_caches()
-            
+
             # Load and configure experiments
             config = self._load_experiment_config(params)
             base_seed = self.resolve_seed(config.seed)
-            
+
             # Display experiment info
             self._display_experiment_info(config, params, base_seed)
-            
+
             # Run experiments
             self._run_experiments_with_progress(
                 config, params, base_seed
             )
-            
+
         except Exception as e:
             self.handle_error(e, "Experiments")
-    
+
     def _clear_caches(self) -> None:
         """Clear all caches before experiments."""
         self.console.print("[blue]Clearing caches before experiments...[/blue]")
         from trading_rl.cache_utils import clear_all_caches
         clear_all_caches()
         self.console.print("[green]Caches cleared.[/green]")
-    
+
     def _load_experiment_config(self, params: ExperimentParams):
         """Load and configure experiment parameters."""
         # Validate that only one of config_file or scenario is provided
         if params.config_file and params.scenario:
             raise typer.BadParameter("Cannot specify both --config and --scenario. Use one or the other.")
-        
+
         # Create config and override with CLI parameters
         if params.config_file:
             config = super()._load_experiment_config(
@@ -79,34 +79,34 @@ class ExperimentCommand(BaseCommand):
         # Determine effective experiment name (CLI override wins, otherwise config file)
         effective_experiment_name = params.experiment_name or config.experiment_name
         config.experiment_name = effective_experiment_name
-        
+
         return config
-    
+
     def _display_experiment_info(self, config, params: ExperimentParams, base_seed: int) -> None:
         """Display experiment configuration info."""
         self.console.print(f"[bold blue]Running {params.n_trials} experiments[/bold blue]")
         self.console.print(f"Experiment: [green]{config.experiment_name}[/green]")
-        
+
         self.console.print(
             f"[blue]Using base seed: {base_seed} (each trial will use seed+trial_number)[/blue]"
         )
         self.console.print(
             "[dim]Tracking losses, position changes, rewards, and all parameters in MLflow[/dim]"
         )
-    
+
     def _run_experiments_with_progress(
         self, config, params: ExperimentParams, base_seed: int
     ) -> str:
         """Run experiments with progress tracking."""
         from trading_rl import run_multiple_experiments
-        
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=self.console,
         ) as progress:
             task = progress.add_task(f"Running {params.n_trials} trials...", total=None)
-            
+
             try:
                 # Run experiments with unified tracking (always plot positions)
                 experiment_result = run_multiple_experiments(
@@ -116,14 +116,14 @@ class ExperimentCommand(BaseCommand):
                     experiment_name=config.experiment_name,
                 )
                 progress.update(task, description="Experiments complete!")
-                
+
                 self._display_experiment_results(experiment_result, params.n_trials)
                 return experiment_result
-                
+
             except Exception as e:
                 progress.update(task, description="Experiments failed!")
                 raise e
-    
+
     def _display_experiment_results(self, experiment_result: str, n_trials: int) -> None:
         """Display experiment results."""
         self.console.print("\n[bold green]All experiments completed![/bold green]")
@@ -132,4 +132,4 @@ class ExperimentCommand(BaseCommand):
         self.console.print(
             "\n[dim]Check MLflow UI for detailed metrics and comparisons[/dim]"
         )
-    
+

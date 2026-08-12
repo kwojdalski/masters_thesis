@@ -9,7 +9,6 @@ import functools
 import time
 from collections.abc import Callable
 from contextlib import contextmanager
-from datetime import UTC, datetime
 from typing import Any
 
 import pandas as pd

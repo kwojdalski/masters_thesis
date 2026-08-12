@@ -14,12 +14,14 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-import pandas as pd
 import logging
+
+import pandas as pd
+
 from trading_rl.data.lob_filters import (
+    filter_active_lob,
     filter_unchanged_lob,
     filter_valid_lob,
-    filter_active_lob,
     get_lob_change_stats,
 )
 

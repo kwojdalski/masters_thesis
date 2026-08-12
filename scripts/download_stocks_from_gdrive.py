@@ -100,7 +100,7 @@ def get_drive_service():
 
     client_secret = os.getenv("GDRIVE_CLIENT_SECRET_FILE")
     if not client_secret:
-        raise EnvironmentError(
+        raise OSError(
             "Set either GDRIVE_SERVICE_ACCOUNT_FILE or GDRIVE_CLIENT_SECRET_FILE."
         )
 
@@ -125,8 +125,8 @@ def get_drive_service():
 
 
 def download_file_via_api(service, file_id: str, dest_path: Path) -> None:
+
     from googleapiclient.http import MediaIoBaseDownload
-    import io
 
     request = service.files().get_media(fileId=file_id)
     with dest_path.open("wb") as fh:

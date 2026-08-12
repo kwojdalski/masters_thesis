@@ -7,7 +7,9 @@ from pathlib import Path
 
 import typer
 from rich.table import Table
+
 from logger import print_df_head
+
 from .base_command import BaseCommand
 
 _CHECK_DESCRIPTIONS: dict[str, str] = {

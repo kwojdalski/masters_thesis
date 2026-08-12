@@ -187,8 +187,12 @@ class TestAmihudIlliquidityFeature:
         close = [100.0, 110.0, 110.0, 121.0]
         vol = [1000.0, 1000.0, 1000.0, 1000.0]
         df = _vol_df(vol, close=close)
-        result_w1 = AmihudIlliquidityFeature(_cfg("amihud_illiquidity", window=1)).compute(df)
-        result_w2 = AmihudIlliquidityFeature(_cfg("amihud_illiquidity", window=2)).compute(df)
+        result_w1 = AmihudIlliquidityFeature(
+            _cfg("amihud_illiquidity", window=1)
+        ).compute(df)
+        result_w2 = AmihudIlliquidityFeature(
+            _cfg("amihud_illiquidity", window=2)
+        ).compute(df)
         # window=2 is a rolling mean so its values differ from instantaneous at row 1+
         assert result_w2.iloc[1] != pytest.approx(result_w1.iloc[1])
         # row 1 with window=2: mean of [row0_illiq, row1_illiq]
@@ -219,7 +223,7 @@ class TestRelativeVolumeFeature:
     def test_double_average_gives_two(self):
         # Last row has volume double the window-average of prior rows
         df = _vol_df([100.0, 100.0, 100.0, 200.0])
-        result = RelativeVolumeFeature(_cfg("relative_volume", window=3)).compute(df)
+        RelativeVolumeFeature(_cfg("relative_volume", window=3)).compute(df)
         # Row 3: MA = mean([100, 100, 200]) = 400/3 ≈ 133.3; RVOL = 200 / 133.3... wait
         # Actually window=3 for row 3 means rolling_mean([100, 100, 200]) = 400/3
         # RVOL = 200 / (400/3) = 600/400 = 1.5 — not 2.0
@@ -228,12 +232,12 @@ class TestRelativeVolumeFeature:
         # For RVOL=2 at row 3: need window of all-100s, then spike
         # Use [100, 100, 100, 100, 200] with window=4
         df2 = _vol_df([100.0, 100.0, 100.0, 100.0, 200.0])
-        result2 = RelativeVolumeFeature(_cfg("relative_volume", window=4)).compute(df2)
+        RelativeVolumeFeature(_cfg("relative_volume", window=4)).compute(df2)
         # Row 4: MA = mean([100, 100, 100, 200]) = 500/4 = 125; RVOL = 200/125 = 1.6
         # Still not 2. For exact 2: need rolling mean = 100 when vol = 200
         # That requires the spike not to be in the window
         df3 = _vol_df([100.0, 100.0, 100.0, 100.0, 200.0])
-        result3 = RelativeVolumeFeature(_cfg("relative_volume", window=3)).compute(df3)
+        RelativeVolumeFeature(_cfg("relative_volume", window=3)).compute(df3)
         # Row 4: MA = mean([100, 100, 200]) = 400/3; RVOL = 200/(400/3) = 1.5
         # The spike is always in the window. Use window=1 for trivially RVOL=1 always,
         # or test a known non-trivial value:

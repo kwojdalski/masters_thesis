@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 
@@ -49,7 +49,7 @@ def write_asset_meta(path: str | Path, *, generator: str | None = None) -> None:
         return
     data: dict[str, str] = {
         "commit": _git_commit(),
-        "datetime": datetime.now(timezone.utc).isoformat(),
+        "datetime": datetime.now(UTC).isoformat(),
     }
     if generator:
         data["generator"] = generator

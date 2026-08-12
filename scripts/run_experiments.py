@@ -31,7 +31,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -71,15 +71,19 @@ _H2_SCENARIOS = [
 
 # Deduplicate while preserving first-occurrence order — baseline appears in
 # multiple axes (feature, reward, transaction-cost) and is trained only once.
-_H3_SCENARIOS = list(dict.fromkeys([
-    "pooled/td3_h3_features_minimal",
-    "pooled/td3_hft_lob_state_space_pooled_streaming_selected",   # baseline
-    "pooled/td3_h3_features_full",
-    "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
-    "pooled/td3_h3_fees_1e6",
-    "pooled/td3_h3_fees_1e5",
-    "pooled/td3_h3_fees_1e4",
-]))
+_H3_SCENARIOS = list(
+    dict.fromkeys(
+        [
+            "pooled/td3_h3_features_minimal",
+            "pooled/td3_hft_lob_state_space_pooled_streaming_selected",  # baseline
+            "pooled/td3_h3_features_full",
+            "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
+            "pooled/td3_h3_fees_1e6",
+            "pooled/td3_h3_fees_1e5",
+            "pooled/td3_h3_fees_1e4",
+        ]
+    )
+)
 
 _SCENARIOS: dict[str, list[str]] = {
     "h1": _H1_SCENARIOS,
@@ -103,6 +107,7 @@ _REPORT_SCRIPTS: dict[str, str] = {
 # Shared run args
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class RunArgs:
     skip_train: bool = False
@@ -113,12 +118,13 @@ class RunArgs:
     overrides: list[str] = field(default_factory=list)
     dev: bool = False
     dev_steps: int = 2000
-    max_train_seconds: Optional[int] = None
+    max_train_seconds: int | None = None
 
 
 # ---------------------------------------------------------------------------
 # Low-level subprocess helpers
 # ---------------------------------------------------------------------------
+
 
 def _scenario_name(scenario: str) -> str:
     return scenario.split("/")[-1]
@@ -142,7 +148,9 @@ def _watch_hint(label: str, log_files: list[Path]) -> None:
         _con.print(f"[dim]Monitor {label} logs:[/dim]")
         _con.print(f"  [cyan]multitail -s {len(log_files)} {escape(paths)}[/cyan]")
     else:
-        _con.print(f"[dim]Monitor {label} logs (install multitail for split-pane view):[/dim]")
+        _con.print(
+            f"[dim]Monitor {label} logs (install multitail for split-pane view):[/dim]"
+        )
         _con.print(f"  [cyan]tail -f {escape(paths)}[/cyan]")
     _con.print()
 
@@ -154,7 +162,7 @@ def _run_tee(cmd: list[str], log_file: Path) -> None:
     env = os.environ.copy()
     env["FORCE_COLOR"] = "1"  # Rich detects pipe and disables colors without this
     with log_file.open("w") as fh:
-        proc = subprocess.Popen(
+        proc = subprocess.Popen(  # noqa: S603 — cmd built internally from _CLI + scenario names, not external input
             cmd,
             cwd=_REPO_ROOT,
             stdout=subprocess.PIPE,
@@ -178,23 +186,22 @@ def _run_capture(cmd: list[str], log_file: Path) -> None:
     env = os.environ.copy()
     env["NO_COLOR"] = "1"
     with log_file.open("w") as fh:
-        subprocess.run(cmd, cwd=_REPO_ROOT, stdout=fh, stderr=fh, env=env, check=True)
+        subprocess.run(cmd, cwd=_REPO_ROOT, stdout=fh, stderr=fh, env=env, check=True)  # noqa: S603 — cmd built internally from _CLI + scenario names, not external input
 
 
 def _run_simple(cmd: list[str]) -> None:
     _con.print(f"[dim]$ {escape(' '.join(cmd))}[/dim]")
-    subprocess.run(cmd, cwd=_REPO_ROOT, check=True)
+    subprocess.run(cmd, cwd=_REPO_ROOT, check=True)  # noqa: S603 — cmd built internally from _CLI + scenario names, not external input
 
 
 def _run_parallel_jobs(label: str, jobs: list[tuple[list[str], Path]]) -> None:
     for _, log in jobs:
-        _con.print(f"  [cyan]{escape(_scenario_name(str(log.stem)))}[/cyan]  [dim]->[/dim]  [dim]{escape(str(log))}[/dim]  [dim](background)[/dim]")
+        _con.print(
+            f"  [cyan]{escape(_scenario_name(str(log.stem)))}[/cyan]  [dim]->[/dim]  [dim]{escape(str(log))}[/dim]  [dim](background)[/dim]"
+        )
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(jobs)) as executor:
-        futures = {
-            executor.submit(_run_capture, cmd, log): log
-            for cmd, log in jobs
-        }
+        futures = {executor.submit(_run_capture, cmd, log): log for cmd, log in jobs}
         _watch_hint(label, [log for _, log in jobs])
         _con.print(f"Waiting for [bold]{len(futures)}[/bold] {label} job(s)...")
         failed: list[Path] = []
@@ -204,11 +211,13 @@ def _run_parallel_jobs(label: str, jobs: list[tuple[list[str], Path]]) -> None:
                 future.result()
                 _con.print(f"  [green]done:[/green] {log.name}")
             except subprocess.CalledProcessError as exc:
-                _con.print(f"  [red]FAILED[/red] (rc={exc.returncode}): {escape(str(log))}")
+                _con.print(
+                    f"  [red]FAILED[/red] (rc={exc.returncode}): {escape(str(log))}"
+                )
                 failed.append(log)
 
     if failed:
-        logs = ", ".join(str(f) for f in failed)
+        ", ".join(str(f) for f in failed)
         raise typer.Exit(
             code=1,
         )
@@ -218,8 +227,11 @@ def _run_parallel_jobs(label: str, jobs: list[tuple[list[str], Path]]) -> None:
 # Pipeline steps
 # ---------------------------------------------------------------------------
 
+
 def _check_guardrails(scenarios: list[str], args: RunArgs) -> None:
-    _con.print(f"\n[bold]Pre-flight:[/bold] checking guardrails for [cyan]{len(scenarios)}[/cyan] scenario(s)")
+    _con.print(
+        f"\n[bold]Pre-flight:[/bold] checking guardrails for [cyan]{len(scenarios)}[/cyan] scenario(s)"
+    )
     passed: list[str] = []
     failed: list[str] = []
 
@@ -231,12 +243,16 @@ def _check_guardrails(scenarios: list[str], args: RunArgs) -> None:
         if args.verbose:
             cmd.append("--verbose")
         with log.open("w") as fh:
-            result = subprocess.run(cmd, cwd=_REPO_ROOT, stdout=fh, stderr=fh, check=False)
+            result = subprocess.run(  # noqa: S603 — cmd built internally from _CLI + scenario names, not external input
+                cmd, cwd=_REPO_ROOT, stdout=fh, stderr=fh, check=False
+            )
         if result.returncode == 0:
             _con.print(f"    [green][PASS][/green] {escape(scenario)}")
             passed.append(scenario)
         else:
-            _con.print(f"    [red][FAIL][/red] {escape(scenario)}  [dim](see {escape(str(log))})[/dim]")
+            _con.print(
+                f"    [red][FAIL][/red] {escape(scenario)}  [dim](see {escape(str(log))})[/dim]"
+            )
             failed.append(scenario)
 
     _con.print(
@@ -248,14 +264,20 @@ def _check_guardrails(scenarios: list[str], args: RunArgs) -> None:
     if failed:
         _con.print("\n[red]Failed scenarios:[/red]")
         for s in failed:
-            _con.print(f"  [dim]-[/dim] {escape(s)}  [dim](logs: {escape(str(_log_file(s, 'guardrails')))})[/dim]")
-        _err.print("\n[red]Fix the guardrail issues or run with --skip-guardrails to proceed anyway.[/red]")
+            _con.print(
+                f"  [dim]-[/dim] {escape(s)}  [dim](logs: {escape(str(_log_file(s, 'guardrails')))})[/dim]"
+            )
+        _err.print(
+            "\n[red]Fix the guardrail issues or run with --skip-guardrails to proceed anyway.[/red]"
+        )
         raise typer.Exit(code=1)
 
     _con.print("[green]All scenarios passed guardrails.[/green]\n")
 
 
-def _train_all(scenarios: list[str], args: RunArgs, extra_overrides: list[str] | None = None) -> None:
+def _train_all(
+    scenarios: list[str], args: RunArgs, extra_overrides: list[str] | None = None
+) -> None:
     overrides = list(args.overrides) + (extra_overrides or [])
 
     def _cmd(scenario: str) -> list[str]:
@@ -265,13 +287,15 @@ def _train_all(scenarios: list[str], args: RunArgs, extra_overrides: list[str] |
         return cmd
 
     if args.parallel:
-        _run_parallel_jobs("training", [(_cmd(s), _log_file(s, "train")) for s in scenarios])
+        _run_parallel_jobs(
+            "training", [(_cmd(s), _log_file(s, "train")) for s in scenarios]
+        )
     else:
         for scenario in scenarios:
             log = _log_file(scenario, "train")
             _con.print(f"Training [cyan]{escape(scenario)}[/cyan]")
             _run_tee(_cmd(scenario), log)
-            _con.print(f"  [green]done.[/green]")
+            _con.print("  [green]done.[/green]")
 
 
 def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> None:
@@ -280,9 +304,12 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
     def _cmd(scenario: str) -> list[str]:
         output_dir = str(_EXPERIMENT_OUTPUT_DIR / _scenario_name(scenario))
         cmd = [
-            *_CLI, "evaluate",
-            "-c", scenario,
-            "--output-dir", output_dir,
+            *_CLI,
+            "evaluate",
+            "-c",
+            scenario,
+            "--output-dir",
+            output_dir,
             *[flag for only in eval_only for flag in ("--only", only)],
             *_override_flags(overrides),
         ]
@@ -291,14 +318,18 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
         return cmd
 
     if args.parallel:
-        _run_parallel_jobs("evaluation", [(_cmd(s), _log_file(s, "eval")) for s in scenarios])
+        _run_parallel_jobs(
+            "evaluation", [(_cmd(s), _log_file(s, "eval")) for s in scenarios]
+        )
     else:
         for scenario in scenarios:
             log = _log_file(scenario, "eval")
             output_dir = _EXPERIMENT_OUTPUT_DIR / _scenario_name(scenario)
-            _con.print(f"Evaluating [cyan]{escape(scenario)}[/cyan]  [dim]->[/dim]  [dim]{escape(str(output_dir))}[/dim]")
+            _con.print(
+                f"Evaluating [cyan]{escape(scenario)}[/cyan]  [dim]->[/dim]  [dim]{escape(str(output_dir))}[/dim]"
+            )
             _run_tee(_cmd(scenario), log)
-            _con.print(f"  [green]done.[/green]")
+            _con.print("  [green]done.[/green]")
 
 
 def _run_report(hypothesis: str) -> None:
@@ -318,6 +349,7 @@ def _export_all(scenarios: list[str]) -> None:
 # ---------------------------------------------------------------------------
 # Hypothesis runner
 # ---------------------------------------------------------------------------
+
 
 def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
     scenarios = _SCENARIOS[hypothesis]
@@ -356,10 +388,14 @@ def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
 
         _run_report(hypothesis)
 
-        _con.print(f"\n[bold cyan]=== {hypothesis.upper()}: Export to thesis ===[/bold cyan]")
+        _con.print(
+            f"\n[bold cyan]=== {hypothesis.upper()}: Export to thesis ===[/bold cyan]"
+        )
         _export_all(scenarios)
     else:
-        _con.print(f"[dim]=== {hypothesis.upper()}: skipping evaluate, report, and export (--skip-eval) ===[/dim]")
+        _con.print(
+            f"[dim]=== {hypothesis.upper()}: skipping evaluate, report, and export (--skip-eval) ===[/dim]"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -373,90 +409,154 @@ app = typer.Typer(
 )
 
 # Reusable option type aliases
-_SkipTrain      = Annotated[bool,                   typer.Option("--skip-train",      help="Skip training step.")]
-_SkipEval       = Annotated[bool,                   typer.Option("--skip-eval",       help="Skip evaluate / report / export steps.")]
-_Parallel       = Annotated[bool,                   typer.Option("--parallel",        help="Run scenarios concurrently.")]
-_Verbose        = Annotated[bool,                   typer.Option("--verbose", "-v",   help="Enable debug logging in subcommands.")]
-_SkipGuardrails = Annotated[bool,                   typer.Option("--skip-guardrails", help="Skip pre-flight guardrails check.")]
-_Overrides      = Annotated[Optional[list[str]],    typer.Option("-o", "--config-override", help="OmegaConf dotlist override forwarded to both train and evaluate. Repeatable.")]
-_Dev            = Annotated[bool,                   typer.Option("--dev",             help="Dev mode: skip guardrails and cap training at [bold]--dev-steps[/bold] steps.")]
-_DevSteps       = Annotated[int,                    typer.Option("--dev-steps",       help="Training steps per scenario in [bold]--dev[/bold] mode (default: 2000).")]
+_SkipTrain = Annotated[bool, typer.Option("--skip-train", help="Skip training step.")]
+_SkipEval = Annotated[
+    bool, typer.Option("--skip-eval", help="Skip evaluate / report / export steps.")
+]
+_Parallel = Annotated[
+    bool, typer.Option("--parallel", help="Run scenarios concurrently.")
+]
+_Verbose = Annotated[
+    bool, typer.Option("--verbose", "-v", help="Enable debug logging in subcommands.")
+]
+_SkipGuardrails = Annotated[
+    bool, typer.Option("--skip-guardrails", help="Skip pre-flight guardrails check.")
+]
+_Overrides = Annotated[
+    list[str] | None,
+    typer.Option(
+        "-o",
+        "--config-override",
+        help="OmegaConf dotlist override forwarded to both train and evaluate. Repeatable.",
+    ),
+]
+_Dev = Annotated[
+    bool,
+    typer.Option(
+        "--dev",
+        help="Dev mode: skip guardrails and cap training at [bold]--dev-steps[/bold] steps.",
+    ),
+]
+_DevSteps = Annotated[
+    int,
+    typer.Option(
+        "--dev-steps",
+        help="Training steps per scenario in [bold]--dev[/bold] mode (default: 2000).",
+    ),
+]
 
 
 @app.command()
 def h1(
-    skip_train:      _SkipTrain      = False,
-    skip_eval:       _SkipEval       = False,
-    parallel:        _Parallel       = False,
-    verbose:         _Verbose        = False,
+    skip_train: _SkipTrain = False,
+    skip_eval: _SkipEval = False,
+    parallel: _Parallel = False,
+    verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
-    overrides:       _Overrides      = None,
-    dev:             _Dev            = False,
-    dev_steps:       _DevSteps       = 2000,
-    max_train_seconds: Annotated[Optional[int], typer.Option("--max-train-seconds", metavar="N", help="Cap training wall-clock time per scenario (forwarded as training.max_train_seconds=N).")] = None,
+    overrides: _Overrides = None,
+    dev: _Dev = False,
+    dev_steps: _DevSteps = 2000,
+    max_train_seconds: Annotated[
+        int | None,
+        typer.Option(
+            "--max-train-seconds",
+            metavar="N",
+            help="Cap training wall-clock time per scenario (forwarded as training.max_train_seconds=N).",
+        ),
+    ] = None,
 ) -> None:
     """[bold]H1[/bold]: Compare TD3, DDPG, PPO, Random agents with DSR reward."""
-    run_hypothesis("h1", RunArgs(
-        skip_train=skip_train, skip_eval=skip_eval, parallel=parallel,
-        verbose=verbose, skip_guardrails=skip_guardrails, overrides=overrides or [],
-        dev=dev, dev_steps=dev_steps, max_train_seconds=max_train_seconds,
-    ))
+    run_hypothesis(
+        "h1",
+        RunArgs(
+            skip_train=skip_train,
+            skip_eval=skip_eval,
+            parallel=parallel,
+            verbose=verbose,
+            skip_guardrails=skip_guardrails,
+            overrides=overrides or [],
+            dev=dev,
+            dev_steps=dev_steps,
+            max_train_seconds=max_train_seconds,
+        ),
+    )
 
 
 @app.command()
 def h2(
-    skip_train:      _SkipTrain      = False,
-    skip_eval:       _SkipEval       = False,
-    parallel:        _Parallel       = False,
-    verbose:         _Verbose        = False,
+    skip_train: _SkipTrain = False,
+    skip_eval: _SkipEval = False,
+    parallel: _Parallel = False,
+    verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
-    overrides:       _Overrides      = None,
-    dev:             _Dev            = False,
-    dev_steps:       _DevSteps       = 2000,
+    overrides: _Overrides = None,
+    dev: _Dev = False,
+    dev_steps: _DevSteps = 2000,
 ) -> None:
     """[bold]H2[/bold]: Compare minimal / selected / full feature specifications."""
-    run_hypothesis("h2", RunArgs(
-        skip_train=skip_train, skip_eval=skip_eval, parallel=parallel,
-        verbose=verbose, skip_guardrails=skip_guardrails, overrides=overrides or [],
-        dev=dev, dev_steps=dev_steps,
-    ))
+    run_hypothesis(
+        "h2",
+        RunArgs(
+            skip_train=skip_train,
+            skip_eval=skip_eval,
+            parallel=parallel,
+            verbose=verbose,
+            skip_guardrails=skip_guardrails,
+            overrides=overrides or [],
+            dev=dev,
+            dev_steps=dev_steps,
+        ),
+    )
 
 
 @app.command()
 def h3(
-    skip_train:      _SkipTrain      = False,
-    skip_eval:       _SkipEval       = False,
-    parallel:        _Parallel       = False,
-    verbose:         _Verbose        = False,
+    skip_train: _SkipTrain = False,
+    skip_eval: _SkipEval = False,
+    parallel: _Parallel = False,
+    verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
-    overrides:       _Overrides      = None,
-    dev:             _Dev            = False,
-    dev_steps:       _DevSteps       = 2000,
+    overrides: _Overrides = None,
+    dev: _Dev = False,
+    dev_steps: _DevSteps = 2000,
 ) -> None:
     """[bold]H3[/bold]: Sensitivity analysis — features, reward, transaction cost."""
-    run_hypothesis("h3", RunArgs(
-        skip_train=skip_train, skip_eval=skip_eval, parallel=parallel,
-        verbose=verbose, skip_guardrails=skip_guardrails, overrides=overrides or [],
-        dev=dev, dev_steps=dev_steps,
-    ))
+    run_hypothesis(
+        "h3",
+        RunArgs(
+            skip_train=skip_train,
+            skip_eval=skip_eval,
+            parallel=parallel,
+            verbose=verbose,
+            skip_guardrails=skip_guardrails,
+            overrides=overrides or [],
+            dev=dev,
+            dev_steps=dev_steps,
+        ),
+    )
 
 
 @app.command(name="all")
 def run_all(
-    skip_train:      _SkipTrain      = False,
-    skip_eval:       _SkipEval       = False,
-    parallel:        _Parallel       = False,
-    verbose:         _Verbose        = False,
+    skip_train: _SkipTrain = False,
+    skip_eval: _SkipEval = False,
+    parallel: _Parallel = False,
+    verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
-    overrides:       _Overrides      = None,
-    dev:             _Dev            = False,
-    dev_steps:       _DevSteps       = 2000,
+    overrides: _Overrides = None,
+    dev: _Dev = False,
+    dev_steps: _DevSteps = 2000,
 ) -> None:
     """Run [bold]H1[/bold], [bold]H2[/bold], and [bold]H3[/bold] in sequence."""
     args = RunArgs(
-        skip_train=skip_train, skip_eval=skip_eval, parallel=parallel,
-        verbose=verbose, skip_guardrails=skip_guardrails, overrides=overrides or [],
-        dev=dev, dev_steps=dev_steps,
+        skip_train=skip_train,
+        skip_eval=skip_eval,
+        parallel=parallel,
+        verbose=verbose,
+        skip_guardrails=skip_guardrails,
+        overrides=overrides or [],
+        dev=dev,
+        dev_steps=dev_steps,
     )
     for hyp in ("h1", "h2", "h3"):
         run_hypothesis(hyp, args)

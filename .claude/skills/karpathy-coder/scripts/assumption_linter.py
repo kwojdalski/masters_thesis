@@ -22,6 +22,7 @@ This is a heuristic tool, not a proof engine. False positives are expected;
 the point is to trigger a conversation about assumptions.
 """
 from __future__ import annotations
+
 import argparse
 import json
 import re

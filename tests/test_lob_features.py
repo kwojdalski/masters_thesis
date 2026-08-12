@@ -7,7 +7,6 @@ import pytest
 from trading_rl.features.base import FeatureConfig
 from trading_rl.features.registry import FeatureRegistry
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

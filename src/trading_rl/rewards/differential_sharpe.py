@@ -35,7 +35,7 @@ class DifferentialSharpeRatio(AbstractReward):
         - η = learning rate (typically 0.001 to 0.1)
         - ε = small constant for numerical stability
 
-    
+
     Workflow Diagram:
     ──────────────────────────────────────────────────────────────────────────────────────────
 
@@ -126,7 +126,13 @@ class DifferentialSharpeRatio(AbstractReward):
         B_t: Current EMA of squared returns (second moment estimate)
     """
 
-    def __init__(self, eta: float = 0.01, epsilon: float = 1e-20, clip_reward: float | None = 10.0, scale: float = 1.0):
+    def __init__(
+        self,
+        eta: float = 0.01,
+        epsilon: float = 1e-20,
+        clip_reward: float | None = 10.0,
+        scale: float = 1.0,
+    ):
         """Initialize DSR reward calculator.
 
         Args:
@@ -185,7 +191,8 @@ class DifferentialSharpeRatio(AbstractReward):
         if not (valid_prev and valid_now):
             logger.warning(
                 "Invalid portfolio value: prev={}, now={}. Returning 0 reward.",
-                self._prev_nlv, nlv_now,
+                self._prev_nlv,
+                nlv_now,
             )
             if valid_now:
                 self._prev_nlv = nlv_now
@@ -196,11 +203,11 @@ class DifferentialSharpeRatio(AbstractReward):
         # Calculate deltas using OLD EMA values (t-1)
         # Following Moody & Saffell (2001) and github.com/AchillesJJ/DSR
         delta_A = R_t - self.A_t  # ΔA_t = R_t - A_{t-1}
-        delta_B = R_t ** 2 - self.B_t  # ΔB_t = R_t^2 - B_{t-1}
+        delta_B = R_t**2 - self.B_t  # ΔB_t = R_t^2 - B_{t-1}
 
         # Calculate DSR using old EMA values
         # D_t = (B_{t-1} * ΔA_t - A_{t-1} * ΔB_t / 2) / (B_{t-1} - A_{t-1}^2)^(3/2)
-        variance = self.B_t - self.A_t ** 2  # Var = B_{t-1} - A_{t-1}^2
+        variance = self.B_t - self.A_t**2  # Var = B_{t-1} - A_{t-1}^2
         # Clamp variance to non-negative: mathematically E[X^2] >= (E[X])^2, but
         # floating-point drift can produce a slightly negative value, which would
         # crash on fractional exponentiation (Python: ValueError on negative ** 1.5).
@@ -209,7 +216,7 @@ class DifferentialSharpeRatio(AbstractReward):
 
         # NOW update EMAs for next step
         self.A_t = (1 - self.eta) * self.A_t + self.eta * R_t
-        self.B_t = (1 - self.eta) * self.B_t + self.eta * (R_t ** 2)
+        self.B_t = (1 - self.eta) * self.B_t + self.eta * (R_t**2)
 
         # Update previous NLV for next step
         self._prev_nlv = nlv_now

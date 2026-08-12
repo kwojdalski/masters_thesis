@@ -1,6 +1,5 @@
 """RecurrentPPO Trainer implementation."""
 
-from trading_rl.trainers.registry import register_trainer
 from typing import Any
 
 import torch
@@ -15,6 +14,7 @@ from trading_rl.models import (
 )
 from trading_rl.trainers.base import _log_network_stats
 from trading_rl.trainers.ppo import PPOTrainerContinuous
+from trading_rl.trainers.registry import register_trainer
 
 logger = get_logger(__name__)
 

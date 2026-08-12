@@ -155,7 +155,7 @@ class TrainerRuntimeHooks:
         self._run_temporary_explainability(step_number, hook)
         hook.last_step = step_number
 
-    def _log_price_plot_once(self, split_ctx: "SplitEvalContext", hook: "PeriodicEvaluationHook") -> None:
+    def _log_price_plot_once(self, split_ctx: SplitEvalContext, hook: PeriodicEvaluationHook) -> None:
         """Save the underlying close price plot to evaluation_plots_temp/{split}/ once."""
         import os
         import tempfile
@@ -171,6 +171,8 @@ class TrainerRuntimeHooks:
                 FIGURE_HEIGHT,
                 FIGURE_WIDTH,
                 PLOT_DPI,
+            )
+            from trading_rl.evaluation.thesis_theme import (
                 save_plot as _save_plot,
             )
 
@@ -238,7 +240,9 @@ class TrainerRuntimeHooks:
 
                 # Compute full MetricReport from the completed rollout
                 try:
-                    from trading_rl.evaluation.report import build_evaluation_report_for_trainer
+                    from trading_rl.evaluation.report import (
+                        build_evaluation_report_for_trainer,
+                    )
                     from trading_rl.pipeline.evaluation import (
                         _evaluation_rollout,
                         _evaluation_strategy_returns,
@@ -342,11 +346,16 @@ class TrainerRuntimeHooks:
                         try:
                             import os
                             import tempfile
-                            from trading_rl.evaluation.plots import create_equity_progression_plot
+
+                            from trading_rl.evaluation.plots import (
+                                create_equity_progression_plot,
+                            )
                             from trading_rl.evaluation.thesis_theme import (
                                 FIGURE_HEIGHT,
                                 FIGURE_WIDTH,
                                 PLOT_DPI,
+                            )
+                            from trading_rl.evaluation.thesis_theme import (
                                 save_plot as _save_plot,
                             )
                             _prog_plot = create_equity_progression_plot(_prog_history)
@@ -390,7 +399,10 @@ class TrainerRuntimeHooks:
                         try:
                             import os
                             import tempfile
-                            from trading_rl.evaluation.plots import create_metrics_table_figure
+
+                            from trading_rl.evaluation.plots import (
+                                create_metrics_table_figure,
+                            )
                             fig = create_metrics_table_figure(
                                 metric_report,
                                 step=step_number,
@@ -417,9 +429,13 @@ class TrainerRuntimeHooks:
                         last_result = last_eval_result
                         if last_result is not None:
                             try:
-                                import numpy as _np
                                 from pathlib import Path as _Path
-                                from trading_rl.callbacks.artifacts import save_eval_rollout_artifact
+
+                                import numpy as _np
+
+                                from trading_rl.callbacks.artifacts import (
+                                    save_eval_rollout_artifact,
+                                )
                                 save_eval_rollout_artifact(
                                     split=f"{split_ctx.split}_step_{step_number:08d}",
                                     last_positions=getattr(last_result, "last_positions", []),
@@ -481,11 +497,16 @@ class TrainerRuntimeHooks:
                 try:
                     import os
                     import tempfile
-                    from trading_rl.evaluation.plots import create_train_val_progression_plot
+
+                    from trading_rl.evaluation.plots import (
+                        create_train_val_progression_plot,
+                    )
                     from trading_rl.evaluation.thesis_theme import (
                         FIGURE_HEIGHT,
                         FIGURE_WIDTH,
                         PLOT_DPI,
+                    )
+                    from trading_rl.evaluation.thesis_theme import (
                         save_plot as _save_plot,
                     )
                     _prog_plot = create_train_val_progression_plot(

@@ -1,8 +1,9 @@
 """Generate a sample table showing raw order book data and transformed features for the thesis."""
 
-import pandas as pd
 import sys
 from pathlib import Path
+
+import pandas as pd
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -77,7 +78,7 @@ def main():
     print("DATA SUMMARY")
     print("=" * 120)
     print(f"Total rows in sample: {len(table_df)}")
-    print(f"Feature columns shown: 4 (out of 10 total features)")
+    print("Feature columns shown: 4 (out of 10 total features)")
     print("\nFeature ranges in sample:")
     for col in ['Book Pressure', 'Order Imbalance', 'Microprice Deviation', 'Order Flow Imbalance']:
         print(f"  {col}: [{table_df[col].min():.2f}, {table_df[col].max():.2f}]")

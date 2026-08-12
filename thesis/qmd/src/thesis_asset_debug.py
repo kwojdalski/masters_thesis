@@ -24,7 +24,8 @@ def show_asset_debug(path: str | Path) -> None:
     """Display provenance metadata below *path* when THESIS_DEBUG_ASSETS=1."""
     if not _is_debug():
         return
-    from IPython.display import display, HTML
+    from IPython.display import HTML, display
+
     from trading_rl.evaluation.asset_meta import load_asset_meta
 
     meta = load_asset_meta(path)
@@ -47,8 +48,8 @@ def show_asset_debug(path: str | Path) -> None:
         parts.append(f'source: <code>{gen}</code>')
 
     display(HTML(
-        f'<div style="font-size:0.7em;color:#666;border-left:3px solid #ccc;'
-        f'padding-left:6px;margin-top:3px">'
+        '<div style="font-size:0.7em;color:#666;border-left:3px solid #ccc;'
+        'padding-left:6px;margin-top:3px">'
         + "  &middot;  ".join(parts)
         + "</div>"
     ))

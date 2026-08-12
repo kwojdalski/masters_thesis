@@ -82,7 +82,7 @@ def main():
     print(f"Reduction: {100 * (1 - len(df_filtered) / original_size):.1f}%")
 
     if len(df_filtered) > 0:
-        print(f"\nTime range:")
+        print("\nTime range:")
         print(f"  First: {df_filtered.index[0]}")
         print(f"  Last:  {df_filtered.index[-1]}")
 

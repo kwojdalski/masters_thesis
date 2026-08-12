@@ -22,7 +22,7 @@ import argparse
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -85,7 +85,7 @@ def main() -> int:
         print("Nothing changed in the PDF — skipping commit and push.")
         return 0
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     msg = f"Chore: update rendered thesis PDF ({timestamp})"
     _run(["git", "commit", "-m", msg])
 

@@ -35,13 +35,15 @@ import torch.multiprocessing as mp
 
 from logger import get_logger as get_project_logger
 from logger import trace_calls
+from trading_rl.callbacks import (
+    MLflowTrainingCallback,  # noqa: F401 — tests monkeypatch this via module attribute
+)
 from trading_rl.config import ExperimentConfig
 from trading_rl.data_utils import (
     ensure_close_column_for_hft,
     ensure_unique_index_for_hft_tradingenv,
 )
 from trading_rl.pipeline.experiment_runner import execute_single_experiment
-from trading_rl.callbacks import MLflowTrainingCallback  # noqa: F401 — tests monkeypatch this via module attribute
 from trading_rl.pipeline.training import (
     build_experiment_runtime,
     setup_mlflow_experiment,

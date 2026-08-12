@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 """
 data_profiler.py — Full dataset profile with Data Quality Score (DQS).
 
@@ -15,7 +16,7 @@ import csv
 import json
 import math
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 
 
 def load_csv(filepath: str) -> tuple[list[str], list[dict]]:

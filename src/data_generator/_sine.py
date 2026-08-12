@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from ._types import DEFAULT_SYNTHETIC_START_DATE
 from ._io import log_dataset_summary
+from ._types import DEFAULT_SYNTHETIC_START_DATE
 
 
 def generate_sine_wave_pattern(

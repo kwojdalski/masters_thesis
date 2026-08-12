@@ -9,7 +9,10 @@ import pandas as pd
 
 from cli.commands.collect_results_command import _METRIC_KEYS
 from cli.commands.evaluate_command import _PERF_ROWS
-from trading_rl.evaluation.benchmark_table import PERF_COLS, save_benchmark_table_artifact
+from trading_rl.evaluation.benchmark_table import (
+    PERF_COLS,
+    save_benchmark_table_artifact,
+)
 
 
 def _load_script_module(path: str, name: str):

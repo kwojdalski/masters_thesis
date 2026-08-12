@@ -11,6 +11,7 @@ Analyzes:
 """
 
 import json
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -326,8 +327,8 @@ def main() -> None:
         "overall_learning": criteria.get("overall"),
     }
 
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc).isoformat()
+    from datetime import datetime
+    now = datetime.now(UTC).isoformat()
 
     (snapshot_dir / "evaluation_report.json").write_text(json.dumps(evaluation_report, indent=2))
     (snapshot_dir / "h4_learning_report.json").write_text(json.dumps(report_data, indent=2))

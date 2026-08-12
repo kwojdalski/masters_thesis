@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import annotations
 """
 outlier_detector.py — Multi-method outlier detection for numeric columns.
 
@@ -16,12 +15,13 @@ Usage:
     python3 outlier_detector.py --file data.csv --format json
 """
 
+from __future__ import annotations
+
 import argparse
 import csv
 import json
 import math
 import sys
-
 
 NULL_STRINGS = {"", "null", "none", "n/a", "na", "nan", "nil", "undefined", "missing"}
 
@@ -80,6 +80,7 @@ def std(nums: list[float], mu: float) -> float:
 
 # --- Detection methods ---
 
+
 def detect_iqr(nums: list[float], multiplier: float = 1.5) -> dict:
     q1 = percentile(nums, 25)
     q3 = percentile(nums, 75)
@@ -96,7 +97,7 @@ def detect_iqr(nums: list[float], multiplier: float = 1.5) -> dict:
         "upper_bound": round(upper, 4),
         "outlier_count": len(outliers),
         "outlier_pct": round(len(outliers) / len(nums) * 100, 2),
-        "outlier_values": sorted(set(round(x, 4) for x in outliers))[:10],
+        "outlier_values": sorted({round(x, 4) for x in outliers})[:10],
     }
 
 
@@ -104,8 +105,12 @@ def detect_zscore(nums: list[float], threshold: float = 3.0) -> dict:
     mu = mean(nums)
     sigma = std(nums, mu)
     if sigma == 0:
-        return {"method": "Z-score", "outlier_count": 0, "outlier_pct": 0.0,
-                "note": "Zero variance — all values identical"}
+        return {
+            "method": "Z-score",
+            "outlier_count": 0,
+            "outlier_pct": 0.0,
+            "note": "Zero variance — all values identical",
+        }
     zscores = [(x, abs((x - mu) / sigma)) for x in nums]
     outliers = [x for x, z in zscores if z > threshold]
     return {
@@ -115,7 +120,7 @@ def detect_zscore(nums: list[float], threshold: float = 3.0) -> dict:
         "threshold": threshold,
         "outlier_count": len(outliers),
         "outlier_pct": round(len(outliers) / len(nums) * 100, 2),
-        "outlier_values": sorted(set(round(x, 4) for x in outliers))[:10],
+        "outlier_values": sorted({round(x, 4) for x in outliers})[:10],
     }
 
 
@@ -124,8 +129,12 @@ def detect_modified_zscore(nums: list[float], threshold: float = 3.5) -> dict:
     med = median(nums)
     mad = median([abs(x - med) for x in nums])
     if mad == 0:
-        return {"method": "Modified Z-score (MAD)", "outlier_count": 0, "outlier_pct": 0.0,
-                "note": "MAD is zero — consider Z-score instead"}
+        return {
+            "method": "Modified Z-score (MAD)",
+            "outlier_count": 0,
+            "outlier_pct": 0.0,
+            "note": "MAD is zero — consider Z-score instead",
+        }
     mzscores = [(x, 0.6745 * abs(x - med) / mad) for x in nums]
     outliers = [x for x, mz in mzscores if mz > threshold]
     return {
@@ -135,7 +144,7 @@ def detect_modified_zscore(nums: list[float], threshold: float = 3.5) -> dict:
         "threshold": threshold,
         "outlier_count": len(outliers),
         "outlier_pct": round(len(outliers) / len(nums) * 100, 2),
-        "outlier_values": sorted(set(round(x, 4) for x in outliers))[:10],
+        "outlier_values": sorted({round(x, 4) for x in outliers})[:10],
     }
 
 
@@ -194,13 +203,21 @@ def print_report(results: list[dict]):
             pct = r.get("outlier_pct", 0)
             indicator = "🔴" if pct > 5 else "🟡"
             print(f"\n  {indicator} {r['column']} ({r['method']})")
-            print(f"     Outliers: {r['outlier_count']} / {r['total_numeric']} rows ({pct}%)")
+            print(
+                f"     Outliers: {r['outlier_count']} / {r['total_numeric']} rows ({pct}%)"
+            )
             if "lower_bound" in r:
-                print(f"     Bounds: [{r['lower_bound']}, {r['upper_bound']}]  |  IQR: {r['iqr']}")
+                print(
+                    f"     Bounds: [{r['lower_bound']}, {r['upper_bound']}]  |  IQR: {r['iqr']}"
+                )
             if "mean" in r:
-                print(f"     Mean: {r['mean']}  |  Std: {r['std']}  |  Threshold: ±{r['threshold']}σ")
+                print(
+                    f"     Mean: {r['mean']}  |  Std: {r['std']}  |  Threshold: ±{r['threshold']}σ"
+                )
             if "median" in r:
-                print(f"     Median: {r['median']}  |  MAD: {r['mad']}  |  Threshold: {r['threshold']}")
+                print(
+                    f"     Median: {r['median']}  |  MAD: {r['mad']}  |  Threshold: {r['threshold']}"
+                )
             if r.get("outlier_values"):
                 vals = ", ".join(str(v) for v in r["outlier_values"][:8])
                 print(f"     Sample outlier values: {vals}")
@@ -214,13 +231,25 @@ def print_report(results: list[dict]):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Detect outliers in numeric columns of a CSV dataset.")
+    parser = argparse.ArgumentParser(
+        description="Detect outliers in numeric columns of a CSV dataset."
+    )
     parser.add_argument("--file", required=True, help="Path to CSV file")
-    parser.add_argument("--method", choices=["iqr", "zscore", "mzscore"], default="iqr",
-                        help="Detection method (default: iqr)")
-    parser.add_argument("--threshold", type=float, default=None,
-                        help="Method threshold (IQR multiplier default 1.5; Z-score default 3.0; mzscore default 3.5)")
-    parser.add_argument("--columns", help="Comma-separated columns to check (default: all numeric)")
+    parser.add_argument(
+        "--method",
+        choices=["iqr", "zscore", "mzscore"],
+        default="iqr",
+        help="Detection method (default: iqr)",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="Method threshold (IQR multiplier default 1.5; Z-score default 3.0; mzscore default 3.5)",
+    )
+    parser.add_argument(
+        "--columns", help="Comma-separated columns to check (default: all numeric)"
+    )
     parser.add_argument("--format", choices=["text", "json"], default="text")
     args = parser.parse_args()
 

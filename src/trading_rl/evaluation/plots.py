@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+
 import numpy as np
 import pandas as pd
 from plotnine import (
@@ -19,17 +20,21 @@ from plotnine import (
     scale_x_datetime,
     theme,
 )
-
-from trading_rl.evaluation.asset_meta import write_asset_meta
-from trading_rl.evaluation.thesis_theme import FIGURE_WIDTH, LINETYPE, PALETTE, thesis_theme
 from torch import allclose
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.evaluation.returns import (
     ReturnKind,
     ReturnSeries,
     extract_tradingenv_return_series,
+)
+from trading_rl.evaluation.thesis_theme import (
+    FIGURE_WIDTH,
+    LINETYPE,
+    PALETTE,
+    thesis_theme,
 )
 
 logger = get_logger(__name__)
@@ -56,7 +61,7 @@ _RUN_ORDER: list[str] = [
 ]
 
 
-def _as_ordered_run_categorical(series: "pd.Series") -> "pd.Categorical":
+def _as_ordered_run_categorical(series: pd.Series) -> pd.Categorical:
     """Convert a Run string column to an ordered Categorical with Deterministic first.
 
     Any run name not in _RUN_ORDER is appended after the known entries in the
@@ -243,8 +248,11 @@ def build_rollout_plot_data(
 
     # Add DSR benchmark curves if requested and reward_type is differential_sharpe
     if show_benchmarks and df is not None and reward_type == "differential_sharpe":
-        from trading_rl.evaluation.benchmarks import calculate_benchmark_dsr, calculate_twap_dsr
         from trading_rl.constants import BenchmarkName
+        from trading_rl.evaluation.benchmarks import (
+            calculate_benchmark_dsr,
+            calculate_twap_dsr,
+        )
 
         price_col = benchmark_price_column
         if price_col not in df.columns and "close" in df.columns:
@@ -336,7 +344,7 @@ def plot_rewards(
     stride: int = 1,
     n_obs: int | None = None,
     date_str: str = "",
-) -> "ggplot":
+) -> ggplot:
     """Build cumulative rewards ggplot from a pre-built DataFrame.
 
     Accepts the DataFrame returned by build_rollout_plot_data (key "rewards"),
@@ -374,7 +382,7 @@ def plot_rewards(
 
 def plot_actions(
     df_actions: pd.DataFrame,
-    df_ma: "pd.DataFrame | None" = None,
+    df_ma: pd.DataFrame | None = None,
     is_portfolio: bool = False,
     training_steps: int | None = None,
     training_episodes: int | None = None,
@@ -382,7 +390,7 @@ def plot_actions(
     n_obs: int | None = None,
     date_str: str = "",
     allocation_ma_window: int = 500,
-) -> "ggplot":
+) -> ggplot:
     """Build actions/portfolio-allocation ggplot from a pre-built DataFrame.
 
     Accepts the DataFrame returned by build_rollout_plot_data (key "actions"),
@@ -498,7 +506,7 @@ def build_equity_plot_data(
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
-    benchmarks: "frozenset | None" = None,
+    benchmarks: frozenset | None = None,
     training_steps: int | None = None,
     training_episodes: int | None = None,
     n_total_symbols: int | None = None,
@@ -680,9 +688,9 @@ def plot_equity_curve(
     date_str: str = "",
     n_obs: int | None = None,
     stride: int = 1,
-    symbols: "list[str] | None" = None,
+    symbols: list[str] | None = None,
     n_total_symbols: int | None = None,
-) -> "ggplot":
+) -> ggplot:
     """Build portfolio equity curve ggplot from a pre-built DataFrame.
 
     Accepts the DataFrame returned by build_equity_plot_data (key "returns"),
@@ -746,7 +754,7 @@ def create_equity_curve_plot(
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     benchmark_price_column: str = "close",
     initial_capital: float | None = None,
-    benchmarks: "frozenset | None" = None,
+    benchmarks: frozenset | None = None,
     training_steps: int | None = None,
     training_episodes: int | None = None,
     n_total_symbols: int | None = None,
@@ -786,7 +794,7 @@ def create_equity_curve_plot(
 
 
 def create_equity_progression_plot(
-    history: "list[tuple[int, ReturnSeries]]",
+    history: list[tuple[int, ReturnSeries]],
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     max_plot_points: int | None = None,
 ):
@@ -841,8 +849,8 @@ def create_equity_progression_plot(
 
 
 def create_train_val_progression_plot(
-    train_history: "list[tuple[int, ReturnSeries]] | None",
-    val_history: "list[tuple[int, ReturnSeries]] | None",
+    train_history: list[tuple[int, ReturnSeries]] | None,
+    val_history: list[tuple[int, ReturnSeries]] | None,
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     metric: str = "total_return",
 ):
@@ -923,7 +931,7 @@ def create_price_plot(
     df: pd.DataFrame,
     price_column: str = "close",
     max_points: int = 5_000,
-) -> "ggplot | None":
+) -> ggplot | None:
     """Line plot of the underlying close price for an evaluation split.
 
     Downsampled to at most *max_points* rows so the PNG stays small.
@@ -959,8 +967,8 @@ def create_price_plot(
 
 
 def _render_table_on_ax(
-    ax: "matplotlib.axes.Axes",
-    rows: "list[tuple[str, str, str, str]]",
+    ax: matplotlib.axes.Axes,
+    rows: list[tuple[str, str, str, str]],
     base_size: int,
 ) -> None:
     """Draw a styled metrics table onto *ax*."""
@@ -996,18 +1004,19 @@ def _render_table_on_ax(
 
 
 def create_metrics_table_figure(
-    metric_report: "MetricReport",
+    metric_report: MetricReport,
     step: int | None = None,
     split: str | None = None,
-    df: "pd.DataFrame | None" = None,
+    df: pd.DataFrame | None = None,
     max_steps: int | None = None,
-) -> "matplotlib.figure.Figure":
+) -> matplotlib.figure.Figure:
     """Render a MetricReport as a matplotlib table figure.
 
     All metrics are rendered in a single column regardless of row count.
     Uses the thesis font size so the PNG looks consistent with other evaluation plots.
     """
     import matplotlib.pyplot as plt
+
     from trading_rl.evaluation.metric_meta import METRIC_SECTIONS, fmt_metric
 
     report_dict = metric_report.to_dict()

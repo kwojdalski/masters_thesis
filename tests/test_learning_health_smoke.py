@@ -21,16 +21,14 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
+import mlflow
 import numpy as np
 import pandas as pd
 import pytest
 import torch
 
-import mlflow
-
 from trading_rl.config import ExperimentConfig
 from trading_rl.train_trading_agent import build_training_context
-
 
 # ---------------------------------------------------------------------------
 # Helpers shared across tests

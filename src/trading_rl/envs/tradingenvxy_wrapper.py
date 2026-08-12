@@ -51,7 +51,7 @@ class FastTrackRecord(TrackRecord):
         if t in self._rebalancing:
             raise ValueError(
                 "All RebalancingResponse must have different timestamps. "
-                "Duplicated timestamp found: {}".format(t)
+                f"Duplicated timestamp found: {t}"
             )
         self._time.append(t)
         self._rebalancing[t] = rebalancing
