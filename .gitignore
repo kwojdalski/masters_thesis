@@ -6,11 +6,10 @@ working_papers/*
 docs/*.md
 !README.md
 */cache/*
-*cache
 cache/*
+.pytest_cache/
 .DS_Store
 *.sty
-*cache*
 various/*
 
 # Python

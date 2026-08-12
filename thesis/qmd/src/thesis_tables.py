@@ -24,6 +24,7 @@ from IPython.display import HTML, Markdown, display
 # Value formatters
 # ---------------------------------------------------------------------------
 
+
 def fmt_val(val: object, fmt: str) -> str:
     """Format a metric value; return '—' for None or non-finite floats."""
     if val is None or (isinstance(val, float) and not math.isfinite(val)):
@@ -34,9 +35,11 @@ def fmt_val(val: object, fmt: str) -> str:
         return str(val)
 
 
-def fmt_delta(val: object, baseline: object, fmt: str, higher_better: bool = True) -> str:
+def fmt_delta(
+    val: object, baseline: object, fmt: str, higher_better: bool = True
+) -> str:
     """Format the signed delta between val and baseline using fmt."""
-    if not isinstance(val, (int, float)) or not isinstance(baseline, (int, float)):
+    if not isinstance(val, int | float) or not isinstance(baseline, int | float):
         return ""
     if not math.isfinite(val) or not math.isfinite(baseline):
         return ""
@@ -63,14 +66,19 @@ def fmt_scientific(v: float) -> str:
     if v == 0.0:
         return "0.0"
     exp = math.floor(math.log10(abs(v)))
-    mantissa = v / (10 ** exp)
-    m = f"{mantissa:g}" if abs(mantissa - round(mantissa)) > 1e-9 else str(int(round(mantissa)))
+    mantissa = v / (10**exp)
+    m = (
+        f"{mantissa:g}"
+        if abs(mantissa - round(mantissa)) > 1e-9
+        else str(round(mantissa))
+    )
     return f"{m} x 10^{exp}" if m != "1" else f"10^{exp}"
 
 
 # ---------------------------------------------------------------------------
 # Hyperparameter display formatters
 # ---------------------------------------------------------------------------
+
 
 def fmt_network_dims(dims: object) -> str:
     """Format a list of hidden layer widths, e.g. [128, 64] -> '[128, 64]'."""
@@ -99,6 +107,7 @@ def wrap_html(text: object, width: int = 38) -> str:
 # ---------------------------------------------------------------------------
 # Display helpers
 # ---------------------------------------------------------------------------
+
 
 def display_df(frame: pd.DataFrame) -> None:
     """Display a DataFrame as an HTML table without the row index."""
@@ -178,14 +187,16 @@ def display_image_from_path(
 
     try:
         from thesis_asset_debug import show_asset_debug
+
         show_asset_debug(p)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"show_asset_debug skipped: {type(exc).__name__}: {exc}")
 
 
 # ---------------------------------------------------------------------------
 # Feature distributional statistics table (landscape PDF / HTML)
 # ---------------------------------------------------------------------------
+
 
 def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
     """Emit feature distributional statistics as a landscape table.
@@ -212,8 +223,12 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
     )
 
     # Determine clipped rows BEFORE string formatting
-    clip_min = df["min"].apply(lambda x: math.isfinite(float(x)) and float(x) < -obs_clip)
-    clip_max = df["max"].apply(lambda x: math.isfinite(float(x)) and float(x) > obs_clip)
+    clip_min = df["min"].apply(
+        lambda x: math.isfinite(float(x)) and float(x) < -obs_clip
+    )
+    clip_max = df["max"].apply(
+        lambda x: math.isfinite(float(x)) and float(x) > obs_clip
+    )
     any_clipped = bool(clip_min.any() or clip_max.any())
 
     # Format numeric columns
@@ -227,12 +242,18 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
 
     keep = ["feature", "mean", "std", "skew", "kurt", "q2", "min", "max"]
     df = df[[c for c in keep if c in df.columns]]
-    df = df.rename(columns={
-        "feature": "Feature", "mean": "Mean", "std": "Std",
-        "skew": "Skew", "kurt": "Kurt",
-        "q2": "Median",
-        "min": "Min", "max": "Max",
-    })
+    df = df.rename(
+        columns={
+            "feature": "Feature",
+            "mean": "Mean",
+            "std": "Std",
+            "skew": "Skew",
+            "kurt": "Kurt",
+            "q2": "Median",
+            "min": "Min",
+            "max": "Max",
+        }
+    )
 
     caption = "Distributional statistics of engineered microstructure features."
     note_base = (
@@ -242,25 +263,31 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
         "Median is the 50th percentile."
     )
     clip_suffix_html = (
-        f" * the RL environment clips observations to \\u00b1{obs_clip:.0f};"
-        " starred values exceed this bound."
-    ) if any_clipped else ""
+        (
+            f" * the RL environment clips observations to \\u00b1{obs_clip:.0f};"
+            " starred values exceed this bound."
+        )
+        if any_clipped
+        else ""
+    )
     note_html = note_base + clip_suffix_html.replace("\\u00b1", "±")
 
     # ── HTML version ──────────────────────────────────────────────────
     html_df = df.copy()
-    html_df["Min"] = [v + "*" if c else v for v, c in zip(html_df["Min"], clip_min)]
-    html_df["Max"] = [v + "*" if c else v for v, c in zip(html_df["Max"], clip_max)]
+    html_df["Min"] = [
+        v + "*" if c else v for v, c in zip(html_df["Min"], clip_min, strict=False)
+    ]
+    html_df["Max"] = [
+        v + "*" if c else v for v, c in zip(html_df["Max"], clip_max, strict=False)
+    ]
 
     html_table = html_df.to_html(index=False, classes="dataframe")
-    note_p = f'<p style="font-size:0.85em"><em><strong>Note:</strong> {note_html}</em></p>'
+    note_p = (
+        f'<p style="font-size:0.85em"><em><strong>Note:</strong> {note_html}</em></p>'
+    )
 
     html_block = (
-        f'::: {{#tbl-feature-stats}}\n\n'
-        f'{html_table}\n\n'
-        f'{note_p}\n\n'
-        f'{caption}\n\n'
-        f':::'
+        f"::: {{#tbl-feature-stats}}\n\n{html_table}\n\n{note_p}\n\n{caption}\n\n:::"
     )
 
     # ── LaTeX version ─────────────────────────────────────────────────
@@ -274,7 +301,7 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
     rows_latex: list[str] = []
     for i, (_, row) in enumerate(df.iterrows()):
         cells = []
-        for col, val in zip(cols, row):
+        for col, val in zip(cols, row, strict=False):
             s = _esc(str(val))
             if col == "Min" and clip_min.iloc[i]:
                 s += r"$^{*}$"
@@ -290,52 +317,57 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
             f" $\\pm{obs_clip:.0f}$; starred values exceed this bound."
         )
 
-    latex_block = "\n".join([
-        r"\clearpage",
-        r"\begin{landscape}",
-        r"\begin{table}[htbp]",
-        f"\\caption{{{_esc(caption)}}}",
-        r"\label{tbl-feature-stats}",
-        r"\centering",
-        r"\footnotesize",
-        f"\\begin{{tabular}}{{{col_spec}}}",
-        r"\toprule",
-        header_cells + r" \\",
-        r"\midrule",
-        *rows_latex,
-        r"\bottomrule",
-        r"\end{tabular}",
-        r"\vspace{4pt}",
-        r"\begin{minipage}{\linewidth}",
-        f"\\footnotesize\\textit{{{note_latex}}}",
-        r"\end{minipage}",
-        r"\end{table}",
-        r"\end{landscape}",
-        r"\clearpage",
-    ])
+    latex_block = "\n".join(
+        [
+            r"\clearpage",
+            r"\begin{landscape}",
+            r"\begin{table}[htbp]",
+            f"\\caption{{{_esc(caption)}}}",
+            r"\label{tbl-feature-stats}",
+            r"\centering",
+            r"\footnotesize",
+            f"\\begin{{tabular}}{{{col_spec}}}",
+            r"\toprule",
+            header_cells + r" \\",
+            r"\midrule",
+            *rows_latex,
+            r"\bottomrule",
+            r"\end{tabular}",
+            r"\vspace{4pt}",
+            r"\begin{minipage}{\linewidth}",
+            f"\\footnotesize\\textit{{{note_latex}}}",
+            r"\end{minipage}",
+            r"\end{table}",
+            r"\end{landscape}",
+            r"\clearpage",
+        ]
+    )
 
     # ── Emit conditional blocks ────────────────────────────────────────
-    content = "\n".join([
-        '::: {.content-visible when-format="html"}',
-        "",
-        html_block,
-        "",
-        ":::",
-        "",
-        '::: {.content-visible when-format="pdf"}',
-        "",
-        "```{=latex}",
-        latex_block,
-        "```",
-        "",
-        ":::",
-    ])
+    content = "\n".join(
+        [
+            '::: {.content-visible when-format="html"}',
+            "",
+            html_block,
+            "",
+            ":::",
+            "",
+            '::: {.content-visible when-format="pdf"}',
+            "",
+            "```{=latex}",
+            latex_block,
+            "```",
+            "",
+            ":::",
+        ]
+    )
     display(Markdown(content))
 
 
 # ---------------------------------------------------------------------------
 # Feature–return correlation table
 # ---------------------------------------------------------------------------
+
 
 def feature_correlation_table(raw_df: pd.DataFrame) -> None:
     """Emit feature Pearson and Spearman correlations with next-step log return.
@@ -353,7 +385,9 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
     )
     df["pearson"] = df["pearson"].apply(lambda x: f"{float(x):+.4f}")
     df["spearman"] = df["spearman"].apply(lambda x: f"{float(x):+.4f}")
-    df = df.rename(columns={"feature": "Feature", "pearson": "Pearson", "spearman": "Spearman"})
+    df = df.rename(
+        columns={"feature": "Feature", "pearson": "Pearson", "spearman": "Spearman"}
+    )
 
     caption = (
         "Pearson and Spearman rank correlations between each engineered feature "
@@ -371,11 +405,11 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
     html_table = df.to_html(index=False, classes="dataframe")
     note_p = f'<p style="font-size:0.85em"><em><strong>Note:</strong> {note}</em></p>'
     html_block = (
-        f'::: {{#tbl-feature-correlations}}\n\n'
-        f'{html_table}\n\n'
-        f'{note_p}\n\n'
-        f'{caption}\n\n'
-        f':::'
+        f"::: {{#tbl-feature-correlations}}\n\n"
+        f"{html_table}\n\n"
+        f"{note_p}\n\n"
+        f"{caption}\n\n"
+        f":::"
     )
 
     # ── LaTeX version ─────────────────────────────────────────────────
@@ -383,50 +417,54 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
         return s.replace("_", r"\_").replace("%", r"\%").replace("&", r"\&")
 
     rows_latex = [
-        " & ".join(_esc(str(v)) for v in row) + r" \\"
-        for _, row in df.iterrows()
+        " & ".join(_esc(str(v)) for v in row) + r" \\" for _, row in df.iterrows()
     ]
-    latex_block = "\n".join([
-        r"\begin{table}[htbp]",
-        f"\\caption{{{_esc(caption)}}}",
-        r"\label{tbl-feature-correlations}",
-        r"\centering",
-        r"\small",
-        r"\begin{tabular}{l r r}",
-        r"\toprule",
-        r"\textbf{Feature} & \textbf{Pearson} & \textbf{Spearman} \\",
-        r"\midrule",
-        *rows_latex,
-        r"\bottomrule",
-        r"\end{tabular}",
-        r"\vspace{4pt}",
-        r"\begin{minipage}{0.95\linewidth}",
-        f"\\footnotesize\\textit{{{_esc(note)}}}",
-        r"\end{minipage}",
-        r"\end{table}",
-    ])
+    latex_block = "\n".join(
+        [
+            r"\begin{table}[htbp]",
+            f"\\caption{{{_esc(caption)}}}",
+            r"\label{tbl-feature-correlations}",
+            r"\centering",
+            r"\small",
+            r"\begin{tabular}{l r r}",
+            r"\toprule",
+            r"\textbf{Feature} & \textbf{Pearson} & \textbf{Spearman} \\",
+            r"\midrule",
+            *rows_latex,
+            r"\bottomrule",
+            r"\end{tabular}",
+            r"\vspace{4pt}",
+            r"\begin{minipage}{0.95\linewidth}",
+            f"\\footnotesize\\textit{{{_esc(note)}}}",
+            r"\end{minipage}",
+            r"\end{table}",
+        ]
+    )
 
-    content = "\n".join([
-        '::: {.content-visible when-format="html"}',
-        "",
-        html_block,
-        "",
-        ":::",
-        "",
-        '::: {.content-visible when-format="pdf"}',
-        "",
-        "```{=latex}",
-        latex_block,
-        "```",
-        "",
-        ":::",
-    ])
+    content = "\n".join(
+        [
+            '::: {.content-visible when-format="html"}',
+            "",
+            html_block,
+            "",
+            ":::",
+            "",
+            '::: {.content-visible when-format="pdf"}',
+            "",
+            "```{=latex}",
+            latex_block,
+            "```",
+            "",
+            ":::",
+        ]
+    )
     display(Markdown(content))
 
 
 # ---------------------------------------------------------------------------
 # LOB events sample table
 # ---------------------------------------------------------------------------
+
 
 def lob_events_table(df: pd.DataFrame) -> None:
     """Select a 12-event window with maximum price activity and display as HTML.
@@ -441,10 +479,9 @@ def lob_events_table(df: pd.DataFrame) -> None:
     best_start, best_score = 0, 0
     for i in range(0, len(df) - 12, 5):
         w = df.iloc[i : i + 12]
-        score = (
-            (w["ask_px_00"].diff().abs() > 0).sum()
-            + (w["bid_px_00"].diff().abs() > 0).sum()
-        )
+        score = (w["ask_px_00"].diff().abs() > 0).sum() + (
+            w["bid_px_00"].diff().abs() > 0
+        ).sum()
         if score > best_score:
             best_score, best_start = score, i
 
@@ -454,24 +491,29 @@ def lob_events_table(df: pd.DataFrame) -> None:
     FEAT_COLS = ["Book Pressure", "Order Imbalance", "Microprice Dev.", "OFI"]
     FIRST_FEAT_COL = FEAT_COLS[0]
 
-    tbl = pd.DataFrame({
-        "Time (UTC)": win["ts_event"].dt.strftime("%H:%M:%S.%f").str[:-3].values,
-        "Best Bid ($)": win["bid_px_00"].round(2).values,
-        "Best Ask ($)": win["ask_px_00"].round(2).values,
-        "Bid Size": win["bid_sz_00"].astype(int).values,
-        "Ask Size": win["ask_sz_00"].astype(int).values,
-        "Book Pressure": win["feature_hft_book_pressure_l0"].round(3).values,
-        "Order Imbalance": win["feature_hft_order_book_imbalance_3l"].round(3).values,
-        "Microprice Dev.": win["feature_hft_microprice_divergence"].round(3).values,
-        "OFI": win["feature_hft_ofi"].round(3).values,
-    }, index=[f"E{i}" for i in range(1, 13)])
+    tbl = pd.DataFrame(
+        {
+            "Time (UTC)": win["ts_event"].dt.strftime("%H:%M:%S.%f").str[:-3].values,
+            "Best Bid ($)": win["bid_px_00"].round(2).values,
+            "Best Ask ($)": win["ask_px_00"].round(2).values,
+            "Bid Size": win["bid_sz_00"].astype(int).values,
+            "Ask Size": win["ask_sz_00"].astype(int).values,
+            "Book Pressure": win["feature_hft_book_pressure_l0"].round(3).values,
+            "Order Imbalance": win["feature_hft_order_book_imbalance_3l"]
+            .round(3)
+            .values,
+            "Microprice Dev.": win["feature_hft_microprice_divergence"].round(3).values,
+            "OFI": win["feature_hft_ofi"].round(3).values,
+        },
+        index=[f"E{i}" for i in range(1, 13)],
+    )
 
     header_cells = ""
     for col in tbl.columns:
         bold = "font-weight:bold;" if col in RAW_COLS else ""
         border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
         header_cells += f'<th style="text-align:right;{bold}{border}">{col}</th>'
-    header = f'<thead><tr>{header_cells}</tr></thead>'
+    header = f"<thead><tr>{header_cells}</tr></thead>"
 
     html_rows = []
     for _event, series in tbl.iterrows():
@@ -479,7 +521,7 @@ def lob_events_table(df: pd.DataFrame) -> None:
         for col, val in series.items():
             border = "border-left:2px solid #555;" if col == FIRST_FEAT_COL else ""
             cells += f'<td style="text-align:right;{border}">{val}</td>'
-        html_rows.append(f'<tr>{cells}</tr>')
+        html_rows.append(f"<tr>{cells}</tr>")
 
     body = "<tbody>" + "".join(html_rows) + "</tbody>"
     table_html = (
@@ -507,6 +549,7 @@ def lob_events_table(df: pd.DataFrame) -> None:
 # Comparison tables (value row + delta row per group)
 # ---------------------------------------------------------------------------
 
+
 def comparison_table_html(
     rows: list[dict],
     cols: list[tuple[str, str, str]],
@@ -523,6 +566,7 @@ def comparison_table_html(
         cols: list of (metric_key, display_label, fmt) tuples — column order.
         index_col: name of the column used as the row label (rowspan=2).
     """
+
     def _th(label: str, rowspan: int = 1) -> str:
         rs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
         return f"<th{rs}>{label}</th>"
@@ -582,6 +626,8 @@ def build_comparison_rows(
             if is_base:
                 row[f"Δ {col}"] = "(baseline)"
             elif baseline_m:
-                row[f"Δ {col}"] = fmt_delta(m.get(key), baseline_m.get(key), fmt, hb.get(key, True))
+                row[f"Δ {col}"] = fmt_delta(
+                    m.get(key), baseline_m.get(key), fmt, hb.get(key, True)
+                )
         rows.append(row)
     return rows

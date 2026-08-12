@@ -64,10 +64,14 @@ def _make_env(df: pd.DataFrame):
         }
     )
     factory = TradingEnvXYFactory(config)
-    return factory.make(df, config=config, feature_columns=["feature_signal"], price_column="close")
+    return factory.make(
+        df, config=config, feature_columns=["feature_signal"], price_column="close"
+    )
 
 
-def _expected_nlv(initial_cash: float, prices: list[float], weights: list[float]) -> list[float]:
+def _expected_nlv(
+    initial_cash: float, prices: list[float], weights: list[float]
+) -> list[float]:
     """Reference implementation of the broker NLV formula (no fees).
 
     NLV[0] = initial_cash (pre-trade)
@@ -137,15 +141,15 @@ class TestNLVCalculation:
     def test_nlv_length(self):
         series = extract_tradingenv_return_series(self.env, self.n_steps)
         # context_pre of step 0  + context_post of each step → n_steps + 1 values
-        assert len(series.values) == self.n_steps + 1, (
-            f"Expected {self.n_steps + 1} NLV values, got {len(series.values)}"
-        )
+        assert (
+            len(series.values) == self.n_steps + 1
+        ), f"Expected {self.n_steps + 1} NLV values, got {len(series.values)}"
 
     def test_initial_nlv(self):
         series = extract_tradingenv_return_series(self.env, self.n_steps)
-        assert abs(series.values[0] - INITIAL_CASH) < 1.0, (
-            f"Initial NLV {series.values[0]:.2f} != expected {INITIAL_CASH:.2f}"
-        )
+        assert (
+            abs(series.values[0] - INITIAL_CASH) < 1.0
+        ), f"Initial NLV {series.values[0]:.2f} != expected {INITIAL_CASH:.2f}"
 
     def test_nlv_path_matches_tradingenv_semantics(self):
         """NLV[t] = initial_cash * PRICES[t-1] / PRICES[0] for t >= 1.
@@ -164,14 +168,14 @@ class TestNLVCalculation:
 
         print("\nNLV path (always-long, buy at trade price):")
         print(f"{'t':>3}  {'price_used':>10}  {'nlv_actual':>12}  {'nlv_expected':>12}")
-        for t, (actual, expected) in enumerate(zip(nlv, expected_nlv)):
-            price_label = f"PRICES[{t-1}]={PRICES[t-1]:.0f}" if t > 0 else "initial"
+        for t, (actual, expected) in enumerate(zip(nlv, expected_nlv, strict=False)):
+            price_label = f"PRICES[{t - 1}]={PRICES[t - 1]:.0f}" if t > 0 else "initial"
             print(f"{t:>3}  {price_label:>10}  {actual:>12.4f}  {expected:>12.4f}")
 
-        for t, (actual, expected) in enumerate(zip(nlv, expected_nlv)):
-            assert abs(actual - expected) < 0.01, (
-                f"NLV mismatch at t={t}: actual={actual:.6f} expected={expected:.6f}"
-            )
+        for t, (actual, expected) in enumerate(zip(nlv, expected_nlv, strict=False)):
+            assert (
+                abs(actual - expected) < 0.01
+            ), f"NLV mismatch at t={t}: actual={actual:.6f} expected={expected:.6f}"
 
     def test_first_return_is_zero(self):
         """r[0] is always 0: the agent buys at the current price, NLV unchanged."""
@@ -188,10 +192,10 @@ class TestNLVCalculation:
         print(f"{'t':>3}  {'actual':>12}  {'expected':>12}  {'diff':>12}")
         for t in range(1, self.n_steps):
             expected = PRICES[t] / PRICES[t - 1] - 1.0
-            print(f"{t:>3}  {r[t]:>12.8f}  {expected:>12.8f}  {r[t]-expected:>12.8f}")
-            assert abs(r[t] - expected) < 1e-6, (
-                f"Return mismatch at t={t}: actual={r[t]:.8f} expected={expected:.8f}"
-            )
+            print(f"{t:>3}  {r[t]:>12.8f}  {expected:>12.8f}  {r[t] - expected:>12.8f}")
+            assert (
+                abs(r[t] - expected) < 1e-6
+            ), f"Return mismatch at t={t}: actual={r[t]:.8f} expected={expected:.8f}"
 
     def test_total_return_covers_observed_prices_only(self):
         """Total return = PRICES[n_steps-1] / PRICES[0] - 1.
@@ -228,7 +232,9 @@ class TestNLVAlwaysShort:
         self.df = _make_df(PRICES)
         self.env = _make_env(self.df)
         self.n_steps = len(PRICES) - 1
-        self.rollout = _run_policy_from_weights(self.env, [-1.0] * self.n_steps, self.n_steps)
+        self.rollout = _run_policy_from_weights(
+            self.env, [-1.0] * self.n_steps, self.n_steps
+        )
 
     def test_first_return_is_zero(self):
         series = extract_tradingenv_return_series(self.env, self.n_steps)
@@ -242,19 +248,19 @@ class TestNLVAlwaysShort:
 
         print("\nNLV path (always-short):")
         print(f"{'t':>3}  {'actual':>12}  {'expected':>12}")
-        for t, (act, exp) in enumerate(zip(nlv, expected)):
+        for t, (act, exp) in enumerate(zip(nlv, expected, strict=False)):
             print(f"{t:>3}  {act:>12.4f}  {exp:>12.4f}")
-            assert abs(act - exp) < 0.01, (
-                f"NLV mismatch at t={t}: actual={act:.6f} expected={exp:.6f}"
-            )
+            assert (
+                abs(act - exp) < 0.01
+            ), f"NLV mismatch at t={t}: actual={act:.6f} expected={exp:.6f}"
 
     def test_short_loses_when_price_rises(self):
         """Price[1]=101 > Price[0]=100 → short position loses at step 1."""
         series = extract_tradingenv_return_series(self.env, self.n_steps)
         nlv = series.values
-        assert nlv[2] < INITIAL_CASH, (
-            f"Short should lose when price rises 100→101 but NLV[2]={nlv[2]:.2f}"
-        )
+        assert (
+            nlv[2] < INITIAL_CASH
+        ), f"Short should lose when price rises 100→101 but NLV[2]={nlv[2]:.2f}"
 
     def test_short_gains_when_price_falls(self):
         """Price[4]=100 < Price[3]=101 → short position gains at step 4."""
@@ -262,21 +268,25 @@ class TestNLVAlwaysShort:
         nlv = series.values
         # At t=4, price fell from PRICES[3]=101 to PRICES[4]=100.
         # NLV[4] reflects holding -1 over that move; compare with NLV[3].
-        assert nlv[4] > nlv[3], (
-            f"Short should gain when price falls 101→100: NLV[3]={nlv[3]:.2f} NLV[4]={nlv[4]:.2f}"
-        )
+        assert (
+            nlv[4] > nlv[3]
+        ), f"Short should gain when price falls 101→100: NLV[3]={nlv[3]:.2f} NLV[4]={nlv[4]:.2f}"
 
     def test_long_and_short_returns_are_negatives(self):
         """r_short[t] = -r_long[t] for t >= 1 (same prices, opposite weights)."""
         long_env = _make_env(_make_df(PRICES))
         _run_always_long(long_env, self.n_steps)
-        r_long = extract_tradingenv_return_series(long_env, self.n_steps).to_simple().values
-        r_short = extract_tradingenv_return_series(self.env, self.n_steps).to_simple().values
+        r_long = (
+            extract_tradingenv_return_series(long_env, self.n_steps).to_simple().values
+        )
+        r_short = (
+            extract_tradingenv_return_series(self.env, self.n_steps).to_simple().values
+        )
 
         for t in range(1, self.n_steps):
-            assert abs(r_short[t] + r_long[t]) < 1e-8, (
-                f"r_short[{t}]={r_short[t]:.8f} + r_long[{t}]={r_long[t]:.8f} != 0"
-            )
+            assert (
+                abs(r_short[t] + r_long[t]) < 1e-8
+            ), f"r_short[{t}]={r_short[t]:.8f} + r_long[{t}]={r_long[t]:.8f} != 0"
 
 
 # Variable-weight scenario:
@@ -312,31 +322,39 @@ class TestNLVVariableWeights:
         assert len(nlv) == self.n_steps + 1
 
         print("\nNLV path (long→short→flat):")
-        print(f"{'t':>3}  {'weight':>7}  {'price':>7}  {'actual':>12}  {'expected':>12}")
+        print(
+            f"{'t':>3}  {'weight':>7}  {'price':>7}  {'actual':>12}  {'expected':>12}"
+        )
         labels = ["entry"] + [f"w={w:+.0f}" for w in _WEIGHTS_VAR]
-        prices = [_PRICES_VAR[0]] + _PRICES_VAR
-        for t, (act, exp) in enumerate(zip(nlv, _EXPECTED_NLV_VAR)):
-            print(f"{t:>3}  {labels[t]:>7}  {prices[t]:>7.1f}  {act:>12.4f}  {exp:>12.4f}")
-            assert abs(act - exp) < 0.01, (
-                f"NLV mismatch at t={t}: actual={act:.6f} expected={exp:.6f}"
+        prices = [_PRICES_VAR[0], *_PRICES_VAR]
+        for t, (act, exp) in enumerate(zip(nlv, _EXPECTED_NLV_VAR, strict=False)):
+            print(
+                f"{t:>3}  {labels[t]:>7}  {prices[t]:>7.1f}  {act:>12.4f}  {exp:>12.4f}"
             )
+            assert (
+                abs(act - exp) < 0.01
+            ), f"NLV mismatch at t={t}: actual={act:.6f} expected={exp:.6f}"
 
     def test_long_phase_profits_on_price_rise(self):
         """w=+1 while price 100→110: NLV[2] = 11000 > 10000."""
         nlv = extract_tradingenv_return_series(self.env, self.n_steps).values
-        assert abs(nlv[2] - 11_000.0) < 0.01, f"Long phase NLV[2]={nlv[2]:.2f}, expected 11000"
+        assert (
+            abs(nlv[2] - 11_000.0) < 0.01
+        ), f"Long phase NLV[2]={nlv[2]:.2f}, expected 11000"
 
     def test_short_phase_profits_on_price_drop(self):
         """w=-1 while price 110→99: NLV[3] = 12100 > 11000."""
         nlv = extract_tradingenv_return_series(self.env, self.n_steps).values
-        assert abs(nlv[3] - 12_100.0) < 0.01, f"Short phase NLV[3]={nlv[3]:.2f}, expected 12100"
+        assert (
+            abs(nlv[3] - 12_100.0) < 0.01
+        ), f"Short phase NLV[3]={nlv[3]:.2f}, expected 12100"
 
     def test_flat_phase_holds_nlv_constant(self):
         """w=0 while price 99→88 and 88→110: NLV[4] = NLV[3] = 12100."""
         nlv = extract_tradingenv_return_series(self.env, self.n_steps).values
-        assert abs(nlv[4] - nlv[3]) < 0.01, (
-            f"Flat phase changed NLV: NLV[3]={nlv[3]:.2f} NLV[4]={nlv[4]:.2f}"
-        )
+        assert (
+            abs(nlv[4] - nlv[3]) < 0.01
+        ), f"Flat phase changed NLV: NLV[3]={nlv[3]:.2f} NLV[4]={nlv[4]:.2f}"
 
     def test_returns_match_weight_times_price_return(self):
         """r[t] = w[t-1] * (price[t] / price[t-1] - 1) for t >= 1."""
@@ -345,8 +363,10 @@ class TestNLVVariableWeights:
 
         assert abs(r[0]) < 1e-10, f"r[0] should be 0 but got {r[0]}"
         for t in range(1, self.n_steps):
-            expected_r = _WEIGHTS_VAR[t - 1] * (_PRICES_VAR[t] / _PRICES_VAR[t - 1] - 1.0)
+            expected_r = _WEIGHTS_VAR[t - 1] * (
+                _PRICES_VAR[t] / _PRICES_VAR[t - 1] - 1.0
+            )
             assert abs(r[t] - expected_r) < 1e-8, (
-                f"r[{t}]={r[t]:.8f}, expected w={_WEIGHTS_VAR[t-1]:+.0f} * "
-                f"({_PRICES_VAR[t]}/{_PRICES_VAR[t-1]}-1) = {expected_r:.8f}"
+                f"r[{t}]={r[t]:.8f}, expected w={_WEIGHTS_VAR[t - 1]:+.0f} * "
+                f"({_PRICES_VAR[t]}/{_PRICES_VAR[t - 1]}-1) = {expected_r:.8f}"
             )

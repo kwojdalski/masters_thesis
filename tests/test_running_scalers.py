@@ -112,7 +112,9 @@ class TestTimeWeightedRunningMeanStd:
         n_samples = 50
         uniform_weights = np.ones(n_samples)
 
-        for value, weight in zip([constant_value] * n_samples, uniform_weights):
+        for value, weight in zip(
+            [constant_value] * n_samples, uniform_weights, strict=False
+        ):
             scaler.update(np.array([value]), np.array([weight]))
 
         # Mean should converge to constant value
@@ -128,7 +130,7 @@ class TestTimeWeightedRunningMeanStd:
         # Update with weighted data
         values = np.array([5.0, 10.0, 15.0])
         weights = np.array([1.0, 1.0, 1.0])
-        for value, weight in zip(values, weights):
+        for value, weight in zip(values, weights, strict=False):
             scaler.update(np.array([value]), np.array([weight]))
 
         # State should be non-zero
@@ -180,7 +182,7 @@ class TestTimeWeightedRunningMeanStd:
         values = np.array([1.0, 10.0, 1.0, 10.0, 1.0, 10.0, 1.0, 10.0, 1.0, 10.0])
         uniform_weights = np.ones(10)
 
-        for value, weight in zip(values, uniform_weights):
+        for value, weight in zip(values, uniform_weights, strict=False):
             scaler.update(np.array([value]), np.array([weight]))
 
         # Variance should be positive for varying values
@@ -194,7 +196,7 @@ class TestTimeWeightedRunningMeanStd:
         values = np.array([5.0, 10.0, 15.0])
         weights = np.array([0.1, 1.0, 10.0])  # Varying orders of magnitude
 
-        for value, weight in zip(values, weights):
+        for value, weight in zip(values, weights, strict=False):
             scaler.update(np.array([value]), np.array([weight]))
 
         # All values should be finite

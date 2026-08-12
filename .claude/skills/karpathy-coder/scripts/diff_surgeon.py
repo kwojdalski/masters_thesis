@@ -24,6 +24,7 @@ Exit codes:
     0  clean — all changes look intentional
     1  noise detected — review before committing
 """
+
 from __future__ import annotations
 
 import argparse
@@ -40,7 +41,9 @@ WHITESPACE_ONLY = re.compile(r"^[+-]\s*$")
 QUOTE_CHANGE = re.compile(r'^[+-]\s*.*["\'].*["\']')
 DOCSTRING_ADD = re.compile(r'^[+]\s*"""')
 IMPORT_LINE = re.compile(r"^[+]\s*(?:import |from \S+ import |const .* = require)")
-TYPE_ANNOTATION = re.compile(r"^[+-].*:\s*(?:str|int|float|bool|list|dict|Optional|Union|Any|string|number|boolean)\b")
+TYPE_ANNOTATION = re.compile(
+    r"^[+-].*:\s*(?:str|int|float|bool|list|dict|Optional|Union|Any|string|number|boolean)\b"
+)
 SEMICOLON_CHANGE = re.compile(r"^[+-].*;\s*$")
 TRAILING_COMMA = re.compile(r"^[+-].*,\s*$")
 
@@ -50,9 +53,15 @@ def get_diff(args):
     if args.file:
         return Path(args.file).read_text(encoding="utf-8", errors="replace")
     diff_range = args.diff or "--staged"
-    cmd = ["git", "diff", diff_range] if diff_range != "--staged" else ["git", "diff", "--staged"]
+    cmd = (
+        ["git", "diff", diff_range]
+        if diff_range != "--staged"
+        else ["git", "diff", "--staged"]
+    )
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(  # noqa: S603 — cmd built internally from fixed args + diff_range, not external input
+            cmd, capture_output=True, text=True, timeout=30
+        )
         return result.stdout
     except (subprocess.TimeoutExpired, FileNotFoundError) as e:
         print(f"[error] git diff failed: {e}", file=sys.stderr)
@@ -105,37 +114,41 @@ def classify_line(line_text):
 def analyze_file_diff(file_data):
     """Analyze a single file's diff for noise."""
     findings = []
-    change_lines = [l for l in file_data["lines"] if l["type"] == "change"]
+    change_lines = [ln for ln in file_data["lines"] if ln["type"] == "change"]
     total_changes = len(change_lines)
 
     if total_changes == 0:
         return findings
 
     # Detect paired +/- that are only whitespace/style changes
-    additions = [l["text"] for l in change_lines if l["text"].startswith("+")]
-    deletions = [l["text"] for l in change_lines if l["text"].startswith("-")]
+    additions = [ln["text"] for ln in change_lines if ln["text"].startswith("+")]
+    deletions = [ln["text"] for ln in change_lines if ln["text"].startswith("-")]
 
     noise_count = 0
     for line_data in change_lines:
         category = classify_line(line_data["text"])
         if category:
             noise_count += 1
-            findings.append({
-                "category": category,
-                "line": line_data["text"][:120],
-            })
+            findings.append(
+                {
+                    "category": category,
+                    "line": line_data["text"][:120],
+                }
+            )
 
     # Detect quote-style swaps (paired changes where only quotes differ)
-    for a, d in zip(sorted(additions), sorted(deletions)):
+    for a, d in zip(sorted(additions), sorted(deletions), strict=False):
         a_norm = a[1:].replace('"', "'").strip()
         d_norm = d[1:].replace('"', "'").strip()
         if a_norm == d_norm and a[1:].strip() != d[1:].strip():
-            findings.append({
-                "category": "quote-style-swap",
-                "line": f"{d[:60]} → {a[:60]}",
-            })
+            findings.append(
+                {
+                    "category": "quote-style-swap",
+                    "line": f"{d[:60]} → {a[:60]}",
+                }
+            )
 
-    noise_ratio = noise_count / total_changes if total_changes > 0 else 0
+    noise_count / total_changes if total_changes > 0 else 0
     return findings
 
 
@@ -144,18 +157,30 @@ def main():
         description="Detect diff noise — changes that don't trace to the stated goal (Karpathy Principle #3).",
         epilog="Run before committing to catch drive-by refactors and style drift.",
     )
-    p.add_argument("--diff", default=None, help="Git diff range (e.g. HEAD~1..HEAD). Default: staged changes.")
+    p.add_argument(
+        "--diff",
+        default=None,
+        help="Git diff range (e.g. HEAD~1..HEAD). Default: staged changes.",
+    )
     p.add_argument("--file", default=None, help="Read diff from a file instead of git")
     p.add_argument("--json", action="store_true", help="JSON output")
     args = p.parse_args()
 
     diff_text = get_diff(args)
     if not diff_text.strip():
-        result = {"status": "ok", "message": "No diff to analyze", "files": 0, "noise_lines": 0, "verdict": "CLEAN"}
+        result = {
+            "status": "ok",
+            "message": "No diff to analyze",
+            "files": 0,
+            "noise_lines": 0,
+            "verdict": "CLEAN",
+        }
         if args.json:
             print(json.dumps(result, indent=2))
         else:
-            print("No diff to analyze. Stage changes first (git add) or specify --diff range.")
+            print(
+                "No diff to analyze. Stage changes first (git add) or specify --diff range."
+            )
         return
 
     file_diffs = parse_hunks(diff_text)
@@ -170,11 +195,15 @@ def main():
 
     total_noise = len(all_findings)
     total_changes = sum(
-        len([l for l in fd["lines"] if l["type"] == "change"]) for fd in file_diffs
+        len([ln for ln in fd["lines"] if ln["type"] == "change"]) for fd in file_diffs
     )
     noise_ratio = total_noise / total_changes if total_changes > 0 else 0
 
-    verdict = "CLEAN" if noise_ratio < 0.1 else ("NOISY" if noise_ratio < 0.3 else "VERY_NOISY")
+    verdict = (
+        "CLEAN"
+        if noise_ratio < 0.1
+        else ("NOISY" if noise_ratio < 0.3 else "VERY_NOISY")
+    )
 
     result = {
         "status": "ok",
@@ -202,12 +231,14 @@ def main():
                 categories.setdefault(f["category"], []).append(f["line"])
             for cat, lines in categories.items():
                 print(f"    [{cat}] {len(lines)} instance(s)")
-                for l in lines[:3]:
-                    print(f"      {l}")
+                for line in lines[:3]:
+                    print(f"      {line}")
                 if len(lines) > 3:
                     print(f"      ... and {len(lines) - 3} more")
         print()
-        print("Recommendation: review flagged lines. Remove changes that don't trace to your task.")
+        print(
+            "Recommendation: review flagged lines. Remove changes that don't trace to your task."
+        )
     else:
         print("\n  All changes look intentional. Clean diff.")
 

@@ -12,15 +12,17 @@ import yaml
 
 from logger import get_logger
 from trading_rl.constants import SplitName
-from trading_rl.features.base import NormalizationMethod
 from trading_rl.data_loading import MemmapPaths, load_memmap_paths
+from trading_rl.features.base import NormalizationMethod
 
 logger = get_logger(__name__)
 
 # Split-size keys are excluded from the cache signature so that a cache built
 # at a larger size (e.g. 50k) can be reused for a smaller request (e.g. 5k)
 # without reprocessing — the caller slices to the requested size at load time.
-_SPLIT_SIZE_KEYS: frozenset[str] = frozenset({"train_size", "validation_size", "test_size"})
+_SPLIT_SIZE_KEYS: frozenset[str] = frozenset(
+    {"train_size", "validation_size", "test_size"}
+)
 
 
 def _sig_without_sizes(sig: dict) -> dict:
@@ -29,8 +31,7 @@ def _sig_without_sizes(sig: dict) -> dict:
 
 def _parquet_cache_exists(prepared_dir: Path) -> bool:
     return all(
-        (prepared_dir / f"{split}_prepared.parquet").exists()
-        for split in SplitName
+        (prepared_dir / f"{split}_prepared.parquet").exists() for split in SplitName
     )
 
 
@@ -83,7 +84,9 @@ def _config_cache_signature(config: Any) -> dict[str, Any]:
     }
 
 
-def _expected_cached_split_rows(config: Any, memmap_dir: Path | None) -> dict[str, int | None]:
+def _expected_cached_split_rows(
+    config: Any, memmap_dir: Path | None
+) -> dict[str, int | None]:
     # Per-day mode: each file has a different number of rows, so we cannot
     # assert a fixed split size — return None to skip row-count validation.
     if getattr(config.data, "val_data_paths", None):
@@ -99,8 +102,12 @@ def _expected_cached_split_rows(config: Any, memmap_dir: Path | None) -> dict[st
     test_size = getattr(config.data, "test_size", None)
     return {
         SplitName.TRAIN: train_rows,
-        SplitName.VAL: validation_size * val_test_multiplier if validation_size is not None else None,
-        SplitName.TEST: test_size * val_test_multiplier if test_size is not None else None,
+        SplitName.VAL: validation_size * val_test_multiplier
+        if validation_size is not None
+        else None,
+        SplitName.TEST: test_size * val_test_multiplier
+        if test_size is not None
+        else None,
     }
 
 
@@ -240,11 +247,19 @@ def _yaml_uses_global(feature_config_path: str) -> bool:
     try:
         with open(feature_config_path) as f:
             cfg = yaml.safe_load(f)
-        global_default = cfg.get("normalization_method", NormalizationMethod.RUNNING) == NormalizationMethod.GLOBAL
+        global_default = (
+            cfg.get("normalization_method", NormalizationMethod.RUNNING)
+            == NormalizationMethod.GLOBAL
+        )
         for fc in cfg.get("features", []):
             if not fc.get("normalize", False):
                 continue
-            method = fc.get("normalization_method", NormalizationMethod.GLOBAL if global_default else NormalizationMethod.RUNNING)
+            method = fc.get(
+                "normalization_method",
+                NormalizationMethod.GLOBAL
+                if global_default
+                else NormalizationMethod.RUNNING,
+            )
             if method == NormalizationMethod.GLOBAL:
                 return True
     except Exception as exc:
@@ -252,7 +267,9 @@ def _yaml_uses_global(feature_config_path: str) -> bool:
     return False
 
 
-def _memmap_feature_hash(feature_pipeline: Any | None, feature_config_path: str | None) -> str:
+def _memmap_feature_hash(
+    feature_pipeline: Any | None, feature_config_path: str | None
+) -> str:
     """Stable hash of the feature pipeline config for memmap cache invalidation.
 
     Covers only the pipeline structure, not per-file data, so the same hash
@@ -277,9 +294,13 @@ def _memmap_feature_hash(feature_pipeline: Any | None, feature_config_path: str 
             }
             for fc in feature_pipeline.feature_configs
         ]
-        return hashlib.md5(json.dumps(pipeline_repr, sort_keys=True).encode()).hexdigest()[:16]
+        return hashlib.md5(
+            json.dumps(pipeline_repr, sort_keys=True).encode(), usedforsecurity=False
+        ).hexdigest()[:16]
     if feature_config_path and Path(feature_config_path).exists():
-        return hashlib.md5(Path(feature_config_path).read_bytes()).hexdigest()[:16]
+        return hashlib.md5(
+            Path(feature_config_path).read_bytes(), usedforsecurity=False
+        ).hexdigest()[:16]
     return "no_features"
 
 
@@ -326,17 +347,21 @@ def _feature_cache_key(
             for fc in feature_pipeline.feature_configs
         ]
         config_sig = hashlib.md5(
-            json.dumps(pipeline_repr, sort_keys=True).encode()
+            json.dumps(pipeline_repr, sort_keys=True).encode(), usedforsecurity=False
         ).hexdigest()[:12]
         uses_global = _pipeline_uses_global(feature_pipeline)
     elif feature_config_path and Path(feature_config_path).exists():
-        config_sig = hashlib.md5(Path(feature_config_path).read_bytes()).hexdigest()[:12]
+        config_sig = hashlib.md5(
+            Path(feature_config_path).read_bytes(), usedforsecurity=False
+        ).hexdigest()[:12]
         uses_global = _yaml_uses_global(feature_config_path)
     else:
         config_sig = "default"
 
-    train_suffix = f"|train{train_size}" if (uses_global and train_size is not None) else ""
+    train_suffix = (
+        f"|train{train_size}" if (uses_global and train_size is not None) else ""
+    )
     raw = f"{Path(data_path).name}|{file_mtime}|lob{filter_lob_levels}|{config_sig}{train_suffix}"
-    key = hashlib.md5(raw.encode()).hexdigest()
+    key = hashlib.md5(raw.encode(), usedforsecurity=False).hexdigest()
     logger.trace("feature cache key raw={} key={}", raw, key)
     return key

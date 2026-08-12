@@ -19,6 +19,7 @@ class _Env:
 
     def __init__(self, nlvs):  # type: ignore[misc]
         from unittest.mock import MagicMock
+
         self.broker = MagicMock()
         self._nlvs = nlvs
         self._step = 0
@@ -42,6 +43,7 @@ def _run(nlvs: list[float], **kwargs) -> list[float]:
 # ---------------------------------------------------------------------------
 # clip_rewards parameter
 # ---------------------------------------------------------------------------
+
 
 class TestClipRewards:
     def test_clip_true_clamps_extreme_positive_value(self):
@@ -71,7 +73,7 @@ class TestClipRewards:
         dsr = DifferentialSharpeRatio(eta=0.01, epsilon=1e-16, clip_reward=None)
         env = _Env([100.0] * 1)
         # Warm up EMAs with constant returns so variance is essentially 0
-        for i in range(200):
+        for _i in range(200):
             env._step = 0
             dsr.calculate(env)
         # Now inject a large spike — numerator is large, denominator ≈ epsilon^1.5
@@ -102,6 +104,7 @@ class TestClipRewards:
 # scale parameter
 # ---------------------------------------------------------------------------
 
+
 class TestScaleParameter:
     def test_scale_one_is_identity(self):
         rewards_s1 = _run([100.0, 110.0, 105.0, 108.0], eta=0.1, scale=1.0)
@@ -111,17 +114,21 @@ class TestScaleParameter:
     def test_scale_two_doubles_output(self):
         rewards_base = _run([100.0, 110.0, 105.0, 108.0], eta=0.1, scale=1.0)
         rewards_2x = _run([100.0, 110.0, 105.0, 108.0], eta=0.1, scale=2.0)
-        np.testing.assert_allclose(rewards_2x, [r * 2.0 for r in rewards_base], rtol=1e-9)
+        np.testing.assert_allclose(
+            rewards_2x, [r * 2.0 for r in rewards_base], rtol=1e-9
+        )
 
     def test_scale_half_halves_output(self):
         rewards_base = _run([100.0, 110.0, 105.0, 108.0], eta=0.1, scale=1.0)
         rewards_half = _run([100.0, 110.0, 105.0, 108.0], eta=0.1, scale=0.5)
-        np.testing.assert_allclose(rewards_half, [r * 0.5 for r in rewards_base], rtol=1e-9)
+        np.testing.assert_allclose(
+            rewards_half, [r * 0.5 for r in rewards_base], rtol=1e-9
+        )
 
     def test_scale_preserves_sign(self):
         rewards_pos = _run([100.0, 110.0, 105.0, 108.0], eta=0.1, scale=1.0)
         rewards_neg = _run([100.0, 110.0, 105.0, 108.0], eta=0.1, scale=-1.0)
-        for r_p, r_n in zip(rewards_pos, rewards_neg):
+        for r_p, r_n in zip(rewards_pos, rewards_neg, strict=False):
             assert np.sign(r_p) == -np.sign(r_n) or (r_p == 0.0 and r_n == 0.0)
 
     def test_scale_default_is_one(self):
@@ -132,6 +139,7 @@ class TestScaleParameter:
 # ---------------------------------------------------------------------------
 # persist_moments parameter in reset()
 # ---------------------------------------------------------------------------
+
 
 class TestPersistMoments:
     def test_persist_moments_false_resets_all_state(self):
