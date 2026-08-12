@@ -29,7 +29,7 @@ import math
 import os
 import re
 import shutil
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml

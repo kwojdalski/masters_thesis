@@ -38,7 +38,9 @@ def main() -> int:
     if str(thesis_src) not in sys.path:
         sys.path.insert(0, str(thesis_src))
 
-    from thesis_mlflow_results import export_experiment_snapshot  # local import after sys.path setup
+    from thesis_mlflow_results import (
+        export_experiment_snapshot,  # local import after sys.path setup
+    )
 
     output_root = (repo_root / args.output_root).resolve()
     export_dir = export_experiment_snapshot(args.experiment, output_root=output_root)

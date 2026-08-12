@@ -9,10 +9,9 @@ CLI mode: python scripts/fetch_crypto.py --exchange binance --symbols BTC/USDT -
 import datetime
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Annotated
 
 import typer
-from typing_extensions import Annotated
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

@@ -80,6 +80,7 @@ class TestFeatureRegistryList:
 
     def test_register_overwrites_existing_entry(self):
         import pandas as pd
+
         import trading_rl.features.price_features  # noqa: F401
 
         original_class = FeatureRegistry._registry.get("log_return")

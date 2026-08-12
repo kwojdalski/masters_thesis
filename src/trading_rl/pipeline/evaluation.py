@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -417,8 +417,12 @@ def evaluate_split(
         MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
 
     try:
+        import os
+        import tempfile
+
+        import mlflow as _mlflow
+
         from trading_rl.evaluation.plots import create_metrics_table_figure
-        import tempfile, os, mlflow as _mlflow
         if _mlflow.active_run():
             fig = create_metrics_table_figure(
                 split_evaluation_report,
@@ -557,7 +561,9 @@ def evaluate_per_symbol(
             if pipeline is not None:
                 active_pipeline = pipeline
                 if not pipeline_state_restored:
-                    from trading_rl.data.loading import build_feature_pipeline_with_state
+                    from trading_rl.data.loading import (
+                        build_feature_pipeline_with_state,
+                    )
 
                     active_pipeline = build_feature_pipeline_with_state(feature_config).pipeline
                     active_pipeline.fit(df)

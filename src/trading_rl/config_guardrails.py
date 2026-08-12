@@ -11,9 +11,9 @@ Import from those modules directly for new code.
 from __future__ import annotations
 
 from trading_rl.config_guardrails_checks import (
+    _ALL_CHECKS,
     Finding,
     Severity,
-    _ALL_CHECKS,
     _is_off_policy,
     _is_ppo,
     check_config_guardrails,
@@ -21,9 +21,9 @@ from trading_rl.config_guardrails_checks import (
 from trading_rl.config_guardrails_runner import run_guardrail_check
 
 __all__ = [
+    "_ALL_CHECKS",
     "Finding",
     "Severity",
-    "_ALL_CHECKS",
     "_is_off_policy",
     "_is_ppo",
     "check_config_guardrails",

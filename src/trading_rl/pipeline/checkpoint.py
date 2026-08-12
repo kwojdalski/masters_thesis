@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import mlflow
 import pandas as pd

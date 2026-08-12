@@ -9,7 +9,6 @@ YAML-loaded strings keep working in comparisons without any conversion:
 
 from enum import Enum, IntEnum, StrEnum
 
-
 # US equity market calendar assumptions used to derive periods-per-year below.
 # 252 trading days, 6.5-hour session (09:30–16:00 ET).
 _US_TRADING_DAYS: int = 252

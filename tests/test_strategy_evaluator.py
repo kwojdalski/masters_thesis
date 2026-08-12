@@ -7,8 +7,8 @@ from tensordict import TensorDict
 
 from trading_rl.evaluation.evaluator import (
     EvaluatorEnvConfig,
-    StrategyEvaluatorConfig,
     StrategyEvaluator,
+    StrategyEvaluatorConfig,
 )
 from trading_rl.evaluation.returns import ReturnKind
 

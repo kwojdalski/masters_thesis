@@ -17,7 +17,14 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-from plotnine import aes, geom_line, ggplot, labs, scale_color_manual, scale_linetype_manual
+from plotnine import (
+    aes,
+    geom_line,
+    ggplot,
+    labs,
+    scale_color_manual,
+    scale_linetype_manual,
+)
 
 # Import thesis visual style
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -151,7 +158,7 @@ def _build_palette(scenario_labels: list[str], benchmark_runs: list[str]) -> dic
 
 
 def _build_linetype(scenario_labels: list[str], benchmark_runs: list[str]) -> dict[str, str]:
-    lt: dict[str, str] = {label: "solid" for label in scenario_labels}
+    lt: dict[str, str] = dict.fromkeys(scenario_labels, "solid")
     for run in benchmark_runs:
         lt[run] = LINETYPE.get(run, "dashed")
     return lt

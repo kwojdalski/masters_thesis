@@ -42,9 +42,7 @@ import argparse
 import time
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-
 
 # Columns that carry LOB snapshot state — use end-of-period value.
 _LOB_SNAPSHOT_COLS = [

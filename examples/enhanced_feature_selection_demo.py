@@ -7,11 +7,8 @@ This script shows how to use the new feature selection features:
 4. Ensemble selection across CV splits
 """
 
-import pandas as pd
 from trading_rl.features.groups import FeatureGroupResolver
 from trading_rl.features.selector import FeatureSelector, FeatureSelectorConfig
-from trading_rl.features.pipeline import FeaturePipeline
-from trading_rl.features.base import FeatureConfig
 
 
 def example_standard_selection():

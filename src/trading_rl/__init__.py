@@ -15,19 +15,19 @@ from trading_rl.data import (
     load_trading_data,
     prepare_data,
 )
-from trading_rl.rewards import reward_function
 from trading_rl.envs import AlgorithmicEnvironmentBuilder, EnvBuildParams
+from trading_rl.rewards import reward_function
 
 from .models import (
     DiscreteNet,
     count_parameters,
     create_actor,
-    create_value_network,
+    create_ddpg_actor,
     create_ppo_actor,
     create_ppo_value_network,
-    create_ddpg_actor,
     create_td3_actor,
     create_td3_qvalue_network,
+    create_value_network,
 )
 from .train_trading_agent import (
     run_experiment_from_config,

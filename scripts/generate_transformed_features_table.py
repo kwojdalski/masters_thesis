@@ -1,8 +1,9 @@
 """Generate a sample table showing raw order book data and transformed features for the thesis."""
 
-import pandas as pd
 import sys
 from pathlib import Path
+
+import pandas as pd
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent

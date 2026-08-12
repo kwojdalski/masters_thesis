@@ -25,6 +25,7 @@ Exit codes:
     1  noise detected — review before committing
 """
 from __future__ import annotations
+
 import argparse
 import json
 import re

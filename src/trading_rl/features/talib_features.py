@@ -18,7 +18,6 @@ import talib
 from trading_rl.features.base import Feature
 from trading_rl.features.registry import register_feature
 
-
 # =============================================================================
 # TREND INDICATORS
 # =============================================================================

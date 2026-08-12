@@ -10,37 +10,6 @@ This module provides a flexible, configurable feature engineering system that:
 from trading_rl.features.base import Feature, FeatureConfig
 from trading_rl.features.column_features import ColumnValueFeature
 from trading_rl.features.groups import FeatureGroupResolver
-from trading_rl.features.pipeline import FeaturePipeline, create_default_pipeline
-from trading_rl.features.selector import FeatureSelector, FeatureSelectorConfig, FeatureSelectionResult
-
-# Import concrete features to register them
-from trading_rl.features.price_features import (
-    HighFeature,
-    LogReturnFeature,
-    LowFeature,
-    ReturnLagFeature,
-    RSIFeature,
-    SimpleReturnFeature,
-    TrendFeature,
-)
-from trading_rl.features.registry import FeatureRegistry, register_feature
-from trading_rl.features.volatility_features import (
-    RealizedVolatilityFeature,
-    VolatilityRatioFeature,
-)
-from trading_rl.features.volume_features import (
-    LogVolumeFeature,
-    VolumeChangeFeature,
-    VolumeMAFeature,
-)
-from trading_rl.features.temporal_features import (
-    DayOfWeekCosFeature,
-    DayOfWeekSinFeature,
-    HourCosFeature,
-    HourSinFeature,
-    MinuteOfHourCosFeature,
-    MinuteOfHourSinFeature,
-)
 
 # Import LOB (Limit Order Book) features to register them
 from trading_rl.features.lob_features import (
@@ -59,6 +28,41 @@ from trading_rl.features.lob_features import (
     TradeArrivalRateFeature,
     VPINFeature,
     VWMPSkewFeature,
+)
+from trading_rl.features.pipeline import FeaturePipeline, create_default_pipeline
+
+# Import concrete features to register them
+from trading_rl.features.price_features import (
+    HighFeature,
+    LogReturnFeature,
+    LowFeature,
+    ReturnLagFeature,
+    RSIFeature,
+    SimpleReturnFeature,
+    TrendFeature,
+)
+from trading_rl.features.registry import FeatureRegistry, register_feature
+from trading_rl.features.selector import (
+    FeatureSelectionResult,
+    FeatureSelector,
+    FeatureSelectorConfig,
+)
+from trading_rl.features.temporal_features import (
+    DayOfWeekCosFeature,
+    DayOfWeekSinFeature,
+    HourCosFeature,
+    HourSinFeature,
+    MinuteOfHourCosFeature,
+    MinuteOfHourSinFeature,
+)
+from trading_rl.features.volatility_features import (
+    RealizedVolatilityFeature,
+    VolatilityRatioFeature,
+)
+from trading_rl.features.volume_features import (
+    LogVolumeFeature,
+    VolumeChangeFeature,
+    VolumeMAFeature,
 )
 
 # Import TA-Lib features to register them

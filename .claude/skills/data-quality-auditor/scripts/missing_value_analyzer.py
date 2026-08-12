@@ -12,8 +12,6 @@ import argparse
 import csv
 import json
 import sys
-from collections import defaultdict
-
 
 NULL_STRINGS = {"", "null", "none", "n/a", "na", "nan", "nil", "undefined", "missing"}
 

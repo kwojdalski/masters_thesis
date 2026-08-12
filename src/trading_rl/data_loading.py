@@ -9,7 +9,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-
 from loguru import logger
 
 from trading_rl.constants import SplitName

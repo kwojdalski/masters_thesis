@@ -335,7 +335,10 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         reward_type = str(params.common.reward_type)
         from trading_rl.constants import RewardType
         if reward_type != RewardType.LOG_RETURN:
-            from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading, StatefulRewardWrapper
+            from trading_rl.rewards.dsr_wrapper import (
+                DifferentialSharpeRatioAnyTrading,
+                StatefulRewardWrapper,
+            )
             dsr = DifferentialSharpeRatioAnyTrading(eta=params.common.reward_eta, scale=params.common.reward_scale)
             base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
 
@@ -351,8 +354,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         params: EnvBuildParams,
     ) -> TransformedEnv:
         from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
-        from trading_rl.rewards import reward_function
         from trading_rl.envs.streaming_env import StreamingTradingEnv
+        from trading_rl.rewards import reward_function
 
         backend = self._resolve_backend(params)
         episode_length = params.streaming.streaming_episode_length

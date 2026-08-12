@@ -24,7 +24,8 @@ def show_asset_debug(path: str | Path) -> None:
     """Display provenance metadata below *path* when THESIS_DEBUG_ASSETS=1."""
     if not _is_debug():
         return
-    from IPython.display import display, HTML
+    from IPython.display import HTML, display
+
     from trading_rl.evaluation.asset_meta import load_asset_meta
 
     meta = load_asset_meta(path)

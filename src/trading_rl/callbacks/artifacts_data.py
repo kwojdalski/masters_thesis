@@ -33,6 +33,7 @@ def _log_overview_impl(
 
     try:
         from plotnine import aes, geom_hline, geom_step, ggplot, labs
+
         from trading_rl.evaluation.thesis_theme import thesis_theme
 
         param_prefix = artifact_dir.replace("/", "_")
@@ -312,6 +313,7 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
             ggplot,
             labs,
         )
+
         from trading_rl.evaluation.thesis_theme import thesis_theme
 
         prices = df[price_col].to_numpy(dtype=float)
@@ -386,6 +388,7 @@ def _log_oracle_vs_reward_alignment(
             ggplot,
             labs,
         )
+
         from trading_rl.evaluation.thesis_theme import thesis_theme
 
         prices = df[price_col].to_numpy(dtype=float)

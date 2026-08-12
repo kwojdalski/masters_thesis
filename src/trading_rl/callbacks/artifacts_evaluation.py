@@ -483,6 +483,7 @@ def log_evaluation_plots(
 
         if logs and (logs.get("loss_value") or logs.get("loss_actor")):
             from plotnine import aes, facet_wrap, geom_line, ggplot, labs
+
             from trading_rl.evaluation.thesis_theme import thesis_theme
 
             loss_data = []

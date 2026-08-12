@@ -12,26 +12,30 @@ from typing import Any
 import mlflow
 import numpy as np
 import torch
-from torchrl.envs import TransformedEnv
 from loguru import logger
+from torchrl.envs import TransformedEnv
+
+import trading_rl.trainers.ddpg
+import trading_rl.trainers.ppo
+import trading_rl.trainers.random_trainer
+import trading_rl.trainers.recurrent_ppo
+import trading_rl.trainers.sac
+import trading_rl.trainers.td3  # noqa: F401 — registers TD3Trainer
 from logger import get_logger as get_project_logger
-from logger import is_level_enabled
-from logger import log_banner
-from logger import print_df_head
+from logger import is_level_enabled, log_banner, print_df_head
 from logger import setup_logging as configure_root_logging
-from trading_rl.profiler import get_profiler
 from trading_rl.callbacks import MLflowTrainingCallback
-from trading_rl.config import ExperimentConfig, LoggingParams, MLflowCallbackParams, TrainerConstructionParams
+from trading_rl.config import (
+    ExperimentConfig,
+    LoggingParams,
+    MLflowCallbackParams,
+    TrainerConstructionParams,
+)
 from trading_rl.data_utils import PreparedDataset, build_prepared_dataset
 from trading_rl.envs import AlgorithmicEnvironmentBuilder, EnvBuildParams
 from trading_rl.envs.trading_envs import EnvBackend
+from trading_rl.profiler import get_profiler
 from trading_rl.trainers.base import BaseTrainer
-import trading_rl.trainers.ddpg  # noqa: F401 — registers DDPGTrainer
-import trading_rl.trainers.ppo  # noqa: F401 — registers PPOTrainer, PPOTrainerContinuous
-import trading_rl.trainers.random_trainer  # noqa: F401 — registers RandomTrainer
-import trading_rl.trainers.recurrent_ppo  # noqa: F401 — registers RecurrentPPOTrainer
-import trading_rl.trainers.sac  # noqa: F401 — registers SACTrainer
-import trading_rl.trainers.td3  # noqa: F401 — registers TD3Trainer
 from trading_rl.trainers.registry import TrainerRegistry
 
 

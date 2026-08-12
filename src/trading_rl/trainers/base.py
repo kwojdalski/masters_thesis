@@ -154,7 +154,7 @@ def _run_evaluation(
     df: Any,
     max_steps: int,
     config: Any = None,
-    algorithm: str | None = None,  # noqa: ARG001 — kept for API symmetry
+    algorithm: str | None = None,
     eval_env: Any | None = None,
 ) -> EvaluationOutput:
     """Run a policy evaluation rollout and build result plots.
@@ -167,7 +167,10 @@ def _run_evaluation(
          equity_curve_plot, merged_plot)
     """
     from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
-    from trading_rl.evaluation.evaluator import StrategyEvaluatorConfig, StrategyEvaluator
+    from trading_rl.evaluation.evaluator import (
+        StrategyEvaluator,
+        StrategyEvaluatorConfig,
+    )
     from trading_rl.utils import create_equity_curve_plot, create_merged_comparison_plot
 
     env_to_use = eval_env or trainer.env
@@ -549,7 +552,6 @@ class BaseTrainer(ABC):
         mlflow_meta: dict | None = None,
     ) -> TrainingCheckpoint:
         """Assemble current training state into a portable snapshot."""
-        from pathlib import Path
         from trading_rl.models import _extract_action_bounds_from_spec
 
         if mlflow_meta is None:

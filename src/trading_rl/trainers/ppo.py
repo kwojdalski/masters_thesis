@@ -1,6 +1,5 @@
 """PPO Trainer implementation."""
 
-from trading_rl.trainers.registry import register_trainer
 from typing import Any
 
 import pandas as pd
@@ -16,8 +15,6 @@ from plotnine import (
     scale_fill_manual,
     scale_x_continuous,
 )
-
-from trading_rl.evaluation.thesis_theme import FIGURE_HEIGHT, FIGURE_WIDTH, thesis_theme
 from tensordict import TensorDict
 from tensordict.nn import InteractionType
 from torch.optim import Adam
@@ -27,12 +24,14 @@ from torchrl.objectives import ClipPPOLoss
 from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction, TradePosition
+from trading_rl.evaluation.thesis_theme import FIGURE_HEIGHT, FIGURE_WIDTH, thesis_theme
 from trading_rl.models import (
     create_continuous_ppo_actor,
     create_ppo_actor,
     create_ppo_value_network,
 )
-from trading_rl.trainers.base import _log_network_stats, BaseTrainer, EvaluationOutput
+from trading_rl.trainers.base import BaseTrainer, EvaluationOutput, _log_network_stats
+from trading_rl.trainers.registry import register_trainer
 
 logger = get_logger(__name__)
 

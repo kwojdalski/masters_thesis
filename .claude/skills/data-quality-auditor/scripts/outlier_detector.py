@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 """
 outlier_detector.py — Multi-method outlier detection for numeric columns.
 
@@ -21,7 +22,6 @@ import csv
 import json
 import math
 import sys
-
 
 NULL_STRINGS = {"", "null", "none", "n/a", "na", "nan", "nil", "undefined", "missing"}
 

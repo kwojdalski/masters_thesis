@@ -1,6 +1,5 @@
 """SAC Trainer implementation."""
 
-from trading_rl.trainers.registry import register_trainer
 from typing import Any
 
 import torch
@@ -12,7 +11,8 @@ from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction
 from trading_rl.models import create_sac_actor, create_sac_qvalue_network
-from trading_rl.trainers.base import _log_network_stats, BaseTrainer
+from trading_rl.trainers.base import BaseTrainer, _log_network_stats
+from trading_rl.trainers.registry import register_trainer
 
 logger = get_logger(__name__)
 

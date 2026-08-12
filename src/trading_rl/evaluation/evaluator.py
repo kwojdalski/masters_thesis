@@ -231,7 +231,7 @@ class StrategyEvaluator:
         _fine_cb = [0.0]; _fine_inter = [0.0]; _fine_pol = [0.0]
         _fine_reward = [0.0]; _fine_action = [0.0]; _fine_done = [0.0]
 
-        def _progress_cb(env: Any, td: Any) -> None:  # noqa: ARG001
+        def _progress_cb(env: Any, td: Any) -> None:
             cb_start = _time.monotonic()
             # Inter-callback time = env step + policy forward pass
             if _last_cb_end[0] is not None:
@@ -269,7 +269,7 @@ class StrategyEvaluator:
                     _a_long[0] += 1
                 elif a < 0:
                     _a_short[0] += 1
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("_progress_cb action extraction failed step={} err={}", _step_counter[0], exc)
             action_elapsed = _time.monotonic() - t_action
             _cb_action_time[0] += action_elapsed

@@ -52,7 +52,7 @@ class DownloadTracker:
             try:
                 with open(self.cache_file) as f:
                     return json.load(f)
-            except (json.JSONDecodeError, IOError) as e:
+            except (OSError, json.JSONDecodeError) as e:
                 logger.warning("load cache failed starting fresh err={}", e)
                 return {}
         return {}
@@ -62,7 +62,7 @@ class DownloadTracker:
         try:
             with open(self.cache_file, "w") as f:
                 json.dump(self.cache, f, indent=2, default=str)
-        except IOError as e:
+        except OSError as e:
             logger.error("save cache failed err={}", e)
 
     def _compute_hash(self, params: dict[str, Any]) -> str:

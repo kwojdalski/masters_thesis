@@ -17,7 +17,6 @@ from trading_rl.evaluation.statistical_test_registry import (
     t_test_mean_returns,
 )
 
-
 STRATEGY = np.array([0.02, 0.01, -0.005, 0.015, 0.0])
 BASELINE = np.array([0.005, -0.002, 0.0, 0.004, -0.003])
 

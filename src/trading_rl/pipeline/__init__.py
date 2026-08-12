@@ -15,13 +15,13 @@ from trading_rl.pipeline.evaluation import (
     run_statistical_tests_for_split,
 )
 from trading_rl.pipeline.experiment_runner import execute_single_experiment
+from trading_rl.pipeline.explainability import run_explainability_analysis
 from trading_rl.pipeline.finalization import (
     build_experiment_result,
     build_final_checkpoint_path,
     log_final_metrics,
     save_final_checkpoint,
 )
-from trading_rl.pipeline.explainability import run_explainability_analysis
 from trading_rl.pipeline.training import (
     ExperimentRuntime,
     TrainingBundle,

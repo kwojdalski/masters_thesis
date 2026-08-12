@@ -45,7 +45,7 @@ class TrainingLoop:
         callback: Any = None,
         *,
         start_message: str = "Starting training",
-        completion_prefix: str = "Training complete",  # noqa: ARG002 — kept for API symmetry
+        completion_prefix: str = "Training complete",
         on_batch_start: Callable[[int, Any], None] | None = None,
         on_batch_end: Callable[[int, Any], None] | None = None,
         on_train_end: Callable[[], None] | None = None,

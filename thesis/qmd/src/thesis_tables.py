@@ -20,7 +20,6 @@ from pathlib import Path
 import pandas as pd
 from IPython.display import HTML, Markdown, display
 
-
 # ---------------------------------------------------------------------------
 # Value formatters
 # ---------------------------------------------------------------------------

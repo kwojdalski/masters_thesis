@@ -1,5 +1,4 @@
 """DDPG Trainer implementation."""
-from trading_rl.trainers.registry import register_trainer
 from typing import Any
 
 import torch
@@ -13,6 +12,7 @@ from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.models import create_ddpg_actor, create_value_network
 from trading_rl.trainers.base import BaseTrainer
+from trading_rl.trainers.registry import register_trainer
 
 logger = get_logger(__name__)
 

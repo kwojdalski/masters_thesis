@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+
 import numpy as np
 import pandas as pd
 from plotnine import (
@@ -19,17 +20,21 @@ from plotnine import (
     scale_x_datetime,
     theme,
 )
-
-from trading_rl.evaluation.asset_meta import write_asset_meta
-from trading_rl.evaluation.thesis_theme import FIGURE_WIDTH, LINETYPE, PALETTE, thesis_theme
 from torch import allclose
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.evaluation.returns import (
     ReturnKind,
     ReturnSeries,
     extract_tradingenv_return_series,
+)
+from trading_rl.evaluation.thesis_theme import (
+    FIGURE_WIDTH,
+    LINETYPE,
+    PALETTE,
+    thesis_theme,
 )
 
 logger = get_logger(__name__)
@@ -243,8 +248,11 @@ def build_rollout_plot_data(
 
     # Add DSR benchmark curves if requested and reward_type is differential_sharpe
     if show_benchmarks and df is not None and reward_type == "differential_sharpe":
-        from trading_rl.evaluation.benchmarks import calculate_benchmark_dsr, calculate_twap_dsr
         from trading_rl.constants import BenchmarkName
+        from trading_rl.evaluation.benchmarks import (
+            calculate_benchmark_dsr,
+            calculate_twap_dsr,
+        )
 
         price_col = benchmark_price_column
         if price_col not in df.columns and "close" in df.columns:
@@ -1008,6 +1016,7 @@ def create_metrics_table_figure(
     Uses the thesis font size so the PNG looks consistent with other evaluation plots.
     """
     import matplotlib.pyplot as plt
+
     from trading_rl.evaluation.metric_meta import METRIC_SECTIONS, fmt_metric
 
     report_dict = metric_report.to_dict()

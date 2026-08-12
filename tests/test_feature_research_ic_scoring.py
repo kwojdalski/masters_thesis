@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 from scipy.stats import spearmanr
 
+from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
 from trading_rl.feature_research.service import (
     _aggregate_symbol_scores,
     _build_return_target,
@@ -15,8 +16,6 @@ from trading_rl.feature_research.service import (
     _select_features,
     run_feature_research,
 )
-from trading_rl.feature_research.config import FeatureResearchConfig, TargetType
-
 
 # ---------------------------------------------------------------------------
 # Group 1: IC/ICIR arithmetic correctness

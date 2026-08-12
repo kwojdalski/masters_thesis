@@ -9,13 +9,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from trading_rl.callbacks.artifacts import ArtifactPaths, save_observation_sample_artifact
+from cli.services.evaluation_display_service import (
+    PERF_ROWS,
+    EvaluationDisplayService,
+)
+from trading_rl.callbacks.artifacts import (
+    ArtifactPaths,
+    save_observation_sample_artifact,
+)
 from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.evaluation.benchmark_table import save_benchmark_table_artifact
-from cli.services.evaluation_display_service import (
-    EvaluationDisplayService,
-    PERF_ROWS,
-)
 
 from .base_command import BaseCommand
 
@@ -66,13 +69,16 @@ class EvaluateCommand(BaseCommand):
         from trading_rl.constants import EnvBackend, SplitName
         from trading_rl.data_utils import build_prepared_dataset
         from trading_rl.evaluation import (
-            StrategyEvaluatorConfig,
             PolicyLoader,
             StrategyEvaluator,
+            StrategyEvaluatorConfig,
             periods_per_year_from_timeframe,
             run_all_statistical_tests,
         )
-        from trading_rl.evaluation.benchmarks import BenchmarkEngine, benchmarks_from_config
+        from trading_rl.evaluation.benchmarks import (
+            BenchmarkEngine,
+            benchmarks_from_config,
+        )
         from trading_rl.evaluation.metrics import build_metric_report
         from trading_rl.evaluation.report import _periods_per_year_from_index
         from trading_rl.pipeline.evaluation import build_evaluation_context_for_split
@@ -268,6 +274,7 @@ class EvaluateCommand(BaseCommand):
                     if getattr(config.benchmarks, "is_random", False):
                         try:
                             import numpy as np
+
                             from trading_rl.evaluation.statistical_benchmarks import (
                                 compute_random_returns_from_prices,
                             )
@@ -504,8 +511,9 @@ class EvaluateCommand(BaseCommand):
         test_{sym}_prepared.parquet (written by _build_per_day_splits during
         training), those are used directly — no feature recomputation.
         """
-        import pandas as pd
         from pathlib import Path
+
+        import pandas as pd
 
         from trading_rl.constants import SplitName
 

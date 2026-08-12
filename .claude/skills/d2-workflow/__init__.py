@@ -20,7 +20,7 @@ def add_workflow_diagram_to_dsr(dsr_file_path: str) -> None:
         return
 
     # Read the file content
-    with open(dsr_path, 'r') as f:
+    with open(dsr_path) as f:
         content = f.read()
 
     # Check if workflow diagram already exists

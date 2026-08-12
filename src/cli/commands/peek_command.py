@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC
 from pathlib import Path
 
 import typer
@@ -11,8 +12,8 @@ from rich.table import Table
 from rich.text import Text
 
 from trading_rl.evaluation.asset_meta import write_asset_meta
+
 from .base_command import BaseCommand
-from datetime import UTC
 
 
 @dataclass
@@ -31,6 +32,7 @@ class PeekCommand(BaseCommand):
 
     def execute(self, params: PeekParams) -> None:
         import pandas as pd
+
         from logger import get_logger as _get_logger
         from trading_rl import ExperimentConfig
         from trading_rl.data_utils import build_prepared_dataset
@@ -109,7 +111,7 @@ class PeekCommand(BaseCommand):
         """Print MLflow run status, latest eval metrics, and checkpoint currency."""
         import os
         import re
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         experiment_name: str = getattr(config, "experiment_name", "") or ""
         if not experiment_name:
@@ -291,7 +293,7 @@ class PeekCommand(BaseCommand):
             tbl.add_row(name, f"{len(df):,}", str(df.shape[1]), first, last, _fmt(mean_s), _fmt(median_s))
             rows.append({
                 "split": name,
-                "rows": int(len(df)),
+                "rows": len(df),
                 "columns": int(df.shape[1]),
                 "first_timestamp": first,
                 "last_timestamp": last,
@@ -374,6 +376,7 @@ class PeekCommand(BaseCommand):
     def _print_log_return_stats(self, dataset, config, effective_skip: int) -> pd.DataFrame | None:
         import numpy as np
         import pandas as pd
+
         from trading_rl.data_utils import load_trading_data
 
         price_col = getattr(config.env, "price_column", "close")
@@ -439,6 +442,7 @@ class PeekCommand(BaseCommand):
         import numpy as np
         import pandas as pd
         from scipy.stats import spearmanr
+
         from trading_rl.data_utils import load_trading_data
 
         price_col = getattr(config.env, "price_column", "close")

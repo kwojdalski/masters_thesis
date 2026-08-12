@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import subprocess
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 

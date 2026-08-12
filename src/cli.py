@@ -605,9 +605,9 @@ def prepare_data(
     then exits.  Run this once after changing hft_lob_features_all.yaml so
     that subsequent feature-research and train runs hit the cache immediately.
     """
+    from logger import get_logger as _get_logger
     from trading_rl import ExperimentConfig
     from trading_rl.data_utils import build_prepared_dataset
-    from logger import get_logger as _get_logger
 
     _log = _get_logger(__name__)
     console = Console()
@@ -852,7 +852,8 @@ def validate_guardrails(
     Use --all to validate every scenario in src/configs/scenarios at once.
     """
     from rich.markup import escape as _escape
-    from trading_rl.config_guardrails_checks import check_config_guardrails, Severity
+
+    from trading_rl.config_guardrails_checks import Severity, check_config_guardrails
 
     def _check_one(config_path: Path) -> tuple[list, list, str]:
         """Return (fatals, warns, scenario_name) for a single config path."""

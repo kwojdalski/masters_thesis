@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from loguru import logger
 from typing import Any
 
 import numpy as np
 import pandas as pd
-
-
+from loguru import logger
 
 from trading_rl.constants import RewardType
-from trading_rl.evaluation.metrics import aggregate_to_reporting_frequency, sharpe_raw, sortino_raw
+from trading_rl.evaluation.metrics import (
+    aggregate_to_reporting_frequency,
+    sharpe_raw,
+    sortino_raw,
+)
 from trading_rl.evaluation.returns import (
     ReturnSeries,
     RewardSeries,

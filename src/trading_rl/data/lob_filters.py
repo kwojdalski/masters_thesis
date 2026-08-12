@@ -12,8 +12,6 @@ import pandas as pd
 from loguru import logger
 
 
-
-
 def filter_unchanged_lob(
     df: pd.DataFrame,
     levels: int = 5,

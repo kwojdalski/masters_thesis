@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from logger import get_logger as _get_logger
+from trading_rl.config_guardrails import run_guardrail_check
+from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.pipeline.checkpoint import setup_checkpoint_resumption
 from trading_rl.pipeline.evaluation import (
     build_evaluation_context_for_split,
@@ -28,8 +30,6 @@ from trading_rl.pipeline.training import (
     build_experiment_runtime,
     setup_mlflow_experiment,
 )
-from trading_rl.config_guardrails import run_guardrail_check
-from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.profiler import init_profiler
 
 _logger = _get_logger(__name__)
@@ -37,6 +37,7 @@ _logger = _get_logger(__name__)
 
 def _json_default(obj: Any) -> Any:
     import numpy as np
+
     from trading_rl.evaluation.metrics import MetricReport
     if isinstance(obj, MetricReport):
         return obj.to_dict()

@@ -8,10 +8,11 @@ eight-colour palette.
 from __future__ import annotations
 
 import subprocess
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 
 from plotnine import element_blank, element_line, element_text, theme, theme_classic
+
 from trading_rl.evaluation.asset_meta import write_asset_meta
 
 # Wong (2011) colorblind-safe palette — ordered by intended use

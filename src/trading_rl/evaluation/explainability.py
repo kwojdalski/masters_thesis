@@ -16,11 +16,10 @@ from plotnine import (
     ggplot,
     labs,
 )
-
-from trading_rl.evaluation.thesis_theme import thesis_theme
 from tensordict import TensorDict
 
 from logger import get_logger
+from trading_rl.evaluation.thesis_theme import thesis_theme
 
 logger = get_logger(__name__)
 
@@ -43,18 +42,18 @@ class ActorCaptumProxy(nn.Module):
         """
         # Create a dummy TensorDict
         td = TensorDict({self.observation_key: obs_tensor}, batch_size=obs_tensor.shape[:-1])
-        
+
         # Run the actor (TensorDictModule)
         result_td = self.actor(td)
-        
+
         # We want to attribute the 'action' or the distribution 'loc' (mean)
         if "loc" in result_td.keys():
             return result_td["loc"]
         elif "action" in result_td.keys():
-            # For discrete actions, attribution is tricky; 
+            # For discrete actions, attribution is tricky;
             # for continuous, 'action' is what we want.
             return result_td["action"].float()
-        
+
         raise ValueError("Actor output TensorDict must contain 'loc' or 'action' for attribution.")
 
 
@@ -64,9 +63,9 @@ class RLInterpretabilityAnalyzer:
     """
 
     def __init__(
-        self, 
-        trainer: Any, 
-        feature_names: list[str], 
+        self,
+        trainer: Any,
+        feature_names: list[str],
         observation_key: str = "observation"
     ):
         self.trainer = trainer
@@ -81,14 +80,14 @@ class RLInterpretabilityAnalyzer:
         """
         logger.info("compute feature permutation importance")
         fp = FeaturePermutation(self.proxy)
-        
+
         # Attribution shape will match obs_batch shape
         attributions = fp.attribute(obs_batch, target=None)
-        
+
         # Take the absolute mean across the batch (and time steps if present)
         # Assuming obs_batch is [batch, features] or [batch, time, features]
         importance = torch.abs(attributions).mean(dim=tuple(range(attributions.ndim - 1)))
-        
+
         df = pd.DataFrame({
             "feature": self.feature_names,
             "importance": importance.detach().cpu().numpy()
@@ -101,15 +100,15 @@ class RLInterpretabilityAnalyzer:
         """
         logger.info("compute global integrated gradients importance")
         ig = IntegratedGradients(self.proxy)
-        
+
         # Baselines are typically zero
         baseline = torch.zeros_like(obs_batch)
-        
+
         attributions = ig.attribute(obs_batch, baselines=baseline, target=None)
-        
+
         # Average absolute attributions
         importance = torch.abs(attributions).mean(dim=tuple(range(attributions.ndim - 1)))
-        
+
         df = pd.DataFrame({
             "feature": self.feature_names,
             "importance": importance.detach().cpu().numpy()
@@ -122,17 +121,17 @@ class RLInterpretabilityAnalyzer:
         """
         logger.info("compute integrated gradients attribution for sample")
         ig = IntegratedGradients(self.proxy)
-        
+
         # Baselines are typically zero (no information)
         baseline = torch.zeros_like(obs_sample)
-        
+
         attributions, delta = ig.attribute(
-            obs_sample, 
-            baselines=baseline, 
-            target=None, 
+            obs_sample,
+            baselines=baseline,
+            target=None,
             return_convergence_delta=True
         )
-        
+
         df = pd.DataFrame({
             "feature": self.feature_names,
             "attribution": attributions.detach().cpu().numpy().flatten()
@@ -182,18 +181,18 @@ class RLInterpretabilityAnalyzer:
         """Quantify interpretability metrics from importance data."""
         importance = importance_df["importance"].values
         normalized = importance / (importance.sum() + 1e-9)
-        
+
         # Sparsity: Percentage of features with very low importance (< 1% of mean)
         threshold = normalized.mean() * 0.01
         sparsity = (normalized < threshold).mean()
-        
+
         # Concentration (Gini coefficient-like): Lorenz curve top features
         # How many features account for 80% of the information?
         sorted_norm = np.sort(normalized)[::-1]
         cumulative = np.cumsum(sorted_norm)
         top_80_count = np.where(cumulative >= 0.8)[0][0] + 1 if any(cumulative >= 0.8) else len(normalized)
         concentration = top_80_count / len(normalized)
-        
+
         return {
             "interpretability_sparsity": float(sparsity),
             "interpretability_top_80_feature_ratio": float(concentration),
@@ -208,12 +207,12 @@ def analyze_trained_agent(trainer: Any, env: Any, feature_names: list[str], n_st
     # 1. Collect data
     rollout = env.rollout(max_steps=n_steps)
     obs_batch = rollout["observation"] # [T, D]
-    
+
     # 2. Analyze
     analyzer = RLInterpretabilityAnalyzer(trainer, feature_names)
     importance_df = analyzer.compute_global_importance(obs_batch)
-    
+
     # 3. Plot
     plot = analyzer.plot_importance(importance_df, title=f"Global Importance (n={n_steps} steps)")
-    
+
     return importance_df, plot

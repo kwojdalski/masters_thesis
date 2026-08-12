@@ -24,7 +24,6 @@ import pytest
 from trading_rl.constants import EnvMode
 from trading_rl.data.preparation import _build_per_day_splits, _build_pooled_splits
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -358,7 +357,9 @@ class TestBuildPerDaySplits:
              feature_cache_dir_str) = args
 
             from pathlib import Path as P
-            import numpy as _np, pandas as _pd
+
+            import numpy as _np
+            import pandas as _pd
             mm_dir = P(memmap_dir_str)
             tmp_dir_p = P(tmp_dir_str)
 

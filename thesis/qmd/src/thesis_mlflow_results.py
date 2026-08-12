@@ -10,11 +10,11 @@ from __future__ import annotations
 import json
 import math
 import re
-import sqlite3
-from datetime import datetime, timezone, UTC
-from dataclasses import dataclass
-from pathlib import Path
 import shutil
+import sqlite3
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -1164,7 +1164,12 @@ def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str,
     rows describing the full experimental configuration. Returns an empty list when
     no snapshot is available.
     """
-    from thesis_tables import fmt_scientific, fmt_network_dims, fmt_reward_type, fmt_loss_fn
+    from thesis_tables import (
+        fmt_loss_fn,
+        fmt_network_dims,
+        fmt_reward_type,
+        fmt_scientific,
+    )
 
     hp = load_experiment_hyperparams(experiment_name)
     if not hp:

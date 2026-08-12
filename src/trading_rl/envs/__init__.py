@@ -5,6 +5,7 @@ from trading_rl.envs.builder import (
     BaseEnvironmentBuilder,
     EnvBuildParams,
 )
+from trading_rl.envs.streaming_env import StreamingTradingEnv
 from trading_rl.envs.trading_envs import (
     Backend,
     CustomTradingEnvironmentFactory,
@@ -16,7 +17,6 @@ from trading_rl.envs.trading_envs import (
     get_environment_factory,
     validate_backend,
 )
-from trading_rl.envs.streaming_env import StreamingTradingEnv
 from trading_rl.envs.tradingenvxy_wrapper import (
     StreamingTradingEnvXY,
     TradingEnvXYFactory,
@@ -27,19 +27,19 @@ __all__ = [
     "AlgorithmicEnvironmentBuilder",
     "Backend",
     "BaseEnvironmentBuilder",
-    "EnvBuildParams",
     "CustomTradingEnvironmentFactory",
     "DiscreteActionWrapper",
+    "EnvBuildParams",
     "ForexEnvironmentFactory",
     "StocksEnvironmentFactory",
+    "StreamingTradingEnv",
+    "StreamingTradingEnvXY",
     "TradingEnvXYFactory",
     "TradingEnvXYWrapper",
     "create_continuous_trading_environment",
     "create_environment",
     "get_environment_factory",
     "validate_backend",
-    "StreamingTradingEnv",
-    "StreamingTradingEnvXY",
 ]
 # The following shell command is an example for running training using a specific configuration.
 # Move this to documentation or comments, not Python code.

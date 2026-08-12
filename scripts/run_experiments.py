@@ -31,7 +31,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -113,7 +113,7 @@ class RunArgs:
     overrides: list[str] = field(default_factory=list)
     dev: bool = False
     dev_steps: int = 2000
-    max_train_seconds: Optional[int] = None
+    max_train_seconds: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -378,7 +378,7 @@ _SkipEval       = Annotated[bool,                   typer.Option("--skip-eval", 
 _Parallel       = Annotated[bool,                   typer.Option("--parallel",        help="Run scenarios concurrently.")]
 _Verbose        = Annotated[bool,                   typer.Option("--verbose", "-v",   help="Enable debug logging in subcommands.")]
 _SkipGuardrails = Annotated[bool,                   typer.Option("--skip-guardrails", help="Skip pre-flight guardrails check.")]
-_Overrides      = Annotated[Optional[list[str]],    typer.Option("-o", "--config-override", help="OmegaConf dotlist override forwarded to both train and evaluate. Repeatable.")]
+_Overrides      = Annotated[list[str] | None,    typer.Option("-o", "--config-override", help="OmegaConf dotlist override forwarded to both train and evaluate. Repeatable.")]
 _Dev            = Annotated[bool,                   typer.Option("--dev",             help="Dev mode: skip guardrails and cap training at [bold]--dev-steps[/bold] steps.")]
 _DevSteps       = Annotated[int,                    typer.Option("--dev-steps",       help="Training steps per scenario in [bold]--dev[/bold] mode (default: 2000).")]
 
@@ -393,7 +393,7 @@ def h1(
     overrides:       _Overrides      = None,
     dev:             _Dev            = False,
     dev_steps:       _DevSteps       = 2000,
-    max_train_seconds: Annotated[Optional[int], typer.Option("--max-train-seconds", metavar="N", help="Cap training wall-clock time per scenario (forwarded as training.max_train_seconds=N).")] = None,
+    max_train_seconds: Annotated[int | None, typer.Option("--max-train-seconds", metavar="N", help="Cap training wall-clock time per scenario (forwarded as training.max_train_seconds=N).")] = None,
 ) -> None:
     """[bold]H1[/bold]: Compare TD3, DDPG, PPO, Random agents with DSR reward."""
     run_hypothesis("h1", RunArgs(
