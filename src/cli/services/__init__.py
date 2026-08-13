@@ -5,5 +5,17 @@ from .config_validation_service import (
     ValidationReport,
     validate_experiment_config,
 )
+from .training_config_service import (
+    PreparedTrainingConfig,
+    TrainingConfigRequest,
+    TrainingConfigService,
+)
 
-__all__ = ["ValidationIssue", "ValidationReport", "validate_experiment_config"]
+__all__ = [
+    "PreparedTrainingConfig",
+    "TrainingConfigRequest",
+    "TrainingConfigService",
+    "ValidationIssue",
+    "ValidationReport",
+    "validate_experiment_config",
+]
