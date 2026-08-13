@@ -336,7 +336,7 @@ class TD3Trainer(BaseTrainer):
                 self._evaluate()
 
     def _compute_exploration_ratio(self) -> float:
-        return self.config.td3.policy_noise
+        return self.config.td3.exploration_noise_std
 
     @property
     def _algo_label(self) -> str:
