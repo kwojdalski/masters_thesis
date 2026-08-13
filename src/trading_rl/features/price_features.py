@@ -59,6 +59,13 @@ class TrendFeature(Feature):
     Captures long-term trend direction as price relative to episode start.
     Raw value is 1.0 at episode start, >1.0 for uptrend, <1.0 for downtrend.
 
+    Resets at session boundaries (see detect_session_breaks), using the same
+    session_break_threshold_hours as session-aware normalization. Without
+    this, a single compute() call over a concatenated multi-split frame
+    (as prepare_data() does for caching) would anchor every row to the very
+    first row of the whole frame -- e.g. validation/test rows would be
+    "relative to episode start" of the training split instead of their own.
+
     Normalization is controlled by FeatureConfig.normalization_method:
     - "none": raw ratio (e.g. 1.05 = +5% from start) — no look-ahead bias
     - "running": causal z-score via Welford's algorithm — no look-ahead bias
@@ -70,8 +77,21 @@ class TrendFeature(Feature):
         return ["close"]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        """Compute cumulative trend as price ratio relative to episode start."""
-        return df["close"] / df["close"].iloc[0]
+        """Compute cumulative trend as price ratio relative to each session's start."""
+        from trading_rl.features.utils import detect_session_breaks
+
+        close = df["close"]
+        session_starts = detect_session_breaks(
+            df.index, threshold_hours=self.config.session_break_threshold_hours
+        )
+        result = pd.Series(index=close.index, dtype=float)
+        for i, start_idx in enumerate(session_starts):
+            end_idx = (
+                session_starts[i + 1] if i + 1 < len(session_starts) else len(close)
+            )
+            session_close = close.iloc[start_idx:end_idx]
+            result.iloc[start_idx:end_idx] = session_close / session_close.iloc[0]
+        return result
 
 
 @register_feature("simple_return")

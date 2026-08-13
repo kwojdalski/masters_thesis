@@ -72,7 +72,9 @@ def test_day_of_week_encoding_starts_at_monday() -> None:
 
 
 def test_minute_encoding_wraps_within_hour() -> None:
-    df = pd.DataFrame(index=pd.DatetimeIndex(["2024-01-01 09:15:00", "2024-01-01 09:30:00"]))
+    df = pd.DataFrame(
+        index=pd.DatetimeIndex(["2024-01-01 09:15:00", "2024-01-01 09:30:00"])
+    )
 
     sin_values = MinuteOfHourSinFeature(_cfg("minute_of_hour_sin")).compute(df)
     cos_values = MinuteOfHourCosFeature(_cfg("minute_of_hour_cos")).compute(df)
@@ -107,13 +109,17 @@ def test_volume_ma_ratio_uses_causal_rolling_average() -> None:
 
 
 def test_relative_volume_uses_rolling_average() -> None:
-    result = RelativeVolumeFeature(_cfg("relative_volume", window=2)).compute(_priced_frame())
+    result = RelativeVolumeFeature(_cfg("relative_volume", window=2)).compute(
+        _priced_frame()
+    )
 
     np.testing.assert_allclose(result.iloc[1:], [2.0, 4.0 / 3.0, 4.0 / 3.0], rtol=1e-7)
 
 
 def test_amihud_illiquidity_uses_absolute_log_return_over_volume() -> None:
-    result = AmihudIlliquidityFeature(_cfg("amihud_illiquidity")).compute(_priced_frame())
+    result = AmihudIlliquidityFeature(_cfg("amihud_illiquidity")).compute(
+        _priced_frame()
+    )
 
     expected_second = abs(np.log(110.0 / 100.0)) / 10.0
     assert result.iloc[0] == pytest.approx(0.0)
@@ -125,7 +131,9 @@ def test_realized_volatility_matches_rolling_log_return_std() -> None:
     log_returns = np.log(df["close"] / df["close"].shift(1)).fillna(0.0)
     expected = log_returns.rolling(window=2, min_periods=1).std().fillna(0.0)
 
-    result = RealizedVolatilityFeature(_cfg("realized_volatility", window=2)).compute(df)
+    result = RealizedVolatilityFeature(_cfg("realized_volatility", window=2)).compute(
+        df
+    )
 
     np.testing.assert_allclose(result, expected)
 
@@ -157,6 +165,52 @@ def test_trend_is_relative_to_first_close() -> None:
     result = TrendFeature(_cfg("trend")).compute(_priced_frame())
 
     np.testing.assert_allclose(result.to_numpy(), [1.0, 1.1, 0.99, 1.089])
+
+
+def test_trend_resets_at_session_boundary_instead_of_using_first_row_of_whole_frame() -> (
+    None
+):
+    """Regression test for #279: prepare_data() calls compute() once on a
+    concatenated train+val+test frame for caching. Without a session-aware
+    reset, every row -- including val/test -- would be relative to the very
+    first row of the whole frame (i.e. the start of the training split)."""
+    df = pd.DataFrame(
+        {"close": [100.0, 110.0, 120.0, 132.0]},
+        index=pd.DatetimeIndex(
+            [
+                "2024-01-01 09:30:00",  # session 1 (e.g. "train")
+                "2024-01-01 09:45:00",  # session 1
+                "2024-01-02 09:30:00",  # session 2 (e.g. "val"), >1h gap from prior row
+                "2024-01-02 09:45:00",  # session 2
+            ]
+        ),
+    )
+
+    result = TrendFeature(_cfg("trend")).compute(df)
+
+    # session 1: relative to its own first close (100.0)
+    # session 2: relative to its own first close (120.0), NOT 100.0
+    np.testing.assert_allclose(result.to_numpy(), [1.0, 1.1, 1.0, 1.1])
+
+
+def test_trend_session_threshold_is_configurable() -> None:
+    df = pd.DataFrame(
+        {"close": [100.0, 150.0]},
+        index=pd.DatetimeIndex(["2024-01-01 09:00:00", "2024-01-01 10:30:00"]),
+    )
+
+    # 1.5h gap: below a 2h threshold (one session) vs above a 1h threshold (two sessions)
+    one_session_cfg = FeatureConfig(
+        name="trend", feature_type="trend", session_break_threshold_hours=2.0
+    )
+    two_sessions_cfg = FeatureConfig(
+        name="trend", feature_type="trend", session_break_threshold_hours=1.0
+    )
+    one_session = TrendFeature(one_session_cfg).compute(df)
+    two_sessions = TrendFeature(two_sessions_cfg).compute(df)
+
+    np.testing.assert_allclose(one_session.to_numpy(), [1.0, 1.5])
+    np.testing.assert_allclose(two_sessions.to_numpy(), [1.0, 1.0])
 
 
 def test_return_lag_uses_past_return_not_current_return() -> None:
