@@ -58,7 +58,9 @@ def build_evaluation_context_for_split(
         df: DataFrame for this split.
         config: Experiment configuration.
     """
-    eval_env = AlgorithmicEnvironmentBuilder().create(df, EnvBuildParams.from_config(config), use_memmap=False)
+    eval_env = AlgorithmicEnvironmentBuilder().create(
+        df, EnvBuildParams.from_config(config), use_memmap=False
+    )
     eval_max_steps = min(config.evaluation.resolve_eval_steps(len(df)), len(df) - 1)
     return EvaluationContext(
         split=split,
@@ -84,14 +86,21 @@ def compute_strategy_simple_returns_for_split(
 
     if reward_type == RewardType.LOG_RETURN:
         strategy_log_returns = (
-            rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[
-                : split_ctx.max_steps
-            ]
+            rollout["next", "reward"]
+            .detach()
+            .cpu()
+            .reshape(-1)
+            .numpy()[: split_ctx.max_steps]
         )
-        return RewardSeries(
-            strategy_log_returns,
-            RewardType.LOG_RETURN,
-        ).to_return_series().to_simple().values
+        return (
+            RewardSeries(
+                strategy_log_returns,
+                RewardType.LOG_RETURN,
+            )
+            .to_return_series()
+            .to_simple()
+            .values
+        )
 
     strategy_simple_returns = np.array([], dtype=float)
     if str(backend).lower() == EnvBackend.TRADINGENV:
@@ -212,9 +221,9 @@ def run_statistical_tests_for_split(
                 reward_type=config.env.reward_type,
             )
 
-        periods_per_year = _periods_per_year_from_index(split_ctx.df) or periods_per_year_from_timeframe(
-            getattr(config.data, "timeframe", "1d")
-        )
+        periods_per_year = _periods_per_year_from_index(
+            split_ctx.df
+        ) or periods_per_year_from_timeframe(getattr(config.data, "timeframe", "1d"))
         statistical_test_results = run_all_statistical_tests(
             strategy_returns=strategy_simple_returns,
             benchmarks=benchmarks,
@@ -231,9 +240,12 @@ def run_statistical_tests_for_split(
         )
         logger.info("statistical significance tests complete split={}", split_ctx.split)
     except Exception:
-        logger.opt(exception=True).error("statistical tests failed split={}", split_ctx.split)
+        logger.opt(exception=True).error(
+            "statistical tests failed split={}", split_ctx.split
+        )
         try:
             import mlflow
+
             mlflow.log_metric(f"{split_ctx.split}_statistical_tests_failed", 1)
         except Exception:
             logger.debug(
@@ -253,16 +265,17 @@ def _save_benchmark_table_for_split(
 ) -> None:
     """Build benchmarks and save the benchmark comparison table artifact."""
     price_column = getattr(config.env, "price_column", None) or "close"
-    periods_per_year = _periods_per_year_from_index(split_ctx.df) or periods_per_year_from_timeframe(
-        getattr(config.data, "timeframe", "1d")
-    )
+    periods_per_year = _periods_per_year_from_index(
+        split_ctx.df
+    ) or periods_per_year_from_timeframe(getattr(config.data, "timeframe", "1d"))
     benchmarks, _ = BenchmarkEngine.build(split_ctx.df, config.benchmarks, price_column)
 
     if config.benchmarks.is_random:
         try:
             logger.info(
                 "benchmark table: computing random baseline n_trials={} split={}",
-                config.benchmarks.n_random_trials, split,
+                config.benchmarks.n_random_trials,
+                split,
             )
             prices = split_ctx.df[price_column]
             random_trials = compute_random_returns_from_prices(
@@ -276,15 +289,23 @@ def _save_benchmark_table_for_split(
                 mean_returns = np.mean([t[:min_len] for t in random_trials], axis=0)
                 benchmarks.append(BenchmarkEngine.random_actions(mean_returns))
         except Exception as _rand_err:
-            logger.warning("benchmark table: random baseline failed split={} err={}", split, _rand_err)
+            logger.warning(
+                "benchmark table: random baseline failed split={} err={}",
+                split,
+                _rand_err,
+            )
 
     if not benchmarks:
         return
 
     if strategy_simple_returns is None:
-        return_series = extract_tradingenv_return_series(split_ctx.env, split_ctx.max_steps)
+        return_series = extract_tradingenv_return_series(
+            split_ctx.env, split_ctx.max_steps
+        )
         if return_series is None:
-            logger.warning("benchmark table: no strategy returns available for split={}", split)
+            logger.warning(
+                "benchmark table: no strategy returns available for split={}", split
+            )
             return
         strategy_simple_returns = return_series.to_simple().values
     else:
@@ -331,10 +352,14 @@ def evaluate_split(
         return None
 
     profiler = get_profiler()
-    log_banner(logger, f"EVALUATION START  split={split.upper()}  rows={len(split_df):,}")
+    log_banner(
+        logger, f"EVALUATION START  split={split.upper()}  rows={len(split_df):,}"
+    )
 
     with profiler.stage(f"eval_env_build_{split}"):
-        split_ctx = build_evaluation_context_for_split(split=split, df=split_df, config=config)
+        split_ctx = build_evaluation_context_for_split(
+            split=split, df=split_df, config=config
+        )
 
     try:
         with profiler.stage(f"eval_observation_sample_{split}"):
@@ -345,7 +370,9 @@ def evaluate_split(
             )
             logger.info("observation sample saved split={} path={}", split, sample_path)
     except Exception as sample_error:
-        logger.warning("observation sample artifact failed split={} err={}", split, sample_error)
+        logger.warning(
+            "observation sample artifact failed split={} err={}", split, sample_error
+        )
 
     with profiler.stage(f"eval_rollout_{split}"):
         eval_output = trainer.evaluate(
@@ -371,17 +398,24 @@ def evaluate_split(
     if config.evaluation.log_data and last_eval_result is not None:
         try:
             from trading_rl.callbacks.artifacts import save_eval_rollout_artifact
+
             save_eval_rollout_artifact(
                 split=split,
                 last_positions=getattr(last_eval_result, "last_positions", []),
-                simple_returns=getattr(last_eval_result, "simple_returns", np.array([])),
-                cumulative_returns=getattr(last_eval_result, "cumulative_returns", None),
+                simple_returns=getattr(
+                    last_eval_result, "simple_returns", np.array([])
+                ),
+                cumulative_returns=getattr(
+                    last_eval_result, "cumulative_returns", None
+                ),
                 df_index=split_ctx.df.index,
                 output_dir=Path(config.logging.log_dir) / ArtifactPaths.EVAL_DATA,
                 artifact_path_prefix=ArtifactPaths.eval_data(split),
             )
         except Exception as _rd_err:
-            logger.warning("rollout data artifact failed split={} err={}", split, _rd_err)
+            logger.warning(
+                "rollout data artifact failed split={} err={}", split, _rd_err
+            )
 
     # Merge rollout and equity plot DataFrames so the QMD can re-render at any
     # figure size without re-running the rollout.
@@ -414,7 +448,9 @@ def evaluate_split(
             rollout=rollout,
             strategy_simple_returns=strategy_simple_returns,
         )
-        MLflowTrainingCallback.log_evaluation_report(split_evaluation_report, split_prefix=split)
+        MLflowTrainingCallback.log_evaluation_report(
+            split_evaluation_report, split_prefix=split
+        )
 
     try:
         import os
@@ -423,6 +459,7 @@ def evaluate_split(
         import mlflow as _mlflow
 
         from trading_rl.evaluation.plots import create_metrics_table_figure
+
         if _mlflow.active_run():
             fig = create_metrics_table_figure(
                 split_evaluation_report,
@@ -434,6 +471,7 @@ def evaluate_split(
                 _tbl_path = os.path.join(_td, "metrics_table.png")
                 fig.savefig(_tbl_path, dpi=150, bbox_inches="tight")
                 import matplotlib.pyplot as plt
+
                 plt.close(fig)
                 _mlflow.log_artifact(_tbl_path, ArtifactPaths.eval_plots(split))
     except Exception as _mt_err:
@@ -450,7 +488,9 @@ def evaluate_split(
                 strategy_simple_returns=strategy_simple_returns,
             )
     except Exception as _bt_err:
-        logger.warning("benchmark table artifact failed split={} err={}", split, _bt_err)
+        logger.warning(
+            "benchmark table artifact failed split={} err={}", split, _bt_err
+        )
 
     if config.statistical_testing.enabled:
         try:
@@ -466,10 +506,13 @@ def evaluate_split(
             logger.warning(
                 "Statistical tests interrupted for {} split. "
                 "Returning main evaluation results without statistical tests...",
-                split
+                split,
             )
 
-    log_banner(logger, f"EVALUATION END  split={split.upper()}  reward={split_final_reward:.4f}")
+    log_banner(
+        logger,
+        f"EVALUATION END  split={split.upper()}  reward={split_final_reward:.4f}",
+    )
     try:
         return PipelineSplitResult(
             final_reward=split_final_reward,
@@ -537,7 +580,8 @@ def evaluate_per_symbol(
                 )
             else:
                 logger.warning(
-                    "per-symbol eval: no pipeline state available — pipeline will be fit per symbol"
+                    "per-symbol eval: no pipeline state available — all symbols will be skipped "
+                    "to avoid fitting normalization stats on validation data"
                 )
         except Exception:
             logger.opt(exception=True).error(
@@ -556,22 +600,22 @@ def evaluate_per_symbol(
 
             if filter_lob_levels is not None:
                 from trading_rl.data.lob_filters import filter_unchanged_lob
+
                 df = filter_unchanged_lob(df, levels=filter_lob_levels)
 
             if pipeline is not None:
-                active_pipeline = pipeline
                 if not pipeline_state_restored:
-                    from trading_rl.data.loading import (
-                        build_feature_pipeline_with_state,
+                    raise RuntimeError(
+                        "pooled feature pipeline state unavailable — refusing to "
+                        "fit a fresh pipeline on validation data (would leak "
+                        "eval-set statistics into GLOBAL-normalized features)"
                     )
-
-                    active_pipeline = build_feature_pipeline_with_state(feature_config).pipeline
-                    active_pipeline.fit(df)
-                features = active_pipeline.transform(df)
+                features = pipeline.transform(df)
                 df = pd.concat([df, features], axis=1)
 
             if mode == "hft":
                 from trading_rl.data.hft import _derive_close_hft_single
+
                 df = _derive_close_hft_single(df, data_path.stem, logger)
 
             result = evaluate_split(
@@ -590,9 +634,7 @@ def evaluate_per_symbol(
                     "evaluation_report": result.evaluation_report,
                 }
         except Exception:
-            logger.opt(exception=True).error(
-                "per-symbol eval failed symbol={}", symbol
-            )
+            logger.opt(exception=True).error("per-symbol eval failed symbol={}", symbol)
 
     return results
 
@@ -613,7 +655,9 @@ def evaluate_all_splits(
     _eval_config = StrategyEvaluatorConfig.from_experiment_config(config)
     logger.debug(
         "evaluate_all_splits eval_config reward_type={} backend={} periods_per_year={}",
-        _eval_config.reward_type, _eval_config.backend, _eval_config.periods_per_year,
+        _eval_config.reward_type,
+        _eval_config.backend,
+        _eval_config.periods_per_year,
     )
 
     split_frames = {
@@ -662,7 +706,9 @@ def resolve_primary_split_result(
         split_results[primary_split]["last_positions"] if primary_split else []
     )
     evaluation_report = (
-        split_results[primary_split]["evaluation_report"] if primary_split else MetricReport.all_nan()
+        split_results[primary_split]["evaluation_report"]
+        if primary_split
+        else MetricReport.all_nan()
     )
     return primary_split, final_reward, last_positions, evaluation_report
 
@@ -679,7 +725,6 @@ def run_primary_split_explainability(
 ) -> None:
     if not primary_split:
         return
-
 
     split_frames = {
         SplitName.TRAIN: train_df,
@@ -704,7 +749,9 @@ def run_primary_split_explainability(
         try:
             explainability_ctx.env.close()
         except Exception:
-            logger.opt(exception=True).debug("explainability env close failed split={}", primary_split)
+            logger.opt(exception=True).debug(
+                "explainability env close failed split={}", primary_split
+            )
 
 
 def build_final_metrics(
@@ -742,17 +789,25 @@ def build_final_metrics(
         if symbol_file.exists():
             val_test_symbols = [symbol_file.read_text().strip()]
         else:
-            strategy = getattr(config.data, "eval_symbol_selection", EvalSymbolSelection.FIRST)
+            strategy = getattr(
+                config.data, "eval_symbol_selection", EvalSymbolSelection.FIRST
+            )
             if strategy == EvalSymbolSelection.FIRST:
                 val_test_symbols = [Path(val_data_paths[0]).parent.name]
             elif strategy == EvalSymbolSelection.ROTATED:
                 counter_path = Path(memmap_dir_cfg) / ".eval_symbol_counter"
                 try:
-                    count = int(counter_path.read_text().strip()) if counter_path.exists() else 1
+                    count = (
+                        int(counter_path.read_text().strip())
+                        if counter_path.exists()
+                        else 1
+                    )
                     idx = (count - 1) % len(val_data_paths)
                     val_test_symbols = [Path(val_data_paths[idx]).parent.name]
                 except (ValueError, ZeroDivisionError):
-                    val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
+                    val_test_symbols = sorted(
+                        {Path(p).parent.name for p in val_data_paths}
+                    )
             else:
                 val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
     elif val_data_paths:
@@ -792,7 +847,11 @@ def build_final_metrics(
         "total_episodes": int(total_episodes),
         "training_duration_s": training_duration_s,
         "eval_steps": config.evaluation.resolve_eval_steps(len(val_df)),
-        "episode_length": getattr(config.env, "streaming_episode_length", len(train_df) if not train_df.empty else 0),
+        "episode_length": getattr(
+            config.env,
+            "streaming_episode_length",
+            len(train_df) if not train_df.empty else 0,
+        ),
         "interrupted": interrupted,
         (
             "portfolio_weights" if is_portfolio_backend else "last_position_per_episode"
