@@ -14,12 +14,10 @@ from trading_rl.models import (
 )
 from trading_rl.trainers.base import _log_network_stats
 from trading_rl.trainers.ppo import PPOTrainerContinuous
-from trading_rl.trainers.registry import register_trainer
 
 logger = get_logger(__name__)
 
 
-@register_trainer("RECURRENT_PPO", continuous=True)
 class RecurrentPPOTrainer(PPOTrainerContinuous):
     """PPO trainer with GRU recurrent actor and value networks.
 

@@ -14,12 +14,6 @@ import torch
 from loguru import logger
 from torchrl.envs import TransformedEnv
 
-import trading_rl.trainers.ddpg
-import trading_rl.trainers.ppo
-import trading_rl.trainers.random_trainer
-import trading_rl.trainers.recurrent_ppo
-import trading_rl.trainers.sac
-import trading_rl.trainers.td3  # noqa: F401 — registers TD3Trainer
 from logger import get_logger as get_project_logger
 from logger import is_level_enabled, log_banner, print_df_head
 from logger import setup_logging as configure_root_logging
