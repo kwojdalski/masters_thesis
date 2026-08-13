@@ -449,3 +449,56 @@ class TestCreateStreamingEnv:
         ]
         assert isinstance(calls["gym"][0], FakeStreamingTradingEnvXY)
         assert isinstance(calls["transformed"][0][1], FakeStepCounter)
+
+
+class TestResolveHistoryRewardFunction:
+    """Regression coverage for the shared gym_trading_env reward dispatch.
+
+    Previously, _create_non_streaming_env and _create_streaming_env each
+    hardcoded `reward_function=reward_function` independently, silently
+    ignoring reward_type for any value other than log_return. Both now
+    route through _resolve_history_reward_function.
+    """
+
+    def _dsr_params(self, backend: str) -> EnvBuildParams:
+        import dataclasses
+
+        params = _params("TD3", backend)
+        return dataclasses.replace(
+            params,
+            common=dataclasses.replace(
+                params.common, reward_type=RewardType.DIFFERENTIAL_SHARPE
+            ),
+        )
+
+    def test_returns_log_return_function_for_log_return_reward_type(self):
+        builder = AlgorithmicEnvironmentBuilder()
+        params = _params("PPO", EnvBackend.GYM_TRADING_DISCRETE)
+
+        resolved = builder._resolve_history_reward_function(params)
+
+        assert resolved is reward_function
+
+    def test_non_streaming_env_raises_clear_error_for_unsupported_reward_type(
+        self, monkeypatch
+    ):
+        builder = AlgorithmicEnvironmentBuilder()
+        params = self._dsr_params(EnvBackend.GYM_TRADING_DISCRETE)
+        df = _df()
+
+        with pytest.raises(ValueError, match="differential_sharpe"):
+            builder._create_non_streaming_env(df, params, EnvBackend.GYM_TRADING_DISCRETE)
+
+    def test_streaming_env_raises_clear_error_for_unsupported_reward_type(
+        self, monkeypatch
+    ):
+        import trading_rl.envs.streaming_env as streaming_module
+
+        monkeypatch.setattr(
+            streaming_module, "StreamingTradingEnv", lambda **_kwargs: None
+        )
+        builder = AlgorithmicEnvironmentBuilder()
+        params = self._dsr_params(EnvBackend.GYM_TRADING_CONTINUOUS)
+
+        with pytest.raises(ValueError, match="differential_sharpe"):
+            builder._create_streaming_env(["memmap"], params)
