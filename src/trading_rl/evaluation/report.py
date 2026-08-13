@@ -39,12 +39,10 @@ def _periods_per_year_from_index(df: pd.DataFrame) -> int | None:
 
     For daily-or-lower frequency data we use the median positive delta (so
     overnight/weekend gaps do not dilute the inferred bar frequency).
-    For sub-daily data we use total_time_span / n_rows instead of the median
-    delta, because LOB / tick data is bursty: events cluster at microsecond
-    intervals separated by multi-millisecond quiet periods.  The median
-    captures the burst rate (e.g. 17µs) rather than the typical observation
-    rate (e.g. 7.5ms), overstating ppy by ~150× and making the bar-aggregation
-    think 50k ticks cover 1-2 seconds rather than the actual 5-6 minutes.
+    For sub-daily data we average positive in-session deltas instead of using
+    the median, because LOB / tick data is bursty. Gaps longer than one hour
+    are treated as session breaks so overnight and weekend closures do not
+    dilute the inferred observation rate.
 
     Returns None when the index is not a DatetimeIndex or contains fewer than
     two usable timestamps.
@@ -66,13 +64,19 @@ def _periods_per_year_from_index(df: pd.DataFrame) -> int | None:
     if median_delta >= seconds_per_day:
         return 252
 
-    # Sub-daily: use time-span / n_rows to get the effective observation rate.
-    # This is robust to burstiness — it measures how many rows actually exist
-    # per second of market time, regardless of how they cluster within that time.
-    total_seconds = (df.index[-1] - df.index[0]).total_seconds()
-    if total_seconds <= 0:
-        return max(1, round(trading_seconds_per_year / median_delta))
-    effective_delta = total_seconds / (len(df) - 1)
+    # Sub-daily: preserve quiet periods within a session while excluding market
+    # closures. If every gap is a session break, retain the previous span-based
+    # fallback rather than inferring from no usable observations.
+    session_break_seconds = 3600
+    in_session_deltas = positive_deltas[positive_deltas <= session_break_seconds]
+    if in_session_deltas.size:
+        effective_delta = float(np.mean(in_session_deltas))
+    else:
+        total_seconds = (df.index[-1] - df.index[0]).total_seconds()
+        if total_seconds <= 0:
+            effective_delta = median_delta
+        else:
+            effective_delta = total_seconds / (len(df) - 1)
     return max(1, round(trading_seconds_per_year / effective_delta))
 
 
@@ -114,7 +118,9 @@ def build_evaluation_report_for_trainer(
         with torch.no_grad():
             try:
                 with set_exploration_type(InteractionType.MODE):
-                    rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
+                    rollout = env_to_use.rollout(
+                        max_steps=max_steps, policy=trainer.actor
+                    )
             except (NotImplementedError, RuntimeError) as exc:
                 if not (
                     isinstance(exc, NotImplementedError)
@@ -123,9 +129,13 @@ def build_evaluation_report_for_trainer(
                 ):
                     raise
                 with set_exploration_type(InteractionType.DETERMINISTIC):
-                    rollout = env_to_use.rollout(max_steps=max_steps, policy=trainer.actor)
+                    rollout = env_to_use.rollout(
+                        max_steps=max_steps, policy=trainer.actor
+                    )
 
-    reward_type = getattr(getattr(config, "env", None), "reward_type", RewardType.LOG_RETURN)
+    reward_type = getattr(
+        getattr(config, "env", None), "reward_type", RewardType.LOG_RETURN
+    )
     backend = getattr(getattr(config, "env", None), "backend", None)
     _configured_price_column = getattr(
         getattr(config, "env", None), "price_column", None
@@ -158,10 +168,15 @@ def build_evaluation_report_for_trainer(
         strategy_log_returns = (
             rollout["next", "reward"].detach().cpu().reshape(-1).numpy()[:max_steps]
         )
-        strategy_simple_returns = RewardSeries(
-            strategy_log_returns,
-            RewardType.LOG_RETURN,
-        ).to_return_series().to_simple().values
+        strategy_simple_returns = (
+            RewardSeries(
+                strategy_log_returns,
+                RewardType.LOG_RETURN,
+            )
+            .to_return_series()
+            .to_simple()
+            .values
+        )
     else:
         strategy_simple_returns = np.array([], dtype=float)
 
@@ -177,8 +192,12 @@ def build_evaluation_report_for_trainer(
                     len(strategy_simple_returns),
                 )
                 if cross_validate:
-                    prices_for_xval = benchmark_series.iloc[: max_steps + 1].to_numpy(dtype=float)
-                    xval_err, _ = cross_validate_nlv(rollout, return_series.values, prices_for_xval)
+                    prices_for_xval = benchmark_series.iloc[: max_steps + 1].to_numpy(
+                        dtype=float
+                    )
+                    xval_err, _ = cross_validate_nlv(
+                        rollout, return_series.values, prices_for_xval
+                    )
                     if np.isfinite(xval_err):
                         logger.info(
                             "NLV cross-validation: max |broker_nlv - recomputed_nlv| = {} "

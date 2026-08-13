@@ -88,6 +88,15 @@ def test_periods_per_year_from_index_uses_observed_event_rate() -> None:
     assert periods == 252 * 6.5 * 3600
 
 
+def test_periods_per_year_from_index_excludes_overnight_gaps() -> None:
+    first_session = pd.date_range("2024-01-02 09:30", periods=390, freq="1min")
+    second_session = pd.date_range("2024-01-03 09:30", periods=390, freq="1min")
+    index = first_session.append(second_session)
+    df = pd.DataFrame({"close": np.arange(len(index), dtype=float)}, index=index)
+
+    assert _periods_per_year_from_index(df) == 252 * 390
+
+
 def test_periods_per_year_from_index_handles_business_day_bars() -> None:
     df = pd.DataFrame(
         {"close": np.arange(252, dtype=float)},
@@ -150,7 +159,9 @@ def test_report_reuses_supplied_rollout_without_rerunning_env() -> None:
 
     class NoRolloutEnv:
         def rollout(self, *, max_steps: int, policy):
-            raise AssertionError("report should reuse the rollout from trainer.evaluate")
+            raise AssertionError(
+                "report should reuse the rollout from trainer.evaluate"
+            )
 
     env = NoRolloutEnv()
     prices = pd.DataFrame({"close": [100.0, 110.0, 104.5]})
