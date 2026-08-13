@@ -95,7 +95,9 @@ class TestTimeSeriesCV:
         for train_start, train_end, val_start, val_end in splits:
             assert 0 <= train_start < train_end < n_samples
             assert 0 <= val_start < val_end < n_samples
-            assert train_end + 50 == val_start, f"Gap of 50 expected: {train_end} -> {val_start}"
+            assert (
+                train_end + 50 == val_start
+            ), f"Gap of 50 expected: {train_end} -> {val_start}"
 
     def test_cv_split_with_insufficient_data(self, sample_ohlcv_data):
         """Test that CV splits handle insufficient data gracefully."""
@@ -143,7 +145,7 @@ class TestMultiHorizonScoring:
         val_size = 1000
 
         train_df = sample_ohlcv_data.iloc[:train_size].copy()
-        val_df = sample_ohlcv_data.iloc[train_size:train_size + val_size].copy()
+        val_df = sample_ohlcv_data.iloc[train_size : train_size + val_size].copy()
 
         scores, _ic_series = _build_multi_horizon_score_table(
             train_frame=train_df,
@@ -172,7 +174,7 @@ class TestMultiHorizonScoring:
         val_size = 1000
 
         train_df = sample_ohlcv_data.iloc[:train_size].copy()
-        val_df = sample_ohlcv_data.iloc[train_size:train_size + val_size].copy()
+        val_df = sample_ohlcv_data.iloc[train_size : train_size + val_size].copy()
 
         scores, _ic_series = _build_multi_horizon_score_table(
             train_frame=train_df,
@@ -282,14 +284,18 @@ class TestEnsembleSelection:
 
         # Create fake scores with feat_a having higher ICIR
         scores_per_split = [
-            pd.DataFrame({
-                "feature": ["feat_a", "feat_b"],
-                "icir": [0.5, 0.1],
-            }),
-            pd.DataFrame({
-                "feature": ["feat_a", "feat_b"],
-                "icir": [0.4, 0.2],
-            }),
+            pd.DataFrame(
+                {
+                    "feature": ["feat_a", "feat_b"],
+                    "icir": [0.5, 0.1],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "feature": ["feat_a", "feat_b"],
+                    "icir": [0.4, 0.2],
+                }
+            ),
         ]
 
         ensemble = _ensemble_select_features(
@@ -347,7 +353,7 @@ class TestFeatureSelector:
         val_size = 1000
 
         train_df = sample_ohlcv_data.iloc[:train_size].copy()
-        val_df = sample_ohlcv_data.iloc[train_size:train_size + val_size].copy()
+        val_df = sample_ohlcv_data.iloc[train_size : train_size + val_size].copy()
 
         config = FeatureSelectorConfig(top_k=3, horizon=1)
         selector = FeatureSelector(config)
@@ -364,7 +370,7 @@ class TestFeatureSelector:
         val_size = 1000
 
         train_df = sample_ohlcv_data.iloc[:train_size].copy()
-        val_df = sample_ohlcv_data.iloc[train_size:train_size + val_size].copy()
+        val_df = sample_ohlcv_data.iloc[train_size : train_size + val_size].copy()
 
         config = FeatureSelectorConfig(
             top_k=3,
@@ -560,6 +566,11 @@ class TestWriteSelectedYaml:
                     "name": "log_return",
                     "feature_type": "log_return",
                     "normalize": False,
+                    "normalization_method": "none",
+                    "rolling_window": 1000,
+                    "reset_on_session_break": True,
+                    "session_break_threshold_hours": 1.0,
+                    "use_time_weights": False,
                     "domain": "mft",
                     "params": {"column": "close"},
                     "output_name": "feature_lr_custom",
@@ -568,15 +579,24 @@ class TestWriteSelectedYaml:
                     "name": "rsi",
                     "feature_type": "rsi",
                     "normalize": True,
+                    "normalization_method": "running",
+                    "rolling_window": 1000,
+                    "reset_on_session_break": True,
+                    "session_break_threshold_hours": 1.0,
+                    "use_time_weights": False,
                     "domain": "shared",
                     "params": {"period": 3},
                 },
             ]
         }
 
-    def test_write_selected_yaml_omits_empty_params_and_default_output_name(self, tmp_path):
+    def test_write_selected_yaml_omits_empty_params_and_default_output_name(
+        self, tmp_path
+    ):
         result = FeatureSelectionResult(
-            selected_configs=[FeatureConfig(name="high", feature_type="high", params={})],
+            selected_configs=[
+                FeatureConfig(name="high", feature_type="high", params={})
+            ],
             scores=pd.DataFrame(),
             ic_series={},
             correlation_matrix=pd.DataFrame(),
@@ -587,14 +607,63 @@ class TestWriteSelectedYaml:
 
         FeatureSelector.write_selected_yaml(result, tmp_path / "selected.yaml")
 
-        payload = yaml.safe_load((tmp_path / "selected.yaml").read_text(encoding="utf-8"))
+        payload = yaml.safe_load(
+            (tmp_path / "selected.yaml").read_text(encoding="utf-8")
+        )
         assert payload == {
             "features": [
                 {
                     "name": "high",
                     "feature_type": "high",
                     "normalize": True,
+                    "normalization_method": "running",
+                    "rolling_window": 1000,
+                    "reset_on_session_break": True,
+                    "session_break_threshold_hours": 1.0,
+                    "use_time_weights": False,
                     "domain": "shared",
                 }
             ]
         }
+
+    def test_write_selected_yaml_preserves_non_default_normalization_settings(
+        self, tmp_path
+    ):
+        """Regression test: rolling-window normalization overrides must round-trip.
+
+        Selecting from a config with normalization_method="rolling" and a custom
+        rolling_window must not silently revert to the running-normalization
+        defaults when the selected features are written back out to YAML.
+        """
+        result = FeatureSelectionResult(
+            selected_configs=[
+                FeatureConfig(
+                    name="mid_price",
+                    feature_type="mid_price",
+                    normalize=True,
+                    normalization_method="rolling",
+                    rolling_window=500,
+                    reset_on_session_break=False,
+                    session_break_threshold_hours=2.0,
+                    use_time_weights=True,
+                )
+            ],
+            scores=pd.DataFrame(),
+            ic_series={},
+            correlation_matrix=pd.DataFrame(),
+            selected_names=["feature_mid_price"],
+            top_k=1,
+            icir_threshold=0.02,
+        )
+
+        FeatureSelector.write_selected_yaml(result, tmp_path / "selected.yaml")
+
+        payload = yaml.safe_load(
+            (tmp_path / "selected.yaml").read_text(encoding="utf-8")
+        )
+        entry = payload["features"][0]
+        assert entry["normalization_method"] == "rolling"
+        assert entry["rolling_window"] == 500
+        assert entry["reset_on_session_break"] is False
+        assert entry["session_break_threshold_hours"] == 2.0
+        assert entry["use_time_weights"] is True

@@ -1401,6 +1401,11 @@ class FeatureSelector:
                 "name": cfg.name,
                 "feature_type": cfg.feature_type,
                 "normalize": cfg.normalize,
+                "normalization_method": cfg.normalization_method,
+                "rolling_window": cfg.rolling_window,
+                "reset_on_session_break": cfg.reset_on_session_break,
+                "session_break_threshold_hours": cfg.session_break_threshold_hours,
+                "use_time_weights": cfg.use_time_weights,
                 "domain": cfg.domain,
             }
             if cfg.params:
