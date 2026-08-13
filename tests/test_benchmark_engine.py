@@ -200,3 +200,21 @@ class TestBenchmarkEngineBuild:
         )
         specs, _ = BenchmarkEngine.build(self._market_data(), cfg)
         assert len(specs) == 2
+
+    def test_short_and_hold_flag_adds_one_spec(self):
+        cfg = SimpleNamespace(
+            buy_and_hold=False, short_and_hold=True, twap=False, vwap=False
+        )
+        specs, _ = BenchmarkEngine.build(self._market_data(), cfg)
+        assert len(specs) == 1
+        assert specs[0].name == BenchmarkName.SHORT_AND_HOLD
+
+    def test_short_and_hold_returns_are_inverse_of_buy_and_hold(self):
+        cfg = SimpleNamespace(
+            buy_and_hold=True, short_and_hold=True, twap=False, vwap=False
+        )
+        specs, _ = BenchmarkEngine.build(self._market_data(), cfg)
+        by_name = {spec.name: spec for spec in specs}
+        bh_returns = by_name[BenchmarkName.BUY_AND_HOLD].compute_returns(5)
+        sh_returns = by_name[BenchmarkName.SHORT_AND_HOLD].compute_returns(5)
+        np.testing.assert_allclose(sh_returns, -bh_returns)
