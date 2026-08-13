@@ -607,7 +607,7 @@ class TrainerRuntimeHooks:
                             len(val_history),
                         )
                 except Exception:
-                    logger.error(
+                    logger.opt(exception=True).error(
                         "temp eval: train/val progression plot failed",
                     )
 
