@@ -17,22 +17,30 @@ def test_actual_returns_plot_includes_benchmarks():
     # Create sample price data
     n_steps = 50
     prices = 100 + np.random.randn(n_steps + 1).cumsum()
-    df_prices = pd.DataFrame({
-        "close": prices,
-        "open": prices * 0.99,
-        "high": prices * 1.01,
-        "low": prices * 0.98,
-    })
+    df_prices = pd.DataFrame(
+        {
+            "close": prices,
+            "open": prices * 0.99,
+            "high": prices * 1.01,
+            "low": prices * 0.98,
+        }
+    )
 
     # Create mock rollouts
     rollouts = []
     for _ in range(2):  # Deterministic and Random
-        rollout = TensorDict({
-            "action": torch.randn(n_steps, 1),
-            "next": TensorDict({
-                "reward": torch.randn(n_steps),
-            }, batch_size=[n_steps]),
-        }, batch_size=[n_steps])
+        rollout = TensorDict(
+            {
+                "action": torch.randn(n_steps, 1),
+                "next": TensorDict(
+                    {
+                        "reward": torch.randn(n_steps),
+                    },
+                    batch_size=[n_steps],
+                ),
+            },
+            batch_size=[n_steps],
+        )
         rollouts.append(rollout)
 
     # Create plot with benchmarks
@@ -70,12 +78,18 @@ def test_actual_returns_plot_without_benchmarks():
     # Create mock rollouts
     rollouts = []
     for _ in range(2):
-        rollout = TensorDict({
-            "action": torch.randn(n_steps, 1),
-            "next": TensorDict({
-                "reward": torch.randn(n_steps),
-            }, batch_size=[n_steps]),
-        }, batch_size=[n_steps])
+        rollout = TensorDict(
+            {
+                "action": torch.randn(n_steps, 1),
+                "next": TensorDict(
+                    {
+                        "reward": torch.randn(n_steps),
+                    },
+                    batch_size=[n_steps],
+                ),
+            },
+            batch_size=[n_steps],
+        )
         rollouts.append(rollout)
 
     # Create plot without benchmarks (df_prices=None)
@@ -101,18 +115,26 @@ def test_benchmark_calculations():
     """Test that benchmarks are calculated correctly."""
     # Create simple upward trend
     n_steps = 10
-    prices = np.array([100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0])
+    prices = np.array(
+        [100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0]
+    )
     df_prices = pd.DataFrame({"close": prices})
 
     # Create mock rollouts
     rollouts = []
     for _ in range(2):
-        rollout = TensorDict({
-            "action": torch.randn(n_steps, 1),
-            "next": TensorDict({
-                "reward": torch.zeros(n_steps),  # Zero rewards for this test
-            }, batch_size=[n_steps]),
-        }, batch_size=[n_steps])
+        rollout = TensorDict(
+            {
+                "action": torch.randn(n_steps, 1),
+                "next": TensorDict(
+                    {
+                        "reward": torch.zeros(n_steps),  # Zero rewards for this test
+                    },
+                    batch_size=[n_steps],
+                ),
+            },
+            batch_size=[n_steps],
+        )
         rollouts.append(rollout)
 
     # Create plot
@@ -149,12 +171,18 @@ def test_actual_returns_plot_uses_custom_initial_capital():
 
     rollouts = []
     for _ in range(2):
-        rollout = TensorDict({
-            "action": torch.randn(n_steps, 1),
-            "next": TensorDict({
-                "reward": torch.zeros(n_steps),  # 0 log-return => flat equity
-            }, batch_size=[n_steps]),
-        }, batch_size=[n_steps])
+        rollout = TensorDict(
+            {
+                "action": torch.randn(n_steps, 1),
+                "next": TensorDict(
+                    {
+                        "reward": torch.zeros(n_steps),  # 0 log-return => flat equity
+                    },
+                    batch_size=[n_steps],
+                ),
+            },
+            batch_size=[n_steps],
+        )
         rollouts.append(rollout)
 
     plot = create_equity_curve_plot(
@@ -177,19 +205,27 @@ def test_actual_returns_plot_uses_requested_benchmark_price_column():
     """Benchmarks should be computed from the configured price column."""
     n_steps = 10
     # close is flat, price trends up: benchmark must follow price when requested.
-    df_prices = pd.DataFrame({
-        "close": np.full(n_steps, 100.0),
-        "price": np.linspace(100.0, 110.0, n_steps),
-    })
+    df_prices = pd.DataFrame(
+        {
+            "close": np.full(n_steps, 100.0),
+            "price": np.linspace(100.0, 110.0, n_steps),
+        }
+    )
 
     rollouts = []
     for _ in range(2):
-        rollout = TensorDict({
-            "action": torch.randn(n_steps, 1),
-            "next": TensorDict({
-                "reward": torch.zeros(n_steps),
-            }, batch_size=[n_steps]),
-        }, batch_size=[n_steps])
+        rollout = TensorDict(
+            {
+                "action": torch.randn(n_steps, 1),
+                "next": TensorDict(
+                    {
+                        "reward": torch.zeros(n_steps),
+                    },
+                    batch_size=[n_steps],
+                ),
+            },
+            batch_size=[n_steps],
+        )
         rollouts.append(rollout)
 
     plot = create_equity_curve_plot(
@@ -210,10 +246,12 @@ def test_actual_returns_plot_uses_requested_benchmark_price_column():
 def test_calculate_benchmark_dsr_uses_requested_price_column():
     """DSR benchmark helper should use the requested price column."""
     n_steps = 20
-    df_prices = pd.DataFrame({
-        "close": np.full(n_steps, 100.0),
-        "price": np.linspace(100.0, 120.0, n_steps),
-    })
+    df_prices = pd.DataFrame(
+        {
+            "close": np.full(n_steps, 100.0),
+            "price": np.linspace(100.0, 120.0, n_steps),
+        }
+    )
 
     _cum_dsr, portfolio_values = calculate_benchmark_dsr(
         df_prices,
@@ -236,16 +274,62 @@ def test_simple_returns_are_converted_before_actual_returns_plot():
         initial_portfolio_value=10000.0,
     )
 
-    final_value = float(plot.data[plot.data["Run"] == "Deterministic"].iloc[-1]["Portfolio_Value"])
+    final_value = float(
+        plot.data[plot.data["Run"] == "Deterministic"].iloc[-1]["Portfolio_Value"]
+    )
     assert abs(final_value - 10302.0) < 1e-6
 
 
+def test_dsr_benchmark_reward_curve_aligns_with_agent_curve():
+    """DSR benchmark curves must sum the same number of real terms per Steps
+    value as the agent's cumsum -- not one fewer, from a leading zero anchor.
+    """
+    from trading_rl.evaluation.plots import build_rollout_plot_data
+
+    n_steps = 10
+    rollout = TensorDict(
+        {
+            "action": torch.zeros(n_steps, 1),
+            "next": TensorDict(
+                {
+                    "reward": torch.full((n_steps,), 0.01),
+                },
+                batch_size=[n_steps],
+            ),
+        },
+        batch_size=[n_steps],
+    )
+
+    rng = np.random.default_rng(0)
+    prices = 100.0 + np.cumsum(rng.normal(0, 0.1, n_steps + 1))
+    df_prices = pd.DataFrame({"close": prices})
+
+    result = build_rollout_plot_data(
+        rollouts=[rollout],
+        n_obs=n_steps,
+        df=df_prices,
+        reward_type="differential_sharpe",
+        show_benchmarks=True,
+    )
+
+    rewards_df = result["rewards"]
+    agent_max_step = rewards_df.loc[rewards_df["Run"] == "Deterministic", "Steps"].max()
+    for bench_name in ("Buy-and-Hold", "Short-and-Hold", "TWAP"):
+        bench_max_step = rewards_df.loc[rewards_df["Run"] == bench_name, "Steps"].max()
+        assert bench_max_step == agent_max_step, (
+            f"{bench_name} max Steps={bench_max_step} should match "
+            f"agent max Steps={agent_max_step}"
+        )
+
+
 def test_cumulative_returns_drop_initial_zero_for_actual_returns_plot():
-    cumulative_log_returns = np.array([
-        0.0,
-        np.log1p(0.01),
-        np.log1p(0.01) + np.log1p(0.02),
-    ])
+    cumulative_log_returns = np.array(
+        [
+            0.0,
+            np.log1p(0.01),
+            np.log1p(0.01) + np.log1p(0.02),
+        ]
+    )
 
     plot_returns = _cumulative_log_returns_for_plot(
         simple_returns=np.array([0.0]),

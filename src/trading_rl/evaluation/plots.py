@@ -301,6 +301,10 @@ def build_rollout_plot_data(
                     max_steps=n_obs,
                     price_column=price_col,
                 )
+                # Drop the leading zero anchor so this aligns 1:1 with the
+                # agent's cumsum, which has no such anchor (plots.py agent
+                # curve above): both then sum s+1 real terms at Steps=s.
+                dsr_cumsum = dsr_cumsum[1:]
                 idx = np.arange(len(dsr_cumsum))[::stride]
                 rewards_data.extend(
                     {
@@ -317,6 +321,7 @@ def build_rollout_plot_data(
                 max_steps=n_obs,
                 price_column=price_col,
             )
+            twap_dsr_cumsum = twap_dsr_cumsum[1:]
             idx = np.arange(len(twap_dsr_cumsum))[::stride]
             rewards_data.extend(
                 {
