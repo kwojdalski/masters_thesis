@@ -487,7 +487,9 @@ class TestResolveHistoryRewardFunction:
         df = _df()
 
         with pytest.raises(ValueError, match="differential_sharpe"):
-            builder._create_non_streaming_env(df, params, EnvBackend.GYM_TRADING_DISCRETE)
+            builder._create_non_streaming_env(
+                df, params, EnvBackend.GYM_TRADING_DISCRETE
+            )
 
     def test_streaming_env_raises_clear_error_for_unsupported_reward_type(
         self, monkeypatch
