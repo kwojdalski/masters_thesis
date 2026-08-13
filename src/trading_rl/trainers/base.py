@@ -578,12 +578,30 @@ class BaseTrainer(ABC):
         """Optional TRACE-level hook called after each periodic eval rollout."""
 
     def _log_progress(
-        self, max_length: int, buffer_len: int, loss_vals: dict, log_actor: bool = True
+        self,
+        max_length: int,
+        buffer_len: int,
+        loss_vals: dict,
+        log_actor: bool = True,
+        actor_loss: float | None = None,
+        value_loss: float | None = None,
     ) -> None:
-        """Log one optimization step; used by DDPG and TD3. SAC overrides with extra fields."""
-        curr_loss_value = loss_vals[self._value_loss_key].item()
+        """Log one optimization step; used by DDPG and TD3. SAC overrides with extra fields.
+
+        ``actor_loss``/``value_loss``, when given, override the corresponding
+        ``loss_vals`` entry — TD3/DDPG each run two forward passes (critic update,
+        then actor update against the now-updated critic), so a single ``loss_vals``
+        dict never holds the fresh value for both losses at once.
+        """
+        curr_loss_value = (
+            value_loss
+            if value_loss is not None
+            else loss_vals[self._value_loss_key].item()
+        )
         if log_actor:
-            curr_loss_actor = loss_vals["loss_actor"].item()
+            curr_loss_actor = (
+                actor_loss if actor_loss is not None else loss_vals["loss_actor"].item()
+            )
             logger.info(
                 "{} step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f}",
                 self._algo_label,
@@ -749,13 +767,18 @@ class BaseTrainer(ABC):
         return 0.0
 
     def _get_last_episode_final_nlv(self) -> tuple[float | None, int | None]:
-        """Return (final_nlv, n_steps) of the most recently completed training episode."""
+        """Pop and return (final_nlv, n_steps) of the next unconsumed completed
+        training episode, in completion order.
+
+        Backed by a FIFO queue rather than a single scalar so that a collector
+        batch spanning multiple episode boundaries matches each completed
+        episode to its own NLV instead of always the most recent one.
+        """
         obj = self.env
         for _ in range(10):
-            if hasattr(obj, "_last_episode_final_nlv"):
-                return obj._last_episode_final_nlv, getattr(
-                    obj, "_last_episode_steps", None
-                )
+            queue = getattr(obj, "_episode_final_nlv_queue", None)
+            if queue is not None:
+                return queue.pop(0) if queue else (None, None)
             obj = getattr(obj, "_env", None) or getattr(obj, "env", None)
             if obj is None:
                 break

@@ -263,7 +263,12 @@ def _yaml_uses_global(feature_config_path: str) -> bool:
             if method == NormalizationMethod.GLOBAL:
                 return True
     except Exception as exc:
-        logger.debug("could not parse feature config for GLOBAL detection: {}", exc)
+        logger.warning(
+            "could not parse feature config for GLOBAL detection, assuming GLOBAL "
+            "to keep train_size in the cache key: {}",
+            exc,
+        )
+        return True
     return False
 
 

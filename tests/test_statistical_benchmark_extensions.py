@@ -73,6 +73,26 @@ def test_vwap_returns_use_volume_schedule() -> None:
     assert not np.allclose(vwap, twap)
 
 
+def test_vwap_returns_warns_and_degrades_to_twap_on_zero_volume() -> None:
+    prices = pd.Series(np.linspace(100.0, 110.0, 11))
+    volumes = pd.Series(np.zeros(10))
+
+    from loguru import logger as loguru_logger
+
+    messages: list[str] = []
+    sink_id = loguru_logger.add(
+        lambda msg: messages.append(msg.record["message"]), level="WARNING"
+    )
+    try:
+        vwap = compute_vwap_returns(prices, volumes, max_steps=10)
+    finally:
+        loguru_logger.remove(sink_id)
+    twap = compute_twap_returns(prices, max_steps=10)
+
+    assert np.allclose(vwap, twap)
+    assert any("zero" in m.lower() for m in messages)
+
+
 def test_benchmark_metric_report_fills_direction_percentages() -> None:
     prices = pd.Series(np.linspace(100.0, 105.0, 8))
     volumes = pd.Series(np.arange(1.0, 9.0))
@@ -160,7 +180,9 @@ def test_statistical_tests_run_with_real_config_without_random_seed() -> None:
     )
     benchmarks, _ = BenchmarkEngine.build(
         market_data,
-        SimpleNamespace(buy_and_hold=True, short_and_hold=False, twap=False, vwap=False),
+        SimpleNamespace(
+            buy_and_hold=True, short_and_hold=False, twap=False, vwap=False
+        ),
         price_column="close",
     )
 
@@ -203,10 +225,10 @@ def test_run_all_statistical_tests_records_benchmark_compute_errors() -> None:
         config=_make_test_config(),
     )
 
-    assert results["baselines"] == [
-        {"baseline": "broken", "error": "benchmark failed"}
+    assert results["baselines"] == [{"baseline": "broken", "error": "benchmark failed"}]
+    assert [row["strategy"] for row in results["benchmark_comparison_table"]] == [
+        "agent"
     ]
-    assert [row["strategy"] for row in results["benchmark_comparison_table"]] == ["agent"]
 
 
 def test_run_all_statistical_tests_truncates_uneven_random_baseline_trials(

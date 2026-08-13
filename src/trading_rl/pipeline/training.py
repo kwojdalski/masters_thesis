@@ -9,22 +9,16 @@ from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
 from typing import Any
 
-import mlflow
 import numpy as np
 import torch
 from loguru import logger
 from torchrl.envs import TransformedEnv
 
-import trading_rl.trainers.ddpg
-import trading_rl.trainers.ppo
-import trading_rl.trainers.random_trainer
-import trading_rl.trainers.recurrent_ppo
-import trading_rl.trainers.sac
-import trading_rl.trainers.td3  # noqa: F401 — registers TD3Trainer
 from logger import get_logger as get_project_logger
 from logger import is_level_enabled, log_banner, print_df_head
 from logger import setup_logging as configure_root_logging
 from trading_rl.callbacks import MLflowTrainingCallback
+from trading_rl.callbacks.tracking import MLflowExperimentTracker
 from trading_rl.config import (
     ExperimentConfig,
     LoggingParams,
@@ -59,8 +53,6 @@ class ExperimentRuntime:
     effective_experiment_name: str
     prepared_dataset: PreparedDataset
     training_bundle: TrainingBundle
-
-
 
 
 def setup_logging(params: LoggingParams, experiment_name: str | None = None) -> logging.Logger:
@@ -143,6 +135,7 @@ def _build_trainer(
     eval_data_len: int | None = None,
 ) -> Any:
     import math
+
     n_obs = math.prod(env.observation_spec["observation"].shape)
     n_act = env.action_spec.shape[-1]
     logger.info("build environment n_obs={} n_act={}", n_obs, n_act)
@@ -290,10 +283,7 @@ def setup_mlflow_experiment(
     Returns:
         experiment_name unchanged.
     """
-    if tracking_uri:
-        mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment(experiment_name)
-    return experiment_name
+    return MLflowExperimentTracker().configure_experiment(experiment_name, tracking_uri)
 
 
 def _log_data_diagnostics(
@@ -341,10 +331,10 @@ def _log_data_diagnostics(
 def _log_mlflow_artifacts(
     config: ExperimentConfig,
     prepared_dataset: PreparedDataset,
-    create_mlflow_callback: bool,
+    callback: MLflowTrainingCallback | None,
 ) -> None:
     """Log static MLflow artifacts (config, FAQs, optional data overviews)."""
-    if not (create_mlflow_callback and mlflow.active_run()):
+    if callback is None or not callback.is_tracking_active():
         return
     MLflowTrainingCallback.log_parameter_faq_artifact()
     MLflowTrainingCallback.log_training_parameters(config)
@@ -387,7 +377,12 @@ def build_experiment_runtime(
     profiler = get_profiler()
 
     logger.info("prepare data")
-    logger.debug("data path={} train_size={} feature_config={}", config.data.data_path, config.data.train_size, getattr(config.data, "feature_config", None))
+    logger.debug(
+        "data path={} train_size={} feature_config={}",
+        config.data.data_path,
+        config.data.train_size,
+        getattr(config.data, "feature_config", None),
+    )
 
     log_banner(logger, "DATA PREPARATION START")
     with profiler.stage("data_preparation", 2):
@@ -404,7 +399,7 @@ def build_experiment_runtime(
             create_mlflow_callback=create_mlflow_callback,
         )
 
-    _log_mlflow_artifacts(config, prepared_dataset, create_mlflow_callback)
+    _log_mlflow_artifacts(config, prepared_dataset, training_bundle.mlflow_callback)
 
     return ExperimentRuntime(
         logger=logger,
@@ -412,4 +407,3 @@ def build_experiment_runtime(
         prepared_dataset=prepared_dataset,
         training_bundle=training_bundle,
     )
-

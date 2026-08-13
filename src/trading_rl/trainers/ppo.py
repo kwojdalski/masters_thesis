@@ -31,7 +31,6 @@ from trading_rl.models import (
     create_ppo_value_network,
 )
 from trading_rl.trainers.base import BaseTrainer, EvaluationOutput, _log_network_stats
-from trading_rl.trainers.registry import register_trainer
 
 logger = get_logger(__name__)
 
@@ -97,7 +96,6 @@ def _run_viz_rollout(env, actor, max_steps: int, max_episode_length: int, proces
             current_episode_steps = 0
 
 
-@register_trainer("PPO")
 class PPOTrainer(BaseTrainer):
     """Trainer for PPO algorithm on trading environments."""
 
@@ -502,7 +500,6 @@ class PPOTrainer(BaseTrainer):
         return plot
 
 
-@register_trainer("PPO", continuous=True)
 class PPOTrainerContinuous(PPOTrainer):
     """Trainer for PPO algorithm with continuous action spaces."""
 

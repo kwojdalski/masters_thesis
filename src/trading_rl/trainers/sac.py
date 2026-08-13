@@ -12,12 +12,10 @@ from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import LossFunction
 from trading_rl.models import create_sac_actor, create_sac_qvalue_network
 from trading_rl.trainers.base import BaseTrainer, _log_network_stats
-from trading_rl.trainers.registry import register_trainer
 
 logger = get_logger(__name__)
 
 
-@register_trainer("SAC", continuous=True)
 class SACTrainer(BaseTrainer):
     """Trainer for SAC (Soft Actor-Critic) algorithm on trading environments.
 
@@ -337,4 +335,3 @@ class SACTrainer(BaseTrainer):
             on_batch_end=on_batch_end,
             on_train_end=self._log_batch_summary,
         )
-

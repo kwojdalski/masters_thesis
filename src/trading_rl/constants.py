@@ -28,16 +28,16 @@ class ReportingFrequency(Enum):
     (_US_TRADING_DAYS days, _US_TRADING_HOURS hours/day).
     """
 
-    WEEKLY  = ("1w",  52)                                          # calendar weeks
-    DAILY   = ("1d",  _US_TRADING_DAYS)                            # 252
-    HOUR_4  = ("4h",  _ppy(_US_TRADING_HOURS / 4))                 # 410
-    HOURLY  = ("1h",  _ppy(_US_TRADING_HOURS))                     # 1_638
-    MIN_30  = ("30m", _ppy(_US_TRADING_HOURS * 2))                 # 3_276
-    MIN_15  = ("15m", _ppy(_US_TRADING_HOURS * 4))                 # 6_552
-    MIN_5   = ("5m",  _ppy(_US_TRADING_HOURS * 12))                # 19_656
-    MIN_1   = ("1m",  _ppy(_US_TRADING_HOURS * 60))                # 98_280
-    SEC_15  = ("15s", _ppy(_US_TRADING_HOURS * 60 * 4))            # 393_120
-    SEC_5   = ("5s",  _ppy(_US_TRADING_HOURS * 60 * 12))           # 1_179_360
+    WEEKLY = ("1w", 52)  # calendar weeks
+    DAILY = ("1d", _US_TRADING_DAYS)  # 252
+    HOUR_4 = ("4h", _ppy(_US_TRADING_HOURS / 4))  # 410
+    HOURLY = ("1h", _ppy(_US_TRADING_HOURS))  # 1_638
+    MIN_30 = ("30m", _ppy(_US_TRADING_HOURS * 2))  # 3_276
+    MIN_15 = ("15m", _ppy(_US_TRADING_HOURS * 4))  # 6_552
+    MIN_5 = ("5m", _ppy(_US_TRADING_HOURS * 12))  # 19_656
+    MIN_1 = ("1m", _ppy(_US_TRADING_HOURS * 60))  # 98_280
+    SEC_15 = ("15s", _ppy(_US_TRADING_HOURS * 60 * 4))  # 393_120
+    SEC_5 = ("5s", _ppy(_US_TRADING_HOURS * 60 * 12))  # 1_179_360
 
     def __init__(self, label: str, periods_per_year: int) -> None:
         self.label = label
@@ -85,8 +85,8 @@ class ActionPenaltyType(StrEnum):
     Used to discourage bang-bang (±1) behavior in continuous-action policies.
     """
 
-    QUADRATIC = "quadratic"          # lambda * action^2
-    ABSOLUTE = "absolute"            # lambda * abs(action)
+    QUADRATIC = "quadratic"  # lambda * action^2
+    ABSOLUTE = "absolute"  # lambda * abs(action)
     CHANGE_QUADRATIC = "change_quadratic"  # lambda * (action_t - action_{t-1})^2
 
 
@@ -181,6 +181,7 @@ class BenchmarkName(StrEnum):
     """Evaluation benchmark names used in reports and artifacts."""
 
     BUY_AND_HOLD = "buy_and_hold"
+    SHORT_AND_HOLD = "short_and_hold"
     TWAP = "twap"
     VWAP = "vwap"
     MAX_PROFIT = "max_profit"

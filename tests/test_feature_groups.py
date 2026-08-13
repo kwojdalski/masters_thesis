@@ -83,6 +83,25 @@ def test_get_group_features_preserves_params_output_and_domain() -> None:
     assert config.domain == EnvMode.HFT
 
 
+def test_get_group_features_preserves_normalization_overrides() -> None:
+    groups = _groups()
+    groups["imbalance"]["features"][0].update(
+        normalization_method="rolling",
+        rolling_window=250,
+        reset_on_session_break=False,
+        session_break_threshold_hours=2.5,
+        use_time_weights=True,
+    )
+
+    config = FeatureGroupResolver(groups).get_group_features("imbalance")[0]
+
+    assert config.normalization_method == "rolling"
+    assert config.rolling_window == 250
+    assert config.reset_on_session_break is False
+    assert config.session_break_threshold_hours == 2.5
+    assert config.use_time_weights is True
+
+
 def test_resolve_deduplicates_by_output_name() -> None:
     resolver = FeatureGroupResolver(_groups())
 

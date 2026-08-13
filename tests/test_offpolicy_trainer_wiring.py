@@ -101,7 +101,9 @@ def test_offpolicy_warmup_switches_only_after_threshold() -> None:
         replay_buffer=replay_buffer,
         use_replay_buffer=True,
     )
-    wc.initialize(exploration_policy, _action_spec(), total_count=0, algorithm_label="DDPG")
+    wc.initialize(
+        exploration_policy, _action_spec(), total_count=0, algorithm_label="DDPG"
+    )
 
     assert wc.random_exploration_done is False
     assert collector.policy is not exploration_policy
@@ -115,12 +117,16 @@ def test_offpolicy_warmup_switches_only_after_threshold() -> None:
     assert wc.random_exploration_done is True
 
 
-def test_offpolicy_warmup_starts_with_exploration_policy_when_already_complete() -> None:
+def test_offpolicy_warmup_starts_with_exploration_policy_when_already_complete() -> (
+    None
+):
     collector = SimpleNamespace(policy=None)
     exploration_policy = object()
 
     wc = WarmupController(collector=collector, init_rand_steps=5)
-    wc.initialize(exploration_policy, _action_spec(), total_count=5, algorithm_label="TD3")
+    wc.initialize(
+        exploration_policy, _action_spec(), total_count=5, algorithm_label="TD3"
+    )
 
     assert collector.policy is exploration_policy
     assert wc.random_exploration_done is True
@@ -151,6 +157,12 @@ def test_td3_build_models_and_real_loss_accept_expected_tensordict(monkeypatch) 
     assert torch.all(action_td["action"] >= -0.5)
     assert trainer.td3_loss.qvalue_network_params.batch_size == torch.Size([2])
 
+    # exploration_ratio must reflect collection-time exploration noise
+    # (exploration_noise_std), not the critic's target-policy smoothing
+    # stddev (policy_noise) -- the two are deliberately different in
+    # _td3_config() (0.1 vs 0.2) so a regression flips this assertion.
+    assert trainer._compute_exploration_ratio() == 0.1
+
     losses = trainer.td3_loss(_sample_for_loss(trainer.actor, n_obs))
 
     assert torch.isfinite(losses["loss_actor"])
@@ -158,7 +170,9 @@ def test_td3_build_models_and_real_loss_accept_expected_tensordict(monkeypatch) 
     assert losses["pred_value"].shape == torch.Size([2, 4])
 
 
-def test_ddpg_build_models_and_real_loss_accept_expected_tensordict(monkeypatch) -> None:
+def test_ddpg_build_models_and_real_loss_accept_expected_tensordict(
+    monkeypatch,
+) -> None:
     torch.manual_seed(1)
     _patch_base_init(monkeypatch)
     n_obs, n_act = 3, 1
@@ -176,7 +190,9 @@ def test_ddpg_build_models_and_real_loss_accept_expected_tensordict(monkeypatch)
         value_hidden_dims=[8],
     )
 
-    assert trainer.exploration_module.sigma_init == ddpg_config.td3.exploration_noise_std
+    assert (
+        trainer.exploration_module.sigma_init == ddpg_config.td3.exploration_noise_std
+    )
     assert trainer._compute_exploration_ratio() == ddpg_config.td3.exploration_noise_std
 
     action_td = trainer.actor(

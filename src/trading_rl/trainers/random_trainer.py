@@ -8,10 +8,8 @@ from torchrl.envs.utils import RandomPolicy
 
 from trading_rl.evaluation.asset_meta import write_asset_meta
 from trading_rl.trainers.base import BaseTrainer
-from trading_rl.trainers.registry import register_trainer
 
 
-@register_trainer("RANDOM")
 class RandomTrainer(BaseTrainer):
     """Baseline trainer that selects uniformly random actions and skips optimization.
 

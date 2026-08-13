@@ -1,11 +1,16 @@
-"""Trainer registry for algorithm→class dispatch."""
+"""Explicit trainer catalog for algorithm-to-class dispatch."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from types import MappingProxyType
+from typing import ClassVar
 
-if TYPE_CHECKING:
-    pass
+from trading_rl.trainers.ddpg import DDPGTrainer
+from trading_rl.trainers.ppo import PPOTrainer, PPOTrainerContinuous
+from trading_rl.trainers.random_trainer import RandomTrainer
+from trading_rl.trainers.recurrent_ppo import RecurrentPPOTrainer
+from trading_rl.trainers.sac import SACTrainer
+from trading_rl.trainers.td3 import TD3Trainer
 
 
 class TrainerRegistry:
@@ -17,27 +22,21 @@ class TrainerRegistry:
     regardless of the flag.
     """
 
-    _discrete: ClassVar[dict[str, type]] = {}
-    _continuous: ClassVar[dict[str, type]] = {}
-
-    @classmethod
-    def register(cls, algorithm: str, *, continuous: bool = False):
-        """Register a trainer class under *algorithm*.
-
-        Args:
-            algorithm: Upper-cased algorithm name (e.g. ``"PPO"``).
-            continuous: If True, register as the continuous-action variant.
-        """
-
-        def decorator(trainer_cls: type) -> type:
-            key = algorithm.upper()
-            if continuous:
-                cls._continuous[key] = trainer_cls
-            else:
-                cls._discrete[key] = trainer_cls
-            return trainer_cls
-
-        return decorator
+    _discrete: ClassVar[MappingProxyType[str, type]] = MappingProxyType(
+        {
+            "PPO": PPOTrainer,
+            "RANDOM": RandomTrainer,
+        }
+    )
+    _continuous: ClassVar[MappingProxyType[str, type]] = MappingProxyType(
+        {
+            "DDPG": DDPGTrainer,
+            "PPO": PPOTrainerContinuous,
+            "RECURRENT_PPO": RecurrentPPOTrainer,
+            "SAC": SACTrainer,
+            "TD3": TD3Trainer,
+        }
+    )
 
     @classmethod
     def get(cls, algorithm: str, is_continuous: bool = False) -> type:
@@ -66,19 +65,3 @@ class TrainerRegistry:
     def list_algorithms(cls) -> list[str]:
         """Return all registered algorithm names."""
         return sorted(set(cls._discrete) | set(cls._continuous))
-
-
-def register_trainer(algorithm: str, *, continuous: bool = False):
-    """Decorator to register a trainer class in :class:`TrainerRegistry`.
-
-    Args:
-        algorithm: Algorithm name used for lookup (e.g. ``"TD3"``).
-        continuous: Set True for the continuous-action variant (e.g.
-            ``PPOTrainerContinuous``).
-
-    Example::
-
-        @register_trainer("TD3")
-        class TD3Trainer(BaseTrainer): ...
-    """
-    return TrainerRegistry.register(algorithm, continuous=continuous)

@@ -38,7 +38,9 @@ class FeatureGroupResolver:
 
     Usage::
 
-        resolver = FeatureGroupResolver.from_yaml("src/configs/feature_sets/feature_groups.yaml")
+        resolver = FeatureGroupResolver.from_yaml(
+            "src/configs/feature_sets/feature_groups.yaml"
+        )
         configs = resolver.resolve(["imbalance", "fair_value"])
         pipeline = FeaturePipeline(configs)
     """
@@ -192,9 +194,7 @@ class FeatureGroupResolver:
                     )
                     continue
                 if output_name in exclude_set:
-                    logger.debug(
-                        "Skipping excluded feature '{}'", output_name
-                    )
+                    logger.debug("Skipping excluded feature '{}'", output_name)
                     continue
                 seen_names.add(output_name)
                 configs.append(cfg)
@@ -218,15 +218,18 @@ class FeatureGroupResolver:
             feature_type=d["feature_type"],
             params=d.get("params"),
             normalize=d.get("normalize", True),
+            normalization_method=d.get("normalization_method", "running"),
+            rolling_window=d.get("rolling_window", 1000),
+            reset_on_session_break=d.get("reset_on_session_break", True),
+            session_break_threshold_hours=d.get("session_break_threshold_hours", 1.0),
+            use_time_weights=d.get("use_time_weights", False),
             output_name=d.get("output_name"),
             domain=d.get("domain", "shared"),
         )
 
     def __repr__(self) -> str:
         group_names = self.list_groups()
-        total_features = sum(
-            len(self._groups[g]["features"]) for g in group_names
-        )
+        total_features = sum(len(self._groups[g]["features"]) for g in group_names)
         return (
             f"FeatureGroupResolver(groups={len(group_names)}, "
             f"total_features={total_features})"

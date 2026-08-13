@@ -1,4 +1,5 @@
 """DDPG Trainer implementation."""
+
 from typing import Any
 
 import torch
@@ -12,12 +13,10 @@ from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.models import create_ddpg_actor, create_value_network
 from trading_rl.trainers.base import BaseTrainer
-from trading_rl.trainers.registry import register_trainer
 
 logger = get_logger(__name__)
 
 
-@register_trainer("DDPG", continuous=True)
 class DDPGTrainer(BaseTrainer):
     """Trainer for DDPG algorithm on trading environments."""
 
@@ -90,9 +89,7 @@ class DDPGTrainer(BaseTrainer):
                 device=getattr(config, "device", "cpu"),
                 dtype=torch.float32,
             )
-            logger.warning(
-                "action_spec not Bounded spec fallback bounds=[-1, 1]"
-            )
+            logger.warning("action_spec not Bounded spec fallback bounds=[-1, 1]")
         self.ddpg_action_spec = ddpg_action_spec
 
         self.exploration_module = AdditiveGaussianModule(
@@ -167,7 +164,9 @@ class DDPGTrainer(BaseTrainer):
                 self.successful_batches += 1
                 self._consecutive_skips = 0
             except RuntimeError as e:
-                if "All input tensors" in str(e) and "must share a unique shape" in str(e):
+                if "All input tensors" in str(e) and "must share a unique shape" in str(
+                    e
+                ):
                     self._record_skipped_batch("tensor shape error", exc=e)
                     continue
                 else:
@@ -219,7 +218,13 @@ class DDPGTrainer(BaseTrainer):
 
             # Periodic logging and evaluation
             if self._should_log_step(current_step):
-                self._log_progress(max_length, buffer_len, loss_vals_actor)
+                self._log_progress(
+                    max_length,
+                    buffer_len,
+                    loss_vals_actor,
+                    actor_loss=actor_loss,
+                    value_loss=value_loss,
+                )
 
             # Periodic evaluation
             if self._should_eval_step(current_step):
@@ -247,8 +252,12 @@ class DDPGTrainer(BaseTrainer):
         }
 
     def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
-        self.ddpg_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
-        self.ddpg_loss.value_network_params.load_state_dict(checkpoint["value_params_state"])
+        self.ddpg_loss.actor_network_params.load_state_dict(
+            checkpoint["actor_params_state"]
+        )
+        self.ddpg_loss.value_network_params.load_state_dict(
+            checkpoint["value_params_state"]
+        )
         target_actor = getattr(self.ddpg_loss, "target_actor_network_params", None)
         target_value = getattr(self.ddpg_loss, "target_value_network_params", None)
         if target_actor is not None and "target_actor_params_state" in checkpoint:
@@ -278,12 +287,14 @@ class DDPGTrainer(BaseTrainer):
                 )
                 logger.trace(
                     "ddpg episode reward stats mean={} std={}",
-                    episode_rewards.mean(), episode_rewards.std(),
+                    episode_rewards.mean(),
+                    episode_rewards.std(),
                 )
                 collected_actions = data["action"]
                 logger.trace(
                     "ddpg collected action stats mean={} std={}",
-                    collected_actions.mean(), collected_actions.std(),
+                    collected_actions.mean(),
+                    collected_actions.std(),
                 )
 
         def on_batch_end(i, data) -> None:
@@ -297,4 +308,3 @@ class DDPGTrainer(BaseTrainer):
             on_batch_end=on_batch_end,
             on_train_end=self._log_batch_summary,
         )
-

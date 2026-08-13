@@ -52,10 +52,12 @@ def _derive_experiment_name(path: Path) -> str:
     parts = path.parts
     try:
         scenarios_idx = list(parts).index("scenarios")
-        rel_parts = list(parts[scenarios_idx + 1:])
+        rel_parts = list(parts[scenarios_idx + 1 :])
         if rel_parts and Path(rel_parts[-1]).stem in _COMMAND_STEMS:
             rel_parts = rel_parts[:-1]
-        return "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else path.stem
+        return (
+            "_".join(Path(*rel_parts).with_suffix("").parts) if rel_parts else path.stem
+        )
     except ValueError:
         return path.stem
 
@@ -180,11 +182,15 @@ class EnvConfig:
     """Trading environment configuration."""
 
     name: str = ""
-    mode: str = EnvMode.MFT  # Feature regime mode: "mft" (medium-frequency) or "hft" (high-frequency)
+    mode: str = (
+        EnvMode.MFT
+    )  # Feature regime mode: "mft" (medium-frequency) or "hft" (high-frequency)
     positions: list[int] = field(default_factory=lambda: list(TradePosition))
     trading_fees: float = 0.0  # 0.01% = 0.0001
     borrow_interest_rate: float = 0.0  # 0.0003% = 0.000003
-    initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE  # Starting portfolio value for logging
+    initial_portfolio_value: float = (
+        DEFAULT_INITIAL_PORTFOLIO_VALUE  # Starting portfolio value for logging
+    )
     backend: str = EnvBackend.GYM_ANYTRADING_FOREX  # Backend type: gym_trading_env.discrete, gym_trading_env.continuous, gym_anytrading.forex, gym_anytrading.stocks, tradingenv
 
     # TradingEnv-specific configuration (optional)
@@ -207,7 +213,9 @@ class EnvConfig:
     # The actor's continuous output is bucketed into positions[0/1/2] based on these
     # two boundaries: output < lower → positions[0], lower..upper → positions[1],
     # output > upper → positions[2].
-    continuous_action_thresholds: list[float] = field(default_factory=lambda: [-0.33, 0.33])
+    continuous_action_thresholds: list[float] = field(
+        default_factory=lambda: [-0.33, 0.33]
+    )
 
     # Observation clipping: clip normalized features to [-obs_clip, obs_clip] before
     # passing to the network. Eliminates gradient spikes from session-open cold-start
@@ -215,7 +223,9 @@ class EnvConfig:
     obs_clip: float | None = 5.0
 
     # Reward function configuration (all backends)
-    reward_type: str = RewardType.LOG_RETURN  # Reward type: "log_return" or "differential_sharpe"
+    reward_type: str = (
+        RewardType.LOG_RETURN
+    )  # Reward type: "log_return" or "differential_sharpe"
     reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")
     # Scale applied to the reward. Semantics are reward-type-dependent, not a
     # uniform multiplier: for "differential_sharpe" it MULTIPLIES the reward
@@ -305,15 +315,19 @@ class TempEvalConfig:
     """Mid-training periodic evaluation configuration."""
 
     interval: int | None = None  # Run every N training steps (None = disabled)
-    splits: list[SplitName] = field(default_factory=lambda: [SplitName.TRAIN, SplitName.VAL])
-    max_steps: int = 200000      # Cap rollout length for each periodic eval pass
-    log_data: bool = False       # Log per-step rollout parquet artifact
+    splits: list[SplitName] = field(
+        default_factory=lambda: [SplitName.TRAIN, SplitName.VAL]
+    )
+    max_steps: int = 200000  # Cap rollout length for each periodic eval pass
+    log_data: bool = False  # Log per-step rollout parquet artifact
 
     # Dense mode — shorten cadence when training metrics show sustained improvement
     dense_enabled: bool = False
-    dense_min_evals: int = 3     # Evaluations required before density adaptation activates
-    dense_window: int = 3        # Comparison window (evaluations per side)
-    dense_improvement_threshold: float = 0.05  # Min relative improvement to enter dense mode
+    dense_min_evals: int = 3  # Evaluations required before density adaptation activates
+    dense_window: int = 3  # Comparison window (evaluations per side)
+    dense_improvement_threshold: float = (
+        0.05  # Min relative improvement to enter dense mode
+    )
     dense_interval: int | None = None  # Cadence in dense mode (None → interval // 2)
 
 
@@ -333,7 +347,9 @@ class TrainingConfig:
 
     # Training loop
     max_steps: int = 10_000
-    max_train_seconds: int | None = None  # wall-clock budget in seconds; None = unlimited
+    max_train_seconds: int | None = (
+        None  # wall-clock budget in seconds; None = unlimited
+    )
     init_rand_steps: int = 5000
     frames_per_batch: int = 200
     optim_steps_per_batch: int = 50
@@ -342,7 +358,9 @@ class TrainingConfig:
 
     # Replay buffer
     buffer_size: int = 100_000
-    save_buffer: bool = False  # Save replay buffer in checkpoint (increases file size significantly)
+    save_buffer: bool = (
+        False  # Save replay buffer in checkpoint (increases file size significantly)
+    )
 
     # Soft target-network update rate — used by DDPG, TD3, SAC
     tau: float = 0.001
@@ -354,7 +372,9 @@ class TrainingConfig:
 
     # Pre-flight guardrail checks
     skip_guardrails: bool = False
-    skip_guardrail_prompts: bool = False  # suppress the y/N prompt; warnings still logged
+    skip_guardrail_prompts: bool = (
+        False  # suppress the y/N prompt; warnings still logged
+    )
 
     # Loss function
     loss_function: LossFunction = LossFunction.L2
@@ -364,15 +384,21 @@ class TrainingConfig:
     log_interval: int = 1000
     temp_eval: TempEvalConfig = field(default_factory=TempEvalConfig)
 
-    max_plot_points: int | None = 50_000  # Cap the number of plotted points per series; None = plot all
-    show_allocation_ma: bool = True  # Overlay moving-average line on Portfolio Allocation plot
+    max_plot_points: int | None = (
+        50_000  # Cap the number of plotted points per series; None = plot all
+    )
+    show_allocation_ma: bool = (
+        True  # Overlay moving-average line on Portfolio Allocation plot
+    )
     allocation_ma_window: int = 500  # Rolling window size for the allocation MA
 
     # Runtime early stopping
-    es_stale_policy_min_ratio: float = 0.0  # Min mean position-change ratio; 0 = disabled
-    es_stale_policy_window: int = 20        # Rolling window in completed episodes
-    es_saturation_max_rate: float = 0.0    # Max mean extreme-position rate; 0 = disabled
-    es_saturation_window: int = 20         # Rolling window in completed episodes
+    es_stale_policy_min_ratio: float = (
+        0.0  # Min mean position-change ratio; 0 = disabled
+    )
+    es_stale_policy_window: int = 20  # Rolling window in completed episodes
+    es_saturation_max_rate: float = 0.0  # Max mean extreme-position rate; 0 = disabled
+    es_saturation_window: int = 20  # Rolling window in completed episodes
 
 
 @dataclass
@@ -380,8 +406,12 @@ class EvaluationConfig:
     """Evaluation configuration shared by training and the evaluate CLI."""
 
     eval_steps: int = 500
-    eval_fraction: float | None = None  # Fraction of val data; overrides eval_steps when set
-    log_data: bool = True  # Log per-step rollout parquet (action, returns) as an MLflow artifact
+    eval_fraction: float | None = (
+        None  # Fraction of val data; overrides eval_steps when set
+    )
+    log_data: bool = (
+        True  # Log per-step rollout parquet (action, returns) as an MLflow artifact
+    )
     eval_plots: list[str] = field(
         default_factory=lambda: ["rewards", "positions", "portfolio_value"]
     )  # Which plots to generate: any subset of "rewards", "positions", "portfolio_value"
@@ -404,9 +434,13 @@ class LoggingConfig:
     tensorboard_dir: str = "runs"
     log_to_file: bool = False  # Write logs to log_dir/log_file (disabled by default)
     save_plots: bool = False  # Save training plots to disk in addition to MLflow
-    log_oracle_alignment_plot: bool = False  # Scatter plot of feature_future_close_vel vs next-step log return
+    log_oracle_alignment_plot: bool = (
+        False  # Scatter plot of feature_future_close_vel vs next-step log return
+    )
     debug_plots: bool = False  # Stamp build hash, date, size, and font in bottom-right corner of every evaluation plot
-    log_data_overviews: bool = False  # Log raw_data_overview and transformed_data_overview artifacts to MLflow
+    log_data_overviews: bool = (
+        False  # Log raw_data_overview and transformed_data_overview artifacts to MLflow
+    )
 
 
 @dataclass
@@ -422,8 +456,15 @@ class ExplainabilityConfig:
 
     enabled: bool = False
     n_steps: int = 500
-    methods: list[ExplainabilityMethod] = field(default_factory=lambda: [ExplainabilityMethod.PERMUTATION, ExplainabilityMethod.INTEGRATED_GRADIENTS])
-    temp_explainability_interval: int | None = None  # Run temporary explainability every N steps (None = disabled)
+    methods: list[ExplainabilityMethod] = field(
+        default_factory=lambda: [
+            ExplainabilityMethod.PERMUTATION,
+            ExplainabilityMethod.INTEGRATED_GRADIENTS,
+        ]
+    )
+    temp_explainability_interval: int | None = (
+        None  # Run temporary explainability every N steps (None = disabled)
+    )
 
 
 @dataclass
@@ -448,7 +489,10 @@ class BenchmarksConfig:
     """
 
     enabled: list[BenchmarkName] = field(
-        default_factory=lambda: [BenchmarkName.BUY_AND_HOLD, BenchmarkName.RANDOM_ACTIONS]
+        default_factory=lambda: [
+            BenchmarkName.BUY_AND_HOLD,
+            BenchmarkName.RANDOM_ACTIONS,
+        ]
     )
     n_random_trials: int = 10
     random_seed: int | None = None
@@ -474,7 +518,9 @@ class MetricsConfig:
     ``list(MetricName)`` if you need all 29 metrics.
     """
 
-    enabled: list[MetricName] = field(default_factory=lambda: list(_HFT_DEFAULT_METRICS))
+    enabled: list[MetricName] = field(
+        default_factory=lambda: list(_HFT_DEFAULT_METRICS)
+    )
 
     @property
     def enabled_set(self) -> frozenset[str]:
@@ -491,13 +537,15 @@ class StatisticalTestingConfig:
     research_artifact_subdir: str = "research_artifacts/statistical_tests"
 
     # Statistical tests to perform
-    tests: list[StatisticalTest] = field(default_factory=lambda: [
-        StatisticalTest.T_TEST,
-        StatisticalTest.SHARPE_BOOTSTRAP,
-        StatisticalTest.SORTINO_BOOTSTRAP,
-        StatisticalTest.MANN_WHITNEY,
-        StatisticalTest.PERMUTATION_TEST,
-    ])
+    tests: list[StatisticalTest] = field(
+        default_factory=lambda: [
+            StatisticalTest.T_TEST,
+            StatisticalTest.SHARPE_BOOTSTRAP,
+            StatisticalTest.SORTINO_BOOTSTRAP,
+            StatisticalTest.MANN_WHITNEY,
+            StatisticalTest.PERMUTATION_TEST,
+        ]
+    )
 
     # Test parameters
     n_bootstrap_samples: int = 10000
@@ -517,31 +565,51 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
     if cfg.training.max_steps <= 0:
         errors.append(f"training.max_steps must be > 0, got {cfg.training.max_steps}")
     if cfg.training.init_rand_steps < 0:
-        errors.append(f"training.init_rand_steps must be >= 0, got {cfg.training.init_rand_steps}")
+        errors.append(
+            f"training.init_rand_steps must be >= 0, got {cfg.training.init_rand_steps}"
+        )
     if cfg.training.max_steps <= cfg.training.init_rand_steps:
         errors.append(
             f"training.max_steps ({cfg.training.max_steps}) must be > "
             f"init_rand_steps ({cfg.training.init_rand_steps})"
         )
     if cfg.training.frames_per_batch <= 0:
-        errors.append(f"training.frames_per_batch must be > 0, got {cfg.training.frames_per_batch}")
+        errors.append(
+            f"training.frames_per_batch must be > 0, got {cfg.training.frames_per_batch}"
+        )
     if cfg.training.buffer_size <= 0:
-        errors.append(f"training.buffer_size must be > 0, got {cfg.training.buffer_size}")
+        errors.append(
+            f"training.buffer_size must be > 0, got {cfg.training.buffer_size}"
+        )
     if cfg.evaluation.eval_steps <= 0:
-        errors.append(f"evaluation.eval_steps must be > 0, got {cfg.evaluation.eval_steps}")
-    if cfg.evaluation.eval_fraction is not None and not (0.0 < cfg.evaluation.eval_fraction <= 1.0):
-        errors.append(f"evaluation.eval_fraction must be in (0, 1], got {cfg.evaluation.eval_fraction}")
+        errors.append(
+            f"evaluation.eval_steps must be > 0, got {cfg.evaluation.eval_steps}"
+        )
+    if cfg.evaluation.eval_fraction is not None and not (
+        0.0 < cfg.evaluation.eval_fraction <= 1.0
+    ):
+        errors.append(
+            f"evaluation.eval_fraction must be in (0, 1], got {cfg.evaluation.eval_fraction}"
+        )
     if cfg.training.checkpoint_interval < 0:
-        errors.append(f"training.checkpoint_interval must be >= 0, got {cfg.training.checkpoint_interval}")
+        errors.append(
+            f"training.checkpoint_interval must be >= 0, got {cfg.training.checkpoint_interval}"
+        )
 
     # Algorithm-specific
     if cfg.training.algorithm.upper() == Algorithm.PPO:
         if not (0 < cfg.training.ppo.clip_epsilon < 1):
-            errors.append(f"training.ppo.clip_epsilon must be in (0, 1), got {cfg.training.ppo.clip_epsilon}")
+            errors.append(
+                f"training.ppo.clip_epsilon must be in (0, 1), got {cfg.training.ppo.clip_epsilon}"
+            )
         if cfg.training.ppo.entropy_bonus < 0:
-            errors.append(f"training.ppo.entropy_bonus must be >= 0, got {cfg.training.ppo.entropy_bonus}")
+            errors.append(
+                f"training.ppo.entropy_bonus must be >= 0, got {cfg.training.ppo.entropy_bonus}"
+            )
         if cfg.training.ppo.epochs <= 0:
-            errors.append(f"training.ppo.epochs must be > 0, got {cfg.training.ppo.epochs}")
+            errors.append(
+                f"training.ppo.epochs must be > 0, got {cfg.training.ppo.epochs}"
+            )
     if cfg.training.algorithm.upper() in {Algorithm.DDPG, Algorithm.TD3}:
         if not (0 < cfg.training.tau <= 1):
             errors.append(f"training.tau must be in (0, 1], got {cfg.training.tau}")
@@ -550,7 +618,9 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
     if cfg.data.train_size <= 0:
         errors.append(f"data.train_size must be > 0, got {cfg.data.train_size}")
     if cfg.data.validation_size is not None and cfg.data.validation_size < 0:
-        errors.append(f"data.validation_size must be >= 0 when provided, got {cfg.data.validation_size}")
+        errors.append(
+            f"data.validation_size must be >= 0 when provided, got {cfg.data.validation_size}"
+        )
     if cfg.data.train_size < cfg.training.frames_per_batch:
         errors.append(
             f"data.train_size ({cfg.data.train_size}) must be >= "
@@ -561,24 +631,36 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
     if cfg.env.trading_fees < 0:
         errors.append(f"env.trading_fees must be >= 0, got {cfg.env.trading_fees}")
     if cfg.env.borrow_interest_rate < 0:
-        errors.append(f"env.borrow_interest_rate must be >= 0, got {cfg.env.borrow_interest_rate}")
+        errors.append(
+            f"env.borrow_interest_rate must be >= 0, got {cfg.env.borrow_interest_rate}"
+        )
     if cfg.env.initial_portfolio_value <= 0:
-        errors.append(f"env.initial_portfolio_value must be > 0, got {cfg.env.initial_portfolio_value}")
+        errors.append(
+            f"env.initial_portfolio_value must be > 0, got {cfg.env.initial_portfolio_value}"
+        )
     if not cfg.env.positions:
         errors.append("env.positions must not be empty")
     if str(cfg.env.mode).lower() not in set(EnvMode):
         errors.append(f"env.mode must be one of {list(EnvMode)}, got '{cfg.env.mode}'")
-    if (
-        cfg.env.price_column is not None
-        and (not isinstance(cfg.env.price_column, str) or not cfg.env.price_column.strip())
+    if cfg.env.price_column is not None and (
+        not isinstance(cfg.env.price_column, str) or not cfg.env.price_column.strip()
     ):
         errors.append("env.price_column must be a non-empty string when provided.")
     if cfg.env.reward_type not in set(RewardType):
-        errors.append(f"env.reward_type must be one of {list(RewardType)}, got '{cfg.env.reward_type}'")
-    if cfg.env.reward_type == RewardType.DIFFERENTIAL_SHARPE and cfg.env.reward_eta <= 0:
-        errors.append(f"env.reward_eta must be > 0 when using differential_sharpe, got {cfg.env.reward_eta}")
+        errors.append(
+            f"env.reward_type must be one of {list(RewardType)}, got '{cfg.env.reward_type}'"
+        )
+    if (
+        cfg.env.reward_type == RewardType.DIFFERENTIAL_SHARPE
+        and cfg.env.reward_eta <= 0
+    ):
+        errors.append(
+            f"env.reward_eta must be > 0 when using differential_sharpe, got {cfg.env.reward_eta}"
+        )
     if cfg.env.action_penalty_lambda < 0:
-        errors.append(f"env.action_penalty_lambda must be >= 0, got {cfg.env.action_penalty_lambda}")
+        errors.append(
+            f"env.action_penalty_lambda must be >= 0, got {cfg.env.action_penalty_lambda}"
+        )
     if cfg.env.action_penalty_type not in set(ActionPenaltyType):
         errors.append(
             f"env.action_penalty_type must be one of {[t.value for t in ActionPenaltyType]}, "
@@ -602,7 +684,9 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
         )
 
     if errors:
-        raise ValueError("Configuration validation failed:\n  - " + "\n  - ".join(errors))
+        raise ValueError(
+            "Configuration validation failed:\n  - " + "\n  - ".join(errors)
+        )
 
 
 def _apply_dict_to_dataclass(target, d: dict) -> None:
@@ -620,7 +704,6 @@ def _apply_dict_to_dataclass(target, d: dict) -> None:
             setattr(target, key, value)
 
 
-
 @dataclass
 class ExperimentConfig:
     """Full experiment configuration."""
@@ -635,7 +718,9 @@ class ExperimentConfig:
     explainability: ExplainabilityConfig = field(default_factory=ExplainabilityConfig)
     benchmarks: BenchmarksConfig = field(default_factory=BenchmarksConfig)
     metrics: MetricsConfig = field(default_factory=MetricsConfig)
-    statistical_testing: StatisticalTestingConfig = field(default_factory=StatisticalTestingConfig)
+    statistical_testing: StatisticalTestingConfig = field(
+        default_factory=StatisticalTestingConfig
+    )
     profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
 
     # Reproducibility
@@ -746,7 +831,9 @@ class ExperimentConfig:
                 layers.append(OmegaConf.load(str(command_path)))
             cfg = OmegaConf.merge(*layers) if len(layers) > 1 else layers[0]
 
-            automated = bool(OmegaConf.select(cfg, "data.automated_selection", default=False))
+            automated = bool(
+                OmegaConf.select(cfg, "data.automated_selection", default=False)
+            )
             if automated and selection_path.exists():
                 cfg = OmegaConf.merge(cfg, OmegaConf.load(str(selection_path)))
 
@@ -776,7 +863,10 @@ class ExperimentConfig:
                     with open(path) as f:
                         config_dict = _merge(config_dict, yaml.safe_load(f) or {})
 
-            if config_dict.get("data", {}).get("automated_selection") and selection_path.exists():
+            if (
+                config_dict.get("data", {}).get("automated_selection")
+                and selection_path.exists()
+            ):
                 with open(selection_path) as f:
                     config_dict = _merge(config_dict, yaml.safe_load(f) or {})
 
@@ -836,7 +926,9 @@ class ExperimentConfig:
         # Data config — needs datetime coercion for download_since
         if "data" in config_dict:
             data_dict = dict(config_dict["data"])
-            if "download_since" in data_dict and isinstance(data_dict["download_since"], str):
+            if "download_since" in data_dict and isinstance(
+                data_dict["download_since"], str
+            ):
                 data_dict["download_since"] = datetime.datetime.fromisoformat(
                     data_dict["download_since"].replace("Z", "+00:00")
                 )
@@ -868,13 +960,16 @@ class ExperimentConfig:
         # individual bool keys map to BenchmarkName values for backward compat.
         _BOOL_TO_BENCHMARK = {
             "buy_and_hold": BenchmarkName.BUY_AND_HOLD,
-            "twap":         BenchmarkName.TWAP,
-            "vwap":         BenchmarkName.VWAP,
-            "random":       BenchmarkName.RANDOM_ACTIONS,
+            "short_and_hold": BenchmarkName.SHORT_AND_HOLD,
+            "twap": BenchmarkName.TWAP,
+            "vwap": BenchmarkName.VWAP,
+            "random": BenchmarkName.RANDOM_ACTIONS,
         }
         bench_dict = config_dict.get("benchmarks", {})
         if "enabled" in bench_dict:
-            config.benchmarks.enabled = [BenchmarkName(v) for v in bench_dict["enabled"]]
+            config.benchmarks.enabled = [
+                BenchmarkName(v) for v in bench_dict["enabled"]
+            ]
         else:
             enabled: set[BenchmarkName] = set(config.benchmarks.enabled)
             for old_key, bname in _BOOL_TO_BENCHMARK.items():
@@ -883,16 +978,24 @@ class ExperimentConfig:
                         enabled.add(bname)
                     else:
                         enabled.discard(bname)
-            config.benchmarks.enabled = sorted(enabled, key=lambda b: list(BenchmarkName).index(b))
+            config.benchmarks.enabled = sorted(
+                enabled, key=lambda b: list(BenchmarkName).index(b)
+            )
         for key, value in bench_dict.items():
-            if key not in _BOOL_TO_BENCHMARK and key != "enabled" and hasattr(config.benchmarks, key):
+            if (
+                key not in _BOOL_TO_BENCHMARK
+                and key != "enabled"
+                and hasattr(config.benchmarks, key)
+            ):
                 setattr(config.benchmarks, key, value)
 
         # Metrics — enabled list needs MetricName enum conversion
         if "metrics" in config_dict:
             metrics_dict = config_dict["metrics"]
             if "enabled" in metrics_dict:
-                config.metrics.enabled = [MetricName(v) for v in metrics_dict["enabled"]]
+                config.metrics.enabled = [
+                    MetricName(v) for v in metrics_dict["enabled"]
+                ]
 
         return config
 
@@ -982,7 +1085,9 @@ class MLflowCallbackParams:
     action_positions: list[int]
 
     @classmethod
-    def from_config(cls, config: ExperimentConfig, dataset: Any) -> "MLflowCallbackParams":
+    def from_config(
+        cls, config: ExperimentConfig, dataset: Any
+    ) -> "MLflowCallbackParams":
         from trading_rl.data.loading import PreparedDataset
 
         estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
@@ -992,7 +1097,9 @@ class MLflowCallbackParams:
             else None
         )
         return cls(
-            tracking_uri=getattr(getattr(config, "tracking", None), "tracking_uri", None),
+            tracking_uri=getattr(
+                getattr(config, "tracking", None), "tracking_uri", None
+            ),
             total_episodes=estimated_episodes,
             price_series=price_series,
             initial_portfolio_value=config.env.initial_portfolio_value,
@@ -1016,7 +1123,9 @@ class TrainerConstructionParams:
     checkpoint_prefix: str
 
     @classmethod
-    def from_config(cls, config: ExperimentConfig, n_obs: int, n_act: int, checkpoint_prefix: str) -> "TrainerConstructionParams":
+    def from_config(
+        cls, config: ExperimentConfig, n_obs: int, n_act: int, checkpoint_prefix: str
+    ) -> "TrainerConstructionParams":
         return cls(
             config=config.training,
             n_obs=n_obs,

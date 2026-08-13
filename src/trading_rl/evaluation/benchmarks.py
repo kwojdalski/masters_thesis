@@ -14,6 +14,7 @@ from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 from trading_rl.constants import BenchmarkName
 from trading_rl.evaluation.statistical_benchmarks import (
     compute_buy_and_hold_returns,
+    compute_short_and_hold_returns,
     compute_twap_returns,
     compute_vwap_returns,
     resolve_vwap_volume_series,
@@ -82,6 +83,16 @@ class BenchmarkEngine:
             compute_returns=lambda steps: _benchmark_returns(
                 compute_buy_and_hold_returns(prices, steps),
                 benchmark_position_side=1.0,
+            ),
+        )
+
+    @staticmethod
+    def short_and_hold(prices: pd.Series) -> BenchmarkSpec:
+        return BenchmarkSpec(
+            name=BenchmarkName.SHORT_AND_HOLD,
+            compute_returns=lambda steps: _benchmark_returns(
+                compute_short_and_hold_returns(prices, steps),
+                benchmark_position_side=-1.0,
             ),
         )
 
@@ -163,16 +174,22 @@ class BenchmarkEngine:
         else:
             # Backward compat: SimpleNamespace / old BenchmarksConfig with individual booleans.
             _flag_map = {
-                "buy_and_hold":   BenchmarkName.BUY_AND_HOLD,
-                "twap":           BenchmarkName.TWAP,
-                "vwap":           BenchmarkName.VWAP,
+                "buy_and_hold": BenchmarkName.BUY_AND_HOLD,
+                "short_and_hold": BenchmarkName.SHORT_AND_HOLD,
+                "twap": BenchmarkName.TWAP,
+                "vwap": BenchmarkName.VWAP,
             }
             enabled = frozenset(
-                bname for attr, bname in _flag_map.items() if getattr(config, attr, False)
+                bname
+                for attr, bname in _flag_map.items()
+                if getattr(config, attr, False)
             )
 
         if BenchmarkName.BUY_AND_HOLD in enabled:
             specs.append(BenchmarkEngine.buy_and_hold(prices))
+
+        if BenchmarkName.SHORT_AND_HOLD in enabled:
+            specs.append(BenchmarkEngine.short_and_hold(prices))
 
         if BenchmarkName.TWAP in enabled:
             specs.append(BenchmarkEngine.twap(prices))
@@ -191,7 +208,9 @@ class BenchmarkEngine:
                         "VWAP is using {}. This is quote-size-weighted, not true traded volume.",
                         volume_source,
                     )
-                specs.append(BenchmarkEngine.vwap(prices, volumes, volume_source=volume_source))
+                specs.append(
+                    BenchmarkEngine.vwap(prices, volumes, volume_source=volume_source)
+                )
                 if volume_source:
                     result_meta["vwap_volume_source"] = volume_source
 

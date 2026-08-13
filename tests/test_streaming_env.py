@@ -31,7 +31,9 @@ def _make_memmap(
     return save_symbol_memmap(df, tmp_path, prefix)
 
 
-def _bare_env(memmap_paths: list[MemmapPaths], episode_length: int) -> StreamingTradingEnv:
+def _bare_env(
+    memmap_paths: list[MemmapPaths], episode_length: int
+) -> StreamingTradingEnv:
     """Construct StreamingTradingEnv with no TradingEnv constructor side effects."""
     env = object.__new__(StreamingTradingEnv)
     env._memmap_paths = memmap_paths
@@ -41,7 +43,9 @@ def _bare_env(memmap_paths: list[MemmapPaths], episode_length: int) -> Streaming
     return env
 
 
-def _bare_xy_env(memmap_paths: list[MemmapPaths], episode_length: int) -> StreamingTradingEnvXY:
+def _bare_xy_env(
+    memmap_paths: list[MemmapPaths], episode_length: int
+) -> StreamingTradingEnvXY:
     """Construct StreamingTradingEnvXY with no TradingEnv constructor side effects."""
     env = object.__new__(StreamingTradingEnvXY)
     env._memmap_paths = memmap_paths
@@ -53,8 +57,7 @@ def _bare_xy_env(memmap_paths: list[MemmapPaths], episode_length: int) -> Stream
     env._dsr_per_symbol = {}
     env._dsr_persist_across_symbols = False
     env._reward_type = "log_return"
-    env._last_episode_final_nlv = None
-    env._last_episode_steps = None
+    env._episode_final_nlv_queue = []
     env._current_episode_symbol = None
     env._current_episode_start_ts = None
     env._current_episode_end_ts = None
@@ -113,7 +116,9 @@ class TestLoadWindow:
         mp = _make_memmap(tmp_path, n_rows=20, n_cols=n_cols)
         env = _bare_env([mp], episode_length=5)
         df = env._load_window(0, start=3)
-        expected = np.arange(3 * n_cols, 8 * n_cols, dtype=np.float32).reshape(5, n_cols)
+        expected = np.arange(3 * n_cols, 8 * n_cols, dtype=np.float32).reshape(
+            5, n_cols
+        )
         np.testing.assert_allclose(df.values, expected, atol=1e-6)
 
     def test_two_symbols_load_independently(self, tmp_path):
@@ -177,6 +182,7 @@ class TestNextSymbolIdx:
         env = _bare_env(mps, episode_length=5)
         all_draws = [env._next_symbol_idx() for _ in range(2 * N)]
         from collections import Counter
+
         counts = Counter(all_draws)
         for sym in range(N):
             assert counts[sym] == 2, f"symbol {sym} appeared {counts[sym]} times"
@@ -225,7 +231,10 @@ class TestStreamingTradingEnvReset:
             )
 
         def fake_parent_reset(self, seed=None, options=None, **kwargs):
-            return np.array([42.0], dtype=np.float32), {"seed": seed, "options": options}
+            return np.array([42.0], dtype=np.float32), {
+                "seed": seed,
+                "options": options,
+            }
 
         monkeypatch.setattr(env, "_load_window", fake_load_window)
         monkeypatch.setattr(env, "_set_df", lambda frame: set_frames.append(frame))
@@ -273,7 +282,11 @@ class TestStreamingTradingEnvXYReset:
             )
 
         monkeypatch.setattr(env, "_load_window", fake_load_window)
-        monkeypatch.setattr(env, "_build_inner_env", lambda window_df, symbol="", reward=None: _FakeInnerEnv())
+        monkeypatch.setattr(
+            env,
+            "_build_inner_env",
+            lambda window_df, symbol="", reward=None: _FakeInnerEnv(),
+        )
 
         obs, info = env.reset()
 
