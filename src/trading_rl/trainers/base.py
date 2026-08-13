@@ -584,14 +584,20 @@ class BaseTrainer(ABC):
         loss_vals: dict,
         log_actor: bool = True,
         actor_loss: float | None = None,
+        value_loss: float | None = None,
     ) -> None:
         """Log one optimization step; used by DDPG and TD3. SAC overrides with extra fields.
 
-        ``actor_loss``, when given, overrides ``loss_vals["loss_actor"]`` — TD3/DDPG
-        recompute the actor loss in a second forward pass after the critic update,
-        so ``loss_vals`` (from the first, pre-critic-update pass) holds a stale value.
+        ``actor_loss``/``value_loss``, when given, override the corresponding
+        ``loss_vals`` entry — TD3/DDPG each run two forward passes (critic update,
+        then actor update against the now-updated critic), so a single ``loss_vals``
+        dict never holds the fresh value for both losses at once.
         """
-        curr_loss_value = loss_vals[self._value_loss_key].item()
+        curr_loss_value = (
+            value_loss
+            if value_loss is not None
+            else loss_vals[self._value_loss_key].item()
+        )
         if log_actor:
             curr_loss_actor = (
                 actor_loss if actor_loss is not None else loss_vals["loss_actor"].item()
