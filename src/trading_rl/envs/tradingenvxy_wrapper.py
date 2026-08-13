@@ -515,11 +515,12 @@ class StreamingTradingEnvXY(gym.Env):
             low=-np.inf, high=np.inf, shape=(n_obs,), dtype=np.float32
         )
         self._inner_env: TradingEnv | None = None
-        # NLV at the end of the most recently completed episode, snapshotted
-        # before reset() replaces _inner_env.  Used by _log_episode_stats to
-        # report per-episode portfolio value without reading a partial broker.
-        self._last_episode_final_nlv: float | None = None
-        self._last_episode_steps: int | None = None
+        # FIFO queue of (final_nlv, n_steps) snapshotted at the end of each
+        # completed episode, before reset() replaces _inner_env. A collector
+        # batch can span more than one episode boundary, so this must be a
+        # queue (not a single overwritten scalar) — _log_episode_stats pops
+        # one entry per completed episode it logs, in completion order.
+        self._episode_final_nlv_queue: list[tuple[float, int]] = []
         # Symbol name and timestamp range of the episode that just started.
         # Snapshotted on reset() so _log_episode_stats can report them.
         self._current_episode_symbol: str | None = None
@@ -681,8 +682,9 @@ class StreamingTradingEnvXY(gym.Env):
             self._symbol_rng = np.random.default_rng(seed)
             self._symbol_queue = []
         # Snapshot the final NLV of the episode that just ended before we
-        # replace _inner_env.  _log_episode_stats reads this attribute so it
-        # always sees the completed episode's value, not the new episode's.
+        # replace _inner_env, and queue it. _log_episode_stats pops one
+        # entry per completed episode, so episodes are matched to their own
+        # NLV even when several complete within one collector batch.
         if self._inner_env is not None:
             broker = self._inner_env.broker
             if (
@@ -694,8 +696,9 @@ class StreamingTradingEnvXY(gym.Env):
                 if hasattr(last_record, "context_post") and hasattr(
                     last_record.context_post, "nlv"
                 ):
-                    self._last_episode_final_nlv = float(last_record.context_post.nlv)
-                    self._last_episode_steps = len(broker.track_record)
+                    self._episode_final_nlv_queue.append(
+                        (float(last_record.context_post.nlv), len(broker.track_record))
+                    )
         if self._dsr_persist_across_symbols and self._persistent_dsr is not None:
             # Legacy mode: shared object — clear only _prev_nlv.
             self._persistent_dsr.reset(persist_moments=True)
