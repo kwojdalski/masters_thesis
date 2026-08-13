@@ -88,9 +88,7 @@ class TD3Trainer(BaseTrainer):
                 device=getattr(config, "device", "cpu"),
                 dtype=torch.float32,
             )
-            logger.warning(
-                "action_spec not Bounded spec fallback bounds=[-1, 1]"
-            )
+            logger.warning("action_spec not Bounded spec fallback bounds=[-1, 1]")
         self.td3_action_spec = td3_action_spec
 
         # Gaussian exploration around the deterministic policy
@@ -185,7 +183,8 @@ class TD3Trainer(BaseTrainer):
             if is_level_enabled("TRACE"):
                 logger.trace(
                     "td3 losses loss_qvalue={} loss_actor={}",
-                    loss_vals["loss_qvalue"].item(), loss_vals["loss_actor"].item(),
+                    loss_vals["loss_qvalue"].item(),
+                    loss_vals["loss_actor"].item(),
                 )
         except RuntimeError as e:
             if "All input tensors" in str(e) and "must share a unique shape" in str(e):
@@ -232,8 +231,12 @@ class TD3Trainer(BaseTrainer):
 
         extra_metrics: dict | None = None
         if is_level_enabled("TRACE"):
-            actor_sum = float(sum(p.abs().sum().item() for p in self.actor.parameters()))
-            critic_sum = float(sum(p.abs().sum().item() for p in self.value_net.parameters()))
+            actor_sum = float(
+                sum(p.abs().sum().item() for p in self.actor.parameters())
+            )
+            critic_sum = float(
+                sum(p.abs().sum().item() for p in self.value_net.parameters())
+            )
             extra_metrics = {
                 "actor_param_abs_sum": actor_sum,
                 "critic_param_abs_sum": critic_sum,
@@ -245,7 +248,8 @@ class TD3Trainer(BaseTrainer):
                 max_diff = max(
                     (p0 - params1.get(key)).abs().max().item()
                     for key, p0 in params0.items(True, True)
-                    if isinstance(p0, torch.Tensor) and isinstance(params1.get(key), torch.Tensor)
+                    if isinstance(p0, torch.Tensor)
+                    and isinstance(params1.get(key), torch.Tensor)
                 )
                 extra_metrics["critic_qvalue_params_max_diff"] = max_diff
 
@@ -269,9 +273,16 @@ class TD3Trainer(BaseTrainer):
                     "td3 batch sample stats batch={} step={} "
                     "action_mean={} action_std={} action_min={} action_max={} "
                     "reward_mean={} reward_std={} reward_min={} reward_max={}",
-                    batch_idx, j,
-                    actions.mean(), actions.std(), actions.min(), actions.max(),
-                    rewards.mean(), rewards.std(), rewards.min(), rewards.max(),
+                    batch_idx,
+                    j,
+                    actions.mean(),
+                    actions.std(),
+                    actions.min(),
+                    actions.max(),
+                    rewards.mean(),
+                    rewards.std(),
+                    rewards.min(),
+                    rewards.max(),
                 )
 
             if (
@@ -295,6 +306,7 @@ class TD3Trainer(BaseTrainer):
             loss_vals, value_loss = result
 
             actor_updated = False
+            actor_loss = None
             if self._should_update_actor(current_step):
                 actor_loss, extra_metrics = self._update_actor_and_targets(sample)
                 self.logs["loss_actor"].append(actor_loss)
@@ -305,11 +317,20 @@ class TD3Trainer(BaseTrainer):
                     and hasattr(self.callback, "log_training_step")
                 ):
                     self.callback.log_training_step(
-                        current_step, actor_loss, value_loss, extra_metrics=extra_metrics
+                        current_step,
+                        actor_loss,
+                        value_loss,
+                        extra_metrics=extra_metrics,
                     )
 
             if self._should_log_step(current_step):
-                self._log_progress(max_length, buffer_len, loss_vals, log_actor=actor_updated)
+                self._log_progress(
+                    max_length,
+                    buffer_len,
+                    loss_vals,
+                    log_actor=actor_updated,
+                    actor_loss=actor_loss,
+                )
 
             if self._should_eval_step(current_step):
                 self._evaluate()
@@ -332,10 +353,18 @@ class TD3Trainer(BaseTrainer):
         }
 
     def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
-        self.td3_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
-        self.td3_loss.qvalue_network_params.load_state_dict(checkpoint["value_params_state"])
-        self.td3_loss.target_actor_network_params.load_state_dict(checkpoint["target_actor_params_state"])
-        self.td3_loss.target_qvalue_network_params.load_state_dict(checkpoint["target_value_params_state"])
+        self.td3_loss.actor_network_params.load_state_dict(
+            checkpoint["actor_params_state"]
+        )
+        self.td3_loss.qvalue_network_params.load_state_dict(
+            checkpoint["value_params_state"]
+        )
+        self.td3_loss.target_actor_network_params.load_state_dict(
+            checkpoint["target_actor_params_state"]
+        )
+        self.td3_loss.target_qvalue_network_params.load_state_dict(
+            checkpoint["target_value_params_state"]
+        )
         self.td3_loss.actor_network_params.to_module(self.actor)
         self.td3_loss.qvalue_network_params.to_module(self.value_net)
         self.optimizer_actor.load_state_dict(checkpoint["optimizer_actor_state_dict"])
@@ -345,14 +374,19 @@ class TD3Trainer(BaseTrainer):
         if not is_level_enabled("TRACE"):
             return
         import numpy as np
+
         actions = eval_rollout["action"]
         logger.trace(
             "td3 eval action stats n={} mean={:.4f} std={:.4f}",
-            actions.numel(), actions.mean(), actions.std(),
+            actions.numel(),
+            actions.mean(),
+            actions.std(),
         )
         logger.trace("td3 eval action min={} max={}", actions.min(), actions.max())
         actions_flat = actions.flatten().cpu().detach().numpy()
-        unique_actions, counts = np.unique(np.round(actions_flat, 2), return_counts=True)
+        unique_actions, counts = np.unique(
+            np.round(actions_flat, 2), return_counts=True
+        )
         if len(unique_actions) <= 10:
             logger.trace(
                 "td3 eval action distribution={}",
@@ -368,8 +402,10 @@ class TD3Trainer(BaseTrainer):
         """Run training loop for RL agent, with exploration for TD3."""
         logger.debug(
             "td3 train config max_steps={} init_rand_steps={} frames_per_batch={} buffer_size={}",
-            self.config.max_steps, self.config.init_rand_steps,
-            self.config.frames_per_batch, self.config.buffer_size,
+            self.config.max_steps,
+            self.config.init_rand_steps,
+            self.config.frames_per_batch,
+            self.config.buffer_size,
         )
 
         # Create the noisy policy by chaining actor + exploration module
@@ -390,12 +426,14 @@ class TD3Trainer(BaseTrainer):
                 )
                 logger.trace(
                     "episode reward stats mean={} std={}",
-                    episode_rewards.mean(), episode_rewards.std(),
+                    episode_rewards.mean(),
+                    episode_rewards.std(),
                 )
                 collected_actions = data["action"]
                 logger.trace(
                     "collected action stats mean={} std={}",
-                    collected_actions.mean(), collected_actions.std(),
+                    collected_actions.mean(),
+                    collected_actions.std(),
                 )
                 self._log_sample_transitions(data, n=3)
 
