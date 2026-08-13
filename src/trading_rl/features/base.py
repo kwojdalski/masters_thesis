@@ -36,15 +36,17 @@ class RollingWindowScaler:
     preventing look-ahead bias for sequential data.
     """
 
-    def __init__(self, window: int = 1000, min_periods: int = 1):
+    def __init__(self, window: int = 1000, min_periods: int = 1, epsilon: float = 1e-4):
         """Initialize rolling window scaler.
 
         Args:
             window: Size of the rolling window.
             min_periods: Minimum number of observations required to compute stats.
+            epsilon: Small constant added to variance to prevent division by zero.
         """
         self.window = window
         self.min_periods = min_periods
+        self.epsilon = epsilon
         self._fitted = False
 
     def fit(self, data: np.ndarray) -> "RollingWindowScaler":
@@ -82,15 +84,23 @@ class RollingWindowScaler:
             s.rolling(window=self.window, min_periods=self.min_periods).std().shift(1)
         )
 
-        # Normalize: (x - rolling_mean) / rolling_std
-        # Fill NaNs (from insufficient window) with 0 or forward fill
-        normalized = (s - rolling_mean) / rolling_std
+        # Normalize: (x - rolling_mean) / sqrt(rolling_std^2 + epsilon)
+        # epsilon prevents inf/NaN on flat windows (rolling_std == 0), which
+        # would otherwise be silently zeroed below and become indistinguishable
+        # from a value exactly at its rolling mean.
+        denom = np.sqrt(rolling_std**2 + self.epsilon)
+        normalized = (s - rolling_mean) / denom
 
-        # Handle cases where std is 0 (constant region)
+        n_zero_std = int((rolling_std == 0.0).sum())
+        if n_zero_std:
+            logger.debug(
+                "rolling window scaler zero-std rows n_zero_std={} n_total={}",
+                n_zero_std,
+                len(s),
+            )
+
+        # Fill NaNs from insufficient window (fewer than min_periods observations)
         normalized = normalized.fillna(0.0)
-
-        # Replace inf with 0 (happens when std approaches 0)
-        normalized = normalized.replace([np.inf, -np.inf], 0.0)
 
         return normalized.values if not isinstance(data, pd.Series) else normalized
 
