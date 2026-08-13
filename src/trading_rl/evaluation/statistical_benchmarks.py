@@ -43,6 +43,10 @@ def _normalize_execution_weights(weights: np.ndarray) -> np.ndarray:
     w = np.clip(w, a_min=0.0, a_max=None)
     total = float(np.sum(w))
     if total <= 0.0:
+        logger.warning(
+            "VWAP execution weights sum to zero over the window; falling back "
+            "to equal-weighted (TWAP-like) exposure."
+        )
         return np.full_like(w, 1.0 / max(len(w), 1), dtype=float)
     return w / total
 
@@ -63,7 +67,9 @@ def _execution_schedule_returns(
     if n == 0:
         return np.array([], dtype=float)
 
-    normalized_weights = _normalize_execution_weights(np.asarray(weights, dtype=float)[:n])
+    normalized_weights = _normalize_execution_weights(
+        np.asarray(weights, dtype=float)[:n]
+    )
     cumulative_exposure = np.clip(np.cumsum(normalized_weights), 0.0, 1.0)
     lagged_exposure = np.concatenate(([0.0], cumulative_exposure[:-1]))
     return direction * lagged_exposure * simple_asset_returns
@@ -73,7 +79,9 @@ def compute_twap_returns(prices: pd.Series, max_steps: int) -> np.ndarray:
     """Compute TWAP benchmark returns via equal-time execution schedule."""
     if max_steps <= 0:
         return np.array([], dtype=float)
-    return _execution_schedule_returns(prices, max_steps, np.ones(max_steps, dtype=float))
+    return _execution_schedule_returns(
+        prices, max_steps, np.ones(max_steps, dtype=float)
+    )
 
 
 def compute_vwap_returns(
@@ -117,10 +125,9 @@ def resolve_vwap_volume_series(
             return market_data[col], col
 
     if {"bid_sz_00", "ask_sz_00"}.issubset(market_data.columns):
-        proxy_volume = (
-            market_data["bid_sz_00"].fillna(0.0)
-            + market_data["ask_sz_00"].fillna(0.0)
-        )
+        proxy_volume = market_data["bid_sz_00"].fillna(0.0) + market_data[
+            "ask_sz_00"
+        ].fillna(0.0)
         return proxy_volume, "bid_sz_00+ask_sz_00 (top-of-book size proxy)"
 
     return None, None
@@ -207,11 +214,21 @@ def build_benchmark_comparison_table(
     """Build a cross-benchmark comparison table with core performance metrics."""
     rows: list[dict[str, float | str]] = []
     rows.append(
-        {"strategy": "agent", **_performance_summary(strategy_returns, periods_per_year, risk_free_rate_annual)}
+        {
+            "strategy": "agent",
+            **_performance_summary(
+                strategy_returns, periods_per_year, risk_free_rate_annual
+            ),
+        }
     )
     for name, returns in benchmark_returns.items():
         rows.append(
-            {"strategy": name, **_performance_summary(returns, periods_per_year, risk_free_rate_annual)}
+            {
+                "strategy": name,
+                **_performance_summary(
+                    returns, periods_per_year, risk_free_rate_annual
+                ),
+            }
         )
     return rows
 
@@ -287,7 +304,8 @@ def compute_random_baseline_returns(
                     random_returns.append(series.to_simple().values)
                 else:
                     logger.warning(
-                        "random baseline trial {}: NLV extraction failed; trial skipped", trial
+                        "random baseline trial {}: NLV extraction failed; trial skipped",
+                        trial,
                     )
                 continue
 
@@ -317,10 +335,16 @@ def summarize_random_baseline_trials(
     """
     trial_sharpes: list[float] = []
     for trial in random_trials:
-        r, _ = aggregate_to_reporting_frequency(trial[np.isfinite(trial)], periods_per_year)
+        r, _ = aggregate_to_reporting_frequency(
+            trial[np.isfinite(trial)], periods_per_year
+        )
         sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
         trial_sharpes.append(sharpe_raw(float(np.mean(r)), sigma))
     return {
-        "random_trials_sharpe_mean": float(np.nanmean(trial_sharpes)) if trial_sharpes else float("nan"),
-        "random_trials_sharpe_std": float(np.nanstd(trial_sharpes)) if trial_sharpes else float("nan"),
+        "random_trials_sharpe_mean": float(np.nanmean(trial_sharpes))
+        if trial_sharpes
+        else float("nan"),
+        "random_trials_sharpe_std": float(np.nanstd(trial_sharpes))
+        if trial_sharpes
+        else float("nan"),
     }
