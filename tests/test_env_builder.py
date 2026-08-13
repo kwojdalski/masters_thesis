@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -18,7 +19,32 @@ from trading_rl.envs.builder import (
     StreamingEnvParams,
     TradingEnvParams,
 )
+from trading_rl.envs.tradingenvxy_wrapper import GymnasiumTradingEnvWrapper
 from trading_rl.rewards import reward_function
+
+
+class _FakeTradingEnv:
+    observation_space = SimpleNamespace(shape=(1,))
+    action_space = SimpleNamespace()
+    broker = None
+
+    def reset(self):
+        return np.array([0.0], dtype=np.float32)
+
+    def step(self, action):
+        return np.array([1.0], dtype=np.float32), 2.0, False, {}
+
+
+def test_non_streaming_wrapper_applies_change_action_penalty() -> None:
+    env = GymnasiumTradingEnvWrapper(
+        _FakeTradingEnv(),
+        action_penalty_lambda=0.5,
+        action_penalty_type="change_quadratic",
+    )
+    env.reset()
+
+    assert env.step(np.array([0.4]))[1] == pytest.approx(2.0 - 0.5 * 0.4**2)
+    assert env.step(np.array([0.6]))[1] == pytest.approx(2.0 - 0.5 * 0.2**2)
 
 
 def _params(algorithm: str = "PPO", backend: str | None = None) -> EnvBuildParams:
@@ -164,7 +190,9 @@ class TestCreate:
             return "batch-env"
 
         monkeypatch.setattr(builder, "_resolve_memmap_paths", fail_resolve_memmap_paths)
-        monkeypatch.setattr(builder, "_create_non_streaming_env", fake_create_non_streaming_env)
+        monkeypatch.setattr(
+            builder, "_create_non_streaming_env", fake_create_non_streaming_env
+        )
 
         env = builder.create(df, params, use_memmap=False)
 
@@ -185,9 +213,13 @@ class TestCreate:
             streaming_calls.append((paths, p))
             return "streaming-env"
 
-        monkeypatch.setattr(builder, "_resolve_memmap_paths", lambda _params: memmap_paths)
+        monkeypatch.setattr(
+            builder, "_resolve_memmap_paths", lambda _params: memmap_paths
+        )
         monkeypatch.setattr(builder, "_create_streaming_env", fake_create_streaming_env)
-        monkeypatch.setattr(builder, "_create_non_streaming_env", fake_create_non_streaming_env)
+        monkeypatch.setattr(
+            builder, "_create_non_streaming_env", fake_create_non_streaming_env
+        )
 
         env = builder.create(df, params)
 
@@ -217,13 +249,17 @@ class TestCreateStreamingEnv:
             calls["transformed"].append((env, transform))
             return ("transformed", env, transform)
 
-        monkeypatch.setattr(streaming_module, "StreamingTradingEnv", FakeStreamingTradingEnv)
+        monkeypatch.setattr(
+            streaming_module, "StreamingTradingEnv", FakeStreamingTradingEnv
+        )
         monkeypatch.setattr(builder_module, "StepCounter", FakeStepCounter)
         monkeypatch.setattr(builder_module, "GymWrapper", fake_gym_wrapper)
         monkeypatch.setattr(builder_module, "TransformedEnv", fake_transformed_env)
 
         params = _params("PPO", EnvBackend.GYM_TRADING_DISCRETE)
-        result = AlgorithmicEnvironmentBuilder()._create_streaming_env(["memmap"], params)
+        result = AlgorithmicEnvironmentBuilder()._create_streaming_env(
+            ["memmap"], params
+        )
 
         assert result[0] == "transformed"
         assert calls["streaming"] == [
@@ -264,7 +300,9 @@ class TestCreateStreamingEnv:
             transforms.append(transform)
             return ("transformed", env, transform)
 
-        monkeypatch.setattr(streaming_module, "StreamingTradingEnv", FakeStreamingTradingEnv)
+        monkeypatch.setattr(
+            streaming_module, "StreamingTradingEnv", FakeStreamingTradingEnv
+        )
         monkeypatch.setattr(builder_module, "StepCounter", FakeStepCounter)
         monkeypatch.setattr(
             continuous_module,

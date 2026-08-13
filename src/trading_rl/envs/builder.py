@@ -55,7 +55,9 @@ class TradingEnvParams:
 class GymTradingEnvParams:
     """Parameters specific to gym_trading_env backends (discrete and continuous)."""
 
-    continuous_action_thresholds: list[float] = field(default_factory=lambda: [-0.33, 0.33])
+    continuous_action_thresholds: list[float] = field(
+        default_factory=lambda: [-0.33, 0.33]
+    )
     device: str = "cpu"
 
 
@@ -105,7 +107,9 @@ class EnvBuildParams:
         trading_env = TradingEnvParams(
             feature_columns=getattr(env, "feature_columns", None),
             price_column=getattr(env, "price_column", None) or "close",
-            initial_portfolio_value=getattr(env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE),
+            initial_portfolio_value=getattr(
+                env, "initial_portfolio_value", DEFAULT_INITIAL_PORTFOLIO_VALUE
+            ),
             include_position_feature=getattr(env, "include_position_feature", False),
             obs_clip=getattr(env, "obs_clip", 5.0),
             action_penalty_lambda=getattr(env, "action_penalty_lambda", 0.0),
@@ -115,7 +119,9 @@ class EnvBuildParams:
             ask_column=getattr(env, "ask_column", "ask_px_00"),
         )
         gym_trading = GymTradingEnvParams(
-            continuous_action_thresholds=getattr(env, "continuous_action_thresholds", [-0.33, 0.33]),
+            continuous_action_thresholds=getattr(
+                env, "continuous_action_thresholds", [-0.33, 0.33]
+            ),
             device=getattr(config.training, "device", "cpu"),
         )
         streaming = StreamingEnvParams(
@@ -189,7 +195,9 @@ class BaseEnvironmentBuilder(ABC):
     )
 
     @abstractmethod
-    def create(self, df: pd.DataFrame, params: EnvBuildParams, *, use_memmap: bool = True) -> TransformedEnv:
+    def create(
+        self, df: pd.DataFrame, params: EnvBuildParams, *, use_memmap: bool = True
+    ) -> TransformedEnv:
         """Create environment instance for given data and params."""
 
 
@@ -213,7 +221,9 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         backend = self.backend_policy.resolve(params)
         self.logger.debug(
             "resolved backend={} explicit_backend={} algorithm={}",
-            backend, explicit_backend, str(params.algorithm).upper(),
+            backend,
+            explicit_backend,
+            str(params.algorithm).upper(),
         )
         return backend
 
@@ -239,7 +249,9 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         env = self._create_non_streaming_env(df, params, backend)
         self.logger.info(
             "created environment backend={} positions={} trading_fees={}",
-            backend, params.common.positions, params.common.trading_fees,
+            backend,
+            params.common.positions,
+            params.common.trading_fees,
         )
         return env
 
@@ -265,6 +277,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
 
         if backend == EnvBackend.TRADINGENV:
             from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory
+
             factory = TradingEnvXYFactory()
             return factory.make(
                 df=df,
@@ -277,6 +290,11 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
                 reward_scale=params.common.reward_scale,
                 include_position_feature=params.trading_env.include_position_feature,
                 obs_clip=params.trading_env.obs_clip,
+                action_penalty_lambda=params.trading_env.action_penalty_lambda,
+                action_penalty_type=params.trading_env.action_penalty_type,
+                execution_price=params.trading_env.execution_price,
+                bid_column=params.trading_env.bid_column,
+                ask_column=params.trading_env.ask_column,
             )
 
         _ANYTRADING_ENV_IDS = {
@@ -328,18 +346,28 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         """Create a gym-anytrading (forex-v0 / stocks-v0) environment from params."""
         from trading_rl.envs.trading_envs import DiscreteActionWrapper
 
-        rename_map = {"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"}
+        rename_map = {
+            "open": "Open",
+            "high": "High",
+            "low": "Low",
+            "close": "Close",
+            "volume": "Volume",
+        }
         df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
         base_env = gym.make(env_id, df=df)
 
         reward_type = str(params.common.reward_type)
         from trading_rl.constants import RewardType
+
         if reward_type != RewardType.LOG_RETURN:
             from trading_rl.rewards.dsr_wrapper import (
                 DifferentialSharpeRatioAnyTrading,
                 StatefulRewardWrapper,
             )
-            dsr = DifferentialSharpeRatioAnyTrading(eta=params.common.reward_eta, scale=params.common.reward_scale)
+
+            dsr = DifferentialSharpeRatioAnyTrading(
+                eta=params.common.reward_eta, scale=params.common.reward_scale
+            )
             base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
 
         base_env = DiscreteActionWrapper(base_env)
@@ -361,7 +389,9 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         episode_length = params.streaming.streaming_episode_length
 
         if backend == EnvBackend.TRADINGENV:
-            return self._create_streaming_tradingenv(memmap_paths, episode_length, params)
+            return self._create_streaming_tradingenv(
+                memmap_paths, episode_length, params
+            )
 
         _GYM_TRADING_BACKENDS = {
             EnvBackend.GYM_TRADING_DISCRETE,
@@ -412,9 +442,13 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
 
         feature_columns = params.trading_env.feature_columns
         if not feature_columns:
-            feature_columns = [c for c in memmap_paths[0].columns if c.startswith("feature_")]
+            feature_columns = [
+                c for c in memmap_paths[0].columns if c.startswith("feature_")
+            ]
 
-        runtime_cols = ["feature_position"] if params.trading_env.include_position_feature else []
+        runtime_cols = (
+            ["feature_position"] if params.trading_env.include_position_feature else []
+        )
         # feature_position lives in the env at runtime, not in the memmap data
         static_feature_columns = [c for c in feature_columns if c not in runtime_cols]
 
@@ -436,8 +470,12 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             execution_price=params.trading_env.execution_price,
             bid_column=params.trading_env.bid_column,
             ask_column=params.trading_env.ask_column,
-            obs_latency=make_latency_model(params.streaming.obs_latency_ticks, params.streaming.obs_latency_us),
-            exec_latency=make_latency_model(params.streaming.exec_latency_ticks, params.streaming.exec_latency_us),
+            obs_latency=make_latency_model(
+                params.streaming.obs_latency_ticks, params.streaming.obs_latency_us
+            ),
+            exec_latency=make_latency_model(
+                params.streaming.exec_latency_ticks, params.streaming.exec_latency_us
+            ),
         )
         env = GymWrapper(base_env)
         with warnings.catch_warnings():

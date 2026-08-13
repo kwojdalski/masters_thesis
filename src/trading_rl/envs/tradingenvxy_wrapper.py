@@ -85,11 +85,29 @@ class GymnasiumTradingEnvWrapper(gym.Env):
     This wrapper converts it to the new Gymnasium API where reset() returns (observation, info).
     """
 
-    def __init__(self, trading_env: TradingEnv, obs_clip: float | None = None):
+    def __init__(
+        self,
+        trading_env: TradingEnv,
+        obs_clip: float | None = None,
+        action_penalty_lambda: float = 0.0,
+        action_penalty_type: str | ActionPenaltyType = ActionPenaltyType.QUADRATIC,
+    ):
         self._env = trading_env
         self.observation_space = trading_env.observation_space
         self.action_space = trading_env.action_space
         self._obs_clip = obs_clip
+        self._action_penalty_lambda = float(action_penalty_lambda)
+        self._action_penalty_type = ActionPenaltyType(action_penalty_type)
+        self._prev_action = 0.0
+
+    def _compute_action_penalty(self, action: float) -> float:
+        if self._action_penalty_lambda == 0.0:
+            return 0.0
+        if self._action_penalty_type == ActionPenaltyType.QUADRATIC:
+            return self._action_penalty_lambda * action**2
+        if self._action_penalty_type == ActionPenaltyType.ABSOLUTE:
+            return self._action_penalty_lambda * abs(action)
+        return self._action_penalty_lambda * (action - self._prev_action) ** 2
 
     def _clip_obs(self, obs):
         if self._obs_clip is None:
@@ -103,10 +121,13 @@ class GymnasiumTradingEnvWrapper(gym.Env):
     def reset(self, *, seed=None, options=None):
         """Reset and return (observation, info) tuple."""
         obs = self._env.reset()
+        self._prev_action = 0.0
         return self._clip_obs(obs), {}
 
     def step(self, action):
         """Step and return (observation, reward, terminated, truncated, info) tuple."""
+        action_value = float(np.asarray(action).flat[0])
+        penalty = self._compute_action_penalty(action_value)
         try:
             obs, reward, done, info = self._env.step(action)
         except EndOfEpisodeError:
@@ -120,7 +141,10 @@ class GymnasiumTradingEnvWrapper(gym.Env):
                     k: np.zeros(v.shape, dtype=np.float32)
                     for k, v in self.observation_space.spaces.items()
                 }
-            return obs, -1.0, True, False, {"bankrupt": True}
+            self._prev_action = 0.0
+            return obs, -1.0 - penalty, True, False, {"bankrupt": True}
+        reward = float(reward) - penalty
+        self._prev_action = action_value
         # Distinguish bankruptcy (terminated) from data exhaustion (truncated).
         # When done because the transmitter ran out of data, the state is not
         # truly terminal — value should bootstrap from the final observation.
@@ -253,6 +277,13 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         # Pop explicit override kwargs before they leak into TradingEnv(**kwargs).
         include_position_feature_override = kwargs.pop("include_position_feature", None)
         obs_clip_override = kwargs.pop("obs_clip", None)
+        action_penalty_lambda = float(kwargs.pop("action_penalty_lambda", 0.0))
+        action_penalty_type = kwargs.pop(
+            "action_penalty_type", ActionPenaltyType.QUADRATIC
+        )
+        execution_price = kwargs.pop("execution_price", "mid")
+        bid_column = kwargs.pop("bid_column", "bid_px_00")
+        ask_column = kwargs.pop("ask_column", "ask_px_00")
 
         # Backward compatibility with legacy list-style parameter.
         legacy_price_columns = kwargs.pop("price_columns", None)
@@ -389,22 +420,51 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         logger.trace(
             "preparing price dataframe n_rows={} n_cols={}", len(df), len(price_columns)
         )
-        prices = df[price_columns].copy()
-        prices.columns = stocks
-        logger.trace("price dataframe ready")
-
         broker_fees = BrokerFees(proportional=fee, fixed=0.0)
 
         logger.trace("constructing TradingEnv initial_cash={}", initial_cash)
-        env = FastTradingEnv(
+        env_kwargs = dict(
             action_space=action_space,
             state=features,
             reward=reward,
-            prices=prices,
             initial_cash=initial_cash,
             broker_fees=broker_fees,
             **kwargs,
         )
+        if execution_price == "bid_ask":
+            missing = [col for col in (bid_column, ask_column) if col not in df.columns]
+            if missing:
+                raise KeyError(
+                    "execution_price='bid_ask' requires columns "
+                    f"{bid_column!r} and {ask_column!r}; missing {missing}"
+                )
+            transmitter = Transmitter(timesteps=df.index)
+            transmitter.add_events(
+                [
+                    EventNBBO(
+                        time=ts,
+                        contract=stocks[0],
+                        bid_price=float(bid),
+                        ask_price=float(ask),
+                        bid_size=np.inf,
+                        ask_size=np.inf,
+                    )
+                    for ts, bid, ask in zip(
+                        df.index, df[bid_column], df[ask_column], strict=False
+                    )
+                ]
+            )
+            env = FastTradingEnv(transmitter=transmitter, **env_kwargs)
+        elif execution_price == "mid":
+            prices = df[price_columns].copy()
+            prices.columns = stocks
+            logger.trace("price dataframe ready")
+            env = FastTradingEnv(prices=prices, **env_kwargs)
+        else:
+            raise ValueError(
+                "execution_price must be either 'mid' or 'bid_ask', "
+                f"got {execution_price!r}"
+            )
         logger.trace("TradingEnv constructed")
 
         obs_clip = None
@@ -416,7 +476,12 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             obs_clip = obs_clip_override
 
         logger.trace("wrapping with GymnasiumTradingEnvWrapper obs_clip={}", obs_clip)
-        gym_env = GymnasiumTradingEnvWrapper(env, obs_clip=obs_clip)
+        gym_env = GymnasiumTradingEnvWrapper(
+            env,
+            obs_clip=obs_clip,
+            action_penalty_lambda=action_penalty_lambda,
+            action_penalty_type=action_penalty_type,
+        )
 
         logger.trace("wrapping with GymWrapper and transforms")
         wrapped_env = GymWrapper(gym_env)
