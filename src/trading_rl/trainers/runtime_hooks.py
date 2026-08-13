@@ -3,14 +3,26 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
-
-import mlflow
+from typing import Any, Protocol
 
 from logger import get_logger
 from trading_rl.callbacks.artifacts import ArtifactPaths
 
 logger = get_logger(__name__)
+
+
+class RuntimeTracker(Protocol):
+    """Tracking port required by periodic runtime hooks."""
+
+    def is_tracking_active(self) -> bool: ...
+
+    def log_metric(
+        self, key: str, value: float, *, step: int | None = None
+    ) -> None: ...
+
+    def log_artifact(self, path: str, artifact_dir: str | None = None) -> None: ...
+
+    def log_evaluation_plots(self, **kwargs: Any) -> None: ...
 
 
 @dataclass
@@ -59,6 +71,16 @@ class TrainerRuntimeHooks:
         self._explainability_consecutive_failures = 0
         self._progression_history: dict[str, list[tuple[int, Any]]] = {}
         self._price_plots_logged: set[str] = set()
+
+    def _tracker(self) -> RuntimeTracker | None:
+        tracker = getattr(self.trainer, "callback", None)
+        if tracker is None or not hasattr(tracker, "is_tracking_active"):
+            return None
+        return tracker
+
+    def _active_tracker(self) -> RuntimeTracker | None:
+        tracker = self._tracker()
+        return tracker if tracker is not None and tracker.is_tracking_active() else None
 
     def configure_periodic_evaluation(
         self,
@@ -168,9 +190,8 @@ class TrainerRuntimeHooks:
         import os
         import tempfile
 
-        import mlflow
-
-        if not mlflow.active_run():
+        tracker = self._active_tracker()
+        if tracker is None:
             return
         try:
             from trading_rl.callbacks.artifacts import ArtifactPaths
@@ -207,7 +228,7 @@ class TrainerRuntimeHooks:
                     height=FIGURE_HEIGHT * 1.5,
                     dpi=PLOT_DPI,
                 )
-                mlflow.log_artifact(path, artifact_dir)
+                tracker.log_artifact(path, artifact_dir)
             logger.info(
                 "price plot logged split={} column={}", split_ctx.split, price_column
             )
@@ -339,9 +360,8 @@ class TrainerRuntimeHooks:
                         exc_info=True,
                     )
 
-                if mlflow.active_run():
-                    from trading_rl.callbacks import MLflowTrainingCallback
-
+                tracker = self._active_tracker()
+                if tracker is not None:
                     # Log the underlying close price plot once per split (not per step).
                     if split_ctx.split not in self._price_plots_logged:
                         self._log_price_plot_once(split_ctx, hook)
@@ -358,7 +378,7 @@ class TrainerRuntimeHooks:
                         _equity = _last_result.plots.get("_equity_plot_data")
                         if _rollout or _equity:
                             _plot_data = {**(_rollout or {}), **(_equity or {})}
-                    MLflowTrainingCallback.log_evaluation_plots(
+                    tracker.log_evaluation_plots(
                         reward_plot=reward_plot,
                         action_plot=action_plot,
                         action_probs_plot=action_probs_plot,
@@ -407,7 +427,7 @@ class TrainerRuntimeHooks:
                                         height=FIGURE_HEIGHT * 1.5,
                                         dpi=PLOT_DPI,
                                     )
-                                    mlflow.log_artifact(
+                                    tracker.log_artifact(
                                         _tmp_path,
                                         f"evaluation_plots_temp/{split_ctx.split}",
                                     )
@@ -423,7 +443,7 @@ class TrainerRuntimeHooks:
                                 exc_info=True,
                             )
 
-                    mlflow.log_metric(
+                    tracker.log_metric(
                         f"eval_{split_ctx.split}_reward",
                         final_reward,
                         step=step_number,
@@ -431,7 +451,7 @@ class TrainerRuntimeHooks:
                     if metric_report is not None:
                         for key, value in metric_report.to_dict().items():
                             if isinstance(value, float) and math.isfinite(value):
-                                mlflow.log_metric(
+                                tracker.log_metric(
                                     f"eval_{split_ctx.split}_{key}",
                                     value,
                                     step=step_number,
@@ -458,7 +478,7 @@ class TrainerRuntimeHooks:
                                 import matplotlib.pyplot as _plt
 
                                 _plt.close(fig)
-                                mlflow.log_artifact(_tbl_path, artifact_prefix)
+                                tracker.log_artifact(_tbl_path, artifact_prefix)
                             logger.debug(
                                 "temp eval: metrics table saved split={} step={}",
                                 split_ctx.split,
@@ -559,7 +579,8 @@ class TrainerRuntimeHooks:
                 )
 
         # Create and upload train/val progression plot (if we have both splits)
-        if mlflow.active_run():
+        tracker = self._active_tracker()
+        if tracker is not None:
             train_history = self._progression_history.get("train", [])
             val_history = self._progression_history.get("val", [])
             if len(train_history) + len(val_history) >= 2:
@@ -597,7 +618,7 @@ class TrainerRuntimeHooks:
                                 height=FIGURE_HEIGHT * 1.5,
                                 dpi=PLOT_DPI,
                             )
-                            mlflow.log_artifact(
+                            tracker.log_artifact(
                                 _tmp_path,
                                 "evaluation_plots_temp",
                             )

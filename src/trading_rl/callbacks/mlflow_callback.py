@@ -271,3 +271,15 @@ class MLflowTrainingCallback:
         b1 = int(digest[2:4], 16)
         b2 = int(digest[4:6], 16)
         return f"{adjectives[b0 % len(adjectives)]}-{nouns[b1 % len(nouns)]}-{suffixes[b2 % len(suffixes)]}"
+
+    def is_tracking_active(self) -> bool:
+        """Return whether this adapter currently has an active tracking run."""
+        return mlflow.active_run() is not None
+
+    def log_metric(self, key: str, value: float, *, step: int | None = None) -> None:
+        """Log one scalar through the tracking adapter."""
+        mlflow.log_metric(key, value, step=step)
+
+    def log_artifact(self, path: str, artifact_dir: str | None = None) -> None:
+        """Upload one artifact through the tracking adapter."""
+        mlflow.log_artifact(path, artifact_dir)
