@@ -345,7 +345,7 @@ def _check_ppo_updates_per_rollout(config: ExperimentConfig) -> Finding | None:
         return None
     f = config.training.frames_per_batch
     s = config.training.sample_size
-    epochs = config.training.ppo_epochs
+    epochs = config.training.ppo.epochs
     steps_per_batch = config.training.optim_steps_per_batch
     updates = epochs * math.ceil(f / max(s, 1))
     limit = 100
@@ -459,8 +459,8 @@ def _check_td3_noise_vs_clip(config: ExperimentConfig) -> Finding | None:
     """WARN (TD3): policy_noise > noise_clip → clip is always active; noise setting has no effect."""
     if config.training.algorithm.upper() != "TD3":
         return None
-    pn = config.training.policy_noise
-    nc = config.training.noise_clip
+    pn = config.training.td3.policy_noise
+    nc = config.training.td3.noise_clip
     if pn > nc:
         return Finding(
             severity=Severity.WARN,
@@ -482,7 +482,7 @@ def _check_ppo_clip_epsilon(config: ExperimentConfig) -> Finding | None:
     """WARN (PPO): clip_epsilon > 0.5 → near-unconstrained policy updates."""
     if not _is_ppo(config.training.algorithm):
         return None
-    ce = config.training.clip_epsilon
+    ce = config.training.ppo.clip_epsilon
     if ce > 0.5:
         return Finding(
             severity=Severity.WARN,
@@ -738,7 +738,7 @@ def _check_no_exploration(config: ExperimentConfig) -> Finding | None:
     """WARN (DDPG/TD3): exploration_noise_std=0 and init_rand_steps=0 → no exploration at all."""
     if not _is_off_policy(config.training.algorithm):
         return None
-    noise = config.training.exploration_noise_std
+    noise = config.training.td3.exploration_noise_std
     rand_steps = config.training.init_rand_steps
     if noise == 0.0 and rand_steps == 0:
         return Finding(
@@ -762,7 +762,7 @@ def _check_ppo_entropy_bonus(config: ExperimentConfig) -> Finding | None:
     """WARN (PPO): entropy_bonus > 0.1 → entropy term dominates, policy stays near-uniform."""
     if not _is_ppo(config.training.algorithm):
         return None
-    eb = config.training.entropy_bonus
+    eb = config.training.ppo.entropy_bonus
     if eb > 0.1:
         return Finding(
             severity=Severity.WARN,
@@ -782,7 +782,7 @@ def _check_ppo_vf_coef(config: ExperimentConfig) -> Finding | None:
     """WARN (PPO): vf_coef > 1.0 → value loss dominates, actor barely trained."""
     if not _is_ppo(config.training.algorithm):
         return None
-    vc = config.training.vf_coef
+    vc = config.training.ppo.vf_coef
     if vc > 1.0:
         return Finding(
             severity=Severity.WARN,
@@ -850,7 +850,7 @@ def _check_exploration_noise_too_large(config: ExperimentConfig) -> Finding | No
     """WARN (DDPG/TD3): exploration_noise_std > 1.0 → noise overwhelms policy output."""
     if not _is_off_policy(config.training.algorithm):
         return None
-    noise = config.training.exploration_noise_std
+    noise = config.training.td3.exploration_noise_std
     if noise > 1.0:
         return Finding(
             severity=Severity.WARN,
