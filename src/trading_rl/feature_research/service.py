@@ -255,13 +255,30 @@ def _build_score_table(
 def _select_features(
     scores: pd.DataFrame,
     feature_data: pd.DataFrame,
+    target: pd.Series,
     top_k: int,
     icir_threshold: float = 0.02,
 ) -> list[str]:
-    """Greedy selection using conditional IC for redundancy filtering."""
+    """Greedy selection using conditional IC for redundancy filtering.
+
+    Before any feature is selected, a candidate's conditional IC equals its
+    precomputed (time-windowed, per-symbol) ``icir`` from ``scores``. Once a
+    feature has been selected, its linear signal is regressed out of all
+    remaining candidates, and IC is recomputed on the residual against
+    ``target`` before the next candidate is gated -- mirrors
+    ``_select_features_conditional_ic`` in features/selector.py (issue #170).
+    The recheck uses a single pooled, non-windowed Spearman IC
+    (``window_size=None``) because ``feature_data``/``target`` here are
+    pooled across symbols and randomly subsampled, so a rolling time-window
+    would mix rows from unrelated symbols/positions.
+    """
+    if len(feature_data) == 0:
+        return []
+
     selected: list[str] = []
     remaining_features = list(scores["feature"])
     residual_data = feature_data.copy()
+    original_icir = scores.set_index("feature")["icir"].to_dict()
     min_residual_std = 1e-10
 
     for candidate in scores["feature"]:
@@ -270,10 +287,30 @@ def _select_features(
         if candidate not in remaining_features:
             continue
 
-        row = scores[scores["feature"] == candidate].iloc[0]
-        if abs(float(row["icir"])) < icir_threshold:
+        candidate_std = residual_data[candidate].std()
+        if not (candidate_std > min_residual_std):
             continue
-        if float(residual_data[candidate].std()) <= min_residual_std:
+
+        if not selected:
+            candidate_icir = float(original_icir.get(candidate, 0.0))
+        else:
+            ic_series = _compute_ic_series(
+                residual_data[candidate], target, window_size=None
+            )
+            if len(ic_series) == 0:
+                candidate_icir = 0.0
+            else:
+                mean_ic = float(ic_series.mean())
+                ic_std = float(ic_series.std())
+                candidate_icir = (
+                    mean_ic / ic_std
+                    if (ic_std > 1e-10 and len(ic_series) > 1)
+                    else mean_ic
+                )
+                if not np.isfinite(candidate_icir):
+                    candidate_icir = 0.0
+
+        if abs(candidate_icir) < icir_threshold:
             continue
 
         selected.append(candidate)
@@ -360,10 +397,15 @@ _VAL_POOL_CAP = 20_000
 def _score_single_symbol(
     data_path: str,
     config: FeatureResearchConfig,
-) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, list[dict]]:
     """Load one symbol, split, compute features, score IC/ICIR.
 
-    Returns (scores, val_features_sample, feature_configs).
+    Returns (scores, val_features_sample, val_target_sample, feature_configs).
+
+    val_target_sample is the primary-horizon proxy target (config.research
+    horizons[0]/target_type), aligned to val_features_sample's rows, so the
+    caller can recompute conditional IC during redundancy filtering in
+    _select_features.
 
     All large intermediate frames (raw data, train split, train features) are
     explicitly deleted before returning so peak RSS stays proportional to one
@@ -432,12 +474,18 @@ def _score_single_symbol(
                 window_size=config.research.window_size,
                 target_type=config.research.target_type,
             )
+            val_target = _build_target(
+                val_price_df,
+                config.research.horizons[0],
+                config.research.target_type,
+                config.research.vol_window,
+            ).reindex(val_features.index)
             del train_features, train_price_df, val_price_df
             if len(val_features) > _VAL_POOL_CAP:
-                val_features = val_features.sample(
-                    n=_VAL_POOL_CAP, random_state=0
-                ).reset_index(drop=True)
-            return scores, val_features, feature_configs
+                sample_idx = val_features.sample(n=_VAL_POOL_CAP, random_state=0).index
+                val_features = val_features.loc[sample_idx].reset_index(drop=True)
+                val_target = val_target.loc[sample_idx].reset_index(drop=True)
+            return scores, val_features, val_target, feature_configs
         logger.info(
             "feature research cache miss symbol={} key={}", symbol, cache_key[:8]
         )
@@ -513,14 +561,20 @@ def _score_single_symbol(
         window_size=config.research.window_size,
         target_type=config.research.target_type,
     )
+    val_target = _build_target(
+        val_price_df,
+        config.research.horizons[0],
+        config.research.target_type,
+        config.research.vol_window,
+    ).reindex(val_features.index)
     del train_features, train_price_df, val_price_df
 
     if len(val_features) > _VAL_POOL_CAP:
-        val_features = val_features.sample(n=_VAL_POOL_CAP, random_state=0).reset_index(
-            drop=True
-        )
+        sample_idx = val_features.sample(n=_VAL_POOL_CAP, random_state=0).index
+        val_features = val_features.loc[sample_idx].reset_index(drop=True)
+        val_target = val_target.loc[sample_idx].reset_index(drop=True)
 
-    return scores, val_features, feature_configs
+    return scores, val_features, val_target, feature_configs
 
 
 def _aggregate_symbol_scores(per_symbol_scores: list[pd.DataFrame]) -> pd.DataFrame:
@@ -576,16 +630,18 @@ def run_feature_research(
 
     per_symbol_scores: list[pd.DataFrame] = []
     all_val_features: list[pd.DataFrame] = []
+    all_val_targets: list[pd.Series] = []
     feature_configs: list[dict] = []
 
     for idx, data_path in enumerate(data_paths):
         symbol = Path(data_path).stem
         logger.info("scoring symbol {}/{}: {}", idx + 1, len(data_paths), symbol)
-        sym_scores, sym_val_features, sym_feature_configs = _score_single_symbol(
-            data_path, config
+        sym_scores, sym_val_features, sym_val_target, sym_feature_configs = (
+            _score_single_symbol(data_path, config)
         )
         per_symbol_scores.append(sym_scores)
         all_val_features.append(sym_val_features)
+        all_val_targets.append(sym_val_target)
         if not feature_configs:
             feature_configs = sym_feature_configs
 
@@ -622,14 +678,22 @@ def run_feature_research(
     feature_cols = scores["feature"].tolist()
     pooled_val_features = pd.concat(all_val_features, ignore_index=True)
     del all_val_features
+    pooled_val_target = pd.concat(all_val_targets, ignore_index=True).rename("_target")
+    del all_val_targets
 
-    # _select_features uses only the feature values for linear residualization;
-    # drop NaN rows so the regression is clean.
-    val_features_clean = pooled_val_features[feature_cols].dropna()
+    # _select_features uses the feature values for linear residualization and
+    # the pooled proxy target for conditional-IC redundancy filtering; drop
+    # NaN rows (from both) so the regression and IC recompute are clean.
+    combined = pd.concat(
+        [pooled_val_features[feature_cols], pooled_val_target], axis=1
+    ).dropna()
+    val_features_clean = combined[feature_cols]
+    val_target_clean = combined["_target"]
 
     selected_features = _select_features(
         scores,
         val_features_clean,
+        val_target_clean,
         top_k=config.research.top_k,
         icir_threshold=config.research.icir_threshold,
     )
