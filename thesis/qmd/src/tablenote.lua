@@ -26,7 +26,11 @@ function Div(el)
   -- ── PDF / LaTeX ──────────────────────────────────────────────────────────
   if quarto.doc.is_format("pdf") or quarto.doc.is_format("latex") then
     local blocks = pandoc.Blocks{}
-    blocks:insert(pandoc.RawBlock("latex", "\\vspace{-0.3em}{\\footnotesize\\itshape"))
+    -- \nopagebreak discourages LaTeX from splitting the page exactly between
+    -- the table and its source/legend note; without it the note can be torn
+    -- across a page boundary (e.g. a multi-citation Source line split
+    -- mid-parenthesis) while the table itself stays fully on the prior page.
+    blocks:insert(pandoc.RawBlock("latex", "\\nopagebreak\\vspace{-0.3em}{\\footnotesize\\itshape"))
     blocks:extend(el.content)
     blocks:insert(pandoc.RawBlock("latex", "}\\vspace{0.3em}"))
     return blocks

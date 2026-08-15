@@ -82,14 +82,14 @@ else:
     show_table_meta(finished, audit=_audit)
 ```
 
+::: {.table-note}
+**Legend:** Sharpe: mean excess return / std (not annualized). Sortino: mean excess return / downside deviation (not annualized). Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of positive-return steps. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. Ann. Vol: annualized volatility.
+:::
+
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
 \end{landscape}
 ```
-:::
-
-::: {.table-note}
-**Legend:** Sharpe: mean excess return / std (not annualized). Sortino: mean excess return / downside deviation (not annualized). Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of positive-return steps. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. Ann. Vol: annualized volatility.
 :::
 
 The feature comparison supports a qualified version of H2. The minimal
