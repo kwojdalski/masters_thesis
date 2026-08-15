@@ -47,6 +47,7 @@ from trading_rl.pipeline.experiment_runner import (  # noqa: E402
     execute_single_experiment,
 )
 from trading_rl.pipeline.training import (  # noqa: E402
+    _configure_experiment_environment,
     build_experiment_runtime,
     setup_mlflow_experiment,
 )
@@ -77,9 +78,10 @@ def build_training_context(
     create_mlflow_callback: bool = True,
 ) -> dict[str, Any]:
     """Build backward-compatible dict context used by older callers/tests."""
+    environment = _configure_experiment_environment(config, experiment_name)
     runtime = build_experiment_runtime(
         config=config,
-        experiment_name=experiment_name,
+        environment=environment,
         progress_bar=progress_bar,
         create_mlflow_callback=create_mlflow_callback,
     )
