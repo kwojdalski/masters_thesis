@@ -23,6 +23,7 @@ from trading_rl.pipeline.finalization import (
     save_final_checkpoint,
 )
 from trading_rl.pipeline.training import (
+    ExperimentEnvironment,
     ExperimentRuntime,
     TrainingBundle,
     _configure_experiment_environment,
@@ -36,6 +37,7 @@ __all__ = [
     # checkpoint
     "CheckpointResumptionResult",
     # training
+    "ExperimentEnvironment",
     "ExperimentRuntime",
     # evaluation
     "PipelineSplitResult",

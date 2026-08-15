@@ -79,9 +79,19 @@ def _runtime(
     )
 
 
-def _patch_finalization(monkeypatch, *, evaluate_raises: bool = False) -> dict[str, Any]:
+def _patch_finalization(
+    monkeypatch, *, evaluate_raises: bool = False
+) -> dict[str, Any]:
     calls: dict[str, Any] = {"metrics": [], "checkpoints": [], "saved_json": 0}
     monkeypatch.setattr(runner, "run_guardrail_check", lambda _config, **_kwargs: None)
+    monkeypatch.setattr(
+        runner,
+        "_configure_experiment_environment",
+        lambda _config, experiment_name: SimpleNamespace(
+            logger=_Logger(),
+            effective_experiment_name=experiment_name or "experiment",
+        ),
+    )
     monkeypatch.setattr(runner, "_configure_periodic_hooks", lambda **_kwargs: None)
     monkeypatch.setattr(
         runner,
@@ -100,7 +110,9 @@ def _patch_finalization(monkeypatch, *, evaluate_raises: bool = False) -> dict[s
         "resolve_primary_split_result",
         lambda split_results: ("test", 1.25, [0.0, 1.0], {"total_return": 0.1}),
     )
-    monkeypatch.setattr(runner, "run_primary_split_explainability", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        runner, "run_primary_split_explainability", lambda **_kwargs: None
+    )
 
     def fake_build_final_metrics(**kwargs: Any) -> dict[str, Any]:
         calls["metrics"].append(kwargs)
@@ -116,7 +128,9 @@ def _patch_finalization(monkeypatch, *, evaluate_raises: bool = False) -> dict[s
     monkeypatch.setattr(
         runner,
         "save_training_results_json",
-        lambda *_args, **_kwargs: calls.__setitem__("saved_json", calls["saved_json"] + 1),
+        lambda *_args, **_kwargs: calls.__setitem__(
+            "saved_json", calls["saved_json"] + 1
+        ),
     )
     return calls
 
@@ -130,7 +144,9 @@ def test_execute_single_experiment_finalizes_after_training_interrupt(
 
     result = runner.execute_single_experiment(
         config=_config(tmp_path),
-        build_experiment_runtime_fn=lambda **_kwargs: _runtime(trainer, callback="mlflow"),
+        build_experiment_runtime_fn=lambda **_kwargs: _runtime(
+            trainer, callback="mlflow"
+        ),
     )
 
     assert result["interrupted"] is True
@@ -195,6 +211,7 @@ def test_execute_single_experiment_resume_uses_checkpoint_callback_and_name(
 
     assert result["interrupted"] is False
     assert runtime_kwargs["create_mlflow_callback"] is False
+    assert runtime_kwargs["environment"].effective_experiment_name == "experiment"
     assert trainer.callbacks == [resume_callback]
     assert resume_kwargs["checkpoint_path"] == "checkpoint.pt"
     assert resume_kwargs["additional_steps"] == 50
@@ -255,7 +272,9 @@ def test_configure_periodic_hooks_filters_splits_and_clamps_eval_steps(
 
     def fake_build_context_for_split(*, split, df, config):
         built.append(split)
-        return SimpleNamespace(split=split, df=df, max_steps=len(df) + 10, env=f"env-{split}")
+        return SimpleNamespace(
+            split=split, df=df, max_steps=len(df) + 10, env=f"env-{split}"
+        )
 
     monkeypatch.setattr(
         runner,

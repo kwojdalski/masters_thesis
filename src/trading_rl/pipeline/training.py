@@ -55,15 +55,23 @@ class ExperimentRuntime:
     training_bundle: TrainingBundle
 
 
-def setup_logging(params: LoggingParams, experiment_name: str | None = None) -> logging.Logger:
+@dataclass(frozen=True)
+class ExperimentEnvironment:
+    """Process-level state configured before runtime object construction."""
+
+    logger: logging.Logger
+    effective_experiment_name: str
+
+
+def setup_logging(
+    params: LoggingParams, experiment_name: str | None = None
+) -> logging.Logger:
     """Setup logging configuration."""
     log_level = os.getenv("LOG_LEVEL") or params.log_level
     Path(params.log_dir).mkdir(parents=True, exist_ok=True)
     Path(params.tensorboard_dir).mkdir(parents=True, exist_ok=True)
     log_file_path = (
-        str(Path(params.log_dir) / params.log_file)
-        if params.log_to_file
-        else None
+        str(Path(params.log_dir) / params.log_file) if params.log_to_file else None
     )
 
     configure_root_logging(
@@ -109,7 +117,10 @@ def set_seed(seed: int | None) -> int:
 
 
 def _select_trainer_class(algorithm: str, backend: str):
-    is_continuous_env = backend in {EnvBackend.TRADINGENV, EnvBackend.GYM_TRADING_CONTINUOUS}
+    is_continuous_env = backend in {
+        EnvBackend.TRADINGENV,
+        EnvBackend.GYM_TRADING_CONTINUOUS,
+    }
     return TrainerRegistry.get(algorithm, is_continuous=is_continuous_env)
 
 
@@ -119,8 +130,15 @@ def _build_train_env(
     logger: logging.Logger,
 ) -> Any:
     logger.info("build environment")
-    env = AlgorithmicEnvironmentBuilder().create(dataset.train_df, EnvBuildParams.from_config(config))
-    logger.trace("environment obs_spec={} action_spec={} reward_spec={}", env.observation_spec, env.action_spec, env.reward_spec)
+    env = AlgorithmicEnvironmentBuilder().create(
+        dataset.train_df, EnvBuildParams.from_config(config)
+    )
+    logger.trace(
+        "environment obs_spec={} action_spec={} reward_spec={}",
+        env.observation_spec,
+        env.action_spec,
+        env.reward_spec,
+    )
     return env
 
 
@@ -307,7 +325,10 @@ def _log_data_diagnostics(
 
     logger.debug(
         "Data loaded - train: {}, val: {}, test: {}, columns: {}",
-        train_df.shape, val_df.shape, test_df.shape, list(train_df.columns),
+        train_df.shape,
+        val_df.shape,
+        test_df.shape,
+        list(train_df.columns),
     )
 
     if is_level_enabled("TRACE"):
@@ -315,11 +336,18 @@ def _log_data_diagnostics(
         if "close" in train_df.columns:
             logger.trace(
                 "  Close price - min: {}, max: {}, mean: {}",
-                train_df["close"].min(), train_df["close"].max(), train_df["close"].mean(),
+                train_df["close"].min(),
+                train_df["close"].max(),
+                train_df["close"].mean(),
             )
             logger.trace("  Close price std: {:.2f}", train_df["close"].std())
         feature_cols = [col for col in train_df.columns if "feature" in col.lower()]
-        logger.trace("  Features found: {}" if feature_cols else "  No feature_* columns found in prepared data", feature_cols or "")
+        logger.trace(
+            "  Features found: {}"
+            if feature_cols
+            else "  No feature_* columns found in prepared data",
+            feature_cols or "",
+        )
 
     n_feat = len([c for c in train_df.columns if str(c).startswith("feature_")])
     log_banner(
@@ -348,8 +376,8 @@ def _log_mlflow_artifacts(
 def _configure_experiment_environment(
     config: ExperimentConfig,
     experiment_name: str | None,
-) -> tuple[Any, str]:
-    """Configure logging and seed for an experiment; return (logger, effective_name).
+) -> ExperimentEnvironment:
+    """Configure process-level logging and RNG state for one experiment.
 
     Extracted from build_experiment_runtime so this phase can be called
     independently (e.g. in resumed runs or tests that need a configured logger
@@ -360,19 +388,21 @@ def _configure_experiment_environment(
     logger = setup_logging(logging_params, effective_experiment_name)
     config.seed = set_seed(config.seed)
     _print_config_debug(config, logger)
-    return logger, effective_experiment_name
+    return ExperimentEnvironment(
+        logger=logger,
+        effective_experiment_name=effective_experiment_name,
+    )
 
 
 def build_experiment_runtime(
     config: ExperimentConfig,
-    experiment_name: str | None = None,
+    environment: ExperimentEnvironment,
     progress_bar: Any = None,
     create_mlflow_callback: bool = True,
 ) -> ExperimentRuntime:
-    """Build typed runtime state used by fresh and resumed runs."""
-    logger, effective_experiment_name = _configure_experiment_environment(
-        config, experiment_name
-    )
+    """Build typed runtime state without configuring global process state."""
+    logger = environment.logger
+    effective_experiment_name = environment.effective_experiment_name
 
     profiler = get_profiler()
 

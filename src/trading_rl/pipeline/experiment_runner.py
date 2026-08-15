@@ -26,7 +26,9 @@ from trading_rl.pipeline.finalization import (
     save_final_checkpoint,
 )
 from trading_rl.pipeline.training import (
+    ExperimentEnvironment,
     ExperimentRuntime,
+    _configure_experiment_environment,
     build_experiment_runtime,
     setup_mlflow_experiment,
 )
@@ -39,6 +41,7 @@ def _json_default(obj: Any) -> Any:
     import numpy as np
 
     from trading_rl.evaluation.metrics import MetricReport
+
     if isinstance(obj, MetricReport):
         return obj.to_dict()
     if isinstance(obj, np.floating):
@@ -63,7 +66,9 @@ def _sanitise(obj: Any) -> Any:
     return obj
 
 
-def save_training_results_json(config: Any, final_metrics: dict[str, Any]) -> Path | None:
+def save_training_results_json(
+    config: Any, final_metrics: dict[str, Any]
+) -> Path | None:
     """Write results.json to log_dir in the same format the evaluate command produces.
 
     This lets export_eval_to_thesis.py work after a training run without
@@ -84,8 +89,9 @@ def save_training_results_json(config: Any, final_metrics: dict[str, Any]) -> Pa
             metrics_dict: dict[str, Any] | None = None
             if isinstance(evaluation_report, MetricReport):
                 metrics_dict = {
-                    k: v for k, v in evaluation_report.to_dict().items()
-                    if isinstance(v, (int, float)) and math.isfinite(float(v))
+                    k: v
+                    for k, v in evaluation_report.to_dict().items()
+                    if isinstance(v, int | float) and math.isfinite(float(v))
                 }
             elif isinstance(evaluation_report, dict):
                 metrics_dict = evaluation_report
@@ -125,7 +131,7 @@ class TrainingExecutionResult:
 def _resolve_runtime(
     *,
     config: Any,
-    experiment_name: str | None,
+    environment: ExperimentEnvironment,
     progress_bar: Any,
     checkpoint_path: str | None,
     additional_steps: int | None,
@@ -134,7 +140,7 @@ def _resolve_runtime(
     """Build runtime and optionally resume it from checkpoint metadata."""
     runtime = build_experiment_runtime_fn(
         config=config,
-        experiment_name=experiment_name,
+        environment=environment,
         progress_bar=progress_bar,
         create_mlflow_callback=not checkpoint_path,
     )
@@ -190,13 +196,16 @@ def _configure_periodic_hooks(
         df = split_map.get(split_name)
         if df is None or len(df) < 2:
             _logger.warning(
-                "periodic eval: split '{}' not available or too small, skipping", split_name
+                "periodic eval: split '{}' not available or too small, skipping",
+                split_name,
             )
             continue
         # Slice df to temp_eval_max_steps rows so the env is small and fast to
         # build; the full split is reserved for final evaluation.
         temp_df = df.iloc[:temp_eval_max_steps] if len(df) > temp_eval_max_steps else df
-        ctx = build_evaluation_context_for_split(split=split_name, df=temp_df, config=config)
+        ctx = build_evaluation_context_for_split(
+            split=split_name, df=temp_df, config=config
+        )
         split_contexts.append(
             SplitEvalContext(
                 split=split_name,
@@ -260,12 +269,15 @@ def execute_single_experiment(
     """Run the end-to-end experiment flow and return the public result payload."""
     run_guardrail_check(config, progress_bar=progress_bar)
 
-    profiler = init_profiler(level=config.profiling.level if getattr(config, "profiling", None) else 0)
+    profiler = init_profiler(
+        level=config.profiling.level if getattr(config, "profiling", None) else 0
+    )
 
     with profiler.stage("runtime_build"):
+        environment = _configure_experiment_environment(config, experiment_name)
         runtime = _resolve_runtime(
             config=config,
-            experiment_name=experiment_name,
+            environment=environment,
             progress_bar=progress_bar,
             checkpoint_path=checkpoint_path,
             additional_steps=additional_steps,
