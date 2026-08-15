@@ -62,6 +62,8 @@ def _bare_xy_env(
     env._current_episode_start_ts = None
     env._current_episode_end_ts = None
     env._obs_clip = None
+    env._obs_latency = None
+    env._exec_latency = None
     return env
 
 
@@ -285,7 +287,7 @@ class TestStreamingTradingEnvXYReset:
         monkeypatch.setattr(
             env,
             "_build_inner_env",
-            lambda window_df, symbol="", reward=None: _FakeInnerEnv(),
+            lambda window_df, symbol="", reward=None, **_kwargs: _FakeInnerEnv(),
         )
 
         obs, info = env.reset()
