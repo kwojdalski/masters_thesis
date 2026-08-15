@@ -114,7 +114,7 @@ from thesis_mlflow_results import (
     load_experiment_snapshot,
     show_table_meta,
 )
-from thesis_tables import wrap_html
+from thesis_tables import wrap_html, missing_data_notice
 
 _EXPERIMENT = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 _audit = audit_plots_enabled()
@@ -127,8 +127,10 @@ if rows:
     display(HTML(spec_df.to_html(index=False, escape=False)))
     show_table_meta(_finished, audit=_audit)
 else:
-    print("Experiment hyperparameters not found — run: uv run python src/cli.py export-eval "
-          f"--experiment {_EXPERIMENT}")
+    missing_data_notice(
+        "Experiment hyperparameters not found — run: uv run python src/cli.py export-eval "
+        f"--experiment {_EXPERIMENT}"
+    )
 ```
 
 ---
@@ -139,7 +141,7 @@ The diagram below shows the feature pipeline design that ensures no information
 from the validation or test splits leaks into the fitted normalization
 parameters.
 
-![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){fig-align="center" width="3.5in"}
+![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="3.5in"}
 
 ---
 
@@ -173,7 +175,7 @@ which jointly rewards signal strength and consistency; features with $|\text{ICI
 
 The diagram below summarizes the pipeline.
 
-![Offline feature selection pipeline: score candidates by ICIR, apply a conditional-IC redundancy filter, store the selected specification for training.](diagrams/fig-feature-selection-pipeline.svg){fig-align="center" width="1.9in"}
+![Offline feature selection pipeline: score candidates by ICIR, apply a conditional-IC redundancy filter, store the selected specification for training.](diagrams/fig-feature-selection-pipeline.svg){#fig-feature-selection-pipeline fig-align="center" width="1.9in"}
 
 The offline nature of this pipeline is deliberate: the proxy target and scoring
 metrics are not the reward function that the agent optimizes during training.
@@ -189,7 +191,7 @@ The figure below shows the six major stages of the experimental pipeline at a
 glance. Each stage is described in the corresponding chapter; this overview is
 intended as a navigation aid.
 
-![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){fig-align="center" width="4.5in"}
+![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="4.5in"}
 
 The full machine-readable diagram — including CLI entry points, per-step data
 flows, all configuration guardrail checks, environment variants, MLflow
