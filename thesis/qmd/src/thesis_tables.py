@@ -62,7 +62,18 @@ def fmt_duration(s: float | None, na: str = "—") -> str:
 
 
 def fmt_scientific(v: float) -> str:
-    """Format a float as a compact scientific-notation string (e.g. '1.5 x 10^-4')."""
+    """Format a float as compact HTML scientific notation (e.g. '1.5 × 10<sup>-4</sup>').
+
+    This string is embedded (escape=False) into a pandas-generated HTML table
+    that pandoc converts to LaTeX for the PDF build, so the exponent uses an
+    HTML <sup> tag rather than a bare '^' (unrendered by HTML/LaTeX alike) or
+    Unicode superscript digits (e.g. '⁻⁶'), which are missing from the
+    thesis's default LaTeX font and render as blank boxes. A raw LaTeX
+    '$...$' math string also does not work here: this cell's content is
+    parsed as HTML, not markdown, so '$...$' passes through as literal text.
+    The '×' multiplication sign is a plain character and renders fine
+    directly in both HTML and the PDF's default font.
+    """
     if v == 0.0:
         return "0.0"
     exp = math.floor(math.log10(abs(v)))
@@ -72,7 +83,8 @@ def fmt_scientific(v: float) -> str:
         if abs(mantissa - round(mantissa)) > 1e-9
         else str(round(mantissa))
     )
-    return f"{m} x 10^{exp}" if m != "1" else f"10^{exp}"
+    exp_str = f"<sup>{exp}</sup>"
+    return f"{m} × 10{exp_str}" if m != "1" else f"10{exp_str}"
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +162,17 @@ def table_note(
     # filter sees them as a single block (one Para per label).
     inner = "  \n".join(parts)
     display(Markdown(f"\n::: {{.table-note}}\n{inner}\n:::\n"))
+
+
+def missing_data_notice(message: str) -> None:
+    """Display a missing-data fallback notice as flowing Markdown text.
+
+    Used in place of a bare ``print(...)`` so the message renders as normal
+    word-wrapped prose instead of a verbatim code-cell output block. Verbatim
+    blocks do not wrap long lines, and a long "<file> not found — run: <cmd>"
+    message can overflow past the page margin in PDF output.
+    """
+    display(Markdown(f"*{message}*"))
 
 
 def simple_html_table(rows: list[dict], index_col: str | None = None) -> HTML:

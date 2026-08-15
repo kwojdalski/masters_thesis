@@ -130,13 +130,13 @@ else:
     show_table_meta(finished, audit=_audit)
 ```
 
+*Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. % Long/Short: fraction of steps with positive/negative position.*
+
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
 \end{landscape}
 ```
 :::
-
-*Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. % Long/Short: fraction of steps with positive/negative position.*
 
 ### Key Empirical Questions
 
@@ -245,4 +245,3 @@ cumulative return in the zero-fee evaluation window. The defensible H1 verdict i
 that TD3 learns a conservative, economically coherent policy with strong
 drawdown control and trade quality, but the exported results do not establish
 general benchmark dominance on absolute return.
-

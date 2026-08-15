@@ -78,10 +78,14 @@ an order-book event with multi-level bid/ask prices, sizes, and order counts,
 plus trade descriptors used for order-flow features. The core column groups
 are summarized below.
 
-| | `timestamp` | `bid/ask_px_NN` | `bid/ask_sz_NN` | `bid/ask_ct_NN` | `action`, `side`, `size` | `close` |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Description** | Chronological event index | Bid/ask prices at level `NN` | Resting size at level `NN` | Order count at level `NN` | Event type, aggressor side, size | Mid-price-like series (auxiliary) |
-| **Role** | Ordering, temporal features | Spread, mid-price, slope, valuation | Imbalance, depth, OFI, queue features | Order count imbalance | Signed trade flow features | Reward and portfolio valuation |
+| Column group | Description | Role |
+|---|---|---|
+| `timestamp` | Chronological event index | Ordering, temporal features |
+| `bid/ask_px_NN` | Bid/ask prices at level `NN` | Spread, mid-price, slope, valuation |
+| `bid/ask_sz_NN` | Resting size at level `NN` | Imbalance, depth, OFI, queue features |
+| `bid/ask_ct_NN` | Order count at level `NN` | Order count imbalance |
+| `action`, `side`, `size` | Event type, aggressor side, size | Signed trade flow features |
+| `close` | Mid-price-like series (auxiliary) | Reward and portfolio valuation |
 
 : Input schema used in the empirical pipeline. {#tbl-input-schema}
 
@@ -139,7 +143,7 @@ and test each represent one chronological half of the March 2 file.
 import json
 import pandas as pd
 from thesis_mlflow_results import repo_root
-from thesis_tables import fmt_duration, display_df, table_note
+from thesis_tables import fmt_duration, display_df, table_note, missing_data_notice
 
 _inv_path = repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/raw_file_inventory.json"
 
@@ -162,8 +166,10 @@ if _inv_path.exists():
         ),
     )
 else:
-    print("raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
-          "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export")
+    missing_data_notice(
+        "raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export"
+    )
 ```
 
 **Training data.** The 18 files from days 1–3 are used exclusively for
@@ -272,13 +278,15 @@ To illustrate how the raw order book data is transformed into the input features
 #| warning: false
 
 from thesis_mlflow_results import find_observation_sample
-from thesis_tables import lob_events_table
+from thesis_tables import lob_events_table, missing_data_notice
 
 df = find_observation_sample(split="test", symbol="AAPL")
 if df is not None:
     lob_events_table(df)
 else:
-    print("Observation sample not found: run evaluate for AAPL to generate evaluation_data artifacts.")
+    missing_data_notice(
+        "Observation sample not found: run evaluate for AAPL to generate evaluation_data artifacts."
+    )
 ```
 
 The transformed features in @tbl-transformed-features demonstrate several key properties of the feature engineering approach. First, **Book Pressure** and **Order Imbalance** capture instantaneous order-book liquidity and directional pressure: positive values indicate net buying pressure (bid depth dominates), while negative values signal selling pressure (visible in E12 after a bid-side refresh). Second, **Microprice Deviation** tracks how far the current microprice lies from the simple mid-price, providing a depth-weighted estimate of the fair transaction price. Third, **OFI** (Order Flow Imbalance) captures signed net trade flow over a short window, jumping sharply at events where displayed depth is consumed or replenished.
@@ -318,7 +326,7 @@ capturing the higher-order interactions that linear models cannot represent.
 
 import pandas as pd
 from thesis_mlflow_results import repo_root
-from thesis_tables import feature_correlation_table
+from thesis_tables import feature_correlation_table, missing_data_notice
 
 _corr_path = (
     repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/correlations.csv"
@@ -326,7 +334,7 @@ _corr_path = (
 if _corr_path.exists():
     feature_correlation_table(pd.read_csv(_corr_path))
 else:
-    print(
+    missing_data_notice(
         "correlations.csv not found — run: uv run python src/cli.py peek "
         "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected "
         "--corr --export"
@@ -367,7 +375,7 @@ training days across the six instruments.
 import json
 import pandas as pd
 from thesis_mlflow_results import repo_root
-from thesis_tables import fmt_duration, display_df
+from thesis_tables import fmt_duration, display_df, missing_data_notice
 
 _PEEK_DIR = repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
 _splits_path = _PEEK_DIR / "splits.json"
@@ -389,9 +397,11 @@ if _splits_path.exists():
     }).drop(columns=["columns"])
     display_df(out)
 else:
-    print("splits.json not found — run: uv run python src/cli.py peek "
-          "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
-          "--skip 500 --export")
+    missing_data_notice(
+        "splits.json not found — run: uv run python src/cli.py peek "
+        "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
+        "--skip 500 --export"
+    )
 ```
 
 ### Feature Statistics {#sec-feature-statistics}
@@ -433,7 +443,7 @@ continuous-control RL on financial microstructure data.
 
 import pandas as pd
 from thesis_mlflow_results import repo_root
-from thesis_tables import feature_stats_table
+from thesis_tables import feature_stats_table, missing_data_notice
 
 _feat_path = (
     repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/feature_stats.csv"
@@ -441,6 +451,8 @@ _feat_path = (
 if _feat_path.exists():
     feature_stats_table(pd.read_csv(_feat_path))
 else:
-    print("feature_stats.csv not found — run: uv run python src/cli.py peek "
-          "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export")
+    missing_data_notice(
+        "feature_stats.csv not found — run: uv run python src/cli.py peek "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export"
+    )
 ```

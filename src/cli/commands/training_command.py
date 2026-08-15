@@ -9,8 +9,8 @@ from rich.columns import Columns
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from cli.services import validate_experiment_config
-from trading_rl import ExperimentConfig, run_single_experiment
+from cli.services import TrainingConfigRequest, TrainingConfigService, ValidationReport
+from trading_rl import run_single_experiment
 from trading_rl.constants import SplitName
 from trading_rl.evaluation.metric_meta import METRIC_LEGEND, METRIC_META_BY_KEY
 
@@ -38,20 +38,35 @@ class TrainingParams:
 class TrainingCommand(BaseCommand):
     """Command for training a single trading agent."""
 
+    def __init__(self, console, config_service: TrainingConfigService | None = None):
+        super().__init__(console)
+        self._config_service = config_service or TrainingConfigService()
+
     def execute(self, params: TrainingParams) -> None:
         """Execute single training run."""
         try:
-            if params.from_checkpoint and params.from_last_checkpoint:
-                raise ValueError(
-                    "Use only one of --from-checkpoint or --from-last-checkpoint."
-                )
-
             if params.interactive:
                 self._interactive_setup(params)
 
-            # Load and configure experiment
-            config = self._load_training_config(params)
-            self._resolve_checkpoint_path(config, params)
+            prepared = self._config_service.prepare(
+                TrainingConfigRequest(
+                    config_file=params.config_file,
+                    scenario=params.scenario,
+                    config_overrides=params.config_overrides,
+                    experiment_name=params.experiment_name,
+                    seed=params.seed,
+                    max_steps=params.max_steps,
+                    checkpoint_path=params.checkpoint_path,
+                    from_checkpoint=params.from_checkpoint,
+                    from_last_checkpoint=params.from_last_checkpoint,
+                ),
+                load_config=self._load_experiment_config,
+                resolve_seed=self.resolve_seed,
+            )
+            config = prepared.config
+            params.checkpoint_path = prepared.checkpoint_path
+            self._display_config_source(params)
+            self._display_validation(prepared.validation)
 
             if params.interactive:
                 self._interactive_post_config(config, params)
@@ -110,39 +125,14 @@ class TrainingCommand(BaseCommand):
         else:
             self.console.print("[dim]Feature caching is already disabled in config.[/dim]")
 
-    def _load_training_config(self, params: TrainingParams) -> Any:
-        """Load and configure training parameters."""
-        # Load base configuration
-        if params.config_file and params.scenario:
-            raise ValueError("Cannot specify both --config and --scenario.")
-
+    def _display_config_source(self, params: TrainingParams) -> None:
         if params.config_file:
-            config = self._load_experiment_config(
-                params.config_file, command="train", overrides=params.config_overrides
-            )
             self.console.print(f"[blue]Loaded config from: {params.config_file}[/blue]")
         elif params.scenario:
-            config = self._load_experiment_config(
-                params.scenario, command="train", overrides=params.config_overrides
-            )
             self.console.print(f"[blue]Loaded config from scenario: {params.scenario}[/blue]")
-        else:
-            if params.config_overrides:
-                raise ValueError("--config-override requires --config or --scenario.")
-            config = ExperimentConfig()
 
-        # Apply CLI overrides
-        self._apply_training_overrides(config, params)
-
-        # Handle seed generation
-        config.seed = self.resolve_seed(config.seed)
-        self._prevalidate_or_fail(config)
-
-        return config
-
-    def _prevalidate_or_fail(self, config: Any) -> None:
+    def _display_validation(self, report: ValidationReport) -> None:
         """Run validation before training starts and fail fast on errors."""
-        report = validate_experiment_config(config)
         if report.has_warnings:
             self.console.print(
                 f"[yellow]Validation warnings: {report.warning_count}[/yellow]"
@@ -162,16 +152,6 @@ class TrainingCommand(BaseCommand):
                 "Validation failed before training:\n" + "\n".join(error_lines)
             )
 
-    def _apply_training_overrides(self, config: Any, params: TrainingParams) -> None:
-        """Apply CLI parameter overrides to config."""
-        if params.experiment_name:
-            config.experiment_name = params.experiment_name
-        if params.seed is not None:
-            config.seed = params.seed
-        if params.max_steps is not None:
-            config.training.max_steps = params.max_steps
-
-
     def _display_config(self, config: Any, params: TrainingParams) -> None:
         """Display training configuration."""
         self.console.print(f"Experiment: [green]{config.experiment_name}[/green]")
@@ -182,26 +162,6 @@ class TrainingCommand(BaseCommand):
             )
         else:
             self.console.print(f"Max steps: [green]{config.training.max_steps}[/green]")
-
-    def _resolve_checkpoint_path(self, config: Any, params: TrainingParams) -> None:
-        """Resolve checkpoint path from aliases or latest checkpoint option."""
-        if params.checkpoint_path:
-            return
-        if params.from_checkpoint:
-            params.checkpoint_path = params.from_checkpoint
-            return
-        if not params.from_last_checkpoint:
-            return
-
-        log_dir = Path(config.logging.log_dir)
-        pattern = f"{config.experiment_name}_checkpoint*.pt"
-        matches = list(log_dir.rglob(pattern))
-        if not matches:
-            raise FileNotFoundError(
-                f"No checkpoints found for {config.experiment_name} in {log_dir}"
-            )
-        latest = max(matches, key=lambda p: p.stat().st_mtime)
-        params.checkpoint_path = latest
 
     def _run_training_with_progress(
         self, config: Any, params: TrainingParams

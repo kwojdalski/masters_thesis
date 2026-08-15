@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -255,6 +255,34 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
         )
         return env
 
+    def _resolve_history_reward_function(
+        self, params: EnvBuildParams
+    ) -> Callable[[Any], float]:
+        """Resolve the ``(history) -> float`` reward callable for gym_trading_env backends.
+
+        Single source of reward_type dispatch for this backend family, replacing
+        two previously-duplicated hardcoded ``reward_function`` imports (one in
+        ``_create_non_streaming_env``, one in ``_create_streaming_env``) that
+        silently ignored ``reward_type`` and always used log_return.
+
+        Only log_return is supported here: differential_sharpe cannot reuse the
+        ``StatefulRewardWrapper`` pattern used for gym_anytrading in
+        ``_create_anytrading_env`` -- ``gym_trading_env.TradingEnv`` already
+        invokes ``reward_function(history)`` internally once per step, so
+        wrapping it again would call the stateful DSR object twice per step,
+        double-updating its EMA state. Use the tradingenv backend for DSR.
+        """
+        reward_type = str(params.common.reward_type)
+        if reward_type == RewardType.LOG_RETURN:
+            from trading_rl.rewards import reward_function
+
+            return reward_function
+        raise ValueError(
+            f"reward_type={reward_type!r} is not supported for gym_trading_env "
+            f"backends (only {RewardType.LOG_RETURN!r} is). Use the tradingenv "
+            "backend for differential_sharpe support."
+        )
+
     def _resolve_memmap_paths(self, params: EnvBuildParams) -> list[MemmapPaths] | None:
         """Return per-symbol MemmapPaths if memmap_dir is configured and populated."""
         if not params.streaming.memmap_dir:
@@ -273,7 +301,6 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
     ) -> TransformedEnv:
         """Create a non-streaming (in-memory DataFrame) environment from params."""
         from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
-        from trading_rl.rewards import reward_function
 
         if backend == EnvBackend.TRADINGENV:
             from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory
@@ -319,7 +346,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             positions=params.common.positions,
             trading_fees=params.common.trading_fees,
             borrow_interest_rate=params.common.borrow_interest_rate,
-            reward_function=reward_function,
+            reward_function=self._resolve_history_reward_function(params),
         )
         env = GymWrapper(base_env)
 
@@ -383,7 +410,6 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
     ) -> TransformedEnv:
         from trading_rl.continuous_action_wrapper import ContinuousToDiscreteAction
         from trading_rl.envs.streaming_env import StreamingTradingEnv
-        from trading_rl.rewards import reward_function
 
         backend = self._resolve_backend(params)
         episode_length = params.streaming.streaming_episode_length
@@ -413,7 +439,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             positions=params.common.positions,
             trading_fees=params.common.trading_fees,
             borrow_interest_rate=params.common.borrow_interest_rate,
-            reward_function=reward_function,
+            reward_function=self._resolve_history_reward_function(params),
         )
         env = GymWrapper(base_env)
 

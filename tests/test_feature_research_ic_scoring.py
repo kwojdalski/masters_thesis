@@ -209,6 +209,7 @@ class TestSelectFeatures:
         rng = np.random.default_rng(123)
         primary = rng.standard_normal(200)
         incremental = rng.standard_normal(200)
+        target = pd.Series(primary + incremental, name="target")
         feature_data = pd.DataFrame(
             {
                 "feature_primary": primary,
@@ -230,11 +231,56 @@ class TestSelectFeatures:
         selected = _select_features(
             scores=scores,
             feature_data=feature_data,
+            target=target,
             top_k=2,
             icir_threshold=0.05,
         )
 
         assert selected == ["feature_primary", "feature_incremental"]
+
+    def test_near_duplicate_rejected_by_conditional_ic_not_variance(self):
+        """Regression test for the sibling bug of issue #170: a candidate
+        that survives the residual-variance guard (not an exact linear
+        multiple) must still be rejected once its conditional IC against the
+        target collapses after residualizing out an already-selected,
+        highly-correlated feature.
+        """
+        rng = np.random.default_rng(7)
+        n = 500
+        primary = rng.standard_normal(n)
+        # 99% correlated with primary but not an exact multiple, so the
+        # residual-std guard alone would let it through.
+        near_duplicate = 3.0 * primary + 0.15 * rng.standard_normal(n)
+        incremental = rng.standard_normal(n)
+        target = pd.Series(primary + incremental, name="target")
+        feature_data = pd.DataFrame(
+            {
+                "feature_primary": primary,
+                "feature_near_duplicate": near_duplicate,
+                "feature_incremental": incremental,
+            }
+        )
+        scores = pd.DataFrame(
+            {
+                "feature": [
+                    "feature_primary",
+                    "feature_near_duplicate",
+                    "feature_incremental",
+                ],
+                "icir": [3.0, 2.9, 2.0],
+            }
+        )
+
+        selected = _select_features(
+            scores=scores,
+            feature_data=feature_data,
+            target=target,
+            top_k=3,
+            icir_threshold=0.05,
+        )
+
+        assert selected == ["feature_primary", "feature_incremental"]
+        assert "feature_near_duplicate" not in selected
 
 
 # ---------------------------------------------------------------------------
@@ -275,41 +321,64 @@ class TestAggregateSymbolScores:
 
     def test_best_horizon_is_mode_across_files(self):
         rows = [
-            pd.DataFrame({
-                "feature": ["f"], "best_horizon": [5],
-                "mean_ic": [0.1], "ic_std": [0.1], "icir": [1.0],
-                "ic_tstat": [2.0], "ic_positive_ratio": [0.6],
-                "val_mean_ic": [0.08], "ic_stability": [0.02],
-            }),
-            pd.DataFrame({
-                "feature": ["f"], "best_horizon": [5],
-                "mean_ic": [0.1], "ic_std": [0.1], "icir": [1.0],
-                "ic_tstat": [2.0], "ic_positive_ratio": [0.6],
-                "val_mean_ic": [0.08], "ic_stability": [0.02],
-            }),
-            pd.DataFrame({
-                "feature": ["f"], "best_horizon": [10],
-                "mean_ic": [0.1], "ic_std": [0.1], "icir": [1.0],
-                "ic_tstat": [2.0], "ic_positive_ratio": [0.6],
-                "val_mean_ic": [0.08], "ic_stability": [0.02],
-            }),
+            pd.DataFrame(
+                {
+                    "feature": ["f"],
+                    "best_horizon": [5],
+                    "mean_ic": [0.1],
+                    "ic_std": [0.1],
+                    "icir": [1.0],
+                    "ic_tstat": [2.0],
+                    "ic_positive_ratio": [0.6],
+                    "val_mean_ic": [0.08],
+                    "ic_stability": [0.02],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "feature": ["f"],
+                    "best_horizon": [5],
+                    "mean_ic": [0.1],
+                    "ic_std": [0.1],
+                    "icir": [1.0],
+                    "ic_tstat": [2.0],
+                    "ic_positive_ratio": [0.6],
+                    "val_mean_ic": [0.08],
+                    "ic_stability": [0.02],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "feature": ["f"],
+                    "best_horizon": [10],
+                    "mean_ic": [0.1],
+                    "ic_std": [0.1],
+                    "icir": [1.0],
+                    "ic_tstat": [2.0],
+                    "ic_positive_ratio": [0.6],
+                    "val_mean_ic": [0.08],
+                    "ic_stability": [0.02],
+                }
+            ),
         ]
         agg = _aggregate_symbol_scores(rows)
         assert int(agg.loc[0, "best_horizon"]) == 5
 
     def test_sorted_by_abs_icir_descending(self):
         rows = [
-            pd.DataFrame({
-                "feature": ["low", "high"],
-                "best_horizon": [1, 1],
-                "mean_ic": [0.1, 0.4],
-                "ic_std": [0.1, 0.1],
-                "icir": [0.3, 0.8],
-                "ic_tstat": [1.0, 3.0],
-                "ic_positive_ratio": [0.5, 0.7],
-                "val_mean_ic": [0.05, 0.3],
-                "ic_stability": [0.05, 0.1],
-            })
+            pd.DataFrame(
+                {
+                    "feature": ["low", "high"],
+                    "best_horizon": [1, 1],
+                    "mean_ic": [0.1, 0.4],
+                    "ic_std": [0.1, 0.1],
+                    "icir": [0.3, 0.8],
+                    "ic_tstat": [1.0, 3.0],
+                    "ic_positive_ratio": [0.5, 0.7],
+                    "val_mean_ic": [0.05, 0.3],
+                    "ic_stability": [0.05, 0.1],
+                }
+            )
         ]
         agg = _aggregate_symbol_scores(rows)
         assert list(agg["feature"]) == ["high", "low"]
@@ -322,13 +391,16 @@ class TestSignificanceCounts:
         rng = np.random.default_rng(seed)
         idx = pd.date_range("2024-01-01", periods=n, freq="min")
         close = 100.0 + np.cumsum(rng.standard_normal(n) * 0.1)
-        pd.DataFrame({
-            "open": close - 0.01,
-            "high": close + 0.02,
-            "low": close - 0.02,
-            "close": close,
-            "volume": 1000.0,
-        }, index=idx).to_parquet(path)
+        pd.DataFrame(
+            {
+                "open": close - 0.01,
+                "high": close + 0.02,
+                "low": close - 0.02,
+                "close": close,
+                "volume": 1000.0,
+            },
+            index=idx,
+        ).to_parquet(path)
 
     def _write_feature_config(self, path) -> None:
         path.write_text(
