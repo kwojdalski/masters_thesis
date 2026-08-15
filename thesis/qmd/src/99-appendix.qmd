@@ -26,6 +26,7 @@ $V^{bid}_i$, $V^{ask}_i$: resting volume at level $i$;
 $C^{bid}_i$, $C^{ask}_i$: order count at level $i$;
 $M_t = \tfrac{1}{2}(P^{bid}_0+P^{ask}_0)$: mid-price;
 $S_t = P^{ask}_0-P^{bid}_0$: spread;
+$\bar{P}^{vw}_N = \tfrac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$: volume-weighted mid-price over the top $N$ levels;
 $\Delta V^{bid}_t = V^{bid}_{0,t}-V^{bid}_{0,t-1}$, $\Delta V^{ask}_t = V^{ask}_{0,t}-V^{ask}_{0,t-1}$: tick-to-tick volume change;
 $W$: rolling window in events;
 $\sum_W\,x_t = \sum_{\tau=t-W+1}^{t} x_\tau$: rolling sum;
@@ -59,7 +60,7 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_order\_count\_imbalance} & Imbalance & $(C^{bid}_i-C^{ask}_i)/(C^{bid}_i+C^{ask}_i)$ & $i=0$ & level 0 & Biais et al.\ (1995) \\
 \texttt{hft\_microprice} & Fair value & $(V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0)/(V^{bid}_0+V^{ask}_0)$ & --- & $\checkmark$ & Stoikov (2018) \\
 \texttt{hft\_microprice\_divergence} & Fair value & Microprice $- M_t$ & --- & $\checkmark$ & Stoikov (2018) \\
-\texttt{hft\_vwmp\_skew} & Fair value & $(\bar{P}^{vw}_N - M_t)/S_t$;\enspace $\bar{P}^{vw}_N = \dfrac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ & $N=3$ & & Stoikov (2018) \\
+\texttt{hft\_vwmp\_skew} & Fair value & $(\bar{P}^{vw}_N - M_t)/S_t$ & $N=3$ & & Stoikov (2018) \\
 \texttt{hft\_price\_vamp} & Fair value & Avg.\ execution price for fixed-notional order walked through $N$ levels & $Q\in\{1k,5k\}$ & & --- \\
 \texttt{hft\_depth\_ratio} & Depth & $(V^{bid}_0+V^{ask}_0)\,/\,\sum_{i=1}^{N}(V^{bid}_i+V^{ask}_i)$ & $N=4$ & & Bouchaud et al.\ (2002) \\
 \texttt{hft\_spread\_bps} & Spread/cost & $(P^{ask}_0-P^{bid}_0)/M_t \times 10{,}000$ & --- & & Kyle (1985); Glosten \& Milgrom (1985) \\
@@ -188,11 +189,11 @@ The figure below shows the six major stages of the experimental pipeline at a
 glance. Each stage is described in the corresponding chapter; this overview is
 intended as a navigation aid.
 
+![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){fig-align="center" width="4.5in"}
+
 The full machine-readable diagram — including CLI entry points, per-step data
 flows, all configuration guardrail checks, environment variants, MLflow
 logging, and asset provenance metadata — is maintained as a D2 source file
 at `docs/workflow.d2` in the project repository (@Wojdalski2026). It is too
 information-dense to reproduce at print resolution; the SVG rendering is
 available at `docs/workflow.svg`.
-
-![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){fig-align="center" width="4.5in"}
