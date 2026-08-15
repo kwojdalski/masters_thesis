@@ -164,6 +164,17 @@ def table_note(
     display(Markdown(f"\n::: {{.table-note}}\n{inner}\n:::\n"))
 
 
+def missing_data_notice(message: str) -> None:
+    """Display a missing-data fallback notice as flowing Markdown text.
+
+    Used in place of a bare ``print(...)`` so the message renders as normal
+    word-wrapped prose instead of a verbatim code-cell output block. Verbatim
+    blocks do not wrap long lines, and a long "<file> not found — run: <cmd>"
+    message can overflow past the page margin in PDF output.
+    """
+    display(Markdown(f"*{message}*"))
+
+
 def simple_html_table(rows: list[dict], index_col: str | None = None) -> HTML:
     """Render a list of dicts as a plain HTML table."""
     df = pd.DataFrame(rows)

@@ -109,11 +109,12 @@ _plot_data = {}
 if finished is not None:
     _plot_data = find_evaluation_plot_data(finished.get("artifact_uri"))
 
-_no_data_msg = (
-    "Plot data not available — re-run evaluation to generate parquet artifacts:\n"
-    "uv run python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr "
-    "--output-dir logs/<run> --only metrics --only benchmarks --only plots"
-)
+def _no_data_msg(kind: str) -> str:
+    return (
+        f"{kind} plot data not available — re-run evaluation to generate parquet artifacts: "
+        "uv run python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr "
+        "--output-dir logs/<run> --only metrics --only benchmarks --only plots"
+    )
 ```
 
 ```{python}
@@ -139,7 +140,8 @@ if _plot_data.get("equity") is not None:
               fig_cap="Portfolio value over the held-out evaluation window for the TD3 agent and benchmark strategies.",
               audit=_audit)
 else:
-    print(_no_data_msg)
+    from thesis_tables import missing_data_notice
+    missing_data_notice(_no_data_msg("Equity curve"))
 ```
 
 ```{python}
@@ -162,7 +164,8 @@ if _plot_data.get("rewards") is not None:
               fig_cap="Per-step reward signal received by the TD3 agent during the held-out evaluation rollout.",
               audit=_audit, render_base_size=11)
 else:
-    print(_no_data_msg)
+    from thesis_tables import missing_data_notice
+    missing_data_notice(_no_data_msg("Reward"))
 ```
 
 ```{python}
@@ -187,7 +190,8 @@ if _plot_data.get("actions") is not None:
               fig_cap="Portfolio allocation (position) taken by the TD3 agent at each step of the held-out evaluation rollout.",
               audit=_audit, render_base_size=11)
 else:
-    print(_no_data_msg)
+    from thesis_tables import missing_data_notice
+    missing_data_notice(_no_data_msg("Action/position"))
 ```
 
 ### Discussion: Reading Performance in the Context of State Design
