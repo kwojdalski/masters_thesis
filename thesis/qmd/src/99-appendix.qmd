@@ -6,7 +6,7 @@
 
 The tables below catalogue every feature type implemented in the feature
 registry. The subset used in the main
-state-space experiment is marked in the **In model** column: ✓ indicates
+state-space experiment is marked in the **In model** column: $\checkmark$ indicates
 all variants are used, while a specific parameter value indicates only that
 variant is used.
 Feature names match the keys produced by the feature pipeline at runtime.
