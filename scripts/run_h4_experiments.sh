@@ -57,8 +57,8 @@ _override_flags() {
 # ---------------------------------------------------------------------------
 if [[ $SKIP_GUARDRAILS -eq 0 ]]; then
     echo "=== Pre-flight: Checking guardrails for $SCENARIO ==="
-    local LOG_NAME="${SCENARIO##*/}"
-    local LOG_FILE="$LOG_DIR/${LOG_NAME}_guardrails.log"
+    LOG_NAME="${SCENARIO##*/}"
+    LOG_FILE="$LOG_DIR/${LOG_NAME}_guardrails.log"
     if uv run python "$REPO_ROOT/src/cli.py" validate guardrails \
         -c "$SCENARIO" \
         ${VERBOSE_FLAG:+"$VERBOSE_FLAG"} \

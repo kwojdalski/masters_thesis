@@ -231,6 +231,14 @@ repos:
                 print("✅ CLI consistency checks passed")
         files: '^src/cli/main\.py$'
 
+      # DSH skills drift check - .dsh/skills must match .claude sources
+      - id: dsh-skills-sync-check
+        name: Check .dsh/skills is in sync with .claude skills and agents
+        entry: uv run scripts/sync_dsh_skills.py --check
+        language: system
+        files: '^(\.claude/(skills|agents)/|\.dsh/skills/)'
+        pass_filenames: false
+
       # Run pytest tests
       - id: pytest
         name: Run pytest tests
