@@ -200,6 +200,17 @@ masters_thesis/
 └── tests/                   # Unit tests
 ```
 
+## Agent Skills (.claude / .dsh)
+
+Skills for AI coding agents (Claude Code, DeepSeek Harness) live in `.claude/skills/` and `.claude/agents/`, which are the canonical sources. The `.dsh/skills/` directory consumed by DeepSeek Harness is generated from them:
+
+```bash
+uv run scripts/sync_dsh_skills.py          # regenerate .dsh/skills
+uv run scripts/sync_dsh_skills.py --check  # verify sync (also runs as a pre-commit hook)
+```
+
+Edit `.claude/` sources and re-run the sync — never edit `.dsh/skills/` directly. Generic machine-wide skills sync separately from the dotfiles repository into `~/.dsh/skills/`.
+
 ## Docs and References
 
 - [Data Download and Generation Guide](docs/data_guide.md)
