@@ -165,3 +165,4 @@ memory/
 # Generated plot files for thesis PDF figure environments
 thesis/qmd/src/_figures/
 reports/
+**/graphify-out/
