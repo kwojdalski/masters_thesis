@@ -335,7 +335,7 @@ if _corr_path.exists():
     feature_correlation_table(pd.read_csv(_corr_path))
 else:
     missing_data_notice(
-        "correlations.csv not found — run: uv run python src/cli.py peek "
+        "correlations.csv not found — run: uv run python src/cli.py peek dataset "
         "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected "
         "--corr --export"
     )
@@ -398,7 +398,7 @@ if _splits_path.exists():
     display_df(out)
 else:
     missing_data_notice(
-        "splits.json not found — run: uv run python src/cli.py peek "
+        "splits.json not found — run: uv run python src/cli.py peek dataset "
         "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
         "--skip 500 --export"
     )
@@ -452,7 +452,7 @@ if _feat_path.exists():
     feature_stats_table(pd.read_csv(_feat_path))
 else:
     missing_data_notice(
-        "feature_stats.csv not found — run: uv run python src/cli.py peek "
+        "feature_stats.csv not found — run: uv run python src/cli.py peek dataset "
         "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export"
     )
 ```
