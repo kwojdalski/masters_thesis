@@ -529,7 +529,7 @@ class TrainerRuntimeHooks:
                                 )
                     _elapsed = time.monotonic() - _t_split
                     logger.info(
-                        "temp eval complete split={} reward={} artifacts={} elapsed_s={:.3f}",
+                        "temp eval complete split={} reward={:.6f} artifacts={} elapsed_s={:.3f}",
                         split_ctx.split,
                         final_reward,
                         artifact_prefix,
