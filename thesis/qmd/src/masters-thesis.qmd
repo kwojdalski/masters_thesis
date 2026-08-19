@@ -16,6 +16,7 @@ format:
     lof: true
     lot: true
     header-includes:
+      - \raggedbottom
       - \usepackage[utf8]{inputenc}
       - \usepackage{amsthm}
       - \usepackage{rotating}
