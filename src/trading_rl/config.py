@@ -596,6 +596,17 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
         errors.append(
             f"training.checkpoint_interval must be >= 0, got {cfg.training.checkpoint_interval}"
         )
+    if (
+        cfg.max_total_seconds is not None
+        and cfg.training.max_train_seconds is not None
+        and cfg.max_total_seconds < cfg.training.max_train_seconds
+    ):
+        errors.append(
+            f"max_total_seconds ({cfg.max_total_seconds}) must be >= "
+            f"training.max_train_seconds ({cfg.training.max_train_seconds}) — "
+            "otherwise the sweep budget would expire before a single trial "
+            "could ever complete"
+        )
 
     # Algorithm-specific
     if cfg.training.algorithm.upper() == Algorithm.PPO:

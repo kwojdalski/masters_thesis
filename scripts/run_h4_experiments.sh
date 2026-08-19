@@ -10,6 +10,10 @@
 #   bash scripts/run_h4_experiments.sh --scenario <scenario_name>
 #   bash scripts/run_h4_experiments.sh --trials 5 --steps 200000
 #   EXTRA_TRAIN_ARGS="training.max_steps=100000" bash scripts/run_h4_experiments.sh
+#   # Per-trial and per-sweep wall-clock budgets (seconds); a trial that hits
+#   # its budget stops cleanly with whatever it trained so far, the sweep
+#   # stops launching further trials once its own budget is exceeded:
+#   EXTRA_TRAIN_ARGS="training.max_train_seconds=600 max_total_seconds=3000" bash scripts/run_h4_experiments.sh
 #   bash scripts/run_h4_experiments.sh --skip-train          # analyze only
 #   bash scripts/run_h4_experiments.sh --verbose / -v        # enable debug logging
 #   bash scripts/run_h4_experiments.sh --skip-guardrails     # skip pre-flight guardrails check
@@ -29,12 +33,20 @@ SKIP_TRAIN=0
 SKIP_EVAL=0
 VERBOSE=0
 SKIP_GUARDRAILS=0
-for arg in "$@"; do
-    [[ "$arg" == "--skip-train" ]] && SKIP_TRAIN=1
-    [[ "$arg" == "--skip-eval"  ]] && SKIP_EVAL=1
-    [[ "$arg" == "--verbose"    ]] && VERBOSE=1
-    [[ "$arg" == "-v"           ]] && VERBOSE=1
-    [[ "$arg" == "--skip-guardrails" ]] && SKIP_GUARDRAILS=1
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --scenario) SCENARIO="$2"; shift 2 ;;
+        --trials)   N_TRIALS="$2"; shift 2 ;;
+        --steps)    STEPS="$2"; shift 2 ;;
+        --skip-train)      SKIP_TRAIN=1; shift ;;
+        --skip-eval)       SKIP_EVAL=1; shift ;;
+        --verbose|-v)      VERBOSE=1; shift ;;
+        --skip-guardrails) SKIP_GUARDRAILS=1; shift ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            exit 1
+            ;;
+    esac
 done
 
 VERBOSE_FLAG=""
