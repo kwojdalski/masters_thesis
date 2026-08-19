@@ -98,10 +98,9 @@ where:
 
 This is contrasted with SARSA's update in @eq-sarsa-update, where the next
 action is sampled from the current policy rather than taking the maximum.
-
-regardless of how $a_{t+1}$ was actually selected. This separation allows
-experience from a replay buffer — collected under earlier or exploratory
-policies — to be reused many times. In a financial simulator, however, replay
+This separation allows experience from a replay buffer — collected under
+earlier or exploratory policies — to be reused many times, regardless of how
+$a_{t+1}$ was actually selected. In a financial simulator, however, replay
 does not create counterfactual observations of how the market would have evolved
 under actions not actually taken. It is valid only under the maintained
 simulation assumption that the agent is price-taking and that its exposure
