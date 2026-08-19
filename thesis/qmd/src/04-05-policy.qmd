@@ -77,13 +77,13 @@ for i, (layer, act) in enumerate(zip(_layers, _activations)):
         "Parameters": f"{layer['params']:,}",
     })
 _rows.append({
-    "Layer": "**Total**",
+    "Layer": "<strong>Total</strong>",
     "Input dim": "",
     "Output dim": "",
-    "Parameters": f"**{_params['total']:,}**",
+    "Parameters": f"<strong>{_params['total']:,}</strong>",
 })
 
-display(HTML(pd.DataFrame(_rows).to_html(index=False)))
+display(HTML(pd.DataFrame(_rows).to_html(index=False, escape=False)))
 table_note(
     note=(
         "Input dimension $d$ and hidden layer widths are loaded from the experiment snapshot; "
