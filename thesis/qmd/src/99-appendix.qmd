@@ -128,8 +128,9 @@ if rows:
     show_table_meta(_finished, audit=_audit)
 else:
     missing_data_notice(
-        "Experiment hyperparameters not found — run: uv run python src/cli.py export-eval "
-        f"--experiment {_EXPERIMENT}"
+        "Experiment hyperparameters not found — run: uv run python "
+        "scripts/export_eval_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
     )
 ```
 

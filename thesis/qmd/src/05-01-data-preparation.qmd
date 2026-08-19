@@ -145,7 +145,10 @@ import pandas as pd
 from thesis_mlflow_results import repo_root
 from thesis_tables import fmt_duration, display_df, table_note, missing_data_notice
 
-_inv_path = repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/raw_file_inventory.json"
+_inv_path = (
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/raw_file_inventory.json"
+)
 
 if _inv_path.exists():
     df = pd.DataFrame(json.loads(_inv_path.read_text()))
@@ -168,7 +171,9 @@ if _inv_path.exists():
 else:
     missing_data_notice(
         "raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
-        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export"
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export, then: "
+        "uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
     )
 ```
 
@@ -329,15 +334,17 @@ from thesis_mlflow_results import repo_root
 from thesis_tables import feature_correlation_table, missing_data_notice
 
 _corr_path = (
-    repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/correlations.csv"
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/correlations.csv"
 )
 if _corr_path.exists():
     feature_correlation_table(pd.read_csv(_corr_path))
 else:
     missing_data_notice(
-        "correlations.csv not found — run: uv run python src/cli.py peek "
+        "correlations.csv not found — run: uv run python src/cli.py peek dataset "
         "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected "
-        "--corr --export"
+        "--corr --export, then: uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
     )
 ```
 
@@ -377,7 +384,10 @@ import pandas as pd
 from thesis_mlflow_results import repo_root
 from thesis_tables import fmt_duration, display_df, missing_data_notice
 
-_PEEK_DIR = repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected"
+_PEEK_DIR = (
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek"
+)
 _splits_path = _PEEK_DIR / "splits.json"
 
 if _splits_path.exists():
@@ -398,9 +408,10 @@ if _splits_path.exists():
     display_df(out)
 else:
     missing_data_notice(
-        "splits.json not found — run: uv run python src/cli.py peek "
+        "splits.json not found — run: uv run python src/cli.py peek dataset "
         "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
-        "--skip 500 --export"
+        "--skip 500 --export, then: uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
     )
 ```
 
@@ -446,13 +457,16 @@ from thesis_mlflow_results import repo_root
 from thesis_tables import feature_stats_table, missing_data_notice
 
 _feat_path = (
-    repo_root() / "reports/peek/td3_hft_lob_state_space_pooled_streaming_selected/feature_stats.csv"
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/feature_stats.csv"
 )
 if _feat_path.exists():
     feature_stats_table(pd.read_csv(_feat_path))
 else:
     missing_data_notice(
-        "feature_stats.csv not found — run: uv run python src/cli.py peek "
-        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export"
+        "feature_stats.csv not found — run: uv run python src/cli.py peek dataset "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export, then: "
+        "uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
     )
 ```
