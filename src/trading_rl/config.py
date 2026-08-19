@@ -122,8 +122,9 @@ class DataConfig:
     timeframe: str = "1m"
     data_dir: str = "data"
     download_since: datetime.datetime = field(
-        default_factory=lambda: datetime.datetime.now(datetime.UTC)
-        - datetime.timedelta(days=1)
+        default_factory=lambda: (
+            datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1)
+        )
     )
     train_size: int = 1000
     validation_size: int | None = None
@@ -730,6 +731,11 @@ class ExperimentConfig:
     # Experiment metadata
     experiment_name: str = "ddpg_trading"
 
+    # Wall-clock budget in seconds for a multi-trial sweep (train --trials N).
+    # Checked between trials; None = unlimited. Per-trial budget is
+    # training.max_train_seconds instead.
+    max_total_seconds: int | None = None
+
     # Per-check guardrail suppression (e.g. ["check_td3_policy_delay_too_small"])
     # Use training.skip_guardrails=true to disable all checks at once.
     disabled_guardrails: list[str] = field(default_factory=list)
@@ -922,6 +928,8 @@ class ExperimentConfig:
             config.device = config_dict["device"]
         if "disabled_guardrails" in config_dict:
             config.disabled_guardrails = list(config_dict["disabled_guardrails"] or [])
+        if "max_total_seconds" in config_dict:
+            config.max_total_seconds = config_dict["max_total_seconds"]
 
         # Data config — needs datetime coercion for download_since
         if "data" in config_dict:
@@ -1090,7 +1098,12 @@ class MLflowCallbackParams:
     ) -> "MLflowCallbackParams":
         from trading_rl.data.loading import PreparedDataset
 
-        estimated_episodes = max(1, config.training.max_steps // config.data.train_size)
+        episode_length = (
+            config.env.streaming_episode_length
+            if config.data.memmap_dir
+            else config.data.train_size
+        )
+        estimated_episodes = max(1, config.training.max_steps // episode_length)
         price_series = (
             dataset.train_df[dataset.price_column]
             if isinstance(dataset, PreparedDataset)
