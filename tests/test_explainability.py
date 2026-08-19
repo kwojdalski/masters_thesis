@@ -92,7 +92,7 @@ def test_proxy_raises_when_neither_loc_nor_action_present() -> None:
 
     proxy = ActorCaptumProxy(_NoOutputActor())
 
-    with pytest.raises(ValueError, match="loc.*action"):
+    with pytest.raises(ValueError, match=r"loc.*action"):
         proxy(torch.randn(3, 4))
 
 
