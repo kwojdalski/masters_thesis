@@ -320,7 +320,7 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
 
     cols = list(df.columns)
     col_spec = "l " + " ".join(["r"] * (len(cols) - 1))
-    header_cells = " & ".join(f"\\textbf{{{_esc(c)}}}" for c in cols)
+    header_cells = " & ".join(_esc(c) for c in cols)
 
     rows_latex: list[str] = []
     for i, (_, row) in enumerate(df.iterrows()):
@@ -452,7 +452,7 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
             r"\small",
             r"\begin{tabular}{l r r}",
             r"\toprule",
-            r"\textbf{Feature} & \textbf{Pearson} & \textbf{Spearman} \\",
+            r"Feature & Pearson & Spearman \\",
             r"\midrule",
             *rows_latex,
             r"\bottomrule",
@@ -547,12 +547,12 @@ def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
             r"\begin{longtable}{p{0.22\linewidth} p{0.68\linewidth}}",
             f"\\caption{{{_esc(caption)}\\label{{tbl-main-experiment-spec}}}} \\\\",
             r"\toprule",
-            r"\textbf{Component} & \textbf{Specification} \\",
+            r"Component & Specification \\",
             r"\midrule",
             r"\endfirsthead",
             r"\multicolumn{2}{l}{\footnotesize\textit{Table \ref{tbl-main-experiment-spec} continued.}} \\",
             r"\toprule",
-            r"\textbf{Component} & \textbf{Specification} \\",
+            r"Component & Specification \\",
             r"\midrule",
             r"\endhead",
             r"\bottomrule",
@@ -609,13 +609,22 @@ def lob_events_table(df: pd.DataFrame) -> None:
 
     win = df.iloc[best_start : best_start + 12].copy()
 
-    RAW_COLS = ["Time (UTC)", "Best Bid ($)", "Best Ask ($)", "Bid Size", "Ask Size"]
+    RAW_COLS = [
+        "Timestamp (UTC)",
+        "Best Bid ($)",
+        "Best Ask ($)",
+        "Bid Size",
+        "Ask Size",
+    ]
     FEAT_COLS = ["Book Pressure", "Order Imbalance", "Microprice Dev.", "OFI"]
     FIRST_FEAT_COL = FEAT_COLS[0]
 
     tbl = pd.DataFrame(
         {
-            "Time (UTC)": win["ts_event"].dt.strftime("%H:%M:%S.%f").str[:-3].values,
+            "Timestamp (UTC)": win["ts_event"]
+            .dt.strftime("%H:%M:%S.%f")
+            .str[:-3]
+            .values,
             "Best Bid ($)": win["bid_px_00"].round(2).values,
             "Best Ask ($)": win["ask_px_00"].round(2).values,
             "Bid Size": win["bid_sz_00"].astype(int).values,
