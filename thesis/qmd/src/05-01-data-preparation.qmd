@@ -324,7 +324,7 @@ arbitrary non-linear mappings from the feature vector to action-value estimates,
 capturing the higher-order interactions that linear models cannot represent.
 
 ```{python}
-#| label: tbl-feature-correlations
+#| label: cell-feature-correlations
 #| output: asis
 #| echo: false
 #| warning: false
