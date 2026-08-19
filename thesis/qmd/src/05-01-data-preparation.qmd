@@ -274,7 +274,14 @@ Cyclical temporal encodings (hour-of-day sine and cosine) are already bounded in
 
 #### Transformed Feature Example
 
-To illustrate how the raw order book data is transformed into the input features used by the RL agent, @tbl-transformed-features shows twelve consecutive events from the AAPL feed. Each row represents one order-book event; the left columns display the raw order book state (best bid/ask prices and sizes), while the right columns show the corresponding normalized microstructure features computed from that state.
+To illustrate how the raw order book data is transformed into the input features used by the RL agent, @tbl-transformed-features shows twelve consecutive events from the AAPL feed. Each row represents one order-book event; the left columns display the raw order book state (best bid/ask prices and sizes), while the right columns show the corresponding normalized microstructure features computed from that state. The table is wide (nine columns), so in the PDF it is placed on its own landscape-oriented page; the HTML version scrolls horizontally instead.
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\clearpage
+\begin{landscape}
+```
+:::
 
 ```{python}
 #| label: tbl-transformed-features
@@ -293,6 +300,13 @@ else:
         "Observation sample not found: run evaluate for AAPL to generate evaluation_data artifacts."
     )
 ```
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\end{landscape}
+\clearpage
+```
+:::
 
 The transformed features in @tbl-transformed-features demonstrate several key properties of the feature engineering approach. First, **Book Pressure** and **Order Imbalance** capture instantaneous order-book liquidity and directional pressure: positive values indicate net buying pressure (bid depth dominates), while negative values signal selling pressure (visible in E12 after a bid-side refresh). Second, **Microprice Deviation** tracks how far the current microprice lies from the simple mid-price, providing a depth-weighted estimate of the fair transaction price. Third, **OFI** (Order Flow Imbalance) captures signed net trade flow over a short window, jumping sharply at events where displayed depth is consumed or replenished.
 
