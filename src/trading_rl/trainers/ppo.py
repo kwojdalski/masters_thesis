@@ -35,7 +35,9 @@ from trading_rl.trainers.base import BaseTrainer, EvaluationOutput, _log_network
 logger = get_logger(__name__)
 
 
-def _run_viz_rollout(env, actor, max_steps: int, max_episode_length: int, process_step) -> None:
+def _run_viz_rollout(
+    env, actor, max_steps: int, max_episode_length: int, process_step
+) -> None:
     """Shared environment loop for action-distribution visualizations.
 
     Drives ``env`` for ``max_steps`` steps.  At each step ``process_step(step,
@@ -51,13 +53,18 @@ def _run_viz_rollout(env, actor, max_steps: int, max_episode_length: int, proces
             obs = env.reset()
             current_episode_steps = 0
 
-        current_obs = obs["observation"] if (hasattr(obs, "get") and "observation" in obs) else obs
+        current_obs = (
+            obs["observation"]
+            if (hasattr(obs, "get") and "observation" in obs)
+            else obs
+        )
         if isinstance(obs, TensorDict):
             actor_input = obs.clone()
         else:
             batch_size = (
                 [current_obs.shape[0]]
-                if hasattr(current_obs, "shape") and len(getattr(current_obs, "shape", [])) > 0
+                if hasattr(current_obs, "shape")
+                and len(getattr(current_obs, "shape", [])) > 0
                 else [1]
             )
             actor_input = TensorDict(
@@ -70,7 +77,9 @@ def _run_viz_rollout(env, actor, max_steps: int, max_episode_length: int, proces
         if action_tensor is None:
             continue
 
-        expected_batch = obs.batch_size[0] if (hasattr(obs, "batch_size") and obs.batch_size) else 1
+        expected_batch = (
+            obs.batch_size[0] if (hasattr(obs, "batch_size") and obs.batch_size) else 1
+        )
         action_tensor = torch.as_tensor(action_tensor)
         if action_tensor.dim() == 0:
             action_tensor = action_tensor.unsqueeze(0)
@@ -87,10 +96,16 @@ def _run_viz_rollout(env, actor, max_steps: int, max_episode_length: int, proces
         action_td.set("action", action_tensor)
         step_result = env.step(action_td)
 
-        obs = step_result.get("next").clone() if "next" in step_result.keys() else step_result.clone()
+        obs = (
+            step_result.get("next").clone()
+            if "next" in step_result.keys()
+            else step_result.clone()
+        )
         current_episode_steps += 1
 
-        done_tensor = obs.get("done", torch.tensor([False])) if hasattr(obs, "get") else None
+        done_tensor = (
+            obs.get("done", torch.tensor([False])) if hasattr(obs, "get") else None
+        )
         if done_tensor is not None and torch.as_tensor(done_tensor).any():
             obs = env.reset()
             current_episode_steps = 0
@@ -146,18 +161,24 @@ class PPOTrainer(BaseTrainer):
         )
 
         # Separate optimizers with distinct weight decay for actor vs critic
-        self.optimizer = Adam([
-            {
-                "params": list(self.ppo_loss.actor_network_params.values(True, True)),
-                "lr": config.actor_lr,
-                "weight_decay": getattr(config, "actor_weight_decay", 0.0),
-            },
-            {
-                "params": list(self.ppo_loss.critic_network_params.values(True, True)),
-                "lr": getattr(config, "value_lr", config.actor_lr),
-                "weight_decay": getattr(config, "value_weight_decay", 0.0),
-            },
-        ])
+        self.optimizer = Adam(
+            [
+                {
+                    "params": list(
+                        self.ppo_loss.actor_network_params.values(True, True)
+                    ),
+                    "lr": config.actor_lr,
+                    "weight_decay": getattr(config, "actor_weight_decay", 0.0),
+                },
+                {
+                    "params": list(
+                        self.ppo_loss.critic_network_params.values(True, True)
+                    ),
+                    "lr": getattr(config, "value_lr", config.actor_lr),
+                    "weight_decay": getattr(config, "value_weight_decay", 0.0),
+                },
+            ]
+        )
 
         logger.info(
             "init ppo trainer lr={} clip_epsilon={} entropy_bonus={}",
@@ -187,74 +208,100 @@ class PPOTrainer(BaseTrainer):
             self.ppo_loss.value_estimator(
                 ppo_batch,
                 params=self.ppo_loss._cached_critic_network_params_detached,
-                target_params=getattr(self.ppo_loss, "target_critic_network_params", None),
+                target_params=getattr(
+                    self.ppo_loss, "target_critic_network_params", None
+                ),
             )
 
-        # PPO is on-policy: create temporary buffer from fresh batch only.
-        # SamplerWithoutReplacement ensures each transition is seen exactly once
-        # per epoch — RandomSampler (the default) allows duplicates and skips
-        # some transitions, violating the on-policy assumption.
+        # PPO is on-policy: sample from the fresh batch only, never from
+        # accumulated old experience. SamplerWithoutReplacement ensures every
+        # transition is seen exactly once per epoch — RandomSampler (the
+        # default) allows duplicates and skips some transitions, violating
+        # the on-policy assumption. A fresh buffer (and thus a fresh shuffle)
+        # is built at the start of *every* epoch: SamplerWithoutReplacement's
+        # shuffled index list is only exhausted once per buffer lifetime, so
+        # reusing one buffer across epochs would silently split a single pass
+        # over the rollout across all epochs instead of giving each epoch its
+        # own complete, independent pass.
+        from math import ceil
+
         from torchrl.data import LazyTensorStorage, ReplayBuffer
         from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 
-        fresh_buffer = ReplayBuffer(
-            storage=LazyTensorStorage(self.config.frames_per_batch),
-            sampler=SamplerWithoutReplacement(),
-        )
-        fresh_buffer.extend(ppo_batch)
+        n_transitions = ppo_batch.numel()
+        sample_size = self.config.sample_size
+        n_minibatches = ceil(n_transitions / sample_size)
+        steps_per_batch = ppo_epochs * n_minibatches
 
         # Clear gradients before starting PPO epochs to prevent accumulation
         self.optimizer.zero_grad()
 
         for j in range(ppo_epochs):
-            # Sample from FRESH batch only (not from accumulated old experiences)
-            sample = fresh_buffer.sample(self.config.sample_size)
-            current_step = self._global_optimization_step(batch_idx, j, ppo_epochs)
-
-            # Compute PPO losses
-            loss_vals = self.ppo_loss(sample)
-
-            # Combined optimization step (actor + critic)
-            total_loss = (
-                loss_vals["loss_objective"]
-                + loss_vals["loss_critic"]
-                + loss_vals["loss_entropy"]
+            epoch_buffer = ReplayBuffer(
+                storage=LazyTensorStorage(self.config.frames_per_batch),
+                sampler=SamplerWithoutReplacement(),
             )
-            total_loss.backward()
-            if self.config.max_grad_norm > 0:
-                torch.nn.utils.clip_grad_norm_(
-                    [p for group in self.optimizer.param_groups for p in group["params"]],
-                    self.config.max_grad_norm,
+            epoch_buffer.extend(ppo_batch)
+
+            for m in range(n_minibatches):
+                # Final minibatch of an epoch may be smaller than sample_size
+                # when n_transitions doesn't divide evenly; the sampler
+                # returns whatever remains rather than erroring or repeating.
+                sample = epoch_buffer.sample(sample_size)
+                current_step = self._global_optimization_step(
+                    batch_idx, j * n_minibatches + m, steps_per_batch
                 )
-            self.optimizer.step()
-            self.optimizer.zero_grad()
-            self.ppo_loss.actor_network_params.to_module(self.actor)
-            self.ppo_loss.critic_network_params.to_module(self.value_net)
 
-            # Log losses
-            actor_loss = loss_vals["loss_objective"].item()
-            value_loss = loss_vals["loss_critic"].item()
-            entropy_loss = loss_vals["loss_entropy"].item()
+                # Compute PPO losses
+                loss_vals = self.ppo_loss(sample)
 
-            self.logs["loss_actor"].append(actor_loss)
-            self.logs["loss_value"].append(value_loss)
-            self.logs["loss_entropy"].append(entropy_loss)
+                # Combined optimization step (actor + critic)
+                total_loss = (
+                    loss_vals["loss_objective"]
+                    + loss_vals["loss_critic"]
+                    + loss_vals["loss_entropy"]
+                )
+                total_loss.backward()
+                if self.config.max_grad_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(
+                        [
+                            p
+                            for group in self.optimizer.param_groups
+                            for p in group["params"]
+                        ],
+                        self.config.max_grad_norm,
+                    )
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                self.ppo_loss.actor_network_params.to_module(self.actor)
+                self.ppo_loss.critic_network_params.to_module(self.value_net)
 
-            # Log to callback if provided
-            if (
-                hasattr(self, "callback")
-                and self.callback
-                and hasattr(self.callback, "log_training_step")
-            ):
-                self.callback.log_training_step(current_step, actor_loss, value_loss)
+                # Log losses
+                actor_loss = loss_vals["loss_objective"].item()
+                value_loss = loss_vals["loss_critic"].item()
+                entropy_loss = loss_vals["loss_entropy"].item()
 
-            # Periodic logging and evaluation
-            if self._should_log_step(current_step):
-                self._log_progress(max_length, buffer_len, loss_vals)
+                self.logs["loss_actor"].append(actor_loss)
+                self.logs["loss_value"].append(value_loss)
+                self.logs["loss_entropy"].append(entropy_loss)
 
-            # Periodic evaluation
-            if self._should_eval_step(current_step):
-                self._evaluate()
+                # Log to callback if provided
+                if (
+                    hasattr(self, "callback")
+                    and self.callback
+                    and hasattr(self.callback, "log_training_step")
+                ):
+                    self.callback.log_training_step(
+                        current_step, actor_loss, value_loss
+                    )
+
+                # Periodic logging and evaluation
+                if self._should_log_step(current_step):
+                    self._log_progress(max_length, buffer_len, loss_vals)
+
+                # Periodic evaluation
+                if self._should_eval_step(current_step):
+                    self._evaluate()
 
     def _log_progress(self, max_length: int, buffer_len: int, loss_vals: dict) -> None:
         curr_loss_actor = loss_vals["loss_objective"].item()
@@ -263,7 +310,11 @@ class PPOTrainer(BaseTrainer):
 
         logger.info(
             "ppo step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f} loss_entropy={:.4f}",
-            max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
+            max_length,
+            buffer_len,
+            curr_loss_value,
+            curr_loss_actor,
+            curr_loss_entropy,
         )
 
         if is_level_enabled("TRACE"):
@@ -272,7 +323,11 @@ class PPOTrainer(BaseTrainer):
     def _evaluate(self) -> None:
         """Evaluate current PPO policy."""
         with torch.no_grad():
-            n_eval = self.eval_config.resolve_eval_steps(self._eval_data_len) if self._eval_data_len is not None else self.eval_config.eval_steps
+            n_eval = (
+                self.eval_config.resolve_eval_steps(self._eval_data_len)
+                if self._eval_data_len is not None
+                else self.eval_config.eval_steps
+            )
             eval_env = self._eval_env or self.env
             if self._eval_env is None:
                 logger.warning(
@@ -307,10 +362,15 @@ class PPOTrainer(BaseTrainer):
             self.logs["eval_reward_sum"].append(sum_reward)
             self.logs["eval_step_count"].append(max_steps)
 
-            eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
+            eval_data_len = (
+                self._eval_data_len if self._eval_data_len is not None else "?"
+            )
             logger.info(
                 "ppo eval mean_reward={:.4f} sum_reward={:.4f} eval_steps={} eval_data_len={}",
-                mean_reward, sum_reward, max_steps, eval_data_len,
+                mean_reward,
+                sum_reward,
+                max_steps,
+                eval_data_len,
             )
 
             del eval_rollout
@@ -330,8 +390,12 @@ class PPOTrainer(BaseTrainer):
         }
 
     def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
-        self.ppo_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
-        self.ppo_loss.critic_network_params.load_state_dict(checkpoint["value_params_state"])
+        self.ppo_loss.actor_network_params.load_state_dict(
+            checkpoint["actor_params_state"]
+        )
+        self.ppo_loss.critic_network_params.load_state_dict(
+            checkpoint["value_params_state"]
+        )
         self.ppo_loss.actor_network_params.to_module(self.actor)
         self.ppo_loss.critic_network_params.to_module(self.value_net)
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -429,12 +493,18 @@ class PPOTrainer(BaseTrainer):
                     probs = torch.softmax(actor_output.get("logits"), dim=-1)
             if probs is None and hasattr(actor_output, "logits"):
                 probs = torch.softmax(actor_output.logits, dim=-1)
-            elif probs is None and isinstance(actor_output, tuple) and len(actor_output) >= 1:
+            elif (
+                probs is None
+                and isinstance(actor_output, tuple)
+                and len(actor_output) >= 1
+            ):
                 probs = actor_output[0]
             elif probs is None and hasattr(actor_output, "loc"):
                 v = float(torch.clamp(actor_output.loc, -1, 1).item())
                 probs = torch.tensor(
-                    [0.7, 0.2, 0.1] if v < -0.33 else ([0.1, 0.2, 0.7] if v > 0.33 else [0.2, 0.6, 0.2])
+                    [0.7, 0.2, 0.1]
+                    if v < -0.33
+                    else ([0.1, 0.2, 0.7] if v > 0.33 else [0.2, 0.6, 0.2])
                 )
             if probs is None:
                 probs = torch.tensor([0.33, 0.34, 0.33])
@@ -445,7 +515,13 @@ class PPOTrainer(BaseTrainer):
             probs = probs / probs.sum()
 
             for action_idx, action_name in action_names.items():
-                action_probs_data.append({"Step": step, "Action": action_name, "Probability": float(probs[action_idx])})
+                action_probs_data.append(
+                    {
+                        "Step": step,
+                        "Action": action_name,
+                        "Probability": float(probs[action_idx]),
+                    }
+                )
 
             if isinstance(actor_output, TensorDict) and "action" in actor_output.keys():
                 action = actor_output.get("action")
@@ -455,12 +531,17 @@ class PPOTrainer(BaseTrainer):
                 action = actor_output[1]
             else:
                 action = F.one_hot(
-                    torch.tensor(int(torch.multinomial(probs, 1).item())), num_classes=n_actions
+                    torch.tensor(int(torch.multinomial(probs, 1).item())),
+                    num_classes=n_actions,
                 ).to(torch.float32)
 
             action_t = torch.as_tensor(action)
-            if action_t.dim() == 0 or (action_t.dim() == 1 and action_t.shape[0] != n_actions):
-                action_t = F.one_hot(action_t.long(), num_classes=n_actions).to(torch.float32)
+            if action_t.dim() == 0 or (
+                action_t.dim() == 1 and action_t.shape[0] != n_actions
+            ):
+                action_t = F.one_hot(action_t.long(), num_classes=n_actions).to(
+                    torch.float32
+                )
             if action_t.dim() == 1 and action_t.shape[0] == n_actions:
                 action_t = action_t.unsqueeze(0)
             if action_t.shape[-1] == n_actions:
@@ -531,8 +612,19 @@ class PPOTrainerContinuous(PPOTrainer):
             if mean.ndim > 0:
                 mean, scale = mean[0], scale[0]
             mean_val, std_val = float(mean.item()), float(scale.item())
-            continuous_data.append({"Step": step, "Mean": mean_val, "Upper": mean_val + std_val, "Lower": mean_val - std_val})
-            return actor_output.sample() if hasattr(actor_output, "sample") else actor_output.loc
+            continuous_data.append(
+                {
+                    "Step": step,
+                    "Mean": mean_val,
+                    "Upper": mean_val + std_val,
+                    "Lower": mean_val - std_val,
+                }
+            )
+            return (
+                actor_output.sample()
+                if hasattr(actor_output, "sample")
+                else actor_output.loc
+            )
 
         with torch.no_grad():
             _run_viz_rollout(env, actor, max_steps, 20, _process_step)
@@ -543,9 +635,7 @@ class PPOTrainerContinuous(PPOTrainer):
 
         plot = (
             ggplot(df_cont, aes(x="Step"))
-            + geom_ribbon(
-                aes(ymin="Lower", ymax="Upper"), fill="#00BFC4", alpha=0.3
-            )
+            + geom_ribbon(aes(ymin="Lower", ymax="Upper"), fill="#00BFC4", alpha=0.3)
             + geom_line(aes(y="Mean"), color="#00BFC4", size=1)
             + labs(
                 title="Continuous Action Distribution (Mean ± Std)",
