@@ -28,7 +28,9 @@ class _FakeCallback:
     def __init__(self) -> None:
         self.steps: list[tuple[int, float, float]] = []
 
-    def log_training_step(self, step: int, actor_loss: float, value_loss: float) -> None:
+    def log_training_step(
+        self, step: int, actor_loss: float, value_loss: float
+    ) -> None:
         self.steps.append((step, actor_loss, value_loss))
 
 
@@ -123,5 +125,73 @@ def test_ppo_optimization_step_builds_targets_before_sampling_fresh_batch() -> N
     assert trainer.logs["loss_value"] == pytest.approx([0.20, 0.20])
     assert trainer.logs["loss_entropy"] == pytest.approx([0.03, 0.03])
     assert [step for step, _, _ in trainer.callback.steps] == [2, 3]
-    assert [actor for _, actor, _ in trainer.callback.steps] == pytest.approx([0.10, 0.10])
-    assert [value for _, _, value in trainer.callback.steps] == pytest.approx([0.20, 0.20])
+    assert [actor for _, actor, _ in trainer.callback.steps] == pytest.approx(
+        [0.10, 0.10]
+    )
+    assert [value for _, _, value in trainer.callback.steps] == pytest.approx(
+        [0.20, 0.20]
+    )
+
+
+def test_ppo_optimization_step_covers_every_transition_each_epoch() -> None:
+    """Regression test for #354: each epoch must independently see every
+    transition in the rollout exactly once, via multiple minibatches when
+    sample_size < frames_per_batch — not just one minibatch per epoch drawn
+    from a sampler whose shuffle state is shared/depleted across epochs.
+    """
+    n_transitions = 8
+    sample_size = 3
+    ppo_epochs = 2
+    # ceil(8 / 3) = 3 minibatches per epoch: sizes [3, 3, 2].
+    n_minibatches = 3
+
+    trainer = PPOTrainer.__new__(PPOTrainer)
+    trainer.config = SimpleNamespace(
+        ppo=SimpleNamespace(epochs=ppo_epochs),
+        frames_per_batch=n_transitions,
+        sample_size=sample_size,
+        log_interval=999,
+        eval_interval=0,
+        max_grad_norm=0,
+    )
+    trainer._current_batch = TensorDict(
+        {
+            "observation": torch.arange(n_transitions, dtype=torch.float32).reshape(
+                n_transitions, 1
+            ),
+            "action": torch.zeros(n_transitions, 1, dtype=torch.int64),
+            ("next", "reward"): torch.ones(n_transitions, 1),
+            ("next", "done"): torch.zeros(n_transitions, 1, dtype=torch.bool),
+            ("next", "terminated"): torch.zeros(n_transitions, 1, dtype=torch.bool),
+            ("next", "step_count"): torch.arange(
+                n_transitions, dtype=torch.int64
+            ).reshape(n_transitions, 1),
+        },
+        batch_size=[n_transitions],
+    )
+    trainer.ppo_loss = _FakePpoLoss()
+    trainer.optimizer = _FakeOptimizer()
+    trainer.actor = object()
+    trainer.value_net = object()
+    trainer.logs = defaultdict(list)
+    trainer.callback = _FakeCallback()
+    trainer._log_step_offset = 0
+
+    trainer._optimization_step(
+        batch_idx=0, max_length=n_transitions, buffer_len=n_transitions
+    )
+
+    # ppo_epochs * n_minibatches total optimizer steps, not just ppo_epochs.
+    assert trainer.optimizer.step_calls == ppo_epochs * n_minibatches
+    assert len(trainer.ppo_loss.loss_samples) == ppo_epochs * n_minibatches
+
+    epochs = [
+        trainer.ppo_loss.loss_samples[e * n_minibatches : (e + 1) * n_minibatches]
+        for e in range(ppo_epochs)
+    ]
+    for epoch_calls in epochs:
+        assert [call["n"] for call in epoch_calls] == [3, 3, 2]
+        covered = sorted(obs for call in epoch_calls for obs in call["observations"])
+        assert covered == list(
+            range(n_transitions)
+        ), "each epoch must cover every transition exactly once"
