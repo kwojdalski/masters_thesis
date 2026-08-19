@@ -101,20 +101,18 @@ thesis snapshot so that the table stays in sync with the scenario
 configuration without manual updates.
 
 ```{python}
-#| label: tbl-main-experiment-spec
-#| tbl-cap: "Main TD3 experiment specification."
+#| label: cell-main-experiment-spec
+#| output: asis
 #| echo: false
 #| warning: false
 
-import pandas as pd
-from IPython.display import HTML, display
 from thesis_mlflow_results import (
     audit_plots_enabled,
     build_experiment_specification_rows,
     load_experiment_snapshot,
     show_table_meta,
 )
-from thesis_tables import wrap_html, missing_data_notice
+from thesis_tables import experiment_spec_table, missing_data_notice
 
 _EXPERIMENT = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 _audit = audit_plots_enabled()
@@ -122,9 +120,7 @@ _finished = load_experiment_snapshot(_EXPERIMENT).latest_finished
 
 rows = build_experiment_specification_rows(_EXPERIMENT)
 if rows:
-    spec_df = pd.DataFrame(rows, columns=["Component", "Specification"])
-    spec_df["Specification"] = spec_df["Specification"].apply(wrap_html)
-    display(HTML(spec_df.to_html(index=False, escape=False)))
+    experiment_spec_table(rows)
     show_table_meta(_finished, audit=_audit)
 else:
     missing_data_notice(
