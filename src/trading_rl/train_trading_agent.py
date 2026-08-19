@@ -148,6 +148,8 @@ def run_multiple_experiments(
     custom_config: ExperimentConfig | None = None,
     experiment_name: str | None = None,
     show_progress: bool = True,
+    max_total_seconds: int | None = None,
+    on_trial_start: Any = None,
 ) -> str:
     """Run multiple experiments and track with MLflow.
 
@@ -157,12 +159,24 @@ def run_multiple_experiments(
         custom_config: Optional custom configuration.
         experiment_name: Optional override for MLflow experiment name.
         show_progress: Whether to show progress bar for episodes.
+        max_total_seconds: Optional wall-clock budget for the whole sweep.
+            Checked between trials (not within one), so it caps how many
+            trials run rather than cutting one short — each trial's own
+            budget is set via config.training.max_train_seconds instead.
+            Remaining trials are skipped, not marked failed, once the
+            budget is exceeded.
+        on_trial_start: Optional callable(trial_number: int, n_trials: int)
+            invoked right before each trial starts (0-indexed). Lets a
+            caller-owned progress display show which trial is running,
+            e.g. "Running 2/5 trials...", without this function needing to
+            own that UI itself.
 
     Returns:
         MLflow experiment name with all results.
     """
     import copy
     import random
+    import time
 
     from rich.progress import Progress
 
@@ -172,9 +186,27 @@ def run_multiple_experiments(
 
     logger = get_project_logger(__name__)
     progress_context = Progress() if show_progress else None
+    experiment_start = time.time()
 
     with progress_context if progress_context else contextlib.nullcontext() as progress:
         for trial_number in range(n_trials):
+            if (
+                max_total_seconds is not None
+                and (time.time() - experiment_start) >= max_total_seconds
+            ):
+                logger.warning(
+                    "experiment sweep stopped max_total_seconds={} elapsed_s={:.1f} "
+                    "completed_trials={} skipped_trials={}",
+                    max_total_seconds,
+                    time.time() - experiment_start,
+                    trial_number,
+                    n_trials - trial_number,
+                )
+                break
+
+            if on_trial_start is not None:
+                on_trial_start(trial_number, n_trials)
+
             logger.info("run trial trial={} n_trials={}", trial_number + 1, n_trials)
 
             if custom_config is not None:
@@ -218,4 +250,8 @@ def run_experiment_from_config(config_path: str, n_trials: int = 1) -> str:
             run_single_experiment(custom_config=config)
         return config.experiment_name
     else:
-        return run_multiple_experiments(n_trials=n_trials, custom_config=config)
+        return run_multiple_experiments(
+            n_trials=n_trials,
+            custom_config=config,
+            max_total_seconds=config.max_total_seconds,
+        )

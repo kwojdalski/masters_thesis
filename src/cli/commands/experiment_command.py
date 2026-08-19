@@ -117,7 +117,14 @@ class ExperimentCommand(BaseCommand):
             TextColumn("[progress.description]{task.description}"),
             console=self.console,
         ) as progress:
-            task = progress.add_task(f"Running {params.n_trials} trials...", total=None)
+            task = progress.add_task(
+                f"Running 1/{params.n_trials} trials...", total=None
+            )
+
+            def _on_trial_start(trial_number: int, n_trials: int) -> None:
+                progress.update(
+                    task, description=f"Running {trial_number + 1}/{n_trials} trials..."
+                )
 
             try:
                 # Run experiments with unified tracking (always plot positions)
@@ -126,6 +133,8 @@ class ExperimentCommand(BaseCommand):
                     base_seed=base_seed,
                     custom_config=config,
                     experiment_name=config.experiment_name,
+                    max_total_seconds=config.max_total_seconds,
+                    on_trial_start=_on_trial_start,
                 )
                 progress.update(task, description="Experiments complete!")
 

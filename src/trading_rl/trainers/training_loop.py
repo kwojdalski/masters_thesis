@@ -71,7 +71,9 @@ class TrainingLoop:
                     with _profiler.stage("buffer_extend", 2):
                         if trainer._use_replay_buffer:
                             trainer.replay_buffer.extend(data)
-                            max_length = trainer.replay_buffer[:]["next", "step_count"].max()
+                            max_length = trainer.replay_buffer[:][
+                                "next", "step_count"
+                            ].max()
                             buffer_len = len(trainer.replay_buffer)
                         else:
                             max_length = data["next", "step_count"].max()
@@ -88,7 +90,9 @@ class TrainingLoop:
                         )
 
                     collected_steps = (
-                        trainer.total_count if not trainer._use_replay_buffer else buffer_len
+                        trainer.total_count
+                        if not trainer._use_replay_buffer
+                        else buffer_len
                     )
                     if collected_steps > trainer.config.init_rand_steps:
                         with _profiler.stage("optimization", 2):
@@ -112,7 +116,9 @@ class TrainingLoop:
                     with _profiler.stage("periodic_hooks", 2):
                         trainer.runtime_hooks.maybe_run(trainer.total_count)
 
-                    if trainer.callback and hasattr(trainer.callback, "log_episode_stats"):
+                    if trainer.callback and hasattr(
+                        trainer.callback, "log_episode_stats"
+                    ):
                         trainer._log_episode_stats(data, trainer.callback)
 
                     finding = trainer.health_monitor.check()
@@ -133,7 +139,9 @@ class TrainingLoop:
                         on_batch_end(i, data)
 
                     if trainer.total_count >= trainer.config.max_steps:
-                        logger.info("training stopped max_steps={}", trainer.config.max_steps)
+                        logger.info(
+                            "training stopped max_steps={}", trainer.config.max_steps
+                        )
                         break
                     if (
                         trainer.config.max_train_seconds is not None
@@ -143,6 +151,9 @@ class TrainingLoop:
                             "training stopped max_train_seconds={} elapsed_s={:.1f}",
                             trainer.config.max_train_seconds,
                             time.time() - t0,
+                        )
+                        trainer.logs["early_stop_reason"].append(
+                            f"timeout:max_train_seconds:{trainer.config.max_train_seconds}"
                         )
                         break
             except KeyboardInterrupt:
