@@ -14,6 +14,7 @@ Comparison tables    comparison_table_html, build_comparison_rows
 from __future__ import annotations
 
 import math
+import re
 import textwrap
 from pathlib import Path
 
@@ -461,6 +462,104 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
             f"\\footnotesize\\textit{{{_esc(note)}}}",
             r"\end{minipage}",
             r"\end{table}",
+        ]
+    )
+
+    content = "\n".join(
+        [
+            '::: {.content-visible when-format="html"}',
+            "",
+            html_block,
+            "",
+            ":::",
+            "",
+            '::: {.content-visible when-format="pdf"}',
+            "",
+            "```{=latex}",
+            latex_block,
+            "```",
+            "",
+            ":::",
+        ]
+    )
+    display(Markdown(content))
+
+
+# ---------------------------------------------------------------------------
+# Experiment specification table
+# ---------------------------------------------------------------------------
+
+
+def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
+    """Emit the (Component, Specification) main-experiment-specification table.
+
+    Requires ``#| output: asis`` on the calling cell, with a non-``tbl-``
+    prefixed chunk ``label:`` (see feature_correlation_table's docstring for
+    why -- a ``tbl-`` prefixed label under output:asis makes Quarto wrap an
+    already self-captioned block in a second, outer crossref-managed float).
+
+    HTML: standard table wrapped in a ``#tbl-main-experiment-spec`` crossref div.
+    PDF: hand-authored LaTeX longtable with a first-page-only \\caption and a
+    plain "continued" marker on subsequent pages. Quarto's auto-generated
+    longtable output (from a plain `tbl-cap:` cell) does not make this
+    first-page/continuation distinction -- every page gets its own \\caption,
+    which produces a duplicate List-of-Tables entry whenever the table
+    happens to be page-broken (see issue #330; this table has 26 rows and
+    reliably needs more than one page).
+    """
+    caption = "Main TD3 experiment specification."
+
+    # ── HTML version ──────────────────────────────────────────────────
+    df = pd.DataFrame(rows, columns=["Component", "Specification"])
+    df["Specification"] = df["Specification"].apply(wrap_html)
+    html_table = df.to_html(index=False, escape=False)
+    html_block = (
+        f"::: {{#tbl-main-experiment-spec}}\n\n"
+        f"{html_table}\n\n"
+        f"{caption}\n\n"
+        f":::"
+    )
+
+    # ── LaTeX version ─────────────────────────────────────────────────
+    def _esc(s: str) -> str:
+        # fmt_scientific() emits HTML <sup> tags (see its docstring): the old
+        # pipeline routed this table through pandoc's HTML-to-LaTeX table
+        # conversion, which understands <sup>; a hand-authored longtable
+        # does not, so convert it to a LaTeX math-mode superscript first.
+        s = re.sub(r"<sup>(.*?)</sup>", r"$^{\1}$", str(s))
+        parts = s.split("$")
+        for i in range(0, len(parts), 2):  # even indices are outside math mode
+            parts[i] = (
+                parts[i]
+                .replace("\\", r"\textbackslash{}")
+                .replace("&", r"\&")
+                .replace("%", r"\%")
+                .replace("_", r"\_")
+                .replace("#", r"\#")
+            )
+        return "$".join(parts)
+
+    rows_latex = [f"{_esc(comp)} & {_esc(spec)} \\\\" for comp, spec in rows]
+    latex_block = "\n".join(
+        [
+            r"\begin{landscape}",
+            r"\footnotesize",
+            r"\begin{longtable}{p{0.22\linewidth} p{0.68\linewidth}}",
+            f"\\caption{{{_esc(caption)}\\label{{tbl-main-experiment-spec}}}} \\\\",
+            r"\toprule",
+            r"\textbf{Component} & \textbf{Specification} \\",
+            r"\midrule",
+            r"\endfirsthead",
+            r"\multicolumn{2}{l}{\footnotesize\textit{Table \ref{tbl-main-experiment-spec} continued.}} \\",
+            r"\toprule",
+            r"\textbf{Component} & \textbf{Specification} \\",
+            r"\midrule",
+            r"\endhead",
+            r"\bottomrule",
+            r"\endlastfoot",
+            *rows_latex,
+            r"\end{longtable}",
+            r"\end{landscape}",
         ]
     )
 
