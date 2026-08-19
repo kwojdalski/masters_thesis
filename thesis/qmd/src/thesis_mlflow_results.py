@@ -1170,6 +1170,9 @@ def find_observation_sample(
        files (``{split}_{symbol}_observations_head_*.parquet``) when *symbol* is given,
        then falls back to plain ``{split}_observations_head_*.parquet``.
     2. The MLflow artifact dir pointed to by *artifact_uri* (same subdir pattern).
+    3. ``thesis/qmd/results/observation_samples/`` — a small trimmed snapshot
+       committed to the repo (see scripts/export_observation_sample_to_thesis.py)
+       so a CI checkout, which never runs `evaluate`, still has real data to render.
 
     Returns the largest matching file as a DataFrame, or ``None`` if nothing is found.
     """
@@ -1197,6 +1200,12 @@ def find_observation_sample(
             path = _find_in_dir(artifact_dir / "evaluation_data" / split)
             if path is None:
                 path = _find_in_dir(artifact_dir / "evaluation_data")
+
+    if path is None:
+        snapshot_dir = (
+            _repo_root() / "thesis" / "qmd" / "results" / "observation_samples"
+        )
+        path = _find_in_dir(snapshot_dir)
 
     if path is None:
         return None
