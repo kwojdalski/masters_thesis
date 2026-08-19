@@ -25,18 +25,15 @@ is on why each one is consequential for trading problems.
 \draw[->] (agent.east) -- ++(2.8,0) -- ++(0,-3) -- (env.east);
 \node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$a_t$};
 
-% Left path (state + reward)
+% Left path (state + reward). Labeled t+1, not t: this wire carries what
+% the environment emits in response to a_t, which the agent has not yet
+% observed when it chose a_t. Matches the standard Sutton & Barto loop
+% convention and the prose below -- no separate "current step" labels are
+% needed since a generic single-iteration loop only ever shows one state/
+% reward pair per wire.
 \draw[->] (env.west) -- ++(-2.8,0) -- ++(0,3) -- (agent.west);
-\node[left,  align=right, font=\normalsize] at (-2.8, 3)   {state\\[2pt]$s_t$};
-\node[left,  align=right, font=\normalsize] at (-2.8, 1.5) {reward\\[2pt]$r_t$};
-
-% Dashed line with next-step labels, positioned in the gap above the
-% Environment box and left of the diagonal action path so it clears both
-% the box (y up to 0.55) and the state/reward return wire (horizontal run
-% at y=0, x from -1.6 to -2.8)
-\draw[dashed, thin] (-1.9, 1.0) -- (-1.9, 0.65);
-\node[right, font=\small] at (-1.9, 0.95) {$r_{t+1}$};
-\node[right, font=\small] at (-1.9, 0.70) {$s_{t+1}$};
+\node[left,  align=right, font=\normalsize] at (-2.8, 3)   {state\\[2pt]$s_{t+1}$};
+\node[left,  align=right, font=\normalsize] at (-2.8, 1.5) {reward\\[2pt]$r_{t+1}$};
 
 \end{tikzpicture}
 \end{figure}
