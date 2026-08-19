@@ -192,9 +192,7 @@ class PermutationTest(StatisticalTest, ABC):
             rng.shuffle(pooled)
             perm_strategy = pooled[:n_strategy]
             perm_baseline = pooled[n_strategy:]
-            perm_stats.append(
-                self.compute_test_statistic(perm_strategy, perm_baseline)
-            )
+            perm_stats.append(self.compute_test_statistic(perm_strategy, perm_baseline))
 
         perm_stats = np.array(perm_stats)
         p_value = np.mean(np.abs(perm_stats) >= np.abs(observed_stat))
@@ -318,7 +316,7 @@ class SharpeBootstrapTest(BootstrapTest):
         """Warn if Sharpe ratios are negative."""
         if strategy_sharpe < 0 and baseline_sharpe < 0:
             logger.warning(
-                "Both Sharpe ratios are negative (strategy={}, baseline={}). "
+                "Both Sharpe ratios are negative (strategy={:.6f}, baseline={:.6f}). "
                 "Interpretation is problematic: higher volatility makes Sharpe less negative. "
                 "Enable 'sortino_bootstrap' test for more robust comparison with negative returns.",
                 strategy_sharpe,
@@ -326,7 +324,7 @@ class SharpeBootstrapTest(BootstrapTest):
             )
         elif strategy_sharpe < 0:
             logger.warning(
-                "Strategy Sharpe ratio is negative ({}). "
+                "Strategy Sharpe ratio is negative ({:.6f}). "
                 "This indicates mean returns below risk-free rate. "
                 "Enable 'sortino_bootstrap' test for more interpretable risk-adjusted metric.",
                 strategy_sharpe,
