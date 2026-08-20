@@ -52,6 +52,7 @@ dependencies = [
     "papermill>=2.7.0",
     "loguru>=0.7.3",
     "markdown>=3.10.3",
+    "mcp>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -83,6 +84,7 @@ docs = [
 
 [project.scripts]
 train-agent = "scripts.train_trading_agent:main"
+trading-rl-mcp = "mcp_server.server:main"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
