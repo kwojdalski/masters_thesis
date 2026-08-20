@@ -215,6 +215,7 @@ Edit `.claude/` sources and re-run the sync — never edit `.dsh/skills/` direct
 
 - [Data Download and Generation Guide](docs/data_guide.md)
 - [End-to-End Training Workflow](docs/experiment_workflow.md)
+- [MCP Server Workflow](docs/mcp_server.md)
 - [PPO Implementation Overview](docs/ppo_implementation_overview.md)
 - [DDPG Implementation Overview](docs/ddpg_implementation_overview.md)
 - [TD3 Implementation Overview](docs/td3_implementation_overview.md)
