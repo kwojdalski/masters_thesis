@@ -66,22 +66,8 @@ class EvaluateCommand(BaseCommand):
     # ------------------------------------------------------------------
 
     def _run(self, params: EvaluateParams) -> None:
-        from trading_rl.constants import EnvBackend, SplitName
-        from trading_rl.data_utils import build_prepared_dataset
-        from trading_rl.evaluation import (
-            PolicyLoader,
-            StrategyEvaluator,
-            StrategyEvaluatorConfig,
-            periods_per_year_from_timeframe,
-            run_all_statistical_tests,
-        )
-        from trading_rl.evaluation.benchmarks import (
-            BenchmarkEngine,
-            benchmarks_from_config,
-        )
-        from trading_rl.evaluation.metrics import build_metric_report
-        from trading_rl.evaluation.report import _periods_per_year_from_index
-        from trading_rl.pipeline.evaluation import build_evaluation_context_for_split
+        from trading_rl.constants import EnvBackend
+        from trading_rl.evaluation import PolicyLoader, periods_per_year_from_timeframe
 
         components = frozenset(params.only) if params.only else _ALL_COMPONENTS
 
@@ -115,77 +101,11 @@ class EvaluateCommand(BaseCommand):
         backend = str(getattr(config.env, "backend", EnvBackend.TRADINGENV)).lower()
         reward_type = str(getattr(config.env, "reward_type", "log_return"))
         timeframe = getattr(config.data, "timeframe", "1d")
-        _timeframe_ppy = periods_per_year_from_timeframe(timeframe)
+        timeframe_ppy = periods_per_year_from_timeframe(timeframe)
 
-        from pathlib import Path as _Path
-
-        if getattr(config.data, "data_paths", None):
-            _train_symbols = sorted(
-                {_Path(p).parent.name for p in config.data.data_paths}
-            )
-        elif getattr(config.data, "symbols", None):
-            _train_symbols = list(config.data.symbols)
-        else:
-            _train_symbols = []
-        if getattr(config.data, "val_data_paths", None):
-            _val_symbols = sorted(
-                {_Path(p).parent.name for p in config.data.val_data_paths}
-            )
-        else:
-            _val_symbols = _train_symbols
-
-        if params.data_path is not None:
-            if not params.data_path.exists():
-                raise FileNotFoundError(f"--data-path not found: {params.data_path}")
-            self.console.print(
-                f"[dim]Preparing arbitrary data: {params.data_path}[/dim]"
-            )
-            arbitrary_df = self._prepare_arbitrary_df(
-                params.data_path, config, checkpoint_path
-            )
-            split_name = params.data_path.stem
-            splits_to_eval = [split_name]
-            split_dfs = {split_name: arbitrary_df}
-        else:
-            val_data_paths = getattr(config.data, "val_data_paths", None)
-            wants_val_or_test = params.split == "all" or params.split in {
-                SplitName.VAL,
-                SplitName.TEST,
-            }
-            if val_data_paths and wants_val_or_test and params.per_symbol:
-                # Per-symbol eval: each symbol evaluated independently to avoid
-                # cross-symbol price artefacts; results go to per_symbol/{SYMBOL}/.
-                self.console.print(
-                    "[dim]--per-symbol: evaluating each symbol independently[/dim]"
-                )
-                splits_to_eval, split_dfs = self._resolve_per_symbol_splits(
-                    config, params, [str(p) for p in val_data_paths], checkpoint_path
-                )
-            elif val_data_paths and wants_val_or_test and not params.per_symbol:
-                self.console.print(
-                    "[yellow]Multi-symbol scenario: val/test eval skipped. "
-                    "Re-run with --per-symbol to evaluate each symbol separately.[/yellow]"
-                )
-                # Fall back to train-only if "all" was requested; skip entirely otherwise.
-                if params.split == "all":
-                    dataset = build_prepared_dataset(config, self.logger)
-                    splits_to_eval = [SplitName.TRAIN]
-                    split_dfs = {SplitName.TRAIN: dataset.train_df}
-                else:
-                    splits_to_eval = []
-                    split_dfs = {}
-            else:
-                dataset = build_prepared_dataset(config, self.logger)
-                splits_to_eval = (
-                    list(SplitName)
-                    if params.split == "all"
-                    else [SplitName(params.split)]
-                )
-                split_dfs = {
-                    SplitName.TRAIN: dataset.train_df,
-                    SplitName.VAL: dataset.val_df,
-                    SplitName.TEST: dataset.test_df,
-                }
+        splits_to_eval, split_dfs, train_symbols, val_symbols = self._resolve_splits(
+            config, params, checkpoint_path
+        )
 
         all_results: dict[str, Any] = {}
 
@@ -195,269 +115,25 @@ class EvaluateCommand(BaseCommand):
 
         with mlflow_ctx as mlflow_run_id:
             for split in splits_to_eval:
-                split_df = split_dfs[split]
-                if len(split_df) < 2:
-                    self.console.print(
-                        f"[yellow]Skipping {split} split: insufficient data[/yellow]"
-                    )
-                    continue
-
-                self.console.print(
-                    f"[bold]Evaluating {split} split ({len(split_df):,} rows)...[/bold]"
-                )
-
-                # Per-symbol mode: route artifacts to per_symbol/{SYMBOL}/
-                if params.per_symbol and isinstance(split, str) and "_" in split:
-                    sym = split.split("_", 1)[1]
-                    split_out_dir = params.output_dir / "per_symbol" / sym
-                else:
-                    split_out_dir = params.output_dir
-                split_out_dir.mkdir(parents=True, exist_ok=True)
-
-                periods_py = _periods_per_year_from_index(split_df) or _timeframe_ppy
-
-                split_ctx = build_evaluation_context_for_split(
-                    split=split,
-                    df=split_df,
+                split_output = self._evaluate_one_split(
+                    split,
+                    split_dfs[split],
                     config=config,
-                )
-                sample_path = save_observation_sample_artifact(
-                    split=split,
-                    df=split_ctx.df,
-                    output_dir=split_out_dir / ArtifactPaths.EVAL_DATA,
-                )
-                self.console.print(
-                    f"[dim]  Observation sample parquet → {sample_path}[/dim]"
-                )
-                self.console.print(
-                    f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]"
-                )
-                eval_config = StrategyEvaluatorConfig(
-                    reward_type=reward_type,
-                    backend=backend,
-                    max_steps=split_ctx.max_steps,
+                    params=params,
+                    components=components,
+                    policy=policy,
+                    is_random=is_random,
+                    meta=meta,
                     price_column=price_column,
-                    enable_plots="plots" in components,
-                    enable_metrics="metrics" in components,
-                    periods_per_year=periods_py,
-                    eval_plots=tuple(
-                        getattr(
-                            config.evaluation,
-                            "eval_plots",
-                            ("rewards", "positions", "portfolio_value"),
-                        )
-                    ),
-                    training_steps=int(meta["total_count"])
-                    if meta.get("total_count") is not None
-                    else None,
-                    training_episodes=int(meta["total_episodes"])
-                    if meta.get("total_episodes") is not None
-                    else None,
-                    benchmarks=benchmarks_from_config(config.benchmarks)
-                    if getattr(config, "benchmarks", None)
-                    else None,
+                    backend=backend,
+                    reward_type=reward_type,
+                    timeframe_ppy=timeframe_ppy,
+                    train_symbols=train_symbols,
+                    val_symbols=val_symbols,
+                    mlflow_run_id=mlflow_run_id,
                 )
-
-                if is_random:
-                    from torchrl.envs.utils import RandomPolicy
-
-                    split_policy = RandomPolicy(split_ctx.env.action_spec)
-                else:
-                    split_policy = policy
-                evaluator = StrategyEvaluator(
-                    env_factory=lambda df, cfg, env=split_ctx.env: env,
-                    policy=split_policy,
-                    config=eval_config,
-                )
-
-                self.console.print("[dim]  Running policy rollout...[/dim]")
-                result = evaluator.evaluate_split(split, split_df, env=split_ctx.env)
-                self.console.print(
-                    f"[dim]  Rollout done: {len(result.simple_returns):,} steps, "
-                    f"final reward {result.final_reward:.4f}[/dim]"
-                )
-
-                split_output: dict[str, Any] = {
-                    "split": split,
-                    "final_reward": result.final_reward,
-                    "n_steps": len(result.simple_returns),
-                }
-
-                if "metrics" in components and result.metrics:
-                    self.console.print("[dim]  Computing metrics...[/dim]")
-                    split_output["metrics"] = result.metrics
-                    _split_symbols = (
-                        _train_symbols
-                        if str(split).startswith("train")
-                        else _val_symbols
-                    )
-                    self._print_metrics_table(
-                        split, result.metrics, split_df=split_df, symbols=_split_symbols
-                    )
-                    if mlflow_run_id:
-                        from trading_rl.callbacks.artifacts import log_evaluation_report
-
-                        log_evaluation_report(result.metrics, split_prefix=split)
-
-                bench_returns_map: dict[str, Any] = {}
-                if "benchmarks" in components or "stats" in components:
-                    self.console.print("[dim]  Building benchmarks...[/dim]")
-                    benchmarks, _ = BenchmarkEngine.build(
-                        split_df, config.benchmarks, price_column
-                    )
-
-                    if getattr(config.benchmarks, "is_random", False):
-                        try:
-                            import numpy as np
-
-                            from trading_rl.evaluation.statistical_benchmarks import (
-                                compute_random_returns_from_prices,
-                            )
-
-                            self.console.print(
-                                "[dim]  Computing random baseline...[/dim]"
-                            )
-                            _price_col = (
-                                getattr(config.env, "price_column", None) or "close"
-                            )
-                            random_trials = compute_random_returns_from_prices(
-                                split_df[_price_col],
-                                split_ctx.max_steps,
-                                n_trials=getattr(
-                                    config.benchmarks, "n_random_trials", 10
-                                ),
-                                seed=getattr(config.benchmarks, "random_seed", None),
-                            )
-                            if random_trials:
-                                min_len = min(len(t) for t in random_trials)
-                                mean_returns = np.mean(
-                                    [t[:min_len] for t in random_trials], axis=0
-                                )
-                                benchmarks.append(
-                                    BenchmarkEngine.random_actions(mean_returns)
-                                )
-                        except Exception as _rand_err:
-                            self.console.print(
-                                f"[dim yellow]  Random baseline failed: {_rand_err}[/dim yellow]"
-                            )
-
-                    self.console.print(
-                        f"[dim]  {len(benchmarks)} benchmark(s) ready[/dim]"
-                    )
-
-                    if "benchmarks" in components and benchmarks:
-                        bench_out: dict[str, Any] = {}
-                        for spec in benchmarks:
-                            self.console.print(
-                                f"[dim]  Benchmark metrics: {spec.name}...[/dim]"
-                            )
-                            bench_returns = spec.compute_returns(split_ctx.max_steps)
-                            bench_returns_map[spec.name] = bench_returns
-                            n = min(len(result.simple_returns), len(bench_returns))
-                            # Benchmark's own performance metrics
-                            bench_own = build_metric_report(
-                                strategy_simple_returns=bench_returns[:n],
-                                benchmark_simple_returns=bench_returns[:n],
-                                actions=None,
-                                periods_per_year=periods_py,
-                                risk_free_rate_annual=0.0,
-                            )
-                            # Relative metrics (alpha, beta, IR, TE) vs strategy
-                            bench_rel = build_metric_report(
-                                strategy_simple_returns=result.simple_returns[:n],
-                                benchmark_simple_returns=bench_returns[:n],
-                                actions=None,
-                                periods_per_year=periods_py,
-                                risk_free_rate_annual=0.0,
-                            )
-                            _enabled = getattr(
-                                getattr(config, "metrics", None), "enabled_set", None
-                            )
-                            bench_out[spec.name] = {
-                                "benchmark_metrics": bench_own.to_filtered_dict(
-                                    _enabled
-                                ),
-                                "relative_metrics": {
-                                    k: getattr(bench_rel, k)
-                                    for k in (
-                                        "alpha",
-                                        "beta",
-                                        "information_ratio",
-                                        "tracking_error",
-                                    )
-                                },
-                            }
-                        split_output["benchmarks"] = bench_out
-                        _enabled = getattr(
-                            getattr(config, "metrics", None), "enabled_set", None
-                        )
-                        strategy_dict = (
-                            result.metrics.to_filtered_dict(_enabled)
-                            if result.metrics
-                            else None
-                        )
-                        self._print_benchmark_table(split, bench_out, strategy_dict)
-                        json_p, png_p = save_benchmark_table_artifact(
-                            split, split_df, bench_out, strategy_dict, split_out_dir
-                        )
-                        self.console.print(
-                            f"[dim]  Benchmark table JSON → {json_p}[/dim]"
-                        )
-                        self.console.print(
-                            f"[dim]  Benchmark table PNG  → {png_p}[/dim]"
-                        )
-                        if mlflow_run_id:
-                            self._log_benchmarks_to_mlflow(bench_out, split)
-
-                    if "stats" in components and getattr(
-                        config, "statistical_testing", None
-                    ):
-                        stat_results = run_all_statistical_tests(
-                            strategy_returns=result.simple_returns,
-                            benchmarks=benchmarks,
-                            max_steps=split_ctx.max_steps,
-                            config=config.statistical_testing,
-                            periods_per_year=periods_py,
-                            status_fn=lambda msg: self.console.print(
-                                f"[dim]  {msg}[/dim]"
-                            ),
-                        )
-                        split_output["statistical_tests"] = stat_results
-                        if mlflow_run_id:
-                            from trading_rl.callbacks.artifacts import (
-                                log_statistical_tests,
-                            )
-
-                            log_statistical_tests(stat_results, split_prefix=split)
-
-                if params.save_rollout:
-                    self._save_rollout_data(result, split, split_df, split_out_dir)
-
-                if params.save_trades:
-                    self._save_trade_log(split_ctx.env, split, split_out_dir)
-
-                if "plots" in components and result.plots:
-                    self.console.print("[dim]  Saving plots...[/dim]")
-                    self._save_plots(result.plots, split, split_out_dir)
-                    if mlflow_run_id:
-                        from trading_rl.callbacks.artifacts import log_evaluation_plots
-
-                        _rollout = result.plots.get("_rollout_plot_data")
-                        _equity = result.plots.get("_equity_plot_data")
-                        _plot_data = (
-                            {**(_rollout or {}), **(_equity or {})}
-                            if (_rollout or _equity)
-                            else None
-                        )
-                        log_evaluation_plots(
-                            reward_plot=result.plots.get("reward_plot"),
-                            action_plot=result.plots.get("action_plot"),
-                            equity_curve_plot=result.plots.get("portfolio_value_plot"),
-                            artifact_path_prefix=ArtifactPaths.eval_plots(split),
-                            plot_data=_plot_data,
-                        )
-
-                all_results[split] = split_output
+                if split_output is not None:
+                    all_results[split] = split_output
 
             # Write and upload results.json
             out_json = params.output_dir / "results.json"
@@ -472,6 +148,373 @@ class EvaluateCommand(BaseCommand):
                 mlflow.log_artifact(str(out_json), "evaluation_summary")
                 run_url = self._mlflow_run_url(params.tracking_uri, mlflow_run_id)
                 self.console.print(f"[green]MLflow run: {run_url}[/green]")
+
+    # ------------------------------------------------------------------
+    # Split resolution
+    # ------------------------------------------------------------------
+
+    def _resolve_splits(
+        self,
+        config: Any,
+        params: EvaluateParams,
+        checkpoint_path: Path | None,
+    ) -> tuple[list[str], dict[str, pd.DataFrame], list[str], list[str]]:
+        """Resolve which splits to evaluate and their DataFrames.
+
+        Handles four cases: an arbitrary ``--data-path`` file, per-symbol val/test
+        files (``--per-symbol``), a multi-symbol scenario without ``--per-symbol``
+        (train-only fallback or skip), and the standard prepared train/val/test
+        dataset. Returns ``(splits_to_eval, split_dfs, train_symbols, val_symbols)``.
+        """
+        from trading_rl.constants import SplitName
+        from trading_rl.data_utils import build_prepared_dataset
+
+        if getattr(config.data, "data_paths", None):
+            train_symbols = sorted(
+                {Path(p).parent.name for p in config.data.data_paths}
+            )
+        elif getattr(config.data, "symbols", None):
+            train_symbols = list(config.data.symbols)
+        else:
+            train_symbols = []
+        if getattr(config.data, "val_data_paths", None):
+            val_symbols = sorted(
+                {Path(p).parent.name for p in config.data.val_data_paths}
+            )
+        else:
+            val_symbols = train_symbols
+
+        if params.data_path is not None:
+            if not params.data_path.exists():
+                raise FileNotFoundError(f"--data-path not found: {params.data_path}")
+            self.console.print(
+                f"[dim]Preparing arbitrary data: {params.data_path}[/dim]"
+            )
+            arbitrary_df = self._prepare_arbitrary_df(
+                params.data_path, config, checkpoint_path
+            )
+            split_name = params.data_path.stem
+            return [split_name], {split_name: arbitrary_df}, train_symbols, val_symbols
+
+        val_data_paths = getattr(config.data, "val_data_paths", None)
+        wants_val_or_test = params.split == "all" or params.split in {
+            SplitName.VAL,
+            SplitName.TEST,
+        }
+        if val_data_paths and wants_val_or_test and params.per_symbol:
+            # Per-symbol eval: each symbol evaluated independently to avoid
+            # cross-symbol price artefacts; results go to per_symbol/{SYMBOL}/.
+            self.console.print(
+                "[dim]--per-symbol: evaluating each symbol independently[/dim]"
+            )
+            splits_to_eval, split_dfs = self._resolve_per_symbol_splits(
+                config, params, [str(p) for p in val_data_paths], checkpoint_path
+            )
+        elif val_data_paths and wants_val_or_test and not params.per_symbol:
+            self.console.print(
+                "[yellow]Multi-symbol scenario: val/test eval skipped. "
+                "Re-run with --per-symbol to evaluate each symbol separately.[/yellow]"
+            )
+            # Fall back to train-only if "all" was requested; skip entirely otherwise.
+            if params.split == "all":
+                dataset = build_prepared_dataset(config, self.logger)
+                splits_to_eval = [SplitName.TRAIN]
+                split_dfs = {SplitName.TRAIN: dataset.train_df}
+            else:
+                splits_to_eval = []
+                split_dfs = {}
+        else:
+            dataset = build_prepared_dataset(config, self.logger)
+            splits_to_eval = (
+                list(SplitName) if params.split == "all" else [SplitName(params.split)]
+            )
+            split_dfs = {
+                SplitName.TRAIN: dataset.train_df,
+                SplitName.VAL: dataset.val_df,
+                SplitName.TEST: dataset.test_df,
+            }
+
+        return splits_to_eval, split_dfs, train_symbols, val_symbols
+
+    # ------------------------------------------------------------------
+    # Per-split evaluation
+    # ------------------------------------------------------------------
+
+    def _evaluate_one_split(
+        self,
+        split: str,
+        split_df: pd.DataFrame,
+        *,
+        config: Any,
+        params: EvaluateParams,
+        components: frozenset[str],
+        policy: Any,
+        is_random: bool,
+        meta: dict,
+        price_column: str,
+        backend: str,
+        reward_type: str,
+        timeframe_ppy: float,
+        train_symbols: list[str],
+        val_symbols: list[str],
+        mlflow_run_id: str | None,
+    ) -> dict[str, Any] | None:
+        """Run rollout, metrics, benchmarks, and stats for one split.
+
+        Returns the split's result dict, or None if the split was skipped
+        for having fewer than 2 rows.
+        """
+        from trading_rl.evaluation import (
+            StrategyEvaluator,
+            StrategyEvaluatorConfig,
+            run_all_statistical_tests,
+        )
+        from trading_rl.evaluation.benchmarks import (
+            BenchmarkEngine,
+            benchmarks_from_config,
+        )
+        from trading_rl.evaluation.metrics import build_metric_report
+        from trading_rl.evaluation.report import _periods_per_year_from_index
+        from trading_rl.pipeline.evaluation import build_evaluation_context_for_split
+
+        if len(split_df) < 2:
+            self.console.print(
+                f"[yellow]Skipping {split} split: insufficient data[/yellow]"
+            )
+            return None
+
+        self.console.print(
+            f"[bold]Evaluating {split} split ({len(split_df):,} rows)...[/bold]"
+        )
+
+        # Per-symbol mode: route artifacts to per_symbol/{SYMBOL}/
+        if params.per_symbol and isinstance(split, str) and "_" in split:
+            sym = split.split("_", 1)[1]
+            split_out_dir = params.output_dir / "per_symbol" / sym
+        else:
+            split_out_dir = params.output_dir
+        split_out_dir.mkdir(parents=True, exist_ok=True)
+
+        periods_py = _periods_per_year_from_index(split_df) or timeframe_ppy
+
+        split_ctx = build_evaluation_context_for_split(
+            split=split,
+            df=split_df,
+            config=config,
+        )
+        sample_path = save_observation_sample_artifact(
+            split=split,
+            df=split_ctx.df,
+            output_dir=split_out_dir / ArtifactPaths.EVAL_DATA,
+        )
+        self.console.print(f"[dim]  Observation sample parquet → {sample_path}[/dim]")
+        self.console.print(
+            f"[dim]  Building environment ({split_ctx.max_steps:,} steps)...[/dim]"
+        )
+        eval_config = StrategyEvaluatorConfig(
+            reward_type=reward_type,
+            backend=backend,
+            max_steps=split_ctx.max_steps,
+            price_column=price_column,
+            enable_plots="plots" in components,
+            enable_metrics="metrics" in components,
+            periods_per_year=periods_py,
+            eval_plots=tuple(
+                getattr(
+                    config.evaluation,
+                    "eval_plots",
+                    ("rewards", "positions", "portfolio_value"),
+                )
+            ),
+            training_steps=int(meta["total_count"])
+            if meta.get("total_count") is not None
+            else None,
+            training_episodes=int(meta["total_episodes"])
+            if meta.get("total_episodes") is not None
+            else None,
+            benchmarks=benchmarks_from_config(config.benchmarks)
+            if getattr(config, "benchmarks", None)
+            else None,
+        )
+
+        if is_random:
+            from torchrl.envs.utils import RandomPolicy
+
+            split_policy = RandomPolicy(split_ctx.env.action_spec)
+        else:
+            split_policy = policy
+        evaluator = StrategyEvaluator(
+            env_factory=lambda df, cfg, env=split_ctx.env: env,
+            policy=split_policy,
+            config=eval_config,
+        )
+
+        self.console.print("[dim]  Running policy rollout...[/dim]")
+        result = evaluator.evaluate_split(split, split_df, env=split_ctx.env)
+        self.console.print(
+            f"[dim]  Rollout done: {len(result.simple_returns):,} steps, "
+            f"final reward {result.final_reward:.4f}[/dim]"
+        )
+
+        split_output: dict[str, Any] = {
+            "split": split,
+            "final_reward": result.final_reward,
+            "n_steps": len(result.simple_returns),
+        }
+
+        if "metrics" in components and result.metrics:
+            self.console.print("[dim]  Computing metrics...[/dim]")
+            split_output["metrics"] = result.metrics
+            split_symbols = (
+                train_symbols if str(split).startswith("train") else val_symbols
+            )
+            self._print_metrics_table(
+                split, result.metrics, split_df=split_df, symbols=split_symbols
+            )
+            if mlflow_run_id:
+                from trading_rl.callbacks.artifacts import log_evaluation_report
+
+                log_evaluation_report(result.metrics, split_prefix=split)
+
+        bench_returns_map: dict[str, Any] = {}
+        if "benchmarks" in components or "stats" in components:
+            self.console.print("[dim]  Building benchmarks...[/dim]")
+            benchmarks, _ = BenchmarkEngine.build(
+                split_df, config.benchmarks, price_column
+            )
+
+            if getattr(config.benchmarks, "is_random", False):
+                try:
+                    import numpy as np
+
+                    from trading_rl.evaluation.statistical_benchmarks import (
+                        compute_random_returns_from_prices,
+                    )
+
+                    self.console.print("[dim]  Computing random baseline...[/dim]")
+                    _price_col = getattr(config.env, "price_column", None) or "close"
+                    random_trials = compute_random_returns_from_prices(
+                        split_df[_price_col],
+                        split_ctx.max_steps,
+                        n_trials=getattr(config.benchmarks, "n_random_trials", 10),
+                        seed=getattr(config.benchmarks, "random_seed", None),
+                    )
+                    if random_trials:
+                        min_len = min(len(t) for t in random_trials)
+                        mean_returns = np.mean(
+                            [t[:min_len] for t in random_trials], axis=0
+                        )
+                        benchmarks.append(BenchmarkEngine.random_actions(mean_returns))
+                except Exception as _rand_err:
+                    self.console.print(
+                        f"[dim yellow]  Random baseline failed: {_rand_err}[/dim yellow]"
+                    )
+
+            self.console.print(f"[dim]  {len(benchmarks)} benchmark(s) ready[/dim]")
+
+            if "benchmarks" in components and benchmarks:
+                bench_out: dict[str, Any] = {}
+                for spec in benchmarks:
+                    self.console.print(
+                        f"[dim]  Benchmark metrics: {spec.name}...[/dim]"
+                    )
+                    bench_returns = spec.compute_returns(split_ctx.max_steps)
+                    bench_returns_map[spec.name] = bench_returns
+                    n = min(len(result.simple_returns), len(bench_returns))
+                    # Benchmark's own performance metrics
+                    bench_own = build_metric_report(
+                        strategy_simple_returns=bench_returns[:n],
+                        benchmark_simple_returns=bench_returns[:n],
+                        actions=None,
+                        periods_per_year=periods_py,
+                        risk_free_rate_annual=0.0,
+                    )
+                    # Relative metrics (alpha, beta, IR, TE) vs strategy
+                    bench_rel = build_metric_report(
+                        strategy_simple_returns=result.simple_returns[:n],
+                        benchmark_simple_returns=bench_returns[:n],
+                        actions=None,
+                        periods_per_year=periods_py,
+                        risk_free_rate_annual=0.0,
+                    )
+                    _enabled = getattr(
+                        getattr(config, "metrics", None), "enabled_set", None
+                    )
+                    bench_out[spec.name] = {
+                        "benchmark_metrics": bench_own.to_filtered_dict(_enabled),
+                        "relative_metrics": {
+                            k: getattr(bench_rel, k)
+                            for k in (
+                                "alpha",
+                                "beta",
+                                "information_ratio",
+                                "tracking_error",
+                            )
+                        },
+                    }
+                split_output["benchmarks"] = bench_out
+                _enabled = getattr(
+                    getattr(config, "metrics", None), "enabled_set", None
+                )
+                strategy_dict = (
+                    result.metrics.to_filtered_dict(_enabled)
+                    if result.metrics
+                    else None
+                )
+                self._print_benchmark_table(split, bench_out, strategy_dict)
+                json_p, png_p = save_benchmark_table_artifact(
+                    split, split_df, bench_out, strategy_dict, split_out_dir
+                )
+                self.console.print(f"[dim]  Benchmark table JSON → {json_p}[/dim]")
+                self.console.print(f"[dim]  Benchmark table PNG  → {png_p}[/dim]")
+                if mlflow_run_id:
+                    self._log_benchmarks_to_mlflow(bench_out, split)
+
+            if "stats" in components and getattr(config, "statistical_testing", None):
+                stat_results = run_all_statistical_tests(
+                    strategy_returns=result.simple_returns,
+                    benchmarks=benchmarks,
+                    max_steps=split_ctx.max_steps,
+                    config=config.statistical_testing,
+                    periods_per_year=periods_py,
+                    status_fn=lambda msg: self.console.print(f"[dim]  {msg}[/dim]"),
+                )
+                split_output["statistical_tests"] = stat_results
+                if mlflow_run_id:
+                    from trading_rl.callbacks.artifacts import (
+                        log_statistical_tests,
+                    )
+
+                    log_statistical_tests(stat_results, split_prefix=split)
+
+        if params.save_rollout:
+            self._save_rollout_data(result, split, split_df, split_out_dir)
+
+        if params.save_trades:
+            self._save_trade_log(split_ctx.env, split, split_out_dir)
+
+        if "plots" in components and result.plots:
+            self.console.print("[dim]  Saving plots...[/dim]")
+            self._save_plots(result.plots, split, split_out_dir)
+            if mlflow_run_id:
+                from trading_rl.callbacks.artifacts import log_evaluation_plots
+
+                _rollout = result.plots.get("_rollout_plot_data")
+                _equity = result.plots.get("_equity_plot_data")
+                _plot_data = (
+                    {**(_rollout or {}), **(_equity or {})}
+                    if (_rollout or _equity)
+                    else None
+                )
+                log_evaluation_plots(
+                    reward_plot=result.plots.get("reward_plot"),
+                    action_plot=result.plots.get("action_plot"),
+                    equity_curve_plot=result.plots.get("portfolio_value_plot"),
+                    artifact_path_prefix=ArtifactPaths.eval_plots(split),
+                    plot_data=_plot_data,
+                )
+
+        return split_output
 
     # ------------------------------------------------------------------
     # Arbitrary data preparation
