@@ -66,7 +66,9 @@ def _linear(value: float) -> torch.nn.Linear:
 
 
 def _assert_module_equal(left: torch.nn.Module, right: torch.nn.Module) -> None:
-    for left_param, right_param in zip(left.parameters(), right.parameters(), strict=True):
+    for left_param, right_param in zip(
+        left.parameters(), right.parameters(), strict=True
+    ):
         torch.testing.assert_close(left_param, right_param)
 
 
@@ -94,9 +96,12 @@ def test_ppo_checkpoint_round_trip_restores_module_optimizer_and_counters(
     trainer.n_act = 1
     trainer.actor_hidden_dims = [16]
     trainer.value_hidden_dims = [32]
+    trainer._replay_buffer_max_step_count = 0
 
     path = tmp_path / "ppo.pt"
-    trainer.save_checkpoint(str(path), feature_pipeline_state={"feature_x": {"mean": 1.0}})
+    trainer.save_checkpoint(
+        str(path), feature_pipeline_state={"feature_x": {"mean": 1.0}}
+    )
 
     restored = PPOTrainer.__new__(PPOTrainer)
     restored.checkpoint_manager = _no_op_manager()
@@ -144,24 +149,37 @@ def test_ddpg_checkpoint_round_trip_restores_functional_params_and_syncs_modules
     trainer.n_act = 1
     trainer.actor_hidden_dims = [8]
     trainer.value_hidden_dims = [16]
+    trainer._replay_buffer_max_step_count = 0
 
     path = tmp_path / "ddpg.pt"
-    trainer.save_checkpoint(str(path), feature_pipeline_state={"feature_y": {"var": 2.0}})
+    trainer.save_checkpoint(
+        str(path), feature_pipeline_state={"feature_y": {"var": 2.0}}
+    )
 
     restored = DDPGTrainer.__new__(DDPGTrainer)
     restored.checkpoint_manager = _no_op_manager()
     restored.actor = _linear(0.0)
     restored.value_net = _linear(0.0)
     restored.optimizer_actor = torch.optim.Adam(restored.actor.parameters(), lr=0.01)
-    restored.optimizer_value = torch.optim.Adam(restored.value_net.parameters(), lr=0.02)
+    restored.optimizer_value = torch.optim.Adam(
+        restored.value_net.parameters(), lr=0.02
+    )
     restored.ddpg_loss = _DdpgLoss()
 
     restored.load_checkpoint(str(path))
 
-    torch.testing.assert_close(restored.ddpg_loss.actor_network_params.value, torch.tensor([1.1]))
-    torch.testing.assert_close(restored.ddpg_loss.value_network_params.value, torch.tensor([2.2]))
-    torch.testing.assert_close(restored.ddpg_loss.target_actor_network_params.value, torch.tensor([3.3]))
-    torch.testing.assert_close(restored.ddpg_loss.target_value_network_params.value, torch.tensor([4.4]))
+    torch.testing.assert_close(
+        restored.ddpg_loss.actor_network_params.value, torch.tensor([1.1])
+    )
+    torch.testing.assert_close(
+        restored.ddpg_loss.value_network_params.value, torch.tensor([2.2])
+    )
+    torch.testing.assert_close(
+        restored.ddpg_loss.target_actor_network_params.value, torch.tensor([3.3])
+    )
+    torch.testing.assert_close(
+        restored.ddpg_loss.target_value_network_params.value, torch.tensor([4.4])
+    )
     assert restored.ddpg_loss.actor_network_params.to_module_calls == 1
     assert restored.ddpg_loss.value_network_params.to_module_calls == 1
     assert restored.total_count == 456
@@ -194,24 +212,37 @@ def test_td3_checkpoint_round_trip_restores_functional_params_and_syncs_modules(
     trainer.n_act = 1
     trainer.actor_hidden_dims = [8]
     trainer.value_hidden_dims = [16]
+    trainer._replay_buffer_max_step_count = 0
 
     path = tmp_path / "td3.pt"
-    trainer.save_checkpoint(str(path), feature_pipeline_state={"feature_z": {"std": 3.0}})
+    trainer.save_checkpoint(
+        str(path), feature_pipeline_state={"feature_z": {"std": 3.0}}
+    )
 
     restored = TD3Trainer.__new__(TD3Trainer)
     restored.checkpoint_manager = _no_op_manager()
     restored.actor = _linear(0.0)
     restored.value_net = _linear(0.0)
     restored.optimizer_actor = torch.optim.Adam(restored.actor.parameters(), lr=0.01)
-    restored.optimizer_value = torch.optim.Adam(restored.value_net.parameters(), lr=0.02)
+    restored.optimizer_value = torch.optim.Adam(
+        restored.value_net.parameters(), lr=0.02
+    )
     restored.td3_loss = _Td3Loss()
 
     restored.load_checkpoint(str(path))
 
-    torch.testing.assert_close(restored.td3_loss.actor_network_params.value, torch.tensor([5.5]))
-    torch.testing.assert_close(restored.td3_loss.qvalue_network_params.value, torch.tensor([6.6]))
-    torch.testing.assert_close(restored.td3_loss.target_actor_network_params.value, torch.tensor([7.7]))
-    torch.testing.assert_close(restored.td3_loss.target_qvalue_network_params.value, torch.tensor([8.8]))
+    torch.testing.assert_close(
+        restored.td3_loss.actor_network_params.value, torch.tensor([5.5])
+    )
+    torch.testing.assert_close(
+        restored.td3_loss.qvalue_network_params.value, torch.tensor([6.6])
+    )
+    torch.testing.assert_close(
+        restored.td3_loss.target_actor_network_params.value, torch.tensor([7.7])
+    )
+    torch.testing.assert_close(
+        restored.td3_loss.target_qvalue_network_params.value, torch.tensor([8.8])
+    )
     assert restored.td3_loss.actor_network_params.to_module_calls == 1
     assert restored.td3_loss.qvalue_network_params.to_module_calls == 1
     assert restored.total_count == 789
