@@ -71,9 +71,12 @@ class TrainingLoop:
                     with _profiler.stage("buffer_extend", 2):
                         if trainer._use_replay_buffer:
                             trainer.replay_buffer.extend(data)
-                            max_length = trainer.replay_buffer[:][
-                                "next", "step_count"
-                            ].max()
+                            batch_max_step_count = data["next", "step_count"].max()
+                            trainer._replay_buffer_max_step_count = max(
+                                trainer._replay_buffer_max_step_count,
+                                batch_max_step_count,
+                            )
+                            max_length = trainer._replay_buffer_max_step_count
                             buffer_len = len(trainer.replay_buffer)
                         else:
                             max_length = data["next", "step_count"].max()
@@ -89,11 +92,14 @@ class TrainingLoop:
                             buffer_len,
                         )
 
-                    collected_steps = (
-                        trainer.total_count
-                        if not trainer._use_replay_buffer
-                        else buffer_len
-                    )
+                    # total_count tracks every transition collected so far,
+                    # independent of the replay buffer's bounded capacity.
+                    # buffer_len is capped at buffer_size once the buffer
+                    # fills, so gating on it instead would make this
+                    # condition permanently false whenever
+                    # init_rand_steps > buffer_size -- zero gradient updates
+                    # for the entire run, silently (issue #356).
+                    collected_steps = trainer.total_count
                     if collected_steps > trainer.config.init_rand_steps:
                         with _profiler.stage("optimization", 2):
                             trainer._optimization_step(i, max_length, buffer_len)
