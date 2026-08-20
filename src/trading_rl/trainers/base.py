@@ -650,6 +650,7 @@ class BaseTrainer(ABC):
             value_net_state_dict=self.value_net.state_dict(),
             total_count=self.total_count,
             total_episodes=self.total_episodes,
+            replay_buffer_max_step_count=int(self._replay_buffer_max_step_count),
             episode_log_count=(
                 int(self.logs.get("episode_log_count", [0])[-1])
                 if self.logs.get("episode_log_count")
@@ -677,6 +678,7 @@ class BaseTrainer(ABC):
 
         self.total_count = checkpoint.total_count
         self.total_episodes = checkpoint.total_episodes
+        self._replay_buffer_max_step_count = checkpoint.replay_buffer_max_step_count
         self.logs = defaultdict(list, checkpoint.logs)
         self.mlflow_run_id = checkpoint.mlflow_run_id
         self.mlflow_run_name = checkpoint.mlflow_run_name

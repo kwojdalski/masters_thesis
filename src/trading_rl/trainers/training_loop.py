@@ -92,11 +92,14 @@ class TrainingLoop:
                             buffer_len,
                         )
 
-                    collected_steps = (
-                        trainer.total_count
-                        if not trainer._use_replay_buffer
-                        else buffer_len
-                    )
+                    # total_count tracks every transition collected so far,
+                    # independent of the replay buffer's bounded capacity.
+                    # buffer_len is capped at buffer_size once the buffer
+                    # fills, so gating on it instead would make this
+                    # condition permanently false whenever
+                    # init_rand_steps > buffer_size -- zero gradient updates
+                    # for the entire run, silently (issue #356).
+                    collected_steps = trainer.total_count
                     if collected_steps > trainer.config.init_rand_steps:
                         with _profiler.stage("optimization", 2):
                             trainer._optimization_step(i, max_length, buffer_len)
