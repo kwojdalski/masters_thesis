@@ -71,9 +71,12 @@ class TrainingLoop:
                     with _profiler.stage("buffer_extend", 2):
                         if trainer._use_replay_buffer:
                             trainer.replay_buffer.extend(data)
-                            max_length = trainer.replay_buffer[:][
-                                "next", "step_count"
-                            ].max()
+                            batch_max_step_count = data["next", "step_count"].max()
+                            trainer._replay_buffer_max_step_count = max(
+                                trainer._replay_buffer_max_step_count,
+                                batch_max_step_count,
+                            )
+                            max_length = trainer._replay_buffer_max_step_count
                             buffer_len = len(trainer.replay_buffer)
                         else:
                             max_length = data["next", "step_count"].max()

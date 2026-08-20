@@ -395,6 +395,7 @@ class BaseTrainer(ABC):
         # Training state
         self.total_count = 0
         self.total_episodes = 0
+        self._replay_buffer_max_step_count = 0
         self.logs = defaultdict(list)
         self.checkpoint_manager = CheckpointManager(
             checkpoint_dir=checkpoint_dir,
