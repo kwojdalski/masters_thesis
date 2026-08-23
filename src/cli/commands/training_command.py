@@ -117,19 +117,30 @@ class TrainingCommand(BaseCommand):
             new_steps = typer.prompt("New max steps", default=current_steps)
             config.training.max_steps = int(new_steps)
 
-        cache_enabled = getattr(config.data, "feature_cache_dir", ".cache/feature_transformation") is not None
+        cache_enabled = (
+            getattr(config.data, "feature_cache_dir", ".cache/feature_transformation")
+            is not None
+        )
         if cache_enabled:
-            if typer.confirm("Process features from scratch (skip cache)?", default=False):
+            if typer.confirm(
+                "Process features from scratch (skip cache)?", default=False
+            ):
                 config.data.feature_cache_dir = None
-                self.console.print("[yellow]Feature cache disabled — features will be recomputed.[/yellow]")
+                self.console.print(
+                    "[yellow]Feature cache disabled — features will be recomputed.[/yellow]"
+                )
         else:
-            self.console.print("[dim]Feature caching is already disabled in config.[/dim]")
+            self.console.print(
+                "[dim]Feature caching is already disabled in config.[/dim]"
+            )
 
     def _display_config_source(self, params: TrainingParams) -> None:
         if params.config_file:
             self.console.print(f"[blue]Loaded config from: {params.config_file}[/blue]")
         elif params.scenario:
-            self.console.print(f"[blue]Loaded config from scenario: {params.scenario}[/blue]")
+            self.console.print(
+                f"[blue]Loaded config from scenario: {params.scenario}[/blue]"
+            )
 
     def _display_validation(self, report: ValidationReport) -> None:
         """Run validation before training starts and fail fast on errors."""
@@ -179,11 +190,14 @@ class TrainingCommand(BaseCommand):
                 if params.checkpoint_path:
                     result = self._resume_from_checkpoint(config, params, progress)
                 else:
-                    result = run_single_experiment(custom_config=config, progress_bar=progress)
+                    result = run_single_experiment(
+                        custom_config=config, progress_bar=progress
+                    )
 
                 if result.get("interrupted"):
                     progress.update(
-                        task, description="Training interrupted; final evaluation complete!"
+                        task,
+                        description="Training interrupted; final evaluation complete!",
                     )
                 else:
                     progress.update(task, description="Training complete!")
@@ -271,11 +285,20 @@ class TrainingCommand(BaseCommand):
         ]:
             if key in final_metrics:
                 steps_table.add_row(label, f"{final_metrics[key]:{fmt}}")
-        steps_table.add_row("Final Reward", f"{final_metrics.get('final_reward', float('nan')):.4f}")
+        steps_table.add_row(
+            "Final Reward", f"{final_metrics.get('final_reward', float('nan')):.4f}"
+        )
 
         _perf_keys = [
-            "total_return", "sharpe_ratio", "sortino_ratio", "max_drawdown",
-            "win_rate", "lose_rate", "profit_factor", "pct_long", "pct_short",
+            "total_return",
+            "sharpe_ratio",
+            "sortino_ratio",
+            "max_drawdown",
+            "win_rate",
+            "lose_rate",
+            "profit_factor",
+            "pct_long",
+            "pct_short",
         ]
         _perf_metrics = [
             (key, METRIC_META_BY_KEY[key].label, METRIC_META_BY_KEY[key].fmt)
@@ -300,7 +323,7 @@ class TrainingCommand(BaseCommand):
             date_end = split_meta.get("date_end")
             if date_start and date_end:
                 t.add_row("Start Datetime", date_start)
-                t.add_row("End Datetime",   date_end)
+                t.add_row("End Datetime", date_end)
             symbols = split_meta.get("symbols", [])
             if symbols:
                 t.add_row("Symbols", ", ".join(symbols))
@@ -313,8 +336,7 @@ class TrainingCommand(BaseCommand):
         self.console.print(Columns([run_table, steps_table, *perf_tables]))
 
         legend_lines = ["[bold]Legend[/bold]"] + [
-            f"[cyan]{name}[/cyan]  {desc}"
-            for name, desc in METRIC_LEGEND.items()
+            f"[cyan]{name}[/cyan]  {desc}" for name, desc in METRIC_LEGEND.items()
         ]
         self.console.print()
         for line in legend_lines:
@@ -324,8 +346,23 @@ class TrainingCommand(BaseCommand):
         self, result: dict[str, Any], config, params: TrainingParams
     ) -> None:
         """Save training plots to disk."""
+        plots = {
+            name: plot
+            for name, plot in (result.get("plots") or {}).items()
+            if plot is not None
+        }
+        if not plots:
+            self.console.print("[yellow]No training plots available to save.[/yellow]")
+            return
 
         plots_dir = Path(config.logging.log_dir) / "plots"
         plots_dir.mkdir(exist_ok=True, parents=True)
-        # (Skipping rewrite as per instructions)
-        return result
+        for name, plot in plots.items():
+            plot_path = plots_dir / f"{name}.png"
+            try:
+                plot.save(str(plot_path), verbose=False)
+                self.console.print(f"[green]Saved plot: {plot_path}[/green]")
+            except Exception as e:
+                self.console.print(
+                    f"[yellow]Failed to save plot '{name}': {e}[/yellow]"
+                )
