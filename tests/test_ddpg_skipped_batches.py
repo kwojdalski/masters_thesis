@@ -81,7 +81,9 @@ class _FakeDdpgLoss:
             }
         )
         return {
-            "loss_actor": torch.tensor(0.10 + self.call_count / 100, requires_grad=True),
+            "loss_actor": torch.tensor(
+                0.10 + self.call_count / 100, requires_grad=True
+            ),
             "loss_value": torch.tensor(0.22, requires_grad=True),
         }
 
@@ -116,11 +118,14 @@ def test_ddpg_record_skipped_batch_aborts_after_repeated_zero_success_skips() ->
     assert trainer.successful_batches == 0
 
 
-def test_ddpg_record_skipped_batch_does_not_abort_after_successful_batch() -> None:
+def test_ddpg_record_skipped_batch_aborts_after_successful_batch() -> None:
     trainer = _bare_ddpg_trainer()
     trainer.successful_batches = 1
 
-    for _ in range(10):
+    for _ in range(9):
+        trainer._record_skipped_batch("done/terminated shape mismatch")
+
+    with pytest.raises(RuntimeError, match="10 consecutive optimization batches"):
         trainer._record_skipped_batch("done/terminated shape mismatch")
 
     assert trainer.skipped_batches == 10
@@ -138,9 +143,13 @@ def _ddpg_sample(
             "observation": torch.arange(12, dtype=torch.float32).reshape(4, 3),
             "action": torch.zeros(4, 1),
             ("next", "reward"): reward if reward is not None else torch.ones(4, 1),
-            ("next", "done"): done if done is not None else torch.zeros(4, 1, dtype=torch.bool),
+            ("next", "done"): done
+            if done is not None
+            else torch.zeros(4, 1, dtype=torch.bool),
             ("next", "terminated"): (
-                terminated if terminated is not None else torch.zeros(4, 1, dtype=torch.bool)
+                terminated
+                if terminated is not None
+                else torch.zeros(4, 1, dtype=torch.bool)
             ),
         },
         batch_size=[4],
@@ -177,10 +186,26 @@ def test_ddpg_optimization_step_updates_networks_and_logs_losses() -> None:
 
     assert trainer.replay_buffer.sample_sizes == [4, 4]
     assert trainer.ddpg_loss.sample_shapes == [
-        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
-        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
-        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
-        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
+        {
+            "reward": torch.Size([4, 1]),
+            "done": torch.Size([4, 1]),
+            "terminated": torch.Size([4, 1]),
+        },
+        {
+            "reward": torch.Size([4, 1]),
+            "done": torch.Size([4, 1]),
+            "terminated": torch.Size([4, 1]),
+        },
+        {
+            "reward": torch.Size([4, 1]),
+            "done": torch.Size([4, 1]),
+            "terminated": torch.Size([4, 1]),
+        },
+        {
+            "reward": torch.Size([4, 1]),
+            "done": torch.Size([4, 1]),
+            "terminated": torch.Size([4, 1]),
+        },
     ]
     assert trainer.successful_batches == 2
     assert trainer.skipped_batches == 0

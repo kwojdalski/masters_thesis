@@ -500,13 +500,14 @@ class BaseTrainer(ABC):
             logger.warning(
                 "{} skipping batch reason={} err={}", self._algo_label, reason, exc
             )
-        if (
-            self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
-            and self.successful_batches == 0
-        ):
+        # Abort on N *consecutive* skips regardless of earlier successes —
+        # successful_batches == 0 here would let a post-success NaN streak
+        # (e.g. env emitting NaN rewards) train silently to max_steps with
+        # zero gradient updates.
+        if self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES:
             error = RuntimeError(
                 f"{self._algo_label.upper()}: {self._consecutive_skips} consecutive optimization "
-                "batches skipped with zero successful updates. Training cannot proceed — "
+                "batches skipped. Training cannot proceed — "
                 "check environment or replay buffer tensor shapes."
             )
             if exc is not None:
