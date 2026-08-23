@@ -438,6 +438,27 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
 
         continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
 
+        # StreamingTradingEnv (gym_trading_env) has no latency support — fail
+        # loudly if latency is configured instead of silently running at zero
+        # latency. (Only the tradingenv streaming branch honors these params.)
+        latency_params = params.streaming
+        if any(
+            (
+                latency_params.obs_latency_ticks,
+                latency_params.exec_latency_ticks,
+                latency_params.obs_latency_us,
+                latency_params.exec_latency_us,
+            )
+        ):
+            raise ValueError(
+                f"latency params are not supported for gym_trading streaming "
+                f"backends (got obs_latency_ticks={latency_params.obs_latency_ticks}, "
+                f"exec_latency_ticks={latency_params.exec_latency_ticks}, "
+                f"obs_latency_us={latency_params.obs_latency_us}, "
+                f"exec_latency_us={latency_params.exec_latency_us}). "
+                "Use the tradingenv streaming backend for latency modeling."
+            )
+
         base_env = StreamingTradingEnv(
             memmap_paths=memmap_paths,
             episode_length=episode_length,
