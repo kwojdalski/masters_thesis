@@ -19,7 +19,18 @@ class LogReturnFeature(Feature):
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
         """Compute log returns."""
-        return np.log(df["close"] / df["close"].shift(1)).fillna(0)
+        ret = np.log(df["close"] / df["close"].shift(1))
+        # -inf/inf (close == 0 or a zero-to-nonzero jump) is a data anomaly,
+        # not a "no move": left unguarded, the normalization pipeline's
+        # inf-replace silently turns the largest possible price move into a
+        # z-score of exactly 0.0, indistinguishable from "at the mean."
+        non_finite = ret.notna() & ~np.isfinite(ret)
+        if non_finite.any():
+            raise ValueError(
+                f"log_return: non-finite value(s) (close is 0 at the current "
+                f"or previous row) at {list(ret.index[non_finite][:5])}"
+            )
+        return ret.fillna(0)
 
 
 @register_feature("high")

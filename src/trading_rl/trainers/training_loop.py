@@ -54,10 +54,21 @@ class TrainingLoop:
         log_banner(logger, f"TRAINING START  {start_message}")
         t0 = time.time()
         trainer.callback = callback
-        trainer._log_step_offset = max(
-            len(trainer.logs.get("loss_actor", [])),
-            len(trainer.logs.get("loss_value", [])),
-        )
+        last_optimization_step = getattr(trainer, "_last_optimization_step", None)
+        if last_optimization_step is not None:
+            # Continue the global step axis from the last optimization step
+            # actually consumed (persisted in the checkpoint), not from the
+            # length of the logs lists — skipped inner steps advance the step
+            # index without appending to those lists, so their lengths
+            # undercount how far the step axis actually reached.
+            trainer._log_step_offset = last_optimization_step + 1
+        else:
+            # Fresh run, or a legacy checkpoint saved before this field
+            # existed: fall back to inferring from log-list lengths.
+            trainer._log_step_offset = max(
+                len(trainer.logs.get("loss_actor", [])),
+                len(trainer.logs.get("loss_value", [])),
+            )
 
         _profiler = get_profiler()
         with _signal_guard():

@@ -43,7 +43,9 @@ def filter_unchanged_lob(
 
     Example:
         >>> df_active = filter_unchanged_lob(df, levels=5)
-        >>> print(f"Kept {len(df_active)}/{len(df)} rows ({100*len(df_active)/len(df):.1f}%)")
+        >>> print(
+        ...     f"Kept {len(df_active)}/{len(df)} rows ({100*len(df_active)/len(df):.1f}%)"
+        ... )
     """
     if len(df) == 0:
         return df.copy()
@@ -51,12 +53,14 @@ def filter_unchanged_lob(
     # Build list of columns to check
     columns_to_check = []
     for i in range(levels):
-        columns_to_check.extend([
-            f"{bid_px_prefix}{i:02d}",
-            f"{ask_px_prefix}{i:02d}",
-            f"{bid_sz_prefix}{i:02d}",
-            f"{ask_sz_prefix}{i:02d}",
-        ])
+        columns_to_check.extend(
+            [
+                f"{bid_px_prefix}{i:02d}",
+                f"{ask_px_prefix}{i:02d}",
+                f"{bid_sz_prefix}{i:02d}",
+                f"{ask_sz_prefix}{i:02d}",
+            ]
+        )
 
     # Verify all columns exist
     missing_cols = [col for col in columns_to_check if col not in df.columns]
@@ -73,9 +77,10 @@ def filter_unchanged_lob(
     # Row is different if ANY column changed from previous row
     changed = (subset != subset.shift(1)).any(axis=1)
 
-    if keep_first:
-        # Always keep the first row (no previous row to compare to)
-        changed.iloc[0] = True
+    # Row 0 has no previous row: shift(1) makes it NaN, and any real value
+    # compared to NaN via != is already True, so `changed.iloc[0]` is True
+    # regardless of keep_first unless explicitly overridden here.
+    changed.iloc[0] = keep_first
 
     # Filter to only changed rows
     df_filtered = df[changed].copy()
@@ -160,20 +165,20 @@ def filter_valid_lob(
         valid_mask &= ~ask_sz.isna()
 
         # 2. Positive sizes
-        valid_mask &= (bid_sz > min_size)
-        valid_mask &= (ask_sz > min_size)
+        valid_mask &= bid_sz > min_size
+        valid_mask &= ask_sz > min_size
 
         # 3. Valid spread (for level 0 only)
         if i == 0:
             # Not crossed
-            valid_mask &= (bid_px < ask_px)
+            valid_mask &= bid_px < ask_px
 
             # Spread in reasonable range
             mid_price = (bid_px + ask_px) / 2
             spread_bps = ((ask_px - bid_px) / mid_price) * 10000
 
-            valid_mask &= (spread_bps >= min_spread_bps)
-            valid_mask &= (spread_bps <= max_spread_bps)
+            valid_mask &= spread_bps >= min_spread_bps
+            valid_mask &= spread_bps <= max_spread_bps
 
         # 4. Prices are ordered correctly within side
         if i > 0:
@@ -181,10 +186,10 @@ def filter_valid_lob(
             prev_ask_col = f"{ask_px_prefix}{i-1:02d}"
 
             # Bids should decrease as levels go deeper
-            valid_mask &= (bid_px <= df[prev_bid_col])
+            valid_mask &= bid_px <= df[prev_bid_col]
 
             # Asks should increase as levels go deeper
-            valid_mask &= (ask_px >= df[prev_ask_col])
+            valid_mask &= ask_px >= df[prev_ask_col]
 
     df_filtered = df[valid_mask].copy()
 
@@ -223,10 +228,7 @@ def filter_active_lob(
 
     Example:
         >>> df_active = filter_active_lob(
-        ...     df,
-        ...     levels=5,
-        ...     min_spread_bps=0.5,
-        ...     max_spread_bps=50.0
+        ...     df, levels=5, min_spread_bps=0.5, max_spread_bps=50.0
         ... )
     """
     n_original = len(df)
@@ -279,19 +281,21 @@ def get_lob_change_stats(
 
     Example:
         >>> stats = get_lob_change_stats(df, levels=5)
-        >>> print(stats.sort_values('pct_changes', ascending=False))
+        >>> print(stats.sort_values("pct_changes", ascending=False))
     """
     if len(df) == 0:
         return pd.DataFrame()
 
     columns_to_check = []
     for i in range(levels):
-        columns_to_check.extend([
-            f"{bid_px_prefix}{i:02d}",
-            f"{ask_px_prefix}{i:02d}",
-            f"{bid_sz_prefix}{i:02d}",
-            f"{ask_sz_prefix}{i:02d}",
-        ])
+        columns_to_check.extend(
+            [
+                f"{bid_px_prefix}{i:02d}",
+                f"{ask_px_prefix}{i:02d}",
+                f"{bid_sz_prefix}{i:02d}",
+                f"{ask_sz_prefix}{i:02d}",
+            ]
+        )
 
     stats = []
     for col in columns_to_check:
@@ -306,12 +310,14 @@ def get_lob_change_stats(
 
         abs_changes = (values - values.shift(1)).abs()
 
-        stats.append({
-            'column': col,
-            'n_changes': changes.sum(),
-            'pct_changes': 100 * changes.sum() / (len(df) - 1),
-            'mean_abs_change': abs_changes[changes].mean() if changes.any() else 0,
-            'std_abs_change': abs_changes[changes].std() if changes.any() else 0,
-        })
+        stats.append(
+            {
+                "column": col,
+                "n_changes": changes.sum(),
+                "pct_changes": 100 * changes.sum() / (len(df) - 1),
+                "mean_abs_change": abs_changes[changes].mean() if changes.any() else 0,
+                "std_abs_change": abs_changes[changes].std() if changes.any() else 0,
+            }
+        )
 
     return pd.DataFrame(stats)

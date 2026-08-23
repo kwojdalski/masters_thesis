@@ -44,6 +44,7 @@ class TrainingCheckpoint:
     replay_buffer_path: str | None = None
     buffer_metadata: dict | None = None
     replay_buffer_max_step_count: int = 0
+    last_optimization_step: int | None = None
 
 
 # All fields except `network_state`, which is merged flat into the on-disk dict for

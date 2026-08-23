@@ -47,6 +47,16 @@ def test_filter_unchanged_lob_removes_duplicate_snapshot() -> None:
     ]
 
 
+def test_filter_unchanged_lob_keep_first_false_drops_first_row() -> None:
+    filtered = filter_unchanged_lob(_lob_frame(), levels=1, keep_first=False)
+
+    assert len(filtered) == 2
+    assert filtered.index.tolist() == [
+        pd.Timestamp("2024-01-01 00:00:02"),
+        pd.Timestamp("2024-01-01 00:00:03"),
+    ]
+
+
 def test_filter_unchanged_lob_raises_for_missing_required_columns() -> None:
     df = _lob_frame().drop(columns=["ask_sz_00"])
 
