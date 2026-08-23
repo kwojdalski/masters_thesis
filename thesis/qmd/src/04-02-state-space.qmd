@@ -85,8 +85,11 @@ net directional pressure from LOB events between consecutive snapshots via order
 flow imbalance [@Cont2014] and a 50-event rolling sum, queue depletion on each
 side, signed trade flow from the tape [@LeeReady1991], and odd-lot trade ratio and
 imbalance, which separate retail and algorithmic small-lot activity from
-institutional flow and thereby signal changes in adverse selection risk
-[@Boehmer2021].^[Odd-lot share is computed from the February 25–27, 2026 MBP-10
+institutional flow and thereby signal changes in adverse selection risk.^[Odd-lot
+activity as a retail/institutional separator is a distinct empirical question
+from the price-improvement-based retail-identification method in
+@Boehmer2021; the latter is not direct evidence for the odd-lot mechanism used
+here. Odd-lot share is computed from the February 25–27, 2026 MBP-10
 dataset across AAPL, MSFT, TSLA, META, AMZN, and AVGO and should not be interpreted as a
 long-run population statistic. The share of odd-lot trades in large-cap Nasdaq
 equities has increased substantially since the SEC's 2023 amendments to odd-lot
