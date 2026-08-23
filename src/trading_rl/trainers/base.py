@@ -680,6 +680,7 @@ class BaseTrainer(ABC):
         self.total_count = checkpoint.total_count
         self.total_episodes = checkpoint.total_episodes
         self._replay_buffer_max_step_count = checkpoint.replay_buffer_max_step_count
+        self.checkpoint_manager._last_checkpoint_step = checkpoint.total_count
         self.logs = defaultdict(list, checkpoint.logs)
         self.mlflow_run_id = checkpoint.mlflow_run_id
         self.mlflow_run_name = checkpoint.mlflow_run_name
