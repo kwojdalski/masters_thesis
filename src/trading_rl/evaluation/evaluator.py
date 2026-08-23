@@ -578,12 +578,27 @@ class StrategyEvaluator:
 
         actions_array = np.asarray(positions, dtype=float) if positions else None
 
+        # Prefer index-derived annualization (mirrors report.py:242-245): the
+        # config's timeframe-derived periods_per_year silently defaults to 252
+        # for intraday data when data.timeframe is absent or unrecognized,
+        # understating annualized vol/Sharpe by orders of magnitude.
+        from trading_rl.evaluation.report import _periods_per_year_from_index
+
+        index_ppy = _periods_per_year_from_index(df)
+        periods_per_year = index_ppy or self.config.periods_per_year
+        if index_ppy is not None and index_ppy != self.config.periods_per_year:
+            logger.debug(
+                "periods_per_year={} (index-derived) overrides config={} ",
+                index_ppy,
+                self.config.periods_per_year,
+            )
+
         # Build full metric report
         return build_metric_report(
             strategy_simple_returns=simple_returns,
             benchmark_simple_returns=benchmark_simple_returns,
             actions=actions_array,
-            periods_per_year=self.config.periods_per_year,
+            periods_per_year=periods_per_year,
             risk_free_rate_annual=0.0,
         )
 

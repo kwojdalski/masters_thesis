@@ -626,6 +626,11 @@ class Feature(ABC):
             ):
                 # Session-aware running normalization: reset at overnight/weekend gaps
                 result = self._transform_session_aware(raw_values)
+            elif (
+                isinstance(self.scaler, RollingWindowScaler)
+                and self.config.reset_on_session_break
+            ):
+                result = self._transform_session_aware_rolling(raw_values)
             elif isinstance(self.scaler, RollingWindowScaler | RunningMeanStd):
                 # RollingWindowScaler and non-session-aware RunningMeanStd handle NaNs internally
                 normalized = self.scaler.transform(raw_values)
@@ -718,6 +723,33 @@ class Feature(ABC):
             # Fallback: no sessions detected
             normalized = self.scaler.transform(raw_values)
             return pd.Series(normalized, index=raw_values.index, dtype=float)
+
+    def _transform_session_aware_rolling(self, raw_values: pd.Series) -> pd.Series:
+        """Apply rolling normalization independently within each session."""
+        if not isinstance(raw_values.index, pd.DatetimeIndex):
+            normalized = self.scaler.transform(raw_values)
+            return pd.Series(normalized, index=raw_values.index, dtype=float)
+
+        from trading_rl.features.utils import detect_session_breaks
+
+        session_starts = detect_session_breaks(
+            raw_values.index,
+            threshold_hours=self.config.session_break_threshold_hours,
+        )
+        sessions = []
+        for i, start_idx in enumerate(session_starts):
+            end_idx = (
+                session_starts[i + 1]
+                if i + 1 < len(session_starts)
+                else len(raw_values)
+            )
+            if start_idx >= len(raw_values):
+                break
+            session = raw_values.iloc[start_idx:end_idx]
+            normalized = self.scaler.transform(session)
+            sessions.append(pd.Series(normalized, index=session.index, dtype=float))
+
+        return pd.concat(sessions) if sessions else raw_values.astype(float)
 
     def _transform_session_aware_time_weighted(
         self, raw_values: pd.Series

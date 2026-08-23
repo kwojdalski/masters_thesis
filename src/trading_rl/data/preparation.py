@@ -1115,10 +1115,13 @@ def build_prepared_dataset(
             "eval_symbol_selection",
             EvalSymbolSelection.FIRST,
         )
-        _symbol_index = _resolve_symbol_index(
-            _strategy, len(data_paths), memmap_dir, seed=getattr(config, "seed", None)
-        )
         _val_paths = getattr(config.data, "val_data_paths", None) or data_paths
+        # Draw over the val-path population (one per symbol) — NOT len(data_paths),
+        # which counts training day-files (n_symbols * n_days) in per-day mode.
+        # The cache-hit path (len(_val_paths_cfg) above) already does this correctly.
+        _symbol_index = _resolve_symbol_index(
+            _strategy, len(_val_paths), memmap_dir, seed=getattr(config, "seed", None)
+        )
         _eval_symbol = Path(
             _val_paths[min(_symbol_index, len(_val_paths) - 1)]
         ).parent.name
