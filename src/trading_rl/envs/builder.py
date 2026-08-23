@@ -393,6 +393,11 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
                 DifferentialSharpeRatioAnyTrading,
                 StatefulRewardWrapper,
             )
+            from trading_rl.rewards.registry import RewardRegistry
+
+            # Validate early — without this, any unknown string (e.g. a typo
+            # like "log-return") silently trains with the DSR wrapper.
+            RewardRegistry.create(reward_type)
 
             dsr = DifferentialSharpeRatioAnyTrading(
                 eta=params.common.reward_eta, scale=params.common.reward_scale
