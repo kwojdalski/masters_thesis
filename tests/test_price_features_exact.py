@@ -36,6 +36,7 @@ def _ohlcv(close, high=None, low=None) -> pd.DataFrame:
 # LogReturnFeature
 # ---------------------------------------------------------------------------
 
+
 class TestLogReturnFeature:
     def test_first_row_is_zero(self):
         df = _ohlcv([100.0, 110.0, 99.0])
@@ -71,10 +72,16 @@ class TestLogReturnFeature:
             rtol=1e-10,
         )
 
+    def test_zero_close_raises_instead_of_silently_zeroing(self):
+        df = _ohlcv([100.0, 0.0, 101.0])
+        with pytest.raises(ValueError, match="non-finite"):
+            LogReturnFeature(_cfg("log_return")).compute(df)
+
 
 # ---------------------------------------------------------------------------
 # HighFeature
 # ---------------------------------------------------------------------------
+
 
 class TestHighFeature:
     def test_exact_value_high_above_close(self):
@@ -107,6 +114,7 @@ class TestHighFeature:
 # LowFeature
 # ---------------------------------------------------------------------------
 
+
 class TestLowFeature:
     def test_exact_value_low_below_close(self):
         df = _ohlcv([100.0], low=[95.0])
@@ -128,7 +136,11 @@ class TestLowFeature:
     def test_low_is_negative_of_high_when_symmetric(self):
         closes = [100.0, 200.0]
         df = pd.DataFrame(
-            {"close": closes, "high": [c * 1.05 for c in closes], "low": [c * 0.95 for c in closes]},
+            {
+                "close": closes,
+                "high": [c * 1.05 for c in closes],
+                "low": [c * 0.95 for c in closes],
+            },
             index=pd.date_range("2024-01-01", periods=2, freq="1min"),
         )
         high = HighFeature(_cfg("high")).compute(df)
@@ -139,6 +151,7 @@ class TestLowFeature:
 # ---------------------------------------------------------------------------
 # SimpleReturnFeature
 # ---------------------------------------------------------------------------
+
 
 class TestSimpleReturnFeature:
     def test_first_row_is_zero(self):
