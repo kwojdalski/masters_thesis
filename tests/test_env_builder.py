@@ -269,6 +269,7 @@ class TestCreateStreamingEnv:
                 "seed": 123,
                 "name": "test-env",
                 "positions": [-1, 0, 1],
+                "initial_position": -1,
                 "trading_fees": 0.0,
                 "borrow_interest_rate": 0.0,
                 "reward_function": reward_function,

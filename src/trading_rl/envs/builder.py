@@ -344,6 +344,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             name=params.common.env_name,
             df=df,
             positions=params.common.positions,
+            # Flat/neutral start; see streaming branch note on 'random' default.
+            initial_position=params.common.positions[0],
             trading_fees=params.common.trading_fees,
             borrow_interest_rate=params.common.borrow_interest_rate,
             reward_function=self._resolve_history_reward_function(params),
@@ -437,6 +439,10 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             seed=params.common.seed,
             name=params.common.env_name,
             positions=params.common.positions,
+            # gym_trading_env defaults to 'random', drawn from *global* np.random
+            # (not the seeded self.np_random), giving un-chosen opening exposure
+            # and breaking seed reproducibility. Start flat/neutral instead.
+            initial_position=params.common.positions[0],
             trading_fees=params.common.trading_fees,
             borrow_interest_rate=params.common.borrow_interest_rate,
             reward_function=self._resolve_history_reward_function(params),

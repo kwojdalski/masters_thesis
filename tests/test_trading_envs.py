@@ -115,7 +115,9 @@ def test_create_environment_routes_gym_trading_backend_with_config(monkeypatch) 
         return factory
 
     config = _config("gym_trading_env.continuous", positions=[-1, 0, 1])
-    monkeypatch.setattr(trading_envs, "get_environment_factory", fake_get_environment_factory)
+    monkeypatch.setattr(
+        trading_envs, "get_environment_factory", fake_get_environment_factory
+    )
 
     env = create_environment(df, config=config)
 
@@ -135,7 +137,9 @@ def test_create_environment_passes_tradingenv_column_specs(monkeypatch) -> None:
         return factory
 
     config = _config("tradingenv", positions=[-1, 0, 1])
-    monkeypatch.setattr(trading_envs, "get_environment_factory", fake_get_environment_factory)
+    monkeypatch.setattr(
+        trading_envs, "get_environment_factory", fake_get_environment_factory
+    )
 
     env = create_environment(df, config=config)
 
@@ -170,7 +174,9 @@ def test_create_environment_routes_anytrading_backend_with_kwargs(monkeypatch) -
         return factory
 
     config = _config("gym_anytrading.forex", positions=[0, 1])
-    monkeypatch.setattr(trading_envs, "get_environment_factory", fake_get_environment_factory)
+    monkeypatch.setattr(
+        trading_envs, "get_environment_factory", fake_get_environment_factory
+    )
 
     env = create_environment(df, config=config, window_size=12)
 
@@ -201,6 +207,7 @@ def test_custom_factory_passes_reward_function_to_gym_trading_env(monkeypatch) -
                 "name": "unit-test-env",
                 "df": df,
                 "positions": [-1, 0, 1],
+                "initial_position": -1,
                 "trading_fees": 0.001,
                 "borrow_interest_rate": 0.0001,
                 "reward_function": reward_function,
