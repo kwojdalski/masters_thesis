@@ -422,6 +422,7 @@ class BaseTrainer(ABC):
         self.warmup_controller = WarmupController(
             collector=self.collector,
             init_rand_steps=int(getattr(config, "init_rand_steps", 0)),
+            frames_per_batch=int(getattr(config, "frames_per_batch", 0)),
             replay_buffer=self.replay_buffer,
             use_replay_buffer=use_replay_buffer,
         )
