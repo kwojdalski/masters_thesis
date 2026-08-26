@@ -822,14 +822,16 @@ class Feature(ABC):
             return pd.Series([], index=session_data.index, dtype=float)
 
         nan_mask = ~np.isfinite(vals)
-        clean = np.where(nan_mask, 0.0, vals)
+        valid = ~nan_mask
+        clean = np.where(valid, vals, 0.0)
 
         # Causal cumulative sums: stats at index t use only vals[0..t-1].
         running_sum = np.zeros(n)
         running_sum_sq = np.zeros(n)
+        counts = np.zeros(n)
         running_sum[1:] = np.cumsum(clean[:-1])
         running_sum_sq[1:] = np.cumsum(clean[:-1] ** 2)
-        counts = np.arange(n, dtype=float)
+        counts[1:] = np.cumsum(valid[:-1])
 
         with np.errstate(divide="ignore", invalid="ignore"):
             mean = np.where(counts > 0, running_sum / counts, 0.0)
