@@ -159,6 +159,10 @@ class PPOTrainer(BaseTrainer):
             loss_critic_type=getattr(config, "loss_function", LossFunction.L2),
             normalize_advantage=True,
         )
+        # gamma can no longer be passed to the constructor (TorchRL raises
+        # TypeError); must be set via make_value_estimator instead. lmbda
+        # is left at TorchRL's GAE default (0.95).
+        self.ppo_loss.make_value_estimator(gamma=getattr(config, "gamma", 0.99))
 
         # Separate optimizers with distinct weight decay for actor vs critic
         self.optimizer = Adam(

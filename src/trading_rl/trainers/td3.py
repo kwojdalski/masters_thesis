@@ -109,6 +109,9 @@ class TD3Trainer(BaseTrainer):
             delay_actor=config.td3.delay_actor,
             delay_qvalue=config.td3.delay_qvalue,
         )
+        # gamma can no longer be passed to the constructor (TorchRL raises
+        # TypeError); must be set via make_value_estimator instead.
+        self.td3_loss.make_value_estimator(gamma=getattr(config, "gamma", 0.99))
 
         for attr in ("actor_network_params", "qvalue_network_params"):
             params_td = getattr(self.td3_loss, attr, None)

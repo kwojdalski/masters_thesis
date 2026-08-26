@@ -366,6 +366,9 @@ class TrainingConfig:
     # Soft target-network update rate — used by DDPG, TD3, SAC
     tau: float = 0.001
 
+    # RL discount factor, threaded into TD3Loss/DDPGLoss/PPOLoss construction.
+    gamma: float = 0.99
+
     # Algorithm-specific sub-configs
     td3: TD3Config = field(default_factory=TD3Config)
     ppo: PPOConfig = field(default_factory=PPOConfig)
@@ -706,14 +709,9 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
 # have never been wired to any code path (confirmed via full-repo grep) --
 # NOT typos, but genuinely dead config that predates unknown-key validation.
 # Exempted here so turning that validation on doesn't retroactively break
-# every scenario referencing them. Tracked in issue #417; do not add new
-# entries here without opening a matching issue -- this list should shrink,
-# not grow.
+# every scenario referencing them. Do not add new entries here without
+# opening a matching issue -- this list should shrink, not grow.
 _LEGACY_UNKNOWN_KEYS: dict[str, frozenset[str]] = {
-    # training.gamma: never passed to TD3Loss/DDPGLoss/PPOLoss construction;
-    # the RL discount factor has always silently used TorchRL's own default
-    # regardless of this value (issue #417).
-    "training": frozenset({"gamma"}),
     # data.data_config: a data-config file path, never read by anything.
     "data": frozenset({"data_config"}),
 }

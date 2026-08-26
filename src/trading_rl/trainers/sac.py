@@ -88,6 +88,9 @@ class SACTrainer(BaseTrainer):
             delay_actor=False,
             delay_qvalue=True,
         )
+        # gamma can no longer be passed to the constructor (TorchRL raises
+        # TypeError); must be set via make_value_estimator instead.
+        self.sac_loss.make_value_estimator(gamma=getattr(config, "gamma", 0.99))
 
         self.updater = SoftUpdate(self.sac_loss, tau=config.tau)
 
@@ -174,7 +177,9 @@ class SACTrainer(BaseTrainer):
                 self.successful_batches += 1
                 self._consecutive_skips = 0
             except RuntimeError as e:
-                if "All input tensors" in str(e) and "must share a unique shape" in str(e):
+                if "All input tensors" in str(e) and "must share a unique shape" in str(
+                    e
+                ):
                     self._record_skipped_batch("tensor shape error", exc=e)
                     continue
                 else:
@@ -219,7 +224,9 @@ class SACTrainer(BaseTrainer):
             alpha_loss = loss_vals_alpha["loss_alpha"].item()
             alpha_val = loss_vals_alpha["alpha"].item()
             entropy_tensor = loss_vals_alpha.get("entropy", None)
-            entropy_val = entropy_tensor.item() if entropy_tensor is not None else float("nan")
+            entropy_val = (
+                entropy_tensor.item() if entropy_tensor is not None else float("nan")
+            )
 
             self.logs["loss_value"].append(value_loss)
             self.logs["loss_actor"].append(actor_loss)
@@ -235,7 +242,9 @@ class SACTrainer(BaseTrainer):
                 self.callback.log_training_step(current_step, actor_loss, value_loss)
 
             if self._should_log_step(current_step):
-                self._log_progress(max_length, buffer_len, loss_vals, loss_vals_actor, loss_vals_alpha)
+                self._log_progress(
+                    max_length, buffer_len, loss_vals, loss_vals_actor, loss_vals_alpha
+                )
 
             if self._should_eval_step(current_step):
                 self._evaluate()
@@ -256,8 +265,12 @@ class SACTrainer(BaseTrainer):
         logger.info(
             "sac step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f} "
             "loss_alpha={} alpha={}",
-            max_length, buffer_len, curr_loss_value, curr_loss_actor,
-            curr_loss_alpha, curr_alpha,
+            max_length,
+            buffer_len,
+            curr_loss_value,
+            curr_loss_actor,
+            curr_loss_alpha,
+            curr_alpha,
         )
 
         if is_level_enabled("TRACE"):
@@ -283,8 +296,12 @@ class SACTrainer(BaseTrainer):
         }
 
     def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
-        self.sac_loss.actor_network_params.load_state_dict(checkpoint["actor_params_state"])
-        self.sac_loss.qvalue_network_params.load_state_dict(checkpoint["value_params_state"])
+        self.sac_loss.actor_network_params.load_state_dict(
+            checkpoint["actor_params_state"]
+        )
+        self.sac_loss.qvalue_network_params.load_state_dict(
+            checkpoint["value_params_state"]
+        )
         target_value = getattr(self.sac_loss, "target_qvalue_network_params", None)
         if target_value is not None and "target_value_params_state" in checkpoint:
             target_value.load_state_dict(checkpoint["target_value_params_state"])
@@ -316,12 +333,14 @@ class SACTrainer(BaseTrainer):
                 )
                 logger.trace(
                     "sac episode reward stats mean={} std={}",
-                    episode_rewards.mean(), episode_rewards.std(),
+                    episode_rewards.mean(),
+                    episode_rewards.std(),
                 )
                 collected_actions = data["action"]
                 logger.trace(
                     "sac collected action stats mean={} std={}",
-                    collected_actions.mean(), collected_actions.std(),
+                    collected_actions.mean(),
+                    collected_actions.std(),
                 )
 
         def on_batch_end(i, data) -> None:
