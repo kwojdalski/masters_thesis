@@ -9,7 +9,7 @@
 \def\@rodzajpracy{magisterska}
 \DeclareOption{licencjacka}{\def\@rodzajpracy{licencjacka}}
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{\@baseclass}}
-\PassOptionsToClass{a4paper,twoside,openright,11pt}{\@baseclass}
+\PassOptionsToClass{a4paper,twoside,openright,12pt}{\@baseclass}
 \ProcessOptions
 
 \LoadClass{\@baseclass}
