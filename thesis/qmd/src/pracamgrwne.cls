@@ -79,7 +79,8 @@
     \@thanks
   \end{titlepage}%
   \begin{titlepage}
-    \c@page=2
+    \c@page=1
+    \thispagestyle{plain}
     \large
     \null
     \vfill
