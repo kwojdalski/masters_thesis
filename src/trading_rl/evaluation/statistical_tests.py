@@ -151,9 +151,18 @@ def run_all_statistical_tests(
             random_strategy_returns = np.asarray(strategy_returns, dtype=float)[
                 :min_len
             ]
+            random_pair_mask = np.isfinite(random_strategy_returns) & np.isfinite(
+                random_returns_mean
+            )
+            if int((~random_pair_mask).sum()):
+                logger.warning(
+                    "{}: dropped {} non-finite/unaligned return pairs",
+                    BenchmarkName.RANDOM_ACTIONS,
+                    int((~random_pair_mask).sum()),
+                )
             random_results = run_statistical_tests(
-                random_strategy_returns,
-                random_returns_mean,
+                random_strategy_returns[random_pair_mask],
+                random_returns_mean[random_pair_mask],
                 BenchmarkName.RANDOM_ACTIONS,
                 config,
             )

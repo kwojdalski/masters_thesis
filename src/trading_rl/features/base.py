@@ -859,7 +859,7 @@ class Feature(ABC):
             weights = np.ones(len(values), dtype=float)
 
         for value, weight in zip(values, weights, strict=False):
-            if pd.isna(value):
+            if not np.isfinite(value):
                 normalized_values.append(0.0)
                 continue
 

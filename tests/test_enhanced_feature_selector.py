@@ -13,6 +13,7 @@ from trading_rl.features.selector import (
     _build_multi_horizon_score_table,
     _build_proxy_target,
     _build_time_series_cv_splits,
+    _compute_ic_series,
     _ensemble_select_features,
     _resolve_price_series,
     _select_features_conditional_ic,
@@ -667,3 +668,30 @@ class TestWriteSelectedYaml:
         assert entry["reset_on_session_break"] is False
         assert entry["session_break_threshold_hours"] == 2.0
         assert entry["use_time_weights"] is True
+
+
+class TestRollingICFormula:
+    """_compute_ic_series must compute a true rolling Spearman correlation,
+    not a rolling Pearson correlation of globally-assigned ranks."""
+
+    def test_windowed_ic_matches_local_spearman_under_global_drift(self):
+        n = 400
+        window = 20
+        base = np.linspace(0, 50, n)
+        feature = base.copy()
+        target = base.copy() * 0.5
+
+        # Embed a window with perfect local rank anti-correlation inside an
+        # overall upward-drifting series. A global-rank-then-Pearson
+        # computation diverges from the true local Spearman here because the
+        # window's globally-assigned ranks are not evenly spaced.
+        w_start = 200
+        idx = np.arange(w_start, w_start + window)
+        feature[idx] = base[w_start] + np.arange(window)
+        target[idx] = base[w_start] * 0.5 - np.arange(window)
+
+        rolling_ic = _compute_ic_series(
+            pd.Series(feature), pd.Series(target), window_size=window
+        )
+
+        assert rolling_ic.loc[idx[-1]] == pytest.approx(-1.0, abs=1e-9)

@@ -22,7 +22,9 @@ PPY = 252  # periods per year for simple daily tests
 def _report(returns, benchmark=None, ppy=PPY):
     return build_metric_report(
         strategy_simple_returns=np.asarray(returns, dtype=float),
-        benchmark_simple_returns=np.asarray(benchmark, dtype=float) if benchmark is not None else None,
+        benchmark_simple_returns=np.asarray(benchmark, dtype=float)
+        if benchmark is not None
+        else None,
         actions=None,
         periods_per_year=ppy,
     )
@@ -31,6 +33,7 @@ def _report(returns, benchmark=None, ppy=PPY):
 # ---------------------------------------------------------------------------
 # _equity_curve — must start from 1.0
 # ---------------------------------------------------------------------------
+
 
 class TestEquityCurve:
     def test_starts_at_one(self):
@@ -57,6 +60,7 @@ class TestEquityCurve:
 # _drawdown_series — initial decline must be captured
 # ---------------------------------------------------------------------------
 
+
 class TestDrawdownSeries:
     def test_immediate_decline_is_captured(self):
         """First period decline from 1.0 must not be zero-masked."""
@@ -73,7 +77,7 @@ class TestDrawdownSeries:
         np.testing.assert_allclose(dd, 0.0, atol=1e-12)
 
     def test_recovery_resets_drawdown(self):
-        r = np.array([-0.10, 0.20])       # -10 % then +20 % → above starting value
+        r = np.array([-0.10, 0.20])  # -10 % then +20 % → above starting value
         equity = _equity_curve(r)
         dd = _drawdown_series(equity)
         assert dd[-1] == pytest.approx(0.0, abs=1e-10)
@@ -82,6 +86,7 @@ class TestDrawdownSeries:
 # ---------------------------------------------------------------------------
 # Total return
 # ---------------------------------------------------------------------------
+
 
 class TestTotalReturn:
     def test_zero_returns(self):
@@ -136,6 +141,7 @@ class TestAggregateToReportingFrequency:
 # CAGR
 # ---------------------------------------------------------------------------
 
+
 class TestCAGR:
     def test_flat_returns_cagr_is_zero(self):
         r = [0.0] * PPY
@@ -149,7 +155,9 @@ class TestCAGR:
         expected_total = (1 + r_p) ** PPY - 1
         assert report["total_return"] == pytest.approx(expected_total, rel=1e-6)
         # CAGR over exactly one year equals total return
-        assert report["annualized_return_cagr"] == pytest.approx(expected_total, rel=1e-6)
+        assert report["annualized_return_cagr"] == pytest.approx(
+            expected_total, rel=1e-6
+        )
 
     def test_cagr_annualizes_correctly_over_two_years(self):
         # Two years of 5 % annual growth: total_return ≈ 10.25 %, CAGR = 5 %
@@ -168,6 +176,7 @@ class TestCAGR:
 # ---------------------------------------------------------------------------
 # Max drawdown
 # ---------------------------------------------------------------------------
+
 
 class TestMaxDrawdown:
     def test_monotone_decline_equals_total_return(self):
@@ -199,6 +208,7 @@ class TestMaxDrawdown:
 # ---------------------------------------------------------------------------
 # Sharpe ratio
 # ---------------------------------------------------------------------------
+
 
 class TestSharpeRatio:
     def test_zero_std_returns_extreme(self):
@@ -253,6 +263,7 @@ class TestBenchmarkRelativeMetrics:
 # Sortino ratio
 # ---------------------------------------------------------------------------
 
+
 class TestSortinoRatio:
     def test_sortino_geq_sharpe_for_positive_skew(self):
         """With no downside returns Sortino is infinite (or NaN), otherwise >= Sharpe."""
@@ -278,6 +289,7 @@ class TestSortinoRatio:
 # Win rate
 # ---------------------------------------------------------------------------
 
+
 class TestWinRate:
     def test_all_positive(self):
         assert _report([0.01] * 10)["win_rate"] == pytest.approx(1.0)
@@ -293,6 +305,7 @@ class TestWinRate:
 # ---------------------------------------------------------------------------
 # Profit factor
 # ---------------------------------------------------------------------------
+
 
 class TestProfitFactor:
     def test_all_wins_is_nan(self):
@@ -319,6 +332,7 @@ class TestProfitFactor:
 # ---------------------------------------------------------------------------
 # Beta / alpha / information ratio (benchmark metrics)
 # ---------------------------------------------------------------------------
+
 
 class TestBenchmarkMetrics:
     def test_beta_one_when_identical(self):
@@ -360,6 +374,7 @@ class TestBenchmarkMetrics:
 # Edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestEdgeCases:
     def test_empty_returns_all_nan(self):
         report = _report([])
@@ -385,7 +400,60 @@ class TestEdgeCases:
         tiny = 1e-7
         returns = [tiny] * 200
         report = _report(returns, ppy=98_280)
-        assert np.isnan(report["sharpe_ratio"]), "flat equity curve should produce NaN Sharpe"
-        assert np.isnan(report["sortino_ratio"]), "flat equity curve should produce NaN Sortino"
+        assert np.isnan(
+            report["sharpe_ratio"]
+        ), "flat equity curve should produce NaN Sharpe"
+        assert np.isnan(
+            report["sortino_ratio"]
+        ), "flat equity curve should produce NaN Sortino"
         # But total_return and max_drawdown should still be finite
         assert np.isfinite(report["total_return"])
+
+
+class TestAlphaUsesPairedPeriodsPerYear:
+    """When the paired strategy/benchmark series aggregates to a different
+    ppy tier than the strategy-only series, alpha's risk-free deduction must
+    use the paired tier's rf_per_period, not the outer-scope one."""
+
+    def test_alpha_matches_paired_tier_risk_free_rate(self):
+        rng = np.random.default_rng(1)
+        orig_ppy = 98_280  # intraday raw-tick ppy
+        n = 5000
+        strategy = rng.normal(0.0001, 0.001, n)
+        # Benchmark is finite at only a sparse subset of rows, so the paired
+        # mask yields far fewer points than the strategy-only mask and the
+        # two series land on different rungs of the aggregation ladder.
+        benchmark = np.full(n, np.nan)
+        finite_idx = rng.choice(n, size=200, replace=False)
+        benchmark[finite_idx] = rng.normal(0.00005, 0.001, 200)
+
+        rf_annual = 0.05
+
+        report = build_metric_report(
+            strategy_simple_returns=strategy,
+            benchmark_simple_returns=benchmark,
+            actions=None,
+            periods_per_year=orig_ppy,
+            risk_free_rate_annual=rf_annual,
+        )
+
+        paired_mask = np.isfinite(strategy) & np.isfinite(benchmark)
+        rs, ppy_paired = aggregate_to_reporting_frequency(
+            strategy[paired_mask], orig_ppy
+        )
+        bs, _ = aggregate_to_reporting_frequency(benchmark[paired_mask], orig_ppy)
+        n2 = min(rs.size, bs.size)
+        rs, bs = rs[:n2], bs[:n2]
+        cov = np.cov(rs, bs, ddof=1)
+        beta = cov[0, 1] / cov[1, 1]
+        rf_paired = rf_annual / ppy_paired
+        expected_alpha = (
+            np.mean(rs) - rf_paired - beta * (np.mean(bs) - rf_paired)
+        ) * ppy_paired
+
+        # Sanity check the two ppy tiers actually diverge in this scenario,
+        # otherwise the test would pass regardless of which rf is used.
+        _, ppy_outer = aggregate_to_reporting_frequency(strategy, orig_ppy)
+        assert ppy_outer != ppy_paired
+
+        assert report["alpha"] == pytest.approx(expected_alpha, rel=1e-9)

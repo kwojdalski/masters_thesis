@@ -508,8 +508,11 @@ def build_metric_report(
             var_b = cov[1, 1]
             beta = _safe_div(cov[0, 1], var_b)
             if ppy_paired > 0:
+                rf_per_period_paired = risk_free_rate_annual / max(ppy_paired, 1)
                 alpha = (
-                    np.mean(rs) - rf_per_period - beta * (np.mean(bs) - rf_per_period)
+                    np.mean(rs)
+                    - rf_per_period_paired
+                    - beta * (np.mean(bs) - rf_per_period_paired)
                 ) * ppy_paired
                 active = rs - bs
                 active_std = float(np.std(active, ddof=1))

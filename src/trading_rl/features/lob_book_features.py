@@ -389,6 +389,6 @@ class PriceVampFeature(LOBFeature):
 
         bid_not = pd.Series(bid_notional, index=df.index, dtype=float)
         ask_not = pd.Series(ask_notional, index=df.index, dtype=float)
-        p1 = impact_price_side(ask_px_cols, ask_sz_cols, df, bid_not)
-        p2 = impact_price_side(bid_px_cols, bid_sz_cols, df, ask_not)
+        p1 = impact_price_side(ask_px_cols, ask_sz_cols, df, ask_not)
+        p2 = impact_price_side(bid_px_cols, bid_sz_cols, df, bid_not)
         return (p1 + p2) / 2.0
