@@ -69,7 +69,7 @@ def _config_cache_signature(config: Any) -> dict[str, Any]:
         return hashlib.sha256(path.read_bytes()).hexdigest()
 
     return {
-        "version": 1,
+        "version": 2,
         "data_sources": _data_source_signature(config),
         "feature_config": feature_config,
         "feature_config_hash": _file_hash(feature_config),
@@ -78,6 +78,13 @@ def _config_cache_signature(config: Any) -> dict[str, Any]:
         "env_mode": getattr(config.env, "mode", None),
         "env_backend": getattr(config.env, "backend", None),
         "price_column": getattr(config.env, "price_column", None),
+        # filter_lob_levels removes LOB events before feature computation and
+        # warmup_rows drops early normalized training rows — both change which
+        # rows end up in the prepared cache, so they must be part of the
+        # signature (unlike env.feature_columns/include_position_feature below,
+        # which are selection settings applied at env build time).
+        "filter_lob_levels": getattr(config.data, "filter_lob_levels", None),
+        "warmup_rows": getattr(config.data, "warmup_rows", None),
         # env.feature_columns and include_position_feature are selection settings
         # applied at env build time — they do not affect how data is prepared, so
         # they must NOT be part of the cache signature.
