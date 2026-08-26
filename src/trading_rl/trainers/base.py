@@ -932,6 +932,14 @@ class BaseTrainer(ABC):
             eval_env=eval_env,
         )
 
+    def teardown_runtime_hooks(self) -> None:
+        """Close periodic-hook evaluation environments and clear hook state.
+
+        Call after training finishes so hook-owned envs are released
+        deterministically instead of waiting for garbage collection.
+        """
+        self.runtime_hooks.teardown()
+
     def _run_training_loop(
         self,
         callback: Any = None,

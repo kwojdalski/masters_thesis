@@ -31,6 +31,9 @@ class _Trainer:
         self.total_episodes = 3
         self.callbacks: list[Any] = []
 
+    def teardown_runtime_hooks(self) -> None:
+        pass
+
     def train(self, callback: Any = None) -> dict[str, Any]:
         self.callbacks.append(callback)
         if self.interrupt_training:
@@ -264,9 +267,14 @@ def test_configure_periodic_hooks_filters_splits_and_clamps_eval_steps(
             temp_eval=SimpleNamespace(
                 splits=["train", "val", "missing", "test"],
                 max_steps=2,
+                interval=100,
             ),
         ),
-        explainability=SimpleNamespace(n_steps=7),
+        explainability=SimpleNamespace(
+            n_steps=7,
+            enabled=True,
+            temp_explainability_interval=50,
+        ),
     )
     built: list[str] = []
 
@@ -297,3 +305,109 @@ def test_configure_periodic_hooks_filters_splits_and_clamps_eval_steps(
         "config": config,
         "eval_env": "env-train",
     }
+
+
+def test_configure_periodic_hooks_skips_env_building_when_disabled(monkeypatch):
+    """Regression test for #366.
+
+    With both intervals disabled (the defaults), no evaluation environment
+    may be constructed at all.
+    """
+
+    class _HookTrainer:
+        def __init__(self) -> None:
+            self.eval_kwargs: dict[str, Any] | None = None
+            self.explain_kwargs: dict[str, Any] | None = None
+
+        def setup_periodic_evaluation(self, **kwargs: Any) -> None:
+            self.eval_kwargs = kwargs
+
+        def setup_periodic_explainability(self, **kwargs: Any) -> None:
+            self.explain_kwargs = kwargs
+
+    dataset = PreparedDataset(
+        train_df=pd.DataFrame({"close": [100.0, 101.0]}),
+        val_df=pd.DataFrame({"close": [200.0, 201.0]}),
+        test_df=pd.DataFrame({"close": [300.0, 301.0]}),
+        feature_columns=["close"],
+        price_column="close",
+        raw_columns=["close"],
+        feature_pipeline_state={},
+    )
+    trainer = _HookTrainer()
+    runtime = ExperimentRuntime(
+        logger=_Logger(),
+        effective_experiment_name="hooks",
+        prepared_dataset=dataset,
+        training_bundle=TrainingBundle(
+            train_env=object(),
+            trainer=trainer,
+            mlflow_callback=None,
+            algorithm="TD3",
+            n_obs=1,
+            n_act=1,
+        ),
+    )
+    config = SimpleNamespace(
+        training=SimpleNamespace(
+            temp_eval=SimpleNamespace(
+                splits=["train", "val", "test"],
+                max_steps=2,
+                interval=None,
+            ),
+        ),
+        explainability=SimpleNamespace(
+            n_steps=7,
+            enabled=False,
+            temp_explainability_interval=None,
+        ),
+    )
+
+    def fail_build(*args, **kwargs):  # pragma: no cover - must not be reached
+        raise AssertionError("environment builder must not run when hooks disabled")
+
+    monkeypatch.setattr(runner, "build_evaluation_context_for_split", fail_build)
+
+    runner._configure_periodic_hooks(runtime=runtime, config=config)
+
+    assert trainer.eval_kwargs is not None
+    assert trainer.eval_kwargs["splits"] == []
+    assert trainer.explain_kwargs == {
+        "df": None,
+        "max_steps": 0,
+        "config": config,
+        "eval_env": None,
+    }
+
+
+def test_runtime_hooks_teardown_closes_enabled_hook_envs():
+    """Regression test for #366: hook envs are closed deterministically."""
+    from trading_rl.trainers.runtime_hooks import (
+        PeriodicEvaluationHook,
+        PeriodicExplainabilityHook,
+        SplitEvalContext,
+        TrainerRuntimeHooks,
+    )
+
+    class _Env:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    hooks = TrainerRuntimeHooks(trainer=object())
+    eval_env, expl_env = _Env(), _Env()
+    hooks._evaluation = PeriodicEvaluationHook(
+        splits=[SplitEvalContext(split="val", df=None, max_steps=5, eval_env=eval_env)],
+        config=object(),
+        algorithm="TD3",
+    )
+    hooks._explainability = PeriodicExplainabilityHook(
+        df=None, max_steps=5, config=object(), eval_env=expl_env
+    )
+
+    hooks.teardown()
+
+    assert eval_env.closed and expl_env.closed
+    assert hooks._evaluation is None and hooks._explainability is None

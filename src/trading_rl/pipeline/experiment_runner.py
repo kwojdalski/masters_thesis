@@ -178,60 +178,93 @@ def _configure_periodic_hooks(
     runtime: ExperimentRuntime,
     config: Any,
 ) -> None:
-    """Wire periodic mid-training evaluation and explainability hooks."""
+    """Wire periodic mid-training evaluation and explainability hooks.
+
+    Environments are built lazily: only for hooks whose interval is actually
+    enabled, so the default config (both intervals None) never pays env
+    construction cost nor leaks abandoned envs (#366).
+    """
     from trading_rl.trainers.runtime_hooks import SplitEvalContext
 
     dataset = runtime.prepared_dataset
-    split_map = {
-        "train": dataset.train_df,
-        "val": dataset.val_df,
-        "test": dataset.test_df,
-    }
-
-    configured_splits: list[str] = list(config.training.temp_eval.splits)
-    temp_eval_max_steps: int = config.training.temp_eval.max_steps
-
-    split_contexts: list[SplitEvalContext] = []
-    for split_name in configured_splits:
-        df = split_map.get(split_name)
-        if df is None or len(df) < 2:
-            _logger.warning(
-                "periodic eval: split '{}' not available or too small, skipping",
-                split_name,
-            )
-            continue
-        # Slice df to temp_eval_max_steps rows so the env is small and fast to
-        # build; the full split is reserved for final evaluation.
-        temp_df = df.iloc[:temp_eval_max_steps] if len(df) > temp_eval_max_steps else df
-        ctx = build_evaluation_context_for_split(
-            split=split_name, df=temp_df, config=config
-        )
-        split_contexts.append(
-            SplitEvalContext(
-                split=split_name,
-                df=ctx.df,
-                max_steps=min(ctx.max_steps, temp_eval_max_steps),
-                eval_env=ctx.env,
-            )
-        )
-
     trainer = runtime.training_bundle.trainer
-    trainer.setup_periodic_evaluation(
-        splits=split_contexts,
-        config=config,
-        algorithm=runtime.training_bundle.algorithm,
+
+    temp_eval_cfg = config.training.temp_eval
+    temp_eval_enabled = (
+        temp_eval_cfg.interval is not None and temp_eval_cfg.interval > 0
+    )
+    explainability_interval = getattr(
+        config.explainability, "temp_explainability_interval", None
+    )
+    explainability_enabled = (
+        config.explainability.enabled
+        and explainability_interval is not None
+        and explainability_interval > 0
     )
 
-    # Explainability hook continues to use train data only
-    train_ctx = build_evaluation_context_for_split(
-        split="train", df=dataset.train_df, config=config
-    )
-    trainer.setup_periodic_explainability(
-        df=train_ctx.df,
-        max_steps=config.explainability.n_steps,
-        config=config,
-        eval_env=train_ctx.env,
-    )
+    if temp_eval_enabled:
+        split_map = {
+            "train": dataset.train_df,
+            "val": dataset.val_df,
+            "test": dataset.test_df,
+        }
+
+        configured_splits: list[str] = list(temp_eval_cfg.splits)
+        temp_eval_max_steps: int = temp_eval_cfg.max_steps
+
+        split_contexts: list[SplitEvalContext] = []
+        for split_name in configured_splits:
+            df = split_map.get(split_name)
+            if df is None or len(df) < 2:
+                _logger.warning(
+                    "periodic eval: split '{}' not available or too small, skipping",
+                    split_name,
+                )
+                continue
+            # Slice df to temp_eval_max_steps rows so the env is small and fast to
+            # build; the full split is reserved for final evaluation.
+            temp_df = (
+                df.iloc[:temp_eval_max_steps] if len(df) > temp_eval_max_steps else df
+            )
+            ctx = build_evaluation_context_for_split(
+                split=split_name, df=temp_df, config=config
+            )
+            split_contexts.append(
+                SplitEvalContext(
+                    split=split_name,
+                    df=ctx.df,
+                    max_steps=min(ctx.max_steps, temp_eval_max_steps),
+                    eval_env=ctx.env,
+                )
+            )
+
+        trainer.setup_periodic_evaluation(
+            splits=split_contexts,
+            config=config,
+            algorithm=runtime.training_bundle.algorithm,
+        )
+    else:
+        # Keep the trainer-side hook state explicitly disabled even if a
+        # previous run on this trainer object configured it.
+        trainer.setup_periodic_evaluation(
+            splits=[], config=config, algorithm=runtime.training_bundle.algorithm
+        )
+
+    if explainability_enabled:
+        # Explainability hook continues to use train data only
+        train_ctx = build_evaluation_context_for_split(
+            split="train", df=dataset.train_df, config=config
+        )
+        trainer.setup_periodic_explainability(
+            df=train_ctx.df,
+            max_steps=config.explainability.n_steps,
+            config=config,
+            eval_env=train_ctx.env,
+        )
+    else:
+        trainer.setup_periodic_explainability(
+            df=None, max_steps=0, config=config, eval_env=None
+        )
 
 
 def _run_training_phase(
@@ -287,6 +320,10 @@ def execute_single_experiment(
 
     with profiler.stage("training"):
         training_result = _run_training_phase(runtime=runtime)
+
+    # Hook-owned evaluation envs are only needed during training; close them
+    # deterministically before final evaluation (#366, #363).
+    runtime.training_bundle.trainer.teardown_runtime_hooks()
 
     trainer = runtime.training_bundle.trainer
     prepared_dataset = runtime.prepared_dataset
