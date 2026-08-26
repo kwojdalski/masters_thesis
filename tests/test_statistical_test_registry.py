@@ -7,6 +7,7 @@ import pytest
 
 from trading_rl.evaluation.statistical_test_registry import (
     TTest,
+    _two_sided_bootstrap_p_value,
     get_test,
     list_available_tests,
     mann_whitney_test,
@@ -19,6 +20,12 @@ from trading_rl.evaluation.statistical_test_registry import (
 
 STRATEGY = np.array([0.02, 0.01, -0.005, 0.015, 0.0])
 BASELINE = np.array([0.005, -0.002, 0.0, 0.004, -0.003])
+
+
+def test_bootstrap_p_value_counts_both_tails() -> None:
+    bootstrap_differences = np.array([-2.0, -1.0, 1.0, 2.0, 3.0])
+
+    assert _two_sided_bootstrap_p_value(bootstrap_differences) == pytest.approx(0.8)
 
 
 def test_get_test_returns_registered_test_instance() -> None:

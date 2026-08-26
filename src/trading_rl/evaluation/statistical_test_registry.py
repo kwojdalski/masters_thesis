@@ -20,6 +20,13 @@ def _safe_div(numerator: float, denominator: float) -> float:
     return numerator / denominator
 
 
+def _two_sided_bootstrap_p_value(samples: np.ndarray) -> float:
+    """Return the empirical two-sided probability of crossing zero."""
+    lower_tail = float(np.mean(samples <= 0))
+    upper_tail = float(np.mean(samples >= 0))
+    return min(1.0, 2.0 * min(lower_tail, upper_tail))
+
+
 def _sharpe_ratio(returns: np.ndarray, risk_free_rate: float = 0.0) -> float:
     """Compute Sharpe ratio from returns."""
     if len(returns) == 0:
@@ -133,10 +140,7 @@ class BootstrapTest(StatisticalTest, ABC):
         diff_ci_lower = float(np.percentile(diff_metrics, 100 * alpha / 2))
         diff_ci_upper = float(np.percentile(diff_metrics, 100 * (1 - alpha / 2)))
 
-        if observed_diff > 0:
-            p_value = np.mean(diff_metrics <= 0)
-        else:
-            p_value = np.mean(diff_metrics >= 0)
+        p_value = _two_sided_bootstrap_p_value(diff_metrics)
 
         significant = not (diff_ci_lower <= 0 <= diff_ci_upper)
         metric = self.metric_name
