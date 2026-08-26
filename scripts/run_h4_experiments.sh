@@ -17,6 +17,17 @@
 #   bash scripts/run_h4_experiments.sh --skip-train          # analyze only
 #   bash scripts/run_h4_experiments.sh --verbose / -v        # enable debug logging
 #   bash scripts/run_h4_experiments.sh --skip-guardrails     # skip pre-flight guardrails check
+#
+# Evaluation overhead (issue #362): each trial overrides evaluation.eval_fraction
+# to 0.05, training.temp_eval.max_steps to 5000, and evaluation.skip_final_eval
+# to true, since the scenario's own defaults (full-validation periodic evals,
+# an unconditional post-training train+val+test pass) are tuned for a single
+# final reported run, not N short exploratory trials, and previously added far
+# more rollout steps than the nominal training budget. To restore the
+# scenario's own eval settings for a specific run, override them back via
+# EXTRA_TRAIN_ARGS, e.g.:
+#   EXTRA_TRAIN_ARGS="evaluation.eval_fraction=1.0 evaluation.skip_final_eval=false" \
+#       bash scripts/run_h4_experiments.sh
 
 set -euo pipefail
 
@@ -94,6 +105,17 @@ if [[ $SKIP_TRAIN -eq 0 ]]; then
         -c "$SCENARIO"
         --trials "$N_TRIALS"
         --config-override "training.max_steps=$STEPS"
+        # H4 is an exploratory learning-progression sweep, not the final
+        # reported evaluation -- the scenario's own eval_fraction=1.0 and
+        # temp_eval defaults (full-validation-length rollouts) are tuned for
+        # a single final run, not N short trials. Without these overrides,
+        # periodic mid-training evals and the unconditional post-training
+        # evaluate_all_splits() pass add far more rollout steps than the
+        # nominal training budget (see issue #362). skip_final_eval is safe
+        # here because Step 2 below runs its own separate `evaluate` pass.
+        --config-override "evaluation.eval_fraction=0.05"
+        --config-override "training.temp_eval.max_steps=5000"
+        --config-override "evaluation.skip_final_eval=true"
         ${EXTRA_TRAIN_ARGS:+$(_override_flags "$EXTRA_TRAIN_ARGS")}
         ${VERBOSE_FLAG:+"$VERBOSE_FLAG"}
     )
