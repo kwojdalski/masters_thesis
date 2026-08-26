@@ -14,11 +14,32 @@
 
 \LoadClass{\@baseclass}
 
-% Add blank page before list of figures
-\let\oldlistoffigures\listoffigures
-\renewcommand{\listoffigures}{%
-  \cleardoublepage
-  \oldlistoffigures
+% List of Appendices, structured like \listoffigures/\listoftables below.
+% Entries are registered per-appendix via \addcontentsline{loa}{section}{...}
+% in 99-appendix.qmd. Chained onto \listoftables (rather than exposed as a
+% separate Quarto option, since Pandoc's PDF template has no native "loa"
+% front-matter switch) so it appears immediately after the existing
+% List of Tables, on its own page.
+\usepackage{tocloft}
+\newlistof{appendices}{loa}{List of Appendices}
+
+% tocloft's own \listoffigures/\listoftables definitions are deferred via
+% \AtBeginDocument (see tocloft.sty), which runs after any ordinary preamble
+% \renewcommand -- so redefining these two commands here must ALSO be
+% deferred via \AtBeginDocument, registered after \usepackage{tocloft} above,
+% so this hook fires after tocloft's own and therefore wins.
+\AtBeginDocument{%
+  \let\oldlistoffigures\listoffigures
+  \renewcommand{\listoffigures}{%
+    \cleardoublepage
+    \oldlistoffigures
+  }
+  \let\oldlistoftables\listoftables
+  \renewcommand{\listoftables}{%
+    \oldlistoftables
+    \cleardoublepage
+    \listofappendices
+  }
 }
 \usepackage{amsmath}
 \DeclareMathOperator*{\argmax}{argmax}

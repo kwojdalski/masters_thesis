@@ -4,6 +4,10 @@
 
 # Feature Inventory
 
+```{=latex}
+\addcontentsline{loa}{section}{Feature Inventory}
+```
+
 The tables below catalogue every feature type implemented in the feature
 registry. The subset used in the main
 state-space experiment is marked in the **In model** column: $\checkmark$ indicates
@@ -94,6 +98,10 @@ Feature & Group & Formula & Param & In model & Citation \\
 
 # Main Experiment Specification
 
+```{=latex}
+\addcontentsline{loa}{section}{Main Experiment Specification}
+```
+
 The table below condenses the main experiment into a self-contained
 research specification. It records the empirical choices needed to reproduce
 the experiment. Numerical hyperparameters are loaded from the exported
@@ -134,6 +142,10 @@ else:
 
 # Data Preparation Pipeline
 
+```{=latex}
+\addcontentsline{loa}{section}{Data Preparation Pipeline}
+```
+
 The diagram below shows the feature pipeline design that ensures no information
 from the validation or test splits leaks into the fitted normalization
 parameters.
@@ -143,6 +155,10 @@ parameters.
 ---
 
 # Offline Feature Selection Pipeline
+
+```{=latex}
+\addcontentsline{loa}{section}{Offline Feature Selection Pipeline}
+```
 
 The feature selection procedure described in Section 4.2 operates in two stages:
 theory constrains the candidate pool to mechanisms grounded in market
@@ -183,6 +199,10 @@ introduce look-ahead bias or circular reasoning.
 ---
 
 # Experimental Pipeline Architecture {#sec-appendix-pipeline}
+
+```{=latex}
+\addcontentsline{loa}{section}{Experimental Pipeline Architecture}
+```
 
 The figure below shows the six major stages of the experimental pipeline at a
 glance. Each stage is described in the corresponding chapter; this overview is
