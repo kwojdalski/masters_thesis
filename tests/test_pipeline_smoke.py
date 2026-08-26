@@ -79,6 +79,9 @@ def _make_config(tmp_path: Path) -> ExperimentConfig:
                 "init_rand_steps": 0,
                 "log_interval": 4,
                 "skip_guardrail_prompts": True,
+                # Deliberately not TorchRL's 0.99 default so a regression
+                # where gamma is silently dropped cannot pass by coincidence.
+                "gamma": 0.87,
             },
             "evaluation": {
                 "eval_steps": 4,
@@ -122,6 +125,10 @@ class TestPipelineSmoke:
         assert context["prepared_dataset"].price_column == "close"
         assert "feature_lag1" in context["train_df"].columns
         assert "feature_trend" in context["train_df"].columns
+
+        # config.gamma must reach the loss module's value estimator, not
+        # silently fall back to TorchRL's own default (issue #417).
+        assert context["trainer"].ppo_loss._value_estimator.gamma == pytest.approx(0.87)
         assert context["n_obs"] == 2
         assert context["n_act"] >= 1
         assert context["trainer"] is not None
@@ -139,9 +146,13 @@ class TestPipelineSmoke:
         feature_cols = ["feature_lag1", "feature_trend"]
         for col in feature_cols:
             bad_train = (~np.isfinite(train_df[col].to_numpy())).sum()
-            assert bad_train == 0, f"train_df['{col}'] has {bad_train} non-finite values"
+            assert (
+                bad_train == 0
+            ), f"train_df['{col}'] has {bad_train} non-finite values"
 
-    def test_run_single_experiment(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_run_single_experiment(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         import trading_rl.pipeline.evaluation as evaluation_module
         import trading_rl.train_trading_agent as training_module
 
@@ -165,8 +176,8 @@ class TestPipelineSmoke:
                 None,
                 None,
             )
-            trainer.save_checkpoint = (
-                lambda path, **_kw: Path(path).write_text("stub checkpoint", encoding="utf-8")
+            trainer.save_checkpoint = lambda path, **_kw: Path(path).write_text(
+                "stub checkpoint", encoding="utf-8"
             )
             return runtime
 

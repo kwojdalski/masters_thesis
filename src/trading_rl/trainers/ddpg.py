@@ -60,6 +60,9 @@ class DDPGTrainer(BaseTrainer):
             value_network=value_net,
             loss_function=config.loss_function,
         )
+        # gamma can no longer be passed to the constructor (TorchRL raises
+        # TypeError); must be set via make_value_estimator instead.
+        self.ddpg_loss.make_value_estimator(gamma=getattr(config, "gamma", 0.99))
 
         # Target network updater
         self.updater = SoftUpdate(self.ddpg_loss, tau=config.tau)

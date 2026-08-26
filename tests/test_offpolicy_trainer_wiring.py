@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
 import torch
 from tensordict import TensorDict
 from torchrl.data import Bounded
@@ -48,6 +49,9 @@ def _td3_config() -> SimpleNamespace:
         tau=0.01,
         max_grad_norm=0.0,
         loss_function=LossFunction.L2,
+        gamma=0.87,  # deliberately not TorchRL's 0.99 default so a regression
+        # where gamma is silently dropped and falls back to that default
+        # cannot pass this test by coincidence.
         td3=SimpleNamespace(
             exploration_noise_std=0.1,
             policy_noise=0.2,
@@ -69,6 +73,7 @@ def _ddpg_config() -> SimpleNamespace:
         tau=0.01,
         max_grad_norm=0.0,
         loss_function=LossFunction.L2,
+        gamma=0.87,  # deliberately not TorchRL's 0.99 default; see _td3_config.
         buffer_size=100,
         td3=SimpleNamespace(exploration_noise_std=0.1),
     )
@@ -194,6 +199,10 @@ def test_td3_build_models_and_real_loss_accept_expected_tensordict(monkeypatch) 
     # _td3_config() (0.1 vs 0.2) so a regression flips this assertion.
     assert trainer._compute_exploration_ratio() == 0.1
 
+    # config.gamma must reach the loss module's value estimator, not silently
+    # fall back to TorchRL's own default (issue #417).
+    assert trainer.td3_loss._value_estimator.gamma == pytest.approx(0.87)
+
     losses = trainer.td3_loss(_sample_for_loss(trainer.actor, n_obs))
 
     assert torch.isfinite(losses["loss_actor"])
@@ -234,6 +243,10 @@ def test_ddpg_build_models_and_real_loss_accept_expected_tensordict(
     assert torch.all(action_td["action"] >= -0.5)
     assert trainer.ddpg_loss.target_actor_network_params is not None
     assert trainer.ddpg_loss.target_value_network_params is not None
+
+    # config.gamma must reach the loss module's value estimator, not silently
+    # fall back to TorchRL's own default (issue #417).
+    assert trainer.ddpg_loss._value_estimator.gamma == pytest.approx(0.87)
 
     losses = trainer.ddpg_loss(_sample_for_loss(trainer.actor, n_obs))
 
