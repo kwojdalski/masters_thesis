@@ -160,23 +160,41 @@ class PrepareDataConfig:
 
 
 def _resolve_feature_pipeline(config: Any, logger: Any) -> Any:
-    """Return a FeaturePipeline built from feature_groups YAML, or None."""
-    feature_groups = getattr(config.data, "feature_groups", None)
-    if not feature_groups:
-        return None
-    from trading_rl.features.groups import FeatureGroupResolver
-    from trading_rl.features.pipeline import FeaturePipeline
+    """Return a FeaturePipeline built from feature_groups or feature_config
+    YAML, or None if neither is set.
 
-    resolver = FeatureGroupResolver.from_yaml(feature_groups)
-    group_names = resolver.list_groups()
-    logger.info("use feature groups n={} source={}", len(group_names), feature_groups)
-    pipeline = FeaturePipeline(resolver.resolve(group_names))
-    logger.info(
-        "build feature pipeline n_features={} n_groups={}",
-        len(pipeline.features),
-        len(group_names),
-    )
-    return pipeline
+    Pre-resolving here (rather than letting prepare_data build its own
+    internal pipeline from feature_config_path) ensures the caller always
+    holds a reference to the actual pipeline object that gets fit, so its
+    scaler state can be captured via dump_pipeline_state() regardless of
+    which of the two config paths is used (issue #429).
+    """
+    feature_groups = getattr(config.data, "feature_groups", None)
+    if feature_groups:
+        from trading_rl.features.groups import FeatureGroupResolver
+        from trading_rl.features.pipeline import FeaturePipeline
+
+        resolver = FeatureGroupResolver.from_yaml(feature_groups)
+        group_names = resolver.list_groups()
+        logger.info(
+            "use feature groups n={} source={}", len(group_names), feature_groups
+        )
+        pipeline = FeaturePipeline(resolver.resolve(group_names))
+        logger.info(
+            "build feature pipeline n_features={} n_groups={}",
+            len(pipeline.features),
+            len(group_names),
+        )
+        return pipeline
+
+    feature_config = getattr(config.data, "feature_config", None)
+    if feature_config:
+        from trading_rl.features.pipeline import FeaturePipeline
+
+        logger.info("load feature pipeline path={}", feature_config)
+        return FeaturePipeline.from_yaml(feature_config)
+
+    return None
 
 
 def _config_needs_feature_pipeline_state(config: Any, logger: Any) -> bool:
@@ -188,12 +206,6 @@ def _config_needs_feature_pipeline_state(config: Any, logger: Any) -> bool:
     "does this pipeline have serialisable state" check.
     """
     pipeline = _resolve_feature_pipeline(config, logger)
-    if pipeline is None:
-        feature_config = getattr(config.data, "feature_config", None)
-        if feature_config:
-            from trading_rl.features.pipeline import FeaturePipeline
-
-            pipeline = FeaturePipeline.from_yaml(feature_config)
     return dump_pipeline_state(pipeline) is not None
 
 
