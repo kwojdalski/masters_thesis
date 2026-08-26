@@ -193,6 +193,6 @@ intended as a navigation aid.
 The full machine-readable diagram — including CLI entry points, per-step data
 flows, all configuration guardrail checks, environment variants, MLflow
 logging, and asset provenance metadata — is maintained as a D2 source file
-at `docs/workflow.d2` in the project repository (@Wojdalski2026). It is too
+at `docs/workflow.d2` in the project repository [@Wojdalski2026]. It is too
 information-dense to reproduce at print resolution; the SVG rendering is
 available at `docs/workflow.svg`.

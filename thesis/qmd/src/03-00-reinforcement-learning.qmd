@@ -21,7 +21,7 @@ algorithm of choice for continuous-control trading.
 Reinforcement learning systems address sequential decision-making problems by
 selecting actions that maximize cumulative discounted future rewards. This
 subsection defines the core components using trading as the primary illustrative
-context, drawing on @Sutton2018.
+context, following the standard treatment of reinforcement learning [@Sutton2018].
 
 Formally, the trading problem can be described as an approximate Markov decision
 process $(\mathcal{S}, \mathcal{A}, P, R, \gamma)$, where $\mathcal{S}$ is the

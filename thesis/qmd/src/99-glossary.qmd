@@ -29,7 +29,7 @@ expand the section beyond its practical purpose.
 | **ETF** | Exchange-Traded Fund. A publicly traded fund that tracks an index, sector, or asset class. |
 | **HFT** | High-Frequency Trading. Algorithmic trading operating at tick or sub-second timescales, relying on order-book data and microstructure signals rather than price bars. |
 | **Inter-event time** | The elapsed time between consecutive limit order book updates; a proxy for market activity intensity. |
-| **Kyle's lambda ($\lambda$)** | A measure of price impact introduced by @Kyle1985: the sensitivity of price changes to net order flow. Higher $\lambda$ implies lower market liquidity. |
+| **Kyle's lambda ($\lambda$)** | A measure of price impact [@Kyle1985]: the sensitivity of price changes to net order flow. Higher $\lambda$ implies lower market liquidity. |
 | **LOB** | Limit Order Book. The electronic record of all outstanding buy (bid) and sell (ask) limit orders at each price level, maintained by an exchange. |
 | **Market maker** | A liquidity provider that continuously posts limit orders on both sides of the book, profiting from the bid-ask spread while bearing inventory and adverse selection risk. |
 | **MFT** | Medium-Frequency Trading. Trading strategies operating at intraday bar (minute to hour) timescales, as distinct from high-frequency tick-level strategies. |

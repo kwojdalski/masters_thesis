@@ -8,7 +8,7 @@ intended as an orientation before the detailed treatment that follows.
 
 ![RL algorithm taxonomy from Bellman equation to TD3](diagrams/fig-rl-taxonomy.svg){#fig-rl-taxonomy fig-align="center" width="6.4in"}
 
-Source: author's own diagram, based on @Sutton2018.[^taxonomy-note]
+Source: author's own diagram, based on [@Sutton2018].[^taxonomy-note]
 
 [^taxonomy-note]: This taxonomy is a pedagogical simplification, not a precise classification. Categories have fuzzy boundaries: PPO appears under both "Policy-Based" and "Actor-Critic" because it combines a stochastic policy with a value-based critic; DDPG, TD3, and SAC share an "Off-Policy" branch despite fundamental differences in policy type and objective. Readers should not infer mutually exclusive algorithmic families from the crisp boundaries shown here.
 
@@ -39,13 +39,13 @@ A second dimension classifies algorithms by what they learn and optimize.
 
 **Value-based** methods learn a value function and derive a policy implicitly
 by acting greedily with respect to it. Q-learning and its deep variant DQN
-(@Mnih2015) are prototypical examples. They work well in discrete action
+are prototypical examples [@Mnih2015]. They work well in discrete action
 spaces but struggle when actions are continuous, because the greedy step
 $\arg\max_a Q(s, a)$ becomes intractable over an uncountable set.
 
 **Policy-based** methods directly parameterize and optimize the policy
-$\pi_\theta$. REINFORCE (@Williams1992) updates parameters by gradient ascent
-on expected return:
+$\pi_\theta$. REINFORCE updates parameters by gradient ascent
+on expected return [@Williams1992]:
 
 $$\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}_{\pi_\theta}\!\left[\sum_t r_t\right]$$ {#eq-policy-gradient-update}
 
