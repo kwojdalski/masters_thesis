@@ -158,6 +158,31 @@ class TrainerRuntimeHooks:
         self._maybe_run_evaluation(step_number)
         self._maybe_run_explainability(step_number)
 
+    @staticmethod
+    def _close_env_safely(env: Any) -> None:
+        """Close an evaluation environment, tolerating envs without close()."""
+        if env is None:
+            return
+        try:
+            env.close()
+        except Exception:
+            logger.debug("hook eval env close raised; continuing teardown")
+
+    def teardown(self) -> None:
+        """Deterministically close hook-owned evaluation environments.
+
+        These envs are separate from the training environment and would
+        otherwise be reclaimed only by garbage collection, which compounds
+        across sequential in-process trials (#363, #366).
+        """
+        if self._evaluation is not None:
+            for ctx in self._evaluation.splits:
+                self._close_env_safely(ctx.eval_env)
+            self._evaluation = None
+        if self._explainability is not None:
+            self._close_env_safely(self._explainability.eval_env)
+            self._explainability = None
+
     def _maybe_run_evaluation(self, step_number: int) -> None:
         hook = self._evaluation
         if hook is None:
