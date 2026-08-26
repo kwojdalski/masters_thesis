@@ -20,6 +20,16 @@ from trading_rl.constants import Algorithm, EnvBackend, RewardType
 from trading_rl.data_loading import MemmapPaths, load_memmap_paths
 
 
+def _neutral_position(positions: list[int]) -> int:
+    """Return the flat/neutral (HOLD == 0) entry of a positions list.
+
+    ``positions`` defaults to ``[SHORT(-1), HOLD(0), LONG(1)]``, so indexing
+    ``positions[0]`` yields SHORT — every episode would open short (#437).
+    Fall back to 0 when no explicit neutral entry exists.
+    """
+    return next((int(p) for p in positions if int(p) == 0), 0)
+
+
 @dataclass(frozen=True)
 class CommonEnvParams:
     """Environment parameters shared by all backends."""
@@ -344,8 +354,9 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             name=params.common.env_name,
             df=df,
             positions=params.common.positions,
-            # Flat/neutral start; see streaming branch note on 'random' default.
-            initial_position=params.common.positions[0],
+            # Flat/neutral start (TradePosition.HOLD == 0); see streaming branch
+            # note on why gym_trading_env's 'random' default is overridden.
+            initial_position=_neutral_position(params.common.positions),
             trading_fees=params.common.trading_fees,
             borrow_interest_rate=params.common.borrow_interest_rate,
             reward_function=self._resolve_history_reward_function(params),
@@ -468,7 +479,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             # gym_trading_env defaults to 'random', drawn from *global* np.random
             # (not the seeded self.np_random), giving un-chosen opening exposure
             # and breaking seed reproducibility. Start flat/neutral instead.
-            initial_position=params.common.positions[0],
+            initial_position=_neutral_position(params.common.positions),
             trading_fees=params.common.trading_fees,
             borrow_interest_rate=params.common.borrow_interest_rate,
             reward_function=self._resolve_history_reward_function(params),

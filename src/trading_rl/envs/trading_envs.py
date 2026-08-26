@@ -176,10 +176,13 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
             name=config.env.name,
             df=df,  # Already split in prepare_data()
             positions=config.env.positions,
-            # Flat/neutral start — gym_trading_env's 'random' default draws from
-            # global np.random (unseeded by reset(seed=...)), giving un-chosen
-            # opening exposure and breaking seed reproducibility.
-            initial_position=config.env.positions[0],
+            # Flat/neutral start (TradePosition.HOLD == 0) — gym_trading_env's
+            # 'random' default draws from global np.random (unseeded by
+            # reset(seed=...)), giving un-chosen opening exposure and breaking
+            # seed reproducibility. positions[0] is SHORT, not neutral (#437).
+            initial_position=next(
+                (int(p) for p in config.env.positions if int(p) == 0), 0
+            ),
             trading_fees=config.env.trading_fees,
             borrow_interest_rate=config.env.borrow_interest_rate,
             reward_function=reward_function,
