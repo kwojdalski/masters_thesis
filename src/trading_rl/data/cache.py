@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pickle
 from pathlib import Path
 from typing import Any
 
@@ -239,6 +240,65 @@ def _write_prepared_cache_metadata(
     _prepared_cache_metadata_path(prepared_dir).write_text(
         json.dumps(metadata, indent=2, sort_keys=True)
     )
+
+
+def _prepared_pipeline_state_path(prepared_dir: Path) -> Path:
+    return prepared_dir / "pipeline_state.pkl"
+
+
+def _prepared_pipeline_state_checksum_path(prepared_dir: Path) -> Path:
+    return prepared_dir / "pipeline_state.pkl.sha256"
+
+
+def _write_prepared_pipeline_state(
+    prepared_dir: Path, pipeline_state: dict | None
+) -> None:
+    """Persist feature-pipeline scaler state alongside the prepared cache so
+    a cache hit can restore the training-time normalization statistics
+    instead of silently dropping them (mirrors the checksum pattern used
+    for the per-symbol feature_cache_dir cache in preparation.py)."""
+    state_path = _prepared_pipeline_state_path(prepared_dir)
+    checksum_path = _prepared_pipeline_state_checksum_path(prepared_dir)
+    if pipeline_state is None:
+        state_path.unlink(missing_ok=True)
+        checksum_path.unlink(missing_ok=True)
+        return
+    state_bytes = pickle.dumps(pipeline_state)
+    state_path.write_bytes(state_bytes)
+    checksum_path.write_text(hashlib.sha256(state_bytes).hexdigest())
+
+
+def _load_prepared_pipeline_state(prepared_dir: Path, logger: Any) -> dict | None:
+    """Load and checksum-verify feature-pipeline scaler state written by
+    _write_prepared_pipeline_state. Returns None if no state file exists."""
+    state_path = _prepared_pipeline_state_path(prepared_dir)
+    if not state_path.exists():
+        return None
+    checksum_path = _prepared_pipeline_state_checksum_path(prepared_dir)
+    state_bytes = state_path.read_bytes()
+    actual_checksum = hashlib.sha256(state_bytes).hexdigest()
+    if checksum_path.exists():
+        stored_checksum = checksum_path.read_text().strip()
+        if actual_checksum != stored_checksum:
+            raise RuntimeError(
+                f"Prepared cache pipeline state at {state_path} has invalid checksum. "
+                f"Expected {stored_checksum}, got {actual_checksum}. "
+                "The file may have been corrupted or tampered with. "
+                "Delete the cache directory to rebuild."
+            )
+    else:
+        logger.warning(
+            "Missing checksum file for {}; loading without verification. "
+            "Delete the cache directory to force rebuild with checksum.",
+            state_path,
+        )
+    try:
+        return pickle.loads(state_bytes)  # noqa: S301 — checksum-verified above, not untrusted input
+    except Exception as exc:
+        raise RuntimeError(
+            f"Prepared cache pipeline state at {state_path} is corrupted. "
+            "Delete the cache directory to rebuild."
+        ) from exc
 
 
 def _pipeline_uses_global(feature_pipeline: Any) -> bool:
