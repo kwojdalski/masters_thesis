@@ -269,7 +269,7 @@ class TestCreateStreamingEnv:
                 "seed": 123,
                 "name": "test-env",
                 "positions": [-1, 0, 1],
-                "initial_position": -1,
+                "initial_position": 0,
                 "trading_fees": 0.0,
                 "borrow_interest_rate": 0.0,
                 "reward_function": reward_function,
@@ -505,3 +505,19 @@ class TestResolveHistoryRewardFunction:
 
         with pytest.raises(ValueError, match="differential_sharpe"):
             builder._create_streaming_env(["memmap"], params)
+
+
+class TestNeutralInitialPosition:
+    """Regression tests for #437: episodes must start flat/neutral (HOLD=0)."""
+
+    def test_neutral_position_picks_hold_from_default_positions(self):
+        from trading_rl.envs.builder import _neutral_position
+
+        assert _neutral_position([-1, 0, 1]) == 0
+        assert _neutral_position([0, 1]) == 0
+
+    def test_neutral_position_falls_back_to_zero_when_no_hold(self):
+        from trading_rl.envs.builder import _neutral_position
+
+        # Degenerate config without a HOLD entry: still flat (0), never SHORT.
+        assert _neutral_position([-1, 1]) == 0
