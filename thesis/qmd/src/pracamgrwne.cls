@@ -9,7 +9,7 @@
 \def\@rodzajpracy{magisterska}
 \DeclareOption{licencjacka}{\def\@rodzajpracy{licencjacka}}
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{\@baseclass}}
-\PassOptionsToClass{a4paper,twoside,openright,11pt}{\@baseclass}
+\PassOptionsToClass{a4paper,twoside,openright,12pt}{\@baseclass}
 \ProcessOptions
 
 \LoadClass{\@baseclass}
@@ -24,13 +24,13 @@
 \DeclareMathOperator*{\argmax}{argmax}
 \DeclareMathOperator*{\argmin}{argmin}
 \textwidth\paperwidth
-\advance\textwidth -55mm
+\advance\textwidth -50mm
 \oddsidemargin-1in
-\advance\oddsidemargin 30mm
+\advance\oddsidemargin 25mm
 \evensidemargin-1in
 \advance\evensidemargin 25mm
 \topmargin -1in
-\advance\topmargin 2cm
+\advance\topmargin 25mm
 \setlength\textheight{48\baselineskip}
 \addtolength\textheight{\topskip}
 \marginparwidth15mm
@@ -79,7 +79,8 @@
     \@thanks
   \end{titlepage}%
   \begin{titlepage}
-    \c@page=2
+    \c@page=1
+    \thispagestyle{plain}
     \large
     \null
     \vfill
