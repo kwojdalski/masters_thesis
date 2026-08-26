@@ -266,3 +266,39 @@ def test_anytrading_dsr_reward_wiring_wraps_base_env(monkeypatch) -> None:
         "Close",
         "Volume",
     ]
+
+
+def test_custom_factory_rejects_non_log_return_reward_type() -> None:
+    """Regression test for the silent reward_type override (#312).
+
+    gym_trading_env backends must not silently fall back to log_return when a
+    different reward_type is configured.
+    """
+    config = _config("gym_trading_env.discrete", positions=[-1, 0, 1])
+    config.env.reward_type = RewardType.DIFFERENTIAL_SHARPE
+
+    with pytest.raises(ValueError, match="differential_sharpe.*not supported"):
+        CustomTradingEnvironmentFactory(config)._create_base_environment(_df(), config)
+
+
+def test_custom_factory_defaults_to_log_return_when_reward_type_unset() -> None:
+    """Configs without a reward_type attribute keep the log_return default."""
+    config = _config("gym_trading_env.discrete", positions=[-1, 0, 1])
+    del config.env.reward_type
+
+    calls: list[dict] = []
+
+    def fake_make(env_id, **kwargs):
+        calls.append(kwargs)
+        return "base-env"
+
+    import gymnasium as gym
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(gym, "make", fake_make)
+        env = CustomTradingEnvironmentFactory(config)._create_base_environment(
+            _df(), config
+        )
+
+    assert env == "base-env"
+    assert calls[0]["reward_function"] is reward_function

@@ -161,6 +161,16 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
         NOTE: df should already be split to training size by prepare_data().
         We no longer slice here to avoid data leakage issues.
         """
+        reward_type = str(getattr(config.env, "reward_type", RewardType.LOG_RETURN))
+        if reward_type != RewardType.LOG_RETURN:
+            # Same failure mode fixed in builder.py (_resolve_history_reward_function):
+            # never silently fall back to log_return when a different reward was
+            # requested -- that would silently invalidate the experiment.
+            raise ValueError(
+                f"reward_type={reward_type!r} is not supported for gym_trading_env "
+                f"backends (only {RewardType.LOG_RETURN!r} is). Use the tradingenv "
+                "backend for differential_sharpe support."
+            )
         return gym.make(
             "TradingEnv",
             name=config.env.name,
