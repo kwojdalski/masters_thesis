@@ -94,7 +94,6 @@ Total return, max drawdown, win rate, profit factor, and turnover are computed
 on the raw per-step series.
 
 ### Evaluation Plots
-<!-- [PLACEHOLDER] -->
 
 ```{python}
 #| label: eval_plots_setup
