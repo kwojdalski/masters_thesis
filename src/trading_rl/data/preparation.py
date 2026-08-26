@@ -24,9 +24,11 @@ from logger import get_logger
 from trading_rl.constants import EnvBackend, EnvMode, EvalSymbolSelection
 from trading_rl.data.cache import (
     _feature_cache_key,
+    _load_prepared_pipeline_state,
     _memmap_feature_hash,
     _prepared_cache_compatible,
     _write_prepared_cache_metadata,
+    _write_prepared_pipeline_state,
 )
 from trading_rl.data.hft import (
     _deduplicate_hft_index_single,
@@ -175,6 +177,24 @@ def _resolve_feature_pipeline(config: Any, logger: Any) -> Any:
         len(group_names),
     )
     return pipeline
+
+
+def _config_needs_feature_pipeline_state(config: Any, logger: Any) -> bool:
+    """Whether this config's feature pipeline has normalization state that
+    must be persisted/restored across a prepared-cache hit.
+
+    Constructs the pipeline (cheap — YAML resolution only, no data) and
+    checks for a scaler on any feature, mirroring dump_pipeline_state's own
+    "does this pipeline have serialisable state" check.
+    """
+    pipeline = _resolve_feature_pipeline(config, logger)
+    if pipeline is None:
+        feature_config = getattr(config.data, "feature_config", None)
+        if feature_config:
+            from trading_rl.features.pipeline import FeaturePipeline
+
+            pipeline = FeaturePipeline.from_yaml(feature_config)
+    return dump_pipeline_state(pipeline) is not None
 
 
 def _apply_warmup_skip(
@@ -1012,6 +1032,23 @@ def build_prepared_dataset(
         and prepared_dir
         and _prepared_cache_compatible(config, prepared_dir, memmap_dir, logger)
     )
+    cached_pipeline_state: dict | None = None
+    if cache_ready:
+        cached_pipeline_state = _load_prepared_pipeline_state(prepared_dir, logger)
+        if cached_pipeline_state is None and _config_needs_feature_pipeline_state(
+            config, logger
+        ):
+            # A cache built before pipeline-state persistence was added (or by
+            # a run whose feature config has since started using normalized
+            # features) has no scaler statistics to restore. Silently
+            # proceeding here would reproduce the checkpoint/evaluation
+            # normalization-loss bug this cache-hit path had. Rebuild instead.
+            logger.info(
+                "prepared cache at {} has no pipeline state but the configured "
+                "feature pipeline requires normalization state; rebuilding",
+                prepared_dir,
+            )
+            cache_ready = False
     if cache_ready:
         logger.info("load prepared splits cache_dir={}", prepared_dir)
         lazy_splits = load_prepared_splits(prepared_dir)
@@ -1099,6 +1136,7 @@ def build_prepared_dataset(
             test_df,
             config,
             memmap_paths or None,
+            cached_pipeline_state,
         )
 
     data_paths = getattr(config.data, "data_paths", None)
@@ -1157,6 +1195,7 @@ def build_prepared_dataset(
             test_df,
             memmap_paths,
         )
+        _write_prepared_pipeline_state(prepared_dir, pipeline_state)
 
     return _make_dataset(
         train_df, val_df, test_df, config, memmap_paths, pipeline_state

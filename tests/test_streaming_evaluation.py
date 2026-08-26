@@ -2,10 +2,15 @@ import logging
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 import trading_rl.pipeline.evaluation as evaluation_module
 from trading_rl.config import ExperimentConfig
-from trading_rl.data.cache import _write_prepared_cache_metadata
+from trading_rl.data.cache import (
+    _load_prepared_pipeline_state,
+    _write_prepared_cache_metadata,
+    _write_prepared_pipeline_state,
+)
 from trading_rl.data_loading import save_prepared_splits, save_symbol_memmap
 from trading_rl.data_utils import _prepared_cache_compatible
 
@@ -361,3 +366,30 @@ def test_evaluation_context_disables_training_memmaps(monkeypatch) -> None:
 
     assert calls == [False]
     assert ctx.max_steps == 3
+
+
+def test_prepared_pipeline_state_round_trips(tmp_path: Path) -> None:
+    state = {"feature_x": {"mean": 1.0, "var": 2.0}}
+    _write_prepared_pipeline_state(tmp_path, state)
+
+    loaded = _load_prepared_pipeline_state(tmp_path, logging.getLogger(__name__))
+
+    assert loaded == state
+
+
+def test_prepared_pipeline_state_rejects_tampered_checksum(tmp_path: Path) -> None:
+    _write_prepared_pipeline_state(tmp_path, {"feature_x": {"mean": 1.0}})
+    (tmp_path / "pipeline_state.pkl.sha256").write_text("0" * 64)
+
+    with pytest.raises(RuntimeError, match="invalid checksum"):
+        _load_prepared_pipeline_state(tmp_path, logging.getLogger(__name__))
+
+
+def test_prepared_pipeline_state_write_none_clears_existing_files(
+    tmp_path: Path,
+) -> None:
+    _write_prepared_pipeline_state(tmp_path, {"feature_x": {"mean": 1.0}})
+    _write_prepared_pipeline_state(tmp_path, None)
+
+    assert _load_prepared_pipeline_state(tmp_path, logging.getLogger(__name__)) is None
+    assert not (tmp_path / "pipeline_state.pkl").exists()
