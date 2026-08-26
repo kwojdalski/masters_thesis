@@ -24,13 +24,13 @@
 \DeclareMathOperator*{\argmax}{argmax}
 \DeclareMathOperator*{\argmin}{argmin}
 \textwidth\paperwidth
-\advance\textwidth -55mm
+\advance\textwidth -50mm
 \oddsidemargin-1in
-\advance\oddsidemargin 30mm
+\advance\oddsidemargin 25mm
 \evensidemargin-1in
 \advance\evensidemargin 25mm
 \topmargin -1in
-\advance\topmargin 2cm
+\advance\topmargin 25mm
 \setlength\textheight{48\baselineskip}
 \addtolength\textheight{\topskip}
 \marginparwidth15mm
