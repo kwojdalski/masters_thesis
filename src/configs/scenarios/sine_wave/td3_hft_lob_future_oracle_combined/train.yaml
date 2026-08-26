@@ -31,7 +31,7 @@ env:
   streaming_episode_length: 7000
   obs_clip: 5.0
   reward_type: log_return
-  reward_scale: 0.003
+  reward_scale: 333.3333333333333
   execution_price: mid
   bid_column: bid_px_00
   ask_column: ask_px_00

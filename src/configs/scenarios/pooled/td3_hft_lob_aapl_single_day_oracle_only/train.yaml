@@ -25,7 +25,7 @@ env:
   streaming_episode_length: 10000
   obs_clip: 5.0
   reward_type: log_return
-  reward_scale: 0.00003
+  reward_scale: 33333.333333333336
   feature_columns:
   - feature_future_close_vel
   - feature_position

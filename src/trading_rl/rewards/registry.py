@@ -4,7 +4,15 @@ Each entry is a callable that accepts ``(eta, scale)`` kwargs and returns
 a reward object compatible with the environment it is registered for.
 The registry is keyed by the ``RewardType`` string value so YAML configs
 work without conversion.
+
+``scale`` has uniform multiplicative semantics across every registered
+reward type: the final per-step reward is always ``raw_reward * scale``.
+tradingenv's ``LogReturn`` natively *divides* by its own ``scale``
+parameter, so ``_make_log_return`` inverts the configured value before
+passing it through, keeping the registry's ``scale`` contract consistent
+for every reward type a caller can select via ``env.reward_scale``.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -28,15 +36,20 @@ class RewardRegistry:
             @RewardRegistry.register("log_return")
             def _make_log_return(*, eta: float, scale: float):
                 from tradingenv.rewards import LogReturn
+
                 return LogReturn(scale=scale)
         """
+
         def decorator(fn: RewardFactory) -> RewardFactory:
             _REGISTRY[reward_type] = fn
             return fn
+
         return decorator
 
     @classmethod
-    def create(cls, reward_type: str, *, eta: float = 0.01, scale: float = 1.0) -> object:
+    def create(
+        cls, reward_type: str, *, eta: float = 0.01, scale: float = 1.0
+    ) -> object:
         """Instantiate a reward object for *reward_type*.
 
         Args:
@@ -74,13 +87,25 @@ def register_reward(reward_type: str):
 # Built-in registrations
 # ---------------------------------------------------------------------------
 
+
 @register_reward("log_return")
 def _make_log_return(*, eta: float, scale: float) -> object:
     from tradingenv.rewards import LogReturn
-    return LogReturn(scale=scale)
+
+    # tradingenv.LogReturn divides its raw reward by `scale`; invert here so
+    # the registry's own `scale` kwarg is multiplicative like every other
+    # registered reward type (final reward = raw_reward * scale).
+    if scale == 0:
+        raise ValueError(
+            "env.reward_scale must be non-zero for reward_type='log_return' "
+            "(a value of 0 would produce a permanently zero reward via "
+            "division by zero in the un-inverted form)."
+        )
+    return LogReturn(scale=1.0 / scale)
 
 
 @register_reward("differential_sharpe")
 def _make_differential_sharpe(*, eta: float, scale: float) -> object:
     from trading_rl.rewards.differential_sharpe import DifferentialSharpeRatio
+
     return DifferentialSharpeRatio(eta=eta, scale=scale)
