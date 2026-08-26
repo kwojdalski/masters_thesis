@@ -207,7 +207,7 @@ def test_custom_factory_passes_reward_function_to_gym_trading_env(monkeypatch) -
                 "name": "unit-test-env",
                 "df": df,
                 "positions": [-1, 0, 1],
-                "initial_position": -1,
+                "initial_position": 0,
                 "trading_fees": 0.001,
                 "borrow_interest_rate": 0.0001,
                 "reward_function": reward_function,
