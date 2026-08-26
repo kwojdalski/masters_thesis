@@ -16,6 +16,7 @@ inspects the internal state of the trainer after a single optimization step.
 They run as part of the standard ``smoke`` marker and should complete in a
 few seconds each.
 """
+
 from __future__ import annotations
 
 import math
@@ -102,7 +103,7 @@ def _make_health_config(tmp_path: Path) -> ExperimentConfig:
                 "frames_per_batch": 8,
                 "sample_size": 4,
                 "init_rand_steps": 0,
-                "ppo_epochs": 1,
+                "ppo": {"epochs": 1},
                 "log_interval": 1000,
             },
             "evaluation": {
@@ -269,7 +270,11 @@ class TestLearningHealth:
 
         for col_idx in range(n_features):
             col_std = float(np.std(obs[..., col_idx]))
-            name = feature_names[col_idx] if col_idx < len(feature_names) else f"col_{col_idx}"
+            name = (
+                feature_names[col_idx]
+                if col_idx < len(feature_names)
+                else f"col_{col_idx}"
+            )
             assert col_std > 1e-8, (
                 f"Feature '{name}' (index {col_idx}) is constant across the "
                 f"entire batch (std={col_std:.2e}). This feature carries no "
@@ -296,9 +301,9 @@ class TestLearningHealth:
             "No actor loss was logged after an optimization step. "
             "Check that _optimization_step correctly populates trainer.logs."
         )
-        assert trainer.logs.get("loss_value"), (
-            "No critic loss was logged after an optimization step."
-        )
+        assert trainer.logs.get(
+            "loss_value"
+        ), "No critic loss was logged after an optimization step."
 
         for loss_name in ("loss_actor", "loss_value"):
             for v in trainer.logs[loss_name]:
@@ -319,8 +324,7 @@ class TestLearningHealth:
         trainer = context["trainer"]
 
         before = {
-            name: param.data.clone()
-            for name, param in trainer.actor.named_parameters()
+            name: param.data.clone() for name, param in trainer.actor.named_parameters()
         }
         _run_one_optimization_step(trainer)
 

@@ -713,11 +713,7 @@ _LEGACY_UNKNOWN_KEYS: dict[str, frozenset[str]] = {
     # training.gamma: never passed to TD3Loss/DDPGLoss/PPOLoss construction;
     # the RL discount factor has always silently used TorchRL's own default
     # regardless of this value (issue #417).
-    # training.ppo_epochs / training.eval_steps: wrong key paths used by
-    # several test fixtures -- should be training.ppo.epochs and
-    # evaluation.eval_steps respectively (issue #418). Test-only; no
-    # production scenario YAML uses either.
-    "training": frozenset({"gamma", "ppo_epochs", "eval_steps"}),
+    "training": frozenset({"gamma"}),
     # data.data_config: a data-config file path, never read by anything.
     "data": frozenset({"data_config"}),
 }

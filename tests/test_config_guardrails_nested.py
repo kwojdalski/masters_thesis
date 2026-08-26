@@ -24,7 +24,7 @@ def test_ppo_updates_per_rollout_check_reads_nested_epochs() -> None:
     config.training.sample_size = 1
 
     findings = _findings_for(
-        config, "training.ppo_epochs / training.frames_per_batch / training.sample_size"
+        config, "training.ppo.epochs / training.frames_per_batch / training.sample_size"
     )
     assert len(findings) == 1
     assert findings[0].severity == Severity.WARN
