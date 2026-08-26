@@ -2,8 +2,8 @@
 
 ### Experiment Specification Design
 
-The full source code for this thesis is publicly available at
-@Wojdalski2026. Each experiment is fully specified by a structured set of
+The full source code for this thesis is publicly available online
+[@Wojdalski2026]. Each experiment is fully specified by a structured set of
 inputs covering the dataset, feature subset, reward type, environment
 settings, and optimization hyperparameters. No source-code changes are
 required to switch between experimental variants. A pre-training validation stage checks path availability,

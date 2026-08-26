@@ -10,8 +10,8 @@ feature, and limitation: each framework motivates a candidate state variable,
 but none establishes by itself that the variable is profitable after costs.
 
 **Adverse selection and the spread decomposition.**
-@GlostenMilgrom1985 established that the bid-ask spread reflects a market
-maker's protection against trading with informed counterparties. In their model,
+The bid-ask spread reflects a market
+maker's protection against trading with informed counterparties [@GlostenMilgrom1985]. In their model,
 the market maker faces two types of order flow: uninformed liquidity traders,
 whose trades are uncorrelated with future price changes, and informed traders,
 who possess private information about fundamental value. Setting a positive
@@ -28,8 +28,8 @@ candidate state variables by this theoretical framework. Their relevance in the
 present thesis remains an empirical question, to be assessed later under the
 specific data and environment assumptions adopted here.
 
-@Kyle1985 formalized the price impact of informed trading through the lambda
-parameter, which measures the sensitivity of price changes to order flow. In
+The price impact of informed trading was formalized through the lambda
+parameter, which measures the sensitivity of price changes to order flow [@Kyle1985]. In
 Kyle's continuous-time model, the informed trader optimally splits their order
 to minimize price impact, and the market maker sets prices to break even against
 order flow. The resulting relationship between order imbalance and price change
@@ -42,9 +42,9 @@ summarize observable pressure and depth, not the latent information set of the
 informed trader in Kyle's model.
 
 **Limit order book mechanics.**
-@Glosten1994 developed the theory of the open limit order book as a competitive
-equilibrium, showing that a full LOB can sustain itself as a market mechanism
-under adverse selection. The key insight is that the price schedule embedded in
+The theory of the open limit order book as a competitive
+equilibrium was developed, showing that a full LOB can sustain itself as a market mechanism
+under adverse selection [@Glosten1994]. The key insight is that the price schedule embedded in
 the LOB — the sequence of bid and ask quotes at increasing depths — reflects the
 cumulative information content of orders at each quantity level. Deeper levels of
 the book attract less informed order flow but carry higher execution uncertainty
@@ -59,8 +59,8 @@ motivates examining multi-level book-shape features; it does not by itself
 establish which specification is most informative for the present application.
 
 **Order flow and short-term price prediction.**
-@Cont2014 provide the most direct empirical and theoretical treatment of the
-relationship between LOB events and short-term price changes. Their framework
+The most direct empirical and theoretical treatment of the
+relationship between LOB events and short-term price changes is found in the market microstructure literature [@Cont2014]. Their framework
 decomposes all LOB events into limit order arrivals, cancellations, and market
 orders, and defines order flow imbalance (OFI) as the net directional pressure
 these events exert on the best bid and ask queues. Using NYSE TAQ data for 50
@@ -86,8 +86,8 @@ order-flow pressure, not because the literature alone proves standalone
 predictive power at the forecast horizon relevant to this thesis.
 
 **Fair value estimation from the order book.**
-@Stoikov2018 derives the microprice as the theoretically optimal estimate of the
-next transaction price given the current state of the top-of-book queues. The
+The microprice is derived as the theoretically optimal estimate of the
+next transaction price given the current state of the top-of-book queues [@Stoikov2018]. The
 key observation is that the mid-price — the arithmetic average of best bid and
 ask — is an inadequate fair value estimate when the queues are imbalanced,
 because the side with the thinner queue is more likely to be depleted first by

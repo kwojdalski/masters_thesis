@@ -37,9 +37,9 @@ price grid imposed by exchange rules. Understanding these patterns is a
 prerequisite for designing a tick-level trading agent, since they define the
 environment in which the agent operates and motivate the feature set used here.
 
-@Roll1984 demonstrated that bid-ask spreads induce negative serial correlation
+Bid-ask spreads induce negative serial correlation
 in transaction prices at very short horizons, as they bounce between bid and
-ask quotes. This microstructure noise distinguishes observed transaction prices
+ask quotes [@Roll1984]. This microstructure noise distinguishes observed transaction prices
 from the latent efficient price and creates a mechanical pattern that matters
 for any tick-level decision rule. It is not, by itself, a tradable opportunity:
 any attempt to exploit bid-ask bounce must overcome spread costs, latency, and
@@ -49,10 +49,10 @@ bid-ask, conditioning the agent's position-sizing decisions on the current
 liquidity environment. Whether this information supports profitable decisions is
 left to the later out-of-sample evaluation.
 
-@Wood1985 and @Harris1986 documented intraday patterns in volume,
-volatility, and returns: a pronounced U-shape in trading activity and spread
+Intraday patterns in volume,
+volatility, and returns have been documented: a pronounced U-shape in trading activity and spread
 width, with elevated liquidity demand at market open and close and a quiet
-midday period. These patterns reflect institutional trading schedules and
+midday period [@Wood1985; @Harris1986]. These patterns reflect institutional trading schedules and
 liquidity provision dynamics rather than information arrival. They motivate
 time-of-day context variables, but they do not establish a standalone trading
 signal without horizon-specific validation and transaction-cost assessment. The
@@ -61,9 +61,9 @@ this evidence because the agent should distinguish early-session conditions
 (wide spreads, high adverse selection) from midday periods (tighter spreads,
 lower activity) when sizing positions.
 
-@Harris1991 showed that prices cluster at round numbers and psychologically
+Prices cluster at round numbers and psychologically
 attractive levels, creating discontinuities in the order book that affect
-optimal order placement and execution. In a 10-level LOB, price clustering
+optimal order placement and execution [@Harris1991]. In a 10-level LOB, price clustering
 manifests as uneven spacing between price levels — a pattern captured by the
 book convexity feature, which measures the curvature of the price ladder on
 each side. Awareness of price clustering is also relevant to the spread ratio

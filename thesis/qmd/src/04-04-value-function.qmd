@@ -24,7 +24,7 @@ where:
 Taking the minimum counteracts the overestimation bias that
 arises when bootstrapped targets are computed from the same network being
 updated — a failure mode documented in DDPG and addressed here following
-@Fujimoto2018. This formulation extends the standard Q-learning target
+the TD3 formulation [@Fujimoto2018]. This formulation extends the standard Q-learning target
 in @eq-qlearning-update by (1) using twin critics to reduce overestimation and
 (2) employing a deterministic target policy rather than taking a maximum
 over actions. The TD3 target was first introduced in Chapter 3 in
@@ -51,7 +51,7 @@ where:
 - $Q_{\theta_1}(s,a)$ — first critic evaluated at the current policy action $\mu_\phi(s)$
 - $\nabla_\phi \mu_\phi(s)$ — Jacobian of the policy with respect to its parameters
 
-This is the deterministic policy gradient theorem from @Silver2014, first
+This is the deterministic policy gradient theorem [@Silver2014], first
 presented in the general form in @eq-ddpg-gradient. The gradient chain
 through the critic provides a lower-variance estimate of how policy
 parameters should change compared to the REINFORCE gradient in
