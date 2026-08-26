@@ -11,6 +11,7 @@ from trading_rl.features.registry import FeatureRegistry
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def lob_df():
     """Minimal LOB snapshot DataFrame with 5 levels + trade tape columns."""
@@ -50,6 +51,7 @@ def _compute(feature_type: str, df: pd.DataFrame, **params) -> pd.Series:
 # Baseline features
 # ---------------------------------------------------------------------------
 
+
 class TestBookPressure:
     def test_range(self, lob_df):
         result = _compute("book_pressure", lob_df, level=0)
@@ -87,38 +89,54 @@ class TestSpreadBps:
 
 class TestMicroprice:
     def test_equals_mid_when_balanced(self):
-        df = pd.DataFrame({
-            "bid_px_00": [100.0], "ask_px_00": [100.2],
-            "bid_sz_00": [100.0], "ask_sz_00": [100.0],
-        })
+        df = pd.DataFrame(
+            {
+                "bid_px_00": [100.0],
+                "ask_px_00": [100.2],
+                "bid_sz_00": [100.0],
+                "ask_sz_00": [100.0],
+            }
+        )
         result = _compute("microprice", df)
         assert result.iloc[0] == pytest.approx(100.1)
 
     def test_shifts_toward_thin_side(self):
-        df = pd.DataFrame({
-            "bid_px_00": [100.0], "ask_px_00": [100.2],
-            "bid_sz_00": [200.0], "ask_sz_00": [50.0],
-        })
+        df = pd.DataFrame(
+            {
+                "bid_px_00": [100.0],
+                "ask_px_00": [100.2],
+                "bid_sz_00": [200.0],
+                "ask_sz_00": [50.0],
+            }
+        )
         result = _compute("microprice", df)
         mid = 100.1
         # Microprice should be pulled toward ask side (thin side)
         assert result.iloc[0] > mid
 
     def test_fallback_to_mid_when_zero_volume(self):
-        df = pd.DataFrame({
-            "bid_px_00": [100.0], "ask_px_00": [100.2],
-            "bid_sz_00": [0.0], "ask_sz_00": [0.0],
-        })
+        df = pd.DataFrame(
+            {
+                "bid_px_00": [100.0],
+                "ask_px_00": [100.2],
+                "bid_sz_00": [0.0],
+                "ask_sz_00": [0.0],
+            }
+        )
         result = _compute("microprice", df)
         assert result.iloc[0] == pytest.approx(100.1)
 
 
 class TestMicropriceDivergence:
     def test_zero_when_balanced(self):
-        df = pd.DataFrame({
-            "bid_px_00": [100.0], "ask_px_00": [100.2],
-            "bid_sz_00": [100.0], "ask_sz_00": [100.0],
-        })
+        df = pd.DataFrame(
+            {
+                "bid_px_00": [100.0],
+                "ask_px_00": [100.2],
+                "bid_sz_00": [100.0],
+                "ask_sz_00": [100.0],
+            }
+        )
         result = _compute("microprice_divergence", df)
         assert result.iloc[0] == pytest.approx(0.0, abs=1e-10)
 
@@ -157,6 +175,7 @@ class TestBidAskSlope:
 # ---------------------------------------------------------------------------
 # Alpha-oriented features
 # ---------------------------------------------------------------------------
+
 
 class TestOFI:
     def test_first_row_zero(self, lob_df):
@@ -265,6 +284,7 @@ class TestOddLotImbalance:
 # Price VAMP
 # ---------------------------------------------------------------------------
 
+
 class TestPriceVamp:
     def test_close_to_mid_with_small_notional(self, lob_df):
         """Small notional should produce VAMP close to simple mid-price."""
@@ -294,10 +314,35 @@ class TestPriceVamp:
         mid = (df["bid_px_00"] + df["ask_px_00"]) / 2.0
         np.testing.assert_allclose(vamp.values, mid.values, atol=0.01)
 
+    def test_bid_notional_drives_bid_side_walk(self):
+        """bid_notional must size the walk on the bid side (and ask_notional
+        the ask side) — not the other way around."""
+        n = 3
+        data = {}
+        for i in range(n):
+            data[f"bid_px_{i:02d}"] = [100.0 - i * 1.0]
+            data[f"bid_sz_{i:02d}"] = [1.0]
+            data[f"ask_px_{i:02d}"] = [100.2 + i * 1.0]
+            data[f"ask_sz_{i:02d}"] = [1.0]
+        df = pd.DataFrame(data)
+
+        # Large bid_notional forces a deep walk into the (steeply falling)
+        # bid book, which should pull VAMP down relative to the case where
+        # the large notional instead walks the ask side.
+        vamp_deep_bid = _compute(
+            "price_vamp", df, bid_notional=250, ask_notional=50, levels=n
+        )
+        vamp_deep_ask = _compute(
+            "price_vamp", df, bid_notional=50, ask_notional=250, levels=n
+        )
+
+        assert vamp_deep_bid.iloc[0] < vamp_deep_ask.iloc[0]
+
 
 # ---------------------------------------------------------------------------
 # Cancel-to-Trade Ratio
 # ---------------------------------------------------------------------------
+
 
 class TestCancelToTradeRatio:
     def test_range(self, lob_df):
@@ -328,6 +373,7 @@ class TestCancelToTradeRatio:
 # Multi-level OFI
 # ---------------------------------------------------------------------------
 
+
 class TestMultiLevelOFI:
     def test_first_row_zero(self, lob_df):
         result = _compute("ofi_multilevel", lob_df, levels=3)
@@ -345,12 +391,14 @@ class TestMultiLevelOFI:
 
     def test_known_values_bid_improvement(self):
         """When bid improves at level 0, bid_event should = bid_sz_00."""
-        df = pd.DataFrame({
-            "bid_px_00": [100.0, 100.1],  # bid price goes up
-            "ask_px_00": [100.2, 100.2],
-            "bid_sz_00": [50.0, 80.0],    # new volume at new price
-            "ask_sz_00": [60.0, 60.0],
-        })
+        df = pd.DataFrame(
+            {
+                "bid_px_00": [100.0, 100.1],  # bid price goes up
+                "ask_px_00": [100.2, 100.2],
+                "bid_sz_00": [50.0, 80.0],  # new volume at new price
+                "ask_sz_00": [60.0, 60.0],
+            }
+        )
         result = _compute("ofi_multilevel", df, levels=1)
         # Bid event = bid_sz_00[t] = 80 (price improved)
         # Ask event = ask_sz_00[t] - ask_sz_00[t-1] = 0 (price unchanged)
@@ -359,12 +407,14 @@ class TestMultiLevelOFI:
 
     def test_known_values_bid_deterioration(self):
         """When bid drops at level 0, bid_event should = -bid_sz_00[t-1]."""
-        df = pd.DataFrame({
-            "bid_px_00": [100.1, 100.0],  # bid price drops
-            "ask_px_00": [100.2, 100.2],
-            "bid_sz_00": [50.0, 30.0],
-            "ask_sz_00": [60.0, 60.0],
-        })
+        df = pd.DataFrame(
+            {
+                "bid_px_00": [100.1, 100.0],  # bid price drops
+                "ask_px_00": [100.2, 100.2],
+                "bid_sz_00": [50.0, 30.0],
+                "ask_sz_00": [60.0, 60.0],
+            }
+        )
         result = _compute("ofi_multilevel", df, levels=1)
         # Bid event = -bid_sz_00[t-1] = -50 (price deteriorated)
         # Ask event = 0 (price unchanged)
@@ -376,6 +426,7 @@ class TestMultiLevelOFI:
 # VPIN
 # ---------------------------------------------------------------------------
 
+
 class TestVPIN:
     def test_range(self, lob_df):
         result = _compute("vpin", lob_df, window=10)
@@ -383,31 +434,37 @@ class TestVPIN:
 
     def test_all_buy_trades(self):
         """With all buyer-initiated trades, VPIN should be 1."""
-        df = pd.DataFrame({
-            "action": ["T"] * 5,
-            "side": ["B"] * 5,
-            "size": [100.0] * 5,
-        })
+        df = pd.DataFrame(
+            {
+                "action": ["T"] * 5,
+                "side": ["B"] * 5,
+                "size": [100.0] * 5,
+            }
+        )
         result = _compute("vpin", df, window=5)
         assert result.iloc[-1] == pytest.approx(1.0)
 
     def test_balanced_trades(self):
         """With equal buy/sell volume, VPIN should be 0."""
-        df = pd.DataFrame({
-            "action": ["T", "T", "T", "T"],
-            "side": ["B", "A", "B", "A"],
-            "size": [100.0, 100.0, 100.0, 100.0],
-        })
+        df = pd.DataFrame(
+            {
+                "action": ["T", "T", "T", "T"],
+                "side": ["B", "A", "B", "A"],
+                "size": [100.0, 100.0, 100.0, 100.0],
+            }
+        )
         result = _compute("vpin", df, window=4)
         assert result.iloc[-1] == pytest.approx(0.0)
 
     def test_non_trade_rows_excluded(self):
         """Non-trade rows should not affect VPIN."""
-        df = pd.DataFrame({
-            "action": ["A", "A", "T", "T"],
-            "side": ["B", "A", "B", "A"],
-            "size": [999.0, 999.0, 100.0, 100.0],
-        })
+        df = pd.DataFrame(
+            {
+                "action": ["A", "A", "T", "T"],
+                "side": ["B", "A", "B", "A"],
+                "size": [999.0, 999.0, 100.0, 100.0],
+            }
+        )
         result = _compute("vpin", df, window=4)
         # Only 2 trades: 100 buy, 100 sell -> VPIN = 0
         assert result.iloc[-1] == pytest.approx(0.0)
@@ -416,6 +473,7 @@ class TestVPIN:
 # ---------------------------------------------------------------------------
 # Trade Arrival Rate
 # ---------------------------------------------------------------------------
+
 
 class TestTradeArrivalRate:
     def test_count(self):
@@ -437,36 +495,45 @@ class TestTradeArrivalRate:
 # Large Trade Ratio
 # ---------------------------------------------------------------------------
 
+
 class TestLargeTradeRatio:
     def test_all_large_trades(self):
-        df = pd.DataFrame({
-            "action": ["T", "T", "T"],
-            "size": [600.0, 700.0, 800.0],
-        })
+        df = pd.DataFrame(
+            {
+                "action": ["T", "T", "T"],
+                "size": [600.0, 700.0, 800.0],
+            }
+        )
         result = _compute("large_trade_ratio", df, window=3, threshold=500)
         assert result.iloc[-1] == pytest.approx(1.0)
 
     def test_no_large_trades(self):
-        df = pd.DataFrame({
-            "action": ["T", "T", "T"],
-            "size": [10.0, 20.0, 30.0],
-        })
+        df = pd.DataFrame(
+            {
+                "action": ["T", "T", "T"],
+                "size": [10.0, 20.0, 30.0],
+            }
+        )
         result = _compute("large_trade_ratio", df, window=3, threshold=500)
         assert result.iloc[-1] == pytest.approx(0.0)
 
     def test_mixed(self):
-        df = pd.DataFrame({
-            "action": ["T", "T", "T", "T"],
-            "size": [10.0, 600.0, 20.0, 700.0],
-        })
+        df = pd.DataFrame(
+            {
+                "action": ["T", "T", "T", "T"],
+                "size": [10.0, 600.0, 20.0, 700.0],
+            }
+        )
         result = _compute("large_trade_ratio", df, window=4, threshold=500)
         assert result.iloc[-1] == pytest.approx(0.5)
 
     def test_non_trades_excluded(self):
-        df = pd.DataFrame({
-            "action": ["A", "T", "A", "T"],
-            "size": [600.0, 10.0, 600.0, 600.0],
-        })
+        df = pd.DataFrame(
+            {
+                "action": ["A", "T", "A", "T"],
+                "size": [600.0, 10.0, 600.0, 600.0],
+            }
+        )
         result = _compute("large_trade_ratio", df, window=4, threshold=500)
         # Only 2 trades: size 10 (small) and 600 (large) -> 1/2 = 0.5
         assert result.iloc[-1] == pytest.approx(0.5)
@@ -480,6 +547,7 @@ class TestLargeTradeRatio:
 # OFI Autocorrelation
 # ---------------------------------------------------------------------------
 
+
 class TestOFIAutocorrelation:
     def test_range(self, lob_df):
         result = _compute("ofi_autocorrelation", lob_df, window=10)
@@ -492,12 +560,14 @@ class TestOFIAutocorrelation:
 
     def test_known_autocorrelation(self):
         """With constant OFI, autocorrelation should be ~0 (no variance)."""
-        df = pd.DataFrame({
-            "bid_px_00": [100.0] * 20,
-            "ask_px_00": [100.1] * 20,
-            "bid_sz_00": [100.0] * 20,
-            "ask_sz_00": [100.0] * 20,
-        })
+        df = pd.DataFrame(
+            {
+                "bid_px_00": [100.0] * 20,
+                "ask_px_00": [100.1] * 20,
+                "bid_sz_00": [100.0] * 20,
+                "ask_sz_00": [100.0] * 20,
+            }
+        )
         result = _compute("ofi_autocorrelation", df, window=10)
         # Constant OFI = 0 everywhere -> autocorrelation is undefined -> fillna(0)
         assert (result == 0.0).all()
