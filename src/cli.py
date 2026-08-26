@@ -9,7 +9,9 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.progress import ProgressColumn
 from rich.table import Table
+from rich.text import Text
 
 from cli.commands import (
     ArtifactsCommand,
@@ -65,6 +67,20 @@ app.add_typer(data_app, name="data")
 
 validate_app = typer.Typer(help="Validation utilities")
 app.add_typer(validate_app, name="validate")
+
+
+class _HHMMSSElapsedColumn(ProgressColumn):
+    """Time-elapsed column that always zero-pads hours (HH:MM:SS, not H:MM:SS)."""
+
+    def render(self, task) -> Text:
+        elapsed = task.finished_time if task.finished else task.elapsed
+        if elapsed is None:
+            return Text("--:--:--", style="progress.elapsed")
+        hours, remainder = divmod(max(0, int(elapsed)), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return Text(
+            f"{hours:02d}:{minutes:02d}:{seconds:02d}", style="progress.elapsed"
+        )
 
 
 def _configure_logging(verbose: bool, log_regex: str | None) -> None:
@@ -648,7 +664,6 @@ def prepare_data(
         Progress,
         SpinnerColumn,
         TextColumn,
-        TimeElapsedColumn,
     )
 
     config = ExperimentConfig.load(config_path, overrides=config_override)
@@ -664,7 +679,7 @@ def prepare_data(
         TextColumn("[progress.description]{task.description}", justify="left"),
         BarColumn(),
         MofNCompleteColumn(),
-        TimeElapsedColumn(),
+        _HHMMSSElapsedColumn(),
         console=console,
     ) as progress:
         task = progress.add_task("Preparing data…", total=total_steps)

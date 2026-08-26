@@ -442,7 +442,15 @@ def build_metric_report(
     pct_short = float(np.mean(actions_arr < 0)) if actions_arr.size > 0 else np.nan
     pct_neutral = float(np.mean(actions_arr == 0.0)) if actions_arr.size > 0 else np.nan
     if actions_arr.size > 1:
-        n_trades = float(np.sum(np.diff(actions_arr) != 0))
+        if actions_arr.ndim > 1:
+            # 2D actions (one-hot / multi-asset weights): count timestep-to-
+            # timestep changes (axis=0), summed across columns. np.diff's
+            # default axis=-1 would diff adjacent action columns instead —
+            # a static buy-and-hold weight would report ~2T trades.
+            diffs = np.abs(np.diff(actions_arr, axis=0)).sum(axis=1)
+            n_trades = float(np.sum(diffs != 0))
+        else:
+            n_trades = float(np.sum(np.diff(actions_arr) != 0))
     else:
         n_trades = 0.0
 

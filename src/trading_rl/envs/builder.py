@@ -344,6 +344,8 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             name=params.common.env_name,
             df=df,
             positions=params.common.positions,
+            # Flat/neutral start; see streaming branch note on 'random' default.
+            initial_position=params.common.positions[0],
             trading_fees=params.common.trading_fees,
             borrow_interest_rate=params.common.borrow_interest_rate,
             reward_function=self._resolve_history_reward_function(params),
@@ -391,6 +393,11 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
                 DifferentialSharpeRatioAnyTrading,
                 StatefulRewardWrapper,
             )
+            from trading_rl.rewards.registry import RewardRegistry
+
+            # Validate early — without this, any unknown string (e.g. a typo
+            # like "log-return") silently trains with the DSR wrapper.
+            RewardRegistry.create(reward_type)
 
             dsr = DifferentialSharpeRatioAnyTrading(
                 eta=params.common.reward_eta, scale=params.common.reward_scale
@@ -431,12 +438,37 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
 
         continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
 
+        # StreamingTradingEnv (gym_trading_env) has no latency support — fail
+        # loudly if latency is configured instead of silently running at zero
+        # latency. (Only the tradingenv streaming branch honors these params.)
+        latency_params = params.streaming
+        if any(
+            (
+                latency_params.obs_latency_ticks,
+                latency_params.exec_latency_ticks,
+                latency_params.obs_latency_us,
+                latency_params.exec_latency_us,
+            )
+        ):
+            raise ValueError(
+                f"latency params are not supported for gym_trading streaming "
+                f"backends (got obs_latency_ticks={latency_params.obs_latency_ticks}, "
+                f"exec_latency_ticks={latency_params.exec_latency_ticks}, "
+                f"obs_latency_us={latency_params.obs_latency_us}, "
+                f"exec_latency_us={latency_params.exec_latency_us}). "
+                "Use the tradingenv streaming backend for latency modeling."
+            )
+
         base_env = StreamingTradingEnv(
             memmap_paths=memmap_paths,
             episode_length=episode_length,
             seed=params.common.seed,
             name=params.common.env_name,
             positions=params.common.positions,
+            # gym_trading_env defaults to 'random', drawn from *global* np.random
+            # (not the seeded self.np_random), giving un-chosen opening exposure
+            # and breaking seed reproducibility. Start flat/neutral instead.
+            initial_position=params.common.positions[0],
             trading_fees=params.common.trading_fees,
             borrow_interest_rate=params.common.borrow_interest_rate,
             reward_function=self._resolve_history_reward_function(params),

@@ -166,3 +166,6 @@ memory/
 thesis/qmd/src/_figures/
 reports/
 **/graphify-out/
+
+# Scratch export directory (not project source)
+.tmp_export/

@@ -117,10 +117,12 @@ def register_env_factory(*backends: str):
         @register_env_factory("gym_trading_env.discrete", "gym_trading_env.continuous")
         class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory): ...
     """
+
     def decorator(cls: type) -> type:
         for b in backends:
             _ENV_FACTORY_REGISTRY[b] = cls
         return cls
+
     return decorator
 
 
@@ -142,7 +144,9 @@ class BaseTradingEnvironmentFactory:
         return self.make(*args, **kwargs)
 
 
-@register_env_factory(EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS)
+@register_env_factory(
+    EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS
+)
 class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
     """Factory for custom TradingEnv environments with config-based setup."""
 
@@ -162,6 +166,10 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
             name=config.env.name,
             df=df,  # Already split in prepare_data()
             positions=config.env.positions,
+            # Flat/neutral start — gym_trading_env's 'random' default draws from
+            # global np.random (unseeded by reset(seed=...)), giving un-chosen
+            # opening exposure and breaking seed reproducibility.
+            initial_position=config.env.positions[0],
             trading_fees=config.env.trading_fees,
             borrow_interest_rate=config.env.borrow_interest_rate,
             reward_function=reward_function,
@@ -179,7 +187,9 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
                 env,
                 ContinuousToDiscreteAction(
                     discrete_actions=config.env.positions,
-                    thresholds=getattr(config.env, "continuous_action_thresholds", [-0.33, 0.33]),
+                    thresholds=getattr(
+                        config.env, "continuous_action_thresholds", [-0.33, 0.33]
+                    ),
                     device=getattr(config.training, "device", "cpu"),
                 ),
             )
@@ -200,14 +210,20 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
                 "Config must be provided either in constructor or method call"
             )
 
-        backend = backend or getattr(config.env, "backend", EnvBackend.GYM_TRADING_DISCRETE)
+        backend = backend or getattr(
+            config.env, "backend", EnvBackend.GYM_TRADING_DISCRETE
+        )
         validate_backend(backend, log_backend=False)
 
         continuous = backend == EnvBackend.GYM_TRADING_CONTINUOUS
-        logger.info("creating trading environment backend={} continuous={}", backend, continuous)
+        logger.info(
+            "creating trading environment backend={} continuous={}", backend, continuous
+        )
         logger.debug(
             "env settings positions={} trading_fees={} borrow_interest_rate={}",
-            config.env.positions, config.env.trading_fees, config.env.borrow_interest_rate,
+            config.env.positions,
+            config.env.trading_fees,
+            config.env.borrow_interest_rate,
         )
 
         return self._build_env(df, config, continuous=continuous)
@@ -254,14 +270,20 @@ class _AnyTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
                 )
                 from trading_rl.rewards.registry import RewardRegistry
 
-                RewardRegistry.create(reward_type)  # validates early; raises on unknown type
+                RewardRegistry.create(
+                    reward_type
+                )  # validates early; raises on unknown type
                 reward_eta = getattr(self.config.env, "reward_eta", 0.01)
                 reward_scale = getattr(self.config.env, "reward_scale", 1.0)
-                dsr = DifferentialSharpeRatioAnyTrading(eta=reward_eta, scale=reward_scale)
+                dsr = DifferentialSharpeRatioAnyTrading(
+                    eta=reward_eta, scale=reward_scale
+                )
                 base_env = StatefulRewardWrapper(base_env, reward_fn=dsr)
                 logger.info(
                     "applied dsr reward to {} environment eta={} scale={}",
-                    self._env_id, reward_eta, reward_scale,
+                    self._env_id,
+                    reward_eta,
+                    reward_scale,
                 )
 
         base_env = DiscreteActionWrapper(base_env)
@@ -290,6 +312,7 @@ def _register_tradingenv_factory() -> None:
     """Register TradingEnvXYFactory lazily to avoid circular import at module load."""
     if EnvBackend.TRADINGENV not in _ENV_FACTORY_REGISTRY:
         from trading_rl.envs.tradingenvxy_wrapper import TradingEnvXYFactory
+
         _ENV_FACTORY_REGISTRY[EnvBackend.TRADINGENV] = TradingEnvXYFactory
 
 
@@ -311,7 +334,9 @@ def create_continuous_trading_environment(
     df: pd.DataFrame, config: ExperimentConfig
 ) -> TransformedEnv:
     """Create a continuous-action trading environment (TD3/DDPG)."""
-    return create_environment(df, config=config, backend=EnvBackend.GYM_TRADING_CONTINUOUS)
+    return create_environment(
+        df, config=config, backend=EnvBackend.GYM_TRADING_CONTINUOUS
+    )
 
 
 def create_environment(
@@ -347,7 +372,9 @@ def create_environment(
         else kwargs.get("positions")
     )
     validate_actions(backend, positions)
-    logger.debug("environment validation passed backend={} positions={}", backend, positions)
+    logger.debug(
+        "environment validation passed backend={} positions={}", backend, positions
+    )
 
     if backend in {EnvBackend.GYM_TRADING_DISCRETE, EnvBackend.GYM_TRADING_CONTINUOUS}:
         if config is None:

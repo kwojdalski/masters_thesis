@@ -77,7 +77,9 @@ def run_all_statistical_tests(
 
     n_baselines = len(benchmarks) + (1 if random_baseline_trials is not None else 0)
     n_bootstrap = getattr(config, "n_bootstrap_samples", "?")
-    _status(f"statistical tests: {n_baselines} baselines × {n_bootstrap:,} bootstrap samples")
+    _status(
+        f"statistical tests: {n_baselines} baselines × {n_bootstrap:,} bootstrap samples"
+    )
 
     all_results: dict[str, Any] = {
         "enabled": True,
@@ -92,8 +94,31 @@ def run_all_statistical_tests(
             baseline_returns = spec.compute_returns(max_steps)
             benchmark_returns_map[spec.name] = baseline_returns
 
+            # Align and clean before testing: scipy tests propagate NaN p-values
+            # (never raising), so a single NaN strategy return would silently
+            # yield significant=False; mismatched lengths would compare
+            # non-contemporaneous horizons. Mirrors the random-baseline branch.
+            n_pair = min(len(strategy_returns), len(baseline_returns))
+            s_pair = np.asarray(strategy_returns, dtype=float)[:n_pair]
+            b_pair = np.asarray(baseline_returns, dtype=float)[:n_pair]
+            pair_mask = np.isfinite(s_pair) & np.isfinite(b_pair)
+            if pair_mask.sum() < 2:
+                all_results["baselines"].append(
+                    {
+                        "baseline": spec.name,
+                        "error": "no overlapping finite returns",
+                    }
+                )
+                _status(f"  [{i}/{n_baselines}] {spec.name} skipped (no overlap)")
+                continue
+            if int((~pair_mask).sum()):
+                logger.warning(
+                    "{}: dropped {} non-finite/unaligned return pairs",
+                    spec.name,
+                    int((~pair_mask).sum()),
+                )
             baseline_results = run_statistical_tests(
-                strategy_returns, baseline_returns, spec.name, config
+                s_pair[pair_mask], b_pair[pair_mask], spec.name, config
             )
             baseline_results.update(spec.metadata)
             if "volume_source" in spec.metadata:
@@ -123,14 +148,20 @@ def run_all_statistical_tests(
             random_returns_mean = np.mean(
                 [t[:min_len] for t in random_baseline_trials], axis=0
             )
-            random_strategy_returns = np.asarray(strategy_returns, dtype=float)[:min_len]
+            random_strategy_returns = np.asarray(strategy_returns, dtype=float)[
+                :min_len
+            ]
             random_results = run_statistical_tests(
                 random_strategy_returns,
                 random_returns_mean,
                 BenchmarkName.RANDOM_ACTIONS,
                 config,
             )
-            random_results.update(summarize_random_baseline_trials(random_baseline_trials, periods_per_year=periods_per_year))
+            random_results.update(
+                summarize_random_baseline_trials(
+                    random_baseline_trials, periods_per_year=periods_per_year
+                )
+            )
             benchmark_returns_map[BenchmarkName.RANDOM_ACTIONS] = random_returns_mean
             all_results["baselines"].append(random_results)
             _status(f"  [{idx}/{n_baselines}] {BenchmarkName.RANDOM_ACTIONS} done")
@@ -149,6 +180,7 @@ def run_all_statistical_tests(
 
     _status("statistical tests complete")
     return all_results
+
 
 __all__ = [
     "TEST_REGISTRY",

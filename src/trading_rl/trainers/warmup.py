@@ -22,15 +22,46 @@ class WarmupController:
         *,
         collector: Any,
         init_rand_steps: int,
+        frames_per_batch: int = 0,
         replay_buffer: Any | None = None,
         use_replay_buffer: bool = True,
     ) -> None:
         self._collector = collector
-        self._init_rand_steps = init_rand_steps
+        self._init_rand_steps = self._quantize_to_batch(
+            init_rand_steps, frames_per_batch
+        )
         self._replay_buffer = replay_buffer
         self._use_replay_buffer = use_replay_buffer
         self._exploration_policy: Any = None
         self.random_exploration_done: bool = False
+
+    @staticmethod
+    def _quantize_to_batch(init_rand_steps: int, frames_per_batch: int) -> int:
+        """Round init_rand_steps up to the nearest multiple of frames_per_batch.
+
+        The switch from random to exploration policy can only happen at a
+        collector batch boundary -- a whole batch of frames_per_batch steps
+        is always collected atomically under whichever policy was active
+        when collection started, so a mid-batch crossing of init_rand_steps
+        cannot be split. Rounding the target up to a batch boundary makes
+        the random phase length an exact multiple of frames_per_batch
+        instead of overshooting the configured value by up to
+        frames_per_batch - 1 steps on every run.
+        """
+        if frames_per_batch <= 0 or init_rand_steps <= 0:
+            return init_rand_steps
+        remainder = init_rand_steps % frames_per_batch
+        if remainder == 0:
+            return init_rand_steps
+        quantized = init_rand_steps + (frames_per_batch - remainder)
+        logger.info(
+            "warmup init_rand_steps={} is not a multiple of frames_per_batch={}; "
+            "quantized up to {} so the random phase ends exactly on a batch boundary",
+            init_rand_steps,
+            frames_per_batch,
+            quantized,
+        )
+        return quantized
 
     def initialize(
         self,
@@ -63,7 +94,9 @@ class WarmupController:
             self._init_rand_steps,
         )
 
-    def maybe_switch(self, total_count: int, *, algorithm_label: str = "Off-policy") -> None:
+    def maybe_switch(
+        self, total_count: int, *, algorithm_label: str = "Off-policy"
+    ) -> None:
         """Switch from random to exploration policy once warmup steps are complete."""
         if self.random_exploration_done:
             return

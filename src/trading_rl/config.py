@@ -417,6 +417,7 @@ class EvaluationConfig:
         default_factory=lambda: ["rewards", "positions", "portfolio_value"]
     )  # Which plots to generate: any subset of "rewards", "positions", "portfolio_value"
     per_symbol_eval: bool = False  # After pooled evaluation, run evaluate_split per symbol using val_data_paths with the pooled-fitted pipeline
+    skip_final_eval: bool = False  # Skip the unconditional post-training evaluate_all_splits() pass (train, val, test); for exploratory/multi-trial runs (e.g. H4) that run their own separate `evaluate` step and don't need it duplicated on every `train` invocation
 
     def resolve_eval_steps(self, val_len: int) -> int:
         """Return the number of eval steps, honouring eval_fraction when set."""
@@ -701,19 +702,56 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
         )
 
 
-def _apply_dict_to_dataclass(target, d: dict) -> None:
+# Pre-existing scenario-YAML keys that don't map to any dataclass field and
+# have never been wired to any code path (confirmed via full-repo grep) --
+# NOT typos, but genuinely dead config that predates unknown-key validation.
+# Exempted here so turning that validation on doesn't retroactively break
+# every scenario referencing them. Tracked in issue #417; do not add new
+# entries here without opening a matching issue -- this list should shrink,
+# not grow.
+_LEGACY_UNKNOWN_KEYS: dict[str, frozenset[str]] = {
+    # training.gamma: never passed to TD3Loss/DDPGLoss/PPOLoss construction;
+    # the RL discount factor has always silently used TorchRL's own default
+    # regardless of this value (issue #417).
+    # training.ppo_epochs / training.eval_steps: wrong key paths used by
+    # several test fixtures -- should be training.ppo.epochs and
+    # evaluation.eval_steps respectively (issue #418). Test-only; no
+    # production scenario YAML uses either.
+    "training": frozenset({"gamma", "ppo_epochs", "eval_steps"}),
+    # data.data_config: a data-config file path, never read by anything.
+    "data": frozenset({"data_config"}),
+}
+
+
+def _apply_dict_to_dataclass(
+    target,
+    d: dict,
+    *,
+    path: str = "",
+    ignore_keys: frozenset[str] = frozenset(),
+) -> list[str]:
     """Apply matching keys from d to a dataclass instance via setattr.
 
-    Recurses into nested dataclass fields when the value is a dict.
+    Recurses into nested dataclass fields when the value is a dict. Returns
+    the dotted paths of any keys in ``d`` that did not match a field on
+    ``target`` or a nested dataclass field, so callers can surface typo'd or
+    unknown YAML keys instead of silently dropping them. ``ignore_keys``
+    exempts legacy/migrated keys (e.g. ``price_columns``) that a caller
+    handles separately before or after this call.
     """
+    unknown: list[str] = []
     for key, value in d.items():
+        dotted = f"{path}.{key}" if path else key
         if not hasattr(target, key):
+            if key not in ignore_keys:
+                unknown.append(dotted)
             continue
         existing = getattr(target, key)
         if isinstance(value, dict) and is_dataclass(existing):
-            _apply_dict_to_dataclass(existing, value)
+            unknown.extend(_apply_dict_to_dataclass(existing, value, path=dotted))
         else:
             setattr(target, key, value)
+    return unknown
 
 
 @dataclass
@@ -930,6 +968,7 @@ class ExperimentConfig:
             ExperimentConfig instance
         """
         config = cls()
+        unknown_keys: list[str] = []
 
         if "experiment_name" in config_dict:
             config.experiment_name = config_dict["experiment_name"]
@@ -951,7 +990,14 @@ class ExperimentConfig:
                 data_dict["download_since"] = datetime.datetime.fromisoformat(
                     data_dict["download_since"].replace("Z", "+00:00")
                 )
-            _apply_dict_to_dataclass(config.data, data_dict)
+            unknown_keys.extend(
+                _apply_dict_to_dataclass(
+                    config.data,
+                    data_dict,
+                    path="data",
+                    ignore_keys=_LEGACY_UNKNOWN_KEYS.get("data", frozenset()),
+                )
+            )
 
         # Simple sub-configs — no special type conversions needed
         for attr_name, key in [
@@ -966,7 +1012,16 @@ class ExperimentConfig:
             ("profiling", "profiling"),
         ]:
             if key in config_dict:
-                _apply_dict_to_dataclass(getattr(config, attr_name), config_dict[key])
+                ignore = frozenset({"price_columns"}) if key == "env" else frozenset()
+                ignore = ignore | _LEGACY_UNKNOWN_KEYS.get(key, frozenset())
+                unknown_keys.extend(
+                    _apply_dict_to_dataclass(
+                        getattr(config, attr_name),
+                        config_dict[key],
+                        path=key,
+                        ignore_keys=ignore,
+                    )
+                )
 
         # Legacy env key migration: price_columns (list) → price_column (str)
         if "env" in config_dict:
@@ -1015,6 +1070,13 @@ class ExperimentConfig:
                 config.metrics.enabled = [
                     MetricName(v) for v in metrics_dict["enabled"]
                 ]
+
+        if unknown_keys:
+            raise ValueError(
+                "Unknown configuration key(s) in scenario YAML (check for "
+                "typos against the ExperimentConfig dataclass fields): "
+                + ", ".join(sorted(unknown_keys))
+            )
 
         return config
 

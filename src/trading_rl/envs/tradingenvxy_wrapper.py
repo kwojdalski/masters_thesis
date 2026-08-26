@@ -152,7 +152,13 @@ class GymnasiumTradingEnvWrapper(gym.Env):
         # the broker's net liquidation value dropping to zero or below.
         if done:
             broker = getattr(self._env, "broker", None)
-            is_bankrupt = broker is not None and broker.net_liquidation_value() <= 0
+            # raise_if_broke=False: this is a *detection* check — the default
+            # raise_if_broke=True would raise EndOfEpisodeError exactly when
+            # is_bankrupt should become True, making the check dead code.
+            is_bankrupt = (
+                broker is not None
+                and broker.net_liquidation_value(raise_if_broke=False) <= 0
+            )
             terminated = is_bankrupt
             truncated = not is_bankrupt
         else:
@@ -871,7 +877,13 @@ class StreamingTradingEnvXY(gym.Env):
         # Distinguish bankruptcy (terminated) from data exhaustion (truncated).
         if done:
             broker = getattr(self._inner_env, "broker", None)
-            is_bankrupt = broker is not None and broker.net_liquidation_value() <= 0
+            # raise_if_broke=False: this is a *detection* check — the default
+            # raise_if_broke=True would raise EndOfEpisodeError exactly when
+            # is_bankrupt should become True, making the check dead code.
+            is_bankrupt = (
+                broker is not None
+                and broker.net_liquidation_value(raise_if_broke=False) <= 0
+            )
             terminated = is_bankrupt
             truncated = not is_bankrupt
         else:

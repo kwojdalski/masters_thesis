@@ -68,9 +68,10 @@ information, or broader market context. Likewise, actions may represent a
 discrete buy/sell/hold decision or a continuous exposure level. Reward
 definitions also differ: some studies optimize raw return, others net return
 after transaction costs, and others risk-adjusted criteria such as
-Sharpe-oriented objectives [@Moody1998; @Ng1999]. These modeling choices are
+Sharpe-oriented objectives [@Moody1998]. These modeling choices are
 not cosmetic. They change the economic meaning of the task the algorithm is
-solving.
+solving, and any reward transformation must preserve the original task's
+optimal policy to remain valid [@Ng1999].
 
 The second dimension is action-space structure. Discrete-action methods such as
 Q-learning and its deep variants are naturally aligned with buy/sell/hold

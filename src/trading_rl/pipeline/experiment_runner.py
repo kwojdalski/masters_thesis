@@ -307,44 +307,55 @@ def execute_single_experiment(
     last_positions = []
     evaluation_report = {}
 
-    try:
-        with profiler.stage("eval_all_splits"):
-            split_results = evaluate_all_splits(
-                trainer=trainer,
-                train_df=prepared_dataset.train_df,
-                val_df=prepared_dataset.val_df,
-                test_df=prepared_dataset.test_df,
-                config=config,
-                algorithm=runtime.training_bundle.algorithm,
-                logs=training_result.logs,
-                logger=logger,
-            )
-        primary_split, final_reward, last_positions, evaluation_report = (
-            resolve_primary_split_result(split_results)
+    skip_final_eval = getattr(
+        getattr(config, "evaluation", None), "skip_final_eval", False
+    )
+    if skip_final_eval:
+        logger.info(
+            "evaluation.skip_final_eval=True: skipping the unconditional "
+            "post-training evaluate_all_splits() pass (train/val/test) and "
+            "per-symbol/explainability steps that depend on it"
         )
 
-        if getattr(getattr(config, "evaluation", None), "per_symbol_eval", False):
-            with profiler.stage("eval_per_symbol"):
-                per_symbol_results = evaluate_per_symbol(
+    try:
+        if not skip_final_eval:
+            with profiler.stage("eval_all_splits"):
+                split_results = evaluate_all_splits(
                     trainer=trainer,
+                    train_df=prepared_dataset.train_df,
+                    val_df=prepared_dataset.val_df,
+                    test_df=prepared_dataset.test_df,
                     config=config,
-                    feature_pipeline_state=prepared_dataset.feature_pipeline_state,
                     algorithm=runtime.training_bundle.algorithm,
                     logs=training_result.logs,
                     logger=logger,
                 )
-                split_results.update(per_symbol_results)
-
-        with profiler.stage("explainability"):
-            run_primary_split_explainability(
-                primary_split=primary_split,
-                trainer=trainer,
-                train_df=prepared_dataset.train_df,
-                val_df=prepared_dataset.val_df,
-                test_df=prepared_dataset.test_df,
-                config=config,
-                logger=logger,
+            primary_split, final_reward, last_positions, evaluation_report = (
+                resolve_primary_split_result(split_results)
             )
+
+            if getattr(getattr(config, "evaluation", None), "per_symbol_eval", False):
+                with profiler.stage("eval_per_symbol"):
+                    per_symbol_results = evaluate_per_symbol(
+                        trainer=trainer,
+                        config=config,
+                        feature_pipeline_state=prepared_dataset.feature_pipeline_state,
+                        algorithm=runtime.training_bundle.algorithm,
+                        logs=training_result.logs,
+                        logger=logger,
+                    )
+                    split_results.update(per_symbol_results)
+
+            with profiler.stage("explainability"):
+                run_primary_split_explainability(
+                    primary_split=primary_split,
+                    trainer=trainer,
+                    train_df=prepared_dataset.train_df,
+                    val_df=prepared_dataset.val_df,
+                    test_df=prepared_dataset.test_df,
+                    config=config,
+                    logger=logger,
+                )
 
         with profiler.stage("finalization"):
             final_metrics = build_final_metrics(

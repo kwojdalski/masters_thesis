@@ -17,6 +17,8 @@ format:
     lot: true
     header-includes:
       - \raggedbottom
+      - \setlength{\parindent}{1cm}
+      - \setlength{\parskip}{0pt}
       - \usepackage[utf8]{inputenc}
       - \usepackage{amsthm}
       - \usepackage{rotating}
@@ -35,9 +37,10 @@ format:
       - \speciality{Quantitative Finance}
       - \opiekun{dr Pawel Sakowski}
       - \keywords{Reinforcement Learning, High-Frequency Trading, Order Book, Single-Asset Trading, TD3}
+      - \newcommand{\keywordspl}{Uczenie ze wzmocnieniem, Handel wysokiej częstotliwości, Księga zleceń, Handel pojedynczym aktywem, TD3}
       - \dziedzina{14.3 Economics}
       - \klasyfikacja{G11, G17, C63}
-      - \tytulang{Microstructure-Aware Reinforcement Learning for High-Frequency Trading}
+      - \tytulang{Uczenie ze wzmocnieniem uwzględniające mikrostrukturę rynku w handlu wysokiej częstotliwości}
   docx:
     embed-resources: true
   html:
@@ -56,6 +59,7 @@ format:
         href: /masters_thesis/masters_thesis.pdf
         icon: file-pdf
 bibliography: ../../bibliography/library.bib
+csl: ../../bibliography/apa.csl
 filters:
   - pseudocode
   - tablenote.lua
@@ -103,6 +107,36 @@ simulation assumptions that separate these findings from deployable performance
 claims.
 
 \end{abstract}
+
+```{=latex}
+\makeatletter
+\begin{center}
+\bfseries Key words
+\end{center}
+\noindent\@keywords\par
+\begin{center}
+(\textit{Słowa kluczowe: \keywordspl})
+\end{center}
+
+\vspace{12pt}
+\begin{center}
+\bfseries Area of study (codes according to Erasmus Subject Area Codes List)
+\end{center}
+\noindent\@dziedzina\par
+
+\vspace{12pt}
+\begin{center}
+\bfseries Thematic classification
+\end{center}
+\noindent\@klasyfikacja\par
+
+\vspace{12pt}
+\begin{center}
+\bfseries Title of the thesis in Polish
+\end{center}
+\noindent\@tytulang\par
+\makeatother
+```
 
 \pagebreak
 

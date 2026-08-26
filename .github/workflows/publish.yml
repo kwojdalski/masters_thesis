@@ -27,7 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          # Full history so the pre-push rebase below always has something to
+          # rebase onto; fetch-depth: 2 broke when master advanced mid-render.
+          fetch-depth: 0
 
 
       - name: Set up Quarto
@@ -66,6 +68,15 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
           MPLBACKEND: Agg
+
+      - name: Rebase on latest master
+        # The render takes minutes; origin/master can advance in that window,
+        # making the auto-commit push non-fast-forward. Rebase first so the
+        # push is always fast-forward. Empty rebase is a no-op.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin master
 
       - name: Commit regenerated PDF
         uses: stefanzweifel/git-auto-commit-action@v5

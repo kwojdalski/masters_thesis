@@ -54,10 +54,21 @@ class TrainingLoop:
         log_banner(logger, f"TRAINING START  {start_message}")
         t0 = time.time()
         trainer.callback = callback
-        trainer._log_step_offset = max(
-            len(trainer.logs.get("loss_actor", [])),
-            len(trainer.logs.get("loss_value", [])),
-        )
+        last_optimization_step = getattr(trainer, "_last_optimization_step", None)
+        if last_optimization_step is not None:
+            # Continue the global step axis from the last optimization step
+            # actually consumed (persisted in the checkpoint), not from the
+            # length of the logs lists — skipped inner steps advance the step
+            # index without appending to those lists, so their lengths
+            # undercount how far the step axis actually reached.
+            trainer._log_step_offset = last_optimization_step + 1
+        else:
+            # Fresh run, or a legacy checkpoint saved before this field
+            # existed: fall back to inferring from log-list lengths.
+            trainer._log_step_offset = max(
+                len(trainer.logs.get("loss_actor", [])),
+                len(trainer.logs.get("loss_value", [])),
+            )
 
         _profiler = get_profiler()
         with _signal_guard():
@@ -71,9 +82,12 @@ class TrainingLoop:
                     with _profiler.stage("buffer_extend", 2):
                         if trainer._use_replay_buffer:
                             trainer.replay_buffer.extend(data)
-                            max_length = trainer.replay_buffer[:][
-                                "next", "step_count"
-                            ].max()
+                            batch_max_step_count = data["next", "step_count"].max()
+                            trainer._replay_buffer_max_step_count = max(
+                                trainer._replay_buffer_max_step_count,
+                                batch_max_step_count,
+                            )
+                            max_length = trainer._replay_buffer_max_step_count
                             buffer_len = len(trainer.replay_buffer)
                         else:
                             max_length = data["next", "step_count"].max()
@@ -89,11 +103,14 @@ class TrainingLoop:
                             buffer_len,
                         )
 
-                    collected_steps = (
-                        trainer.total_count
-                        if not trainer._use_replay_buffer
-                        else buffer_len
-                    )
+                    # total_count tracks every transition collected so far,
+                    # independent of the replay buffer's bounded capacity.
+                    # buffer_len is capped at buffer_size once the buffer
+                    # fills, so gating on it instead would make this
+                    # condition permanently false whenever
+                    # init_rand_steps > buffer_size -- zero gradient updates
+                    # for the entire run, silently (issue #356).
+                    collected_steps = trainer.total_count
                     if collected_steps > trainer.config.init_rand_steps:
                         with _profiler.stage("optimization", 2):
                             trainer._optimization_step(i, max_length, buffer_len)

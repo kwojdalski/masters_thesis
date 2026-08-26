@@ -388,16 +388,19 @@ horizon and the tick-level action frequency at which they are evaluated.
 Two architectural directions appear promising. First, replacing
 the MLP actor and critic with a Transformer-based sequence encoder would allow
 the agent to attend selectively over a window of past order-book states rather
-than acting on a single flattened snapshot. Transformer architectures have shown
-strong performance on sequential financial data [@Vaswani2017], and their
-attention mechanism aligns well with LOB inputs where the relative
-importance of recent events varies with market conditions.
+than acting on a single flattened snapshot. The self-attention mechanism
+underlying Transformer architectures [@Vaswani2017] allows a model to weigh
+relevant elements of a sequence dynamically, a property that motivates their
+growing use on sequential financial data and that aligns well with LOB inputs
+where the relative importance of recent events varies with market conditions.
 
 Second, a hybrid approach combining gradient-boosted trees with the RL framework
 is a particularly interesting direction for this problem. The GBRL framework
 [@Fuhrer2025], presented at ICML 2025, integrates gradient boosting directly
 into the actor-critic architecture, replacing the MLP components with
-gradient-boosted trees while preserving the TD3 or PPO training loop. Unlike
+gradient-boosted trees while preserving the PPO training loop (the framework
+does not currently implement TD3, so applying it to this thesis's agent would
+require extending it to a deterministic off-policy setting). Unlike
 general-purpose gradient boosting libraries such as XGBoost or CatBoost, GBRL
 is designed specifically for the non-stationary, target-free setting of RL: it
 uses a shared tree structure across the policy and value function and is

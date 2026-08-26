@@ -247,6 +247,7 @@ class StrategyEvaluator:
         _a_long = [0]
         _a_short = [0]
         _a_n = [0]
+        _a_extract_fail_n = [0]
         _ep_done = [0]
         _cum_reward = [0.0]
         # Fine accumulators (reset each 1%)
@@ -295,8 +296,13 @@ class StrategyEvaluator:
                     _a_long[0] += 1
                 elif a < 0:
                     _a_short[0] += 1
-            except Exception as exc:
-                logger.debug(
+            except (KeyError, RuntimeError, AttributeError) as exc:
+                _a_extract_fail_n[0] += 1
+                # Every occurrence drops this step from a_mean/long_pct/short_pct
+                # (used as denominators below), so the first failure is loud;
+                # later ones are logged at debug to avoid spamming a bad rollout.
+                log_fn = logger.warning if _a_extract_fail_n[0] == 1 else logger.debug
+                log_fn(
                     "_progress_cb action extraction failed step={} err={}",
                     _step_counter[0],
                     exc,
@@ -486,6 +492,13 @@ class StrategyEvaluator:
             gc.enable()
             gc.collect()
         actual_steps = rollout.shape[0] if rollout.ndim > 0 else 1
+        if _a_extract_fail_n[0] > 0:
+            logger.warning(
+                "action extraction failed on {}/{} steps this rollout -- "
+                "a_mean/long_pct/short_pct exclude those steps",
+                _a_extract_fail_n[0],
+                actual_steps,
+            )
         elapsed_total = _time.monotonic() - _t
         n = actual_steps if actual_steps > 0 else 1
         pol_avg_us = _pol_time_total[0] / n * 1e6
@@ -578,12 +591,27 @@ class StrategyEvaluator:
 
         actions_array = np.asarray(positions, dtype=float) if positions else None
 
+        # Prefer index-derived annualization (mirrors report.py:242-245): the
+        # config's timeframe-derived periods_per_year silently defaults to 252
+        # for intraday data when data.timeframe is absent or unrecognized,
+        # understating annualized vol/Sharpe by orders of magnitude.
+        from trading_rl.evaluation.report import _periods_per_year_from_index
+
+        index_ppy = _periods_per_year_from_index(df)
+        periods_per_year = index_ppy or self.config.periods_per_year
+        if index_ppy is not None and index_ppy != self.config.periods_per_year:
+            logger.debug(
+                "periods_per_year={} (index-derived) overrides config={} ",
+                index_ppy,
+                self.config.periods_per_year,
+            )
+
         # Build full metric report
         return build_metric_report(
             strategy_simple_returns=simple_returns,
             benchmark_simple_returns=benchmark_simple_returns,
             actions=actions_array,
-            periods_per_year=self.config.periods_per_year,
+            periods_per_year=periods_per_year,
             risk_free_rate_annual=0.0,
         )
 

@@ -117,6 +117,37 @@ def test_offpolicy_warmup_switches_only_after_threshold() -> None:
     assert wc.random_exploration_done is True
 
 
+def test_offpolicy_warmup_quantizes_init_rand_steps_up_to_batch_boundary() -> None:
+    collector = SimpleNamespace(policy=None)
+    exploration_policy = object()
+
+    # 1000 is not a multiple of 512 -- without quantization the random phase
+    # would overshoot by up to frames_per_batch - 1 steps once the crossing
+    # batch (513-1024) finishes collecting under the random policy.
+    wc = WarmupController(
+        collector=collector, init_rand_steps=1000, frames_per_batch=512
+    )
+    wc.initialize(
+        exploration_policy, _action_spec(), total_count=0, algorithm_label="TD3"
+    )
+
+    wc.maybe_switch(1000, algorithm_label="TD3")
+    assert collector.policy is not exploration_policy
+    assert wc.random_exploration_done is False
+
+    wc.maybe_switch(1024, algorithm_label="TD3")
+    assert collector.policy is exploration_policy
+    assert wc.random_exploration_done is True
+
+
+def test_offpolicy_warmup_leaves_exact_multiple_unchanged() -> None:
+    collector = SimpleNamespace(policy=None)
+    wc = WarmupController(
+        collector=collector, init_rand_steps=1024, frames_per_batch=512
+    )
+    assert wc._init_rand_steps == 1024
+
+
 def test_offpolicy_warmup_starts_with_exploration_policy_when_already_complete() -> (
     None
 ):

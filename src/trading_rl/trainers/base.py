@@ -395,6 +395,8 @@ class BaseTrainer(ABC):
         # Training state
         self.total_count = 0
         self.total_episodes = 0
+        self._replay_buffer_max_step_count = 0
+        self._last_optimization_step: int | None = None
         self.logs = defaultdict(list)
         self.checkpoint_manager = CheckpointManager(
             checkpoint_dir=checkpoint_dir,
@@ -420,6 +422,7 @@ class BaseTrainer(ABC):
         self.warmup_controller = WarmupController(
             collector=self.collector,
             init_rand_steps=int(getattr(config, "init_rand_steps", 0)),
+            frames_per_batch=int(getattr(config, "frames_per_batch", 0)),
             replay_buffer=self.replay_buffer,
             use_replay_buffer=use_replay_buffer,
         )
@@ -438,7 +441,9 @@ class BaseTrainer(ABC):
     ) -> int:
         """Compute stable global optimization step index."""
         offset = getattr(self, "_log_step_offset", 0)
-        return offset + (batch_idx * steps_per_batch + inner_idx)
+        step = offset + (batch_idx * steps_per_batch + inner_idx)
+        self._last_optimization_step = step
+        return step
 
     def _should_log_step(self, step: int) -> bool:
         """Return True when progress logging should run at this optimization step."""
@@ -499,13 +504,14 @@ class BaseTrainer(ABC):
             logger.warning(
                 "{} skipping batch reason={} err={}", self._algo_label, reason, exc
             )
-        if (
-            self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES
-            and self.successful_batches == 0
-        ):
+        # Abort on N *consecutive* skips regardless of earlier successes —
+        # successful_batches == 0 here would let a post-success NaN streak
+        # (e.g. env emitting NaN rewards) train silently to max_steps with
+        # zero gradient updates.
+        if self._consecutive_skips >= _MAX_CONSECUTIVE_SKIPPED_BATCHES:
             error = RuntimeError(
                 f"{self._algo_label.upper()}: {self._consecutive_skips} consecutive optimization "
-                "batches skipped with zero successful updates. Training cannot proceed — "
+                "batches skipped. Training cannot proceed — "
                 "check environment or replay buffer tensor shapes."
             )
             if exc is not None:
@@ -649,6 +655,8 @@ class BaseTrainer(ABC):
             value_net_state_dict=self.value_net.state_dict(),
             total_count=self.total_count,
             total_episodes=self.total_episodes,
+            replay_buffer_max_step_count=int(self._replay_buffer_max_step_count),
+            last_optimization_step=getattr(self, "_last_optimization_step", None),
             episode_log_count=(
                 int(self.logs.get("episode_log_count", [0])[-1])
                 if self.logs.get("episode_log_count")
@@ -676,6 +684,9 @@ class BaseTrainer(ABC):
 
         self.total_count = checkpoint.total_count
         self.total_episodes = checkpoint.total_episodes
+        self._replay_buffer_max_step_count = checkpoint.replay_buffer_max_step_count
+        self._last_optimization_step = checkpoint.last_optimization_step
+        self.checkpoint_manager._last_checkpoint_step = checkpoint.total_count
         self.logs = defaultdict(list, checkpoint.logs)
         self.mlflow_run_id = checkpoint.mlflow_run_id
         self.mlflow_run_name = checkpoint.mlflow_run_name

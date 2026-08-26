@@ -63,10 +63,11 @@ establish which specification is most informative for the present application.
 relationship between LOB events and short-term price changes. Their framework
 decomposes all LOB events into limit order arrivals, cancellations, and market
 orders, and defines order flow imbalance (OFI) as the net directional pressure
-these events exert on the best bid and ask queues. In a sample of NYSE stocks,
-they find a linear relationship between OFI and mid-price changes over intervals
-of one second to one minute, with OFI explaining 60–80% of short-term price
-variation. Importantly, the relationship is contemporaneous: OFI at time $t$
+these events exert on the best bid and ask queues. Using NYSE TAQ data for 50
+randomly sampled S&P 500 stocks, they find a linear relationship between OFI
+and mid-price changes over ten-second intervals, with OFI explaining an
+average of 65% of short-term price variation (68% with a nonlinear
+correction). Importantly, the relationship is contemporaneous: OFI at time $t$
 is correlated with price changes at time $t$, not a lagged effect, which is
 consistent with the efficient incorporation of order book information into
 prices.^[This contemporaneous result does not by itself establish OFI as a

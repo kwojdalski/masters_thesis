@@ -43,6 +43,8 @@ class TrainingCheckpoint:
     feature_pipeline_state: dict | None = None
     replay_buffer_path: str | None = None
     buffer_metadata: dict | None = None
+    replay_buffer_max_step_count: int = 0
+    last_optimization_step: int | None = None
 
 
 # All fields except `network_state`, which is merged flat into the on-disk dict for
@@ -74,7 +76,9 @@ class CheckpointManager:
         """Serialize checkpoint to disk as a flat dict compatible with weights_only=True."""
         from trading_rl.evaluation.asset_meta import write_asset_meta
 
-        raw: dict[str, Any] = {k: getattr(checkpoint, k) for k in _COMMON_CHECKPOINT_KEYS}
+        raw: dict[str, Any] = {
+            k: getattr(checkpoint, k) for k in _COMMON_CHECKPOINT_KEYS
+        }
         raw.update(checkpoint.network_state)  # merge algorithm-specific state flat
         torch.save(raw, path)
         write_asset_meta(path, generator="trainers/checkpointing.py")
@@ -92,7 +96,9 @@ class CheckpointManager:
                 "Legacy module-only checkpoints are no longer supported."
             )
 
-        network_state = {k: v for k, v in raw.items() if k not in _COMMON_CHECKPOINT_KEYS}
+        network_state = {
+            k: v for k, v in raw.items() if k not in _COMMON_CHECKPOINT_KEYS
+        }
         common = {k: raw.get(k) for k in _COMMON_CHECKPOINT_KEYS}
 
         if common.get("algorithm") is None:
@@ -105,12 +111,19 @@ class CheckpointManager:
         common.setdefault("actor_state_dict", {})
         common.setdefault("value_net_state_dict", {})
         common.setdefault("episode_log_count", 0)
+        # `raw.get(k)` above already inserts a None entry for keys absent from
+        # older checkpoint files, so plain setdefault() would be a no-op here.
+        common["replay_buffer_max_step_count"] = (
+            common.get("replay_buffer_max_step_count") or 0
+        )
 
         return TrainingCheckpoint(**common, network_state=network_state)
 
     # --- Policy --------------------------------------------------------------
 
-    def maybe_save(self, step: int, snapshot_fn: Callable[[], TrainingCheckpoint]) -> None:
+    def maybe_save(
+        self, step: int, snapshot_fn: Callable[[], TrainingCheckpoint]
+    ) -> None:
         """Save a periodic checkpoint when the configured interval is reached.
 
         snapshot_fn is called lazily — only when the interval condition is met,
@@ -128,7 +141,9 @@ class CheckpointManager:
     ) -> str | None:
         """Save an emergency checkpoint when training is interrupted."""
         if self._dir is None or self._prefix is None:
-            logger.warning("Interrupted but checkpoint_dir/checkpoint_prefix not configured.")
+            logger.warning(
+                "Interrupted but checkpoint_dir/checkpoint_prefix not configured."
+            )
             return None
         ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         path = self._build_path(f"interrupt_step_{step}_{ts}")
