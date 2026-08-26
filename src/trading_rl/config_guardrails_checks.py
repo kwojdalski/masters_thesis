@@ -352,7 +352,7 @@ def _check_ppo_updates_per_rollout(config: ExperimentConfig) -> Finding | None:
     if updates > limit:
         return Finding(
             severity=Severity.WARN,
-            parameter="training.ppo_epochs / training.frames_per_batch / training.sample_size",
+            parameter="training.ppo.epochs / training.frames_per_batch / training.sample_size",
             message=(
                 f"PPO performs {updates} gradient updates per rollout "
                 f"({epochs} epochs × ⌈{f}/{s}⌉ mini-batches). "
@@ -360,7 +360,7 @@ def _check_ppo_updates_per_rollout(config: ExperimentConfig) -> Finding | None:
                 "guarantee and can cause policy collapse, especially on short episodes."
             ),
             suggestion=(
-                f"Reduce ppo_epochs (currently {epochs}) or increase frames_per_batch "
+                f"Reduce training.ppo.epochs (currently {epochs}) or increase frames_per_batch "
                 f"(currently {f:_}) so that updates per rollout <= {limit}."
             ),
         )
