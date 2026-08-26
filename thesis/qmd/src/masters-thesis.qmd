@@ -59,6 +59,7 @@ format:
         href: /masters_thesis/masters_thesis.pdf
         icon: file-pdf
 bibliography: ../../bibliography/library.bib
+csl: ../../bibliography/apa.csl
 filters:
   - pseudocode
   - tablenote.lua
