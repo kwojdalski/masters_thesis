@@ -228,12 +228,13 @@ class EnvConfig:
         RewardType.LOG_RETURN
     )  # Reward type: "log_return" or "differential_sharpe"
     reward_eta: float = 0.01  # Learning rate for DSR exponential moving averages (only used when reward_type="differential_sharpe")
-    # Scale applied to the reward. Semantics are reward-type-dependent, not a
-    # uniform multiplier: for "differential_sharpe" it MULTIPLIES the reward
-    # after clipping (e.g. 1000.0 to amplify DSR signals). For "log_return" it
-    # is passed to tradingenv's LogReturn, which DIVIDES the reward by this
-    # value (e.g. 0.0001 amplifies raw tick-level log returns ~10000x; values
-    # > 1 shrink the reward instead). Check the reward class before tuning.
+    # Scale applied to the reward: final reward = raw_reward * reward_scale,
+    # for every reward_type (e.g. 1000.0 amplifies DSR signals; 10000.0
+    # amplifies raw tick-level log returns ~10000x). RewardRegistry inverts
+    # this internally for "log_return" so the field's semantics stay
+    # multiplicative regardless of tradingenv.LogReturn's own divide-by-scale
+    # convention -- switching reward_type no longer silently flips what a
+    # leftover reward_scale value does.
     reward_scale: float = 1.0
 
     # Action penalty: subtracted from the reward at each step to discourage bang-bang (±1) behavior.
