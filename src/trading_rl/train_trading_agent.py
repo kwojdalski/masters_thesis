@@ -227,6 +227,21 @@ def run_multiple_experiments(
                     progress_bar=progress if show_progress else None,
                 )
 
+            # Trial teardown (#363): each trial allocates a fresh trainer,
+            # environments, and (off-policy) a buffer_size-capacity replay
+            # buffer. Those objects die with run_single_experiment's frame,
+            # but CPython does not guarantee prompt collection of cyclic
+            # references in a long-lived process -- force a collection at
+            # the trial boundary so later trials don't run under rising
+            # memory/GC pressure.
+            import gc
+
+            gc.collect()
+            logger.info(
+                "trial teardown complete trial={} collected",
+                trial_number,
+            )
+
     return effective_experiment_name
 
 
