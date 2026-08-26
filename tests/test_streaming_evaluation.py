@@ -154,7 +154,9 @@ def test_prepared_cache_accepts_larger_memmap_rows(tmp_path: Path) -> None:
     )
 
 
-def test_prepared_cache_metadata_accepts_smaller_requested_splits(tmp_path: Path) -> None:
+def test_prepared_cache_metadata_accepts_smaller_requested_splits(
+    tmp_path: Path,
+) -> None:
     """A larger compatible cache can be reused for a smaller split request."""
     data_path = tmp_path / "raw.parquet"
     _priced_frame(20).to_parquet(data_path)
@@ -230,7 +232,79 @@ def test_prepared_cache_metadata_rejects_changed_data_source(tmp_path: Path) -> 
     )
 
 
-def test_per_day_cache_does_not_require_uniform_val_test_row_counts(tmp_path: Path) -> None:
+def test_prepared_cache_metadata_rejects_changed_filter_lob_levels(
+    tmp_path: Path,
+) -> None:
+    """filter_lob_levels changes which rows are prepared, so it must
+    invalidate a cache built under a different value."""
+    data_path = tmp_path / "raw.parquet"
+    _priced_frame(12).to_parquet(data_path)
+    old_config = _cache_config(tmp_path, data_path)
+    old_config.data.filter_lob_levels = None
+    new_config = _cache_config(tmp_path, data_path)
+    new_config.data.filter_lob_levels = 5
+    prepared_dir = Path(old_config.data.prepared_data_dir)
+    memmap_dir = Path(old_config.data.memmap_dir)
+    train_df = _priced_frame(5)
+    val_df = _priced_frame(2)
+    test_df = _priced_frame(2)
+
+    save_prepared_splits(train_df, val_df, test_df, prepared_dir)
+    memmap_paths = [save_symbol_memmap(train_df, memmap_dir, prefix="0")]
+    _write_prepared_cache_metadata(
+        old_config,
+        prepared_dir,
+        train_df,
+        val_df,
+        test_df,
+        memmap_paths,
+    )
+
+    assert not _prepared_cache_compatible(
+        new_config,
+        prepared_dir,
+        memmap_dir,
+        logger=logging.getLogger(__name__),
+    )
+
+
+def test_prepared_cache_metadata_rejects_changed_warmup_rows(tmp_path: Path) -> None:
+    """warmup_rows drops early normalized training rows, so it must
+    invalidate a cache built under a different value."""
+    data_path = tmp_path / "raw.parquet"
+    _priced_frame(12).to_parquet(data_path)
+    old_config = _cache_config(tmp_path, data_path)
+    old_config.data.warmup_rows = 300
+    new_config = _cache_config(tmp_path, data_path)
+    new_config.data.warmup_rows = 0
+    prepared_dir = Path(old_config.data.prepared_data_dir)
+    memmap_dir = Path(old_config.data.memmap_dir)
+    train_df = _priced_frame(5)
+    val_df = _priced_frame(2)
+    test_df = _priced_frame(2)
+
+    save_prepared_splits(train_df, val_df, test_df, prepared_dir)
+    memmap_paths = [save_symbol_memmap(train_df, memmap_dir, prefix="0")]
+    _write_prepared_cache_metadata(
+        old_config,
+        prepared_dir,
+        train_df,
+        val_df,
+        test_df,
+        memmap_paths,
+    )
+
+    assert not _prepared_cache_compatible(
+        new_config,
+        prepared_dir,
+        memmap_dir,
+        logger=logging.getLogger(__name__),
+    )
+
+
+def test_per_day_cache_does_not_require_uniform_val_test_row_counts(
+    tmp_path: Path,
+) -> None:
     """Per-day mode validates source/memmap identity but not fixed split row counts."""
     train_paths = [tmp_path / "AAPL_train.parquet", tmp_path / "MSFT_train.parquet"]
     val_paths = [tmp_path / "AAPL_val.parquet", tmp_path / "MSFT_val.parquet"]
@@ -273,7 +347,9 @@ def test_evaluation_context_disables_training_memmaps(monkeypatch) -> None:
             calls.append(use_memmap)
             return object()
 
-    monkeypatch.setattr(evaluation_module, "AlgorithmicEnvironmentBuilder", BuilderProbe)
+    monkeypatch.setattr(
+        evaluation_module, "AlgorithmicEnvironmentBuilder", BuilderProbe
+    )
     config = ExperimentConfig()
     config.evaluation.eval_steps = 3
 
