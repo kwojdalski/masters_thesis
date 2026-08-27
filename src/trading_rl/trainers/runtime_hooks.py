@@ -594,14 +594,10 @@ class TrainerRuntimeHooks:
                         step_number,
                         len(self._progression_history[split_ctx.split]),
                     )
-                _dense_signal = (
-                    metric_report.total_return
-                    if metric_report is not None
-                    else final_reward
-                )
-                self._update_eval_density(
-                    hook, split_ctx.split, _dense_signal, step_number
-                )
+                if metric_report is not None:
+                    self._update_eval_density(
+                        hook, split_ctx.split, metric_report.total_return, step_number
+                    )
 
         # Create and upload train/val progression plot (if we have both splits)
         tracker = self._active_tracker()
