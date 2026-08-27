@@ -58,6 +58,7 @@ def _bare_xy_env(
     env._dsr_persist_across_symbols = False
     env._reward_type = "log_return"
     env._episode_final_nlv_queue = []
+    env._episode_context_queue = []
     env._current_episode_symbol = None
     env._current_episode_start_ts = None
     env._current_episode_end_ts = None
@@ -308,3 +309,40 @@ class TestStreamingTradingEnvXYReset:
 
         with pytest.raises(RuntimeError, match="No symbol files have enough rows"):
             env.reset()
+
+    def test_reset_queues_ending_episode_context_before_overwriting(
+        self, tmp_path, monkeypatch
+    ):
+        """The context queued for the ending episode must be its own
+        symbol/date-range, not the new episode's -- issue #439."""
+        mp_a = _make_memmap(tmp_path, n_rows=8, n_cols=2, prefix="0")
+        mp_b = _make_memmap(tmp_path, n_rows=8, n_cols=2, prefix="1")
+        env = _bare_xy_env([mp_a, mp_b], episode_length=5)
+        env._symbol_queue = [1, 0]
+        env._inner_env = _FakeInnerEnv()
+        env._current_episode_symbol = "SYMBOL_A"
+        env._current_episode_start_ts = "2024-01-01T00:00:00"
+        env._current_episode_end_ts = "2024-01-01T00:00:04"
+
+        monkeypatch.setattr(
+            env,
+            "_load_window",
+            lambda file_idx, start: pd.DataFrame(
+                np.ones((5, 2), dtype=np.float32),
+                columns=["col_0", "col_1"],
+                index=pd.date_range("2024-06-01", periods=5, freq="s"),
+            ),
+        )
+        monkeypatch.setattr(
+            env,
+            "_build_inner_env",
+            lambda window_df, symbol="", reward=None, **_kwargs: _FakeInnerEnv(),
+        )
+
+        env.reset()
+
+        assert env._episode_context_queue == [
+            ("SYMBOL_A", "2024-01-01T00:00:00", "2024-01-01T00:00:04")
+        ]
+        assert env._current_episode_symbol != "SYMBOL_A"
+        assert env._current_episode_start_ts == "2024-06-01T00:00:00"
