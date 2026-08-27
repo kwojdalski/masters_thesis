@@ -3,7 +3,9 @@ from __future__ import annotations
 from collections import defaultdict
 from types import SimpleNamespace
 
+import pytest
 import torch
+from torchrl.data import Bounded
 
 from trading_rl.trainers.base import BaseTrainer
 from trading_rl.trainers.episode_stats import EpisodeStatsTracker
@@ -52,3 +54,34 @@ def test_extract_logged_actions_maps_one_hot_actions_to_callback_positions() -> 
     logged_actions = trainer._extract_logged_actions(actions, callback)
 
     assert logged_actions == [-1, 0, 1]
+
+
+def test_extract_logged_actions_does_not_argmax_continuous_portfolio_weights() -> None:
+    """A continuous multi-asset portfolio weight vector (tradingenv's
+    BoxPortfolio -> a Bounded action_spec) must not be treated as one-hot
+    discrete just because shape[-1] > 1 -- issue #440."""
+    env = SimpleNamespace(
+        action_spec=Bounded(low=-1.0, high=1.0, shape=(3,), dtype=torch.float32)
+    )
+    trainer = _ConcreteTrainer.__new__(_ConcreteTrainer)
+    trainer.episode_stats = EpisodeStatsTracker(
+        env=env,
+        logs=defaultdict(list),
+        compute_exploration_ratio=lambda: 0.0,
+        get_last_episode_final_nlv=lambda: (None, None),
+        get_current_episode_context=lambda: (None, None, None),
+    )
+    actions = torch.tensor(
+        [
+            [0.8, -0.1, 0.3],
+            [-0.5, 0.2, 0.9],
+        ]
+    )
+    callback = SimpleNamespace(action_positions=[-1, 0, 1])
+
+    logged_actions = trainer._extract_logged_actions(actions, callback)
+
+    # Not argmax'd to a single position index -- flattened as raw weights
+    # (grouping raw multi-dim continuous actions per-transition is a
+    # separate, currently out-of-scope concern noted in issue #440).
+    assert logged_actions == pytest.approx([0.8, -0.1, 0.3, -0.5, 0.2, 0.9])

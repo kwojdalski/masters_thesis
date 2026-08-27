@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import torch
+from torchrl.data import Bounded
 
 from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
@@ -90,7 +91,17 @@ class EpisodeStatsTracker:
         """Flatten action tensors into one logged action per transition."""
         if not isinstance(actions_tensor, torch.Tensor):
             return []
-        if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
+        # A multi-dim last axis is only a one-hot discrete encoding when the
+        # env's action spec is genuinely discrete. A continuous portfolio
+        # weight vector (tradingenv's BoxPortfolio -> a Bounded action_spec)
+        # also has shape[-1] > 1 once the book has multiple assets; gating on
+        # shape alone would silently argmax that into a single "position"
+        # value. Mirrors the is_portfolio guard already used in
+        # evaluator.py/report.py/plots.py, but checks the action spec type
+        # directly rather than the env backend string, since this tracker
+        # doesn't have access to config.env.backend.
+        is_discrete = not isinstance(getattr(self._env, "action_spec", None), Bounded)
+        if is_discrete and actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
             indices = actions_tensor.argmax(dim=-1).reshape(-1).tolist()
             positions = getattr(callback, "action_positions", None)
             if positions is None and actions_tensor.shape[-1] == len(TradePosition):
