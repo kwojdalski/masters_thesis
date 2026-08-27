@@ -1,9 +1,24 @@
 """Unit tests for RunningMeanStd and TimeWeightedRunningMeanStd scalers."""
 
+from types import SimpleNamespace
+
 import numpy as np
 import pandas as pd
+import pytest
 
-from trading_rl.features.base import RunningMeanStd, TimeWeightedRunningMeanStd
+from trading_rl.features.base import Feature, RunningMeanStd, TimeWeightedRunningMeanStd
+
+
+@pytest.mark.parametrize("missing", [np.nan, np.inf, -np.inf])
+def test_session_running_normalization_excludes_nonfinite_values_from_counts(
+    missing: float,
+) -> None:
+    feature = SimpleNamespace(scaler=SimpleNamespace(epsilon=1e-4))
+    values = pd.Series([10.0, missing, 10.0])
+
+    result = Feature._transform_running_session_online(feature, values)
+
+    np.testing.assert_allclose(result, [0.0, 0.0, 0.0])
 
 
 class TestRunningMeanStd:
