@@ -74,6 +74,30 @@ class TestComputeIcSeries:
         assert len(result) == 1
         assert result.iloc[0] == 0.0
 
+    def test_windowed_ic_matches_local_spearman_under_global_drift(self):
+        """A rolling IC must re-rank feature/target within each window (true
+        rolling Spearman), not rank the whole series once and run a rolling
+        Pearson correlation over those global ranks -- the two diverge under
+        non-stationary data (issue #451)."""
+        n = 400
+        window = 20
+        base = np.linspace(0, 50, n)
+        feature = base.copy()
+        target = base.copy() * 0.5
+
+        # Embed a window with perfect local rank anti-correlation inside an
+        # overall upward-drifting series.
+        w_start = 200
+        idx = np.arange(w_start, w_start + window)
+        feature[idx] = base[w_start] + np.arange(window)
+        target[idx] = base[w_start] * 0.5 - np.arange(window)
+
+        result = _compute_ic_series(
+            pd.Series(feature), pd.Series(target), window_size=window
+        )
+
+        assert result.loc[idx[-1]] == pytest.approx(-1.0, abs=1e-9)
+
 
 class TestScoreFeatureAtHorizon:
     # window_size=1 triggers the global-Spearman path, which returns a 1-element
@@ -146,6 +170,27 @@ class TestScoreFeatureAtHorizon:
         )
         assert stats["mean_ic"] > 0.8
         assert abs(stats["val_mean_ic"]) < 0.5
+
+    def test_degenerate_ic_std_preserves_mean_ic_not_zeroed(self):
+        """window_size=1 collapses the rolling IC to a single value, whose
+        std() is NaN -- mean_ic must still be reported (icir falls back to
+        mean_ic), not silently zeroed just because std is degenerate
+        (issue #453)."""
+        rng = np.random.default_rng(0)
+        n = 50
+        feat_train = pd.Series(rng.standard_normal(n), name="f")
+        train_target = pd.Series(
+            feat_train.values * 2.0, name="t"
+        )  # perfectly correlated
+        feat_val = pd.Series(rng.standard_normal(20), name="fv")
+        val_target = pd.Series(rng.standard_normal(20), name="tv")
+
+        stats = _score_feature_at_horizon(
+            feat_train, feat_val, train_target, val_target, window_size=1
+        )
+
+        assert stats["mean_ic"] == pytest.approx(1.0)
+        assert stats["icir"] == pytest.approx(1.0)
 
 
 class TestTargetAlignment:

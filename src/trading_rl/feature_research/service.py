@@ -123,9 +123,10 @@ def _compute_ic_series(
         ic = aligned.iloc[:, 0].corr(aligned.iloc[:, 1], method="spearman")
         return pd.Series([float(ic) if pd.notna(ic) else 0.0], index=[aligned.index[0]])
 
-    feat_r = aligned.iloc[:, 0].rank()
-    tgt_r = aligned.iloc[:, 1].rank()
-    rolling_ic = feat_r.rolling(window_size).corr(tgt_r)
+    feat, tgt = aligned.iloc[:, 0], aligned.iloc[:, 1]
+    rolling_ic = feat.rolling(window_size).apply(
+        lambda w: w.rank().corr(tgt.loc[w.index].rank()), raw=False
+    )
     return rolling_ic.dropna()
 
 
@@ -139,14 +140,23 @@ def _score_feature_at_horizon(
     """Return IC/ICIR stats for one feature against one horizon target."""
     ic_series = _compute_ic_series(feat_train, train_target, window_size)
     ic_std_raw = ic_series.std()
-    if len(ic_series) == 0 or not (ic_std_raw > 0):
+    if len(ic_series) == 0:
         mean_ic = ic_std = icir = ic_tstat = ic_positive_ratio = 0.0
+    elif not (ic_std_raw > 1e-10):
+        # Single observation (window_size=None) or zero variance: ICIR is
+        # undefined; use mean_ic directly so the feature is not silently
+        # zeroed (mirrors features/selector.py's _build_icir_score_table).
+        mean_ic = float(ic_series.mean())
+        ic_std = 1e-10
+        icir = mean_ic
+        ic_tstat = 0.0
+        ic_positive_ratio = float((ic_series > 0).mean())
     else:
         mean_ic = float(ic_series.mean())
         ic_std = float(ic_std_raw)
-        icir = mean_ic / ic_std if ic_std > 1e-10 else 0.0
+        icir = mean_ic / ic_std
         n = len(ic_series)
-        ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 and ic_std > 1e-10 else 0.0
+        ic_tstat = mean_ic / (ic_std / np.sqrt(n)) if n > 1 else 0.0
         ic_positive_ratio = float((ic_series > 0).mean())
 
     val_ic = _compute_ic_series(feat_val, val_target, window_size)
