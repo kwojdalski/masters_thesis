@@ -99,3 +99,52 @@ def test_prepare_resolves_latest_checkpoint(tmp_path: Path) -> None:
     )
 
     assert prepared.checkpoint_path == newer
+
+
+def test_prepare_resolves_latest_checkpoint_by_step_not_mtime(tmp_path: Path) -> None:
+    """A later interrupt checkpoint at a low step must not be selected over
+    an earlier periodic checkpoint at a much higher step just because its
+    mtime is newer -- issue #438."""
+    config = ExperimentConfig()
+    config.experiment_name = "trial"
+    config.logging.log_dir = str(tmp_path)
+    high_step = tmp_path / "trial_checkpoint_step_3000000.pt"
+    low_step_interrupt = (
+        tmp_path / "trial_checkpoint_interrupt_step_40200_20260819_120000.pt"
+    )
+    high_step.touch()
+    low_step_interrupt.touch()
+    # Inverted mtime order: the low-step interrupt checkpoint was written
+    # LATER (e.g. after restoring from backup, or an interrupted resume).
+    os.utime(high_step, (1, 1))
+    os.utime(low_step_interrupt, (2, 2))
+
+    prepared = _service().prepare(
+        TrainingConfigRequest(scenario="demo", from_last_checkpoint=True),
+        load_config=lambda *_args: config,
+        resolve_seed=lambda seed: seed or 1,
+    )
+
+    assert prepared.checkpoint_path == high_step
+
+
+def test_prepare_falls_back_to_mtime_when_no_checkpoint_has_a_parseable_step(
+    tmp_path: Path,
+) -> None:
+    config = ExperimentConfig()
+    config.experiment_name = "trial"
+    config.logging.log_dir = str(tmp_path)
+    older = tmp_path / "trial_checkpoint_legacy.pt"
+    newer = tmp_path / "trial_checkpoint_final.pt"
+    older.touch()
+    newer.touch()
+    os.utime(older, (1, 1))
+    os.utime(newer, (2, 2))
+
+    prepared = _service().prepare(
+        TrainingConfigRequest(scenario="demo", from_last_checkpoint=True),
+        load_config=lambda *_args: config,
+        resolve_seed=lambda seed: seed or 1,
+    )
+
+    assert prepared.checkpoint_path == newer

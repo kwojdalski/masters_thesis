@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +13,11 @@ from .config_validation_service import ValidationReport, validate_experiment_con
 
 ConfigLoader = Callable[[str | Path, str, list[str] | None], ExperimentConfig]
 SeedResolver = Callable[[int | None], int]
+
+# Matches the training step encoded in both checkpoint filename conventions:
+# "{prefix}_checkpoint_step_<N>.pt" and
+# "{prefix}_checkpoint_interrupt_step_<N>_<timestamp>.pt".
+_STEP_IN_NAME = re.compile(r"_step_(\d+)")
 
 
 @dataclass(frozen=True)
@@ -43,7 +49,9 @@ class TrainingConfigService:
 
     def __init__(
         self,
-        validate: Callable[[ExperimentConfig], ValidationReport] = validate_experiment_config,
+        validate: Callable[
+            [ExperimentConfig], ValidationReport
+        ] = validate_experiment_config,
     ) -> None:
         self._validate = validate
 
@@ -102,4 +110,18 @@ class TrainingConfigService:
             raise FileNotFoundError(
                 f"No checkpoints found for {config.experiment_name} in {log_dir}"
             )
-        return max(matches, key=lambda path: path.stat().st_mtime)
+        return max(matches, key=TrainingConfigService._checkpoint_sort_key)
+
+    @staticmethod
+    def _checkpoint_sort_key(path: Path) -> tuple[int, float]:
+        """Sort by training step encoded in the filename, not mtime.
+
+        A later interrupt checkpoint can have a newer mtime than an earlier
+        periodic checkpoint at a much higher step (e.g. after copying,
+        restoring from backup, or resuming an interrupted run) -- selecting
+        by mtime alone can silently resume from a far earlier step. Falls
+        back to mtime only when no step can be parsed from the filename.
+        """
+        match = _STEP_IN_NAME.search(path.name)
+        step = int(match.group(1)) if match else -1
+        return (step, path.stat().st_mtime)
