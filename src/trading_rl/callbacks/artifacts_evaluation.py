@@ -130,7 +130,10 @@ def log_final_metrics(
     """Log final training metrics to MLflow."""
     logger = get_project_logger(__name__)
     mlflow.log_metric("final_reward", final_metrics["final_reward"])
-    mlflow.log_metric("optimizer_steps", final_metrics.get("optimizer_steps", final_metrics.get("training_steps", 0)))
+    mlflow.log_metric(
+        "optimizer_steps",
+        final_metrics.get("optimizer_steps", final_metrics.get("training_steps", 0)),
+    )
     mlflow.log_metric("total_env_steps", final_metrics.get("total_env_steps", 0))
     mlflow.log_metric("total_episodes", final_metrics.get("total_episodes", 0))
 
@@ -138,7 +141,9 @@ def log_final_metrics(
         positions = final_metrics["last_position_per_episode"]
         if positions:
             mlflow.log_metric("last_position_sequence_length", len(positions))
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as f:
                 f.write(json.dumps(positions[:100]))
                 f.flush()
                 mlflow.log_artifact(f.name, "position_data")
@@ -165,7 +170,9 @@ def log_final_metrics(
         training_curves = training_callback.get_training_curves()
 
         if training_curves["episode_rewards"]:
-            mlflow.log_metric("episode_avg_reward", np.mean(training_curves["episode_rewards"]))
+            mlflow.log_metric(
+                "episode_avg_reward", np.mean(training_curves["episode_rewards"])
+            )
 
         if training_curves["portfolio_valuations"]:
             mlflow.log_metric(
@@ -175,18 +182,22 @@ def log_final_metrics(
 
         if training_curves["position_change_counts"]:
             position_changes = training_curves["position_change_counts"]
-            mlflow.log_metric("episode_avg_position_change", float(np.mean(position_changes)))
+            mlflow.log_metric(
+                "episode_avg_position_change", float(np.mean(position_changes))
+            )
             mlflow.log_metric("total_position_changes", int(np.sum(position_changes)))
 
             total_episodes = len(training_curves["episode_rewards"])
             total_actions = len(training_callback.training_stats["actions_taken"])
-            avg_episode_length = (
-                total_actions / total_episodes
-                if total_episodes > 0 and total_actions > 0
+            avg_transitions = (
+                (total_actions - total_episodes) / total_episodes
+                if total_episodes > 0 and total_actions > total_episodes
                 else 1.0
             )
-            avg_position_change_ratio = np.mean(position_changes) / avg_episode_length
-            mlflow.log_metric("episode_avg_position_change_ratio", avg_position_change_ratio)
+            avg_position_change_ratio = np.mean(position_changes) / avg_transitions
+            mlflow.log_metric(
+                "episode_avg_position_change_ratio", avg_position_change_ratio
+            )
 
 
 def log_evaluation_report(
@@ -204,7 +215,9 @@ def log_evaluation_report(
         logger.warning("no active mlflow run skipping evaluation report logging")
         return
 
-    artifact_dir = f"evaluation_data/{split_prefix}" if split_prefix else "evaluation_data"
+    artifact_dir = (
+        f"evaluation_data/{split_prefix}" if split_prefix else "evaluation_data"
+    )
 
     report_dict = report.to_dict() if isinstance(report, MetricReport) else report
 
@@ -220,6 +233,11 @@ def log_evaluation_report(
     if not any(v is not None for v in serializable.values()):
         logger.warning("no finite evaluation metrics to log")
         return
+
+    metric_prefix = f"{split_prefix}_" if split_prefix else ""
+    for key, value in serializable.items():
+        if value is not None:
+            mlflow.log_metric(f"{metric_prefix}{key}", value)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         path = os.path.join(tmpdir, "metrics.json")
@@ -252,7 +270,9 @@ def log_statistical_tests(
         logger.debug("statistical testing disabled skipping logging")
         return
 
-    stat_artifact_dir = f"statistical_tests/{split_prefix}" if split_prefix else "statistical_tests"
+    stat_artifact_dir = (
+        f"statistical_tests/{split_prefix}" if split_prefix else "statistical_tests"
+    )
     split_infix = f"{split_prefix}_" if split_prefix else ""
 
     mlflow.log_param("stat_tests_enabled", True)
@@ -263,7 +283,11 @@ def log_statistical_tests(
     for baseline_result in test_results.get("baselines", []):
         baseline_name = baseline_result.get("baseline", "unknown")
         if "error" in baseline_result:
-            logger.warning("skip baseline baseline={} err={}", baseline_name, baseline_result['error'])
+            logger.warning(
+                "skip baseline baseline={} err={}",
+                baseline_name,
+                baseline_result["error"],
+            )
             continue
 
         if "n_strategy_samples" in baseline_result:
@@ -287,7 +311,7 @@ def log_statistical_tests(
                 try:
                     if isinstance(value, bool):
                         mlflow.log_metric(f"{prefix}_{key}", float(value))
-                    elif isinstance(value, (int, float)):
+                    elif isinstance(value, int | float):
                         if np.isfinite(value):
                             mlflow.log_metric(f"{prefix}_{key}", float(value))
                 except (TypeError, ValueError):
@@ -306,7 +330,9 @@ def log_statistical_tests(
     benchmark_table = test_results.get("benchmark_comparison_table")
     if isinstance(benchmark_table, list) and benchmark_table:
         benchmark_df = pd.DataFrame(benchmark_table)
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as handle:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False
+        ) as handle:
             benchmark_df.to_csv(handle.name, index=False)
             mlflow.log_artifact(handle.name, stat_artifact_dir)
             os.unlink(handle.name)
@@ -337,7 +363,9 @@ def log_statistical_tests(
             "n_findings": len(significant_findings),
             "findings": significant_findings,
         }
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as handle:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as handle:
             json.dump(summary_payload, handle, indent=2, sort_keys=True, default=str)
             handle.flush()
             mlflow.log_artifact(handle.name, research_artifact_subdir)
@@ -365,7 +393,9 @@ def log_explainability_results(
     if not mlflow.active_run():
         return
 
-    artifact_dir = artifact_path_prefix if artifact_path_prefix else ArtifactPaths.EXPLAINABILITY
+    artifact_dir = (
+        artifact_path_prefix if artifact_path_prefix else ArtifactPaths.EXPLAINABILITY
+    )
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = Path(tmp_dir)
@@ -429,7 +459,9 @@ def log_evaluation_plots(
         ):
             yield
 
-    artifact_dir = artifact_path_prefix if artifact_path_prefix else ArtifactPaths.EVAL_PLOTS
+    artifact_dir = (
+        artifact_path_prefix if artifact_path_prefix else ArtifactPaths.EVAL_PLOTS
+    )
     saved_paths: dict[str, str] = {}
     batch_temp_dir = tempfile.mkdtemp()
     timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
@@ -444,8 +476,19 @@ def log_evaluation_plots(
                 logger.trace("render plot filename={} debug={}", filename, debug)
                 with warnings.catch_warnings(), _suppress_plotnine():
                     warnings.simplefilter("ignore", PlotnineWarning)
-                    _save_plot(plot_obj, tmp_path, width=width, height=height, dpi=225, debug=debug)
-                logger.trace("render done filename={} elapsed_s={:.2f}", filename, time.monotonic() - t_render)
+                    _save_plot(
+                        plot_obj,
+                        tmp_path,
+                        width=width,
+                        height=height,
+                        dpi=225,
+                        debug=debug,
+                    )
+                logger.trace(
+                    "render done filename={} elapsed_s={:.2f}",
+                    filename,
+                    time.monotonic() - t_render,
+                )
 
                 pil_logger = logging.getLogger("PIL.PngImagePlugin")
                 prev_level = pil_logger.level
@@ -456,7 +499,11 @@ def log_evaluation_plots(
                     mlflow.log_artifact(tmp_path, dir_)
                 finally:
                     pil_logger.setLevel(prev_level)
-                logger.trace("mlflow log_artifact done filename={} elapsed_s={:.2f}", filename, time.monotonic() - t_upload)
+                logger.trace(
+                    "mlflow log_artifact done filename={} elapsed_s={:.2f}",
+                    filename,
+                    time.monotonic() - t_upload,
+                )
 
                 if key:
                     saved_paths[key] = tmp_path
@@ -464,20 +511,43 @@ def log_evaluation_plots(
                 logger.exception("save plot failed filename={}", filename)
 
         _save(reward_plot, f"{timestamp}_rewards.png", "rewards", artifact_dir, 16, 10)
-        _save(action_plot, f"{timestamp}_positions.png", "positions", artifact_dir, 16, 10)
+        _save(
+            action_plot, f"{timestamp}_positions.png", "positions", artifact_dir, 16, 10
+        )
 
         if action_probs_plot is not None:
-            _save(action_probs_plot, f"{timestamp}_action_probabilities.png", "action_probabilities", artifact_dir, 16, 10)
+            _save(
+                action_probs_plot,
+                f"{timestamp}_action_probabilities.png",
+                "action_probabilities",
+                artifact_dir,
+                16,
+                10,
+            )
         else:
             logger.info("action probability plot missing skipping artifact")
 
         if equity_curve_plot is not None:
-            _save(equity_curve_plot, f"{timestamp}_equity_curve.png", "equity_curve", artifact_dir, 16, 10)
+            _save(
+                equity_curve_plot,
+                f"{timestamp}_equity_curve.png",
+                "equity_curve",
+                artifact_dir,
+                16,
+                10,
+            )
         else:
             logger.warning("equity curve plot missing skipping artifact")
 
         if merged_plot is not None:
-            _save(merged_plot, f"{timestamp}_merged_comparison.png", "merged_comparison", artifact_dir, 16, 27)
+            _save(
+                merged_plot,
+                f"{timestamp}_merged_comparison.png",
+                "merged_comparison",
+                artifact_dir,
+                16,
+                27,
+            )
         else:
             logger.info("merged comparison plot missing skipping artifact")
 
@@ -503,10 +573,22 @@ def log_evaluation_plots(
                     ggplot(loss_df, aes(x="step", y="loss", color="type"))
                     + geom_line(size=0.72)
                     + facet_wrap("type", ncol=1, scales="free")
-                    + labs(title="Training Losses", x="Training Step", y="Loss Value", color="Loss Type")
+                    + labs(
+                        title="Training Losses",
+                        x="Training Step",
+                        y="Loss Value",
+                        color="Loss Type",
+                    )
                     + thesis_theme()
                 )
-                _save(loss_plot, f"{timestamp}_training_losses.png", None, "training_plots", 16, 10)
+                _save(
+                    loss_plot,
+                    f"{timestamp}_training_losses.png",
+                    None,
+                    "training_plots",
+                    16,
+                    10,
+                )
 
         # Attempt patchwork combination, fall back to Pillow
         try:
@@ -528,10 +610,19 @@ def log_evaluation_plots(
                 combined_plot = action_probs_plot
 
             if combined_plot is not None:
-                _save(combined_plot, f"{timestamp}_combined_evaluation.png", None, artifact_dir, 20, 12)
+                _save(
+                    combined_plot,
+                    f"{timestamp}_combined_evaluation.png",
+                    None,
+                    artifact_dir,
+                    20,
+                    12,
+                )
 
         except ImportError:
-            if {"rewards", "positions", "action_probabilities"} <= set(saved_paths.keys()):
+            if {"rewards", "positions", "action_probabilities"} <= set(
+                saved_paths.keys()
+            ):
                 try:
                     from PIL import Image
 
@@ -542,20 +633,32 @@ def log_evaluation_plots(
                     ):
                         top_width = reward_img.width + action_img.width
                         top_height = max(reward_img.height, action_img.height)
-                        combined = Image.new("RGB", (max(top_width, probs_img.width), top_height + probs_img.height), "white")
+                        combined = Image.new(
+                            "RGB",
+                            (
+                                max(top_width, probs_img.width),
+                                top_height + probs_img.height,
+                            ),
+                            "white",
+                        )
                         combined.paste(reward_img, (0, 0))
                         combined.paste(action_img, (reward_img.width, 0))
                         combined.paste(probs_img, (0, top_height))
 
-                    tmp_combined = os.path.join(batch_temp_dir, f"{timestamp}_combined_evaluation.png")
+                    tmp_combined = os.path.join(
+                        batch_temp_dir, f"{timestamp}_combined_evaluation.png"
+                    )
                     combined.save(tmp_combined, format="PNG")
                     mlflow.log_artifact(tmp_combined, artifact_dir)
                 except Exception as combine_error:  # pragma: no cover
-                    logger.warning("create combined evaluation plot failed err={}", combine_error)
+                    logger.warning(
+                        "create combined evaluation plot failed err={}", combine_error
+                    )
 
         # Save plot DataFrames as parquet so QMD can re-render at any figure size
         if plot_data:
             import json
+
             frames: dict[str, Any] = {}
             if "rewards" in plot_data:
                 frames["rewards"] = plot_data["rewards"]
@@ -567,18 +670,30 @@ def log_evaluation_plots(
                 frames["equity"] = plot_data["returns"]
 
             meta_keys = {
-                "stride", "date_str", "reward_type", "is_portfolio",
-                "training_steps", "training_episodes", "n_obs",
-                "allocation_ma_window", "initial_portfolio_value",
-                "policy_mode", "symbols", "n_total_symbols",
+                "stride",
+                "date_str",
+                "reward_type",
+                "is_portfolio",
+                "training_steps",
+                "training_episodes",
+                "n_obs",
+                "allocation_ma_window",
+                "initial_portfolio_value",
+                "policy_mode",
+                "symbols",
+                "n_total_symbols",
             }
             meta = {k: plot_data[k] for k in meta_keys if k in plot_data}
 
             from trading_rl.evaluation.asset_meta import write_asset_meta
 
             for frame_name, df_frame in frames.items():
-                pq_path = os.path.join(batch_temp_dir, f"{timestamp}_{frame_name}_data.parquet")
-                df_frame.assign(Run=df_frame["Run"].astype(str)).to_parquet(pq_path, index=False)
+                pq_path = os.path.join(
+                    batch_temp_dir, f"{timestamp}_{frame_name}_data.parquet"
+                )
+                df_frame.assign(Run=df_frame["Run"].astype(str)).to_parquet(
+                    pq_path, index=False
+                )
                 write_asset_meta(pq_path, generator="callbacks/artifacts_evaluation.py")
                 mlflow.log_artifact(pq_path, artifact_dir)
                 sidecar = pq_path + ".meta.json"
