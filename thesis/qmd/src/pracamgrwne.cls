@@ -52,8 +52,17 @@
 \advance\evensidemargin 25mm
 \topmargin -1in
 \advance\topmargin 25mm
-\setlength\textheight{48\baselineskip}
-\addtolength\textheight{\topskip}
+% No header content is ever displayed, but article.cls's default
+% \headheight/\headsep still consume vertical space above \textheight unless
+% zeroed -- previously pushing the printed top margin to ~37mm instead of the
+% required 25mm. \footskip is sized to hold the 12pt footer page number
+% within the 25mm bottom margin rather than beyond it.
+\headheight 0pt
+\headsep 0pt
+\footskip 12mm
+\textheight\paperheight
+\advance\textheight -50mm
+\advance\textheight -\footskip
 \marginparwidth15mm
 % Define abstract environment with large font
 \renewenvironment{abstract}{%
