@@ -182,6 +182,7 @@ class PermutationTest(StatisticalTest, ABC):
         baseline_returns: np.ndarray,
         n_permutations: int = 10000,
         seed: int | None = None,
+        confidence_level: float = 0.95,
         **params,
     ) -> dict[str, Any]:
         """Run permutation test."""
@@ -205,7 +206,7 @@ class PermutationTest(StatisticalTest, ABC):
             "observed_statistic": float(observed_stat),
             "p_value": float(p_value),
             "n_permutations": n_permutations,
-            "significant": p_value < 0.05,
+            "significant": p_value < (1 - confidence_level),
         }
 
 
@@ -243,6 +244,7 @@ class TTest(StatisticalTest):
         self,
         strategy_returns: np.ndarray,
         baseline_returns: np.ndarray,
+        confidence_level: float = 0.95,
         **params,
     ) -> dict[str, Any]:
         """Run two-sample t-test."""
@@ -253,7 +255,7 @@ class TTest(StatisticalTest):
             "p_value": float(p_value),
             "strategy_mean": float(np.mean(strategy_returns)),
             "baseline_mean": float(np.mean(baseline_returns)),
-            "significant": p_value < 0.05,
+            "significant": p_value < (1 - confidence_level),
         }
 
 
@@ -269,6 +271,7 @@ class MannWhitneyTest(StatisticalTest):
         self,
         strategy_returns: np.ndarray,
         baseline_returns: np.ndarray,
+        confidence_level: float = 0.95,
         **params,
     ) -> dict[str, Any]:
         """Run Mann-Whitney U test."""
@@ -283,7 +286,7 @@ class MannWhitneyTest(StatisticalTest):
             "p_value": float(p_value),
             "strategy_median": float(np.median(strategy_returns)),
             "baseline_median": float(np.median(baseline_returns)),
-            "significant": p_value < 0.05,
+            "significant": p_value < (1 - confidence_level),
         }
 
 

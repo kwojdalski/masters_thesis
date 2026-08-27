@@ -168,6 +168,17 @@ class TestDrawdownStats:
         _, avg_dd, _, _ = _drawdown_stats(dd)
         assert avg_dd < 0
 
+    def test_max_drawdown_duration_matches_the_episode_containing_max_drawdown(self):
+        """max_drawdown_duration must describe the same episode as
+        max_drawdown, not the longest underwater run anywhere in the series
+        (issue #454). Here a shallow 6-period dip fully recovers, then a
+        sharp 2-period drop becomes the actual max_drawdown -- the longest
+        run (6) belongs to a different, shallower episode."""
+        dd = self._dd([-0.02] * 6 + [0.30] + [-0.50] * 2)
+        max_dd, _, max_dur, _ = _drawdown_stats(dd)
+        assert max_dd == pytest.approx(-0.75)
+        assert max_dur == 2
+
     def test_recovery_time_zero_after_immediate_recovery(self):
         dd = self._dd([-0.10, 0.20])
         _, _, _, rec = _drawdown_stats(dd)

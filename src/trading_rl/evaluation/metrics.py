@@ -275,6 +275,7 @@ def _drawdown_series(equity: np.ndarray) -> np.ndarray:
 def _drawdown_stats(drawdowns: np.ndarray) -> tuple[float, float, int, int]:
     max_dd = float(np.min(drawdowns)) if drawdowns.size else np.nan
     avg_dd = float(np.mean(drawdowns[drawdowns < 0])) if np.any(drawdowns < 0) else 0.0
+    trough_idx = int(np.argmin(drawdowns)) if drawdowns.size else -1
 
     if drawdowns.size and np.any(drawdowns < 0):
         is_dd = drawdowns < 0
@@ -283,11 +284,13 @@ def _drawdown_stats(drawdowns: np.ndarray) -> tuple[float, float, int, int]:
         # within the same drawdown run share the same group_id.
         group_ids = np.cumsum(~is_dd)
         run_lengths = np.bincount(group_ids[is_dd])
-        max_duration = int(run_lengths.max())
+        # Duration of the run containing the max-drawdown trough specifically
+        # (not the longest run anywhere in the series -- a shallow, long dip
+        # elsewhere must not be reported alongside a sharp, brief max_dd).
+        max_duration = int(run_lengths[group_ids[trough_idx]])
     else:
         max_duration = 0
 
-    trough_idx = int(np.argmin(drawdowns)) if drawdowns.size else -1
     recovery_time = np.nan
     if trough_idx >= 0:
         post = drawdowns[trough_idx:]
