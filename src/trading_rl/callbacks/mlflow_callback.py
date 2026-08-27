@@ -156,16 +156,22 @@ class MLflowTrainingCallback:
         self.training_stats["actions_taken"].extend(actions)
         self.training_stats["exploration_ratio"].append(exploration_ratio)
         # TODO: Make tolerance configurable
-        position_changes = self._count_position_changes(actions, tolerance=_POSITION_CHANGE_TOLERANCE)
+        position_changes = self._count_position_changes(
+            actions, tolerance=_POSITION_CHANGE_TOLERANCE
+        )
         self.position_change_counts.append(position_changes)
         self.training_stats["position_change_counts"].append(position_changes)
         episode_sum_position = float(np.sum(actions)) if actions else 0.0
         self.training_stats["sum_positions"].append(episode_sum_position)
 
         episode_length = len(actions)
-        position_change_ratio = position_changes / episode_length if episode_length > 0 else 0.0
+        position_change_ratio = (
+            position_changes / (episode_length - 1) if episode_length > 1 else 0.0
+        )
         actions_arr = np.asarray(actions, dtype=float) if actions else np.array([])
-        saturation_rate = float(np.mean(actions_arr != 0)) if actions_arr.size > 0 else 0.0
+        saturation_rate = (
+            float(np.mean(actions_arr != 0)) if actions_arr.size > 0 else 0.0
+        )
 
         # Calculate next episode number: current episode count + 1
         episode_num = int(self._episode_count) + 1
@@ -173,11 +179,21 @@ class MLflowTrainingCallback:
             episode_num = int(episode_num.item())
 
         mlflow.log_metric("episode_reward", episode_reward, step=episode_num)
-        mlflow.log_metric("episode_portfolio_valuation", portfolio_valuation, step=episode_num)
-        mlflow.log_metric("episode_position_changes", position_changes, step=episode_num)
-        mlflow.log_metric("episode_position_change_ratio", position_change_ratio, step=episode_num)
-        mlflow.log_metric("episode_sum_position", episode_sum_position, step=episode_num)
-        mlflow.log_metric("episode_exploration_ratio", exploration_ratio, step=episode_num)
+        mlflow.log_metric(
+            "episode_portfolio_valuation", portfolio_valuation, step=episode_num
+        )
+        mlflow.log_metric(
+            "episode_position_changes", position_changes, step=episode_num
+        )
+        mlflow.log_metric(
+            "episode_position_change_ratio", position_change_ratio, step=episode_num
+        )
+        mlflow.log_metric(
+            "episode_sum_position", episode_sum_position, step=episode_num
+        )
+        mlflow.log_metric(
+            "episode_exploration_ratio", exploration_ratio, step=episode_num
+        )
         mlflow.log_metric("episode_saturation_rate", saturation_rate, step=episode_num)
 
         if self.progress_bar and self.progress_task is not None:
@@ -237,7 +253,7 @@ class MLflowTrainingCallback:
                 str(k): MLflowTrainingCallback._normalize_for_hash(v)
                 for k, v in sorted(value.items(), key=lambda item: str(item[0]))
             }
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return [MLflowTrainingCallback._normalize_for_hash(v) for v in value]
         if isinstance(value, datetime):
             return value.astimezone(UTC).isoformat()
@@ -249,19 +265,58 @@ class MLflowTrainingCallback:
     def _config_signature(config: Any) -> str:
         """Encode config into a stable 3-word signature."""
         adjectives = (
-            "amber", "brisk", "calm", "daring", "eager", "frozen",
-            "golden", "hidden", "ivory", "jade", "keen", "lunar",
-            "mellow", "noble", "opal", "proud",
+            "amber",
+            "brisk",
+            "calm",
+            "daring",
+            "eager",
+            "frozen",
+            "golden",
+            "hidden",
+            "ivory",
+            "jade",
+            "keen",
+            "lunar",
+            "mellow",
+            "noble",
+            "opal",
+            "proud",
         )
         nouns = (
-            "atlas", "beacon", "cipher", "delta", "ember", "falcon",
-            "grove", "harbor", "island", "jungle", "kernel", "lagoon",
-            "matrix", "nebula", "orbit", "pulse",
+            "atlas",
+            "beacon",
+            "cipher",
+            "delta",
+            "ember",
+            "falcon",
+            "grove",
+            "harbor",
+            "island",
+            "jungle",
+            "kernel",
+            "lagoon",
+            "matrix",
+            "nebula",
+            "orbit",
+            "pulse",
         )
         suffixes = (
-            "alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
-            "golf", "hotel", "india", "juliet", "kilo", "lima",
-            "mike", "november", "oscar", "papa",
+            "alpha",
+            "bravo",
+            "charlie",
+            "delta",
+            "echo",
+            "foxtrot",
+            "golf",
+            "hotel",
+            "india",
+            "juliet",
+            "kilo",
+            "lima",
+            "mike",
+            "november",
+            "oscar",
+            "papa",
         )
 
         normalized = MLflowTrainingCallback._normalize_for_hash(config)
