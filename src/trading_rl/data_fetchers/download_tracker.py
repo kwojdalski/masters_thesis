@@ -244,11 +244,12 @@ class DownloadTracker:
         for param_hash, info in self.cache.items():
             download_time = self._parse_timestamp(info["timestamp"])
             if download_time > cutoff:
-                info["param_hash"] = param_hash
-                info["hours_ago"] = (
+                entry = dict(info)
+                entry["param_hash"] = param_hash
+                entry["hours_ago"] = (
                     datetime.now(UTC) - download_time
                 ).total_seconds() / 3600
-                recent.append(info)
+                recent.append(entry)
 
         # Sort by timestamp (newest first)
         recent.sort(key=lambda x: x["timestamp"], reverse=True)
