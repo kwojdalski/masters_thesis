@@ -18,7 +18,9 @@ class _DummyTrainer(BaseTrainer):
     def build_models(n_obs: int, n_act: int, config, env):
         raise NotImplementedError
 
-    def _optimization_step(self, batch_idx: int, max_length: int, buffer_len: int) -> None:
+    def _optimization_step(
+        self, batch_idx: int, max_length: int, buffer_len: int
+    ) -> None:
         raise NotImplementedError
 
     def _evaluate(self) -> None:
@@ -167,3 +169,30 @@ def test_log_return_portfolio_valuation_undoes_reward_scale() -> None:
 
     expected = DEFAULT_INITIAL_PORTFOLIO_VALUE * np.exp(raw_cumulative_log_return)
     assert callback.calls[0]["portfolio_valuation"] == pytest.approx(expected)
+
+
+class _FakeEnvWithContextQueue:
+    def __init__(self, queue: list) -> None:
+        self._episode_context_queue = queue
+
+
+def test_get_current_episode_context_pops_fifo_in_completion_order() -> None:
+    """Each call must consume one queued (symbol, start_ts, end_ts) entry, in
+    the order episodes completed -- not read the live in-progress episode's
+    attributes, which by log time already describe the NEXT episode
+    (issue #439)."""
+    trainer = object.__new__(_DummyTrainer)
+    trainer.env = _FakeEnvWithContextQueue(
+        [
+            ("AAPL", "2024-01-01T00:00:00", "2024-01-01T00:00:04"),
+            ("MSFT", "2024-01-02T00:00:00", "2024-01-02T00:00:04"),
+        ]
+    )
+
+    first = trainer._get_current_episode_context()
+    second = trainer._get_current_episode_context()
+    third = trainer._get_current_episode_context()
+
+    assert first == ("AAPL", "2024-01-01T00:00:00", "2024-01-01T00:00:04")
+    assert second == ("MSFT", "2024-01-02T00:00:00", "2024-01-02T00:00:04")
+    assert third == (None, None, None)

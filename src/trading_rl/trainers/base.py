@@ -796,15 +796,20 @@ class BaseTrainer(ABC):
         return None, None
 
     def _get_current_episode_context(self) -> tuple[str | None, str | None, str | None]:
-        """Return (symbol, start_ts, end_ts) of the episode currently running in the training env."""
+        """Pop and return (symbol, start_ts, end_ts) of the next unconsumed
+        completed training episode, in completion order.
+
+        Backed by a FIFO queue (mirrors _get_last_episode_final_nlv above)
+        rather than reading the live _current_episode_symbol/_start_ts/_end_ts
+        attributes directly: by the time this is called (after the collector's
+        auto-reset on done), those attributes already describe the NEXT
+        episode's window, not the one being logged.
+        """
         obj = self.env
         for _ in range(10):
-            if hasattr(obj, "_current_episode_symbol"):
-                return (
-                    obj._current_episode_symbol,
-                    obj._current_episode_start_ts,
-                    obj._current_episode_end_ts,
-                )
+            queue = getattr(obj, "_episode_context_queue", None)
+            if queue is not None:
+                return queue.pop(0) if queue else (None, None, None)
             obj = getattr(obj, "_env", None) or getattr(obj, "env", None)
             if obj is None:
                 break

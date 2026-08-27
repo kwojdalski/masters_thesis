@@ -592,6 +592,17 @@ class StreamingTradingEnvXY(gym.Env):
         # queue (not a single overwritten scalar) — _log_episode_stats pops
         # one entry per completed episode it logs, in completion order.
         self._episode_final_nlv_queue: list[tuple[float, int]] = []
+        # FIFO queue of (symbol, start_ts, end_ts) snapshotted at the end of
+        # each completed episode, before reset() overwrites
+        # _current_episode_symbol/_start_ts/_end_ts with the next episode's
+        # window. By the time _log_episode_stats runs (after the collector's
+        # auto-reset on done), the live attributes already describe the NEXT
+        # episode, not the one being logged -- mirrors _episode_final_nlv_queue
+        # above for the same reason (a collector batch can span more than one
+        # episode boundary).
+        self._episode_context_queue: list[
+            tuple[str | None, str | None, str | None]
+        ] = []
         # Symbol name and timestamp range of the episode that just started.
         # Snapshotted on reset() so _log_episode_stats can report them.
         self._current_episode_symbol: str | None = None
@@ -757,6 +768,15 @@ class StreamingTradingEnvXY(gym.Env):
         # entry per completed episode, so episodes are matched to their own
         # NLV even when several complete within one collector batch.
         if self._inner_env is not None:
+            # Same reasoning: queue the ending episode's own symbol/date-range
+            # before it gets overwritten below with the next episode's window.
+            self._episode_context_queue.append(
+                (
+                    self._current_episode_symbol,
+                    self._current_episode_start_ts,
+                    self._current_episode_end_ts,
+                )
+            )
             broker = self._inner_env.broker
             if (
                 broker is not None
