@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 
 from trading_rl.evaluation.statistical_test_registry import (
+    MannWhitneyTest,
+    PermutationMeanTest,
     TTest,
     _two_sided_bootstrap_p_value,
     get_test,
@@ -106,6 +108,54 @@ def test_sortino_bootstrap_result_uses_sortino_metric_names() -> None:
     assert "strategy_sortino" in result
     assert "baseline_sortino" in result
     assert "sortino_difference" in result
+
+
+def _returns_with_p_value_between_one_and_five_percent() -> (
+    tuple[np.ndarray, np.ndarray]
+):
+    """Two samples whose t_test/mann_whitney/permutation p-values all fall
+    strictly between 0.01 and 0.05, so confidence_level=0.99 (alpha=0.01) and
+    confidence_level=0.95 (alpha=0.05) disagree on "significant"."""
+    rng = np.random.default_rng(7)
+    strategy = rng.normal(0.5, 1.0, 20)
+    baseline = rng.normal(0.0, 1.0, 20)
+    return strategy, baseline
+
+
+class TestConfidenceLevelAffectsSignificance:
+    """confidence_level must actually gate the significance threshold for
+    every test, not just BootstrapTest -- issue #452."""
+
+    def test_t_test_respects_configured_confidence_level(self) -> None:
+        strategy, baseline = _returns_with_p_value_between_one_and_five_percent()
+        loose = TTest().run(strategy, baseline, confidence_level=0.95)
+        strict = TTest().run(strategy, baseline, confidence_level=0.99)
+
+        assert 0.01 < loose["p_value"] < 0.05
+        assert bool(loose["significant"]) is True
+        assert bool(strict["significant"]) is False
+
+    def test_mann_whitney_respects_configured_confidence_level(self) -> None:
+        strategy, baseline = _returns_with_p_value_between_one_and_five_percent()
+        loose = MannWhitneyTest().run(strategy, baseline, confidence_level=0.95)
+        strict = MannWhitneyTest().run(strategy, baseline, confidence_level=0.99)
+
+        assert 0.01 < loose["p_value"] < 0.05
+        assert bool(loose["significant"]) is True
+        assert bool(strict["significant"]) is False
+
+    def test_permutation_test_respects_configured_confidence_level(self) -> None:
+        strategy, baseline = _returns_with_p_value_between_one_and_five_percent()
+        loose = PermutationMeanTest().run(
+            strategy, baseline, n_permutations=2000, seed=123, confidence_level=0.95
+        )
+        strict = PermutationMeanTest().run(
+            strategy, baseline, n_permutations=2000, seed=123, confidence_level=0.99
+        )
+
+        assert 0.01 < loose["p_value"] < 0.05
+        assert bool(loose["significant"]) is True
+        assert bool(strict["significant"]) is False
 
 
 def test_run_statistical_tests_records_counts_and_skips_unknown_tests() -> None:
