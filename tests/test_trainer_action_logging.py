@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from types import SimpleNamespace
 
-import pytest
+import numpy as np
 import torch
 from torchrl.data import Bounded
 
@@ -81,7 +81,4 @@ def test_extract_logged_actions_does_not_argmax_continuous_portfolio_weights() -
 
     logged_actions = trainer._extract_logged_actions(actions, callback)
 
-    # Not argmax'd to a single position index -- flattened as raw weights
-    # (grouping raw multi-dim continuous actions per-transition is a
-    # separate, currently out-of-scope concern noted in issue #440).
-    assert logged_actions == pytest.approx([0.8, -0.1, 0.3, -0.5, 0.2, 0.9])
+    np.testing.assert_allclose(logged_actions, [[0.8, -0.1, 0.3], [-0.5, 0.2, 0.9]])

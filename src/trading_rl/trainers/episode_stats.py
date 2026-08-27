@@ -109,6 +109,8 @@ class EpisodeStatsTracker:
             if positions and all(0 <= int(i) < len(positions) for i in indices):
                 return [int(positions[int(i)]) for i in indices]
             return indices
+        if actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
+            return actions_tensor.reshape(-1, actions_tensor.shape[-1]).tolist()
         return actions_tensor.reshape(-1).tolist()
 
     def _log_completed_episode(
@@ -194,9 +196,9 @@ class EpisodeStatsTracker:
         pct_extreme: float | None = None
         if actions:
             arr = np.asarray(actions, dtype=float)
-            n_act = len(arr)
-            long_pct = 100.0 * np.sum(arr > 0) / n_act
-            short_pct = 100.0 * np.sum(arr < 0) / n_act
+            n_values = arr.size
+            long_pct = 100.0 * np.sum(arr > 0) / n_values
+            short_pct = 100.0 * np.sum(arr < 0) / n_values
             neutral_pct = 100.0 - long_pct - short_pct
             mean_exposure = float(np.mean(np.abs(arr)))
             pct_extreme = (long_pct + short_pct) / 100.0

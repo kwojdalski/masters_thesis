@@ -228,11 +228,12 @@ class MLflowTrainingCallback:
         if len(actions) < 2:
             return 0
         changes = 0
-        prev_action = actions[0]
+        prev_action = np.asarray(actions[0], dtype=float)
         for action in actions[1:]:
-            if abs(action - prev_action) > tolerance:
+            action_arr = np.asarray(action, dtype=float)
+            if np.any(np.abs(action_arr - prev_action) > tolerance):
                 changes += 1
-                prev_action = action
+                prev_action = action_arr
         return changes
 
     @staticmethod
