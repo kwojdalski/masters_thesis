@@ -388,7 +388,22 @@ class StockDataFetcher(BaseMarketDataFetcher):
             return
 
         if output_filename is None:
-            symbol_label = symbols[0] if len(symbols) == 1 else "_".join(symbols)
+            actual_symbols = (
+                sorted(df["symbol"].dropna().unique())
+                if "symbol" in df.columns
+                else symbols
+            )
+            if set(actual_symbols) != set(symbols):
+                self.logger.warning(
+                    "requested symbols={} but data only contains={}",
+                    symbols,
+                    actual_symbols,
+                )
+            symbol_label = (
+                actual_symbols[0]
+                if len(actual_symbols) == 1
+                else "_".join(actual_symbols)
+            )
             output_filename = (
                 f"{symbol_label}_{start_date}_{end_date}_{file_suffix}.parquet"
             )
