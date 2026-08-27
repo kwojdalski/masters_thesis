@@ -51,7 +51,9 @@ class ScaleFromUnitRange(nn.Module):
         return low + (x + 1.0) * (high - low) / 2.0
 
 
-def _extract_action_bounds_from_spec(spec: Any) -> tuple[torch.Tensor, torch.Tensor] | None:
+def _extract_action_bounds_from_spec(
+    spec: Any,
+) -> tuple[torch.Tensor, torch.Tensor] | None:
     """Extract low/high action bounds from a TorchRL spec if available."""
     if spec is None:
         return None
@@ -76,6 +78,20 @@ def _extract_action_bounds_from_spec(spec: Any) -> tuple[torch.Tensor, torch.Ten
 
     return torch.as_tensor(low), torch.as_tensor(high)
 
+
+def _tanh_normal_kwargs_from_spec(spec: Any) -> dict[str, torch.Tensor]:
+    """Build TanhNormal distribution_kwargs honoring the spec's action bounds.
+
+    TanhNormal defaults to low=-1.0, high=1.0 and never reads `spec` itself;
+    `spec` is only consulted by ProbabilisticActor's safety-clamping when
+    safe=True. Actors built with safe=False must pass bounds explicitly to
+    honor non-unit action domains (e.g. a [0, 1] long-only allocation).
+    """
+    bounds = _extract_action_bounds_from_spec(spec)
+    if bounds is None:
+        return {}
+    low, high = bounds
+    return {"low": low, "high": high}
 
 
 class DiscreteNet(nn.Module):
@@ -129,7 +145,12 @@ class DiscreteNet(nn.Module):
 
         self.network = nn.Sequential(*layers)
 
-        logger.info("build discrete_net input_dim={} n_actions={} hidden_dims={}", input_dim, n_actions, hidden_dims)
+        logger.info(
+            "build discrete_net input_dim={} n_actions={} hidden_dims={}",
+            input_dim,
+            n_actions,
+            hidden_dims,
+        )
 
     def forward(self, x):
         """Forward pass.
@@ -320,7 +341,7 @@ def create_continuous_ppo_actor(
     actor = ProbabilisticActor(
         module=module,
         distribution_class=TanhNormal,
-        distribution_kwargs={},
+        distribution_kwargs=_tanh_normal_kwargs_from_spec(spec),
         in_keys=["loc", "scale"],
         out_keys=["action"],
         spec=spec,
@@ -522,15 +543,15 @@ class _GRUActorNet(nn.Module):
         was_1d = obs.dim() == 1
         was_2d = obs.dim() == 2
         if was_1d:
-            obs = obs.unsqueeze(0).unsqueeze(0)   # → (1, 1, n_obs)
+            obs = obs.unsqueeze(0).unsqueeze(0)  # → (1, 1, n_obs)
         elif was_2d:
-            obs = obs.unsqueeze(0)                 # → (1, T, n_obs)
-        gru_out, _ = self.gru(obs)                 # (B, T, gru_hidden_dim)
+            obs = obs.unsqueeze(0)  # → (1, T, n_obs)
+        gru_out, _ = self.gru(obs)  # (B, T, gru_hidden_dim)
         if was_1d:
             gru_out = gru_out.squeeze(0).squeeze(0)  # → (gru_hidden_dim,)
         elif was_2d:
-            gru_out = gru_out.squeeze(0)             # → (T, gru_hidden_dim)
-        return self._extractor(self.head(gru_out))   # (loc, scale) pair
+            gru_out = gru_out.squeeze(0)  # → (T, gru_hidden_dim)
+        return self._extractor(self.head(gru_out))  # (loc, scale) pair
 
 
 class _GRUValueNet(nn.Module):
@@ -600,7 +621,7 @@ def create_recurrent_ppo_actor(
     actor = ProbabilisticActor(
         module=module,
         distribution_class=TanhNormal,
-        distribution_kwargs={},
+        distribution_kwargs=_tanh_normal_kwargs_from_spec(spec),
         in_keys=["loc", "scale"],
         out_keys=["action"],
         spec=spec,
@@ -610,7 +631,8 @@ def create_recurrent_ppo_actor(
     )
     logger.info(
         "build recurrent_ppo actor complete gru_hidden_dim={} gru_num_layers={}",
-        gru_hidden_dim, gru_num_layers,
+        gru_hidden_dim,
+        gru_num_layers,
     )
     return actor
 
@@ -643,7 +665,8 @@ def create_recurrent_ppo_value_network(
     )
     logger.info(
         "build recurrent_ppo value network complete gru_hidden_dim={} gru_num_layers={}",
-        gru_hidden_dim, gru_num_layers,
+        gru_hidden_dim,
+        gru_num_layers,
     )
     return value_net
 

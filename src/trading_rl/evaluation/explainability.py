@@ -228,8 +228,10 @@ def analyze_trained_agent(
     """
     Helper function to run a rollout and analyze feature importance.
     """
-    # 1. Collect data
-    rollout = env.rollout(max_steps=n_steps)
+    # 1. Collect data from the trained agent's actual state-visitation
+    # distribution, not a random policy (env.rollout's default when no
+    # policy is passed).
+    rollout = env.rollout(max_steps=n_steps, policy=trainer.actor)
     obs_batch = rollout["observation"]  # [T, D]
 
     # 2. Analyze

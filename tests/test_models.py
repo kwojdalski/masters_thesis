@@ -168,6 +168,21 @@ def test_create_continuous_ppo_actor_bounds_action_to_unit_range() -> None:
     _log_prob_key(out)  # raises if no log-prob key present
 
 
+def test_create_continuous_ppo_actor_rescales_to_non_unit_spec_bounds() -> None:
+    """A [0, 2] action spec must actually bound sampled actions -- TanhNormal
+    defaults to [-1, 1] and never reads `spec` itself when safe=False."""
+    spec = Bounded(low=0.0, high=2.0, shape=(N_ACT,), dtype=torch.float32)
+    actor = create_continuous_ppo_actor(N_OBS, N_ACT, hidden_dims=[8], spec=spec)
+
+    out = actor(_obs_td(batch=200, n_obs=N_OBS) * 5.0)
+
+    assert torch.all(out["action"] >= 0.0)
+    assert torch.all(out["action"] <= 2.0)
+    # a real bug here clamps to [-1, 1], so assert some mass actually lands
+    # outside that range to prove the wider bound is honored, not coincidental
+    assert (out["action"] > 1.0).any()
+
+
 def test_create_continuous_ppo_actor_requires_grad() -> None:
     spec = Bounded(low=-1.0, high=1.0, shape=(N_ACT,), dtype=torch.float32)
     actor = create_continuous_ppo_actor(N_OBS, N_ACT, hidden_dims=[8], spec=spec)
@@ -302,9 +317,32 @@ def test_create_sac_actor_bounds_action_and_returns_log_prob() -> None:
     _log_prob_key(out)  # raises if no log-prob key present
 
 
+def test_create_sac_actor_rescales_to_non_unit_spec_bounds() -> None:
+    spec = Bounded(low=0.0, high=2.0, shape=(N_ACT,), dtype=torch.float32)
+    actor = create_sac_actor(N_OBS, N_ACT, hidden_dims=[8], spec=spec)
+
+    out = actor(_obs_td(batch=200) * 5.0)
+
+    assert torch.all(out["action"] >= 0.0)
+    assert torch.all(out["action"] <= 2.0)
+    assert (out["action"] > 1.0).any()
+
+
 # ---------------------------------------------------------------------------
 # create_recurrent_ppo_actor / create_recurrent_ppo_value_network (GRU)
 # ---------------------------------------------------------------------------
+
+
+def test_create_recurrent_ppo_actor_rescales_to_non_unit_spec_bounds() -> None:
+    spec = Bounded(low=0.0, high=2.0, shape=(N_ACT,), dtype=torch.float32)
+    actor = create_recurrent_ppo_actor(N_OBS, N_ACT, hidden_dims=[8], spec=spec)
+
+    td = TensorDict({"observation": torch.randn(200, N_OBS) * 5.0}, batch_size=[200])
+    out = actor(td)
+
+    assert torch.all(out["action"] >= 0.0)
+    assert torch.all(out["action"] <= 2.0)
+    assert (out["action"] > 1.0).any()
 
 
 def test_create_recurrent_ppo_actor_handles_unbatched_1d_obs() -> None:
