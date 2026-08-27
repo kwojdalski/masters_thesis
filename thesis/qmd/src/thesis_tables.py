@@ -320,7 +320,9 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
 
     cols = list(df.columns)
     col_spec = "l " + " ".join(["r"] * (len(cols) - 1))
-    header_cells = " & ".join(_esc(c) for c in cols)
+    header_cells = " & ".join(
+        f"\\multicolumn{{1}}{{c}}{{\\textbf{{{_esc(c)}}}}}" for c in cols
+    )
 
     rows_latex: list[str] = []
     for i, (_, row) in enumerate(df.iterrows()):
@@ -452,7 +454,7 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
             r"\small",
             r"\begin{tabular}{l r r}",
             r"\toprule",
-            r"Feature & Pearson & Spearman \\",
+            r"\multicolumn{1}{c}{\textbf{Feature}} & \multicolumn{1}{c}{\textbf{Pearson}} & \multicolumn{1}{c}{\textbf{Spearman}} \\",
             r"\midrule",
             *rows_latex,
             r"\bottomrule",
@@ -547,12 +549,12 @@ def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
             r"\begin{longtable}{p{0.22\linewidth} p{0.68\linewidth}}",
             f"\\caption{{{_esc(caption)}\\label{{tbl-main-experiment-spec}}}} \\\\",
             r"\toprule",
-            r"Component & Specification \\",
+            r"\multicolumn{1}{c}{\textbf{Component}} & \multicolumn{1}{c}{\textbf{Specification}} \\",
             r"\midrule",
             r"\endfirsthead",
             r"\multicolumn{2}{l}{\footnotesize\textit{Table \ref{tbl-main-experiment-spec} continued.}} \\",
             r"\toprule",
-            r"Component & Specification \\",
+            r"\multicolumn{1}{c}{\textbf{Component}} & \multicolumn{1}{c}{\textbf{Specification}} \\",
             r"\midrule",
             r"\endhead",
             r"\bottomrule",

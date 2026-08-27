@@ -8,13 +8,14 @@ format:
   pdf:
     documentclass: pracamgrwne
     latex-engine: xelatex
-    toc: true
+    mainfont: "TeX Gyre Termes"
+    toc: false
     toc-depth: 3
     number-sections: true
     output-file: masters_thesis.pdf
     linestretch: 1.5
-    lof: true
-    lot: true
+    lof: false
+    lot: false
     header-includes:
       - \raggedbottom
       - \setlength{\parindent}{1cm}
@@ -33,6 +34,8 @@ format:
       - \usetikzlibrary{arrows.meta}
       - \usepackage{caption}
       - \captionsetup[figure]{position=above}
+      - \captionsetup[table]{justification=raggedright,singlelinecheck=false}
+      - \setcounter{tocdepth}{3}
       - \nralbumu{310284}
       - \speciality{Quantitative Finance}
       - \opiekun{dr Pawel Sakowski}
@@ -63,6 +66,7 @@ csl: ../../bibliography/apa.csl
 filters:
   - pseudocode
   - tablenote.lua
+  - tableheader.lua
 editor_options:
   chunk_output_type: console
   latex_engine: xelatex
@@ -140,6 +144,12 @@ claims.
 
 \pagebreak
 
+```{=latex}
+\tableofcontents
+```
+
+\pagebreak
+
 
 {{< include ./01-00-introduction.qmd >}}
 
@@ -187,5 +197,13 @@ claims.
 {{< include ./07-00-conclusions.qmd >}}
 
 {{< include ./98-bibliography.qmd >}}
+
+\pagebreak
+
+```{=latex}
+\listoftables
+\listoffigures
+```
+
 {{< include ./99-appendix.qmd >}}
 {{< include ./99-glossary.qmd >}}
