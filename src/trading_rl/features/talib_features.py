@@ -342,7 +342,8 @@ class BBANDSFeature(Feature):
 class OBVFeature(Feature):
     """On Balance Volume.
 
-    Note: OBV is cumulative, so we return rate of change instead.
+    Note: OBV is cumulative and signed, so we return the step-to-step
+    change normalized by rolling volume instead of a raw rate of change.
     """
 
     def required_columns(self) -> list[str]:
@@ -350,16 +351,24 @@ class OBVFeature(Feature):
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
         obv = talib.OBV(df["close"].values, df["volume"].values)
-        # Return rate of change to make it stationary
         obv_series = pd.Series(obv, index=df.index)
-        return obv_series.pct_change().fillna(0)
+        # OBV is cumulative and signed (crosses zero), so pct_change() is not
+        # a valid stationary transform: it flips sign whenever the prior
+        # value is negative and produces inf when the prior value is exactly
+        # zero (undetected by fillna, which only replaces NaN). Normalize the
+        # step-to-step change by a strictly-positive rolling volume sum
+        # instead, which stays well-defined across zero-crossings.
+        obv_change = obv_series.diff()
+        volume_norm = df["volume"].rolling(window=20, min_periods=1).sum() + 1e-8
+        return (obv_change / volume_norm).fillna(0)
 
 
 @register_feature("ad")
 class ADFeature(Feature):
     """Accumulation/Distribution Line.
 
-    Note: AD is cumulative, so we return rate of change instead.
+    Note: AD is cumulative and signed, so we return the step-to-step
+    change normalized by rolling volume instead of a raw rate of change.
     """
 
     def required_columns(self) -> list[str]:
@@ -372,9 +381,12 @@ class ADFeature(Feature):
             df["close"].values,
             df["volume"].values,
         )
-        # Return rate of change to make it stationary
         ad_series = pd.Series(ad, index=df.index)
-        return ad_series.pct_change().fillna(0)
+        # AD is cumulative and signed (crosses zero); see OBVFeature.compute
+        # for why pct_change() is invalid here.
+        ad_change = ad_series.diff()
+        volume_norm = df["volume"].rolling(window=20, min_periods=1).sum() + 1e-8
+        return (ad_change / volume_norm).fillna(0)
 
 
 @register_feature("adosc")
