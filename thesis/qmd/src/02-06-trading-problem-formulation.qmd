@@ -45,6 +45,8 @@ is on why each one is consequential for trading problems.
 \node[left, align=right, font=\normalsize] at (-4.4, 1.6) {state\\[2pt]$s_t$};
 
 \end{tikzpicture}
+
+{\footnotesize Source: author's own elaboration, based on Sutton \& Barto (2018).}
 \end{figure}
 ```
 
@@ -53,6 +55,10 @@ At each step the agent observes state $s_t$ and reward $r_t$, selects action $a_
 
 ::: {.content-visible when-format="html"}
 ![The agent-environment interaction loop in reinforcement learning.](diagrams/rl-loop.svg){fig-align="center"}
+
+::: {.table-note}
+**Source:** Author's own elaboration, based on [@Sutton2018].
+:::
 
 At each step the agent observes state $s_t$ and reward $r_t$, selects action $a_t$, and receives the next state $s_{t+1}$ and reward $r_{t+1}$ from the environment.
 :::

@@ -143,6 +143,10 @@ else:
     missing_data_notice(_no_data_msg("Equity curve"))
 ```
 
+::: {.table-note}
+**Source:** Author's own calculations.
+:::
+
 ```{python}
 #| label: cell-eval-rewards
 #| output: asis
@@ -166,6 +170,10 @@ else:
     from thesis_tables import missing_data_notice
     missing_data_notice(_no_data_msg("Reward"))
 ```
+
+::: {.table-note}
+**Source:** Author's own calculations.
+:::
 
 ```{python}
 #| label: cell-eval-positions
@@ -192,6 +200,10 @@ else:
     from thesis_tables import missing_data_notice
     missing_data_notice(_no_data_msg("Action/position"))
 ```
+
+::: {.table-note}
+**Source:** Author's own calculations.
+:::
 
 ### Discussion: Reading Performance in the Context of State Design
 The benchmark comparison places the TD3 agent's held-out behavior in direct
