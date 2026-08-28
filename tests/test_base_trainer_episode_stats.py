@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import torch
 from tensordict import TensorDict
+from torchrl.data import Bounded
 
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
 from trading_rl.constants import RewardType
@@ -92,6 +93,49 @@ def _batch(rewards: list[float], done: list[bool], actions: list[float]) -> Tens
         },
         batch_size=[n],
     )
+
+
+def _vector_batch(
+    rewards: list[float], done: list[bool], actions: list[list[float]]
+) -> TensorDict:
+    n = len(rewards)
+    return TensorDict(
+        {
+            "action": torch.tensor(actions, dtype=torch.float32),
+            "next": TensorDict(
+                {
+                    "reward": torch.tensor(rewards, dtype=torch.float32).reshape(n, 1),
+                    "done": torch.tensor(done, dtype=torch.bool).reshape(n, 1),
+                },
+                batch_size=[n],
+            ),
+        },
+        batch_size=[n],
+    )
+
+
+def test_episode_stats_keeps_vector_actions_grouped_by_transition() -> None:
+    trainer = _trainer()
+    trainer.episode_stats._env = type(
+        "Env",
+        (),
+        {"action_spec": Bounded(low=-1.0, high=1.0, shape=(3,), dtype=torch.float32)},
+    )()
+    callback = _Callback()
+
+    trainer._log_episode_stats(
+        _vector_batch(
+            rewards=[1.0, 2.0, 3.0],
+            done=[False, True, False],
+            actions=[[0.8, -0.1, 0.3], [-0.5, 0.2, 0.9], [0.1, 0.2, 0.3]],
+        ),
+        callback,
+    )
+
+    np.testing.assert_allclose(
+        callback.calls[0]["actions"], [[0.8, -0.1, 0.3], [-0.5, 0.2, 0.9]]
+    )
+    np.testing.assert_allclose(trainer._pending_episode_actions, [[0.1, 0.2, 0.3]])
 
 
 def test_episode_stats_split_multiple_completed_episodes_and_buffer_trailing() -> None:

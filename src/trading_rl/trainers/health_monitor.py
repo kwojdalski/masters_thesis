@@ -51,7 +51,7 @@ class TrainingHealthMonitor:
         """Compute and store per-episode behavioral signals.
 
         Args:
-            actions: Flat list of per-step action values for the episode.
+            actions: List of per-step scalar actions or action vectors.
             pct_extreme: Fraction of steps at full exposure (|pos| > 0),
                 pre-computed by EpisodeStatsTracker. Computed from actions
                 when not provided.
@@ -61,10 +61,16 @@ class TrainingHealthMonitor:
         arr = np.asarray(actions, dtype=float)
 
         if self._stale_ratio > 0.0:
-            if arr.size > 1:
+            if len(arr) > 1:
                 action_range = float(np.ptp(arr))
                 eps = max(1e-6, 1e-3 * action_range)
-                ratio = float(np.sum(np.abs(np.diff(arr)) > eps)) / (arr.size - 1)
+                diffs = np.diff(arr, axis=0)
+                changed_steps = (
+                    np.any(np.abs(diffs) > eps, axis=tuple(range(1, diffs.ndim)))
+                    if diffs.ndim > 1
+                    else np.abs(diffs) > eps
+                )
+                ratio = float(np.mean(changed_steps))
             else:
                 ratio = 0.0
             self._change_ratios.append(ratio)
