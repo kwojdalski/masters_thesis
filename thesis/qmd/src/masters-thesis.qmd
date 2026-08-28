@@ -68,6 +68,7 @@ filters:
   - pseudocode
   - tablenote.lua
   - tableheader.lua
+  - tablealign.lua
 editor_options:
   chunk_output_type: console
   latex_engine: xelatex
