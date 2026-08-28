@@ -34,8 +34,8 @@ format:
       - \usepackage{tikz}
       - \usetikzlibrary{arrows.meta}
       - \usepackage{caption}
-      - \captionsetup[figure]{position=above,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf}
-      - \captionsetup[table]{justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf}
+      - \captionsetup[figure]{position=above,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
+      - \captionsetup[table]{justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
       - \setcounter{tocdepth}{3}
       - \nralbumu{310284}
       - \speciality{Quantitative Finance}
