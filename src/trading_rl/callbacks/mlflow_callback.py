@@ -161,7 +161,10 @@ class MLflowTrainingCallback:
         )
         self.position_change_counts.append(position_changes)
         self.training_stats["position_change_counts"].append(position_changes)
-        episode_sum_position = float(np.sum(actions)) if actions else 0.0
+        # mean, not sum: actions can be per-transition weight vectors for
+        # multi-asset portfolios, and summing flattens across both the time
+        # and asset axes into a value that mixes unrelated assets' exposure.
+        episode_sum_position = float(np.mean(actions)) if actions else 0.0
         self.training_stats["sum_positions"].append(episode_sum_position)
 
         episode_length = len(actions)
@@ -224,17 +227,24 @@ class MLflowTrainingCallback:
 
     @staticmethod
     def _count_position_changes(actions: list, tolerance: float = 1e-6) -> int:
-        """Count how often the agent changes positions within an episode."""
+        """Count how often the agent changes positions within an episode.
+
+        Each transition is compared against the immediately preceding
+        action, not the last action flagged as a change -- otherwise a
+        run of small consecutive moves that each stay under `tolerance`
+        can accumulate into a stale anchor that falsely trips on a later
+        step (see issue #470).
+        """
         if len(actions) < 2:
             return 0
-        changes = 0
-        prev_action = np.asarray(actions[0], dtype=float)
-        for action in actions[1:]:
-            action_arr = np.asarray(action, dtype=float)
-            if np.any(np.abs(action_arr - prev_action) > tolerance):
-                changes += 1
-                prev_action = action_arr
-        return changes
+        arr = np.asarray(actions, dtype=float)
+        diffs = np.diff(arr, axis=0)
+        changed = (
+            np.any(np.abs(diffs) > tolerance, axis=tuple(range(1, diffs.ndim)))
+            if diffs.ndim > 1
+            else np.abs(diffs) > tolerance
+        )
+        return int(np.sum(changed))
 
     @staticmethod
     def _default_run_name(experiment_name: str, config: Any | None = None) -> str:

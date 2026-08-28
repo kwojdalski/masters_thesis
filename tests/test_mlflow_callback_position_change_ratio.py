@@ -1,4 +1,4 @@
-"""Regression test for the position_change_ratio off-by-one (issue #457)."""
+"""Regression tests for position_change_ratio bugs (issues #457, #470)."""
 
 from __future__ import annotations
 
@@ -27,3 +27,26 @@ class TestCountPositionChanges:
         assert changes == 0
         ratio = changes / (episode_length - 1) if episode_length > 1 else 0.0
         assert ratio == 0.0
+
+
+class TestCountPositionChangesComparesConsecutiveSteps:
+    def test_gradual_drift_under_tolerance_reports_zero_changes(self):
+        # Each consecutive step's diff (0.05, 0.06) stays under tolerance
+        # 0.1, so the correct count is 0. A stale-anchor implementation
+        # instead compares 0.11 against the original anchor 0.0 (never
+        # updated, since no single step exceeded tolerance), reporting a
+        # spurious change that never happened between two consecutive
+        # steps.
+        actions = [0.0, 0.05, 0.11]
+        changes = MLflowTrainingCallback._count_position_changes(actions, tolerance=0.1)
+        assert changes == 0
+
+    def test_vector_actions_compare_consecutive_steps_too(self):
+        actions = [[0.0, 0.0], [0.05, 0.0], [0.11, 0.0]]
+        changes = MLflowTrainingCallback._count_position_changes(actions, tolerance=0.1)
+        assert changes == 0
+
+    def test_still_detects_a_real_single_step_jump(self):
+        actions = [0.0, 0.5, 0.5]
+        changes = MLflowTrainingCallback._count_position_changes(actions, tolerance=0.1)
+        assert changes == 1
