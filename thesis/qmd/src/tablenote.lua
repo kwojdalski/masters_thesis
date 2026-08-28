@@ -15,12 +15,40 @@ Usage from Python cells (via thesis_tables.table_note()):
 HTML output: wraps the div content in a <div class="table-note"> with
   inline CSS for a consistently small, muted, italic style.
 PDF/LaTeX output: wraps the block content in {\footnotesize\itshape …}
-  with a small negative vspace to reduce the gap below the table, and
-  centers it (via `center`) to match the page's other centered floats
-  (longtable defaults to centered; figures are emitted with fig-align:
-  center) -- a plain left-flush paragraph here would wrap at the true
-  page margin while the table above it sits centered, visually
-  misaligned with the table it annotates.
+  with a small negative vspace to reduce the gap below the table.
+
+  Left-aligned, not centered: WNE UW punkt 10/11 only require the TABLE
+  or FIGURE object itself to be centered ("Tabela wyśrodkowana...",
+  "Rysunki środkować...") -- the title/caption is explicitly required to
+  start at the left margin ("Tytuł od lewego marginesu" / "Podpis... od
+  lewego marginesu"), and the source/legend/note text is introduced in
+  the same breath as the title with no separate alignment rule of its
+  own, so it follows the title's left-margin convention, not the
+  object's centering.
+
+  Suppressing the indent: pandoc always serializes the RawBlock and the
+  div's actual Para content as separate blocks, joined by a blank line
+  -- so a raw `\noindent` placed in the leading RawBlock is orphaned by
+  that blank line (\noindent only cancels the indent of the paragraph
+  that begins immediately after it; a blank line already starts a new
+  \par before the div's own content is reached, and \noindent has
+  nothing left to act on). `\parindent0pt`, scoped to the whole group,
+  is not paragraph-position-sensitive the same way and reliably
+  suppresses indentation for every paragraph typeset inside the group.
+
+  Overriding an ancestor \centering: pandoc renders a table two different
+  ways depending on its size. A wide/many-row table becomes `longtable`,
+  which is not a floating environment -- nothing after \end{longtable}
+  is nested inside anything, so this Div's content lands as an ordinary
+  top-level paragraph. A short/narrow table instead becomes a `table`
+  float with `\centering{...}` wrapping its body, and because pandoc
+  doesn't close that float before inserting the next block, this Div's
+  content ends up nested INSIDE that same \centering{} group -- so it
+  renders centered despite \parindent0pt (which only ever controls
+  indentation, not justification). `\raggedright` here overrides any
+  such ancestor \centering for this group's own paragraphs, and is a
+  no-op in the ordinary longtable case where no ancestor centering
+  exists to override.
 --]]
 
 function Div(el)
@@ -35,9 +63,9 @@ function Div(el)
     -- the table and its source/legend note; without it the note can be torn
     -- across a page boundary (e.g. a multi-citation Source line split
     -- mid-parenthesis) while the table itself stays fully on the prior page.
-    blocks:insert(pandoc.RawBlock("latex", "\\nopagebreak\\vspace{-0.3em}{\\footnotesize\\itshape\\begin{center}"))
+    blocks:insert(pandoc.RawBlock("latex", "\\nopagebreak\\vspace{-0.3em}{\\footnotesize\\itshape\\parindent0pt\\raggedright\\relax"))
     blocks:extend(el.content)
-    blocks:insert(pandoc.RawBlock("latex", "\\end{center}}\\vspace{0.3em}"))
+    blocks:insert(pandoc.RawBlock("latex", "}\\vspace{0.3em}"))
     return blocks
   end
 
