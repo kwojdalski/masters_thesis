@@ -15,6 +15,35 @@ from trading_rl.constants import RewardType, TradePosition
 
 logger = get_logger(__name__)
 
+_EXTREME_ACTION_FRACTION = 0.9
+
+
+def _extreme_action_threshold(action_spec: Any) -> float:
+    """Magnitude threshold counted as "extreme" (pinned near the action bound).
+
+    Continuous action values essentially never land on an exact bound, let
+    alone exact zero, so "extreme" must be a fraction of the actual bound,
+    not a bit-exact comparison. Falls back to a nominal unit-range default
+    when the spec doesn't expose bounds.
+    """
+    space = getattr(action_spec, "space", None)
+    low = (
+        getattr(space, "low", None)
+        if space is not None
+        else getattr(action_spec, "low", None)
+    )
+    high = (
+        getattr(space, "high", None)
+        if space is not None
+        else getattr(action_spec, "high", None)
+    )
+    if low is None or high is None:
+        return _EXTREME_ACTION_FRACTION
+    low_arr = np.asarray(low, dtype=float)
+    high_arr = np.asarray(high, dtype=float)
+    bound = float(max(np.max(np.abs(low_arr)), np.max(np.abs(high_arr))))
+    return _EXTREME_ACTION_FRACTION * bound
+
 
 class EpisodeStatsTracker:
     """Tracks and logs per-episode rewards, actions, and portfolio metrics.
@@ -85,6 +114,9 @@ class EpisodeStatsTracker:
         self._pending_rewards = [*pending_rewards, *rewards[segment_start:]]
         self._pending_actions = [*pending_actions, *actions[segment_start:]]
 
+    def _is_discrete_action_spec(self) -> bool:
+        return not isinstance(getattr(self._env, "action_spec", None), Bounded)
+
     def extract_logged_actions(
         self, actions_tensor: Any, callback: Any | None = None
     ) -> list[Any]:
@@ -100,7 +132,7 @@ class EpisodeStatsTracker:
         # evaluator.py/report.py/plots.py, but checks the action spec type
         # directly rather than the env backend string, since this tracker
         # doesn't have access to config.env.backend.
-        is_discrete = not isinstance(getattr(self._env, "action_spec", None), Bounded)
+        is_discrete = self._is_discrete_action_spec()
         if is_discrete and actions_tensor.ndim > 1 and actions_tensor.shape[-1] > 1:
             indices = actions_tensor.argmax(dim=-1).reshape(-1).tolist()
             positions = getattr(callback, "action_positions", None)
@@ -201,7 +233,18 @@ class EpisodeStatsTracker:
             short_pct = 100.0 * np.sum(arr < 0) / n_values
             neutral_pct = 100.0 - long_pct - short_pct
             mean_exposure = float(np.mean(np.abs(arr)))
-            pct_extreme = (long_pct + short_pct) / 100.0
+            if self._is_discrete_action_spec():
+                pct_extreme = (long_pct + short_pct) / 100.0
+            else:
+                # "any nonzero" is not "extreme" for continuous actions --
+                # a float essentially never lands on exact zero, so that
+                # definition would flag near-total saturation on almost
+                # every actively-trading episode. Use proximity to the
+                # action spec's actual bound instead.
+                threshold = _extreme_action_threshold(
+                    getattr(self._env, "action_spec", None)
+                )
+                pct_extreme = float(np.mean(np.abs(arr) > threshold))
             position_str = (
                 f" long_pct={long_pct:.1f}"
                 f" short_pct={short_pct:.1f}"

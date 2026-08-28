@@ -138,6 +138,95 @@ def test_episode_stats_keeps_vector_actions_grouped_by_transition() -> None:
     np.testing.assert_allclose(trainer._pending_episode_actions, [[0.1, 0.2, 0.3]])
 
 
+class _SpyHealthMonitor:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    def record_episode(self, actions, pct_extreme=None) -> None:
+        self.calls.append({"actions": actions, "pct_extreme": pct_extreme})
+
+
+def test_pct_extreme_uses_bound_proximity_not_exact_nonzero_for_continuous_actions() -> (
+    None
+):
+    """For a Bounded (continuous) action spec, pct_extreme must be based on
+    proximity to the actual action bound, not "any nonzero value" -- issue
+    #476. Small real exposure (0.05 on a [-1, 1] spec) must not count as
+    extreme; only actions actually near the bound should."""
+    health_monitor = _SpyHealthMonitor()
+    env = type(
+        "Env",
+        (),
+        {"action_spec": Bounded(low=-1.0, high=1.0, shape=(1,), dtype=torch.float32)},
+    )()
+    tracker = EpisodeStatsTracker(
+        env=env,
+        logs=defaultdict(list),
+        compute_exploration_ratio=lambda: 0.0,
+        get_last_episode_final_nlv=lambda: (None, None),
+        get_current_episode_context=lambda: (None, None, None),
+        health_monitor=health_monitor,
+    )
+    callback = _Callback()
+
+    tracker._log_completed_episode(
+        episode_rewards=[1.0, 1.0, 1.0, 1.0],
+        actions=[0.05, -0.03, 0.02, 0.04],
+        callback=callback,
+    )
+
+    assert health_monitor.calls[0]["pct_extreme"] == pytest.approx(0.0)
+
+
+def test_pct_extreme_flags_actions_actually_near_the_bound() -> None:
+    health_monitor = _SpyHealthMonitor()
+    env = type(
+        "Env",
+        (),
+        {"action_spec": Bounded(low=-1.0, high=1.0, shape=(1,), dtype=torch.float32)},
+    )()
+    tracker = EpisodeStatsTracker(
+        env=env,
+        logs=defaultdict(list),
+        compute_exploration_ratio=lambda: 0.0,
+        get_last_episode_final_nlv=lambda: (None, None),
+        get_current_episode_context=lambda: (None, None, None),
+        health_monitor=health_monitor,
+    )
+    callback = _Callback()
+
+    tracker._log_completed_episode(
+        episode_rewards=[1.0, 1.0, 1.0, 1.0],
+        actions=[0.99, -0.98, 0.02, 0.97],
+        callback=callback,
+    )
+
+    assert health_monitor.calls[0]["pct_extreme"] == pytest.approx(0.75)
+
+
+def test_pct_extreme_uses_exact_nonzero_for_discrete_action_spec() -> None:
+    """Discrete action specs keep the original any-nonzero definition."""
+    health_monitor = _SpyHealthMonitor()
+    env = type("Env", (), {"action_spec": None})()
+    tracker = EpisodeStatsTracker(
+        env=env,
+        logs=defaultdict(list),
+        compute_exploration_ratio=lambda: 0.0,
+        get_last_episode_final_nlv=lambda: (None, None),
+        get_current_episode_context=lambda: (None, None, None),
+        health_monitor=health_monitor,
+    )
+    callback = _Callback()
+
+    tracker._log_completed_episode(
+        episode_rewards=[1.0, 1.0, 1.0, 1.0],
+        actions=[1, -1, 0, 1],
+        callback=callback,
+    )
+
+    assert health_monitor.calls[0]["pct_extreme"] == pytest.approx(0.75)
+
+
 def test_episode_stats_split_multiple_completed_episodes_and_buffer_trailing() -> None:
     trainer = _trainer()
     callback = _Callback()
