@@ -30,6 +30,7 @@ format:
       - \usepackage{booktabs}
       - \usepackage{longtable}
       - \usepackage{pdflscape}
+      - \usepackage{float}
       - \usepackage{tikz}
       - \usetikzlibrary{arrows.meta}
       - \usepackage{caption}
