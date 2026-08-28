@@ -614,7 +614,7 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
         )
 
     # Algorithm-specific
-    if cfg.training.algorithm.upper() == Algorithm.PPO:
+    if cfg.training.algorithm.upper() in {Algorithm.PPO, Algorithm.RECURRENT_PPO}:
         if not (0 < cfg.training.ppo.clip_epsilon < 1):
             errors.append(
                 f"training.ppo.clip_epsilon must be in (0, 1), got {cfg.training.ppo.clip_epsilon}"
@@ -627,7 +627,7 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
             errors.append(
                 f"training.ppo.epochs must be > 0, got {cfg.training.ppo.epochs}"
             )
-    if cfg.training.algorithm.upper() in {Algorithm.DDPG, Algorithm.TD3}:
+    if cfg.training.algorithm.upper() in {Algorithm.DDPG, Algorithm.TD3, Algorithm.SAC}:
         if not (0 < cfg.training.tau <= 1):
             errors.append(f"training.tau must be in (0, 1], got {cfg.training.tau}")
 
