@@ -22,6 +22,7 @@ def generate_mean_reversion_pattern(
     shock_probability: float = 0.02,
     shock_magnitude: float = 0.15,
     start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+    seed: int | None = None,
 ) -> pd.DataFrame:
     """Generate synthetic OHLCV data with mean-reverting price dynamics."""
     logger.info(
@@ -29,28 +30,29 @@ def generate_mean_reversion_pattern(
         n_samples, mean_price, reversion_strength,
     )
 
+    rng = np.random.default_rng(seed)
     dates = pd.date_range(start=pd.to_datetime(start_date), periods=n_samples, freq="h")
     prices = np.zeros(n_samples)
-    prices[0] = mean_price * (1 + np.random.normal(0, 0.1))
+    prices[0] = mean_price * (1 + rng.normal(0, 0.1))
 
     for i in range(1, n_samples):
         reversion = -reversion_strength * (prices[i - 1] - mean_price)
         shock = (
-            np.random.choice([-1, 1]) * shock_magnitude * mean_price
-            if np.random.random() < shock_probability
+            rng.choice([-1, 1]) * shock_magnitude * mean_price
+            if rng.random() < shock_probability
             else 0.0
         )
-        noise = np.random.normal(0, volatility * mean_price)
+        noise = rng.normal(0, volatility * mean_price)
         prices[i] = max(prices[i - 1] + reversion + shock + noise, mean_price * 0.1)
 
-    high_var = np.abs(np.random.normal(0, volatility * mean_price * 0.3, n_samples))
-    low_var = np.abs(np.random.normal(0, volatility * mean_price * 0.3, n_samples))
+    high_var = np.abs(rng.normal(0, volatility * mean_price * 0.3, n_samples))
+    low_var = np.abs(rng.normal(0, volatility * mean_price * 0.3, n_samples))
     highs = prices + high_var
     lows = prices - low_var
 
     opens = np.roll(prices, 1)
     opens[0] = prices[0]
-    opens = opens + np.random.normal(0, 0.5 * volatility * mean_price, n_samples)
+    opens = opens + rng.normal(0, 0.5 * volatility * mean_price, n_samples)
     opens = np.clip(opens, lows, highs)
     prices = np.clip(prices, lows, highs)
 
@@ -58,7 +60,7 @@ def generate_mean_reversion_pattern(
     price_deviation = np.abs(prices - mean_price) / mean_price
     volumes = (
         base_volume * (1 + 2 * price_deviation)
-        + np.random.normal(0, base_volume * 0.1, n_samples)
+        + rng.normal(0, base_volume * 0.1, n_samples)
     )
     volumes = np.maximum(volumes, base_volume * 0.1)
 

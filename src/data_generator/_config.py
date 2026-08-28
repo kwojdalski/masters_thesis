@@ -37,6 +37,7 @@ def dispatch_from_config(
             volatility=cfg.get("volatility", 0.0005),
             pullback_floor=cfg.get("pullback_floor", 0.995),
             start_date=cfg.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
+            seed=cfg.get("seed"),
         )
     if pattern_type == PatternType.SINE_WAVE:
         return generator.generate_sine_wave_pattern(
@@ -49,6 +50,7 @@ def dispatch_from_config(
             volatility=cfg.get("volatility", 0.0),
             start_date=cfg.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
             freq=cfg.get("freq", "h"),
+            seed=cfg.get("seed"),
         )
     if pattern_type == PatternType.MEAN_REVERSION:
         return generator.generate_mean_reversion_pattern(
@@ -60,6 +62,7 @@ def dispatch_from_config(
             shock_probability=cfg.get("shock_probability", 0.02),
             shock_magnitude=cfg.get("shock_magnitude", 0.15),
             start_date=cfg.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
+            seed=cfg.get("seed"),
         )
     if pattern_type == PatternType.TRENDING:
         return generator.generate_trending_pattern(
@@ -73,6 +76,7 @@ def dispatch_from_config(
             volatility=cfg.get("volatility", 0.03),
             consolidation_prob=cfg.get("consolidation_prob", 0.2),
             start_date=cfg.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
+            seed=cfg.get("seed"),
         )
     if pattern_type == PatternType.RANDOM_WALK:
         return generator.generate_random_walk_pattern(
@@ -81,6 +85,7 @@ def dispatch_from_config(
             base_price=cfg.get("base_price", 50000.0),
             volatility=cfg.get("volatility", 0.001),
             start_date=cfg.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
+            seed=cfg.get("seed"),
         )
     if pattern_type == PatternType.HFT_SINE_WAVE_LOB:
         return generator.generate_hft_sine_wave_lob(

@@ -23,6 +23,7 @@ def generate_sine_wave_pattern(
     volatility: float = 0.0,
     start_date: str = DEFAULT_SYNTHETIC_START_DATE,
     freq: str = "h",
+    seed: int | None = None,
 ) -> pd.DataFrame:
     """Generate synthetic OHLCV data with sine wave pattern and optional upward trend."""
     logger.info(
@@ -35,6 +36,7 @@ def generate_sine_wave_pattern(
         freq,
     )
 
+    rng = np.random.default_rng(seed)
     total_samples = n_periods * samples_per_period
     t = np.linspace(0, 2 * np.pi * n_periods, total_samples)
     dates = pd.date_range(
@@ -48,7 +50,7 @@ def generate_sine_wave_pattern(
         # Stochastic noise, not a deterministic harmonic: a fixed sin(2t) term
         # is perfectly correlated with the signal it's meant to perturb and
         # carries no actual randomness (see #484).
-        noise = np.random.normal(0.0, volatility * base_price, total_samples)
+        noise = rng.normal(0.0, volatility * base_price, total_samples)
     else:
         noise = np.zeros_like(base_prices)
     close_prices = base_prices + noise
@@ -62,17 +64,17 @@ def generate_sine_wave_pattern(
 
     variation_scale = max(amplitude * 0.05, base_price * 0.002)
     highs = close_prices + variation_scale * (
-        0.5 + 0.3 * np.random.uniform(-1, 1, total_samples)
+        0.5 + 0.3 * rng.uniform(-1, 1, total_samples)
     )
     lows = close_prices - variation_scale * (
-        0.5 + 0.3 * np.random.uniform(-1, 1, total_samples)
+        0.5 + 0.3 * rng.uniform(-1, 1, total_samples)
     )
 
     opens = np.roll(close_prices, 1)
     opens[0] = close_prices[0]
     gap_amplitude = 0.1 * volatility * base_price
     if gap_amplitude > 0:
-        opens = opens + np.random.normal(0.0, gap_amplitude, total_samples)
+        opens = opens + rng.normal(0.0, gap_amplitude, total_samples)
 
     opens = np.clip(opens, lows, highs)
     close_prices = np.clip(close_prices, lows, highs)

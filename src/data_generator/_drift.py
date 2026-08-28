@@ -21,6 +21,7 @@ def generate_upward_drift_pattern(
     volatility: float = 0.0005,
     pullback_floor: float = 0.995,
     start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+    seed: int | None = None,
 ) -> pd.DataFrame:
     """Generate synthetic OHLCV data with strong upward drift and minimal volatility."""
     logger.info(
@@ -32,11 +33,12 @@ def generate_upward_drift_pattern(
         volatility,
     )
 
+    rng = np.random.default_rng(seed)
     dates = pd.date_range(start=pd.to_datetime(start_date), periods=n_samples, freq="h")
     steps = np.arange(n_samples)
     drift_curve = base_price * np.exp(drift_rate * steps)
 
-    noise = np.random.normal(0, volatility, n_samples)
+    noise = rng.normal(0, volatility, n_samples)
     close_prices = (
         pd.Series(drift_curve * (1 + noise))
         .rolling(window=5, min_periods=1)
@@ -54,15 +56,15 @@ def generate_upward_drift_pattern(
 
     spread_scale = max(volatility * 10, 0.001)
     highs = close_prices * (
-        1 + spread_scale * (1 + 0.1 * np.random.uniform(-1, 1, n_samples))
+        1 + spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples))
     )
     lows = close_prices * (
-        1 - spread_scale * (1 + 0.1 * np.random.uniform(-1, 1, n_samples))
+        1 - spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples))
     )
 
     opens = np.roll(close_prices, 1)
     opens[0] = close_prices[0]
-    opens = opens + np.random.normal(
+    opens = opens + rng.normal(
         0, volatility * np.mean(close_prices) * 0.1, n_samples
     )
     opens = np.clip(opens, lows, highs)
@@ -72,7 +74,7 @@ def generate_upward_drift_pattern(
     volumes = (
         base_volume
         * (1 + 0.8 * (steps / max(steps[-1], 1)))
-        * (1 + np.random.normal(0, 0.05, n_samples))
+        * (1 + rng.normal(0, 0.05, n_samples))
     )
     volumes = np.maximum(volumes, base_volume * 0.5)
 
@@ -108,6 +110,7 @@ def generate_random_walk_pattern(
     base_price: float = 50000.0,
     volatility: float = 0.001,
     start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+    seed: int | None = None,
 ) -> pd.DataFrame:
     """Generate a genuine driftless random walk: cumulative i.i.d. log-returns.
 
@@ -121,17 +124,18 @@ def generate_random_walk_pattern(
         n_samples, base_price, volatility,
     )
 
+    rng = np.random.default_rng(seed)
     dates = pd.date_range(start=pd.to_datetime(start_date), periods=n_samples, freq="h")
-    log_returns = np.random.normal(0, volatility, n_samples)
+    log_returns = rng.normal(0, volatility, n_samples)
     log_returns[0] = 0.0
     close_prices = base_price * np.exp(np.cumsum(log_returns))
 
     spread_scale = max(volatility * 10, 0.001)
     highs = close_prices * (
-        1 + spread_scale * (1 + 0.1 * np.random.uniform(-1, 1, n_samples))
+        1 + spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples))
     )
     lows = close_prices * (
-        1 - spread_scale * (1 + 0.1 * np.random.uniform(-1, 1, n_samples))
+        1 - spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples))
     )
 
     opens = np.roll(close_prices, 1)
@@ -140,7 +144,7 @@ def generate_random_walk_pattern(
     close_prices = np.clip(close_prices, lows, highs)
 
     base_volume = 1_000_000
-    volumes = base_volume * (1 + np.random.normal(0, 0.05, n_samples))
+    volumes = base_volume * (1 + rng.normal(0, 0.05, n_samples))
     volumes = np.maximum(volumes, base_volume * 0.5)
 
     df = pd.DataFrame(

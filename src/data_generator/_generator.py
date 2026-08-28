@@ -132,6 +132,7 @@ class PriceDataGenerator:
         volatility: float = 0.0,
         start_date: str = DEFAULT_SYNTHETIC_START_DATE,
         freq: str = "h",
+        seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_sine_wave_pattern(
             self.output_dir, output_file, self.logger,
@@ -143,6 +144,7 @@ class PriceDataGenerator:
             volatility=volatility,
             start_date=start_date,
             freq=freq,
+            seed=seed,
         )
 
     def generate_upward_drift_pattern(
@@ -154,6 +156,7 @@ class PriceDataGenerator:
         volatility: float = 0.0005,
         pullback_floor: float = 0.995,
         start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+        seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_upward_drift_pattern(
             self.output_dir, output_file, self.logger,
@@ -163,6 +166,7 @@ class PriceDataGenerator:
             volatility=volatility,
             pullback_floor=pullback_floor,
             start_date=start_date,
+            seed=seed,
         )
 
     def generate_random_walk_pattern(
@@ -172,6 +176,7 @@ class PriceDataGenerator:
         base_price: float = 50000.0,
         volatility: float = 0.001,
         start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+        seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_random_walk_pattern(
             self.output_dir, output_file, self.logger,
@@ -179,6 +184,7 @@ class PriceDataGenerator:
             base_price=base_price,
             volatility=volatility,
             start_date=start_date,
+            seed=seed,
         )
 
     def generate_mean_reversion_pattern(
@@ -191,6 +197,7 @@ class PriceDataGenerator:
         shock_probability: float = 0.02,
         shock_magnitude: float = 0.15,
         start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+        seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_mean_reversion_pattern(
             self.output_dir, output_file, self.logger,
@@ -201,6 +208,7 @@ class PriceDataGenerator:
             shock_probability=shock_probability,
             shock_magnitude=shock_magnitude,
             start_date=start_date,
+            seed=seed,
         )
 
     def generate_trending_pattern(
@@ -215,6 +223,7 @@ class PriceDataGenerator:
         volatility: float = 0.03,
         consolidation_prob: float = 0.2,
         start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+        seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_trending_pattern(
             self.output_dir, output_file, self.logger,
@@ -227,6 +236,7 @@ class PriceDataGenerator:
             volatility=volatility,
             consolidation_prob=consolidation_prob,
             start_date=start_date,
+            seed=seed,
         )
 
     def generate_hft_sine_wave_lob(
